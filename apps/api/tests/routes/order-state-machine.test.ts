@@ -14,7 +14,6 @@ describe('ORD-1 order state machine routes', () => {
   let app: FastifyInstance;
   let customer: string;
   let admin: string;
-  let staff: string;
   let userId: string;
   let product: Awaited<ReturnType<typeof createTestProduct>>;
   const address = {
@@ -75,11 +74,6 @@ describe('ORD-1 order state machine routes', () => {
     customer = user.token;
     userId = user.user.id;
     product = await createTestProduct({ name: 'State machine product', price: 20, stock: 5 });
-    const analyst = await createAdminWithToken();
-    staff = analyst.token;
-    await prisma.adminMembership.create({
-      data: { userId: analyst.user.id, role: 'ANALYST', status: 'ACTIVE' },
-    });
   });
   afterAll(async () => {
     await deleteAllTestOrders();
@@ -197,33 +191,4 @@ describe('ORD-1 order state machine routes', () => {
     expect((await app.inject({ method: 'GET', url: '/api/v1/admin/orders/?status=COMPLETED', headers: auth(admin) })).statusCode).toBe(400);
   });
 
-  it.each([
-    { action: 'deliver', prepare: async (id: string) => { await pay(id); await ship(id); }, payload: {} },
-    { action: 'refund', prepare: pay, payload: { idempotencyKey: 'forbidden-refund' } },
-  ])('K denies an Analyst $action without changing the order or side effects', async ({ action, prepare, payload }) => {
-    const id = await createOrder();
-    await prepare(id);
-    const before = await prisma.order.findUniqueOrThrow({ where: { id } });
-    const payments = await prisma.payment.findMany({ where: { orderId: id } });
-    const history = await prisma.orderStatusHistory.count({ where: { orderId: id } });
-    const notifications = await prisma.notification.count({ where: { relatedId: id } });
-    const refunds = await prisma.refund.count({ where: { orderId: id } });
-    const stock = (await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock;
-
-    const response = await app.inject({
-      method: 'POST',
-      url: `/api/v1/admin/orders/${id}/${action}`,
-      headers: auth(staff),
-      payload,
-    });
-    expect(response.statusCode).toBe(403);
-    expect(response.json().error.code).toBe('FORBIDDEN');
-    expect(response.json().error.message).toContain(action === 'refund' ? 'orders.refund' : 'orders.write');
-    expect(await prisma.order.findUniqueOrThrow({ where: { id } })).toEqual(before);
-    expect(await prisma.payment.findMany({ where: { orderId: id } })).toEqual(payments);
-    expect(await prisma.orderStatusHistory.count({ where: { orderId: id } })).toBe(history);
-    expect(await prisma.notification.count({ where: { relatedId: id } })).toBe(notifications);
-    expect(await prisma.refund.count({ where: { orderId: id } })).toBe(refunds);
-    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock).toBe(stock);
-  });
 });

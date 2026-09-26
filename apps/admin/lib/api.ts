@@ -800,46 +800,20 @@ export const settingsApi = {
 };
 
 // ============================================================
-// Staff Management (Admin RBAC)
+// Administrator Management
 // ============================================================
 
 export interface StaffMembership {
-  membershipId: string;
-  userId: string;
+  id: string;
   email: string;
   username: string;
   avatar?: string | null;
-  accountRole: string;
-  accountActive: boolean;
+  role: 'ADMIN';
+  isActive: boolean;
   emailVerified: boolean;
-  adminRole: string;
-  status: 'ACTIVE' | 'SUSPENDED';
-  isOwner: boolean;
-  extraPermissions: string[];
-  revokedPermissions: string[];
-  effectivePermissions: string[];
+  isInstallAdmin: boolean;
   createdAt: string;
   updatedAt: string;
-  membershipCreatedByUserId?: string | null;
-  membershipUpdatedByUserId?: string | null;
-  accountCreatedAt: string;
-  accountUpdatedAt: string;
-}
-
-export interface StaffRoleDefinition {
-  role: string;
-  label: string;
-  permissions: string[];
-}
-
-export interface StaffPermissionCatalogGroup {
-  group: string;
-  label: string;
-  permissions: Array<{
-    key: string;
-    label: string;
-    description: string;
-  }>;
 }
 
 export interface StaffAuditLogEntry {
@@ -855,18 +829,9 @@ export interface StaffAuditLogEntry {
   createdAt: string;
 }
 
-export interface StaffMutationPayload {
-  role: string;
-  status?: 'ACTIVE' | 'SUSPENDED';
-  isOwner?: boolean;
-  extraPermissions?: string[];
-  revokedPermissions?: string[];
-}
-
-export interface StaffCreatePayload extends StaffMutationPayload {
+export interface StaffCreatePayload {
   email: string;
   username: string;
-  password?: string;
 }
 
 export const staffApi = {
@@ -874,18 +839,10 @@ export const staffApi = {
     page?: number;
     limit?: number;
     search?: string;
-    role?: string;
-    status?: string;
   } = {}): Promise<ApiResponse<PageResult<StaffMembership>>> => {
     const { page = 1, limit = 20, ...filters } = params;
     return apiClient.get('/admin/staff', { params: { page, limit, ...filters } });
   },
-
-  getRoles: (): Promise<ApiResponse<StaffRoleDefinition[]>> =>
-    apiClient.get('/admin/staff/roles'),
-
-  getPermissions: (): Promise<ApiResponse<StaffPermissionCatalogGroup[]>> =>
-    apiClient.get('/admin/staff/permissions'),
 
   getByUserId: (userId: string): Promise<ApiResponse<StaffMembership>> =>
     apiClient.get(`/admin/staff/${userId}`),
@@ -895,9 +852,6 @@ export const staffApi = {
 
   create: (data: StaffCreatePayload): Promise<ApiResponse<StaffMembership>> =>
     apiClient.post('/admin/staff', data),
-
-  update: (userId: string, data: StaffMutationPayload): Promise<ApiResponse<StaffMembership>> =>
-    apiClient.patch(`/admin/staff/${userId}`, data),
 
   remove: (userId: string): Promise<ApiResponse<void>> =>
     apiClient.delete(`/admin/staff/${userId}`),

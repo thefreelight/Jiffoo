@@ -7,11 +7,13 @@ import { UploadService } from '@/core/upload/service';
 import { mapAccountRouteError } from '@/utils/route-error-mapper';
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
+import { StaffManagementError } from '@/core/admin/staff-management/service';
 import {
   uploadResultSchema,
   createTypedCrudResponses,
   createTypedReadResponses,
   createTypedUpdateResponses,
+  errorResponseSchema,
 } from '@/types/common-dto';
 
 const userProfileSchema = {
@@ -96,7 +98,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
         additionalProperties: false,
         properties: { currentPassword: { type: 'string', minLength: 1 } },
       },
-      response: createTypedUpdateResponses({
+      response: { ...createTypedUpdateResponses({
         type: 'object',
         properties: {
           deleted: { type: 'boolean' }, userId: { type: 'string' },
@@ -104,15 +106,24 @@ export async function accountRoutes(fastify: FastifyInstance) {
           message: { type: 'string' },
         },
         required: ['deleted', 'userId', 'unboundCardIds', 'message'],
-      }),
+      }), 409: errorResponseSchema },
     },
   }, async (request, reply) => {
     try {
       const userId = request.user!.id;
-      const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-      const valid = await PasswordUtils.verify((request.body as { currentPassword: string }).currentPassword, user.password);
-      if (!valid) throw new Error('Current password is incorrect');
-      await prisma.user.update({ where: { id: userId }, data: { isActive: false } });
+      await prisma.$transaction(async (tx) => {
+        const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+        const valid = await PasswordUtils.verify((request.body as { currentPassword: string }).currentPassword, user.password);
+        if (!valid) throw new Error('Current password is incorrect');
+        if (user.role === 'ADMIN') {
+          const settings = await tx.systemSettings.findUnique({ where: { id: 'system' }, select: { installedBy: true } });
+          if (settings?.installedBy === userId) {
+            throw new StaffManagementError('Cannot remove the install admin', 'INSTALL_ADMIN_PROTECTED', 409);
+          }
+          throw new StaffManagementError('Cannot remove yourself', 'SELF_REMOVAL_FORBIDDEN', 409);
+        }
+        await tx.user.update({ where: { id: userId, role: 'USER' }, data: { isActive: false } });
+      });
       return sendSuccess(reply, {
         deleted: true,
         userId,
@@ -120,6 +131,9 @@ export async function accountRoutes(fastify: FastifyInstance) {
         message: 'Your account deletion request was completed.',
       });
     } catch (error: unknown) {
+      if (error instanceof StaffManagementError) {
+        return sendError(reply, error.statusCode, error.code, error.message);
+      }
       const mapped = mapAccountRouteError(error, {
         defaultStatus: 400,
         defaultCode: 'ACCOUNT_DELETE_FAILED',

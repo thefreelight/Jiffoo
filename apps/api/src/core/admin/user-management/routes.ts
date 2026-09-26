@@ -3,15 +3,12 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { AdminUserService } from './service';
-import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
+import { AdminUserService, CustomerManagementError } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminUserSchemas } from './schemas';
 
 export async function adminUserRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all admin user routes (before schema validation)
-  fastify.addHook('onRequest', authMiddleware);
-  fastify.addHook('onRequest', requireAdmin);
 
   // Get users list
   fastify.get('/', {
@@ -86,6 +83,7 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
       const user = await AdminUserService.createUser(request.body as any);
       return sendSuccess(reply, user, undefined, 201);
     } catch (error: any) {
+      if (error instanceof CustomerManagementError) return sendError(reply, error.statusCode, error.code, error.message);
       return sendError(reply, 400, 'BAD_REQUEST', error.message);
     }
   });
@@ -105,6 +103,7 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
       const user = await AdminUserService.updateUser(id, request.body as any);
       return sendSuccess(reply, user);
     } catch (error: any) {
+      if (error instanceof CustomerManagementError) return sendError(reply, error.statusCode, error.code, error.message);
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -127,6 +126,7 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
         deleted: result.deleted,
       }, 'User permanently deleted');
     } catch (error: any) {
+      if (error instanceof CustomerManagementError) return sendError(reply, error.statusCode, error.code, error.message);
       if (error.code === 'P2025' || error.message === 'User not found') {
         return sendError(reply, 404, 'NOT_FOUND', 'User not found');
       }

@@ -282,21 +282,6 @@ export interface UserForm {
   isActive: boolean
 }
 
-// Permission types
-export interface Permission {
-  id: string
-  resource: string
-  action: string
-  description?: string
-}
-
-export interface Role {
-  id: string
-  name: string
-  description?: string
-  permissions: Permission[]
-}
-
 // Plugin types
 export interface Plugin {
   name: string

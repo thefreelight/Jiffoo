@@ -15,7 +15,6 @@ export * from './events/core-events';
 export * from './schemas/auth';
 export * from './schemas/product';
 export * from './schemas/order';
-export * from './security/admin-rbac';
 
 // Utilities
 export * from './utils/constants';

@@ -56,16 +56,6 @@ export interface UserProfile {
   preferredLanguage?: string;
   timezone?: string;
   role: string;
-  permissions?: string[];
-  // Resolved admin identity (present for staff/admin accounts)
-  adminRole?: string | null;
-  adminStatus?: string | null;
-  isOwner?: boolean;
-  admin?: {
-    role: string;
-    status: string;
-    isOwner?: boolean;
-  } | null;
   isActive: boolean;
   requiresPasswordRotation?: boolean;
   createdAt: string;

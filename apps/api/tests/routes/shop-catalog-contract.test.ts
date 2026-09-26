@@ -144,9 +144,8 @@ describe('Shop catalog contract', () => {
     }
   })
 
-  it('N category writes deny staff without products.write', async () => {
-    const { token, user } = await createUserWithToken()
-    await db.adminMembership.create({ data: { userId: user.id, role: 'SUPPORT_AGENT', status: 'ACTIVE' } })
+  it('N category writes deny customer accounts', async () => {
+    const { token } = await createUserWithToken()
     const group = await category()
     for (const [method, url, payload] of [
       ['POST', '/api/v1/admin/products/categories', { name: 'Denied', slug: `denied-${randomUUID()}` }],

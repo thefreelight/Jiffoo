@@ -210,14 +210,15 @@ Blocked by: process-level exception handlers with extension attribution
 - Customers must log in to add to cart and to check out; there are no guest accounts. Browsing does not require login.
 - Email is a notification, never a gate: delivery failure never blocks registration, login or ordering, and unverified accounts can log in and order.
 - Core decides when and what to notify; delivery goes through the notification contract; notifications are persisted and delivered asynchronously with retry. The default provider is the builtin console email; the first real email extension is generic SMTP.
-- Admin has a notification log with resend, can generate a password-reset link for a customer, and shows staff invitation links. Storefront copy never claims an email was sent.
+- V1 has two account roles, customer and admin; every active admin has full Admin access. Fine-grained Admin permissions are a future value-add outside Core V1.
+- Admin has a notification log with resend, can generate a password-reset link for a customer, and shows administrator invitation links. Storefront copy never claims an email was sent.
 - Manual payment, free shipping, zero tax, manual fulfillment and console email are real builtin packages installed on first start and handled through the normal install, enable and gateway path. Core asks a payment method for its capabilities (manual confirmation, unpaid timeout), never its identity. Unpaid-order timeout is per payment method; payment instructions live in the plugin settings and appear on the thank-you page and in email.
 - Installing a plugin never enables it; enabling goes through the single Admin enable transition. Builtins are enabled on first install only.
 - Builtin trust is decided only by source (shipped with Core), never by the package manifest.
 - Store locales: en, zh-Hans, zh-Hant.
 - Each account has a preferred language (en, zh-Hans, zh-Hant) used for all its notifications.
 - Admin cannot set a customer's password; it can only generate a reset link.
-- ADMIN_URL is a second required production env var, used for staff links.
+- ADMIN_URL is a second required production env var, used for administrator invitation links.
 - The Admin system health page is a status summary; there is no metrics dashboard.
 - Verification runs locally with pnpm verify; GitHub CI runs only when triggered manually.
 

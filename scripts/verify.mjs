@@ -127,7 +127,7 @@ const steps = quick
       ['Type-check API, Shop and shared', [['exec', 'turbo', 'run', 'type-check', '--filter=api', '--filter=shop', '--filter=shared']]],
       ['Lint Shop', [['--filter', 'shop', 'lint']]],
       ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
-      ['Run changed API tests', [['--filter', 'api', 'exec', 'vitest', 'run', '--changed']]],
+      ['Run changed API tests', [['--filter', 'api', 'exec', 'vitest', 'run', '--changed', '--passWithNoTests']]],
       ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
     ]
   : [
@@ -197,6 +197,10 @@ function printSummary(summary, outputs) {
   for (const { name, kind, output } of outputs) {
     lines.push(`${name}:`);
     const outputLines = output.replace(/\x1b\[[0-9;]*m/g, '').split(/\r?\n/);
+    if (name === 'Run changed API tests' && outputLines.some((line) => line.includes('No test files found'))) {
+      lines.push('No changed API test files');
+      continue;
+    }
     const expected = kind === 'vitest'
       ? ['Start at', 'Test Files', 'Tests']
       : ['Playwright start time', 'Playwright results'];

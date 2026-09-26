@@ -11,6 +11,7 @@ import {
   createTypedUpdateResponses,
   createTypedDeleteResponses,
   createPageResultSchema,
+  errorResponseSchema,
 } from '@/types/common-dto';
 
 // ============================================================================
@@ -143,7 +144,7 @@ export const adminUserSchemas = {
         isActive: { type: 'boolean', description: 'Account active status' },
       },
     },
-    response: createTypedUpdateResponses(userSchema),
+    response: { ...createTypedUpdateResponses(userSchema), 409: errorResponseSchema },
   },
 
   // DELETE /api/admin/users/:id
@@ -155,7 +156,7 @@ export const adminUserSchemas = {
         id: { type: 'string', description: 'User ID to delete' },
       },
     },
-    response: createTypedDeleteResponses(deleteUserResultSchema),
+    response: { ...createTypedDeleteResponses(deleteUserResultSchema), 409: errorResponseSchema },
   },
 
 } as const;

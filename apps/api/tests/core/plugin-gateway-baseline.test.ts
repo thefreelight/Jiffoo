@@ -17,7 +17,7 @@ import path from 'path';
 import os from 'os';
 import { promises as fs } from 'fs';
 import { createTestApp } from '../helpers/create-test-app';
-import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
+import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 
@@ -75,7 +75,15 @@ module.exports = { register(ctx) {
     caller: request.headers['x-caller'] || null,
     userId: request.headers['x-user-id'] || null,
     userRole: request.headers['x-user-role'] || null,
-    platformId: request.headers['x-platform-id'] || null
+    platformId: request.headers['x-platform-id'] || null,
+    platformVersion: request.headers['x-platform-version'] || null,
+    apiBaseUrl: request.headers['x-platform-api-base-url'] || null,
+    installationId: request.headers['x-installation-id'] || null,
+    installationKey: request.headers['x-installation-key'] || null,
+    pluginSlug: request.headers['x-plugin-slug'] || null,
+    pluginConfig: request.headers['x-plugin-config'] || null,
+    requestId: request.headers['x-request-id'] || null,
+    locale: request.headers['x-locale'] || null
   }) });
 } };
       `.trim(),
@@ -171,6 +179,51 @@ module.exports = { register(ctx) {
     expect(body.userId).toBe(adminUserId);
     expect(body.userRole).toBe('ADMIN');
   });
+
+  it.each(['customer', 'anonymous'] as const)(
+    'J gateway replaces spoofed identity headers from a %s caller',
+    async (caller) => {
+      const customer = caller === 'customer' ? await createUserWithToken() : null;
+      const response = await app.inject({
+        method: 'GET', url: `/api/v1/extensions/plugin/${slug}/api/headers`,
+        headers: {
+          ...(customer ? { authorization: `Bearer ${customer.token}` } : {}),
+          'x-user-role': 'ADMIN', 'x-user-id': 'spoofed-user',
+          'x-caller': 'admin', 'x-plugin-slug': 'spoofed-plugin',
+          'x-plugin-config': 'spoofed-config', 'x-installation-id': 'spoofed-installation',
+          'x-installation-key': 'spoofed-key', 'x-request-id': 'spoofed-request',
+          'x-locale': 'spoofed-locale', 'x-platform-id': 'spoofed-platform',
+          'x-platform-version': 'spoofed-version',
+        },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({
+        userId: customer?.user.id || null,
+        userRole: customer ? 'USER' : 'guest',
+        pluginSlug: slug, installationKey: 'default',
+        platformId: process.env.PLATFORM_ID || 'single-store',
+        platformVersion: process.env.PLATFORM_VERSION || '1.0.0',
+      });
+      for (const value of Object.values(response.json())) expect(String(value)).not.toMatch(/^spoofed-/);
+    },
+  );
+
+  it.each(['customer', 'anonymous'] as const)(
+    'K gateway uses server API base URL despite a %s caller spoofing it',
+    async (caller) => {
+      const customer = caller === 'customer' ? await createUserWithToken() : null;
+      const response = await app.inject({
+        method: 'GET', url: `/api/v1/extensions/plugin/${slug}/api/headers`,
+        headers: {
+          ...(customer ? { authorization: `Bearer ${customer.token}` } : {}),
+          'x-platform-api-base-url': 'https://attacker.example/api/v1',
+        },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().apiBaseUrl).toBe(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1');
+      expect(response.json().apiBaseUrl).not.toBe('https://attacker.example/api/v1');
+    },
+  );
 
   // --- Plugin 404 ---
 

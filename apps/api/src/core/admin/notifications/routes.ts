@@ -1,8 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { NotificationStatus } from '@prisma/client';
-import { ADMIN_PERMISSIONS, hasAdminPermission } from 'shared';
 import { prisma } from '@/config/database';
-import { authMiddleware, requirePermission } from '@/core/auth/middleware';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { sendError, sendSuccess } from '@/utils/response';
 import { createTypedCreateResponses, createTypedReadResponses, errorResponseSchema } from '@/types/common-dto';
@@ -45,9 +43,7 @@ const publicFields = {
 } as const;
 
 export async function adminNotificationRoutes(fastify: FastifyInstance) {
-  fastify.addHook('onRequest', authMiddleware);
   fastify.get('/', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.ORDERS_READ)],
     schema: {
       tags: ['admin-notifications'], security: [{ bearerAuth: [] }],
       querystring: {
@@ -71,7 +67,6 @@ export async function adminNotificationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get('/:id', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.ORDERS_READ)],
     schema: {
       tags: ['admin-notifications'], security: [{ bearerAuth: [] }],
       params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
@@ -84,7 +79,6 @@ export async function adminNotificationRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/:id/resend', {
-    preHandler: [requirePermission()],
     schema: {
       tags: ['admin-notifications'], security: [{ bearerAuth: [] }],
       params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
@@ -96,14 +90,6 @@ export async function adminNotificationRoutes(fastify: FastifyInstance) {
     if (!original) return sendError(reply, 404, 'NOT_FOUND', 'Notification not found');
     if (original.type === 'password_reset') {
       return sendError(reply, 409, 'NOT_RESENDABLE', 'Password reset notifications cannot be resent');
-    }
-    const permission = original.type === 'staff_invite'
-      ? ADMIN_PERMISSIONS.STAFF_WRITE
-      : original.type === 'email_verification'
-        ? ADMIN_PERMISSIONS.CUSTOMERS_WRITE
-        : ADMIN_PERMISSIONS.ORDERS_WRITE;
-    if (!hasAdminPermission(request.user?.permissions, permission)) {
-      return sendError(reply, 403, 'FORBIDDEN', `Missing permission: ${permission}`);
     }
     let resentId: string;
     if (original.type === 'email_verification' || original.type === 'staff_invite') {

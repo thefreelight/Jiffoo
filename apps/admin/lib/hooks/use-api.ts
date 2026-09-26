@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient, PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { apiClient, PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, HealthSummaryResponse } from '../types';
 import { PageResult } from 'shared';
@@ -51,8 +51,6 @@ export const queryKeys = {
   userStats: ['user-stats'] as const,
   staff: ['staff'] as const,
   staffMember: (userId: string) => ['staff', userId] as const,
-  staffRoles: ['staff-roles'] as const,
-  staffPermissions: ['staff-permissions'] as const,
   staffAuditLogs: (userId: string, page: number, limit: number) => ['staff', userId, 'audit', page, limit] as const,
   dashboardStats: ['dashboard-stats'] as const,
   salesStats: (period: string) => ['sales-stats', period] as const,
@@ -474,15 +472,13 @@ export function useUpdateUser() {
 }
 
 // ============================================================
-// Staff management hooks (Admin RBAC)
+// Administrator management hooks
 // ============================================================
 
 export function useStaff(params: {
   page?: number;
   limit?: number;
   search?: string;
-  role?: string;
-  status?: string;
 } = {}) {
   return useQuery({
     queryKey: [...queryKeys.staff, params],
@@ -511,28 +507,6 @@ export function useStaffMember(userId: string) {
       return unwrapApiResponse(response);
     },
     enabled: Boolean(userId),
-  });
-}
-
-export function useStaffRoles() {
-  return useQuery({
-    queryKey: queryKeys.staffRoles,
-    queryFn: async () => {
-      const response = await staffApi.getRoles();
-      return unwrapApiResponse(response);
-    },
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-export function useStaffPermissions() {
-  return useQuery({
-    queryKey: queryKeys.staffPermissions,
-    queryFn: async () => {
-      const response = await staffApi.getPermissions();
-      return unwrapApiResponse(response);
-    },
-    staleTime: 10 * 60 * 1000,
   });
 }
 
@@ -567,27 +541,7 @@ export function useCreateStaff() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
-      toast.success('Staff member created successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useUpdateStaff() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ userId, data }: { userId: string; data: StaffMutationPayload }) => {
-      const response = await staffApi.update(userId, data);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, { userId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
-      queryClient.invalidateQueries({ queryKey: queryKeys.staffMember(userId) });
-      toast.success('Staff member updated successfully');
+      toast.success('Administrator invited');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -607,7 +561,7 @@ export function useRemoveStaff() {
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
       queryClient.removeQueries({ queryKey: queryKeys.staffMember(userId) });
-      toast.success('Staff access removed');
+      toast.success('Administrator removed');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));

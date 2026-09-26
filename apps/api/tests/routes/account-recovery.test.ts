@@ -111,7 +111,7 @@ describe('Account recovery', () => {
 
   it('keeps verification and invitation tokens independent and accepts an invitation within 72 hours', async () => {
     const account = await user();
-    await prisma.user.update({ where: { id: account.id }, data: { emailVerified: false } });
+    await prisma.user.update({ where: { id: account.id }, data: { role: 'ADMIN', isActive: false, emailVerified: false } });
     const [verify, invite] = await prisma.$transaction(async (tx) => [
       await issueAuthToken(tx, account.id, 'EMAIL_VERIFICATION', '123456'),
       await issueAuthToken(tx, account.id, 'STAFF_INVITE'),
@@ -126,6 +126,8 @@ describe('Account recovery', () => {
     expect(accepted.statusCode).toBe(200);
     const updated = await prisma.user.findUniqueOrThrow({ where: { id: account.id } });
     expect(updated.emailVerified).toBe(true);
+    expect(updated.isActive).toBe(true);
+    expect(updated.role).toBe('ADMIN');
     expect(await PasswordUtils.verify('InvitedPassword123!', updated.password)).toBe(true);
     expect((await prisma.authToken.findUniqueOrThrow({ where: { id: invitation.id } })).consumedAt).not.toBeNull();
     expect((await app.inject({

@@ -3,7 +3,6 @@ import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import { randomUUID } from 'crypto';
-import { ADMIN_PERMISSIONS, DEFAULT_ADMIN_ROLE_PERMISSIONS } from 'shared';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { envSchema, env } from '@/config/env';
@@ -296,7 +295,7 @@ describe('Persisted notifications', () => {
     }
   });
 
-  it('lists redacted detail and resends under Admin permissions', async () => {
+  it('lists redacted detail and resends for an administrator', async () => {
     const item = await pending();
     const headers = { authorization: `Bearer ${adminToken}` };
     const forbidden = await app.inject({ method: 'GET', url: '/api/v1/admin/notifications', headers: { authorization: `Bearer ${customerToken}` } });
@@ -309,35 +308,6 @@ describe('Persisted notifications', () => {
     const resend = await app.inject({ method: 'POST', url: `/api/v1/admin/notifications/${item.id}/resend`, headers });
     expect(resend.statusCode).toBe(201);
     expect(resend.json().data.resentFromId).toBe(item.id);
-  });
-
-  it('allows orders.write to resend an order notification but not a staff invitation', async () => {
-    const actor = await createAdminWithToken();
-    await prisma.adminMembership.create({
-      data: {
-        userId: actor.user.id,
-        role: 'ANALYST',
-        revokedPermissions: [...DEFAULT_ADMIN_ROLE_PERMISSIONS.ANALYST],
-        extraPermissions: [ADMIN_PERMISSIONS.ORDERS_WRITE],
-      },
-    });
-    const recipient = await createUserWithToken({ emailVerified: false });
-    expect(await EmailVerificationService.sendStaffInvitationEmail(recipient.user.id, recipient.user.email, recipient.user.username)).toEqual({ success: true });
-    const invitation = await prisma.notification.findFirstOrThrow({
-      where: { recipientUserId: recipient.user.id, type: 'staff_invite' },
-    });
-    const order = await pending();
-    const headers = { authorization: `Bearer ${actor.token}` };
-    const forbidden = await app.inject({
-      method: 'POST', url: `/api/v1/admin/notifications/${invitation.id}/resend`, headers,
-    });
-    expect(forbidden.statusCode).toBe(403);
-    expect(await prisma.notification.count({ where: { resentFromId: invitation.id } })).toBe(0);
-    const allowed = await app.inject({
-      method: 'POST', url: `/api/v1/admin/notifications/${order.id}/resend`, headers,
-    });
-    expect(allowed.statusCode).toBe(201);
-    expect(allowed.json().data.resentFromId).toBe(order.id);
   });
 
   it('Admin verification resend replaces the token and the fixture receives the working link', async () => {

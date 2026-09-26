@@ -3,7 +3,6 @@ import type { FastifyInstance } from 'fastify';
 import { createMinimalTestApp } from '../helpers/create-test-app';
 import { getTestPrisma } from '../helpers/db';
 import { installRoutes } from '@/core/install/routes';
-import { resetInstallationCache } from '@/core/install/middleware';
 
 describe('Install re-submission', () => {
   const prisma = getTestPrisma();
@@ -18,11 +17,10 @@ describe('Install re-submission', () => {
   afterAll(async () => {
     await prisma.systemSettings.deleteMany({ where: { id: 'system', installedBy: ownerId } });
     if (ownerId) await prisma.user.delete({ where: { id: ownerId } });
-    resetInstallationCache();
     await app.close();
   });
 
-  it('rejects a second completion without creating users or OWNER memberships', async () => {
+  it('rejects a second completion without creating another administrator', async () => {
     const first = await app.inject({
       method: 'POST',
       url: '/api/v1/install/complete',
@@ -39,10 +37,8 @@ describe('Install re-submission', () => {
       where: { email: 'install-resubmission@example.com' },
     })).id;
     const usersBefore = await prisma.user.count();
-    const ownersBefore = await prisma.adminMembership.count({ where: { role: 'OWNER', isOwner: true } });
-    expect(await prisma.adminMembership.count({
-      where: { userId: ownerId, role: 'OWNER', isOwner: true },
-    })).toBe(1);
+    const adminsBefore = await prisma.user.count({ where: { role: 'ADMIN' } });
+    expect((await prisma.systemSettings.findUniqueOrThrow({ where: { id: 'system' } })).installedBy).toBe(ownerId);
 
     const second = await app.inject({
       method: 'POST',
@@ -57,6 +53,6 @@ describe('Install re-submission', () => {
     expect(second.statusCode).toBe(400);
     expect(second.json()).toMatchObject({ success: false, error: 'System is already installed' });
     expect(await prisma.user.count()).toBe(usersBefore);
-    expect(await prisma.adminMembership.count({ where: { role: 'OWNER', isOwner: true } })).toBe(ownersBefore);
+    expect(await prisma.user.count({ where: { role: 'ADMIN' } })).toBe(adminsBefore);
   });
 });

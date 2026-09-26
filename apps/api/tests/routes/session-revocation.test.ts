@@ -75,18 +75,6 @@ describe('Session revocation', () => {
     expect((await refresh(fresh.refresh_token)).statusCode).toBe(200);
   });
 
-  it('revokes tokens issued before invitation acceptance', async () => {
-    const user = await account();
-    const old = await login(user.email);
-    const invite = await prisma.$transaction((tx) => issueAuthToken(tx, user.id, 'STAFF_INVITE'));
-    const accepted = await app.inject({
-      method: 'POST', url: `${authUrl}/accept-invite`,
-      payload: { token: invite, password: 'NewPassword123!' },
-    });
-    expect(accepted.statusCode).toBe(200);
-    await revoked(old);
-  });
-
   it('rejects signed access and refresh tokens missing sv', async () => {
     const user = await account();
     const access = jwt.sign({ userId: user.id, email: user.email, role: user.role }, env.JWT_SECRET);

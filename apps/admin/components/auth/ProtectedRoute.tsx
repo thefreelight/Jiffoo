@@ -9,26 +9,18 @@
 import { useEffect, ReactNode, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
-import {
-  canAccessAnyPermission,
-  getFirstAccessibleAdminPath,
-  getRequiredPermissionsForAdminPath,
-  hasAdminWorkspaceAccess,
-} from '@/lib/admin-access'
+import { hasAdminWorkspaceAccess } from '@/lib/admin-access'
 import { Loader2 } from 'lucide-react'
 import { useT, useLocale } from 'shared/src/i18n/react'
-import type { AdminPermission } from 'shared'
 
 interface ProtectedRouteProps {
   children: ReactNode
   requireAdmin?: boolean
-  requiredPermissions?: readonly AdminPermission[]
 }
 
 export default function ProtectedRoute({
   children,
   requireAdmin = false,
-  requiredPermissions,
 }: ProtectedRouteProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -36,10 +28,7 @@ export default function ProtectedRoute({
   const [hasInitialized, setHasInitialized] = useState(false)
   const t = useT()
   const locale = useLocale()
-  const resolvedPermissions = requiredPermissions
-    ?? (requireAdmin ? getRequiredPermissionsForAdminPath(pathname, locale) : undefined)
   const hasAdminAccess = hasAdminWorkspaceAccess(user)
-  const hasRequiredPermissions = canAccessAnyPermission(user, resolvedPermissions)
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -55,10 +44,8 @@ export default function ProtectedRoute({
       setHasInitialized(true)
     }
 
-    if (!hasInitialized) {
-      initAuth()
-    }
-  }, [checkAuth, hasInitialized])
+    void initAuth()
+  }, [checkAuth, pathname])
 
   useEffect(() => {
     // Only perform redirect judgment when initialization is complete and not in loading state
@@ -77,11 +64,6 @@ export default function ProtectedRoute({
         return
       }
 
-      if (requireAdmin && resolvedPermissions && !hasRequiredPermissions) {
-        console.warn('Access denied - missing permissions:', resolvedPermissions, 'role:', user?.role)
-        return
-      }
-
       if (
         user?.requiresPasswordRotation &&
         pathname !== `/${locale}/profile` &&
@@ -94,14 +76,12 @@ export default function ProtectedRoute({
   }, [
     hasAdminAccess,
     hasInitialized,
-    hasRequiredPermissions,
     isAuthenticated,
     isChecking,
     isLoading,
     locale,
     pathname,
     requireAdmin,
-    resolvedPermissions,
     router,
     user,
   ])
@@ -130,7 +110,7 @@ export default function ProtectedRoute({
     )
   }
 
-  // Permission check
+  // Admin account check
   if (requireAdmin && !hasAdminAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -139,29 +119,6 @@ export default function ProtectedRoute({
             <h2 className="text-lg font-semibold text-red-800 mb-2">{getText('merchant.auth.accessDenied', 'Access Denied')}</h2>
             <p className="text-red-600">{getText('merchant.auth.noPermission', 'You do not have permission to access this page. Admin privileges required.')}</p>
             <p className="text-sm text-gray-500 mt-2">{getText('merchant.auth.currentRole', 'Current role')}: {user?.role || getText('common.unknown', 'Unknown')}</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (requireAdmin && resolvedPermissions && !hasRequiredPermissions) {
-    const landingPath = getFirstAccessibleAdminPath(user, locale)
-
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-            <h2 className="text-lg font-semibold text-red-800 mb-2">{getText('merchant.auth.accessDenied', 'Access Denied')}</h2>
-            <p className="text-red-600">{getText('merchant.auth.noPermission', 'You do not have permission to access this page.')}</p>
-            <p className="text-sm text-gray-500 mt-2">{getText('merchant.auth.currentRole', 'Current role')}: {user?.role || getText('common.unknown', 'Unknown')}</p>
-            <button
-              type="button"
-              onClick={() => router.replace(landingPath)}
-              className="mt-4 inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
-            >
-              {getText('merchant.auth.backToDashboard', 'Go to an accessible page')}
-            </button>
           </div>
         </div>
       </div>

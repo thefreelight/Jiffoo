@@ -33,6 +33,7 @@ import { installRoutes } from '@/core/install/routes';
 
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
+import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 // Store routes
 import { storeRoutes } from '@/core/store/routes';
 
@@ -48,22 +49,22 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(accountRoutes, { prefix: '/account' });
 
   // Admin routes
-  await fastify.register(adminUserRoutes, { prefix: '/admin/users' });
-  await fastify.register(customerPasswordResetLinkRoutes, { prefix: '/admin/customers' });
-  await fastify.register(adminProductRoutes, { prefix: '/admin/products' });
-  await fastify.register(adminOrderRoutes, { prefix: '/admin/orders' });
-  await fastify.register(adminNotificationRoutes, { prefix: '/admin/notifications' });
-  await fastify.register(adminStaffRoutes, { prefix: '/admin/staff' });
-  await fastify.register(adminInventoryRoutes, { prefix: '/admin/inventory' });
-  await fastify.register(systemSettingsRoutes, { prefix: '/admin' });
-
-  // API Token management (admin only)
-  await fastify.register(apiTokenRoutes, { prefix: '/admin/api-tokens' });
-
-  // Dashboard routes
-  await fastify.register(adminDashboardRoutes, { prefix: '/admin' });
-  await fastify.register(healthMonitoringRoutes, { prefix: '/admin' });
-  await fastify.register(webhookRoutes, { prefix: '/admin/webhooks' });
+  await fastify.register(async (admin) => {
+    admin.addHook('onRequest', authMiddleware);
+    admin.addHook('onRequest', requireAdmin);
+    await admin.register(adminUserRoutes, { prefix: '/users' });
+    await admin.register(customerPasswordResetLinkRoutes, { prefix: '/customers' });
+    await admin.register(adminProductRoutes, { prefix: '/products' });
+    await admin.register(adminOrderRoutes, { prefix: '/orders' });
+    await admin.register(adminNotificationRoutes, { prefix: '/notifications' });
+    await admin.register(adminStaffRoutes, { prefix: '/staff' });
+    await admin.register(adminInventoryRoutes, { prefix: '/inventory' });
+    await admin.register(systemSettingsRoutes);
+    await admin.register(apiTokenRoutes, { prefix: '/api-tokens' });
+    await admin.register(adminDashboardRoutes);
+    await admin.register(healthMonitoringRoutes);
+    await admin.register(webhookRoutes, { prefix: '/webhooks' });
+  }, { prefix: '/admin' });
 
   // Store context routes
   await fastify.register(storeRoutes, { prefix: '/store' });

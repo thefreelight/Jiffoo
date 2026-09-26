@@ -8,7 +8,6 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
 import { WebhookSubscriptionService } from './subscription-service';
 
@@ -18,8 +17,6 @@ import { WebhookSubscriptionService } from './subscription-service';
 
 export async function webhookRoutes(fastify: FastifyInstance) {
   // All routes require admin authentication
-  fastify.addHook('onRequest', authMiddleware);
-  fastify.addHook('onRequest', requireAdmin);
 
   // ==========================================================================
   // Subscriptions

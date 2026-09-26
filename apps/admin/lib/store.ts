@@ -70,10 +70,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         lastName: userData.lastName,
         avatar: userData.avatar,
         role: tokenPayload?.role || userData.role as any,
-        permissions: userData.permissions,
-        adminRole: userData.adminRole,
-        adminStatus: userData.adminStatus,
-        isOwner: userData.isOwner,
         isActive: userData.isActive,
         requiresPasswordRotation: extendedUserData.requiresPasswordRotation ?? false,
         createdAt: userData.createdAt,
@@ -99,7 +95,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   checkAuth: async () => {
     const currentState = get()
     if (currentState.isChecking) return
-    if (currentState.isAuthenticated && currentState.user) return
 
     if (!apiClient.isAuthenticated()) {
       set({ isAuthenticated: false, isLoading: false, isChecking: false })
@@ -121,10 +116,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         lastName: userData.lastName,
         avatar: userData.avatar,
         role: userData.role as any,
-        permissions: userData.permissions,
-        adminRole: userData.adminRole,
-        adminStatus: userData.adminStatus,
-        isOwner: userData.isOwner,
         isActive: userData.isActive,
         requiresPasswordRotation: extendedUserData.requiresPasswordRotation ?? false,
         createdAt: userData.createdAt,

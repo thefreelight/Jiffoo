@@ -21,9 +21,6 @@ import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { UserRole } from '@/lib/types'
 import { GenerateResetLinkDialog } from '@/components/customers/generate-reset-link-dialog'
-import { ADMIN_PERMISSIONS } from 'shared'
-import { canAccessAnyPermission } from '@/lib/admin-access'
-import { useAuthStore } from '@/lib/store'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
 import { UserAvatar } from '@/components/ui/user-avatar'
 
@@ -34,8 +31,6 @@ export default function CustomerDetailPage() {
   const userId = params.id as string
   const t = useT()
   const { toast } = useToast()
-  const { user: currentUser } = useAuthStore()
-  const canGenerateResetLink = canAccessAnyPermission(currentUser, [ADMIN_PERMISSIONS.CUSTOMERS_CREDENTIALS_RESET])
   const { data: dashboardData } = useAdminDashboard()
   const currency = dashboardData?.metrics?.currency
 
@@ -193,7 +188,7 @@ export default function CustomerDetailPage() {
             </>
           ) : (
             <>
-              {canGenerateResetLink && (
+              {(
                 <Button
                   variant="outline"
                   className="h-10 px-6 rounded-xl border border-gray-200 font-semibold text-sm hover:bg-gray-50 flex items-center gap-2"
@@ -456,7 +451,7 @@ export default function CustomerDetailPage() {
         </div>
       </div>
 
-      {canGenerateResetLink && (
+      {(
         <GenerateResetLinkDialog
           open={resetPasswordDialogOpen}
           onOpenChange={setResetPasswordDialogOpen}

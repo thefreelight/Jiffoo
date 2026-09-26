@@ -4,12 +4,9 @@
 
 import { FastifyInstance } from 'fastify';
 import { HealthMonitoringService } from './service';
-import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 import { sendError, sendSuccess } from '@/utils/response';
 
 export async function healthMonitoringRoutes(fastify: FastifyInstance) {
-  fastify.addHook('onRequest', authMiddleware);
-  fastify.addHook('onRequest', requireAdmin);
 
   fastify.get('/health/summary', {
     schema: {

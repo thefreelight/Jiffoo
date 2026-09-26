@@ -162,74 +162,53 @@ export class InstallService {
 
   static async completeInstallation(data: InstallData): Promise<{ success: boolean; error?: string }> {
     try {
-      const status = await this.checkInstallationStatus();
-      if (status.isInstalled) {
-        return { success: false, error: 'System is already installed' };
-      }
-
       const runtimeVersion = resolveCurrentVersion();
-
-      // Create admin user account
       const hashedPassword = await bcrypt.hash(data.adminPassword, 10);
-      const existingAdmin = await prisma.user.findFirst({
-        where: { email: data.adminEmail }
-      });
+      return await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(9131472026)::text`;
+        const settings = await tx.systemSettings.findUnique({ where: { id: 'system' } });
+        if (settings?.isInstalled) return { success: false, error: 'System is already installed' };
 
-      let adminUser;
-      if (!existingAdmin) {
-        adminUser = await prisma.user.create({
+        const email = data.adminEmail.trim().toLowerCase();
+        const existingAdmin = await tx.user.findUnique({ where: { email } });
+        if (existingAdmin && existingAdmin.role !== 'ADMIN') {
+          return { success: false, error: 'Email belongs to a customer' };
+        }
+        const adminUser = existingAdmin || await tx.user.create({
           data: {
-            email: data.adminEmail,
-            username: data.adminUsername || data.adminEmail.split('@')[0],
+            email,
+            username: data.adminUsername || email.split('@')[0],
             password: hashedPassword,
             role: 'ADMIN',
             isActive: true,
-          }
+          },
         });
-      } else {
-        adminUser = existingAdmin;
-      }
-
-      await prisma.adminMembership.upsert({
-        where: { userId: adminUser.id },
-        create: { userId: adminUser.id, role: 'OWNER', isOwner: true, status: 'ACTIVE' },
-        update: { role: 'OWNER', isOwner: true, status: 'ACTIVE' },
+        const installedSettings = {
+          'branding.platform_name': data.siteName,
+          'localization.locale': 'en',
+          'auth.bootstrap.admin': {
+            mode: 'normal',
+            showDemoCredentials: false,
+            requiresPasswordRotation: false,
+            email,
+            updatedAt: new Date().toISOString(),
+          },
+        };
+        await tx.systemSettings.upsert({
+          where: { id: 'system' },
+          create: {
+            id: 'system', isInstalled: true, installedAt: new Date(),
+            installedBy: adminUser.id, siteDescription: data.siteDescription,
+            settings: installedSettings, version: runtimeVersion,
+          },
+          update: {
+            isInstalled: true, installedAt: new Date(),
+            installedBy: adminUser.id, siteDescription: data.siteDescription,
+            settings: installedSettings, version: runtimeVersion,
+          },
+        });
+        return { success: true };
       });
-
-      // Update system settings
-      const installedSettings = {
-        'branding.platform_name': data.siteName,
-        'localization.locale': 'en',
-        'auth.bootstrap.admin': {
-          mode: 'normal',
-          showDemoCredentials: false,
-          requiresPasswordRotation: false,
-          email: data.adminEmail,
-          updatedAt: new Date().toISOString(),
-        },
-      };
-      await prisma.systemSettings.upsert({
-        where: { id: 'system' },
-        create: {
-          id: 'system',
-          isInstalled: true,
-          installedAt: new Date(),
-          installedBy: adminUser.id,
-          siteDescription: data.siteDescription,
-          settings: installedSettings,
-          version: runtimeVersion,
-        },
-        update: {
-          isInstalled: true,
-          installedAt: new Date(),
-          installedBy: adminUser.id,
-          siteDescription: data.siteDescription,
-          settings: installedSettings,
-          version: runtimeVersion,
-        }
-      });
-
-      return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };
     }

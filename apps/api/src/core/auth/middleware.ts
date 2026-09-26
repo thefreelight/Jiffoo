@@ -3,8 +3,6 @@ import { JwtUtils } from '@/utils/jwt';
 import { sendError } from '@/utils/response';
 import { findAuthIdentityById } from './user-compat';
 import { ApiTokenService, type ApiTokenScope } from './api-token';
-import { hasAdminPermission, type AdminPermission } from '@shared/security';
-import { findResolvedAdminAccessForUser } from './admin-membership-compat';
 
 /**
  * Auth Middleware
@@ -45,8 +43,6 @@ export async function authMiddleware(
       return sendError(reply, 403, 'FORBIDDEN', 'Account is inactive');
     }
 
-    // Simplified permission system: Role based permissions
-    const permissions = user.role === 'ADMIN' ? ['*'] : [];
     const roles = [user.role];
 
     request.user = {
@@ -56,7 +52,6 @@ export async function authMiddleware(
       username: user.username || user.email.split('@')[0],
       role: user.role,
       emailVerified: user.emailVerified,
-      permissions,
       roles,
     };
 
@@ -93,7 +88,6 @@ export async function optionalAuthMiddleware(
         username: user.username || user.email.split('@')[0],
         role: user.role,
         emailVerified: user.emailVerified,
-        permissions: user.role === 'ADMIN' ? ['*'] : [],
         roles: [user.role],
       };
     }
@@ -117,42 +111,6 @@ export async function requireAdmin(
   if (request.user.role !== 'ADMIN') {
     return sendError(reply, 403, 'FORBIDDEN', 'Admin access required');
   }
-}
-
-/**
- * Admin permission middleware factory.
- *
- * Resolves the caller's admin access (AdminMembership row, falling back to the
- * legacy `users.role` mapping for pre-membership databases), stamps the
- * resolved identity onto `request.user` for downstream handlers, then checks
- * the required permissions.
- */
-export function requirePermission(...requiredPermissions: AdminPermission[]) {
-  return async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!request.user) {
-      return sendError(reply, 401, 'UNAUTHORIZED', 'Authentication required');
-    }
-
-    const access = await findResolvedAdminAccessForUser(request.user.id, request.user.role);
-    if (!access || access.status !== 'ACTIVE') {
-      return sendError(reply, 403, 'FORBIDDEN', 'Admin access required');
-    }
-
-    request.user.adminRole = access.role;
-    request.user.isOwner = access.isOwner;
-    request.user.permissions = access.permissions;
-    request.user.admin = {
-      role: access.role,
-      status: access.status,
-      isOwner: access.isOwner,
-    };
-
-    for (const permission of requiredPermissions) {
-      if (!hasAdminPermission(access.permissions, permission)) {
-        return sendError(reply, 403, 'FORBIDDEN', `Missing permission: ${permission}`);
-      }
-    }
-  };
 }
 
 /**
@@ -249,7 +207,6 @@ export function dualAuthMiddleware(...requiredScopes: ApiTokenScope[]) {
         username: identity.label,
         role: 'CUSTOMER',
         emailVerified: true,
-        permissions: [],
         roles: ['CUSTOMER'],
       };
       return;

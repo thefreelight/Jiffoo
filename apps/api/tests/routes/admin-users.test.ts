@@ -22,7 +22,6 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { getTestPrisma } from '../helpers/db';
 import { hashAuthToken } from '@/core/auth/auth-token';
-import { ADMIN_PERMISSIONS, DEFAULT_ADMIN_ROLE_PERMISSIONS } from 'shared';
 
 describe('Admin Users Endpoints', () => {
   let app: FastifyInstance;
@@ -221,12 +220,41 @@ describe('Admin Users Endpoints', () => {
           email: `admin-created-${uniqueId}@example.com`,
           password: 'Test123456!',
           username: `adminuser-${uniqueId}`,
-          role: 'USER',
         },
       });
 
       expect([200, 201]).toContain(response.statusCode);
     });
+  });
+
+  it('E customer management rejects role changes and administrator targets', async () => {
+    const customer = await createUserWithToken();
+    const admin = await createAdminWithToken();
+    const headers = { authorization: `Bearer ${admin.token}` };
+    const create = await app.inject({
+      method: 'POST', url: '/api/v1/admin/users', headers,
+      payload: { email: `role-${uuidv4()}@example.com`, username: 'role-attempt', password: 'Test123456!', role: 'ADMIN' },
+    });
+    expect(create.statusCode).toBe(400);
+    expect(create.json().error.code).toBe('ROLE_CHANGE_FORBIDDEN');
+    const update = await app.inject({
+      method: 'PUT', url: `/api/v1/admin/users/${customer.user.id}`, headers, payload: { role: 'ADMIN' },
+    });
+    expect(update.statusCode).toBe(400);
+    expect(update.json().error.code).toBe('ROLE_CHANGE_FORBIDDEN');
+    expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: customer.user.id } })).role).toBe('USER');
+    expect((await app.inject({
+      method: 'GET', url: `/api/v1/admin/users/${admin.user.id}`, headers,
+    })).statusCode).toBe(404);
+    for (const method of ['PUT', 'DELETE'] as const) {
+      const response = await app.inject({
+        method, url: `/api/v1/admin/users/${admin.user.id}`, headers,
+        ...(method === 'PUT' ? { payload: { isActive: false } } : {}),
+      });
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error.code).toBe('ADMIN_ACCOUNT_PROTECTED');
+    }
+    expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: admin.user.id } })).isActive).toBe(true);
   });
 
   describe('GET /api/v1/admin/users/:id', () => {
@@ -249,17 +277,14 @@ describe('Admin Users Endpoints', () => {
       expect(response.statusCode).toBe(403);
     });
 
-    it('should return user details for admin', async () => {
+    it('should not expose an administrator through customer detail', async () => {
       const response = await app.inject({
         method: 'GET',
         url: `/api/v1/admin/users/${adminUserId}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
-      expect(response.statusCode).toBe(200);
-
-      const body = response.json();
-      expect(body.data).toHaveProperty('id');
+      expect(response.statusCode).toBe(404);
     });
 
     it('should return 404 for non-existent user', async () => {
@@ -395,7 +420,7 @@ describe('Admin Users Endpoints', () => {
       expect((await app.inject({ method: 'POST', url: url() })).statusCode).toBe(401);
     });
 
-    it('requires customers.credentials.reset even when the actor has customers.write', async () => {
+    it('requires an administrator to generate a customer reset link', async () => {
       const regular = await app.inject({
         method: 'POST',
         url: url(),
@@ -404,21 +429,7 @@ describe('Admin Users Endpoints', () => {
       expect(regular.statusCode).toBe(403);
 
       const actor = await createAdminWithToken();
-      const prisma = getTestPrisma();
-      await prisma.adminMembership.create({
-        data: { userId: actor.user.id, role: 'OPERATIONS_MANAGER' },
-      });
-      expect(DEFAULT_ADMIN_ROLE_PERMISSIONS.OPERATIONS_MANAGER).toContain(ADMIN_PERMISSIONS.CUSTOMERS_WRITE);
-      expect(DEFAULT_ADMIN_ROLE_PERMISSIONS.OPERATIONS_MANAGER).not.toContain(ADMIN_PERMISSIONS.CUSTOMERS_CREDENTIALS_RESET);
       const headers = { authorization: `Bearer ${actor.token}` };
-      const forbidden = await app.inject({ method: 'POST', url: url(), headers });
-      expect(forbidden.statusCode).toBe(403);
-      expect(forbidden.json().error.message).toContain(ADMIN_PERMISSIONS.CUSTOMERS_CREDENTIALS_RESET);
-
-      await prisma.adminMembership.update({
-        where: { userId: actor.user.id }, data: { role: 'SUPPORT_AGENT' },
-      });
-      expect(DEFAULT_ADMIN_ROLE_PERMISSIONS.SUPPORT_AGENT).toContain(ADMIN_PERMISSIONS.CUSTOMERS_CREDENTIALS_RESET);
       const allowed = await app.inject({ method: 'POST', url: url(), headers });
       expect(allowed.statusCode).toBe(201);
       expect(allowed.json().data.link).toContain('/reset-password?token=');

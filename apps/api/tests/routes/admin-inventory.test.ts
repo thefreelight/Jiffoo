@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
-import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
+import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 
 describe('Admin Inventory Endpoints', () => {
@@ -15,15 +15,8 @@ describe('Admin Inventory Endpoints', () => {
     app = await createTestApp();
     const { token } = await createAdminWithToken();
     adminToken = token;
-    const { token: staffAuthToken, user: staffUser } = await createAdminWithToken();
+    const { token: staffAuthToken } = await createUserWithToken();
     staffToken = staffAuthToken;
-    await getTestPrisma().adminMembership.create({
-      data: {
-        userId: staffUser.id,
-        role: 'SUPPORT_AGENT',
-        status: 'ACTIVE',
-      },
-    });
 
     const product = await getTestPrisma().product.create({
       data: {
@@ -63,7 +56,7 @@ describe('Admin Inventory Endpoints', () => {
     expect(response.statusCode).toBe(200);
   });
 
-  it('GET /api/v1/admin/inventory returns 403 for staff without inventory permission', async () => {
+  it('GET /api/v1/admin/inventory returns 403 for a customer', async () => {
     const response = await app.inject({
       method: 'GET',
       url: '/api/v1/admin/inventory',

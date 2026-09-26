@@ -282,14 +282,8 @@ function getHeaderValue(request: FastifyRequest, key: string): string {
   return String(raw).trim();
 }
 
-function resolvePlatformApiBaseUrl(request: FastifyRequest): string {
-  const explicit = getHeaderValue(request, 'x-platform-api-base-url');
-  if (explicit) return explicit;
-
-  const protocol = getHeaderValue(request, 'x-forwarded-proto') || request.protocol || 'http';
-  const host = getHeaderValue(request, 'host') || getHeaderValue(request, 'x-forwarded-host');
-  if (!host) return '';
-  return `${protocol}://${host}/api/v1`;
+function resolvePlatformApiBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 }
 
 /**
@@ -318,7 +312,7 @@ function injectPlatformHeaders(
 
   // Extract locale from request
   const locale = extractLocale(request);
-  const platformApiBaseUrl = resolvePlatformApiBaseUrl(request);
+  const platformApiBaseUrl = resolvePlatformApiBaseUrl();
 
   const encodedPluginConfig = Buffer.from(JSON.stringify(ctx.config || {}), 'utf-8').toString('base64url');
 

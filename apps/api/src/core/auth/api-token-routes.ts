@@ -10,14 +10,11 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
 import { ApiTokenService, type ApiTokenScope } from '@/core/auth/api-token';
 
 export async function apiTokenRoutes(fastify: FastifyInstance) {
   // All routes require admin authentication
-  fastify.addHook('onRequest', authMiddleware);
-  fastify.addHook('onRequest', requireAdmin);
 
   // Create a new API token
   fastify.post('/', {

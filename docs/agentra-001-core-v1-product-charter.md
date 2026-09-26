@@ -75,7 +75,9 @@ applied for that update.
 ### Commerce Kernel
 
 Core owns product, catalog, customer, inventory, cart, checkout, order,
-payment state, merchant permission, audit, and operational health semantics.
+payment state, administrator access, audit, and operational health semantics.
+V1 has two account roles, customer and admin; every active admin has full Admin
+access. Fine-grained Admin permissions are a future value-add outside Core V1.
 The Core public API is versioned and remains owned by Core. Plugins may access
 the self-hosted database under their publisher accountability boundary, while
 Core remains the authority for its product semantics and support contract.

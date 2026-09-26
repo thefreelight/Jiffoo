@@ -3,15 +3,12 @@
  * API endpoints for managing platform settings
  */
 import { FastifyPluginAsync } from 'fastify';
-import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 import { systemSettingsService } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminSettingsSchemas } from './schemas';
 
 const systemSettingsRoutes: FastifyPluginAsync = async (fastify) => {
     // Require Admin for all system settings routes
-    fastify.addHook('onRequest', authMiddleware);
-    fastify.addHook('onRequest', requireAdmin);
 
     // Get all settings
     fastify.get('/settings', {

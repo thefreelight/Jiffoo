@@ -8,11 +8,10 @@ import { GenerateResetLinkDialog } from '@/components/customers/generate-reset-l
 import StaffDetailPage from '@/app/[locale]/staff/[id]/page'
 import CustomerDetailPage from '@/app/[locale]/customers/[id]/page'
 
-const { forgotPassword, generateResetLink, generateInviteLink, authPermissions } = vi.hoisted(() => ({
+const { forgotPassword, generateResetLink, generateInviteLink } = vi.hoisted(() => ({
   forgotPassword: vi.fn(),
   generateResetLink: vi.fn(),
   generateInviteLink: vi.fn(),
-  authPermissions: { current: ['customers.write'] as string[] },
 }))
 
 vi.mock('next/navigation', () => ({
@@ -30,7 +29,7 @@ vi.mock('@/lib/api', () => ({
   unwrapApiResponse: <T,>(response: { data: T }) => response.data,
 }))
 vi.mock('@/lib/store', () => ({
-  useAuthStore: () => ({ user: { role: 'OPERATIONS_MANAGER', permissions: authPermissions.current } }),
+  useAuthStore: () => ({ user: { role: 'ADMIN' } }),
 }))
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
 vi.mock('@/lib/hooks/use-api', () => ({
@@ -46,9 +45,10 @@ vi.mock('@/lib/hooks/use-api', () => ({
   useUpdateUser: () => ({ mutateAsync: vi.fn() }),
   useStaffMember: () => ({
     data: {
-      userId: 'staff-1', username: 'invited', email: 'invited@example.com',
-      emailVerified: false, effectivePermissions: [], extraPermissions: [],
-      revokedPermissions: [], status: 'INVITED', updatedAt: '2026-09-23T00:00:00.000Z',
+      id: 'staff-1', username: 'invited', email: 'invited@example.com',
+      role: 'ADMIN', isActive: false, isInstallAdmin: false,
+      emailVerified: false, createdAt: '2026-09-23T00:00:00.000Z',
+      updatedAt: '2026-09-23T00:00:00.000Z',
     },
     isLoading: false, error: null,
   }),
@@ -65,7 +65,6 @@ describe('Admin account links', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    authPermissions.current = ['customers.write']
     ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -107,20 +106,17 @@ describe('Admin account links', () => {
     expect(Array.from(document.body.querySelectorAll('button')).some((item) => item.textContent?.includes('Generate link'))).toBe(false)
   })
 
-  it('shows Generate reset link only with customers.credentials.reset', async () => {
-    await act(async () => root.render(<CustomerDetailPage />))
-    expect(container.textContent).not.toContain('Generate reset link')
-    authPermissions.current = ['customers.write', 'customers.credentials.reset']
+  it('shows Generate reset link to an administrator', async () => {
     await act(async () => root.render(<CustomerDetailPage />))
     expect(container.textContent).toContain('Generate reset link')
   })
 
   it('shows an Admin invite link on staff detail', async () => {
     await act(async () => root.render(<StaffDetailPage />))
-    const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent?.includes('Show invite link'))
+    const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent?.includes('Generate invitation link'))
     expect(button).toBeDefined()
     await act(async () => button!.click())
     expect(generateInviteLink).toHaveBeenCalledWith('staff-1')
-    expect(container.querySelector<HTMLInputElement>('input[aria-label="Invite link"]')?.value).toContain('token=two')
+    expect(container.textContent).toContain('Copy invitation link')
   })
 })

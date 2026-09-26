@@ -117,7 +117,7 @@ export class AdminUserService {
 
   static async getUserById(userId: string) {
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: userId, role: 'USER' },
       select: {
         id: true,
         email: true,
@@ -168,6 +168,9 @@ export class AdminUserService {
     username?: string;
     role?: string;
   }) {
+    if (Object.prototype.hasOwnProperty.call(data, 'role')) {
+      throw new CustomerManagementError('Role cannot be changed here', 'ROLE_CHANGE_FORBIDDEN', 400);
+    }
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email }
     });
@@ -183,7 +186,7 @@ export class AdminUserService {
         email: data.email,
         password: hashedPassword,
         username: data.username || data.email.split('@')[0],
-        role: data.role || 'USER'
+        role: 'USER'
       },
       select: {
         id: true,
@@ -212,19 +215,26 @@ export class AdminUserService {
     avatar?: string;
     isActive?: boolean;
   }) {
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: data,
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        avatar: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true
-      }
+    if (Object.prototype.hasOwnProperty.call(data, 'role')) {
+      throw new CustomerManagementError('Role cannot be changed here', 'ROLE_CHANGE_FORBIDDEN', 400);
+    }
+    const user = await prisma.$transaction(async (tx) => {
+      const target = await tx.user.findUnique({ where: { id: userId }, select: { role: true } });
+      if (target?.role === 'ADMIN') throw new CustomerManagementError('Administrator accounts are managed separately', 'ADMIN_ACCOUNT_PROTECTED', 409);
+      return tx.user.update({
+        where: { id: userId, role: 'USER' },
+        data,
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          avatar: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      });
     });
 
     // Invalidate user list cache and specific user cache
@@ -244,11 +254,14 @@ export class AdminUserService {
     await prisma.$transaction(async (tx) => {
       const existingUser = await tx.user.findUnique({
         where: { id: userId },
-        select: { id: true },
+        select: { id: true, role: true },
       });
 
       if (!existingUser) {
         throw new Error('User not found');
+      }
+      if (existingUser.role === 'ADMIN') {
+        throw new CustomerManagementError('Administrator accounts are managed separately', 'ADMIN_ACCOUNT_PROTECTED', 409);
       }
 
       const userOrders = await tx.order.findMany({
@@ -276,7 +289,7 @@ export class AdminUserService {
       }
 
       await tx.user.delete({
-        where: { id: userId },
+        where: { id: userId, role: 'USER' },
       });
     });
 
@@ -292,4 +305,10 @@ export class AdminUserService {
     };
   }
 
+}
+
+export class CustomerManagementError extends Error {
+  constructor(message: string, public readonly code: string, public readonly statusCode: number) {
+    super(message);
+  }
 }

@@ -42,13 +42,14 @@ export async function acceptStaffInvite(token: string, passwordInput: string): P
   const password = await PasswordUtils.hash(passwordInput);
   await prisma.$transaction(async (tx) => {
     const row = await consumeAuthToken(tx, token, 'STAFF_INVITE');
-    await tx.user.update({ where: { id: row.userId }, data: { password, emailVerified: true, sessionVersion: { increment: 1 } } });
+    await tx.user.update({ where: { id: row.userId, role: 'ADMIN' }, data: { password, emailVerified: true, isActive: true, sessionVersion: { increment: 1 } } });
   });
 }
 
 export async function generateCustomerResetLink(userId: string, actorUserId: string): Promise<string> {
   return prisma.$transaction(async (tx) => {
     const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+    if (user.role === 'ADMIN') throw new Error('Administrator accounts cannot be managed as customers');
     const actor = await tx.user.findUniqueOrThrow({ where: { id: actorUserId } });
     const token = await issueAuthToken(tx, user.id, 'PASSWORD_RESET');
     await tx.adminStaffAuditLog.create({
@@ -64,8 +65,8 @@ export async function generateCustomerResetLink(userId: string, actorUserId: str
 
 export async function generateStaffInviteLink(userId: string): Promise<string> {
   return prisma.$transaction(async (tx) => {
-    const member = await tx.adminMembership.findUnique({ where: { userId }, include: { user: true } });
-    if (!member || member.user.emailVerified) throw new Error('Staff invitation not available');
-    return staffInviteLink(await issueAuthToken(tx, userId, 'STAFF_INVITE'), member.user.locale);
+    const user = await tx.user.findUnique({ where: { id: userId } });
+    if (!user || user.role !== 'ADMIN' || user.emailVerified) throw new Error('Staff invitation not available');
+    return staffInviteLink(await issueAuthToken(tx, userId, 'STAFF_INVITE'), user.locale);
   });
 }

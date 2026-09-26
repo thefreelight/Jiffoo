@@ -12,7 +12,6 @@ import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { shouldRequirePasswordRotation } from './bootstrap';
 import { findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './user-compat';
-import { findResolvedAdminAccessForUser } from './admin-membership-compat';
 import { negotiateNotificationLocale, normalizeNotificationLocale } from '@/core/notifications/service';
 
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
@@ -74,55 +73,6 @@ export class AuthService {
     };
   }
 
-  private static async ensureDemoModeAdminCredentials(credentials: { email: string; password: string }): Promise<void> {
-    const existingUser = await prisma.user.findUnique({
-      where: { email: credentials.email },
-      select: {
-        id: true,
-        password: true,
-        role: true,
-        isActive: true,
-        emailVerified: true,
-      },
-    });
-
-    const hashedPassword = await PasswordUtils.hash(credentials.password);
-
-    if (!existingUser) {
-      await prisma.user.create({
-        data: {
-          email: credentials.email,
-          username: credentials.email.split('@')[0] || 'admin',
-          password: hashedPassword,
-          role: 'ADMIN',
-          isActive: true,
-          emailVerified: true,
-        },
-      });
-      return;
-    }
-
-    const passwordMatches = await PasswordUtils.verify(credentials.password, existingUser.password);
-    if (
-      passwordMatches &&
-      existingUser.role === 'ADMIN' &&
-      existingUser.isActive &&
-      existingUser.emailVerified
-    ) {
-      return;
-    }
-
-    await prisma.user.update({
-      where: { id: existingUser.id },
-      data: {
-        password: hashedPassword,
-        role: 'ADMIN',
-        isActive: true,
-        emailVerified: true,
-      },
-    });
-  }
-
   static async getLoginConfig(): Promise<LoginConfigResponse> {
     if (!this.isDemoModeEnabled()) {
       return {
@@ -132,8 +82,6 @@ export class AuthService {
     }
 
     const credentials = this.resolveDemoCredentials();
-    await this.ensureDemoModeAdminCredentials(credentials);
-
     return {
       demoModeEnabled: true,
       demoCredentials: credentials,
@@ -311,13 +259,8 @@ export class AuthService {
       throw new Error('Account is inactive');
     }
 
-    const access = await findResolvedAdminAccessForUser(user.id, user.role);
     return {
       ...user,
-      permissions: access?.permissions || [],
-      adminRole: access?.role || null,
-      adminStatus: access?.status || null,
-      isOwner: access?.isOwner || false,
       requiresPasswordRotation: await shouldRequirePasswordRotation(user.email),
     };
   }

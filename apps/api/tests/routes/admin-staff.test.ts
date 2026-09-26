@@ -1,234 +1,146 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { randomUUID } from 'node:crypto';
 import { createTestApp } from '../helpers/create-test-app';
-import {
-  createAdminWithToken,
-  createUserWithToken,
-  deleteAllTestUsers,
-} from '../helpers/auth';
+import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { hashAuthToken } from '@/core/auth/auth-token';
 import { env } from '@/config/env';
 
-describe('Admin Staff Endpoints', () => {
+describe('AUTH-1 administrator management', () => {
   let app: FastifyInstance;
-  let adminToken: string;
-  let ownerToken: string;
-  let ownerUserId: string;
+  const db = getTestPrisma();
+  const auth = (token: string) => ({ authorization: `Bearer ${token}` });
 
-  beforeAll(async () => {
-    app = await createTestApp();
+  beforeAll(async () => { app = await createTestApp(); });
+  afterAll(async () => { await deleteAllTestUsers(); await app.close(); });
 
-    const { token: adminAuthToken } = await createAdminWithToken();
-    const { token: ownerAuthToken, user: ownerUser } = await createUserWithToken({ role: 'OWNER' });
-
-    adminToken = adminAuthToken;
-    ownerToken = ownerAuthToken;
-    ownerUserId = ownerUser.id;
-  });
-
-  afterAll(async () => {
-    await deleteAllTestUsers();
-    await app.close();
-  });
-
-  it('GET /api/v1/admin/staff should require authentication', async () => {
+  async function invite(actor: string) {
+    const id = randomUUID();
+    const email = `admin-${id}@example.com`;
     const response = await app.inject({
-      method: 'GET',
-      url: '/api/v1/admin/staff',
+      method: 'POST', url: '/api/v1/admin/staff', headers: auth(actor),
+      payload: { email, username: `admin-${id.slice(0, 8)}` },
     });
-
-    expect(response.statusCode).toBe(401);
-  });
-
-  it('POST /api/v1/admin/staff should allow admin to grant non-manager staff access', async () => {
-    const response = await app.inject({
-      method: 'POST',
-      url: '/api/v1/admin/staff',
-      headers: {
-        authorization: `Bearer ${adminToken}`,
-      },
-      payload: {
-        email: 'analyst-staff@test.com',
-        username: 'analyst-staff',
-        role: 'ANALYST',
-      },
-    });
-
     expect(response.statusCode).toBe(201);
-    const body = response.json();
-    expect(body).toHaveProperty('success', true);
-    expect(body.data).toHaveProperty('adminRole', 'ANALYST');
-    expect(body.data).toHaveProperty('emailVerified', false);
-    expect(body.data.effectivePermissions).toContain('dashboard.read');
+    return { email, id: response.json().data.id as string };
+  }
 
-    const prisma = getTestPrisma();
-    const invitedUser = await prisma.user.findUnique({
-      where: { email: 'analyst-staff@test.com' },
-      select: {
-        id: true,
-        emailVerified: true,
-      },
+  it('F invitation accepts a password and activates an administrator', async () => {
+    const actor = await createAdminWithToken();
+    const invited = await invite(actor.token);
+    const pending = await db.user.findUniqueOrThrow({ where: { id: invited.id } });
+    expect(pending).toMatchObject({ role: 'ADMIN', isActive: false, emailVerified: false });
+    const url = `/api/v1/admin/staff/${invited.id}/invite-link`;
+    const linkResponse = await app.inject({ method: 'POST', url, headers: auth(actor.token) });
+    expect(linkResponse.statusCode).toBe(201);
+    const link = linkResponse.json().data.link as string;
+    expect(link.startsWith(env.ADMIN_URL)).toBe(true);
+    const token = new URL(link).searchParams.get('token');
+    expect(token).toBeTruthy();
+    expect((await db.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(token!) } })).consumedAt).toBeNull();
+    const accepted = await app.inject({
+      method: 'POST', url: '/api/v1/auth/accept-invite',
+      payload: { token, password: 'NewPassword123!' },
     });
-    expect(invitedUser?.emailVerified).toBe(false);
-    const invitation = await prisma.authToken.findFirst({
-      where: { userId: invitedUser!.id, purpose: 'STAFF_INVITE', consumedAt: null },
+    expect(accepted.statusCode).toBe(200);
+    expect(await db.user.findUniqueOrThrow({ where: { id: invited.id } }))
+      .toMatchObject({ role: 'ADMIN', isActive: true, emailVerified: true });
+    const login = await app.inject({
+      method: 'POST', url: '/api/v1/auth/login',
+      payload: { email: invited.email, password: 'NewPassword123!' },
     });
-    expect(invitation?.tokenHash).toMatch(/^[a-f0-9]{64}$/);
-    expect(invitation?.expiresAt.getTime()).toBeGreaterThan(Date.now());
+    expect(login.statusCode).toBe(200);
+    const adminRequest = await app.inject({
+      method: 'GET', url: '/api/v1/admin/staff', headers: auth(login.json().data.access_token),
+    });
+    expect(adminRequest.statusCode).toBe(200);
   });
 
-  it('POST /api/v1/admin/staff should block admin from granting another staff manager', async () => {
+  it('F invitation rejects role selection and does not create an account', async () => {
+    const actor = await createAdminWithToken();
+    const email = `forbidden-${randomUUID()}@example.com`;
     const response = await app.inject({
-      method: 'POST',
-      url: '/api/v1/admin/staff',
-      headers: {
-        authorization: `Bearer ${adminToken}`,
-      },
-      payload: {
-        email: 'admin-staff@test.com',
-        username: 'admin-staff',
-        password: 'Test123456!',
-        role: 'ADMIN',
-      },
+      method: 'POST', url: '/api/v1/admin/staff', headers: auth(actor.token),
+      payload: { email, username: 'forbidden-role', role: 'ADMIN' },
     });
-
-    expect(response.statusCode).toBe(403);
-    expect(response.json()).toHaveProperty('error.code', 'FORBIDDEN');
+    expect(response.statusCode).toBe(400);
+    expect(await db.user.findUnique({ where: { email } })).toBeNull();
   });
 
-  it('GET /api/v1/admin/staff should list staff memberships', async () => {
+  it('C self removal returns SELF_REMOVAL_FORBIDDEN without changing the account', async () => {
+    const actor = await createAdminWithToken();
+    const before = await db.user.findUniqueOrThrow({ where: { id: actor.user.id } });
     const response = await app.inject({
-      method: 'GET',
-      url: '/api/v1/admin/staff',
-      headers: {
-        authorization: `Bearer ${adminToken}`,
-      },
+      method: 'DELETE', url: `/api/v1/admin/staff/${actor.user.id}`, headers: auth(actor.token),
     });
-
-    expect(response.statusCode).toBe(200);
-    const body = response.json();
-    expect(body).toHaveProperty('success', true);
-    expect(Array.isArray(body.data.items)).toBe(true);
-    expect(body.data.items.some((item: any) => item.email === 'analyst-staff@test.com')).toBe(true);
-  });
-
-  it('GET /api/v1/admin/staff/:userId/audit should return structured staff audit entries', async () => {
-    const prisma = getTestPrisma();
-    const staffUser = await prisma.user.findUnique({
-      where: { email: 'analyst-staff@test.com' },
-      select: { id: true },
-    });
-
-    expect(staffUser).toBeTruthy();
-
-    const response = await app.inject({
-      method: 'GET',
-      url: `/api/v1/admin/staff/${staffUser!.id}/audit`,
-      headers: {
-        authorization: `Bearer ${adminToken}`,
-      },
-    });
-
-    expect(response.statusCode).toBe(200);
-    const body = response.json();
-    expect(body).toHaveProperty('success', true);
-    expect(Array.isArray(body.data.items)).toBe(true);
-    expect(body.data.items[0]).toEqual(
-      expect.objectContaining({
-        action: 'STAFF_ACCESS_GRANTED',
-        staffUserId: staffUser!.id,
-      }),
-    );
-  });
-
-  it('POST /api/v1/admin/staff/:userId/invite should resend invitation and audit the action', async () => {
-    const prisma = getTestPrisma();
-    const staffUser = await prisma.user.findUnique({
-      where: { email: 'analyst-staff@test.com' },
-      select: { id: true },
-    });
-
-    expect(staffUser).toBeTruthy();
-
-    const response = await app.inject({
-      method: 'POST',
-      url: `/api/v1/admin/staff/${staffUser!.id}/invite`,
-      headers: {
-        authorization: `Bearer ${adminToken}`,
-      },
-    });
-
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual(
-      expect.objectContaining({
-        success: true,
-        data: expect.objectContaining({
-          userId: staffUser!.id,
-      queued: true,
-        }),
-      }),
-    );
-
-    const auditEntry = await prisma.adminStaffAuditLog.findFirst({
-      where: {
-        staffUserId: staffUser!.id,
-        action: 'STAFF_INVITE_RESENT',
-      },
-    });
-    expect(auditEntry).toBeTruthy();
-  });
-
-  it('POST /api/v1/admin/staff/:userId/invite-link requires staff.write and replaces the old invitation', async () => {
-    const prisma = getTestPrisma();
-    const staff = await prisma.user.findUniqueOrThrow({ where: { email: 'analyst-staff@test.com' } });
-    const url = `/api/v1/admin/staff/${staff.id}/invite-link`;
-    expect((await app.inject({ method: 'POST', url })).statusCode).toBe(401);
-    const customer = await createUserWithToken();
-    expect((await app.inject({
-      method: 'POST', url, headers: { authorization: `Bearer ${customer.token}` },
-    })).statusCode).toBe(403);
-    const headers = { authorization: `Bearer ${adminToken}` };
-    const first = await app.inject({ method: 'POST', url, headers });
-    expect(first.statusCode).toBe(201);
-    const firstLink = first.json().data.link as string;
-    expect(firstLink.startsWith(env.ADMIN_URL)).toBe(true);
-    expect(firstLink).toContain('/auth/accept-invite?token=');
-    const second = await app.inject({ method: 'POST', url, headers });
-    expect(second.statusCode).toBe(201);
-    const firstToken = new URL(firstLink).searchParams.get('token')!;
-    const secondToken = new URL(second.json().data.link).searchParams.get('token')!;
-    expect(firstToken).not.toBe(secondToken);
-    expect((await prisma.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(firstToken) } })).consumedAt).not.toBeNull();
-    expect((await prisma.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(secondToken) } })).consumedAt).toBeNull();
-  });
-
-  it('DELETE /api/v1/admin/staff/:userId should protect the last active owner', async () => {
-    const prisma = getTestPrisma();
-    await prisma.adminMembership.upsert({
-      where: { userId: ownerUserId },
-      update: {
-        role: 'OWNER',
-        status: 'ACTIVE',
-        isOwner: true,
-      },
-      create: {
-        userId: ownerUserId,
-        role: 'OWNER',
-        status: 'ACTIVE',
-        isOwner: true,
-      },
-    });
-
-    const response = await app.inject({
-      method: 'DELETE',
-      url: `/api/v1/admin/staff/${ownerUserId}`,
-      headers: {
-        authorization: `Bearer ${ownerToken}`,
-      },
-    });
-
     expect(response.statusCode).toBe(409);
-    expect(response.json()).toHaveProperty('error.code', 'LAST_OWNER_REQUIRED');
+    expect(response.json().error.code).toBe('SELF_REMOVAL_FORBIDDEN');
+    const accountDelete = await app.inject({
+      method: 'DELETE', url: '/api/v1/account', headers: auth(actor.token),
+      payload: { currentPassword: actor.user.password },
+    });
+    expect(accountDelete.statusCode).toBe(409);
+    expect(accountDelete.json().error.code).toBe('SELF_REMOVAL_FORBIDDEN');
+    expect(await db.user.findUniqueOrThrow({ where: { id: actor.user.id } })).toEqual(before);
+  });
+
+  it('D install administrator removal returns INSTALL_ADMIN_PROTECTED without changing the account', async () => {
+    const installer = await createAdminWithToken();
+    const actor = await createAdminWithToken();
+    const prior = await db.systemSettings.findUnique({ where: { id: 'system' } });
+    await db.systemSettings.upsert({
+      where: { id: 'system' },
+      create: { id: 'system', isInstalled: true, installedBy: installer.user.id },
+      update: { installedBy: installer.user.id },
+    });
+    try {
+      const before = await db.user.findUniqueOrThrow({ where: { id: installer.user.id } });
+      const response = await app.inject({
+        method: 'DELETE', url: `/api/v1/admin/staff/${installer.user.id}`, headers: auth(actor.token),
+      });
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error.code).toBe('INSTALL_ADMIN_PROTECTED');
+      const accountDelete = await app.inject({
+        method: 'DELETE', url: '/api/v1/account', headers: auth(installer.token),
+        payload: { currentPassword: installer.user.password },
+      });
+      expect(accountDelete.statusCode).toBe(409);
+      expect(accountDelete.json().error.code).toBe('INSTALL_ADMIN_PROTECTED');
+      expect(await db.user.findUniqueOrThrow({ where: { id: installer.user.id } })).toEqual(before);
+    } finally {
+      if (prior) await db.systemSettings.update({ where: { id: 'system' }, data: { installedBy: prior.installedBy } });
+      else await db.systemSettings.delete({ where: { id: 'system' } });
+    }
+  });
+
+  it('B removal revokes the existing token and rejects subsequent login', async () => {
+    const actor = await createAdminWithToken();
+    const removed = await createAdminWithToken();
+    const before = await db.user.findUniqueOrThrow({ where: { id: removed.user.id } });
+    const response = await app.inject({
+      method: 'DELETE', url: `/api/v1/admin/staff/${removed.user.id}`, headers: auth(actor.token),
+    });
+    expect(response.statusCode).toBe(200);
+    const after = await db.user.findUniqueOrThrow({ where: { id: removed.user.id } });
+    expect(after.isActive).toBe(false);
+    expect(after.sessionVersion).toBe(before.sessionVersion + 1);
+    expect((await app.inject({
+      method: 'GET', url: '/api/v1/admin/staff', headers: auth(removed.token),
+    })).statusCode).toBe(401);
+    expect((await app.inject({
+      method: 'POST', url: '/api/v1/auth/login',
+      payload: { email: removed.user.email, password: removed.user.password },
+    })).statusCode).toBe(403);
+  });
+
+  it('administrator listing and invitations deny a customer', async () => {
+    const customer = await createUserWithToken();
+    for (const method of ['GET', 'POST'] as const) {
+      expect((await app.inject({
+        method, url: '/api/v1/admin/staff', headers: auth(customer.token),
+        ...(method === 'POST' ? { payload: { email: `denied-${randomUUID()}@example.com`, username: 'denied' } } : {}),
+      })).statusCode).toBe(403);
+    }
   });
 });

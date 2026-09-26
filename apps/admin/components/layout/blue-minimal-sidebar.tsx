@@ -18,6 +18,9 @@ import {
   Package,
   FileText,
   Sliders,
+  Bell,
+  Activity,
+  ShieldCheck,
   X,
   User,
   Settings,
@@ -68,6 +71,13 @@ const baseNavigationConfig: NavigationItem[] = [
     icon: FileText,
   },
   {
+    id: 'notifications',
+    nameKey: 'merchant.notifications.title',
+    fallback: 'Notifications',
+    href: '/notifications',
+    icon: Bell,
+  },
+  {
     id: 'customers',
     nameKey: 'merchant.customers.title',
     fallback: 'Customers',
@@ -75,11 +85,32 @@ const baseNavigationConfig: NavigationItem[] = [
     icon: Users,
   },
   {
+    id: 'administrators',
+    nameKey: 'merchant.nav.administrators',
+    fallback: 'Administrators',
+    href: '/staff',
+    icon: ShieldCheck,
+  },
+  {
     id: 'plugins',
     nameKey: 'merchant.nav.plugins',
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
+  },
+  {
+    id: 'settings',
+    nameKey: 'merchant.nav.settings',
+    fallback: 'Settings',
+    href: '/settings',
+    icon: Settings,
+  },
+  {
+    id: 'health',
+    nameKey: 'merchant.nav.systemHealth',
+    fallback: 'System Health',
+    href: '/system/health',
+    icon: Activity,
   },
 ];
 

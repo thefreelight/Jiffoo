@@ -4,14 +4,11 @@
 
 import { FastifyInstance } from 'fastify';
 import { AdminDashboardService } from './service';
-import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminDashboardSchemas } from './schemas';
 
 export async function adminDashboardRoutes(fastify: FastifyInstance) {
     // Apply auth hooks
-    fastify.addHook('onRequest', authMiddleware);
-    fastify.addHook('onRequest', requireAdmin);
 
     // GET /api/admin/dashboard
     fastify.get('/dashboard', {

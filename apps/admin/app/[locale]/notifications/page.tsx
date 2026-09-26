@@ -4,9 +4,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { Bell, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { useT } from 'shared/src/i18n/react'
-import { ADMIN_PERMISSIONS } from 'shared'
-import { canAccessAnyPermission } from '@/lib/admin-access'
-import { useAuthStore } from '@/lib/store'
 import { notificationsApi, unwrapApiResponse, type AdminNotification } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,19 +21,12 @@ type Status = typeof statuses[number]
 
 export default function NotificationsPage() {
   const t = useT()
-  const { user } = useAuthStore()
   const label = (key: string, fallback: string) => {
     const value = t(`merchant.notifications.${key}`)
     return value === `merchant.notifications.${key}` ? fallback : value
   }
   const [items, setItems] = useState<AdminNotification[]>([])
   const [selected, setSelected] = useState<AdminNotification | null>(null)
-  const resendPermission = selected?.type === 'staff_invite'
-    ? ADMIN_PERMISSIONS.STAFF_WRITE
-    : selected?.type === 'email_verification'
-      ? ADMIN_PERMISSIONS.CUSTOMERS_WRITE
-      : ADMIN_PERMISSIONS.ORDERS_WRITE
-  const canResend = canAccessAnyPermission(user, [resendPermission])
   const [status, setStatus] = useState<Status | 'all'>('all')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
@@ -131,7 +121,7 @@ export default function NotificationsPage() {
               <dt>{label('error', 'Last error')}</dt><dd className="break-words">{selected.lastError || '-'}</dd>
             </dl>
             <div><h2 className="font-medium">{label('content', 'Content')}</h2><p className="mt-2 font-medium">{selected.subject}</p><pre className="mt-2 whitespace-pre-wrap break-words font-sans">{selected.text}</pre></div>
-            {canResend && selected.type !== 'password_reset' && <Button onClick={() => void resend()} disabled={resending}><RotateCw className="mr-2 h-4 w-4" />{label('resend', 'Resend')}</Button>}
+            {selected.type !== 'password_reset' && <Button onClick={() => void resend()} disabled={resending}><RotateCw className="mr-2 h-4 w-4" />{label('resend', 'Resend')}</Button>}
           </div>}
         </DialogContent>
       </Dialog>

@@ -6,7 +6,7 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Readable, PassThrough } from 'stream';
-import { authMiddleware, adminMiddleware, optionalAuthMiddleware } from '@/core/auth/middleware';
+import { authMiddleware, requireAdmin, optionalAuthMiddleware } from '@/core/auth/middleware';
 import { extensionInstaller, type ExtensionKind } from './index';
 import { sendSuccess, sendError } from '@/utils/response';
 import { extensionInstallerSchemas } from './schemas';
@@ -268,6 +268,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   });
 
   // Slug-level routes removed - use instance-level API only
+  await fastify.register(async (admin) => {
+    admin.addHook('onRequest', authMiddleware);
+    admin.addHook('onRequest', requireAdmin);
 
   // ============================================================================
   // Plugin Instance Management API (Multi-instance support)
@@ -277,8 +280,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * GET /api/extensions/plugin/:slug/instances
    * List all instances for a plugin
    */
-  fastify.get<{ Params: { slug: string }; Querystring: PaginationQuery }>('/plugin/:slug/instances', {
-    onRequest: [authMiddleware, adminMiddleware],
+  admin.get<{ Params: { slug: string }; Querystring: PaginationQuery }>('/plugin/:slug/instances', {
     schema: {
       tags: ['admin-plugins'],
       summary: 'List plugin instances',
@@ -337,7 +339,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * PATCH /api/extensions/plugin/:slug/instances/:installationId
    * Update a plugin instance (enable/disable, config, permissions)
    */
-  fastify.patch<{
+  admin.patch<{
     Params: { slug: string; installationId: string };
     Body: {
       enabled?: boolean;
@@ -345,7 +347,6 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       grantedPermissions?: string[];
     };
   }>('/plugin/:slug/instances/:installationId', {
-    onRequest: [authMiddleware, adminMiddleware],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Update plugin instance',
@@ -421,8 +422,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * - bundle.json (manifest)
    * - extensions/ (directory containing extension ZIPs)
    */
-  fastify.post('/bundle/install', {
-    onRequest: [authMiddleware, adminMiddleware],
+  admin.post('/bundle/install', {
     schema: {
       tags: ['admin-plugins'],
       summary: 'Install bundle from ZIP',
@@ -498,8 +498,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    *
    * kind: 'plugin'
    */
-  fastify.post<{ Params: InstallParams }>('/:kind/install', {
-    onRequest: [authMiddleware, adminMiddleware],
+  admin.post<{ Params: InstallParams }>('/:kind/install', {
     schema: {
       tags: ['admin-plugins'],
       summary: 'Install extension from ZIP',
@@ -579,8 +578,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * DELETE /api/extensions/plugin/:slug
    * Uninstall plugin package (removes all instances)
    */
-  fastify.delete<{ Params: { slug: string } }>('/plugin/:slug', {
-    onRequest: [authMiddleware, adminMiddleware],
+  admin.delete<{ Params: { slug: string } }>('/plugin/:slug', {
     schema: {
       tags: ['admin-plugins'],
       summary: 'Uninstall plugin package',
@@ -607,8 +605,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * POST /api/extensions/plugin/:slug/restore
    * Restore a soft-uninstalled plugin package
    */
-  fastify.post<{ Params: { slug: string } }>('/plugin/:slug/restore', {
-    onRequest: [authMiddleware, adminMiddleware],
+  admin.post<{ Params: { slug: string } }>('/plugin/:slug/restore', {
     schema: {
       tags: ['admin-plugins'],
       summary: 'Restore plugin package',
@@ -636,8 +633,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * DELETE /api/extensions/plugin/:slug/purge
    * Permanently purge plugin package and files
    */
-  fastify.delete<{ Params: { slug: string } }>('/plugin/:slug/purge', {
-    onRequest: [authMiddleware, adminMiddleware],
+  admin.delete<{ Params: { slug: string } }>('/plugin/:slug/purge', {
     schema: {
       tags: ['admin-plugins'],
       summary: 'Purge plugin package',
@@ -664,8 +660,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * GET /api/extensions/plugin
    * List installed plugin packages.
    */
-  fastify.get<{ Params: ListParams; Querystring: PaginationQuery }>('/:kind', {
-    onRequest: [authMiddleware, adminMiddleware],
+  admin.get<{ Params: ListParams; Querystring: PaginationQuery }>('/:kind', {
     schema: {
       tags: ['admin-plugins'],
       summary: 'List installed plugins',
@@ -698,8 +693,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * GET /api/extensions/plugin/:slug
    * Get an installed plugin package.
    */
-  fastify.get<{ Params: GetParams }>('/:kind/:slug', {
-    onRequest: [authMiddleware, adminMiddleware],
+  admin.get<{ Params: GetParams }>('/:kind/:slug', {
     schema: {
       tags: ['admin-plugins'],
       summary: 'Get installed plugin',
@@ -721,4 +715,5 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     }
   });
 
+  });
 };

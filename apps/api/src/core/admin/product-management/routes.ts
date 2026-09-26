@@ -4,16 +4,12 @@
 
 import { FastifyInstance } from 'fastify';
 import { AdminProductService, CatalogConflictError } from './service';
-import { authMiddleware, requirePermission } from '@/core/auth/middleware';
-import { ADMIN_PERMISSIONS } from '@shared/security';
 import { sendSuccess, sendError } from '@/utils/response';
 import { UploadService } from '@/core/upload/service';
 import { adminProductSchemas } from './schemas';
 
 export async function adminProductRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all admin product routes (before schema validation)
-  fastify.addHook('onRequest', authMiddleware);
-  fastify.addHook('onRequest', requirePermission());
 
   // Get products list
   fastify.get('/', {
@@ -76,7 +72,6 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
 
   // Create product
   fastify.post('/', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
     schema: {
       tags: ['admin-products'],
       summary: 'Create product',
@@ -99,7 +94,6 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
 
   // Update product
   fastify.put('/:id', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
     schema: {
       tags: ['admin-products'],
       summary: 'Update product',
@@ -123,7 +117,6 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
 
   // Delete product
   fastify.delete('/:id', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
     schema: {
       tags: ['admin-products'],
       summary: 'Delete product',
@@ -149,7 +142,6 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
 
   // Upload product image
   fastify.post('/upload-image', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
     schema: {
       tags: ['admin-products'],
       summary: 'Upload Product Image',
@@ -204,7 +196,6 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/categories', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
     schema: {
       tags: ['admin-products'], summary: 'Create category',
       security: [{ bearerAuth: [] }], ...adminProductSchemas.createCategory,
@@ -220,7 +211,6 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put('/categories/:id', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
     schema: {
       tags: ['admin-products'], summary: 'Update category',
       security: [{ bearerAuth: [] }], ...adminProductSchemas.updateCategory,
@@ -237,7 +227,6 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
   });
 
   fastify.delete('/categories/:id', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
     schema: {
       tags: ['admin-products'], summary: 'Delete category',
       security: [{ bearerAuth: [] }], ...adminProductSchemas.deleteCategory,

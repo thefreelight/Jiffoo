@@ -1,236 +1,111 @@
-import { FastifyInstance } from 'fastify';
-import { authMiddleware, requirePermission } from '@/core/auth/middleware';
-import { ADMIN_PERMISSIONS } from 'shared';
+import type { FastifyInstance } from 'fastify';
+import { createSuccessResponseSchema, createTypedCreateResponses, createTypedReadResponses, errorResponseSchema } from '@/types/common-dto';
 import { sendError, sendSuccess } from '@/utils/response';
-import { StaffManagementError, StaffManagementService } from './service';
 import { generateStaffInviteLink } from '@/core/auth/account-recovery';
-import { createTypedCreateResponses } from '@/types/common-dto';
+import { StaffManagementError, StaffManagementService } from './service';
 
-function mapStaffError(error: unknown, reply: any) {
+const adminSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' }, email: { type: 'string' }, username: { type: 'string' },
+    role: { type: 'string' }, isActive: { type: 'boolean' }, emailVerified: { type: 'boolean' },
+    isInstallAdmin: { type: 'boolean' },
+  },
+  required: ['id', 'email', 'username', 'role', 'isActive', 'emailVerified', 'isInstallAdmin'],
+} as const;
+
+const pageSchema = {
+  type: 'object',
+  properties: {
+    items: { type: 'array', items: adminSchema },
+    page: { type: 'integer' }, limit: { type: 'integer' },
+    total: { type: 'integer' }, totalPages: { type: 'integer' },
+  },
+  required: ['items', 'page', 'limit', 'total', 'totalPages'],
+} as const;
+
+function handleError(error: unknown, reply: any) {
   if (error instanceof StaffManagementError) {
     return sendError(reply, error.statusCode, error.code, error.message);
   }
-
-  return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error instanceof Error ? error.message : 'Staff management failed');
+  throw error;
 }
 
 export async function adminStaffRoutes(fastify: FastifyInstance) {
-  fastify.addHook('onRequest', authMiddleware);
-
-  fastify.post('/:userId/invite-link', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_WRITE)],
-    schema: {
-      tags: ['admin-staff'], security: [{ bearerAuth: [] }],
-      params: { type: 'object', required: ['userId'], properties: { userId: { type: 'string' } } },
-      response: createTypedCreateResponses({
-        type: 'object', properties: { link: { type: 'string', format: 'uri' } },
-        required: ['link'], additionalProperties: false,
-      }),
-    },
-  }, async (request, reply) => {
-    try {
-      const { userId } = request.params as { userId: string };
-      return sendSuccess(reply, { link: await generateStaffInviteLink(userId) }, 'Invite link generated', 201);
-    } catch {
-      return sendError(reply, 409, 'INVITE_NOT_AVAILABLE', 'Staff invitation not available');
-    }
-  });
-
-  fastify.get('/roles', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_READ)],
-    schema: {
-      tags: ['admin-staff'],
-      summary: 'List default admin roles',
-      security: [{ bearerAuth: [] }],
-    },
-  }, async (_request, reply) => {
-    return sendSuccess(reply, StaffManagementService.getRoleCatalog());
-  });
-
-  fastify.get('/permissions', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_READ)],
-    schema: {
-      tags: ['admin-staff'],
-      summary: 'List permission catalog',
-      security: [{ bearerAuth: [] }],
-    },
-  }, async (_request, reply) => {
-    return sendSuccess(reply, StaffManagementService.getPermissionCatalog());
-  });
-
   fastify.get('/', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_READ)],
-    schema: {
-      tags: ['admin-staff'],
-      summary: 'List staff members',
-      security: [{ bearerAuth: [] }],
-      querystring: {
-        type: 'object',
-        properties: {
-          page: { type: 'integer', minimum: 1, default: 1 },
-          limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-          search: { type: 'string' },
-          role: { type: 'string' },
-          status: { type: 'string', enum: ['ACTIVE', 'SUSPENDED'] },
-        },
-      },
-    },
+    schema: { tags: ['admin-staff'], security: [{ bearerAuth: [] }], response: createTypedReadResponses(pageSchema) },
   }, async (request, reply) => {
-    try {
-      const { page, limit, search, role, status } = request.query as {
-        page?: number;
-        limit?: number;
-        search?: string;
-        role?: string;
-        status?: string;
-      };
-
-      const result = await StaffManagementService.listStaff(page, limit, { search, role, status });
-      return sendSuccess(reply, result);
-    } catch (error) {
-      return mapStaffError(error, reply);
-    }
+    const { page = 1, limit = 20, search } = request.query as { page?: number; limit?: number; search?: string };
+    return sendSuccess(reply, await StaffManagementService.listStaff(Number(page), Number(limit), { search }));
   });
 
   fastify.get('/:userId', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_READ)],
-    schema: {
-      tags: ['admin-staff'],
-      summary: 'Get staff member detail',
-      security: [{ bearerAuth: [] }],
-    },
+    schema: { tags: ['admin-staff'], security: [{ bearerAuth: [] }], response: createTypedReadResponses(adminSchema) },
   }, async (request, reply) => {
-    try {
-      const { userId } = request.params as { userId: string };
-      const result = await StaffManagementService.getStaffByUserId(userId);
-      if (!result) {
-        return sendError(reply, 404, 'NOT_FOUND', 'Staff membership not found');
-      }
-
-      return sendSuccess(reply, result);
-    } catch (error) {
-      return mapStaffError(error, reply);
-    }
+    const { userId } = request.params as { userId: string };
+    const user = await StaffManagementService.getStaffByUserId(userId);
+    return user ? sendSuccess(reply, user) : sendError(reply, 404, 'NOT_FOUND', 'Administrator not found');
   });
 
   fastify.get('/:userId/audit', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_READ)],
-    schema: {
-      tags: ['admin-staff'],
-      summary: 'List staff audit log entries',
-      security: [{ bearerAuth: [] }],
-      querystring: {
-        type: 'object',
-        properties: {
-          page: { type: 'integer', minimum: 1, default: 1 },
-          limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-        },
-      },
-    },
+    schema: { tags: ['admin-staff'], security: [{ bearerAuth: [] }], response: createTypedReadResponses({
+      type: 'object', properties: { items: { type: 'array', items: { type: 'object', additionalProperties: true } }, page: { type: 'integer' }, limit: { type: 'integer' }, total: { type: 'integer' }, totalPages: { type: 'integer' } },
+    }) },
   }, async (request, reply) => {
-    try {
-      const { userId } = request.params as { userId: string };
-      const { page, limit } = request.query as { page?: number; limit?: number };
-      const result = await StaffManagementService.getStaffAuditLogs(userId, page, limit);
-      return sendSuccess(reply, result);
-    } catch (error) {
-      return mapStaffError(error, reply);
-    }
-  });
-
-  fastify.post('/:userId/invite', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_WRITE)],
-    schema: {
-      tags: ['admin-staff'],
-      summary: 'Resend staff invitation email',
-      security: [{ bearerAuth: [] }],
-    },
-  }, async (request, reply) => {
-    try {
-      const { userId } = request.params as { userId: string };
-      const result = await StaffManagementService.resendStaffInvite(
-        {
-          userId: request.user!.id,
-          permissions: request.user!.permissions ?? [],
-          isOwner: request.user!.isOwner ?? false,
-        },
-        userId,
-      );
-      return sendSuccess(reply, result);
-    } catch (error) {
-      return mapStaffError(error, reply);
-    }
+    const { userId } = request.params as { userId: string };
+    const { page = 1, limit = 20 } = request.query as { page?: number; limit?: number };
+    return sendSuccess(reply, await StaffManagementService.getStaffAuditLogs(userId, Number(page), Number(limit)));
   });
 
   fastify.post('/', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_WRITE)],
     schema: {
-      tags: ['admin-staff'],
-      summary: 'Create or grant staff access',
-      security: [{ bearerAuth: [] }],
+      tags: ['admin-staff'], security: [{ bearerAuth: [] }],
+      body: { type: 'object', required: ['email', 'username'], additionalProperties: false,
+        properties: { email: { type: 'string', format: 'email' }, username: { type: 'string', minLength: 1 }, role: false } },
+      response: createTypedCreateResponses(adminSchema),
     },
   }, async (request, reply) => {
     try {
-      const result = await StaffManagementService.createStaff(
-        {
-          userId: request.user!.id,
-          permissions: request.user!.permissions ?? [],
-          isOwner: request.user!.isOwner ?? false,
-        },
-        request.body as any,
-      );
-      return sendSuccess(reply, result, undefined, 201);
+      return sendSuccess(reply, await StaffManagementService.createStaff(request.user!.id, request.body as { email: string; username: string }), undefined, 201);
     } catch (error) {
-      return mapStaffError(error, reply);
-    }
-  });
-
-  fastify.patch('/:userId', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_WRITE)],
-    schema: {
-      tags: ['admin-staff'],
-      summary: 'Update staff role and permissions',
-      security: [{ bearerAuth: [] }],
-    },
-  }, async (request, reply) => {
-    try {
-      const { userId } = request.params as { userId: string };
-      const result = await StaffManagementService.updateStaff(
-        {
-          userId: request.user!.id,
-          permissions: request.user!.permissions ?? [],
-          isOwner: request.user!.isOwner ?? false,
-        },
-        userId,
-        request.body as any,
-      );
-      return sendSuccess(reply, result);
-    } catch (error) {
-      return mapStaffError(error, reply);
+      return handleError(error, reply);
     }
   });
 
   fastify.delete('/:userId', {
-    preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_WRITE)],
     schema: {
-      tags: ['admin-staff'],
-      summary: 'Remove staff access',
-      security: [{ bearerAuth: [] }],
+      tags: ['admin-staff'], security: [{ bearerAuth: [] }],
+      response: { 200: createSuccessResponseSchema({ type: 'object', properties: { userId: { type: 'string' }, removed: { type: 'boolean' } } }),
+        401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 409: errorResponseSchema, 500: errorResponseSchema },
     },
   }, async (request, reply) => {
     try {
-      const { userId } = request.params as { userId: string };
-      const result = await StaffManagementService.removeStaff(
-        {
-          userId: request.user!.id,
-          permissions: request.user!.permissions ?? [],
-          isOwner: request.user!.isOwner ?? false,
-        },
-        userId,
-      );
-      return sendSuccess(reply, result);
+      return sendSuccess(reply, await StaffManagementService.removeStaff(request.user!.id, (request.params as { userId: string }).userId));
     } catch (error) {
-      return mapStaffError(error, reply);
+      return handleError(error, reply);
+    }
+  });
+
+  fastify.post('/:userId/invite', {
+    schema: { tags: ['admin-staff'], security: [{ bearerAuth: [] }],
+      response: { 200: createSuccessResponseSchema({ type: 'object', properties: { userId: { type: 'string' }, queued: { type: 'boolean' } } }),
+        401: errorResponseSchema, 403: errorResponseSchema, 409: errorResponseSchema, 500: errorResponseSchema } },
+  }, async (request, reply) => {
+    try {
+      return sendSuccess(reply, await StaffManagementService.resendStaffInvite((request.params as { userId: string }).userId));
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  fastify.post('/:userId/invite-link', {
+    schema: { tags: ['admin-staff'], security: [{ bearerAuth: [] }],
+      response: { ...createTypedCreateResponses({ type: 'object', properties: { link: { type: 'string' } } }) } },
+  }, async (request, reply) => {
+    try {
+      return sendSuccess(reply, { link: await generateStaffInviteLink((request.params as { userId: string }).userId) }, undefined, 201);
+    } catch {
+      return sendError(reply, 409, 'INVITE_NOT_AVAILABLE', 'Invitation not available');
     }
   });
 }

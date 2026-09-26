@@ -237,29 +237,6 @@ export class AuthClient extends ApiClient {
     return this.patch('/user/preferences/language', data);
   }
 
-  // Get user permissions
-  public async getUserPermissions(): Promise<ApiResponse<{
-    permissions: string[];
-    roles: Array<{
-      id: string;
-      name: string;
-    }>;
-  }>> {
-    return this.get('/user/permissions');
-  }
-
-  // Check specific permission
-  public async checkPermission(permission: string, resourceId?: string): Promise<ApiResponse<{
-    hasPermission: boolean;
-    reason?: string;
-  }>> {
-    return this.post('/permissions/check', {
-      resource: permission.split('.')[0],
-      action: permission.split('.')[1] || 'read',
-      resourceId
-    });
-  }
-
   // Set token (override parent method to provide public access)
   public setToken(token: string): void {
     this.storage.setItem(this.tokenKey, token);
