@@ -16,6 +16,7 @@ import { handlePluginGateway, PluginGatewayError } from './plugin-runtime';
 import { bundleInstaller } from './bundle-installer';
 import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
 import { readStoredPluginManifest } from './stored-manifest';
+import { themeManagementRoutes } from './theme-routes';
 
 // Per spec (EXTENSIONS_IMPLEMENTATION.md) size limits for offline ZIP installs
 const ZIP_SIZE_LIMITS: Record<ExtensionKind, number> = {
@@ -271,6 +272,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   await fastify.register(async (admin) => {
     admin.addHook('onRequest', authMiddleware);
     admin.addHook('onRequest', requireAdmin);
+    await admin.register(themeManagementRoutes);
 
   // ============================================================================
   // Plugin Instance Management API (Multi-instance support)

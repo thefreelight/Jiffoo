@@ -71,12 +71,12 @@ class LocalPluginPackage implements PluginPackage {
 class LocalPluginPackageStore implements PluginPackageStore {
   private readonly root: string;
 
-  constructor() {
+  constructor(kind: 'plugins' | 'themes' = 'plugins') {
     const configuredRoot = process.env.EXTENSIONS_PATH || 'extensions';
     const extensionsRoot = path.isAbsolute(configuredRoot)
       ? configuredRoot
       : path.join(process.cwd(), configuredRoot);
-    this.root = path.join(extensionsRoot, 'plugins');
+    this.root = path.join(extensionsRoot, kind);
   }
 
   async put(slug: string, sourceDirectory: string): Promise<PluginPackageDeployment> {
@@ -158,3 +158,4 @@ class LocalPluginPackageStore implements PluginPackageStore {
 }
 
 export const pluginPackageStore: PluginPackageStore = new LocalPluginPackageStore();
+export const themePackageStore: PluginPackageStore = new LocalPluginPackageStore('themes');

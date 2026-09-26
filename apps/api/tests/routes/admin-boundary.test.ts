@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
-import { loadOpenApiSpec } from '../helpers/openapi';
 
 describe('AUTH-1 administrator route boundary', () => {
   let app: FastifyInstance;
@@ -15,13 +14,13 @@ describe('AUTH-1 administrator route boundary', () => {
   ];
 
   beforeAll(async () => {
-    app = await createTestApp();
+    app = await createTestApp({ enableSwagger: true });
     customerToken = (await createUserWithToken()).token;
   });
   afterAll(async () => { await deleteAllTestUsers(); await app.close(); });
 
   it('A enumerates every registered Admin and extension route and enforces the admin boundary', async () => {
-    const spec = loadOpenApiSpec()!;
+    const spec = app.swagger();
     const paths = Object.keys(spec.paths).filter((path) =>
       path.startsWith('/api/v1/admin/') || path.startsWith('/api/v1/extensions/'));
     expect(paths.length).toBeGreaterThan(20);
@@ -44,7 +43,7 @@ describe('AUTH-1 administrator route boundary', () => {
   });
 
   it('A public gateway paths remain unauthenticated with exactly the declared exemptions', async () => {
-    const spec = loadOpenApiSpec()!;
+    const spec = app.swagger();
     const actual = Object.keys(spec.paths).filter((path) =>
       path.startsWith('/api/v1/extensions/') && !Object.values(spec.paths[path]).every((operation) =>
         typeof operation === 'object' && operation !== null && 'security' in operation));
@@ -71,6 +70,6 @@ describe('AUTH-1 administrator route boundary', () => {
   it('DEMO-1 removed login configuration returns 404 and is absent from OpenAPI', async () => {
     const response = await app.inject({ method: 'GET', url: '/api/v1/auth/login-config' });
     expect(response.statusCode).toBe(404);
-    expect(loadOpenApiSpec()?.paths['/api/v1/auth/login-config']).toBeUndefined();
+    expect(app.swagger().paths['/api/v1/auth/login-config']).toBeUndefined();
   });
 });

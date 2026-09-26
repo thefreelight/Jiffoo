@@ -33,6 +33,7 @@ import { installRoutes } from '@/core/install/routes';
 
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
+import { publicThemeAssetRoutes } from '@/core/admin/extension-installer/theme-routes';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 // Store routes
 import { storeRoutes } from '@/core/store/routes';
@@ -79,5 +80,6 @@ export async function registerV1Routes(fastify: FastifyInstance) {
 
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/extensions' });
+  await fastify.register(publicThemeAssetRoutes);
   await fastify.register(installRoutes, { prefix: '/install' });
 }
