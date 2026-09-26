@@ -38,7 +38,6 @@ const env = {
   ADMIN_URL: 'http://127.0.0.1:3002',
   STOREFRONT_URL: 'http://127.0.0.1:3003',
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
-  JIFFOO_DEMO_MODE: 'false',
 };
 const results = [];
 const children = [];

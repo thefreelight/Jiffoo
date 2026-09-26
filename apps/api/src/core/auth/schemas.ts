@@ -67,28 +67,11 @@ const changePasswordResultSchema = {
   required: ['passwordChanged', 'changedAt', 'access_token', 'refresh_token'],
 } as const;
 
-const loginConfigSchema = {
-  type: 'object',
-  properties: {
-    demoModeEnabled: { type: 'boolean', description: 'Whether demo mode is enabled for this instance' },
-    demoCredentials: {
-      type: 'object',
-      nullable: true,
-      properties: {
-        email: { type: 'string', format: 'email', description: 'Demo admin email' },
-        password: { type: 'string', description: 'Demo admin password' },
-      },
-      required: ['email', 'password'],
-    },
-  },
-  required: ['demoModeEnabled', 'demoCredentials'],
-} as const;
-
 const bootstrapStatusSchema = {
   type: 'object',
   properties: {
-    mode: { type: 'string', enum: ['bootstrap', 'demo', 'normal'] },
-    showDemoCredentials: { type: 'boolean' },
+    mode: { type: 'string', enum: ['bootstrap', 'normal'] },
+    showBootstrapCredentials: { type: 'boolean' },
     requiresPasswordRotation: { type: 'boolean' },
     credentials: {
       type: ['object', 'null'],
@@ -99,7 +82,7 @@ const bootstrapStatusSchema = {
       required: ['email', 'password'],
     },
   },
-  required: ['mode', 'showDemoCredentials', 'requiresPasswordRotation'],
+  required: ['mode', 'showBootstrapCredentials', 'requiresPasswordRotation'],
 } as const;
 
 // ============================================================================
@@ -139,11 +122,6 @@ export const authSchemas = {
       },
     },
     response: createTypedCrudResponses(authResponseSchema),
-  },
-
-  // GET /api/auth/login-config
-  loginConfig: {
-    response: createTypedReadResponses(loginConfigSchema),
   },
 
   // GET /api/auth/me

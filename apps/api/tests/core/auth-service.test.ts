@@ -54,7 +54,7 @@ vi.mock('@/core/auth/bootstrap', () => ({
   shouldRequirePasswordRotation: vi.fn().mockResolvedValue(false),
   getAuthBootstrapState: vi.fn().mockResolvedValue({
     mode: 'normal',
-    showDemoCredentials: false,
+    showBootstrapCredentials: false,
     requiresPasswordRotation: false,
     email: 'admin@jiffoo.com',
     updatedAt: new Date().toISOString(),

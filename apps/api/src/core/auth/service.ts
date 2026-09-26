@@ -14,9 +14,6 @@ import { shouldRequirePasswordRotation } from './bootstrap';
 import { findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './user-compat';
 import { negotiateNotificationLocale, normalizeNotificationLocale } from '@/core/notifications/service';
 
-const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
-const DEFAULT_DEMO_ADMIN_PASSWORD = 'admin123';
-
 export interface AuthResponse {
   user: {
     id: string;
@@ -37,14 +34,6 @@ export interface AuthResponse {
   token: string;
 }
 
-export interface LoginConfigResponse {
-  demoModeEnabled: boolean;
-  demoCredentials: {
-    email: string;
-    password: string;
-  } | null;
-}
-
 const authUserSelect = {
   id: true,
   email: true,
@@ -58,34 +47,8 @@ const authUserSelect = {
 } as const;
 
 export class AuthService {
-  private static isDemoModeEnabled(): boolean {
-    return process.env.JIFFOO_DEMO_MODE === 'true';
-  }
-
   private static shouldRequireEmailVerification(): boolean {
     return process.env.AUTH_REQUIRE_EMAIL_VERIFICATION?.trim().toLowerCase() !== 'false';
-  }
-
-  private static resolveDemoCredentials() {
-    return {
-      email: process.env.JIFFOO_DEMO_ADMIN_EMAIL?.trim() || DEFAULT_DEMO_ADMIN_EMAIL,
-      password: process.env.JIFFOO_DEMO_ADMIN_PASSWORD || DEFAULT_DEMO_ADMIN_PASSWORD,
-    };
-  }
-
-  static async getLoginConfig(): Promise<LoginConfigResponse> {
-    if (!this.isDemoModeEnabled()) {
-      return {
-        demoModeEnabled: false,
-        demoCredentials: null,
-      };
-    }
-
-    const credentials = this.resolveDemoCredentials();
-    return {
-      demoModeEnabled: true,
-      demoCredentials: credentials,
-    };
   }
 
   /**

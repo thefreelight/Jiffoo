@@ -47,11 +47,11 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
-export type AuthBootstrapMode = 'bootstrap' | 'demo' | 'normal';
+export type AuthBootstrapMode = 'bootstrap' | 'normal';
 
 export interface AuthBootstrapStatus {
   mode: AuthBootstrapMode;
-  showDemoCredentials: boolean;
+  showBootstrapCredentials: boolean;
   requiresPasswordRotation: boolean;
   credentials?: {
     email: string;

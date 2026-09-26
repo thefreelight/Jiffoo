@@ -188,7 +188,7 @@ export class InstallService {
           'localization.locale': 'en',
           'auth.bootstrap.admin': {
             mode: 'normal',
-            showDemoCredentials: false,
+            showBootstrapCredentials: false,
             requiresPasswordRotation: false,
             email,
             updatedAt: new Date().toISOString(),

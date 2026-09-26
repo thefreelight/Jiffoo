@@ -469,7 +469,7 @@ describe('Auth Endpoints', () => {
           settings: {
             'auth.bootstrap.admin': {
               mode: 'bootstrap',
-              showDemoCredentials: true,
+              showBootstrapCredentials: true,
               requiresPasswordRotation: true,
               email: 'admin@jiffoo.com',
               updatedAt: new Date().toISOString(),
@@ -481,7 +481,7 @@ describe('Auth Endpoints', () => {
           settings: {
             'auth.bootstrap.admin': {
               mode: 'bootstrap',
-              showDemoCredentials: true,
+              showBootstrapCredentials: true,
               requiresPasswordRotation: true,
               email: 'admin@jiffoo.com',
               updatedAt: new Date().toISOString(),
@@ -502,7 +502,7 @@ describe('Auth Endpoints', () => {
       const body = response.json();
       expect(body.success).toBe(true);
       expect(body.data.mode).toBe('bootstrap');
-      expect(body.data.showDemoCredentials).toBe(true);
+      expect(body.data.showBootstrapCredentials).toBe(true);
       expect(body.data.requiresPasswordRotation).toBe(true);
       expect(body.data.credentials.email).toBe('admin@jiffoo.com');
       expect(body.data.credentials.password).toBe('admin123');
@@ -676,7 +676,7 @@ describe('Auth Endpoints', () => {
           settings: {
             'auth.bootstrap.admin': {
               mode: 'bootstrap',
-              showDemoCredentials: true,
+              showBootstrapCredentials: true,
               requiresPasswordRotation: true,
               email: 'admin@jiffoo.com',
               updatedAt: new Date().toISOString(),
@@ -688,7 +688,7 @@ describe('Auth Endpoints', () => {
           settings: {
             'auth.bootstrap.admin': {
               mode: 'bootstrap',
-              showDemoCredentials: true,
+              showBootstrapCredentials: true,
               requiresPasswordRotation: true,
               email: 'admin@jiffoo.com',
               updatedAt: new Date().toISOString(),
@@ -718,7 +718,7 @@ describe('Auth Endpoints', () => {
 
       expect(bootstrapStatus.statusCode).toBe(200);
       const body = bootstrapStatus.json();
-      expect(body.data.showDemoCredentials).toBe(false);
+      expect(body.data.showBootstrapCredentials).toBe(false);
       expect(body.data.requiresPasswordRotation).toBe(false);
       expect(body.data.credentials).toBeNull();
     });

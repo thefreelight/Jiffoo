@@ -90,9 +90,9 @@ async function main() {
       'localization.locale': 'en',
       'localization.timezone': 'UTC',
       'auth.bootstrap.admin': {
-        mode: process.env.AUTH_BOOTSTRAP_MODE === 'demo' ? 'demo' : (process.env.AUTH_BOOTSTRAP_MODE === 'normal' ? 'normal' : 'bootstrap'),
-        showDemoCredentials: process.env.AUTH_BOOTSTRAP_MODE === 'normal' ? false : true,
-        requiresPasswordRotation: process.env.AUTH_BOOTSTRAP_MODE === 'demo' ? false : (process.env.AUTH_BOOTSTRAP_MODE === 'normal' ? false : true),
+        mode: process.env.AUTH_BOOTSTRAP_MODE === 'normal' ? 'normal' : 'bootstrap',
+        showBootstrapCredentials: process.env.AUTH_BOOTSTRAP_MODE !== 'normal',
+        requiresPasswordRotation: process.env.AUTH_BOOTSTRAP_MODE !== 'normal',
         email: process.env.AUTH_BOOTSTRAP_ADMIN_EMAIL || 'admin@jiffoo.com',
         updatedAt: new Date().toISOString(),
       },

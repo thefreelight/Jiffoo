@@ -232,15 +232,6 @@ export const authApi = {
     return response;
   },
 
-  getLoginConfig: (): Promise<ApiResponse<{
-    demoModeEnabled: boolean;
-    demoCredentials: {
-      email: string;
-      password: string;
-    } | null;
-  }>> =>
-    apiClient.get('/auth/login-config'),
-
   me: (): Promise<ApiResponse<UserProfile>> => apiClient.get('/auth/me'),
 
   bootstrapStatus: (): Promise<ApiResponse<AuthBootstrapStatus>> =>

@@ -98,23 +98,6 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Public login configuration
-  fastify.get('/login-config', {
-    schema: {
-      tags: ['auth'],
-      summary: 'Get public login configuration',
-      description: 'Returns unauthenticated login-page configuration such as demo-mode visibility',
-      ...authSchemas.loginConfig,
-    }
-  }, async (_request, reply) => {
-    try {
-      const result = await AuthService.getLoginConfig();
-      return sendSuccess(reply, result);
-    } catch (error: any) {
-      return sendError(reply, 500, 'LOGIN_CONFIG_FAILED', error.message || 'Failed to load login configuration');
-    }
-  });
-
   // Register
   fastify.post('/register', {
     schema: {
@@ -161,7 +144,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['auth'],
       summary: 'Get bootstrap credential status',
-      description: 'Returns whether bootstrap/demo credentials should be shown on the login page.',
+      description: 'Returns whether initial administrator credentials should be shown on the login page.',
       ...authSchemas.bootstrapStatus,
     }
   }, async (_request, reply) => {

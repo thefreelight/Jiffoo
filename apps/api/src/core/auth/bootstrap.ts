@@ -8,14 +8,14 @@ const DEFAULT_BOOTSTRAP_MODE = normalizeMode(process.env.AUTH_BOOTSTRAP_MODE);
 
 type StoredAuthBootstrapState = {
   mode: AuthBootstrapMode;
-  showDemoCredentials: boolean;
+  showBootstrapCredentials: boolean;
   requiresPasswordRotation: boolean;
   email: string;
   updatedAt: string;
 };
 
 function normalizeMode(value: unknown): AuthBootstrapMode {
-  if (value === 'demo' || value === 'normal') {
+  if (value === 'normal') {
     return value;
   }
   return 'bootstrap';
@@ -24,7 +24,7 @@ function normalizeMode(value: unknown): AuthBootstrapMode {
 function buildDefaultBootstrapState(): StoredAuthBootstrapState {
   return {
     mode: DEFAULT_BOOTSTRAP_MODE,
-    showDemoCredentials: DEFAULT_BOOTSTRAP_MODE !== 'normal',
+    showBootstrapCredentials: DEFAULT_BOOTSTRAP_MODE === 'bootstrap',
     requiresPasswordRotation: DEFAULT_BOOTSTRAP_MODE === 'bootstrap',
     email: DEFAULT_BOOTSTRAP_EMAIL,
     updatedAt: new Date().toISOString(),
@@ -40,20 +40,16 @@ function sanitizeStoredState(value: unknown): StoredAuthBootstrapState {
     return buildDefaultBootstrapState();
   }
 
-  const mode = normalizeMode(value.mode);
+  const mode: AuthBootstrapMode = value.mode === 'bootstrap' ? 'bootstrap' : 'normal';
   const email = typeof value.email === 'string' && value.email.trim()
     ? value.email.trim()
     : DEFAULT_BOOTSTRAP_EMAIL;
-  const showDemoCredentials = typeof value.showDemoCredentials === 'boolean'
-    ? value.showDemoCredentials
-    : mode !== 'normal';
-  const requiresPasswordRotation = typeof value.requiresPasswordRotation === 'boolean'
-    ? value.requiresPasswordRotation
-    : mode === 'bootstrap';
+  const showBootstrapCredentials = mode === 'bootstrap';
+  const requiresPasswordRotation = mode === 'bootstrap';
 
   return {
     mode,
-    showDemoCredentials,
+    showBootstrapCredentials,
     requiresPasswordRotation,
     email,
     updatedAt: typeof value.updatedAt === 'string' && value.updatedAt.trim()
@@ -78,9 +74,9 @@ export async function getPublicAuthBootstrapStatus(): Promise<AuthBootstrapStatu
   const state = await getAuthBootstrapState();
   return {
     mode: state.mode,
-    showDemoCredentials: state.showDemoCredentials,
+    showBootstrapCredentials: state.showBootstrapCredentials,
     requiresPasswordRotation: state.requiresPasswordRotation,
-    credentials: state.showDemoCredentials
+    credentials: state.showBootstrapCredentials
       ? {
           email: state.email,
           password: DEFAULT_BOOTSTRAP_PASSWORD,
@@ -110,7 +106,7 @@ export async function completeBootstrapPasswordRotation(userEmail: string): Prom
   await saveState({
     ...state,
     mode: 'normal',
-    showDemoCredentials: false,
+    showBootstrapCredentials: false,
     requiresPasswordRotation: false,
   });
 }

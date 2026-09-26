@@ -146,17 +146,15 @@ export default function AdminLoginPage() {
     }
   }
 
-  const fillDemo = () => {
+  const fillBootstrap = () => {
     const credentials = bootstrapStatus?.credentials
     if (!credentials) return
     setEmail(credentials.email)
     setPassword(credentials.password)
   }
 
-  const shouldShowDemoCredentials = Boolean(bootstrapStatus?.showDemoCredentials && bootstrapStatus?.credentials)
-  const bootstrapHint = bootstrapStatus?.requiresPasswordRotation
-    ? getText('merchant.auth.bootstrapPasswordRotationHint', 'Change the initial admin password after sign-in to hide these bootstrap credentials.')
-    : getText('merchant.auth.demoCredentialsHint', 'These credentials are visible because this instance is still in bootstrap or demo mode.')
+  const shouldShowBootstrapCredentials = Boolean(bootstrapStatus?.showBootstrapCredentials && bootstrapStatus?.credentials)
+  const bootstrapHint = getText('merchant.auth.bootstrapPasswordRotationHint', 'Change the initial admin password after sign-in to hide these bootstrap credentials.')
   const brandedTitle = getText('merchant.auth.title', 'Store Console')
   const brandedSubtitle = getText('merchant.auth.welcomeBack', 'SECURE ACCESS')
   const brandedFooter = getText('merchant.auth.copyright', '© 2026 STORE CONSOLE. ALL RIGHTS RESERVED.')
@@ -284,11 +282,11 @@ export default function AdminLoginPage() {
                   {getText('common.loading', 'Loading...')}
                 </div>
               </div>
-            ) : shouldShowDemoCredentials ? (
+            ) : shouldShowBootstrapCredentials ? (
               <div className="pt-6 border-t border-gray-50">
                 <div className="text-center space-y-3">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    {getText('merchant.auth.demoCredentials', 'DEMO CREDENTIALS')}
+                    {getText('merchant.auth.bootstrapCredentials', 'INITIAL ADMIN CREDENTIALS')}
                   </p>
                   <div className="bg-gray-50/50 rounded-xl p-4 space-y-2 text-xs border border-gray-100">
                     <div className="flex justify-between items-center">
@@ -309,11 +307,11 @@ export default function AdminLoginPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={fillDemo}
+                    onClick={fillBootstrap}
                     className="w-full rounded-xl border-gray-200 hover:bg-gray-50 font-semibold text-sm h-10"
                     disabled={isLoading}
                   >
-                    {getText('merchant.auth.useDemoCredentials', 'USE DEMO CREDENTIALS')}
+                    {getText('merchant.auth.useBootstrapCredentials', 'USE INITIAL CREDENTIALS')}
                   </Button>
                 </div>
               </div>

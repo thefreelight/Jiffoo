@@ -68,24 +68,9 @@ describe('AUTH-1 administrator route boundary', () => {
     }
   });
 
-  it('K6 demo login configuration cannot promote a customer or create an administrator', async () => {
-    const customer = await createUserWithToken();
-    const before = await import('../helpers/db').then(({ getTestPrisma }) => getTestPrisma().user.count({ where: { role: 'ADMIN' } }));
-    const previousMode = process.env.JIFFOO_DEMO_MODE;
-    const previousEmail = process.env.JIFFOO_DEMO_ADMIN_EMAIL;
-    try {
-      process.env.JIFFOO_DEMO_MODE = 'true';
-      process.env.JIFFOO_DEMO_ADMIN_EMAIL = customer.user.email;
-      const response = await app.inject({ method: 'GET', url: '/api/v1/auth/login-config' });
-      expect(response.statusCode).toBe(200);
-      const { getTestPrisma } = await import('../helpers/db');
-      expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: customer.user.id } })).role).toBe('USER');
-      expect(await getTestPrisma().user.count({ where: { role: 'ADMIN' } })).toBe(before);
-    } finally {
-      if (previousMode === undefined) delete process.env.JIFFOO_DEMO_MODE;
-      else process.env.JIFFOO_DEMO_MODE = previousMode;
-      if (previousEmail === undefined) delete process.env.JIFFOO_DEMO_ADMIN_EMAIL;
-      else process.env.JIFFOO_DEMO_ADMIN_EMAIL = previousEmail;
-    }
+  it('DEMO-1 removed login configuration returns 404 and is absent from OpenAPI', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/v1/auth/login-config' });
+    expect(response.statusCode).toBe(404);
+    expect(loadOpenApiSpec()?.paths['/api/v1/auth/login-config']).toBeUndefined();
   });
 });
