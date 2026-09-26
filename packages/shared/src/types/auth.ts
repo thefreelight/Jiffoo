@@ -46,15 +46,3 @@ export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
 }
-
-export type AuthBootstrapMode = 'bootstrap' | 'normal';
-
-export interface AuthBootstrapStatus {
-  mode: AuthBootstrapMode;
-  showBootstrapCredentials: boolean;
-  requiresPasswordRotation: boolean;
-  credentials?: {
-    email: string;
-    password: string;
-  } | null;
-}

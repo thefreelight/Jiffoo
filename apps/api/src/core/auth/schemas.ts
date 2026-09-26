@@ -25,7 +25,6 @@ const userProfileSchema = {
     locale: { type: ['string', 'null'], enum: ['en', 'zh-Hans', 'zh-Hant', null] },
     role: { type: 'string', description: 'User role (admin, customer, etc.)' },
     emailVerified: { type: 'boolean', description: 'Whether email has been verified' },
-    requiresPasswordRotation: { type: 'boolean', description: 'Whether this user must rotate an initial bootstrap password before normal admin use' },
   },
   required: ['id', 'email', 'username', 'role'],
 } as const;
@@ -65,24 +64,6 @@ const changePasswordResultSchema = {
     refresh_token: { type: 'string' },
   },
   required: ['passwordChanged', 'changedAt', 'access_token', 'refresh_token'],
-} as const;
-
-const bootstrapStatusSchema = {
-  type: 'object',
-  properties: {
-    mode: { type: 'string', enum: ['bootstrap', 'normal'] },
-    showBootstrapCredentials: { type: 'boolean' },
-    requiresPasswordRotation: { type: 'boolean' },
-    credentials: {
-      type: ['object', 'null'],
-      properties: {
-        email: { type: 'string', format: 'email' },
-        password: { type: 'string' },
-      },
-      required: ['email', 'password'],
-    },
-  },
-  required: ['mode', 'showBootstrapCredentials', 'requiresPasswordRotation'],
 } as const;
 
 // ============================================================================
@@ -127,11 +108,6 @@ export const authSchemas = {
   // GET /api/auth/me
   me: {
     response: createTypedReadResponses(userProfileSchema),
-  },
-
-  // GET /api/auth/bootstrap-status
-  bootstrapStatus: {
-    response: createTypedReadResponses(bootstrapStatusSchema),
   },
 
   // POST /api/auth/refresh

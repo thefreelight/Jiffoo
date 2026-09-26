@@ -64,14 +64,6 @@ export default function ProtectedRoute({
         return
       }
 
-      if (
-        user?.requiresPasswordRotation &&
-        pathname !== `/${locale}/profile` &&
-        pathname !== `/${locale}/auth/login`
-      ) {
-        router.replace(`/${locale}/profile`)
-        return
-      }
     }
   }, [
     hasAdminAccess,

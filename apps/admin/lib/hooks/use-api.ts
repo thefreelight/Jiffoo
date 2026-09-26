@@ -788,7 +788,6 @@ export function useChangePassword() {
       if (user) {
         updateUser({
           ...user,
-          requiresPasswordRotation: false,
         });
       }
       toast.success('Password changed successfully');

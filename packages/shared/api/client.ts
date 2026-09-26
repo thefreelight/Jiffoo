@@ -57,7 +57,6 @@ export interface UserProfile {
   timezone?: string;
   role: string;
   isActive: boolean;
-  requiresPasswordRotation?: boolean;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string | null;

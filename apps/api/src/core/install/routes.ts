@@ -39,12 +39,14 @@ export async function installRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             connected: { type: 'boolean' },
-            error: { type: 'string' }
           }
-        }
+        },
+        404: { type: 'object', additionalProperties: true }
       }
     }
   }, async (request, reply) => {
+    const status = await InstallService.checkInstallationStatus();
+    if (status.isInstalled) return reply.code(404).send();
     const result = await InstallService.checkDatabaseConnection();
     return reply.send(result);
   });
@@ -73,7 +75,8 @@ export async function installRoutes(fastify: FastifyInstance) {
           type: 'object',
           properties: {
             success: { type: 'boolean' },
-            error: { type: 'string' }
+            error: { type: 'string' },
+            code: { type: 'string' }
           }
         },
         400: {
@@ -81,6 +84,14 @@ export async function installRoutes(fastify: FastifyInstance) {
           properties: {
             success: { type: 'boolean' },
             error: { type: 'string' }
+          }
+        },
+        409: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            error: { type: 'string' },
+            code: { type: 'string' }
           }
         }
       }
@@ -106,7 +117,7 @@ export async function installRoutes(fastify: FastifyInstance) {
     });
 
     if (!result.success) {
-      return reply.code(400).send(result);
+      return reply.code(result.code === 'INSTALL_EMAIL_IN_USE' ? 409 : 400).send(result);
     }
 
     return reply.send(result);

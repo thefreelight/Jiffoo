@@ -30,7 +30,7 @@ describe('Auth Endpoints', () => {
   const prisma = getTestPrisma();
 
   beforeAll(async () => {
-    app = await createTestApp();
+    app = await createTestApp({ enableSwagger: true });
   });
 
   afterAll(async () => {
@@ -72,11 +72,7 @@ describe('Auth Endpoints', () => {
       expect(decoded.userId).toBe(body.data.user.id);
     });
 
-    it('should allow register, login, and logout when email verification is disabled', async () => {
-      const previous = process.env.AUTH_REQUIRE_EMAIL_VERIFICATION;
-      process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = 'false';
-
-      try {
+    it('should allow unverified customers to login and logout after registration', async () => {
         const uniqueId = uuidv4().substring(0, 8);
         const email = `mvp-register-${uniqueId}@example.com`;
         const password = 'Test123456!';
@@ -93,7 +89,9 @@ describe('Auth Endpoints', () => {
 
         expect(register.statusCode).toBe(201);
         const registerBody = register.json();
-        expect(registerBody.data.user.emailVerified).toBe(true);
+        expect(registerBody.data.user.emailVerified).toBe(false);
+        expect(await prisma.user.findUnique({ where: { email }, select: { emailVerified: true } }))
+          .toMatchObject({ emailVerified: false });
 
         const login = await app.inject({
           method: 'POST',
@@ -119,13 +117,6 @@ describe('Auth Endpoints', () => {
 
         expect(logout.statusCode).toBe(200);
         expect(logout.json().data.loggedOut).toBe(true);
-      } finally {
-        if (previous === undefined) {
-          delete process.env.AUTH_REQUIRE_EMAIL_VERIFICATION;
-        } else {
-          process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = previous;
-        }
-      }
     });
 
     it('should return 400 for missing email', async () => {
@@ -443,7 +434,7 @@ describe('Auth Endpoints', () => {
       expect(body.data).toHaveProperty('email');
       expect(body.data.id).toBe(testUser.id);
       expect(body.data.email).toBe(testUser.email);
-      expect(body.data).toHaveProperty('requiresPasswordRotation');
+      expect(body.data).not.toHaveProperty('requiresPasswordRotation');
     });
 
     it('should not return password in response', async () => {
@@ -462,50 +453,13 @@ describe('Auth Endpoints', () => {
   });
 
   describe('GET /api/v1/auth/bootstrap-status', () => {
-    beforeEach(async () => {
-      await prisma.systemSettings.upsert({
-        where: { id: 'system' },
-        update: {
-          settings: {
-            'auth.bootstrap.admin': {
-              mode: 'bootstrap',
-              showBootstrapCredentials: true,
-              requiresPasswordRotation: true,
-              email: 'admin@jiffoo.com',
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        },
-        create: {
-          id: 'system',
-          settings: {
-            'auth.bootstrap.admin': {
-              mode: 'bootstrap',
-              showBootstrapCredentials: true,
-              requiresPasswordRotation: true,
-              email: 'admin@jiffoo.com',
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        },
-      });
-    });
-
-    it('should return bootstrap credentials when bootstrap mode is active', async () => {
+    it('should return 404 and be absent from the runtime OpenAPI spec', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/api/v1/auth/bootstrap-status',
       });
-
-      expect(response.statusCode).toBe(200);
-
-      const body = response.json();
-      expect(body.success).toBe(true);
-      expect(body.data.mode).toBe('bootstrap');
-      expect(body.data.showBootstrapCredentials).toBe(true);
-      expect(body.data.requiresPasswordRotation).toBe(true);
-      expect(body.data.credentials.email).toBe('admin@jiffoo.com');
-      expect(body.data.credentials.password).toBe('admin123');
+      expect(response.statusCode).toBe(404);
+      expect(app.swagger().paths['/api/v1/auth/bootstrap-status']).toBeUndefined();
     });
   });
 
@@ -659,68 +613,6 @@ describe('Auth Endpoints', () => {
       });
 
       expect(loginResponse.statusCode).toBe(200);
-    });
-
-    it('should clear bootstrap credential display after the seeded admin rotates the password', async () => {
-      const seededAdmin = await createTestUser({
-        email: 'admin@jiffoo.com',
-        username: 'admin',
-        role: 'ADMIN',
-        password: 'admin123',
-      });
-      const seededToken = signJwt(seededAdmin);
-
-      await prisma.systemSettings.upsert({
-        where: { id: 'system' },
-        update: {
-          settings: {
-            'auth.bootstrap.admin': {
-              mode: 'bootstrap',
-              showBootstrapCredentials: true,
-              requiresPasswordRotation: true,
-              email: 'admin@jiffoo.com',
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        },
-        create: {
-          id: 'system',
-          settings: {
-            'auth.bootstrap.admin': {
-              mode: 'bootstrap',
-              showBootstrapCredentials: true,
-              requiresPasswordRotation: true,
-              email: 'admin@jiffoo.com',
-              updatedAt: new Date().toISOString(),
-            },
-          },
-        },
-      });
-
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/v1/auth/change-password',
-        headers: {
-          authorization: `Bearer ${seededToken}`,
-        },
-        payload: {
-          currentPassword: 'admin123',
-          newPassword: 'NewAdminPassword123!',
-        },
-      });
-
-      expect(response.statusCode).toBe(200);
-
-      const bootstrapStatus = await app.inject({
-        method: 'GET',
-        url: '/api/v1/auth/bootstrap-status',
-      });
-
-      expect(bootstrapStatus.statusCode).toBe(200);
-      const body = bootstrapStatus.json();
-      expect(body.data.showBootstrapCredentials).toBe(false);
-      expect(body.data.requiresPasswordRotation).toBe(false);
-      expect(body.data.credentials).toBeNull();
     });
 
     it('should reject wrong current password', async () => {

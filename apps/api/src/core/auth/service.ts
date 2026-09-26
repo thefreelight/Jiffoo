@@ -10,7 +10,6 @@ import { PasswordUtils } from '@/utils/password';
 import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
-import { shouldRequirePasswordRotation } from './bootstrap';
 import { findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './user-compat';
 import { negotiateNotificationLocale, normalizeNotificationLocale } from '@/core/notifications/service';
 
@@ -23,7 +22,6 @@ export interface AuthResponse {
     emailVerified?: boolean;
     avatar?: string | null;
     locale?: string | null;
-    requiresPasswordRotation?: boolean;
   };
   // OAuth2 standard fields
   access_token: string;
@@ -47,10 +45,6 @@ const authUserSelect = {
 } as const;
 
 export class AuthService {
-  private static shouldRequireEmailVerification(): boolean {
-    return process.env.AUTH_REQUIRE_EMAIL_VERIFICATION?.trim().toLowerCase() !== 'false';
-  }
-
   /**
    * Register a new user account
    *
@@ -79,7 +73,6 @@ export class AuthService {
     if (existingUsername) throw new Error('User with this email or username already exists');
 
     const hashedPassword = await PasswordUtils.hash(data.password);
-    const requireEmailVerification = this.shouldRequireEmailVerification();
     const user = await prisma.$transaction(async (tx) => {
       const system = await tx.systemSettings.findUnique({ where: { id: 'system' }, select: { settings: true } });
       const settings = system?.settings && typeof system.settings === 'object' && !Array.isArray(system.settings)
@@ -89,12 +82,10 @@ export class AuthService {
       const created = await tx.user.create({
         data: {
           email: data.email, username: data.username, password: hashedPassword,
-          role: 'USER', locale, emailVerified: !requireEmailVerification,
+          role: 'USER', locale, emailVerified: false,
         },
       });
-      if (requireEmailVerification) {
-        await EmailVerificationService.createVerification(tx, created.id, created.email, created.username);
-      }
+      await EmailVerificationService.createVerification(tx, created.id, created.email, created.username);
       return created;
     });
 
@@ -119,7 +110,6 @@ export class AuthService {
         emailVerified: user.emailVerified,
         avatar: user.avatar,
         locale: user.locale,
-        requiresPasswordRotation: false,
       },
       // OAuth2 standard fields
       access_token: token,
@@ -157,8 +147,6 @@ export class AuthService {
       throw new Error('Account is inactive');
     }
 
-    const requiresPasswordRotation = await shouldRequirePasswordRotation(user.email);
-
     const token = JwtUtils.sign({
       userId: user.id,
       email: user.email,
@@ -179,7 +167,6 @@ export class AuthService {
         role: user.role,
         emailVerified: user.emailVerified,
         avatar: user.avatar,
-        requiresPasswordRotation,
       },
       // OAuth2 standard fields
       access_token: token,
@@ -222,10 +209,7 @@ export class AuthService {
       throw new Error('Account is inactive');
     }
 
-    return {
-      ...user,
-      requiresPasswordRotation: await shouldRequirePasswordRotation(user.email),
-    };
+    return user;
   }
 
   /**

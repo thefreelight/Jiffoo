@@ -279,12 +279,12 @@ describe('Persisted notifications', () => {
     expect(envSchema.safeParse({
       ...process.env, NODE_ENV: 'production',
       DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jiffoo_core_test',
-      JWT_SECRET: 'notification-test-secret', STOREFRONT_URL: undefined,
+      JWT_SECRET: 'notification-test-secret-with-32-characters', STOREFRONT_URL: undefined,
     }).success).toBe(false);
     expect(envSchema.safeParse({
       ...process.env, NODE_ENV: 'production',
       DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jiffoo_core_test',
-      JWT_SECRET: 'notification-test-secret', STOREFRONT_URL: 'https://store.example', ADMIN_URL: 'https://admin.example',
+      JWT_SECRET: 'notification-test-secret-with-32-characters', STOREFRONT_URL: 'https://store.example', ADMIN_URL: 'https://admin.example',
     }).success).toBe(true);
     const original = env.STOREFRONT_URL;
     try {

@@ -50,17 +50,6 @@ vi.mock('@/services/email-verification.service', () => ({
   },
 }));
 
-vi.mock('@/core/auth/bootstrap', () => ({
-  shouldRequirePasswordRotation: vi.fn().mockResolvedValue(false),
-  getAuthBootstrapState: vi.fn().mockResolvedValue({
-    mode: 'normal',
-    showBootstrapCredentials: false,
-    requiresPasswordRotation: false,
-    email: 'admin@jiffoo.com',
-    updatedAt: new Date().toISOString(),
-  }),
-}));
-
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
@@ -119,7 +108,6 @@ const TEST_USER = {
 
 const ACCESS_TOKEN = 'mock-access-token';
 const REFRESH_TOKEN = 'mock-refresh-token';
-const ORIGINAL_AUTH_REQUIRE_EMAIL_VERIFICATION = process.env.AUTH_REQUIRE_EMAIL_VERIFICATION;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -129,11 +117,6 @@ describe('AuthService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetAuthCompatibilityCache();
-    if (ORIGINAL_AUTH_REQUIRE_EMAIL_VERIFICATION === undefined) {
-      delete process.env.AUTH_REQUIRE_EMAIL_VERIFICATION;
-    } else {
-      process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = ORIGINAL_AUTH_REQUIRE_EMAIL_VERIFICATION;
-    }
   });
 
   // -----------------------------------------------------------------------
@@ -221,7 +204,6 @@ describe('AuthService', () => {
           emailVerified: false,
           avatar: null,
           locale: 'en',
-          requiresPasswordRotation: false,
         },
         access_token: ACCESS_TOKEN,
         token_type: 'Bearer',
@@ -275,8 +257,7 @@ describe('AuthService', () => {
       expect(mockPasswordUtils.hash).not.toHaveBeenCalled();
     });
 
-    it('should create a verified user and skip verification email when email verification is disabled', async () => {
-      process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = 'false';
+    it('should create an unverified user and queue verification', async () => {
 
       const createdUser = {
         id: 'new-user-id',
@@ -285,7 +266,7 @@ describe('AuthService', () => {
         password: 'hashed-pw',
         role: 'USER',
         avatar: null,
-        emailVerified: true,
+        emailVerified: false,
         locale: 'en',
       };
 
@@ -303,12 +284,12 @@ describe('AuthService', () => {
           username: registerData.username,
           password: 'hashed-pw',
           role: 'USER',
-          emailVerified: true,
+          emailVerified: false,
           locale: 'en',
         },
       });
-      expect(mockEmailVerification.createVerification).not.toHaveBeenCalled();
-      expect(result.user.emailVerified).toBe(true);
+      expect(mockEmailVerification.createVerification).toHaveBeenCalled();
+      expect(result.user.emailVerified).toBe(false);
     });
   });
 
@@ -354,7 +335,6 @@ describe('AuthService', () => {
           role: TEST_USER.role,
           emailVerified: TEST_USER.emailVerified,
           avatar: TEST_USER.avatar,
-          requiresPasswordRotation: false,
         },
         access_token: ACCESS_TOKEN,
         token_type: 'Bearer',
@@ -525,10 +505,7 @@ describe('AuthService', () => {
           createdAt: true,
         },
       });
-      expect(result).toEqual({
-        ...userProfile,
-        requiresPasswordRotation: false,
-      });
+      expect(result).toEqual(userProfile);
     });
 
     it('should throw when the user is not found', async () => {

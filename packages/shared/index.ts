@@ -28,7 +28,6 @@ export {
   type ApiClientConfig,
 } from './api/client';
 
-export type { AuthBootstrapStatus } from './src/types/auth';
 
 // Auth client
 export {

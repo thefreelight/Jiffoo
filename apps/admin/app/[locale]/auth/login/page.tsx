@@ -11,11 +11,9 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/store'
-import { authApi } from '@/lib/api'
 import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
-import type { AuthBootstrapStatus } from 'shared/src/types/auth'
 import { ZodError } from 'zod'
 // Validation using shared Zod schema
 import { loginSchema } from 'shared'
@@ -29,8 +27,6 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus | null>(null)
-  const [isLoadingBootstrap, setIsLoadingBootstrap] = useState(true)
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -71,40 +67,7 @@ export default function AdminLoginPage() {
   useEffect(() => { document.title = 'Commerce Admin - Management Dashboard' }, [])
 
   useEffect(() => {
-    let mounted = true
-
-    async function loadBootstrapStatus() {
-      try {
-        const response = await authApi.bootstrapStatus()
-        if (!mounted) return
-        if (response.success && response.data) {
-          setBootstrapStatus(response.data)
-        } else {
-          setBootstrapStatus(null)
-        }
-      } catch {
-        if (mounted) {
-          setBootstrapStatus(null)
-        }
-      } finally {
-        if (mounted) {
-          setIsLoadingBootstrap(false)
-        }
-      }
-    }
-
-    loadBootstrapStatus()
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  useEffect(() => {
     if (isAuthenticated) {
-      if (useAuthStore.getState().user?.requiresPasswordRotation) {
-        router.push(`/${locale}/profile`)
-        return
-      }
       // Check if there's a saved redirect path
       const redirectPath = sessionStorage.getItem('redirectPath')
       if (redirectPath && redirectPath !== `/${locale}/auth/login`) {
@@ -146,15 +109,6 @@ export default function AdminLoginPage() {
     }
   }
 
-  const fillBootstrap = () => {
-    const credentials = bootstrapStatus?.credentials
-    if (!credentials) return
-    setEmail(credentials.email)
-    setPassword(credentials.password)
-  }
-
-  const shouldShowBootstrapCredentials = Boolean(bootstrapStatus?.showBootstrapCredentials && bootstrapStatus?.credentials)
-  const bootstrapHint = getText('merchant.auth.bootstrapPasswordRotationHint', 'Change the initial admin password after sign-in to hide these bootstrap credentials.')
   const brandedTitle = getText('merchant.auth.title', 'Store Console')
   const brandedSubtitle = getText('merchant.auth.welcomeBack', 'SECURE ACCESS')
   const brandedFooter = getText('merchant.auth.copyright', '© 2026 STORE CONSOLE. ALL RIGHTS RESERVED.')
@@ -275,47 +229,6 @@ export default function AdminLoginPage() {
               </Button>
             </form>
 
-            {isLoadingBootstrap ? (
-              <div className="pt-6 border-t border-gray-50">
-                <div className="flex items-center justify-center gap-2 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-xs text-gray-500">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  {getText('common.loading', 'Loading...')}
-                </div>
-              </div>
-            ) : shouldShowBootstrapCredentials ? (
-              <div className="pt-6 border-t border-gray-50">
-                <div className="text-center space-y-3">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    {getText('merchant.auth.bootstrapCredentials', 'INITIAL ADMIN CREDENTIALS')}
-                  </p>
-                  <div className="bg-gray-50/50 rounded-xl p-4 space-y-2 text-xs border border-gray-100">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
-                        {getText('merchant.auth.email', 'Email')}:
-                      </span>
-                      <span className="font-mono text-gray-900 font-bold">{bootstrapStatus?.credentials?.email}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
-                        {getText('merchant.auth.password', 'Password')}:
-                      </span>
-                      <span className="font-mono text-gray-900 font-bold">{bootstrapStatus?.credentials?.password}</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500">{bootstrapHint}</p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={fillBootstrap}
-                    className="w-full rounded-xl border-gray-200 hover:bg-gray-50 font-semibold text-sm h-10"
-                    disabled={isLoading}
-                  >
-                    {getText('merchant.auth.useBootstrapCredentials', 'USE INITIAL CREDENTIALS')}
-                  </Button>
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
 

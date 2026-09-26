@@ -2,6 +2,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { createWriteStream, mkdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { createRequire } from 'node:module';
 
 const started = performance.now();
 const databaseUrl = process.env.DATABASE_URL_TEST;
@@ -28,8 +29,9 @@ const env = {
   DATABASE_URL_TEST: databaseUrl,
   NODE_ENV: 'production',
   REDIS_URL: 'redis://localhost:6379/14',
-  DISABLE_RATE_LIMITER: 'true',
-  JWT_SECRET: process.env.JWT_SECRET || 'e2e-local-secret',
+  DISABLE_RATE_LIMITER: 'false',
+  RATE_LIMITER_FAIL_CLOSED: 'true',
+  JWT_SECRET: 'e2e-local-secret-at-least-32-characters',
   API_HOST: '127.0.0.1',
   API_PORT: '3001',
   TRUSTED_PROXIES: '127.0.0.1,::1',
@@ -42,6 +44,11 @@ const env = {
 const results = [];
 const children = [];
 const logs = [];
+const playwrightCounts = { expected: 0, unexpected: 0, skipped: 0 };
+const playwrightGroups = [
+  ['01-install', '02-login', '03-password', '04-language', '05-settings', '06-health-plugins', '07-products', '08-orders', '09-customers'],
+  ['10-staff', '11-forgot-password', '12-translations', '13-shop', '14-shop-registration', '15-shop-account', '16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund'],
+];
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);
@@ -116,6 +123,31 @@ async function stop() {
   for (const log of logs) await new Promise((resolve) => log.end(resolve));
 }
 
+async function resetE2eLoginLimit() {
+  const apiRequire = createRequire(resolve(root, 'apps/api/package.json'));
+  const { createClient } = apiRequire('redis');
+  const client = createClient({ url: env.REDIS_URL });
+  await client.connect();
+  try {
+    await client.del('rl:login:ip:127.0.0.1');
+  } finally {
+    await client.quit();
+  }
+}
+
+async function runPlaywrightGroups() {
+  for (const [index, projects] of playwrightGroups.entries()) {
+    await resetE2eLoginLimit();
+    await asyncCommand([
+      'exec', 'playwright', 'test', '--config=e2e/playwright.config.ts',
+      ...(index ? ['--no-deps'] : []),
+      ...projects.map((project) => `--project=${project}`),
+    ]);
+    const { stats } = JSON.parse(readFileSync(resolve(resultsDir, 'playwright-report.json'), 'utf8'));
+    for (const key of Object.keys(playwrightCounts)) playwrightCounts[key] += stats[key];
+  }
+}
+
 try {
   await step('Reset test database', () => command(['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']));
   await step('Build shared package', () => command(['--filter', 'shared', 'build']));
@@ -130,16 +162,14 @@ try {
   });
   await step('Wait for health', health);
   console.log(`Playwright start time: ${new Date().toISOString()}`);
-  await step('Run Playwright', () => asyncCommand(['exec', 'playwright', 'test', '--config=e2e/playwright.config.ts']));
+  await step('Run Playwright', runPlaywrightGroups);
 } catch (error) {
   console.error(error);
   process.exitCode = 1;
 } finally {
   await step('Stop E2E child processes', stop);
   try {
-    const report = JSON.parse(readFileSync(resolve(resultsDir, 'playwright-report.json'), 'utf8'));
-    const counts = report.stats;
-    console.log(`Playwright results: ${counts.expected} passed, ${counts.unexpected} failed, ${counts.skipped} skipped`);
+    console.log(`Playwright results: ${playwrightCounts.expected} passed, ${playwrightCounts.unexpected} failed, ${playwrightCounts.skipped} skipped`);
   } catch {
     console.log('Playwright results: unavailable (test runner did not produce a report)');
   }

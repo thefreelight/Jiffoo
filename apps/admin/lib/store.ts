@@ -4,9 +4,7 @@ import { DashboardStats } from './types'
 import { apiClient, authApi, dashboardApi, unwrapApiResponse } from './api'
 import { type UserProfile } from 'shared'
 
-interface AppUser extends UserProfile {
-  requiresPasswordRotation?: boolean
-}
+type AppUser = UserProfile
 
 // Auth Store
 interface AuthState {
@@ -60,7 +58,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const profileResponse = await authApi.me();
       const userData = unwrapApiResponse(profileResponse);
-      const extendedUserData = userData as UserProfile & { requiresPasswordRotation?: boolean }
 
       const userProfile = {
         id: userData.id,
@@ -71,7 +68,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         avatar: userData.avatar,
         role: tokenPayload?.role || userData.role as any,
         isActive: userData.isActive,
-        requiresPasswordRotation: extendedUserData.requiresPasswordRotation ?? false,
         createdAt: userData.createdAt,
         updatedAt: userData.updatedAt,
         lastLoginAt: userData.lastLoginAt || new Date().toISOString()
@@ -106,7 +102,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authApi.me();
       const userData = unwrapApiResponse(response);
-      const extendedUserData = userData as UserProfile & { requiresPasswordRotation?: boolean }
 
       const user = {
         id: userData.id,
@@ -117,7 +112,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         avatar: userData.avatar,
         role: userData.role as any,
         isActive: userData.isActive,
-        requiresPasswordRotation: extendedUserData.requiresPasswordRotation ?? false,
         createdAt: userData.createdAt,
         updatedAt: userData.updatedAt,
         lastLoginAt: userData.lastLoginAt || new Date().toISOString()

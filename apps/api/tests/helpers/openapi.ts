@@ -12,7 +12,6 @@ import addFormats from 'ajv-formats';
 import fs from 'fs';
 import path from 'path';
 
-// Load OpenAPI spec
 const openapiPath = path.resolve(__dirname, '../../openapi.json');
 let openApiSpec: OpenAPISpec | null = null;
 
@@ -68,22 +67,16 @@ export interface Response {
  * Check if OpenAPI spec file exists
  */
 export function hasOpenApiSpec(): boolean {
-  return fs.existsSync(openapiPath);
+  return openApiSpec !== null || fs.existsSync(openapiPath);
 }
 
-/**
- * Load OpenAPI specification
- * Returns null if file doesn't exist (graceful degradation for tests)
- */
+export function setOpenApiSpec(spec: OpenAPISpec): void {
+  openApiSpec = spec;
+}
+
 export function loadOpenApiSpec(): OpenAPISpec | null {
-  if (!openApiSpec) {
-    if (!hasOpenApiSpec()) {
-      // Return null if openapi.json doesn't exist
-      // This allows tests to gracefully skip OpenAPI validation
-      return null;
-    }
-    const content = fs.readFileSync(openapiPath, 'utf-8');
-    openApiSpec = JSON.parse(content);
+  if (!openApiSpec && fs.existsSync(openapiPath)) {
+    openApiSpec = JSON.parse(fs.readFileSync(openapiPath, 'utf-8'));
   }
   return openApiSpec;
 }

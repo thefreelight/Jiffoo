@@ -16,7 +16,6 @@ import {
   type AdminOrderListItemDTO,
   type AdminOrderDetailDTO,
 } from 'shared';
-import type { AuthBootstrapStatus } from 'shared/src/types/auth';
 
 export type { ApiResponse, ListResult, PageResult, UserProfile };
 
@@ -233,9 +232,6 @@ export const authApi = {
   },
 
   me: (): Promise<ApiResponse<UserProfile>> => apiClient.get('/auth/me'),
-
-  bootstrapStatus: (): Promise<ApiResponse<AuthBootstrapStatus>> =>
-    apiClient.get('/auth/bootstrap-status'),
 
   logout: async () => {
     try {

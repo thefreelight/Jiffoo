@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import { assertSeedAllowed } from './seed-guard';
 
 const prisma = new PrismaClient();
 
@@ -8,11 +8,11 @@ const prisma = new PrismaClient();
  *
  * Goals:
  * - Idempotent (safe to re-run)
- * - Demo-friendly dataset for a standalone deployment
+ * - Sample catalog data only
  */
 
 // Export for potential external tooling (kept minimal)
-export { prisma, bcrypt };
+export { prisma };
 
 type SeedInventoryProfile = 'demo_mixed' | 'all_in_stock' | 'legacy_random';
 type SeedInventoryStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
@@ -78,92 +78,12 @@ function findMissingTables(existingTables: Set<string>, requiredTables: string[]
 
 async function main() {
   try {
+    assertSeedAllowed(process.env.NODE_ENV);
     console.log('🌱 Starting database seeding (Standalone Mode)...');
     const inventoryProfile = getSeedInventoryProfile();
     console.log(`📦 Inventory seed profile: ${inventoryProfile}`);
 
-    // 1) Initialize system settings
-    console.log('⚙️ Initializing system settings...');
-    const systemSettings = {
-      'branding.platform_name': 'Jiffoo Mall',
-      'localization.currency': 'USD',
-      'localization.locale': 'en',
-      'localization.timezone': 'UTC',
-      'auth.bootstrap.admin': {
-        mode: process.env.AUTH_BOOTSTRAP_MODE === 'normal' ? 'normal' : 'bootstrap',
-        showBootstrapCredentials: process.env.AUTH_BOOTSTRAP_MODE !== 'normal',
-        requiresPasswordRotation: process.env.AUTH_BOOTSTRAP_MODE !== 'normal',
-        email: process.env.AUTH_BOOTSTRAP_ADMIN_EMAIL || 'admin@jiffoo.com',
-        updatedAt: new Date().toISOString(),
-      },
-    };
-    await prisma.systemSettings.upsert({
-      where: { id: 'system' },
-      update: { isInstalled: true, settings: systemSettings },
-      create: {
-        id: 'system',
-        isInstalled: true,
-        siteDescription: 'Modern E-commerce Platform',
-        allowRegistration: true,
-        requireEmailVerification: false,
-        maintenanceMode: false,
-        version: '1.0.0',
-        settings: systemSettings,
-      },
-    });
-    console.log('✅ System settings initialized');
-
-    // 2) Create users
-    console.log('👤 Creating admin user...');
-    const hashedPassword = await bcrypt.hash('admin123', 10);
-
-    // Admin user (for Admin UI)
-    const admin = await prisma.user.upsert({
-      where: { email: 'admin@jiffoo.com' },
-      update: { role: 'ADMIN', password: hashedPassword, emailVerified: true },
-      create: {
-        email: 'admin@jiffoo.com',
-        username: 'admin',
-        password: hashedPassword,
-        role: 'ADMIN',
-        emailVerified: true,
-        avatar: null,
-      },
-    });
-    console.log(`✅ Admin user created: ${admin.email}`);
-
-    console.log('Creating owner user...');
-    const owner = await prisma.user.upsert({
-      where: { email: 'admin@jiffoo.com' },
-      update: { role: 'OWNER', password: hashedPassword, emailVerified: true },
-      create: {
-        email: 'admin@jiffoo.com',
-        username: 'admin',
-        password: hashedPassword,
-        role: 'OWNER',
-        emailVerified: true,
-        avatar: null,
-      },
-    });
-    console.log(`Owner user created: ${owner.email}`);
-
-    // Sample shopper user (for Shop UI)
-    console.log('👤 Creating sample user...');
-    const sampleUser = await prisma.user.upsert({
-      where: { email: 'user@jiffoo.com' },
-      update: { role: 'USER', password: hashedPassword, emailVerified: true },
-      create: {
-        email: 'user@jiffoo.com',
-        username: 'sample-user',
-        password: hashedPassword,
-        role: 'USER',
-        emailVerified: true,
-        avatar: null,
-      },
-    });
-    console.log(`✅ Sample user created: ${sampleUser.email}`);
-
-    // 3) Create categories
+    // Create categories
     console.log('🗂️ Creating sample categories...');
     // Aligned with the storefront theme's category cards (theme-assets/default)
     const categories = [
@@ -188,7 +108,7 @@ async function main() {
     }
     console.log(`✅ Created ${categories.length} categories`);
 
-    // 4) Create products + variants + translations
+    // Create products + variants + translations
     console.log('📦 Creating sample products...');
     const sampleProducts: Array<{
       id: string;
@@ -374,162 +294,7 @@ async function main() {
     }
     console.log(`✅ Created ${sampleProducts.length} sample products`);
 
-    // 6) Create a sample cart with items
-    console.log('🛒 Creating sample cart...');
-    const cart = await prisma.cart.upsert({
-      where: { userId: sampleUser.id },
-      update: { status: 'ACTIVE' },
-      create: { userId: sampleUser.id, status: 'ACTIVE' },
-    });
-
-    const cartItems = [
-      { id: 'cartitem-001', productId: 'prod-001', variantId: 'var-prod-001-black', quantity: 1, price: 199.99 },
-      { id: 'cartitem-002', productId: 'prod-003', variantId: 'var-prod-003-navy', quantity: 2, price: 89.0 },
-    ] as const;
-
-    for (const item of cartItems) {
-      await prisma.cartItem.upsert({
-        where: { id: item.id },
-        update: { cartId: cart.id, productId: item.productId, variantId: item.variantId, quantity: item.quantity, price: item.price },
-        create: { id: item.id, cartId: cart.id, productId: item.productId, variantId: item.variantId, quantity: item.quantity, price: item.price },
-      });
-    }
-    console.log(`✅ Cart created with ${cartItems.length} items`);
-
-    // 7) Create demo orders (one shipped, one refunded)
-    console.log('📦 Creating demo orders...');
-    const demoShippingAddress = {
-      firstName: 'John',
-      lastName: 'Doe',
-      phone: '+1-555-0100',
-      email: sampleUser.email,
-      addressLine1: '123 Demo Street',
-      addressLine2: 'Apt 4B',
-      city: 'San Francisco',
-      state: 'CA',
-      country: 'US',
-      postalCode: '94105',
-    };
-
-    // Order 001 (paid + shipped)
-    await prisma.order.upsert({
-      where: { id: 'cmlm24wtk0001vx08ishhwclg' },
-      update: {
-        userId: sampleUser.id,
-        status: 'SHIPPED',
-        paymentStatus: 'PAID',
-        subtotalAmount: 189.99,
-        taxAmount: 10,
-        totalAmount: 199.99,
-        customerEmail: sampleUser.email,
-        lastPaymentMethod: 'mock',
-      },
-      create: {
-        id: 'cmlm24wtk0001vx08ishhwclg',
-        userId: sampleUser.id,
-        status: 'SHIPPED',
-        paymentStatus: 'PAID',
-        subtotalAmount: 189.99,
-        taxAmount: 10,
-        totalAmount: 199.99,
-        customerEmail: sampleUser.email,
-        lastPaymentMethod: 'mock',
-      },
-    });
-
-    await prisma.orderShippingAddress.upsert({
-      where: { orderId: 'cmlm24wtk0001vx08ishhwclg' },
-      update: demoShippingAddress,
-      create: {
-        orderId: 'cmlm24wtk0001vx08ishhwclg',
-        ...demoShippingAddress,
-      },
-    });
-
-    await prisma.orderItem.upsert({
-      where: { id: 'orderitem-001' },
-      update: { orderId: 'cmlm24wtk0001vx08ishhwclg', productId: 'prod-001', variantId: 'var-prod-001-black', quantity: 1, unitPrice: 199.99, fulfillmentStatus: 'shipped' },
-      create: { id: 'orderitem-001', orderId: 'cmlm24wtk0001vx08ishhwclg', productId: 'prod-001', variantId: 'var-prod-001-black', quantity: 1, unitPrice: 199.99, fulfillmentStatus: 'shipped' },
-    });
-
-    await prisma.payment.upsert({
-      where: { id: 'pay-001' },
-      update: { orderId: 'cmlm24wtk0001vx08ishhwclg', paymentMethod: 'mock', amount: 199.99, currency: 'USD', status: 'SUCCEEDED', attemptNumber: 1 },
-      create: { id: 'pay-001', orderId: 'cmlm24wtk0001vx08ishhwclg', paymentMethod: 'mock', amount: 199.99, currency: 'USD', status: 'SUCCEEDED', attemptNumber: 1 },
-    });
-
-    await prisma.shipment.upsert({
-      where: { id: 'ship-001' },
-      update: { orderId: 'cmlm24wtk0001vx08ishhwclg', carrier: 'UPS', trackingNumber: '1Z999AA10123456784', status: 'SHIPPED', shippedAt: new Date() },
-      create: { id: 'ship-001', orderId: 'cmlm24wtk0001vx08ishhwclg', carrier: 'UPS', trackingNumber: '1Z999AA10123456784', status: 'SHIPPED', shippedAt: new Date() },
-    });
-
-    await prisma.shipmentItem.upsert({
-      where: { id: 'shipitem-001' },
-      update: { shipmentId: 'ship-001', orderItemId: 'orderitem-001', quantity: 1 },
-      create: { id: 'shipitem-001', shipmentId: 'ship-001', orderItemId: 'orderitem-001', quantity: 1 },
-    });
-
-    // Order 002 (paid + refunded)
-    await prisma.order.upsert({
-      where: { id: 'cmlm25xyk0002vx08jkppqwmn' },
-      update: {
-        userId: sampleUser.id,
-        status: 'REFUNDED',
-        paymentStatus: 'REFUNDED',
-        subtotalAmount: 178.0,
-        taxAmount: 0,
-        totalAmount: 178.0,
-        customerEmail: sampleUser.email,
-        lastPaymentMethod: 'mock',
-        cancelReason: 'Demo refund scenario',
-        cancelledAt: new Date(),
-      },
-      create: {
-        id: 'cmlm25xyk0002vx08jkppqwmn',
-        userId: sampleUser.id,
-        status: 'REFUNDED',
-        paymentStatus: 'REFUNDED',
-        subtotalAmount: 178.0,
-        taxAmount: 0,
-        totalAmount: 178.0,
-        customerEmail: sampleUser.email,
-        lastPaymentMethod: 'mock',
-        cancelReason: 'Demo refund scenario',
-        cancelledAt: new Date(),
-      },
-    });
-
-    await prisma.orderShippingAddress.upsert({
-      where: { orderId: 'cmlm25xyk0002vx08jkppqwmn' },
-      update: demoShippingAddress,
-      create: {
-        orderId: 'cmlm25xyk0002vx08jkppqwmn',
-        ...demoShippingAddress,
-      },
-    });
-
-    await prisma.orderItem.upsert({
-      where: { id: 'orderitem-002' },
-      update: { orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-navy', quantity: 2, unitPrice: 89.0, fulfillmentStatus: 'pending' },
-      create: { id: 'orderitem-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-navy', quantity: 2, unitPrice: 89.0, fulfillmentStatus: 'pending' },
-    });
-
-    await prisma.payment.upsert({
-      where: { id: 'pay-002' },
-      update: { orderId: 'cmlm25xyk0002vx08jkppqwmn', paymentMethod: 'mock', amount: 178.0, currency: 'USD', status: 'SUCCEEDED', attemptNumber: 1 },
-      create: { id: 'pay-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', paymentMethod: 'mock', amount: 178.0, currency: 'USD', status: 'SUCCEEDED', attemptNumber: 1 },
-    });
-
-    await prisma.refund.upsert({
-      where: { id: 'refund-001' },
-      update: { paymentId: 'pay-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', amount: 178.0, currency: 'USD', status: 'COMPLETED', provider: 'mock', providerRefundId: 're_0000000001', idempotencyKey: 'refund-order-002' },
-      create: { id: 'refund-001', paymentId: 'pay-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', amount: 178.0, currency: 'USD', status: 'COMPLETED', provider: 'mock', providerRefundId: 're_0000000001', idempotencyKey: 'refund-order-002' },
-    });
-
-    console.log('✅ Demo orders created');
-
-    // 8) Set stock for existing products.
+    // Set stock for existing products.
     const variants = await prisma.productVariant.findMany({
       select: { id: true, skuCode: true, productId: true },
       orderBy: [{ productId: 'asc' }, { id: 'asc' }],
@@ -543,49 +308,11 @@ async function main() {
       });
     }
 
-    // 9) Create sample inventory adjustments (audit trail)
-    console.log('📝 Creating inventory adjustments...');
-    const sampleVariants = variants.slice(0, 3);
-    let adjustmentCount = 0;
-
-    for (const variant of sampleVariants) {
-      await prisma.inventoryAdjustment.create({
-        data: {
-          variantId: variant.id,
-          type: 'initial',
-          quantity: 100,
-          reason: 'Initial stock',
-          notes: 'Setting up initial inventory',
-          userId: admin.id,
-        },
-      });
-      adjustmentCount++;
-
-      await prisma.inventoryAdjustment.create({
-        data: {
-          variantId: variant.id,
-          type: 'damage',
-          quantity: -5,
-          reason: 'Damaged during shipping',
-          notes: 'Items damaged, removed from inventory',
-          userId: admin.id,
-        },
-      });
-      adjustmentCount++;
-    }
-    console.log(`✅ Created ${adjustmentCount} inventory adjustments`);
-
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📋 Summary:');
-    console.log('   - System settings initialized');
-    console.log('   - Admin: admin@jiffoo.com / admin123');
-    console.log('   - Sample user: user@jiffoo.com / admin123');
     console.log(`   - ${sampleProducts.length} sample products created`);
     console.log('   - 5 categories created');
     console.log('   - Variants and product translations created');
-    console.log('   - Cart + demo orders created');
-    console.log(`   - ${adjustmentCount} inventory adjustments created`);
-    console.log('   - 4 stock alerts created');
 
   } catch (error) {
     console.error('❌ Seed error:', error);

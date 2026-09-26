@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
 import path from 'path';
+import { productionSafetyViolations } from './production-safety';
 
 // Load .env from apps/api directory
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -48,7 +49,6 @@ export const envSchema = z.object({
   EMAIL_FROM: z.string().optional(),
   EMAIL_FROM_NAME: z.string().optional(),
   EMAIL_REPLY_TO: z.string().optional(),
-  AUTH_REQUIRE_EMAIL_VERIFICATION: z.string().transform((v) => v.trim().toLowerCase() !== 'false').default('true'),
 
   // Optional: Google OAuth
   GOOGLE_CLIENT_ID: z.string().optional(),
@@ -71,19 +71,16 @@ export const envSchema = z.object({
   // Worker deployment mode: embedded (default), standalone, off
   WORKER_MODE: z.enum(['embedded', 'standalone', 'off']).default('embedded'),
 }).superRefine((value, context) => {
-  if (value.NODE_ENV === 'production' && !value.STOREFRONT_URL) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['STOREFRONT_URL'],
-      message: 'STOREFRONT_URL is required in production',
-    });
-  }
-  if (value.NODE_ENV === 'production' && !value.ADMIN_URL) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['ADMIN_URL'],
-      message: 'ADMIN_URL is required in production',
-    });
+  const violations = productionSafetyViolations({
+    NODE_ENV: value.NODE_ENV,
+    JWT_SECRET: value.JWT_SECRET,
+    RATE_LIMITER_FAIL_CLOSED: value.RATE_LIMITER_FAIL_CLOSED,
+    CORS_ORIGIN: value.CORS_ORIGIN,
+    STOREFRONT_URL: value.STOREFRONT_URL ?? '',
+    ADMIN_URL: value.ADMIN_URL ?? '',
+  }, process.env.DISABLE_RATE_LIMITER);
+  for (const message of violations) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message });
   }
 });
 

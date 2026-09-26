@@ -12,6 +12,7 @@ import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import {
   loadOpenApiSpec,
+  setOpenApiSpec,
   getAllOperations,
   getAuthenticatedOperations,
   getPublicOperations,
@@ -20,14 +21,14 @@ import {
 } from '../helpers/openapi';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 
+const app: FastifyInstance = await createTestApp({ enableSwagger: true });
+setOpenApiSpec(app.swagger() as ReturnType<typeof loadOpenApiSpec> & {});
+
 describe('OpenAPI Contract Tests', () => {
-  let app: FastifyInstance;
   let userToken: string;
   let adminToken: string;
 
   beforeAll(async () => {
-    app = await createTestApp();
-
     // Create test users
     const { token: uToken } = await createUserWithToken();
     const { token: aToken } = await createAdminWithToken();
@@ -337,12 +338,6 @@ describe('OpenAPI Contract Tests', () => {
     it('should have expected number of operations', () => {
       const stats = getOperationStats();
 
-      // If OpenAPI spec is not available (no openapi.json generated), skip the count check
-      if (stats.total === 0) {
-        console.log('OpenAPI spec not found (openapi.json missing). Skipping operation count check.');
-        return; // skip
-      }
-
       // Based on OpenAPI analysis: 92 operations / 81 paths
       expect(stats.total).toBeGreaterThanOrEqual(90);
 
@@ -352,12 +347,6 @@ describe('OpenAPI Contract Tests', () => {
 
     it('should have operations tagged by module', () => {
       const stats = getOperationStats();
-
-      // If OpenAPI spec is not available, skip
-      if (stats.total === 0 || !stats.byTag) {
-        console.log('OpenAPI spec not found (openapi.json missing). Skipping tag verification.');
-        return; // skip
-      }
 
       // Expected tags based on OpenAPI
       const expectedTags = [

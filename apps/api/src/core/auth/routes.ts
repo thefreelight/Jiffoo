@@ -12,7 +12,6 @@ import { PasswordUtils } from '@/utils/password';
 import { sendSuccess, sendError } from '@/utils/response';
 import { authSchemas } from './schemas';
 import { EmailVerificationService } from '@/services/email-verification.service';
-import { completeBootstrapPasswordRotation, getPublicAuthBootstrapStatus } from './bootstrap';
 import { acceptStaffInvite, requestPasswordReset, resetPassword } from './account-recovery';
 import { rateLimitMiddleware } from './rate-limit-middleware';
 import { JwtUtils } from '@/utils/jwt';
@@ -137,22 +136,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         return sendError(reply, 403, 'ACCOUNT_INACTIVE', error.message);
       }
       return sendError(reply, 401, 'LOGIN_FAILED', error.message);
-    }
-  });
-
-  fastify.get('/bootstrap-status', {
-    schema: {
-      tags: ['auth'],
-      summary: 'Get bootstrap credential status',
-      description: 'Returns whether initial administrator credentials should be shown on the login page.',
-      ...authSchemas.bootstrapStatus,
-    }
-  }, async (_request, reply) => {
-    try {
-      const status = await getPublicAuthBootstrapStatus();
-      return sendSuccess(reply, status);
-    } catch (error: any) {
-      return sendError(reply, 500, 'BOOTSTRAP_STATUS_ERROR', error.message || 'Failed to load bootstrap status');
     }
   });
 
@@ -387,7 +370,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         data: { password: hashedPassword, sessionVersion: { increment: 1 } },
       }));
 
-      await completeBootstrapPasswordRotation(user.email);
 
       return sendSuccess(reply, {
         passwordChanged: true,

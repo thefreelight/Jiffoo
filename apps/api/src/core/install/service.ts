@@ -151,16 +151,16 @@ export class InstallService {
     }
   }
 
-  static async checkDatabaseConnection(): Promise<{ connected: boolean; error?: string }> {
+  static async checkDatabaseConnection(): Promise<{ connected: boolean }> {
     try {
       await prisma.$queryRaw`SELECT 1`;
       return { connected: true };
-    } catch (error: any) {
-      return { connected: false, error: error.message };
+    } catch {
+      return { connected: false };
     }
   }
 
-  static async completeInstallation(data: InstallData): Promise<{ success: boolean; error?: string }> {
+  static async completeInstallation(data: InstallData): Promise<{ success: boolean; error?: string; code?: string }> {
     try {
       const runtimeVersion = resolveCurrentVersion();
       const hashedPassword = await bcrypt.hash(data.adminPassword, 10);
@@ -171,10 +171,10 @@ export class InstallService {
 
         const email = data.adminEmail.trim().toLowerCase();
         const existingAdmin = await tx.user.findUnique({ where: { email } });
-        if (existingAdmin && existingAdmin.role !== 'ADMIN') {
-          return { success: false, error: 'Email belongs to a customer' };
+        if (existingAdmin) {
+          return { success: false, error: 'Email is already in use', code: 'INSTALL_EMAIL_IN_USE' };
         }
-        const adminUser = existingAdmin || await tx.user.create({
+        const adminUser = await tx.user.create({
           data: {
             email,
             username: data.adminUsername || email.split('@')[0],
@@ -186,13 +186,6 @@ export class InstallService {
         const installedSettings = {
           'branding.platform_name': data.siteName,
           'localization.locale': 'en',
-          'auth.bootstrap.admin': {
-            mode: 'normal',
-            showBootstrapCredentials: false,
-            requiresPasswordRotation: false,
-            email,
-            updatedAt: new Date().toISOString(),
-          },
         };
         await tx.systemSettings.upsert({
           where: { id: 'system' },
@@ -210,6 +203,9 @@ export class InstallService {
         return { success: true };
       });
     } catch (error: any) {
+      if (error?.code === 'P2002') {
+        return { success: false, error: 'Email is already in use', code: 'INSTALL_EMAIL_IN_USE' };
+      }
       return { success: false, error: error.message };
     }
   }

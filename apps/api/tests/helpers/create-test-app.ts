@@ -11,6 +11,7 @@ import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import cookie from '@fastify/cookie';
+import swagger from '@fastify/swagger';
 import { getTestPrisma } from './db';
 
 export interface CreateTestAppOptions {
@@ -43,6 +44,7 @@ export interface CreateTestAppOptions {
    * @default false
    */
   enableVersioning?: boolean;
+  enableSwagger?: boolean;
 
   /**
    * Custom environment variables for this test app
@@ -293,6 +295,16 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
 
     // Import and register routes
     const { registerRoutes } = await import('../../src/routes');
+    if (options.enableSwagger) {
+      await fastify.register(swagger, {
+        openapi: {
+          info: { title: 'Jiffoo API', version: '1.0.0' },
+          components: {
+            securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer' } },
+          },
+        },
+      });
+    }
 
     // Register root endpoint
     fastify.get('/', {

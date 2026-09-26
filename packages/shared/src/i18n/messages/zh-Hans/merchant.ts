@@ -723,9 +723,6 @@ export const merchant = {
     signingIn: '登入中...',
     loginFailed: '登入失败',
     invalidCredentials: '电子邮件、使用者名称或密码错误',
-    bootstrapCredentials: '初始管理员凭证',
-    useBootstrapCredentials: '使用初始凭证',
-    bootstrapPasswordRotationHint: '登入后请立即修改初始管理员密码，修改后登入页就不会再显示这组凭证。',
     copyright: '© 2026 Jiffoo。保留所有权利。',
     redirectingToLogin: '正在跳转至登入页面...',
     verifyingIdentity: '正在验证身份...',
@@ -769,8 +766,6 @@ export const merchant = {
     updatePasswordAction: '更新密码',
     emailTaken: '电子邮件已被使用',
     passwordSection: '密码',
-    bootstrapPasswordTitle: '请先修改初始管理员密码',
-    bootstrapPasswordDescription: '此帐号仍在使用初始 bootstrap 密码。请立即更新，以便从登入页隐藏示例凭证并保护管理后台。',
   },
 
   // Plugins

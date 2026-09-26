@@ -21,7 +21,7 @@
 import 'module-alias/register';
 import { parseTrustedProxies } from 'shared/trusted-proxies';
 
-import Fastify from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyPluginAsync } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
@@ -30,6 +30,7 @@ import swagger from '@fastify/swagger';
 import swaggerUI from '@fastify/swagger-ui';
 import path from 'path';
 import { env } from '@/config/env';
+import { assertProductionSafety } from '@/config/production-safety';
 import { prisma } from '@/config/database';
 import { redisCache } from '@/core/cache/redis';
 import { LoggerService, logger, unifiedLogger } from '@/core/logger/unified-logger';
@@ -54,8 +55,34 @@ const fastify = Fastify({
 
 registerPluginProcessFailureHandlers();
 
+export async function registerGlobalRateLimiter(
+  app: FastifyInstance,
+  nodeEnv: string,
+  disabled: boolean,
+  loadPlugin: () => Promise<FastifyPluginAsync<any>> = async () =>
+    (await import('@/plugins/rate-limiter')).default,
+): Promise<void> {
+  try {
+    const plugin = await loadPlugin();
+    await app.register(plugin, { enabled: !disabled });
+  } catch (error) {
+    LoggerService.logError(error as Error, { context: 'Rate limiter registration' });
+    if (nodeEnv === 'production') {
+      throw new Error('Unsafe production configuration: rate-limiter registration failed', { cause: error });
+    }
+  }
+}
+
 async function buildApp() {
   try {
+    assertProductionSafety({
+      NODE_ENV: env.NODE_ENV ?? 'development',
+      JWT_SECRET: env.JWT_SECRET ?? '',
+      RATE_LIMITER_FAIL_CLOSED: env.RATE_LIMITER_FAIL_CLOSED ?? true,
+      CORS_ORIGIN: env.CORS_ORIGIN ?? '',
+      STOREFRONT_URL: process.env.STOREFRONT_URL ?? '',
+      ADMIN_URL: process.env.ADMIN_URL ?? '',
+    }, process.env.DISABLE_RATE_LIMITER);
     // Initialize Redis connection
     try {
       await redisCache.connect();
@@ -146,53 +173,36 @@ async function buildApp() {
       }
     });
 
-    // API Documentation UI (Scalar)
-    // We keep Swagger/OpenAPI generation via @fastify/swagger, and expose the spec at /openapi.json.
-    // Scalar reads the spec and provides a nicer UI at /docs.
-    let scalarApiReference;
-    try {
-      const scalarModule = await Function('return import("@scalar/fastify-api-reference")')();
-      scalarApiReference = scalarModule.default;
-    } catch (e) {
-      LoggerService.logError(e as Error, { context: 'Scalar Documentation UI load' });
-    }
-
-    if (scalarApiReference) {
-      await fastify.register(scalarApiReference, {
-        routePrefix: '/docs',
-        configuration: {
-          title: 'Jiffoo Mall Core API',
-          spec: {
-            url: '/openapi.json',
-          },
+    if (env.NODE_ENV !== 'production') {
+      let scalarApiReference;
+      try {
+        const scalarModule = await Function('return import("@scalar/fastify-api-reference")')();
+        scalarApiReference = scalarModule.default;
+      } catch (e) {
+        LoggerService.logError(e as Error, { context: 'Scalar Documentation UI load' });
+      }
+      if (scalarApiReference) {
+        await fastify.register(scalarApiReference, {
+          routePrefix: '/docs',
+          configuration: { title: 'Jiffoo Mall Core API', spec: { url: '/openapi.json' } },
+        });
+      }
+      await fastify.register(swaggerUI, {
+        routePrefix: '/swagger',
+        uiConfig: { docExpansion: 'list', deepLinking: true },
+        staticCSP: true,
+      });
+      fastify.get('/openapi.json', {
+        schema: {
+          tags: ['system'],
+          summary: 'OpenAPI specification (JSON)',
+          response: { 200: { type: 'object', additionalProperties: true } },
         },
+      }, async (_request, reply) => {
+        reply.header('content-type', 'application/json; charset=utf-8');
+        return fastify.swagger();
       });
     }
-
-    // Legacy Swagger UI (fallback / debugging)
-    await fastify.register(swaggerUI, {
-      routePrefix: '/swagger',
-      uiConfig: {
-        docExpansion: 'list',
-        deepLinking: true,
-      },
-      staticCSP: true,
-    });
-
-    // OpenAPI spec endpoint (JSON)
-    // This is used by external tooling and our docs service to stay in sync with the API.
-    fastify.get('/openapi.json', {
-      schema: {
-        tags: ['system'],
-        summary: 'OpenAPI specification (JSON)',
-        response: {
-          200: { type: 'object', additionalProperties: true },
-        },
-      },
-    }, async (_request, reply) => {
-      reply.header('content-type', 'application/json; charset=utf-8');
-      return fastify.swagger();
-    });
 
     // Add middleware
     fastify.addHook('onRequest', accessLogMiddleware);
@@ -392,16 +402,7 @@ async function buildApp() {
     });
 
     // Register Global Rate Limiter
-    try {
-      const { default: rateLimiterPlugin } = await import('@/plugins/rate-limiter');
-      const disableRateLimiter = process.env.DISABLE_RATE_LIMITER === 'true';
-      await fastify.register(rateLimiterPlugin, {
-        enabled: !disableRateLimiter,
-      });
-    } catch (e) {
-      // Ignore if not found or export mismatch for now to avoid breaking build, but ideally we should fix.
-      LoggerService.logError(e as Error, { context: 'Rate limiter registration' });
-    }
+    await registerGlobalRateLimiter(fastify, env.NODE_ENV ?? 'development', process.env.DISABLE_RATE_LIMITER === 'true');
 
     // Register all core API routes
     await registerRoutes(fastify);
@@ -429,7 +430,9 @@ async function start() {
     });
 
     app.log.info(`Server running on http://${env.API_HOST}:${env.API_PORT}`);
-    app.log.info(`API Documentation available at http://${env.API_HOST}:${env.API_PORT}/docs`);
+    if (env.NODE_ENV !== 'production') {
+      app.log.info(`API Documentation available at http://${env.API_HOST}:${env.API_PORT}/docs`);
+    }
 
     LoggerService.logSystem('Server started successfully', {
       port: env.API_PORT,
