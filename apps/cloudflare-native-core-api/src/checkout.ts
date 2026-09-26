@@ -369,6 +369,69 @@ async function createPaymentSession(request: Request, env: CheckoutEnv, user: Na
   return success({ sessionId: payload.id, url: payload.url, expiresAt }, 201);
 }
 
+/**
+ * Native-app PaymentSheet support: create a Stripe PaymentIntent for an order
+ * so the mobile clients can confirm in-app (client_secret) instead of opening
+ * the hosted checkout page. The intent carries metadata[orderId] so the
+ * existing stripe webhook settles the order through payment_intent.succeeded.
+ */
+async function createPaymentIntent(request: Request, env: CheckoutEnv, user: NativeSessionUser): Promise<Response> {
+  const body = await request.json<{ orderId?: unknown; idempotencyKey?: unknown }>().catch(() => null);
+  if (!body || typeof body.orderId !== 'string' || !body.orderId.trim()) {
+    return failure(400, 'VALIDATION_ERROR', 'orderId is required');
+  }
+  const row = await env.DB.prepare(
+    `SELECT snapshots.payload, metadata.total_amount, metadata.currency, metadata.payment_status
+     FROM native_order_snapshots snapshots JOIN native_order_metadata metadata ON metadata.order_id = snapshots.id
+     WHERE snapshots.id = ?1 AND snapshots.user_id = ?2`,
+  ).bind(body.orderId, user.id).first<OrderSnapshotRow>();
+  if (!row) return failure(404, 'NOT_FOUND', 'Order not found');
+  if (row.payment_status === 'PAID') return failure(409, 'ORDER_ALREADY_PAID', 'Order is already paid');
+  const idempotencyKey = typeof body.idempotencyKey === 'string' && body.idempotencyKey.trim()
+    ? `intent:${body.idempotencyKey.trim()}`
+    : `order:${body.orderId}:stripe-intent`;
+  const amount = Math.round(Number(row.total_amount) * 100);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return failure(409, 'INVALID_ORDER_TOTAL', 'Order total is not chargeable');
+  }
+  const order = JSON.parse(row.payload) as Record<string, unknown>;
+  const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
+  const form = new URLSearchParams({
+    amount: String(amount),
+    currency: String(row.currency ?? order.currency ?? 'USD').toLowerCase(),
+    'automatic_payment_methods[enabled]': 'true',
+    'metadata[orderId]': String(order.id),
+  });
+  const stripe = await fetch('https://api.stripe.com/v1/payment_intents', {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${secret}`,
+      'content-type': 'application/x-www-form-urlencoded',
+      'idempotency-key': idempotencyKey,
+    },
+    body: form,
+  });
+  const payload = await stripe.json<{ id?: string; client_secret?: string; error?: { message?: string } }>();
+  if (!stripe.ok || !payload.id || !payload.client_secret) {
+    console.error(JSON.stringify({
+      message: 'Stripe payment intent failed',
+      status: stripe.status,
+      error: payload.error?.message ?? 'invalid response',
+      orderId: body.orderId,
+    }));
+    return failure(502, 'PAYMENT_PLUGIN_FAILED', 'Stripe could not create a payment intent');
+  }
+  const now = new Date().toISOString();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  await env.DB.prepare(
+    `INSERT INTO native_payment_sessions
+     (id, order_id, user_id, provider, idempotency_key, session_url, payment_intent_id, status, expires_at, created_at, updated_at)
+     VALUES (?1, ?2, ?3, 'stripe', ?4, 'paymentsheet://stripe', ?5, 'PENDING', ?6, ?7, ?7)
+     ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at`,
+  ).bind(payload.id, body.orderId, user.id, idempotencyKey, payload.id, expiresAt, now).run();
+  return success({ intentId: payload.id, clientSecret: payload.client_secret, status: payload.client_secret ? 'requires_payment_method' : null }, 201);
+}
+
 function hex(bytes: ArrayBuffer): string {
   return [...new Uint8Array(bytes)].map((value) => value.toString(16).padStart(2, '0')).join('');
 }
@@ -418,7 +481,9 @@ async function handleStripeWebhook(request: Request, env: CheckoutEnv): Promise<
   const orderId = typeof metadata.orderId === 'string' ? metadata.orderId : null;
   const sessionId = typeof object.id === 'string' ? object.id : null;
   const paid = (event.type === 'checkout.session.completed' && object.payment_status === 'paid')
-    || event.type === 'checkout.session.async_payment_succeeded';
+    || event.type === 'checkout.session.async_payment_succeeded'
+    // Native PaymentSheet confirmations settle through the intent lifecycle.
+    || (event.type === 'payment_intent.succeeded' && object.status === 'succeeded');
   if (sessionId && !orderId && paid && typeof metadata.walletCheckoutId === 'string') {
     const settled = await settleNativeWalletCheckout(env, metadata, sessionId);
     return success({ received: true, handled: Boolean(settled), applied: Boolean(settled), duplicate: false, normalizedStatus: settled ? 'succeeded' : 'ignored' });
@@ -480,6 +545,7 @@ export async function tryNativeCheckout(
   const relevant = (url.pathname === '/api/v1/orders' && request.method === 'POST')
     || (/^\/api\/v1\/orders\/[^/]+\/cancel$/.test(url.pathname) && request.method === 'POST')
     || (url.pathname === '/api/v1/payments/sessions' && request.method === 'POST')
+    || (url.pathname === '/api/v1/payments/intents' && request.method === 'POST')
     || (/^\/api\/v1\/payments\/sessions\/[^/]+$/.test(url.pathname) && request.method === 'GET');
   if (!relevant) return null;
   if (String(env.NATIVE_CHECKOUT_ENABLED) !== 'true') return null;
@@ -489,6 +555,7 @@ export async function tryNativeCheckout(
   const cancel = url.pathname.match(/^\/api\/v1\/orders\/([^/]+)\/cancel$/);
   if (cancel) return cancelOrder(request, env, user, cancel[1]);
   if (url.pathname === '/api/v1/payments/sessions') return createPaymentSession(request, env, user);
+  if (url.pathname === '/api/v1/payments/intents') return createPaymentIntent(request, env, user);
   const verify = url.pathname.match(/^\/api\/v1\/payments\/sessions\/([^/]+)$/);
   if (verify) return verifyPaymentSession(env, user, verify[1]);
   // Legacy shop-client path: /payments/verify/:sessionId
