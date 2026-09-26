@@ -12,7 +12,8 @@ export type ThemeRecord = {
   source: 'builtin' | 'uploaded'; trustLevel: string;
   manifestJson: { assets: Record<string, string>; settings: ThemeSetting[] };
 };
-export type ThemeConfig = { settings: ThemeSetting[]; values: Record<string, unknown>; revision: number };
+export type HomeSection = { id: string; type: string; settings: Record<string, unknown> };
+export type ThemeConfig = { settings: ThemeSetting[]; values: Record<string, unknown>; revision: number; homeSections?: HomeSection[] };
 export type ThemeTarget = ThemeRecord['target'];
 
 export const themesApi = {
@@ -35,8 +36,11 @@ export const themesApi = {
     unwrapApiResponse(await apiClient.delete(`/extensions/theme/${slug}`)),
   config: async (slug: string) =>
     unwrapApiResponse(await apiClient.get<ThemeConfig>(`/extensions/themes/${slug}/config`)),
-  save: async (slug: string, values: Record<string, unknown>, expectedRevision: number) =>
-    unwrapApiResponse(await apiClient.put<ThemeConfig>(`/extensions/themes/${slug}/config`, { values, expectedRevision })),
+  save: async (slug: string, values: Record<string, unknown>, expectedRevision: number,
+    homeSections?: HomeSection[] | null) =>
+    unwrapApiResponse(await apiClient.put<ThemeConfig>(`/extensions/themes/${slug}/config`, {
+      values, expectedRevision, ...(homeSections === undefined ? {} : { homeSections }),
+    })),
   restoreConfig: async (slug: string) =>
     unwrapApiResponse(await apiClient.post(`/extensions/themes/${slug}/config/restore-previous`, {})),
 };

@@ -44,6 +44,15 @@ export async function resolveTheme(target: ThemeTarget, locale: Locale) {
     }
     : {
       target, slug: theme.slug, version: theme.version, tokens, fonts,
-      copy: resolve(manifest.copy), layout: resolve(manifest.layout),
+      copy: resolve(manifest.copy), layout: resolve({
+        ...(manifest.layout as object),
+        pages: {
+          ...(manifest.layout as { pages: object }).pages,
+          home: { ...(manifest.layout as { pages: { home: object } }).pages.home,
+            sections: values.$homeSections ?? (manifest.layout as {
+              pages: { home: { sections: unknown[] } };
+            }).pages.home.sections },
+        },
+      }),
     };
 }

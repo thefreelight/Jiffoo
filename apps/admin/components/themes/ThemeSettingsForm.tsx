@@ -4,9 +4,13 @@ import { useState } from 'react';
 import { productsApi, uploadApi, unwrapApiResponse } from '@/lib/api';
 import { themeMessage } from '@/lib/theme-messages';
 import type { Locale, ThemeConfig, ThemeSetting } from '@/lib/themes';
+import { HomeSectionsEditor } from './HomeSectionsEditor';
+import type { HomeSection } from '@/lib/themes';
 
-export function buildThemePayload(config: ThemeConfig, draft: Record<string, unknown>) {
-  return { values: draft, expectedRevision: config.revision };
+export function buildThemePayload(config: ThemeConfig, draft: Record<string, unknown>,
+  homeSections?: HomeSection[] | null) {
+  return { values: draft, expectedRevision: config.revision,
+    ...(homeSections === undefined ? {} : { homeSections }) };
 }
 
 function Field({ setting, locale, value, onChange }: {
@@ -90,11 +94,16 @@ export function ThemeSettingsForm({ config, locale, assets, onSave, onRestore }:
 }) {
   const [draft, setDraft] = useState<Record<string, unknown>>(() =>
     Object.fromEntries(config.settings.map((item) => [item.id, config.values[item.id] ?? item.default])));
+  const [homeSections, setHomeSections] = useState<HomeSection[] | null | undefined>(() =>
+    config.homeSections === undefined ? undefined
+      : (config.values.$homeSections as HomeSection[] | undefined) ?? config.homeSections);
+  const [homeTouched, setHomeTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   return <form className="space-y-5" onSubmit={async (event) => {
     event.preventDefault();
     setBusy(true);
-    try { await onSave(buildThemePayload(config, draft)); } finally { setBusy(false); }
+    try { await onSave(buildThemePayload(config, draft, homeTouched ? homeSections : undefined)); }
+    finally { setBusy(false); }
   }}>
     {config.settings.map((setting) => setting.type === 'image'
       ? <div key={setting.id}><Field setting={setting} locale={locale} value={draft[setting.id]}
@@ -108,6 +117,10 @@ export function ThemeSettingsForm({ config, locale, assets, onSave, onRestore }:
         </label></div>
       : <Field key={setting.id} setting={setting} locale={locale} value={draft[setting.id]}
         onChange={(value) => setDraft((current) => ({ ...current, [setting.id]: value }))} />)}
+    {homeSections !== undefined && <HomeSectionsEditor locale={locale}
+      sections={homeSections ?? config.homeSections ?? []}
+      onChange={(sections) => { setHomeSections(sections); setHomeTouched(true); }}
+      onReset={() => { setHomeSections(null); setHomeTouched(true); }} />}
     <div className="flex gap-3"><button disabled={busy} type="submit" className="rounded bg-blue-600 px-4 py-2 text-white">
       {themeMessage(locale, 'save')}</button>
       <button disabled={busy} type="button" className="rounded border px-4 py-2" onClick={() => void onRestore()}>

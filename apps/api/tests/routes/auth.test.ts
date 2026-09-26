@@ -332,6 +332,43 @@ describe('Auth Endpoints', () => {
       expect([400, 401]).toContain(response.statusCode);
     });
 
+    it('K: returns the generic login failure for an inactive account with a wrong password', async () => {
+      const inactiveUser = await createTestUser({
+        email: `test-inactive-${uuidv4().substring(0, 8)}@example.com`,
+        password: 'CorrectPassword123!',
+      });
+      await prisma.user.update({ where: { id: inactiveUser.id }, data: { isActive: false } });
+
+      const wrongPassword = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { email: inactiveUser.email, password: 'WrongPassword123!' },
+      });
+      const unknownEmail = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { email: `test-unknown-${uuidv4().substring(0, 8)}@example.com`, password: 'WrongPassword123!' },
+      });
+      expect(wrongPassword.statusCode).toBe(401);
+      expect(wrongPassword.statusCode).toBe(unknownEmail.statusCode);
+      expect(wrongPassword.json()).toEqual(unknownEmail.json());
+      expect(wrongPassword.json()).toMatchObject({
+        success: false,
+        error: { code: 'LOGIN_FAILED', message: 'Invalid email or password' },
+      });
+
+      const correctPassword = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { email: inactiveUser.email, password: inactiveUser.password },
+      });
+      expect(correctPassword.statusCode).toBe(403);
+      expect(correctPassword.json()).toMatchObject({
+        success: false,
+        error: { code: 'ACCOUNT_INACTIVE', message: 'Account is inactive' },
+      });
+    });
+
     it('should return 400 for missing email', async () => {
       const response = await app.inject({
         method: 'POST',

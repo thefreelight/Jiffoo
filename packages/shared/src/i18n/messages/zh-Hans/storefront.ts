@@ -83,7 +83,7 @@ export const storefront = {
     changePassword: '修改密码', deleteAccount: '删除账户',
     deleteWarning: '删除账户后将无法访问。请输入当前密码确认。',
     language: '邮件语言', verificationSuccess: '邮箱已验证。',
-    verificationFailed: '验证失败。', tooManyAttempts: '尝试次数过多，请稍后重试。', passwordUpdated: '密码已更新。',
+    verificationFailed: '验证失败。', tooManyAttempts: '尝试次数过多，请稍后重试。', genericError: '出了点问题，请重试。', accountInactive: '此账户已停用。', passwordUpdated: '密码已更新。',
     accountUpdated: '账户已更新。', invalidLogin: '邮箱或密码错误。',
     invalidPassword: '当前密码不正确。', accountDeleted: '账户已删除。',
     back: '返回账户', alreadyAccount: '已有账户？', orders: '我的订单',

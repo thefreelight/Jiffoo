@@ -93,6 +93,20 @@ export const themeSectionSchemas = Object.fromEntries(
     ['id', 'type', 'settings'],
   )]),
 );
+const merchantLiteral = (schema: unknown): unknown => {
+  if (Array.isArray(schema)) return schema.map(merchantLiteral);
+  if (!schema || typeof schema !== 'object') return schema;
+  const record = schema as Record<string, unknown>;
+  if (Array.isArray(record.anyOf) && record.anyOf.some((item) =>
+    !!item && typeof item === 'object' && '$setting' in ((item as { properties?: object }).properties ?? {})))
+    return merchantLiteral(record.anyOf[0]);
+  if (record.pattern === image.pattern)
+    return { ...record, pattern: '^(?:assets/(?!.*(?:\\.\\.|//|/\\.))[a-zA-Z0-9_/-]+\\.(?:png|jpe?g|webp)|/uploads/products/[a-zA-Z0-9_-]+\\.(?:png|jpe?g|webp))$' };
+  return Object.fromEntries(Object.entries(record).map(([key, item]) => [key, merchantLiteral(item)]));
+};
+export const merchantSectionSchemas = Object.fromEntries(
+  Object.entries(themeSectionSchemas).map(([type, schema]) => [type, merchantLiteral(schema)]),
+);
 const sections = { type: 'array', items: section, maxItems: 30 };
 const shopLayout = object({
   header: object({

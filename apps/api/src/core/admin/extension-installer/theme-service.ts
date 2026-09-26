@@ -6,6 +6,7 @@ import { themePackageStore } from '@/core/storage/plugin-package-store';
 import { ExtensionInstallerError } from './errors';
 import { validateThemeFiles, validateThemeZip } from './theme-validator';
 import { audit, validateConfig } from './theme-runtime';
+import { validateHomeSections, type HomeSection } from './theme-home-sections';
 
 function error(code: string, message: string, statusCode = 400): never {
   throw new ExtensionInstallerError(message, { code, statusCode });
@@ -83,13 +84,33 @@ async function installValidatedTheme(
         if (config) {
           const values: Record<string, unknown> = {};
           for (const [key, value] of Object.entries(config.values as Record<string, unknown>)) {
+            if (key === '$homeSections') {
+              const retained: HomeSection[] = [];
+              for (const [index, section] of (value as HomeSection[]).entries()) {
+                try {
+                  await validateHomeSections(manifest, [section], `/values/$homeSections/${index}`);
+                  if (retained.some((entry) => entry.id === section.id)) continue;
+                  retained.push(section);
+                } catch (cause) {
+                  if (!(cause instanceof ExtensionInstallerError)) throw cause;
+                }
+              }
+              values[key] = retained;
+              continue;
+            }
             try { await validateConfig(manifest, { [key]: value }); values[key] = value; }
             catch (cause) { if (!(cause instanceof ExtensionInstallerError)) throw cause; }
           }
           const revision = config.revision + 1;
           await tx.themeConfiguration.update({ where: { slug: manifest.slug }, data: { revision, values: values as never } });
           await tx.themeConfigRevision.create({ data: { slug: manifest.slug, revision, values: values as never } });
-          await audit(tx, options.actorUserId ?? 'system', 'theme.config.migrated', manifest.slug, { revision, dropped: Object.keys(config.values as object).filter((key) => !(key in values)) });
+          await audit(tx, options.actorUserId ?? 'system', 'theme.config.migrated', manifest.slug, {
+            revision, dropped: Object.keys(config.values as object).filter((key) => !(key in values)),
+            droppedSections: '$homeSections' in values
+              ? (config.values as Record<string, HomeSection[]>).$homeSections
+                .filter((section) => !(values.$homeSections as HomeSection[]).some((item) => item.id === section.id))
+                .map((section) => section.id) : [],
+          });
         }
       }
       await audit(tx, options.actorUserId ?? 'system', 'theme.install', manifest.slug, { version: manifest.version, source: options.source });

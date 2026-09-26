@@ -132,6 +132,7 @@ function checkReferences(manifest: ThemeManifest, files: Map<string, Buffer>): v
   }
   const settings = new Map<string, string>();
   for (const [index, setting] of manifest.settings.entries()) {
+    if (setting.id.startsWith('$')) fail('THEME_INVALID_SETTING', `/settings/${index}/id`);
     if (settings.has(setting.id)) fail('THEME_DUPLICATE_ID', `/settings/${index}/id`);
     settings.set(setting.id, setting.type);
     if (setting.bindsToken) {
@@ -256,6 +257,12 @@ export function validateThemeFiles(files: Map<string, Buffer>): ValidatedTheme {
   if (!bytes) fail('THEME_MISSING_MANIFEST', 'theme.json');
   let parsed: unknown;
   try { parsed = JSON.parse(bytes.toString('utf8')); } catch { fail('THEME_INVALID_JSON', 'theme.json'); }
+  const declaredSettings = (parsed as { settings?: Array<{ id?: unknown }> } | null)?.settings;
+  if (Array.isArray(declaredSettings)) {
+    for (const [index, setting] of declaredSettings.entries())
+      if (typeof setting?.id === 'string' && setting.id.startsWith('$'))
+        fail('THEME_INVALID_SETTING', `/settings/${index}/id`);
+  }
   checkSectionSchemas(parsed);
   const validateSchema = (parsed as { target?: string } | null)?.target === 'admin'
     ? validateAdmin : validateShop;

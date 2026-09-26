@@ -145,7 +145,8 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
       settings: { type: 'array', items: { type: 'object', additionalProperties: true } },
       values: { type: 'object', additionalProperties: true },
       revision: { type: 'integer' },
-    }, required: ['settings', 'values', 'revision'], additionalProperties: false,
+      homeSections: { type: 'array', items: { type: 'object', additionalProperties: true } },
+    }, required: ['settings', 'values', 'revision', 'homeSections'], additionalProperties: false,
   } as const;
   fastify.get<{ Params: { slug: string } }>('/themes/:slug/config', {
     schema: { tags: ['admin-themes'], security: [{ bearerAuth: [] }], params, response: { 200: success(config), ...errors } },
@@ -153,13 +154,17 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
     try { return sendSuccess(reply, await getThemeConfig(request.params.slug)); }
     catch (cause) { return respondError(reply, cause); }
   });
-  fastify.put<{ Params: { slug: string }; Body: { values: Record<string, unknown>; expectedRevision: number } }>('/themes/:slug/config', {
+  fastify.put<{ Params: { slug: string }; Body: { values: Record<string, unknown>; expectedRevision: number; homeSections?: unknown } }>('/themes/:slug/config', {
     schema: {
       tags: ['admin-themes'], security: [{ bearerAuth: [] }], params,
       body: {
         type: 'object', properties: {
           values: { type: 'object', additionalProperties: true },
           expectedRevision: { type: 'integer', minimum: 0 },
+          homeSections: { anyOf: [
+            { type: 'array', items: { type: 'object', additionalProperties: true } },
+            { type: 'null' },
+          ] },
         }, required: ['values', 'expectedRevision'], additionalProperties: false,
       },
       response: { 200: success(config), ...errors },
@@ -168,6 +173,7 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
     try {
       return sendSuccess(reply, await saveThemeConfig(
         request.params.slug, request.body.values, request.body.expectedRevision, request.user!.id,
+        request.body.homeSections,
       ));
     } catch (cause) { return respondError(reply, cause); }
   });

@@ -106,7 +106,8 @@ export default function ThemesPage() {
           onSave={async (payload) => {
             setBusy(true);
             try {
-              setConfig(await themesApi.save(selected.slug, payload.values, payload.expectedRevision));
+              setConfig(await themesApi.save(selected.slug, payload.values, payload.expectedRevision,
+                payload.homeSections));
               setError('');
               setNotice(themeMessage(locale, 'saved'));
             } catch (cause) {

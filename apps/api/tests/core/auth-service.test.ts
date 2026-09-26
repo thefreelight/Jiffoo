@@ -376,7 +376,7 @@ describe('AuthService', () => {
       await expect(AuthService.login({ identifier: TEST_USER.username, password: loginData.password })).rejects.toThrow(
         'Invalid email or password'
       );
-      expect(mockPasswordUtils.verify).not.toHaveBeenCalled();
+      expect(mockPasswordUtils.verify).toHaveBeenCalledWith(loginData.password, expect.any(String));
     });
 
     it('should throw when the email does not exist', async () => {
@@ -386,7 +386,7 @@ describe('AuthService', () => {
         'Invalid email or password'
       );
 
-      expect(mockPasswordUtils.verify).not.toHaveBeenCalled();
+      expect(mockPasswordUtils.verify).toHaveBeenCalledWith(loginData.password, expect.any(String));
     });
 
     it('should throw when the password is incorrect', async () => {

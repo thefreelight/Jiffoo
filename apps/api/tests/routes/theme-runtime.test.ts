@@ -45,13 +45,13 @@ const base = async (name = slug, version = '1.0.0') => ({
     },
   },
 });
-async function zip(manifest: unknown) {
+async function zip(manifest: unknown, withImage = true) {
   const pack = archiver('zip');
   const chunks: Buffer[] = [];
   pack.on('data', (chunk: Buffer) => chunks.push(chunk));
   const done = new Promise<void>((resolve, reject) => { pack.on('end', resolve); pack.on('error', reject); });
   pack.append(JSON.stringify(manifest), { name: 'theme.json' });
-  pack.append(png, { name: 'assets/hero.png' });
+  if (withImage) pack.append(png, { name: 'assets/hero.png' });
   pack.append(font, { name: 'fonts/title.woff2' });
   await pack.finalize();
   await done;
@@ -76,10 +76,25 @@ describe('T1b theme runtime', () => {
   let actorId: string;
   const admin = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, payload?: unknown) =>
     app.inject({ method, url, headers: headers(token), payload });
-  const upload = async (manifest: unknown) => {
-    const body = multipart(await zip(manifest));
+  const upload = async (manifest: unknown, withImage = true) => {
+    const body = multipart(await zip(manifest, withImage));
     return app.inject({ method: 'POST', url: '/api/v1/extensions/theme/install',
       headers: { ...body.headers, ...headers(token) }, payload: body.payload });
+  };
+  const own = async (name: string, run: (url: string, manifest: Awaited<ReturnType<typeof base>>) => Promise<void>) => {
+    const ownSlug = `${name}-${suffix}`;
+    const manifest = await base(ownSlug);
+    const url = `/api/v1/extensions/themes/${ownSlug}/config`;
+    try {
+      expect((await upload(manifest)).statusCode).toBe(200);
+      await run(url, manifest);
+    } finally {
+      await prisma.themeActive.deleteMany({ where: { slug: ownSlug } });
+      await prisma.themeActivation.deleteMany({ where: { slug: ownSlug } });
+      await prisma.theme.deleteMany({ where: { slug: ownSlug } });
+      await prisma.adminAuditEvent.deleteMany({ where: { targetId: ownSlug } });
+      await themePackageStore.delete(ownSlug);
+    }
   };
   beforeAll(async () => {
     app = await createTestApp({ disableFileSystem: false, enableSwagger: true });
@@ -288,5 +303,110 @@ describe('T1b theme runtime', () => {
       });
       await themePackageStore.delete(firstSlug);
     }
+  });
+
+  const textBlock = (id: string, body = local) => ({
+    id, type: 'text-block', settings: { body },
+  });
+  const saveHome = (url: string, homeSections: unknown, expectedRevision = 0) =>
+    admin('PUT', url, { values: {}, expectedRevision, homeSections });
+
+  it('A stores a merchant home override as a revision and resolves it in all locales', async () => {
+    await own('home-valid', async (url, manifest) => {
+      const sections = [textBlock('welcome')];
+      const saved = await saveHome(url, sections);
+      expect(saved.statusCode).toBe(200);
+      expect(saved.json().data).toMatchObject({ revision: 1, values: { $homeSections: sections } });
+      expect((await prisma.themeConfigRevision.findUnique({
+        where: { slug_revision: { slug: manifest.slug, revision: 1 } },
+      }))?.values).toMatchObject({ $homeSections: sections });
+      expect((await admin('POST', '/api/v1/extensions/themes/shop/activate', { slug: manifest.slug })).statusCode).toBe(200);
+      for (const [locale, body] of Object.entries(local)) {
+        const resolved = (await app.inject({ url: `/api/v1/store/theme?target=shop&locale=${locale}` })).json().data;
+        expect(resolved.layout.pages.home.sections).toEqual([{ id: 'welcome', type: 'text-block', settings: { body } }]);
+      }
+    });
+  });
+
+  it('B rejects invalid merchant sections with JSON paths without writing a revision', async () => {
+    await own('home-invalid', async (url, manifest) => {
+      const invalid: Array<[unknown, string]> = [
+        [[{ id: 'bad', type: 'unknown', settings: {} }], '/homeSections/0/type'],
+        [[{ id: 'grid', type: 'product-grid', settings: { title: local, source: 'latest', count: 49 } }], '/homeSections/0/settings/count'],
+        [[{ id: 'grid', type: 'product-grid', settings: { title: local, source: 'latest', columns: 6 } }], '/homeSections/0/settings/columns'],
+        [[textBlock('missing', { en: 'Only English' })], '/homeSections/0/settings/body'],
+        [[{ id: 'hero', type: 'hero-banner', settings: { title: local, image: 'https://example.com/a.png' } }], '/homeSections/0/settings/image'],
+        [[{ id: 'cats', type: 'category-list', settings: { title: local, categoryIds: ['missing'] } }], '/homeSections/0/settings/categoryIds/0'],
+        [[{ id: 'products', type: 'product-grid', settings: { title: local, source: 'manual', productIds: ['missing'] } }], '/homeSections/0/settings/productIds/0'],
+        [[textBlock('same'), textBlock('same')], '/homeSections/1/id'],
+        [Array.from({ length: 31 }, (_, index) => textBlock(`section-${index}`)), '/homeSections'],
+        [[textBlock('reference', { $setting: 'caption' })], '/homeSections/0/settings/body'],
+      ];
+      for (const [sections, path] of invalid) {
+        const response = await saveHome(url, sections);
+        expect(response.statusCode, path).toBe(400);
+        expect(response.json().error.details.path, path).toBe(path);
+        expect(await prisma.themeConfigRevision.count({ where: { slug: manifest.slug } })).toBe(0);
+        expect(await prisma.themeConfiguration.findUnique({ where: { slug: manifest.slug } })).toBeNull();
+      }
+    });
+  });
+
+  it('C resets merchant home sections to the theme defaults with null', async () => {
+    await own('home-reset', async (url, manifest) => {
+      expect((await saveHome(url, [textBlock('welcome')])).statusCode).toBe(200);
+      const reset = await saveHome(url, null, 1);
+      expect(reset.statusCode).toBe(200);
+      expect(reset.json().data.values).not.toHaveProperty('$homeSections');
+      expect(reset.json().data.revision).toBe(2);
+      expect((await admin('GET', url)).json().data.homeSections)
+        .toEqual([{ id: 'hero', type: 'hero-banner', settings: {
+          title: local, image: 'assets/hero.png',
+        } }]);
+      expect((await prisma.themeConfigRevision.findUnique({
+        where: { slug_revision: { slug: manifest.slug, revision: 2 } },
+      }))?.values).not.toHaveProperty('$homeSections');
+    });
+  });
+
+  it('D restores the previous merchant home section list', async () => {
+    await own('home-restore', async (url) => {
+      const first = [textBlock('first')];
+      expect((await saveHome(url, first)).statusCode).toBe(200);
+      expect((await saveHome(url, [textBlock('second')], 1)).statusCode).toBe(200);
+      const restored = await admin('POST', `${url}/restore-previous`);
+      expect(restored.statusCode).toBe(200);
+      expect(restored.json().data).toMatchObject({ revision: 3, values: { $homeSections: first } });
+    });
+  });
+
+  it('E drops only a merchant section with a removed asset on upgrade and audits the migration', async () => {
+    await own('home-upgrade', async (url, manifest) => {
+      const sections = [
+        { id: 'image', type: 'hero-banner', settings: { title: local, image: 'assets/hero.png' } },
+        textBlock('retained'),
+      ];
+      expect((await saveHome(url, sections)).statusCode).toBe(200);
+      const upgraded = { ...manifest, version: '1.0.1',
+        settings: manifest.settings.filter((setting: { id: string }) => setting.id !== 'picture'),
+        layout: { ...manifest.layout, pages: { ...manifest.layout.pages,
+          home: { sections: [textBlock('default')] } } },
+      };
+      expect((await upload(upgraded, false)).statusCode).toBe(200);
+      expect((await admin('GET', url)).json().data).toMatchObject({
+        revision: 2, values: { $homeSections: [textBlock('retained')] },
+      });
+      expect((await prisma.adminAuditEvent.findFirst({ where: {
+        action: 'theme.config.migrated', targetId: manifest.slug,
+      } }))?.summary).toMatchObject({ revision: 2, droppedSections: ['image'] });
+    });
+  });
+
+  it('F rejects theme setting ids reserved for merchant home sections', async () => {
+    const manifest = await base(`home-reserved-${suffix}`);
+    manifest.settings[0].id = '$homeSections';
+    const response = await upload(manifest);
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error.details.path).toBe('/settings/0/id');
   });
 });

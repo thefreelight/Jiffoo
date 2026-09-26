@@ -44,6 +44,8 @@ const authUserSelect = {
   sessionVersion: true,
 } as const;
 
+const missingUserPasswordHash = '$2a$12$tvMZ0tok6MvqBM6cMgH9jO73IL.rIqFJ3zrhh/6EYlVNMideO/1yK';
+
 export class AuthService {
   /**
    * Register a new user account
@@ -135,12 +137,8 @@ export class AuthService {
     const identifier = data.identifier ?? data.email;
     const user = await findAuthUserByIdentifier(identifier);
 
-    if (!user) {
-      throw new Error('Invalid email or password');
-    }
-
-    const isValid = await PasswordUtils.verify(data.password, user.password);
-    if (!isValid) {
+    const isValid = await PasswordUtils.verify(data.password, user?.password ?? missingUserPasswordHash);
+    if (!user || !isValid) {
       throw new Error('Invalid email or password');
     }
     if (!user.isActive) {

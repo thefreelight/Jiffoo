@@ -5,6 +5,7 @@ import { prisma } from '@/config/database';
 import { themePackageStore } from '@/core/storage/plugin-package-store';
 import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
 import { ExtensionInstallerError } from './errors';
+import { defaultHomeSections, validateHomeSections } from './theme-home-sections';
 
 type Setting = ThemeManifest['settings'][number];
 const ajv = new Ajv({ strict: false, allErrors: true });
@@ -29,6 +30,10 @@ export async function validateConfig(manifest: ThemeManifest, values: Record<str
   const settings = new Map(manifest.settings.map((setting) => [setting.id, setting]));
   for (const [key, value] of Object.entries(values)) {
     const path = `/values/${key}`;
+    if (key === '$homeSections') {
+      await validateHomeSections(manifest, value, path);
+      continue;
+    }
     const setting = settings.get(key);
     if (!setting) fail('THEME_CONFIG_INVALID', 400, path);
     const validator = settingSchemas.find((candidate) =>
@@ -75,13 +80,29 @@ export async function getThemeConfig(slug: string) {
     settings: (theme.manifestJson as unknown as ThemeManifest).settings,
     values: (theme.configuration?.values ?? {}) as Record<string, unknown>,
     revision: theme.configuration?.revision ?? 0,
+    homeSections: defaultHomeSections(theme.manifestJson as unknown as ThemeManifest,
+      (theme.configuration?.values ?? {}) as Record<string, unknown>),
   };
 }
 
-export async function saveThemeConfig(slug: string, values: Record<string, unknown>, expectedRevision: number, actorId: string) {
+export async function saveThemeConfig(
+  slug: string, values: Record<string, unknown>, expectedRevision: number, actorId: string,
+  homeSections?: unknown,
+) {
   const theme = await prisma.theme.findUnique({ where: { slug } });
   if (!theme) fail('THEME_NOT_FOUND', 404, slug);
-  await validateConfig(theme.manifestJson as unknown as ThemeManifest, values);
+  const manifest = theme.manifestJson as unknown as ThemeManifest;
+  const current = await prisma.themeConfiguration.findUnique({ where: { slug } });
+  const next = { ...values };
+  if (homeSections !== undefined) {
+    if (homeSections === null) delete next.$homeSections;
+    else {
+      await validateHomeSections(manifest, homeSections);
+      next.$homeSections = homeSections;
+    }
+  } else if ('$homeSections' in ((current?.values ?? {}) as object))
+    next.$homeSections = ((current!.values as Record<string, unknown>).$homeSections);
+  await validateConfig(manifest, next);
   return prisma.$transaction(async (tx) => {
     const current = await tx.themeConfiguration.findUnique({ where: { slug } });
     if ((current?.revision ?? 0) !== expectedRevision)
@@ -89,11 +110,11 @@ export async function saveThemeConfig(slug: string, values: Record<string, unkno
     const revision = expectedRevision + 1;
     if (current) {
       const changed = await tx.themeConfiguration.updateMany({
-        where: { slug, revision: expectedRevision }, data: { revision, values: values as Prisma.InputJsonObject },
+        where: { slug, revision: expectedRevision }, data: { revision, values: next as Prisma.InputJsonObject },
       });
       if (changed.count !== 1) fail('THEME_CONFIG_CONFLICT', 409, '/expectedRevision');
     } else {
-      await tx.themeConfiguration.create({ data: { slug, revision, values: values as Prisma.InputJsonObject } });
+      await tx.themeConfiguration.create({ data: { slug, revision, values: next as Prisma.InputJsonObject } });
       const defaults = Object.fromEntries(
         (theme.manifestJson as unknown as ThemeManifest).settings.map((setting) => [setting.id, setting.default]),
       );
@@ -101,9 +122,10 @@ export async function saveThemeConfig(slug: string, values: Record<string, unkno
         data: { slug, revision: 0, values: defaults as Prisma.InputJsonObject },
       });
     }
-    await tx.themeConfigRevision.create({ data: { slug, revision, values: values as Prisma.InputJsonObject } });
+    await tx.themeConfigRevision.create({ data: { slug, revision, values: next as Prisma.InputJsonObject } });
     await audit(tx, actorId, 'theme.config.update', slug, { revision });
-    return { settings: (theme.manifestJson as unknown as ThemeManifest).settings, values, revision };
+    return { settings: manifest.settings, values: next, revision,
+      homeSections: defaultHomeSections(manifest, next) };
   });
 }
 

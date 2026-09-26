@@ -42,5 +42,5 @@ test('manage profile and language, change password and delete account with confi
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(newPassword);
   await page.getByRole('button', { name: 'Login' }).click();
-  await expect(page.getByRole('status')).toHaveText('Invalid email or password.');
+  await expect(page.getByRole('status')).toHaveText('This account is inactive.');
 });

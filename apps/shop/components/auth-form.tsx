@@ -37,7 +37,7 @@ export function AuthForm({ mode, locale, labels, next, token }: {
         else setMessage(labels.passwordUpdated);
       } else setMessage(authErrorMessage(response.status, result.error?.code, labels, mode));
     } catch {
-      setMessage(mode === 'forgot-password' ? labels.requestReceived : labels.verificationFailed);
+      setMessage(mode === 'forgot-password' ? labels.requestReceived : labels.genericError);
     } finally {
       setBusy(false);
     }

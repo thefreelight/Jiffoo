@@ -84,7 +84,7 @@ export const storefront = {
     changePassword: 'Change password', deleteAccount: 'Delete account',
     deleteWarning: 'Deleting your account will disable access. Enter your current password to confirm.',
     language: 'Email language', verificationSuccess: 'Email verified.',
-    verificationFailed: 'Verification failed.', tooManyAttempts: 'Too many attempts. Try again later.', passwordUpdated: 'Password updated.',
+    verificationFailed: 'Verification failed.', tooManyAttempts: 'Too many attempts. Try again later.', genericError: 'Something went wrong. Please try again.', accountInactive: 'This account is inactive.', passwordUpdated: 'Password updated.',
     accountUpdated: 'Account updated.', invalidLogin: 'Invalid email or password.',
     invalidPassword: 'Current password is incorrect.', accountDeleted: 'Account deleted.',
     back: 'Back to account', alreadyAccount: 'Already have an account?', orders: 'My orders',
