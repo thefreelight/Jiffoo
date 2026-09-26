@@ -45,6 +45,7 @@ export const merchant = {
     notifications: '通知',
     customers: '顧客',
     plugins: '外掛',
+    themes: '主題',
     settings: '設定',
   },
   notifications: {

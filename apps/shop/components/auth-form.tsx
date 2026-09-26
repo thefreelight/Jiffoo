@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import type { ShopLocale } from '@/lib/locale';
+import { authErrorMessage } from '@/lib/auth-error';
 
 type Mode = 'login' | 'register' | 'forgot-password' | 'reset-password' | 'verify-email';
 type Labels = Record<string, string>;
@@ -34,7 +35,7 @@ export function AuthForm({ mode, locale, labels, next, token }: {
         if (mode === 'login') window.location.assign(next);
         else if (mode === 'register' || mode === 'verify-email') window.location.assign(`/${locale}/account`);
         else setMessage(labels.passwordUpdated);
-      } else setMessage(mode === 'login' ? labels.invalidLogin : labels.verificationFailed);
+      } else setMessage(authErrorMessage(response.status, result.error?.code, labels, mode));
     } catch {
       setMessage(mode === 'forgot-password' ? labels.requestReceived : labels.verificationFailed);
     } finally {

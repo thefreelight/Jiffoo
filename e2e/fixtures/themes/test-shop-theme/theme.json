@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "theme",
+  "slug": "e2e-shop-theme",
+  "name": "E2E Shop Theme",
+  "version": "1.0.0",
+  "description": "A storefront theme for the Admin theme workflow.",
+  "author": "Jiffoo",
+  "license": "MIT",
+  "target": "shop",
+  "tokens": {
+    "primary": "#cc0033"
+  },
+  "fonts": [],
+  "settings": [
+    {
+      "id": "hero-heading",
+      "type": "text",
+      "label": {
+        "en": "Hero heading",
+        "zh-Hans": "主视觉标题",
+        "zh-Hant": "主視覺標題"
+      },
+      "default": {
+        "en": "Theme launch",
+        "zh-Hans": "主题上线",
+        "zh-Hant": "主題上線"
+      },
+      "constraints": { "maxLength": 100 }
+    }
+  ],
+  "copy": {},
+  "assets": {},
+  "layout": {
+    "header": { "variant": "logo-center", "menu": "drawer", "showSearch": true },
+    "footer": { "columns": [] },
+    "pages": {
+      "home": {
+        "sections": [
+          {
+            "id": "e2e-hero",
+            "type": "hero-banner",
+            "settings": {
+              "title": { "$setting": "hero-heading" },
+              "link": "/products",
+              "buttonLabel": {
+                "en": "Browse products",
+                "zh-Hans": "浏览商品",
+                "zh-Hant": "瀏覽商品"
+              }
+            }
+          }
+        ]
+      },
+      "category": { "columns": 3, "showFilters": false },
+      "product": { "gallery": "left", "showRelatedProducts": false }
+    },
+    "slots": { "category.top": [], "category.bottom": [], "product.bottom": [] }
+  }
+}

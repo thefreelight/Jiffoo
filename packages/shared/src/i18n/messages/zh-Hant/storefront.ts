@@ -83,7 +83,7 @@ export const storefront = {
     changePassword: '變更密碼', deleteAccount: '刪除帳戶',
     deleteWarning: '刪除帳戶後將無法存取。請輸入目前密碼確認。',
     language: '郵件語言', verificationSuccess: '電子郵件已驗證。',
-    verificationFailed: '驗證失敗。', passwordUpdated: '密碼已更新。',
+    verificationFailed: '驗證失敗。', tooManyAttempts: '嘗試次數過多，請稍後再試。', passwordUpdated: '密碼已更新。',
     accountUpdated: '帳戶已更新。', invalidLogin: '電子郵件或密碼錯誤。',
     invalidPassword: '目前密碼不正確。', accountDeleted: '帳戶已刪除。',
     back: '返回帳戶', alreadyAccount: '已有帳戶？', orders: '我的訂單',

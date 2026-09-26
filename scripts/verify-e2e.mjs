@@ -47,7 +47,7 @@ const logs = [];
 const playwrightCounts = { expected: 0, unexpected: 0, skipped: 0 };
 const playwrightGroups = [
   ['01-install', '02-login', '03-password', '04-language', '05-settings', '06-health-plugins', '07-products', '08-orders', '09-customers'],
-  ['10-staff', '11-forgot-password', '12-translations', '13-shop', '14-shop-registration', '15-shop-account', '16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund'],
+  ['10-staff', '11-forgot-password', '12-translations', '13-shop', '14-shop-registration', '15-shop-account', '16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund', '19-themes'],
 ];
 
 function step(name, fn) {
@@ -135,6 +135,20 @@ async function resetE2eLoginLimit() {
   }
 }
 
+async function resetE2eRedis() {
+  if (new URL(env.REDIS_URL).pathname !== '/14')
+    throw new Error('Refusing to clear a Redis database other than the dedicated E2E DB 14');
+  const apiRequire = createRequire(resolve(root, 'apps/api/package.json'));
+  const { createClient } = apiRequire('redis');
+  const client = createClient({ url: env.REDIS_URL });
+  await client.connect();
+  try {
+    await client.flushDb();
+  } finally {
+    await client.quit();
+  }
+}
+
 async function runPlaywrightGroups() {
   for (const [index, projects] of playwrightGroups.entries()) {
     await resetE2eLoginLimit();
@@ -149,6 +163,7 @@ async function runPlaywrightGroups() {
 }
 
 try {
+  await step('Clear dedicated E2E Redis database', resetE2eRedis);
   await step('Reset test database', () => command(['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']));
   await step('Build shared package', () => command(['--filter', 'shared', 'build']));
   await step('Build API', () => command(['--filter', 'api', 'build']));

@@ -94,6 +94,12 @@ export async function saveThemeConfig(slug: string, values: Record<string, unkno
       if (changed.count !== 1) fail('THEME_CONFIG_CONFLICT', 409, '/expectedRevision');
     } else {
       await tx.themeConfiguration.create({ data: { slug, revision, values: values as Prisma.InputJsonObject } });
+      const defaults = Object.fromEntries(
+        (theme.manifestJson as unknown as ThemeManifest).settings.map((setting) => [setting.id, setting.default]),
+      );
+      await tx.themeConfigRevision.create({
+        data: { slug, revision: 0, values: defaults as Prisma.InputJsonObject },
+      });
     }
     await tx.themeConfigRevision.create({ data: { slug, revision, values: values as Prisma.InputJsonObject } });
     await audit(tx, actorId, 'theme.config.update', slug, { revision });

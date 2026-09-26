@@ -26,6 +26,7 @@ import {
   Activity,
   ShieldCheck,
   Bell,
+  Palette,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -84,6 +85,12 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
+  },
+  {
+    nameKey: 'merchant.nav.themes',
+    fallback: 'Themes',
+    href: '/themes',
+    icon: Palette,
   },
   {
     nameKey: 'merchant.nav.systemHealth',

@@ -249,7 +249,7 @@ describe('T1b theme runtime', () => {
       expect(events.every((event) => event.targetType === 'theme' && event.actorId === actorId)).toBe(true);
     }
     const revisions = await prisma.themeConfigRevision.findMany({ where: { slug } });
-    expect(revisions.map((item) => item.revision).sort()).toEqual([1, 2, 3, 4, 5]);
+    expect(revisions.map((item) => item.revision).sort()).toEqual([0, 1, 2, 3, 4, 5]);
     const spec = app.swagger();
     for (const [method, route] of [
       ['post', '/api/v1/extensions/themes/{target}/activate'],
@@ -264,5 +264,29 @@ describe('T1b theme runtime', () => {
       expect((await app.inject({ method: method.toUpperCase(), url, headers: headers(customer) })).statusCode).toBe(403);
     }
     expect(spec.paths['/api/v1/store/theme']?.get?.security).toBeUndefined();
+  });
+
+  it('T3a restores theme defaults after the first configuration save', async () => {
+    const firstSlug = `initial-${suffix}`;
+    const url = `/api/v1/extensions/themes/${firstSlug}/config`;
+    try {
+      expect((await upload(await base(firstSlug))).statusCode).toBe(200);
+      const saved = await admin('PUT', url, {
+        values: { caption: { ...local, en: 'Changed heading' } }, expectedRevision: 0,
+      });
+      expect(saved.statusCode).toBe(200);
+      const baseline = await prisma.themeConfigRevision.findFirst({ where: { slug: firstSlug, revision: 0 } });
+      expect(baseline?.values).toMatchObject({ caption: local });
+      const restored = await admin('POST', `${url}/restore-previous`);
+      expect(restored.statusCode).toBe(200);
+      expect(restored.json().data).toMatchObject({ revision: 2, values: { caption: local } });
+    } finally {
+      await prisma.theme.deleteMany({ where: { slug: firstSlug } });
+      await prisma.adminAuditEvent.deleteMany({ where: { targetId: firstSlug } });
+      await prisma.adminStaffAuditLog.deleteMany({
+        where: { staffUserId: actorId, action: 'THEME_UNSIGNED_INSTALL_CONFIRMED' },
+      });
+      await themePackageStore.delete(firstSlug);
+    }
   });
 });
