@@ -95,7 +95,7 @@ then the change is probably architectural overhead and should be rejected, defer
 
 - If the work changes OSS runtime contracts or default runtime behavior, it belongs in `Jiffoo`.
 - If the work is official theme or plugin source authoring, it belongs in `jiffoo-extensions-official`.
-- If the work is private overlay behavior, it belongs in `jiffoo-mall-core`.
+- If the work is private overlay behavior, it stays out of this open-source repository.
 - If the work is mobile or desktop host behavior, it belongs in the corresponding client repository unless it changes a core storefront contract.
 
 ## Default Architectural Stance

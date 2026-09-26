@@ -1,7 +1,7 @@
 # License Exceptions & Boundary Statement
 
 > **Effective from**: v1.1.0  
-> **Governs**: Jiffoo open-source core (`jiffoo-mall-core`) and its SDK packages
+> **Governs**: Jiffoo open-source core and its SDK packages
 
 ## 1. Three-Layer Boundary
 

@@ -126,6 +126,10 @@ jobs:
             --provenance=false
             --sbom=false
           )
+          node_base_image="${{ vars.NODE_BASE_IMAGE }}"
+          if [ -n "${node_base_image:-}" ]; then
+            args+=(--build-arg "NODE_BASE_IMAGE=${node_base_image}")
+          fi
 
           case "${{ matrix.service }}" in
             api)

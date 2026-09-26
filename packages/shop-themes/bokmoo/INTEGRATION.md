@@ -46,7 +46,7 @@ If `apiBaseUrl` is not provided, the theme defaults to production.
 
 File:
 
-- [api.ts](/Users/jordan/Projects/jiffoo-extensions-official/packages/shop-themes/bokmoo/src/lib/api.ts)
+- [api.ts](https://github.com/thefreelight/jiffoo-extensions-official/blob/master/packages/shop-themes/bokmoo/src/lib/api.ts)
 
 Current exported helpers:
 
@@ -134,9 +134,9 @@ Recommended host behavior:
 
 Files:
 
-- [OrderSuccessPage.tsx](/Users/jordan/Projects/jiffoo-extensions-official/packages/shop-themes/bokmoo/src/components/OrderSuccessPage.tsx)
-- [OrderDetailPage.tsx](/Users/jordan/Projects/jiffoo-extensions-official/packages/shop-themes/bokmoo/src/components/OrderDetailPage.tsx)
-- [InstallSessionPanel.tsx](/Users/jordan/Projects/jiffoo-extensions-official/packages/shop-themes/bokmoo/src/components/InstallSessionPanel.tsx)
+- [OrderSuccessPage.tsx](https://github.com/thefreelight/jiffoo-extensions-official/blob/master/packages/shop-themes/bokmoo/src/components/OrderSuccessPage.tsx)
+- [OrderDetailPage.tsx](https://github.com/thefreelight/jiffoo-extensions-official/blob/master/packages/shop-themes/bokmoo/src/components/OrderDetailPage.tsx)
+- [InstallSessionPanel.tsx](https://github.com/thefreelight/jiffoo-extensions-official/blob/master/packages/shop-themes/bokmoo/src/components/InstallSessionPanel.tsx)
 
 Current behavior:
 

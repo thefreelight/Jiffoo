@@ -1,5 +1,5 @@
 # Multi-stage build for Jiffoo Mall Shop Frontend
-ARG NODE_BASE_IMAGE=harbor.lafdru.local/library/node:20-alpine
+ARG NODE_BASE_IMAGE=node:20-alpine
 FROM ${NODE_BASE_IMAGE} AS base
 
 # Build-time proxy configuration

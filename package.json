@@ -1,5 +1,5 @@
 {
-  "name": "jiffoo-mall-core",
+  "name": "jiffoo",
   "version": "1.0.41-opensource",
   "description": "Jiffoo open-source core for self-hosted commerce deployments",
   "_moduleAliases": {

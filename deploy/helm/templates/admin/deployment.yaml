@@ -4,9 +4,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "jiffoo-mall-core.fullname" . }}-{{ $serviceName }}
+  name: {{ include "jiffoo.fullname" . }}-{{ $serviceName }}
   labels:
-    {{- include "jiffoo-mall-core.serviceLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "serviceName" $serviceName) | nindent 4 }}
+    {{- include "jiffoo.serviceLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "serviceName" $serviceName) | nindent 4 }}
 spec:
   replicas: {{ $serviceConfig.replicaCount }}
   strategy:
@@ -16,22 +16,22 @@ spec:
       maxSurge: 1
   selector:
     matchLabels:
-      {{- include "jiffoo-mall-core.serviceSelectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "serviceName" $serviceName) | nindent 6 }}
+      {{- include "jiffoo.serviceSelectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "serviceName" $serviceName) | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "jiffoo-mall-core.serviceSelectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "serviceName" $serviceName) | nindent 8 }}
+        {{- include "jiffoo.serviceSelectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "serviceName" $serviceName) | nindent 8 }}
     spec:
       {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "jiffoo-mall-core.serviceAccountName" . }}
+      serviceAccountName: {{ include "jiffoo.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.securityContext | nindent 8 }}
       containers:
         - name: {{ $serviceName }}
-          image: {{ include "jiffoo-mall-core.image" (dict "Values" .Values "serviceName" $serviceName) }}
+          image: {{ include "jiffoo.image" (dict "Values" .Values "serviceName" $serviceName) }}
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           ports:
             - name: http
@@ -71,12 +71,12 @@ spec:
           {{- if .Values.config.enabled }}
           envFrom:
             - configMapRef:
-                name: {{ include "jiffoo-mall-core.fullname" . }}-config
+                name: {{ include "jiffoo.fullname" . }}-config
           {{- end }}
           {{- if .Values.secret.enabled }}
           envFrom:
             - secretRef:
-                name: {{ include "jiffoo-mall-core.fullname" . }}-secret
+                name: {{ include "jiffoo.fullname" . }}-secret
           {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

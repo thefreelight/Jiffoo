@@ -6,5 +6,5 @@ This package is the canonical source for the downloadable `theme-pack` artifact.
 
 The embedded storefront runtime mirror that the Shop app loads lives in:
 
-- `/Users/jordan/Projects/jiffoo-mall-core/packages/shop-themes/quiet-curator`
+- `packages/shop-themes/quiet-curator` (repository-relative)
 

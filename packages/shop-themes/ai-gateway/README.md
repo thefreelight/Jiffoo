@@ -6,7 +6,7 @@ It is intentionally not the whole product by itself:
 
 - the theme owns brand, landing, pricing, docs, and launch-oriented storefront presentation
 - the companion runtime capability lives in the `ai-gateway-core` plugin
-- the full merchant delivery is expected to happen through a package/bundle flow in `jiffoo-mall-core`
+- the full merchant delivery is expected to happen through a package/bundle flow
 
 ## Product intent
 

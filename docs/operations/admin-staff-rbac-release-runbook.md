@@ -10,7 +10,7 @@ This runbook covers the release path for the Admin staff RBAC feature set:
 - invite resend flow
 - Admin staff list and detail screens
 
-Use this together with [admin-staff-rbac-release-checklist.md](/Users/jordan/Projects/Jiffoo/docs/operations/admin-staff-rbac-release-checklist.md).
+Use this together with [admin-staff-rbac-release-checklist.md](./admin-staff-rbac-release-checklist.md).
 
 ## 1. Pre-Release Build Validation
 

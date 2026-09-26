@@ -6,8 +6,8 @@ const prisma = new PrismaClient();
 
 async function main() {
     const slug = 'odoo';
-    // Use absolute path to the project root
-    const projectRoot = '/Users/jordan/Projects/jiffoo-mall-core';
+    // Resolve the repository root relative to this script (apps/api/scripts)
+    const projectRoot = path.resolve(__dirname, '..', '..', '..');
     const manifestPath = path.join(projectRoot, 'extensions/plugins', slug, 'manifest.json');
 
     console.log('Reading manifest from:', manifestPath);
