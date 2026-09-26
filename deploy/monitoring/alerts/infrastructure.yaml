@@ -56,7 +56,7 @@ groups:
       # Kubernetes pod restart alert
       - alert: PodRestartingTooOften
         expr: |
-          increase(kube_pod_container_status_restarts_total{namespace="jiffoo-mall-core-dev"}[5m]) > 3
+          increase(kube_pod_container_status_restarts_total{namespace="jiffoo-dev"}[5m]) > 3
         for: 1m
         labels:
           severity: warning
@@ -67,7 +67,7 @@ groups:
 
       - alert: PodCrashLooping
         expr: |
-          increase(kube_pod_container_status_restarts_total{namespace="jiffoo-mall-core-dev"}[15m]) > 5
+          increase(kube_pod_container_status_restarts_total{namespace="jiffoo-dev"}[15m]) > 5
         for: 5m
         labels:
           severity: critical

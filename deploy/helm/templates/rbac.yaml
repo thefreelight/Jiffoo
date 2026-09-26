@@ -2,9 +2,9 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "jiffoo-mall-core.serviceAccountName" . }}
+  name: {{ include "jiffoo.serviceAccountName" . }}
   labels:
-    {{- include "jiffoo-mall-core.labels" . | nindent 4 }}
+    {{- include "jiffoo.labels" . | nindent 4 }}
   {{- with .Values.serviceAccount.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -14,9 +14,9 @@ automountServiceAccountToken: false
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ include "jiffoo-mall-core.fullname" . }}
+  name: {{ include "jiffoo.fullname" . }}
   labels:
-    {{- include "jiffoo-mall-core.labels" . | nindent 4 }}
+    {{- include "jiffoo.labels" . | nindent 4 }}
 rules:
 - apiGroups: [""]
   resources: ["pods", "services", "configmaps", "secrets"]
@@ -28,15 +28,15 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ include "jiffoo-mall-core.fullname" . }}
+  name: {{ include "jiffoo.fullname" . }}
   labels:
-    {{- include "jiffoo-mall-core.labels" . | nindent 4 }}
+    {{- include "jiffoo.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ include "jiffoo-mall-core.fullname" . }}
+  name: {{ include "jiffoo.fullname" . }}
 subjects:
 - kind: ServiceAccount
-  name: {{ include "jiffoo-mall-core.serviceAccountName" . }}
+  name: {{ include "jiffoo.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
 {{- end }}

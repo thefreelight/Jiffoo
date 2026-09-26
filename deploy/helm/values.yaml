@@ -1,13 +1,12 @@
 # Global configuration
 global:
   image:
-    registry: harbor.lafdru.local
-    repository: jiffoo-mall-core
+    registry: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com
+    repository: jiffoo-oss
     tag: latest
     pullPolicy: IfNotPresent
 
-  imagePullSecrets:
-    - name: harbor-registry
+  imagePullSecrets: []
 
 # Service configurations
 # 服务名映射: backend→api, super-admin→admin, admin→tenant, frontend→shop, agent-portal→agent

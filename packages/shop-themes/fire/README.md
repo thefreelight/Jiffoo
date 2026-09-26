@@ -5,7 +5,7 @@ Fire is the official finance-first storefront theme pack for Jiffoo.
 It is designed as a lightweight FIRE dashboard shell:
 
 - the theme owns the visual language, layout, and theme-pack contract
-- the upload-driven finance agent block lives in the runtime host inside `jiffoo-mall-core`
+- the upload-driven finance agent block lives in the storefront runtime host
 - the goal is a fast MVP for mixed personal and company balance-sheet review
 
 ## Product intent
