@@ -230,80 +230,43 @@ jobs:
             --verify-images \
             "${stable_args[@]}"
 
-      - name: Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
-
-      - name: Deploy update feed to get.jiffoo.com
+      - name: Deploy update feed to R2 (get.jiffoo.com)
         env:
-          GET_JIFFOO_SSH_HOST: ${{ secrets.GET_JIFFOO_SSH_HOST }}
-          GET_JIFFOO_SSH_USER: ${{ secrets.GET_JIFFOO_SSH_USER }}
-          GET_JIFFOO_SSH_PRIVATE_KEY: ${{ secrets.GET_JIFFOO_SSH_PRIVATE_KEY }}
-          GET_JIFFOO_SSH_PASSWORD: ${{ secrets.GET_JIFFOO_SSH_PASSWORD }}
-        shell: bash
+          GET_JIFFOO_R2_ACCESS_KEY_ID: ${{ secrets.GET_JIFFOO_R2_ACCESS_KEY_ID }}
+          GET_JIFFOO_R2_SECRET_ACCESS_KEY: ${{ secrets.GET_JIFFOO_R2_SECRET_ACCESS_KEY }}
+          GET_JIFFOO_R2_ENDPOINT: ${{ secrets.GET_JIFFOO_R2_ENDPOINT }}
+          R2_FEED_BUCKET: jiffoo-official-artifacts
+          R2_FEED_PREFIX: core-update-feed
         run: |
           set -euo pipefail
 
-          if [ -z "${GET_JIFFOO_SSH_HOST:-}" ] || [ -z "${GET_JIFFOO_SSH_USER:-}" ]; then
-            echo "Missing GET_JIFFOO_SSH_HOST or GET_JIFFOO_SSH_USER secrets"
+          if [ -z "${GET_JIFFOO_R2_ACCESS_KEY_ID:-}" ] || [ -z "${GET_JIFFOO_R2_SECRET_ACCESS_KEY:-}" ] || [ -z "${GET_JIFFOO_R2_ENDPOINT:-}" ]; then
+            echo "Missing GET_JIFFOO_R2_ACCESS_KEY_ID, GET_JIFFOO_R2_SECRET_ACCESS_KEY, or GET_JIFFOO_R2_ENDPOINT secrets"
             exit 1
           fi
 
-          common_opts=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
-          remote_target="${GET_JIFFOO_SSH_USER}@${GET_JIFFOO_SSH_HOST}"
-          if [ -n "${GET_JIFFOO_SSH_PRIVATE_KEY:-}" ]; then
-            install -d -m 700 ~/.ssh
-            printf '%s\n' "${GET_JIFFOO_SSH_PRIVATE_KEY}" > ~/.ssh/get_jiffoo_key
-            chmod 600 ~/.ssh/get_jiffoo_key
-            scp_base=(scp "${common_opts[@]}" -i ~/.ssh/get_jiffoo_key)
-            ssh_base=(ssh "${common_opts[@]}" -i ~/.ssh/get_jiffoo_key)
-          elif [ -n "${GET_JIFFOO_SSH_PASSWORD:-}" ]; then
-            export SSHPASS="${GET_JIFFOO_SSH_PASSWORD}"
-            scp_base=(sshpass -e scp "${common_opts[@]}")
-            ssh_base=(sshpass -e ssh "${common_opts[@]}")
-          else
-            echo "Missing GET_JIFFOO_SSH_PRIVATE_KEY or GET_JIFFOO_SSH_PASSWORD secret"
-            exit 1
-          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rclone
 
-          "${scp_base[@]}" \
-            .release/self-hosted/install.sh \
-            .release/self-hosted/docker-compose.yml \
-            .release/self-hosted/.env.production.example \
-            .release/self-hosted/jiffoo-source.tar.gz \
-            .release/self-hosted/jiffoo-source.tar.gz.sha256 \
-            .release/self-hosted/releases/core/manifest.json \
-            .release/self-hosted/get-jiffoo.conf \
-            "${remote_target}:/tmp/"
+          export RCLONE_CONFIG_FEED_TYPE=s3
+          export RCLONE_CONFIG_FEED_PROVIDER=Cloudflare
+          export RCLONE_CONFIG_FEED_ACCESS_KEY_ID="${GET_JIFFOO_R2_ACCESS_KEY_ID}"
+          export RCLONE_CONFIG_FEED_SECRET_ACCESS_KEY="${GET_JIFFOO_R2_SECRET_ACCESS_KEY}"
+          export RCLONE_CONFIG_FEED_ENDPOINT="${GET_JIFFOO_R2_ENDPOINT}"
+          export RCLONE_CONFIG_FEED_ACL=private
+          export RCLONE_CONFIG_FEED_NO_CHECK_BUCKET=true
+          feed_remote="feed:${R2_FEED_BUCKET}/${R2_FEED_PREFIX}"
 
-          "${ssh_base[@]}" \
-            "${remote_target}" \
-            "GET_JIFFOO_ROOT='${GET_JIFFOO_ROOT}' GET_JIFFOO_NGINX_PATH='${GET_JIFFOO_NGINX_PATH}' bash -s" <<'EOF'
-          set -euo pipefail
-          stamp=$(date +%Y%m%d%H%M%S)
-          mkdir -p "${GET_JIFFOO_ROOT}/backups/${stamp}" "${GET_JIFFOO_ROOT}/releases/core"
-          cp "${GET_JIFFOO_ROOT}/install.sh" "${GET_JIFFOO_ROOT}/backups/${stamp}/install.sh" 2>/dev/null || true
-          cp "${GET_JIFFOO_ROOT}/docker-compose.yml" "${GET_JIFFOO_ROOT}/backups/${stamp}/docker-compose.yml" 2>/dev/null || true
-          cp "${GET_JIFFOO_ROOT}/.env.production.example" "${GET_JIFFOO_ROOT}/backups/${stamp}/.env.production.example" 2>/dev/null || true
-          cp "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz" "${GET_JIFFOO_ROOT}/backups/${stamp}/jiffoo-source.tar.gz" 2>/dev/null || true
-          cp "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz.sha256" "${GET_JIFFOO_ROOT}/backups/${stamp}/jiffoo-source.tar.gz.sha256" 2>/dev/null || true
-          cp "${GET_JIFFOO_ROOT}/releases/core/manifest.json" "${GET_JIFFOO_ROOT}/backups/${stamp}/manifest.json" 2>/dev/null || true
+          stamp=$(date -u +%Y%m%d%H%M%S)
+          rclone copyto "${feed_remote}/releases/core/manifest.json" \
+            "${feed_remote}/backups/${stamp}/manifest.json" 2>/dev/null || true
 
-          install -m 0755 /tmp/install.sh "${GET_JIFFOO_ROOT}/install.sh"
-          install -m 0644 /tmp/docker-compose.yml "${GET_JIFFOO_ROOT}/docker-compose.yml"
-          install -m 0644 /tmp/.env.production.example "${GET_JIFFOO_ROOT}/.env.production.example"
-          install -m 0644 /tmp/jiffoo-source.tar.gz "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz"
-          install -m 0644 /tmp/jiffoo-source.tar.gz.sha256 "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz.sha256"
-          install -m 0644 /tmp/manifest.json "${GET_JIFFOO_ROOT}/releases/core/manifest.json"
-          install -m 0644 /tmp/get-jiffoo.conf "${GET_JIFFOO_NGINX_PATH}"
-
-          nginx -t
-          if command -v systemctl >/dev/null 2>&1; then
-            systemctl reload nginx
-          else
-            nginx -s reload
-          fi
-          EOF
-
+          for f in install.sh docker-compose.yml .env.production.example \
+                   jiffoo-source.tar.gz jiffoo-source.tar.gz.sha256; do
+            rclone copyto ".release/self-hosted/${f}" "${feed_remote}/${f}"
+          done
+          rclone copyto ".release/self-hosted/releases/core/manifest.json" \
+            "${feed_remote}/releases/core/manifest.json"
       - name: Purge Cloudflare cache
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
