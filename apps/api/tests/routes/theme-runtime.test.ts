@@ -113,10 +113,10 @@ describe('T1b theme runtime', () => {
       const directory = path.join(temp, 'default-shop');
       await fs.mkdir(directory);
       const manifest = JSON.parse(await fs.readFile(path.join(root, 'default-shop', 'theme.json'), 'utf8'));
-      manifest.version = '1.0.1';
+      manifest.version = '1.1.1';
       await fs.writeFile(path.join(directory, 'theme.json'), JSON.stringify(manifest));
       await syncBuiltinThemes(temp);
-      expect((await prisma.theme.findUnique({ where: { slug: 'default-shop' } }))?.version).toBe('1.0.1');
+      expect((await prisma.theme.findUnique({ where: { slug: 'default-shop' } }))?.version).toBe('1.1.1');
       expect((await prisma.themeActive.findUnique({ where: { target: 'shop' } }))?.slug).toBe(slug);
     } finally {
       await fs.rm(temp, { recursive: true, force: true });

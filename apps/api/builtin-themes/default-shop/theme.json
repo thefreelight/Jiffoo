@@ -3,7 +3,7 @@
   "kind": "theme",
   "slug": "default-shop",
   "name": "Default Shop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "The Core storefront presentation.",
   "author": "Jiffoo",
   "license": "MIT",
@@ -36,14 +36,14 @@
             "id": "home-categories",
             "type": "category-list",
             "settings": {
-              "title": { "en": "Categories", "zh-Hans": "分类", "zh-Hant": "分類" }
+              "title": { "en": "Browse categories", "zh-Hans": "浏览分类", "zh-Hant": "瀏覽分類" }
             }
           },
           {
             "id": "home-products",
             "type": "product-grid",
             "settings": {
-              "title": { "en": "Products", "zh-Hans": "商品", "zh-Hant": "商品" },
+              "title": { "en": "Featured products", "zh-Hans": "精选商品", "zh-Hant": "精選商品" },
               "source": "latest"
             }
           }

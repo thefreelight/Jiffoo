@@ -55,6 +55,8 @@ CJK system fallback. Font declarations are
 `{id,family,file,weight,style,license}`; `file` is `fonts/*.woff2`,
 weight is 100-900, style is `normal` or `italic`, and a nonempty license is
 mandatory. Font families are plain names, not CSS expressions.
+The public resolved theme includes each font's `id`, `family`, versioned local
+`url`, `weight`, and `style`; the renderer uses `id` to select font tokens.
 
 Shop color roles: `background`, `surface`, `surface-muted`, `text`,
 `text-muted`, `border`, `primary`, `primary-foreground`, `secondary`,
@@ -116,11 +118,11 @@ to a declared compatible theme setting. No arbitrary section types or fields.
 | Section type | Settings (required unless marked ?) | Bounds |
 | --- | --- | --- |
 | `announcement-bar` | `text` localized, `link`? navigation link | one line, 500 characters/locale |
-| `hero-banner` | `title` localized, `body`? localized, `image`? image path, `link`? navigation link | one image |
-| `image-carousel` | `slides` array of `{image,title,link?}` | 1-8 slides |
+| `hero-banner` | `title` localized, `body`? localized, `image`? image path, `alt`? localized, `link`? navigation link, `buttonLabel`? localized | one image; missing alt renders as empty alt |
+| `image-carousel` | `slides` array of slides with `image` image path, `title` localized, `alt`? localized, `link`? navigation link | 1-8 slides; missing alt renders as empty alt; manual controls, no autoplay |
 | `category-list` | `title` localized, `categoryIds`? string array | 0-20 IDs |
-| `product-grid` | `title` localized, `source` (`latest`, `category`, `manual`), `categoryId`?, `productIds`? | 0-20 IDs; categoryId required for category, productIds for manual |
-| `image-with-text` | `image` image path, `title` localized, `body` localized, `link`? | one image |
+| `product-grid` | `title` localized, `source` (`latest`, `category`, `manual`), `categoryId`? category ID, `productIds`? product ID array, `count`? integer, `columns`? integer | 0-20 IDs; count 1-48, columns 1-5; categoryId required for category, productIds for manual |
+| `image-with-text` | `image` image path, `alt`? localized, `title` localized, `body` localized, `link`? navigation link, `position`? (`left`, `right`) | one image; missing alt renders as empty alt |
 | `text-block` | `title`? localized, `body` localized | 500 characters/locale |
 | `feature-list` | `items` array of `{title,body,icon}` | 1-8 items; icon is `check`, `star`, or `truck` |
 

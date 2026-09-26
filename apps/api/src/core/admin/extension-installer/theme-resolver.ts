@@ -32,7 +32,7 @@ export async function resolveTheme(target: ThemeTarget, locale: Locale) {
     return value;
   };
   const fonts = manifest.fonts.map((font) => ({
-    family: font.family, url: assetUrl(theme.slug, theme.version, font.file),
+    id: font.id, family: font.family, url: assetUrl(theme.slug, theme.version, font.file),
     weight: font.weight, style: font.style,
   }));
   return target === 'admin'

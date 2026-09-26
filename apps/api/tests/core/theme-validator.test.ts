@@ -45,8 +45,13 @@ describe('T1a declarative theme validator', () => {
       accent: 'highlight', 'radius-md': 'radius', 'card-radius': 'radius',
     };
     for (const [role, token] of Object.entries(mapping)) {
-      const cssValue = new RegExp(`--shop-${token}:\\s*([^;]+);`).exec(css)?.[1];
+      const canonical = role === 'card-radius' ? 'card-radius' : role;
+      const cssValue = new RegExp(`--shop-${canonical}:\\s*([^;]+);`).exec(css)?.[1];
       expect(shop.manifest.tokens[role], role).toBe(cssValue);
+      if (token !== canonical) {
+        const aliasTarget = token === 'radius' ? 'radius-md' : canonical;
+        expect(new RegExp(`--shop-${token}:\\s*var\\(--shop-${aliasTarget}\\);`).test(css), token).toBe(true);
+      }
     }
     expect((shop.manifest.layout as { pages: { home: { sections: Array<{ type: string }> } } })
       .pages.home.sections.map((section) => section.type)).toEqual(['category-list', 'product-grid']);
@@ -55,6 +60,27 @@ describe('T1a declarative theme validator', () => {
       text: '#0F172A', border: '#E2E8F0', 'font-body': 'outfit',
       'radius-md': '8px',
     });
+  });
+
+  it('T2 accepts bounded section presentation options and rejects out-of-range columns', async () => {
+    const manifest = await base();
+    const grid = manifest.layout.pages.home.sections[1].settings;
+    grid.count = 8;
+    grid.columns = 3;
+    manifest.layout.pages.home.sections.push({
+      id: 'story', type: 'image-with-text',
+      settings: {
+        image: 'assets/story.png',
+        alt: { en: 'Story', 'zh-Hans': '故事', 'zh-Hant': '故事' },
+        title: { en: 'About', 'zh-Hans': '关于', 'zh-Hant': '關於' },
+        body: { en: 'Local', 'zh-Hans': '本地', 'zh-Hant': '本地' },
+        position: 'right',
+      },
+    });
+    const assets = { 'assets/story.png': pngBytes() };
+    expect(validateThemeFiles(files(manifest, assets)).manifest.layout).toBeDefined();
+    grid.columns = 8;
+    rejected(manifest, 'THEME_SCHEMA_INVALID', '/layout/pages/home/sections/1/settings/columns', assets);
   });
 
   it.each(['index.js', 'run.mjs', 'index.cjs', 'index.html', 'index.htm', 'style.css',

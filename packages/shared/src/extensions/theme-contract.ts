@@ -58,17 +58,22 @@ const shadow = object(
 );
 const sectionSettings: Record<string, unknown> = {
   'announcement-bar': object({ text: value(localized), link: value(link) }, ['text']),
-  'hero-banner': object({ title: value(localized), body: value(localized), image: value(image), link: value(link) }, ['title']),
+  'hero-banner': object({ title: value(localized), body: value(localized), image: value(image), alt: value(localized), link: value(link), buttonLabel: value(localized) }, ['title']),
   'image-carousel': object({ slides: value({
     type: 'array', minItems: 1, maxItems: 8,
-    items: object({ image, title: localized, link }, ['image', 'title']),
+    items: object({ image, title: localized, alt: localized, link }, ['image', 'title']),
   }) }, ['slides']),
   'category-list': object({ title: value(localized), categoryIds: value(list(text)) }, ['title']),
   'product-grid': object({
     title: value(localized), source: value({ enum: ['latest', 'category', 'manual'] }),
     categoryId: value(text), productIds: value(list(text)),
+    count: { type: 'integer', minimum: 1, maximum: 48 },
+    columns: { type: 'integer', minimum: 1, maximum: 5 },
   }, ['title', 'source']),
-  'image-with-text': object({ image: value(image), title: value(localized), body: value(localized), link: value(link) }, ['image', 'title', 'body']),
+  'image-with-text': object({
+    image: value(image), alt: value(localized), title: value(localized),
+    body: value(localized), link: value(link), position: { enum: ['left', 'right'] },
+  }, ['image', 'title', 'body']),
   'text-block': object({ title: value(localized), body: value(localized) }, ['body']),
   'feature-list': object({
     items: value({ type: 'array', minItems: 1, maxItems: 8, items: object({
