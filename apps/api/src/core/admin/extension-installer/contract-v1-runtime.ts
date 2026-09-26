@@ -250,15 +250,15 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, plug
         headers: request.headers,
         // Contract-v1 payment drivers receive webhook metadata inside payload.
         // Preserve the exact bytes and provider signature for Stripe.
-        payload: {
-          rawBody: rawBody ?? request.body ?? {},
-          signature,
-          // GET-style gateways (epay) deliver the entire notification as query
-          // parameters; expose them to drivers that expect them.
-          ...(request.query && typeof request.query === 'object'
-            ? { query: request.query as Record<string, unknown> }
-            : {}),
-        },
+        // GET-style gateways (epay) deliver the entire notification as query
+        // parameters; pass the query itself as the payload so their drivers can
+        // verify it directly. POST keeps the raw body + signature envelope.
+        payload: request.method === 'GET' && request.query && typeof request.query === 'object'
+          ? request.query as Record<string, unknown>
+          : {
+              rawBody: rawBody ?? request.body ?? {},
+              signature,
+            },
       });
       if (result && typeof result === 'object') {
         await applyNormalizedPluginWebhook(pluginSlug, result as Record<string, unknown>);
