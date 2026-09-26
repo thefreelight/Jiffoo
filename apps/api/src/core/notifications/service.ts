@@ -13,7 +13,8 @@ export type NotificationType =
   | 'order_confirmation'
   | 'payment_received'
   | 'shipped'
-  | 'cancelled';
+  | 'cancelled'
+  | 'refunded';
 
 type Copy = { subject: string; body: string; linkLabel?: string };
 type LocaleCopy = Record<NotificationType, Copy>;
@@ -27,6 +28,7 @@ const translations: Record<NotificationLocale, LocaleCopy> = {
     payment_received: { subject: 'Payment received', body: 'We received payment for order {orderId}.' },
     shipped: { subject: 'Order shipped', body: 'Order {orderId} has shipped.' },
     cancelled: { subject: 'Order cancelled', body: 'Order {orderId} was cancelled. {reason}' },
+    refunded: { subject: 'Order refunded', body: 'Order {orderId} was refunded.' },
   },
   'zh-Hans': {
     email_verification: { subject: '验证邮箱', body: '{name}，请使用验证码 {code} 验证邮箱。', linkLabel: '验证邮箱' },
@@ -36,6 +38,7 @@ const translations: Record<NotificationLocale, LocaleCopy> = {
     payment_received: { subject: '已收到付款', body: '我们已收到订单 {orderId} 的付款。' },
     shipped: { subject: '订单已发货', body: '订单 {orderId} 已发货。' },
     cancelled: { subject: '订单已取消', body: '订单 {orderId} 已取消。{reason}' },
+    refunded: { subject: '订单已退款', body: '订单 {orderId} 已退款。' },
   },
   'zh-Hant': {
     email_verification: { subject: '驗證電子郵件', body: '{name}，請使用驗證碼 {code} 驗證電子郵件。', linkLabel: '驗證電子郵件' },
@@ -45,6 +48,7 @@ const translations: Record<NotificationLocale, LocaleCopy> = {
     payment_received: { subject: '已收到付款', body: '我們已收到訂單 {orderId} 的付款。' },
     shipped: { subject: '訂單已出貨', body: '訂單 {orderId} 已出貨。' },
     cancelled: { subject: '訂單已取消', body: '訂單 {orderId} 已取消。{reason}' },
+    refunded: { subject: '訂單已退款', body: '訂單 {orderId} 已退款。' },
   },
 };
 
@@ -143,7 +147,7 @@ export async function createNotification(
 
 export async function createOrderNotification(
   tx: NotificationTransaction,
-  type: Extract<NotificationType, 'order_confirmation' | 'payment_received' | 'shipped' | 'cancelled'>,
+  type: Extract<NotificationType, 'order_confirmation' | 'payment_received' | 'shipped' | 'cancelled' | 'refunded'>,
   orderId: string,
   values: { instructions?: string; reason?: string } = {},
 ): Promise<void> {

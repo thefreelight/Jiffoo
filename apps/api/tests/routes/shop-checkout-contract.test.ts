@@ -209,7 +209,7 @@ describe('Shop checkout contract', () => {
     expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stock).toBe(5);
   });
 
-  it('SHOP-3b C rejects customer cancellation of a paid order without changing stock, payments, or notifications', async () => {
+  it('SHOP-3b C rejects customer cancellation after payment without changing stock, payments, or notifications', async () => {
     const total = await checkoutTotal(app, token, [line()], address, 'free-shipping:free');
     const created = await order(total);
     expect(created.statusCode).toBe(201);
@@ -224,12 +224,6 @@ describe('Shop checkout contract', () => {
       headers: { authorization: `Bearer ${adminToken}` }, payload: { reference: `paid-cancel:${id}` },
     });
     expect(recorded.statusCode).toBe(200);
-    const paid = await app.inject({
-      method: 'PUT', url: `/api/v1/admin/orders/${id}/status`,
-      headers: { authorization: `Bearer ${adminToken}` }, payload: { status: 'PAID' },
-    });
-    expect(paid.statusCode).toBe(200);
-
     const stockBefore = (await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stock;
     const paymentsBefore = await prisma.payment.findMany({ where: { orderId: id }, orderBy: { id: 'asc' } });
     const cancellationNoticesBefore = await prisma.notification.count({ where: { relatedId: id, type: 'cancelled' } });
@@ -237,12 +231,12 @@ describe('Shop checkout contract', () => {
       method: 'POST', url: `/api/v1/orders/${id}/cancel`, headers: headers(),
       payload: { cancelReason: 'Changed my mind' },
     });
-    expect(response.statusCode).toBe(400);
+    expect(response.statusCode).toBe(409);
     expect(response.json().error).toMatchObject({
-      code: 'BAD_REQUEST', message: 'Only pending orders can be cancelled',
+      code: 'INVALID_ORDER_TRANSITION', message: 'Invalid order transition from PROCESSING to CANCELLED',
     });
     const unchanged = await prisma.order.findUniqueOrThrow({ where: { id } });
-    expect(unchanged.status).toBe('PAID');
+    expect(unchanged.status).toBe('PROCESSING');
     expect(unchanged.paymentStatus).toBe('PAID');
     expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stock).toBe(stockBefore);
     expect(await prisma.payment.findMany({ where: { orderId: id }, orderBy: { id: 'asc' } })).toEqual(paymentsBefore);

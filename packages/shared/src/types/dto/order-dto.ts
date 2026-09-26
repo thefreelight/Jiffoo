@@ -170,9 +170,7 @@ export interface OrderAddressDTO {
 
 export type OrderStatus =
   | 'PENDING'
-  | 'PAID'
   | 'PROCESSING'
-  | 'COMPLETED'
   | 'SHIPPED'
   | 'DELIVERED'
   | 'CANCELLED'

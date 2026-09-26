@@ -8,7 +8,7 @@
 import { AlertTriangle, ArrowLeft, CreditCard, ShoppingBag, Truck, Box, Clock, ShieldCheck, Printer, RotateCcw, Info, MapPin, Hash, User, Activity, AlertCircle } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { useOrder, useRecordManualPayment } from '@/lib/hooks/use-api'
+import { useOrder, useRecordManualPayment, useDeliverOrder, useCancelOrder } from '@/lib/hooks/use-api'
 import { OrderDetailItem, OrderShipment } from '@/lib/types'
 import { useT } from 'shared/src/i18n/react'
 import { useState } from 'react'
@@ -23,6 +23,8 @@ export default function OrderDetailPage() {
   const t = useT()
   const [showRefundDialog, setShowRefundDialog] = useState(false)
   const [showShipDialog, setShowShipDialog] = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -33,6 +35,8 @@ export default function OrderDetailPage() {
 
   const { data: order, isLoading, error, refetch } = useOrder(orderId)
   const recordManualPayment = useRecordManualPayment()
+  const deliverOrder = useDeliverOrder()
+  const cancelOrder = useCancelOrder()
 
   if (isLoading) {
     return (
@@ -74,7 +78,6 @@ export default function OrderDetailPage() {
     if (s === 'DELIVERED') return "border-green-100 text-green-600 bg-green-50/50"
     if (s === 'CANCELLED') return "border-red-100 text-red-600 bg-red-50/50"
     if (s === 'SHIPPED') return "border-blue-100 text-blue-600 bg-blue-50/50"
-    if (s === 'PAID') return "border-yellow-100 text-yellow-600 bg-yellow-50/50"
     if (s === 'PROCESSING') return "border-blue-100 text-blue-600 bg-blue-50/50"
     return "border-orange-100 text-orange-600 bg-orange-50/50"
   }
@@ -395,7 +398,14 @@ export default function OrderDetailPage() {
                 </Button>
               )}
 
-              {order.canRecordManualPayment && (
+              {order.status === 'SHIPPED' && (
+                <Button className="w-full" disabled={deliverOrder.isPending}
+                  onClick={() => deliverOrder.mutate(order.id)}>
+                  <Truck className="mr-2 h-4 w-4" />Mark delivered
+                </Button>
+              )}
+
+              {order.status === 'PENDING' && order.canRecordManualPayment && (
                 <Button
                   className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-[10px] shadow-lg active:scale-95 transition-all"
                   disabled={recordManualPayment.isPending}
@@ -406,7 +416,8 @@ export default function OrderDetailPage() {
                 </Button>
               )}
 
-              {(order.paymentStatus === 'PAID' || order.status !== 'CANCELLED') && (
+              {order.paymentStatus === 'PAID' &&
+                ['PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'].includes(order.status) && (
                 <Button
                   variant="outline"
                   className="w-full h-14 rounded-2xl border-gray-100 text-red-600 hover:bg-red-50 font-black uppercase tracking-widest text-[10px] transition-all"
@@ -416,6 +427,23 @@ export default function OrderDetailPage() {
                   Reverse Settlement
                 </Button>
               )}
+
+              {order.status === 'PENDING' && (!confirmCancel ? (
+                <Button variant="outline" className="w-full" onClick={() => setConfirmCancel(true)}>
+                  Cancel order
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <label htmlFor="admin-cancel-reason">Cancellation reason</label>
+                  <input id="admin-cancel-reason" value={cancelReason}
+                    onChange={(event) => setCancelReason(event.target.value)}
+                    className="w-full rounded border p-2" />
+                  <Button disabled={!cancelReason.trim() || cancelOrder.isPending} onClick={() =>
+                    cancelOrder.mutate({ id: order.id, cancelReason: cancelReason.trim() }, {
+                      onSuccess: () => setConfirmCancel(false),
+                    })}>Confirm cancellation</Button>
+                </div>
+              ))}
 
               <Button
                 variant="outline"

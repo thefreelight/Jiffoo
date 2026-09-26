@@ -64,7 +64,7 @@ export const storefront = {
       betterPrice: 'Found a better price', other: 'Other',
     },
     status: {
-      PENDING: 'Pending', PAID: 'Paid', PROCESSING: 'Processing', COMPLETED: 'Completed',
+      PENDING: 'Pending', PROCESSING: 'Processing',
       SHIPPED: 'Shipped', DELIVERED: 'Delivered', CANCELLED: 'Cancelled', REFUNDED: 'Refunded',
     },
     paymentStatus: { PENDING: 'Pending', PAID: 'Paid', FAILED: 'Failed', REFUNDED: 'Refunded' },

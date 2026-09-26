@@ -63,7 +63,7 @@ export const storefront = {
       changedMind: '改變主意', mistake: '下錯單', betterPrice: '找到了更優惠的價格', other: '其他',
     },
     status: {
-      PENDING: '待處理', PAID: '已付款', PROCESSING: '處理中', COMPLETED: '已完成',
+      PENDING: '待處理', PROCESSING: '處理中',
       SHIPPED: '已出貨', DELIVERED: '已送達', CANCELLED: '已取消', REFUNDED: '已退款',
     },
     paymentStatus: { PENDING: '待付款', PAID: '已付款', FAILED: '付款失敗', REFUNDED: '已退款' },

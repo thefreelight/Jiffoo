@@ -10,13 +10,12 @@ import {
   createTypedReadResponses,
   createTypedUpdateResponses,
   createPageResultSchema,
+  errorResponseSchema,
 } from '@/types/common-dto';
 
 const orderStatusEnum = [
   'PENDING',
-  'PAID',
   'PROCESSING',
-  'COMPLETED',
   'SHIPPED',
   'DELIVERED',
   'CANCELLED',
@@ -226,6 +225,6 @@ export const orderSchemas = {
         cancelReason: { type: 'string', minLength: 1, description: 'Reason for cancellation' },
       },
     },
-    response: createTypedUpdateResponses(orderResponseSchema),
+    response: { ...createTypedUpdateResponses(orderResponseSchema), 409: errorResponseSchema },
   },
 } as const;

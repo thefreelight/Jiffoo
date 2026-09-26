@@ -52,6 +52,8 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await page.getByRole('textbox', { name: 'Tracking Number' }).fill('E2E-TRACK-001');
     await page.getByRole('button', { name: 'Confirm Shipment' }).click();
     await expect(page.getByText('SHIPPED', { exact: true }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Mark delivered' }).click();
+    await expect(page.getByText('DELIVERED', { exact: true }).first()).toBeVisible();
     await page.goto('/en/notifications');
     await expect(page.getByText('order confirmation')).toBeVisible();
     await expect(page.getByText('payment received')).toBeVisible();
@@ -65,7 +67,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await expect(shop.getByText('Pay manually.')).toHaveCount(0);
     await shop.getByRole('link', { name: 'View order' }).click();
     await expect(shop.getByRole('heading', { name: 'Order details' })).toBeVisible();
-    await expect(shop.getByText('Shipped', { exact: true })).toBeVisible();
+    await expect(shop.getByText('Delivered', { exact: true })).toBeVisible();
     await expect(shop.getByText('Paid', { exact: true })).toBeVisible();
     await expect(shop.getByText('E2E-TRACK-001')).toBeVisible();
   } finally {

@@ -188,9 +188,7 @@ export interface OrderShipment {
 
 export enum OrderStatus {
   PENDING = 'PENDING',
-  PAID = 'PAID',
   PROCESSING = 'PROCESSING',
-  COMPLETED = 'COMPLETED',
   SHIPPED = 'SHIPPED',
   DELIVERED = 'DELIVERED',
   CANCELLED = 'CANCELLED',

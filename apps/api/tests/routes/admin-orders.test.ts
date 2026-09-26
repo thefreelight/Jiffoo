@@ -205,89 +205,6 @@ describe('Admin Orders Endpoints', () => {
     });
   });
 
-  describe('PUT /api/v1/admin/orders/:id/status', () => {
-    it('should return 401 without token', async () => {
-      if (!testOrderId) return;
-
-      const response = await app.inject({
-        method: 'PUT',
-        url: `/api/v1/admin/orders/${testOrderId}/status`,
-        payload: { status: 'PROCESSING' },
-      });
-
-      expect(response.statusCode).toBe(401);
-    });
-
-    it('should return 403 for regular user', async () => {
-      if (!testOrderId) return;
-
-      const response = await app.inject({
-        method: 'PUT',
-        url: `/api/v1/admin/orders/${testOrderId}/status`,
-        headers: { authorization: `Bearer ${userToken}` },
-        payload: { status: 'PROCESSING' },
-      });
-
-      expect(response.statusCode).toBe(403);
-    });
-
-    it('should return 400 for missing status', async () => {
-      if (!testOrderId) return;
-
-      const response = await app.inject({
-        method: 'PUT',
-        url: `/api/v1/admin/orders/${testOrderId}/status`,
-        headers: { authorization: `Bearer ${adminToken}` },
-        payload: {},
-      });
-
-      expect(response.statusCode).toBe(400);
-    });
-
-    it('should update order status for admin', async () => {
-      if (!testOrderId) return;
-
-      const response = await app.inject({
-        method: 'PUT',
-        url: `/api/v1/admin/orders/${testOrderId}/status`,
-        headers: { authorization: `Bearer ${adminToken}` },
-        payload: { status: 'PROCESSING' },
-      });
-
-      expect(response.statusCode).toBe(200);
-    });
-
-    it('queues cancellation and shipping notifications from Admin status transitions', async () => {
-      const expectedTotal = await checkoutTotal(app, userToken,
-        [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
-        validShippingAddress, 'free-shipping:free');
-      const created = await app.inject({
-        method: 'POST', url: '/api/v1/orders/',
-        headers: { authorization: `Bearer ${userToken}` },
-        payload: {
-          items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
-          shippingAddress: validShippingAddress,
-          shippingOptionId: 'free-shipping:free',
-          paymentMethod: 'manual-payment',
-          expectedTotal,
-        },
-      });
-      expect(created.statusCode).toBe(201);
-      const id = created.json().data.id as string;
-      const headers = { authorization: `Bearer ${adminToken}` };
-      const cancelled = await app.inject({
-        method: 'PUT', url: `/api/v1/admin/orders/${id}/status`, headers, payload: { status: 'CANCELLED' },
-      });
-      expect(cancelled.statusCode).toBe(200);
-      expect(await prisma.notification.count({ where: { relatedId: id, type: 'cancelled' } })).toBe(1);
-      const shipped = await app.inject({
-        method: 'PUT', url: `/api/v1/admin/orders/${id}/status`, headers, payload: { status: 'SHIPPED' },
-      });
-      expect(shipped.statusCode).toBe(200);
-      expect(await prisma.notification.count({ where: { relatedId: id, type: 'shipped' } })).toBe(1);
-    });
-  });
-
   describe('POST /api/v1/admin/orders/:id/record-manual-payment', () => {
     it('should register the v1 admin route', async () => {
       const response = await app.inject({
@@ -401,6 +318,17 @@ describe('Admin Orders Endpoints', () => {
       });
       expect(created.statusCode).toBe(201);
       const id = created.json().data.id as string;
+      const session = await app.inject({
+        method: 'POST', url: '/api/v1/payments/create-session',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: { orderId: id, paymentMethod: 'manual-payment' },
+      });
+      expect(session.statusCode).toBe(200);
+      const paid = await app.inject({
+        method: 'POST', url: `/api/v1/admin/orders/${id}/record-manual-payment`,
+        headers: { authorization: `Bearer ${adminToken}` }, payload: {},
+      });
+      expect(paid.statusCode).toBe(200);
       const shipped = await app.inject({
         method: 'POST', url: `/api/v1/admin/orders/${id}/ship`,
         headers: { authorization: `Bearer ${adminToken}` },
@@ -483,8 +411,7 @@ describe('Admin Orders Endpoints', () => {
         },
       });
 
-      // May fail if order is not in correct state
-      expect([200, 400]).toContain(response.statusCode);
+      expect(response.statusCode).toBe(200);
     });
   });
 
@@ -544,8 +471,7 @@ describe('Admin Orders Endpoints', () => {
         },
       });
 
-      // May fail if order is not paid
-      expect([200, 400]).toContain(response.statusCode);
+      expect(response.statusCode).toBe(200);
     });
   });
 
@@ -627,8 +553,8 @@ describe('Admin Orders Endpoints', () => {
         },
       });
 
-      // May succeed or fail based on order state
-      expect([200, 400]).toContain(response.statusCode);
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error.code).toBe('INVALID_ORDER_TRANSITION');
     });
   });
 });

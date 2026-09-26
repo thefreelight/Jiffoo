@@ -16,11 +16,9 @@ datasource db {
 // ============================================================
 enum OrderStatus {
   PENDING
-  PAID
   PROCESSING
   SHIPPED
   DELIVERED
-  COMPLETED
   CANCELLED
   REFUNDED
 

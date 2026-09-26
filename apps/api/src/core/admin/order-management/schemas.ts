@@ -6,13 +6,12 @@ import {
   createTypedReadResponses,
   createTypedUpdateResponses,
   createPageResultSchema,
+  errorResponseSchema,
 } from '@/types/common-dto';
 
 const orderStatusEnum = [
   'PENDING',
-  'PAID',
   'PROCESSING',
-  'COMPLETED',
   'SHIPPED',
   'DELIVERED',
   'CANCELLED',
@@ -223,25 +222,6 @@ export const adminOrderSchemas = {
     response: createTypedReadResponses(adminOrderDetailSchema),
   },
 
-  // PUT /api/admin/orders/:id/status
-  updateStatus: {
-    params: {
-      type: 'object',
-      required: ['id'],
-      properties: {
-        id: { type: 'string', description: 'Order ID' },
-      },
-    },
-    body: {
-      type: 'object',
-      required: ['status'],
-      properties: {
-        status: { type: 'string', enum: orderStatusEnum, description: 'New order status' },
-      },
-    },
-    response: createTypedUpdateResponses(adminOrderDetailSchema),
-  },
-
   recordManualPayment: {
     params: {
       type: 'object',
@@ -256,7 +236,7 @@ export const adminOrderSchemas = {
         reference: { type: 'string', maxLength: 256, description: 'Optional offline payment reference' },
       },
     },
-    response: createTypedUpdateResponses(adminOrderDetailSchema),
+    response: { ...createTypedUpdateResponses(adminOrderDetailSchema), 409: errorResponseSchema },
   },
 
   // POST /api/admin/orders/:id/ship
@@ -287,7 +267,16 @@ export const adminOrderSchemas = {
         },
       },
     },
-    response: createTypedUpdateResponses(adminOrderDetailSchema),
+    response: { ...createTypedUpdateResponses(adminOrderDetailSchema), 409: errorResponseSchema },
+  },
+
+  deliverOrder: {
+    params: {
+      type: 'object',
+      required: ['id'],
+      properties: { id: { type: 'string' } },
+    },
+    response: { ...createTypedUpdateResponses(adminOrderDetailSchema), 409: errorResponseSchema },
   },
 
   // POST /api/admin/orders/:id/refund
@@ -307,7 +296,7 @@ export const adminOrderSchemas = {
         idempotencyKey: { type: 'string', description: 'Idempotency key to prevent duplicate refunds' },
       },
     },
-    response: createTypedUpdateResponses(adminOrderDetailSchema),
+    response: { ...createTypedUpdateResponses(adminOrderDetailSchema), 409: errorResponseSchema },
   },
 
   // POST /api/admin/orders/:id/cancel
@@ -326,6 +315,6 @@ export const adminOrderSchemas = {
         cancelReason: { type: 'string', description: 'Reason for cancellation' },
       },
     },
-    response: createTypedUpdateResponses(adminOrderDetailSchema),
+    response: { ...createTypedUpdateResponses(adminOrderDetailSchema), 409: errorResponseSchema },
   },
 } as const;

@@ -53,9 +53,7 @@ export const CreateOrderSchema = z.object({
 // Order Status Enum
 export const OrderStatus = {
   PENDING: 'PENDING',
-  PAID: 'PAID',
   PROCESSING: 'PROCESSING',
-  COMPLETED: 'COMPLETED',  // Order completed
   SHIPPED: 'SHIPPED',
   DELIVERED: 'DELIVERED',
   CANCELLED: 'CANCELLED',

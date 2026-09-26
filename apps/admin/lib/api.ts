@@ -318,9 +318,6 @@ export const ordersApi = {
   ): Promise<ApiResponse<AdminOrderDetailDTO>> =>
     apiClient.put(`/admin/orders/${id}/items/${itemId}/fulfillment`, data),
 
-  updateStatus: (id: string, status: string): Promise<ApiResponse<OrderDetail>> =>
-    apiClient.put(`/admin/orders/${id}/status`, { status }),
-
   recordManualPayment: (id: string, reference?: string): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/record-manual-payment`, { reference }),
 
@@ -330,6 +327,9 @@ export const ordersApi = {
     items?: Array<{ orderItemId: string; quantity: number }>
   }): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/ship`, data),
+
+  deliverOrder: (id: string): Promise<ApiResponse<OrderDetail>> =>
+    apiClient.post(`/admin/orders/${id}/deliver`, {}),
 
   cancelOrder: (id: string, cancelReason: string): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/cancel`, { cancelReason }),

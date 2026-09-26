@@ -4,7 +4,8 @@
 
 import { FastifyInstance } from 'fastify';
 import { AdminOrderService } from './service';
-import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
+import { authMiddleware, requireAdmin, requirePermission } from '@/core/auth/middleware';
+import { ADMIN_PERMISSIONS } from '@shared/security';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminOrderSchemas } from './schemas';
 import { mapAdminOrderRouteError } from '@/utils/route-error-mapper';
@@ -88,32 +89,8 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Update order status
-  fastify.put('/:id/status', {
-    schema: {
-      tags: ['admin-orders'],
-      summary: 'Update order status',
-      description: 'Update the status of an order (admin only)',
-      security: [{ bearerAuth: [] }],
-      ...adminOrderSchemas.updateStatus,
-    }
-  }, async (request, reply) => {
-    try {
-      const { id } = request.params as any;
-      const { status } = request.body as any;
-      const order = await AdminOrderService.updateOrderStatus(id, status);
-      return sendSuccess(reply, order);
-    } catch (error: unknown) {
-      const mapped = mapAdminOrderRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to update order status',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
-  });
-
   fastify.post('/:id/record-manual-payment', {
+    onRequest: requirePermission(ADMIN_PERMISSIONS.ORDERS_WRITE),
     schema: {
       tags: ['admin-orders'],
       summary: 'Record a manual payment',
@@ -139,6 +116,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
 
   // Ship order
   fastify.post('/:id/ship', {
+    onRequest: requirePermission(ADMIN_PERMISSIONS.ORDERS_WRITE),
     schema: {
       tags: ['admin-orders'],
       summary: 'Ship order with tracking info',
@@ -162,8 +140,30 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.post('/:id/deliver', {
+    onRequest: requirePermission(ADMIN_PERMISSIONS.ORDERS_WRITE),
+    schema: {
+      tags: ['admin-orders'],
+      summary: 'Mark order delivered',
+      security: [{ bearerAuth: [] }],
+      ...adminOrderSchemas.deliverOrder,
+    },
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      return sendSuccess(reply, await AdminOrderService.deliverOrder(id));
+    } catch (error: unknown) {
+      const mapped = mapAdminOrderRouteError(error, {
+        defaultStatus: 500, defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to mark order delivered',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
+    }
+  });
+
   // Refund order
   fastify.post('/:id/refund', {
+    onRequest: requirePermission(ADMIN_PERMISSIONS.ORDERS_REFUND),
     schema: {
       tags: ['admin-orders'],
       summary: 'Refund order (full or partial)',
@@ -193,6 +193,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
 
   // Cancel order
   fastify.post('/:id/cancel', {
+    onRequest: requirePermission(ADMIN_PERMISSIONS.ORDERS_WRITE),
     schema: {
       tags: ['admin-orders'],
       summary: 'Cancel order',

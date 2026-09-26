@@ -1,21 +1,4 @@
-import { z } from 'zod';
 import { OrderStatusType } from '@/core/order/types';
-
-// Update order status request
-export const UpdateOrderStatusSchema = z.object({
-  status: z.enum(['PENDING', 'PAID', 'PROCESSING', 'COMPLETED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED']),
-});
-
-// Batch operation request
-export const BatchOrderOperationSchema = z.object({
-  action: z.enum(['updateStatus', 'delete']),
-  orderIds: z.array(z.string()).min(1, 'At least one order ID is required'),
-  status: z.enum(['PENDING', 'PAID', 'PROCESSING', 'COMPLETED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED']).optional(),
-});
-
-// TypeScript Type Inferenece
-export type UpdateOrderStatusRequest = z.infer<typeof UpdateOrderStatusSchema>;
-export type BatchOrderOperationRequest = z.infer<typeof BatchOrderOperationSchema>;
 
 // Admin order response interface (includes more details)
 export interface AdminOrderResponse {

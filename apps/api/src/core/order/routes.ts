@@ -4,6 +4,7 @@
 
 import { FastifyInstance } from 'fastify';
 import { OrderService } from './service';
+import { InvalidOrderTransitionError } from './transition';
 import { dualAuthMiddleware } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
 import { orderSchemas } from './schemas';
@@ -100,6 +101,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       if (error?.message === 'Order not found') {
         return sendError(reply, 404, 'NOT_FOUND', 'Order not found');
+      }
+      if (error instanceof InvalidOrderTransitionError) {
+        return sendError(reply, 409, error.code, error.message);
       }
       return sendError(reply, 400, 'BAD_REQUEST', error.message);
     }

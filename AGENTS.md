@@ -9,6 +9,7 @@
 - Do not run `pnpm --filter api test`, vitest directly, db push, or migrate reset outside `pnpm verify` / `pnpm verify:quick`.
 - After `pnpm verify`, print `verify-summary.txt` with one command (`Get-Content -Raw verify-summary.txt`) and paste its final summary block verbatim in reports, including each vitest suite's "Start at", "Test Files", and "Tests" lines, the Playwright start time and counts, and the step table.
 - Every Prisma schema change must include a new migration. Never run prisma migrate dev, migrate deploy, migrate reset, db push or db execute. Run `pnpm verify:quick` so the test database is at the current migrations, then generate the SQL with this exact command and write it into a new migration folder with your file tool (UTF-8, no BOM): `$env:DATABASE_URL='postgresql://postgres:postgres@localhost:5432/jiffoo_core_test'; pnpm --filter api exec prisma migrate diff --from-url postgresql://postgres:postgres@localhost:5432/jiffoo_core_test --to-schema-datamodel prisma/schema --script`. Never edit an existing migration.
+- A new migration's timestamp must sort after every existing migration. Use the current UTC time; if that would sort before the latest existing migration, use the latest migration's timestamp plus one minute.
 
 ## E2E
 

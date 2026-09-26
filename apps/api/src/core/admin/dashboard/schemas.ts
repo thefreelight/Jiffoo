@@ -6,9 +6,7 @@ import { errorResponseSchema, createSuccessResponseSchema } from '@/types/common
 
 const orderStatusEnum = [
   'PENDING',
-  'PAID',
   'PROCESSING',
-  'COMPLETED',
   'SHIPPED',
   'DELIVERED',
   'CANCELLED',

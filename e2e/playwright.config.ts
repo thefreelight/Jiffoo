@@ -8,7 +8,7 @@ const areas = [
   '12-translations',
   '13-shop',
   '14-shop-registration', '15-shop-account', '16-shop-checkout-price-stock',
-  '17-shop-order-history-cancel',
+  '17-shop-order-history-cancel', '18-order-refund',
 ];
 
 export default defineConfig({

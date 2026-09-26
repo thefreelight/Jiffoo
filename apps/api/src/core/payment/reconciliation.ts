@@ -1,6 +1,7 @@
 import { prisma } from '@/config/database';
 import { OrderStatus, PaymentStatus } from '@/core/order/types';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
+import { assertOrderTransition } from '@/core/order/transition';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { emitOrderPaidEvent } from '@/core/payment/order-paid-event';
 import { OutboxService } from '@/infra/outbox';
@@ -48,6 +49,9 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput)
         return;
       }
 
+      if (order.status !== OrderStatus.CANCELLED && order.paymentStatus !== PaymentStatus.PAID) {
+        assertOrderTransition(order.status, OrderStatus.PROCESSING, order.paymentStatus);
+      }
       const updatedPayment = await tx.payment.update({
         where: { id: payment.id },
         data: {

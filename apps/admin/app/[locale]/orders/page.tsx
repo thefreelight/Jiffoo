@@ -14,7 +14,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { useOrders, useOrderStats, useUpdateOrderStatus, type Order } from '@/lib/hooks/use-api'
+import { useOrders, useOrderStats, type Order } from '@/lib/hooks/use-api'
 import { StatsCard } from '@/components/dashboard/stats-card'
 import { Input } from '@/components/ui/input'
 import {
@@ -56,20 +56,10 @@ export default function OrdersPage() {
     status: selectedStatus !== 'All' ? selectedStatus : undefined
   })
 
-  const updateOrderStatusMutation = useUpdateOrderStatus()
   const { data: orderStatsData } = useOrderStats()
 
   const orders = ordersData?.data || []
   const pagination = ordersData?.pagination
-
-  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
-    try {
-      await updateOrderStatusMutation.mutateAsync({ id: orderId, status: newStatus })
-      refetch()
-    } catch {
-      // Error toast is already handled by the mutation hook.
-    }
-  }
 
   const getStatusColor = (status: string) => {
     switch (status?.toUpperCase()) {
@@ -79,8 +69,6 @@ export default function OrdersPage() {
         return 'border-blue-100 text-blue-600 bg-blue-50/50'
       case 'PROCESSING':
         return 'border-purple-100 text-purple-600 bg-purple-50/50'
-      case 'PAID':
-        return 'border-yellow-100 text-yellow-600 bg-yellow-50/50'
       case 'PENDING':
         return 'border-orange-100 text-orange-600 bg-orange-50/50'
       case 'CANCELLED':
@@ -100,8 +88,6 @@ export default function OrdersPage() {
         return <Truck className="w-3.5 h-3.5" />
       case 'PROCESSING':
         return <Clock className="w-3.5 h-3.5" />
-      case 'PAID':
-        return <CheckCircle className="w-3.5 h-3.5" />
       case 'PENDING':
         return <AlertTriangle className="w-3.5 h-3.5" />
       case 'CANCELLED':
@@ -306,7 +292,6 @@ export default function OrdersPage() {
                 <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2">
                   <SelectItem value="All" className="rounded-xl py-2.5 font-semibold">{getText('merchant.orders.allStatus', 'All Status')}</SelectItem>
                   <SelectItem value="PENDING" className="rounded-xl py-2.5 font-semibold">{getText('merchant.orders.pending', 'Pending')}</SelectItem>
-                  <SelectItem value="PAID" className="rounded-xl py-2.5 font-semibold">{getText('merchant.orders.paid', 'Paid')}</SelectItem>
                   <SelectItem value="PROCESSING" className="rounded-xl py-2.5 font-semibold">{getText('merchant.orders.processing', 'Processing')}</SelectItem>
                   <SelectItem value="SHIPPED" className="rounded-xl py-2.5 font-semibold">{getText('merchant.orders.shipped', 'Shipped')}</SelectItem>
                   <SelectItem value="DELIVERED" className="rounded-xl py-2.5 font-semibold">{getText('merchant.orders.delivered', 'Delivered')}</SelectItem>
@@ -368,32 +353,9 @@ export default function OrdersPage() {
                   </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row">
-                    <Select
-                      value={order.status}
-                      onValueChange={(newStatus) => {
-                        handleStatusUpdate(order.id, newStatus)
-                      }}
-                      disabled={updateOrderStatusMutation.isPending}
-                    >
-                      <SelectTrigger className={cn(
-                        'h-11 w-full rounded-2xl border-gray-50 bg-gray-50 px-4 text-[10px] font-bold uppercase tracking-widest transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10',
-                        getStatusColor(order.status)
-                      )}>
-                        <div className="flex items-center space-x-2">
-                          {getStatusIcon(order.status)}
-                          <SelectValue />
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-gray-100 p-2 shadow-2xl">
-                        <SelectItem value="PENDING" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.pending', 'Pending')}</SelectItem>
-                        <SelectItem value="PAID" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.paid', 'Paid')}</SelectItem>
-                        <SelectItem value="PROCESSING" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.processing', 'Processing')}</SelectItem>
-                        <SelectItem value="SHIPPED" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.shipped', 'Shipped')}</SelectItem>
-                        <SelectItem value="DELIVERED" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.delivered', 'Delivered')}</SelectItem>
-                        <SelectItem value="CANCELLED" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.cancelled', 'Cancelled')}</SelectItem>
-                        <SelectItem value="REFUNDED" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.refunded', 'Refunded')}</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <span className={cn('flex h-11 items-center gap-2 px-4 text-xs font-semibold', getStatusColor(order.status))}>
+                      {getStatusIcon(order.status)}{order.status}
+                    </span>
 
                     <Button variant="outline" size="sm" asChild className="h-11 rounded-2xl border-gray-200 px-4">
                       <Link href={`/${locale}/orders/${order.id}`}>
@@ -450,34 +412,9 @@ export default function OrdersPage() {
                         </div>
                       </td>
                       <td className="py-4 px-6">
-                        <Select
-                          value={order.status}
-                          onValueChange={(newStatus) => {
-                            handleStatusUpdate(order.id, newStatus)
-                          }}
-                          disabled={updateOrderStatusMutation.isPending}
-                        >
-                          <SelectTrigger className={cn(
-                            "h-10 min-w-[140px] bg-gray-50 border-gray-50 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 flex items-center px-4 text-[10px] font-bold uppercase tracking-widest transition-all",
-                            getStatusColor(order.status)
-                          )}
-                          onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="flex items-center space-x-2">
-                              {getStatusIcon(order.status)}
-                              <SelectValue />
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2">
-                            <SelectItem value="PENDING" className="rounded-xl py-2.5 font-semibold text-[10px] uppercase tracking-widest">{getText('merchant.orders.pending', 'Pending')}</SelectItem>
-                            <SelectItem value="PAID" className="rounded-xl py-2.5 font-semibold text-[10px] uppercase tracking-widest">{getText('merchant.orders.paid', 'Paid')}</SelectItem>
-                            <SelectItem value="PROCESSING" className="rounded-xl py-2.5 font-semibold text-[10px] uppercase tracking-widest">{getText('merchant.orders.processing', 'Processing')}</SelectItem>
-                            <SelectItem value="SHIPPED" className="rounded-xl py-2.5 font-semibold text-[10px] uppercase tracking-widest">{getText('merchant.orders.shipped', 'Shipped')}</SelectItem>
-                            <SelectItem value="DELIVERED" className="rounded-xl py-2.5 font-semibold text-[10px] uppercase tracking-widest">{getText('merchant.orders.delivered', 'Delivered')}</SelectItem>
-                            <SelectItem value="CANCELLED" className="rounded-xl py-2.5 font-semibold text-[10px] uppercase tracking-widest">{getText('merchant.orders.cancelled', 'Cancelled')}</SelectItem>
-                            <SelectItem value="REFUNDED" className="rounded-xl py-2.5 font-semibold text-[10px] uppercase tracking-widest">{getText('merchant.orders.refunded', 'Refunded')}</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <span className={cn('flex items-center gap-2 text-xs font-semibold', getStatusColor(order.status))}>
+                          {getStatusIcon(order.status)}{order.status}
+                        </span>
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex flex-col">

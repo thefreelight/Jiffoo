@@ -1,8 +1,7 @@
 /**
  * Order Service
  *
- * Manages order lifecycle including creation, status updates, cancellation,
- * completion, and refunds. Handles inventory management, payment status tracking,
+ * Manages order creation and cancellation. Handles inventory management, payment status tracking,
  * and integrates with notification and event systems.
  *
  * Features:
@@ -10,7 +9,6 @@
  * - Order state machine (PENDING -> PROCESSING -> SHIPPED -> DELIVERED)
  * - Payment status tracking (PENDING -> PAID/REFUNDED)
  * - Event emission via Transactional Outbox pattern
- * - Order completion and refund hooks
  */
 
 import { prisma } from '@/config/database';
@@ -26,11 +24,9 @@ import {
   countryRequiresStatePostal,
   normalizeCountryCode,
 } from './types';
-import { getOrderHooks } from './hooks';
 import { recordOrderStatusHistory } from './status-history';
+import { assertOrderTransition } from './transition';
 
-const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
-  error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 import { systemSettingsService } from '../admin/system-settings/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { InventoryService } from '@/core/inventory/service';
@@ -541,72 +537,6 @@ export class OrderService {
   }
 
   /**
-   * Update the status of an order
-   *
-   * Changes the order status.
-   *
-   * Valid status transitions:
-   * - PENDING -> PROCESSING | CANCELLED
-   * - PROCESSING -> SHIPPED | CANCELLED
-   * - SHIPPED -> DELIVERED | REFUNDED
-   * - DELIVERED -> REFUNDED
-   *
-   * @param orderId Order ID to update
-   * @param status New order status
-   * @returns Promise resolving to updated order response
-   */
-  static async updateOrderStatus(
-    orderId: string,
-    status: OrderStatusType
-  ): Promise<OrderResponse> {
-    const existing = await prisma.order.findUnique({
-      where: { id: orderId },
-      select: { status: true, paymentStatus: true, userId: true },
-    });
-
-    if (!existing) {
-      throw new Error('Order not found');
-    }
-
-    const order = await prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
-        where: { id: orderId },
-        data: { status },
-        include: {
-          shippingAddress: true,
-          items: {
-            include: {
-              product: true,
-              variant: true
-            }
-          }
-        }
-      });
-      if (existing.status !== status && status === OrderStatus.CANCELLED) {
-        await createOrderNotification(tx, 'cancelled', orderId, { reason: 'Order status updated' });
-      }
-      if (existing.status !== status && status === OrderStatus.SHIPPED) {
-        await createOrderNotification(tx, 'shipped', orderId);
-      }
-
-      await recordOrderStatusHistory(tx, {
-        orderId: updated.id,
-        fromStatus: existing.status as PrismaOrderStatus,
-        toStatus: updated.status as PrismaOrderStatus,
-        fromPaymentStatus: existing.paymentStatus as PrismaOrderPaymentStatus,
-        toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
-        reason: 'order_status_update',
-        actorType: 'admin',
-      });
-
-      return updated;
-    });
-
-    const currency = await systemSettingsService.getShopCurrency();
-    return this.formatOrderResponse(order, currency);
-  }
-
-  /**
    * Cancel a pending order and restore inventory stock
    *
    * Only orders with PENDING status can be cancelled. Stock for all
@@ -638,9 +568,7 @@ export class OrderService {
       throw new Error('Order not found');
     }
 
-    if (order.status !== OrderStatus.PENDING) {
-      throw new Error('Only pending orders can be cancelled');
-    }
+    assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
 
     const updatedOrder = await prisma.$transaction(async (tx) => {
       for (const item of order.items) {
@@ -704,6 +632,7 @@ export class OrderService {
       });
       let cancelled = 0;
       for (const order of expiredOrders) {
+        assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
         const result = await tx.order.updateMany({
           where: { id: order.id, status: OrderStatus.PENDING, paymentStatus: PaymentStatus.PENDING, unpaidExpiresAt: { lt: new Date() } },
           data: { status: OrderStatus.CANCELLED, cancelReason: 'unpaid timeout', cancelledAt: new Date() },
@@ -731,269 +660,6 @@ export class OrderService {
       }
       return cancelled;
     }, { timeout: 60_000 });
-  }
-
-  /**
-   * Mark an order as completed after successful payment
-   *
-   * Updates order status to COMPLETED and payment status to PAID.
-   * Triggers order completion hooks asynchronously for downstream processing.
-   *
-   * @param orderId Order ID to complete
-   * @returns Promise resolving to completed order response
-   * @throws Error if order is not found
-   * @throws Error if order is already completed
-   */
-  static async completeOrder(orderId: string): Promise<OrderResponse> {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId }
-    });
-
-    if (!order) {
-      throw new Error('Order not found');
-    }
-
-    if (order.status === OrderStatus.COMPLETED) {
-      throw new Error('Order is already completed');
-    }
-
-    const updatedOrder = await prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
-        where: { id: orderId },
-        data: {
-          status: OrderStatus.COMPLETED,
-          paymentStatus: PaymentStatus.PAID
-        },
-        include: {
-          shippingAddress: true,
-          items: {
-            include: {
-              product: true,
-              variant: true
-            }
-          }
-        }
-      });
-
-      await recordOrderStatusHistory(tx, {
-        orderId: updated.id,
-        fromStatus: order.status as PrismaOrderStatus,
-        toStatus: updated.status as PrismaOrderStatus,
-        fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-        toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
-        reason: 'order_completed',
-        actorType: 'system',
-      });
-
-      return updated;
-    });
-
-    // Trigger order completion hooks
-    const orderHooks = getOrderHooks();
-    if (orderHooks) {
-      // Execute hooks asynchronously, do not block response
-      orderHooks.onOrderCompleted(orderId).catch(err => {
-        LoggerService.logError(err instanceof Error ? err : new Error(String(err)), { context: 'order completion hooks' });
-      });
-    }
-
-    const currency = await systemSettingsService.getShopCurrency();
-    return this.formatOrderResponse(updatedOrder, currency);
-  }
-
-  /**
-   * Process a full refund for an order
-   *
-   * Creates a Refund record for audit purposes, updates order status to
-   * REFUNDED, restores stock for all items, and triggers refund hooks.
-   *
-   * The refund is processed in a transaction to ensure atomicity between
-   * refund record creation and order status update.
-   *
-   * @param orderId Order ID to refund
-   * @returns Promise resolving to refunded order response
-   * @throws Error if order is not found
-   * @throws Error if order is already refunded
-   */
-  static async refundOrder(orderId: string): Promise<OrderResponse> {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        payments: {
-          where: { status: 'SUCCEEDED' },
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        },
-        items: true,
-      }
-    });
-
-    if (!order) {
-      throw new Error('Order not found');
-    }
-
-    if (order.paymentStatus === PaymentStatus.REFUNDED) {
-      throw new Error('Order is already refunded');
-    }
-
-    const successfulPayment = order.payments[0];
-    const idempotencyKey = `ref_${order.id}_full`;
-
-    if (successfulPayment) {
-      const existingRefund = await prisma.refund.findUnique({
-        where: { idempotencyKey },
-      });
-      if (existingRefund) {
-        const currency = await systemSettingsService.getShopCurrency();
-        const existingOrder = await prisma.order.findUnique({
-          where: { id: orderId },
-          include: {
-            shippingAddress: true,
-            items: {
-              include: {
-                product: true,
-                variant: true,
-              },
-            },
-          },
-        });
-        if (!existingOrder) {
-          throw new Error('Order not found');
-        }
-        return this.formatOrderResponse(existingOrder, currency);
-      }
-    }
-
-    // Transaction for order update and refund record creation
-    let updatedOrder: Prisma.OrderGetPayload<{
-      include: { shippingAddress: true; items: { include: { product: true; variant: true } } };
-    }>;
-
-    try {
-      updatedOrder = await prisma.$transaction(async (tx) => {
-        // 1. Create Refund record if a successful payment exists
-        if (successfulPayment) {
-          const refund = await tx.refund.create({
-            data: {
-              orderId: order.id,
-              paymentId: successfulPayment.id,
-              amount: Number(order.totalAmount),
-              currency: successfulPayment.currency,
-              status: 'COMPLETED',
-              reason: 'Full refund requested by admin',
-              provider: successfulPayment.paymentMethod.toUpperCase(),
-              idempotencyKey,
-            }
-          });
-
-          await tx.refundLedger.create({
-            data: {
-              refundId: refund.id,
-              paymentId: successfulPayment.id,
-              orderId: order.id,
-              eventType: 'SUCCEEDED',
-              amount: refund.amount,
-              currency: refund.currency,
-              provider: refund.provider ?? successfulPayment.paymentMethod,
-              idempotencyKey,
-            },
-          });
-
-          await tx.paymentLedger.create({
-            data: {
-              paymentId: successfulPayment.id,
-              orderId: order.id,
-              eventType: 'REFUNDED',
-              amount: refund.amount,
-              currency: refund.currency,
-              provider: successfulPayment.paymentMethod,
-              providerEventId: `refund:${refund.id}`,
-              idempotencyKey,
-            },
-          });
-
-          await OutboxService.emit(tx, 'order.refunded', order.id, {
-            id: order.id,
-            orderId: order.id,
-            refundId: refund.id,
-            userId: order.userId,
-            paymentId: successfulPayment.id,
-            amount: Number(refund.amount),
-            currency: refund.currency,
-            fullyRefunded: true,
-            reason: refund.reason ?? undefined,
-            items: order.items.map((item) => ({ orderItemId: item.id, quantity: item.quantity })),
-          });
-        }
-
-        // 2. Update order status
-        const updated = await tx.order.update({
-          where: { id: orderId },
-          data: {
-            status: OrderStatus.REFUNDED,
-            paymentStatus: PaymentStatus.REFUNDED
-          },
-          include: {
-            shippingAddress: true,
-            items: {
-              include: {
-                product: true,
-                variant: true
-              }
-            }
-          }
-        });
-
-        await recordOrderStatusHistory(tx, {
-          orderId: updated.id,
-          fromStatus: order.status as PrismaOrderStatus,
-          toStatus: updated.status as PrismaOrderStatus,
-          fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-          toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
-          reason: 'order_refunded',
-          actorType: 'admin',
-        });
-
-        for (const item of order.items) {
-          await InventoryService.incrementStock(tx, item.variantId, item.quantity);
-        }
-
-        return updated;
-      });
-    } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        const currency = await systemSettingsService.getShopCurrency();
-        const existingOrder = await prisma.order.findUnique({
-          where: { id: orderId },
-          include: {
-            shippingAddress: true,
-            items: {
-              include: {
-                product: true,
-                variant: true,
-              },
-            },
-          },
-        });
-        if (!existingOrder) {
-          throw new Error('Order not found');
-        }
-        return this.formatOrderResponse(existingOrder, currency);
-      }
-      throw error;
-    }
-
-    // Trigger order refund hooks
-    const orderHooks = getOrderHooks();
-    if (orderHooks) {
-      // Execute hooks asynchronously, do not block response
-      orderHooks.onOrderRefunded(orderId).catch(err => {
-        LoggerService.logError(err instanceof Error ? err : new Error(String(err)), { context: 'order refund hooks' });
-      });
-    }
-
-    const currency = await systemSettingsService.getShopCurrency();
-    return this.formatOrderResponse(updatedOrder, currency);
   }
 
   /**

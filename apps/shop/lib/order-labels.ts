@@ -1,7 +1,7 @@
 import type { ShopLocale } from './locale';
 import { storefrontMessages } from './storefront-messages';
 
-export const orderStatuses = ['PENDING', 'PAID', 'PROCESSING', 'COMPLETED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'] as const;
+export const orderStatuses = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'] as const;
 export const paymentStatuses = ['PENDING', 'PAID', 'FAILED', 'REFUNDED'] as const;
 
 export function orderLabels(locale: ShopLocale) {

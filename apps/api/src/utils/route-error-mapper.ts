@@ -103,6 +103,9 @@ export function mapAdminOrderRouteError(
   const lowerMessage = message.toLowerCase();
   const rawCode = toErrorCode(error);
 
+  if (rawCode === 'INVALID_ORDER_TRANSITION') {
+    return { status: 409, code: rawCode, message };
+  }
   if (rawCode === 'MANUAL_CONFIRMATION_NOT_SUPPORTED') {
     return { status: 409, code: rawCode, message };
   }

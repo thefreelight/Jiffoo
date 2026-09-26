@@ -277,28 +277,19 @@ export function useUpdateOrderItemFulfillment() {
   });
 }
 
-export function useUpdateOrderStatus() {
+export function useDeliverOrder() {
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
-
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const response = await ordersApi.updateStatus(id, status);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, { id }) => {
+    mutationFn: async (id: string) => unwrapApiResponse(await ordersApi.deliverOrder(id)),
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders });
       queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Order status updated successfully');
+      toast.success('Order delivered successfully');
     },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
+    onError: (error: unknown) => toast.error(getErrorMessage(error)),
   });
 }
-
 export function useCancelOrder() {
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();

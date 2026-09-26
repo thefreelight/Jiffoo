@@ -11,6 +11,7 @@ import { CacheService } from '@/core/cache/service';
 import { getTodayAndYesterdayRangeUtc } from '@/utils/timezone';
 import { OrderStatus, OrderStatusType, PaymentStatus } from '@/core/order/types';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
+import { assertOrderTransition } from '@/core/order/transition';
 import { InventoryService } from '@/core/inventory/service';
 import { OutboxService } from '@/infra/outbox';
 import { recordPaymentSucceeded } from '@/core/payment/reconciliation';
@@ -359,45 +360,6 @@ export class AdminOrderService {
     };
   }
 
-  static async updateOrderStatus(orderId: string, status: OrderStatusType) {
-    const existing = await prisma.order.findUnique({
-      where: { id: orderId },
-      select: { status: true, paymentStatus: true },
-    });
-
-    if (!existing) {
-      throw new Error('Order not found');
-    }
-
-    await prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
-        where: { id: orderId },
-        data: { status }
-      });
-      if (existing.status !== status && status === 'CANCELLED') {
-        await createOrderNotification(tx, 'cancelled', orderId, { reason: 'Order status updated by staff' });
-      }
-      if (existing.status !== status && status === 'SHIPPED') {
-        await createOrderNotification(tx, 'shipped', orderId);
-      }
-
-      await recordOrderStatusHistory(tx, {
-        orderId: updated.id,
-        fromStatus: existing.status as PrismaOrderStatus,
-        toStatus: updated.status as PrismaOrderStatus,
-        fromPaymentStatus: existing.paymentStatus as PrismaOrderPaymentStatus,
-        toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
-        reason: 'admin_update_status',
-        actorType: 'admin',
-      });
-    });
-
-    // Invalidate list cache
-    await CacheService.incrementOrderVersion();
-
-    return this.getOrderById(orderId);
-  }
-
   static async recordManualPayment(orderId: string, actorId: string, reference?: string) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -462,9 +424,7 @@ export class AdminOrderService {
       throw new Error('Order not found');
     }
 
-    if (order.status === 'CANCELLED' || order.status === 'REFUNDED') {
-      throw new Error(`Cannot ship order with status: ${order.status}`);
-    }
+    assertOrderTransition(order.status, OrderStatus.SHIPPED, order.paymentStatus);
 
     await prisma.$transaction(async (tx) => {
       // Create shipment record
@@ -510,6 +470,29 @@ export class AdminOrderService {
     return this.getOrderById(orderId);
   }
 
+  static async deliverOrder(orderId: string) {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { status: true, paymentStatus: true },
+    });
+    if (!order) throw new Error('Order not found');
+    assertOrderTransition(order.status, OrderStatus.DELIVERED, order.paymentStatus);
+
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.DELIVERED },
+      });
+      await recordOrderStatusHistory(tx, {
+        orderId, fromStatus: order.status, toStatus: updated.status,
+        fromPaymentStatus: order.paymentStatus, toPaymentStatus: updated.paymentStatus,
+        reason: 'admin_deliver_order', actorType: 'admin',
+      });
+    });
+    await CacheService.incrementOrderVersion();
+    return this.getOrderById(orderId);
+  }
+
   /**
    * Refund order
    */
@@ -533,8 +516,9 @@ export class AdminOrderService {
       throw new Error('Order not found');
     }
 
-    if (order.paymentStatus !== 'PAID') {
-      throw new Error('Order is not paid, cannot refund');
+    assertOrderTransition(order.status, OrderStatus.REFUNDED, order.paymentStatus);
+    if (order.paymentStatus !== PaymentStatus.PAID) {
+      throw codedError('INVALID_ORDER_TRANSITION', `Invalid order transition from ${order.status} to REFUNDED`);
     }
 
     const payment = order.payments[0];
@@ -614,6 +598,7 @@ export class AdminOrderService {
             status: OrderStatus.REFUNDED,
           },
         });
+        await createOrderNotification(tx, 'refunded', orderId);
 
         await recordOrderStatusHistory(tx, {
           orderId: updated.id,
@@ -625,8 +610,10 @@ export class AdminOrderService {
           actorType: 'admin',
         });
 
-        for (const item of order.items) {
-          await InventoryService.incrementStock(tx, item.variantId, item.quantity);
+        if (order.status === OrderStatus.PROCESSING) {
+          for (const item of order.items) {
+            await InventoryService.incrementStock(tx, item.variantId, item.quantity);
+          }
         }
       });
     } catch (error) {
@@ -657,15 +644,13 @@ export class AdminOrderService {
       throw new Error('Order not found');
     }
 
-    if (order.status === 'SHIPPED' || order.status === 'DELIVERED') {
-      throw new Error(`Cannot cancel order with status: ${order.status}`);
-    }
-
-    if (order.status === 'CANCELLED') {
-      throw new Error('Order is already cancelled');
-    }
+    assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
 
     await prisma.$transaction(async (tx) => {
+      await tx.payment.updateMany({
+        where: { orderId, status: 'PENDING' },
+        data: { status: 'CANCELLED' },
+      });
       const updated = await tx.order.update({
         where: { id: orderId },
         data: {
