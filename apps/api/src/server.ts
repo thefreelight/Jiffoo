@@ -43,6 +43,7 @@ import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plugin-reconciliation';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
+import { syncBuiltinThemes } from '@/core/admin/extension-installer/builtin-theme-sync';
 import { registerPluginProcessFailureHandlers } from '@/core/admin/extension-installer/plugin-process-failure';
 
 const trustedProxies = parseTrustedProxies(process.env.TRUSTED_PROXIES);
@@ -422,6 +423,7 @@ async function start() {
     app.log.info('Database connected successfully');
 
     await syncBuiltinPlugins(path.join(process.cwd(), 'builtin-plugins'));
+    await syncBuiltinThemes(path.join(process.cwd(), 'builtin-themes'));
     await loadEnabledPluginRuntimes();
 
     await app.listen({

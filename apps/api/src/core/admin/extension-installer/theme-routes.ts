@@ -4,6 +4,8 @@ import { sendError, sendSuccess } from '@/utils/response';
 import { errorResponseSchema } from '@/utils/schema-helpers';
 import { ExtensionInstallerError } from './errors';
 import { installTheme, readThemeAsset, uninstallTheme } from './theme-service';
+import { activateTheme, getThemeConfig, restorePreviousTheme, restoreThemeConfig, saveThemeConfig } from './theme-runtime';
+import { resolveTheme } from './theme-resolver';
 
 const params = {
   type: 'object', properties: { slug: { type: 'string' } }, required: ['slug'],
@@ -107,12 +109,100 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
       }), ...errors },
     },
   }, async (request, reply) => {
-    try { return sendSuccess(reply, await uninstallTheme(request.params.slug)); }
+    try { return sendSuccess(reply, await uninstallTheme(request.params.slug, request.user!.id)); }
+    catch (cause) { return respondError(reply, cause); }
+  });
+
+  const targetParams = {
+    type: 'object', properties: { target: { enum: ['shop', 'admin'] } },
+    required: ['target'], additionalProperties: false,
+  } as const;
+  const activation = {
+    type: 'object', properties: { target: { type: 'string' }, slug: { type: 'string' } },
+    required: ['target', 'slug'], additionalProperties: false,
+  } as const;
+  fastify.post<{ Params: { target: 'shop' | 'admin' }; Body: { slug: string } }>('/themes/:target/activate', {
+    schema: {
+      tags: ['admin-themes'], security: [{ bearerAuth: [] }], params: targetParams,
+      body: { type: 'object', properties: { slug: { type: 'string' } }, required: ['slug'], additionalProperties: false },
+      response: { 200: success(activation), ...errors },
+    },
+  }, async (request, reply) => {
+    try { return sendSuccess(reply, await activateTheme(request.params.target, request.body.slug, request.user!.id)); }
+    catch (cause) { return respondError(reply, cause); }
+  });
+  fastify.post<{ Params: { target: 'shop' | 'admin' } }>('/themes/:target/restore-previous', {
+    schema: {
+      tags: ['admin-themes'], security: [{ bearerAuth: [] }], params: targetParams,
+      response: { 200: success(activation), ...errors },
+    },
+  }, async (request, reply) => {
+    try { return sendSuccess(reply, await restorePreviousTheme(request.params.target, request.user!.id)); }
+    catch (cause) { return respondError(reply, cause); }
+  });
+  const config = {
+    type: 'object', properties: {
+      settings: { type: 'array', items: { type: 'object', additionalProperties: true } },
+      values: { type: 'object', additionalProperties: true },
+      revision: { type: 'integer' },
+    }, required: ['settings', 'values', 'revision'], additionalProperties: false,
+  } as const;
+  fastify.get<{ Params: { slug: string } }>('/themes/:slug/config', {
+    schema: { tags: ['admin-themes'], security: [{ bearerAuth: [] }], params, response: { 200: success(config), ...errors } },
+  }, async (request, reply) => {
+    try { return sendSuccess(reply, await getThemeConfig(request.params.slug)); }
+    catch (cause) { return respondError(reply, cause); }
+  });
+  fastify.put<{ Params: { slug: string }; Body: { values: Record<string, unknown>; expectedRevision: number } }>('/themes/:slug/config', {
+    schema: {
+      tags: ['admin-themes'], security: [{ bearerAuth: [] }], params,
+      body: {
+        type: 'object', properties: {
+          values: { type: 'object', additionalProperties: true },
+          expectedRevision: { type: 'integer', minimum: 0 },
+        }, required: ['values', 'expectedRevision'], additionalProperties: false,
+      },
+      response: { 200: success(config), ...errors },
+    },
+  }, async (request, reply) => {
+    try {
+      return sendSuccess(reply, await saveThemeConfig(
+        request.params.slug, request.body.values, request.body.expectedRevision, request.user!.id,
+      ));
+    } catch (cause) { return respondError(reply, cause); }
+  });
+  fastify.post<{ Params: { slug: string } }>('/themes/:slug/config/restore-previous', {
+    schema: {
+      tags: ['admin-themes'], security: [{ bearerAuth: [] }], params,
+      response: { 200: success({
+        type: 'object', properties: {
+          values: { type: 'object', additionalProperties: true }, revision: { type: 'integer' },
+        }, required: ['values', 'revision'], additionalProperties: false,
+      }), ...errors },
+    },
+  }, async (request, reply) => {
+    try { return sendSuccess(reply, await restoreThemeConfig(request.params.slug, request.user!.id)); }
     catch (cause) { return respondError(reply, cause); }
   });
 }
 
 export async function publicThemeAssetRoutes(fastify: FastifyInstance) {
+  fastify.get<{ Querystring: { target: 'shop' | 'admin'; locale: 'en' | 'zh-Hans' | 'zh-Hant' } }>('/store/theme', {
+    schema: {
+      tags: ['store'], summary: 'Get resolved active theme',
+      querystring: {
+        type: 'object', properties: {
+          target: { enum: ['shop', 'admin'] }, locale: { enum: ['en', 'zh-Hans', 'zh-Hant'] },
+        }, required: ['target', 'locale'], additionalProperties: false,
+      },
+      response: { 200: success({ type: 'object', additionalProperties: true }), ...errors },
+    },
+  }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    const resolved = await resolveTheme(request.query.target, request.query.locale);
+    return resolved ? sendSuccess(reply, resolved)
+      : sendError(reply, 404, 'THEME_NOT_FOUND', 'No active theme');
+  });
   fastify.get<{ Params: { slug: string; version: string; '*': string } }>(
     '/themes/:slug/:version/*',
     {

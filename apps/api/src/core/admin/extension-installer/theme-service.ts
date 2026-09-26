@@ -5,6 +5,7 @@ import { prisma } from '@/config/database';
 import { themePackageStore } from '@/core/storage/plugin-package-store';
 import { ExtensionInstallerError } from './errors';
 import { validateThemeFiles, validateThemeZip } from './theme-validator';
+import { audit, validateConfig } from './theme-runtime';
 
 function error(code: string, message: string, statusCode = 400): never {
   throw new ExtensionInstallerError(message, { code, statusCode });
@@ -24,6 +25,15 @@ export async function installTheme(
   options: { source: 'builtin' | 'uploaded'; confirmUnsigned?: boolean; actorUserId?: string },
 ) {
   const { manifest, files } = validateThemeZip(archive);
+  return installValidatedTheme(manifest, files, archive, options);
+}
+
+async function installValidatedTheme(
+  manifest: import('@jiffoo/shared').ThemeManifest,
+  files: Map<string, Buffer>,
+  archive: Buffer,
+  options: { source: 'builtin' | 'uploaded'; confirmUnsigned?: boolean; actorUserId?: string },
+) {
   if (options.source === 'uploaded') {
     if (!options.confirmUnsigned || !options.actorUserId)
       error('UNSIGNED_CONFIRMATION_REQUIRED', 'Unsigned themes require explicit merchant confirmation');
@@ -54,18 +64,36 @@ export async function installTheme(
       await fs.writeFile(destination, data);
     }
     deployment = await themePackageStore.put(manifest.slug, directory);
-    const record = await prisma.theme.upsert({
-      where: { slug: manifest.slug },
-      create: {
-        slug: manifest.slug, version: manifest.version, target: manifest.target, name: manifest.name,
-        manifestJson: manifest as never, packageHash: createHash('sha256').update(archive).digest('hex'),
-        source: options.source, trustLevel: options.source === 'builtin' ? 'builtin' : 'unsigned',
-      },
-      update: {
-        version: manifest.version, name: manifest.name, manifestJson: manifest as never,
-        packageHash: createHash('sha256').update(archive).digest('hex'),
-        source: options.source, trustLevel: options.source === 'builtin' ? 'builtin' : 'unsigned',
-      },
+    const record = await prisma.$transaction(async (tx) => {
+      const saved = await tx.theme.upsert({
+        where: { slug: manifest.slug },
+        create: {
+          slug: manifest.slug, version: manifest.version, target: manifest.target, name: manifest.name,
+          manifestJson: manifest as never, packageHash: createHash('sha256').update(archive).digest('hex'),
+          source: options.source, trustLevel: options.source === 'builtin' ? 'builtin' : 'unsigned',
+        },
+        update: {
+          version: manifest.version, name: manifest.name, manifestJson: manifest as never,
+          packageHash: createHash('sha256').update(archive).digest('hex'),
+          source: options.source, trustLevel: options.source === 'builtin' ? 'builtin' : 'unsigned',
+        },
+      });
+      if (existing) {
+        const config = await tx.themeConfiguration.findUnique({ where: { slug: manifest.slug } });
+        if (config) {
+          const values: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(config.values as Record<string, unknown>)) {
+            try { await validateConfig(manifest, { [key]: value }); values[key] = value; }
+            catch (cause) { if (!(cause instanceof ExtensionInstallerError)) throw cause; }
+          }
+          const revision = config.revision + 1;
+          await tx.themeConfiguration.update({ where: { slug: manifest.slug }, data: { revision, values: values as never } });
+          await tx.themeConfigRevision.create({ data: { slug: manifest.slug, revision, values: values as never } });
+          await audit(tx, options.actorUserId ?? 'system', 'theme.config.migrated', manifest.slug, { revision, dropped: Object.keys(config.values as object).filter((key) => !(key in values)) });
+        }
+      }
+      await audit(tx, options.actorUserId ?? 'system', 'theme.install', manifest.slug, { version: manifest.version, source: options.source });
+      return saved;
     });
     await deployment.commit();
     deployment = null;
@@ -76,6 +104,13 @@ export async function installTheme(
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
+}
+
+export async function installBuiltinTheme(directory: string) {
+  const { manifest, files } = await validateBuiltinTheme(directory);
+  const existing = await prisma.theme.findUnique({ where: { slug: manifest.slug } });
+  if (existing && compareVersions(manifest.version, existing.version) <= 0) return existing;
+  return installValidatedTheme(manifest, files, Buffer.from(JSON.stringify(manifest)), { source: 'builtin' });
 }
 
 export async function validateBuiltinTheme(directory: string) {
@@ -92,12 +127,17 @@ export async function validateBuiltinTheme(directory: string) {
   return validateThemeFiles(files);
 }
 
-export async function uninstallTheme(slug: string) {
+export async function uninstallTheme(slug: string, actorId = 'system') {
   const theme = await prisma.theme.findUnique({ where: { slug } });
   if (!theme) error('THEME_NOT_FOUND', `Theme "${slug}" not found`, 404);
   if (theme.source === 'builtin') error('THEME_BUILTIN_CONFLICT', 'Builtin themes cannot be uninstalled', 409);
+  if (await prisma.themeActive.findFirst({ where: { slug } }))
+    error('THEME_ACTIVE', 'Active themes cannot be uninstalled', 409);
+  await prisma.$transaction(async (tx) => {
+    await tx.theme.delete({ where: { slug } });
+    await audit(tx, actorId, 'theme.uninstall', slug);
+  });
   await themePackageStore.delete(slug);
-  await prisma.theme.delete({ where: { slug } });
   return { slug, deleted: true };
 }
 

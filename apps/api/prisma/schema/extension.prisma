@@ -63,8 +63,69 @@ model Theme {
   trustLevel   PluginTrustLevel
   installedAt  DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+  configuration ThemeConfiguration?
+  revisions     ThemeConfigRevision[]
 
   @@map("themes")
+  @@schema("public")
+}
+
+model ThemeActive {
+  target String @id
+  slug   String
+  updatedAt DateTime @updatedAt
+
+  @@map("theme_active")
+  @@schema("public")
+}
+
+model ThemeActivation {
+  id String @id @default(cuid())
+  target String
+  slug String
+  actorId String
+  createdAt DateTime @default(now())
+
+  @@index([target, createdAt])
+  @@map("theme_activations")
+  @@schema("public")
+}
+
+model ThemeConfiguration {
+  slug String @id
+  revision Int @default(0)
+  values Json
+  updatedAt DateTime @updatedAt
+  theme Theme @relation(fields: [slug], references: [slug], onDelete: Cascade)
+
+  @@map("theme_configurations")
+  @@schema("public")
+}
+
+model ThemeConfigRevision {
+  id String @id @default(cuid())
+  slug String
+  revision Int
+  values Json
+  createdAt DateTime @default(now())
+  theme Theme @relation(fields: [slug], references: [slug], onDelete: Cascade)
+
+  @@unique([slug, revision])
+  @@map("theme_config_revisions")
+  @@schema("public")
+}
+
+model AdminAuditEvent {
+  id String @id @default(cuid())
+  actorId String
+  action String
+  targetType String
+  targetId String
+  summary Json
+  createdAt DateTime @default(now())
+
+  @@index([targetType, targetId, createdAt])
+  @@map("admin_audit_events")
   @@schema("public")
 }
 

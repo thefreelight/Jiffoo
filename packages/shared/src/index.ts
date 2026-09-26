@@ -8,6 +8,7 @@ export * from './types/cart';
 export * from './types/common';
 export * from './extensions/plugin-contract';
 export * from './extensions/theme-contract';
+export * from './extensions/theme-css';
 export * from './extensions/contracts';
 
 export * from './events/core-events';
