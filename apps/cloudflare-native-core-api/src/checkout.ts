@@ -1,5 +1,5 @@
 import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
-import { getNativePluginSecret, getNativeStripeSecret } from './plugin-settings';
+import { getNativePluginConfig, getNativePluginSecret, getNativeStripeSecret } from './plugin-settings';
 import { settleNativeWalletCheckout } from './native-wallet';
 
 type CheckoutEnv = Pick<Cloudflare.Env,
@@ -429,7 +429,19 @@ async function createPaymentIntent(request: Request, env: CheckoutEnv, user: Nat
      VALUES (?1, ?2, ?3, 'stripe', ?4, 'paymentsheet://stripe', ?5, 'PENDING', ?6, ?7, ?7)
      ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at`,
   ).bind(payload.id, body.orderId, user.id, idempotencyKey, payload.id, expiresAt, now).run();
-  return success({ intentId: payload.id, clientSecret: payload.client_secret, status: payload.client_secret ? 'requires_payment_method' : null }, 201);
+  // PaymentSheet on mobile initializes from the account publishable key.
+  const stripeConfig = await getNativePluginConfig(env, 'stripe');
+  const stripeMode = stripeConfig?.config.mode === 'live' ? 'live' : 'test';
+  const modeKey = stripeConfig?.config[`${stripeMode}PublishableKey`];
+  const publishableKey = typeof modeKey === 'string' && modeKey
+    ? modeKey
+    : (typeof stripeConfig?.config.publishableKey === 'string' ? stripeConfig.config.publishableKey as string : '');
+  return success({
+    intentId: payload.id,
+    clientSecret: payload.client_secret,
+    publishableKey,
+    status: payload.client_secret ? 'requires_payment_method' : null,
+  }, 201);
 }
 
 function hex(bytes: ArrayBuffer): string {
