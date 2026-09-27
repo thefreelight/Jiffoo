@@ -18,3 +18,6 @@
 - Do not use force clicks, `dispatchEvent`, `page.evaluate`, scripts that click, fill or navigate UI, `page.route`, request interception, mocked responses, direct localStorage or cookie writes for login, `getByTestId`, CSS or XPath selectors.
 - Locate UI only with `getByRole` (with name), `getByLabel`, `getByText` or `getByPlaceholder`. Give unnamed controls an accessible label.
 - Treat blocked clicks and missing elements as product bugs. Fix the UI rather than adding waits or changing locator strategy.
+- Visual captures run opt-in with `pnpm visual:capture`; `pnpm visual:compare` captures the current tree and compares it with the ignored baseline in `e2e/visual-results/baseline`. Set `VISUAL_CAPTURE_SET` to `baseline`, `current`, `noise-1`, or `noise-2` for an explicit capture set. Run two unchanged-code captures to measure noise before interpreting a baseline comparison.
+- In `e2e/visual.spec.ts`, read-only `page.evaluate` may inspect `document.fonts.ready` and computed CSS. UI interaction still uses accessible locators and Playwright keyboard actions; do not use evaluate to click, fill, navigate, or mutate the page.
+- On an E2E failure, preserve `e2e/test-results` service logs and the notification/Redis lock evidence dump. The E2E runner archives an existing service log before opening its current log path.

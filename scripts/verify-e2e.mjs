@@ -1,10 +1,12 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { createWriteStream, mkdirSync, readFileSync } from 'node:fs';
+import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { createRequire } from 'node:module';
 
 const started = performance.now();
+const visual = process.argv.includes('--visual');
+const compare = process.argv.includes('--compare');
 const databaseUrl = process.env.DATABASE_URL_TEST;
 let databaseName;
 try {
@@ -40,7 +42,14 @@ const env = {
   ADMIN_URL: 'http://127.0.0.1:3002',
   STOREFRONT_URL: 'http://127.0.0.1:3003',
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
+  VISUAL_SET: visual ? (process.env.VISUAL_CAPTURE_SET || (compare ? 'current' : 'baseline')) : '',
 };
+if (visual) {
+  if (!['baseline', 'current', 'noise-1', 'noise-2'].includes(env.VISUAL_SET)) {
+    throw new Error('Invalid VISUAL_CAPTURE_SET');
+  }
+  mkdirSync(resolve(root, 'e2e/visual-results', env.VISUAL_SET), { recursive: true });
+}
 const results = [];
 const children = [];
 const logs = [];
@@ -49,6 +58,7 @@ const playwrightGroups = [
   ['01-install', '02-login', '03-password', '04-language', '05-settings', '06-health-plugins', '07-products', '08-orders', '09-customers'],
   ['10-staff', '11-forgot-password', '12-translations', '13-shop', '14-shop-registration', '15-shop-account', '16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund', '19-themes'],
 ];
+if (visual) playwrightGroups[1].push('visual');
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);
@@ -78,7 +88,11 @@ function asyncCommand(args) {
 }
 
 function service(name, args, cwd, extraEnv = {}) {
-  const log = createWriteStream(resolve(resultsDir, `${name}.log`), { flags: 'w' });
+  const logPath = resolve(resultsDir, `${name}.log`);
+  if (existsSync(logPath)) {
+    renameSync(logPath, resolve(resultsDir, `${name}-${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}.log`));
+  }
+  const log = createWriteStream(logPath, { flags: 'w' });
   logs.push(log);
   const child = spawn(process.execPath, args, { cwd, env: { ...env, ...extraEnv }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
   children.push(child);
@@ -178,9 +192,17 @@ try {
   await step('Wait for health', health);
   console.log(`Playwright start time: ${new Date().toISOString()}`);
   await step('Run Playwright', runPlaywrightGroups);
+  if (compare) await step('Compare visual captures', () => command(['exec', 'node', 'scripts/visual-compare.mjs']));
 } catch (error) {
   console.error(error);
   process.exitCode = 1;
+  if (results.some(([name, result]) => name === 'Run Playwright' && result === 'FAIL')) {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const dump = spawnSync(process.execPath, ['scripts/dump-e2e-notifications.mjs', timestamp], {
+      cwd: root, env, stdio: 'inherit',
+    });
+    if (dump.status !== 0) console.error(`Notification evidence dump failed: ${dump.error?.message ?? dump.status}`);
+  }
 } finally {
   await step('Stop E2E child processes', stop);
   try {

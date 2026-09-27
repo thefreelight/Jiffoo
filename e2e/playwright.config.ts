@@ -27,10 +27,14 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  projects: areas.map((name, index) => ({
+  projects: [...areas.map((name, index) => ({
     name,
     testMatch: `${name}.spec.ts`,
     use: { baseURL: ['13-shop', '14-shop-registration', '15-shop-account'].includes(name) ? 'http://127.0.0.1:3003' : 'http://127.0.0.1:3002' },
     dependencies: index ? [areas[index - 1]] : [],
-  })),
+  })), {
+    name: 'visual',
+    testMatch: 'visual.spec.ts',
+    dependencies: ['19-themes'],
+  }],
 });

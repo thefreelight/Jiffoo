@@ -36,7 +36,9 @@
     "test:api:quality": "pnpm --filter api test:quality",
     "verify": "node scripts/verify.mjs",
     "verify:quick": "node scripts/verify.mjs --quick",
-    "verify:e2e": "node scripts/verify-e2e.mjs"
+    "verify:e2e": "node scripts/verify-e2e.mjs",
+    "visual:capture": "node scripts/verify-e2e.mjs --visual",
+    "visual:compare": "node scripts/verify-e2e.mjs --visual --compare"
   },
   "keywords": [
     "fastify",
