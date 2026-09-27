@@ -14,7 +14,7 @@ import { shouldRequirePasswordRotation } from './bootstrap';
 import { createAuthUser, findAuthUserByEmail, findAuthUserById } from './user-compat';
 
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
-const DEFAULT_DEMO_ADMIN_PASSWORD = 'admin123';
+const DEFAULT_DEMO_ADMIN_PASSWORD = 'jiffoo';
 
 export interface AuthResponse {
   user: {

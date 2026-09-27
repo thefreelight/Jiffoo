@@ -201,7 +201,7 @@ export default function LoginPage() {
               <div className="mt-6 p-4 bg-blue-50 rounded-md">
                 <p className="text-xs text-blue-700 text-center">
                   <i className="fas fa-info-circle mr-1"></i>
-                  Demo: user@jiffoo.com / admin123
+                  Demo: user@jiffoo.com / jiffoo
                 </p>
               </div>
             </div>
