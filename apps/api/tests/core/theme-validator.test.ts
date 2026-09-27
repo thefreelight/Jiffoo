@@ -57,7 +57,7 @@ describe('T1a declarative theme validator', () => {
       .pages.home.sections.map((section) => section.type)).toEqual(['category-list', 'product-grid']);
     expect(admin.manifest.tokens).toMatchObject({
       background: '#F8FAFC', surface: '#FFFFFF', primary: '#3B82F6',
-      text: '#0F172A', border: '#E2E8F0', 'font-body': 'outfit',
+      text: '#0F172A', border: '#E2E8F0', 'font-body': 'system-sans',
       'radius-md': '8px',
     });
   });

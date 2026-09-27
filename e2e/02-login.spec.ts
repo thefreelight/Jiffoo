@@ -8,3 +8,13 @@ test('logout and login preserve the session across reload', async ({ page }) => 
   await page.reload();
   await expect(page).toHaveURL(/\/en\/dashboard/);
 });
+
+test('K default Admin theme requests no Outfit font files', async ({ page }) => {
+  const outfitRequests: string[] = [];
+  page.on('request', (request) => {
+    if (/outfit.*\.woff2/i.test(request.url())) outfitRequests.push(request.url());
+  });
+  await login(page, ownerEmail, originalPassword);
+  await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+  expect(outfitRequests).toEqual([]);
+});

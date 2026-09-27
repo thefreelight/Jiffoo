@@ -27,7 +27,7 @@ const adminDefaults: Record<string, unknown> = {
   'sidebar-active-text': '#3B82F6', success: '#16A34A',
   warning: '#D97706', danger: '#DC2626', info: '#2563EB',
   'radius-sm': '4px', 'radius-md': '8px', 'radius-lg': '12px',
-  'surface-muted': '#F1F5F9', 'font-body': 'outfit', density: 'comfortable',
+  'surface-muted': '#F1F5F9', 'font-body': 'system-sans', density: 'comfortable',
   'card-shadow': { x: '0px', y: '2px', blur: '8px', spread: '0px', color: '#0F172A' },
 };
 const colors = /^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/;
@@ -38,14 +38,28 @@ const rgbChannels = (hex: string): string =>
 const gradientHex = (hex: string): string =>
   /^#([0-9a-f])\1([0-9a-f])\2([0-9a-f])\3$/i.test(hex)
     ? `#${hex[1]}${hex[3]}${hex[5]}`.toLowerCase() : hex;
-const serialize = (target: ThemeTarget, key: string, value: unknown): string | null => {
+export const builtinFontStacks = {
+  'system-sans': 'system-ui, -apple-system, sans-serif',
+  'system-serif': 'Georgia, "Times New Roman", serif',
+  outfit: '"Outfit", system-ui, sans-serif',
+} as const;
+
+export type FontResolver = (id: string) => string | undefined;
+
+const serialize = (target: ThemeTarget, key: string, value: unknown, resolveFont: FontResolver): string | null => {
   if ((target === 'shop' ? SHOP_COLOR_ROLES : ADMIN_COLOR_ROLES as readonly string[]).includes(key))
     return typeof value === 'string' && colors.test(value) ? value : null;
   if ((target === 'shop' ? SHOP_LENGTH_ROLES as readonly string[] : ['radius-sm', 'radius-md', 'radius-lg']).includes(key))
     return typeof value === 'string' && lengths.test(value)
       && Number.parseFloat(value) <= (key === 'container-width' ? 1600 : 128) ? value : null;
-  if (key === 'font-body' || key === 'font-heading')
-    return typeof value === 'string' && /^[A-Za-z][A-Za-z0-9 -]{0,99}$/.test(value) ? `"${value}"` : null;
+  if (key === 'font-body' || key === 'font-heading') {
+    if (typeof value !== 'string' || !/^[A-Za-z][A-Za-z0-9 -]{0,99}$/.test(value)) return null;
+    const family = resolveFont(value);
+    if (value === 'outfit' && family) return `${family}, system-ui, sans-serif`;
+    if (value in builtinFontStacks) return builtinFontStacks[value as keyof typeof builtinFontStacks];
+    return family && /^[A-Za-z][A-Za-z0-9 -]{0,99}$/.test(family)
+      ? `"${family}", sans-serif` : null;
+  }
   if (target === 'shop' && key === 'type-scale')
     return typeof value === 'number' && Number.isFinite(value) && value >= 1 && value <= 2 ? String(value) : null;
   if (target === 'shop' && key === 'heading-weight')
@@ -67,7 +81,9 @@ const serialize = (target: ThemeTarget, key: string, value: unknown): string | n
   return null;
 };
 
-export function themeTokensToCss(target: ThemeTarget, tokens: Record<string, unknown>): string {
+export function themeTokensToCss(
+  target: ThemeTarget, tokens: Record<string, unknown>, resolveFont: FontResolver = () => undefined,
+): string {
   const defaults = target === 'shop' ? shopDefaults : adminDefaults;
   const keys = new Set([
     ...(target === 'shop' ? SHOP_COLOR_ROLES : ADMIN_COLOR_ROLES),
@@ -76,7 +92,8 @@ export function themeTokensToCss(target: ThemeTarget, tokens: Record<string, unk
     'card-shadow', ...(target === 'shop' ? ['type-scale', 'heading-weight', 'button-style'] : ['density']),
   ]);
   return [...keys].flatMap((key) => {
-    const value = serialize(target, key, tokens[key]) ?? serialize(target, key, defaults[key]);
+    const value = serialize(target, key, tokens[key], resolveFont)
+      ?? serialize(target, key, defaults[key], resolveFont);
     if (value === null) return [];
     return target === 'admin' && (ADMIN_COLOR_ROLES as readonly string[]).includes(key)
       ? [`--admin-${key}: ${value};`, `--admin-${key}-rgb: ${rgbChannels(value)};`,

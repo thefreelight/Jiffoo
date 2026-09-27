@@ -4,6 +4,8 @@ import { join, resolve } from 'node:path';
 import adminTheme from '../../../apps/api/builtin-themes/default-admin/theme.json';
 import tailwindConfig from '../tailwind.config.js';
 import tailwindPreset from '../tailwind.preset.js';
+import { adminThemeCss } from '../lib/theme-font';
+import { builtinFontStacks, themeCoreDefaults } from 'shared';
 
 const root = resolve(__dirname, '..');
 
@@ -34,7 +36,9 @@ describe('Admin theme token boundaries', () => {
     for (const [role, value] of Object.entries(adminTheme.tokens)) {
       expect(defaults.has(role), role).toBe(true);
       if (role === 'font-body') {
-        expect(defaults.get(role), role).toBe(`"${value}"`);
+        expect(value).toBe('system-sans');
+        expect(themeCoreDefaults.admin[role]).toBe(value);
+        expect(defaults.get(role), role).toBe(builtinFontStacks['system-sans']);
       } else {
         expect(defaults.get(role)?.toUpperCase(), role).toBe(value.toUpperCase());
       }
@@ -60,15 +64,30 @@ describe('Admin theme token boundaries', () => {
       .not.toMatch(/\bdarkMode\b/);
   });
 
-  it('E defers Admin font token consumption', () => {
+  it('J routes Admin font rendering through the body token without literal stacks', () => {
+    const families = tailwindPreset.theme?.extend?.fontFamily as Record<string, unknown>;
+    expect(families.sans).toBe('var(--admin-font-body)');
+    expect(readFileSync(join(root, 'app', 'globals.css'), 'utf8'))
+      .toContain('font-family: var(--admin-font-body)');
     for (const directory of ['app', 'components', 'lib']) {
       for (const file of sourceFiles(join(root, directory))) {
         if (file === join(root, 'app', 'default-tokens.css')) continue;
-        expect(readFileSync(file, 'utf8'), file).not.toContain('var(--admin-font-');
+        const declarations = [...readFileSync(file, 'utf8').matchAll(/font-family:\s*([^;]+);/gi)];
+        for (const [, value] of declarations) {
+          expect(value.trim(), file).toBe('var(--admin-font-body)');
+        }
       }
     }
-    expect(readFileSync(join(root, 'tailwind.preset.js'), 'utf8'))
-      .not.toContain('var(--admin-font-');
+    expect(readFileSync(join(root, 'tailwind.preset.js'), 'utf8')).not.toContain("'Inter'");
+  });
+
+  it('G emits complete built-in font stacks for Admin', () => {
+    expect(adminThemeCss({ 'font-body': 'system-sans' })).toContain(
+      '--admin-font-body: system-ui, -apple-system, sans-serif;');
+    expect(adminThemeCss({ 'font-body': 'system-serif' })).toContain(
+      '--admin-font-body: Georgia, "Times New Roman", serif;');
+    expect(adminThemeCss({ 'font-body': 'outfit' })).toContain(
+      '--admin-font-body: var(--font-outfit), system-ui, sans-serif;');
   });
 
   it('F keeps Admin Tailwind preset and config color keys disjoint', () => {

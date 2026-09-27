@@ -38,7 +38,7 @@
   }
 
   body {
-    font-family: var(--font-outfit), -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-family: var(--admin-font-body);
     background-color: var(--jf-bg-main);
     color: var(--jf-text-main);
     line-height: 1.6;

@@ -55,6 +55,7 @@ CJK system fallback. Font declarations are
 `{id,family,file,weight,style,license}`; `file` is `fonts/*.woff2`,
 weight is 100-900, style is `normal` or `italic`, and a nonempty license is
 mandatory. Font families are plain names, not CSS expressions.
+Packaged font families render as the declared family followed by `sans-serif`.
 The public resolved theme includes each font's `id`, `family`, versioned local
 `url`, `weight`, and `style`; the renderer uses `id` to select font tokens.
 

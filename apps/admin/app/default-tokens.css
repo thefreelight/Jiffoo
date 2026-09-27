@@ -16,7 +16,7 @@
   --admin-warning: #D97706;
   --admin-danger: #DC2626;
   --admin-info: #2563EB;
-  --admin-font-body: "outfit";
+  --admin-font-body: system-ui, -apple-system, sans-serif;
   --admin-radius-sm: 4px;
   --admin-radius-md: 8px;
   --admin-radius-lg: 12px;

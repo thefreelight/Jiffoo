@@ -11,6 +11,7 @@ import { ImageCarousel } from '../components/image-carousel';
 import { sectionsForPage, themePageSlots } from '../lib/page-classes';
 import { ThemeShell } from '../app/[locale]/layout';
 import { SECTION_TYPES, themeTokensToCss } from 'shared';
+import defaultShop from '../../api/builtin-themes/default-shop/theme.json';
 import type { Category, Product, StoreContext } from '../lib/catalog';
 
 vi.mock('server-only', () => ({}));
@@ -132,7 +133,8 @@ describe('T2 Shop theme rendering', () => {
   it('D emits only validated token CSS and font-face data in the layout style', () => {
     const poisoned: ShopTheme = { ...fixture, tokens: { ...fixture.tokens, primary: '#fff;} body{', unknown: 'url(x)' } };
     const css = themeStyle(poisoned);
-    expect(css).toContain(themeTokensToCss('shop', { ...poisoned.tokens, 'font-body': 'Brand Sans' }));
+    expect(css).toContain(themeTokensToCss('shop', poisoned.tokens,
+      (id) => poisoned.fonts.find((font) => font.id === id)?.family));
     expect(css).toContain('@font-face{font-family:"Brand Sans"');
     expect(css).toContain('--shop-primary: #166b52;');
     expect(css).not.toContain('#fff;} body{');
@@ -141,6 +143,29 @@ describe('T2 Shop theme rendering', () => {
     const html = markup(createElement(ThemeShell, { context, locale: 'en', navigation: [group],
       theme: poisoned, loggedIn: false, cartCount: 0 }, createElement('main', null, 'Body')));
     expect(html.match(/<style/g)).toHaveLength(1);
+  });
+
+  it('G emits complete built-in font stacks for Shop', () => {
+    for (const [id, stack] of Object.entries({
+      'system-sans': 'system-ui, -apple-system, sans-serif',
+      'system-serif': 'Georgia, "Times New Roman", serif',
+      outfit: '"Outfit", system-ui, sans-serif',
+    })) {
+      expect(themeTokensToCss('shop', { 'font-body': id, 'font-heading': id }))
+        .toContain(`--shop-font-body: ${stack};\n--shop-font-heading: ${stack};`);
+    }
+  });
+
+  it('H uses the declared packaged font family with a sans-serif fallback', () => {
+    expect(themeStyle(fixture)).toContain('--shop-font-body: "Brand Sans", sans-serif;');
+  });
+
+  it('I records exact default Shop font output before and after serialization', () => {
+    const css = themeStyle(defaultShop as unknown as ShopTheme);
+    const previous = '--shop-font-body: "system-sans";\n--shop-font-heading: "system-sans";';
+    expect(css).not.toContain(previous);
+    expect(css).toContain('--shop-font-body: system-ui, -apple-system, sans-serif;');
+    expect(css).toContain('--shop-font-heading: system-ui, -apple-system, sans-serif;');
   });
 
   it('E falls back to Core defaults when the theme fetch fails', async () => {

@@ -20,6 +20,7 @@ const outfit = localFont({
   ],
   variable: '--font-outfit',
   display: 'swap',
+  preload: false,
 });
 
 export const metadata: Metadata = {
