@@ -15,12 +15,13 @@ subtle.timingSafeEqual ??= (left: ArrayBuffer, right: ArrayBuffer): boolean => {
   return difference === 0;
 };
 
-const { authenticateNativeUser, getNativeStripeSecret } = vi.hoisted(() => ({
+const { authenticateNativeUser, getNativeStripeSecret, getNativePluginConfig } = vi.hoisted(() => ({
   authenticateNativeUser: vi.fn(),
   getNativeStripeSecret: vi.fn(),
+  getNativePluginConfig: vi.fn(),
 }));
 vi.mock('./auth', () => ({ authenticateNativeUser, getNativeJwtSecret: vi.fn(), createNativeSession: vi.fn(), tryNativeAuth: vi.fn() }));
-vi.mock('./plugin-settings', () => ({ getNativeStripeSecret, getNativePluginSecret: vi.fn(), getNativePluginConfig: vi.fn() }));
+vi.mock('./plugin-settings', () => ({ getNativeStripeSecret, getNativePluginConfig, getNativePluginSecret: vi.fn() }));
 
 import { tryNativeCheckout } from './checkout';
 
@@ -66,6 +67,7 @@ describe('native PaymentSheet payment intents', () => {
   it('creates a Stripe PaymentIntent from the order total and returns the client secret', async () => {
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
     getNativeStripeSecret.mockResolvedValue({ mode: 'test', value: 'sk_test_example' });
+    getNativePluginConfig.mockResolvedValue({ enabled: true, config: { mode: 'test', testPublishableKey: 'pk_test_example' } });
     const calls: Array<{ url: string; init: RequestInit }> = [];
     const originalFetch = global.fetch;
     global.fetch = vi.fn(async (input: unknown, init?: RequestInit) => {
@@ -87,6 +89,7 @@ describe('native PaymentSheet payment intents', () => {
       const payload = await (response as Response).json();
       expect(payload.data.intentId).toBe('pi_test_1');
       expect(payload.data.clientSecret).toBe('cs_test_secret');
+      expect(payload.data.publishableKey).toBe('pk_test_example');
       expect(calls).toHaveLength(1);
       expect(calls[0].url).toBe('https://api.stripe.com/v1/payment_intents');
       const form = new URLSearchParams(String(calls[0].init.body));
