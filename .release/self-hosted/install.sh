@@ -186,7 +186,7 @@ COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-current}
 JIFFOO_SEED_DEMO_DATA=${SEED_DEMO_DATA}
 JIFFOO_DEMO_MODE=${DEMO_MODE}
 JIFFOO_DEMO_ADMIN_EMAIL=${JIFFOO_DEMO_ADMIN_EMAIL:-admin@jiffoo.com}
-JIFFOO_DEMO_ADMIN_PASSWORD=${JIFFOO_DEMO_ADMIN_PASSWORD:-admin123}
+JIFFOO_DEMO_ADMIN_PASSWORD=${JIFFOO_DEMO_ADMIN_PASSWORD:-jiffoo}
 EOF
 
   log_ok "Created ${ENV_FILE}"
@@ -301,7 +301,7 @@ main() {
   echo "API:   ${JIFFOO_PUBLIC_API_URL:-http://localhost:${JIFFOO_API_PORT:-3001}}"
   echo
   if [ "${SEED_DEMO_DATA}" = "true" ]; then
-    echo "Admin credentials: admin@jiffoo.com / admin123"
+    echo "Admin credentials: admin@jiffoo.com / ${JIFFOO_DEMO_ADMIN_PASSWORD}"
   fi
   echo
   echo "Logs:   ${SUDO} docker compose --env-file ${ENV_FILE} -f ${COMPOSE_FILE} logs -f"

@@ -88,7 +88,7 @@ This path installs Docker if needed, prepares a production `.env.production.loca
 builds `shop + api + admin`, starts PostgreSQL and Redis, runs Prisma migrations,
 and optionally seeds demo data with:
 
-- Admin: `admin@jiffoo.com / admin123`
+- Admin: `admin@jiffoo.com / jiffoo`
 
 Important defaults:
 

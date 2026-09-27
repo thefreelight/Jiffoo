@@ -86,7 +86,7 @@ curl -fsSL https://get.jiffoo.com | bash
 
 这条路径会按需安装 Docker，准备生产环境 `.env.production.local`，构建 `shop + api + admin`，启动 PostgreSQL 与 Redis，执行 Prisma 迁移，并可选地灌入演示数据：
 
-- 后台：`admin@jiffoo.com / admin123`
+- 后台：`admin@jiffoo.com / jiffoo`
 
 重要默认值：
 

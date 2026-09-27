@@ -198,7 +198,8 @@ async function main() {
 
     // 2) Create users
     console.log('👤 Creating admin user...');
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const demoPassword = process.env.JIFFOO_DEMO_ADMIN_PASSWORD || 'jiffoo';
+    const hashedPassword = await bcrypt.hash(demoPassword, 10);
 
     // Admin user (for Admin UI)
     const admin = await prisma.user.upsert({
@@ -890,8 +891,8 @@ async function main() {
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📋 Summary:');
     console.log('   - System settings initialized');
-    console.log('   - Admin: admin@jiffoo.com / admin123');
-    console.log('   - Sample user: user@jiffoo.com / admin123');
+    console.log(`   - Admin: admin@jiffoo.com / ${demoPassword}`);
+    console.log(`   - Sample user: user@jiffoo.com / ${demoPassword}`);
     console.log(`   - ${sampleProducts.length} sample products created`);
     console.log('   - 5 categories created');
     console.log('   - Variants and product translations created');

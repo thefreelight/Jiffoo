@@ -3,7 +3,7 @@ import type { AuthBootstrapMode, AuthBootstrapStatus } from 'shared/src/types/au
 
 const AUTH_BOOTSTRAP_SETTINGS_KEY = 'auth.bootstrap.admin';
 const DEFAULT_BOOTSTRAP_EMAIL = process.env.AUTH_BOOTSTRAP_ADMIN_EMAIL || 'admin@jiffoo.com';
-const DEFAULT_BOOTSTRAP_PASSWORD = process.env.AUTH_BOOTSTRAP_ADMIN_PASSWORD || 'admin123';
+const DEFAULT_BOOTSTRAP_PASSWORD = process.env.AUTH_BOOTSTRAP_ADMIN_PASSWORD || 'jiffoo';
 const DEFAULT_BOOTSTRAP_MODE = normalizeMode(process.env.AUTH_BOOTSTRAP_MODE);
 
 type StoredAuthBootstrapState = {
