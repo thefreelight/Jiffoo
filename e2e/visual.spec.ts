@@ -1,6 +1,57 @@
 import { expect, test } from './local-requests';
 import { ownerEmail } from './helpers';
 import { writeFile } from 'node:fs/promises';
+import type { Locator, Page } from '@playwright/test';
+
+async function captureDynamicBoxes(page: Page, name: string, width: number, height: number, set: string) {
+  const boxes: Array<{ name: string; box: { x: number; y: number; width: number; height: number } }> = [];
+  const add = async (reason: string, locator: Locator) => {
+    const count = await locator.count();
+    for (let index = 0; index < count; index++) {
+      const box = await locator.nth(index).boundingBox();
+      if (box && box.y < height && box.y + box.height > 0)
+        boxes.push({ name: `${reason} ${index + 1}`, box });
+    }
+  };
+  const date = /\d{1,2}\/\d{1,2}\/\d{4}/;
+  if (name === 'dashboard') {
+    await add('recent order generated ID', page.getByText(/^#[A-Z0-9]{8}$/));
+    await add('recent order created time', page.getByText(/^\d{2}:\d{2}$/));
+  } else if (name === 'customers-list') {
+    await add('customer generated ID', page.getByText(/^ID: [A-Z0-9]{8}\.\.\.$/i));
+  } else if (name === 'customer-detail') {
+    await add('customer generated ID', page.getByText(/^ID: [A-Z0-9]{8}\.\.\.$/i));
+    await add('customer dates', page.getByText(date));
+    if (width === 390) {
+      await add('ID reflows profile heading', page.getByRole('heading', { name: 'User Profile' }));
+      await add('ID reflows reset button', page.getByRole('button', { name: 'Generate reset link' }));
+      await add('ID reflows edit button', page.getByRole('button', { name: 'Edit', exact: true }));
+    }
+  } else if (name === 'order-detail') {
+    await add('order generated ID', page.getByText(/^Deployment Node: #[A-Z0-9]+$/i));
+    await add('order item generated reference', page.getByText(/^UNIT-REF: [A-Z0-9]+$/i));
+    await add('customer generated internal ID', page.getByText(/^cmu[a-z0-9]{15,}$/i));
+    await add('order activity dates', page.getByText(date));
+    if (width === 390) await add('ID reflows order heading', page.getByRole('heading', { name: 'Order Specification' }));
+  } else if (name === 'notifications') {
+    const rows = page.getByRole('row').filter({ hasText: date });
+    const count = await rows.count();
+    for (let index = 0; index < count; index++) {
+      const cells = rows.nth(index).getByRole('cell');
+      for (let column = 0; column < 4; column++) {
+        const box = await cells.nth(column).boundingBox();
+        if (box && box.y < height && box.y + box.height > 0)
+          boxes.push({ name: `notification ${index + 1} time-driven column ${column + 1}`, box });
+      }
+    }
+    if (width === 1440) {
+      await add('time width reflows table headings', page.getByRole('columnheader'));
+    }
+  } else if (name === 'health') {
+    await add('API uptime seconds', page.getByText(/Uptime:\s*\d+s/i));
+  }
+  await writeFile(`e2e/visual-results/${set}/${name}-${width}.boxes.json`, JSON.stringify(boxes, null, 2));
+}
 
 const pages = [
   ['login', '/en/auth/login'],
@@ -35,6 +86,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
     await page.goto('/en/auth/login');
     await expect(page.getByPlaceholder('Enter your email')).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
+    await captureDynamicBoxes(page, 'login', width, height, set);
     await page.screenshot({ path: `e2e/visual-results/${set}/login-${width}.png`, fullPage: true, animations: 'disabled' });
     await page.getByPlaceholder('Enter your email').fill(ownerEmail);
     await page.getByPlaceholder('Enter your password').fill('FinalOwnerPassword123!');
@@ -101,6 +153,27 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
           await writeFile(`e2e/visual-results/${set}/computed-${name}-${width}.json`,
             JSON.stringify(computed, null, 2));
         }
+        if (name === 'customers-list' && width === 390) {
+          const computed = await page.getByText('Live metric', { exact: true }).nth(1).evaluate((label) => {
+            let card: Element | null = label;
+            while (card && !card.classList.contains('bg-gradient-to-br')) card = card.parentElement;
+            if (!card) throw new Error('Customer statistic card not found');
+            const css = getComputedStyle(card);
+            const rect = card.getBoundingClientRect();
+            return {
+              element: 'Active customer statistic card',
+              box: [rect.x, rect.y, rect.width, rect.height],
+              backgroundImage: css.backgroundImage,
+              backgroundColor: css.backgroundColor,
+              borderColor: css.borderColor,
+              boxShadow: css.boxShadow,
+              borderRadius: css.borderRadius,
+              fontFamily: css.fontFamily,
+            };
+          });
+          await writeFile(`e2e/visual-results/${set}/computed-customers-list-390.json`,
+            JSON.stringify(computed, null, 2));
+        }
       }
       if (name === 'dashboard' && width === 1440 && process.env.VISUAL_INSPECT_CSS === '1') {
         const cards = await Promise.all(
@@ -138,6 +211,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       const date = new Date().toLocaleDateString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
       });
+      await captureDynamicBoxes(page, name, width, height, set);
       await page.screenshot({
         path: `e2e/visual-results/${set}/${name}-${width}.png`,
         fullPage: true,

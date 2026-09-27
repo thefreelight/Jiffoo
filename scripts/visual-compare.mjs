@@ -1,4 +1,4 @@
-import { readdir, mkdir } from 'node:fs/promises';
+import { readdir, mkdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import sharp from 'sharp';
 
@@ -15,54 +15,24 @@ const diff = resolve(root, beforeSet === 'noise-1' ? 'noise-diff' : 'diff');
 const EDGE_LUMINANCE_THRESHOLD = 12;
 const region = (reason, left, top, right, bottom) =>
   ({ reason, left, top, right, bottom });
-const dynamicExclusions = {
+const fixedExclusions = {
   'login-1440.png': [region('same-code submit label render timing', 696, 652, 744, 666)],
   'login-390.png': [region('same-code submit label render timing', 171, 632, 219, 646)],
-  'dashboard-1440.png': [0, 1, 2, 3].flatMap((row) => [
-    region(`recent order ${row + 1} generated ID`, 285, 605 + row * 53, 352, 630 + row * 53),
-    region(`recent order ${row + 1} created time`, 758, 605 + row * 53, 798, 630 + row * 53),
-  ]),
-  'customers-list-1440.png': [
-    region('first customer generated ID', 340, 801, 425, 821),
-    region('second customer generated ID', 340, 884, 425, 904),
-  ],
-  'customer-detail-1440.png': [region('customer generated ID', 370, 38, 430, 56)],
-  'customer-detail-390.png': [
-    region('customer generated ID', 60, 75, 140, 94),
-    region('generated ID shifts compact profile heading', 60, 15, 143, 87),
-    region('generated ID shifts reset-link button', 143, 32, 294, 87),
-    region('generated ID shifts edit button', 294, 32, 390, 87),
-  ],
   'products-list-390.png': [
     region('same-code bottom card radius and shadow rasterization', 32, 749, 355, 785),
   ],
-  'order-detail-1440.png': [
-    region('order generated ID in heading', 480, 47, 660, 64),
-    region('order item generated reference', 490, 264, 635, 291),
-    region('customer generated internal ID', 1110, 303, 1240, 322),
-    region('order activity created time', 1245, 886, 1360, 905),
-  ],
-  'order-detail-390.png': [
-    region('order generated ID in heading', 58, 49, 255, 65),
-    region('generated ID shifts compact order heading', 58, 15, 205, 48),
-    region('order item generated reference badge', 153, 245, 283, 305),
-  ],
-  'health-1440.png': [region('API uptime seconds', 1323, 135, 1415, 155)],
-  'health-390.png': [region('API uptime seconds', 275, 135, 365, 155)],
-  'notifications-1440.png': [
-    region('created-time width shifts table headings', 555, 94, 1010, 122),
-    region('created-time width shifts status heading', 1158, 94, 1222, 122),
-    ...Array.from({ length: 15 }, (_, row) => [
-      region(`notification ${row + 1} created time`, 266, 145 + row * 53, 440, 173 + row * 53),
-      region(`notification ${row + 1} time-driven type offset`, 559, 145 + row * 53, 710, 173 + row * 53),
-      region(`notification ${row + 1} time-driven recipient offset`, 810, 145 + row * 53, 1030, 173 + row * 53),
-      region(`notification ${row + 1} time-driven status offset`, 1160, 145 + row * 53, 1220, 173 + row * 53),
-    ]).flat(),
-  ],
-  'notifications-390.png': Array.from({ length: 8 }, (_, row) =>
-    region(`notification ${row + 1} created time`, 36, 210 + row * 93, 115, 235 + row * 93)),
 };
+async function elementExclusions(name) {
+  const boxesName = name.replace(/\.png$/, '.boxes.json');
+  const before = JSON.parse(await readFile(resolve(baseline, boxesName), 'utf8'));
+  const after = JSON.parse(await readFile(resolve(current, boxesName), 'utf8'));
+  const names = (boxes) => boxes.map((item) => item.name).sort().join('|');
+  if (names(before) !== names(after)) throw new Error(`Dynamic exclusion names differ for ${name}`);
+  return [...before, ...after].map(({ name: reason, box }) =>
+    region(reason, box.x - 2, box.y - 2, box.x + box.width + 2, box.y + box.height + 2));
+}
 await mkdir(diff, { recursive: true });
+let violations = 0;
 for (const name of (await readdir(baseline)).filter((file) => file.endsWith('.png')).sort()) {
   const before = await sharp(resolve(baseline, name)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const after = await sharp(resolve(current, name)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -75,7 +45,7 @@ for (const name of (await readdir(baseline)).filter((file) => file.endsWith('.pn
   let over2Inside = 0;
   let over2Outside = 0;
   let sizeMismatch = false;
-  const exclusions = dynamicExclusions[name] ?? [];
+  const exclusions = [...(fixedExclusions[name] ?? []), ...await elementExclusions(name)];
   const edgeMask = baselineEdgeMask(before.data, before.info.width, before.info.height);
   const over2 = new Uint8Array(width * height);
   const cardDeltas = name === 'dashboard-1440.png'
@@ -125,11 +95,16 @@ for (const name of (await readdir(baseline)).filter((file) => file.endsWith('.pn
     }
   }
   await sharp(pixels, { raw: { width, height, channels: 4 } }).png().toFile(resolve(diff, name));
-  console.log(`${name}: ${(changed / (width * height) * 100).toFixed(4)}% (${changed}/${width * height}), max channel delta: ${maxChannelDelta}, delta>2: ${over2Inside + over2Outside} total / ${over2Inside} inside edge / ${over2Outside} outside edge, max outside edge: ${maxOutsideEdgeDelta}, exclusions: ${exclusions.map((area) => area.reason).join('; ') || 'none'}${sizeMismatch ? ' (size mismatch)' : ''}`);
+  console.log(`${name}: ${(changed / (width * height) * 100).toFixed(4)}% (${changed}/${width * height}), max channel delta: ${maxChannelDelta}, delta>2: ${over2Inside + over2Outside} total / ${over2Inside} inside edge / ${over2Outside} outside edge, max outside edge: ${maxOutsideEdgeDelta}, exclusions: ${[...new Set(exclusions.map((area) => area.reason))].join('; ') || 'none'}${sizeMismatch ? ' (size mismatch)' : ''}`);
   if (over2Inside + over2Outside) {
     console.log('Over-limit regions:', JSON.stringify(clusterRegions(over2, width, height)));
   }
   if (cardDeltas) console.log('Dashboard cards:', JSON.stringify(cardDeltas));
+  if (sizeMismatch || maxChannelDelta > 2) violations++;
+}
+if (violations) {
+  console.error(`${violations} visual capture(s) exceed the channel delta limit of 2 outside named exclusions.`);
+  process.exitCode = 1;
 }
 
 function pixelsDiffer(a, i, b, j) {
