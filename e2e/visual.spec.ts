@@ -23,6 +23,10 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
   test(`capture Admin pages at ${width}x${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await page.emulateMedia({ reducedMotion: 'reduce' });
+    const fontRequests: string[] = [];
+    page.on('request', (request) => {
+      if (request.resourceType() === 'font') fontRequests.push(request.url());
+    });
     const set = process.env.VISUAL_SET;
     if (!['baseline', 'current', 'noise-1', 'noise-2'].includes(set ?? '')) {
       throw new Error('VISUAL_SET must be baseline, current, noise-1 or noise-2');
@@ -61,8 +65,43 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
         await expect(page).toHaveURL(/\/en\/customers\/[^/]+$/);
       }
       await expect(page.getByRole('heading').first()).toBeVisible();
+      if (name === 'orders-list') {
+        await expect(page.getByText('$39.98', { exact: true }).first()).toBeVisible();
+      }
       await page.evaluate(() => document.fonts.ready);
       await page.keyboard.press('Control+Home');
+      if (process.env.VISUAL_INSPECT_CSS === '1') {
+        const targets = {
+          administrators: [{ label: 'Invite administrator', locator: page.getByRole('button', { name: 'Invite administrator' }) }],
+          categories: [{ label: 'Create category', locator: page.getByRole('button', { name: 'Create category' }) }],
+          'customer-detail': [
+            { label: 'Edit User', locator: page.getByRole('button', { name: 'Edit User' }) },
+            { label: 'USER', locator: page.getByText('USER', { exact: true }) },
+          ],
+          'products-list': [{ label: 'Add Product', locator: page.getByText('Add Product', { exact: true }) }],
+          settings: [{ label: 'Save Changes', locator: page.getByRole('button', { name: 'Save Changes' }) }],
+        } as Record<string, { label: string; locator: ReturnType<typeof page.getByRole> }[]>;
+        if (targets[name]) {
+          const computed = await Promise.all(targets[name].map(async ({ label, locator }) => ({
+            label,
+            elements: await locator.evaluateAll((targets) => targets.flatMap((target) => {
+              const element = target.parentElement?.tagName === 'BUTTON' ? target.parentElement : target;
+              return [element, ...element.querySelectorAll('*')].map((node) => {
+                const css = getComputedStyle(node);
+                const rect = node.getBoundingClientRect();
+                return {
+                  tag: node.tagName, text: node.textContent?.trim(),
+                  color: css.color, backgroundColor: css.backgroundColor,
+                  borderColor: css.borderColor, opacity: css.opacity,
+                  box: [rect.x, rect.y, rect.width, rect.height],
+                };
+              });
+            })),
+          })));
+          await writeFile(`e2e/visual-results/${set}/computed-${name}-${width}.json`,
+            JSON.stringify(computed, null, 2));
+        }
+      }
       if (name === 'dashboard' && width === 1440 && process.env.VISUAL_INSPECT_CSS === '1') {
         const cards = await Promise.all(
           ['Total Revenue', 'Total Orders', 'Total Products', 'Total Users'].map(async (label) => ({
@@ -107,5 +146,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
         maskColor: '#000000',
       });
     }
+    await writeFile(`e2e/visual-results/${set}/font-requests-${width}.json`,
+      JSON.stringify(fontRequests, null, 2));
   });
 }

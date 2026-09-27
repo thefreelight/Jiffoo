@@ -23,14 +23,14 @@ export function JiffooMark({
     <div className={cn('inline-flex items-center gap-3', className)} aria-label={label}>
       <span
         className={cn(
-          'grid shrink-0 place-items-center rounded-lg bg-blue-600 font-bold text-white shadow-sm',
+          'grid shrink-0 place-items-center rounded-lg bg-action-strong font-bold text-surface shadow-sm',
           markSizes[size],
         )}
         aria-hidden="true"
       >
         J
       </span>
-      {!compact && <span className="text-xl font-bold tracking-normal text-slate-950">{label}</span>}
+      {!compact && <span className="text-xl font-bold tracking-normal text-cool-ink">{label}</span>}
     </div>
   )
 }

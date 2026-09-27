@@ -49,12 +49,12 @@ export default function DashboardPage() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'processing': return 'bg-blue-100 text-blue-800'
-      case 'shipped': return 'bg-purple-100 text-purple-800'
-      case 'delivered': return 'bg-green-100 text-green-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'pending': return 'bg-warning-faint text-warning-dark'
+      case 'processing': return 'bg-action-faint text-action-dark'
+      case 'shipped': return 'bg-highlight-faint text-highlight-dark'
+      case 'delivered': return 'bg-success-faint text-success-dark'
+      case 'cancelled': return 'bg-danger-faint text-danger-dark'
+      default: return 'bg-neutral-faint text-neutral-dark'
     }
   }
 
@@ -80,14 +80,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
+    <div className="w-full bg-page-surface min-h-screen">
       {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
+          <h1 className="text-xl font-bold text-neutral-deepest tracking-tight leading-none">
             {getText('merchant.dashboard.title', 'Control Center')}
           </h1>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">Operational Analytics</span>
+          <span className="text-[10px] font-bold text-action-strong uppercase tracking-widest mt-1">Operational Analytics</span>
         </div>
       </div>
 
@@ -138,26 +138,26 @@ export default function DashboardPage() {
 
         {/* Analytics Section - Equal Width & Height Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-            <div className="px-8 py-4 border-b border-gray-50 flex items-center justify-between shrink-0">
-              <h3 className="text-lg font-bold text-gray-900">Recent Transactions</h3>
-              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Master Ledger</span>
+          <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden flex flex-col min-h-[400px]">
+            <div className="px-8 py-4 border-b border-neutral-veil flex items-center justify-between shrink-0">
+              <h3 className="text-lg font-bold text-neutral-deepest">Recent Transactions</h3>
+              <span className="text-[10px] font-bold text-action-strong uppercase tracking-widest">Master Ledger</span>
             </div>
             <div className="flex-grow overflow-auto">
               <table className="w-full border-collapse text-left">
-                <thead className="sticky top-0 bg-white z-10">
-                  <tr className="bg-gray-50/30">
-                    <th className="py-2.5 px-8 text-[10px] font-bold text-gray-400 uppercase tracking-widest">ID</th>
-                    <th className="py-2.5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Health</th>
-                    <th className="py-2.5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Valuation</th>
-                    <th className="py-2.5 px-8 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Time</th>
+                <thead className="sticky top-0 bg-surface z-10">
+                  <tr className="bg-neutral-veil/30">
+                    <th className="py-2.5 px-8 text-[10px] font-bold text-neutral-light uppercase tracking-widest">ID</th>
+                    <th className="py-2.5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">Health</th>
+                    <th className="py-2.5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">Valuation</th>
+                    <th className="py-2.5 px-8 text-right text-[10px] font-bold text-neutral-light uppercase tracking-widest">Time</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-neutral-veil">
                   {stats?.recentOrders?.slice(0, 6).map((order) => (
-                    <tr key={order.id} className="group hover:bg-blue-50/30 transition-colors">
+                    <tr key={order.id} className="group hover:bg-action-veil/30 transition-colors">
                       <td className="py-3 px-8">
-                        <span className="font-mono text-[10px] font-bold text-gray-400">
+                        <span className="font-mono text-[10px] font-bold text-neutral-light">
                           #{order.id.substring(0, 8).toUpperCase()}
                         </span>
                       </td>
@@ -169,17 +169,17 @@ export default function DashboardPage() {
                           {order.status}
                         </div>
                       </td>
-                      <td className="py-3 px-6 font-bold text-gray-900 text-sm">
+                      <td className="py-3 px-6 font-bold text-neutral-deepest text-sm">
                         {formatCurrency(order.totalAmount, order.currency)}
                       </td>
-                      <td className="py-3 px-8 text-right text-[10px] font-bold text-gray-400">
+                      <td className="py-3 px-8 text-right text-[10px] font-bold text-neutral-light">
                         {order.createdAt ? format(new Date(order.createdAt), 'HH:mm') : '--:--'}
                       </td>
                     </tr>
                   ))}
                   {(!stats?.recentOrders || stats.recentOrders.length === 0) && (
                     <tr>
-                      <td colSpan={4} className="py-12 text-center text-gray-300">
+                      <td colSpan={4} className="py-12 text-center text-neutral-pale">
                         <Box className="w-8 h-8 mx-auto mb-2 opacity-20" />
                         <span className="text-[10px] font-bold uppercase tracking-widest">No Signal</span>
                       </td>
@@ -189,15 +189,15 @@ export default function DashboardPage() {
               </table>
             </div>
             {stats?.recentOrders && stats.recentOrders.length > 6 && (
-              <div className="p-3 border-t border-gray-50 text-center shrink-0">
-                <Button variant="ghost" className="h-8 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-blue-600" onClick={() => router.push(`/${locale}/orders`)}>
+              <div className="p-3 border-t border-neutral-veil text-center shrink-0">
+                <Button variant="ghost" className="h-8 text-[10px] font-bold uppercase tracking-widest text-neutral-light hover:text-action-strong" onClick={() => router.push(`/${locale}/orders`)}>
                   View Full Ledger
                 </Button>
               </div>
             )}
           </div>
 
-          <div className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm flex flex-col min-h-[400px]">
+          <div className="bg-surface rounded-[2rem] border border-neutral-faint p-8 shadow-sm flex flex-col min-h-[400px]">
             <div className="flex-grow">
               <SalesChannelChart metrics={stats?.metrics} />
             </div>

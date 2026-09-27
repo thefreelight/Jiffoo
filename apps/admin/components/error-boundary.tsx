@@ -61,11 +61,11 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
-            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+        <div className="min-h-screen flex items-center justify-center bg-neutral-veil">
+          <div className="max-w-md w-full bg-surface shadow-lg rounded-lg p-6">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-danger-faint rounded-full">
               <svg
-                className="w-6 h-6 text-red-600"
+                className="w-6 h-6 text-danger-strong"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -79,26 +79,26 @@ export class ErrorBoundary extends Component<Props, State> {
               </svg>
             </div>
             <div className="mt-4 text-center">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-neutral-deepest">
                 Admin Panel Error
               </h3>
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-neutral-base">
                 The admin panel encountered an unexpected error. We have logged this issue. Please refresh the page to try again.
               </p>
               <div className="mt-6">
                 <button
                   onClick={() => window.location.reload()}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-surface bg-action-strong hover:bg-action-deep focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-action-base"
                 >
                   Refresh Page
                 </button>
               </div>
               {process.env.NODE_ENV === 'development' && this.state.error && (
                 <details className="mt-4 text-left">
-                  <summary className="text-sm text-gray-600 cursor-pointer">
+                  <summary className="text-sm text-neutral-strong cursor-pointer">
                     Error Details (Development Mode)
                   </summary>
-                  <pre className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded overflow-auto">
+                  <pre className="mt-2 text-xs text-danger-strong bg-danger-veil p-2 rounded overflow-auto">
                     {this.state.error.stack}
                   </pre>
                 </details>

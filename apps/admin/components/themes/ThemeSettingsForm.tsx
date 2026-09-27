@@ -121,7 +121,7 @@ export function ThemeSettingsForm({ config, locale, assets, onSave, onRestore }:
       sections={homeSections ?? config.homeSections ?? []}
       onChange={(sections) => { setHomeSections(sections); setHomeTouched(true); }}
       onReset={() => { setHomeSections(null); setHomeTouched(true); }} />}
-    <div className="flex gap-3"><button disabled={busy} type="submit" className="rounded bg-blue-600 px-4 py-2 text-white">
+    <div className="flex gap-3"><button disabled={busy} type="submit" className="rounded bg-action-strong px-4 py-2 text-surface">
       {themeMessage(locale, 'save')}</button>
       <button disabled={busy} type="button" className="rounded border px-4 py-2" onClick={() => void onRestore()}>
         {themeMessage(locale, 'restoreConfig')}</button></div>

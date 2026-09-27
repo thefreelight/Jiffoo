@@ -46,7 +46,7 @@ export function GenerateResetLinkDialog({ open, onOpenChange, user }: Props) {
           <DialogTitle>Generate reset link</DialogTitle>
           <DialogDescription>{user?.email}</DialogDescription>
         </DialogHeader>
-        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+        {error && <p role="alert" className="text-sm text-danger-strong">{error}</p>}
         {link ? (
           <div className="flex items-center gap-2">
             <input aria-label="Reset link" readOnly value={link} className="min-w-0 flex-1 rounded border p-2 text-sm" />

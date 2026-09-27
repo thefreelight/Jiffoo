@@ -7,6 +7,7 @@
 
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
+import './default-tokens.css';
 import './globals.css';
 
 const outfit = localFont({

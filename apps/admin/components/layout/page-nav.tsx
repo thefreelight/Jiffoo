@@ -46,7 +46,7 @@ export function PageNav({ items, className }: PageNavProps) {
   }
 
   return (
-    <nav className={cn("border-b border-gray-200", className)}>
+    <nav className={cn("border-b border-neutral-soft", className)}>
       <div className="flex space-x-6">
         {items.map((item) => {
           const active = isActive(item)
@@ -59,8 +59,8 @@ export function PageNav({ items, className }: PageNavProps) {
               className={cn(
                 "py-3 px-1 text-sm font-medium border-b-2 -mb-px transition-colors",
                 active
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-neutral-deepest text-neutral-deepest"
+                  : "border-transparent text-neutral-base hover:text-neutral-deep hover:border-neutral-pale"
               )}
             >
               {item.label}

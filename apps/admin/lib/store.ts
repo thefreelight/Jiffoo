@@ -176,18 +176,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 // UI Store
 interface UIState {
   sidebarOpen: boolean
-  theme: 'light' | 'dark'
   setSidebarOpen: (open: boolean) => void
   toggleSidebar: () => void
-  setTheme: (theme: 'light' | 'dark') => void
-  toggleTheme: () => void
 }
 
 export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
       sidebarOpen: true,
-      theme: 'light',
 
       setSidebarOpen: (open: boolean) => {
         set({ sidebarOpen: open })
@@ -197,17 +193,6 @@ export const useUIStore = create<UIState>()(
         set((state) => ({ sidebarOpen: !state.sidebarOpen }))
       },
 
-      setTheme: (theme: 'light' | 'dark') => {
-        set({ theme })
-        if (typeof document !== 'undefined') {
-          document.documentElement.classList.toggle('dark', theme === 'dark')
-        }
-      },
-
-      toggleTheme: () => {
-        const { theme, setTheme } = get()
-        setTheme(theme === 'light' ? 'dark' : 'light')
-      },
     }),
     {
       name: 'ui-store',

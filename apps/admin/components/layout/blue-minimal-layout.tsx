@@ -32,19 +32,19 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
 
   return (
     <ProtectedRoute requireAdmin={true}>
-      <div className="flex h-screen overflow-hidden bg-[#F1F5F9] font-sans">
+      <div className="flex h-screen overflow-hidden bg-surface-muted font-sans">
           {/* Sidebar */}
           <BlueMinimalSidebar
             isOpen={isSidebarOpen}
             onClose={handleCloseSidebar}
           />
 
-          <div className="flex-1 flex flex-col overflow-hidden bg-white">
+          <div className="flex-1 flex flex-col overflow-hidden bg-surface">
             {/* Mobile Menu Button - Fixed at top left, hidden when sidebar is open */}
             {!isSidebarOpen && (
               <button
                 onClick={handleOpenSidebar}
-                className="lg:hidden fixed top-4 left-4 z-[60] p-3 bg-blue-600 text-white rounded-xl shadow-2xl hover:bg-blue-700 transition-all duration-200 hover:shadow-blue-500/50 hover:scale-105 active:scale-95"
+                className="lg:hidden fixed top-4 left-4 z-[60] p-3 bg-action-strong text-surface rounded-xl shadow-2xl hover:bg-action-deep transition-all duration-200 hover:shadow-action-base/50 hover:scale-105 active:scale-95"
                 aria-label="Open menu"
               >
                 <Menu className="w-6 h-6" />

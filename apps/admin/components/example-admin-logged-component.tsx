@@ -102,7 +102,7 @@ export function ExampleAdminLoggedComponent() {
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto bg-white rounded-lg shadow-md">
+    <div className="p-6 max-w-2xl mx-auto bg-surface rounded-lg shadow-md">
       <h2 className="text-xl font-semibold mb-4">{getText('merchant.adminLog.title', 'Admin Action Log Example')}</h2>
 
       <div className="space-y-6">
@@ -122,19 +122,19 @@ export function ExampleAdminLoggedComponent() {
           <div className="flex gap-2">
             <button
               onClick={() => handleUserAction('suspend')}
-              className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+              className="px-3 py-1 bg-warning-base text-surface rounded hover:bg-warning-strong"
             >
               {getText('merchant.adminLog.suspendUser', 'Suspend User')}
             </button>
             <button
               onClick={() => handleUserAction('activate')}
-              className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+              className="px-3 py-1 bg-success-base text-surface rounded hover:bg-success-strong"
             >
               {getText('merchant.adminLog.activateUser', 'Activate User')}
             </button>
             <button
               onClick={() => handleUserAction('delete')}
-              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+              className="px-3 py-1 bg-danger-base text-surface rounded hover:bg-danger-strong"
             >
               {getText('merchant.adminLog.deleteUser', 'Delete User')}
             </button>
@@ -157,13 +157,13 @@ export function ExampleAdminLoggedComponent() {
           <div className="flex gap-2">
             <button
               onClick={() => handleProductAction('publish')}
-              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="px-3 py-1 bg-action-base text-surface rounded hover:bg-action-strong"
             >
               {getText('merchant.adminLog.publishProduct', 'Publish Product')}
             </button>
             <button
               onClick={() => handleProductAction('unpublish')}
-              className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+              className="px-3 py-1 bg-neutral-base text-surface rounded hover:bg-neutral-strong"
             >
               {getText('merchant.adminLog.unpublishProduct', 'Unpublish Product')}
             </button>
@@ -175,7 +175,7 @@ export function ExampleAdminLoggedComponent() {
           <h3 className="font-medium mb-3">{getText('merchant.adminLog.systemConfig', 'System Configuration')}</h3>
           <button
             onClick={handleConfigChange}
-            className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600"
+            className="px-3 py-1 bg-highlight-base text-surface rounded hover:bg-highlight-strong"
           >
             {getText('merchant.adminLog.modifyConfig', 'Modify System Config')}
           </button>
@@ -186,16 +186,16 @@ export function ExampleAdminLoggedComponent() {
           <h3 className="font-medium mb-3">{getText('merchant.adminLog.securityEvents', 'Security Events')}</h3>
           <button
             onClick={handleSecurityEvent}
-            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+            className="px-3 py-1 bg-danger-strong text-surface rounded hover:bg-danger-deep"
           >
             {getText('merchant.adminLog.logSecurityEvent', 'Log Security Event')}
           </button>
         </div>
       </div>
 
-      <div className="mt-6 p-4 bg-gray-50 rounded">
+      <div className="mt-6 p-4 bg-neutral-veil rounded">
         <h3 className="font-medium mb-2">{getText('merchant.adminLog.features', 'Admin Log Features')}:</h3>
-        <ul className="text-sm text-gray-600 space-y-1">
+        <ul className="text-sm text-neutral-strong space-y-1">
           <li>• {getText('merchant.adminLog.feature1', 'User management action audit')}</li>
           <li>• {getText('merchant.adminLog.feature2', 'Product management action logging')}</li>
           <li>• {getText('merchant.adminLog.feature3', 'System configuration change tracking')}</li>

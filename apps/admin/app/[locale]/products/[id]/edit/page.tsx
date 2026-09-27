@@ -151,32 +151,32 @@ export default function EditProductPage() {
     }
   }
 
-  if (isLoading) return <div className="p-12 text-center text-gray-400 font-bold uppercase tracking-[0.2em] animate-pulse">Accessing Encrypted Asset...</div>
-  if (error) return <div className="p-12 text-center text-red-500 font-black uppercase">{getText('common.errors.general', 'Something went wrong. Please try again.')}</div>
+  if (isLoading) return <div className="p-12 text-center text-neutral-light font-bold uppercase tracking-[0.2em] animate-pulse">Accessing Encrypted Asset...</div>
+  if (error) return <div className="p-12 text-center text-danger-base font-black uppercase">{getText('common.errors.general', 'Something went wrong. Please try again.')}</div>
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
+    <div className="w-full bg-page-surface min-h-screen">
       {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-gray-100 rounded-xl w-8 h-8 sm:w-10 sm:h-10 shrink-0">
-            <ArrowLeft className="w-4 h-4 sm:w-5 h-5 text-gray-900" />
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-neutral-faint rounded-xl w-8 h-8 sm:w-10 sm:h-10 shrink-0">
+            <ArrowLeft className="w-4 h-4 sm:w-5 h-5 text-neutral-deepest" />
           </Button>
           <div className="flex flex-col min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight leading-none truncate">
+            <h1 className="text-lg sm:text-xl font-bold text-neutral-deepest tracking-tight leading-none truncate">
               {formData.name || 'Edit Product'}
             </h1>
-            <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-0.5 sm:mt-1">Product Editor</span>
+            <span className="text-[9px] sm:text-[10px] font-bold text-action-strong uppercase tracking-widest mt-0.5 sm:mt-1">Product Editor</span>
           </div>
         </div>
         <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-          <Button variant="outline" onClick={() => router.push(`/${locale}/products`)} className="hidden sm:flex text-gray-500 border-gray-200 hover:bg-gray-50 font-semibold text-sm rounded-xl h-10 px-6">
+          <Button variant="outline" onClick={() => router.push(`/${locale}/products`)} className="hidden sm:flex text-neutral-base border-neutral-soft hover:bg-neutral-veil font-semibold text-sm rounded-xl h-10 px-6">
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={updateProductMutation.isPending}
-            className={`font-semibold text-xs sm:text-sm px-4 sm:px-8 h-9 sm:h-10 rounded-xl shadow-lg transition-all active:scale-95 ${successMode ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
+            className={`font-semibold text-xs sm:text-sm px-4 sm:px-8 h-9 sm:h-10 rounded-xl shadow-lg transition-all active:scale-95 ${successMode ? 'bg-success-base hover:bg-success-strong text-surface' : 'bg-action-strong hover:bg-action-deep text-surface shadow-action-base/20'
               }`}
           >
             {updateProductMutation.isPending ? 'Saving...' : successMode ? 'Updated' : 'Save Changes'}
@@ -189,31 +189,31 @@ export default function EditProductPage() {
           {/* Left Column: Basic Info & Media */}
           <div className="lg:col-span-1 space-y-6">
             {/* Basic Information Section */}
-            <section className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6">
+            <section className="bg-surface rounded-2xl border border-neutral-faint p-6 shadow-sm space-y-6">
               <div className="space-y-1">
-                <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">Basic Information</h2>
-                <p className="text-gray-400 text-xs font-medium uppercase tracking-widest">Primary details</p>
+                <h2 className="text-base font-bold text-neutral-deepest uppercase tracking-tight">Basic Information</h2>
+                <p className="text-neutral-light text-xs font-medium uppercase tracking-widest">Primary details</p>
               </div>
 
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="product-base-name" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">{t('merchant.contentTranslations.baseName')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
+                  <Label htmlFor="product-base-name" className="text-[10px] font-bold text-neutral-light uppercase tracking-widest pl-1">{t('merchant.contentTranslations.baseName')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
                   <Input
                     id="product-base-name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="h-11 text-sm font-medium border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 rounded-xl bg-gray-50/50 px-4 transition-all"
+                    className="h-11 text-sm font-medium border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 rounded-xl bg-neutral-veil/50 px-4 transition-all"
                     placeholder="Enter product title..."
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Category</Label>
+                  <Label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest pl-1">Category</Label>
                   <Select value={formData.category} onValueChange={(v) => handleInputChange('category', v)}>
-                    <SelectTrigger aria-label={t('merchant.contentTranslations.categories')} className="h-11 bg-gray-50/50 border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/10 transition-all flex items-center px-4 font-medium text-gray-900 text-sm">
+                    <SelectTrigger aria-label={t('merchant.contentTranslations.categories')} className="h-11 bg-neutral-veil/50 border-neutral-faint rounded-xl focus:ring-2 focus:ring-action-base/10 transition-all flex items-center px-4 font-medium text-neutral-deepest text-sm">
                       <SelectValue placeholder="Select Category" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-gray-100 shadow-xl p-2 bg-white">
+                    <SelectContent className="rounded-xl border-neutral-faint shadow-xl p-2 bg-surface">
                       <SelectItem value="none" className="rounded-lg py-2 font-medium transition-colors text-sm">Unassigned</SelectItem>
                       {categories.map((c: any) => (
                         <SelectItem key={c.id} value={c.id} className="rounded-lg py-2 font-medium transition-colors cursor-pointer text-sm">{c.name}</SelectItem>
@@ -223,9 +223,9 @@ export default function EditProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Requires Shipping</Label>
-                  <div className="h-11 rounded-xl bg-gray-50/50 border border-gray-100 px-4 flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
+                  <Label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest pl-1">Requires Shipping</Label>
+                  <div className="h-11 rounded-xl bg-neutral-veil/50 border border-neutral-faint px-4 flex items-center justify-between">
+                    <span className="text-sm font-medium text-neutral-deep">
                       {formData.requiresShipping ? 'Yes' : 'No'}
                     </span>
                     <Switch
@@ -236,13 +236,13 @@ export default function EditProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="product-base-description" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">{t('merchant.contentTranslations.baseDescription')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
+                  <Label htmlFor="product-base-description" className="text-[10px] font-bold text-neutral-light uppercase tracking-widest pl-1">{t('merchant.contentTranslations.baseDescription')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
                   <Textarea
                     id="product-base-description"
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     rows={4}
-                    className="border-gray-100 rounded-xl p-4 leading-relaxed text-sm font-medium text-gray-700 bg-gray-50/50 resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                    className="border-neutral-faint rounded-xl p-4 leading-relaxed text-sm font-medium text-neutral-deep bg-neutral-veil/50 resize-none focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all"
                     placeholder="Write a compelling product description..."
                   />
                 </div>
@@ -255,36 +255,36 @@ export default function EditProductPage() {
             </section>
 
             {/* Product Media Section */}
-            <section className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6">
+            <section className="bg-surface rounded-2xl border border-neutral-faint p-6 shadow-sm space-y-6">
               <div className="space-y-1">
-                <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">Product Media</h2>
-                <p className="text-gray-400 text-xs font-medium uppercase tracking-widest">Gallery images</p>
+                <h2 className="text-base font-bold text-neutral-deepest uppercase tracking-tight">Product Media</h2>
+                <p className="text-neutral-light text-xs font-medium uppercase tracking-widest">Gallery images</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <label className="aspect-square border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all group overflow-hidden bg-gray-50/30">
+                <label className="aspect-square border-2 border-dashed border-neutral-faint rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-action-veil hover:border-action-soft transition-all group overflow-hidden bg-neutral-veil/30">
                   {isUploading ? (
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-action-strong"></div>
                   ) : (
                     <div className="text-center p-3">
-                      <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
-                        <Plus className="w-5 h-5 text-blue-600" />
+                      <div className="w-10 h-10 bg-surface rounded-xl shadow-sm flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                        <Plus className="w-5 h-5 text-action-strong" />
                       </div>
-                      <span className="text-[10px] font-bold text-gray-400 group-hover:text-blue-600 uppercase tracking-widest block">Upload</span>
+                      <span className="text-[10px] font-bold text-neutral-light group-hover:text-action-strong uppercase tracking-widest block">Upload</span>
                     </div>
                   )}
                   <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={isUploading} />
                 </label>
 
                 {formData.images.map((img, idx) => (
-                  <div key={idx} className="group relative aspect-square bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+                  <div key={idx} className="group relative aspect-square bg-neutral-veil rounded-2xl overflow-hidden border border-neutral-faint shadow-sm">
                     <Image src={img} alt="Product" fill className="object-cover transition-transform group-hover:scale-105 duration-500" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 bg-overlay-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setFormData(p => ({ ...p, images: p.images.filter((_, i) => i !== idx) }))}
-                        className="bg-white/90 hover:bg-white text-red-500 rounded-xl w-10 h-10 shadow-xl hover:scale-110 transition-all"
+                        className="bg-surface/90 hover:bg-surface text-danger-base rounded-xl w-10 h-10 shadow-xl hover:scale-110 transition-all"
                       >
                         <Trash2 className="w-5 h-5" />
                       </Button>
@@ -297,10 +297,10 @@ export default function EditProductPage() {
 
           {/* Right Column: Inventory & Pricing */}
           <div className="lg:col-span-2">
-            <section className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6 h-full">
+            <section className="bg-surface rounded-2xl border border-neutral-faint p-6 shadow-sm space-y-6 h-full">
               <div className="space-y-1">
-                <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">Inventory & Pricing</h2>
-                <p className="text-gray-400 text-xs font-medium uppercase tracking-widest">Configure variants, price points and stock levels</p>
+                <h2 className="text-base font-bold text-neutral-deepest uppercase tracking-tight">Inventory & Pricing</h2>
+                <p className="text-neutral-light text-xs font-medium uppercase tracking-widest">Configure variants, price points and stock levels</p>
               </div>
 
               <VariantsEditor
@@ -317,10 +317,10 @@ export default function EditProductPage() {
 
         {/* Action Footer */}
         <div className="pt-2 flex items-center justify-between pb-6">
-          <p className="text-xs text-gray-400 font-medium">Last synced: Just now</p>
+          <p className="text-xs text-neutral-light font-medium">Last synced: Just now</p>
           <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Auto-save Enabled</span>
+            <div className="w-2 h-2 bg-success-base rounded-full animate-pulse" />
+            <span className="text-xs font-bold text-neutral-light uppercase tracking-widest">Auto-save Enabled</span>
           </div>
         </div>
       </div>

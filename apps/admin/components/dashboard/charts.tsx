@@ -44,8 +44,8 @@ function ChartCard({ title, subtitle, children, className, action }: ChartCardPr
     <div className={className}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-          {subtitle && <p className="text-gray-400 text-xs mt-1">{subtitle}</p>}
+          <h3 className="text-lg font-bold text-neutral-deepest">{title}</h3>
+          {subtitle && <p className="text-neutral-light text-xs mt-1">{subtitle}</p>}
         </div>
         {action}
       </div>
@@ -72,33 +72,33 @@ export function SalesChannelChart({ metrics }: { metrics?: { totalRevenue: numbe
       subtitle="Cross-channel signal analysis"
     >
       <div className="space-y-6">
-        <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
+        <div className="bg-neutral-veil/50 rounded-2xl p-6 border border-neutral-faint">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.dashboard.totalRevenue', 'Gross')}</span>
+                <div className="w-2 h-2 bg-action-base rounded-full"></div>
+                <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.dashboard.totalRevenue', 'Gross')}</span>
               </div>
-              <p className="text-xl font-black text-gray-900">{formatCurrency(totalRevenue, metrics?.currency)}</p>
+              <p className="text-xl font-black text-neutral-deepest">{formatCurrency(totalRevenue, metrics?.currency)}</p>
             </div>
             <div className="space-y-1">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.dashboard.totalOrders', 'Orders')}</span>
+                <div className="w-2 h-2 bg-action-pale rounded-full"></div>
+                <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.dashboard.totalOrders', 'Orders')}</span>
               </div>
-              <p className="text-xl font-black text-gray-900">{totalOrders}</p>
+              <p className="text-xl font-black text-neutral-deepest">{totalOrders}</p>
             </div>
           </div>
-          <p className="mt-4 text-[9px] font-bold text-blue-600 uppercase tracking-widest border-t border-gray-100 pt-3">
+          <p className="mt-4 text-[9px] font-bold text-action-strong uppercase tracking-widest border-t border-neutral-faint pt-3">
             {getText('merchant.dashboard.charts.realtimeData', 'Live Signal Active')}
           </p>
         </div>
 
-        <div className="h-40 flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-[2rem] bg-gray-50/30">
-          <p className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em] mb-1">
+        <div className="h-40 flex flex-col items-center justify-center border-2 border-dashed border-neutral-faint rounded-[2rem] bg-neutral-veil/30">
+          <p className="text-[10px] font-bold text-neutral-pale uppercase tracking-[0.2em] mb-1">
             {getText('merchant.dashboard.charts.revenueBreakdown', 'Analysis Pending')}
           </p>
-          <p className="text-[9px] font-medium text-gray-400 italic">
+          <p className="text-[9px] font-medium text-neutral-light italic">
             {getText('merchant.dashboard.charts.comingSoon', 'Revenue breakdown sync in progress')}
           </p>
         </div>
@@ -126,16 +126,16 @@ export function RealTimeOrdersChart({ todayOrders = 0 }: { todayOrders?: number 
       title={getText('merchant.dashboard.charts.todaysOrders', "Today's Orders")}
     >
       <div className="mb-4">
-        <div className="text-2xl font-bold text-gray-900">{todayOrders}</div>
+        <div className="text-2xl font-bold text-neutral-deepest">{todayOrders}</div>
         <div className="flex items-center space-x-2 mt-1">
-          <span className="text-gray-600 text-sm">{getText('merchant.dashboard.charts.ordersPlacedToday', 'Orders placed today')}</span>
+          <span className="text-neutral-strong text-sm">{getText('merchant.dashboard.charts.ordersPlacedToday', 'Orders placed today')}</span>
         </div>
       </div>
 
-      <div className="h-48 flex items-center justify-center bg-gray-50 rounded-lg">
+      <div className="h-48 flex items-center justify-center bg-neutral-veil rounded-lg">
         <div className="text-center">
-          <p className="text-gray-600 mb-2">{getText('merchant.dashboard.charts.realtimeTracking', 'Real-time order tracking')}</p>
-          <p className="text-sm text-gray-500">{getText('merchant.dashboard.charts.minuteLevelData', 'Minute-level data coming soon')}</p>
+          <p className="text-neutral-strong mb-2">{getText('merchant.dashboard.charts.realtimeTracking', 'Real-time order tracking')}</p>
+          <p className="text-sm text-neutral-base">{getText('merchant.dashboard.charts.minuteLevelData', 'Minute-level data coming soon')}</p>
         </div>
       </div>
     </ChartCard>

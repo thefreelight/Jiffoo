@@ -35,16 +35,16 @@ export function InstalledPluginsRail({
 }: InstalledPluginsRailProps) {
   return (
     <aside className="space-y-4 lg:sticky lg:top-24">
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+      <div className="rounded-2xl border border-cool-soft/80 bg-surface p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-action-strong">
               {getText('merchant.plugins.installedCollection', 'Installed plugins')}
             </p>
-            <h3 className="mt-2 text-lg font-semibold text-slate-950">
+            <h3 className="mt-2 text-lg font-semibold text-cool-ink">
               {getText('merchant.plugins.pluginCenter', 'Plugin center')}
             </h3>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
+            <p className="mt-1 text-sm leading-6 text-cool-base">
               {getText(
                 'merchant.plugins.pluginCenterDescription',
                 'Jump straight into each plugin workspace and keep configuration close.'
@@ -59,18 +59,18 @@ export function InstalledPluginsRail({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+      <div className="rounded-2xl border border-cool-soft/80 bg-surface p-3 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
         <div className="mb-3 flex items-center justify-between px-2">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-cool-light">
             {getText('merchant.plugins.installedCollection', 'Installed plugins')}
           </p>
-          <Badge variant="secondary" className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+          <Badge variant="secondary" className="rounded-full bg-cool-faint px-2.5 py-1 text-xs font-semibold text-cool-strong">
             {plugins.length}
           </Badge>
         </div>
 
         {plugins.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+          <div className="rounded-lg border border-dashed border-cool-soft bg-cool-veil px-4 py-8 text-center text-sm text-cool-base">
             {getText('merchant.plugins.noPluginsInstalled', 'No plugins installed.')}
           </div>
         ) : (
@@ -85,8 +85,8 @@ export function InstalledPluginsRail({
                   className={cn(
                     'group flex items-center gap-3 rounded-lg border px-3 py-3 transition-all',
                     isSelected
-                      ? 'border-blue-200 bg-blue-50 shadow-sm'
-                      : 'border-transparent bg-slate-50 hover:border-slate-200 hover:bg-white'
+                      ? 'border-action-soft bg-action-veil shadow-sm'
+                      : 'border-transparent bg-cool-veil hover:border-cool-soft hover:bg-surface'
                   )}
                 >
                   <ExtensionAvatar
@@ -97,16 +97,16 @@ export function InstalledPluginsRail({
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="truncate font-semibold text-slate-950">{plugin.name}</p>
+                      <p className="truncate font-semibold text-cool-ink">{plugin.name}</p>
                     </div>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                    <div className="mt-1 flex items-center gap-2 text-xs text-cool-base">
                       <span className="truncate">v{plugin.version}</span>
-                      <span className="text-slate-300">•</span>
+                      <span className="text-cool-pale">•</span>
                       <span className="truncate">{resolvePluginStatus(plugin, getText)}</span>
                     </div>
                   </div>
 
-                  <ChevronRight className={cn('h-4 w-4 shrink-0 text-slate-300 transition-colors', isSelected ? 'text-blue-600' : 'group-hover:text-slate-500')} />
+                  <ChevronRight className={cn('h-4 w-4 shrink-0 text-cool-pale transition-colors', isSelected ? 'text-action-strong' : 'group-hover:text-cool-base')} />
                 </Link>
               );
             })}

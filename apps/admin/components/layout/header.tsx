@@ -6,7 +6,6 @@
 
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import { Button } from '../ui/button'
@@ -21,8 +20,6 @@ import {
   LogOut,
   User,
   KeyRound,
-  Sun,
-  Moon
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -42,7 +39,6 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
   const { user, logout } = useAuthStore()
   const t = useT()
   const locale = useLocale()
-  const [isDark, setIsDark] = useState(false)
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -58,13 +54,8 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
     router.push(`/${locale}/auth/login`)
   }
 
-  const toggleTheme = () => {
-    setIsDark(!isDark)
-    // Add theme toggle logic here
-  }
-
   return (
-    <header className="border-b border-gray-200 bg-white px-3 py-3 dark:border-gray-800 dark:bg-gray-950 sm:px-4 sm:py-4 md:px-6">
+    <header className="border-b border-neutral-soft bg-surface px-3 py-3 sm:px-4 sm:py-4 md:px-6">
       <div className="flex items-center justify-between gap-3">
         {/* Left side - Menu Trigger (Mobile) and Title */}
         <div className="flex min-w-0 items-center space-x-2 sm:space-x-3 md:space-x-4">
@@ -74,11 +65,11 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
             onClick={onMenuClick}
             className="p-1 px-2 lg:hidden -ml-2"
           >
-            <Menu className="h-6 w-6 text-gray-500" />
+            <Menu className="h-6 w-6 text-neutral-base" />
           </Button>
           <div className="min-w-0">
-            <h1 className="max-w-[10rem] truncate text-lg font-semibold text-gray-900 dark:text-white sm:max-w-[16rem] sm:text-xl md:max-w-none md:text-2xl">{title}</h1>
-            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
+            <h1 className="max-w-[10rem] truncate text-lg font-semibold text-neutral-deepest sm:max-w-[16rem] sm:text-xl md:max-w-none md:text-2xl">{title}</h1>
+            <p className="text-xs md:text-sm text-neutral-base hidden sm:block">
               {new Date().toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
@@ -94,35 +85,21 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
           {/* Search */}
           <div className="relative hidden md:block">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
+              <Search className="h-4 w-4 text-neutral-light" />
             </div>
             <input
               type="text"
               placeholder={getText('merchant.header.searchPlaceholder', 'Search...')}
-              className="block w-40 md:w-64 pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md leading-5 bg-white dark:bg-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm dark:text-white"
+              className="block w-40 md:w-64 pl-10 pr-3 py-2 border border-neutral-pale rounded-md leading-5 bg-surface placeholder-neutral-base focus:outline-none focus:ring-1 focus:ring-action-base text-sm"
             />
           </div>
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-1 sm:space-x-2">
-            {/* Theme Toggle */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleTheme}
-              className="p-2 dark:text-gray-400"
-            >
-              {isDark ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </Button>
-
             {/* Notifications */}
             <Button variant="ghost" size="sm" className="p-2 relative">
               <Bell className="h-4 w-4" />
-              <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 h-3 w-3 bg-danger-base rounded-full text-xs text-surface flex items-center justify-center">
                 3
               </span>
             </Button>
@@ -147,22 +124,22 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center space-x-2 p-2 focus:ring-0">
-                <div className="h-8 w-8 rounded-full overflow-hidden border border-gray-200 dark:border-gray-800">
+                <div className="h-8 w-8 rounded-full overflow-hidden border border-neutral-soft">
                   <UserAvatar
                     src={user?.avatar}
                     name={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : undefined}
                     username={user?.username}
                     className="h-full w-full"
                     imageClassName="h-full w-full object-cover"
-                    fallbackClassName="h-full w-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                    fallbackClassName="h-full w-full bg-neutral-faint text-neutral-deep"
                     textClassName="text-xs"
                   />
                 </div>
                 <div className="hidden lg:block text-left">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  <p className="text-sm font-medium text-neutral-deepest">
                     {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : 'User'}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email || ''}</p>
+                  <p className="text-xs text-neutral-base">{user?.email || ''}</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -190,7 +167,7 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
           </DropdownMenu>
 
           {/* Add View Button - Hide on mobile */}
-          <Button className="hidden bg-blue-600 text-white hover:bg-blue-700 lg:flex">
+          <Button className="hidden bg-action-strong text-surface hover:bg-action-deep lg:flex">
             {getText('merchant.header.addView', 'Add View')}
           </Button>
         </div>

@@ -48,21 +48,21 @@ export default function ThemesPage() {
       setNotice('');
     });
   };
-  return <main className="min-h-screen bg-gray-50 px-4 py-6 text-gray-900 sm:px-8">
+  return <main className="min-h-screen bg-neutral-veil px-4 py-6 text-neutral-deepest sm:px-8">
     <div className="mx-auto max-w-6xl space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
         <h1 className="text-xl font-semibold">{themeMessage(locale, 'themes')}</h1>
-        <button className="rounded border bg-white px-3 py-2 text-sm" disabled={busy}
+        <button className="rounded border bg-surface px-3 py-2 text-sm" disabled={busy}
           onClick={() => void action(() => themesApi.restore(target))}>{themeMessage(locale, 'restore')}</button>
       </header>
       <div role="tablist" aria-label={themeMessage(locale, 'themes')} className="flex gap-1 border-b">
         {(['shop', 'admin'] as const).map((value) => <button key={value} role="tab"
-          aria-selected={target === value} className={`px-4 py-2 ${target === value ? 'border-b-2 border-blue-600 font-semibold' : ''}`}
+          aria-selected={target === value} className={`px-4 py-2 ${target === value ? 'border-b-2 border-action-strong font-semibold' : ''}`}
           onClick={() => { setTarget(value); setSelected(null); setConfig(null); }}>
           {themeMessage(locale, value)}</button>)}
       </div>
-      {error && <p role="alert" className="border-l-4 border-red-600 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-      {notice && <p role="status" className="border-l-4 border-green-600 bg-green-50 p-3 text-sm">{notice}</p>}
+      {error && <p role="alert" className="border-l-4 border-danger-strong bg-danger-veil p-3 text-sm text-danger-dark">{error}</p>}
+      {notice && <p role="status" className="border-l-4 border-success-strong bg-success-veil p-3 text-sm">{notice}</p>}
       <form aria-label={themeMessage(locale, 'upload')} className="flex flex-wrap items-end gap-4 border-b pb-5"
         onSubmit={(event) => {
           event.preventDefault();
@@ -77,22 +77,22 @@ export default function ThemesPage() {
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" required
           checked={confirmUnsigned} onChange={(event) => setConfirmUnsigned(event.target.checked)} />
           {themeMessage(locale, 'confirm')}</label>
-        <button type="submit" disabled={busy || !file} className="rounded bg-blue-600 px-4 py-2 text-white">
+        <button type="submit" disabled={busy || !file} className="rounded bg-action-strong px-4 py-2 text-surface">
           {themeMessage(locale, 'upload')}</button>
       </form>
       {loading ? <p>{themeMessage(locale, 'loading')}</p> : <div role="tabpanel" className="space-y-2">
         {themes.filter((theme) => theme.target === target).length === 0 && <p>{themeMessage(locale, 'empty')}</p>}
         {themes.filter((theme) => theme.target === target).map((theme) => {
           const isActive = active[target] === theme.slug;
-          return <article key={theme.slug} className="flex flex-wrap items-center gap-3 border-b bg-white px-4 py-4">
+          return <article key={theme.slug} className="flex flex-wrap items-center gap-3 border-b bg-surface px-4 py-4">
             <div className="min-w-40 flex-1"><h2 className="font-semibold">{theme.name}</h2>
-              <p className="text-sm text-gray-600">{theme.version} · {themeMessage(locale, theme.source === 'builtin' ? 'sourceBuiltin' : 'sourceUploaded')} · {theme.trustLevel}</p></div>
-            {isActive && <span className="rounded bg-green-100 px-2 py-1 text-sm text-green-900">{themeMessage(locale, 'active')}</span>}
+              <p className="text-sm text-neutral-strong">{theme.version} · {themeMessage(locale, theme.source === 'builtin' ? 'sourceBuiltin' : 'sourceUploaded')} · {theme.trustLevel}</p></div>
+            {isActive && <span className="rounded bg-success-faint px-2 py-1 text-sm text-success-deepest">{themeMessage(locale, 'active')}</span>}
             {!isActive && <button disabled={busy} className="rounded border px-3 py-2 text-sm"
               onClick={() => void action(() => themesApi.activate(target, theme.slug))}>{themeMessage(locale, 'activate')}</button>}
             <button disabled={busy} className="rounded border px-3 py-2 text-sm"
               onClick={() => void configure(theme)}>{themeMessage(locale, 'configure')}</button>
-            {!isActive && theme.source !== 'builtin' && <button disabled={busy} className="rounded border px-3 py-2 text-sm text-red-700"
+            {!isActive && theme.source !== 'builtin' && <button disabled={busy} className="rounded border px-3 py-2 text-sm text-danger-deep"
               onClick={() => void action(() => themesApi.uninstall(theme.slug))}>{themeMessage(locale, 'uninstall')}</button>}
           </article>;
         })}

@@ -84,7 +84,7 @@ export default function ProtectedRoute({
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">{getText('merchant.auth.verifyingIdentity', 'Verifying identity...')}</p>
+          <p className="text-neutral-strong">{getText('merchant.auth.verifyingIdentity', 'Verifying identity...')}</p>
         </div>
       </div>
     )
@@ -96,7 +96,7 @@ export default function ProtectedRoute({
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">{getText('merchant.auth.redirectingToLogin', 'Redirecting to login page...')}</p>
+          <p className="text-neutral-strong">{getText('merchant.auth.redirectingToLogin', 'Redirecting to login page...')}</p>
         </div>
       </div>
     )
@@ -107,10 +107,10 @@ export default function ProtectedRoute({
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-            <h2 className="text-lg font-semibold text-red-800 mb-2">{getText('merchant.auth.accessDenied', 'Access Denied')}</h2>
-            <p className="text-red-600">{getText('merchant.auth.noPermission', 'You do not have permission to access this page. Admin privileges required.')}</p>
-            <p className="text-sm text-gray-500 mt-2">{getText('merchant.auth.currentRole', 'Current role')}: {user?.role || getText('common.unknown', 'Unknown')}</p>
+          <div className="bg-danger-veil border border-danger-soft rounded-lg p-6 max-w-md">
+            <h2 className="text-lg font-semibold text-danger-dark mb-2">{getText('merchant.auth.accessDenied', 'Access Denied')}</h2>
+            <p className="text-danger-strong">{getText('merchant.auth.noPermission', 'You do not have permission to access this page. Admin privileges required.')}</p>
+            <p className="text-sm text-neutral-base mt-2">{getText('merchant.auth.currentRole', 'Current role')}: {user?.role || getText('common.unknown', 'Unknown')}</p>
           </div>
         </div>
       </div>

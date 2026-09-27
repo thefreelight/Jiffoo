@@ -28,54 +28,54 @@ interface StatsCardProps {
 // Blue Minimal design system colors
 const colorClasses = {
   blue: {
-    bg: 'bg-[#EFF6FF]',
-    text: 'text-[#2563EB]',
-    chart: '#3B82F6',
-    ring: 'border-blue-100',
-    surface: 'from-blue-50/90 via-white to-white',
-    accent: 'bg-blue-500/80',
-    micro: 'bg-blue-200/80',
-    softText: 'text-blue-600/70',
+    bg: 'bg-sidebar-active-bg',
+    text: 'text-info',
+    chart: 'var(--admin-primary)',
+    ring: 'border-action-faint',
+    surface: 'from-action-veil/90 via-surface to-surface',
+    accent: 'bg-action-base/80',
+    micro: 'bg-action-soft/80',
+    softText: 'text-action-strong/70',
   },
   green: {
-    bg: 'bg-[#DCFCE7]',
-    text: 'text-[#15803D]',
-    chart: '#22C55E',
-    ring: 'border-green-100',
-    surface: 'from-green-50/90 via-white to-white',
-    accent: 'bg-green-500/80',
-    micro: 'bg-green-200/80',
-    softText: 'text-green-600/70',
+    bg: 'bg-success-faint',
+    text: 'text-success-deep',
+    chart: 'var(--admin-success-base)',
+    ring: 'border-success-faint',
+    surface: 'from-success-veil/90 via-surface to-surface',
+    accent: 'bg-success-base/80',
+    micro: 'bg-success-soft/80',
+    softText: 'text-success-strong/70',
   },
   purple: {
-    bg: 'bg-[#F3E8FF]',
-    text: 'text-[#7C3AED]',
-    chart: '#8B5CF6',
-    ring: 'border-purple-100',
-    surface: 'from-purple-50/90 via-white to-white',
-    accent: 'bg-purple-500/80',
-    micro: 'bg-purple-200/80',
-    softText: 'text-purple-600/70',
+    bg: 'bg-highlight-faint-extra',
+    text: 'text-highlight-icon',
+    chart: 'var(--admin-chart-violet-base)',
+    ring: 'border-highlight-faint',
+    surface: 'from-highlight-veil/90 via-surface to-surface',
+    accent: 'bg-highlight-base/80',
+    micro: 'bg-highlight-soft/80',
+    softText: 'text-highlight-strong/70',
   },
   orange: {
-    bg: 'bg-[#FEF3C7]',
-    text: 'text-[#D97706]',
-    chart: '#F59E0B',
-    ring: 'border-orange-100',
-    surface: 'from-orange-50/90 via-white to-white',
-    accent: 'bg-orange-500/80',
-    micro: 'bg-orange-200/80',
-    softText: 'text-orange-600/70',
+    bg: 'bg-alert-faint',
+    text: 'text-warning',
+    chart: 'var(--admin-chart-amber-base)',
+    ring: 'border-caution-faint',
+    surface: 'from-caution-veil/90 via-surface to-surface',
+    accent: 'bg-caution-base/80',
+    micro: 'bg-caution-soft/80',
+    softText: 'text-caution-strong/70',
   },
   red: {
-    bg: 'bg-[#FEE2E2]',
-    text: 'text-[#991B1B]',
-    chart: '#EF4444',
-    ring: 'border-red-100',
-    surface: 'from-red-50/90 via-white to-white',
-    accent: 'bg-red-500/80',
-    micro: 'bg-red-200/80',
-    softText: 'text-red-600/70',
+    bg: 'bg-danger-faint',
+    text: 'text-danger-dark',
+    chart: 'var(--admin-danger-base)',
+    ring: 'border-danger-faint',
+    surface: 'from-danger-veil/90 via-surface to-surface',
+    accent: 'bg-danger-base/80',
+    micro: 'bg-danger-soft/80',
+    softText: 'text-danger-strong/70',
   }
 }
 
@@ -106,7 +106,7 @@ export function StatsCard({
 
   return (
     <div className={cn(
-      'group relative overflow-hidden rounded-[2rem] border border-gray-100 bg-gradient-to-br p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-500/5 sm:p-6',
+      'group relative overflow-hidden rounded-[2rem] border border-neutral-faint bg-gradient-to-br p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-action-base/5 sm:p-6',
       colors.surface,
       colors.ring,
       className
@@ -116,14 +116,14 @@ export function StatsCard({
         'absolute -right-6 -top-8 h-28 w-28 rounded-full opacity-[0.14] blur-2xl transition-transform duration-700 group-hover:scale-125',
         colors.bg
       )} />
-      <div className="absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
+      <div className="absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-surface/80 to-transparent" />
 
       <div className="relative flex h-full flex-col">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             {icon && (
               <div className={cn(
-                'flex h-11 w-11 items-center justify-center rounded-2xl border border-white/80 shadow-sm transition-transform group-hover:scale-105',
+                'flex h-11 w-11 items-center justify-center rounded-2xl border border-surface/80 shadow-sm transition-transform group-hover:scale-105',
                 colors.bg
               )}>
                 <div className={colors.text}>
@@ -132,17 +132,17 @@ export function StatsCard({
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-light">
                 {title}
               </p>
-              <p className="mt-1 text-[11px] font-semibold text-gray-400">
+              <p className="mt-1 text-[11px] font-semibold text-neutral-light">
                 {getText('common.status.live', 'Live metric')}
               </p>
             </div>
           </div>
           {icon && (
             <span className={cn(
-              'inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] shadow-sm backdrop-blur',
+              'inline-flex items-center gap-2 rounded-full border border-surface/80 bg-surface/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] shadow-sm backdrop-blur',
               colors.softText
             )}>
               <span className={cn('h-2 w-2 rounded-full', colors.accent)} />
@@ -152,14 +152,14 @@ export function StatsCard({
         </div>
 
         <div className="mb-5">
-          <div className="text-3xl font-black tracking-tight text-gray-900 sm:text-[2rem]">
+          <div className="text-3xl font-black tracking-tight text-neutral-deepest sm:text-[2rem]">
             {value}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {change && (
               <div className={cn(
                 'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm',
-                changeType === 'increase' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                changeType === 'increase' ? 'bg-success-veil text-success-strong' : 'bg-danger-veil text-danger-strong'
               )}>
                 {changeType === 'increase' ? (
                   <TrendingUp className="h-3.5 w-3.5" />
@@ -169,17 +169,17 @@ export function StatsCard({
                 <span>{change}</span>
               </div>
             )}
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-light">
               {comparisonLabel || getText('merchant.dashboard.fromLastMonth', 'vs last month')}
             </span>
           </div>
         </div>
 
-        <div className="mt-auto rounded-[1.5rem] border border-white/80 bg-white/75 p-3 shadow-sm backdrop-blur">
+        <div className="mt-auto rounded-[1.5rem] border border-surface/80 bg-surface/75 p-3 shadow-sm backdrop-blur">
           {hasData ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-light">
                   {getText('merchant.dashboard.trend', 'Trend')}
                 </span>
                 <span className={cn('text-[10px] font-bold uppercase tracking-[0.18em]', colors.softText)}>
@@ -203,7 +203,7 @@ export function StatsCard({
           ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-light">
                   {getText('common.noData', 'No recent points')}
                 </span>
                 <span className={cn('text-[10px] font-bold uppercase tracking-[0.18em]', colors.softText)}>
@@ -216,13 +216,13 @@ export function StatsCard({
                     key={`${title}-${index}`}
                     className={cn(
                       'flex-1 rounded-full',
-                      index % 2 === 0 ? colors.micro : 'bg-gray-100'
+                      index % 2 === 0 ? colors.micro : 'bg-neutral-faint'
                     )}
                     style={{ height }}
                   />
                 ))}
               </div>
-              <p className="text-[11px] font-medium text-gray-400">
+              <p className="text-[11px] font-medium text-neutral-light">
                 {getText('merchant.dashboard.awaitingTrend', 'Awaiting enough activity to render a recent trend line.')}
               </p>
             </div>

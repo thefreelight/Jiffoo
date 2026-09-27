@@ -37,11 +37,11 @@ export default function ForgotPasswordPage() {
         <form onSubmit={submit} className="space-y-4">
           <label htmlFor="email" className="block text-sm font-medium">Email</label>
           <Input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
-          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-sm text-danger-strong">{error}</p>}
           <Button type="submit" disabled={busy}>Request reset link</Button>
         </form>
       )}
-      <Link href={`/${locale}/auth/login`} className="text-sm text-blue-700">Back to sign in</Link>
+      <Link href={`/${locale}/auth/login`} className="text-sm text-action-deep">Back to sign in</Link>
     </main>
   )
 }

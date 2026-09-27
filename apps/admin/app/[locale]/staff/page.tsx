@@ -43,7 +43,7 @@ export default function StaffPage() {
         <Button onClick={() => setInviteOpen(true)}><Plus className="mr-2 h-4 w-4" />Invite administrator</Button>
       </div>
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-light" />
         <Input aria-label="Search administrators" placeholder="Search administrators" value={search}
           onChange={(event) => { setSearch(event.target.value); setPage(1) }} className="pl-9" />
       </div>
@@ -59,7 +59,7 @@ export default function StaffPage() {
             <TableRow key={admin.id}>
               <TableCell>
                 <Link className="font-medium hover:underline" href={`/${locale}/staff/${admin.id}`}>{admin.username}</Link>
-                <div className="text-sm text-gray-500">{admin.email}</div>
+                <div className="text-sm text-neutral-base">{admin.email}</div>
               </TableCell>
               <TableCell>{admin.isInstallAdmin ? 'Install administrator' : admin.isActive ? 'Active' : admin.emailVerified ? 'Removed' : 'Invited'}</TableCell>
               <TableCell>{new Date(admin.createdAt).toLocaleDateString()}</TableCell>

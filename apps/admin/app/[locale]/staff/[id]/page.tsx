@@ -25,16 +25,16 @@ export default function StaffDetailPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
-      <Link className="text-sm text-gray-600 hover:underline" href={`/${locale}/staff`}>Back to administrators</Link>
+      <Link className="text-sm text-neutral-strong hover:underline" href={`/${locale}/staff`}>Back to administrators</Link>
       <div>
         <h1 className="text-2xl font-semibold">{admin.username}</h1>
-        <p className="text-gray-600">{admin.email}</p>
+        <p className="text-neutral-strong">{admin.email}</p>
       </div>
       <dl className="grid gap-3 border-y py-4 sm:grid-cols-3">
-        <div><dt className="text-sm text-gray-500">Status</dt>
+        <div><dt className="text-sm text-neutral-base">Status</dt>
           <dd>{admin.isInstallAdmin ? 'Install administrator' : admin.isActive ? 'Active' : admin.emailVerified ? 'Removed' : 'Invited'}</dd></div>
-        <div><dt className="text-sm text-gray-500">Created</dt><dd>{new Date(admin.createdAt).toLocaleString()}</dd></div>
-        <div><dt className="text-sm text-gray-500">Role</dt><dd>Administrator</dd></div>
+        <div><dt className="text-sm text-neutral-base">Created</dt><dd>{new Date(admin.createdAt).toLocaleString()}</dd></div>
+        <div><dt className="text-sm text-neutral-base">Role</dt><dd>Administrator</dd></div>
       </dl>
       {!admin.emailVerified && !admin.isActive && (
         <div className="flex flex-wrap items-center gap-3">

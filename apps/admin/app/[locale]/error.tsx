@@ -29,10 +29,10 @@ export default function Error({
         <div className="min-h-[400px] flex flex-col items-center justify-center p-8">
             <div className="text-center max-w-md">
                 <div className="text-6xl mb-4">⚠️</div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                <h2 className="text-2xl font-bold text-neutral-dark mb-2">
                     {getText('common.errors.general', 'Something went wrong. Please try again.')}
                 </h2>
-                <p className="text-gray-600 mb-6">
+                <p className="text-neutral-strong mb-6">
                     {resolveApiErrorMessage(error, t)}
                 </p>
                 <div className="flex gap-4 justify-center">
@@ -44,7 +44,7 @@ export default function Error({
                     </Button>
                 </div>
                 {error.digest && (
-                    <p className="text-xs text-gray-400 mt-4">
+                    <p className="text-xs text-neutral-light mt-4">
                         Error ID: {error.digest}
                     </p>
                 )}

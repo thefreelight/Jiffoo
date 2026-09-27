@@ -120,32 +120,32 @@ export function Sidebar({ className, onCloseMobile }: SidebarProps) {
 
   return (
     <div className={cn(
-      "flex flex-col h-screen bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 shadow-xl lg:shadow-none",
+      "flex flex-col h-screen bg-surface border-r border-neutral-soft transition-all duration-300 shadow-xl lg:shadow-none",
       isCollapsed ? "w-16" : "w-64 lg:w-56",
       className
     )}>
       {/* Header - Shopify style clean header */}
-      <div className="flex items-center justify-between h-14 px-3 border-b border-gray-200">
+      <div className="flex items-center justify-between h-14 px-3 border-b border-neutral-soft">
         {!isCollapsed && (
           <JiffooMark size="sm" />
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 rounded-md hover:bg-gray-200/60 dark:hover:bg-gray-800/60 transition-colors lg:block hidden"
+          className="p-1.5 rounded-md hover:bg-neutral-soft/60 transition-colors lg:block hidden"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
-            <Menu className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <Menu className="w-4 h-4 text-neutral-strong" />
           ) : (
-            <X className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            <X className="w-4 h-4 text-neutral-strong" />
           )}
         </button>
         <button
           onClick={onCloseMobile}
-          className="p-1.5 rounded-md hover:bg-gray-200/60 dark:hover:bg-gray-800/60 transition-colors lg:hidden"
+          className="p-1.5 rounded-md hover:bg-neutral-soft/60 transition-colors lg:hidden"
           aria-label="Close menu"
         >
-          <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          <X className="w-5 h-5 text-neutral-strong" />
         </button>
       </div>
 
@@ -164,8 +164,8 @@ export function Sidebar({ className, onCloseMobile }: SidebarProps) {
               className={cn(
                 "group flex items-center px-2.5 py-2 text-sm font-medium rounded-md transition-colors",
                 isActive
-                  ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-neutral-faint text-neutral-deepest"
+                  : "text-neutral-strong hover:bg-neutral-faint hover:text-neutral-deepest"
               )}
               onClick={() => {
                 if (window.innerWidth < 1024) {
@@ -176,7 +176,7 @@ export function Sidebar({ className, onCloseMobile }: SidebarProps) {
               <item.icon
                 className={cn(
                   "flex-shrink-0 w-5 h-5",
-                  isActive ? "text-gray-700 dark:text-gray-200" : "text-gray-400 group-hover:text-gray-500",
+                  isActive ? "text-neutral-deep" : "text-neutral-light group-hover:text-neutral-base",
                   isCollapsed ? "mx-auto" : "mr-2.5"
                 )}
               />

@@ -64,19 +64,19 @@ export default function OrdersPage() {
   const getStatusColor = (status: string) => {
     switch (status?.toUpperCase()) {
       case 'DELIVERED':
-        return 'border-green-100 text-green-600 bg-green-50/50'
+        return 'border-success-faint text-success-strong bg-success-veil/50'
       case 'SHIPPED':
-        return 'border-blue-100 text-blue-600 bg-blue-50/50'
+        return 'border-action-faint text-action-strong bg-action-veil/50'
       case 'PROCESSING':
-        return 'border-purple-100 text-purple-600 bg-purple-50/50'
+        return 'border-highlight-faint text-highlight-strong bg-highlight-veil/50'
       case 'PENDING':
-        return 'border-orange-100 text-orange-600 bg-orange-50/50'
+        return 'border-caution-faint text-caution-strong bg-caution-veil/50'
       case 'CANCELLED':
-        return 'border-red-100 text-red-600 bg-red-50/50'
+        return 'border-danger-faint text-danger-strong bg-danger-veil/50'
       case 'REFUNDED':
-        return 'border-gray-100 text-gray-600 bg-gray-50/50'
+        return 'border-neutral-faint text-neutral-strong bg-neutral-veil/50'
       default:
-        return 'border-gray-100 text-gray-600 bg-gray-50/50'
+        return 'border-neutral-faint text-neutral-strong bg-neutral-veil/50'
     }
   }
 
@@ -128,8 +128,8 @@ export default function OrdersPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-400 font-bold text-[10px] uppercase tracking-widest">{getText('merchant.orders.loading', 'Loading Transaction Data...')}</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-action-strong mx-auto"></div>
+          <p className="mt-4 text-neutral-light font-bold text-[10px] uppercase tracking-widest">{getText('merchant.orders.loading', 'Loading Transaction Data...')}</p>
         </div>
       </div>
     )
@@ -139,13 +139,13 @@ export default function OrdersPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto">
-            <AlertTriangle className="w-8 h-8 text-red-500" />
+          <div className="w-16 h-16 bg-danger-veil rounded-2xl flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-8 h-8 text-danger-base" />
           </div>
-          <p className="text-gray-900 font-bold">{getText('merchant.orders.loadFailed', 'Signal Interference Detected')}</p>
+          <p className="text-neutral-deepest font-bold">{getText('merchant.orders.loadFailed', 'Signal Interference Detected')}</p>
           <Button
             variant="outline"
-            className="rounded-xl border-gray-200"
+            className="rounded-xl border-neutral-soft"
             onClick={() => refetch()}
           >
             {getText('merchant.orders.retry', 'Reconnect Signal')}
@@ -156,14 +156,14 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
+    <div className="w-full bg-page-surface min-h-screen">
       {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
+          <h1 className="text-xl font-bold text-neutral-deepest tracking-tight leading-none">
             {getText('merchant.orders.title', 'Orders')}
           </h1>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
+          <span className="text-[10px] font-bold text-action-strong uppercase tracking-widest mt-1">
             Transaction Ledger Node
           </span>
         </div>
@@ -172,8 +172,8 @@ export default function OrdersPage() {
       <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
         {/* Welcome Section */}
         <div className="space-y-1">
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight">{getText('merchant.orders.overview', 'Transaction Matrix')}</h2>
-          <p className="text-gray-400 text-sm font-medium">{getText('merchant.orders.subtitle', 'Manage customer orders and fulfillment')}</p>
+          <h2 className="text-2xl font-black text-neutral-deepest tracking-tight">{getText('merchant.orders.overview', 'Transaction Matrix')}</h2>
+          <p className="text-neutral-light text-sm font-medium">{getText('merchant.orders.subtitle', 'Manage customer orders and fulfillment')}</p>
         </div>
 
         {/* Stats Cards */}
@@ -217,79 +217,79 @@ export default function OrdersPage() {
         </div>
 
         {/* Revenue Card */}
-        <div className="group relative overflow-hidden rounded-[2.5rem] bg-gray-900 p-6 text-white shadow-xl sm:p-10">
+        <div className="group relative overflow-hidden rounded-[2.5rem] bg-neutral-deepest p-6 text-surface shadow-xl sm:p-10">
           <div className="absolute top-0 right-0 p-12 opacity-5 scale-110 -translate-y-4 translate-x-4">
             <TrendingUp className="w-48 h-48 -rotate-12" />
           </div>
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="space-y-4">
               <div className="space-y-1">
-                <span className="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em]">
+                <span className="text-action-light text-[10px] font-black uppercase tracking-[0.3em]">
                   {getText('merchant.orders.totalRevenue', 'Total Revenue')}
                 </span>
-                <div className="text-5xl md:text-6xl font-black tracking-tighter text-blue-400 italic">
+                <div className="text-5xl md:text-6xl font-black tracking-tighter text-action-light italic">
                   {formatCurrency(orderStats.totalRevenue, orderStats.currency)}
                 </div>
               </div>
               {orderStats.revenueTrend !== undefined && (
-                <div className="flex items-center gap-2 text-gray-400 text-[10px] font-bold tracking-widest uppercase bg-white/5 px-4 py-2 rounded-full border border-white/5 inline-flex">
+                <div className="flex items-center gap-2 text-neutral-light text-[10px] font-bold tracking-widest uppercase bg-surface/5 px-4 py-2 rounded-full border border-surface/5 inline-flex">
                   {toTrendDisplay(orderStats.revenueTrend).changeType === 'increase' ? (
-                    <TrendingUp className="w-4 h-4 text-green-500" />
+                    <TrendingUp className="w-4 h-4 text-success-base" />
                   ) : (
-                    <TrendingUp className="w-4 h-4 rotate-180 text-red-500" />
+                    <TrendingUp className="w-4 h-4 rotate-180 text-danger-base" />
                   )}
-                  <span className={toTrendDisplay(orderStats.revenueTrend).changeType === 'increase' ? 'text-green-400' : 'text-red-400'}>
+                  <span className={toTrendDisplay(orderStats.revenueTrend).changeType === 'increase' ? 'text-success-light' : 'text-danger-light'}>
                     {toTrendDisplay(orderStats.revenueTrend).change}
                   </span>
                   <span>{getText('merchant.dashboard.vsYesterday', 'vs yesterday')}</span>
                 </div>
               )}
             </div>
-            <div className="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center">
-              <TrendingUp className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 bg-surface/10 rounded-2xl flex items-center justify-center">
+              <TrendingUp className="w-10 h-10 text-surface" />
             </div>
           </div>
         </div>
 
         {/* Filters and Table Section */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-4 sm:px-8">
-            <span className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600">
+        <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
+          <div className="flex flex-wrap items-center gap-2 border-b border-neutral-faint px-4 py-4 sm:px-8">
+            <span className="inline-flex items-center rounded-full border border-action-faint bg-action-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-action-strong">
               {pagination?.total ?? visibleOrderCount} {getText('merchant.orders.totalOrders', 'Orders')}
             </span>
             {pendingVisibleCount > 0 && (
-              <span className="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-600">
+              <span className="inline-flex items-center rounded-full border border-caution-faint bg-caution-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-caution-strong">
                 {pendingVisibleCount} {getText('merchant.orders.pending', 'Pending')}
               </span>
             )}
-            <span className="inline-flex items-center rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            <span className="inline-flex items-center rounded-full border border-neutral-faint bg-neutral-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-base">
               {selectedStatus === 'All'
                 ? getText('merchant.orders.allStatus', 'All Status')
                 : selectedStatus}
             </span>
             {searchTerm && (
-              <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+              <span className="inline-flex items-center rounded-full border border-neutral-soft bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-base">
                 Search: {searchTerm}
               </span>
             )}
           </div>
 
-          <div className="flex flex-col items-start justify-between gap-6 border-b border-gray-50 p-4 sm:p-8 lg:flex-row lg:items-center">
+          <div className="flex flex-col items-start justify-between gap-6 border-b border-neutral-veil p-4 sm:p-8 lg:flex-row lg:items-center">
             <div className="flex-1 w-full max-w-md relative">
-              <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-light" />
               <Input
                 placeholder={getText('merchant.orders.searchPlaceholder', 'Filter by ID, Customer...')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-11 h-11 rounded-xl bg-gray-50/50 border-gray-100 focus:bg-white transition-all text-sm"
+                className="pl-11 h-11 rounded-xl bg-neutral-veil/50 border-neutral-faint focus:bg-surface transition-all text-sm"
               />
             </div>
             <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="h-11 w-full min-w-0 bg-gray-50 border-gray-50 rounded-2xl px-6 text-sm font-bold text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 sm:min-w-[180px] sm:w-auto">
+                <SelectTrigger className="h-11 w-full min-w-0 bg-neutral-veil border-neutral-veil rounded-2xl px-6 text-sm font-bold text-neutral-deep focus:border-action-base focus:ring-2 focus:ring-action-base/10 sm:min-w-[180px] sm:w-auto">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2">
+                <SelectContent className="rounded-2xl border-neutral-faint shadow-2xl p-2">
                   <SelectItem value="All" className="rounded-xl py-2.5 font-semibold">{getText('merchant.orders.allStatus', 'All Status')}</SelectItem>
                   <SelectItem value="PENDING" className="rounded-xl py-2.5 font-semibold">{getText('merchant.orders.pending', 'Pending')}</SelectItem>
                   <SelectItem value="PROCESSING" className="rounded-xl py-2.5 font-semibold">{getText('merchant.orders.processing', 'Processing')}</SelectItem>
@@ -302,11 +302,11 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          <div className="divide-y divide-gray-100 md:hidden">
+          <div className="divide-y divide-neutral-faint md:hidden">
             {orders.length === 0 ? (
               <div className="px-4 py-12 text-center">
-                <Box className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+                <Box className="mx-auto mb-3 h-10 w-10 text-neutral-pale" />
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-light">
                   {getText('merchant.orders.noOrdersFound', 'Ledger Empty')}
                 </p>
               </div>
@@ -315,38 +315,38 @@ export default function OrdersPage() {
                 <div key={order.id} className="space-y-4 p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="font-mono text-sm font-bold text-blue-600">
+                      <p className="font-mono text-sm font-bold text-action-strong">
                         #{order.id.substring(0, 13).toUpperCase()}
                       </p>
-                      <p className="mt-1 text-[11px] font-medium text-gray-400">
+                      <p className="mt-1 text-[11px] font-medium text-neutral-light">
                         ...{order.id.slice(-12)}
                       </p>
                     </div>
-                    <div className="rounded-2xl bg-gray-50 px-3 py-2 text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                    <div className="rounded-2xl bg-neutral-veil px-3 py-2 text-right">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-light">
                         {getText('merchant.orders.total', 'Volume')}
                       </p>
-                      <p className="mt-1 text-sm font-bold text-gray-900">
+                      <p className="mt-1 text-sm font-bold text-neutral-deepest">
                         {formatCurrency(order.totalAmount || 0, order.currency)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="rounded-2xl bg-gray-50/70 p-4">
+                  <div className="rounded-2xl bg-neutral-veil/70 p-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xs font-black text-gray-400 shadow-sm">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface text-xs font-black text-neutral-light shadow-sm">
                         {order.customer.username?.charAt(0) || order.customer.email?.charAt(0) || 'U'}
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-gray-900">
+                        <p className="truncate text-sm font-bold text-neutral-deepest">
                           {order.customer.username || 'Anonymous User'}
                         </p>
-                        <p className="truncate text-xs font-medium text-gray-400">
+                        <p className="truncate text-xs font-medium text-neutral-light">
                           {order.customer.email || 'no-email'}
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 flex items-center justify-between text-[11px] font-medium text-gray-500">
+                    <div className="mt-4 flex items-center justify-between text-[11px] font-medium text-neutral-base">
                       <span>{order.itemsCount ?? 0} ITEMS</span>
                       <span>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}</span>
                     </div>
@@ -357,7 +357,7 @@ export default function OrdersPage() {
                       {getStatusIcon(order.status)}{order.status}
                     </span>
 
-                    <Button variant="outline" size="sm" asChild className="h-11 rounded-2xl border-gray-200 px-4">
+                    <Button variant="outline" size="sm" asChild className="h-11 rounded-2xl border-neutral-soft px-4">
                       <Link href={`/${locale}/orders/${order.id}`}>
                         {getText('common.actions.view', 'View')}
                       </Link>
@@ -371,43 +371,43 @@ export default function OrdersPage() {
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="bg-gray-50/30">
-                  <th className="py-4 px-8 text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[25%]">{getText('merchant.orders.orderId', 'Ident')}</th>
-                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[30%]">{getText('merchant.orders.customer', 'Source')}</th>
-                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[15%]">{getText('merchant.orders.status', 'Status')}</th>
-                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[15%]">{getText('merchant.orders.total', 'Volume')}</th>
-                  <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[15%]">{getText('merchant.orders.date', 'Timestamp')}</th>
+                <tr className="bg-neutral-veil/30">
+                  <th className="py-4 px-8 text-[10px] font-bold text-neutral-light uppercase tracking-widest w-[25%]">{getText('merchant.orders.orderId', 'Ident')}</th>
+                  <th className="py-4 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest w-[30%]">{getText('merchant.orders.customer', 'Source')}</th>
+                  <th className="py-4 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest w-[15%]">{getText('merchant.orders.status', 'Status')}</th>
+                  <th className="py-4 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest w-[15%]">{getText('merchant.orders.total', 'Volume')}</th>
+                  <th className="py-4 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest w-[15%]">{getText('merchant.orders.date', 'Timestamp')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-neutral-veil">
                 {orders.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-20 text-center">
                       <div className="flex flex-col items-center opacity-30">
-                        <Box className="w-12 h-12 mb-3 text-gray-300" />
+                        <Box className="w-12 h-12 mb-3 text-neutral-pale" />
                         <p className="text-[10px] font-bold uppercase tracking-[0.2em]">{getText('merchant.orders.noOrdersFound', 'Ledger Empty')}</p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   orders.map((order: Order) => (
-                    <tr key={order.id} className="group hover:bg-blue-50/30 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/orders/${order.id}`)}>
+                    <tr key={order.id} className="group hover:bg-action-veil/30 transition-colors cursor-pointer" onClick={() => router.push(`/${locale}/orders/${order.id}`)}>
                       <td className="py-4 px-8">
                         <div className="flex flex-col">
-                          <span className="font-mono text-sm font-bold text-blue-600">
+                          <span className="font-mono text-sm font-bold text-action-strong">
                             #{order.id.substring(0, 13).toUpperCase()}
                           </span>
-                          <span className="text-[10px] text-gray-400 font-medium">...{order.id.slice(-12)}</span>
+                          <span className="text-[10px] text-neutral-light font-medium">...{order.id.slice(-12)}</span>
                         </div>
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-[10px] font-black text-gray-400 group-hover:bg-white transition-colors">
+                          <div className="w-8 h-8 rounded-lg bg-neutral-faint flex items-center justify-center text-[10px] font-black text-neutral-light group-hover:bg-surface transition-colors">
                             {order.customer.username?.charAt(0) || order.customer.email?.charAt(0) || 'U'}
                           </div>
                           <div className="flex flex-col">
-                            <span className="font-bold text-gray-900 text-sm">{order.customer.username || 'Anonymous User'}</span>
-                            <span className="text-xs text-gray-400 font-medium">{order.customer.email || 'no-email'}</span>
+                            <span className="font-bold text-neutral-deepest text-sm">{order.customer.username || 'Anonymous User'}</span>
+                            <span className="text-xs text-neutral-light font-medium">{order.customer.email || 'no-email'}</span>
                           </div>
                         </div>
                       </td>
@@ -418,12 +418,12 @@ export default function OrdersPage() {
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex flex-col">
-                          <span className="font-bold text-gray-900 text-sm">{formatCurrency(order.totalAmount || 0, order.currency)}</span>
-                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{order.itemsCount ?? 0} ITEMS</span>
+                          <span className="font-bold text-neutral-deepest text-sm">{formatCurrency(order.totalAmount || 0, order.currency)}</span>
+                          <span className="text-[10px] text-neutral-light font-bold uppercase tracking-tighter">{order.itemsCount ?? 0} ITEMS</span>
                         </div>
                       </td>
                       <td className="py-4 px-6">
-                        <span className="text-xs text-gray-500 font-medium">
+                        <span className="text-xs text-neutral-base font-medium">
                           {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
                         </span>
                       </td>
@@ -436,8 +436,8 @@ export default function OrdersPage() {
 
           {/* Pagination Section */}
           {pagination && (
-            <div className="flex flex-col items-start justify-between gap-4 border-t border-gray-50 bg-gray-50/10 px-4 py-4 sm:flex-row sm:items-center sm:px-8 sm:py-6">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <div className="flex flex-col items-start justify-between gap-4 border-t border-neutral-veil bg-neutral-veil/10 px-4 py-4 sm:flex-row sm:items-center sm:px-8 sm:py-6">
+              <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
                 {getText('merchant.orders.showingResults', 'Showing {from} to {to} of {total}')
                   .replace('{from}', String((currentPage - 1) * pageSize + 1))
                   .replace('{to}', String(Math.min(currentPage * pageSize, pagination.total)))
@@ -449,19 +449,19 @@ export default function OrdersPage() {
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="h-8 rounded-lg border-gray-200 text-xs font-bold"
+                  className="h-8 rounded-lg border-neutral-soft text-xs font-bold"
                 >
                   Prev
                 </Button>
-                <div className="flex items-center px-4 text-xs font-black text-gray-900">
-                  {currentPage} <span className="mx-2 text-gray-300">/</span> {pagination.totalPages}
+                <div className="flex items-center px-4 text-xs font-black text-neutral-deepest">
+                  {currentPage} <span className="mx-2 text-neutral-pale">/</span> {pagination.totalPages}
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
                   disabled={currentPage === pagination.totalPages}
-                  className="h-8 rounded-lg border-gray-200 text-xs font-bold"
+                  className="h-8 rounded-lg border-neutral-soft text-xs font-bold"
                 >
                   Next
                 </Button>

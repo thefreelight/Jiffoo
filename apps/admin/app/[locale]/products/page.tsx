@@ -103,9 +103,9 @@ export default function ProductsPage() {
 
   const getStatusStyle = (stock: number) => {
     if (stock === 0) {
-      return { text: getText('merchant.products.outOfStock', 'Out of Stock'), class: 'text-red-600 bg-red-50 border-red-100' }
+      return { text: getText('merchant.products.outOfStock', 'Out of Stock'), class: 'text-danger-strong bg-danger-veil border-danger-faint' }
     } else {
-      return { text: getText('merchant.products.inStock', 'In Stock'), class: 'text-green-600 bg-green-50 border-green-100' }
+      return { text: getText('merchant.products.inStock', 'In Stock'), class: 'text-success-strong bg-success-veil border-success-faint' }
     }
   }
 
@@ -121,8 +121,8 @@ export default function ProductsPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-50 border-t-blue-600 rounded-full animate-spin" />
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.loading', 'Syncing Assets...')}</p>
+          <div className="w-12 h-12 border-4 border-action-veil border-t-action-strong rounded-full animate-spin" />
+          <p className="text-xs font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.loading', 'Syncing Assets...')}</p>
         </div>
       </div>
     )
@@ -131,13 +131,13 @@ export default function ProductsPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center bg-red-50 p-10 rounded-[3rem] border border-red-100 max-w-md">
-          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-6" />
-          <h3 className="text-xl font-bold text-red-900 mb-2">{getText('merchant.products.loadFailed', 'System Communication Failure')}</h3>
-          <p className="text-sm text-red-600/70 mb-8 leading-relaxed">We encountered an issue while retrieving the asset inventory from the master synchronization node.</p>
+        <div className="text-center bg-danger-veil p-10 rounded-[3rem] border border-danger-faint max-w-md">
+          <AlertTriangle className="w-16 h-16 text-danger-base mx-auto mb-6" />
+          <h3 className="text-xl font-bold text-danger-deepest mb-2">{getText('merchant.products.loadFailed', 'System Communication Failure')}</h3>
+          <p className="text-sm text-danger-strong/70 mb-8 leading-relaxed">We encountered an issue while retrieving the asset inventory from the master synchronization node.</p>
           <Button
             variant="outline"
-            className="rounded-2xl border-red-200 text-red-600 hover:bg-red-100"
+            className="rounded-2xl border-danger-soft text-danger-strong hover:bg-danger-faint"
             onClick={() => refetch()}
           >
             {getText('merchant.products.retry', 'Retry Sync')}
@@ -148,14 +148,14 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
+    <div className="w-full bg-page-surface min-h-screen">
       {/* Header Bar */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
+          <h1 className="text-xl font-bold text-neutral-deepest tracking-tight leading-none">
             {getText('merchant.products.title', 'Products')}
           </h1>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
+          <span className="text-[10px] font-bold text-action-strong uppercase tracking-widest mt-1">
             {getText('merchant.products.subtitle', 'Inventory Management')}
           </span>
         </div>
@@ -165,7 +165,7 @@ export default function ProductsPage() {
             <Button variant="outline">{getText('merchant.contentTranslations.categories', 'Categories')}</Button>
           </Link>
           <Link href={`/${locale}/products/create`}>
-            <Button className="h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-700 sm:px-6">
+            <Button className="h-10 rounded-xl bg-action-strong px-4 text-sm font-semibold shadow-lg shadow-action-base/20 transition-all hover:bg-action-deep sm:px-6">
               <Plus className="mr-0 h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">{getText('merchant.products.addProduct', 'Add Product')}</span>
             </Button>
@@ -206,26 +206,26 @@ export default function ProductsPage() {
 
 
         {/* Filters */}
-        <div className="rounded-[2rem] border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
-          <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-gray-100 pb-4">
-            <span className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600">
+        <div className="rounded-[2rem] border border-neutral-faint bg-surface p-4 shadow-sm sm:p-6">
+          <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-neutral-faint pb-4">
+            <span className="inline-flex items-center rounded-full border border-action-faint bg-action-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-action-strong">
               {visibleProductsCount} {getText('merchant.products.product', 'Products')}
             </span>
-            <span className="inline-flex items-center rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            <span className="inline-flex items-center rounded-full border border-neutral-faint bg-neutral-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-base">
               {visibleUnits} {getText('merchant.products.stock', 'Units Tracked')}
             </span>
             {outOfStockCount > 0 && (
-              <span className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">
+              <span className="inline-flex items-center rounded-full border border-danger-faint bg-danger-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-danger-strong">
                 {outOfStockCount} {getText('merchant.products.outOfStock', 'Out of Stock')}
               </span>
             )}
             {selectedCategory !== 'All' && (
-              <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-600">
+              <span className="inline-flex items-center rounded-full border border-positive-faint bg-positive-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-positive-strong">
                 {selectedCategory}
               </span>
             )}
             {searchTerm && (
-              <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+              <span className="inline-flex items-center rounded-full border border-neutral-soft bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-base">
                 Search: {searchTerm}
               </span>
             )}
@@ -234,7 +234,7 @@ export default function ProductsPage() {
           <div className="flex flex-col gap-6 sm:flex-row">
             <div className="flex-1">
               <div className="relative group">
-                <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-300 group-focus-within:text-blue-500 transition-colors" />
+                <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-pale group-focus-within:text-action-base transition-colors" />
                 <input
                   type="text"
                   placeholder={getText('merchant.products.searchPlaceholder', 'Quick Search through assets...')}
@@ -243,16 +243,16 @@ export default function ProductsPage() {
                     setSearchTerm(e.target.value)
                     setCurrentPage(1)
                   }}
-                  className="w-full pl-11 pr-4 h-12 bg-gray-50 border-gray-50 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium"
+                  className="w-full pl-11 pr-4 h-12 bg-neutral-veil border-neutral-veil rounded-2xl focus:ring-2 focus:ring-action-base/10 focus:border-action-base focus:bg-surface transition-all text-sm font-medium"
                 />
               </div>
             </div>
             <div className="flex w-full gap-4 sm:w-auto">
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-12 w-full bg-gray-50 border-gray-50 rounded-2xl px-6 text-sm font-bold text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 sm:w-[220px]">
+                <SelectTrigger className="h-12 w-full bg-neutral-veil border-neutral-veil rounded-2xl px-6 text-sm font-bold text-neutral-deep focus:border-action-base focus:ring-2 focus:ring-action-base/10 sm:w-[220px]">
                   <SelectValue placeholder="Category Mapping" />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2">
+                <SelectContent className="rounded-2xl border-neutral-faint shadow-2xl p-2">
                   <SelectItem value="All" className="rounded-xl py-2.5 font-semibold">{getText('merchant.products.allCategories', 'All Categories')}</SelectItem>
                   <SelectItem value="Electronics" className="rounded-xl py-2.5 font-semibold">Electronics</SelectItem>
                   <SelectItem value="Fashion" className="rounded-xl py-2.5 font-semibold">Fashion</SelectItem>
@@ -265,26 +265,26 @@ export default function ProductsPage() {
         </div>
 
         {/* Products Table */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+        <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
+          <div className="flex flex-col gap-3 border-b border-neutral-faint px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-light">
                 {getText('merchant.products.inventoryOverview', 'Inventory Slate')}
               </p>
-              <p className="mt-1 text-sm font-medium text-gray-500">
+              <p className="mt-1 text-sm font-medium text-neutral-base">
                 {getText('merchant.products.inventoryOverviewDescription', 'Review pricing, stock health, and media coverage without opening each record.')}
               </p>
             </div>
-            <div className="inline-flex items-center rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+            <div className="inline-flex items-center rounded-full border border-neutral-faint bg-neutral-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-base">
               {visibleProductsCount} {getText('merchant.products.rowsVisible', 'Rows Visible')}
             </div>
           </div>
 
-          <div className="divide-y divide-gray-100 md:hidden">
+          <div className="divide-y divide-neutral-faint md:hidden">
             {filteredProducts.length === 0 ? (
               <div className="px-4 py-12 text-center">
-                <Box className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+                <Box className="mx-auto mb-3 h-10 w-10 text-neutral-pale" />
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-light">
                   {getText('merchant.products.noProducts', 'No Assets Matched')}
                 </p>
               </div>
@@ -296,7 +296,7 @@ export default function ProductsPage() {
                 return (
                   <div key={product.id} className="space-y-4 p-4">
                     <div className="flex items-start gap-4">
-                      <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-gray-100 bg-[#f7fbff] shadow-sm">
+                      <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-neutral-faint bg-media-surface shadow-sm">
                         <Image
                           src={productImage}
                           alt={product.name}
@@ -309,15 +309,15 @@ export default function ProductsPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <Link href={`/${locale}/products/${product.id}/edit`} className="block">
-                          <h3 className="line-clamp-2 text-base font-bold text-gray-900 transition-colors hover:text-blue-600">
+                          <h3 className="line-clamp-2 text-base font-bold text-neutral-deepest transition-colors hover:text-action-strong">
                             {product.name}
                           </h3>
                         </Link>
-                        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-light">
                           {product.categoryName || 'General Mapping'}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="inline-flex rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-[11px] font-bold text-gray-500">
+                          <span className="inline-flex rounded-full border border-neutral-faint bg-neutral-veil px-3 py-1 text-[11px] font-bold text-neutral-base">
                             {product.skuCode || 'NO-REF'}
                           </span>
                           <span className={cn('inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]', status.class)}>
@@ -327,27 +327,27 @@ export default function ProductsPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 rounded-2xl bg-gray-50/70 p-3">
+                    <div className="grid grid-cols-2 gap-3 rounded-2xl bg-neutral-veil/70 p-3">
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-light">
                           {getText('merchant.products.price', 'Valuation')}
                         </p>
-                        <p className="mt-1 text-sm font-bold text-gray-900">
+                        <p className="mt-1 text-sm font-bold text-neutral-deepest">
                           {currency ? formatCurrency(product.price || 0, currency) : '--'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-light">
                           {getText('merchant.products.stock', 'Node Inventory')}
                         </p>
-                        <p className="mt-1 text-sm font-bold text-gray-900">
-                          {product.stock ?? 0} <span className="text-[11px] font-medium text-gray-400">units</span>
+                        <p className="mt-1 text-sm font-bold text-neutral-deepest">
+                          {product.stock ?? 0} <span className="text-[11px] font-medium text-neutral-light">units</span>
                         </p>
                       </div>
                     </div>
 
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" asChild className="flex-1 rounded-xl border-gray-200">
+                      <Button variant="outline" size="sm" asChild className="flex-1 rounded-xl border-neutral-soft">
                         <Link href={`/${locale}/products/${product.id}/edit`}>
                           <Pencil className="mr-2 h-4 w-4" />
                           {getText('common.actions.edit', 'Edit')}
@@ -358,7 +358,7 @@ export default function ProductsPage() {
                         size="sm"
                         onClick={() => handleDeleteProduct(product.id)}
                         disabled={deleteProductMutation.isPending}
-                        className="rounded-xl px-4 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        className="rounded-xl px-4 text-danger-strong hover:bg-danger-veil hover:text-danger-deep"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -372,58 +372,58 @@ export default function ProductsPage() {
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-gray-50 bg-gray-50/30">
-                  <th className="py-5 px-8 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.product', 'Product Identity')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.sku', 'SKU Segment')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.price', 'Valuation')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.stock', 'Node Inventory')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.status', 'Health Status')}</th>
-                  <th className="py-5 px-8 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.actions', 'Matrix Control')}</th>
+                <tr className="border-b border-neutral-veil bg-neutral-veil/30">
+                  <th className="py-5 px-8 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.product', 'Product Identity')}</th>
+                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.sku', 'SKU Segment')}</th>
+                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.price', 'Valuation')}</th>
+                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.stock', 'Node Inventory')}</th>
+                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.status', 'Health Status')}</th>
+                  <th className="py-5 px-8 text-right text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.actions', 'Matrix Control')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-neutral-veil">
                 {filteredProducts.map((product: ApiProduct) => {
                   const status = getStatusStyle(product.stock || 0)
                   const productImage = getProductImageUrl(product)
                   const usesPlaceholder = productImage === '/placeholder-product.svg'
                   return (
-                    <tr key={product.id} className="group hover:bg-blue-50/30 transition-colors">
+                    <tr key={product.id} className="group hover:bg-action-veil/30 transition-colors">
                       <td className="py-5 px-8">
                         <div className="flex items-center gap-4">
-                          <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-100 flex-shrink-0 shadow-sm transition-transform group-hover:scale-105">
+                          <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-neutral-faint flex-shrink-0 shadow-sm transition-transform group-hover:scale-105">
                             <Image
                               src={productImage}
                               alt={product.name}
                               fill
-                              className={cn(usesPlaceholder ? 'object-contain bg-[#f7fbff] p-2' : 'object-cover')}
+                              className={cn(usesPlaceholder ? 'object-contain bg-media-surface p-2' : 'object-cover')}
                             />
                           </div>
                           <div className="flex flex-col min-w-0">
                             <Link href={`/${locale}/products/${product.id}/edit`}>
-                              <span className="font-bold text-gray-900 hover:text-blue-600 transition-colors truncate block">
+                              <span className="font-bold text-neutral-deepest hover:text-action-strong transition-colors truncate block">
                                 {product.name}
                               </span>
                             </Link>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter truncate opacity-70">
+                            <span className="text-[10px] font-bold text-neutral-light uppercase tracking-tighter truncate opacity-70">
                               {product.categoryName || 'General Mapping'}
                             </span>
                           </div>
                         </div>
                       </td>
                       <td className="py-5 px-6">
-                        <div className="text-xs font-mono font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded inline-block">
+                        <div className="text-xs font-mono font-bold text-neutral-base bg-neutral-veil px-2 py-1 rounded inline-block">
                           {product.skuCode || 'NO-REF'}
                         </div>
                       </td>
                       <td className="py-5 px-6">
-                        <div className="text-sm font-bold text-gray-900">
+                        <div className="text-sm font-bold text-neutral-deepest">
                           {currency ? formatCurrency(product.price || 0, currency) : '--'}
                         </div>
                       </td>
                       <td className="py-5 px-6">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-gray-900">{product.stock ?? 0}</span>
-                          <span className="text-[10px] font-medium text-gray-400">units</span>
+                          <span className="text-sm font-bold text-neutral-deepest">{product.stock ?? 0}</span>
+                          <span className="text-[10px] font-medium text-neutral-light">units</span>
                         </div>
                       </td>
                       <td className="py-5 px-6">
@@ -434,7 +434,7 @@ export default function ProductsPage() {
                       <td className="py-5 px-8 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link href={`/${locale}/products/${product.id}/edit`}>
-                            <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl hover:bg-white hover:shadow-md transition-all text-gray-400 hover:text-blue-600">
+                            <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl hover:bg-surface hover:shadow-md transition-all text-neutral-light hover:text-action-strong">
                               <Pencil className="w-4 h-4" />
                             </Button>
                           </Link>
@@ -443,7 +443,7 @@ export default function ProductsPage() {
                             size="icon"
                             onClick={() => handleDeleteProduct(product.id)}
                             disabled={deleteProductMutation.isPending}
-                            className="w-9 h-9 rounded-xl hover:bg-white hover:shadow-md transition-all text-gray-400 hover:text-red-600"
+                            className="w-9 h-9 rounded-xl hover:bg-surface hover:shadow-md transition-all text-neutral-light hover:text-danger-strong"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -460,13 +460,13 @@ export default function ProductsPage() {
         {/* Pagination bar */}
         {pagination && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-12">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] bg-gray-100/50 px-4 py-2 rounded-full border border-gray-100">
+            <div className="text-[10px] font-bold text-neutral-light uppercase tracking-[0.2em] bg-neutral-faint/50 px-4 py-2 rounded-full border border-neutral-faint">
               Sync: {(pagination.page - 1) * pagination.limit + 1}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} TOTAL_ASSETS
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                className="h-10 rounded-xl border-gray-100 font-bold text-xs hover:bg-gray-50 disabled:opacity-30"
+                className="h-10 rounded-xl border-neutral-faint font-bold text-xs hover:bg-neutral-veil disabled:opacity-30"
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
               >
@@ -481,7 +481,7 @@ export default function ProductsPage() {
                       <button
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${pageNum === currentPage ? 'bg-gray-900 text-white shadow-xl scale-110' : 'bg-white text-gray-400 border border-gray-50 hover:border-gray-200'}`}
+                        className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${pageNum === currentPage ? 'bg-neutral-deepest text-surface shadow-xl scale-110' : 'bg-surface text-neutral-light border border-neutral-veil hover:border-neutral-soft'}`}
                       >
                         {pageNum}
                       </button>
@@ -493,7 +493,7 @@ export default function ProductsPage() {
 
               <Button
                 variant="outline"
-                className="h-10 rounded-xl border-gray-100 font-bold text-xs hover:bg-gray-50 disabled:opacity-30"
+                className="h-10 rounded-xl border-neutral-faint font-bold text-xs hover:bg-neutral-veil disabled:opacity-30"
                 onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
                 disabled={currentPage === pagination.totalPages}
               >

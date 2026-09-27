@@ -156,18 +156,18 @@ export function ApiTokenPanel() {
   }
 
   return (
-    <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-8 py-6 border-b border-gray-50">
+    <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
+      <div className="px-8 py-6 border-b border-neutral-veil">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">API Tokens</h3>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <h3 className="text-lg font-bold text-neutral-deepest">API Tokens</h3>
+            <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
               For MCP Server & Integrations
             </span>
           </div>
           <Button
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm"
+            className="h-9 px-4 rounded-xl bg-action-strong hover:bg-action-deep font-semibold text-sm"
           >
             <Plus className="h-4 w-4 mr-1.5" />
             New Token
@@ -178,15 +178,15 @@ export function ApiTokenPanel() {
       <div className="p-8 space-y-4">
         {/* Newly created token display */}
         {newlyCreatedToken && (
-          <div className="rounded-2xl border-2 border-green-200 bg-green-50/50 p-5 space-y-3">
+          <div className="rounded-2xl border-2 border-success-soft bg-success-veil/50 p-5 space-y-3">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <p className="text-sm font-bold text-green-800">
+              <CheckCircle2 className="h-5 w-5 text-success-strong" />
+              <p className="text-sm font-bold text-success-dark">
                 Token created — save it now, it won&apos;t be shown again
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <code className="flex-1 px-3 py-2 rounded-lg bg-white border border-green-200 text-sm font-mono text-gray-800 break-all">
+              <code className="flex-1 px-3 py-2 rounded-lg bg-surface border border-success-soft text-sm font-mono text-neutral-dark break-all">
                 {newlyCreatedToken}
               </code>
               <Button
@@ -211,9 +211,9 @@ export function ApiTokenPanel() {
 
         {/* Create form */}
         {showCreateForm && (
-          <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-5 space-y-4">
+          <div className="rounded-2xl border border-neutral-faint bg-neutral-veil/30 p-5 space-y-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              <Label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
                 Label
               </Label>
               <Input
@@ -224,7 +224,7 @@ export function ApiTokenPanel() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              <Label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
                 Scopes
               </Label>
               <div className="space-y-2">
@@ -237,9 +237,9 @@ export function ApiTokenPanel() {
                       type="checkbox"
                       checked={newScopes.includes(opt.value)}
                       onChange={() => toggleScope(opt.value)}
-                      className="h-4 w-4 rounded border-gray-300"
+                      className="h-4 w-4 rounded border-neutral-pale"
                     />
-                    <span className="text-sm text-gray-700">{opt.label}</span>
+                    <span className="text-sm text-neutral-deep">{opt.label}</span>
                   </label>
                 ))}
               </div>
@@ -248,7 +248,7 @@ export function ApiTokenPanel() {
               <Button
                 onClick={handleCreate}
                 disabled={creating}
-                className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700"
+                className="h-9 px-4 rounded-xl bg-action-strong hover:bg-action-deep"
               >
                 {creating ? 'Creating...' : 'Create Token'}
               </Button>
@@ -265,12 +265,12 @@ export function ApiTokenPanel() {
 
         {/* Token list */}
         {loading ? (
-          <p className="text-sm text-gray-500">Loading tokens...</p>
+          <p className="text-sm text-neutral-base">Loading tokens...</p>
         ) : tokens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Key className="h-8 w-8 text-gray-300 mb-2" />
-            <p className="text-sm text-gray-500">No API tokens yet</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <Key className="h-8 w-8 text-neutral-pale mb-2" />
+            <p className="text-sm text-neutral-base">No API tokens yet</p>
+            <p className="text-xs text-neutral-light mt-1">
               Create a token to enable MCP server or other integrations
             </p>
           </div>
@@ -279,10 +279,10 @@ export function ApiTokenPanel() {
             {tokens.map((token) => (
               <div
                 key={token.id}
-                className="flex items-center justify-between rounded-xl border border-gray-100 p-4 hover:bg-gray-50/30"
+                className="flex items-center justify-between rounded-xl border border-neutral-faint p-4 hover:bg-neutral-veil/30"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
+                  <p className="text-sm font-semibold text-neutral-deepest truncate">
                     {token.label}
                   </p>
                   <div className="flex flex-wrap gap-1 mt-1">
@@ -292,15 +292,15 @@ export function ApiTokenPanel() {
                         className={cn(
                           'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide',
                           scope === '*'
-                            ? 'bg-purple-100 text-purple-700'
-                            : 'bg-blue-100 text-blue-700',
+                            ? 'bg-highlight-faint text-highlight-deep'
+                            : 'bg-action-faint text-action-deep',
                         )}
                       >
                         {scope}
                       </span>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-neutral-light mt-1">
                     Created: {formatDate(token.createdAt)}
                     {token.lastUsedAt && ` · Last used: ${formatDate(token.lastUsedAt)}`}
                   </p>
@@ -309,7 +309,7 @@ export function ApiTokenPanel() {
                   onClick={() => handleRevoke(token.id)}
                   variant="ghost"
                   size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-danger-strong hover:text-danger-deep hover:bg-danger-veil"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -319,11 +319,11 @@ export function ApiTokenPanel() {
         )}
 
         {/* Info banner */}
-        <div className="flex items-start gap-2 rounded-xl bg-blue-50/50 border border-blue-100 p-3">
-          <AlertCircle className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-blue-700">
+        <div className="flex items-start gap-2 rounded-xl bg-action-veil/50 border border-action-faint p-3">
+          <AlertCircle className="h-4 w-4 text-action-base shrink-0 mt-0.5" />
+          <p className="text-xs text-action-deep">
             API tokens enable AI agents (Claude Desktop, Claude Code) to interact with your store.
-            Use the MCP server with <code className="font-mono text-blue-800">JIFFOO_API_TOKEN</code> env var.
+            Use the MCP server with <code className="font-mono text-action-dark">JIFFOO_API_TOKEN</code> env var.
           </p>
         </div>
       </div>

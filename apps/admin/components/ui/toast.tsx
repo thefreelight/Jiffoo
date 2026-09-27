@@ -81,39 +81,39 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
   const getIcon = () => {
     switch (toast.type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <CheckCircle className="w-5 h-5 text-success-base" />;
       case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-500" />;
+        return <AlertCircle className="w-5 h-5 text-danger-base" />;
       case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
+        return <AlertTriangle className="w-5 h-5 text-warning-base" />;
       case 'info':
-        return <Info className="w-5 h-5 text-blue-500" />;
+        return <Info className="w-5 h-5 text-action-base" />;
     }
   };
 
   const getBorderColor = () => {
     switch (toast.type) {
       case 'success':
-        return 'border-green-500';
+        return 'border-success-base';
       case 'error':
-        return 'border-red-500';
+        return 'border-danger-base';
       case 'warning':
-        return 'border-yellow-500';
+        return 'border-warning-base';
       case 'info':
-        return 'border-blue-500';
+        return 'border-action-base';
     }
   };
 
   const getBackgroundColor = () => {
     switch (toast.type) {
       case 'success':
-        return 'bg-green-50 dark:bg-green-900/20';
+        return 'bg-success-veil';
       case 'error':
-        return 'bg-red-50 dark:bg-red-900/20';
+        return 'bg-danger-veil';
       case 'warning':
-        return 'bg-yellow-50 dark:bg-yellow-900/20';
+        return 'bg-warning-veil';
       case 'info':
-        return 'bg-blue-50 dark:bg-blue-900/20';
+        return 'bg-action-veil';
     }
   };
 
@@ -130,11 +130,11 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
       </div>
       
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+        <h4 className="text-sm font-semibold text-neutral-deepest">
           {toast.title}
         </h4>
         {toast.description && (
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          <p className="mt-1 text-sm text-neutral-strong">
             {toast.description}
           </p>
         )}
@@ -142,9 +142,9 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
 
       <button
         onClick={() => onRemove(toast.id)}
-        className="flex-shrink-0 p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        className="flex-shrink-0 p-1 rounded-md hover:bg-neutral-soft transition-colors"
       >
-        <X className="w-4 h-4 text-gray-500" />
+        <X className="w-4 h-4 text-neutral-base" />
       </button>
     </div>
   );

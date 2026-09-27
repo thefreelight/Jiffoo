@@ -73,7 +73,7 @@ function GenericConfigEditor({
   onSave: () => void;
 }) {
   return (
-    <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+    <Card className="rounded-2xl border-cool-soft/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
       <CardHeader>
         <CardTitle className="text-lg tracking-tight">Configuration</CardTitle>
         <CardDescription>Configuration fields are declared by this extension.</CardDescription>
@@ -186,13 +186,13 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   if (error || !data) return <div className="flex min-h-screen items-center justify-center p-6"><Alert className="max-w-md"><AlertTriangle className="h-4 w-4" /><AlertTitle>Plugin unavailable</AlertTitle><AlertDescription>The plugin details could not be loaded.</AlertDescription></Alert></div>;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-5 sm:p-7 lg:p-10">
+    <div className="min-h-screen bg-cool-veil p-5 sm:p-7 lg:p-10">
       <div className="mx-auto grid max-w-[1600px] gap-5 lg:grid-cols-[260px,minmax(0,1fr)]">
         <InstalledPluginsRail locale={locale} plugins={installedPluginsData?.items || []} selectedSlug={slug} getText={getText} />
         <div className="space-y-5">
-          <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+          <Card className="rounded-2xl border-cool-soft/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
             <CardHeader>
-              <div className="flex items-center gap-2 text-sm text-slate-500"><Link href={`/${locale}/plugins`} className="hover:text-blue-600">Plugins</Link><span>/</span><span>{data.name || slug}</span></div>
+              <div className="flex items-center gap-2 text-sm text-cool-base"><Link href={`/${locale}/plugins`} className="hover:text-action-strong">Plugins</Link><span>/</span><span>{data.name || slug}</span></div>
               <CardTitle className="flex items-center gap-2 text-2xl">{data.name || slug}</CardTitle>
               <CardDescription>{data.description || 'Manage the extension configuration.'}</CardDescription>
             </CardHeader>

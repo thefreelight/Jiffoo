@@ -34,7 +34,7 @@ export function AdminLanguageSwitcher({ compact = false }: { compact?: boolean }
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
+          className="inline-flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-cool-strong transition-colors hover:bg-cool-faint hover:text-cool-ink"
           aria-label="Change language"
         >
           <Languages className="h-[18px] w-[18px]" />
@@ -46,7 +46,7 @@ export function AdminLanguageSwitcher({ compact = false }: { compact?: boolean }
           <DropdownMenuItem key={item.value} asChild className="rounded-lg px-3 py-2">
             <Link href={getLocalizedPath(pathname, item.value)} className="flex w-full items-center justify-between">
               <span>{item.label}</span>
-              {locale === item.value ? <Check className="h-4 w-4 text-blue-600" /> : null}
+              {locale === item.value ? <Check className="h-4 w-4 text-action-strong" /> : null}
             </Link>
           </DropdownMenuItem>
         ))}

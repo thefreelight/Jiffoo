@@ -22,7 +22,7 @@ const shopDefaults: Record<string, unknown> = {
 const adminDefaults: Record<string, unknown> = {
   background: '#F8FAFC', surface: '#FFFFFF', text: '#0F172A',
   'text-muted': '#64748B', border: '#E2E8F0', primary: '#3B82F6',
-  'primary-foreground': '#FFFFFF', 'sidebar-bg': '#FFFFFF',
+  'primary-foreground': '#F8FAFC', 'sidebar-bg': '#FFFFFF',
   'sidebar-text': '#64748B', 'sidebar-active-bg': '#EFF6FF',
   'sidebar-active-text': '#3B82F6', success: '#16A34A',
   warning: '#D97706', danger: '#DC2626', info: '#2563EB',
@@ -33,6 +33,11 @@ const adminDefaults: Record<string, unknown> = {
 const colors = /^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/;
 const lengths = /^(?:0|[1-9][0-9]{0,3})(?:\.[0-9]{1,4})?(?:px|rem)$/;
 const signedLength = /^-?(?:0|[1-9][0-9]{0,2})(?:\.[0-9]{1,4})?(?:px|rem)$/;
+const rgbChannels = (hex: string): string =>
+  [1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16)).join(' ');
+const gradientHex = (hex: string): string =>
+  /^#([0-9a-f])\1([0-9a-f])\2([0-9a-f])\3$/i.test(hex)
+    ? `#${hex[1]}${hex[3]}${hex[5]}`.toLowerCase() : hex;
 const serialize = (target: ThemeTarget, key: string, value: unknown): string | null => {
   if ((target === 'shop' ? SHOP_COLOR_ROLES : ADMIN_COLOR_ROLES as readonly string[]).includes(key))
     return typeof value === 'string' && colors.test(value) ? value : null;
@@ -72,7 +77,11 @@ export function themeTokensToCss(target: ThemeTarget, tokens: Record<string, unk
   ]);
   return [...keys].flatMap((key) => {
     const value = serialize(target, key, tokens[key]) ?? serialize(target, key, defaults[key]);
-    return value === null ? [] : [`--${target}-${key}: ${value};`];
+    if (value === null) return [];
+    return target === 'admin' && (ADMIN_COLOR_ROLES as readonly string[]).includes(key)
+      ? [`--admin-${key}: ${value};`, `--admin-${key}-rgb: ${rgbChannels(value)};`,
+        ...(key === 'surface' ? [`--admin-surface-gradient: ${gradientHex(value)};`] : [])]
+      : [`--${target}-${key}: ${value};`];
   }).join('\n');
 }
 

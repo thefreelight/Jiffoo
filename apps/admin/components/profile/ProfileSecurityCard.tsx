@@ -90,24 +90,24 @@ export function ProfileSecurityCard({
   }
 
   return (
-    <div id="security" className="scroll-mt-24 bg-white rounded-3xl border border-gray-100 shadow-sm p-8 space-y-8">
+    <div id="security" className="scroll-mt-24 bg-surface rounded-3xl border border-neutral-faint shadow-sm p-8 space-y-8">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <div className="h-4 w-1 bg-blue-600 rounded-full" />
-          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+          <div className="h-4 w-1 bg-action-strong rounded-full" />
+          <h3 className="text-xs font-bold text-neutral-light uppercase tracking-widest">
             {t('merchant.settings.security.authentication', 'Security')}
           </h3>
         </div>
-        <p className="text-[10px] font-medium text-gray-300 uppercase tracking-wider pl-3">
+        <p className="text-[10px] font-medium text-neutral-pale uppercase tracking-wider pl-3">
           {t('merchant.profile.subtitle', 'Manage your account information and credentials')}
         </p>
       </div>
 
       <div className="pl-3 space-y-6">
-        <div className="space-y-4 pb-6 border-b border-gray-100">
+        <div className="space-y-4 pb-6 border-b border-neutral-faint">
           <div className="flex items-center gap-2">
-            <AtSign className="w-4 h-4 text-blue-600" />
-            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <AtSign className="w-4 h-4 text-action-strong" />
+            <h4 className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
               {t('merchant.profile.emailSection', 'Email')}
             </h4>
           </div>
@@ -118,7 +118,7 @@ export function ProfileSecurityCard({
               onChange={(e) => setEmail(e.target.value)}
               disabled={isProfileLoading || isUpdatingEmail}
               placeholder={t('merchant.profile.email', 'Email')}
-              className="rounded-xl border-gray-100 bg-gray-50/50 h-11"
+              className="rounded-xl border-neutral-faint bg-neutral-veil/50 h-11"
             />
             <Input
               type="password"
@@ -126,23 +126,23 @@ export function ProfileSecurityCard({
               onChange={(e) => setEmailPassword(e.target.value)}
               disabled={isUpdatingEmail}
               placeholder={t('merchant.profile.currentPassword', 'Current Password')}
-              className="rounded-xl border-gray-100 bg-gray-50/50 h-11"
+              className="rounded-xl border-neutral-faint bg-neutral-veil/50 h-11"
             />
           </div>
           {emailValidationError ? (
-            <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl flex items-center gap-3">
+            <div className="bg-danger-veil border border-danger-faint text-danger-strong px-4 py-3 rounded-xl flex items-center gap-3">
               <ShieldAlert className="w-4 h-4 shrink-0" />
               <p className="text-xs font-bold uppercase tracking-wide">{emailValidationError}</p>
             </div>
           ) : null}
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-neutral-base">
             {t('merchant.profile.emailPasswordHint', 'Current password is required by API policy when changing email.')}
           </p>
           <div className="flex justify-end">
             <Button
               onClick={handleUpdateEmail}
               disabled={isProfileLoading || isUpdatingEmail || !hasEmailChange}
-              className="h-11 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold"
+              className="h-11 px-6 rounded-xl bg-action-strong hover:bg-action-deep text-surface font-bold"
             >
               {isUpdatingEmail ? t('common.actions.saving', 'Saving...') : t('merchant.profile.updateEmailAction', 'Update Email')}
             </Button>
@@ -151,8 +151,8 @@ export function ProfileSecurityCard({
 
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <KeyRound className="w-4 h-4 text-blue-600" />
-            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <KeyRound className="w-4 h-4 text-action-strong" />
+            <h4 className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
               {t('merchant.profile.passwordSection', 'Password')}
             </h4>
           </div>
@@ -163,7 +163,7 @@ export function ProfileSecurityCard({
               onChange={(e) => setNewPassword(e.target.value)}
               disabled={isChangingPassword}
               placeholder={t('merchant.profile.newPassword', 'New Password')}
-              className="rounded-xl border-gray-100 bg-gray-50/50 h-11"
+              className="rounded-xl border-neutral-faint bg-neutral-veil/50 h-11"
             />
             <Input
               type="password"
@@ -171,7 +171,7 @@ export function ProfileSecurityCard({
               onChange={(e) => setConfirmPassword(e.target.value)}
               disabled={isChangingPassword}
               placeholder={t('merchant.profile.confirmPassword', 'Confirm Password')}
-              className="rounded-xl border-gray-100 bg-gray-50/50 h-11"
+              className="rounded-xl border-neutral-faint bg-neutral-veil/50 h-11"
             />
           </div>
           <Input
@@ -180,10 +180,10 @@ export function ProfileSecurityCard({
             onChange={(e) => setCurrentPassword(e.target.value)}
             disabled={isChangingPassword}
             placeholder={t('merchant.profile.currentPasswordPlaceholder', 'Current password (required for security changes)')}
-            className="rounded-xl border-gray-100 bg-gray-50/50 h-11"
+            className="rounded-xl border-neutral-faint bg-neutral-veil/50 h-11"
           />
           {passwordValidationError ? (
-            <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl flex items-center gap-3">
+            <div className="bg-danger-veil border border-danger-faint text-danger-strong px-4 py-3 rounded-xl flex items-center gap-3">
               <ShieldAlert className="w-4 h-4 shrink-0" />
               <p className="text-xs font-bold uppercase tracking-wide">{passwordValidationError}</p>
             </div>
@@ -192,7 +192,7 @@ export function ProfileSecurityCard({
             <Button
               onClick={handleChangePassword}
               disabled={isProfileLoading || isChangingPassword}
-              className="h-11 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold"
+              className="h-11 px-6 rounded-xl bg-action-strong hover:bg-action-deep text-surface font-bold"
             >
               {isChangingPassword ? t('common.actions.saving', 'Saving...') : t('merchant.profile.updatePasswordAction', 'Update Password')}
             </Button>

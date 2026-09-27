@@ -134,28 +134,28 @@ export default function CreateProductPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
+    <div className="w-full bg-page-surface min-h-screen">
       {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-gray-100 rounded-xl w-10 h-10">
-            <ArrowLeft className="w-5 h-5 text-gray-900" />
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-neutral-faint rounded-xl w-10 h-10">
+            <ArrowLeft className="w-5 h-5 text-neutral-deepest" />
           </Button>
           <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
+            <h1 className="text-xl font-bold text-neutral-deepest tracking-tight leading-none">
               {getText('products.create.title', 'Create New Product')}
             </h1>
-            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">Product Management</span>
+            <span className="text-[10px] font-bold text-action-strong uppercase tracking-widest mt-1">Product Management</span>
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          <Button variant="outline" onClick={() => router.push(`/${locale}/products`)} className="text-gray-500 border-gray-200 hover:bg-gray-50 font-semibold text-sm rounded-xl h-10 px-6">
+          <Button variant="outline" onClick={() => router.push(`/${locale}/products`)} className="text-neutral-base border-neutral-soft hover:bg-neutral-veil font-semibold text-sm rounded-xl h-10 px-6">
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={createProductMutation.isPending}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-8 h-10 rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+            className="bg-action-strong hover:bg-action-deep text-surface font-semibold text-sm px-8 h-10 rounded-xl shadow-lg shadow-action-base/20 active:scale-95 transition-all"
           >
             {createProductMutation.isPending ? 'Sending...' : 'Save Product'}
           </Button>
@@ -166,32 +166,32 @@ export default function CreateProductPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Main Info */}
           <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm space-y-8">
+            <div className="bg-surface rounded-3xl border border-neutral-faint p-8 shadow-sm space-y-8">
               <div className="space-y-1">
-                <h2 className="text-lg font-bold text-gray-900">Basic Information</h2>
-                <p className="text-gray-400 text-xs">Primary details for the storefront</p>
+                <h2 className="text-lg font-bold text-neutral-deepest">Basic Information</h2>
+                <p className="text-neutral-light text-xs">Primary details for the storefront</p>
               </div>
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter" htmlFor="product-base-name">{t('merchant.contentTranslations.baseName')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
+                  <Label className="text-xs font-bold text-neutral-base uppercase tracking-tighter" htmlFor="product-base-name">{t('merchant.contentTranslations.baseName')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
                   <Input
                     id="product-base-name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="h-12 text-base font-medium border-gray-100 focus:border-blue-500 focus:ring-0 rounded-2xl bg-gray-50/50 px-6 transition-all"
+                    className="h-12 text-base font-medium border-neutral-faint focus:border-action-base focus:ring-0 rounded-2xl bg-neutral-veil/50 px-6 transition-all"
                     placeholder="Enter product title..."
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Category</Label>
+                    <Label className="text-xs font-bold text-neutral-base uppercase tracking-tighter">Category</Label>
                     <Select value={formData.category} onValueChange={(v) => handleInputChange('category', v)}>
-                      <SelectTrigger aria-label={t('merchant.contentTranslations.categories')} className="h-12 bg-gray-50/50 border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 flex items-center px-6 font-medium text-gray-900 transition-all">
+                      <SelectTrigger aria-label={t('merchant.contentTranslations.categories')} className="h-12 bg-neutral-veil/50 border-neutral-faint rounded-2xl focus:ring-2 focus:ring-action-base/10 focus:border-action-base flex items-center px-6 font-medium text-neutral-deepest transition-all">
                         <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2 bg-white">
+                      <SelectContent className="rounded-2xl border-neutral-faint shadow-2xl p-2 bg-surface">
                         <SelectItem value="none" className="rounded-xl py-2.5 font-medium transition-colors">Unassigned</SelectItem>
                         {categories.map((c: any) => (
                           <SelectItem key={c.id} value={c.id} className="rounded-xl py-2.5 font-medium transition-colors">{c.name}</SelectItem>
@@ -200,9 +200,9 @@ export default function CreateProductPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Requires Shipping</Label>
-                    <div className="h-12 rounded-2xl bg-gray-50/50 border border-gray-100 px-4 flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">
+                    <Label className="text-xs font-bold text-neutral-base uppercase tracking-tighter">Requires Shipping</Label>
+                    <div className="h-12 rounded-2xl bg-neutral-veil/50 border border-neutral-faint px-4 flex items-center justify-between">
+                      <span className="text-sm font-medium text-neutral-deep">
                         {formData.requiresShipping ? 'Yes' : 'No'}
                       </span>
                       <Switch
@@ -214,13 +214,13 @@ export default function CreateProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter" htmlFor="product-base-description">{t('merchant.contentTranslations.baseDescription')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
+                  <Label className="text-xs font-bold text-neutral-base uppercase tracking-tighter" htmlFor="product-base-description">{t('merchant.contentTranslations.baseDescription')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
                   <Textarea
                     id="product-base-description"
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     rows={6}
-                    className="border-gray-100 rounded-2xl p-6 leading-relaxed text-sm font-medium text-gray-700 bg-gray-50/50 resize-none focus:border-blue-500 focus:ring-0 transition-all"
+                    className="border-neutral-faint rounded-2xl p-6 leading-relaxed text-sm font-medium text-neutral-deep bg-neutral-veil/50 resize-none focus:border-action-base focus:ring-0 transition-all"
                     placeholder="Full product details..."
                   />
                 </div>
@@ -232,10 +232,10 @@ export default function CreateProductPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm space-y-8">
+            <div className="bg-surface rounded-3xl border border-neutral-faint p-8 shadow-sm space-y-8">
               <div className="space-y-1">
-                <h2 className="text-lg font-bold text-gray-900">Inventory & Pricing</h2>
-                <p className="text-gray-400 text-xs">Configure variant specifications</p>
+                <h2 className="text-lg font-bold text-neutral-deepest">Inventory & Pricing</h2>
+                <p className="text-neutral-light text-xs">Configure variant specifications</p>
               </div>
 
               <VariantsEditor
@@ -247,34 +247,34 @@ export default function CreateProductPage() {
 
           {/* Media & Actions */}
           <div className="space-y-8">
-            <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm space-y-6">
+            <div className="bg-surface rounded-3xl border border-neutral-faint p-8 shadow-sm space-y-6">
               <div className="space-y-1">
-                <h2 className="text-lg font-bold text-gray-900">Product Media</h2>
-                <p className="text-gray-400 text-xs">Upload gallery images</p>
+                <h2 className="text-lg font-bold text-neutral-deepest">Product Media</h2>
+                <p className="text-neutral-light text-xs">Upload gallery images</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <label className="aspect-square border-2 border-dashed border-gray-100 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all group overflow-hidden">
+                <label className="aspect-square border-2 border-dashed border-neutral-faint rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:bg-action-veil hover:border-action-soft transition-all group overflow-hidden">
                   {isUploading ? (
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-action-strong"></div>
                   ) : (
                     <div className="text-center">
-                      <Plus className="w-8 h-8 text-gray-300 group-hover:text-blue-500 mx-auto" />
-                      <span className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-widest mt-2 block">Upload</span>
+                      <Plus className="w-8 h-8 text-neutral-pale group-hover:text-action-base mx-auto" />
+                      <span className="text-[10px] font-bold text-neutral-light group-hover:text-action-base uppercase tracking-widest mt-2 block">Upload</span>
                     </div>
                   )}
                   <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={isUploading} />
                 </label>
 
                 {formData.images.map((img, idx) => (
-                  <div key={idx} className="group relative aspect-square bg-gray-50 rounded-3xl overflow-hidden border border-gray-100">
+                  <div key={idx} className="group relative aspect-square bg-neutral-veil rounded-3xl overflow-hidden border border-neutral-faint">
                     <Image src={img} alt="Asset" fill className="object-cover" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 bg-overlay-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setFormData(p => ({ ...p, images: p.images.filter((_, i) => i !== idx) }))}
-                        className="bg-white/90 hover:bg-white text-red-500 rounded-full w-10 h-10 shadow-lg"
+                        className="bg-surface/90 hover:bg-surface text-danger-base rounded-full w-10 h-10 shadow-lg"
                       >
                         <Trash2 className="w-5 h-5" />
                       </Button>

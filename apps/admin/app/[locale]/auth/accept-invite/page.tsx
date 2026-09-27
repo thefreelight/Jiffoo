@@ -44,11 +44,11 @@ function AcceptInviteForm() {
           <Input id="password" type="password" required minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} />
           <label htmlFor="confirm" className="block text-sm font-medium">Confirm password</label>
           <Input id="confirm" type="password" required minLength={6} value={confirm} onChange={(event) => setConfirm(event.target.value)} />
-          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-sm text-danger-strong">{error}</p>}
           <Button type="submit" disabled={busy}>Activate account</Button>
         </form>
       )}
-      <Link href={`/${locale}/auth/login`} className="text-sm text-blue-700">Back to sign in</Link>
+      <Link href={`/${locale}/auth/login`} className="text-sm text-action-deep">Back to sign in</Link>
     </main>
   )
 }

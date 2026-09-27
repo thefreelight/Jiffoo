@@ -94,11 +94,11 @@ export default function CustomersPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Active':
-        return 'bg-green-100 text-green-800'
+        return 'bg-success-faint text-success-dark'
       case 'Inactive':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-neutral-faint text-neutral-dark'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-neutral-faint text-neutral-dark'
     }
   }
 
@@ -156,10 +156,10 @@ export default function CustomersPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#fcfdfe]">
+      <div className="flex items-center justify-center min-h-screen bg-page-surface">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-400 font-bold text-[10px] uppercase tracking-widest">{getText('merchant.customers.loading', 'Syncing Identity Nodes...')}</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-action-strong mx-auto"></div>
+          <p className="mt-4 text-neutral-light font-bold text-[10px] uppercase tracking-widest">{getText('merchant.customers.loading', 'Syncing Identity Nodes...')}</p>
         </div>
       </div>
     )
@@ -167,26 +167,26 @@ export default function CustomersPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#fcfdfe]">
+      <div className="flex items-center justify-center min-h-screen bg-page-surface">
         <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto">
-            <AlertTriangle className="w-8 h-8 text-red-500" />
+          <div className="w-16 h-16 bg-danger-veil rounded-2xl flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-8 h-8 text-danger-base" />
           </div>
-          <p className="text-gray-900 font-bold">{getText('merchant.customers.loadFailed', 'Signal Interference Detected')}</p>
+          <p className="text-neutral-deepest font-bold">{getText('merchant.customers.loadFailed', 'Signal Interference Detected')}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
+    <div className="w-full bg-page-surface min-h-screen">
       {/* Header Bar */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
+          <h1 className="text-xl font-bold text-neutral-deepest tracking-tight leading-none">
             {getText('merchant.customers.title', 'Customers')}
           </h1>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
+          <span className="text-[10px] font-bold text-action-strong uppercase tracking-widest mt-1">
             {getText('merchant.customers.subtitle', 'Identity & Access Management')}
           </span>
         </div>
@@ -237,11 +237,11 @@ export default function CustomersPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
+        <div className="bg-surface rounded-3xl border border-neutral-faint p-8 shadow-sm">
           <div className="flex flex-col sm:flex-row gap-6">
             <div className="flex-1">
               <div className="relative group">
-                <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-300 group-focus-within:text-blue-500 transition-colors" />
+                <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-pale group-focus-within:text-action-base transition-colors" />
                 <input
                   type="text"
                   placeholder={getText('merchant.customers.searchPlaceholder', 'Search customers by name or email...')}
@@ -250,16 +250,16 @@ export default function CustomersPage() {
                     setSearchTerm(e.target.value)
                     setCurrentPage(1)
                   }}
-                  className="w-full pl-11 pr-4 h-12 bg-gray-50 border-gray-50 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium"
+                  className="w-full pl-11 pr-4 h-12 bg-neutral-veil border-neutral-veil rounded-2xl focus:ring-2 focus:ring-action-base/10 focus:border-action-base focus:bg-surface transition-all text-sm font-medium"
                 />
               </div>
             </div>
             <div className="flex gap-4">
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="h-12 min-w-[180px] bg-gray-50 border-gray-50 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 flex items-center px-6 text-sm font-bold text-gray-700">
+                <SelectTrigger className="h-12 min-w-[180px] bg-neutral-veil border-neutral-veil rounded-2xl focus:ring-2 focus:ring-action-base/10 focus:border-action-base flex items-center px-6 text-sm font-bold text-neutral-deep">
                   <SelectValue placeholder={getText('merchant.customers.allStatus', 'All Status')} />
                 </SelectTrigger>
-                <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2 bg-white">
+                <SelectContent className="rounded-2xl border-neutral-faint shadow-2xl p-2 bg-surface">
                   <SelectItem value="All" className="rounded-xl py-2.5 font-semibold">{getText('merchant.customers.allStatus', 'All Status')}</SelectItem>
                   <SelectItem value="Active" className="rounded-xl py-2.5 font-semibold">{getText('merchant.customers.active', 'Active')}</SelectItem>
                   <SelectItem value="Inactive" className="rounded-xl py-2.5 font-semibold">{getText('merchant.customers.inactive', 'Inactive')}</SelectItem>
@@ -270,41 +270,41 @@ export default function CustomersPage() {
         </div>
 
         {/* Customers Table */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-gray-50 bg-gray-50/30">
-                  <th className="py-5 px-8 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.name', 'Customer')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.contact', 'Contact')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.joinDate', 'Join Date')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.role', 'Role')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.status', 'Status')}</th>
-                  <th className="py-5 px-8 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.actions', 'Actions')}</th>
+                <tr className="border-b border-neutral-veil bg-neutral-veil/30">
+                  <th className="py-5 px-8 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.name', 'Customer')}</th>
+                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.contact', 'Contact')}</th>
+                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.joinDate', 'Join Date')}</th>
+                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.role', 'Role')}</th>
+                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.status', 'Status')}</th>
+                  <th className="py-5 px-8 text-right text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.actions', 'Actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-neutral-veil">
                 {filteredCustomers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center">
-                      <div className="text-gray-400 font-medium">
+                      <div className="text-neutral-light font-medium">
                         {searchTerm ? getText('merchant.customers.noCustomersMatching', 'No customers found matching your search.') : getText('merchant.customers.noCustomersFound', 'No customers found.')}
                       </div>
                     </td>
                   </tr>
                 ) : (
                   filteredCustomers.map((customer: User) => (
-                    <tr key={customer.id} className="group hover:bg-blue-50/30 transition-colors">
+                    <tr key={customer.id} className="group hover:bg-action-veil/30 transition-colors">
                       <td className="py-5 px-8">
                         <div className="flex items-center gap-4">
-                          <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-gray-100 border border-gray-100 flex-shrink-0 flex items-center justify-center font-bold text-gray-500">
+                          <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-neutral-faint border border-neutral-faint flex-shrink-0 flex items-center justify-center font-bold text-neutral-base">
                             {customer.username?.charAt(0)?.toUpperCase() || 'U'}
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate block">
+                            <span className="font-bold text-neutral-deepest group-hover:text-action-strong transition-colors truncate block">
                               {customer.username || getText('merchant.customers.unknown', 'Unknown')}
                             </span>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter truncate opacity-70">
+                            <span className="text-[10px] font-bold text-neutral-light uppercase tracking-tighter truncate opacity-70">
                               ID: {customer.id.substring(0, 8)}...
                             </span>
                           </div>
@@ -312,17 +312,17 @@ export default function CustomersPage() {
                       </td>
                       <td className="py-5 px-6">
                         <div className="flex flex-col">
-                          <div className="text-sm font-bold text-gray-900">{customer.email || getText('merchant.customers.noPhone', 'No email')}</div>
-                          <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{getText('merchant.customers.noPhone', 'No phone')}</div>
+                          <div className="text-sm font-bold text-neutral-deepest">{customer.email || getText('merchant.customers.noPhone', 'No email')}</div>
+                          <div className="text-[10px] font-medium text-neutral-light uppercase tracking-wider">{getText('merchant.customers.noPhone', 'No phone')}</div>
                         </div>
                       </td>
                       <td className="py-5 px-6">
-                        <div className="text-sm font-medium text-gray-600">
+                        <div className="text-sm font-medium text-neutral-strong">
                           {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : getText('merchant.customers.unknown', 'Unknown')}
                         </div>
                       </td>
                       <td className="py-5 px-6">
-                        <Badge variant="secondary" className="bg-gray-100 text-gray-600 border-0 font-bold">
+                        <Badge variant="secondary" className="bg-neutral-faint text-neutral-strong border-0 font-bold">
                           {customer.role || 'user'}
                         </Badge>
                       </td>
@@ -333,12 +333,12 @@ export default function CustomersPage() {
                           disabled={updateUserMutation.isPending}
                         >
                           <SelectTrigger
-                            className={`h-10 min-w-[130px] bg-gray-50 border-gray-50 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 flex items-center px-4 text-[10px] font-bold uppercase tracking-widest transition-all ${getStatusColor(getCustomerStatus(customer))}`}
+                            className={`h-10 min-w-[130px] bg-neutral-veil border-neutral-veil rounded-2xl focus:ring-2 focus:ring-action-base/10 focus:border-action-base flex items-center px-4 text-[10px] font-bold uppercase tracking-widest transition-all ${getStatusColor(getCustomerStatus(customer))}`}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2 bg-white">
+                          <SelectContent className="rounded-2xl border-neutral-faint shadow-2xl p-2 bg-surface">
                             <SelectItem value="Active" className="rounded-xl py-2.5 font-semibold text-[10px] uppercase tracking-widest">
                               {getText('merchant.customers.active', 'Active')}
                             </SelectItem>
@@ -351,14 +351,14 @@ export default function CustomersPage() {
                       <td className="py-5 px-8 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link href={`/${locale}/customers/${customer.id}`}>
-                            <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl hover:bg-white hover:shadow-md transition-all text-gray-400 hover:text-blue-600">
+                            <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl hover:bg-surface hover:shadow-md transition-all text-neutral-light hover:text-action-strong">
                               <Edit className="w-4 h-4" />
                             </Button>
                           </Link>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="w-9 h-9 rounded-xl hover:bg-white hover:shadow-md transition-all text-gray-400 hover:text-red-600"
+                            className="w-9 h-9 rounded-xl hover:bg-surface hover:shadow-md transition-all text-neutral-light hover:text-danger-strong"
                             onClick={() => setDeleteUserId(customer.id)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -376,7 +376,7 @@ export default function CustomersPage() {
         {/* Pagination */}
         {pagination && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-12">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] bg-gray-100/50 px-4 py-2 rounded-full border border-gray-100">
+            <div className="text-[10px] font-bold text-neutral-light uppercase tracking-[0.2em] bg-neutral-faint/50 px-4 py-2 rounded-full border border-neutral-faint">
               {getText('merchant.customers.showingResults', 'Viewing {from}-{to} of {total} Identities')
                 .replace('{from}', String((currentPage - 1) * pageSize + 1))
                 .replace('{to}', String(Math.min(currentPage * pageSize, pagination.total)))
@@ -386,7 +386,7 @@ export default function CustomersPage() {
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                className="h-10 rounded-xl border-gray-100 font-bold text-xs hover:bg-gray-50 disabled:opacity-30"
+                className="h-10 rounded-xl border-neutral-faint font-bold text-xs hover:bg-neutral-veil disabled:opacity-30"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
               >
@@ -400,7 +400,7 @@ export default function CustomersPage() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${currentPage === page ? 'bg-gray-900 text-white shadow-xl scale-110' : 'bg-white text-gray-400 border border-gray-50 hover:border-gray-200'}`}
+                      className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${currentPage === page ? 'bg-neutral-deepest text-surface shadow-xl scale-110' : 'bg-surface text-neutral-light border border-neutral-veil hover:border-neutral-soft'}`}
                     >
                       {page}
                     </button>
@@ -410,7 +410,7 @@ export default function CustomersPage() {
 
               <Button
                 variant="outline"
-                className="h-10 rounded-xl border-gray-100 font-bold text-xs hover:bg-gray-50 disabled:opacity-30"
+                className="h-10 rounded-xl border-neutral-faint font-bold text-xs hover:bg-neutral-veil disabled:opacity-30"
                 onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
                 disabled={currentPage === pagination.totalPages}
               >
@@ -434,7 +434,7 @@ export default function CustomersPage() {
             <AlertDialogCancel>{getText('merchant.customers.cancel', 'Cancel')}</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteUser}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-danger-strong hover:bg-danger-deep"
               disabled={deleteUserMutation.isPending}
             >
               {deleteUserMutation.isPending ? getText('merchant.customers.deleting', 'Deleting...') : getText('merchant.customers.delete', 'Delete')}

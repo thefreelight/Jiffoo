@@ -67,7 +67,7 @@ export function ShipOrderDialog({ order, open, onOpenChange, onSuccess }: ShipOr
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Truck className="w-5 h-5 text-blue-600" />
+                        <Truck className="w-5 h-5 text-action-strong" />
                         {getText('merchant.orders.ship.title', 'Ship Order')}
                     </DialogTitle>
                     <DialogDescription>
@@ -98,7 +98,7 @@ export function ShipOrderDialog({ order, open, onOpenChange, onSuccess }: ShipOr
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={shipOrderMutation.isPending}>
                         {getText('common.actions.cancel', 'Cancel')}
                     </Button>
-                    <Button onClick={handleShip} disabled={shipOrderMutation.isPending} className="bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={handleShip} disabled={shipOrderMutation.isPending} className="bg-action-strong hover:bg-action-deep">
                         {shipOrderMutation.isPending ? getText('common.actions.processing', 'Processing...') : getText('merchant.orders.ship.confirm', 'Confirm Shipment')}
                     </Button>
                 </DialogFooter>

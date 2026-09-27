@@ -65,9 +65,9 @@ export function LoadingState({
   if (type === 'skeleton') {
     return (
       <div className={cn('space-y-3 animate-pulse', className)}>
-        <div className={cn('bg-gray-200 rounded w-full', sizeClasses[size].skeleton)} />
-        <div className={cn('bg-gray-200 rounded w-3/4', sizeClasses[size].skeleton)} />
-        <div className={cn('bg-gray-200 rounded w-1/2', sizeClasses[size].skeleton)} />
+        <div className={cn('bg-neutral-soft rounded w-full', sizeClasses[size].skeleton)} />
+        <div className={cn('bg-neutral-soft rounded w-3/4', sizeClasses[size].skeleton)} />
+        <div className={cn('bg-neutral-soft rounded w-1/2', sizeClasses[size].skeleton)} />
       </div>
     );
   }
@@ -124,8 +124,8 @@ function getErrorConfig(error: Error | string | null | undefined) {
       icon: Clock,
       title: 'Request Timeout',
       message: 'Server response timed out. Please check your network connection and try again.',
-      bgColor: 'bg-amber-100 dark:bg-amber-900/30',
-      iconColor: 'text-amber-600 dark:text-amber-400',
+      bgColor: 'bg-alert-faint',
+      iconColor: 'text-alert-strong',
     };
   }
 
@@ -134,8 +134,8 @@ function getErrorConfig(error: Error | string | null | undefined) {
       icon: WifiOff,
       title: 'Network Connection Failed',
       message: 'Unable to connect to the server. Please check your network settings.',
-      bgColor: 'bg-orange-100 dark:bg-orange-900/30',
-      iconColor: 'text-orange-600 dark:text-orange-400',
+      bgColor: 'bg-caution-faint',
+      iconColor: 'text-caution-strong',
     };
   }
 
@@ -144,8 +144,8 @@ function getErrorConfig(error: Error | string | null | undefined) {
     icon: AlertCircle,
     title: 'Something went wrong',
     message: 'Please try again later or refresh the page',
-    bgColor: 'bg-red-100 dark:bg-red-900/30',
-    iconColor: 'text-red-600 dark:text-red-400',
+    bgColor: 'bg-danger-faint',
+    iconColor: 'text-danger-strong',
   };
 }
 
@@ -184,11 +184,11 @@ export function ErrorState({
         <IconComponent className={cn('h-8 w-8', config.iconColor)} />
       </div>
 
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+      <h3 className="text-lg font-semibold text-neutral-deepest mb-2">
         {displayTitle}
       </h3>
 
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-md">
+      <p className="text-sm text-neutral-base mb-4 max-w-md">
         {displayMessage}
       </p>
 
@@ -196,7 +196,7 @@ export function ErrorState({
         {onRetry && (
           <button
             onClick={onRetry}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-surface bg-primary hover:bg-primary/90 rounded-lg transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             Retry
@@ -205,7 +205,7 @@ export function ErrorState({
         {onGoBack && (
           <button
             onClick={onGoBack}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-deep bg-neutral-faint hover:bg-neutral-soft rounded-lg transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
@@ -214,7 +214,7 @@ export function ErrorState({
         {onGoHome && (
           <button
             onClick={onGoHome}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-deep bg-neutral-faint hover:bg-neutral-soft rounded-lg transition-colors"
           >
             <Home className="h-4 w-4" />
             Go Home
@@ -224,15 +224,15 @@ export function ErrorState({
 
       {showDetails && errorMessage && (
         <details className="mt-6 text-left w-full max-w-lg">
-          <summary className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
+          <summary className="text-sm text-neutral-strong cursor-pointer hover:text-neutral-dark">
             Error Details (Development Mode)
           </summary>
-          <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-            <p className="text-sm font-mono text-red-600 dark:text-red-400 break-all">
+          <div className="mt-2 p-3 bg-danger-veil rounded-lg">
+            <p className="text-sm font-mono text-danger-strong break-all">
               {errorMessage}
             </p>
             {errorStack && (
-              <pre className="mt-2 text-xs text-red-500 dark:text-red-400/80 overflow-auto max-h-40">
+              <pre className="mt-2 text-xs text-danger-base overflow-auto max-h-40">
                 {errorStack}
               </pre>
             )}
@@ -270,22 +270,22 @@ export function EmptyState({
       'flex flex-col items-center justify-center text-center p-8',
       className
     )}>
-      <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
-        {icon || <PackageOpen className="h-8 w-8 text-gray-400" />}
+      <div className="w-16 h-16 rounded-full bg-neutral-faint flex items-center justify-center mb-4">
+        {icon || <PackageOpen className="h-8 w-8 text-neutral-light" />}
       </div>
 
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+      <h3 className="text-lg font-semibold text-neutral-deepest mb-2">
         {title}
       </h3>
 
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-md">
+      <p className="text-sm text-neutral-base mb-4 max-w-md">
         {message}
       </p>
 
       {action && (
         <button
           onClick={action.onClick}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-surface bg-primary hover:bg-primary/90 rounded-lg transition-colors"
         >
           {action.label}
         </button>

@@ -214,8 +214,8 @@ function SettingsPageContent() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-50 border-t-blue-600 rounded-full animate-spin" />
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+          <div className="w-12 h-12 border-4 border-action-veil border-t-action-strong rounded-full animate-spin" />
+          <p className="text-xs font-bold text-neutral-light uppercase tracking-widest">
             {getText('common.actions.loading', 'Loading...')}
           </p>
         </div>
@@ -224,21 +224,21 @@ function SettingsPageContent() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
+    <div className="w-full bg-page-surface min-h-screen">
       {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
+          <h1 className="text-xl font-bold text-neutral-deepest tracking-tight leading-none">
             {getText('merchant.settings.title', 'Settings')}
           </h1>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
+          <span className="text-[10px] font-bold text-action-strong uppercase tracking-widest mt-1">
             System Configuration
           </span>
         </div>
         <Button
           onClick={handleSave}
           disabled={saving || !hasChanges}
-          className="h-10 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50"
+          className="h-10 px-6 rounded-xl bg-action-strong hover:bg-action-deep font-semibold text-sm shadow-lg shadow-action-base/20 transition-all disabled:opacity-50"
         >
           <Save className="h-4 w-4 mr-2" />
           {saving ? getText('common.actions.saving', 'Saving...') : getText('common.actions.saveChanges', 'Save Changes')}
@@ -247,17 +247,17 @@ function SettingsPageContent() {
 
       <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
         {/* Store Branding Card */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between">
+        <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-neutral-veil flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center">
-                <Settings2 className="h-6 w-6 text-blue-600" />
+              <div className="w-12 h-12 rounded-2xl bg-action-veil flex items-center justify-center">
+                <Settings2 className="h-6 w-6 text-action-strong" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="text-lg font-bold text-neutral-deepest">
                   {getText('merchant.settings.general.storeBranding', 'Store Branding')}
                 </h3>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
                   {getText('merchant.settings.sections.generalDesc', 'Basic store configuration and preferences')}
                 </span>
               </div>
@@ -266,7 +266,7 @@ function SettingsPageContent() {
           <div className="p-8 grid gap-6 md:grid-cols-2">
             {BRANDING_FIELDS.map((field) => (
               <div key={field.key} className={field.key === 'branding.store_description' ? 'md:col-span-2 space-y-2' : 'space-y-2'}>
-                <Label htmlFor={field.key} className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <Label htmlFor={field.key} className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
                   {getText(field.labelKey, field.labelFallback)}
                 </Label>
                 {field.key === 'branding.store_description' ? (
@@ -275,7 +275,7 @@ function SettingsPageContent() {
                     value={getString(draft[field.key])}
                     onChange={(event) => updateField(field.key, event.target.value)}
                     placeholder={field.placeholder}
-                    className="rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                    className="rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all"
                   />
                 ) : (
                   <Input
@@ -283,7 +283,7 @@ function SettingsPageContent() {
                     value={getString(draft[field.key])}
                     onChange={(event) => updateField(field.key, event.target.value)}
                     placeholder={field.placeholder}
-                    className="h-11 rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                    className="h-11 rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all"
                   />
                 )}
               </div>
@@ -292,12 +292,12 @@ function SettingsPageContent() {
         </div>
 
         {/* Localization Card */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-8 py-6 border-b border-gray-50">
-            <h3 className="text-lg font-bold text-gray-900">
+        <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-neutral-veil">
+            <h3 className="text-lg font-bold text-neutral-deepest">
               {getText('merchant.settings.sections.localization', 'Localization')}
             </h3>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
               {getText('merchant.settings.sections.localizationDesc', 'Language, currency, and regional settings')}
             </span>
           </div>
@@ -308,7 +308,7 @@ function SettingsPageContent() {
 
               return (
                 <div key={field.key} className="space-y-2">
-                  <Label htmlFor={field.key} className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  <Label htmlFor={field.key} className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
                     {getText(field.labelKey, field.labelFallback)}
                   </Label>
                   {isLocaleField ? (
@@ -316,7 +316,7 @@ function SettingsPageContent() {
                       value={getString(draft[field.key]) || 'en'}
                       onValueChange={(value) => updateField(field.key, value)}
                     >
-                      <SelectTrigger className="h-11 rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all">
+                      <SelectTrigger className="h-11 rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all">
                         <SelectValue placeholder="Select language" />
                       </SelectTrigger>
                       <SelectContent>
@@ -332,7 +332,7 @@ function SettingsPageContent() {
                       value={getString(draft[field.key]) || 'UTC'}
                       onValueChange={(value) => updateField(field.key, value)}
                     >
-                      <SelectTrigger className="h-11 rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all">
+                      <SelectTrigger className="h-11 rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all">
                         <SelectValue placeholder="Select timezone" />
                       </SelectTrigger>
                       <SelectContent>
@@ -349,7 +349,7 @@ function SettingsPageContent() {
                       value={getString(draft[field.key])}
                       onChange={(event) => updateField(field.key, event.target.value)}
                       placeholder={field.placeholder}
-                      className="h-11 rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                      className="h-11 rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all"
                     />
                   )}
                 </div>
@@ -359,15 +359,15 @@ function SettingsPageContent() {
         </div>
 
         {/* Checkout Address Rules Card */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-8 py-6 border-b border-gray-50">
-            <h3 className="text-lg font-bold text-gray-900">Checkout Address Rules</h3>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+        <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
+          <div className="px-8 py-6 border-b border-neutral-veil">
+            <h3 className="text-lg font-bold text-neutral-deepest">Checkout Address Rules</h3>
+            <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
               Countries that require state and postal code when shipping address is provided
             </span>
           </div>
           <div className="p-8 space-y-2">
-            <Label htmlFor={CHECKOUT_COUNTRIES_KEY} className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <Label htmlFor={CHECKOUT_COUNTRIES_KEY} className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
               Country Codes (ISO-2)
             </Label>
             <Textarea
@@ -375,9 +375,9 @@ function SettingsPageContent() {
               value={getString(draft[CHECKOUT_COUNTRIES_KEY])}
               onChange={(event) => updateField(CHECKOUT_COUNTRIES_KEY, event.target.value)}
               placeholder="US, CA, AU, CN, GB"
-              className="rounded-xl border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all min-h-[96px]"
+              className="rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all min-h-[96px]"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-neutral-base">
               Use comma or newline separated country codes. Example: <code>US, CA, AU, CN, GB</code>
             </p>
           </div>

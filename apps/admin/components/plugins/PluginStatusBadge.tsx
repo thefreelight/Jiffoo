@@ -37,7 +37,7 @@ export function PluginStatusBadge({ status, enabled, className }: PluginStatusBa
 
   if (status === 'INACTIVE') {
     return (
-      <Badge className={`bg-gray-100 text-gray-800 ${className}`}>
+      <Badge className={`bg-neutral-faint text-neutral-dark ${className}`}>
         <XCircle className="w-3 h-3 mr-1" />
         {getText('merchant.plugins.status.inactive', 'Inactive')}
       </Badge>
@@ -46,7 +46,7 @@ export function PluginStatusBadge({ status, enabled, className }: PluginStatusBa
 
   if (enabled === false) {
     return (
-      <Badge className={`bg-yellow-100 text-yellow-800 ${className}`}>
+      <Badge className={`bg-warning-faint text-warning-dark ${className}`}>
         <Clock className="w-3 h-3 mr-1" />
         {getText('merchant.plugins.status.disabled', 'Disabled')}
       </Badge>
@@ -54,7 +54,7 @@ export function PluginStatusBadge({ status, enabled, className }: PluginStatusBa
   }
 
   return (
-    <Badge className={`bg-green-100 text-green-800 ${className}`}>
+    <Badge className={`bg-success-faint text-success-dark ${className}`}>
       <CheckCircle className="w-3 h-3 mr-1" />
       {getText('merchant.plugins.status.active', 'Active')}
     </Badge>

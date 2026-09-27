@@ -59,36 +59,36 @@ export function VariantsEditor({ variants, onChange }: VariantsEditorProps) {
                 {variants.map((variant, index) => (
                     <div
                         key={variant.id || variant.tempId || index}
-                        className="group relative bg-gray-50/50 border border-gray-100 rounded-xl p-4 transition-all hover:shadow-lg hover:shadow-blue-500/5 hover:border-blue-100 hover:bg-white"
+                        className="group relative bg-neutral-veil/50 border border-neutral-faint rounded-xl p-4 transition-all hover:shadow-lg hover:shadow-action-base/5 hover:border-action-faint hover:bg-surface"
                     >
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
                             {/* Identity */}
                             <div className="col-span-1 md:col-span-2 lg:col-span-3 space-y-2">
-                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">Variant Name</Label>
+                                <Label className="text-[9px] font-bold text-neutral-light uppercase tracking-widest pl-1">Variant Name</Label>
                                 <Input
                                     value={variant.name}
                                     onChange={(e) => handleUpdateVariant(index, { name: e.target.value })}
                                     placeholder="e.g. Red / XL"
-                                    className="h-10 text-sm font-bold border-gray-100 bg-white rounded-lg focus:ring-2 focus:ring-blue-500/10 focus:bg-white px-4 transition-all"
+                                    className="h-10 text-sm font-bold border-neutral-faint bg-surface rounded-lg focus:ring-2 focus:ring-action-base/10 focus:bg-surface px-4 transition-all"
                                 />
                             </div>
 
                             {/* SKU */}
                             <div className="col-span-1 md:col-span-1 lg:col-span-3 space-y-2">
-                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">SKU Reference</Label>
+                                <Label className="text-[9px] font-bold text-neutral-light uppercase tracking-widest pl-1">SKU Reference</Label>
                                 <Input
                                     value={variant.skuCode || ''}
                                     onChange={(e) => handleUpdateVariant(index, { skuCode: e.target.value })}
-                                    className="h-10 font-mono text-xs font-bold border-gray-100 bg-white rounded-lg px-4 uppercase tracking-wider text-gray-500 focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all"
+                                    className="h-10 font-mono text-xs font-bold border-neutral-faint bg-surface rounded-lg px-4 uppercase tracking-wider text-neutral-base focus:ring-2 focus:ring-action-base/10 focus:bg-surface transition-all"
                                     placeholder="SKU-REF"
                                 />
                             </div>
 
                             {/* Price */}
                             <div className="col-span-1 md:col-span-1 lg:col-span-2 space-y-2">
-                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">Sale Price</Label>
+                                <Label className="text-[9px] font-bold text-neutral-light uppercase tracking-widest pl-1">Sale Price</Label>
                                 <div className="relative group">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-300 text-xs transition-colors group-focus-within:text-blue-500">$</span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-neutral-pale text-xs transition-colors group-focus-within:text-action-base">$</span>
                                     <Input
                                         type="number"
                                         step="0.01"
@@ -97,7 +97,7 @@ export function VariantsEditor({ variants, onChange }: VariantsEditorProps) {
                                             const val = e.target.value;
                                             handleUpdateVariant(index, { salePrice: val === '' ? 0 : parseFloat(val) || 0 })
                                         }}
-                                        className="h-10 pl-9 pr-4 text-sm font-black border-gray-100 bg-white rounded-lg focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all text-left"
+                                        className="h-10 pl-9 pr-4 text-sm font-black border-neutral-faint bg-surface rounded-lg focus:ring-2 focus:ring-action-base/10 focus:bg-surface transition-all text-left"
                                         placeholder="0.00"
                                     />
                                 </div>
@@ -105,7 +105,7 @@ export function VariantsEditor({ variants, onChange }: VariantsEditorProps) {
 
                             {/* Stock */}
                             <div className="col-span-1 md:col-span-1 lg:col-span-2 space-y-2">
-                                <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1 block">Stock</Label>
+                                <Label className="text-[9px] font-bold text-neutral-light uppercase tracking-widest pl-1 block">Stock</Label>
                                 <Input
                                     type="number"
                                     value={variant.stock === 0 ? '' : variant.stock}
@@ -113,7 +113,7 @@ export function VariantsEditor({ variants, onChange }: VariantsEditorProps) {
                                         const val = e.target.value;
                                         handleUpdateVariant(index, { stock: val === '' ? 0 : parseInt(val) || 0 })
                                     }}
-                                    className="h-10 text-sm font-black border-gray-100 bg-white rounded-lg px-4 text-left focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all"
+                                    className="h-10 text-sm font-black border-neutral-faint bg-surface rounded-lg px-4 text-left focus:ring-2 focus:ring-action-base/10 focus:bg-surface transition-all"
                                     placeholder="0"
                                 />
                             </div>
@@ -124,7 +124,7 @@ export function VariantsEditor({ variants, onChange }: VariantsEditorProps) {
                                     type="button"
                                     onClick={() => handleRemoveVariant(index)}
                                     disabled={variants.length <= 1}
-                                    className="w-9 h-9 rounded-lg text-gray-300 border border-gray-100 bg-white hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-all disabled:opacity-0 flex items-center justify-center shrink-0"
+                                    className="w-9 h-9 rounded-lg text-neutral-pale border border-neutral-faint bg-surface hover:bg-danger-veil hover:text-danger-base hover:border-danger-faint transition-all disabled:opacity-0 flex items-center justify-center shrink-0"
                                     title="Remove Variant"
                                 >
                                     <Trash2 className="w-4 h-4" />
@@ -139,7 +139,7 @@ export function VariantsEditor({ variants, onChange }: VariantsEditorProps) {
             <Button
                 type="button"
                 onClick={handleAddVariant}
-                className="h-10 w-full rounded-xl border-2 border-dashed border-gray-100 bg-white text-gray-400 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all flex items-center justify-center space-x-2 group"
+                className="h-10 w-full rounded-xl border-2 border-dashed border-neutral-faint bg-surface text-neutral-light hover:bg-action-veil hover:border-action-soft hover:text-action-strong transition-all flex items-center justify-center space-x-2 group"
             >
                 <Plus className="w-4 h-4" />
                 <span className="text-xs font-bold uppercase tracking-widest">Add New Variant</span>
