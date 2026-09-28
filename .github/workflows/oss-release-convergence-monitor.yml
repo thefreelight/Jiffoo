@@ -1,0 +1,84 @@
+name: OSS Release Convergence Monitor
+
+on:
+  schedule:
+    # Mondays 04:00 UTC — verify the latest published release still converges
+    # with the public self-hosted feed, runtime images, and release assets.
+    - cron: '0 4 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: oss-release-convergence-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve latest published release
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases" \
+            --jq '[.[] | select(.draft == false and .prerelease == false)][0].tag_name')"
+          if [ -z "${TAG}" ] || [ "${TAG}" = "null" ]; then
+            echo "No published release found" >&2
+            exit 1
+          fi
+          echo "Latest published release: ${TAG}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify release convergence (feed + images + assets)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/verify-public-release-convergence.mjs \
+            --release-tag "${{ steps.latest.outputs.tag }}" \
+            --public-url https://get.jiffoo.com/releases/core/manifest.json \
+            --verify-images
+
+      - name: Close resolved convergence alerts
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --label release-convergence --json number --jq '.[].number' \
+          | while read -r number; do
+              [ -n "$number" ] || continue
+              gh issue close "$number" --repo "$GITHUB_REPOSITORY" \
+                --comment "Release convergence verified green; auto-closing this alert."
+            done
+
+      - name: Open convergence failure alert
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create release-convergence --repo "$GITHUB_REPOSITORY" \
+            --color D93F0B 2>/dev/null || true
+          COUNT="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --label release-convergence --json number --jq 'length')"
+          if [ "${COUNT}" -ne 0 ]; then
+            echo "Convergence alert already open; not duplicating."
+            exit 0
+          fi
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --label release-convergence \
+            --title "OSS release convergence broken" \
+            --body "The scheduled convergence monitor failed.
+
+            Checks: latest published release ↔ get.jiffoo.com manifest ↔ published runtime images ↔ required release assets.
+
+            Failed run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+
+            Reproduce locally:
+            \`node scripts/verify-public-release-convergence.mjs --release-tag <tag> --public-url https://get.jiffoo.com/releases/core/manifest.json --verify-images\`"
