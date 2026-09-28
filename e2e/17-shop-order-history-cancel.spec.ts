@@ -1,5 +1,5 @@
 import { expect, test } from './local-requests';
-import { login, ownerEmail } from './helpers';
+import { login, ownerEmail, shopLogin } from './helpers';
 
 test('customer order history, detail, and cancellation are reflected in Admin', async ({ page, browser }) => {
   const shopContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3003' });
@@ -49,4 +49,84 @@ test('customer order history, detail, and cancellation are reflected in Admin', 
   } finally {
     await shopContext.close();
   }
+});
+
+test('Q Shop home, cart and orders fit the mobile viewport without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const checkWidth = async () => {
+    const header = page.getByRole('banner');
+    await expect(header).toBeVisible();
+    const bounds = await header.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBe(0);
+    expect(bounds!.width).toBe(390);
+    const lastEntry = header.getByRole('button', { name: 'Language', exact: true });
+    await expect(lastEntry).toBeVisible();
+    const lastBounds = await lastEntry.boundingBox();
+    expect(lastBounds).not.toBeNull();
+    expect(lastBounds!.x).toBeGreaterThanOrEqual(0);
+    expect(lastBounds!.x + lastBounds!.width).toBeLessThanOrEqual(390);
+    const image = await page.screenshot({ type: 'png', fullPage: true, animations: 'disabled' });
+    expect(image.readUInt32BE(16), 'full-page PNG width proves the whole document fits, not only the header').toBe(390);
+  };
+  await page.goto('http://127.0.0.1:3003/en');
+  await expect(page.getByRole('heading', { name: 'Browse categories' })).toBeVisible();
+  await expect(page.getByRole('banner').getByRole('link', { name: 'Login', exact: true })).toBeVisible();
+  await checkWidth();
+  const header = page.getByRole('banner');
+  const categories = header.getByRole('button', { name: 'Categories', exact: true });
+  const navigation = header.getByRole('navigation', { name: 'Categories', exact: true });
+  await categories.click();
+  await expect(categories).toHaveAttribute('aria-expanded', 'true');
+  await expect(categories).toBeFocused();
+  await expect(navigation.getByRole('link', { name: 'All products', exact: true })).toBeVisible();
+  await expect(navigation.getByRole('link', { name: 'E2E Translated Category', exact: true })).toBeVisible();
+  await checkWidth();
+  await page.keyboard.press('Tab');
+  await expect(navigation.getByRole('link', { name: 'All products', exact: true })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(navigation).toBeHidden();
+  await expect(categories).toHaveAttribute('aria-expanded', 'false');
+  await expect(categories).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(navigation).toBeVisible();
+  await page.getByRole('heading', { name: 'Browse categories' }).click();
+  await expect(navigation).toBeHidden();
+  await expect(categories).toHaveAttribute('aria-expanded', 'false');
+  await categories.click();
+  await navigation.getByRole('link', { name: 'E2E Translated Category', exact: true }).click();
+  await expect(page).toHaveURL('http://127.0.0.1:3003/en/categories/e2e-translated-category');
+  await expect(page.getByRole('heading', { level: 1, name: 'E2E Translated Category', exact: true })).toBeVisible();
+  await expect(navigation).toBeHidden();
+  await expect(categories).toHaveAttribute('aria-expanded', 'false');
+  await header.getByRole('button', { name: 'Search products', exact: true }).click();
+  const search = header.getByRole('search', { name: 'Search products', exact: true });
+  await expect(search).toHaveAttribute('action', '/en/search');
+  await expect(search).toHaveAttribute('method', 'get');
+  await search.getByRole('searchbox', { name: 'Search products', exact: true }).fill('E2E Localized Product');
+  await checkWidth();
+  await search.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(page).toHaveURL('http://127.0.0.1:3003/en/search?q=E2E+Localized+Product');
+  await expect(page.getByRole('heading', { name: 'E2E Localized Product', exact: true })).toBeVisible();
+  await header.getByRole('button', { name: 'Language', exact: true }).click();
+  await expect(header.getByRole('combobox', { name: 'Language', exact: true })).toBeVisible();
+  await checkWidth();
+  await header.getByRole('combobox', { name: 'Language', exact: true }).selectOption('en');
+  await expect(header.getByRole('combobox', { name: 'Language', exact: true })).toBeHidden();
+  await page.goto('http://127.0.0.1:3003/en/login');
+  await shopLogin(page, { locale: 'en', email: 'history-buyer@e2e.example',
+    password: 'HistoryBuyerPassword123!', expectedPath: '/en' });
+  await page.goto('http://127.0.0.1:3003/en/cart');
+  await expect(page.getByText('Your cart is empty.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('banner').getByRole('link', { name: 'Cart (0)', exact: true })).toBeVisible();
+  await checkWidth();
+  await header.getByRole('link', { name: 'Account', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
+  await header.getByRole('link', { name: 'My orders', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'My orders' })).toBeVisible();
+  await expect(page.getByText('Cancelled', { exact: true })).toBeVisible();
+  await checkWidth();
+  await header.getByRole('button', { name: 'Logout', exact: true }).click();
+  await expect(page).toHaveURL('http://127.0.0.1:3003/en');
+  await expect(header.getByRole('link', { name: 'Login', exact: true })).toBeVisible();
 });

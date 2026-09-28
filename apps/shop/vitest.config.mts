@@ -2,6 +2,9 @@ import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
-  resolve: { alias: { '@': fileURLToPath(new URL('.', import.meta.url)) } },
+  resolve: { alias: {
+    '@': fileURLToPath(new URL('.', import.meta.url)),
+    'shared/src': fileURLToPath(new URL('../../packages/shared/src', import.meta.url)),
+  } },
   test: { environment: 'node', include: ['tests/**/*.test.ts'] },
 });

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
+import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { PathnameContext, SearchParamsContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 import type { ShopTheme, ThemeSection } from '../lib/theme';
 import { getShopTheme } from '../lib/theme';
 import { themeStyle } from '../lib/theme-style';
@@ -15,23 +17,6 @@ import defaultShop from '../../api/builtin-themes/default-shop/theme.json';
 import type { Category, Product, StoreContext } from '../lib/catalog';
 
 vi.mock('server-only', () => ({}));
-vi.mock('../lib/storefront-messages', () => ({
-  storefrontMessages: () => ({
-    navigation: {
-      categories: 'Categories', products: 'Products', cart: 'Cart', search: 'Search',
-      searchAction: 'Search', language: 'Language', localeNames: { en: 'English', 'zh-Hans': '简体中文', 'zh-Hant': '繁體中文' },
-      login: 'Login', register: 'Register', account: 'Account', logout: 'Logout', orders: 'Orders',
-    },
-    catalog: { empty: 'No products' },
-    product: { stock: 'In stock', outOfStock: 'Out of stock' },
-  }),
-}));
-vi.mock('../components/language-switcher', () => ({
-  LanguageSwitcher: () => createElement('select', { 'aria-label': 'Language' }),
-}));
-vi.mock('../components/auth-links', () => ({
-  AuthLinks: () => createElement('a', { href: '/en/login' }, 'Login'),
-}));
 
 const group: Category = { id: 'c1', slug: 'books', name: 'Books', description: null, productCount: 1 };
 const product: Product = {
@@ -81,7 +66,17 @@ const fixture: ShopTheme = {
   },
 };
 const data = { locale: 'en' as const, currency: 'USD', groups: [group], items: [product] };
-const markup = (node: React.ReactNode) => renderToStaticMarkup(createElement('div', null, node));
+const noNavigationDuringRender = () => { throw new Error('Static rendering must not navigate'); };
+const renderingRouter = {
+  back: noNavigationDuringRender, forward: noNavigationDuringRender, refresh: noNavigationDuringRender,
+  push: noNavigationDuringRender, replace: noNavigationDuringRender, prefetch: noNavigationDuringRender,
+};
+const markup = (node: React.ReactNode) => renderToStaticMarkup(
+  createElement(AppRouterContext.Provider, { value: renderingRouter },
+    createElement(PathnameContext.Provider, { value: '/en' },
+      createElement(SearchParamsContext.Provider, { value: new URLSearchParams() },
+        createElement('div', null, node)))),
+);
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -128,6 +123,46 @@ describe('T2 Shop theme rendering', () => {
     expect(footer).toContain('Support');
     expect(footer).toContain('/en/contact');
     expect(footer).toContain('rel="noopener noreferrer"');
+  });
+
+  it('S preserves named mobile controls and desktop labels in every header configuration', () => {
+    for (const variant of ['logo-left', 'logo-center'] as const) {
+      for (const menu of ['inline', 'drawer'] as const) {
+        for (const showSearch of [true, false]) {
+          for (const loggedIn of [true, false]) {
+            const html = markup(createElement(Header, { context, locale: 'en', categories: [group],
+              loggedIn, cartCount: 3, options: { variant, menu, showSearch } }));
+            const labels = loggedIn ? ['Cart (3)', 'My orders', 'Account', 'Logout'] : ['Login', 'Register'];
+            for (const label of [...labels, 'Categories', 'Language'])
+              expect(html).toContain(`aria-label="${label}"`);
+            expect(html).toContain('sr-only md:not-sr-only');
+            expect(html).toContain('var(--shop-section-spacing)');
+            expect(html.includes('role="search"')).toBe(showSearch);
+            expect(html.includes('aria-controls="shop-header-search"')).toBe(showSearch);
+            expect(html).toContain('aria-controls="shop-header-language"');
+            expect(html).toContain('value="en"');
+            expect(html).toContain('value="zh-Hans"');
+            expect(html).toContain('value="zh-Hant"');
+          }
+        }
+      }
+    }
+  });
+
+  it('T retains real authentication destinations, cart count and search submission', () => {
+    const guest = markup(createElement(Header, { context, locale: 'en', categories: [group], loggedIn: false, cartCount: 0 }));
+    expect(guest).toContain('href="/en/login?next=%2Fen"');
+    expect(guest).toContain('href="/en/register?next=%2Fen"');
+    expect(guest).toContain('action="/en/search"');
+    expect(guest.match(/method="get"/g)).toHaveLength(2);
+    expect(guest).toContain('name="q"');
+    expect(guest).toContain('<details');
+    expect(guest).toContain('<summary role="button" aria-label="Search products"');
+    const buyer = markup(createElement(Header, { context, locale: 'en', categories: [group], loggedIn: true, cartCount: 3 }));
+    for (const path of ['/en/cart', '/en/account/orders', '/en/account']) expect(buyer).toContain(`href="${path}"`);
+    expect(buyer).toContain('aria-label="Cart (3)"');
+    expect(buyer).toContain('aria-label="Logout"');
+    expect(buyer).not.toContain('aria-label="Login"');
   });
 
   it('D emits only validated token CSS and font-face data in the layout style', () => {
