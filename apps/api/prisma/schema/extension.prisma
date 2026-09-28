@@ -115,6 +115,44 @@ model ThemeConfigRevision {
   @@schema("public")
 }
 
+model StorefrontCodeConfiguration {
+  id                String   @id @default("system")
+  revision          Int      @default(0)
+  enabled           Boolean  @default(true)
+  ga4MeasurementId  String?
+  metaPixelId       String?
+  baiduSiteKey      String?
+  headCode          String   @default("")
+  bodyStartCode     String   @default("")
+  bodyEndCode       String   @default("")
+  updatedById       String
+  updatedAt         DateTime @updatedAt
+
+  @@map("storefront_code_configurations")
+  @@schema("public")
+}
+
+model StorefrontCodeRevision {
+  id                   String   @id @default(cuid())
+  revision             Int      @unique
+  enabled              Boolean
+  ga4MeasurementId     String?
+  metaPixelId          String?
+  baiduSiteKey         String?
+  headCode             String
+  bodyStartCode        String
+  bodyEndCode          String
+  updatedById          String
+  updatedAt            DateTime
+  createdById          String
+  createdAt            DateTime @default(now())
+  restoredFromRevision Int?
+
+  @@index([createdAt, id])
+  @@map("storefront_code_revisions")
+  @@schema("public")
+}
+
 model AdminAuditEvent {
   id String @id @default(cuid())
   actorId String

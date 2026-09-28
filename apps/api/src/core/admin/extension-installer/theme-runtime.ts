@@ -19,9 +19,9 @@ function fail(code: string, statusCode: number, path: string): never {
   throw new ExtensionInstallerError(`${code}: ${path}`, { code, statusCode, details: { path } });
 }
 
-export async function audit(tx: { adminAuditEvent: { create: (args: any) => Promise<unknown> } }, actorId: string, action: string, targetId: string, summary: object = {}) {
+export async function audit(tx: { adminAuditEvent: { create: (args: any) => Promise<unknown> } }, actorId: string, action: string, targetId: string, summary: object = {}, targetType = 'theme') {
   await tx.adminAuditEvent.create({
-    data: { actorId, action, targetType: 'theme', targetId, summary },
+    data: { actorId, action, targetType, targetId, summary },
   });
 }
 
