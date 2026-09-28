@@ -63,6 +63,8 @@ if (visual) {
   playwrightGroups.push(finalProjects);
   playwrightGroups[1].push('visual');
 }
+// Merchant code is configured only after every other storefront/visual project has finished.
+playwrightGroups.push(['23-shop-storefront-code']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);

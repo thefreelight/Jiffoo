@@ -10,6 +10,8 @@ import { pageClasses } from '../lib/page-classes';
 import { countryCodes, localizedCountries } from '../lib/countries';
 import { buildCancelReason, orderStatuses, paymentStatuses, orderStatusLabel, paymentStatusLabel } from '../lib/order-labels';
 
+vi.mock('server-only', () => ({}));
+
 vi.mock('../lib/storefront-messages', async () => {
   const [en, zhHans, zhHant] = await Promise.all([
     import('../../../packages/shared/src/i18n/messages/en/storefront'),
@@ -60,7 +62,7 @@ describe('Shop checkout boundaries', () => {
     expect(pageClasses['/[locale]/checkout/return']).toBe('confirmation');
   });
 
-  it('B isolates payment pages under exactly two shared document roots with no common layout', () => {
+  it('B isolates payment pages under exactly two shared document roots with no common layout', async () => {
     const files = appFiles();
     for (const file of files.filter((entry) => path.basename(entry) === 'page.tsx')) {
       const url = normalizedPageUrl(file) as keyof typeof pageClasses;
@@ -81,9 +83,11 @@ describe('Shop checkout boundaries', () => {
       return /<html\b/.test(source) || source.includes("from '@/components/document-root'");
     });
     expect(htmlLayouts).toEqual(['(payment)/layout.tsx', '(storefront)/layout.tsx']);
-    expect(StorefrontRoot).toBe(PaymentRoot);
+    expect(StorefrontRoot).not.toBe(PaymentRoot);
+    expect(readFileSync(path.join(app, '(payment)/layout.tsx'), 'utf8'))
+      .toBe("export { default } from '@/components/document-root';\n");
     const expected = renderToStaticMarkup(createElement('html', null, createElement('body', null, 'root-boundary')));
-    expect(renderToStaticMarkup(StorefrontRoot({ children: 'root-boundary' }))).toBe(expected);
+    expect(renderToStaticMarkup(await StorefrontRoot({ children: 'root-boundary' }))).toBe(expected);
     expect(renderToStaticMarkup(PaymentRoot({ children: 'root-boundary' }))).toBe(expected);
     for (const group of ['(payment)', '(storefront)']) {
       expect(readFileSync(path.join(app, group, '[locale]/layout.tsx'), 'utf8'))

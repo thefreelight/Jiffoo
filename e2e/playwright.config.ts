@@ -13,6 +13,7 @@ const areas = [
   '20-admin-theme',
   '21-shop-page-boundaries',
   '22-shop-payment-csp',
+  '23-shop-storefront-code',
 ];
 
 export default defineConfig({
