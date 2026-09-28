@@ -4,6 +4,13 @@ import { headerThemePackage } from './theme-package';
 import { writeFile } from 'node:fs/promises';
 import type { BrowserContext, Locator, Page } from '@playwright/test';
 
+async function parkPointerOnHeading(page: Page) {
+  const heading = page.getByRole('heading', { name: /.+/ }).first();
+  const box = await heading.boundingBox();
+  expect(box, 'Capture heading has visible bounds').not.toBeNull();
+  await heading.hover({ position: { x: box!.width - 1, y: box!.height / 2 } });
+}
+
 async function screenshotWithoutOverflow(page: Page, options: NonNullable<Parameters<Page['screenshot']>[0]>) {
   const image = await page.screenshot(options);
   const imageWidth = image.readUInt32BE(16);
@@ -400,6 +407,8 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
     await expect(page).toHaveURL(/\/en\/dashboard$/);
 
     for (const [name, path] of pages.slice(1)) {
+      // Keep the pointer off interactive surfaces before the next document renders.
+      await parkPointerOnHeading(page);
       await page.goto(path);
       if (name === 'product-edit') {
         await expect(page.getByRole('link', { name: 'E2E Product' }).first()).toBeVisible();
@@ -428,6 +437,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       }
       await page.evaluate(() => document.fonts.ready);
       await page.keyboard.press('Control+Home');
+      await parkPointerOnHeading(page);
       if (process.env.VISUAL_INSPECT_CSS === '1') {
         const targets = {
           administrators: [{ label: 'Invite administrator', locator: page.getByRole('button', { name: 'Invite administrator' }) }],
@@ -518,6 +528,21 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
       });
       await captureDynamicBoxes(page, name, width, height, set);
+      if (name === 'customers-list' && width === 390) {
+        const state = await page.getByText('Live metric', { exact: true }).nth(1).evaluate((label) => {
+          let card: Element | null = label;
+          while (card && !card.classList.contains('bg-gradient-to-br')) card = card.parentElement;
+          if (!card) throw new Error('Active customer statistic card not found');
+          return {
+            hovered: card.matches(':hover'),
+            transform: getComputedStyle(card).transform,
+            runningAnimations: card.getAnimations({ subtree: true })
+              .filter((animation) => animation.playState === 'running' || animation.pending).length,
+          };
+        });
+        expect(state, 'Active statistic capture has no residual hover or running transitions')
+          .toEqual({ hovered: false, transform: 'none', runningAnimations: 0 });
+      }
       await screenshotWithoutOverflow(page, {
         path: `e2e/visual-results/${set}/${name}-${width}.png`,
         fullPage: true,
