@@ -3,14 +3,93 @@ import { ownerEmail } from './helpers';
 import { writeFile } from 'node:fs/promises';
 import type { Locator, Page } from '@playwright/test';
 
+async function paintedBounds(locator: Locator) {
+  return locator.evaluate((element) => {
+    type Box = { x: number; y: number; width: number; height: number };
+    type Extents = { left: number; top: number; right: number; bottom: number };
+    const union = (boxes: Box[]): Box => {
+      const left = Math.min(...boxes.map((box) => box.x));
+      const top = Math.min(...boxes.map((box) => box.y));
+      const right = Math.max(...boxes.map((box) => box.x + box.width));
+      const bottom = Math.max(...boxes.map((box) => box.y + box.height));
+      return { x: left, y: top, width: right - left, height: bottom - top };
+    };
+    const split = (value: string, delimiter: ',' | ' ') => {
+      let depth = 0;
+      let start = 0;
+      const parts: string[] = [];
+      for (let index = 0; index < value.length; index++) {
+        if (value[index] === '(') depth++;
+        else if (value[index] === ')') depth--;
+        else if (!depth && (delimiter === ',' ? value[index] === ',' : /\s/.test(value[index]))) {
+          if (value.slice(start, index).trim()) parts.push(value.slice(start, index).trim());
+          start = index + 1;
+        }
+      }
+      if (value.slice(start).trim()) parts.push(value.slice(start).trim());
+      return parts;
+    };
+    const shadows = (value: string, text: boolean): Extents[] => {
+      if (value === 'none') return [];
+      return split(value, ',').flatMap((shadow) => {
+        const tokens = split(shadow, ' ');
+        if (tokens.includes('inset')) return [];
+        const lengths = tokens.filter((token) => /^-?(?:\d+\.?\d*|\.\d+)px$/.test(token)).map(Number.parseFloat);
+        if (lengths.length < 2) throw new Error(`Unsupported computed shadow: ${shadow}`);
+        const [x, y, blur = 0, spread = 0] = lengths;
+        const radius = blur + (text ? 0 : spread);
+        return [{
+          left: Math.max(0, radius - x), right: Math.max(0, radius + x),
+          top: Math.max(0, radius - y), bottom: Math.max(0, radius + y),
+        }];
+      });
+    };
+    const nodes = [element, ...element.querySelectorAll('*')].map((node, index) => {
+      const rect = node.getBoundingClientRect();
+      const css = getComputedStyle(node);
+      const ownBox = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      const boxShadows = shadows(css.boxShadow, false);
+      const textShadows = shadows(css.textShadow, true);
+      const outline = css.outlineStyle === 'none' ? 0
+        : Math.max(0, Number.parseFloat(css.outlineWidth) + Number.parseFloat(css.outlineOffset));
+      const overflow = {
+        left: Math.max(outline, ...boxShadows.map((item) => item.left), ...textShadows.map((item) => item.left)),
+        top: Math.max(outline, ...boxShadows.map((item) => item.top), ...textShadows.map((item) => item.top)),
+        right: Math.max(outline, ...boxShadows.map((item) => item.right), ...textShadows.map((item) => item.right)),
+        bottom: Math.max(outline, ...boxShadows.map((item) => item.bottom), ...textShadows.map((item) => item.bottom)),
+      };
+      return {
+        index, ownBox, boxShadows, textShadows, outline, overflow,
+        paintedBox: {
+          x: ownBox.x - overflow.left, y: ownBox.y - overflow.top,
+          width: ownBox.width + overflow.left + overflow.right,
+          height: ownBox.height + overflow.top + overflow.bottom,
+        },
+      };
+    }).filter((node) => node.ownBox.width > 0 && node.ownBox.height > 0);
+    if (!nodes.length) throw new Error('Exclusion element has no painted box');
+    const painted = union(nodes.map((node) => node.paintedBox));
+    const x = Math.floor(painted.x);
+    const y = Math.floor(painted.y);
+    return {
+      box: { x, y, width: Math.ceil(painted.x + painted.width) - x, height: Math.ceil(painted.y + painted.height) - y },
+      breakdown: {
+        ownBox: nodes[0].ownBox,
+        descendantUnion: nodes.length > 1 ? union(nodes.slice(1).map((node) => node.ownBox)) : null,
+        nodes,
+      },
+    };
+  });
+}
+
 async function captureDynamicBoxes(page: Page, name: string, width: number, height: number, set: string) {
-  const boxes: Array<{ name: string; box: { x: number; y: number; width: number; height: number } }> = [];
+  const boxes: Array<{ name: string } & Awaited<ReturnType<typeof paintedBounds>>> = [];
   const add = async (reason: string, locator: Locator) => {
     const count = await locator.count();
     for (let index = 0; index < count; index++) {
-      const box = await locator.nth(index).boundingBox();
-      if (box && box.y < height && box.y + box.height > 0)
-        boxes.push({ name: `${reason} ${index + 1}`, box });
+      const bounds = await paintedBounds(locator.nth(index));
+      if (bounds.box.y < height && bounds.box.y + bounds.box.height > 0)
+        boxes.push({ name: `${reason} ${index + 1}`, ...bounds });
     }
   };
   const date = /\d{1,2}\/\d{1,2}\/\d{4}/;
@@ -26,22 +105,24 @@ async function captureDynamicBoxes(page: Page, name: string, width: number, heig
       await add('ID reflows profile heading', page.getByRole('heading', { name: 'User Profile' }));
       await add('ID reflows reset button', page.getByRole('button', { name: 'Generate reset link' }));
       await add('ID reflows edit button', page.getByRole('button', { name: 'Edit', exact: true }));
+      await add('ID reflows customer action row', page.getByText(/^Generate reset link\s*Edit$/));
     }
   } else if (name === 'order-detail') {
     await add('order generated ID', page.getByText(/^Deployment Node: #[A-Z0-9]+$/i));
     await add('order item generated reference', page.getByText(/^UNIT-REF: [A-Z0-9]+$/i));
+    await add('generated reference reflows SKU badge group', page.getByText(/^UNIT-REF:\s*[A-Z0-9]+\s*SKU:\s*E2E-001$/i));
     await add('customer generated internal ID', page.getByText(/^cmu[a-z0-9]{15,}$/i));
     await add('order activity dates', page.getByText(date));
-    if (width === 390) await add('ID reflows order heading', page.getByRole('heading', { name: 'Order Specification' }));
+    if (width === 390) await add('ID reflows order heading', page.getByRole('heading', { name: 'Order Details', exact: true }));
   } else if (name === 'notifications') {
     const rows = page.getByRole('row').filter({ hasText: date });
     const count = await rows.count();
     for (let index = 0; index < count; index++) {
       const cells = rows.nth(index).getByRole('cell');
       for (let column = 0; column < 4; column++) {
-        const box = await cells.nth(column).boundingBox();
-        if (box && box.y < height && box.y + box.height > 0)
-          boxes.push({ name: `notification ${index + 1} time-driven column ${column + 1}`, box });
+        const bounds = await paintedBounds(cells.nth(column));
+        if (bounds.box.y < height && bounds.box.y + bounds.box.height > 0)
+          boxes.push({ name: `notification ${index + 1} time-driven column ${column + 1}`, ...bounds });
       }
     }
     if (width === 1440) {

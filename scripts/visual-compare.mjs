@@ -29,7 +29,7 @@ async function elementExclusions(name) {
   const names = (boxes) => boxes.map((item) => item.name).sort().join('|');
   if (names(before) !== names(after)) throw new Error(`Dynamic exclusion names differ for ${name}`);
   return [...before, ...after].map(({ name: reason, box }) =>
-    region(reason, box.x - 2, box.y - 2, box.x + box.width + 2, box.y + box.height + 2));
+    region(reason, box.x, box.y, box.x + box.width, box.y + box.height));
 }
 await mkdir(diff, { recursive: true });
 let violations = 0;
