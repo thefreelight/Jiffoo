@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import StorefrontRoot from '../app/(storefront)/layout';
+import PaymentRoot from '../app/(payment)/layout';
 import { allowedBffRoute } from '../lib/auth-contract';
 import { pageClasses } from '../lib/page-classes';
 import { countryCodes, localizedCountries } from '../lib/countries';
@@ -15,6 +19,17 @@ vi.mock('../lib/storefront-messages', async () => {
   const locales = { en: en.storefront, 'zh-Hans': zhHans.storefront, 'zh-Hant': zhHant.storefront };
   return { storefrontMessages: (locale: keyof typeof locales) => locales[locale] };
 });
+
+const app = path.resolve(__dirname, '../app');
+function appFiles(directory = app): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory() ? appFiles(path.join(directory, entry.name)) : [path.join(directory, entry.name)]);
+}
+function normalizedPageUrl(file: string): string {
+  const segments = path.relative(app, path.dirname(file)).split(path.sep)
+    .filter((segment) => segment && !(segment.startsWith('(') && segment.endsWith(')')));
+  return `/${segments.join('/')}`;
+}
 
 describe('Shop checkout boundaries', () => {
   it('I permits only constrained checkout BFF routes', () => {
@@ -35,24 +50,47 @@ describe('Shop checkout boundaries', () => {
     expect(allowedBffRoute('POST', '/orders/a')).toBe(false);
   });
 
-  it('J classifies every page file and reserves checkout and cancel for payment', () => {
-    const app = path.resolve(__dirname, '../app');
-    const routes: string[] = [];
-    function visit(directory: string) {
-      for (const entry of readdirSync(directory, { withFileTypes: true })) {
-        if (entry.isDirectory()) visit(path.join(directory, entry.name));
-        else if (entry.name === 'page.tsx') {
-          const relative = path.relative(app, directory).replaceAll('\\', '/');
-          routes.push(relative ? `/${relative}` : '/');
-        }
-      }
-    }
-    visit(app);
+  it('A normalizes route groups into the exact classified URL set without duplicate pages', () => {
+    const routes = appFiles().filter((file) => path.basename(file) === 'page.tsx').map(normalizedPageUrl);
+    expect(new Set(routes).size).toBe(routes.length);
     expect(Object.keys(pageClasses).sort()).toEqual(routes.sort());
     expect(pageClasses['/[locale]/checkout']).toBe('payment');
     expect(pageClasses['/[locale]/checkout/cancel']).toBe('payment');
     expect(pageClasses['/[locale]/checkout/complete']).toBe('confirmation');
     expect(pageClasses['/[locale]/checkout/return']).toBe('confirmation');
+  });
+
+  it('B isolates payment pages under exactly two shared document roots with no common layout', () => {
+    const files = appFiles();
+    for (const file of files.filter((entry) => path.basename(entry) === 'page.tsx')) {
+      const url = normalizedPageUrl(file) as keyof typeof pageClasses;
+      expect(pageClasses[url], url).toBeDefined();
+      const group = pageClasses[url] === 'payment' ? '(payment)' : '(storefront)';
+      expect(path.relative(app, file).split(path.sep)[0], url).toBe(group);
+    }
+    const layouts = files.filter((file) => path.basename(file) === 'layout.tsx')
+      .map((file) => path.relative(app, file).replaceAll('\\', '/')).sort();
+    expect(layouts).toEqual([
+      '(payment)/[locale]/layout.tsx', '(payment)/layout.tsx',
+      '(storefront)/[locale]/layout.tsx', '(storefront)/layout.tsx',
+    ]);
+    expect(existsSync(path.join(app, 'layout.tsx'))).toBe(false);
+    expect(existsSync(path.join(app, '[locale]/layout.tsx'))).toBe(false);
+    const htmlLayouts = layouts.filter((file) => {
+      const source = readFileSync(path.join(app, file), 'utf8');
+      return /<html\b/.test(source) || source.includes("from '@/components/document-root'");
+    });
+    expect(htmlLayouts).toEqual(['(payment)/layout.tsx', '(storefront)/layout.tsx']);
+    expect(StorefrontRoot).toBe(PaymentRoot);
+    const expected = renderToStaticMarkup(createElement('html', null, createElement('body', null, 'root-boundary')));
+    expect(renderToStaticMarkup(StorefrontRoot({ children: 'root-boundary' }))).toBe(expected);
+    expect(renderToStaticMarkup(PaymentRoot({ children: 'root-boundary' }))).toBe(expected);
+    for (const group of ['(payment)', '(storefront)']) {
+      expect(readFileSync(path.join(app, group, '[locale]/layout.tsx'), 'utf8'))
+        .toBe("export { default } from '@/components/locale-layout';\n\nexport const dynamic = 'force-dynamic';\n");
+      expect(readFileSync(path.join(app, group, '[locale]/not-found.tsx'), 'utf8'))
+        .toBe("export { default } from '@/components/locale-not-found';\n");
+    }
   });
 
   it('K localizes ISO regions through Intl for all storefront locales', () => {

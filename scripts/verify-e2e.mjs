@@ -56,11 +56,11 @@ const logs = [];
 const playwrightCounts = { expected: 0, unexpected: 0, skipped: 0 };
 const playwrightGroups = [
   ['01-install', '02-login', '03-password', '04-language', '05-settings', '06-health-plugins', '07-products', '08-orders', '09-customers'],
-  ['10-staff', '11-forgot-password', '12-translations', '13-shop', '14-shop-registration', '15-shop-account', '16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund', '19-themes', '20-admin-theme'],
+  ['10-staff', '11-forgot-password', '12-translations', '13-shop', '14-shop-registration', '15-shop-account', '16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund', '19-themes', '20-admin-theme', '21-shop-page-boundaries'],
 ];
 if (visual) {
-  playwrightGroups[1].pop();
-  playwrightGroups.push(['20-admin-theme']);
+  const finalProjects = playwrightGroups[1].splice(playwrightGroups[1].indexOf('20-admin-theme'));
+  playwrightGroups.push(finalProjects);
   playwrightGroups[1].push('visual');
 }
 

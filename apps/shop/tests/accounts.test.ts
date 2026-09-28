@@ -3,7 +3,7 @@ vi.mock('server-only', () => ({}));
 import { GET, POST } from '../app/bff/[...path]/route';
 import { allowedBffRoute, cookieOptions, safeNextPath, stripTokens } from '../lib/auth-contract';
 import { localizedAuthLink } from '../lib/auth-link';
-import VerifyEmailPage from '../app/[locale]/verify-email/page';
+import VerifyEmailPage from '../app/(storefront)/[locale]/verify-email/page';
 import { VerifyEmailAction } from '../components/verify-email-action';
 
 vi.mock('@/lib/catalog', () => ({

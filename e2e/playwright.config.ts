@@ -11,6 +11,7 @@ const areas = [
   '17-shop-order-history-cancel', '18-order-refund',
   '19-themes',
   '20-admin-theme',
+  '21-shop-page-boundaries',
 ];
 
 export default defineConfig({

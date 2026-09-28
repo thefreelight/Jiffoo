@@ -11,7 +11,7 @@ import { Header } from '../components/header';
 import { Footer } from '../components/footer';
 import { ImageCarousel } from '../components/image-carousel';
 import { sectionsForPage, themePageSlots } from '../lib/page-classes';
-import { ThemeShell } from '../app/[locale]/layout';
+import { ThemeShell } from '../components/locale-layout';
 import { SECTION_TYPES, themeFontFaces, themeTokensToCss } from 'shared';
 import defaultShop from '../../api/builtin-themes/default-shop/theme.json';
 import type { Category, Product, StoreContext } from '../lib/catalog';

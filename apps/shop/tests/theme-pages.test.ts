@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToPipeableStream } from 'react-dom/server';
 import { Writable } from 'node:stream';
-import CategoryPage from '../app/[locale]/categories/[slug]/page';
-import ProductPage from '../app/[locale]/products/[slug]/page';
+import CategoryPage from '../app/(storefront)/[locale]/categories/[slug]/page';
+import ProductPage from '../app/(storefront)/[locale]/products/[slug]/page';
 import type { ShopTheme } from '../lib/theme';
 
 vi.mock('server-only', () => ({}));

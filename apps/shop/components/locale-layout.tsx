@@ -11,8 +11,6 @@ import type { StoreContext, Category } from '@/lib/catalog';
 import type { ShopTheme } from '@/lib/theme';
 import type { ShopLocale } from '@/lib/locale';
 
-export const dynamic = 'force-dynamic';
-
 export default async function LocaleLayout({ children, params }: {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
