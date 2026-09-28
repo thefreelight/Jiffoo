@@ -5,14 +5,14 @@ import type { Address, Cart, Quote } from '@/lib/checkout-types';
 import type { ShopLocale } from '@/lib/locale';
 import { formatPrice } from '@/lib/price';
 import { storefrontMessages } from '@/lib/storefront-messages';
-import { localizedCountries } from '@/lib/countries';
 
 const addressFields = ['firstName', 'lastName', 'phone', 'addressLine1', 'addressLine2', 'city', 'state', 'postalCode'] as const;
 
-export function CheckoutView({ cart, locale, address: initialAddress }: {
+export function CheckoutView({ cart, locale, address: initialAddress, countries }: {
   cart: Cart;
   locale: ShopLocale;
   address: Address | null;
+  countries: Array<{ code: string; name: string }>;
 }) {
   const t = storefrontMessages(locale).checkout;
   const [address, setAddress] = useState<Address>(initialAddress ?? {
@@ -25,7 +25,6 @@ export function CheckoutView({ cart, locale, address: initialAddress }: {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [priceChanged, setPriceChanged] = useState(false);
-  const countries = localizedCountries(locale);
 
   async function requestQuote(optionId?: string): Promise<Quote | null> {
     const response = await fetch('/bff/checkout/quote', {

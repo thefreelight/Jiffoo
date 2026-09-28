@@ -5,7 +5,6 @@ import { login, ownerEmail } from './helpers';
 
 const shopOrigin = 'http://127.0.0.1:3003';
 const privateCacheControl = 'private, no-cache, no-store, max-age=0, must-revalidate';
-const baselineHydrationError = 'Minified React error #418; visit https://react.dev/errors/418?args[]=text&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.';
 
 async function buyerWithCart(page: Page, label: string) {
   const id = randomUUID();
@@ -69,11 +68,10 @@ function assertPaymentHeaders(headers: ReturnType<typeof documentHeaders>) {
   return nonce;
 }
 
-function assertConsoleBaseline(observation: ReturnType<typeof observeErrors>, checkout: boolean) {
+function assertConsoleBaseline(observation: ReturnType<typeof observeErrors>) {
   expect(observation.consoleMessages.filter((message) => /content security policy/i.test(message.text))).toEqual([]);
   expect(observation.consoleMessages).toEqual([]);
-  // Known pre-existing hydration mismatch; fix separately, then tighten this assertion to zero.
-  expect(observation.pageErrors).toEqual(checkout ? [baselineHydrationError] : []);
+  expect(observation.pageErrors).toEqual([]);
 }
 
 async function placeOrder(page: Page) {
@@ -106,14 +104,14 @@ test('C checkout uses fresh strict script CSP without changing console output or
     await page.getByLabel('First name').fill('First load');
     await expect(page.getByLabel('First name')).toHaveValue('First load');
     const firstNonce = assertPaymentHeaders(first);
-    assertConsoleBaseline(observation, true);
+    assertConsoleBaseline(observation);
     const firstPageErrors = [...observation.pageErrors];
     observation.pageErrors.length = 0;
     const second = documentHeaders(await page.reload());
     await expect(page.getByLabel('First name')).toBeVisible();
     await placeOrder(page);
     expect(assertPaymentHeaders(second)).not.toBe(firstNonce);
-    assertConsoleBaseline(observation, true);
+    assertConsoleBaseline(observation);
     const result = { first, second, consoleMessages: observation.consoleMessages, pageErrorsPerLoad: [firstPageErrors, observation.pageErrors] };
     testInfo.annotations.push({ type: 'payment-csp-observation', description: JSON.stringify(result) });
     console.log('Payment CSP checkout:', JSON.stringify(result));
@@ -131,17 +129,48 @@ test('D own-order cancel uses fresh strict script CSP without changing console o
     const first = documentHeaders(await page.goto(`${shopOrigin}/en/checkout/cancel?order=${id}`));
     await expect(page.getByRole('heading', { level: 1, name: 'Payment pending', exact: true })).toBeVisible();
     const firstNonce = assertPaymentHeaders(first);
-    assertConsoleBaseline(observation, false);
+    assertConsoleBaseline(observation);
     const second = documentHeaders(await page.reload());
     await expect(page.getByRole('heading', { level: 1, name: 'Payment pending', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'View order', exact: true })).toBeVisible();
     expect(assertPaymentHeaders(second)).not.toBe(firstNonce);
-    assertConsoleBaseline(observation, false);
+    assertConsoleBaseline(observation);
     const result = { first, second, consoleMessages: observation.consoleMessages, pageErrors: observation.pageErrors };
     testInfo.annotations.push({ type: 'payment-csp-observation', description: JSON.stringify(result) });
     console.log('Payment CSP cancel:', JSON.stringify(result));
   } finally {
     observation.stop();
+  }
+});
+
+test('B checkout country options hydrate without errors in every supported locale', async ({ page }) => {
+  const id = randomUUID();
+  await page.goto(`${shopOrigin}/en/register`);
+  await page.getByLabel('Name').fill('Country Options Buyer');
+  await page.getByLabel('Email').fill(`country-options-${id}@e2e.example`);
+  await page.getByLabel('Password', { exact: true }).fill('CountryOptionsPassword123!');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(page).toHaveURL(`${shopOrigin}/en/account`);
+  await page.goto(`${shopOrigin}/en/products`);
+  await page.getByRole('searchbox', { name: 'Search products', exact: true }).fill('E2E Localized Product');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('heading', { name: 'E2E Localized Product', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'E2E Localized Product', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+  await expect(page).toHaveURL(`${shopOrigin}/en/cart`);
+  for (const [locale, label] of [['en', 'Country'], ['zh-Hans', '国家或地区'], ['zh-Hant', '國家或地區']] as const) {
+    const observation = observeErrors(page);
+    try {
+      await page.goto(`${shopOrigin}/${locale}/checkout`);
+      const combo = page.getByRole('combobox', { name: label, exact: true });
+      await expect(combo).toBeVisible();
+      await expect(combo.getByRole('option')).toHaveCount(250);
+      await combo.selectOption('US');
+      await expect(combo).toHaveValue('US');
+      assertConsoleBaseline(observation);
+    } finally {
+      observation.stop();
+    }
   }
 });
 

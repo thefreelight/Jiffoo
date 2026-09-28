@@ -4,6 +4,7 @@ import { accountProfile } from '@/lib/server-account';
 import { customerCart, customerData } from '@/lib/server-checkout';
 import type { Address, Order } from '@/lib/checkout-types';
 import { CheckoutView } from '@/components/checkout-view';
+import { localizedCountries } from '@/lib/countries';
 
 export default async function CheckoutPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await requireLocale((await params).locale);
@@ -12,5 +13,6 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
   if (!cart?.items.length) redirect(`/${locale}/cart`);
   const orders = await customerData<{ items: Order[] }>('/orders?limit=1');
   const address = orders?.items[0]?.shippingAddress ?? null;
-  return <CheckoutView cart={cart} locale={locale} address={address as Address | null} />;
+  const countries = localizedCountries(locale);
+  return <CheckoutView cart={cart} locale={locale} address={address as Address | null} countries={countries} />;
 }
