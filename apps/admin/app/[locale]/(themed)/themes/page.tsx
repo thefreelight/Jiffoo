@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLocale } from 'shared/src/i18n/react';
 import { AdminApiError } from '@/lib/api';
 import { themeError, themeMessage } from '@/lib/theme-messages';
@@ -8,6 +9,7 @@ import { themesApi, type Locale, type ThemeConfig, type ThemeRecord, type ThemeT
 import { ThemeSettingsForm } from '@/components/themes/ThemeSettingsForm';
 
 export default function ThemesPage() {
+  const router = useRouter();
   const locale = useLocale() as Locale;
   const [target, setTarget] = useState<ThemeTarget>('shop');
   const [themes, setThemes] = useState<ThemeRecord[]>([]);
@@ -35,9 +37,14 @@ export default function ThemesPage() {
   const message = (cause: unknown) => cause instanceof AdminApiError
     ? themeError(locale, cause.code, cause.details) : themeMessage(locale, 'failed');
   useEffect(() => { void reload(); }, [reload]);
-  const action = async (work: () => Promise<unknown>) => {
+  const action = async (work: () => Promise<unknown>, refreshAdmin = false) => {
     setBusy(true);
-    try { await work(); await reload(); setError(''); }
+    try {
+      await work();
+      await reload();
+      if (refreshAdmin) router.refresh();
+      setError('');
+    }
     catch (cause) { setError(message(cause)); }
     finally { setBusy(false); }
   };
@@ -53,7 +60,7 @@ export default function ThemesPage() {
       <header className="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
         <h1 className="text-xl font-semibold">{themeMessage(locale, 'themes')}</h1>
         <button className="rounded border bg-surface px-3 py-2 text-sm" disabled={busy}
-          onClick={() => void action(() => themesApi.restore(target))}>{themeMessage(locale, 'restore')}</button>
+          onClick={() => void action(() => themesApi.restore(target), target === 'admin')}>{themeMessage(locale, 'restore')}</button>
       </header>
       <div role="tablist" aria-label={themeMessage(locale, 'themes')} className="flex gap-1 border-b">
         {(['shop', 'admin'] as const).map((value) => <button key={value} role="tab"
@@ -89,11 +96,11 @@ export default function ThemesPage() {
               <p className="text-sm text-neutral-strong">{theme.version} · {themeMessage(locale, theme.source === 'builtin' ? 'sourceBuiltin' : 'sourceUploaded')} · {theme.trustLevel}</p></div>
             {isActive && <span className="rounded bg-success-faint px-2 py-1 text-sm text-success-deepest">{themeMessage(locale, 'active')}</span>}
             {!isActive && <button disabled={busy} className="rounded border px-3 py-2 text-sm"
-              onClick={() => void action(() => themesApi.activate(target, theme.slug))}>{themeMessage(locale, 'activate')}</button>}
+              onClick={() => void action(() => themesApi.activate(target, theme.slug), target === 'admin')}>{themeMessage(locale, 'activate')}</button>}
             <button disabled={busy} className="rounded border px-3 py-2 text-sm"
               onClick={() => void configure(theme)}>{themeMessage(locale, 'configure')}</button>
             {!isActive && theme.source !== 'builtin' && <button disabled={busy} className="rounded border px-3 py-2 text-sm text-danger-deep"
-              onClick={() => void action(() => themesApi.uninstall(theme.slug))}>{themeMessage(locale, 'uninstall')}</button>}
+              onClick={() => void action(() => themesApi.uninstall(theme.slug), theme.target === 'admin')}>{themeMessage(locale, 'uninstall')}</button>}
           </article>;
         })}
       </div>}
@@ -108,6 +115,7 @@ export default function ThemesPage() {
             try {
               setConfig(await themesApi.save(selected.slug, payload.values, payload.expectedRevision,
                 payload.homeSections));
+              if (selected.target === 'admin') router.refresh();
               setError('');
               setNotice(themeMessage(locale, 'saved'));
             } catch (cause) {
@@ -119,6 +127,7 @@ export default function ThemesPage() {
           onRestore={async () => action(async () => {
             await themesApi.restoreConfig(selected.slug);
             setConfig(await themesApi.config(selected.slug));
+            if (selected.target === 'admin') router.refresh();
             setNotice(themeMessage(locale, 'restored'));
           })} />
       </section>}

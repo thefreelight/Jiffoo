@@ -10,7 +10,7 @@ import { Footer } from '../components/footer';
 import { ImageCarousel } from '../components/image-carousel';
 import { sectionsForPage, themePageSlots } from '../lib/page-classes';
 import { ThemeShell } from '../app/[locale]/layout';
-import { SECTION_TYPES, themeTokensToCss } from 'shared';
+import { SECTION_TYPES, themeFontFaces, themeTokensToCss } from 'shared';
 import defaultShop from '../../api/builtin-themes/default-shop/theme.json';
 import type { Category, Product, StoreContext } from '../lib/catalog';
 
@@ -158,6 +158,12 @@ describe('T2 Shop theme rendering', () => {
 
   it('H uses the declared packaged font family with a sans-serif fallback', () => {
     expect(themeStyle(fixture)).toContain('--shop-font-body: "Brand Sans", sans-serif;');
+  });
+
+  it('N preserves the byte-identical Shop font-face prefix', () => {
+    const before = '@font-face{font-family:"Brand Sans";src:url("/api/v1/themes/sample/1.0.0/fonts/brand.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}';
+    expect(themeFontFaces(fixture.fonts)).toBe(before);
+    expect(themeStyle(fixture).slice(0, before.length + 1)).toBe(`${before}\n`);
   });
 
   it('I records exact default Shop font output before and after serialization', () => {

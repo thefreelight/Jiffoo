@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "theme",
+  "slug": "e2e-admin-theme",
+  "name": "E2E Admin Theme",
+  "version": "1.0.0",
+  "description": "An Admin theme for the browser workflow.",
+  "author": "Jiffoo",
+  "license": "MIT",
+  "target": "admin",
+  "tokens": {
+    "primary": "#cc0033",
+    "action-strong": "#cc0033",
+    "font-body": "e2e-outfit"
+  },
+  "fonts": [
+    {
+      "id": "e2e-outfit",
+      "family": "E2E Outfit",
+      "file": "fonts/outfit.woff2",
+      "weight": 400,
+      "style": "normal",
+      "license": "OFL-1.1"
+    }
+  ],
+  "settings": [],
+  "copy": {},
+  "assets": {
+    "logo": "assets/logo.png",
+    "login-background": "assets/login.png"
+  }
+}

@@ -14,29 +14,34 @@ import { Menu } from 'lucide-react'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
 import ProtectedRoute from '../auth/ProtectedRoute'
 import { isPublicAdminRoute } from './public-routes'
+import { ThemeAssets } from '@/lib/theme-assets'
 
 interface BlueMinimalLayoutProps {
   children: React.ReactNode
+  logo?: string | null
+  loginBackground?: string | null
 }
 
-export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
+export function BlueMinimalLayout({ children, logo = null, loginBackground = null }: BlueMinimalLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const pathname = usePathname()
 
   if (isPublicAdminRoute(pathname)) {
-    return <>{children}</>
+    return <ThemeAssets.Provider value={{ logo, loginBackground }}>{children}</ThemeAssets.Provider>
   }
 
   const handleOpenSidebar = () => setIsSidebarOpen(true)
   const handleCloseSidebar = () => setIsSidebarOpen(false)
 
   return (
+    <ThemeAssets.Provider value={{ logo, loginBackground }}>
     <ProtectedRoute requireAdmin={true}>
       <div className="flex h-screen overflow-hidden bg-surface-muted font-sans">
           {/* Sidebar */}
           <BlueMinimalSidebar
             isOpen={isSidebarOpen}
             onClose={handleCloseSidebar}
+            logo={logo}
           />
 
           <div className="flex-1 flex flex-col overflow-hidden bg-surface">
@@ -58,5 +63,6 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
           </div>
       </div>
     </ProtectedRoute>
+    </ThemeAssets.Provider>
   )
 }

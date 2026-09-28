@@ -86,10 +86,15 @@ Charter text: The declarative default Shop theme and an Admin theme are each val
 activated, configured, rendered at runtime without rebuild, and reverted by
 reactivating the previous theme. Validation rejects a package containing
 executable code or browser JavaScript.
-Status: NOT STARTED (assessed 2026-09-22)
+Status: COMPLETE (2026-09-28)
+Product decisions: Admin dark mode is removed and can return only as a dark Admin
+theme. The default Admin font is system-sans; Outfit remains available to
+themes. Admin density is not a theme token. The installation page retains Core
+visuals and does not read the active theme. Activating, restoring, configuring
+or uninstalling an Admin theme applies changes immediately.
 Prerequisites:
 Themes
-Blocked by: Shop application; declarative theme system; Admin theme
+Blocked by: none
 
 ## Scenario 8 — disabled extension has no Admin navigation
 

@@ -16,3 +16,23 @@ export async function themePackage(forbidden = false): Promise<Buffer> {
   await finished;
   return Buffer.concat(chunks);
 }
+
+export async function adminThemePackage(): Promise<Buffer> {
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  const chunks: Buffer[] = [];
+  archive.on('data', (chunk: Buffer) => chunks.push(chunk));
+  const finished = new Promise<void>((done, fail) => {
+    archive.on('end', done);
+    archive.on('error', fail);
+  });
+  const fixture = (name: string) => resolve(__dirname, 'fixtures/themes', name);
+  archive.append(await readFile(fixture('test-admin-theme/theme.json')), { name: 'theme.json' });
+  archive.append(await readFile(fixture('test-admin-logo.png')), { name: 'assets/logo.png' });
+  archive.append(await readFile(fixture('test-admin-background.png')), { name: 'assets/login.png' });
+  archive.append(await readFile(resolve(__dirname, '../apps/admin/app/fonts/outfit-latin-400-normal.woff2')),
+    { name: 'fonts/outfit.woff2' });
+  archive.append(await readFile(resolve(__dirname, '../apps/admin/app/fonts/OFL.txt')), { name: 'LICENSE' });
+  await archive.finalize();
+  await finished;
+  return Buffer.concat(chunks);
+}

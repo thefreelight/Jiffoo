@@ -10,6 +10,7 @@ const areas = [
   '14-shop-registration', '15-shop-account', '16-shop-checkout-price-stock',
   '17-shop-order-history-cancel', '18-order-refund',
   '19-themes',
+  '20-admin-theme',
 ];
 
 export default defineConfig({

@@ -27,7 +27,7 @@ const adminDefaults: Record<string, unknown> = {
   'sidebar-active-text': '#3B82F6', success: '#16A34A',
   warning: '#D97706', danger: '#DC2626', info: '#2563EB',
   'radius-sm': '4px', 'radius-md': '8px', 'radius-lg': '12px',
-  'surface-muted': '#F1F5F9', 'font-body': 'system-sans', density: 'comfortable',
+  'surface-muted': '#F1F5F9', 'font-body': 'system-sans',
   'card-shadow': { x: '0px', y: '2px', blur: '8px', spread: '0px', color: '#0F172A' },
 };
 const colors = /^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$/;
@@ -66,8 +66,6 @@ const serialize = (target: ThemeTarget, key: string, value: unknown, resolveFont
     return typeof value === 'number' && Number.isInteger(value) && value >= 100 && value <= 900 ? String(value) : null;
   if (target === 'shop' && key === 'button-style')
     return value === 'solid' || value === 'outline' ? value : null;
-  if (target === 'admin' && key === 'density')
-    return value === 'compact' || value === 'comfortable' ? value : null;
   if (key === 'card-shadow' && value && typeof value === 'object' && !Array.isArray(value)) {
     const record = value as Record<string, unknown>;
     if (Object.keys(record).sort().join(',') !== 'blur,color,spread,x,y') return null;
@@ -89,7 +87,7 @@ export function themeTokensToCss(
     ...(target === 'shop' ? SHOP_COLOR_ROLES : ADMIN_COLOR_ROLES),
     ...(target === 'shop' ? SHOP_LENGTH_ROLES : ['radius-sm', 'radius-md', 'radius-lg']),
     'font-body', ...(target === 'shop' ? ['font-heading'] : []),
-    'card-shadow', ...(target === 'shop' ? ['type-scale', 'heading-weight', 'button-style'] : ['density']),
+    'card-shadow', ...(target === 'shop' ? ['type-scale', 'heading-weight', 'button-style'] : []),
   ]);
   return [...keys].flatMap((key) => {
     const value = serialize(target, key, tokens[key], resolveFont)

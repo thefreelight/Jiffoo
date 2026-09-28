@@ -95,7 +95,7 @@ Admin color roles: `background`, `surface`, `surface-muted`, `text`,
 `install-background`, `install-foreground`, `install-surface`,
 `media-surface`, `overlay-ink`, `page-surface`. Admin font role: `font-body`. Admin length
 roles: `radius-sm`, `radius-md`, `radius-lg`. Admin shadow:
-`card-shadow`. Admin enum: `density` (`compact` or `comfortable`).
+`card-shadow`.
 Admin assets may supply `logo` and `login-background`, both local image paths.
 
 ### Settings

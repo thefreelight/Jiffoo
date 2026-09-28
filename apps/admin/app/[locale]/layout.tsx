@@ -12,7 +12,6 @@ import {
   type Locale,
 } from 'shared/src/i18n';
 import { I18nProvider } from 'shared/src/i18n/react';
-import { BlueMinimalLayout } from '@/components/layout/blue-minimal-layout';
 import { QueryProvider } from '@/lib/providers/query-provider';
 import { Toaster } from 'sonner';
 import { ToastProvider } from '@/components/ui/toast';
@@ -41,7 +40,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         <ToastProvider>
           <QueryProvider>
             <SkipToMain />
-            <BlueMinimalLayout>{children}</BlueMinimalLayout>
+            {children}
             <Toaster position="bottom-right" richColors />
           </QueryProvider>
         </ToastProvider>

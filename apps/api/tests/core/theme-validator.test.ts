@@ -35,6 +35,11 @@ const zip = async (entries: Array<{ name: string; data: Buffer }>) => {
 };
 
 describe('T1a declarative theme validator', () => {
+  it('O rejects density in an Admin theme manifest', async () => {
+    const manifest = JSON.parse(await fs.readFile(path.join(themeRoot, 'default-admin/theme.json'), 'utf8'));
+    manifest.tokens.density = 'compact';
+    rejected(manifest, 'THEME_SCHEMA_INVALID', '/tokens/density');
+  });
   it('I validates both builtin sources and maps the Shop CSS defaults and Admin palette', async () => {
     const shop = await validateBuiltinTheme(path.join(themeRoot, 'default-shop'));
     const admin = await validateBuiltinTheme(path.join(themeRoot, 'default-admin'));

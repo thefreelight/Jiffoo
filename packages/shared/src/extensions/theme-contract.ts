@@ -167,7 +167,6 @@ const adminTokens = object({
   ...Object.fromEntries(ADMIN_COLOR_ROLES.map((role) => [role, color])),
   'font-body': id, 'radius-sm': length, 'radius-md': length,
   'radius-lg': length, 'card-shadow': shadow,
-  density: { enum: ['compact', 'comfortable'] },
 });
 const settings = {
   type: 'array', maxItems: 100,

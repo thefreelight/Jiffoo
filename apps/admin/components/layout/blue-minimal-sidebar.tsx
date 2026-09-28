@@ -8,6 +8,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { cn } from '@/lib/utils'
@@ -125,9 +126,10 @@ const baseNavigationConfig: NavigationItem[] = [
 interface BlueMinimalSidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
+  logo?: string | null;
 }
 
-export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSidebarProps) {
+export function BlueMinimalSidebar({ isOpen = true, onClose, logo }: BlueMinimalSidebarProps) {
   const pathname = usePathname()
   const locale = useLocale()
   const t = useT()
@@ -193,9 +195,12 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
         {/* Logo Area */}
         <div className="flex items-center justify-between mb-10 px-2">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-action-base to-action-deep rounded-xl flex items-center justify-center text-surface font-black shadow-lg shadow-action-base/30">
-              {brandInitial}
-          </div>
+          {logo
+            ? <Image src={logo} alt="Store Console logo" width={40} height={40} unoptimized
+              className="h-10 w-10 object-contain" />
+            : <div className="w-10 h-10 bg-gradient-to-br from-action-base to-action-deep rounded-xl flex items-center justify-center text-surface font-black shadow-lg shadow-action-base/30">
+                {brandInitial}
+              </div>}
           <div className="flex flex-col">
               <span className="font-bold text-base text-neutral-deepest leading-none">{brandTitle}</span>
               <span className="text-[10px] text-neutral-light font-bold uppercase tracking-widest mt-1">{solutionTitle}</span>

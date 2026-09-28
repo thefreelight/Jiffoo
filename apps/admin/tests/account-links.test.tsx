@@ -3,10 +3,10 @@
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot, type Root } from 'react-dom/client'
-import ForgotPasswordPage from '@/app/[locale]/auth/forgot-password/page'
+import ForgotPasswordPage from '@/app/[locale]/(themed)/auth/forgot-password/page'
 import { GenerateResetLinkDialog } from '@/components/customers/generate-reset-link-dialog'
-import StaffDetailPage from '@/app/[locale]/staff/[id]/page'
-import CustomerDetailPage from '@/app/[locale]/customers/[id]/page'
+import StaffDetailPage from '@/app/[locale]/(themed)/staff/[id]/page'
+import CustomerDetailPage from '@/app/[locale]/(themed)/customers/[id]/page'
 
 const { forgotPassword, generateResetLink, generateInviteLink } = vi.hoisted(() => ({
   forgotPassword: vi.fn(),

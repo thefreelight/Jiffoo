@@ -9,6 +9,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
+import { useThemeAssets } from '@/lib/theme-assets'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/store'
 import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
@@ -19,6 +21,7 @@ import { ZodError } from 'zod'
 import { loginSchema } from 'shared'
 
 export default function AdminLoginPage() {
+  const { logo, loginBackground } = useThemeAssets()
   const router = useRouter()
   const { login, isAuthenticated, isLoading, checkAuth } = useAuthStore()
   const t = useT()
@@ -122,13 +125,17 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-page-surface p-4">
+    <main className={`min-h-screen flex items-center justify-center p-4 ${loginBackground ? 'bg-cover bg-center' : 'bg-page-surface'}`}
+      style={loginBackground ? { backgroundImage: `url("${loginBackground}")` } : undefined}>
       <div className="w-full max-w-md space-y-6">
         {/* Logo and Title */}
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-action-strong rounded-2xl shadow-sm">
-            <Sparkles className="w-8 h-8 text-surface" />
-          </div>
+          {logo
+            ? <Image src={logo} alt="Store Console logo" width={64} height={64} unoptimized
+              className="inline-block h-16 w-16 object-contain" />
+            : <div className="inline-flex items-center justify-center w-16 h-16 bg-action-strong rounded-2xl shadow-sm">
+                <Sparkles className="w-8 h-8 text-surface" />
+              </div>}
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-neutral-deepest tracking-tight">
               {brandedTitle}
@@ -239,6 +246,6 @@ export default function AdminLoginPage() {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   )
 }
