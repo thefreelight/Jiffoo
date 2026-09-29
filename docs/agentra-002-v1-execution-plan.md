@@ -172,11 +172,21 @@ Charter text: A merchant configures a tracking integration and a custom code sni
 Admin. Both render on the storefront and on the order confirmation page
 without rebuilding the Shop application, neither appears on the payment
 form page, and both changes are recorded as auditable merchant actions.
-Status: NOT STARTED (assessed 2026-09-22)
+Status: COMPLETE (2026-09-29)
+Product decisions: GA4/Meta/Baidu storefront tracking emits one purchase event
+per order. Merchant free code uses head, body-start and body-end slots. Payment
+pages exclude both mechanisms with strict script CSP. Admin provides configuration,
+revisions, restore, a master switch and an audit log viewer.
+Delivered in bac127d1 through beee5dd0.
+Deferred (charter:379/392/397): executable signed storefront extensions, UI slots,
+CSP and data access; consent management/cookie banner; storefront script sandboxing
+with structured-event subscriptions.
+SDK follow-up (Scenarios 3/4/13): extension manifests accept unknown browser-script
+and injection-point declarations; closing this schema is outside Scenario 14.
 Prerequisites:
 Storefront Tracking and Custom Code
 audit
-Blocked by: tracking and custom code; Shop
+Blocked by: none
 
 ## Scenario 15 — module-level container static audit
 
