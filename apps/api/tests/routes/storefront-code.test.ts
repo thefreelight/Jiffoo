@@ -84,6 +84,20 @@ describe('Scenario 14 storefront code API', () => {
     expect(await counts()).toEqual({ current: 1, revisions: 1, audit: 1 });
   });
 
+  it('C records the save audit writer time within the request interval', async () => {
+    const requestStart = Date.now();
+    const response = await save();
+    const responseEnd = Date.now();
+    expect(response.statusCode).toBe(200);
+    const events = await prisma.adminAuditEvent.findMany({
+      where: { actorId, action: 'storefront-code.save', targetType: 'storefront-code', targetId: 'system' },
+    });
+    expect(events).toHaveLength(1);
+    expect(events[0].createdAt).toBeInstanceOf(Date);
+    expect(events[0].createdAt.getTime()).toBeGreaterThanOrEqual(requestStart);
+    expect(events[0].createdAt.getTime()).toBeLessThanOrEqual(responseEnd);
+  });
+
   it('B rejects stale saves with 409 without changing configuration, history or audit', async () => {
     const saved = await save();
     expect(saved.statusCode).toBe(200);

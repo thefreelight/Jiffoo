@@ -164,6 +164,15 @@ describe('T1a declarative theme validator', () => {
       .toThrowError(expect.objectContaining({ code: 'THEME_TOO_MANY_ENTRIES' }));
   });
 
+  it('A rejects script and injection-point declarations with their JSON paths', async () => {
+    const manifest = await base();
+    rejected({ ...manifest, scripts: ['assets/tracking.js'] }, 'THEME_SCHEMA_INVALID', '/scripts');
+    rejected({ ...manifest, headHtml: '<script>track()</script>' }, 'THEME_SCHEMA_INVALID', '/headHtml');
+    rejected({ ...manifest, bodyHtml: '<script>track()</script>' }, 'THEME_SCHEMA_INVALID', '/bodyHtml');
+    rejected({ ...manifest, injectionPoints: [{ slot: 'head', script: 'assets/tracking.js' }] },
+      'THEME_SCHEMA_INVALID', '/injectionPoints');
+  });
+
   it('E rejects unknown properties, injection tokens, missing locales and unknown sections with JSON paths', async () => {
     const manifest = await base();
     rejected({ ...manifest, unexpected: true }, 'THEME_SCHEMA_INVALID', '/unexpected');
