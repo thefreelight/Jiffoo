@@ -60,8 +60,8 @@ const playwrightGroups = [
 ];
 if (visual) {
   const finalProjects = playwrightGroups[1].splice(playwrightGroups[1].indexOf('20-admin-theme'));
+  playwrightGroups.push(['visual']);
   playwrightGroups.push(finalProjects);
-  playwrightGroups[1].push('visual');
 }
 // Merchant code is configured only after every other storefront/visual project has finished.
 playwrightGroups.push(['23-shop-storefront-code']);
@@ -152,6 +152,9 @@ async function resetE2eLoginLimit() {
   try {
     await client.del('rl:login:ip:127.0.0.1');
     await client.del('rl:ip:127.0.0.1');
+    for await (const keys of client.scanIterator({ MATCH: 'stats:admin-dashboard:*' })) {
+      if (keys.length) await client.del(keys);
+    }
   } finally {
     await client.quit();
   }
