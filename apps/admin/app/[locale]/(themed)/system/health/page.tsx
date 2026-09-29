@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, Database, Plug, RefreshCw, Server } from 'lucide-react'
+import { AlertTriangle, Database, Plug, RefreshCw, Server, Activity } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useT } from 'shared/src/i18n/react'
 import { useHealthSummary } from '@/lib/hooks/use-api'
@@ -27,6 +27,13 @@ export default function HealthMonitoringPage() {
     { label: t('merchant.health.database'), icon: Database, status: summary.database.status },
     { label: t('merchant.health.redis'), icon: Server, status: summary.redis.status },
     { label: t('merchant.health.pluginRuntime'), icon: Plug, status: summary.pluginRuntime.status },
+    {
+      label: t('merchant.health.backgroundWorker'), icon: Activity,
+      status: summary.worker.running ? 'ok' : 'error',
+      text: summary.worker.running
+        ? t('merchant.health.workerRunning', { count: summary.worker.instances })
+        : t('merchant.health.workerNotRunning'),
+    },
   ] : []
 
   const statusClass = summary?.status === 'healthy'
@@ -59,7 +66,7 @@ export default function HealthMonitoringPage() {
       </div>
 
       {summary && (
-        <div className="border border-border bg-surface p-6">
+        <div className="border border-border bg-surface p-6" role="group" aria-label={t('merchant.health.subtitle')}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-sm text-text-muted">{t('merchant.health.overallStatus')}</p>
@@ -74,13 +81,13 @@ export default function HealthMonitoringPage() {
           </div>
 
           <div className="mt-6 grid gap-3 md:grid-cols-3">
-            {components.map(({ label, icon: Icon, status }) => (
-              <div className="flex items-center justify-between border border-border p-4" key={label}>
+            {components.map(({ label, icon: Icon, status, text }) => (
+              <div className={`flex items-center justify-between border border-border p-4${text ? ' md:col-span-3' : ''}`} key={label} role="group" aria-label={label}>
                 <span className="flex items-center gap-2 text-sm font-medium text-text">
                   <Icon className="h-4 w-4 text-action-base" />
                   {label}
                 </span>
-                <span className={status === 'ok' ? 'text-sm text-success-deep' : 'text-sm text-danger-deep'}>{status}</span>
+                <span className={status === 'ok' ? 'text-sm text-success-deep' : 'text-sm text-danger-deep'}>{text ?? status}</span>
               </div>
             ))}
           </div>

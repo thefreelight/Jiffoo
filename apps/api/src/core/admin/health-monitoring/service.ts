@@ -5,12 +5,14 @@
 import { getPluginRuntimeState } from '@/core/admin/extension-installer/plugin-runtime';
 import { performHealthCheck } from '@/utils/health-check';
 import type { HealthSummaryResponse } from './types';
+import { getWorkerHealthSummary } from '@/infra/worker-health';
 
 export class HealthMonitoringService {
   static async getHealthSummary(): Promise<HealthSummaryResponse> {
-    const [healthCheck, pluginRuntime] = await Promise.all([
+    const [healthCheck, pluginRuntime, worker] = await Promise.all([
       performHealthCheck(),
       Promise.resolve(getPluginRuntimeState()),
+      getWorkerHealthSummary(),
     ]);
 
     const database = { status: healthCheck.checks.database.status };
@@ -25,6 +27,7 @@ export class HealthMonitoringService {
       status,
       database,
       redis,
+      worker,
       pluginRuntime: {
         status: 'ok',
         loaded: pluginRuntime.loaded,

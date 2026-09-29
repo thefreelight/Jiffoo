@@ -19,6 +19,7 @@ export const envSchema = z.object({
   // Server
   API_PORT: z.string().transform(Number).default('3001'),
   API_HOST: z.string().default('0.0.0.0'),
+  WORKER_HEALTH_PORT: z.coerce.number().int().min(0).max(65535).default(3004),
 
   // Rate Limiting
   RATE_LIMITER_FAIL_CLOSED: z.string().transform((v) => v === 'true').default('true'),

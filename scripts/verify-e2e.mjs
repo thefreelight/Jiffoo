@@ -36,6 +36,7 @@ const env = {
   JWT_SECRET: 'e2e-local-secret-at-least-32-characters',
   API_HOST: '127.0.0.1',
   API_PORT: '3001',
+  WORKER_HEALTH_PORT: '3004',
   TRUSTED_PROXIES: '127.0.0.1,::1',
   API_SERVICE_URL: 'http://127.0.0.1:3001',
   NEXT_PUBLIC_API_URL: '/api/v1',

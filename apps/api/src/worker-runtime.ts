@@ -5,8 +5,27 @@ import { deliverPendingNotifications } from './core/notifications/delivery';
 import { winstonLogger } from './core/logger/unified-logger';
 import { queueManager, workerManager, outboxPoller, registerAllHandlers } from './infra/jobs';
 import { PaymentReconciliationJob } from './jobs/payment-reconciliation';
+import { randomUUID } from 'node:crypto';
+import { hostname } from 'node:os';
+import { createServer } from 'node:http';
+import { env } from './config/env';
+import { WORKER_HEARTBEAT_PREFIX, WORKER_HEARTBEAT_TTL_SECONDS, WORKER_HEARTBEAT_INTERVAL_MS, WORKER_TASKS } from './infra/worker-health';
 
-export async function startWorkerRuntime(options: { redisUrl?: string } = {}) {
+export async function startWorkerRuntime(options: { redisUrl?: string; healthPort?: number } = {}) {
+  const instanceId = randomUUID();
+  const startedAt = new Date().toISOString();
+  const heartbeatKey = `${WORKER_HEARTBEAT_PREFIX}${instanceId}`;
+  let started = false;
+  let heartbeatTimer: NodeJS.Timeout | null = null;
+  const healthServer = createServer(async (request, response) => {
+    if (request.method !== 'GET' || request.url !== '/healthz') {
+      response.writeHead(404).end();
+      return;
+    }
+    const healthy = started && await redisCache.ping();
+    response.writeHead(healthy ? 200 : 503, { 'content-type': 'application/json' });
+    response.end(JSON.stringify({ status: healthy ? 'ok' : 'unavailable', instanceId, tasks: [...WORKER_TASKS] }));
+  });
   let notificationTimer: NodeJS.Timeout | null = null;
   let unpaidTimer: NodeJS.Timeout | null = null;
   const redisConnections: Array<{ name: string; client: { status: string } }> = [];
@@ -32,12 +51,21 @@ export async function startWorkerRuntime(options: { redisUrl?: string } = {}) {
     redisConnections: redisConnections.map(({ name, client }) => ({ name, status: client.status })),
   });
   const stop = async () => {
+    started = false;
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+    if (healthServer.listening) {
+      await new Promise<void>((resolve, reject) => healthServer.close((error) => error ? reject(error) : resolve()));
+    }
     if (notificationTimer) clearInterval(notificationTimer);
     if (unpaidTimer) clearInterval(unpaidTimer);
     notificationTimer = unpaidTimer = null;
     PaymentReconciliationJob.stop();
     outboxPoller.stop();
     await Promise.all([...pending, outboxPoller.drain(), PaymentReconciliationJob.drain()]);
+    if (redisCache.getRawClient().status === 'ready') {
+      await run(() => redisCache.getRawClient().del(heartbeatKey), 'Worker heartbeat deletion failed');
+    }
     await workerManager.stop();
     await queueManager.disconnect();
     await redisCache.disconnect();
@@ -65,7 +93,24 @@ export async function startWorkerRuntime(options: { redisUrl?: string } = {}) {
         minAgeMinutes: Number(process.env.PAYMENT_RECONCILIATION_MIN_AGE_MINUTES || 2) || 2,
       });
     }
-    return { state, stop };
+    const beat = () => run(() => redisCache.getRawClient().set(
+      heartbeatKey,
+      JSON.stringify({ instanceId, hostname: hostname(), pid: process.pid, startedAt, lastBeatAt: new Date().toISOString() }),
+      'EX', WORKER_HEARTBEAT_TTL_SECONDS,
+    ), 'Worker heartbeat write failed');
+    await beat();
+    heartbeatTimer = setInterval(() => void beat(), WORKER_HEARTBEAT_INTERVAL_MS);
+    await new Promise<void>((resolve, reject) => {
+      healthServer.once('error', reject);
+      healthServer.listen(options.healthPort ?? env.WORKER_HEALTH_PORT, '0.0.0.0', () => {
+        healthServer.removeListener('error', reject);
+        resolve();
+      });
+    });
+    started = true;
+    const address = healthServer.address();
+    if (!address || typeof address === 'string') throw new Error('Worker health server has no TCP address');
+    return { state, stop, instanceId, heartbeatKey, healthPort: address.port };
   } catch (error) {
     await stop();
     throw Object.assign(error instanceof Error ? error : new Error(String(error)), { runtimeState: state() });

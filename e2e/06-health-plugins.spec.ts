@@ -6,6 +6,7 @@ test('health overview and five enabled builtin plugins are visible', async ({ pa
   await page.goto('/en/system/health');
   await expect(page.getByRole('heading', { name: 'System Health' })).toBeVisible();
   await expect(page.getByText('Overall status')).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Background worker', exact: true }).getByText('Running (1)', { exact: true })).toBeVisible();
   await page.goto('/en/plugins');
   await expect(page.getByRole('heading', { name: 'Plugins' })).toBeVisible();
   for (const plugin of ['Console email', 'Free shipping', 'Manual payment', 'Zero tax', 'Manual fulfillment']) {

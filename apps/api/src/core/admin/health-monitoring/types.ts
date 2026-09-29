@@ -17,5 +17,10 @@ export interface HealthSummaryResponse {
     loaded: number;
   };
   version: string;
+  worker: {
+    running: boolean;
+    instances: number;
+    lastBeatAt: string | null;
+  };
   uptime: number;
 }

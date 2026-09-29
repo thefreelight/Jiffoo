@@ -38,7 +38,7 @@ describe('backend process isolation', () => {
 
   it('A: starts exactly five worker tasks and stops every task and Redis connection', async () => {
     await createOwnEvent();
-    const runtime = await startWorkerRuntime();
+    const runtime = await startWorkerRuntime({ healthPort: 0 });
     stop = runtime.stop;
     const connections = runtime.state().redisConnections;
     expect(connections).toHaveLength(13);

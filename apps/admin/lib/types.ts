@@ -302,6 +302,11 @@ export interface NavItem {
 }
 
 export interface HealthSummaryResponse {
+  worker: {
+    running: boolean
+    instances: number
+    lastBeatAt: string | null
+  }
   status: 'healthy' | 'degraded' | 'unhealthy'
   database: {
     status: 'ok' | 'error'
