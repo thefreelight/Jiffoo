@@ -1,9 +1,9 @@
 (() => {
-  window.recordProviderStub = (provider, commands) => {
+  window.recordProviderStub = (provider, commands, loaded = true) => {
     const evidence = window.providerStubEvidence || (window.providerStubEvidence = {});
     const previous = evidence[provider];
     evidence[provider] = {
-      loads: (previous?.loads || 0) + 1,
+      loads: (previous?.loads || 0) + (loaded ? 1 : 0),
       commands: [...(previous?.commands || []), ...commands.map((command) =>
         Array.from(command, (value) => value instanceof Date ? '<Date>' : value))],
     };

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import type { StorefrontCode, StorefrontCodeSlots } from '@/lib/storefront-code';
 import { initializeProviders, type ProviderLibraryOverrides } from '@/lib/storefront-providers';
+import { documentTracking } from '@/lib/purchase-tracking';
 
 type CodeDocument = Document & { jiffooStorefrontCodeStarted?: boolean };
 
@@ -78,6 +79,7 @@ export function StorefrontCodeLoader({ slots, libraryOverrides }: {
     const startInjection = () => {
       requestIdleCallback(() => {
         initializeProviders(slots, libraryOverrides);
+        documentTracking().initialized(slots);
         void injectCode(slots);
       });
     };

@@ -3,6 +3,8 @@ import { requireLocale } from '@/lib/catalog';
 import { customerData, customerOrder } from '@/lib/server-checkout';
 import { accountProfile } from '@/lib/server-account';
 import { OrderSummary } from '@/components/order-summary';
+import { OrderPurchaseTracking } from '@/components/order-purchase-tracking';
+import { purchaseData } from '@/lib/purchase-tracking';
 
 export default async function ReturnPage({ params, searchParams }: {
   params: Promise<{ locale: string }>;
@@ -19,5 +21,5 @@ export default async function ReturnPage({ params, searchParams }: {
   }
   const order = await customerOrder(id);
   if (!order) notFound();
-  return <OrderSummary order={order} locale={locale} />;
+  return <><OrderSummary order={order} locale={locale} /><OrderPurchaseTracking order={purchaseData(order)} /></>;
 }

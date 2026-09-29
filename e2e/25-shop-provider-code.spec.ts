@@ -3,6 +3,7 @@ import type { APIRequestContext, Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { api, login, ownerEmail } from './helpers';
+import type { Order } from '../apps/shop/lib/checkout-types';
 
 const shop = 'http://127.0.0.1:3003';
 const configPath = 'http://127.0.0.1:3001/api/v1/admin/storefront-code';
@@ -65,15 +66,44 @@ window.providerMerchant={
 };
 </script>`;
 
-function marker(config: Config, merchant = false) {
+function marker(config: Config, merchant = false, order?: Order) {
+  const purchase = order ? {
+    ga4: [['event', 'purchase', {
+      transaction_id: order.id, value: Number(order.totalAmount), currency: order.currency,
+      shipping: Number(order.shippingAmount), tax: Number(order.taxAmount),
+      items: order.items.map((item) => ({
+        item_id: item.productId, item_name: item.productName,
+        ...(item.variantId ? { item_variant: item.variantId } : {}),
+        price: Number(item.unitPrice), quantity: item.quantity,
+      })),
+    }]],
+    meta: [['track', 'Purchase', {
+      value: Number(order.totalAmount), currency: order.currency, content_type: 'product',
+      content_ids: order.items.map((item) => item.productId),
+      contents: order.items.map((item) => ({ id: item.productId, quantity: item.quantity })),
+      num_items: order.items.reduce((sum, item) => sum + item.quantity, 0),
+    }, { eventID: `purchase-${order.id}` }]],
+    baidu: [['_trackOrder', { orderId: order.id, orderTotal: Number(order.totalAmount),
+      item: order.items.map((item) => ({
+        skuId: item.variantId || item.productId, skuName: item.productName,
+        Price: Number(item.unitPrice), Quantity: item.quantity,
+      })),
+    }]],
+  } : { ga4: [], meta: [], baidu: [] };
   return 'Provider commands: ' + JSON.stringify([
-    { provider: 'ga4', loads: 1, commands: [['js', '<Date>'], ['config', config.ga4MeasurementId]] },
-    { provider: 'meta', loads: 1, commands: [['init', config.metaPixelId], ['track', 'PageView']] },
-    { provider: 'baidu', loads: 1, commands: [] },
+    { provider: 'ga4', loads: 1, commands: [['js', '<Date>'], ['config', config.ga4MeasurementId], ...purchase.ga4] },
+    { provider: 'meta', loads: 1, commands: [['init', config.metaPixelId], ['track', 'PageView'], ...purchase.meta] },
+    { provider: 'baidu', loads: 1, commands: purchase.baidu },
   ]) + '|merchant:' + JSON.stringify(merchant ? { ready: true, order: ['ga4', 'meta', 'baidu'] } : null);
 }
-async function checkMarker(page: Page, config: Config, merchant = false) {
-  const element = page.getByText(marker(config, merchant), { exact: true });
+async function checkMarker(page: Page, config: Config, merchant = false, orderId?: string) {
+  let order: Order | undefined;
+  if (orderId) {
+    const response = await page.request.get(`${shop}/bff/orders/${orderId}`);
+    expect(response.ok()).toBe(true);
+    order = (await response.json()).data as Order;
+  }
+  const element = page.getByText(marker(config, merchant, order), { exact: true });
   await expect(element).toHaveCount(1);
   await expect(element).toBeVisible();
 }
@@ -131,8 +161,8 @@ test('C initializes GA4 Meta Baidu before merchant head code on storefront and c
   await checkMarker(page, config, true);
   await buyerWithCart(page, request);
   await page.getByRole('link', { name: 'Checkout', exact: true }).click();
-  await placeOrder(page);
-  await checkMarker(page, config, true);
+  const id = await placeOrder(page);
+  await checkMarker(page, config, true, id);
 });
 
 test('D soft home category product and locale navigation initializes providers exactly once per document', async ({ page, request }) => {
@@ -170,7 +200,7 @@ test('E direct and storefront arrivals at checkout and cancel have no provider m
   await configure(request, config);
   await page.getByRole('link', { name: 'Checkout', exact: true }).click();
   const id = await placeOrder(page);
-  await checkMarker(page, config);
+  await checkMarker(page, config, false, id);
   await page.goto(`${shop}/en/products`);
   await page.getByRole('searchbox', { name: 'Search products', exact: true }).fill(productName);
   await page.getByRole('button', { name: 'Search', exact: true }).click();

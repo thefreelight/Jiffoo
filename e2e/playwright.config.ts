@@ -16,6 +16,7 @@ const areas = [
   '23-shop-storefront-code',
   '24-admin-storefront-code',
   '25-shop-provider-code',
+  '26-shop-purchase-tracking',
 ];
 
 export default defineConfig({

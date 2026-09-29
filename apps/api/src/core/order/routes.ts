@@ -8,6 +8,7 @@ import { InvalidOrderTransitionError } from './transition';
 import { dualAuthMiddleware } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
 import { orderSchemas } from './schemas';
+import { claimOrderPurchase, TrackingClaimError } from './tracking-claim';
 
 export async function orderRoutes(fastify: FastifyInstance) {
   // Apply dual auth (JWT or API token with checkout:create scope)
@@ -80,6 +81,26 @@ export async function orderRoutes(fastify: FastifyInstance) {
       return sendSuccess(reply, order);
     } catch (error: any) {
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
+    }
+  });
+
+  fastify.post('/:id/tracking-claim', {
+    schema: {
+      tags: ['orders'],
+      summary: 'Claim order purchase tracking',
+      description: 'Consume the purchase event claim on the first customer confirmation view',
+      security: [{ bearerAuth: [] }],
+      ...orderSchemas.trackingClaim,
+    },
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      return sendSuccess(reply, await claimOrderPurchase(id, request.user!.id));
+    } catch (error) {
+      if (error instanceof TrackingClaimError) {
+        return sendError(reply, error.statusCode, error.code, error.message);
+      }
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to claim purchase tracking');
     }
   });
 

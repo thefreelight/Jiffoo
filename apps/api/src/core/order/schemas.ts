@@ -131,6 +131,22 @@ const orderResponseSchema = {
 // ============================================================================
 
 export const orderSchemas = {
+  trackingClaim: {
+    params: {
+      type: 'object',
+      required: ['id'],
+      properties: { id: { type: 'string', minLength: 1 } },
+    },
+    response: {
+      ...createTypedUpdateResponses({
+        type: 'object',
+        additionalProperties: false,
+        required: ['claimed'],
+        properties: { claimed: { type: 'boolean' } },
+      }),
+      409: errorResponseSchema,
+    },
+  },
   // POST /api/orders/
   createOrder: {
     body: {
