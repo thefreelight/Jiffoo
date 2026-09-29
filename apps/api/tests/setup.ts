@@ -10,7 +10,19 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load tests/.env.test before importing db helpers
-dotenv.config({ path: path.resolve(__dirname, './.env.test') });
+const dotenvResult = dotenv.config({ path: path.resolve(__dirname, './.env.test') });
+
+// .env.test is gitignored. A fresh clone or worktree without it still runs,
+// but routes fail with opaque 4xx/500s (missing JWT_SECRET, REDIS_URL, ...)
+// that look like product bugs. Say so loudly instead.
+if (dotenvResult.error || !process.env.JWT_SECRET) {
+  console.warn(`
+⚠️  tests/.env.test is missing or incomplete (JWT_SECRET is not set).
+   Integration tests will run but may fail with opaque errors.
+   Fix: copy apps/api/tests/.env.test from a configured checkout, or set the
+   variables it documents (JWT_SECRET, REDIS_URL, API_SERVICE_URL, ...).
+`);
+}
 
 const dbUrl = process.env.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/jiffoo_test?schema=public';
 
