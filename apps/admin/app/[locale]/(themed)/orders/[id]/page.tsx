@@ -94,7 +94,7 @@ export default function OrderDetailPage() {
     <div className="w-full bg-page-surface min-h-screen pb-20">
       {/* Header Bar */}
       <div className="sticky top-0 z-50 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
@@ -107,15 +107,15 @@ export default function OrderDetailPage() {
             <h1 className="text-lg sm:text-xl font-bold text-neutral-deepest tracking-tight leading-none truncate uppercase">
               {getText('merchant.orders.orderDetails', 'Order Specification')}
             </h1>
-            <span className="text-[9px] sm:text-[10px] font-bold text-action-strong uppercase tracking-widest mt-0.5 sm:mt-1">
+            <span className="break-all text-[9px] sm:text-[10px] font-bold text-action-strong uppercase tracking-widest mt-0.5 sm:mt-1">
               Deployment Node: #{order.id.toUpperCase()}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <div className={cn(
-            "px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
+            "shrink-0 px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
             getStatusStyle(order.status)
           )}>
             {order.status}

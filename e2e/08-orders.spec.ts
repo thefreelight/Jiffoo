@@ -54,6 +54,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await expect(page.getByText('SHIPPED', { exact: true }).first()).toBeVisible();
     await page.getByRole('button', { name: 'Mark delivered' }).click();
     await expect(page.getByText('DELIVERED', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('DELIVERED', { exact: true }).first()).toHaveCSS('flex-shrink', '0');
     await page.goto('/en/notifications');
     await expect(page.getByText('order confirmation')).toBeVisible();
     await expect(page.getByText('payment received')).toBeVisible();
