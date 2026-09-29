@@ -50,6 +50,7 @@ import { tryNativeCoupon } from './coupon';
 import { tryNativeImagerAi } from './imager-ai';
 import { processNativeVideoTasks, tryNativeVideoAi } from './video-ai';
 import { tryNativePublicAuthConfig } from './public-auth-config';
+import { tryNativeGatewayFallbacks } from './gateway-fallbacks';
 import { tryNativeProductsSearch } from './products-search';
 import { processScheduledToolDiscovery, tryNativeToolDirectoryTrending, tryNativeToolDiscovery } from './tool-discovery';
 import { nativeOdooMediaUrl } from './odoo';
@@ -271,6 +272,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeMailBounces) return nativeMailBounces;
     const nativePublicAuthConfig = tryNativePublicAuthConfig(nativeRequest, env);
     if (nativePublicAuthConfig) return nativePublicAuthConfig;
+    const nativeGatewayFallbacks = tryNativeGatewayFallbacks(nativeRequest);
+    if (nativeGatewayFallbacks) return nativeGatewayFallbacks;
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
       return serveAsset(url, env);
     }
