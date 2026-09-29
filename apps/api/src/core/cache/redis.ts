@@ -90,9 +90,8 @@ export class RedisCache {
   }
 
   public async disconnect(): Promise<void> {
-    if (this.isConnected) {
-      await this.redis.disconnect();
-    }
+    this.redis.disconnect();
+    this.isConnected = false;
   }
 
   public async set(key: string, value: any, ttl?: number): Promise<boolean> {

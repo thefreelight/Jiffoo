@@ -15,6 +15,17 @@ export class PaymentReconciliationJob {
   private static isRunning = false;
   private static updateInterval: NodeJS.Timeout | null = null;
   private static options: PaymentReconciliationJobOptions = {};
+  private static pending = new Set<Promise<void>>();
+
+  static async drain(): Promise<void> {
+    await Promise.all(this.pending);
+  }
+
+  private static run(): void {
+    const operation = this.reconcileNow();
+    this.pending.add(operation);
+    void operation.finally(() => this.pending.delete(operation));
+  }
 
   /**
    * Start the reconciliation cron job
@@ -27,10 +38,10 @@ export class PaymentReconciliationJob {
     const intervalMs = options.intervalMs ?? 600_000;
     logger.info(`Payment reconciliation job started (every ${Math.round(intervalMs / 1000)}s)`);
 
-    this.reconcileNow();
+    this.run();
 
-    this.updateInterval = setInterval(async () => {
-      await this.reconcileNow();
+    this.updateInterval = setInterval(() => {
+      this.run();
     }, intervalMs);
   }
 

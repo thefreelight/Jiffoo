@@ -415,7 +415,7 @@ async function buildApp() {
   }
 }
 
-async function start() {
+export async function startApiRuntime(options: { port?: number; host?: string } = {}) {
   try {
     const app = await buildApp();
 
@@ -427,8 +427,8 @@ async function start() {
     await loadEnabledPluginRuntimes();
 
     await app.listen({
-      port: env.API_PORT,
-      host: env.API_HOST,
+      port: options.port ?? env.API_PORT,
+      host: options.host ?? env.API_HOST,
     });
 
     app.log.info(`Server running on http://${env.API_HOST}:${env.API_PORT}`);
@@ -443,39 +443,21 @@ async function start() {
     });
 
 
-    // Start unified job infrastructure (BullMQ + Outbox poller)
-    // Replaces the old OutboxWorkerService with the unified async task layer.
-    // WORKER_MODE controls behavior: embedded (default), standalone, off
-    if (process.env.ENABLE_OUTBOX_WORKER !== 'false') {
-      const { startJobInfrastructure } = await import('@/infra/jobs');
-      await startJobInfrastructure();
-    }
-
-
-    // Start payment reconciliation job (Optional)
-    if (process.env.ENABLE_PAYMENT_RECONCILIATION_JOB !== 'false') {
-      try {
-        const { PaymentReconciliationJob } = await import('@/jobs/payment-reconciliation');
-        const intervalMs = Number(process.env.PAYMENT_RECONCILIATION_INTERVAL_MS || 600_000) || 600_000;
-        const limit = Number(process.env.PAYMENT_RECONCILIATION_LIMIT || 100) || 100;
-        const maxAgeMinutes = Number(process.env.PAYMENT_RECONCILIATION_MAX_AGE_MINUTES || 10080) || 10080;
-        const minAgeMinutes = Number(process.env.PAYMENT_RECONCILIATION_MIN_AGE_MINUTES || 2) || 2;
-        PaymentReconciliationJob.start({ intervalMs, limit, maxAgeMinutes, minAgeMinutes });
-        LoggerService.logSystem('Payment reconciliation job started', {
-          intervalMs,
-          limit,
-          maxAgeMinutes,
-          minAgeMinutes,
-        });
-      } catch (reconcileError) {
-        LoggerService.logError(reconcileError as Error, { context: 'Payment reconciliation job startup' });
-      }
-    }
-
+    return {
+      app,
+      async stop() {
+        await app.close();
+        await redisCache.disconnect();
+        await prisma.$disconnect();
+      },
+    };
   } catch (error) {
     LoggerService.logError(error as Error, { context: 'Server startup' });
     console.error('Error starting server:', error);
-    process.exit(1);
+    await fastify.close();
+    await redisCache.disconnect();
+    await prisma.$disconnect();
+    throw error;
   }
 }
 
@@ -494,14 +476,18 @@ const gracefulShutdown = async (signal: string) => {
   }
 };
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
 // Only start the server when this file is executed directly.
 // This allows importing `buildApp()` from scripts (e.g. OpenAPI export) without
 // triggering Redis/DB connections and a listen() side effect.
 if (require.main === module) {
-  start();
+  startApiRuntime().then((runtime) => {
+    const shutdown = async (signal: string) => {
+      await runtime.stop();
+      await gracefulShutdown(signal);
+    };
+    process.on('SIGTERM', () => void shutdown('SIGTERM'));
+    process.on('SIGINT', () => void shutdown('SIGINT'));
+  }).catch(() => process.exit(1));
 }
 
 export { buildApp };

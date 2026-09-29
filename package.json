@@ -14,7 +14,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "dotenv -e .env -- turbo run dev --filter=api --filter=admin --concurrency=5",
+    "dev": "dotenv -e .env -- turbo run dev dev:worker --filter=api --filter=admin --concurrency=5",
     "dev:core": "dotenv -e .env -- turbo run dev --filter=api --filter=admin --concurrency=5",
     "dev:minimal": "turbo run dev --filter=api --concurrency=2",
     "dev:api-only": "dotenv -e .env -- pnpm --filter api dev",
@@ -22,7 +22,7 @@
     "dev:packages": "turbo run dev --filter='./packages/**' --concurrency=8",
     "build": "turbo run build",
     "build:core": "turbo run build --filter=api --filter=admin",
-    "start": "turbo run start",
+    "start": "turbo run start start:worker",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean",

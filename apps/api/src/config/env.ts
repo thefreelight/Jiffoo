@@ -68,8 +68,6 @@ export const envSchema = z.object({
   CDN_IMAGE_FORMATS: z.string().default('webp,avif,jpeg,png'),
   CDN_IMAGE_QUALITY: z.string().transform(Number).default('80'),
 
-  // Worker deployment mode: embedded (default), standalone, off
-  WORKER_MODE: z.enum(['embedded', 'standalone', 'off']).default('embedded'),
 }).superRefine((value, context) => {
   const violations = productionSafetyViolations({
     NODE_ENV: value.NODE_ENV,

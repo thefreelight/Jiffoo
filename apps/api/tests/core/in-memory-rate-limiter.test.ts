@@ -14,7 +14,7 @@ describe('InMemoryRateLimiter', () => {
   });
 
   afterAll(() => {
-    limiter.stopCleanup();
+    limiter.clear();
   });
 
   describe('increment', () => {

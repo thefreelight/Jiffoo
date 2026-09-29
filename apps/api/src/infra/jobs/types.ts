@@ -18,14 +18,6 @@ export const QUEUE_NAMES = {
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
 
 /**
- * Worker deployment mode.
- * - embedded: Worker runs inside the API process (default)
- * - standalone: Worker runs as a separate process (node dist/worker.js)
- * - off: No worker; jobs are enqueued but not consumed (for external workers)
- */
-export type WorkerMode = 'embedded' | 'standalone' | 'off';
-
-/**
  * Base job data that all jobs must include.
  * The outboxEventId enables idempotency — the processor checks
  * whether the event has already been processed.

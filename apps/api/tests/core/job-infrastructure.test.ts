@@ -24,7 +24,6 @@ vi.mock('@/config/database', () => ({
 vi.mock('@/config/env', () => ({
   env: {
     REDIS_URL: 'redis://localhost:6379',
-    WORKER_MODE: 'embedded' as const,
   },
 }));
 

@@ -121,6 +121,15 @@ function service(name, args, cwd, extraEnv = {}) {
   console.log(`${name} PID ${child.pid}`);
 }
 
+function apiService(name, script) {
+  const cwd = resolve(root, 'apps/api');
+  const command = JSON.parse(readFileSync(resolve(cwd, 'package.json'), 'utf8')).scripts[script];
+  if (typeof command !== 'string' || !command.startsWith('node ')) {
+    throw new Error(`API script ${script} must launch node directly`);
+  }
+  service(name, command.slice(5).split(' '), cwd);
+}
+
 async function health() {
   for (let attempt = 0; attempt < 120; attempt += 1) {
     if (children.some((child) => child.exitCode !== null)) throw new Error('A service exited before health checks completed');
@@ -210,8 +219,8 @@ try {
   await step('Build Admin', () => command(['--filter', 'admin', 'build']));
   await step('Build Shop', () => command(['--filter', 'shop', 'build']));
   await step('Start API, worker, Admin and Shop', () => {
-    service('api', ['dist/server.js'], resolve(root, 'apps/api'), { WORKER_MODE: 'off', ENABLE_OUTBOX_WORKER: 'false' });
-    service('worker', ['dist/worker.js'], resolve(root, 'apps/api'), { WORKER_MODE: 'standalone' });
+    apiService('api', 'start');
+    apiService('worker', 'start:worker');
     service('admin', [resolve(root, 'node_modules/next/dist/bin/next'), 'start', '-p', '3002', '-H', '127.0.0.1'], resolve(root, 'apps/admin'));
     service('shop', ['server.mjs'], resolve(root, 'apps/shop'), {
       HOSTNAME: '127.0.0.1', PORT: '3003', TRUSTED_PROXIES: '',

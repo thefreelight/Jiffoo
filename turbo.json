@@ -24,7 +24,12 @@
     "STOREFRONT_URL",
     "ADMIN_URL",
     "GOOGLE_CLIENT_ID",
-    "GOOGLE_CLIENT_SECRET"
+    "GOOGLE_CLIENT_SECRET",
+    "ENABLE_PAYMENT_RECONCILIATION_JOB",
+    "PAYMENT_RECONCILIATION_INTERVAL_MS",
+    "PAYMENT_RECONCILIATION_LIMIT",
+    "PAYMENT_RECONCILIATION_MAX_AGE_MINUTES",
+    "PAYMENT_RECONCILIATION_MIN_AGE_MINUTES"
   ],
   "tasks": {
     "build": {
@@ -48,6 +53,18 @@
       "persistent": false
     },
     "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "dev:worker": {
+      "cache": false,
+      "persistent": true
+    },
+    "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "start:worker": {
       "cache": false,
       "persistent": true
     },

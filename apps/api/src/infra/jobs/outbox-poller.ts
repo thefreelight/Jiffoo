@@ -23,6 +23,15 @@ class OutboxPoller {
   private interval: NodeJS.Timeout | null = null;
   private running = false;
   private processing = false;
+  private pending: Promise<void> = Promise.resolve();
+
+  isRunning(): boolean {
+    return this.running;
+  }
+
+  async drain(): Promise<void> {
+    await this.pending;
+  }
 
   /**
    * Start polling the outbox table.
@@ -37,7 +46,7 @@ class OutboxPoller {
     });
 
     // Process immediately, then on interval
-    this.processBatch().catch((err) => {
+    this.pending = this.processBatch().catch((err) => {
       winstonLogger.error('OutboxPoller initial batch failed', {
         component: 'OutboxPoller',
         error: err instanceof Error ? err.message : String(err),
@@ -45,7 +54,8 @@ class OutboxPoller {
     });
 
     this.interval = setInterval(() => {
-      this.processBatch().catch((err) => {
+      if (this.processing) return;
+      this.pending = this.processBatch().catch((err) => {
         winstonLogger.error('OutboxPoller batch failed', {
           component: 'OutboxPoller',
           error: err instanceof Error ? err.message : String(err),

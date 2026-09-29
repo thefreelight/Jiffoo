@@ -45,15 +45,14 @@ export interface RateLimitStore {
  */
 export class MemoryRateLimitStore implements RateLimitStore {
   private store = new Map<string, { count: number; resetTime: number }>();
-  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
-
-  constructor(cleanupIntervalMs = 60000) {
-    // Periodically clean up expired records
-    this.cleanupInterval = setInterval(() => this.cleanup(), cleanupIntervalMs);
-  }
+  private lastCleanupAt = 0;
 
   async increment(key: string, windowMs: number): Promise<{ count: number; resetTime: number }> {
     const now = Date.now();
+    if (now - this.lastCleanupAt >= 60000) {
+      this.cleanup();
+      this.lastCleanupAt = now;
+    }
     const existing = this.store.get(key);
 
     if (existing && existing.resetTime > now) {
@@ -88,10 +87,6 @@ export class MemoryRateLimitStore implements RateLimitStore {
   }
 
   destroy(): void {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-    }
     this.store.clear();
   }
 }

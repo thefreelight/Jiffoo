@@ -15,6 +15,7 @@ const MAX_LOGS_PER_MINUTE = 10;
 
 // Rate limiter: model → timestamps of recent logs
 const recentLogs = new Map<string, number[]>();
+let lastCleanupAt = 0;
 
 /**
  * Check if we should log a slow query for this model (rate limited).
@@ -22,6 +23,14 @@ const recentLogs = new Map<string, number[]>();
 function shouldLog(model: string): boolean {
   const now = Date.now();
   const cutoff = now - 60_000; // 1 minute ago
+  if (now - lastCleanupAt >= 60_000) {
+    for (const [key, timestamps] of recentLogs) {
+      const active = timestamps.filter((timestamp) => timestamp > cutoff);
+      if (active.length) recentLogs.set(key, active);
+      else recentLogs.delete(key);
+    }
+    lastCleanupAt = now;
+  }
 
   const recent = (recentLogs.get(model) || []).filter((t) => t > cutoff);
   if (recent.length >= MAX_LOGS_PER_MINUTE) {
@@ -31,21 +40,6 @@ function shouldLog(model: string): boolean {
   recentLogs.set(model, recent);
   return true;
 }
-
-/**
- * Periodically clean up old entries to prevent memory leak.
- */
-setInterval(() => {
-  const cutoff = Date.now() - 60_000;
-  for (const [model, timestamps] of recentLogs) {
-    const recent = timestamps.filter((t) => t > cutoff);
-    if (recent.length === 0) {
-      recentLogs.delete(model);
-    } else {
-      recentLogs.set(model, recent);
-    }
-  }
-}, 60_000).unref();
 
 /**
  * Prisma client extension that measures query duration and logs slow queries.

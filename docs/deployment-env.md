@@ -16,3 +16,13 @@ environment. Include the Shop's connecting address in the API list so the API
 can use the single sanitized `X-Forwarded-For` value sent by the Shop. For
 same-machine development this may be `127.0.0.1,::1`, but a production
 deployment should list only its actual connecting proxies and Shop addresses.
+
+## Processes
+
+Both the API process and the worker process must run. Start them with
+`pnpm --filter api start` and `pnpm --filter api start:worker`, respectively;
+for development use `pnpm --filter api dev` and `pnpm --filter api dev:worker`.
+Root `pnpm start` and `pnpm dev` include both processes alongside their existing
+applications. The worker runs notification delivery, unpaid-order timeout,
+payment reconciliation and event processing. The worker exits at startup if
+Redis is unavailable.

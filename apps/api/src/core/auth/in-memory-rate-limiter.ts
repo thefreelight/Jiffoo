@@ -15,12 +15,11 @@ export class InMemoryRateLimiter {
   private static instance: InMemoryRateLimiter;
   private records: Map<string, RateLimitRecord>;
   private readonly maxEntries: number = 10000;
-  private cleanupIntervalId: NodeJS.Timeout | null = null;
+  private lastCleanupAt = 0;
   private readonly cleanupIntervalMs: number = 60000; // 1 minute
 
   private constructor() {
     this.records = new Map();
-    this.startCleanup();
   }
 
   public static getInstance(): InMemoryRateLimiter {
@@ -38,6 +37,10 @@ export class InMemoryRateLimiter {
    */
   public increment(key: string, windowMs: number): number {
     const now = Date.now();
+    if (now - this.lastCleanupAt >= this.cleanupIntervalMs) {
+      this.cleanup();
+      this.lastCleanupAt = now;
+    }
     const record = this.records.get(key);
 
     // If record exists and hasn't expired, increment it
@@ -122,34 +125,6 @@ export class InMemoryRateLimiter {
 
     if (oldestKey) {
       this.records.delete(oldestKey);
-    }
-  }
-
-  /**
-   * Start automatic cleanup of expired entries
-   */
-  private startCleanup(): void {
-    if (this.cleanupIntervalId) {
-      return;
-    }
-
-    this.cleanupIntervalId = setInterval(() => {
-      this.cleanup();
-    }, this.cleanupIntervalMs);
-
-    // Prevent the interval from keeping the process alive
-    if (this.cleanupIntervalId.unref) {
-      this.cleanupIntervalId.unref();
-    }
-  }
-
-  /**
-   * Stop automatic cleanup (useful for testing)
-   */
-  public stopCleanup(): void {
-    if (this.cleanupIntervalId) {
-      clearInterval(this.cleanupIntervalId);
-      this.cleanupIntervalId = null;
     }
   }
 

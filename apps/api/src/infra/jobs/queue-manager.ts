@@ -53,17 +53,19 @@ class QueueManager {
   private connection: IORedis | null = null;
   private queues: Map<QueueName, Queue> = new Map();
   private queueEvents: Map<QueueName, QueueEvents> = new Map();
+  private queueEventInputs: Map<QueueName, IORedis> = new Map();
   private redisAvailable = true;
 
   /**
    * Initialize the Redis connection and all queues.
    * Safe to call multiple times — subsequent calls are no-ops.
    */
-  async connect(): Promise<void> {
+  async connect(redisUrl = env.REDIS_URL): Promise<void> {
     if (this.connection) return;
 
     try {
-      this.connection = new IORedis(env.REDIS_URL || 'redis://localhost:6379', {
+      this.redisAvailable = true;
+      this.connection = new IORedis(redisUrl || 'redis://localhost:6379', {
         maxRetriesPerRequest: null,
         enableReadyCheck: true,
         retryStrategy: (times) => {
@@ -94,8 +96,10 @@ class QueueManager {
         });
         this.queues.set(queueName, queue);
 
+        const eventConnection = this.connection;
+        this.queueEventInputs.set(queueName, eventConnection);
         const events = new QueueEvents(queueName, {
-          connection: this.connection.duplicate() as unknown as ConnectionOptions,
+          connection: eventConnection as unknown as ConnectionOptions,
         });
         this.queueEvents.set(queueName, events);
       }
@@ -114,6 +118,22 @@ class QueueManager {
    */
   isAvailable(): boolean {
     return this.redisAvailable && this.connection !== null;
+  }
+
+  isConnected(): boolean {
+    return this.connection?.status === 'ready';
+  }
+
+  async getRedisConnections(): Promise<Array<{ name: string; client: { status: string } }>> {
+    const connections: Array<{ name: string; client: { status: string } }> = [];
+    if (this.connection) connections.push({ name: 'queue-root', client: this.connection });
+    for (const [name, client] of this.queueEventInputs) {
+      connections.push({ name: `queue-events-input:${name}`, client });
+    }
+    for (const [name, events] of this.queueEvents) {
+      connections.push({ name: `queue-events:${name}`, client: await events.client });
+    }
+    return connections;
   }
 
   /**
@@ -208,9 +228,10 @@ class QueueManager {
     }
     this.queues.clear();
     this.queueEvents.clear();
+    this.queueEventInputs.clear();
 
     if (this.connection) {
-      await this.connection.quit();
+      this.connection.disconnect();
       this.connection = null;
     }
 
