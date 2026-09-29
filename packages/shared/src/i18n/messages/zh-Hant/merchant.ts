@@ -6,6 +6,25 @@
  */
 
 export const merchant = {
+  storefrontCode: {
+    title: '追蹤與自訂程式碼', providers: '服務商 ID', freeCode: '自訂程式碼',
+    enabled: '總開關', headCode: '頁首程式碼', bodyStartCode: '本文開頭程式碼', bodyEndCode: '本文結尾程式碼',
+    ga4MeasurementId: 'GA4 評估 ID', metaPixelId: 'Meta Pixel ID', baiduSiteKey: '百度統計網站金鑰',
+    ga4Hint: 'G- 後接 1–32 個大寫字母或數字。留空表示清除。',
+    metaHint: '1–32 位數字。留空表示清除。',
+    baiduHint: '32 個小寫十六進位字元。留空表示清除。',
+    invalidId: '服務商 ID 格式無效。', tooLong: '程式碼超過字元上限。',
+    notice: '僅在店面和訂單確認頁面執行，付款頁面絕不執行。頁面載入後依頁首、本文開頭、本文結尾的順序執行。不支援 document.write。程式碼的安全、效能及合規由您負責。',
+    save: '儲存設定', saved: '設定已儲存。', failed: '無法完成請求。',
+    loading: '正在載入設定…', reload: '重新載入最新設定',
+    conflict: '設定已變更。您的編輯已保留，請重新載入最新設定後再儲存。',
+    history: '設定歷史', revision: '版本', time: '時間', actor: '操作人', total: '版本總數',
+    previous: '上一頁', next: '下一頁', page: '頁', empty: '尚無版本。',
+    detail: '版本詳情', close: '關閉詳情', restore: '還原版本',
+    confirmRestore: '確認還原', cancel: '取消',
+    restoreNotice: '還原這些服務商 ID 和程式碼內容？總開關不會改變。',
+    restored: '版本已還原。', currentRevision: '目前版本',
+  },
   contentTranslations: {
     title: '翻譯',
     defaultContent: '預設內容',

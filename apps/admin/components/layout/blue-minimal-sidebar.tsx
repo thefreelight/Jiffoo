@@ -23,6 +23,7 @@ import {
   Activity,
   ShieldCheck,
   Palette,
+  Code,
   X,
   User,
   Settings,
@@ -106,6 +107,13 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Themes',
     href: '/themes',
     icon: Palette,
+  },
+  {
+    id: 'storefront-code',
+    nameKey: 'merchant.storefrontCode.title',
+    fallback: 'Tracking & custom code',
+    href: '/storefront-code',
+    icon: Code,
   },
   {
     id: 'settings',

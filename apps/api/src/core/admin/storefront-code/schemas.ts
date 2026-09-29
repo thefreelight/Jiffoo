@@ -1,16 +1,17 @@
 import Ajv from 'ajv';
+import { storefrontCodeProviderPatterns, storefrontCodeSlotCap } from 'shared';
 import { createTypedReadResponses, errorResponseSchema } from '@/types/common-dto';
 
 export const configurationFields = {
   enabled: { type: 'boolean' },
   // The 1-32 bounds are sanity caps, not claims about provider ID formats.
   // The absolute end assertion also rejects the final newline accepted by JavaScript's $.
-  ga4MeasurementId: { type: ['string', 'null'], pattern: '^G-[A-Z0-9]{1,32}$(?![\\s\\S])' },
-  metaPixelId: { type: ['string', 'null'], pattern: '^[0-9]{1,32}$(?![\\s\\S])' },
-  baiduSiteKey: { type: ['string', 'null'], pattern: '^[0-9a-f]{32}$(?![\\s\\S])' },
-  headCode: { type: 'string', maxLength: 65536 },
-  bodyStartCode: { type: 'string', maxLength: 65536 },
-  bodyEndCode: { type: 'string', maxLength: 65536 },
+  ga4MeasurementId: { type: ['string', 'null'], pattern: storefrontCodeProviderPatterns.ga4MeasurementId },
+  metaPixelId: { type: ['string', 'null'], pattern: storefrontCodeProviderPatterns.metaPixelId },
+  baiduSiteKey: { type: ['string', 'null'], pattern: storefrontCodeProviderPatterns.baiduSiteKey },
+  headCode: { type: 'string', maxLength: storefrontCodeSlotCap },
+  bodyStartCode: { type: 'string', maxLength: storefrontCodeSlotCap },
+  bodyEndCode: { type: 'string', maxLength: storefrontCodeSlotCap },
 } as const;
 
 export const publicSchema = {

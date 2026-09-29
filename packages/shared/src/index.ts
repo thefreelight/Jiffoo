@@ -10,6 +10,7 @@ export * from './extensions/plugin-contract';
 export * from './extensions/theme-contract';
 export * from './extensions/theme-css';
 export * from './extensions/theme-font-faces';
+export * from './extensions/storefront-code';
 export * from './extensions/contracts';
 
 export * from './events/core-events';

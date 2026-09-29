@@ -6,6 +6,25 @@
  */
 
 export const merchant = {
+  storefrontCode: {
+    title: 'Tracking & custom code', providers: 'Provider IDs', freeCode: 'Custom code',
+    enabled: 'Master switch', headCode: 'Head code', bodyStartCode: 'Body start code', bodyEndCode: 'Body end code',
+    ga4MeasurementId: 'GA4 measurement ID', metaPixelId: 'Meta Pixel ID', baiduSiteKey: 'Baidu Tongji site key',
+    ga4Hint: 'G- followed by 1–32 uppercase letters or digits. Leave empty to unset.',
+    metaHint: '1–32 digits. Leave empty to unset.',
+    baiduHint: '32 lowercase hexadecimal characters. Leave empty to unset.',
+    invalidId: 'Invalid provider ID format.', tooLong: 'Code exceeds the character limit.',
+    notice: 'Runs only on storefront and order confirmation pages, never payment pages. Runs after the page loads, in head, body start, body end order. document.write is not supported. You are responsible for code security, performance and compliance.',
+    save: 'Save configuration', saved: 'Configuration saved.', failed: 'Could not complete the request.',
+    loading: 'Loading configuration…', reload: 'Reload latest configuration',
+    conflict: 'The configuration changed. Your edits are preserved. Reload the latest configuration before saving again.',
+    history: 'Configuration history', revision: 'Revision', time: 'Time', actor: 'Actor', total: 'Total revisions',
+    previous: 'Previous page', next: 'Next page', page: 'Page', empty: 'No revisions yet.',
+    detail: 'Revision details', close: 'Close details', restore: 'Restore revision',
+    confirmRestore: 'Confirm restore', cancel: 'Cancel',
+    restoreNotice: 'Restore these provider IDs and code slots? The master switch will not change.',
+    restored: 'Revision restored.', currentRevision: 'Current revision',
+  },
   contentTranslations: {
     title: 'Translations',
     defaultContent: 'Default content',

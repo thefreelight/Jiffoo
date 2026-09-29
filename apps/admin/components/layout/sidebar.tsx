@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   Bell,
   Palette,
+  Code,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -91,6 +92,12 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Themes',
     href: '/themes',
     icon: Palette,
+  },
+  {
+    nameKey: 'merchant.storefrontCode.title',
+    fallback: 'Tracking & custom code',
+    href: '/storefront-code',
+    icon: Code,
   },
   {
     nameKey: 'merchant.nav.systemHealth',

@@ -438,6 +438,14 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       await page.evaluate(() => document.fonts.ready);
       await page.keyboard.press('Control+Home');
       await parkPointerOnHeading(page);
+      const navigationBounds = await page.getByRole('link', { name: 'Themes', exact: true }).evaluate((link) => {
+        const sidebar = link.closest('aside');
+        if (!sidebar) throw new Error('Admin sidebar not found');
+        const rect = sidebar.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+          boxShadow: getComputedStyle(sidebar).boxShadow };
+      });
+      console.log('Admin navigation bounds:', JSON.stringify({ image: `${name}-${width}.png`, ...navigationBounds }));
       if (process.env.VISUAL_INSPECT_CSS === '1') {
         const targets = {
           administrators: [{ label: 'Invite administrator', locator: page.getByRole('button', { name: 'Invite administrator' }) }],

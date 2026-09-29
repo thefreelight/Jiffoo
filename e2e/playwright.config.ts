@@ -14,6 +14,7 @@ const areas = [
   '21-shop-page-boundaries',
   '22-shop-payment-csp',
   '23-shop-storefront-code',
+  '24-admin-storefront-code',
 ];
 
 export default defineConfig({

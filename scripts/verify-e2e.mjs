@@ -65,6 +65,7 @@ if (visual) {
 }
 // Merchant code is configured only after every other storefront/visual project has finished.
 playwrightGroups.push(['23-shop-storefront-code']);
+playwrightGroups.push(['24-admin-storefront-code']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);
@@ -150,6 +151,7 @@ async function resetE2eLoginLimit() {
   await client.connect();
   try {
     await client.del('rl:login:ip:127.0.0.1');
+    await client.del('rl:ip:127.0.0.1');
   } finally {
     await client.quit();
   }
