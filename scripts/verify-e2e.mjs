@@ -74,6 +74,7 @@ playwrightGroups.push(['23-shop-storefront-code']);
 playwrightGroups.push(['24-admin-storefront-code']);
 playwrightGroups.push(['25-shop-provider-code']);
 playwrightGroups.push(['26-shop-purchase-tracking']);
+playwrightGroups.push(['27-admin-audit-events']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);

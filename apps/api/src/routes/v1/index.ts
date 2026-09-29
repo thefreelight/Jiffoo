@@ -23,6 +23,7 @@ import { customerPasswordResetLinkRoutes } from '@/core/admin/user-management/pa
 import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
 import { adminNotificationRoutes } from '@/core/admin/notifications/routes';
+import { adminAuditEventRoutes } from '@/core/admin/audit-events/routes';
 import { adminStorefrontCodeRoutes, publicStorefrontCodeRoutes } from '@/core/admin/storefront-code/routes';
 import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
@@ -59,6 +60,7 @@ export async function registerV1Routes(fastify: FastifyInstance) {
     await admin.register(adminProductRoutes, { prefix: '/products' });
     await admin.register(adminOrderRoutes, { prefix: '/orders' });
     await admin.register(adminNotificationRoutes, { prefix: '/notifications' });
+    await admin.register(adminAuditEventRoutes, { prefix: '/audit-events' });
     await admin.register(adminStorefrontCodeRoutes, { prefix: '/storefront-code' });
     await admin.register(adminStaffRoutes, { prefix: '/staff' });
     await admin.register(adminInventoryRoutes, { prefix: '/inventory' });

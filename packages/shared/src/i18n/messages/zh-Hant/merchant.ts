@@ -6,6 +6,23 @@
  */
 
 export const merchant = {
+  auditEvents: {
+    title: '稽核日誌', time: '時間', actor: '操作人', action: '操作', target: '目標',
+    targetType: '目標類型', from: '開始時間', to: '結束時間',
+    allActors: '所有操作人', allActions: '所有操作', allTargets: '所有目標類型',
+    details: '事件詳情', summary: '摘要', notRecorded: '未記錄',
+    deletedAccount: '已刪除帳戶', deactivated: '已停用',
+    loading: '正在載入事件...', empty: '尚無稽核事件', total: '事件總數',
+    page: '頁', previous: '上一頁', next: '下一頁',
+    actions: {
+      themeInstall: '已安裝主題', themeUninstall: '已解除安裝主題',
+      themeActivate: '已啟用主題', themeRestorePrevious: '已還原上一個主題',
+      themeConfigUpdate: '已更新主題設定', themeConfigRestore: '已還原主題設定',
+      themeConfigMigrated: '已移轉主題設定',
+      storefrontCodeSave: '已儲存追蹤設定', storefrontCodeSwitch: '已變更追蹤總開關',
+      storefrontCodeRestore: '已還原追蹤設定',
+    },
+  },
   storefrontCode: {
     title: '追蹤與自訂程式碼', providers: '服務商 ID', freeCode: '自訂程式碼',
     enabled: '總開關', headCode: '頁首程式碼', bodyStartCode: '本文開頭程式碼', bodyEndCode: '本文結尾程式碼',

@@ -25,6 +25,7 @@ import {
   Sliders,
   Activity,
   ShieldCheck,
+  ScrollText,
   Bell,
   Palette,
   Code,
@@ -80,6 +81,12 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Administrators',
     href: '/staff',
     icon: ShieldCheck,
+  },
+  {
+    nameKey: 'merchant.auditEvents.title',
+    fallback: 'Audit log',
+    href: '/audit-events',
+    icon: ScrollText,
   },
   {
     nameKey: 'merchant.nav.plugins',

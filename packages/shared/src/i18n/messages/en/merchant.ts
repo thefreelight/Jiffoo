@@ -6,6 +6,23 @@
  */
 
 export const merchant = {
+  auditEvents: {
+    title: 'Audit log', time: 'Time', actor: 'Actor', action: 'Action', target: 'Target',
+    targetType: 'Target type', from: 'From', to: 'To',
+    allActors: 'All actors', allActions: 'All actions', allTargets: 'All target types',
+    details: 'Event details', summary: 'Summary', notRecorded: 'Not recorded',
+    deletedAccount: 'Deleted account', deactivated: 'Deactivated',
+    loading: 'Loading events...', empty: 'No audit events', total: 'Total events',
+    page: 'Page', previous: 'Previous page', next: 'Next page',
+    actions: {
+      themeInstall: 'Theme installed', themeUninstall: 'Theme uninstalled',
+      themeActivate: 'Theme activated', themeRestorePrevious: 'Previous theme restored',
+      themeConfigUpdate: 'Theme configuration updated', themeConfigRestore: 'Theme configuration restored',
+      themeConfigMigrated: 'Theme configuration migrated',
+      storefrontCodeSave: 'Tracking configuration saved', storefrontCodeSwitch: 'Tracking master switch changed',
+      storefrontCodeRestore: 'Tracking configuration restored',
+    },
+  },
   storefrontCode: {
     title: 'Tracking & custom code', providers: 'Provider IDs', freeCode: 'Custom code',
     enabled: 'Master switch', headCode: 'Head code', bodyStartCode: 'Body start code', bodyEndCode: 'Body end code',

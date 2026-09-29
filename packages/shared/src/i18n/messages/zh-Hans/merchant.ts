@@ -6,6 +6,23 @@
  */
 
 export const merchant = {
+  auditEvents: {
+    title: '审计日志', time: '时间', actor: '操作人', action: '操作', target: '目标',
+    targetType: '目标类型', from: '开始时间', to: '结束时间',
+    allActors: '所有操作人', allActions: '所有操作', allTargets: '所有目标类型',
+    details: '事件详情', summary: '摘要', notRecorded: '未记录',
+    deletedAccount: '已删除账户', deactivated: '已停用',
+    loading: '正在加载事件...', empty: '暂无审计事件', total: '事件总数',
+    page: '页', previous: '上一页', next: '下一页',
+    actions: {
+      themeInstall: '已安装主题', themeUninstall: '已卸载主题',
+      themeActivate: '已启用主题', themeRestorePrevious: '已恢复上一个主题',
+      themeConfigUpdate: '已更新主题配置', themeConfigRestore: '已恢复主题配置',
+      themeConfigMigrated: '已迁移主题配置',
+      storefrontCodeSave: '已保存跟踪配置', storefrontCodeSwitch: '已更改跟踪总开关',
+      storefrontCodeRestore: '已恢复跟踪配置',
+    },
+  },
   storefrontCode: {
     title: '跟踪与自定义代码', providers: '服务商 ID', freeCode: '自定义代码',
     enabled: '总开关', headCode: '头部代码', bodyStartCode: '正文开头代码', bodyEndCode: '正文末尾代码',
