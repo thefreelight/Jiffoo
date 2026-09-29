@@ -198,9 +198,9 @@ if (process.env.VISUAL_HEADER_DIAGNOSE === '1') test.describe('Shop header diagn
   let buyer: Page;
   const contexts: BrowserContext[] = [];
   const external: string[] = [];
-  test.beforeAll(async ({ browser }) => {
+  test.beforeAll(async ({ newObservedContext }) => {
     for (const baseURL of ['http://127.0.0.1:3002', 'http://127.0.0.1:3003', 'http://127.0.0.1:3003']) {
-      const context = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
+      const context = await newObservedContext({ baseURL, viewport: { width: 390, height: 844 } });
       contexts.push(context);
       context.on('page', (observed) => observed.on('request', (request) => {
         if (/^https?:\/\//.test(request.url()) &&

@@ -1,8 +1,8 @@
 import { expect, test } from './local-requests';
 import { login, ownerEmail, shopLogin } from './helpers';
 
-test('customer order history, detail, and cancellation are reflected in Admin', async ({ page, browser }) => {
-  const shopContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3003' });
+test('customer order history, detail, and cancellation are reflected in Admin', async ({ page, newObservedContext }) => {
+  const shopContext = await newObservedContext({ baseURL: 'http://127.0.0.1:3003' });
   const shop = await shopContext.newPage();
   try {
     await shop.goto('/en/register');

@@ -197,6 +197,12 @@ async function runPlaywrightGroups() {
 }
 
 try {
+  await step('Check observed browser contexts', () => {
+    for (const args of [['--test', 'scripts/check-e2e-contexts.test.mjs'], ['scripts/check-e2e-contexts.mjs']]) {
+      const result = spawnSync(process.execPath, args, { cwd: root, env, stdio: 'inherit' });
+      if (result.status !== 0) throw new Error(`E2E context guard failed: ${result.status ?? result.error?.message}`);
+    }
+  });
   await step('Clear dedicated E2E Redis database', resetE2eRedis);
   await step('Reset test database', () => command(['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']));
   await step('Build shared package', () => command(['--filter', 'shared', 'build']));

@@ -1,7 +1,7 @@
 import { expect, test } from './local-requests';
 import { login, ownerEmail } from './helpers';
 
-test('refund before shipment restores stock and notifies the customer', async ({ page, browser }) => {
+test('refund before shipment restores stock and notifies the customer', async ({ page, newObservedContext }) => {
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/products/create');
   await page.getByPlaceholder('Enter product title...').fill('Refund Flow Product');
@@ -15,7 +15,7 @@ test('refund before shipment restores stock and notifies the customer', async ({
   await expect(page.getByPlaceholder('0', { exact: true })).toHaveValue('3');
   const productUrl = page.url();
 
-  const shopContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3003' });
+  const shopContext = await newObservedContext({ baseURL: 'http://127.0.0.1:3003' });
   const shop = await shopContext.newPage();
   try {
     await shop.goto('/en/register');

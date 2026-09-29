@@ -1,7 +1,7 @@
 import { expect, test } from './local-requests';
 import { login, ownerEmail } from './helpers';
 
-test('stock limit and changed price require a fresh checkout confirmation', async ({ page, browser }) => {
+test('stock limit and changed price require a fresh checkout confirmation', async ({ page, newObservedContext }) => {
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/products/create');
   await page.getByPlaceholder('Enter product title...').fill('Price Change Product');
@@ -14,7 +14,7 @@ test('stock limit and changed price require a fresh checkout confirmation', asyn
   await page.getByRole('link', { name: 'Price Change Product' }).click();
   await expect(page.getByPlaceholder('Enter product title...')).toHaveValue('Price Change Product');
 
-  const shopContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3003' });
+  const shopContext = await newObservedContext({ baseURL: 'http://127.0.0.1:3003' });
   const shop = await shopContext.newPage();
   try {
     await shop.goto('/en/register');

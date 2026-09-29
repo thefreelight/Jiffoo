@@ -1,8 +1,8 @@
 import { expect, test } from './local-requests';
 import { customerEmail, login } from './helpers';
 
-test('record payment, ship a Shop checkout order, and resend its notification', async ({ page, browser }) => {
-  const shopContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3003' });
+test('record payment, ship a Shop checkout order, and resend its notification', async ({ page, newObservedContext }) => {
+  const shopContext = await newObservedContext({ baseURL: 'http://127.0.0.1:3003' });
   const shop = await shopContext.newPage();
   try {
     await shop.goto('/en/products');

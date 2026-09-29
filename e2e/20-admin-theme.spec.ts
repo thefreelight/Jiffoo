@@ -2,7 +2,7 @@ import { expect, test } from './local-requests';
 import { login, ownerEmail } from './helpers';
 import { adminThemePackage } from './theme-package';
 
-test('P activates an Admin theme with local assets and restores the default immediately', async ({ page, context }) => {
+test('P activates an Admin theme with local assets and restores the default immediately', async ({ page, newObservedContext }) => {
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.getByRole('link', { name: 'Themes' }).click();
   await page.getByRole('tab', { name: 'Admin' }).click();
@@ -26,7 +26,7 @@ test('P activates an Admin theme with local assets and restores the default imme
   await expect(page.getByRole('main').last()).toHaveCSS('font-family', /E2E Outfit/);
   expect(fonts.some((url) => url.includes('/api/v1/themes/e2e-admin-theme/1.0.0/fonts/outfit.woff2'))).toBe(true);
 
-  const fresh = await context.browser()!.newContext();
+  const fresh = await newObservedContext();
   const loginPage = await fresh.newPage();
   await loginPage.goto('http://127.0.0.1:3002/en/auth/login');
   await expect(loginPage.getByRole('main')).toHaveCSS('background-image',

@@ -1,7 +1,7 @@
 import { expect, test } from './local-requests';
 import { login, staffEmail } from './helpers';
 
-test('I invite, activate and remove a second administrator', async ({ page, browser }) => {
+test('I invite, activate and remove a second administrator', async ({ page, newObservedContext }) => {
   await login(page);
   await page.goto('/en/staff');
   await expect(page.getByRole('heading', { name: 'Administrators' })).toBeVisible();
@@ -18,7 +18,7 @@ test('I invite, activate and remove a second administrator', async ({ page, brow
   await page.getByRole('button', { name: 'Generate invitation link' }).click();
   const link = await page.getByRole('textbox', { name: 'Invitation link' }).inputValue();
 
-  const context = await browser.newContext();
+  const context = await newObservedContext();
   try {
     const invited = await context.newPage();
     await invited.goto(link);

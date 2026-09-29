@@ -173,6 +173,10 @@ for (const [name, commands] of steps) {
       testOutputs.push({ name, kind: args.includes('vitest') ? 'vitest' : 'e2e', output });
       if (result.status !== 0) {
         process.stdout.write(output);
+      } else if (name === 'Run browser E2E') {
+        for (const line of output.split(/\r?\n/)) {
+          if (line.includes('Observed browser contexts:') || line.includes('E2E context guard:')) console.log(line);
+        }
       }
     }
     if (result.status !== 0) {
