@@ -1,13 +1,15 @@
 import 'server-only';
 import { shopApiHeaders } from './api-headers';
+import type { ProviderIds } from './storefront-providers';
 
 export type StorefrontCodeSlots = {
   headCode: string;
   bodyStartCode: string;
   bodyEndCode: string;
 };
+export type StorefrontCode = StorefrontCodeSlots & ProviderIds;
 
-export async function getStorefrontCode(): Promise<StorefrontCodeSlots | null> {
+export async function getStorefrontCode(): Promise<StorefrontCode | null> {
   try {
     const base = process.env.API_SERVICE_URL || 'http://127.0.0.1:3001';
     const response = await fetch(new URL('/api/v1/store/storefront-code', base), {
@@ -25,11 +27,14 @@ export async function getStorefrontCode(): Promise<StorefrontCodeSlots | null> {
       if (typeof data[key] !== 'string' || data[key].length > 65536) return null;
     }
     const slots = {
+      ga4MeasurementId: data.ga4MeasurementId as string | null,
+      metaPixelId: data.metaPixelId as string | null,
+      baiduSiteKey: data.baiduSiteKey as string | null,
       headCode: data.headCode as string,
       bodyStartCode: data.bodyStartCode as string,
       bodyEndCode: data.bodyEndCode as string,
     };
-    return slots.headCode || slots.bodyStartCode || slots.bodyEndCode ? slots : null;
+    return Object.values(slots).some(Boolean) ? slots : null;
   } catch {
     return null;
   }

@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import next from 'next';
 import trustedProxyUtils from 'shared/trusted-proxies';
+import { resolveProviderLibraryOverrides } from './lib/provider-library-overrides.mjs';
 
 const { clientIp, parseTrustedProxies } = trustedProxyUtils;
 
@@ -19,6 +20,7 @@ export function withClientIp(handler, trusted) {
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  resolveProviderLibraryOverrides(process.env.STOREFRONT_PROVIDER_LIBRARY_OVERRIDES, process.env.STOREFRONT_URL);
   const trusted = parseTrustedProxies(process.env.TRUSTED_PROXIES);
   console.info(`TRUSTED_PROXIES: ${trusted.join(', ') || '(none)'}`);
   const hostname = process.env.HOSTNAME || '0.0.0.0';

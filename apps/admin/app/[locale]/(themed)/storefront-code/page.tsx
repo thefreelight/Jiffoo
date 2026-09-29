@@ -112,9 +112,13 @@ export default function StorefrontCodePage() {
             <div className="grid gap-5 md:grid-cols-3">{providers.map((key, index) => <div key={key}>
               <label htmlFor={key} className="text-sm font-medium">{text(key)}</label>
               <input id={key} value={draft[key]} className="mt-1 block w-full rounded border bg-surface p-2 font-mono text-sm"
-                aria-invalid={!!fieldErrors[key]} aria-describedby={`${key}-hint${fieldErrors[key] ? ` ${key}-error` : ''}`}
+                aria-invalid={!!fieldErrors[key]} aria-describedby={`${key}-hint${key === 'baiduSiteKey' ? ' baidu-spa-hint baidu-commerce-hint' : ''}${fieldErrors[key] ? ` ${key}-error` : ''}`}
                 onChange={(event) => setDraft({ ...draft, [key]: event.target.value })} />
               <p id={`${key}-hint`} className="mt-1 text-xs text-neutral-strong">{text(['ga4Hint', 'metaHint', 'baiduHint'][index])}</p>
+              {key === 'baiduSiteKey' && <>
+                <p id="baidu-spa-hint" className="mt-1 text-xs text-neutral-strong">{text('baiduSpaHint')}</p>
+                <p id="baidu-commerce-hint" className="mt-1 text-xs text-neutral-strong">{text('baiduCommerceHint')}</p>
+              </>}
               {fieldErrors[key] && <p id={`${key}-error`} role="alert" className="mt-1 text-sm text-danger-dark">{fieldErrors[key]}</p>}
             </div>)}</div>
           </fieldset>

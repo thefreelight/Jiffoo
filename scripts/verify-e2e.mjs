@@ -53,6 +53,12 @@ if (visual) {
 const results = [];
 const children = [];
 const logs = [];
+const providerStubMarker = readFileSync(resolve(root, 'e2e/provider-stubs/marker.js'), 'utf8');
+const providerLibraryOverrides = JSON.stringify(Object.fromEntries(['ga4', 'meta', 'baidu'].map((provider) => [
+  provider, `data:text/javascript,${encodeURIComponent(
+    providerStubMarker + readFileSync(resolve(root, `e2e/provider-stubs/${provider}.js`), 'utf8'),
+  )}`,
+])));
 const playwrightCounts = { expected: 0, unexpected: 0, skipped: 0 };
 const playwrightGroups = [
   ['01-install', '02-login', '03-password', '04-language', '05-settings', '06-health-plugins', '07-products', '08-orders', '09-customers'],
@@ -66,6 +72,7 @@ if (visual) {
 // Merchant code is configured only after every other storefront/visual project has finished.
 playwrightGroups.push(['23-shop-storefront-code']);
 playwrightGroups.push(['24-admin-storefront-code']);
+playwrightGroups.push(['25-shop-provider-code']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);
@@ -198,7 +205,10 @@ try {
     service('api', ['dist/server.js'], resolve(root, 'apps/api'), { WORKER_MODE: 'off', ENABLE_OUTBOX_WORKER: 'false' });
     service('worker', ['dist/worker.js'], resolve(root, 'apps/api'), { WORKER_MODE: 'standalone' });
     service('admin', [resolve(root, 'node_modules/next/dist/bin/next'), 'start', '-p', '3002', '-H', '127.0.0.1'], resolve(root, 'apps/admin'));
-    service('shop', ['server.mjs'], resolve(root, 'apps/shop'), { HOSTNAME: '127.0.0.1', PORT: '3003', TRUSTED_PROXIES: '' });
+    service('shop', ['server.mjs'], resolve(root, 'apps/shop'), {
+      HOSTNAME: '127.0.0.1', PORT: '3003', TRUSTED_PROXIES: '',
+      STOREFRONT_PROVIDER_LIBRARY_OVERRIDES: providerLibraryOverrides,
+    });
   });
   await step('Wait for health', health);
   console.log(`Playwright start time: ${new Date().toISOString()}`);

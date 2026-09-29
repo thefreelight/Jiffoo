@@ -13,6 +13,8 @@ export const merchant = {
     ga4Hint: 'G- followed by 1–32 uppercase letters or digits. Leave empty to unset.',
     metaHint: '1–32 digits. Leave empty to unset.',
     baiduHint: '32 lowercase hexadecimal characters. Leave empty to unset.',
+    baiduSpaHint: 'Enable Single-page application settings in Baidu Tongji to count client-side page changes.',
+    baiduCommerceHint: 'Enable E-commerce analytics in Baidu Tongji Application Center to view order reports.',
     invalidId: 'Invalid provider ID format.', tooLong: 'Code exceeds the character limit.',
     notice: 'Runs only on storefront and order confirmation pages, never payment pages. Runs after the page loads, in head, body start, body end order. document.write is not supported. You are responsible for code security, performance and compliance.',
     save: 'Save configuration', saved: 'Configuration saved.', failed: 'Could not complete the request.',

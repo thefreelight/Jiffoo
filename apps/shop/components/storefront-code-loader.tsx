@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import type { StorefrontCodeSlots } from '@/lib/storefront-code';
+import type { StorefrontCode, StorefrontCodeSlots } from '@/lib/storefront-code';
+import { initializeProviders, type ProviderLibraryOverrides } from '@/lib/storefront-providers';
 
 type CodeDocument = Document & { jiffooStorefrontCodeStarted?: boolean };
 
@@ -56,12 +57,32 @@ async function injectCode(slots: StorefrontCodeSlots) {
   }
 }
 
-export function StorefrontCodeLoader({ slots }: { slots: StorefrontCodeSlots }) {
+export function StorefrontCodeLoader({ slots, libraryOverrides }: {
+  slots: StorefrontCode;
+  libraryOverrides: ProviderLibraryOverrides;
+}) {
   useEffect(() => {
     const codeDocument = document as CodeDocument;
     if (codeDocument.jiffooStorefrontCodeStarted) return;
     codeDocument.jiffooStorefrontCodeStarted = true;
-    void injectCode(slots);
-  }, [slots]);
+    // Match next/script lazyOnload timing, including its idle callback fallback.
+    const requestIdleCallback = window.requestIdleCallback?.bind(window) || ((callback: IdleRequestCallback) => {
+      const start = Date.now();
+      return window.setTimeout(() => {
+        callback({
+          didTimeout: false,
+          timeRemaining: () => Math.max(0, 50 - (Date.now() - start)),
+        });
+      }, 1);
+    });
+    const startInjection = () => {
+      requestIdleCallback(() => {
+        initializeProviders(slots, libraryOverrides);
+        void injectCode(slots);
+      });
+    };
+    if (document.readyState === 'complete') startInjection();
+    else window.addEventListener('load', startInjection);
+  }, [slots, libraryOverrides]);
   return null;
 }

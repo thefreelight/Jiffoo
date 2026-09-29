@@ -45,13 +45,13 @@ describe('Storefront code server fetch', () => {
     ]) await withApi(200, body, async () => expect(await getStorefrontCode()).toBeNull());
   });
 
-  it('I returns only code slots and omits empty configurations even with provider IDs', async () => {
+  it('I returns provider IDs and code slots and omits only entirely empty configurations', async () => {
     await withApi(200, { success: true, data }, async () => {
-      expect(await getStorefrontCode()).toEqual({
-        headCode: data.headCode, bodyStartCode: '', bodyEndCode: '',
-      });
+      expect(await getStorefrontCode()).toEqual(data);
     });
     await withApi(200, { success: true, data: { ...data, headCode: '' } },
+      async () => expect(await getStorefrontCode()).toEqual({ ...data, headCode: '' }));
+    await withApi(200, { success: true, data: { ...data, headCode: '', ga4MeasurementId: null } },
       async () => expect(await getStorefrontCode()).toBeNull());
   });
 

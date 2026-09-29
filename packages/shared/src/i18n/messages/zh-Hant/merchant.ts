@@ -13,6 +13,8 @@ export const merchant = {
     ga4Hint: 'G- 後接 1–32 個大寫字母或數字。留空表示清除。',
     metaHint: '1–32 位數字。留空表示清除。',
     baiduHint: '32 個小寫十六進位字元。留空表示清除。',
+    baiduSpaHint: '在百度統計中啟用單頁應用設定，以統計用戶端頁面切換。',
+    baiduCommerceHint: '在百度統計的應用中心啟用電商分析，以查看訂單報告。',
     invalidId: '服務商 ID 格式無效。', tooLong: '程式碼超過字元上限。',
     notice: '僅在店面和訂單確認頁面執行，付款頁面絕不執行。頁面載入後依頁首、本文開頭、本文結尾的順序執行。不支援 document.write。程式碼的安全、效能及合規由您負責。',
     save: '儲存設定', saved: '設定已儲存。', failed: '無法完成請求。',
