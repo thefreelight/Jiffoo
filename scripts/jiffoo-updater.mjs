@@ -212,17 +212,22 @@ function hasCommand(command, args = []) {
 }
 
 function resolveComposeInvocation() {
-  if (hasCommand('docker-compose', ['--version'])) {
-    return {
-      command: 'docker-compose',
-      prefixArgs: [],
-    };
-  }
-
+  // Prefer the Compose v2 plugin: stacks created by Compose v2 carry network
+  // metadata that Compose v1 refuses to touch ("option
+  // com.docker.network.enable_ipv4 has changed"), so a v1-binary upgrade of a
+  // v2-created stack fails before touching a single container. Fall back to
+  // the standalone v1 binary only when no v2 plugin is reachable.
   if (hasCommand('docker', ['compose', 'version'])) {
     return {
       command: 'docker',
       prefixArgs: ['compose'],
+    };
+  }
+
+  if (hasCommand('docker-compose', ['--version'])) {
+    return {
+      command: 'docker-compose',
+      prefixArgs: [],
     };
   }
 
