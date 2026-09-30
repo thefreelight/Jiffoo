@@ -22,6 +22,7 @@ import { cleanupDatabase, setupTestDatabase, disconnectDatabase } from './helper
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
+process.env.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY = 'MCowBQYDK2VwAyEAGnrSfwlHnHXdd6JjXSyYENcDePIzrP96odj7BZlNzVM';
 process.env.PLUGIN_SECRETS_KEY = Buffer.alloc(32, 17).toString('base64');
 process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
 

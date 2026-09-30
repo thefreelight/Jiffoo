@@ -21,6 +21,9 @@ model PluginInstall {
 
   source      String  @default("local-zip")
   trustLevel  PluginTrustLevel @default(unsigned)
+  publisherId String?
+  publisherName String?
+  publisherCertificateFingerprint String?
   installPath String?
 
   zipHash      String?

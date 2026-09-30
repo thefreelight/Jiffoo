@@ -73,6 +73,10 @@ export class ExtensionInstaller implements IExtensionInstaller {
           version: plugin.version,
           source: plugin.source,
           fsPath: plugin.fsPath,
+          publisherId: plugin.publisherId ?? null,
+          publisherName: plugin.publisherName ?? null,
+          publisherVerified: plugin.trustLevel === 'signed',
+          publisherCertificateFingerprint: plugin.publisherCertificateFingerprint ?? null,
         };
       }
       default:
@@ -130,6 +134,10 @@ export class ExtensionInstaller implements IExtensionInstaller {
           zipHash: pkg.zipHash || undefined,
           ...getManifestResponse(pkg),
           trustLevel: pkg.trustLevel,
+          publisherId: pkg.publisherId,
+          publisherName: pkg.publisherName,
+          publisherVerified: pkg.trustLevel === 'signed',
+          publisherCertificateFingerprint: pkg.publisherCertificateFingerprint,
           };
         }));
       }
@@ -173,6 +181,10 @@ export class ExtensionInstaller implements IExtensionInstaller {
           zipHash: pkg.zipHash || undefined,
           ...getManifestResponse(pkg),
           trustLevel: pkg.trustLevel,
+          publisherId: pkg.publisherId,
+          publisherName: pkg.publisherName,
+          publisherVerified: pkg.trustLevel === 'signed',
+          publisherCertificateFingerprint: pkg.publisherCertificateFingerprint,
         };
       }
       default:

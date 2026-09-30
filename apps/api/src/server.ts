@@ -46,6 +46,7 @@ import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-syn
 import { syncBuiltinThemes } from '@/core/admin/extension-installer/builtin-theme-sync';
 import { registerPluginProcessFailureHandlers } from '@/core/admin/extension-installer/plugin-process-failure';
 import { pluginSecretsKey } from '@/core/admin/plugin-management/config-crypto';
+import { assertTestRootEnvironment } from 'shared/plugin-signing';
 
 const trustedProxies = parseTrustedProxies(process.env.TRUSTED_PROXIES);
 console.info(`TRUSTED_PROXIES: ${trustedProxies.join(', ') || '(none)'}`);
@@ -418,6 +419,7 @@ async function buildApp() {
 
 export async function startApiRuntime(options: { port?: number; host?: string } = {}) {
   try {
+    assertTestRootEnvironment();
     pluginSecretsKey();
     const app = await buildApp();
 

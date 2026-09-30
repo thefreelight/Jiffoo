@@ -61,6 +61,10 @@
       "types": "./dist/shared/src/trusted-proxies.d.ts",
       "default": "./dist/shared/src/trusted-proxies.js"
     },
+    "./plugin-signing": {
+      "types": "./dist/shared/src/plugin-signing.d.ts",
+      "default": "./dist/shared/src/plugin-signing.js"
+    },
     "./src/proxy": {
       "types": "./dist/shared/src/proxy/index.d.ts",
       "default": "./dist/shared/src/proxy/index.js"

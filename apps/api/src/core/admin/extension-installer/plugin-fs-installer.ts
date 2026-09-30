@@ -42,6 +42,7 @@ import {
 import { syncEventSubscriptions } from '@/infra/events/emit';
 import { decryptPluginConfig } from '@/core/admin/plugin-management/config-crypto';
 import { redactPluginFailure } from './plugin-failure';
+import { verifyPluginZip } from 'shared/plugin-signing';
 
 function parseJsonArray(value: unknown): string[] {
   if (!value) return [];
@@ -125,6 +126,8 @@ export class PluginFsInstaller implements IPluginInstaller {
     } = await spoolStreamToTempFileAndHash(zipStream, 'plugin-install');
     tempZipCleanup = cleanupTempZip;
 
+    try {
+    const publisher = await verifyPluginZip(zipFilePath);
     // 2. Check if same hash already installed (idempotency)
     // CRITICAL: Must filter deletedAt=null, otherwise soft-deleted plugins will be treated as installed
     const existingByHash = await prisma.pluginInstall.findFirst({
@@ -135,6 +138,12 @@ export class PluginFsInstaller implements IPluginInstaller {
     });
 
     if (existingByHash) {
+      if (publisher?.publisherId !== (existingByHash.publisherId ?? undefined)) {
+        const error = new Error('Publisher change forbidden') as Error & { statusCode: number; code: string };
+        error.statusCode = publisher ? 409 : 409;
+        error.code = publisher ? 'PUBLISHER_CHANGE_FORBIDDEN' : 'SIGNED_UPGRADE_REQUIRED';
+        throw error;
+      }
       // Same ZIP already installed and not deleted - return existing plugin info
       const existingPackage = await pluginPackageStore.get(existingByHash.slug);
       if (!existingPackage) throw new Error(`Plugin package files are missing for "${existingByHash.slug}"`);
@@ -147,6 +156,10 @@ export class PluginFsInstaller implements IPluginInstaller {
         category: existingByHash.category || 'general',
         runtimeType: 'internal-fastify',
         trustLevel: existingByHash.trustLevel,
+        publisherId: existingByHash.publisherId,
+        publisherName: existingByHash.publisherName,
+        publisherVerified: existingByHash.trustLevel === 'signed',
+        publisherCertificateFingerprint: existingByHash.publisherCertificateFingerprint,
         entryModule: existingByHash.entryModule || undefined,
         source: 'local-zip',
         fsPath: existingPackage.getEntryPath(''),
@@ -159,7 +172,6 @@ export class PluginFsInstaller implements IPluginInstaller {
       };
     }
 
-    try {
       // 3. Extract to temporary directory with security validation
       tempDir = await extractZipToTemp(createReadStream(zipFilePath), 'plugin');
 
@@ -181,9 +193,23 @@ export class PluginFsInstaller implements IPluginInstaller {
       }
 
       // Uploaded packages always use the established unsigned confirmation and audit flow.
-      const trustLevel = deriveTrustLevel(
-        options?.source || 'local-zip',
-      );
+      const trustLevel = publisher ? 'signed' : deriveTrustLevel(options?.source || 'local-zip');
+
+      const existingBySlug = await prisma.pluginInstall.findUnique({
+        where: { slug: manifest.slug },
+      });
+      if (existingBySlug?.trustLevel === 'signed' && !publisher) {
+        const error = new Error('Signed upgrade required') as Error & { statusCode: number; code: string };
+        error.statusCode = 409;
+        error.code = 'SIGNED_UPGRADE_REQUIRED';
+        throw error;
+      }
+      if (existingBySlug?.publisherId && publisher && existingBySlug.publisherId !== publisher.publisherId) {
+        const error = new Error('Publisher change forbidden') as Error & { statusCode: number; code: string };
+        error.statusCode = 409;
+        error.code = 'PUBLISHER_CHANGE_FORBIDDEN';
+        throw error;
+      }
 
       if (trustLevel === 'unsigned') {
         if (!options?.confirmUnsigned || !options.actorUserId) {
@@ -212,9 +238,6 @@ export class PluginFsInstaller implements IPluginInstaller {
       }
 
       // 7. Check if slug already exists (update/restore scenario)
-      const existingBySlug = await prisma.pluginInstall.findUnique({
-        where: { slug: manifest.slug },
-      });
       const now = new Date();
 
       // 8. TWO-PHASE COMMIT WITH WARM VALIDATION
@@ -252,6 +275,9 @@ export class PluginFsInstaller implements IPluginInstaller {
                 author: manifest.author, authorUrl: manifest.authorUrl, category: manifest.category,
                 runtimeType: manifest.runtimeType, entryModule: manifest.entryModule, zipHash,
                 manifestJson: manifest, permissions: manifest.permissions ?? null, trustLevel, deletedAt: null, updatedAt: now,
+                publisherId: publisher?.publisherId ?? null,
+                publisherName: publisher?.publisherName ?? null,
+                publisherCertificateFingerprint: publisher?.publisherCertificateFingerprint ?? null,
               },
             });
             if (existingBySlug.deletedAt !== null) {
@@ -290,6 +316,10 @@ export class PluginFsInstaller implements IPluginInstaller {
             category: manifest.category || 'general',
             runtimeType: manifest.runtimeType,
             trustLevel: pluginInstall.trustLevel,
+            publisherId: pluginInstall.publisherId,
+            publisherName: pluginInstall.publisherName,
+            publisherVerified: pluginInstall.trustLevel === 'signed',
+            publisherCertificateFingerprint: pluginInstall.publisherCertificateFingerprint,
             entryModule: manifest.entryModule,
             source: 'local-zip',
             fsPath: targetDir,
@@ -351,6 +381,9 @@ export class PluginFsInstaller implements IPluginInstaller {
                 entryModule: manifest.entryModule,
                 source: options?.source || 'local-zip',
                 trustLevel,
+                publisherId: publisher?.publisherId ?? null,
+                publisherName: publisher?.publisherName ?? null,
+                publisherCertificateFingerprint: publisher?.publisherCertificateFingerprint ?? null,
                 zipHash,
                 manifestJson: manifest,
                 permissions: manifest.permissions ?? null,
@@ -403,6 +436,10 @@ export class PluginFsInstaller implements IPluginInstaller {
             category: manifest.category || 'general',
             runtimeType: manifest.runtimeType,
             trustLevel: pluginInstall.trustLevel,
+            publisherId: pluginInstall.publisherId,
+            publisherName: pluginInstall.publisherName,
+            publisherVerified: pluginInstall.trustLevel === 'signed',
+            publisherCertificateFingerprint: pluginInstall.publisherCertificateFingerprint,
             entryModule: manifest.entryModule,
             source: 'local-zip',
             fsPath: targetDir,

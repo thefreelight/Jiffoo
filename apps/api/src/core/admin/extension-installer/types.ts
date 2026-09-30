@@ -45,6 +45,10 @@ export interface InstallResult {
   version: string;
   source: ExtensionSource;
   fsPath: string;
+  publisherId?: string | null;
+  publisherName?: string | null;
+  publisherVerified?: boolean;
+  publisherCertificateFingerprint?: string | null;
 }
 
 /** Uninstallation result */
@@ -69,6 +73,10 @@ export interface InstalledPlugin {
   runtimeType: PluginRuntimeType;
   /** Trust level assigned at install time (builtin | signed | unsigned). */
   trustLevel?: PluginTrustLevel;
+  publisherId?: string | null;
+  publisherName?: string | null;
+  publisherVerified?: boolean;
+  publisherCertificateFingerprint?: string | null;
   entryModule?: string;        // For internal-fastify, e.g. 'server/index.js'
   source: ExtensionSource;
   fsPath: string;

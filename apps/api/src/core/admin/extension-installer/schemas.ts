@@ -27,6 +27,10 @@ const extensionMetaSchema = {
     category: { type: 'string', nullable: true, description: 'Extension category' },
     runtimeType: { type: 'string', nullable: true, description: 'Extension runtime type' },
     trustLevel: { type: 'string', nullable: true, description: 'Plugin trust level (builtin | signed | unsigned)' },
+    publisherId: { type: 'string', nullable: true },
+    publisherName: { type: 'string', nullable: true },
+    publisherVerified: { type: 'boolean' },
+    publisherCertificateFingerprint: { type: 'string', nullable: true },
     source: { type: 'string', nullable: true, description: 'Extension source' },
     manifestJson: {
       description: 'Raw or parsed manifest JSON payload',
@@ -238,6 +242,8 @@ export const extensionInstallerSchemas = {
     response: {
       ...createTypedCreateResponses(bundleInstallWithUploadSchema),
       413: errorResponseSchema,
+      422: errorResponseSchema,
+      409: errorResponseSchema,
     },
   },
 
@@ -257,6 +263,8 @@ export const extensionInstallerSchemas = {
     response: {
       ...createTypedCreateResponses(extensionInstallWithUploadSchema),
       413: errorResponseSchema,
+      422: errorResponseSchema,
+      409: errorResponseSchema,
     },
     lastFailureAt: { type: 'string', format: 'date-time', nullable: true, description: 'Last plugin failure timestamp' },
     lastFailureMessage: { type: 'string', nullable: true, description: 'Last plugin failure message' },

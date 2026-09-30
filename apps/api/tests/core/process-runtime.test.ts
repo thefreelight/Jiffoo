@@ -87,8 +87,10 @@ describe('backend process isolation', () => {
   it.each([undefined, 'invalid-base64'])('E: production API and worker reject an invalid plugin secrets key: %s', async (key) => {
     const priorEnv = process.env.NODE_ENV;
     const priorKey = process.env.PLUGIN_SECRETS_KEY;
+    const priorRoot = process.env.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY;
     try {
       process.env.NODE_ENV = 'production';
+      delete process.env.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY;
       if (key === undefined) delete process.env.PLUGIN_SECRETS_KEY;
       else process.env.PLUGIN_SECRETS_KEY = key;
       await expect(startApiRuntime({ port: 0, host: '127.0.0.1' })).rejects.toThrow('PLUGIN_SECRETS_KEY must be base64 of exactly 32 bytes');
@@ -96,12 +98,14 @@ describe('backend process isolation', () => {
     } finally {
       process.env.NODE_ENV = priorEnv;
       process.env.PLUGIN_SECRETS_KEY = priorKey;
+      process.env.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY = priorRoot;
     }
   });
 
   it('E: development API and worker start with a missing key and emit a warning', async () => {
     const childEnv = { ...process.env, NODE_ENV: 'development' };
     delete childEnv.PLUGIN_SECRETS_KEY;
+    delete childEnv.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY;
     const child = fork(path.resolve('tests/helpers/plugin-secrets-start-child.ts'), [], {
       execArgv: ['--import', 'tsx'], env: childEnv,
     });
@@ -109,5 +113,25 @@ describe('backend process isolation', () => {
     await once(child, 'exit');
     expect(response[0]).toMatchObject({ apiListening: true, workerRunning: true });
     expect((response[0].warnings as string[]).join(' ')).toContain('development-only plugin secrets key');
+  });
+
+  it.each(['production', 'development'])('O: API and worker reject test plugin roots under %s', async (nodeEnv) => {
+    const previous = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = nodeEnv;
+      await expect(startApiRuntime({ port: 0, host: '127.0.0.1' })).rejects.toThrow('JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY is allowed only under NODE_ENV=test');
+      await expect(startWorkerRuntime({ healthPort: 0 })).rejects.toThrow('JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY is allowed only under NODE_ENV=test');
+    } finally {
+      process.env.NODE_ENV = previous;
+    }
+  });
+
+  it('O: API and worker accept the test plugin root under test', async () => {
+    const child = fork(path.resolve('tests/helpers/plugin-secrets-start-child.ts'), [], {
+      execArgv: ['--import', 'tsx'], env: { ...process.env, NODE_ENV: 'test' },
+    });
+    const response = await once(child, 'message');
+    await once(child, 'exit');
+    expect(response[0]).toMatchObject({ apiListening: true, workerRunning: true });
   });
 });

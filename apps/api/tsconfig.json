@@ -51,6 +51,9 @@
       "shared/trusted-proxies": [
         "../../packages/shared/dist/shared/src/trusted-proxies"
       ],
+      "shared/plugin-signing": [
+        "../../packages/shared/dist/shared/src/plugin-signing"
+      ],
       "@shared/security": [
         "../../packages/shared/dist/shared/src/security/index"
       ],

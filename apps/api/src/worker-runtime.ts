@@ -13,8 +13,10 @@ import { createServer } from 'node:http';
 import { env } from './config/env';
 import { WORKER_HEARTBEAT_PREFIX, WORKER_HEARTBEAT_TTL_SECONDS, WORKER_HEARTBEAT_INTERVAL_MS, WORKER_TASKS } from './infra/worker-health';
 import { pluginSecretsKey } from './core/admin/plugin-management/config-crypto';
+import { assertTestRootEnvironment } from 'shared/plugin-signing';
 
 export async function startWorkerRuntime(options: { redisUrl?: string; healthPort?: number } = {}) {
+  assertTestRootEnvironment();
   pluginSecretsKey();
   const instanceId = randomUUID();
   const startedAt = new Date().toISOString();
