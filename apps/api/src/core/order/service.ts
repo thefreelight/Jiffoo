@@ -30,7 +30,7 @@ import { assertOrderTransition } from './transition';
 import { systemSettingsService } from '../admin/system-settings/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { InventoryService } from '@/core/inventory/service';
-import { OutboxService } from '@/infra/outbox';
+import { emitEvent } from '@/infra/events/emit';
 import { CheckoutService } from '@/core/checkout/service';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
@@ -396,10 +396,7 @@ export class OrderService {
         reason: 'order_created',
       });
 
-      // Emit order.created event via Outbox (best-effort)
-      try {
-        const { OutboxService } = await import('@/infra/outbox');
-        await OutboxService.emit(tx, 'order.created', created.id, {
+        await emitEvent(tx, 'order.created', 1, created.id, {
           id: created.id,
           userId: created.userId,
           totalAmount: Number(created.totalAmount),
@@ -413,9 +410,6 @@ export class OrderService {
             fulfillmentData: parseJsonRecord(item.fulfillmentData),
           }))
         });
-      } catch (err) {
-        LoggerService.logError(err instanceof Error ? err : new Error(String(err)), { context: 'order.created event emission' });
-      }
 
       return created;
     });
@@ -649,7 +643,7 @@ export class OrderService {
           reason: 'unpaid timeout',
           actorType: 'system',
         });
-        await OutboxService.emit(tx, 'order.cancelled', order.id, {
+        await emitEvent(tx, 'order.cancelled', 1, order.id, {
           id: order.id,
           orderId: order.id,
           userId: order.userId,

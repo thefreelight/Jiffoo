@@ -32,6 +32,8 @@ vi.mock('@/config/database', () => ({
     paymentLedger: { create: vi.fn() },
     payment: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     cart: { findUnique: vi.fn().mockResolvedValue(null) },
+    eventRecord: { create: vi.fn().mockResolvedValue({ id: 'event-1' }) },
+    $queryRaw: vi.fn().mockResolvedValue([]),
     $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
   },
 }));
@@ -65,11 +67,6 @@ vi.mock('@/core/logger/unified-logger', () => ({
   },
 }));
 
-vi.mock('@/infra/outbox', () => ({
-  OutboxService: {
-    emit: vi.fn().mockResolvedValue(undefined),
-  },
-}));
 
 vi.mock('@/core/inventory/service', () => ({
   InventoryService: {
@@ -100,7 +97,6 @@ import { OrderService } from '@/core/order/service';
 import { prisma } from '@/config/database';
 import { getOrderHooks } from '@/core/order/hooks';
 import { InventoryService } from '@/core/inventory/service';
-import { OutboxService } from '@/infra/outbox';
 import { CheckoutService } from '@/core/checkout/service';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';

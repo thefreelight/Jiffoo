@@ -3,6 +3,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
+import { Prisma } from '@prisma/client';
 import { OrderService } from './service';
 import { InvalidOrderTransitionError } from './transition';
 import { dualAuthMiddleware } from '@/core/auth/middleware';
@@ -32,6 +33,13 @@ export async function orderRoutes(fastify: FastifyInstance) {
       );
       return sendSuccess(reply, order, undefined, 201);
     } catch (error: any) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError
+        || error instanceof Prisma.PrismaClientUnknownRequestError
+        || error instanceof Prisma.PrismaClientInitializationError
+        || error instanceof Prisma.PrismaClientRustPanicError) {
+        request.log.error({ err: error }, 'Order creation database failure');
+        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to create order');
+      }
       if (error?.statusCode === 409) return sendError(reply, 409, error.code || 'CONFLICT', error.message);
       if (error?.code === 'CONTRACT_RESPONSE_INVALID' || error?.code === 'CONTRACT_CALL_FAILED') return sendError(reply, 502, 'CONTRACT_CALL_FAILED', 'Checkout provider is temporarily unavailable');
       return sendError(reply, 400, 'BAD_REQUEST', error.message);

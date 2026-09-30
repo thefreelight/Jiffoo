@@ -3,7 +3,9 @@ import { redisCache } from './core/cache/redis';
 import { OrderService } from './core/order/service';
 import { deliverPendingNotifications } from './core/notifications/delivery';
 import { winstonLogger } from './core/logger/unified-logger';
-import { queueManager, workerManager, outboxPoller, registerAllHandlers } from './infra/jobs';
+import Redis from 'ioredis';
+import { EventDeliveryEngine } from './infra/events/delivery';
+import { cleanupEvents, EVENT_CLEANUP_INTERVAL_MS } from './infra/events/cleanup';
 import { PaymentReconciliationJob } from './jobs/payment-reconciliation';
 import { randomUUID } from 'node:crypto';
 import { hostname } from 'node:os';
@@ -15,6 +17,9 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
   const instanceId = randomUUID();
   const startedAt = new Date().toISOString();
   const heartbeatKey = `${WORKER_HEARTBEAT_PREFIX}${instanceId}`;
+  const heartbeatRedis = new Redis(options.redisUrl ?? env.REDIS_URL, { lazyConnect: true, retryStrategy: () => null, maxRetriesPerRequest: 1, connectTimeout: 1000 });
+  const eventDelivery = new EventDeliveryEngine(instanceId);
+  let cleanupTimer: NodeJS.Timeout | null = null;
   let started = false;
   let heartbeatTimer: NodeJS.Timeout | null = null;
   const healthServer = createServer(async (request, response) => {
@@ -40,13 +45,13 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
   };
   const state = () => ({
     tasks: {
-      outbox: outboxPoller.isRunning(),
-      bullmq: workerManager.isRunning(),
+      eventDelivery: eventDelivery.isRunning(),
+      eventCleanup: cleanupTimer !== null,
       notifications: notificationTimer !== null,
       unpaidOrders: unpaidTimer !== null,
       paymentReconciliation: PaymentReconciliationJob.getStatus().hasScheduledUpdates,
     },
-    queueConnected: queueManager.isConnected(),
+    eventHandlerTimeoutMs: eventDelivery.timeoutMs,
     redisConnected: redisCache.getConnectionStatus(),
     redisConnections: redisConnections.map(({ name, client }) => ({ name, status: client.status })),
   });
@@ -61,26 +66,31 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     if (unpaidTimer) clearInterval(unpaidTimer);
     notificationTimer = unpaidTimer = null;
     PaymentReconciliationJob.stop();
-    outboxPoller.stop();
-    await Promise.all([...pending, outboxPoller.drain(), PaymentReconciliationJob.drain()]);
-    if (redisCache.getRawClient().status === 'ready') {
-      await run(() => redisCache.getRawClient().del(heartbeatKey), 'Worker heartbeat deletion failed');
+    if (cleanupTimer) clearInterval(cleanupTimer);
+    cleanupTimer = null;
+    await Promise.all([...pending, eventDelivery.stop(), PaymentReconciliationJob.drain()]);
+    if (heartbeatRedis.status === 'ready') {
+      await run(() => heartbeatRedis.del(heartbeatKey), 'Worker heartbeat deletion failed');
     }
-    await workerManager.stop();
-    await queueManager.disconnect();
+    const heartbeatEnded = heartbeatRedis.status === 'end' ? Promise.resolve()
+      : new Promise<void>((resolve) => heartbeatRedis.once('end', resolve));
+    heartbeatRedis.disconnect();
+    await heartbeatEnded;
+    const cacheRedis = redisCache.getRawClient();
+    const cacheEnded = cacheRedis.status === 'end' ? Promise.resolve()
+      : new Promise<void>((resolve) => cacheRedis.once('end', resolve));
     await redisCache.disconnect();
+    await cacheEnded;
     await prisma.$disconnect();
   };
   try {
-    registerAllHandlers();
-    await queueManager.connect(options.redisUrl);
-    redisConnections.push(...await queueManager.getRedisConnections());
-    if (!queueManager.isAvailable()) throw new Error('Redis unavailable at worker startup');
+    redisConnections.push({ name: 'heartbeat', client: heartbeatRedis });
+    try { await heartbeatRedis.connect(); } catch { throw new Error('Redis unavailable at worker startup'); }
     redisConnections.push({ name: 'cache', client: redisCache.getRawClient() });
     await redisCache.connect();
-    await workerManager.start();
-    redisConnections.push(...await workerManager.getRedisConnections());
-    outboxPoller.start();
+    await eventDelivery.start();
+    await run(cleanupEvents, 'Event cleanup failed');
+    cleanupTimer = setInterval(() => void run(cleanupEvents, 'Event cleanup failed'), EVENT_CLEANUP_INTERVAL_MS);
     await run(() => OrderService.cancelExpiredUnpaidOrders(), 'Unpaid order timeout failed');
     unpaidTimer = setInterval(() => void run(() => OrderService.cancelExpiredUnpaidOrders(), 'Unpaid order timeout failed'), 60_000);
     await run(deliverPendingNotifications, 'Notification delivery failed');
@@ -93,7 +103,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
         minAgeMinutes: Number(process.env.PAYMENT_RECONCILIATION_MIN_AGE_MINUTES || 2) || 2,
       });
     }
-    const beat = () => run(() => redisCache.getRawClient().set(
+    const beat = () => run(() => heartbeatRedis.set(
       heartbeatKey,
       JSON.stringify({ instanceId, hostname: hostname(), pid: process.pid, startedAt, lastBeatAt: new Date().toISOString() }),
       'EX', WORKER_HEARTBEAT_TTL_SECONDS,

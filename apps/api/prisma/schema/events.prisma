@@ -1,23 +1,62 @@
-// events.prisma — transactional outbox events
-model OutboxEvent {
-  id          String @id @default(uuid())
+enum EventDeliveryStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  SKIPPED
+  FAILED
+
+  @@schema("public")
+}
+
+model EventRecord {
+  id          String   @id @default(uuid())
   type        String
+  version     Int
   aggregateId String
-  payload     Json
+  data        Json
+  occurredAt  DateTime @default(now()) @db.Timestamptz(3)
+  traceId     String?
+  actorId     String?
+  deliveries EventDelivery[]
 
-  version    String   @default("v1")
-  occurredAt DateTime @default(now())
-
-  published   Boolean   @default(false)
-  publishedAt DateTime?
-  retryCount  Int       @default(0)
-  lastError   String?
-
-  traceId String?
-  actorId String?
-
-  @@index([published, occurredAt])
+  @@index([occurredAt, id])
   @@index([aggregateId])
-  @@map("outbox_events")
+  @@map("event_records")
+  @@schema("public")
+}
+
+model EventDelivery {
+  id             String @id @default(uuid())
+  eventId        String
+  installationId String
+  status         EventDeliveryStatus @default(PENDING)
+  attempts       Int @default(0)
+  nextAttemptAt  DateTime @default(now()) @db.Timestamptz(3)
+  leaseUntil     DateTime? @db.Timestamptz(3)
+  claimToken     String?
+  claimedBy      String?
+  lastError      String?
+  skipReason     String?
+  finishedAt     DateTime? @db.Timestamptz(3)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  event          EventRecord @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@unique([eventId, installationId])
+  @@index([status, installationId, nextAttemptAt, id])
+  @@index([status, leaseUntil])
+  @@index([status, finishedAt])
+  @@map("event_deliveries")
+  @@schema("public")
+}
+
+model PluginEventSubscription {
+  pluginSlug String
+  eventType  String
+  version    Int
+  plugin     PluginInstall @relation(fields: [pluginSlug], references: [slug], onDelete: Cascade)
+
+  @@id([pluginSlug, eventType, version])
+  @@index([eventType, version, pluginSlug])
+  @@map("plugin_event_subscriptions")
   @@schema("public")
 }

@@ -29,14 +29,14 @@ import { loadPluginEntryModule } from './plugin-module-loader';
 import { validatePluginCompatibility, PluginLoaderError } from './plugin-compatibility';
 import {
   clearContractV1EventHandlers,
-  dispatchContractV1Event,
   isContractV1Runtime,
   registerContractV1Runtime,
 } from './contract-v1-runtime';
 import { registerPluginStateReset } from './plugin-state';
 import { recordPluginFailure } from './plugin-failure';
 import { readStoredPluginManifest } from './stored-manifest';
-import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods } from '@jiffoo/shared';
+import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
+import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
 import { getPluginTimeoutMs, isBreakerAllowed, recordBreakerResult } from './gateway-protection';
@@ -115,6 +115,10 @@ type InternalRuntime = {
   createdAt: Date;
   installationId: string;
   config: Record<string, unknown>;
+  handlers: ReadonlyMap<string, PluginEventHandler>;
+  references: number;
+  retired: boolean;
+  closing?: Promise<void>;
 };
 
 /** Context for a gateway request (resolved from query params) */
@@ -166,6 +170,26 @@ interface GatewayAuditLog {
 }
 
 const internalRuntimes = new Map<string, InternalRuntime>();
+
+function holdRuntime(runtime: InternalRuntime): InternalRuntime {
+  runtime.references++;
+  return runtime;
+}
+
+function closeRetiredRuntime(runtime: InternalRuntime): Promise<void> {
+  if (!runtime.closing) runtime.closing = runtime.app.close();
+  return runtime.closing;
+}
+
+async function releaseRuntime(runtime: InternalRuntime): Promise<void> {
+  runtime.references--;
+  if (runtime.retired && runtime.references === 0) await closeRetiredRuntime(runtime);
+}
+
+async function retireRuntime(runtime: InternalRuntime): Promise<void> {
+  runtime.retired = true;
+  if (runtime.references === 0) await closeRetiredRuntime(runtime);
+}
 
 export function getPluginRuntimeState(): { loaded: number } {
   return { loaded: internalRuntimes.size };
@@ -545,7 +569,8 @@ function toForwardUrl(pathPart: string, query: string): string {
 async function ensureInternalRuntime(
   slug: string,
   manifest: PluginManifest,
-  ctx: GatewayContext
+  ctx: GatewayContext,
+  hold = false,
 ): Promise<InternalRuntime> {
   const runtimeKey = ctx.installationId;
   const existing = internalRuntimes.get(runtimeKey);
@@ -554,7 +579,7 @@ async function ensureInternalRuntime(
   if (existing) {
     const configChanged = JSON.stringify(existing.config) !== JSON.stringify(ctx.config);
     if (!configChanged && existing.manifest.version === manifest.version) {
-      return existing;
+      return hold ? holdRuntime(existing) : existing;
     }
     // Config or version changed - need to recreate runtime
     // TWO-PHASE COMMIT: Create candidate first, only swap if successful
@@ -593,12 +618,13 @@ async function ensureInternalRuntime(
     const config = ctx.config || {};
     
     // Phase 2: Register and ready (may fail here)
-    await registerContractV1Runtime(candidateApp, pluginEntry, {
+    const registration = await registerContractV1Runtime(candidateApp, pluginEntry, {
       slug,
       installationId: ctx.installationId,
       version: manifest.version,
       config,
       declaredContracts: manifest.contracts || [],
+      subscriptions: manifest.subscriptions || [],
     });
     await candidateApp.ready();
 
@@ -609,15 +635,20 @@ async function ensureInternalRuntime(
       createdAt: new Date(),
       installationId: ctx.installationId,
       config: ctx.config,
+      handlers: registration.handlers,
+      references: 0,
+      retired: false,
     };
 
     // Phase 4: Swap - replace old runtime in map
     internalRuntimes.set(runtimeKey, newRuntime);
+    registration.publish();
+    if (hold) holdRuntime(newRuntime);
 
     // Phase 5: Close old runtime AFTER swap (ensures zero-downtime)
     if (existing) {
       try {
-        await existing.app.close();
+        await retireRuntime(existing);
       } catch (closeError) {
         // Log but don't fail - new runtime is already active
         console.warn(`Failed to close old runtime for ${runtimeKey}:`, closeError);
@@ -643,13 +674,13 @@ async function ensureInternalRuntime(
 export async function dropInternalRuntime(installationId: string): Promise<boolean> {
   const existing = internalRuntimes.get(installationId);
   if (existing) {
+    internalRuntimes.delete(installationId);
+    clearContractV1EventHandlers(installationId);
     try {
-      await existing.app.close();
+      await retireRuntime(existing);
     } catch {
       // Ignore close errors
     }
-    internalRuntimes.delete(installationId);
-    clearContractV1EventHandlers(installationId);
     return true;
   }
   return false;
@@ -689,9 +720,11 @@ export async function callContract(
   if (!manifest.contracts?.some((contract) => contract.name === contractName && contract.version === version)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} does not declare ${contractName} v${version}`);
   if (!isBreakerAllowed(slug)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} circuit breaker is open`);
   try {
-    const runtime = await ensureInternalRuntime(slug, manifest, { slug, installationId: instance.id, instanceKey: instance.instanceKey, config: parseJsonObject(instance.configJson) });
+    const runtime = await ensureInternalRuntime(slug, manifest, { slug, installationId: instance.id, instanceKey: instance.instanceKey, config: parseJsonObject(instance.configJson) }, true);
+    const invocation = runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: input as Record<string, unknown> });
+    void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', error));
     const response = await Promise.race([
-      runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: input as Record<string, unknown> }),
+      invocation,
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Contract call timed out')), getPluginTimeoutMs())),
     ]);
     if (response.statusCode >= 400) throw new Error(`Contract route returned ${response.statusCode}`);
@@ -721,43 +754,46 @@ registerPluginStateReset('internal-runtimes', async (slug, installationId) => {
   await Promise.all(runtimeIds.map((runtimeId) => dropInternalRuntime(runtimeId)));
 });
 
-export async function dispatchPluginRuntimeEvent(eventType: string, payload: unknown): Promise<number> {
+export async function deliverInstallationEvent(installationId: string, event: PluginEvent): Promise<string | null> {
   await ensurePluginRegistryFresh();
-  const packages = await PluginManagementService.getAllPluginPackages();
-  let delivered = 0;
-  const failures: { slug: string; error: unknown }[] = [];
-
-  for (const pkg of packages) {
-    if (pkg.runtimeType !== 'internal-fastify') continue;
-    let manifest: PluginManifest;
-    try {
-      manifest = await readPluginManifest(pkg);
-    } catch {
-      continue;
-    }
-    const instances = await PluginManagementService.getPluginInstances(pkg.slug);
-    for (const instance of instances) {
-      if (!instance.enabled || instance.deletedAt) continue;
-      try {
-        await ensureInternalRuntime(pkg.slug, manifest, {
-          slug: pkg.slug,
-          installationId: instance.id,
-          instanceKey: instance.instanceKey,
-          config: parseJsonObject(instance.configJson),
-        });
-        delivered += await dispatchContractV1Event(instance.id, eventType, payload);
-      } catch (error) {
-        await recordPluginFailure(pkg.slug, error, 'event');
-        failures.push({ slug: pkg.slug, error });
-      }
-    }
+  const instance = await prisma.pluginInstallation.findUnique({ where: { id: installationId }, include: { plugin: true } });
+  if (!instance || instance.deletedAt || instance.plugin.deletedAt) return 'deleted';
+  if (!instance.enabled) return 'disabled';
+  const subscription = await prisma.pluginEventSubscription.findUnique({
+    where: { pluginSlug_eventType_version: { pluginSlug: instance.pluginSlug, eventType: event.type, version: event.version } },
+  });
+  if (!subscription) return 'subscription_removed';
+  const manifest = await readPluginManifest(instance.plugin);
+  const runtime = await ensureInternalRuntime(instance.pluginSlug, manifest, {
+    slug: instance.pluginSlug, installationId, instanceKey: instance.instanceKey, config: parseJsonObject(instance.configJson),
+  }, true);
+  try {
+    const handler = runtime.handlers.get(`${event.type}:${event.version}`);
+    if (!handler) throw new Error(`Event handler missing for ${installationId}/${event.type}:${event.version}`);
+    const latest = await prisma.pluginInstallation.findUnique({ where: { id: installationId }, include: { plugin: true } });
+    if (!latest || latest.deletedAt || latest.plugin.deletedAt) return 'deleted';
+    if (!latest.enabled) return 'disabled';
+    if (!await prisma.pluginEventSubscription.findUnique({
+      where: { pluginSlug_eventType_version: { pluginSlug: latest.pluginSlug, eventType: event.type, version: event.version } },
+    })) return 'subscription_removed';
+    await handler(event);
+    return null;
+  } finally {
+    await releaseRuntime(runtime);
   }
+}
 
-  if (failures.length > 0) {
-    throw new AggregateError(failures.map((failure) => failure.error), `Plugin event dispatch failed for: ${failures.map((failure) => failure.slug).join(', ')}`);
-  }
-
-  return delivered;
+export async function validateCandidateRuntime(slug: string, manifest: PluginManifest, installationId: string, config: Record<string, unknown>): Promise<void> {
+  const pkg = await pluginPackageStore.get(slug);
+  if (!pkg) throw new Error(`Plugin package missing: ${slug}`);
+  const mod = await loadPluginEntryModule(pkg.getEntryPath(manifest.entryModule || 'server/index.js'));
+  const entry = mod.default || mod;
+  if (!isContractV1Runtime(entry)) throw new Error('Plugin entry module must export an object with register(ctx)');
+  const app = Fastify({ logger: false });
+  try {
+    await registerContractV1Runtime(app, entry, { slug, installationId, version: manifest.version, config, declaredContracts: manifest.contracts || [], subscriptions: manifest.subscriptions || [] });
+    await app.ready();
+  } finally { await app.close(); }
 }
 
 async function forwardToInternalFastify(
@@ -770,7 +806,9 @@ async function forwardToInternalFastify(
   requestId: string,
   caller: CallerType
 ): Promise<void> {
-  const runtime = await ensureInternalRuntime(slug, manifest, ctx);
+  const runtime = await ensureInternalRuntime(slug, manifest, ctx, true);
+  let injected = false;
+  try {
 
   const query = getQueryStringFromRawUrl(request.raw.url);
   const forwardUrl = toForwardUrl(forwardPath, query);
@@ -805,13 +843,16 @@ async function forwardToInternalFastify(
     }, REQUEST_TIMEOUT_MS);
   });
 
-  const res = await Promise.race([
-    runtime.app.inject({
+  const invocation = runtime.app.inject({
       method: request.method as any,
       url: forwardUrl,
       headers,
       payload,
-    }),
+    });
+  injected = true;
+  void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', error));
+  const res = await Promise.race([
+    invocation,
     timeoutPromise,
   ]);
 
@@ -823,6 +864,9 @@ async function forwardToInternalFastify(
 
   const raw = (res as any).rawPayload;
   reply.send(raw !== undefined ? raw : res.payload);
+  } finally {
+    if (!injected) await releaseRuntime(runtime);
+  }
 }
 
 /**

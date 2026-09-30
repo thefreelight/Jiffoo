@@ -30,7 +30,6 @@ import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { adminStaffRoutes } from '@/core/admin/staff-management/routes';
 import { healthMonitoringRoutes } from '@/core/admin/health-monitoring/routes';
 import { adminInventoryRoutes } from '@/core/inventory/routes';
-import { webhookRoutes } from '@/core/webhooks/routes';
 import { installRoutes } from '@/core/install/routes';
 
 // Extension installer routes
@@ -68,7 +67,6 @@ export async function registerV1Routes(fastify: FastifyInstance) {
     await admin.register(apiTokenRoutes, { prefix: '/api-tokens' });
     await admin.register(adminDashboardRoutes);
     await admin.register(healthMonitoringRoutes);
-    await admin.register(webhookRoutes, { prefix: '/webhooks' });
   }, { prefix: '/admin' });
 
   // Store context routes

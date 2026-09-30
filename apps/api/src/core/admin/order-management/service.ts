@@ -13,7 +13,7 @@ import { OrderStatus, OrderStatusType, PaymentStatus } from '@/core/order/types'
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { assertOrderTransition } from '@/core/order/transition';
 import { InventoryService } from '@/core/inventory/service';
-import { OutboxService } from '@/infra/outbox';
+import { emitEvent } from '@/infra/events/emit';
 import { recordPaymentSucceeded } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
@@ -578,7 +578,7 @@ export class AdminOrderService {
           },
         });
 
-        await OutboxService.emit(tx, 'order.refunded', order.id, {
+        await emitEvent(tx, 'order.refunded', 1, order.id, {
           id: order.id,
           orderId: order.id,
           refundId: refund.id,

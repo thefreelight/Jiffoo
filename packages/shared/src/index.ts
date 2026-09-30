@@ -13,7 +13,7 @@ export * from './extensions/theme-font-faces';
 export * from './extensions/storefront-code';
 export * from './extensions/contracts';
 
-export * from './events/core-events';
+export * from './events/registry';
 
 // Validation Schemas
 export * from './schemas/auth';

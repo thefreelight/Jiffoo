@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { recordPaymentSucceeded } from './reconciliation';
-import { OutboxService } from '@/infra/outbox';
+import { emitEvent } from '@/infra/events/emit';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 
 type NormalizedPluginWebhook = {
@@ -76,7 +76,7 @@ export async function applyNormalizedPluginWebhook(
       metadata: (payment.metadata || {}) as Record<string, unknown>,
     });
 
-    await OutboxService.emit(tx, 'payment.failed', payment.id, {
+    await emitEvent(tx, 'payment.failed', 1, payment.id, {
       paymentId: payment.id,
       orderId: payment.orderId,
       amount: Number(payment.amount),

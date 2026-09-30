@@ -1,22 +1,21 @@
 import { createHash } from 'crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { prisma } from '@/config/database';
-import { fulfillmentV1Methods, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods, type PluginContext, type PluginEntryModule } from '@jiffoo/shared';
+import { fulfillmentV1Methods, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods, isEventKey, type PluginContext, type PluginEntryModule, type EventSubscription, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 
 type JsonObject = Record<string, unknown>;
-type RuntimeOptions = { slug: string; installationId: string; version: string; config: JsonObject; declaredContracts: Array<{ name: string; version: number }> };
-type EventHandler = (payload: unknown) => Promise<unknown> | unknown;
+type RuntimeOptions = { slug: string; installationId: string; version: string; config: JsonObject; declaredContracts: Array<{ name: string; version: number }>; subscriptions: EventSubscription[] };
 const contractMethods = { payment: paymentV1Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
 const requiredMethods: Record<keyof typeof contractMethods, string[]> = { payment: ['describe', 'createSession', 'getSessionStatus'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment'], notification: ['send'] };
-const eventHandlers = new Map<string, Map<string, Set<EventHandler>>>();
+const eventHandlers = new Map<string, Map<string, PluginEventHandler>>();
 
-export async function dispatchContractV1Event(installationId: string, eventType: string, payload: unknown): Promise<number> {
-  const handlers = eventHandlers.get(installationId)?.get(eventType);
-  if (!handlers?.size) return 0;
-  const results = await Promise.allSettled([...handlers].map((handler) => handler(payload)));
-  const failures = results.filter((result) => result.status === 'rejected');
-  if (failures.length) throw new AggregateError(failures.map((failure) => failure.reason), `Plugin event handler failures for installation ${installationId}`);
-  return handlers.size;
+export async function invokeEventHandler(installationId: string, event: PluginEvent): Promise<void> {
+  const handler = eventHandlers.get(installationId)?.get(`${event.type}:${event.version}`);
+  if (!handler) throw new Error(`Event handler missing for ${installationId}/${event.type}:${event.version}`);
+  await handler(event);
+}
+export function hasEventHandler(installationId: string, eventType: string, version: number): boolean {
+  return eventHandlers.get(installationId)?.has(`${eventType}:${version}`) ?? false;
 }
 export function clearContractV1EventHandlers(installationId: string): void { eventHandlers.delete(installationId); }
 export function isContractV1Runtime(value: unknown): value is PluginEntryModule { return !!value && typeof value === 'object' && typeof (value as PluginEntryModule).register === 'function'; }
@@ -36,20 +35,25 @@ export async function runContractV1Migrations(slug: string, migrations: Array<{ 
     });
   }
 }
-function subscribe(installationId: string, eventType: string, handler: EventHandler): () => void {
-  let installation = eventHandlers.get(installationId); if (!installation) { installation = new Map(); eventHandlers.set(installationId, installation); }
-  let handlers = installation.get(eventType); if (!handlers) { handlers = new Set(); installation.set(eventType, handlers); }
-  handlers.add(handler); return () => handlers!.delete(handler);
-}
-export async function registerContractV1Runtime(app: FastifyInstance, runtime: PluginEntryModule, options: RuntimeOptions): Promise<void> {
+export async function registerContractV1Runtime(app: FastifyInstance, runtime: PluginEntryModule, options: RuntimeOptions): Promise<{
+  publish: () => void;
+  handlers: ReadonlyMap<string, PluginEventHandler>;
+}> {
   await runContractV1Migrations(options.slug, runtime.migrations);
-  clearContractV1EventHandlers(options.installationId);
+  const handlers = new Map<string, PluginEventHandler>();
+  let registering = true;
   const implemented = new Set<string>();
   const context: PluginContext = {
     plugin: { slug: options.slug, installationId: options.installationId, version: options.version }, config: Object.freeze({ ...options.config }),
     logger: { info: (message, data) => console.info(`[plugin:${options.slug}] ${message}`, data ?? ''), warn: (message, data) => console.warn(`[plugin:${options.slug}] ${message}`, data ?? ''), error: (message, data) => console.error(`[plugin:${options.slug}] ${message}`, data ?? '') },
     http: { route: (route) => app.route({ method: route.method as any, url: route.path, handler: route.handler as any }) },
-    events: { subscribe: (eventType, handler) => subscribe(options.installationId, eventType, handler) },
+    events: { subscribe: (eventType, version, handler) => {
+      const key = `${eventType}:${version}`;
+      if (!registering || !isEventKey(eventType) || version !== 1 || typeof handler !== 'function') throw new Error(`Invalid event registration ${key}`);
+      if (!options.subscriptions.some((entry) => entry.type === eventType && entry.version === version)) throw new Error(`Undeclared event subscription ${key}`);
+      if (handlers.has(key)) throw new Error(`Duplicate event handler ${key}`);
+      handlers.set(key, handler as PluginEventHandler);
+    } },
     contracts: { implement: (name, version, implementation) => {
       if (!(name in contractMethods) || version !== 1) throw new Error(`Unsupported contract ${name} v${version}`);
       if (!options.declaredContracts.some((contract) => contract.name === name && contract.version === version)) throw new Error(`Plugin implements undeclared contract ${name} v${version}`);
@@ -65,6 +69,8 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
       }
     } },
   };
-  await runtime.register(context);
+  try { await runtime.register(context); } finally { registering = false; }
   for (const contract of options.declaredContracts) if (!implemented.has(`${contract.name}:v${contract.version}`)) throw new Error(`Plugin declared but did not implement contract ${contract.name} v${contract.version}`);
+  for (const entry of options.subscriptions) if (!handlers.has(`${entry.type}:${entry.version}`)) throw new Error(`Plugin declared but did not register event ${entry.type}:${entry.version}`);
+  return { publish: () => eventHandlers.set(options.installationId, handlers), handlers };
 }

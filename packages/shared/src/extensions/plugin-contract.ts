@@ -1,3 +1,5 @@
+import { isEventKey, type EventKey, type EventSubscription, type PluginEvent } from '../events/registry';
+
 export const PLUGIN_CATEGORIES = [
   'payment',
   'shipping',
@@ -46,7 +48,7 @@ export interface PluginContext {
   config: Readonly<Record<string, unknown>>;
   logger: { info(message: string, data?: unknown): void; warn(message: string, data?: unknown): void; error(message: string, data?: unknown): void };
   http: { route(route: { method: string; path: string; handler: (...args: any[]) => unknown }): void };
-  events: { subscribe(eventType: string, handler: (payload: unknown) => Promise<unknown> | unknown): () => void };
+  events: { subscribe<K extends EventKey>(eventType: K, version: 1, handler: (event: PluginEvent<K>) => Promise<unknown> | unknown): void };
   contracts: { implement(name: string, version: number, implementation: Record<string, (input: unknown) => Promise<unknown> | unknown>): void };
 }
 
@@ -67,11 +69,6 @@ export interface PluginLifecycleDeclaration {
   onDisable?: boolean;
   onUninstall?: boolean;
   onUpgrade?: boolean;
-}
-
-export interface PluginWebhookDeclaration {
-  events: string[];
-  url: string;
 }
 
 export interface PluginManifest {
@@ -106,7 +103,7 @@ export interface PluginManifest {
   configSchema?: Record<string, unknown>;
   contracts?: PluginContractDeclaration[];
   requiredScopes?: string[];
-  webhooks?: PluginWebhookDeclaration;
+  subscriptions?: EventSubscription[];
   lifecycle?: PluginLifecycleDeclaration;
 }
 
@@ -341,20 +338,24 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
     pushIssue(issues, 'configSchema', 'configSchema must be an object', 'INVALID_MANIFEST');
   }
 
-  if (manifest.webhooks !== undefined) {
-    if (!isRecord(manifest.webhooks)) {
-      pushIssue(issues, 'webhooks', 'webhooks must be an object', 'INVALID_WEBHOOKS');
+  if (manifest['webhooks'] !== undefined) {
+    pushIssue(issues, 'webhooks', 'webhooks has been removed; use subscriptions', 'MANIFEST_FIELD_REMOVED');
+  }
+  if (manifest.subscriptions !== undefined) {
+    if (!Array.isArray(manifest.subscriptions)) {
+      pushIssue(issues, 'subscriptions', 'subscriptions must be an array', 'INVALID_SUBSCRIPTIONS');
     } else {
-      if (!isStringArray(manifest.webhooks.events) || manifest.webhooks.events.length === 0) {
-        pushIssue(issues, 'webhooks.events', 'webhooks.events must be a non-empty array of strings', 'INVALID_WEBHOOKS');
-      }
-      if (typeof manifest.webhooks.url !== 'string' || !manifest.webhooks.url.trim()) {
-        pushIssue(issues, 'webhooks.url', 'webhooks.url is required', 'INVALID_WEBHOOKS');
-      } else if (!isUrl(manifest.webhooks.url) && !manifest.webhooks.url.startsWith('/')) {
-        // A leading-slash path is delivered through the plugin runtime gateway
-        // (/api/extensions/plugin/{slug}/api{path}); absolute URLs go external.
-        pushIssue(issues, 'webhooks.url', 'webhooks.url must be a valid http(s) URL or a gateway path starting with "/"', 'INVALID_WEBHOOKS');
-      }
+      const seen = new Set<string>();
+      manifest.subscriptions.forEach((declaration, index) => {
+        if (!isRecord(declaration) || !isEventKey(declaration.type) || declaration.version !== 1
+          || Object.keys(declaration).some((key) => key !== 'type' && key !== 'version')) {
+          pushIssue(issues, `subscriptions[${index}]`, 'only known event type and version 1 are allowed', 'INVALID_SUBSCRIPTIONS');
+          return;
+        }
+        const key = `${declaration.type}:${declaration.version}`;
+        if (seen.has(key)) pushIssue(issues, `subscriptions[${index}]`, 'duplicate subscription', 'INVALID_SUBSCRIPTIONS');
+        seen.add(key);
+      });
     }
   }
 

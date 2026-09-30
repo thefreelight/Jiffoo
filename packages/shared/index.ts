@@ -102,30 +102,7 @@ export {
 } from './src/schemas/inventory';
 
 
-// Core Events
-export type {
-  CoreEvent,
-  JiffooEvent,
-  EventTypes,
-  // User Payloads
-  UserCreatedPayload,
-  UserUpdatedPayload,
-  UserDisabledPayload,
-  // Product Payloads
-  ProductCreatedPayload,
-  ProductUpdatedPayload,
-  ProductStockChangedPayload,
-  // Order Payloads
-  OrderCreatedPayload,
-  OrderPaidPayload,
-  OrderCancelledPayload,
-  OrderShippedPayload,
-  OrderRefundedPayload,
-  OrderStatusChangedPayload,
-  // Payment Payloads
-  PaymentSessionCreatedPayload,
-  PaymentWebhookProcessedPayload,
-} from './src/events/core-events';
+export * from './src/events/registry';
 
 // Types and Utilities from src
 export * from './src/index';

@@ -3,13 +3,12 @@ import { prisma } from '@/config/database';
 import { env } from '@/config/env';
 import { startWorkerRuntime } from '@/worker-runtime';
 import { startApiRuntime } from '@/server';
-import { queueManager, workerManager, outboxPoller } from '@/infra/jobs';
 import { PaymentReconciliationJob } from '@/jobs/payment-reconciliation';
 import { redisCache } from '@/core/cache/redis';
 
 const stoppedTasks = {
-  outbox: false,
-  bullmq: false,
+  eventDelivery: false,
+  eventCleanup: false,
   notifications: false,
   unpaidOrders: false,
   paymentReconciliation: false,
@@ -22,7 +21,7 @@ describe('backend process isolation', () => {
   afterEach(async () => {
     await stop?.();
     stop = undefined;
-    if (eventId) await prisma.outboxEvent.deleteMany({ where: { id: eventId } });
+    if (eventId) await prisma.eventRecord.deleteMany({ where: { id: eventId } });
     eventId = undefined;
     await prisma.$disconnect();
   });
@@ -30,8 +29,8 @@ describe('backend process isolation', () => {
   async function createOwnEvent() {
     expect(new URL(env.REDIS_URL).pathname).toBe('/15');
     expect(new URL(process.env.DATABASE_URL_TEST!).pathname).toBe('/jiffoo_core_test');
-    const event = await prisma.outboxEvent.create({
-      data: { type: 'runtime.test', aggregateId: 'process-runtime', payload: { test: true }, published: true },
+    const event = await prisma.eventRecord.create({
+      data: { type: 'order.cancelled', version: 1, aggregateId: 'process-runtime', data: { id: 'process-runtime', orderId: 'process-runtime', userId: 'test', reason: 'test' } },
     });
     eventId = event.id;
   }
@@ -41,14 +40,12 @@ describe('backend process isolation', () => {
     const runtime = await startWorkerRuntime({ healthPort: 0 });
     stop = runtime.stop;
     const connections = runtime.state().redisConnections;
-    expect(connections).toHaveLength(13);
+    expect(connections).toHaveLength(2);
     expect(connections.every(({ status }) => status === 'ready')).toBe(true);
-    expect(connections.filter(({ name }) => name.startsWith('queue-events:'))).toHaveLength(3);
-    expect(connections.filter(({ name }) => name.startsWith('queue-events-input:'))).toHaveLength(3);
-    expect(connections.filter(({ name }) => name.startsWith('worker-blocking:'))).toHaveLength(2);
+    expect(connections.map(({ name }) => name).sort()).toEqual(['cache', 'heartbeat']);
     expect(runtime.state()).toEqual({
-      tasks: { outbox: true, bullmq: true, notifications: true, unpaidOrders: true, paymentReconciliation: true },
-      queueConnected: true,
+      tasks: { eventDelivery: true, eventCleanup: true, notifications: true, unpaidOrders: true, paymentReconciliation: true },
+      eventHandlerTimeoutMs: 30000,
       redisConnected: true,
       redisConnections: connections,
     });
@@ -56,24 +53,18 @@ describe('backend process isolation', () => {
     stop = undefined;
     expect(runtime.state()).toEqual({
       tasks: stoppedTasks,
-      queueConnected: false,
+      eventHandlerTimeoutMs: 30000,
       redisConnected: false,
       redisConnections: connections.map(({ name }) => ({ name, status: 'end' })),
     });
-    expect(queueManager.getQueue('webhook-delivery')).toBeNull();
-    expect(queueManager.getQueue('email')).toBeNull();
-    expect(queueManager.getQueue('fulfillment')).toBeNull();
   });
 
-  it('B: real API startup on an ephemeral port starts no background task or BullMQ connection', async () => {
+  it('B: real API startup on an ephemeral port starts no background delivery task', async () => {
     await createOwnEvent();
     const runtime = await startApiRuntime({ port: 0, host: '127.0.0.1' });
     stop = runtime.stop;
     expect(runtime.app.server.listening).toBe(true);
-    expect(queueManager.isConnected()).toBe(false);
-    expect(queueManager.isAvailable()).toBe(false);
-    expect(workerManager.isRunning()).toBe(false);
-    expect(outboxPoller.isRunning()).toBe(false);
+    expect(await prisma.eventDelivery.count({ where: { eventId } })).toBe(0);
     expect(PaymentReconciliationJob.getStatus()).toMatchObject({ isRunning: false, hasScheduledUpdates: false });
     await runtime.stop();
     stop = undefined;
@@ -85,11 +76,8 @@ describe('backend process isolation', () => {
     await createOwnEvent();
     await expect(startWorkerRuntime({ redisUrl: 'redis://127.0.0.1:1/15' })).rejects.toMatchObject({
       message: 'Redis unavailable at worker startup',
-      runtimeState: { tasks: stoppedTasks, queueConnected: false, redisConnected: false },
+      runtimeState: { tasks: stoppedTasks, eventHandlerTimeoutMs: 30000, redisConnected: false },
     });
-    expect(queueManager.isAvailable()).toBe(false);
-    expect(workerManager.isRunning()).toBe(false);
-    expect(outboxPoller.isRunning()).toBe(false);
     expect(PaymentReconciliationJob.getStatus().hasScheduledUpdates).toBe(false);
   });
 });

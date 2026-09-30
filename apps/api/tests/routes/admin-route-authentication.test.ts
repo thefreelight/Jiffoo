@@ -22,7 +22,6 @@ describe('Admin Route Authentication', () => {
     '/api/v1/admin/settings',
     '/api/v1/admin/dashboard',
     '/api/v1/admin/health/summary',
-    '/api/v1/admin/webhooks/subscriptions',
     '/api/v1/admin/api-tokens',
   ])('GET %s returns 401 without authentication', async (url) => {
     const response = await app.inject({ method: 'GET', url });

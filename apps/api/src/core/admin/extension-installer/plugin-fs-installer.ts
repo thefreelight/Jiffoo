@@ -39,7 +39,7 @@ import {
   executeLifecycleHook,
   hasLifecycleHook,
 } from '@/core/admin/plugin-management/lifecycle-hooks';
-import { WebhookSubscriptionService } from '@/core/webhooks/subscription-service';
+import { syncEventSubscriptions } from '@/infra/events/emit';
 
 function parseJsonArray(value: unknown): string[] {
   if (!value) return [];
@@ -224,15 +224,7 @@ export class PluginFsInstaller implements IPluginInstaller {
       // Phase 3: For UPGRADE scenario, warm all enabled instances BEFORE DB commit
       if (existingBySlug) {
         try {
-          // The runtime validates the package manifest against the stored record.
-          // Persist the new identity before warming so that validation remains strict during upgrades.
-          await prisma.pluginInstall.update({
-            where: { slug: manifest.slug },
-            data: { version: manifest.version, manifestJson: manifest, trustLevel },
-          });
-
-          // Import warmPluginInstanceRuntime
-          const { warmPluginInstanceRuntime } = await import('./plugin-runtime');
+          const { validateCandidateRuntime } = await import('./plugin-runtime');
 
           // Get all enabled, non-deleted instances
           const enabledInstances = await prisma.pluginInstallation.findMany({
@@ -245,7 +237,7 @@ export class PluginFsInstaller implements IPluginInstaller {
 
           // Warm each instance (will throw if any fails)
           for (const instance of enabledInstances) {
-            await warmPluginInstanceRuntime(manifest.slug, instance.id);
+            await validateCandidateRuntime(manifest.slug, manifest, instance.id, parseJsonObject(instance.configJson));
           }
 
           // All instances warmed successfully - proceed with DB update
@@ -280,29 +272,11 @@ export class PluginFsInstaller implements IPluginInstaller {
               });
               }
             }
+            await syncEventSubscriptions(tx, manifest.slug, manifest.subscriptions);
             await incrementPluginRegistryVersion(tx);
             return updatedInstall;
           });
 
-          // Re-register webhook subscriptions on upgrade.
-          try {
-            const defaultInstance = await prisma.pluginInstallation.findUnique({
-              where: {
-                pluginSlug_instanceKey: {
-                  pluginSlug: manifest.slug,
-                  instanceKey: 'default',
-                },
-              },
-            });
-          if (defaultInstance) {
-            await WebhookSubscriptionService.createFromManifest(defaultInstance.id, manifest);
-          }
-          } catch (integrationError: any) {
-            console.warn(
-              `Non-fatal: Failed to re-register webhooks on upgrade for ${manifest.slug}:`,
-              integrationError.message
-            );
-          }
 
           // Create installed metadata
           const installedPlugin: InstalledPlugin = {
@@ -352,14 +326,6 @@ export class PluginFsInstaller implements IPluginInstaller {
           await deployment?.rollback().catch(() => {});
           deployment = null;
 
-          await prisma.pluginInstall.update({
-            where: { slug: existingBySlug.slug },
-            data: {
-              version: existingBySlug.version,
-              manifestJson: existingBySlug.manifestJson,
-              trustLevel: existingBySlug.trustLevel,
-            },
-          });
 
           throw new Error(
             `Plugin upgrade failed: ${warmError.message}. Old version restored.`
@@ -398,6 +364,7 @@ export class PluginFsInstaller implements IPluginInstaller {
               },
             });
 
+            await syncEventSubscriptions(tx, manifest.slug, manifest.subscriptions);
             await incrementPluginRegistryVersion(tx);
 
             return install;
@@ -422,17 +389,6 @@ export class PluginFsInstaller implements IPluginInstaller {
             }, manifest);
           }
 
-          // Register webhook subscriptions from manifest (§4.7)
-          try {
-            if (defaultInstance) {
-              await WebhookSubscriptionService.createFromManifest(defaultInstance.id, manifest);
-            }
-          } catch (integrationError: any) {
-            console.warn(
-              `Non-fatal: Failed to register webhooks for ${manifest.slug}:`,
-              integrationError.message
-            );
-          }
 
           // Create installed metadata
           const installedPlugin: InstalledPlugin = {

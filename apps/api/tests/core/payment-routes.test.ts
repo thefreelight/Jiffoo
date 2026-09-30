@@ -291,7 +291,8 @@ describe('Payment Routes', () => {
           update: vi.fn().mockResolvedValue({ id: 'order-1', status: 'PROCESSING', paymentStatus: 'PAID' }),
         },
         orderStatusHistory: { create: vi.fn().mockResolvedValue({}) },
-        outboxEvent: { create: vi.fn().mockResolvedValue({}) },
+        eventRecord: { create: vi.fn().mockResolvedValue({ id: 'payment-failed-event' }) },
+        $queryRaw: vi.fn().mockResolvedValue([]),
       };
       (prisma.payment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'payment-1', orderId: 'order-1', amount: 19.99, currency: 'USD', metadata: {},

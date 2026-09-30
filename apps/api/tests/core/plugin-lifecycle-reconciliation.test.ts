@@ -5,9 +5,11 @@ import { promises as fs } from 'fs';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
-import { dispatchPluginRuntimeEvent } from '@/core/admin/extension-installer/plugin-runtime';
+import { warmPluginInstanceRuntime } from '@/core/admin/extension-installer/plugin-runtime';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
-import { dispatchContractV1Event } from '@/core/admin/extension-installer/contract-v1-runtime';
+import { hasEventHandler } from '@/core/admin/extension-installer/contract-v1-runtime';
+import { EventDeliveryEngine } from '@/infra/events/delivery';
+import { emitEvent, syncEventSubscriptions } from '@/infra/events/emit';
 import { resetPluginRegistryFreshness } from '@/core/admin/extension-installer/plugin-registry-freshness';
 import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plugin-reconciliation';
 import {
@@ -24,8 +26,11 @@ describe('Plugin lifecycle reconciliation', () => {
   const slugs: string[] = [];
   const sourceDirectories: string[] = [];
   const markerPaths: string[] = [];
+  const eventIds: string[] = [];
 
   afterEach(async () => {
+    await prisma.eventDelivery.deleteMany({ where: { eventId: { in: eventIds } } });
+    await prisma.eventRecord.deleteMany({ where: { id: { in: eventIds.splice(0) } } });
     await Promise.all(slugs.splice(0).map(async (slug) => {
       resetBreaker(slug);
       resetRateLimiter(slug);
@@ -56,6 +61,7 @@ describe('Plugin lifecycle reconciliation', () => {
       permissions: [],
       contracts,
       lifecycle,
+      subscriptions: source.includes('ctx.events.subscribe') ? [{ type: 'order.created' as const, version: 1 as const }] : [],
     };
     await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify(manifest), 'utf-8');
     await fs.writeFile(path.join(sourceDirectory, 'server', 'index.js'), source, 'utf-8');
@@ -64,6 +70,7 @@ describe('Plugin lifecycle reconciliation', () => {
     await prisma.pluginInstall.create({
       data: { slug, name: slug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip', manifestJson: manifest },
     });
+    await prisma.$transaction((tx) => syncEventSubscriptions(tx, slug, manifest.subscriptions));
     const installation = await prisma.pluginInstallation.create({
       data: { pluginSlug: slug, instanceKey: 'default', enabled },
     });
@@ -75,22 +82,22 @@ describe('Plugin lifecycle reconciliation', () => {
     const installationId = await createPlugin(slug, `
 module.exports = {
   manifest: { id: ${JSON.stringify(slug)}, version: '1.0.0', contract: 'v1' },
-  register(ctx) { ctx.events.subscribe('order.created', () => undefined); },
+  register(ctx) { ctx.events.subscribe('order.created', 1, () => undefined); },
 };`);
 
-    await dispatchPluginRuntimeEvent('order.created', {});
-    expect(await dispatchContractV1Event(installationId, 'order.created', {})).toBe(1);
+    await warmPluginInstanceRuntime(slug, installationId);
+    expect(hasEventHandler(installationId, 'order.created', 1)).toBe(true);
     for (let index = 0; index < 10; index += 1) recordBreakerFailure(slug);
     expect(getBreakerState(slug)).toBe('open');
     expect(isRateLimitAllowed(slug, 1)).toBe(true);
     expect(isRateLimitAllowed(slug, 1)).toBe(false);
 
     await PluginManagementService.updateInstance(installationId, { enabled: false });
-    expect(await dispatchContractV1Event(installationId, 'order.created', {})).toBe(0);
+    expect(hasEventHandler(installationId, 'order.created', 1)).toBe(false);
     expect(getBreakerState(slug)).toBe('closed');
     expect(isRateLimitAllowed(slug, 1)).toBe(true);
     await PluginManagementService.updateInstance(installationId, { enabled: true });
-    expect(await dispatchContractV1Event(installationId, 'order.created', {})).toBe(1);
+    expect(hasEventHandler(installationId, 'order.created', 1)).toBe(true);
   });
 
   it('rejects an enable when runtime loading fails without changing the database state', async () => {
@@ -263,14 +270,14 @@ module.exports = { register(ctx) {
     const badSlug = `startup-bad-${Date.now().toString(36)}`.slice(0, 30);
     const goodId = await createPlugin(goodSlug, `
 module.exports = {
-  register(ctx) { ctx.events.subscribe('startup.event', () => undefined); },
+  register(ctx) { ctx.events.subscribe('order.created', 1, () => undefined); },
 };`);
     await createPlugin(badSlug, 'module.exports = { register() {} };');
     await prisma.pluginInstall.update({ where: { slug: badSlug }, data: { manifestJson: {} } });
 
     await loadEnabledPluginRuntimes();
 
-    expect(await dispatchContractV1Event(goodId, 'startup.event', {})).toBe(1);
+    expect(hasEventHandler(goodId, 'order.created', 1)).toBe(true);
     const failed = await prisma.pluginInstallation.findUnique({
       where: { pluginSlug_instanceKey: { pluginSlug: badSlug, instanceKey: 'default' } },
     });
@@ -309,17 +316,25 @@ module.exports = {
     markerPaths.push(marker);
     const failingId = await createPlugin(failingSlug, `
 module.exports = {
-  register(ctx) { ctx.events.subscribe('shared.event', () => { throw new Error('handler failed'); }); },
+  register(ctx) { ctx.events.subscribe('order.created', 1, () => { throw new Error('handler failed'); }); },
 };`);
     const healthyId = await createPlugin(healthySlug, `
 const fs = require('fs');
 module.exports = {
-  register(ctx) { ctx.events.subscribe('shared.event', () => fs.appendFileSync(${JSON.stringify(marker)}, 'handled\\n')); },
+  register(ctx) { ctx.events.subscribe('order.created', 1, () => fs.appendFileSync(${JSON.stringify(marker)}, 'handled\\n')); },
 };`);
 
-    await expect(dispatchPluginRuntimeEvent('shared.event', {})).rejects.toThrow(failingSlug);
+    const emit = async () => {
+      const event = await prisma.$transaction((tx) => emitEvent(tx, 'order.created', 1, 'test', { id: 'test', userId: 'test', totalAmount: 1, currency: 'USD', items: [] }));
+      eventIds.push(event.id);
+      return event;
+    };
+    const firstEvent = await emit();
+    const engine = new EventDeliveryEngine('lifecycle-test');
+    await engine.runOnce();
+    await engine.drain();
     expect(await fs.readFile(marker, 'utf-8')).toBe('handled\n');
-    expect((await prisma.pluginInstallation.findUnique({ where: { id: failingId } }))?.lastFailureMessage).toContain('handler failed');
+    expect((await prisma.eventDelivery.findUniqueOrThrow({ where: { eventId_installationId: { eventId: firstEvent.id, installationId: failingId } } })).lastError).toContain('handler failed');
 
     await prisma.pluginInstallation.update({ where: { id: healthyId }, data: { enabled: false } });
     await prisma.systemSettings.upsert({
@@ -327,7 +342,10 @@ module.exports = {
       create: { id: 'system', pluginRegistryVersion: 1 },
       update: { pluginRegistryVersion: { increment: 1 } },
     });
-    await expect(dispatchPluginRuntimeEvent('shared.event', {})).rejects.toThrow(failingSlug);
+    const secondEvent = await emit();
+    await engine.runOnce();
+    await engine.drain();
+    expect((await prisma.eventDelivery.findUniqueOrThrow({ where: { eventId_installationId: { eventId: secondEvent.id, installationId: failingId } } })).lastError).toContain('handler failed');
     expect(await fs.readFile(marker, 'utf-8')).toBe('handled\n');
   });
 });

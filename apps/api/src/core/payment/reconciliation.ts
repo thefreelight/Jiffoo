@@ -4,7 +4,7 @@ import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { assertOrderTransition } from '@/core/order/transition';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { emitOrderPaidEvent } from '@/core/payment/order-paid-event';
-import { OutboxService } from '@/infra/outbox';
+import { emitEvent } from '@/infra/events/emit';
 import { createNotification } from '@/core/notifications/service';
 import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus, Prisma } from '@prisma/client';
 
@@ -114,10 +114,10 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput)
         actorId: input.actorId,
       });
 
-      await OutboxService.emit(tx, 'payment.succeeded', updatedPayment.id, {
+      await emitEvent(tx, 'payment.succeeded', 1, updatedPayment.id, {
         paymentId: updatedPayment.id,
         orderId: payment.orderId,
-        userId: (updatedPayment.metadata as Record<string, unknown> | null)?.userId,
+        userId: (updatedPayment.metadata as { userId?: string } | null)?.userId,
         amount: Number(updatedPayment.amount),
         currency: updatedPayment.currency,
         metadata: updatedPayment.metadata || {},
@@ -224,10 +224,10 @@ export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean>
         }
 
 
-        await OutboxService.emit(tx, 'payment.failed', updatedPayment.id, {
+        await emitEvent(tx, 'payment.failed', 1, updatedPayment.id, {
           paymentId: updatedPayment.id,
           orderId: payment.orderId,
-          userId: (updatedPayment.metadata as Record<string, unknown> | null)?.userId,
+          userId: (updatedPayment.metadata as { userId?: string } | null)?.userId,
           amount: Number(updatedPayment.amount),
           currency: updatedPayment.currency,
           metadata: updatedPayment.metadata || {},

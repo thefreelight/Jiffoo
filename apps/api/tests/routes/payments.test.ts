@@ -310,7 +310,7 @@ describe('Payments Endpoints', () => {
       expect((await prisma.payment.findFirstOrThrow({ where: { orderId: manualOrderId } })).status).toBe('SUCCEEDED');
     });
 
-    it('records equivalent payment, ledger, history, and outbox kinds for Admin and webhook success', async () => {
+    it('records equivalent payment, ledger, history, and event kinds for Admin and webhook success', async () => {
       await installPaymentFixture();
       const manualOrderId = await createOrder('manual-payment');
       const cardOrderId = await createOrder(paymentFixtureSlug);
@@ -331,7 +331,7 @@ describe('Payments Endpoints', () => {
           prisma.payment.findFirstOrThrow({ where: { orderId } }),
           prisma.paymentLedger.findMany({ where: { orderId }, orderBy: { createdAt: 'asc' } }),
           prisma.orderStatusHistory.findMany({ where: { orderId }, orderBy: { createdAt: 'asc' } }),
-          prisma.outboxEvent.findMany({ where: { type: { in: ['order.paid', 'payment.succeeded'] }, payload: { path: ['data', 'orderId'], equals: orderId } } }),
+          prisma.eventRecord.findMany({ where: { type: { in: ['order.paid', 'payment.succeeded'] }, data: { path: ['orderId'], equals: orderId } } }),
         ]);
         return {
           order: { status: order.status, paymentStatus: order.paymentStatus },

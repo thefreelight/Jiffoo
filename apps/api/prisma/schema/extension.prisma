@@ -1,5 +1,5 @@
 // extension.prisma — PluginInstall, PluginInstallation,
-//                    WebhookSubscription, WebhookDeliveryLog, WebhookDeadLetter
+//                    PluginEventSubscription
 
 // ============================================================
 // PLUGIN INSTALL (package metadata)
@@ -34,6 +34,7 @@ model PluginInstall {
   updatedAt   DateTime @updatedAt
 
   installations PluginInstallation[]
+  eventSubscriptions PluginEventSubscription[]
 
   @@index([category])
   @@index([runtimeType])
@@ -192,7 +193,6 @@ model PluginInstallation {
   updatedAt DateTime @updatedAt
 
   plugin               PluginInstall          @relation(fields: [pluginSlug], references: [slug], onDelete: Cascade)
-  webhookSubscriptions WebhookSubscription[]
 
   @@unique([pluginSlug, instanceKey])
   @@index([pluginSlug])
@@ -202,74 +202,3 @@ model PluginInstallation {
   @@schema("public")
 }
 
-// ============================================================
-// WEBHOOK SUBSCRIPTION
-// ============================================================
-model WebhookSubscription {
-  id             String   @id @default(cuid())
-  installationId String
-  eventType      String
-  deliveryMode   String   @default("internal")
-  endpointUrl    String?
-  secret         String?
-  active         Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  installation PluginInstallation   @relation(fields: [installationId], references: [id], onDelete: Cascade)
-  deliveryLogs WebhookDeliveryLog[]
-  deadLetters  WebhookDeadLetter[]
-
-  @@index([installationId])
-  @@index([eventType])
-  @@index([active])
-  @@map("webhook_subscriptions")
-  @@schema("public")
-}
-
-// ============================================================
-// WEBHOOK DELIVERY LOG
-// ============================================================
-model WebhookDeliveryLog {
-  id             String   @id @default(cuid())
-  subscriptionId String
-  eventId        String
-  attempt        Int      @default(1)
-  status         String
-  responseCode   Int?
-  responseBody   String?
-  errorMessage   String?
-  deliveredAt    DateTime @default(now())
-  latencyMs      Int?
-
-  subscription WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-
-  @@index([subscriptionId])
-  @@index([eventId])
-  @@index([status])
-  @@map("webhook_delivery_logs")
-  @@schema("public")
-}
-
-// ============================================================
-// WEBHOOK DEAD LETTER
-// ============================================================
-model WebhookDeadLetter {
-  id             String    @id @default(cuid())
-  eventId        String
-  subscriptionId String
-  eventType      String
-  payload        Json
-  lastError      String?
-  retryCount     Int       @default(0)
-  createdAt      DateTime  @default(now())
-  replayedAt     DateTime?
-
-  subscription WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-
-  @@index([subscriptionId])
-  @@index([eventId])
-  @@index([eventType])
-  @@map("webhook_dead_letters")
-  @@schema("public")
-}

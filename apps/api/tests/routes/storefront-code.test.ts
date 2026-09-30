@@ -95,7 +95,9 @@ describe('Scenario 14 storefront code API', () => {
     expect(events).toHaveLength(1);
     expect(events[0].createdAt).toBeInstanceOf(Date);
     expect(events[0].createdAt.getTime()).toBeGreaterThanOrEqual(requestStart);
-    expect(events[0].createdAt.getTime()).toBeLessThanOrEqual(responseEnd);
+    // Stored time rounds by at most 0.5 ms; Date.now() floors by less than 1 ms.
+    // With database write time <= response end, integer stored time <= responseEnd + 1.
+    expect(events[0].createdAt.getTime()).toBeLessThanOrEqual(responseEnd + 1);
   });
 
   it('B rejects stale saves with 409 without changing configuration, history or audit', async () => {

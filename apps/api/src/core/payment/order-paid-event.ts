@@ -1,4 +1,4 @@
-import { OutboxService } from '@/infra/outbox';
+import { emitEvent } from '@/infra/events/emit';
 
 function parseJsonRecord(value: unknown): Record<string, unknown> {
   if (!value) return {};
@@ -57,7 +57,6 @@ export async function emitOrderPaidEvent(
   }
 
   const payload = {
-    event: 'order.paid',
     orderId: order.id,
     userId: order.userId,
     order: {
@@ -89,7 +88,7 @@ export async function emitOrderPaidEvent(
     metadata: input.metadata || {},
   };
 
-  await OutboxService.emit(tx, 'order.paid', order.id, payload, {
+  await emitEvent(tx, 'order.paid', 1, order.id, payload, {
     actorId: input.actorId || order.userId,
   });
 

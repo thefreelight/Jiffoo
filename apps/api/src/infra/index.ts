@@ -5,15 +5,5 @@
  * These services have no business logic and no routes.
  */
 
-export * from './outbox';
-
-// Unified job infrastructure (BullMQ + Outbox)
-export {
-  startJobInfrastructure,
-  stopJobInfrastructure,
-  queueManager,
-  workerManager,
-  outboxPoller,
-  QUEUE_NAMES,
-} from './jobs';
+export { emitEvent } from './events/emit';
 

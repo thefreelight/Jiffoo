@@ -446,9 +446,9 @@ describe('Orders Endpoints', () => {
       expect((await prisma.payment.findFirstOrThrow({ where: { orderId: expiredId } })).status).toBe('CANCELLED');
       expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: testVariantId } })).stock).toBe(stockBefore + 1);
       expect(await prisma.orderStatusHistory.count({ where: { orderId: expiredId, reason: 'unpaid timeout' } })).toBe(1);
-      expect(await prisma.outboxEvent.count({ where: { aggregateId: expiredId, type: 'order.cancelled' } })).toBe(1);
-      expect(await prisma.outboxEvent.count({ where: { aggregateId: unexpiredId, type: 'order.cancelled' } })).toBe(0);
-      expect(await prisma.outboxEvent.count({ where: { aggregateId: paidId, type: 'order.cancelled' } })).toBe(0);
+      expect(await prisma.eventRecord.count({ where: { aggregateId: expiredId, type: 'order.cancelled' } })).toBe(1);
+      expect(await prisma.eventRecord.count({ where: { aggregateId: unexpiredId, type: 'order.cancelled' } })).toBe(0);
+      expect(await prisma.eventRecord.count({ where: { aggregateId: paidId, type: 'order.cancelled' } })).toBe(0);
       const cancellation = await prisma.notification.findMany({ where: { type: 'cancelled', relatedId: expiredId } });
       expect(cancellation).toHaveLength(1);
       expect(cancellation[0].text).toContain('non-payment');

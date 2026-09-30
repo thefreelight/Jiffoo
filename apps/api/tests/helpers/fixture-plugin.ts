@@ -7,6 +7,7 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { extensionInstaller } from '@/core/admin/extension-installer';
+import type { EventSubscription } from '@jiffoo/shared';
 
 export type FixtureContract = { name: 'shipping' | 'tax' | 'payment' | 'notification'; version: 1 };
 
@@ -38,9 +39,10 @@ interface FixturePluginInstallOptions {
 export async function installFixturePlugin(
   options: FixturePluginInstallOptions,
   slug: string,
-  category: 'shipping' | 'tax' | 'payment' | 'notification',
+  category: 'shipping' | 'tax' | 'payment' | 'notification' | 'integration',
   contracts: FixtureContract[],
   source: string,
+  eventOptions: { subscriptions?: EventSubscription[]; config?: Record<string, unknown>; version?: string; enable?: boolean } = {},
 ): Promise<void> {
   const rootDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'checkout-fixture-'));
   const sourceDirectory = path.join(rootDirectory, 'package');
@@ -50,7 +52,7 @@ export async function installFixturePlugin(
     schemaVersion: 1,
     slug,
     name: slug,
-    version: '1.0.0',
+    version: eventOptions.version ?? '1.0.0',
     description: 'Checkout contract test fixture',
     category,
     runtimeType: 'internal-fastify',
@@ -58,6 +60,7 @@ export async function installFixturePlugin(
     entryModule: 'server/index.js',
     permissions: [],
     contracts,
+    subscriptions: eventOptions.subscriptions ?? [],
   };
   await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify(manifest), 'utf8');
   await fs.writeFile(path.join(sourceDirectory, 'server', 'index.js'), source, 'utf8');
@@ -83,7 +86,7 @@ export async function installFixturePlugin(
       method: 'PATCH',
       url: `/api/v1/extensions/plugin/${slug}/instances/${instance.id}`,
       headers: { authorization: `Bearer ${options.adminToken}` },
-      payload: { enabled: true },
+      payload: { enabled: eventOptions.enable !== false, ...(eventOptions.config ? { config: eventOptions.config } : {}) },
     });
     if (enabledResponse.statusCode !== 200) {
       throw new Error(`Fixture plugin "${slug}" enable failed: ${enabledResponse.statusCode} ${enabledResponse.payload}`);
