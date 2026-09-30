@@ -8,7 +8,7 @@ import { tryNativeAdminUsers } from './admin-users';
 import { tryNativeAdminStaff } from './admin-staff';
 import { tryNativeShipping } from './shipping';
 import { tryNativeShipmentRead } from './shipments';
-import { tryNativeCheckout } from './checkout';
+import { releaseStaleInventoryReservations, tryNativeCheckout } from './checkout';
 import { tryNativePluginOrders } from './plugin-orders';
 import { processCheckoutOutbox } from './outbox';
 import { tryNativeShopperAccount } from './shopper-account';
@@ -428,7 +428,7 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery, staleReservations] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
@@ -439,6 +439,7 @@ export default {
       processPendingRemoteRadarResumeDocuments(env),
       processNativeVideoTasks(env),
       processScheduledToolDiscovery(env),
+      releaseStaleInventoryReservations(env),
     ]);
     console.log(JSON.stringify({
       message: 'native scheduled work processed',
@@ -462,6 +463,9 @@ export default {
       toolDiscovery: toolDiscovery.status === 'fulfilled'
         ? toolDiscovery.value
         : { error: String(toolDiscovery.reason) },
+      staleReservations: staleReservations.status === 'fulfilled'
+        ? staleReservations.value
+        : { error: String(staleReservations.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;

@@ -316,6 +316,34 @@ export function storefrontOrigin(request: Request): string {
   return 'https://shop.jiffoo.com';
 }
 
+const STALE_RESERVATION_AFTER_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Release inventory reservations held by orders that were created but never
+ * paid or cancelled. Every checkout reserves one unit per item; without this,
+ * abandoned checkouts silently exhaust stock for goods products and all
+ * later orders fail with INSUFFICIENT_STOCK. Runs on the worker cron; if a
+ * stale order somehow pays after release, the paid-order handler still
+ * settles it (it no longer decrements stock for that unit).
+ */
+export async function releaseStaleInventoryReservations(
+  env: Pick<CheckoutEnv, 'DB'>,
+  now: number = Date.now(),
+): Promise<{ released: number }> {
+  const cutoff = new Date(now - STALE_RESERVATION_AFTER_MS).toISOString();
+  const result = await env.DB.prepare(
+    `UPDATE native_inventory_reservations SET active = 0
+     WHERE active = 1
+       AND created_at < ?1
+       AND order_id IN (
+         SELECT r.order_id FROM native_inventory_reservations r
+         JOIN native_order_metadata metadata ON metadata.order_id = r.order_id
+         WHERE r.active = 1 AND metadata.payment_status = 'PENDING'
+       )`,
+  ).bind(cutoff).run();
+  return { released: result.meta.changes ?? 0 };
+}
+
 async function createPaymentSession(request: Request, env: CheckoutEnv, user: NativeSessionUser): Promise<Response | null> {
   const body = await request.json<{ paymentMethod?: unknown; orderId?: unknown; successUrl?: unknown; cancelUrl?: unknown; idempotencyKey?: unknown }>().catch(() => null);
   if (!body || body.paymentMethod !== 'stripe' || typeof body.orderId !== 'string') return null;
