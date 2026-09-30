@@ -1,0 +1,41 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "postory-production",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "b2da93ccbca8c78973eb85e536a1d51f",
+  "routes": [
+    { "pattern": "api.postory.cc", "custom_domain": true }
+  ],
+  "triggers": {
+    "crons": ["*/1 * * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "postory-production",
+      "database_id": "REPLACE_WITH_D1_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    { "binding": "CACHE", "id": "REPLACE_WITH_KV_ID" }
+  ],
+  "r2_buckets": [
+    { "binding": "ASSETS", "bucket_name": "postory-production-assets" }
+  ],
+  "vars": {
+    "POSTORY_STORE_ENABLED": "true",
+    "EXPECTED_D1_SCHEMA_VERSION": "0065",
+    "RUNTIME_VERSION": "postory-native-1",
+    "SMTP_HOST": "mail.easyeuicc.cc",
+    "SMTP_PORT": "465",
+    "SMTP_USERNAME": "support@postory.cc",
+    "SMTP_FROM_EMAIL": "support@postory.cc",
+    "SMTP_FROM_NAME": "Postory Support",
+    "SMTP_REPLY_TO": "support@postory.cc",
+    "YIPAY_PID": "1003",
+    "YIPAY_GATEWAY": "https://yzf.chfastpay.com"
+  }
+}
