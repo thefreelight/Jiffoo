@@ -183,7 +183,18 @@ async function serveNativeRead(url: URL, env: WorkerEnv, _ctx: ExecutionContext)
   // Do not refresh CORE_ORIGIN from a customer request. This keeps the
   // public catalog/store/payment/shipping reads Cloudflare-native and makes
   // stale/missing imports visible instead of silently reintroducing K8s.
-  if (!snapshot) return nativeSnapshotUnavailable(url);
+  if (!snapshot) {
+    // An instance without an embeds snapshot simply has zero theme embeds
+    // configured — a normal state, not an error. The storefront injector
+    // treats any non-OK as "none", so answering the empty set keeps every
+    // page load from logging a 503.
+    if (url.pathname === '/api/v1/extensions/theme-extensions/embeds') {
+      return Response.json({ success: true, data: { items: [] } }, {
+        headers: runtimeHeaders('cloudflare-native-d1-authoritative', { 'cache-control': 'no-store' }),
+      });
+    }
+    return nativeSnapshotUnavailable(url);
+  }
   return snapshotResponse(snapshot);
 }
 
