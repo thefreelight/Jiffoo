@@ -507,7 +507,7 @@ describe('Auth Endpoints', () => {
       expect(body.data.showDemoCredentials).toBe(true);
       expect(body.data.requiresPasswordRotation).toBe(true);
       expect(body.data.credentials.email).toBe('admin@jiffoo.com');
-      expect(body.data.credentials.password).toBe('admin123');
+      expect(body.data.credentials.password).toBe('jiffoo');
     });
   });
 
@@ -668,7 +668,7 @@ describe('Auth Endpoints', () => {
         email: 'admin@jiffoo.com',
         username: 'admin',
         role: 'ADMIN',
-        password: 'admin123',
+        password: 'jiffoo',
       });
       const seededToken = signJwt(seededAdmin);
 
@@ -707,7 +707,7 @@ describe('Auth Endpoints', () => {
           authorization: `Bearer ${seededToken}`,
         },
         payload: {
-          currentPassword: 'admin123',
+          currentPassword: 'jiffoo',
           newPassword: 'NewAdminPassword123!',
         },
       });
