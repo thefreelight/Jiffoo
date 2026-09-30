@@ -105,6 +105,39 @@ describe('native PaymentSheet payment intents', () => {
     }
   });
 
+  it('routes mainland-China shoppers to hosted checkout without creating an intent', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    getNativeStripeSecret.mockResolvedValue({ mode: 'test', value: 'sk_test_example' });
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn() as unknown as typeof fetch;
+    try {
+      const { db, ran } = intentsDb();
+      for (const headers of [
+        { 'content-type': 'application/json', 'accept-language': 'zh-CN,zh;q=0.9' },
+        { 'content-type': 'application/json', 'cf-ipcountry': 'CN' },
+      ]) {
+        const response = await tryNativeCheckout(
+          new Request('https://api.example/api/v1/payments/intents', {
+            method: 'POST',
+            headers,
+            cf: headers['cf-ipcountry'] ? { country: 'CN' } : undefined,
+            body: JSON.stringify({ orderId: 'ord-test-1' }),
+          } as never),
+          { DB: db, NATIVE_CHECKOUT_ENABLED: 'true' } as never,
+          () => Promise.resolve(null),
+        );
+        expect(response?.status).toBe(200);
+        const payload = await (response as Response).json();
+        expect(payload.data).toEqual({ route: 'hosted_checkout' });
+        expect(payload.data.clientSecret).toBeUndefined();
+      }
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(ran.some((sql) => sql.includes('INSERT INTO native_payment_sessions'))).toBe(false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it('rejects an already paid order without calling Stripe', async () => {
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
     getNativeStripeSecret.mockResolvedValue({ mode: 'test', value: 'sk_test_example' });

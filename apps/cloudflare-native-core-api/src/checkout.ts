@@ -415,6 +415,18 @@ async function createPaymentIntent(request: Request, env: CheckoutEnv, user: Nat
   ).bind(body.orderId, user.id).first<OrderSnapshotRow>();
   if (!row) return failure(404, 'NOT_FOUND', 'Order not found');
   if (row.payment_status === 'PAID') return failure(409, 'ORDER_ALREADY_PAID', 'Order is already paid');
+  // WeChat Pay (and Alipay once the account is approved) are redirect wallets:
+  // they render only in hosted Checkout, never in the native PaymentSheet.
+  // Respond without a clientSecret for mainland-China-geo / Chinese-language
+  // shoppers so the apps route them to the hosted session, which also gives
+  // CNY adaptive pricing.
+  const geoCountry = typeof request.cf?.country === 'string'
+    ? request.cf.country
+    : (request.headers.get('cf-ipcountry') ?? '');
+  const acceptLanguage = (request.headers.get('accept-language') ?? '').trim().toLowerCase();
+  if (geoCountry === 'CN' || acceptLanguage.startsWith('zh')) {
+    return success({ route: 'hosted_checkout' });
+  }
   const idempotencyKey = typeof body.idempotencyKey === 'string' && body.idempotencyKey.trim()
     ? `intent:${body.idempotencyKey.trim()}`
     : `order:${body.orderId}:stripe-intent`;
