@@ -812,6 +812,11 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    disableWarningTitle: '禁用付款方式？',
+    disableWarning: '有 {count} 笔待付款订单使用此付款方式。禁用后，这些订单的付款通知将无法处理，直到重新启用。',
+    disableAnyway: '仍然禁用',
+    disableCancel: '取消',
+    disableImpactFailed: '无法检查待付款订单，请重试。',
     title: '插件',
     subtitle: '已安装插件工作台与官方市集入口',
     overview: '概览',

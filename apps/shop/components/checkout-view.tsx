@@ -26,13 +26,13 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries 
   const [busy, setBusy] = useState(false);
   const [priceChanged, setPriceChanged] = useState(false);
 
-  async function requestQuote(optionId?: string): Promise<Quote | null> {
+  async function requestQuote(optionId?: string, errorOnFailure: string = t.genericError): Promise<Quote | null> {
     const response = await fetch('/bff/checkout/quote', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ shippingAddress: address, ...(optionId ? { shippingOptionId: optionId } : {}) }),
     });
     if (!response.ok) {
-      setError(t.genericError);
+      setError(errorOnFailure);
       return null;
     }
     const result = (await response.json()).data as Quote;
@@ -74,9 +74,14 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries 
         if (body.error?.code === 'QUOTE_CHANGED') {
           const next = await requestQuote(shippingOptionId);
           if (next) setPriceChanged(true);
-        } else if (body.error?.code === 'SHIPPING_OPTION_UNAVAILABLE') {
+        } else if (body.error?.code === 'SHIPPING_METHOD_UNAVAILABLE') {
           setShippingOptionId(''); setPaymentMethod(''); setPriceChanged(false);
-          await requestQuote();
+          await requestQuote(undefined, t.shippingUnavailable);
+          setError(t.shippingUnavailable);
+        } else if (body.error?.code === 'PAYMENT_METHOD_UNAVAILABLE') {
+          setPaymentMethod(''); setPriceChanged(false);
+          await requestQuote(shippingOptionId, t.paymentUnavailable);
+          setError(t.paymentUnavailable);
         } else setError(t.genericError);
         return;
       }

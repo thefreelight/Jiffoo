@@ -812,6 +812,11 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    disableWarningTitle: 'Disable payment method?',
+    disableWarning: '{count} orders awaiting payment use this payment method. After disabling, their payment notifications cannot be processed until you re-enable it.',
+    disableAnyway: 'Disable anyway',
+    disableCancel: 'Cancel',
+    disableImpactFailed: 'Unable to check pending payments. Please try again.',
     title: 'Plugins',
     subtitle: 'Installed plugin workspaces and official marketplace access',
     overview: 'Overview',

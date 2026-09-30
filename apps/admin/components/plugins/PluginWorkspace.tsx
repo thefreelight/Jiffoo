@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
+import { DisablePluginControl } from '@/components/plugins/DisablePluginControl';
 import { toast } from 'sonner';
 
 type PluginConfigDescriptor = {
@@ -206,7 +207,10 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               {schema ? <GenericConfigEditor schema={schema} draft={draft} meta={meta} saving={saving} onChange={(field, value) => setDraft((current) => ({ ...current, [field]: value }))} onSave={() => void save()} /> : <Alert><Settings2 className="h-4 w-4" /><AlertTitle>No configuration declared</AlertTitle><AlertDescription>This extension does not declare configuration fields.</AlertDescription></Alert>}
             </div>
             <div className="space-y-5">
-              <Card><CardHeader><CardTitle>Plugin status</CardTitle><CardDescription>Core manages the default plugin configuration.</CardDescription></CardHeader><CardContent className="space-y-4"><Button onClick={() => void toggle()} disabled={saving || !selected}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{selected?.enabled ? 'Disable plugin' : 'Enable plugin'}</Button></CardContent></Card>
+              <Card><CardHeader><CardTitle>Plugin status</CardTitle><CardDescription>Core manages the default plugin configuration.</CardDescription></CardHeader><CardContent className="space-y-4">{selected?.enabled
+                ? <DisablePluginControl slug={slug} category={data.category} label="Disable plugin" disabled={saving} onDisable={toggle} />
+                : <Button onClick={() => void toggle()} disabled={saving || !selected}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Enable plugin</Button>}
+                </CardContent></Card>
             </div>
           </div>
         </div>

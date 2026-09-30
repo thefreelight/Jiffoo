@@ -812,6 +812,11 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    disableWarningTitle: '停用付款方式？',
+    disableWarning: '有 {count} 筆待付款訂單使用此付款方式。停用後，這些訂單的付款通知將無法處理，直到重新啟用。',
+    disableAnyway: '仍然停用',
+    disableCancel: '取消',
+    disableImpactFailed: '無法檢查待付款訂單，請重試。',
     title: '外掛',
     subtitle: '已安裝外掛工作台與官方市集入口',
     overview: '概覽',

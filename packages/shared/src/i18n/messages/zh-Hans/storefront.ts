@@ -44,6 +44,8 @@ export const storefront = {
     taxInclusive: '已含税', taxExclusive: '另计税费', payment: '付款方式',
     placeOrder: '提交订单', priceChanged: '价格已变化，请核对新合计并再次确认。',
     genericError: '结账暂时不可用，请重试。',
+    paymentUnavailable: '此付款方式已不可用，请选择其他方式。',
+    shippingUnavailable: '此配送方式已不可用，请选择其他方式。',
     stockAvailable: '可购数量：', confirmation: '订单确认',
     status: '付款状态', orderStatus: '订单状态', items: '商品',
     paymentInstructions: '付款说明', pending: '等待付款',

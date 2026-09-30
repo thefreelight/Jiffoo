@@ -18,6 +18,7 @@ const areas = [
   '25-shop-provider-code',
   '26-shop-purchase-tracking',
   '27-admin-audit-events',
+  '28-disabled-payment-plugin',
 ];
 
 export default defineConfig({

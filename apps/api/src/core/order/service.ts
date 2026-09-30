@@ -280,8 +280,8 @@ export class OrderService {
     });
     const selectedShipping = quote.shippingOptions.find((option) => option.id === data.shippingOptionId);
     if (!selectedShipping) {
-      const error = new Error('SHIPPING_OPTION_UNAVAILABLE') as Error & { statusCode?: number; code?: string };
-      error.statusCode = 409; error.code = 'SHIPPING_OPTION_UNAVAILABLE'; throw error;
+      const error = new Error('SHIPPING_METHOD_UNAVAILABLE') as Error & { statusCode?: number; code?: string };
+      error.statusCode = 409; error.code = 'SHIPPING_METHOD_UNAVAILABLE'; throw error;
     }
     const payment = quote.paymentMethods.find((method) => method.providerSlug === data.paymentMethod);
     if (!payment) {

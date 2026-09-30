@@ -383,11 +383,13 @@ describe('Orders Endpoints', () => {
     it('rejects unknown shipping options before changing stock or creating an order', async () => {
       const stockBefore = (await prisma.productVariant.findUniqueOrThrow({ where: { id: testVariantId } })).stock;
       const countBefore = await prisma.order.count();
+      const eventsBefore = await prisma.eventRecord.count();
       const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:missing', paymentMethod: 'manual-payment', expectedTotal: '0.00' } });
       expect(response.statusCode).toBe(409);
       expect(response.json().error.code).toBe('SHIPPING_OPTION_UNAVAILABLE');
       expect(await prisma.order.count()).toBe(countBefore);
       expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: testVariantId } })).stock).toBe(stockBefore);
+      expect(await prisma.eventRecord.count()).toBe(eventsBefore);
     });
 
     it('returns a tax contract failure without creating an order or changing stock', async () => {
@@ -409,6 +411,9 @@ describe('Orders Endpoints', () => {
     it('rejects disabled and currency-unsupported payment methods', async () => {
       await installFixture('checkout-card-payment', 'payment', checkoutPaymentFixtureSource);
       try {
+        const stockBefore = (await prisma.productVariant.findUniqueOrThrow({ where: { id: testVariantId } })).stock;
+        const ordersBefore = await prisma.order.count();
+        const eventsBefore = await prisma.eventRecord.count();
         const instance = await prisma.pluginInstallation.findUniqueOrThrow({ where: { pluginSlug_instanceKey: { pluginSlug: 'checkout-card-payment', instanceKey: 'default' } } });
         const configResponse = await app.inject({ method: 'PATCH', url: `/api/v1/extensions/plugin/checkout-card-payment/instances/${instance.id}`, headers: { authorization: `Bearer ${adminToken}` }, payload: { config: { supported: false } } });
         expect(configResponse.statusCode).toBe(200);
@@ -420,6 +425,9 @@ describe('Orders Endpoints', () => {
         const unavailable = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'checkout-card-payment', expectedTotal: '0.00' } });
         expect(unavailable.statusCode).toBe(409);
         expect(unavailable.json().error.code).toBe('PAYMENT_METHOD_UNAVAILABLE');
+        expect(await prisma.order.count()).toBe(ordersBefore);
+        expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: testVariantId } })).stock).toBe(stockBefore);
+        expect(await prisma.eventRecord.count()).toBe(eventsBefore);
       } finally { await resetFixtures(); }
     });
   });

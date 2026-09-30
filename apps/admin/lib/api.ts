@@ -553,6 +553,10 @@ function toApiErrorPayload(
 
 // Plugin Management API
 export const pluginsApi = {
+  getDisableImpact: async (slug: string): Promise<{ pendingPaymentOrders: number }> => {
+    const response = await apiClient.get(`/extensions/plugin/${slug}/disable-impact`);
+    return unwrapApiResponse(response as ApiResponse<{ pendingPaymentOrders: number }>);
+  },
   getInstalled: async (page = 1, limit = 20): Promise<ApiResponse<PageResult<PluginMetaWithState>>> => {
     const response = await apiClient.get('/extensions/plugin', { params: { page, limit } }) as ApiResponse<PageResult<any>>;
     if (!response.success || !response.data) {

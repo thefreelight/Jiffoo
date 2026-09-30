@@ -125,6 +125,7 @@ export interface PluginMetaWithState {
   slug: string
   name: string
   version: string
+  category?: string
   description?: string
   author?: string
   source: 'installed' | 'builtin' | 'local-zip'

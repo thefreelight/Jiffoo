@@ -76,6 +76,7 @@ playwrightGroups.push(['24-admin-storefront-code']);
 playwrightGroups.push(['25-shop-provider-code']);
 playwrightGroups.push(['26-shop-purchase-tracking']);
 playwrightGroups.push(['27-admin-audit-events']);
+playwrightGroups.push(['28-disabled-payment-plugin']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);

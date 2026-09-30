@@ -44,6 +44,8 @@ export const storefront = {
     taxInclusive: 'Tax included', taxExclusive: 'Tax added', payment: 'Payment method',
     placeOrder: 'Place order', priceChanged: 'Price changed. Review the new total and confirm again.',
     genericError: 'Checkout is temporarily unavailable. Please try again.',
+    paymentUnavailable: 'This payment method is no longer available. Please choose another.',
+    shippingUnavailable: 'This shipping method is no longer available. Please choose another.',
     stockAvailable: 'Available quantity:', confirmation: 'Order confirmation',
     status: 'Payment status', orderStatus: 'Order status', items: 'Items',
     paymentInstructions: 'Payment instructions', pending: 'Payment pending',
