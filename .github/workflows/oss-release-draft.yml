@@ -89,6 +89,12 @@ jobs:
             echo "> Open-source commerce core — storefront / admin / themes / plugins / marketplace-ready architecture."
             echo
             echo "Weekly release train: ${COUNT} merged change(s) since \`${PREV_TAG}\`. Review, adjust wording, then publish this draft to cut the release."
+            WORKSPACE_VERSION="$(python3 -c 'import json; print(json.load(open("package.json")).get("version",""))' 2>/dev/null || true)"
+            EXPECTED_VERSION="${NEXT_TAG#v}"
+            if [ "${WORKSPACE_VERSION}" != "${EXPECTED_VERSION}" ]; then
+              echo
+              echo "> ⚠️ **Version drift**: \`package.json\` says \`${WORKSPACE_VERSION:-unset}\` but this train is \`${EXPECTED_VERSION}\`. Bump it in this PR-style commit or a follow-up before publishing — the updater's runtime convergence check stopped trusting package.json for exactly this reason."
+            fi
             emit_section "Added 新增功能" added.txt
             emit_section "Changed 优化改进" changed.txt
             emit_section "Fixed Bug 修复" fixed.txt
