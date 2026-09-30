@@ -46,6 +46,7 @@ import { processPendingRemoteRadarResumeDocuments, tryNativeRemoteRadarResumeDoc
 import { tryNativePlatformConnection } from './platform-connection';
 import { tryNativeMarketplace } from './marketplace';
 import { isExpectedNativeSchemaVersion } from './health';
+import { tryPostoryCompat } from './postory-store';
 import { tryNativeCoupon } from './coupon';
 import { tryNativeImagerAi } from './imager-ai';
 import { processNativeVideoTasks, tryNativeVideoAi } from './video-ai';
@@ -345,6 +346,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     const nativeToolDiscovery = await tryNativeToolDiscovery(nativeRequest, env);
     if (nativeToolDiscovery) return nativeToolDiscovery;
     if (isNativeRead(nativeRequest, url)) return serveNativeRead(url, env, ctx);
+    const postoryCompat = await tryPostoryCompat(nativeRequest, env);
+    if (postoryCompat) return postoryCompat;
     const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(nativeRequest, env));
     if (nativeAuth) return nativeAuth;
     const nativeCart = await tryNativeCart(
