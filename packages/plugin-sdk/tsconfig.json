@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["ES2022"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "shared/plugin-signing": ["../shared/dist/shared/src/plugin-signing"],
+      "shared": ["../shared/dist/shared/index"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

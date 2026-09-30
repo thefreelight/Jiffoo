@@ -1,6 +1,7 @@
 import { createHash, createPrivateKey, createPublicKey, sign, verify } from 'node:crypto';
 import { inflateRawSync } from 'node:zlib';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 export const OFFICIAL_ROOT_PUBLIC_KEY = 'MCowBQYDK2VwAyEAA_zy6wrHIT-xusqZjtIoRFlK0wwe_08awdPoFnJhs6o';
 export const CERT_PATH = 'META-INF/jiffoo/publisher-cert.json';
@@ -33,6 +34,26 @@ export class PackageVerificationError extends Error {
   constructor(readonly code: string) {
     super(code);
   }
+}
+const forbiddenExtensions = new Set(['.ts', '.tsx', '.jsx', '.sh', '.bat', '.cmd', '.ps1', '.exe', '.dll', '.so', '.dylib', '.node', '.map']);
+export function getPluginFileViolation(filename: string): { code: string; extension?: string } | null {
+  const segments = filename.replace(/\\/g, '/').toLowerCase().split('/');
+  if (segments.some((segment, index) => segment === '.prisma' || (segment === '@prisma' && segments[index + 1] === 'client'))) {
+    return { code: 'FORBIDDEN_PRISMA_CLIENT' };
+  }
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.d.ts') || lower.endsWith('.d.mts') || lower.endsWith('.d.cts')) return null;
+  const extension = path.extname(filename).toLowerCase();
+  return forbiddenExtensions.has(extension) ? { code: extension === '.node' ? 'FORBIDDEN_NATIVE_MODULE' : 'FORBIDDEN_FILE_TYPE', extension } : null;
+}
+export const PLUGIN_MAX_ZIP_SIZE = 10 * 1024 * 1024;
+export function extensionMaxFileSize(kind?: string): number {
+  if (kind === 'bundle') return 100 * 1024 * 1024;
+  if (kind === 'plugin') return 50 * 1024 * 1024;
+  return 5 * 1024 * 1024;
+}
+export function isPathWithinExtensionBase(filePath: string, baseDir: string): boolean {
+  return path.resolve(filePath).startsWith(path.resolve(baseDir));
 }
 const fail = (code: string): never => { throw new PackageVerificationError(code); };
 const hash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -85,7 +106,8 @@ export function trustedRootKeys(): string[] {
     ? [OFFICIAL_ROOT_PUBLIC_KEY, process.env.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY] : [OFFICIAL_ROOT_PUBLIC_KEY];
 }
 
-type ZipEntry = { path: string; content: Buffer; flags: number; mode: number };
+export type PluginZipEntry = { path: string; content: Buffer; flags: number; mode: number };
+type ZipEntry = PluginZipEntry;
 function rawEntries(zip: Buffer): ZipEntry[] {
   let end = -1;
   for (let i = zip.length - 22; i >= Math.max(0, zip.length - 65557); i--) {
@@ -141,34 +163,8 @@ export async function verifyPluginZip(filePath: string): Promise<PublisherIdenti
   if (entries.some((entry) => entry.path.endsWith(`/${CERT_PATH}`) || entry.path.endsWith(`/${SIGNATURE_PATH}`))) fail('PACKAGE_CONTENT_MISMATCH');
   if (!cert && !sig) return null;
   if (!cert || !sig) fail('INCOMPLETE_PACKAGE_SIGNATURE');
-  const names = new Set<string>();
-  const folded = new Set<string>();
-  for (const entry of entries) {
-    const name = entry.path;
-    if (!name || name !== name.normalize('NFC') || name.includes('\\') || name.includes('\0') ||
-      /^[A-Za-z]:/.test(name) || name.startsWith('/') || name.split('/').some((part) => !part || part === '.' || part === '..') ||
-      name.endsWith('/') || (!(entry.flags & 0x800) && /[^\x00-\x7f]/.test(name)) || entry.flags & 1 ||
-      (entry.mode && (entry.mode & 0xf000) !== 0x8000) ||
-      names.has(name) || folded.has(name.toLowerCase())) fail('PACKAGE_CONTENT_MISMATCH');
-    names.add(name);
-    folded.add(name.toLowerCase());
-  }
-  let certificate: PublisherCertificate;
-  try {
-    certificate = JSON.parse(decoder.decode(cert!.content));
-    if (certificate.schemaVersion !== 1 || certificate.algorithm !== 'Ed25519' ||
-      !/^[a-z][a-z0-9-]{1,63}$/.test(certificate.publisherId) || !certificate.publisherName?.trim() ||
-      certificate.publisherName !== certificate.publisherName.normalize('NFC') ||
-      typeof certificate.publicKey !== 'string' || typeof certificate.rootSignature !== 'string' ||
-      Object.keys(certificate).sort().join(',') !== 'algorithm,publicKey,publisherId,publisherName,rootSignature,schemaVersion') fail('INVALID_PUBLISHER_CERTIFICATE');
-    publicKey(certificate.publicKey);
-    base64url(certificate.rootSignature);
-  } catch { fail('INVALID_PUBLISHER_CERTIFICATE'); }
-  const { rootSignature, ...unsigned } = certificate!;
-  const trusted = trustedRootKeys().some((root) => {
-    try { return verify(null, certificatePayload(unsigned), publicKey(root), base64url(rootSignature)); } catch { return false; }
-  });
-  if (!trusted) fail('UNTRUSTED_PUBLISHER_CERTIFICATE');
+  validatePluginZipPaths(entries);
+  const certificate = verifyPublisherCertificate(cert!.content);
   let signature: PackageSignature;
   try {
     signature = JSON.parse(decoder.decode(sig!.content));
@@ -183,6 +179,47 @@ export async function verifyPluginZip(filePath: string): Promise<PublisherIdenti
     signature!.files.some((file, index) => typeof file?.path !== 'string' || typeof file?.sha256 !== 'string' ||
       file.path !== actual[index].path || file.sha256 !== actual[index].sha256 ||
       Object.keys(file).sort().join(',') !== 'path,sha256')) fail('PACKAGE_CONTENT_MISMATCH');
-  if (!verify(null, packagePayload(signature!.files), publicKey(certificate!.publicKey), base64url(signature!.signature))) fail('INVALID_PACKAGE_SIGNATURE');
-  return { publisherId: certificate!.publisherId, publisherName: certificate!.publisherName, publisherCertificateFingerprint: hash(cert!.content) };
+  if (!verify(null, packagePayload(signature!.files), publicKey(certificate.publicKey), base64url(signature!.signature))) fail('INVALID_PACKAGE_SIGNATURE');
+  return { publisherId: certificate.publisherId, publisherName: certificate.publisherName, publisherCertificateFingerprint: hash(cert!.content) };
+}
+
+export function validatePluginZipPaths(entries: PluginZipEntry[]): void {
+  const names = new Set<string>();
+  const folded = new Set<string>();
+  for (const entry of entries) {
+    const name = entry.path;
+    if (!name || name !== name.normalize('NFC') || name.includes('\\') || name.includes('\0') ||
+      /^[A-Za-z]:/.test(name) || name.startsWith('/') || name.split('/').some((part) => !part || part === '.' || part === '..') ||
+      name.endsWith('/') || (!(entry.flags & 0x800) && /[^\x00-\x7f]/.test(name)) || entry.flags & 1 ||
+      (entry.mode && (entry.mode & 0xf000) !== 0x8000) ||
+      names.has(name) || folded.has(name.toLowerCase())) fail('PACKAGE_CONTENT_MISMATCH');
+    names.add(name);
+    folded.add(name.toLowerCase());
+  }
+}
+
+export function readPluginZipEntries(zip: Buffer): PluginZipEntry[] {
+  const entries = rawEntries(zip);
+  validatePluginZipPaths(entries);
+  return entries;
+}
+
+export function verifyPublisherCertificate(bytes: Buffer): PublisherCertificate {
+  let certificate: PublisherCertificate;
+  try {
+    certificate = JSON.parse(decoder.decode(bytes));
+    if (certificate.schemaVersion !== 1 || certificate.algorithm !== 'Ed25519' ||
+      !/^[a-z][a-z0-9-]{1,63}$/.test(certificate.publisherId) || !certificate.publisherName?.trim() ||
+      certificate.publisherName !== certificate.publisherName.normalize('NFC') ||
+      typeof certificate.publicKey !== 'string' || typeof certificate.rootSignature !== 'string' ||
+      Object.keys(certificate).sort().join(',') !== 'algorithm,publicKey,publisherId,publisherName,rootSignature,schemaVersion') fail('INVALID_PUBLISHER_CERTIFICATE');
+    publicKey(certificate.publicKey);
+    base64url(certificate.rootSignature);
+  } catch { fail('INVALID_PUBLISHER_CERTIFICATE'); }
+  const { rootSignature, ...unsigned } = certificate!;
+  const trusted = trustedRootKeys().some((root) => {
+    try { return verify(null, certificatePayload(unsigned), publicKey(root), base64url(rootSignature)); } catch { return false; }
+  });
+  if (!trusted) fail('UNTRUSTED_PUBLISHER_CERTIFICATE');
+  return certificate!;
 }

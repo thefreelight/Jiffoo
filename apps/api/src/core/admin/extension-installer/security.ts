@@ -6,6 +6,7 @@
 
 import path from 'path';
 import { ExtensionInstallerError } from './errors';
+import { extensionMaxFileSize, getPluginFileViolation, isPathWithinExtensionBase, PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 
 // ============================================================================
 // File Type Validation
@@ -15,37 +16,13 @@ import { ExtensionInstallerError } from './errors';
  * For executable extensions, we only forbid high-risk source/script/binary types,
  * and do NOT enforce a strict allow-list, because build artifacts legitimately contain many extensions.
  */
-const EXECUTABLE_FORBIDDEN_EXTENSIONS = [
-    '.ts',
-    '.tsx',
-    '.jsx',
-    '.sh',
-    '.bat',
-    '.cmd',
-    '.ps1',
-    '.exe',
-    '.dll',
-    '.so',
-    '.dylib',
-    '.node',
-    '.map',
-] as const;
-
-function isTypeDeclarationFile(filename: string): boolean {
-    const normalized = filename.toLowerCase();
-    return normalized.endsWith('.d.ts') || normalized.endsWith('.d.mts') || normalized.endsWith('.d.cts');
-}
-
 /**
  * Validate file extension
  * @throws Error if file type is forbidden or not allowed
  */
 export function validateFileExtension(filename: string, kind?: string): void {
-    const ext = path.extname(filename).toLowerCase();
-    const segments = filename.replace(/\\/g, '/').toLowerCase().split('/');
-
-    if (kind === 'plugin' && segments.some((segment, index) =>
-        segment === '.prisma' || (segment === '@prisma' && segments[index + 1] === 'client'))) {
+    const pluginViolation = getPluginFileViolation(filename);
+    if (kind === 'plugin' && pluginViolation?.code === 'FORBIDDEN_PRISMA_CLIENT') {
         throw new ExtensionInstallerError(
             `Generated Prisma client is not allowed in plugin packages: ${filename}`,
             { code: 'FORBIDDEN_PRISMA_CLIENT', statusCode: 400 }
@@ -53,13 +30,11 @@ export function validateFileExtension(filename: string, kind?: string): void {
     }
 
     // Bundles and plugins allow built artifacts, including JavaScript and nested ZIP files.
-    if (isTypeDeclarationFile(filename)) {
-        return;
-    }
-    if (EXECUTABLE_FORBIDDEN_EXTENSIONS.includes(ext as any)) {
+    if (pluginViolation?.extension) {
+        const ext = pluginViolation.extension;
         throw new ExtensionInstallerError(
             `Forbidden file type detected: ${ext}. This file type is not allowed for ${kind || 'extension'} security reasons.`,
-            { code: ext === '.node' ? 'FORBIDDEN_NATIVE_MODULE' : 'FORBIDDEN_FILE_TYPE', statusCode: 400 }
+            { code: pluginViolation.code, statusCode: 400 }
         );
     }
 }
@@ -93,7 +68,7 @@ export async function validateDirectoryFiles(
 // ============================================================================
 
 /** Maximum ZIP file size (10MB) */
-export const MAX_ZIP_SIZE = 10 * 1024 * 1024;
+export const MAX_ZIP_SIZE = PLUGIN_MAX_ZIP_SIZE;
 
 /** Maximum individual file size (5MB) */
 export const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -124,15 +99,8 @@ export function validateZipSize(size: number): void {
  * Validate individual file size
  * @throws Error if size exceeds limit
  */
-function getMaxFileSize(kind?: string): number {
-    // Executable bundles/apps may legitimately include larger JS/WASM assets.
-    if (kind === 'bundle') return 100 * 1024 * 1024; // 100MB
-    if (kind === 'plugin') return 50 * 1024 * 1024; // 50MB
-    return MAX_FILE_SIZE;
-}
-
 export function validateFileSize(filename: string, size: number, kind?: string): void {
-    const max = getMaxFileSize(kind);
+    const max = extensionMaxFileSize(kind);
     if (size > max) {
         throw new ExtensionInstallerError(
             `File "${filename}" size (${formatBytes(size)}) exceeds maximum allowed size of ${formatBytes(max)}`,
@@ -166,7 +134,7 @@ export function validatePathTraversal(filePath: string, baseDir: string): void {
     const resolvedPath = path.resolve(filePath);
     const resolvedBase = path.resolve(baseDir);
 
-    if (!resolvedPath.startsWith(resolvedBase)) {
+    if (!isPathWithinExtensionBase(resolvedPath, resolvedBase)) {
         throw new ExtensionInstallerError(
             `Directory traversal detected: "${filePath}" is outside allowed directory "${baseDir}"`,
             { code: 'PATH_TRAVERSAL', statusCode: 400 }
