@@ -164,7 +164,12 @@ function runCaptureBuffer(command, args, options = {}) {
 
 function createArchive(rootDir, archivePath, archiveRef) {
   ensureDirectory(path.dirname(archivePath));
-  run('git', ['-C', rootDir, 'archive', '--format=tar.gz', `--output=${archivePath}`, archiveRef]);
+  // git archive emits paths without a leading directory; install.sh extracts
+  // with --strip-components=1 (expecting a `Jiffoo-<ref>/` prefix), so without
+  // --prefix every root-level file is stripped away and the source-archive
+  // install path silently falls back to a full git clone.
+  const prefix = `Jiffoo-${archiveRef}/`;
+  run('git', ['-C', rootDir, 'archive', '--format=tar.gz', `--prefix=${prefix}`, `--output=${archivePath}`, archiveRef]);
 }
 
 async function copyFileFromGitRef(rootDir, ref, repoPath, outputPath, mode) {
