@@ -111,6 +111,28 @@ resolve_default_app_version() {
   printf '1.0.0'
 }
 
+# Emit API_IMAGE/SHOP_IMAGE/ADMIN_IMAGE/UPDATER_IMAGE lines from the update
+# manifest so a fresh install pulls the published images instead of building
+# four source images locally. Empty output (no manifest, no images, offline)
+# leaves the compose defaults untouched, which fall back to source builds.
+resolve_manifest_images() {
+  local manifest_url images
+  manifest_url="${JIFFOO_CORE_UPDATE_MANIFEST_URL:-${JIFFOO_UPDATE_MANIFEST_URL:-${DEFAULT_UPDATE_MANIFEST_URL}}}"
+  manifest_url="$(normalize_manifest_url "${manifest_url}")"
+  images="$(curl -fsSL "${manifest_url}" 2>/dev/null | python3 -c '
+import json, sys
+try:
+    images = json.load(sys.stdin).get("images") or {}
+    for service in ("api", "admin", "shop", "updater"):
+        ref = images.get(service)
+        if ref:
+            print(f"{service.upper()}_IMAGE={ref}")
+except Exception:
+    pass
+' 2>/dev/null || true)"
+  printf '%s' "${images}"
+}
+
 write_env_file() {
   local public_ip domain shop_url admin_url api_url cors_origin
   local default_app_version manifest_url
@@ -119,6 +141,7 @@ write_env_file() {
   manifest_url="${JIFFOO_CORE_UPDATE_MANIFEST_URL:-${JIFFOO_UPDATE_MANIFEST_URL:-${DEFAULT_UPDATE_MANIFEST_URL}}}"
   manifest_url="$(normalize_manifest_url "${manifest_url}")"
   default_app_version="${APP_VERSION:-$(resolve_default_app_version)}"
+  manifest_images="$(resolve_manifest_images)"
 
   if [ -n "${domain}" ]; then
     shop_url="https://${domain}"
@@ -178,6 +201,7 @@ MARKET_API_URL=${MARKET_API_URL:-https://platform-api.jiffoo.com/api}
 BUILD_SHA=${BUILD_SHA:-install-${REF}}
 BUILD_TIME=${BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
 APP_VERSION=${default_app_version}
+${manifest_images}
 JIFFOO_DEPLOYMENT_MODE=${JIFFOO_DEPLOYMENT_MODE:-docker-compose}
 JIFFOO_CORE_UPDATE_MANIFEST_URL=${manifest_url}
 JIFFOO_UPDATE_CHANNEL=${JIFFOO_UPDATE_CHANNEL:-stable}
@@ -285,7 +309,7 @@ main() {
   fi
 
   log_info "Running Prisma migrations"
-  compose exec -T api npx prisma db push --schema apps/api/prisma/schema --skip-generate.prisma
+  compose exec -T api npx prisma db push --schema apps/api/prisma/schema --skip-generate
 
   if [ "${SEED_DEMO_DATA}" = "true" ]; then
     log_info "Seeding demo data"
