@@ -15,7 +15,7 @@ import { createAuthUser, findAuthUserByEmail, findAuthUserById, findAuthUserById
 import crypto from 'node:crypto';
 
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
-const DEFAULT_DEMO_ADMIN_PASSWORD = 'admin123';
+const DEFAULT_DEMO_ADMIN_PASSWORD = 'jiffoo';
 
 export interface AuthResponse {
   user: {
