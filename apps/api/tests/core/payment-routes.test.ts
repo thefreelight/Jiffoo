@@ -14,6 +14,9 @@ import Fastify from 'fastify';
 
 vi.mock('@/config/database', () => ({
   prisma: {
+    pluginInstallation: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
     payment: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),

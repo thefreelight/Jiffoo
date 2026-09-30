@@ -25,9 +25,9 @@ import { Prisma } from '@prisma/client';
 import { decimalToMinor } from './minor-units';
 import { createNotification } from '@/core/notifications/service';
 
-function setHttpCache(reply: FastifyReply, data: unknown, maxAge: number, swr: number) {
+function setHttpCache(reply: FastifyReply, data: unknown) {
   const etag = `"${createHash('md5').update(JSON.stringify(data)).digest('hex')}"`;
-  reply.header('Cache-Control', `public, max-age=${maxAge}, stale-while-revalidate=${swr}`);
+  reply.header('Cache-Control', 'private, no-cache');
   reply.header('ETag', etag);
   return etag;
 }
@@ -179,7 +179,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     const cacheKey = `pub:payments:methods:v${pluginVersion}`;
     const cached = await CacheService.get<PaymentMethodDescriptor[]>(cacheKey);
     if (cached) {
-      const etag = setHttpCache(reply, cached, 30, 60);
+      const etag = setHttpCache(reply, cached);
       if (request.headers['if-none-match'] === etag) {
         return reply.code(304).send();
       }
@@ -189,7 +189,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     const methods = await getEnabledPaymentMethods();
 
     await CacheService.set(cacheKey, methods, { ttl: 30 });
-    const etag = setHttpCache(reply, methods, 30, 60);
+    const etag = setHttpCache(reply, methods);
     if (request.headers['if-none-match'] === etag) {
       return reply.code(304).send();
     }
@@ -447,6 +447,13 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     const { provider } = request.params as { provider: string };
+    const installation = await prisma.pluginInstallation.findUnique({
+      where: { pluginSlug_instanceKey: { pluginSlug: provider, instanceKey: 'default' } },
+      include: { plugin: { select: { deletedAt: true } } },
+    });
+    if (installation && (!installation.enabled || installation.deletedAt || installation.plugin.deletedAt)) {
+      return sendError(reply, 503, 'PLUGIN_DISABLED', 'Payment provider is disabled');
+    }
     LoggerService.logPayment('webhook-received', undefined, undefined, { provider });
     const rawBody = typeof request.body === 'string' ? request.body : JSON.stringify(request.body || {});
     const result = await callContract(provider, 'payment', 1, 'handleWebhook', { headers: request.headers as Record<string, string>, query: request.query as Record<string, string>, rawBody }) as any;

@@ -64,7 +64,7 @@ export class PaymentReconciliationJob {
     const startTime = Date.now();
     try {
       const { limit, maxAgeMinutes, minAgeMinutes } = this.options;
-      const { scanned, updated, failed } = await reconcilePendingPayments({
+      const { scanned, updated, failed, skipped } = await reconcilePendingPayments({
         limit,
         maxAgeMinutes,
         minAgeMinutes,
@@ -74,6 +74,7 @@ export class PaymentReconciliationJob {
         scanned,
         updated,
         failed,
+        skipped,
         durationMs: duration,
       });
     } catch (error) {

@@ -371,7 +371,7 @@ describe('Cache Behavior Tests', () => {
     it('should return Cache-Control and ETag for payment methods', async () => {
       const res = await app.inject({ method: 'GET', url: '/api/v1/payments/available-methods' });
       expect(res.statusCode).toBe(200);
-      expect(res.headers['cache-control']).toContain('max-age=30');
+      expect(res.headers['cache-control']).toBe('private, no-cache');
       expect(res.headers['etag']).toBeDefined();
     });
   });

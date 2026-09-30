@@ -257,6 +257,7 @@ export type PaymentReconciliationResult = {
   scanned: number;
   updated: number;
   failed: number;
+  skipped: number;
 };
 
 export async function reconcilePendingPayments(
@@ -290,9 +291,21 @@ export async function reconcilePendingPayments(
 
   let updated = 0;
   let failed = 0;
+  let skipped = 0;
+  const installations = await prisma.pluginInstallation.findMany({
+    where: { pluginSlug: { in: [...new Set(payments.map((payment) => payment.paymentMethod))] }, instanceKey: 'default' },
+    select: { pluginSlug: true, enabled: true, deletedAt: true, plugin: { select: { deletedAt: true } } },
+  });
+  const disabled = new Set(installations.filter((instance) =>
+    !instance.enabled || instance.deletedAt || instance.plugin.deletedAt
+  ).map((instance) => instance.pluginSlug));
 
   for (const payment of payments) {
     if (!payment.sessionId) {
+      continue;
+    }
+    if (disabled.has(payment.paymentMethod)) {
+      skipped += 1;
       continue;
     }
     try {
@@ -309,5 +322,6 @@ export async function reconcilePendingPayments(
     scanned: payments.length,
     updated,
     failed,
+    skipped,
   };
 }

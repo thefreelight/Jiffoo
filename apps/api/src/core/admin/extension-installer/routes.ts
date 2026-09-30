@@ -17,6 +17,7 @@ import { bundleInstaller } from './bundle-installer';
 import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
 import { readStoredPluginManifest } from './stored-manifest';
 import { themeManagementRoutes } from './theme-routes';
+import { prisma } from '@/config/database';
 
 // Per spec (EXTENSIONS_IMPLEMENTATION.md) size limits for offline ZIP installs
 const ZIP_SIZE_LIMITS: Record<ExtensionKind, number> = {
@@ -226,6 +227,12 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
+      const { slug } = request.params;
+      const installation = await PluginManagementService.getDefaultInstance(slug);
+      const plugin = await prisma.pluginInstall.findUnique({ where: { slug } });
+      if (plugin && installation && (plugin.deletedAt || installation.deletedAt || !installation.enabled)) {
+        return reply.send('disabled');
+      }
       await handlePluginGateway(request, reply, '/health', fastify, { requireEnabled: false });
     } catch (error: any) {
       if (error instanceof PluginGatewayError) {
@@ -258,6 +265,12 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
+      const { slug } = request.params;
+      const installation = await PluginManagementService.getDefaultInstance(slug);
+      const plugin = await prisma.pluginInstall.findUnique({ where: { slug } });
+      if (plugin && installation && (plugin.deletedAt || installation.deletedAt || !installation.enabled)) {
+        return reply.send(JSON.stringify(readStoredPluginManifest(plugin)));
+      }
       await handlePluginGateway(request, reply, '/manifest', fastify, { requireEnabled: false });
     } catch (error: any) {
       if (error instanceof PluginGatewayError) {
@@ -273,6 +286,54 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     admin.addHook('onRequest', authMiddleware);
     admin.addHook('onRequest', requireAdmin);
     await admin.register(themeManagementRoutes);
+
+    admin.get<{ Params: { slug: string } }>('/plugin/:slug/disable-impact', {
+      schema: {
+        tags: ['admin-plugins'],
+        summary: 'Get plugin disable impact',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['slug'],
+          properties: { slug: { type: 'string' } },
+        },
+        response: {
+          200: {
+            type: 'object',
+            required: ['success', 'data'],
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                required: ['pendingPaymentOrders'],
+                properties: { pendingPaymentOrders: { type: 'integer' } },
+              },
+            },
+          },
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    }, async (request, reply) => {
+      const plugin = await prisma.pluginInstall.findUnique({ where: { slug: request.params.slug } });
+      if (!plugin || plugin.deletedAt) {
+        return sendError(reply, 404, 'NOT_FOUND', 'Plugin not found');
+      }
+      const manifest = readStoredPluginManifest(plugin);
+      const pendingPaymentOrders = manifest.contracts?.some((contract) => contract.name === 'payment')
+        ? await prisma.order.count({
+          where: {
+            status: 'PENDING',
+            paymentStatus: 'PENDING',
+            OR: [{ unpaidExpiresAt: null }, { unpaidExpiresAt: { gt: new Date() } }],
+            payments: { some: { paymentMethod: plugin.slug, status: 'PENDING', sessionId: { not: null } } },
+          },
+        })
+        : 0;
+      return sendSuccess(reply, { pendingPaymentOrders });
+    });
 
   // ============================================================================
   // Plugin Instance Management API (Multi-instance support)

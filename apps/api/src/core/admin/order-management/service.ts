@@ -375,6 +375,13 @@ export class AdminOrderService {
     if (!order.paymentMethod) {
       throw codedError('MANUAL_CONFIRMATION_NOT_SUPPORTED', 'Manual confirmation is not supported for this order.');
     }
+    const installation = await prisma.pluginInstallation.findUnique({
+      where: { pluginSlug_instanceKey: { pluginSlug: order.paymentMethod, instanceKey: 'default' } },
+      include: { plugin: { select: { deletedAt: true } } },
+    });
+    if (installation && (!installation.enabled || installation.deletedAt || installation.plugin.deletedAt)) {
+      throw codedError('PAYMENT_PROVIDER_DISABLED', 'Payment provider is disabled; manual confirmation is unavailable.');
+    }
     const description = await callContract(order.paymentMethod, 'payment', 1, 'describe', {
       storeCurrency: await systemSettingsService.getShopCurrency(),
     }) as { requiresManualConfirmation: boolean };

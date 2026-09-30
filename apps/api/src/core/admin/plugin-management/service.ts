@@ -351,7 +351,12 @@ async function updateInstance(
 
   if (isEnabling || (updates.config !== undefined && existing.enabled)) {
     try {
-      await warmPluginInstanceRuntime(existing.pluginSlug, existing.id, nextConfig);
+      if (isEnabling) {
+        const { validateCandidateRuntime } = await import('@/core/admin/extension-installer/plugin-runtime');
+        await validateCandidateRuntime(existing.pluginSlug, manifest, existing.id, nextConfig);
+      } else {
+        await warmPluginInstanceRuntime(existing.pluginSlug, existing.id, nextConfig);
+      }
     } catch (error: any) {
       throw new Error(`Plugin runtime failed to load: ${error.message}`);
     }

@@ -918,11 +918,6 @@ export async function warmPluginInstanceRuntime(
 ): Promise<{ restartRequired: boolean }> {
   const plugin = await PluginManagementService.getPluginPackage(slug);
   if (!plugin) throw new PluginGatewayError(`Plugin "${slug}" not found`, 'PLUGIN_NOT_FOUND', 404);
-  const manifest = await readPluginManifest(plugin);
-  if (manifest.runtimeType !== 'internal-fastify') {
-    return { restartRequired: false };
-  }
-
   const instance = await PluginManagementService.getInstanceById(installationId);
   if (!instance || instance.pluginSlug !== slug) {
     throw new PluginGatewayError(
@@ -930,6 +925,13 @@ export async function warmPluginInstanceRuntime(
       'INSTANCE_NOT_FOUND',
       404
     );
+  }
+  if (!instance.enabled || instance.deletedAt) {
+    throw new PluginGatewayError(`Instance "${installationId}" is disabled`, 'PLUGIN_DISABLED', 503);
+  }
+  const manifest = await readPluginManifest(plugin);
+  if (manifest.runtimeType !== 'internal-fastify') {
+    return { restartRequired: false };
   }
 
   const ctx: GatewayContext = {

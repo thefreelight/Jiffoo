@@ -114,7 +114,7 @@ export function mapAdminOrderRouteError(
   if (rawCode === 'INVALID_ORDER_TRANSITION') {
     return { status: 409, code: rawCode, message };
   }
-  if (rawCode === 'MANUAL_CONFIRMATION_NOT_SUPPORTED') {
+  if (rawCode === 'MANUAL_CONFIRMATION_NOT_SUPPORTED' || rawCode === 'PAYMENT_PROVIDER_DISABLED') {
     return { status: 409, code: rawCode, message };
   }
 

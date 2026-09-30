@@ -135,6 +135,9 @@ export const paymentSchemas = {
       additionalProperties: true,
       description: 'Webhook payload forwarded by the payment provider (provider-specific JSON structure)',
     },
-    response: createTypedCrudResponses(webhookResponseSchema),
+    response: {
+      ...createTypedCrudResponses(webhookResponseSchema),
+      503: errorResponseSchema,
+    },
   },
 } as const;
