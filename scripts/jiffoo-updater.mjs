@@ -429,12 +429,17 @@ async function recreateComposeRuntimeServices(composeCommand, composePrefixArgs,
 }
 
 async function runComposeMigrations(composeCommand, composePrefixArgs, composeProjectName, composeFile, commandEnv) {
+  // The main-line schema is a multi-file directory (apps/api/prisma/schema/,
+  // entry _base.prisma); `migrate deploy` cannot resolve that layout ("No
+  // migration found") and `schema.prisma` does not even exist in the shipped
+  // images. Directory-mode db push is the verified working path (54 tables
+  // created in the 1.0.156 container during the install smoke).
   await runComposeCommand(
     composeCommand,
     composePrefixArgs,
     composeProjectName,
     composeFile,
-    ['exec', '-T', 'api', 'npx', 'prisma', 'migrate', 'deploy', '--schema', 'apps/api/prisma/schema.prisma'],
+    ['exec', '-T', 'api', 'npx', 'prisma', 'db', 'push', '--schema', 'apps/api/prisma/schema', '--skip-generate'],
     commandEnv,
   );
 }
