@@ -402,9 +402,27 @@ async function runComposeCommand(composeCommand, composePrefixArgs, composeProje
   });
 }
 
-async function pullComposeRuntimeImages(composeCommand, composePrefixArgs, composeProjectName, composeFile, commandEnv, includeUpdater) {
+async function pullComposeRuntimeImages(composeCommand, composePrefixArgs, composeProjectName, composeFile, commandEnv, runtimeImages, includeUpdater) {
   const services = includeUpdater ? [...RUNTIME_SERVICES, 'updater'] : RUNTIME_SERVICES;
-  await runComposeCommand(composeCommand, composePrefixArgs, composeProjectName, composeFile, ['pull', ...services], commandEnv);
+  try {
+    await runComposeCommand(composeCommand, composePrefixArgs, composeProjectName, composeFile, ['pull', ...services], commandEnv);
+    return;
+  } catch {
+    // Registry hiccups (rate limits, transient auth rejections, weak networks)
+    // must not kill an upgrade when every service image is already present
+    // locally — the recreate below runs with --no-build and only needs local
+    // images.
+    console.log('[jiffoo-updater] Image pull failed; verifying local images instead');
+  }
+
+  for (const service of services) {
+    const image = runtimeImages?.[service] || null;
+    if (!image) {
+      throw new Error(`Pull failed and no local image reference is configured for service "${service}"`);
+    }
+    await run('docker', ['image', 'inspect', image], { env: commandEnv });
+    console.log(`[jiffoo-updater] Using locally available image for ${service}: ${image}`);
+  }
 }
 
 async function recreateComposeRuntimeServices(composeCommand, composePrefixArgs, composeProjectName, composeFile, commandEnv) {
@@ -708,6 +726,7 @@ async function performDockerComposeUpgrade(options) {
         composeProjectName,
         composeFile,
         cutoverEnv,
+        runtimeImages,
         Boolean(runtimeImages.updater),
       );
 
