@@ -18,6 +18,7 @@ import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/con
 import { readStoredPluginManifest } from './stored-manifest';
 import { themeManagementRoutes } from './theme-routes';
 import { prisma } from '@/config/database';
+import { Prisma } from '@prisma/client';
 
 // Per spec (EXTENSIONS_IMPLEMENTATION.md) size limits for offline ZIP installs
 const ZIP_SIZE_LIMITS: Record<ExtensionKind, number> = {
@@ -464,6 +465,13 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         replacedPlugins: instance.replacedPlugins,
       });
     } catch (error: any) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError
+        || error instanceof Prisma.PrismaClientUnknownRequestError
+        || error instanceof Prisma.PrismaClientInitializationError
+        || error instanceof Prisma.PrismaClientRustPanicError) {
+        request.log.error({ err: error }, 'Plugin instance database failure');
+        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to update plugin instance');
+      }
       const statusCode =
         typeof error?.statusCode === 'number' && Number.isFinite(error.statusCode)
           ? error.statusCode

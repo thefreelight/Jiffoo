@@ -16,7 +16,8 @@ import type { PluginInstall, PluginInstallation } from '@prisma/client';
 import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
 import { mergeSecretConfigForUpdate } from './config-secrets';
 import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
-import { getPluginManifestIssues } from '@jiffoo/shared';
+import { getPluginManifestIssues, parsePluginConfigSchema, validatePluginConfig } from '@jiffoo/shared';
+import { ExtensionInstallerError } from '@/core/admin/extension-installer/errors';
 
 type ProviderContract = 'payment' | 'shipping' | 'tax' | 'fulfillment' | 'notification';
 type UpdatedInstance = PluginInstallation & { replacedPlugins: string[] };
@@ -318,6 +319,18 @@ async function updateInstance(
   const nextConfig = updates.config !== undefined
     ? mergeSecretConfigForUpdate(manifest, existingConfig, updates.config)
     : existingConfig;
+  if (updates.config !== undefined && manifest.configSchema !== undefined) {
+    const { schema, issues: schemaIssues } = parsePluginConfigSchema(manifest.configSchema);
+    if (!schema) throw new Error(`Invalid plugin configSchema: ${schemaIssues.map((issue) => issue.path).join(', ')}`);
+    const issues = validatePluginConfig(schema, nextConfig);
+    if (issues.length) {
+      throw new ExtensionInstallerError(`Invalid plugin configuration: ${issues.map((issue) => issue.path).join(', ')}`, {
+        statusCode: 400,
+        code: 'INVALID_PLUGIN_CONFIG',
+        details: { fields: issues },
+      });
+    }
+  }
   const nextEnabled = updates.enabled !== undefined ? updates.enabled : existing.enabled;
 
   if (nextEnabled) {

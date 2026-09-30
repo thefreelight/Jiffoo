@@ -7,9 +7,12 @@ import {
 describe('plugin config secret helpers', () => {
   const manifest = {
     configSchema: {
-      legacySecret: { type: 'secret' },
-      sensitiveSecret: { type: 'string', sensitive: true },
-      visibleField: { type: 'string' },
+      type: 'object',
+      properties: {
+        legacySecret: { type: 'string', sensitive: true },
+        sensitiveSecret: { type: 'string', sensitive: true },
+        visibleField: { type: 'string' },
+      },
     },
   };
 

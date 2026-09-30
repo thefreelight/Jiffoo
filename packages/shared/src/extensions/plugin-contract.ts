@@ -1,4 +1,5 @@
 import { isEventKey, type EventKey, type EventSubscription, type PluginEvent } from '../events/registry';
+import { parsePluginConfigSchema } from './plugin-config-schema';
 
 export const PLUGIN_CATEGORIES = [
   'payment',
@@ -146,6 +147,27 @@ function pushIssue(issues: PluginManifestIssue[], path: string, message: string,
   issues.push({ path, message, code });
 }
 
+const manifestFields = new Set([
+  'schemaVersion', 'slug', 'name', 'version', 'description', 'category',
+  'runtimeType', 'hostProtocol', 'entryModule', 'permissions', 'author',
+  'authorUrl', 'license', 'homepage', 'repository', 'icon', 'screenshots',
+  'minApiVersion', 'sdkVersion', 'requiredApiVersion', 'dependencies', 'tags',
+  'configSchema', 'contracts', 'requiredScopes', 'subscriptions', 'lifecycle',
+  'trustLevel', 'capabilities', 'webhooks',
+]);
+
+function rejectUnknown(
+  issues: PluginManifestIssue[], value: Record<string, unknown>,
+  allowed: ReadonlySet<string>, path: string,
+): void {
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key)) {
+      const field = path ? `${path}.${key}` : key;
+      pushIssue(issues, field, `${field} is not supported`, 'UNKNOWN_MANIFEST_FIELD');
+    }
+  }
+}
+
 function validateApiVersionRange(
   issues: PluginManifestIssue[],
   value: unknown,
@@ -157,6 +179,7 @@ function validateApiVersionRange(
   }
 
   const range = value as PluginApiVersionRange;
+  rejectUnknown(issues, value, new Set(['min', 'max', 'exact']), path);
   const hasValue = range.min !== undefined || range.max !== undefined || range.exact !== undefined;
 
   if (!hasValue) {
@@ -186,6 +209,8 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
       code: 'INVALID_MANIFEST',
     }];
   }
+
+  rejectUnknown(issues, manifest, manifestFields, '');
 
   if (manifest.schemaVersion !== 1) {
     pushIssue(issues, 'schemaVersion', 'schemaVersion must be 1', 'INVALID_SCHEMA_VERSION');
@@ -302,6 +327,8 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
       manifest.contracts.forEach((contract, index) => {
         if (!isRecord(contract) || !['payment', 'shipping', 'tax', 'fulfillment', 'notification'].includes(String(contract.name)) || contract.version !== 1) {
           pushIssue(issues, `contracts[${index}]`, 'only supported contract version 1 declarations are allowed', 'INVALID_CONTRACTS');
+        } else {
+          rejectUnknown(issues, contract, new Set(['name', 'version']), `contracts[${index}]`);
         }
       });
     }
@@ -330,12 +357,23 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
     pushIssue(issues, 'screenshots', 'screenshots must be an array of strings', 'INVALID_MANIFEST');
   }
 
-  if (manifest.dependencies !== undefined && !isRecord(manifest.dependencies)) {
-    pushIssue(issues, 'dependencies', 'dependencies must be an object', 'INVALID_MANIFEST');
+  if (manifest.dependencies !== undefined) {
+    if (!isRecord(manifest.dependencies)) {
+      pushIssue(issues, 'dependencies', 'dependencies must be an object', 'INVALID_MANIFEST');
+    } else {
+      for (const [name, range] of Object.entries(manifest.dependencies)) {
+        if (!/^(?:@[^/\s]+\/)?[a-z0-9][a-z0-9._-]*$/.test(name)
+          || typeof range !== 'string' || !/^(?:\^|~|>=|<=|>|<)?\d+\.\d+\.\d+$/.test(range)) {
+          pushIssue(issues, `dependencies.${name}`, `dependencies.${name} must be a package name with a semver range`, 'INVALID_DEPENDENCY');
+        }
+      }
+    }
   }
 
-  if (manifest.configSchema !== undefined && !isRecord(manifest.configSchema)) {
-    pushIssue(issues, 'configSchema', 'configSchema must be an object', 'INVALID_MANIFEST');
+  if (manifest.configSchema !== undefined) {
+    for (const issue of parsePluginConfigSchema(manifest.configSchema).issues) {
+      pushIssue(issues, issue.path, `${issue.path}: ${issue.message}`, 'INVALID_CONFIG_SCHEMA');
+    }
   }
 
   if (manifest['webhooks'] !== undefined) {
@@ -370,6 +408,7 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
           pushIssue(issues, `lifecycle.${hookName}`, `${hookName} must be a boolean`, 'INVALID_LIFECYCLE');
         }
       });
+      rejectUnknown(issues, lifecycle, new Set(PLUGIN_LIFECYCLE_HOOKS), 'lifecycle');
     }
   }
 

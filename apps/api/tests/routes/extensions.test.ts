@@ -14,6 +14,7 @@ import { createWriteStream, promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import archiver from 'archiver';
+import { randomUUID } from 'node:crypto';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
@@ -27,6 +28,9 @@ interface PluginArchiveOptions {
   packageType?: 'module';
   manifestTrustLevel?: 'builtin' | 'unsigned';
   shippingContract?: boolean;
+  version?: string;
+  manifestExtras?: Record<string, unknown>;
+  extraFile?: string;
 }
 
 async function createUnsignedPluginArchive(
@@ -41,7 +45,7 @@ async function createUnsignedPluginArchive(
     schemaVersion: 1,
     slug,
     name: 'Unsigned Route Test Plugin',
-    version: '1.0.0',
+    version: options.version ?? '1.0.0',
     description: 'Exercises the normal in-process upload path.',
     author: 'Jiffoo Test',
     category: options.shippingContract ? 'shipping' : 'integration',
@@ -51,7 +55,13 @@ async function createUnsignedPluginArchive(
     entryModule: options.entryModule ?? 'dist/index.js',
     permissions: [],
     contracts: options.shippingContract ? [{ name: 'shipping', version: 1 }] : [],
+    ...options.manifestExtras,
   }, null, 2));
+  if (options.extraFile) {
+    const extraPath = path.join(packageDir, options.extraFile);
+    await fs.mkdir(path.dirname(extraPath), { recursive: true });
+    await fs.writeFile(extraPath, 'fixture', 'utf8');
+  }
   if (options.packageType) {
     await fs.writeFile(path.join(packageDir, 'package.json'), JSON.stringify({ type: options.packageType }));
   }
@@ -124,6 +134,117 @@ describe('Extensions Installer Endpoints', () => {
     await cleanupArchive?.();
     await deleteAllTestUsers();
     await app.close();
+  });
+
+  async function uploadPlugin(archivePath: string) {
+    const upload = await multipartPluginUpload(archivePath, true);
+    return app.inject({
+      method: 'POST',
+      url: '/api/v1/extensions/plugin/install',
+      headers: { authorization: `Bearer ${adminToken}`, ...upload.headers },
+      payload: upload.payload,
+    });
+  }
+
+  it('rejects an unknown manifest field before writing a package or installation', async () => {
+    const slug = `unknown-${randomUUID().slice(0, 12)}`;
+    const archive = await createUnsignedPluginArchive(slug, { manifestExtras: { storefrontScript: '/inject.js' } });
+    try {
+      const response = await uploadPlugin(archive.archivePath);
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.message).toContain('storefrontScript');
+      expect(await prisma.pluginInstall.count({ where: { slug } })).toBe(0);
+      expect(await prisma.pluginInstallation.count({ where: { pluginSlug: slug } })).toBe(0);
+      expect(await pluginPackageStore.get(slug)).toBeNull();
+    } finally {
+      await archive.cleanup();
+    }
+  });
+
+  it.each([
+    [{ mode: 'unexpected', token: 'present' }, 'config.mode'],
+    [{ mode: 'test' }, 'config.token'],
+  ])('returns a field path for invalid config on a disabled instance: %j', async (config, field) => {
+    const slug = `config-${randomUUID().slice(0, 12)}`;
+    const archive = await createUnsignedPluginArchive(slug, {
+      manifestExtras: {
+        configSchema: {
+          type: 'object',
+          properties: { mode: { type: 'string', enum: ['test', 'live'] }, token: { type: 'string', sensitive: true } },
+          required: ['mode', 'token'],
+        },
+      },
+    });
+    try {
+      expect((await uploadPlugin(archive.archivePath)).statusCode).toBe(200);
+      const instance = await prisma.pluginInstallation.findUniqueOrThrow({
+        where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } },
+      });
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/extensions/plugin/${slug}/instances/${instance.id}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { config },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toMatchObject({
+        code: 'INVALID_PLUGIN_CONFIG',
+        details: { fields: expect.arrayContaining([expect.objectContaining({ path: field })]) },
+      });
+      expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: instance.id } })).configJson).toBeNull();
+    } finally {
+      await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
+      await prisma.pluginInstall.deleteMany({ where: { slug } });
+      await pluginPackageStore.delete(slug);
+      await archive.cleanup();
+    }
+  });
+
+  it.each([
+    ['nested native module', 'nested/addon.node', 'FORBIDDEN_NATIVE_MODULE'],
+    ['generated Prisma client', 'node_modules/@prisma/client/index.js', 'FORBIDDEN_PRISMA_CLIENT'],
+  ])('rejects %s on install and upgrade without changing the active package', async (_label, extraFile, code) => {
+    const slug = `unsafe-${randomUUID().slice(0, 12)}`;
+    const base = await createUnsignedPluginArchive(slug);
+    const unsafe = await createUnsignedPluginArchive(slug, { version: '2.0.0', extraFile });
+    try {
+      const rejectedInstall = await uploadPlugin(unsafe.archivePath);
+      expect(rejectedInstall.statusCode).toBe(400);
+      expect(rejectedInstall.json().error.code).toBe(code);
+      expect(await prisma.pluginInstall.count({ where: { slug } })).toBe(0);
+      expect(await prisma.pluginInstallation.count({ where: { pluginSlug: slug } })).toBe(0);
+      expect(await pluginPackageStore.get(slug)).toBeNull();
+
+      const installed = await uploadPlugin(base.archivePath);
+      expect(installed.statusCode).toBe(200);
+      const instance = await prisma.pluginInstallation.findUniqueOrThrow({
+        where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } },
+      });
+      const enabled = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/extensions/plugin/${slug}/instances/${instance.id}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { enabled: true },
+      });
+      expect(enabled.statusCode).toBe(200);
+
+      const rejectedUpgrade = await uploadPlugin(unsafe.archivePath);
+      expect(rejectedUpgrade.statusCode).toBe(400);
+      expect(rejectedUpgrade.json().error.code).toBe(code);
+      expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).version).toBe('1.0.0');
+      expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: instance.id } })).enabled).toBe(true);
+      const packageFiles = await pluginPackageStore.get(slug);
+      expect(JSON.parse(await packageFiles!.readText('manifest.json')).version).toBe('1.0.0');
+      const active = await app.inject({ method: 'GET', url: `/api/v1/extensions/plugin/${slug}/api/status` });
+      expect(active.statusCode).toBe(200);
+      expect(active.json().status).toBe('active');
+    } finally {
+      await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
+      await prisma.pluginInstall.deleteMany({ where: { slug } });
+      await pluginPackageStore.delete(slug);
+      await base.cleanup();
+      await unsafe.cleanup();
+    }
   });
 
   describe('Security - 401 without token', () => {

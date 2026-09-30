@@ -36,43 +36,30 @@ function isTypeDeclarationFile(filename: string): boolean {
     return normalized.endsWith('.d.ts') || normalized.endsWith('.d.mts') || normalized.endsWith('.d.cts');
 }
 
-function isAllowedPluginRuntimeBinary(filename: string, kind?: string): boolean {
-    if (kind !== 'plugin') {
-        return false;
-    }
-
-    const normalized = filename.replace(/\\/g, '/').toLowerCase();
-    if (!normalized.endsWith('.node')) {
-        return false;
-    }
-
-    return (
-        // Generated Prisma clients may use a custom output dir under .prisma/
-        // (e.g. .prisma/i18n-client), all containing the same query engines.
-        normalized.includes('node_modules/.prisma/') ||
-        normalized.includes('node_modules/@prisma/engines/') ||
-        normalized.includes('node_modules/prisma/')
-    );
-}
-
 /**
  * Validate file extension
  * @throws Error if file type is forbidden or not allowed
  */
 export function validateFileExtension(filename: string, kind?: string): void {
     const ext = path.extname(filename).toLowerCase();
+    const segments = filename.replace(/\\/g, '/').toLowerCase().split('/');
+
+    if (kind === 'plugin' && segments.some((segment, index) =>
+        segment === '.prisma' || (segment === '@prisma' && segments[index + 1] === 'client'))) {
+        throw new ExtensionInstallerError(
+            `Generated Prisma client is not allowed in plugin packages: ${filename}`,
+            { code: 'FORBIDDEN_PRISMA_CLIENT', statusCode: 400 }
+        );
+    }
 
     // Bundles and plugins allow built artifacts, including JavaScript and nested ZIP files.
     if (isTypeDeclarationFile(filename)) {
         return;
     }
-    if (isAllowedPluginRuntimeBinary(filename, kind)) {
-        return;
-    }
     if (EXECUTABLE_FORBIDDEN_EXTENSIONS.includes(ext as any)) {
         throw new ExtensionInstallerError(
             `Forbidden file type detected: ${ext}. This file type is not allowed for ${kind || 'extension'} security reasons.`,
-            { code: 'FORBIDDEN_FILE_TYPE', statusCode: 400 }
+            { code: ext === '.node' ? 'FORBIDDEN_NATIVE_MODULE' : 'FORBIDDEN_FILE_TYPE', statusCode: 400 }
         );
     }
 }

@@ -12,16 +12,19 @@ describe('extension installer security', () => {
     expect(() => validateFileExtension('plugin.d.cts', 'plugin')).not.toThrow();
   });
 
-  it('allows Prisma runtime binaries for executable plugin packages only', () => {
+  it('rejects native modules and generated Prisma clients in plugin packages', () => {
     expect(() =>
       validateFileExtension('node_modules/.prisma/client/libquery_engine-linux-musl-arm64-openssl-3.0.x.so.node', 'plugin'),
-    ).not.toThrow();
+    ).toThrowError(expect.objectContaining({ code: 'FORBIDDEN_PRISMA_CLIENT' }));
     expect(() =>
       validateFileExtension('node_modules/@prisma/engines/libquery_engine-linux-musl-arm64-openssl-3.0.x.so.node', 'plugin'),
-    ).not.toThrow();
+    ).toThrowError(expect.objectContaining({ code: 'FORBIDDEN_NATIVE_MODULE' }));
     expect(() =>
       validateFileExtension('node_modules/some-other-native-addon/build/Release/addon.node', 'plugin'),
-    ).toThrow(ExtensionInstallerError);
+    ).toThrowError(expect.objectContaining({ code: 'FORBIDDEN_NATIVE_MODULE' }));
+    expect(() =>
+      validateFileExtension('node_modules/@prisma/client/index.js', 'plugin'),
+    ).toThrowError(expect.objectContaining({ code: 'FORBIDDEN_PRISMA_CLIENT' }));
   });
 
   it('still rejects executable TypeScript source files in plugin packages', () => {
@@ -29,7 +32,7 @@ describe('extension installer security', () => {
     expect(() => validateFileExtension('index.tsx', 'plugin')).toThrow(ExtensionInstallerError);
   });
 
-  it('allows Prisma runtime binaries when validating extracted plugin directories recursively', async () => {
+  it('rejects generated Prisma clients when validating extracted plugin directories recursively', async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'plugin-security-'));
     const prismaDir = path.join(tempRoot, 'node_modules/.prisma/client');
 
@@ -40,7 +43,7 @@ describe('extension installer security', () => {
         'binary-placeholder',
       );
 
-      await expect(validateDirectoryFiles(tempRoot, 'plugin')).resolves.toBeUndefined();
+      await expect(validateDirectoryFiles(tempRoot, 'plugin')).rejects.toMatchObject({ code: 'FORBIDDEN_PRISMA_CLIENT' });
     } finally {
       await fs.rm(tempRoot, { recursive: true, force: true });
     }

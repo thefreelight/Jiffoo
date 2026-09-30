@@ -39,14 +39,18 @@ describe('Plugin Config Readiness', () => {
 
   it('detects missing required fields for a payment schema', () => {
     const manifest = createManifestWithSchema({
-      mode: { type: 'string', required: true, enum: ['test', 'live'] },
-      test: { type: 'object', required: true },
-      live: { type: 'object', required: true },
+      type: 'object',
+      properties: {
+        mode: { type: 'string', enum: ['test', 'live'] },
+        test: { type: 'string' },
+        live: { type: 'string' },
+      },
+      required: ['mode', 'test', 'live'],
     });
 
     const readiness = evaluatePluginConfigReadiness(manifest, {
       mode: 'test',
-      test: {},
+      test: '',
     });
 
     expect(readiness.requiresConfiguration).toBe(true);
@@ -57,15 +61,19 @@ describe('Plugin Config Readiness', () => {
 
   it('marks ready when required fields are all present', () => {
     const manifest = createManifestWithSchema({
-      mode: { type: 'string', required: true, enum: ['test', 'live'] },
-      test: { type: 'object', required: true },
-      live: { type: 'object', required: true },
+      type: 'object',
+      properties: {
+        mode: { type: 'string', enum: ['test', 'live'] },
+        test: { type: 'string' },
+        live: { type: 'string' },
+      },
+      required: ['mode', 'test', 'live'],
     });
 
     const readiness = evaluatePluginConfigReadiness(manifest, {
       mode: 'test',
-      test: { secretKey: 'sk_test_123' },
-      live: { secretKey: 'sk_live_123' },
+      test: 'sk_test_123',
+      live: 'sk_live_123',
     });
 
     expect(readiness.requiresConfiguration).toBe(true);

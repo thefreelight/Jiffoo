@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Loader2, Settings2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Settings2 } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
+import { parsePluginConfigSchema, validatePluginConfig, type PluginConfigSchema } from 'shared';
+import { isAdminApiError } from '@/lib/api';
 import type { PluginConfigMeta } from '@/lib/types';
 import {
   useInstalledPlugins,
@@ -19,50 +21,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
 import { DisablePluginControl } from '@/components/plugins/DisablePluginControl';
 import { toast } from 'sonner';
-
-type PluginConfigDescriptor = {
-  type?: string;
-  label?: string;
-  description?: string;
-  required?: boolean;
-  enum?: string[];
-};
-
-type PluginConfigSchema = Record<string, PluginConfigDescriptor>;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function descriptorType(descriptor: PluginConfigDescriptor): string {
-  return descriptor.type || 'string';
-}
-
-function configReadiness(
-  schema: PluginConfigSchema | undefined,
-  config: Record<string, unknown>,
-  meta?: PluginConfigMeta
-) {
-  const missing = Object.entries(schema || {}).flatMap(([key, descriptor]) => {
-    if (!descriptor.required) return [];
-    const value = config[key];
-    const secretConfigured = Boolean(meta?.secretFields?.[key]?.configured);
-    if (descriptorType(descriptor) === 'secret' && secretConfigured && !value) return [];
-    if (value === undefined || value === null || value === '') return [key];
-    return [];
-  });
-  return { required: missing.length > 0, ready: missing.length === 0, missing };
-}
+const formText = {
+  en: { title: 'Configuration', description: 'Configuration fields are declared by this extension.', save: 'Save configuration', saving: 'Saving...', configured: 'Configured. Enter a new value to replace it.', select: 'Select', invalid: 'Invalid value' },
+  'zh-Hans': { title: '配置', description: '配置字段由扩展声明。', save: '保存配置', saving: '保存中...', configured: '已配置。输入新值以替换。', select: '选择', invalid: '无效的值' },
+  'zh-Hant': { title: '設定', description: '設定欄位由擴充功能宣告。', save: '儲存設定', saving: '儲存中...', configured: '已設定。輸入新值以取代。', select: '選擇', invalid: '無效的值' },
+} as const;
 
 function GenericConfigEditor({
   schema,
   draft,
   meta,
   saving,
+  locale,
+  errors,
   onChange,
   onSave,
 }: {
@@ -70,63 +49,61 @@ function GenericConfigEditor({
   draft: Record<string, unknown>;
   meta?: PluginConfigMeta;
   saving: boolean;
+  locale: string;
+  errors: Record<string, string>;
   onChange: (field: string, value: unknown) => void;
   onSave: () => void;
 }) {
+  const text = formText[locale as keyof typeof formText] ?? formText.en;
   return (
     <Card className="rounded-2xl border-cool-soft/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
       <CardHeader>
-        <CardTitle className="text-lg tracking-tight">Configuration</CardTitle>
-        <CardDescription>Configuration fields are declared by this extension.</CardDescription>
+        <CardTitle className="text-lg tracking-tight">{text.title}</CardTitle>
+        <CardDescription>{text.description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        {Object.entries(schema).map(([field, descriptor]) => {
-          const type = descriptorType(descriptor);
+        {Object.entries(schema.properties).map(([field, descriptor]) => {
+          const type = descriptor.type;
           const configured = Boolean(meta?.secretFields?.[field]?.configured);
-          const label = descriptor.label || field;
+          const label = descriptor.title || field;
           const value = draft[field];
+          const required = schema.required?.includes(field) ?? false;
           return (
             <div key={field} className="space-y-2">
               <Label htmlFor={`plugin-config-${field}`}>
-                {label}{descriptor.required ? ' *' : ''}
+                {label}{required ? ' *' : ''}
               </Label>
               {descriptor.description ? <p className="text-sm text-muted-foreground">{descriptor.description}</p> : null}
               {type === 'boolean' ? (
-                <Switch checked={Boolean(value)} onCheckedChange={(checked) => onChange(field, checked)} />
-              ) : type === 'enum' && descriptor.enum ? (
+                <Switch id={`plugin-config-${field}`} aria-label={label} checked={Boolean(value ?? descriptor.default)} onCheckedChange={(checked) => onChange(field, checked)} />
+              ) : type === 'string' && descriptor.enum ? (
                 <Select value={typeof value === 'string' ? value : ''} onValueChange={(next) => onChange(field, next)}>
-                  <SelectTrigger id={`plugin-config-${field}`}><SelectValue placeholder={`Select ${label}`} /></SelectTrigger>
+                  <SelectTrigger id={`plugin-config-${field}`} aria-label={label}><SelectValue placeholder={`${text.select} ${label}`} /></SelectTrigger>
                   <SelectContent>{descriptor.enum.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
                 </Select>
-              ) : type === 'object' || type === 'array' ? (
-                <Textarea
-                  id={`plugin-config-${field}`}
-                  value={typeof value === 'string' ? value : JSON.stringify(value ?? (type === 'array' ? [] : {}), null, 2)}
-                  onChange={(event) => {
-                    try {
-                      const parsed: unknown = JSON.parse(event.target.value);
-                      if ((type === 'array' && Array.isArray(parsed)) || (type === 'object' && isPlainObject(parsed))) onChange(field, parsed);
-                    } catch {
-                      onChange(field, event.target.value);
-                    }
-                  }}
-                  className="min-h-32 font-mono text-xs"
-                />
               ) : (
                 <Input
                   id={`plugin-config-${field}`}
-                  type={type === 'secret' ? 'password' : type === 'number' ? 'number' : 'text'}
+                  type={descriptor.sensitive ? 'password' : type === 'number' || type === 'integer' ? 'number' : 'text'}
+                  step={type === 'integer' ? 1 : type === 'number' ? 'any' : undefined}
+                  min={descriptor.minimum}
+                  max={descriptor.maximum}
+                  minLength={descriptor.minLength}
+                  maxLength={descriptor.maxLength}
                   value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
-                  placeholder={type === 'secret' && configured ? 'Configured. Enter a new value to replace it.' : undefined}
-                  onChange={(event) => onChange(field, type === 'number' ? Number(event.target.value) : event.target.value)}
+                  placeholder={descriptor.sensitive && configured ? text.configured : undefined}
+                  onChange={(event) => onChange(field, type === 'number' || type === 'integer'
+                    ? event.target.value === '' ? undefined : Number(event.target.value)
+                    : event.target.value)}
                 />
               )}
+              {errors[field] ? <p role="alert" className="text-sm text-destructive">{errors[field] || text.invalid}</p> : null}
             </div>
           );
         })}
         <Button onClick={onSave} disabled={saving} className="rounded-lg">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Save configuration
+          {saving ? text.saving : text.save}
         </Button>
       </CardContent>
     </Card>
@@ -141,6 +118,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   const { data: installedPluginsData } = useInstalledPlugins();
   const { mutateAsync: updateInstance, isPending: updating } = useUpdatePluginInstance();
   const [draft, setDraft] = useState<Record<string, unknown>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const getText = (key: string, fallback: string) => {
     const translated = t?.(key);
@@ -148,22 +126,39 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   };
   const instances = useMemo(() => instancesData?.items || [], [instancesData?.items]);
   const selected = instances[0] || null;
-  const schema = isPlainObject(data?.configSchema) ? data.configSchema as PluginConfigSchema : undefined;
+  const schema = data?.configSchema ? parsePluginConfigSchema(data.configSchema).schema : null;
   const config = isPlainObject(selected?.config) ? selected.config : {};
   const meta = selected?.configMeta || data?.configMeta;
-  const readiness = configReadiness(schema, config, meta);
+  const readinessConfig = { ...config };
+  if (schema) for (const [name, field] of Object.entries(schema.properties)) {
+    if (field.sensitive && meta?.secretFields?.[name]?.configured && !readinessConfig[name]) readinessConfig[name] = 'configured';
+  }
+  const missing = schema ? validatePluginConfig(schema, readinessConfig)
+    .filter((issue) => issue.message === 'Required field is missing')
+    .map((issue) => issue.path.slice('config.'.length)) : [];
+  const readiness = { ready: missing.length === 0, missing };
   const saving = updating;
 
   useEffect(() => {
     setDraft(config);
+    setFieldErrors({});
   }, [selected?.installationId, selected?.updatedAt]);
 
   const save = async () => {
     try {
       if (!selected) throw new Error('Default plugin instance is unavailable');
+      setFieldErrors({});
       await updateInstance({ slug, installationId: selected.installationId, enabled: selected.enabled, config: draft });
-    } catch {
-      // Mutation hooks present save errors.
+    } catch (error) {
+      if (isAdminApiError(error) && isPlainObject(error.details) && Array.isArray(error.details.fields)) {
+        const fields: Record<string, string> = {};
+        for (const issue of error.details.fields) {
+          if (isPlainObject(issue) && typeof issue.path === 'string' && issue.path.startsWith('config.')) {
+            fields[issue.path.slice('config.'.length)] = typeof issue.message === 'string' ? issue.message : '';
+          }
+        }
+        setFieldErrors(fields);
+      }
     }
   };
 
@@ -204,7 +199,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
           </Card>
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),360px]">
             <div className="space-y-5">
-              {schema ? <GenericConfigEditor schema={schema} draft={draft} meta={meta} saving={saving} onChange={(field, value) => setDraft((current) => ({ ...current, [field]: value }))} onSave={() => void save()} /> : <Alert><Settings2 className="h-4 w-4" /><AlertTitle>No configuration declared</AlertTitle><AlertDescription>This extension does not declare configuration fields.</AlertDescription></Alert>}
+              {schema && Object.keys(schema.properties).length ? <GenericConfigEditor schema={schema} draft={draft} meta={meta} saving={saving} locale={locale} errors={fieldErrors} onChange={(field, value) => setDraft((current) => ({ ...current, [field]: value }))} onSave={() => void save()} /> : <Alert><Settings2 className="h-4 w-4" /><AlertTitle>No configuration declared</AlertTitle><AlertDescription>This extension does not declare configuration fields.</AlertDescription></Alert>}
             </div>
             <div className="space-y-5">
               <Card><CardHeader><CardTitle>Plugin status</CardTitle><CardDescription>Core manages the default plugin configuration.</CardDescription></CardHeader><CardContent className="space-y-4">{selected?.enabled

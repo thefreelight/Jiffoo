@@ -15,6 +15,8 @@ import {
   type AdminProductDetailDTO,
   type AdminOrderListItemDTO,
   type AdminOrderDetailDTO,
+  parsePluginConfigSchema,
+  validatePluginConfig,
 } from 'shared';
 
 export type { ApiResponse, ListResult, PageResult, UserProfile };
@@ -404,63 +406,17 @@ function evaluateConfigReadiness(
   config: Record<string, any> | undefined,
   configMeta?: PluginConfigMeta
 ): PluginConfigReadiness {
-  if (!configSchema || Object.keys(configSchema).length === 0) {
-    return {
-      configRequired: false,
-      configReady: true,
-      missingConfigFields: [],
-    };
+  if (!configSchema) return { configRequired: false, configReady: true, missingConfigFields: [] };
+  const { schema } = parsePluginConfigSchema(configSchema);
+  if (!schema) return { configRequired: false, configReady: false, missingConfigFields: [] };
+  const current = { ...config };
+  for (const [name, field] of Object.entries(schema.properties)) {
+    if (field.sensitive && configMeta?.secretFields?.[name]?.configured && !current[name]) current[name] = 'configured';
   }
-
-  const currentConfig = isObject(config) ? config : {};
-  const missingConfigFields: string[] = [];
-  let configRequired = false;
-
-  for (const [key, descriptor] of Object.entries(configSchema)) {
-    if (!isObject(descriptor) || !descriptor.required) {
-      continue;
-    }
-    configRequired = true;
-    const value = currentConfig[key];
-    const type = typeof descriptor.type === 'string' ? descriptor.type : '';
-    const secretConfigured = Boolean(configMeta?.secretFields?.[key]?.configured);
-
-    if (value === undefined || value === null) {
-      if (type === 'secret' && secretConfigured) {
-        continue;
-      }
-      missingConfigFields.push(key);
-      continue;
-    }
-
-    if (type === 'string' && (typeof value !== 'string' || value.trim().length === 0)) {
-      missingConfigFields.push(key);
-      continue;
-    }
-
-    if (type === 'secret' && ((typeof value !== 'string' || value.trim().length === 0) && !secretConfigured)) {
-      missingConfigFields.push(key);
-      continue;
-    }
-
-    if (type === 'object') {
-      if (!isObject(value) || Object.keys(value).length === 0) {
-        missingConfigFields.push(key);
-      }
-      continue;
-    }
-
-    if (type === 'array' && (!Array.isArray(value) || value.length === 0)) {
-      missingConfigFields.push(key);
-      continue;
-    }
-  }
-
-  return {
-    configRequired,
-    configReady: !configRequired || missingConfigFields.length === 0,
-    missingConfigFields,
-  };
+  const missingConfigFields = validatePluginConfig(schema, current)
+    .filter((issue) => issue.message === 'Required field is missing')
+    .map((issue) => issue.path.slice('config.'.length));
+  return { configRequired: Boolean(schema.required?.length), configReady: !missingConfigFields.length, missingConfigFields };
 }
 
 function parseManifestJson(value: any): Record<string, any> | null {

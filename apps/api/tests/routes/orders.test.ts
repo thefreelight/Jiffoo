@@ -27,6 +27,7 @@ import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin
 import { OrderService } from '@/core/order/service';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 import { checkoutTotal } from '../helpers/checkout-total';
+import { getPluginManifestIssues } from '@jiffoo/shared';
 
 describe('Orders Endpoints', () => {
   let app: FastifyInstance;
@@ -234,6 +235,50 @@ describe('Orders Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: { productId: testProduct.id, variantId: testVariantId, quantity: 1 },
       });
+    });
+
+    it('validates synced stored builtin manifests and serves a checkout quote', async () => {
+      await syncBuiltinPlugins(path.resolve(process.cwd(), 'builtin-plugins'));
+      for (const slug of ['console-email', 'free-shipping', 'manual-fulfillment', 'manual-payment', 'zero-tax']) {
+        const stored = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } });
+        expect(getPluginManifestIssues(stored.manifestJson), slug).toEqual([]);
+        expect(stored.manifestJson).toEqual(JSON.parse(
+          await (await import('node:fs/promises')).readFile(path.resolve('builtin-plugins', slug, 'manifest.json'), 'utf8'),
+        ));
+      }
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/checkout/quote',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: { shippingAddress: validShippingAddress },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().data).toMatchObject({
+        shippingOptions: expect.arrayContaining([expect.objectContaining({ id: 'free-shipping:free' })]),
+        paymentMethods: expect.arrayContaining([expect.objectContaining({ providerSlug: 'manual-payment' })]),
+      });
+    });
+
+    it.each([
+      [{ instructions: 123 }, 'config.instructions'],
+      [{ unpaidTimeoutHours: 721 }, 'config.unpaidTimeoutHours'],
+      [{ unpaidTimeoutHours: 1.5 }, 'config.unpaidTimeoutHours'],
+    ])('rejects invalid builtin configuration on Admin save: %j', async (config, field) => {
+      const instance = await prisma.pluginInstallation.findUniqueOrThrow({
+        where: { pluginSlug_instanceKey: { pluginSlug: 'manual-payment', instanceKey: 'default' } },
+      });
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/extensions/plugin/manual-payment/instances/${instance.id}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { config },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toMatchObject({
+        code: 'INVALID_PLUGIN_CONFIG',
+        details: { fields: expect.arrayContaining([expect.objectContaining({ path: field })]) },
+      });
+      expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: instance.id } })).configJson).toEqual(instance.configJson);
     });
 
     it('aggregates builtin and enabled shipping providers with builtin manual payment', async () => {

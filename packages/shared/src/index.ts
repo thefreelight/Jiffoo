@@ -7,6 +7,7 @@ export * from './types/order';
 export * from './types/cart';
 export * from './types/common';
 export * from './extensions/plugin-contract';
+export * from './extensions/plugin-config-schema';
 export * from './extensions/theme-contract';
 export * from './extensions/theme-css';
 export * from './extensions/theme-font-faces';

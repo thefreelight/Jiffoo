@@ -265,7 +265,7 @@ module.exports = { register(ctx) {
     expect(afterPurge).toBe(afterRestore + 1);
   });
 
-  it('skips an invalid stored manifest at startup while loading healthy plugins', async () => {
+  it('records an unknown stored manifest field while loading healthy plugins', async () => {
     const goodSlug = `startup-good-${Date.now().toString(36)}`.slice(0, 30);
     const badSlug = `startup-bad-${Date.now().toString(36)}`.slice(0, 30);
     const goodId = await createPlugin(goodSlug, `
@@ -273,7 +273,11 @@ module.exports = {
   register(ctx) { ctx.events.subscribe('order.created', 1, () => undefined); },
 };`);
     await createPlugin(badSlug, 'module.exports = { register() {} };');
-    await prisma.pluginInstall.update({ where: { slug: badSlug }, data: { manifestJson: {} } });
+    const installed = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: badSlug } });
+    await prisma.pluginInstall.update({
+      where: { slug: badSlug },
+      data: { manifestJson: { ...(installed.manifestJson as Record<string, unknown>), storefrontScript: '/inject.js' } },
+    });
 
     await loadEnabledPluginRuntimes();
 
@@ -283,6 +287,7 @@ module.exports = {
     });
     expect(failed?.lastFailureAt).not.toBeNull();
     expect(failed?.lastFailureMessage).toContain('Stored manifest');
+    expect(failed?.lastFailureMessage).toContain('storefrontScript');
   });
 
   it('refuses a package manifest whose version differs from the installed record', async () => {
