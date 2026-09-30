@@ -9,6 +9,7 @@ import { checkoutTotal } from '../helpers/checkout-total';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { recordPaymentSucceeded } from '@/core/payment/reconciliation';
 import { loadOpenApiSpec } from '../helpers/openapi';
+import { OrderService } from '@/core/order/service';
 
 describe('ORD-1 order state machine routes', () => {
   let app: FastifyInstance;
@@ -163,6 +164,27 @@ describe('ORD-1 order state machine routes', () => {
     expect((await adminAction(id, 'refund', { idempotencyKey: `refund:${id}` })).statusCode).toBe(200);
     expect((await prisma.order.findUniqueOrThrow({ where: { id } })).status).toBe('REFUNDED');
     expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock).toBe(stock);
+  });
+
+  it('G: order creation, cancellation, timeout and refund stock changes do not emit product events', async () => {
+    const createdId = await createOrder();
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock).toBe(4);
+    await cancel(createdId);
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock).toBe(5);
+
+    const expiredId = await createOrder();
+    await session(expiredId);
+    await prisma.order.update({ where: { id: expiredId }, data: { unpaidExpiresAt: new Date(Date.now() - 60_000) } });
+    expect(await OrderService.cancelExpiredUnpaidOrders()).toBe(1);
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock).toBe(5);
+
+    const refundId = await createOrder();
+    await pay(refundId);
+    expect((await adminAction(refundId, 'refund', { idempotencyKey: `refund:${refundId}` })).statusCode).toBe(200);
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock).toBe(5);
+    expect(await prisma.eventRecord.count({
+      where: { aggregateId: product.id, type: { in: ['product.created', 'product.updated'] } },
+    })).toBe(0);
   });
 
   it.each([

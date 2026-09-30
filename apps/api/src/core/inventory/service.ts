@@ -1,6 +1,8 @@
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import type { InventoryListItem } from './types';
+import { emitEvent } from '@/infra/events/emit';
+import { productSnapshot } from '@/infra/events/snapshots';
 
 export type InventoryStockTx = {
   productVariant: {
@@ -74,9 +76,10 @@ export class InventoryService {
       const variant = await tx.productVariant.update({
         where: { id: variantId },
         data: { stock: { increment: quantity } },
-        select: { id: true, stock: true },
+        select: { id: true, stock: true, productId: true },
       });
       await tx.inventoryAdjustment.create({ data: { variantId, quantity, ...details } });
+      await emitEvent(tx, 'product.updated', 1, variant.productId, await productSnapshot(tx, variant.productId));
       await CacheService.incrementProductVersion();
       return variant;
     });

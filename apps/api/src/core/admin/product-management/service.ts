@@ -8,6 +8,8 @@ import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { InventoryService } from '@/core/inventory/service';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { emitEvent } from '@/infra/events/emit';
+import { productSnapshot } from '@/infra/events/snapshots';
 
 export class CatalogConflictError extends Error {
   constructor(public readonly code: 'DEFAULT_LOCALE_TRANSLATION' | 'CATEGORY_NOT_EMPTY') {
@@ -541,6 +543,7 @@ export class AdminProductService {
 
       }
 
+      await emitEvent(tx, 'product.created', 1, created.id, await productSnapshot(tx, created.id));
       return created;
     });
 
@@ -653,6 +656,7 @@ export class AdminProductService {
           }
         }
       }
+      await emitEvent(tx, 'product.updated', 1, productId, await productSnapshot(tx, productId));
     });
 
     await CacheService.incrementProductVersion();

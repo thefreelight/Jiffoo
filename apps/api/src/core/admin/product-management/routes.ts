@@ -7,6 +7,7 @@ import { AdminProductService, CatalogConflictError } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { UploadService } from '@/core/upload/service';
 import { adminProductSchemas } from './schemas';
+import { isPrismaDatabaseError } from '@/utils/route-error-mapper';
 
 export async function adminProductRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all admin product routes (before schema validation)
@@ -84,6 +85,10 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       const product = await AdminProductService.createProduct(request.body as any);
       return sendSuccess(reply, product, undefined, 201);
     } catch (error: any) {
+      if (isPrismaDatabaseError(error)) {
+        request.log.error({ err: error }, 'Product creation database failure');
+        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to create product');
+      }
       if (error instanceof CatalogConflictError) return sendError(reply, 400, error.code, error.message);
       if (error.message.includes('variants') || error.message.includes('at least 1')) {
         return sendError(reply, 400, 'VALIDATION_ERROR', error.message);
@@ -110,6 +115,10 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       if (error instanceof CatalogConflictError) return sendError(reply, 400, error.code, error.message);
       if (error.code === 'P2025' || error.message === 'Product not found') {
         return sendError(reply, 404, 'NOT_FOUND', 'Product not found');
+      }
+      if (isPrismaDatabaseError(error)) {
+        request.log.error({ err: error }, 'Product update database failure');
+        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to update product');
       }
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }

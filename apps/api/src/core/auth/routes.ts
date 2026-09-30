@@ -16,6 +16,7 @@ import { acceptStaffInvite, requestPasswordReset, resetPassword } from './accoun
 import { rateLimitMiddleware } from './rate-limit-middleware';
 import { JwtUtils } from '@/utils/jwt';
 import { createSuccessResponseSchema, createTypedUpdateResponses, errorResponseSchema } from '@/types/common-dto';
+import { isPrismaDatabaseError } from '@/utils/route-error-mapper';
 
 export async function authRoutes(fastify: FastifyInstance) {
   const acknowledgementSchema = {
@@ -111,6 +112,10 @@ export async function authRoutes(fastify: FastifyInstance) {
       const result = await AuthService.register({ email, username, password, locale }, request.headers['accept-language']);
       return sendSuccess(reply, result, 'Registration successful', 201);
     } catch (error: any) {
+      if (isPrismaDatabaseError(error)) {
+        request.log.error({ err: error }, 'Registration database failure');
+        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to register user');
+      }
       if (error.code === 'EMAIL_NOT_VERIFIED') {
         return sendError(reply, 409, 'EMAIL_NOT_VERIFIED', error.message);
       }

@@ -1,4 +1,12 @@
 import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
+
+export function isPrismaDatabaseError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError
+    || error instanceof Prisma.PrismaClientUnknownRequestError
+    || error instanceof Prisma.PrismaClientInitializationError
+    || error instanceof Prisma.PrismaClientRustPanicError;
+}
 
 export interface MappedRouteError {
   status: number;
@@ -112,6 +120,9 @@ export function mapAdminOrderRouteError(
 
   if (rawCode === 'P2025' || lowerMessage.includes('order not found')) {
     return { status: 404, code: 'NOT_FOUND', message: 'Order not found' };
+  }
+  if (isPrismaDatabaseError(error)) {
+    return { status: 500, code: 'INTERNAL_SERVER_ERROR', message: options.defaultMessage };
   }
 
   if (

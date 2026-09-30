@@ -5,6 +5,8 @@
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { CacheService } from '@/core/cache/service';
+import { emitEvent } from '@/infra/events/emit';
+import { customerSnapshot } from '@/infra/events/snapshots';
 
 function calculateTrendPercent(current: number, previous: number): number {
   if (previous === 0) {
@@ -181,7 +183,8 @@ export class AdminUserService {
 
     const hashedPassword = await PasswordUtils.hash(data.password);
 
-    const user = await prisma.user.create({
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
       data: {
         email: data.email,
         password: hashedPassword,
@@ -195,8 +198,13 @@ export class AdminUserService {
         avatar: true,
         role: true,
         createdAt: true,
-        updatedAt: true
+        updatedAt: true,
+        locale: true,
+        emailVerified: true,
       }
+      });
+      await emitEvent(tx, 'customer.created', 1, created.id, customerSnapshot(created));
+      return created;
     });
 
     // Invalidate user list cache

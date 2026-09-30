@@ -6,6 +6,7 @@ import { FastifyInstance } from 'fastify';
 import { AdminUserService, CustomerManagementError } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminUserSchemas } from './schemas';
+import { isPrismaDatabaseError } from '@/utils/route-error-mapper';
 
 export async function adminUserRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all admin user routes (before schema validation)
@@ -83,6 +84,10 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
       const user = await AdminUserService.createUser(request.body as any);
       return sendSuccess(reply, user, undefined, 201);
     } catch (error: any) {
+      if (isPrismaDatabaseError(error)) {
+        request.log.error({ err: error }, 'Customer creation database failure');
+        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to create customer');
+      }
       if (error instanceof CustomerManagementError) return sendError(reply, error.statusCode, error.code, error.message);
       return sendError(reply, 400, 'BAD_REQUEST', error.message);
     }

@@ -14,8 +14,35 @@ const payment = z.object({
   paymentId: id, orderId: id, userId: id.optional(), amount,
   currency: id, metadata: json,
 }).strict();
+const customer = z.object({
+  id, email: z.string().email(), username: z.string(), locale: z.string().nullable(),
+  emailVerified: z.boolean(), createdAt: z.string().datetime(),
+}).strict();
+const product = z.object({
+  id, name: z.string(), isActive: z.boolean(),
+  translations: z.array(z.object({
+    locale: z.string(), name: z.string(), description: z.string().nullable(),
+  }).strict()),
+  variants: z.array(z.object({
+    id, skuCode: z.string().nullable(), salePrice: amount, stock: z.number().int().nonnegative(),
+    isActive: z.boolean(),
+  }).strict()),
+}).strict();
 
 export const eventRegistry = {
+  'customer.created': customer,
+  'product.created': product,
+  'product.updated': product,
+  'order.fulfilled': z.object({
+    id, userId: id, status: z.literal('SHIPPED'),
+    subtotalAmount: amount, shippingAmount: amount, taxAmount: amount, totalAmount: amount,
+    currency: id, items: z.array(item),
+    shipment: z.object({
+      id, carrier: z.string().nullable(), trackingNumber: z.string().nullable(),
+      shippedAt: z.string().datetime().nullable(),
+      items: z.array(z.object({ orderItemId: id, quantity: z.number().int().positive() }).strict()),
+    }).strict(),
+  }).strict(),
   'order.created': z.object({ id, userId: id, totalAmount: amount, currency: id, items: z.array(item) }).strict(),
   'order.cancelled': z.object({ id, orderId: id, userId: id, reason: z.string() }).strict(),
   'order.refunded': z.object({

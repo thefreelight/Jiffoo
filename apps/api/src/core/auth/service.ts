@@ -12,6 +12,8 @@ import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './user-compat';
 import { negotiateNotificationLocale, normalizeNotificationLocale } from '@/core/notifications/service';
+import { emitEvent } from '@/infra/events/emit';
+import { customerSnapshot } from '@/infra/events/snapshots';
 
 export interface AuthResponse {
   user: {
@@ -88,6 +90,7 @@ export class AuthService {
         },
       });
       await EmailVerificationService.createVerification(tx, created.id, created.email, created.username);
+      await emitEvent(tx, 'customer.created', 1, created.id, customerSnapshot(created));
       return created;
     });
 

@@ -14,7 +14,7 @@ import { startWorkerRuntime } from '@/worker-runtime';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { dropInternalRuntime } from '@/core/admin/extension-installer/plugin-runtime';
 import { hasEventHandler } from '@/core/admin/extension-installer/contract-v1-runtime';
-import { getPluginManifestIssues, type EventKey, type EventSubscription } from '@jiffoo/shared';
+import { eventRegistry, getPluginManifestIssues, type EventKey, type EventSubscription } from '@jiffoo/shared';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteTestUser } from '../helpers/auth';
 import { createTestProduct, deleteTestProduct } from '../helpers/fixtures';
@@ -149,6 +149,67 @@ describe('durable plugin event delivery', () => {
   async function attempts() {
     return (await fs.readFile(path.join(directory, 'attempts.log'), 'utf8')).trim().split('\n').map((line) => JSON.parse(line) as { eventId: string; installationId: string; attempt: number });
   }
+
+  it('H: a real worker delivers each new business event once to a plugin subscribed to all four types', async () => {
+    const types = ['customer.created', 'product.created', 'product.updated', 'order.fulfilled'] as const;
+    const source = `const fs = require('fs'); const path = require('path');
+module.exports = { register(ctx) {
+  for (const type of ${JSON.stringify(types)}) ctx.events.subscribe(type, 1, async (event) => {
+    fs.writeFileSync(path.join(ctx.config.directory, event.type + '-' + event.id + '.effect'), JSON.stringify(event.data), { flag: 'wx' });
+  });
+} };`;
+    const installation = await plugin({}, source, types.map((type) => ({ type, version: 1 })));
+    const email = `subscriber-${randomUUID()}@example.com`;
+    const registered = await app.inject({
+      method: 'POST', url: '/api/v1/auth/register',
+      payload: { email, username: `subscriber-${randomUUID().slice(0, 8)}`, password: 'Test123456!' },
+    });
+    expect(registered.statusCode).toBe(201);
+    const userId = registered.json().data.user.id as string;
+    users.push(userId);
+    const created = await app.inject({
+      method: 'POST', url: '/api/v1/admin/products', headers: { authorization: `Bearer ${options.adminToken}` },
+      payload: { name: `Event ${randomUUID()}`, variants: [{ name: 'Single', stock: 3, salePrice: 10 }] },
+    });
+    expect(created.statusCode).toBe(201);
+    const productId = created.json().data.id as string;
+    products.push(productId);
+    const variant = await prisma.productVariant.findFirstOrThrow({ where: { productId } });
+    const updated = await app.inject({
+      method: 'PUT', url: `/api/v1/admin/products/${productId}`,
+      headers: { authorization: `Bearer ${options.adminToken}` },
+      payload: { name: 'Updated event product', variants: [{ id: variant.id, name: 'Single', stock: 3, salePrice: 10 }] },
+    });
+    expect(updated.statusCode).toBe(200);
+    const order = await prisma.order.create({
+      data: {
+        userId, status: 'PROCESSING', paymentStatus: 'PAID', subtotalAmount: 10, totalAmount: 10,
+        items: { create: { productId, variantId: variant.id, quantity: 1, unitPrice: 10 } },
+      },
+    });
+    const shipped = await app.inject({
+      method: 'POST', url: `/api/v1/admin/orders/${order.id}/ship`,
+      headers: { authorization: `Bearer ${options.adminToken}` },
+      payload: { carrier: 'UPS', trackingNumber: 'EVENT-1' },
+    });
+    expect(shipped.statusCode).toBe(200);
+    const records = await prisma.eventRecord.findMany({
+      where: { OR: [{ aggregateId: userId }, { aggregateId: productId }, { aggregateId: order.id }] },
+    });
+    eventIds.push(...records.map(({ id }) => id));
+    expect(records.map(({ type }) => type).sort()).toEqual([...types].sort());
+    const worker = await child();
+    await command(worker, 'drain-all').done;
+    for (const record of records) {
+      eventRegistry[record.type as EventKey].parse(record.data);
+      expect(await prisma.eventDelivery.findUniqueOrThrow({
+        where: { eventId_installationId: { eventId: record.id, installationId: installation.id } },
+      })).toMatchObject({ status: 'SUCCEEDED', attempts: 1 });
+      expect(JSON.parse(await fs.readFile(path.join(directory, `${record.type}-${record.id}.effect`), 'utf8'))).toEqual(record.data);
+    }
+    expect((await fs.readdir(directory)).filter((name) => name.endsWith('.effect'))).toHaveLength(4);
+    await prisma.order.delete({ where: { id: order.id } });
+  });
 
   it('A: writes business state, one event and subscribed deliveries in the same transaction and rolls them back together', async () => {
     const first = await plugin();

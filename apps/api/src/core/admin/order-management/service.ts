@@ -428,7 +428,7 @@ export class AdminOrderService {
 
     await prisma.$transaction(async (tx) => {
       // Create shipment record
-      await tx.shipment.create({
+      const shipment = await tx.shipment.create({
         data: {
           orderId,
           carrier: data.carrier,
@@ -441,13 +441,30 @@ export class AdminOrderService {
               quantity: item.quantity,
             })),
           } : undefined,
-        }
+        },
+        include: { items: true },
       });
 
       // Update order status to SHIPPED
       const updated = await tx.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.SHIPPED }
+      });
+      await emitEvent(tx, 'order.fulfilled', 1, orderId, {
+        id: updated.id, userId: updated.userId, status: 'SHIPPED',
+        subtotalAmount: Number(updated.subtotalAmount), shippingAmount: Number(updated.shippingAmount),
+        taxAmount: Number(updated.taxAmount), totalAmount: Number(updated.totalAmount), currency: updated.currency,
+        items: order.items.map((item) => ({
+          id: item.id, productId: item.productId, variantId: item.variantId,
+          quantity: item.quantity, unitPrice: Number(item.unitPrice),
+          fulfillmentData: item.fulfillmentData && typeof item.fulfillmentData === 'object' && !Array.isArray(item.fulfillmentData)
+            ? item.fulfillmentData as Record<string, string | number | boolean | null> : null,
+        })),
+        shipment: {
+          id: shipment.id, carrier: shipment.carrier, trackingNumber: shipment.trackingNumber,
+          shippedAt: shipment.shippedAt?.toISOString() ?? null,
+          items: shipment.items.map(({ orderItemId, quantity }) => ({ orderItemId, quantity })),
+        },
       });
       if (order.status !== OrderStatus.SHIPPED) {
         await createOrderNotification(tx, 'shipped', orderId);

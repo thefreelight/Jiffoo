@@ -18,6 +18,8 @@ vi.mock('@/config/database', () => ({
   prisma: {
     $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(prisma)),
     systemSettings: { findUnique: vi.fn() },
+    eventRecord: { create: vi.fn().mockResolvedValue({ id: 'event-id' }) },
+    $queryRaw: vi.fn().mockResolvedValue([]),
     user: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -140,6 +142,7 @@ describe('AuthService', () => {
         avatar: null,
         emailVerified: false,
         locale: 'en',
+        createdAt: new Date('2025-01-01T00:00:00Z'),
       };
 
       mockPrismaUser.findUnique.mockResolvedValue(null);
@@ -219,6 +222,7 @@ describe('AuthService', () => {
       mockPrismaUser.create.mockResolvedValue({
         id: 'failed-email-user', email: registerData.email, username: registerData.username,
         password: 'hashed-pw', role: 'USER', avatar: null, emailVerified: false, locale: 'en',
+        createdAt: new Date('2025-01-01T00:00:00Z'),
       });
       mockEmailVerification.sendVerificationEmail.mockResolvedValue({ success: false, error: 'SMTP unavailable' });
       mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
@@ -268,6 +272,7 @@ describe('AuthService', () => {
         avatar: null,
         emailVerified: false,
         locale: 'en',
+        createdAt: new Date('2025-01-01T00:00:00Z'),
       };
 
       mockPrismaUser.findUnique.mockResolvedValue(null);
