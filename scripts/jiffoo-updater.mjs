@@ -576,17 +576,31 @@ async function waitForApiHealth(composeCommand, composePrefixArgs, composeFile, 
 
 async function waitForApiLiveRuntime(composeCommand, composePrefixArgs, composeFile, commandEnv, targetVersion) {
   const expectedVersion = normalizeReleaseVersion(targetVersion);
+  // Verify against the live /health version — the same fact source as the
+  // convergence monitor. The old check read /app/package.json, whose version
+  // field on the public line has drifted from actual releases (it sat at
+  // 1.0.41 while shipping 1.0.147-1.0.157), so upgrades that fully succeeded
+  // were rolled back by a version comparison that could never pass.
   const validationScript = `
-const fs = require('fs');
 const normalize = (value) => String(value || '').trim().replace(/-opensource$/, '');
-const pkgVersion = normalize(JSON.parse(fs.readFileSync('/app/package.json', 'utf8')).version);
-const envVersion = normalize(process.env.APP_VERSION);
 const expected = normalize(process.argv[1]);
-
-if (pkgVersion !== expected || envVersion !== expected) {
-  console.error(JSON.stringify({ expected, pkgVersion, envVersion }));
-  process.exit(1);
-}
+require('http').get('http://127.0.0.1:3002/health', (res) => {
+  let raw = '';
+  res.on('data', (chunk) => { raw += chunk; });
+  res.on('end', () => {
+    try {
+      const version = normalize(JSON.parse(raw).version);
+      if (version !== expected) {
+        console.error(JSON.stringify({ expected, version }));
+        process.exit(1);
+      }
+      process.exit(0);
+    } catch (error) {
+      console.error(String(error));
+      process.exit(1);
+    }
+  });
+}).on('error', () => process.exit(1));
 `;
 
   for (let attempt = 0; attempt < 24; attempt += 1) {
