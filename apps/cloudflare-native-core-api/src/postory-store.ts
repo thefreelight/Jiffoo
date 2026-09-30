@@ -360,13 +360,17 @@ export async function tryPostoryStore(request: Request, env: PostoryEnv): Promis
 export async function tryPostoryCompat(request: Request, env: PostoryEnv): Promise<Response | null> {
   if (env.POSTORY_STORE_ENABLED !== 'true') return null;
   const url = new URL(request.url);
-  const pathname = url.pathname;
+  // normalizePublicApiRequest maps every /api/* path onto /api/v1/* before the
+  // dispatch chain reaches this adapter — accept both spellings so direct
+  // callers and the rewritten form hit the same handlers.
+  const pathname = url.pathname.replace(/^\/api\/v1\//, '/api/');
+  const rewritten = new Request(`https://${url.host}${pathname}${url.search}`, request);
 
   if (pathname === '/api/auth' || pathname.startsWith('/api/auth/')) {
     const rewrittenPath = `/api/v1${pathname.slice('/api/auth'.length)}`;
-    const rewritten = new Request(`https://${url.host}${rewrittenPath}${url.search}`, request);
-    return await tryNativeAuth(rewritten, env as never, async () => new Response(null, { status: 404 }));
+    const authRequest = new Request(`https://${url.host}${rewrittenPath}${url.search}`, request);
+    return await tryNativeAuth(authRequest, env as never, async () => new Response(null, { status: 404 }));
   }
 
-  return await tryPostoryStore(request, env);
+  return await tryPostoryStore(rewritten, env);
 }
