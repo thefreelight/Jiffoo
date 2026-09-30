@@ -167,8 +167,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       if (error instanceof PluginGatewayError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
-      fastify.log.error({ err: error }, 'Plugin gateway failed');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error?.message || 'Plugin gateway failed');
+      fastify.log.error('Plugin gateway failed');
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Plugin gateway failed');
     }
   });
 
@@ -201,8 +201,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       if (error instanceof PluginGatewayError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
-      fastify.log.error({ err: error }, 'Plugin gateway failed');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error?.message || 'Plugin gateway failed');
+      fastify.log.error('Plugin gateway failed');
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Plugin gateway failed');
     }
   });
 
@@ -239,8 +239,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       if (error instanceof PluginGatewayError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
-      fastify.log.error({ err: error }, 'Plugin health gateway failed');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error?.message || 'Plugin health gateway failed');
+      fastify.log.error('Plugin health gateway failed');
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Plugin health gateway failed');
     }
   });
 
@@ -277,8 +277,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       if (error instanceof PluginGatewayError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
-      fastify.log.error({ err: error }, 'Plugin manifest gateway failed');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error?.message || 'Plugin manifest gateway failed');
+      fastify.log.error('Plugin manifest gateway failed');
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Plugin manifest gateway failed');
     }
   });
 

@@ -14,6 +14,7 @@ export const envSchema = z.object({
   // Database
   DATABASE_URL: z.string(),
   REDIS_URL: z.string().default('redis://localhost:6379'),
+  PLUGIN_SECRETS_KEY: z.string().optional(),
   PRISMA_LOG_QUERY: z.string().transform((v) => v === 'true').default('false'),
 
   // Server

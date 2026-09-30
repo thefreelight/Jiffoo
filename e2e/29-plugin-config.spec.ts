@@ -7,8 +7,8 @@ test('J Admin edits manual payment configuration and a new customer order displa
   test.setTimeout(120_000);
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/plugins/manual-payment');
-  const instructions = page.getByRole('textbox', { name: 'instructions' });
-  const timeout = page.getByRole('spinbutton', { name: 'unpaidTimeoutHours' });
+  const instructions = page.getByRole('textbox', { name: 'Payment instructions' });
+  const timeout = page.getByRole('spinbutton', { name: 'Unpaid order timeout (hours)' });
   await expect(instructions).toBeVisible();
   await expect(timeout).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'type', exact: true })).toHaveCount(0);

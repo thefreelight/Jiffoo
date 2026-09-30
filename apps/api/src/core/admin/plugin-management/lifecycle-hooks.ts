@@ -3,6 +3,7 @@ import { LoggerService } from '@/core/logger/unified-logger';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { loadPluginEntryModule } from '@/core/admin/extension-installer/plugin-module-loader';
 import type { LifecycleHookName, PluginManifest } from '@jiffoo/shared';
+import { redactPluginText } from './config-crypto';
 
 export interface LifecycleContext {
   installationId: string;
@@ -28,9 +29,9 @@ export async function executeLifecycleHook(hookName: LifecycleHookName, context:
     LoggerService.logPerformance(`lifecycle.${hookName}`, Date.now() - startTime, { pluginSlug: context.pluginSlug, installationId: context.installationId, success: true });
     return { success: true, durationMs: Date.now() - startTime };
   } catch (error: any) {
-    const errorMessage = error?.message || 'Unknown error';
+    const errorMessage = redactPluginText(error?.message || 'Unknown error', context.config, manifest);
     const durationMs = Date.now() - startTime;
-    LoggerService.logError(error instanceof Error ? error : new Error(errorMessage), { context: `Lifecycle hook ${hookName}`, pluginSlug: context.pluginSlug, installationId: context.installationId, durationMs });
+    LoggerService.logError(new Error(errorMessage), { context: `Lifecycle hook ${hookName}`, pluginSlug: context.pluginSlug, installationId: context.installationId, durationMs });
     if (hookName === 'onEnable') throw new Error(`Lifecycle hook onEnable failed for plugin "${context.pluginSlug}": ${errorMessage}`);
     try { await prisma.pluginInstallation.update({ where: { id: context.installationId }, data: { lifecycleWarning: `${hookName} failed: ${errorMessage}` } }); } catch {}
     return { success: false, error: errorMessage, durationMs };

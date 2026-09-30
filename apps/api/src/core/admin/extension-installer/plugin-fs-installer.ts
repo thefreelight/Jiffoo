@@ -40,6 +40,8 @@ import {
   hasLifecycleHook,
 } from '@/core/admin/plugin-management/lifecycle-hooks';
 import { syncEventSubscriptions } from '@/infra/events/emit';
+import { decryptPluginConfig } from '@/core/admin/plugin-management/config-crypto';
+import { redactPluginFailure } from './plugin-failure';
 
 function parseJsonArray(value: unknown): string[] {
   if (!value) return [];
@@ -237,7 +239,7 @@ export class PluginFsInstaller implements IPluginInstaller {
 
           // Warm each instance (will throw if any fails)
           for (const instance of enabledInstances) {
-            await validateCandidateRuntime(manifest.slug, manifest, instance.id, parseJsonObject(instance.configJson));
+            await validateCandidateRuntime(manifest.slug, manifest, instance.id, decryptPluginConfig(manifest, parseJsonObject(instance.configJson)));
           }
 
           // All instances warmed successfully - proceed with DB update
@@ -312,7 +314,7 @@ export class PluginFsInstaller implements IPluginInstaller {
               installationId: upgradedDefaultInstance.id,
               pluginSlug: manifest.slug,
               instanceKey: upgradedDefaultInstance.instanceKey,
-              config: parseJsonObject(upgradedDefaultInstance.configJson),
+              config: decryptPluginConfig(manifest, parseJsonObject(upgradedDefaultInstance.configJson)),
               previousVersion: existingBySlug.version,
             }, manifest);
           }
@@ -320,7 +322,8 @@ export class PluginFsInstaller implements IPluginInstaller {
 
         } catch (warmError: any) {
           // WARM FAILED: Rollback file system, keep old version
-          console.error(`Warm failed for plugin ${manifest.slug}, rolling back:`, warmError);
+          const safeFailure = await redactPluginFailure(manifest.slug, warmError);
+          console.error(`Warm failed for plugin ${manifest.slug}, rolling back:`, safeFailure);
 
           // Remove new directory
           await deployment?.rollback().catch(() => {});
@@ -328,7 +331,7 @@ export class PluginFsInstaller implements IPluginInstaller {
 
 
           throw new Error(
-            `Plugin upgrade failed: ${warmError.message}. Old version restored.`
+            `Plugin upgrade failed: ${safeFailure}. Old version restored.`
           );
         }
       } else {
@@ -385,7 +388,7 @@ export class PluginFsInstaller implements IPluginInstaller {
               installationId: defaultInstance.id,
               pluginSlug: manifest.slug,
               instanceKey: defaultInstance.instanceKey,
-              config: parseJsonObject(defaultInstance.configJson),
+              config: decryptPluginConfig(manifest, parseJsonObject(defaultInstance.configJson)),
             }, manifest);
           }
 

@@ -15,6 +15,7 @@ import { assertPluginConfigReadyForEnable } from '@/core/admin/extension-install
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
 import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
 import { mergeSecretConfigForUpdate } from './config-secrets';
+import { decryptPluginConfig, encryptPluginConfig, redactPluginText } from './config-crypto';
 import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
 import { getPluginManifestIssues, parsePluginConfigSchema, validatePluginConfig } from '@jiffoo/shared';
 import { ExtensionInstallerError } from '@/core/admin/extension-installer/errors';
@@ -231,10 +232,11 @@ async function createDefaultInstance(
 
   const effectiveEnabled = options?.enabled ?? true;
   const effectiveConfig = (options?.config ?? {}) as Record<string, unknown>;
+  const manifest = readStoredPluginManifest(pluginPackage);
+  const storedConfig = encryptPluginConfig(manifest, effectiveConfig);
   if (effectiveEnabled) {
-    const manifest = readStoredPluginManifest(pluginPackage);
     try {
-      assertPluginConfigReadyForEnable(slug, manifest, effectiveConfig);
+      assertPluginConfigReadyForEnable(slug, manifest, storedConfig);
     } catch (error: any) {
       throw new Error(error.message);
     }
@@ -262,7 +264,7 @@ async function createDefaultInstance(
       pluginSlug: slug,
       instanceKey,
       enabled: effectiveEnabled,
-      configJson: options?.config ?? null,
+      configJson: options?.config ? storedConfig : null,
       grantedPermissions: options?.grantedPermissions ?? null,
     },
   });
@@ -319,10 +321,16 @@ async function updateInstance(
   const nextConfig = updates.config !== undefined
     ? mergeSecretConfigForUpdate(manifest, existingConfig, updates.config)
     : existingConfig;
+  const retainedSecrets = { ...existingConfig };
+  for (const [field, value] of Object.entries(updates.config ?? {})) {
+    if (typeof value === 'string' && value.trim()) delete retainedSecrets[field];
+  }
+  const storedConfig = updates.config !== undefined ? encryptPluginConfig(manifest, nextConfig, retainedSecrets) : nextConfig;
+  const runtimeConfig = decryptPluginConfig(manifest, storedConfig);
   if (updates.config !== undefined && manifest.configSchema !== undefined) {
     const { schema, issues: schemaIssues } = parsePluginConfigSchema(manifest.configSchema);
     if (!schema) throw new Error(`Invalid plugin configSchema: ${schemaIssues.map((issue) => issue.path).join(', ')}`);
-    const issues = validatePluginConfig(schema, nextConfig);
+    const issues = validatePluginConfig(schema, runtimeConfig);
     if (issues.length) {
       throw new ExtensionInstallerError(`Invalid plugin configuration: ${issues.map((issue) => issue.path).join(', ')}`, {
         statusCode: 400,
@@ -335,7 +343,7 @@ async function updateInstance(
 
   if (nextEnabled) {
     try {
-      assertPluginConfigReadyForEnable(existing.pluginSlug, manifest, nextConfig);
+      assertPluginConfigReadyForEnable(existing.pluginSlug, manifest, storedConfig);
     } catch (error: any) {
       throw new Error(error.message);
     }
@@ -357,7 +365,7 @@ async function updateInstance(
       installationId,
       pluginSlug: existing.pluginSlug,
       instanceKey: existing.instanceKey,
-      config: nextConfig,
+      config: runtimeConfig,
     }, manifest);
     // If executeLifecycleHook threw, we never reach here — enable is rejected
   }
@@ -366,12 +374,12 @@ async function updateInstance(
     try {
       if (isEnabling) {
         const { validateCandidateRuntime } = await import('@/core/admin/extension-installer/plugin-runtime');
-        await validateCandidateRuntime(existing.pluginSlug, manifest, existing.id, nextConfig);
+        await validateCandidateRuntime(existing.pluginSlug, manifest, existing.id, runtimeConfig);
       } else {
-        await warmPluginInstanceRuntime(existing.pluginSlug, existing.id, nextConfig);
+        await warmPluginInstanceRuntime(existing.pluginSlug, existing.id, runtimeConfig);
       }
     } catch (error: any) {
-      throw new Error(`Plugin runtime failed to load: ${error.message}`);
+      throw new Error(redactPluginText(`Plugin runtime failed to load: ${error.message}`, runtimeConfig, manifest));
     }
   }
 
@@ -394,7 +402,7 @@ async function updateInstance(
   }
 
   if (updates.config !== undefined) {
-    updateData.configJson = nextConfig ?? null;
+    updateData.configJson = storedConfig;
   }
 
   if (updates.grantedPermissions !== undefined) {
@@ -414,7 +422,7 @@ async function updateInstance(
       installationId,
       pluginSlug: existing.pluginSlug,
       instanceKey: existing.instanceKey,
-      config: existingConfig,
+      config: decryptPluginConfig(manifest, existingConfig),
     }, manifest);
   }
 
@@ -489,7 +497,8 @@ export async function getInstanceConfig(
 
   validateInstanceKey(instance.instanceKey);
 
-  return parseJsonObject(instance.configJson);
+  const plugin = await getPluginPackage(slug);
+  return plugin ? decryptPluginConfig(readStoredPluginManifest(plugin), parseJsonObject(instance.configJson)) : null;
 }
 
 /**
@@ -522,7 +531,7 @@ export async function uninstallPlugin(slug: string): Promise<void> {
       installationId: defaultInstance.id,
       pluginSlug: slug,
       instanceKey: defaultInstance.instanceKey,
-      config: parseJsonObject(defaultInstance.configJson),
+      config: decryptPluginConfig(manifest, parseJsonObject(defaultInstance.configJson)),
     }, manifest);
   }
 

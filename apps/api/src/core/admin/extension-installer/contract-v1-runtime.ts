@@ -2,9 +2,10 @@ import { createHash } from 'crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { prisma } from '@/config/database';
 import { fulfillmentV1Methods, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods, isEventKey, type PluginContext, type PluginEntryModule, type EventSubscription, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
+import { redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 
 type JsonObject = Record<string, unknown>;
-type RuntimeOptions = { slug: string; installationId: string; version: string; config: JsonObject; declaredContracts: Array<{ name: string; version: number }>; subscriptions: EventSubscription[] };
+type RuntimeOptions = { slug: string; installationId: string; version: string; config: JsonObject; configSchema?: unknown; declaredContracts: Array<{ name: string; version: number }>; subscriptions: EventSubscription[] };
 const contractMethods = { payment: paymentV1Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
 const requiredMethods: Record<keyof typeof contractMethods, string[]> = { payment: ['describe', 'createSession', 'getSessionStatus'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment'], notification: ['send'] };
 const eventHandlers = new Map<string, Map<string, PluginEventHandler>>();
@@ -43,9 +44,10 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
   const handlers = new Map<string, PluginEventHandler>();
   let registering = true;
   const implemented = new Set<string>();
+  const redact = (value: unknown) => redactPluginText(typeof value === 'string' ? value : JSON.stringify(value) ?? String(value), options.config, options);
   const context: PluginContext = {
     plugin: { slug: options.slug, installationId: options.installationId, version: options.version }, config: Object.freeze({ ...options.config }),
-    logger: { info: (message, data) => console.info(`[plugin:${options.slug}] ${message}`, data ?? ''), warn: (message, data) => console.warn(`[plugin:${options.slug}] ${message}`, data ?? ''), error: (message, data) => console.error(`[plugin:${options.slug}] ${message}`, data ?? '') },
+    logger: { info: (message, data) => console.info(`[plugin:${options.slug}] ${redact(message)}`, data === undefined ? '' : redact(data)), warn: (message, data) => console.warn(`[plugin:${options.slug}] ${redact(message)}`, data === undefined ? '' : redact(data)), error: (message, data) => console.error(`[plugin:${options.slug}] ${redact(message)}`, data === undefined ? '' : redact(data)) },
     http: { route: (route) => app.route({ method: route.method as any, url: route.path, handler: route.handler as any }) },
     events: { subscribe: (eventType, version, handler) => {
       const key = `${eventType}:${version}`;
@@ -65,7 +67,13 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
       implemented.add(`${name}:v${version}`);
       for (const [method, handler] of Object.entries(implementation)) {
         if (!(method in methods) || typeof handler !== 'function') throw new Error(`Unknown ${name} v1 method ${method}`);
-        app.post(`/__contracts/${name}/v1/${method}`, async (request: FastifyRequest, reply: FastifyReply) => reply.send(await handler(request.body)));
+        app.post(`/__contracts/${name}/v1/${method}`, async (request: FastifyRequest, reply: FastifyReply) => {
+          try {
+            return reply.send(await handler(request.body));
+          } catch (error) {
+            return reply.code(500).send({ error: redact(error instanceof Error ? error.message : String(error)) });
+          }
+        });
       }
     } },
   };

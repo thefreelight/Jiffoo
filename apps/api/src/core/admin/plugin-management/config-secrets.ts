@@ -1,4 +1,5 @@
 import { parsePluginConfigSchema } from '@jiffoo/shared';
+import { decryptPluginConfig } from './config-crypto';
 
 type GenericObject = Record<string, unknown>;
 
@@ -54,8 +55,16 @@ export function sanitizePluginConfigForAdmin(
   const sanitized = { ...config };
   const secretMeta: Record<string, { configured: boolean }> = {};
   for (const field of secretFields) {
+    let configured = hasConfiguredSecretValue(config[field]);
+    if (configured) {
+      try {
+        decryptPluginConfig(parseJsonObject(manifestJson), { [field]: config[field] });
+      } catch {
+        configured = false;
+      }
+    }
     secretMeta[field] = {
-      configured: hasConfiguredSecretValue(config[field]),
+      configured,
     };
     sanitized[field] = '';
   }

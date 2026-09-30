@@ -45,6 +45,7 @@ import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plug
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { syncBuiltinThemes } from '@/core/admin/extension-installer/builtin-theme-sync';
 import { registerPluginProcessFailureHandlers } from '@/core/admin/extension-installer/plugin-process-failure';
+import { pluginSecretsKey } from '@/core/admin/plugin-management/config-crypto';
 
 const trustedProxies = parseTrustedProxies(process.env.TRUSTED_PROXIES);
 console.info(`TRUSTED_PROXIES: ${trustedProxies.join(', ') || '(none)'}`);
@@ -417,6 +418,7 @@ async function buildApp() {
 
 export async function startApiRuntime(options: { port?: number; host?: string } = {}) {
   try {
+    pluginSecretsKey();
     const app = await buildApp();
 
     await prisma.$connect();

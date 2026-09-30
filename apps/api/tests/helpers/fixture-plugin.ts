@@ -42,7 +42,7 @@ export async function installFixturePlugin(
   category: 'shipping' | 'tax' | 'payment' | 'notification' | 'integration',
   contracts: FixtureContract[],
   source: string,
-  eventOptions: { subscriptions?: EventSubscription[]; config?: Record<string, unknown>; version?: string; enable?: boolean } = {},
+  eventOptions: { subscriptions?: EventSubscription[]; config?: Record<string, unknown>; configSchema?: Record<string, unknown>; lifecycle?: Record<string, boolean>; version?: string; enable?: boolean } = {},
 ): Promise<void> {
   const rootDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'checkout-fixture-'));
   const sourceDirectory = path.join(rootDirectory, 'package');
@@ -61,6 +61,8 @@ export async function installFixturePlugin(
     permissions: [],
     contracts,
     subscriptions: eventOptions.subscriptions ?? [],
+    ...(eventOptions.configSchema ? { configSchema: eventOptions.configSchema } : {}),
+    ...(eventOptions.lifecycle ? { lifecycle: eventOptions.lifecycle } : {}),
   };
   await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify(manifest), 'utf8');
   await fs.writeFile(path.join(sourceDirectory, 'server', 'index.js'), source, 'utf8');

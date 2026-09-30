@@ -3,6 +3,7 @@ import {
   mergeSecretConfigForUpdate,
   sanitizePluginConfigForAdmin,
 } from '@/core/admin/plugin-management/config-secrets';
+import { encryptPluginConfig } from '@/core/admin/plugin-management/config-crypto';
 
 describe('plugin config secret helpers', () => {
   const manifest = {
@@ -16,12 +17,12 @@ describe('plugin config secret helpers', () => {
     },
   };
 
-  it('sanitizes legacy secret and sensitive string fields for admin responses', () => {
-    const result = sanitizePluginConfigForAdmin(manifest, {
+  it('sanitizes encrypted sensitive string fields for admin responses', () => {
+    const result = sanitizePluginConfigForAdmin(manifest, encryptPluginConfig(manifest, {
       legacySecret: 'legacy-value',
       sensitiveSecret: 'sensitive-value',
       visibleField: 'visible',
-    });
+    }));
 
     expect(result.config).toEqual({
       legacySecret: '',
@@ -31,6 +32,18 @@ describe('plugin config secret helpers', () => {
     expect(result.configMeta?.secretFields).toEqual({
       legacySecret: { configured: true },
       sensitiveSecret: { configured: true },
+    });
+  });
+
+  it('marks plaintext sensitive fields unconfigured without exposing their values', () => {
+    const result = sanitizePluginConfigForAdmin(manifest, {
+      legacySecret: 'legacy-value',
+      sensitiveSecret: 'sensitive-value',
+    });
+    expect(result.config).toEqual({ legacySecret: '', sensitiveSecret: '' });
+    expect(result.configMeta?.secretFields).toEqual({
+      legacySecret: { configured: false },
+      sensitiveSecret: { configured: false },
     });
   });
 

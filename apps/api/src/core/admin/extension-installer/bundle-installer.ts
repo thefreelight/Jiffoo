@@ -35,6 +35,8 @@ import {
 } from './utils';
 import { ExtensionInstallerError } from './errors';
 import { incrementPluginRegistryVersion } from './plugin-registry-version';
+import { encryptPluginConfig } from '@/core/admin/plugin-management/config-crypto';
+import { readStoredPluginManifest } from './stored-manifest';
 
 // ============================================================================
 // Types
@@ -201,23 +203,27 @@ export async function installBundle(zipStream: Readable): Promise<BundleInstallR
             });
 
             if (existingInstance) {
+              const plugin = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: result.slug } });
+              const storedConfig = instanceEntry.config
+                ? encryptPluginConfig(readStoredPluginManifest(plugin), instanceEntry.config) : null;
               // Update existing instance
               await prisma.$transaction(async (tx) => {
                 const enabled = instanceEntry.enable ?? existingInstance.enabled;
                 await tx.pluginInstallation.update({
                   where: { id: existingInstance.id },
-                  data: { configJson: instanceEntry.config ?? null, enabled },
+                  data: { configJson: storedConfig, enabled },
                 });
                 if (enabled !== existingInstance.enabled) await incrementPluginRegistryVersion(tx);
               });
               console.log(`[BundleInstaller] Updated existing instance "${instanceEntry.key}"`);
             } else {
+              const plugin = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: result.slug } });
               // Create new instance
               await prisma.pluginInstallation.create({
                 data: {
                   pluginSlug: result.slug,
                   instanceKey: instanceEntry.key,
-                  configJson: instanceEntry.config ?? null,
+                  configJson: instanceEntry.config ? encryptPluginConfig(readStoredPluginManifest(plugin), instanceEntry.config) : null,
                   enabled: instanceEntry.enable ?? false,
                 },
               });
@@ -259,7 +265,7 @@ export async function installBundle(zipStream: Readable): Promise<BundleInstallR
 
     return result;
   } catch (error: any) {
-    console.error(`[BundleInstaller] Bundle installation failed:`, error);
+    console.error('[BundleInstaller] Bundle installation failed');
     // Re-throw to ensure caller knows installation failed
     throw error;
   } finally {

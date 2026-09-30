@@ -21,6 +21,7 @@ const testDefaults = {
   NODE_ENV: 'test',
   REDIS_URL: 'redis://localhost:6379/15',
   JWT_SECRET: 'ci-test-secret',
+  PLUGIN_SECRETS_KEY: Buffer.alloc(32, 17).toString('base64'),
 };
 
 if (!databaseUrl) {

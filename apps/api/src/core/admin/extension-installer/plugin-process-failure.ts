@@ -1,5 +1,5 @@
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
-import { recordPluginFailure } from './plugin-failure';
+import { recordPluginFailure, redactPluginFailure } from './plugin-failure';
 
 function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
@@ -14,7 +14,7 @@ export async function handlePluginProcessFailure(errorValue: unknown, context: '
     slug = await pluginPackageStore.findSlugByFilePath(candidatePath.trim());
     if (slug) break;
   }
-  console.error(JSON.stringify({ event: 'plugin_process_failure', context, slug, message: error.message }));
+  console.error(JSON.stringify({ event: 'plugin_process_failure', context, slug, message: slug ? await redactPluginFailure(slug, error) : error.message }));
   if (slug) await recordPluginFailure(slug, error, 'process');
 }
 

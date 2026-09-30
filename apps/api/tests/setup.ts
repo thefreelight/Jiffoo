@@ -22,6 +22,7 @@ import { cleanupDatabase, setupTestDatabase, disconnectDatabase } from './helper
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
+process.env.PLUGIN_SECRETS_KEY = Buffer.alloc(32, 17).toString('base64');
 process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
 
 // Global setup - runs once before all tests

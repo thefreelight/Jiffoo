@@ -40,6 +40,7 @@ import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
 import { getPluginTimeoutMs, isBreakerAllowed, recordBreakerResult } from './gateway-protection';
+import { decryptPluginConfig, redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 
 // ============================================================================
 // Constants
@@ -338,8 +339,6 @@ function injectPlatformHeaders(
   const locale = extractLocale(request);
   const platformApiBaseUrl = resolvePlatformApiBaseUrl();
 
-  const encodedPluginConfig = Buffer.from(JSON.stringify(ctx.config || {}), 'utf-8').toString('base64url');
-
   return {
     ...headers,
     'x-plugin-slug': ctx.slug,
@@ -353,7 +352,6 @@ function injectPlatformHeaders(
     'x-platform-api-base-url': platformApiBaseUrl,
     'x-locale': locale,            // NEW: Added x-locale support
     'x-caller': caller,
-    'x-plugin-config': encodedPluginConfig,
   };
 }
 
@@ -539,7 +537,7 @@ async function resolveGatewayContext(
   }
 
   // Parse config
-  const config = parseJsonObject(instance.configJson);
+  const config = decryptPluginConfig(readStoredPluginManifest(pluginPackage), parseJsonObject(instance.configJson));
 
   return {
     slug,
@@ -623,6 +621,7 @@ async function ensureInternalRuntime(
       installationId: ctx.installationId,
       version: manifest.version,
       config,
+      configSchema: manifest.configSchema,
       declaredContracts: manifest.contracts || [],
       subscriptions: manifest.subscriptions || [],
     });
@@ -651,16 +650,16 @@ async function ensureInternalRuntime(
         await retireRuntime(existing);
       } catch (closeError) {
         // Log but don't fail - new runtime is already active
-        console.warn(`Failed to close old runtime for ${runtimeKey}:`, closeError);
+        console.warn(`Failed to close old runtime for ${runtimeKey}:`, redactPluginText(String(closeError), ctx.config, manifest));
       }
     }
 
     return newRuntime;
   } catch (error: any) {
-    await recordPluginFailure(slug, error, 'load');
+    await recordPluginFailure(slug, error, 'load', ctx.installationId, { config: ctx.config, manifest });
     // Candidate failed: old runtime (if exists) remains in map and continues serving
     throw new PluginGatewayError(
-      `Failed to load plugin "${slug}" for instance "${ctx.instanceKey}": ${error?.message || 'Unknown error'}`,
+      redactPluginText(`Failed to load plugin "${slug}" for instance "${ctx.instanceKey}": ${error?.message || 'Unknown error'}`, ctx.config, manifest),
       'PLUGIN_LOAD_FAILED',
       400
     );
@@ -719,15 +718,20 @@ export async function callContract(
   try { manifest = await readPluginManifest(pkg); } catch (error) { await recordPluginFailure(slug, error, 'contract'); throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} manifest is invalid`); }
   if (!manifest.contracts?.some((contract) => contract.name === contractName && contract.version === version)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} does not declare ${contractName} v${version}`);
   if (!isBreakerAllowed(slug)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} circuit breaker is open`);
+  let config: Record<string, unknown> = {};
   try {
-    const runtime = await ensureInternalRuntime(slug, manifest, { slug, installationId: instance.id, instanceKey: instance.instanceKey, config: parseJsonObject(instance.configJson) }, true);
+    config = decryptPluginConfig(manifest, parseJsonObject(instance.configJson));
+    const runtime = await ensureInternalRuntime(slug, manifest, { slug, installationId: instance.id, instanceKey: instance.instanceKey, config }, true);
     const invocation = runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: input as Record<string, unknown> });
-    void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', error));
+    void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
     const response = await Promise.race([
       invocation,
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Contract call timed out')), getPluginTimeoutMs())),
     ]);
-    if (response.statusCode >= 400) throw new Error(`Contract route returned ${response.statusCode}`);
+    if (response.statusCode >= 400) {
+      const failure = response.json() as { error?: unknown };
+      throw new Error(`Contract route returned ${response.statusCode}: ${typeof failure.error === 'string' ? failure.error : 'Plugin failure'}`);
+    }
     const parsed = (contractMethods[contractName][method as keyof typeof contractMethods[typeof contractName]] as { output: { safeParse(value: unknown): { success: boolean; data?: unknown; error?: { message: string } } } }).output.safeParse(response.json());
     if (!parsed.success || (contractName === 'tax' && !isValidTaxResult(input, parsed.data))) {
       const error = new ContractCallError('CONTRACT_RESPONSE_INVALID', `Invalid ${contractName} v${version} ${method} response: ${parsed.success ? 'tax totals or lines are inconsistent' : parsed.error?.message}`);
@@ -737,8 +741,8 @@ export async function callContract(
     return parsed.data;
   } catch (error) {
     if (error instanceof ContractCallError) throw error;
-    await recordPluginFailure(slug, error, 'contract'); recordBreakerResult(slug, false);
-    throw new ContractCallError('CONTRACT_CALL_FAILED', `Contract call failed for ${slug}: ${error instanceof Error ? error.message : String(error)}`);
+    await recordPluginFailure(slug, error, 'contract', instance.id); recordBreakerResult(slug, false);
+    throw new ContractCallError('CONTRACT_CALL_FAILED', redactPluginText(`Contract call failed for ${slug}: ${error instanceof Error ? error.message : String(error)}`, config, manifest));
   }
 }
 
@@ -764,9 +768,15 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
   });
   if (!subscription) return 'subscription_removed';
   const manifest = await readPluginManifest(instance.plugin);
-  const runtime = await ensureInternalRuntime(instance.pluginSlug, manifest, {
-    slug: instance.pluginSlug, installationId, instanceKey: instance.instanceKey, config: parseJsonObject(instance.configJson),
-  }, true);
+  let runtime: InternalRuntime;
+  try {
+    runtime = await ensureInternalRuntime(instance.pluginSlug, manifest, {
+      slug: instance.pluginSlug, installationId, instanceKey: instance.instanceKey, config: decryptPluginConfig(manifest, parseJsonObject(instance.configJson)),
+    }, true);
+  } catch (error) {
+    await recordPluginFailure(instance.pluginSlug, error, 'event', installationId);
+    throw error;
+  }
   try {
     const handler = runtime.handlers.get(`${event.type}:${event.version}`);
     if (!handler) throw new Error(`Event handler missing for ${installationId}/${event.type}:${event.version}`);
@@ -776,7 +786,11 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
     if (!await prisma.pluginEventSubscription.findUnique({
       where: { pluginSlug_eventType_version: { pluginSlug: latest.pluginSlug, eventType: event.type, version: event.version } },
     })) return 'subscription_removed';
-    await handler(event);
+    try {
+      await handler(event);
+    } catch (error) {
+      throw new Error(redactPluginText(error instanceof Error ? error.message : String(error), runtime.config, manifest));
+    }
     return null;
   } finally {
     await releaseRuntime(runtime);
@@ -791,7 +805,7 @@ export async function validateCandidateRuntime(slug: string, manifest: PluginMan
   if (!isContractV1Runtime(entry)) throw new Error('Plugin entry module must export an object with register(ctx)');
   const app = Fastify({ logger: false });
   try {
-    await registerContractV1Runtime(app, entry, { slug, installationId, version: manifest.version, config, declaredContracts: manifest.contracts || [], subscriptions: manifest.subscriptions || [] });
+    await registerContractV1Runtime(app, entry, { slug, installationId, version: manifest.version, config, configSchema: manifest.configSchema, declaredContracts: manifest.contracts || [], subscriptions: manifest.subscriptions || [] });
     await app.ready();
   } finally { await app.close(); }
 }
@@ -850,7 +864,7 @@ async function forwardToInternalFastify(
       payload,
     });
   injected = true;
-  void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', error));
+  void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), ctx.config, manifest)));
   const res = await Promise.race([
     invocation,
     timeoutPromise,
@@ -863,7 +877,10 @@ async function forwardToInternalFastify(
   }
 
   const raw = (res as any).rawPayload;
-  reply.send(raw !== undefined ? raw : res.payload);
+  const body = raw !== undefined ? raw : res.payload;
+  reply.send(res.statusCode >= 400
+    ? redactPluginText(Buffer.isBuffer(body) ? body.toString('utf8') : String(body), ctx.config, manifest)
+    : body);
   } finally {
     if (!injected) await releaseRuntime(runtime);
   }
@@ -891,7 +908,7 @@ export async function warmPluginRuntime(slug: string): Promise<{ restartRequired
       slug,
       installationId: instance.id,
       instanceKey: instance.instanceKey,
-      config: parseJsonObject(instance.configJson),
+      config: decryptPluginConfig(manifest, parseJsonObject(instance.configJson)),
     };
 
     try {
@@ -899,7 +916,7 @@ export async function warmPluginRuntime(slug: string): Promise<{ restartRequired
       await ensureInternalRuntime(slug, manifest, ctx);
     } catch (error) {
       // Log but continue with other instances
-      console.error(`Failed to warm runtime for instance ${instance.instanceKey}:`, error);
+      console.error(`Failed to warm runtime for instance ${instance.instanceKey}:`, redactPluginText(String(error), ctx.config, manifest));
     }
   }
 
@@ -938,7 +955,7 @@ export async function warmPluginInstanceRuntime(
     slug,
     installationId: instance.id,
     instanceKey: instance.instanceKey,
-    config: config ?? parseJsonObject(instance.configJson),
+    config: config ?? decryptPluginConfig(manifest, parseJsonObject(instance.configJson)),
   };
 
   // ensureInternalRuntime will handle hot upgrade automatically (version change triggers new import)
@@ -963,6 +980,7 @@ export async function handlePluginGateway(
   let ctx: GatewayContext | null = null;
   let statusCode = 500;
   let errorMessage: string | undefined;
+  let manifest: PluginManifest | null = null;
   let trustLevel: string | undefined;
   const caller = inferCaller(request);
 
@@ -974,7 +992,7 @@ export async function handlePluginGateway(
     const plugin = await PluginManagementService.getPluginPackage(slug);
     if (!plugin) throw new PluginGatewayError(`Plugin "${slug}" not found`, 'PLUGIN_NOT_FOUND', 404);
     trustLevel = plugin.trustLevel;
-    const manifest = await readPluginManifest(plugin);
+    manifest = await readPluginManifest(plugin);
 
     await forwardToInternalFastify(slug, manifest, request, reply, forwardPath, ctx, requestId, caller);
     statusCode = reply.statusCode;
@@ -987,6 +1005,7 @@ export async function handlePluginGateway(
       statusCode = 500;
       errorMessage = error?.message || 'Unknown error';
     }
+    if (ctx && manifest) errorMessage = redactPluginText(errorMessage!, ctx.config, manifest);
     throw error;
   } finally {
     // Audit logging with unified logger

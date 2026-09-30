@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { fork } from 'node:child_process';
+import { once } from 'node:events';
+import path from 'node:path';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
 import { startWorkerRuntime } from '@/worker-runtime';
@@ -79,5 +82,32 @@ describe('backend process isolation', () => {
       runtimeState: { tasks: stoppedTasks, eventHandlerTimeoutMs: 30000, redisConnected: false },
     });
     expect(PaymentReconciliationJob.getStatus().hasScheduledUpdates).toBe(false);
+  });
+
+  it.each([undefined, 'invalid-base64'])('E: production API and worker reject an invalid plugin secrets key: %s', async (key) => {
+    const priorEnv = process.env.NODE_ENV;
+    const priorKey = process.env.PLUGIN_SECRETS_KEY;
+    try {
+      process.env.NODE_ENV = 'production';
+      if (key === undefined) delete process.env.PLUGIN_SECRETS_KEY;
+      else process.env.PLUGIN_SECRETS_KEY = key;
+      await expect(startApiRuntime({ port: 0, host: '127.0.0.1' })).rejects.toThrow('PLUGIN_SECRETS_KEY must be base64 of exactly 32 bytes');
+      await expect(startWorkerRuntime({ healthPort: 0 })).rejects.toThrow('PLUGIN_SECRETS_KEY must be base64 of exactly 32 bytes');
+    } finally {
+      process.env.NODE_ENV = priorEnv;
+      process.env.PLUGIN_SECRETS_KEY = priorKey;
+    }
+  });
+
+  it('E: development API and worker start with a missing key and emit a warning', async () => {
+    const childEnv = { ...process.env, NODE_ENV: 'development' };
+    delete childEnv.PLUGIN_SECRETS_KEY;
+    const child = fork(path.resolve('tests/helpers/plugin-secrets-start-child.ts'), [], {
+      execArgv: ['--import', 'tsx'], env: childEnv,
+    });
+    const response = await once(child, 'message');
+    await once(child, 'exit');
+    expect(response[0]).toMatchObject({ apiListening: true, workerRunning: true });
+    expect((response[0].warnings as string[]).join(' ')).toContain('development-only plugin secrets key');
   });
 });

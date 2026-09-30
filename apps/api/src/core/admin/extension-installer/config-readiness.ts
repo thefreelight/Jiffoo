@@ -1,5 +1,6 @@
 import { parsePluginConfigSchema, validatePluginConfig } from '@jiffoo/shared';
 import { ExtensionInstallerError } from './errors';
+import { decryptPluginConfig, PluginConfigDecryptionError } from '@/core/admin/plugin-management/config-crypto';
 
 function manifestRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value === 'string') {
@@ -23,9 +24,18 @@ export function evaluatePluginConfigReadiness(
   }
   const { schema, issues } = parsePluginConfigSchema(manifest.configSchema);
   if (!schema) throw new Error(`Invalid plugin configSchema: ${issues.map((issue) => issue.path).join(', ')}`);
-  const missingFields = validatePluginConfig(schema, config ?? {})
+  let validConfig = config ?? {};
+  let invalidSecret: string | null = null;
+  try {
+    validConfig = decryptPluginConfig(manifest, validConfig);
+  } catch (error) {
+    if (!(error instanceof PluginConfigDecryptionError)) throw error;
+    invalidSecret = error.field;
+  }
+  const missingFields = validatePluginConfig(schema, validConfig)
     .filter((issue) => issue.message === 'Required field is missing')
     .map((issue) => issue.path.slice('config.'.length));
+  if (invalidSecret && !missingFields.includes(invalidSecret)) missingFields.push(invalidSecret);
   return {
     requiresConfiguration: Boolean(schema.required?.length),
     ready: missingFields.length === 0,
