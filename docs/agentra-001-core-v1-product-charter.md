@@ -192,13 +192,20 @@ outside the default schema.
 ### Event Layer
 
 Extensions may also extend Core by subscribing to versioned Core events and
-calling the versioned Core API. Core delivers events with retry and idempotency
-guarantees. V1 events include at minimum order.created, order.paid,
-order.fulfilled, customer.created, and product.updated.
+calling the versioned Core API. An extension declares its subscriptions (event
+type and version) in its manifest and registers in-process handlers. Core
+delivers each event to each subscribed installation at least once, with retry
+and a stable event ID; an extension achieves a single effect by deduplicating
+on that ID. Delivery order is not guaranteed. V1 does not deliver events to
+external URLs. V1 events are order.created, order.paid, order.cancelled,
+order.refunded, order.fulfilled, payment.succeeded, payment.failed,
+customer.created, product.created, and product.updated.
 
 This event layer supports extensions that do not implement a capability
 contract, including ERP synchronization, CRM delivery, SMS, tagging, and
-reporting, without a Core change.
+reporting, without a Core change. Event handlers run in-process: Core cannot
+stop a handler that exceeds its time limit, and process isolation remains
+deferred.
 
 ### Extension SDK
 
@@ -285,10 +292,16 @@ Core does not offer application rollback for that update.
 ### Extension Lifecycle
 
 An enabled extension is visible only at its declared product surface. Disabling
-an extension removes its Admin and Shop entry points, rejects new calls to its
-capability, and prevents new background or webhook side effects. Core continues
-to protect already-created orders according to its transaction state rules.
-Physical package deletion and extension-data deletion are not V1 requirements.
+an extension removes its Admin and Shop entry points and stops Core from running
+its code for new work: capability calls, event delivery, and background
+processing. Lifecycle hooks (onDisable, onUninstall) and install/upgrade
+validation are the only exceptions. Events that occur while an extension is
+disabled are never delivered, even after it is re-enabled. For a disabled
+payment extension, inbound payment callbacks are refused with a retryable
+response, reconciliation skips it, and manual mark-paid is blocked; Admin warns
+about orders awaiting payment before it is disabled. Core continues to protect
+already-created orders according to its transaction state rules. Physical
+package deletion and extension-data deletion are not V1 requirements.
 
 ## 4. Non-Negotiable Rules
 
@@ -337,13 +350,14 @@ are demonstrated:
    before order placement.
 6. An event subscription receives order.created, with retry and idempotency
    demonstrated by a plugin that subscribes to order.created, receives Core
-   retry delivery, and produces one effect only.
+   retry delivery, and produces one effect only by deduplicating on the stable
+   event ID.
 7. The declarative default Shop theme and an Admin theme are each validated,
    activated, configured, rendered at runtime without rebuild, and reverted by
    reactivating the previous theme. Validation rejects a package containing
    executable code or browser JavaScript.
 8. A disabled extension has no Admin navigation, Shop presentation, callable
-   capability, new webhook delivery, or new background processing.
+   capability, new event delivery, or new background processing.
 9. An update with no migration validates release and extension compatibility,
    changes the application version, passes health checks, and the prior
    application version remains restorable.

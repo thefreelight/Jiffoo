@@ -71,14 +71,25 @@ Blocked by: tax contract; checkout call site
 
 Charter text: An event subscription receives order.created, with retry and idempotency
 demonstrated by a plugin that subscribes to order.created, receives Core
-retry delivery, and produces one effect only.
-Status: PARTIAL (assessed 2026-09-22)
+retry delivery, and produces one effect only by deduplicating on the stable
+event ID.
+Status: COMPLETE (2026-09-30)
+Commits: b12366b2, 92d86246, 6fd06769f, cf011b81c
+Implementation decisions:
+- Subscriptions are declared in the manifest (type, version) and registered through ctx.events.subscribe; a mismatch fails plugin load.
+- The business transaction writes the event and one delivery row per enabled subscribed installation.
+- Only the worker delivers: claim with FOR UPDATE SKIP LOCKED, 60-second lease, 30-second handler timeout, one in-flight delivery per installation per worker.
+- Up to 8 attempts with delays of 1m, 5m, 15m, 1h, 3h, 6h and 12h; final failure is recorded on the installation.
+- Finished deliveries and their events are deleted after 30 days.
+- The outbox poller, BullMQ, external webhook delivery and the webhook tables were removed.
+- API and worker are the only supported runtime processes; the worker reports a heartbeat and exposes a health endpoint.
+Known limitations: a timed-out handler keeps running; a synchronous infinite loop blocks the worker; there is no process isolation.
 Prerequisites:
 Event Layer
 order.created
 retry
 idempotency
-Blocked by: durable event delivery with retry; idempotency
+Blocked by: none
 
 ## Scenario 7 — declarative default Shop theme and an Admin theme
 
@@ -99,12 +110,19 @@ Blocked by: none
 ## Scenario 8 — disabled extension has no Admin navigation
 
 Charter text: A disabled extension has no Admin navigation, Shop presentation, callable
-capability, new webhook delivery, or new background processing.
-Status: PARTIAL (assessed 2026-09-22)
+capability, new event delivery, or new background processing.
+Status: COMPLETE (2026-09-30)
+Commits: 6fd06769f, 189dd94c5, 053c66843
+Implementation decisions:
+- Health and manifest routes of a disabled installation answer from Core data without loading plugin code.
+- Pending event deliveries to a disabled installation are skipped and never replayed.
+- A disabled payment provider's inbound callbacks return 503 PLUGIN_DISABLED; reconciliation skips it; manual mark-paid returns 409 PAYMENT_PROVIDER_DISABLED.
+- Admin shows the number of orders awaiting payment before a payment plugin is disabled.
+- Checkout reports a payment or shipping method disabled while the page was open and refreshes the options.
 Prerequisites:
 Extension Lifecycle
 visibility policy
-Blocked by: lifecycle rebuild on disable; webhook and background-job isolation; Shop presentation
+Blocked by: none
 
 ## Scenario 9 — update with no migration
 
@@ -215,7 +233,7 @@ Blocked by: process-level exception handlers with extension attribution
 1. Extension foundation: five capability contracts; lifecycle rebuild of plugin-derived state (15); process-level failure containment (16); validation of stored manifests and persisted trust tier; storage boundary (12).
 2. Baseline order: builtin plugins and checkout contracts (1, 5); notification delivery; unpaid-order timeout.
 3. Shop and declarative themes (7), then tracking and custom code (14).
-4. Event layer (6) and disabled-extension isolation (8).
+4. Event layer (6) and disabled-extension isolation (8). COMPLETE (2026-09-30).
 5. Extension Center: marketplace index (2), signature verification and Extension SDK (3, 4, 13).
 6. Delivery: Docker Compose, Core updates and plugin migrations (9, 10), release verification (11).
 
