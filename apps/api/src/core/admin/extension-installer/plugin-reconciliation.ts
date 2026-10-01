@@ -4,6 +4,7 @@ import { resetPluginState } from './plugin-state';
 import { warmPluginInstanceRuntime } from './plugin-runtime';
 import { recordPluginFailure } from './plugin-failure';
 import { PluginConfigDecryptionError } from '@/core/admin/plugin-management/config-crypto';
+import { PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
 
 export async function reconcilePluginState(slug: string): Promise<void> {
   const pluginPackage = await prisma.pluginInstall.findUnique({ where: { slug } });
@@ -18,9 +19,26 @@ export async function reconcilePluginState(slug: string): Promise<void> {
   }
 }
 
-export async function reconcileAllPluginState(): Promise<void> {
-  const packages = await prisma.pluginInstall.findMany({ select: { slug: true } });
-  await Promise.all(packages.map((pluginPackage) => reconcilePluginState(pluginPackage.slug)));
+export async function reconcileAllPluginState(): Promise<Map<string, unknown>> {
+  const packages = await prisma.pluginInstall.findMany({ select: { slug: true, zipHash: true } });
+  const failures = new Map<string, unknown>();
+  await Promise.all(packages.map(async ({ slug, zipHash }) => {
+    try {
+      await reconcilePluginState(slug);
+    } catch (error) {
+      const current = await prisma.pluginInstall.findUnique({ where: { slug }, select: { zipHash: true } });
+      failures.set(slug, current?.zipHash !== zipHash
+        ? new PluginPackageResolutionError('PLUGIN_PACKAGE_UNAVAILABLE', 503, slug)
+        : error);
+      console.error('Plugin reconciliation failed', { slug, error });
+      try {
+        await recordPluginFailure(slug, error, 'reconcile');
+      } catch (recordError) {
+        console.error('Plugin reconciliation failure recording failed', { slug, error: recordError });
+      }
+    }
+  }));
+  return failures;
 }
 
 export async function loadEnabledPluginRuntimes(): Promise<void> {

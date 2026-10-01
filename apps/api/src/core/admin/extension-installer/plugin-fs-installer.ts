@@ -13,7 +13,7 @@
 import { Readable } from 'stream';
 import { createReadStream } from 'fs';
 import { promises as fs } from 'fs';
-import archiver from 'archiver';
+import { packBuiltinPlugin } from './builtin-package';
 import path from 'path';
 import { prisma } from '@/config/database';
 import {
@@ -95,11 +95,8 @@ export class PluginFsInstaller implements IPluginInstaller {
     directory: string,
     options: { source?: string; confirmUnsigned?: boolean; actorUserId?: string } = {},
   ): Promise<InstalledPlugin> {
-    const archive = archiver('zip', { zlib: { level: 9 } });
-    archive.directory(directory, false);
-    const installed = this.install(archive, options);
-    await archive.finalize();
-    return installed;
+    const { bytes } = await packBuiltinPlugin(directory);
+    return this.install(Readable.from(bytes), options);
   }
 
   /**
@@ -172,6 +169,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           await fencePluginOperationLease(tx, lease!.slug, lease!.token);
           await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, bytes);
           await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
+          await incrementPluginRegistryVersion(tx);
         });
       }
       return {

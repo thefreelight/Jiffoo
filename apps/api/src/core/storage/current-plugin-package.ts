@@ -16,6 +16,13 @@ export class PluginPackageResolutionError extends Error {
 }
 
 const pending = new Map<string, Promise<void>>();
+const corrupt = new Set<string>();
+let registryVersion: number | null = null;
+export function setPluginPackageRegistryVersion(version: number): void {
+  if (registryVersion === version) return;
+  registryVersion = version;
+  corrupt.clear();
+}
 const waiting: Array<() => void> = [];
 let active = 0;
 const BUDGET_MS = 10_000;
@@ -33,6 +40,7 @@ async function limited(task: () => Promise<void>): Promise<void> {
 
 async function materialize(slug: string, zipHash: string): Promise<void> {
   const key = `${slug}:${zipHash}`;
+  if (corrupt.has(key)) throw new PluginPackageResolutionError('PLUGIN_PACKAGE_CORRUPT', 500, slug);
   let flight = pending.get(key);
   if (!flight) {
     flight = limited(async () => {
@@ -46,6 +54,7 @@ async function materialize(slug: string, zipHash: string): Promise<void> {
       if (blob.sizeBytes > PLUGIN_MAX_ZIP_SIZE || bytes.length > PLUGIN_MAX_ZIP_SIZE
         || blob.sizeBytes !== bytes.length || createHash('sha256').update(bytes).digest('hex') !== zipHash) {
         console.error('Corrupt plugin package blob', { slug, zipHash });
+        corrupt.add(key);
         throw new PluginPackageResolutionError('PLUGIN_PACKAGE_CORRUPT', 500, slug);
       }
       let tempDir: string | null = null;
@@ -59,6 +68,7 @@ async function materialize(slug: string, zipHash: string): Promise<void> {
         validatePluginManifest(manifest);
         if (manifest.slug !== slug) {
           console.error('Corrupt plugin package manifest', { slug, zipHash });
+          corrupt.add(key);
           throw new PluginPackageResolutionError('PLUGIN_PACKAGE_CORRUPT', 500, slug);
         }
         if (process.env.NODE_ENV === 'test' && process.env.JIFFOO_TEST_PLUGIN_MATERIALIZE_BARRIER === '1' && process.send) {

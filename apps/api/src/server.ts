@@ -40,6 +40,7 @@ import { performHealthCheck, livenessCheck, readinessCheck } from '@/utils/healt
 import traceContextPlugin from '@/core/logger/trace-context';
 import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { prewarmPluginPackages } from '@/core/storage/prewarm-plugin-packages';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plugin-reconciliation';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
@@ -427,6 +428,7 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
     app.log.info('Database connected successfully');
 
     await syncBuiltinPlugins(path.join(process.cwd(), 'builtin-plugins'));
+    await prewarmPluginPackages();
     await syncBuiltinThemes(path.join(process.cwd(), 'builtin-themes'));
     await loadEnabledPluginRuntimes();
 

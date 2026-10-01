@@ -714,7 +714,13 @@ export async function callContract(
   method: string,
   input: unknown,
 ): Promise<unknown> {
-  await ensurePluginRegistryFresh();
+  try {
+    await ensurePluginRegistryFresh(slug);
+  } catch (error) {
+    await recordPluginFailure(slug, error, 'contract');
+    if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
+    throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin registry reconciliation failed for ${slug}`);
+  }
   if (version !== 1 || !(contractName in contractMethods) || !(method in contractMethods[contractName])) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractName} v${version}/${method}`);
   const pkg = await PluginManagementService.getPluginPackage(slug);
   const instance = await PluginManagementService.getDefaultInstance(slug);
@@ -769,7 +775,13 @@ registerPluginStateReset('internal-runtimes', async (slug, installationId) => {
 });
 
 export async function deliverInstallationEvent(installationId: string, event: PluginEvent): Promise<string | null> {
-  await ensurePluginRegistryFresh();
+  try {
+    await ensurePluginRegistryFresh();
+  } catch (error) {
+    const installation = await prisma.pluginInstallation.findUnique({ where: { id: installationId }, select: { pluginSlug: true } });
+    if (installation) await recordPluginFailure(installation.pluginSlug, error, 'event', installationId);
+    throw error;
+  }
   const instance = await prisma.pluginInstallation.findUnique({ where: { id: installationId }, include: { plugin: true } });
   if (!instance || instance.deletedAt || instance.plugin.deletedAt) return 'deleted';
   if (!instance.enabled) return 'disabled';
@@ -984,7 +996,6 @@ export async function handlePluginGateway(
   fastify?: FastifyInstance,
   options?: GatewayResolutionOptions
 ): Promise<void> {
-  await ensurePluginRegistryFresh();
   const slug = (request.params as any).slug as string;
   const requestId = generateRequestId();
   const startTime = Date.now();
@@ -997,6 +1008,7 @@ export async function handlePluginGateway(
   const caller = inferCaller(request);
 
   try {
+    await ensurePluginRegistryFresh(slug);
     // Resolve instance context (handles instance selection, validation, and enable check)
     ctx = await resolveGatewayContext(slug, request, options);
 

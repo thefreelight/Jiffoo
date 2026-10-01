@@ -4,6 +4,7 @@ import { prisma } from '@/config/database';
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { packBuiltinPlugin } from './builtin-package';
 
 const BUILTIN_SYNC_LOCK = 824_301_551;
 
@@ -14,9 +15,15 @@ export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
     for (const entry of entries.filter((candidate) => candidate.isDirectory()).sort((left, right) => left.name.localeCompare(right.name))) {
       const directory = path.join(builtinRoot, entry.name);
       const manifest = JSON.parse(await fs.readFile(path.join(directory, 'manifest.json'), 'utf8')) as { slug: string; version: string };
+      const { hash } = await packBuiltinPlugin(directory);
       const installed = await prisma.pluginInstall.findUnique({ where: { slug: manifest.slug } });
-      if (installed && installed.version === manifest.version && installed.zipHash
-        && await pluginPackageStore.get(manifest.slug, installed.zipHash)) continue;
+      if (installed && installed.version === manifest.version && installed.zipHash === hash) {
+        if (!await pluginPackageStore.get(manifest.slug, hash)) {
+          const deployment = await pluginPackageStore.put(manifest.slug, hash, directory);
+          await deployment.commit();
+        }
+        continue;
+      }
       const wasInstalled = Boolean(installed);
       await pluginFsInstaller.installFromDirectory(directory, { source: 'builtin' });
       if (!wasInstalled) {

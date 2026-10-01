@@ -15,6 +15,7 @@ import { WORKER_HEARTBEAT_PREFIX, WORKER_HEARTBEAT_TTL_SECONDS, WORKER_HEARTBEAT
 import { pluginSecretsKey } from './core/admin/plugin-management/config-crypto';
 import { assertTestRootEnvironment } from 'shared/plugin-signing';
 import { syncBuiltinPlugins } from './core/admin/extension-installer/builtin-sync';
+import { prewarmPluginPackages } from './core/storage/prewarm-plugin-packages';
 import path from 'node:path';
 
 export async function startWorkerRuntime(options: { redisUrl?: string; healthPort?: number } = {}) {
@@ -95,6 +96,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     redisConnections.push({ name: 'cache', client: redisCache.getRawClient() });
     await redisCache.connect();
     await syncBuiltinPlugins(path.join(process.cwd(), 'builtin-plugins'));
+    await prewarmPluginPackages();
     await eventDelivery.start();
     await run(cleanupEvents, 'Event cleanup failed');
     cleanupTimer = setInterval(() => void run(cleanupEvents, 'Event cleanup failed'), EVENT_CLEANUP_INTERVAL_MS);

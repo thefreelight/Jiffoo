@@ -116,6 +116,9 @@ export class EventDeliveryEngine {
     this.claiming = true;
     try {
       await recoverEventLeases();
+      if (process.env.NODE_ENV === 'test' && process.env.JIFFOO_TEST_EVENT_CLAIM_OBSERVE === '1' && process.send) {
+        process.send({ kind: 'event-claim-start' });
+      }
       const deliveries = await claimEventDeliveries(this.workerId, [...this.installations], EVENT_BATCH_SIZE - this.installations.size);
       for (const delivery of deliveries) {
         this.installations.add(delivery.installationId);
