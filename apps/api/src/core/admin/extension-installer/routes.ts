@@ -21,6 +21,9 @@ import { prisma } from '@/config/database';
 import { Prisma } from '@prisma/client';
 import { PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
 import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
+import { fetchMarketplaceCatalog, marketplaceUrl, MarketplaceError } from './marketplace-catalog';
+import { checkPluginApiCompatibility } from './plugin-compatibility';
+import { compareVersions } from './version-utils';
 
 // Per spec (EXTENSIONS_IMPLEMENTATION.md) size limits for offline ZIP installs
 const ZIP_SIZE_LIMITS: Record<ExtensionKind, number> = {
@@ -302,6 +305,78 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     admin.addHook('onRequest', authMiddleware);
     admin.addHook('onRequest', requireAdmin);
     await admin.register(themeManagementRoutes);
+
+    admin.get('/marketplace/status', {
+      schema: {
+        tags: ['admin-plugins'], summary: 'Get marketplace configuration status',
+        security: [{ bearerAuth: [] }],
+        querystring: { type: 'object', additionalProperties: false, properties: {} },
+        response: {
+          200: { type: 'object', required: ['success', 'data'], properties: {
+            success: { type: 'boolean' },
+            data: { type: 'object', required: ['configured'], properties: { configured: { type: 'boolean' } } },
+          } },
+          401: errorResponseSchema, 403: errorResponseSchema,
+        },
+      },
+    }, async (_request, reply) => sendSuccess(reply, { configured: Boolean(marketplaceUrl()) }));
+
+    admin.get('/marketplace/catalog', {
+      schema: {
+        tags: ['admin-plugins'], summary: 'List marketplace plugins',
+        security: [{ bearerAuth: [] }],
+        querystring: { type: 'object', additionalProperties: false, properties: {} },
+        response: {
+          200: { type: 'object', required: ['success', 'data'], properties: {
+            success: { type: 'boolean' },
+            data: { type: 'object', required: ['schemaVersion', 'items'], properties: {
+              schemaVersion: { type: 'integer', enum: [1] },
+              items: { type: 'array', items: { type: 'object', required: ['id', 'slug', 'name', 'description', 'publisherId', 'versions', 'installedVersion', 'installedPublisherId', 'updateAvailable'], properties: {
+                id: { type: 'string' }, slug: { type: 'string' }, name: { type: 'string' },
+                description: { type: 'string' }, publisherId: { type: 'string' },
+                installedVersion: { type: 'string', nullable: true },
+                installedPublisherId: { type: 'string', nullable: true },
+                updateAvailable: { type: 'boolean' },
+                versions: { type: 'array', items: { type: 'object', required: ['version', 'minApiVersion', 'sha256', 'size', 'downloadUrl', 'compatible'], properties: {
+                  version: { type: 'string' }, minApiVersion: { type: 'string' }, sha256: { type: 'string' },
+                  size: { type: 'integer' }, downloadUrl: { type: 'string' }, compatible: { type: 'boolean' },
+                } } },
+              } } },
+            } },
+          } },
+          401: errorResponseSchema, 403: errorResponseSchema, 502: errorResponseSchema,
+          503: errorResponseSchema, 504: errorResponseSchema, 500: errorResponseSchema,
+        },
+      },
+    }, async (_request, reply) => {
+      try {
+        const catalog = await fetchMarketplaceCatalog();
+        const installed = await prisma.pluginInstall.findMany({
+          where: { deletedAt: null, slug: { in: catalog.plugins.map((plugin) => plugin.slug) } },
+          select: { slug: true, version: true, publisherId: true },
+        });
+        const bySlug = new Map(installed.map((record) => [record.slug, record]));
+        const items = catalog.plugins.map((plugin) => {
+          const current = bySlug.get(plugin.slug);
+          const versions = plugin.versions.map((entry) => ({
+            ...entry,
+            compatible: checkPluginApiCompatibility({ minApiVersion: entry.minApiVersion } as Parameters<typeof checkPluginApiCompatibility>[0]).compatible,
+          }));
+          return {
+            ...plugin, versions,
+            installedVersion: current?.version ?? null,
+            installedPublisherId: current?.publisherId ?? null,
+            updateAvailable: Boolean(current && current.publisherId === plugin.publisherId &&
+              versions.some((entry) => entry.compatible && compareVersions(entry.version, current.version) > 0)),
+          };
+        });
+        return sendSuccess(reply, { schemaVersion: 1, items });
+      } catch (error) {
+        if (error instanceof MarketplaceError) return sendError(reply, error.statusCode, error.code, error.message);
+        fastify.log.error({ err: error }, 'Marketplace catalog failed');
+        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Marketplace catalog failed');
+      }
+    });
 
     admin.get<{ Params: { slug: string } }>('/plugin/:slug/disable-impact', {
       schema: {

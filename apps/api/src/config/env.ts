@@ -3,6 +3,17 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { productionSafetyViolations } from './production-safety';
 
+export function validateMarketplaceUrl(value: string | undefined, nodeEnv: string): string | undefined {
+  if (value === undefined || value === '') return undefined;
+  let url: URL;
+  try { url = new URL(value); } catch { throw new Error('EXTENSION_MARKETPLACE_URL must be an absolute URL'); }
+  if (url.username || url.password || url.hash || url.search || !url.hostname ||
+    (url.protocol !== 'https:' && !(nodeEnv === 'test' && url.protocol === 'http:' && url.hostname === '127.0.0.1'))) {
+    throw new Error('EXTENSION_MARKETPLACE_URL requires HTTPS, no credentials, query or fragment (test permits http://127.0.0.1 only)');
+  }
+  return url.href;
+}
+
 // Load .env from apps/api directory
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -40,6 +51,7 @@ export const envSchema = z.object({
   NEXT_PUBLIC_ADMIN_URL: z.string().default('http://localhost:3002'),
   STOREFRONT_URL: z.string().url().optional(),
   ADMIN_URL: z.string().url().optional(),
+  EXTENSION_MARKETPLACE_URL: z.string().optional(),
 
   VAULT_ADDR: z.string().optional(),
   VAULT_TOKEN: z.string().optional(),
@@ -81,6 +93,11 @@ export const envSchema = z.object({
   }, process.env.DISABLE_RATE_LIMITER);
   for (const message of violations) {
     context.addIssue({ code: z.ZodIssueCode.custom, message });
+  }
+  try {
+    validateMarketplaceUrl(value.EXTENSION_MARKETPLACE_URL, value.NODE_ENV);
+  } catch (error) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['EXTENSION_MARKETPLACE_URL'], message: (error as Error).message });
   }
 });
 
