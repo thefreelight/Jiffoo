@@ -60,15 +60,38 @@ describe('Builtin plugins', () => {
     await fs.cp(path.join(builtinRoot, 'manual-payment'), source, { recursive: true });
     const manifestPath = path.join(source, 'manifest.json');
     const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as Record<string, unknown>;
-    manifest.version = '1.0.1';
+    manifest.version = '1.0.3';
     manifest.lifecycle = { onUpgrade: true };
     await fs.writeFile(manifestPath, JSON.stringify(manifest));
     await fs.writeFile(path.join(source, 'index.js'), `const fs = require('fs'); module.exports = { register(ctx) { ctx.contracts.implement('payment', 1, { describe: (input) => ({ displayName: 'Manual payment', requiresManualConfirmation: true, unpaidTimeoutMinutes: 4320, supportedCurrencies: [input.storeCurrency], instructions: 'Pay manually.' }), createSession: () => ({ sessionId: 'manual', action: { type: 'instructions', text: 'Pay manually.' } }), getSessionStatus: () => ({ status: 'pending' }) }); }, __lifecycle_onUpgrade() { fs.writeFileSync(${JSON.stringify(marker)}, 'upgraded'); } };`);
     try {
       await syncBuiltinPlugins(root);
-      expect((await prisma.pluginInstall.findUnique({ where: { slug: 'manual-payment' } }))?.version).toBe('1.0.1');
+      expect((await prisma.pluginInstall.findUnique({ where: { slug: 'manual-payment' } }))?.version).toBe('1.0.3');
       expect(await fs.readFile(marker, 'utf8')).toBe('upgraded');
     } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves merchant instructions when syncing a changed builtin version', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'builtin-config-upgrade-'));
+    const source = path.join(root, 'manual-payment');
+    const instance = await prisma.pluginInstallation.findUniqueOrThrow({
+      where: { pluginSlug_instanceKey: { pluginSlug: 'manual-payment', instanceKey: 'default' } },
+    });
+    await fs.cp(path.join(builtinRoot, 'manual-payment'), source, { recursive: true });
+    const manifestPath = path.join(source, 'manifest.json');
+    const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as Record<string, unknown>;
+    manifest.version = '1.0.4';
+    await fs.writeFile(manifestPath, JSON.stringify(manifest));
+    try {
+      await PluginManagementService.updateInstance(instance.id, { config: { instructions: 'Merchant bank details' } });
+      await syncBuiltinPlugins(root);
+      expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: 'manual-payment' } })).version).toBe('1.0.4');
+      expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: instance.id } })).configJson)
+        .toMatchObject({ instructions: 'Merchant bank details' });
+    } finally {
+      await prisma.pluginInstallation.update({ where: { id: instance.id }, data: { configJson: instance.configJson ?? null } });
       await fs.rm(root, { recursive: true, force: true });
     }
   });

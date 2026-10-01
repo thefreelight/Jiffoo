@@ -15,6 +15,8 @@ test('J Admin edits manual payment configuration and a new customer order displa
   await expect(page.getByRole('textbox', { name: 'properties', exact: true })).toHaveCount(0);
   const previousInstructions = await instructions.inputValue();
   const previousTimeout = await timeout.inputValue();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.screenshot({ path: path.resolve('test-results/manual-payment-config-unset-1440x900.png') });
   const updated = `E2E payment instructions ${randomUUID()}`;
   const context = await newObservedContext({ baseURL: 'http://127.0.0.1:3003', viewport: { width: 1440, height: 900 } });
   const shop = await context.newPage();
@@ -52,7 +54,7 @@ test('J Admin edits manual payment configuration and a new customer order displa
     await shop.getByRole('button', { name: 'Place order' }).click();
     await expect(shop.getByText(updated, { exact: true })).toBeVisible();
   } finally {
-    await instructions.fill(previousInstructions);
+    await instructions.fill(previousInstructions.trim() || 'Pay manually.');
     await timeout.fill(previousTimeout);
     await page.getByRole('button', { name: 'Save configuration' }).click();
     await context.close();

@@ -28,6 +28,7 @@ import { OrderService } from '@/core/order/service';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 import { checkoutTotal } from '../helpers/checkout-total';
 import { getPluginManifestIssues } from '@jiffoo/shared';
+import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
 describe('Orders Endpoints', () => {
   let app: FastifyInstance;
@@ -260,6 +261,7 @@ describe('Orders Endpoints', () => {
     });
 
     it.each([
+      [{ instructions: '' }, 'config.instructions'],
       [{ instructions: 123 }, 'config.instructions'],
       [{ unpaidTimeoutHours: 721 }, 'config.unpaidTimeoutHours'],
       [{ unpaidTimeoutHours: 1.5 }, 'config.unpaidTimeoutHours'],
@@ -279,6 +281,31 @@ describe('Orders Endpoints', () => {
         details: { fields: expect.arrayContaining([expect.objectContaining({ path: field })]) },
       });
       expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: instance.id } })).configJson).toEqual(instance.configJson);
+    });
+
+    it.each([
+      ['', 'empty'],
+      ['   ', 'whitespace-only'],
+    ])('quotes checkout with default manual instructions for legacy %s config (%s)', async (instructions) => {
+      const instance = await prisma.pluginInstallation.findUniqueOrThrow({
+        where: { pluginSlug_instanceKey: { pluginSlug: 'manual-payment', instanceKey: 'default' } },
+      });
+      try {
+        await prisma.pluginInstallation.update({ where: { id: instance.id }, data: { configJson: { instructions } } });
+        const response = await app.inject({
+          method: 'POST', url: '/api/v1/checkout/quote',
+          headers: { authorization: `Bearer ${userToken}` },
+          payload: { shippingAddress: validShippingAddress },
+        });
+        expect(response.statusCode).toBe(200);
+        expect(response.json().data.paymentMethods).toEqual(expect.arrayContaining([
+          expect.objectContaining({ providerSlug: 'manual-payment' }),
+        ]));
+        expect(await callContract('manual-payment', 'payment', 1, 'describe', { storeCurrency: 'USD' }))
+          .toMatchObject({ instructions: 'Pay manually.' });
+      } finally {
+        await prisma.pluginInstallation.update({ where: { id: instance.id }, data: { configJson: instance.configJson ?? null } });
+      }
     });
 
     it('aggregates builtin and enabled shipping providers with builtin manual payment', async () => {

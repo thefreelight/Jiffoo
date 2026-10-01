@@ -140,9 +140,14 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   const saving = updating;
 
   useEffect(() => {
-    setDraft(config);
+    const initial = { ...config };
+    if (schema) for (const [name, field] of Object.entries(schema.properties)) {
+      if (field.sensitive) delete initial[name];
+      else if (!Object.prototype.hasOwnProperty.call(initial, name) && field.default !== undefined) initial[name] = field.default;
+    }
+    setDraft(initial);
     setFieldErrors({});
-  }, [selected?.installationId, selected?.updatedAt]);
+  }, [selected?.installationId, selected?.updatedAt, data?.configSchema]);
 
   const save = async () => {
     try {

@@ -1,6 +1,6 @@
 /** @param {import('@jiffoo/shared').PluginContext} ctx */
 function register(ctx) {
-  const instructions = typeof ctx.config.instructions === 'string' ? ctx.config.instructions : 'Pay manually.';
+  const instructions = typeof ctx.config.instructions === 'string' && ctx.config.instructions.trim() ? ctx.config.instructions : 'Pay manually.';
   const configuredHours = ctx.config.unpaidTimeoutHours;
   const hours = typeof configuredHours === 'number' && Number.isInteger(configuredHours) && configuredHours >= 1 && configuredHours <= 720 ? configuredHours : 72;
   ctx.contracts.implement('payment', 1, {
