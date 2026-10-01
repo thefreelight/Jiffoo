@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react'
 import { AlertCircle, AlertTriangle, CheckCircle, Package, RefreshCw, Search, Warehouse as WarehouseIcon, Download, Upload, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageShell } from '@/components/layout/page-shell'
 import { Input } from '@/components/ui/input'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import {
@@ -199,20 +200,8 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-            {getText('merchant.inventory.title', 'Inventory')}
-          </h1>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
-            {getText('merchant.inventory.predictiveNode', 'Predictive Analytics Node')}
-          </span>
-        </div>
-      </div>
-
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+    <PageShell title={getText('merchant.inventory.title', 'Inventory')}>
+      <div className="space-y-6">
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -575,6 +564,6 @@ export default function InventoryPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

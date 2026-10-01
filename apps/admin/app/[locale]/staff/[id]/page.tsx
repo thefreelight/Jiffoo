@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { PageShell } from '@/components/layout/page-shell'
 import { useResendStaffInvite, useStaffAuditLogs, useStaffMember } from '@/lib/hooks/use-api'
 
 function formatDateTime(value: string) {
@@ -83,27 +84,16 @@ export default function StaffDetailPage() {
   const auditPagination = auditLogResponse?.pagination || { page: 1, limit: 20, total: 0, totalPages: 1 }
 
   return (
-    <div className="min-h-screen bg-[#fcfdfe]">
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="rounded-xl hover:bg-gray-100 h-10 w-10" onClick={() => router.push(`/${locale}/staff`)}>
-            <ArrowLeft className="w-5 h-5 text-gray-900" />
-          </Button>
-          <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-              {membership.username}
-            </h1>
-            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
-              {getText('merchant.staff.detailSubtitle', 'Staff Access Profile')}
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
+    <PageShell
+      title={membership.username}
+      description={getText('merchant.staff.detailSubtitle', 'Staff Access Profile')}
+      actions={
+        <>
           {!membership.emailVerified && (
             <Button
               variant="outline"
               size="sm"
-              className="rounded-xl gap-2"
+              className="rounded-lg"
               disabled={resendStaffInvite.isPending}
               onClick={() => resendStaffInvite.mutateAsync(membership.userId)}
             >
@@ -114,10 +104,13 @@ export default function StaffDetailPage() {
           <Badge className={membership.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}>
             {membership.status}
           </Badge>
-        </div>
-      </div>
-
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-6">
+        </>
+      }
+    >
+      <div className="space-y-6">
+        <Button variant="ghost" size="sm" className="-ml-2 rounded-lg text-slate-500 hover:text-slate-900" onClick={() => router.push(`/${locale}/staff`)}>
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
         <div className="grid gap-6 lg:grid-cols-[360px,1fr]">
           <Card className="rounded-3xl border-gray-100 shadow-sm">
             <CardHeader>
@@ -258,6 +251,6 @@ export default function StaffDetailPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { useAdminDashboard, useUser, useUpdateUser } from '@/lib/hooks/use-api'
 import { useT } from 'shared/src/i18n/react'
+import { PageShell } from '@/components/layout/page-shell'
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { UserRole } from '@/lib/types'
@@ -143,34 +144,23 @@ export default function CustomerDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fcfdfe]">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex items-center gap-4">
+    <PageShell
+      title={getText('merchant.customers.detail.title', 'User Profile')}
+      actions={
+        <>
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-xl hover:bg-gray-100 h-10 w-10"
+            className="rounded-xl hover:bg-gray-100 h-9 w-9"
             onClick={() => router.back()}
           >
             <ArrowLeft className="w-5 h-5 text-gray-900" />
           </Button>
-          <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-              {getText('merchant.customers.detail.title', 'User Profile')}
-            </h1>
-            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
-              ID: {user.id.substring(0, 8)}...
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
           {isEditing ? (
             <>
               <Button
                 variant="outline"
-                className="h-10 px-6 rounded-xl border border-gray-200 font-semibold text-sm hover:bg-gray-50 flex items-center gap-2"
+                className="h-9 rounded-lg border border-gray-200 text-sm font-semibold hover:bg-gray-50"
                 onClick={handleCancel}
                 disabled={isSaving}
               >
@@ -178,7 +168,7 @@ export default function CustomerDetailPage() {
                 {getText('merchant.customers.cancel', 'Cancel')}
               </Button>
               <Button
-                className="h-10 px-6 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 transition-all flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                className="h-9 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
                 onClick={handleSave}
                 disabled={isSaving}
               >
@@ -190,14 +180,14 @@ export default function CustomerDetailPage() {
             <>
               <Button
                 variant="outline"
-                className="h-10 px-6 rounded-xl border border-gray-200 font-semibold text-sm hover:bg-gray-50 flex items-center gap-2"
+                className="h-9 rounded-lg border border-gray-200 text-sm font-semibold hover:bg-gray-50"
                 onClick={() => setResetPasswordDialogOpen(true)}
               >
                 <Key className="w-4 h-4 text-gray-500" />
                 {getText('merchant.customers.resetPassword.submit', 'Reset Password')}
               </Button>
               <Button
-                className="h-10 px-6 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 transition-all flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                className="h-9 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
                 onClick={handleEdit}
               >
                 <User className="w-4 h-4" />
@@ -205,10 +195,10 @@ export default function CustomerDetailPage() {
               </Button>
             </>
           )}
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-[1600px] space-y-8 px-4 py-6 sm:px-10 sm:py-10">
+        </>
+      }
+    >
+      <div className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left">
           {/* Left Column: Essential Info */}
           <div className="lg:col-span-2 space-y-8">
@@ -460,6 +450,6 @@ export default function CustomerDetailPage() {
           })
         }}
       />
-    </div>
+    </PageShell>
   )
 }

@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useT, useLocale } from 'shared/src/i18n/react'
+import { PageShell } from '@/components/layout/page-shell'
 
 export default function ProductsPage() {
   const t = useT()
@@ -150,29 +151,18 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-            {getText('merchant.products.title', 'Products')}
-          </h1>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
-            {getText('merchant.products.subtitle', 'Inventory Management')}
-          </span>
-        </div>
-
-        <div className="flex gap-3">
-          <Link href={`/${locale}/products/create`}>
-            <Button className="h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-700 sm:px-6">
-              <Plus className="mr-0 h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">{getText('merchant.products.addProduct', 'Add Product')}</span>
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+    <PageShell
+      title={getText('merchant.products.title', 'Products')}
+      actions={
+        <Link href={`/${locale}/products/create`}>
+          <Button className="h-9 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700">
+            <Plus className="mr-0 h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">{getText('merchant.products.addProduct', 'Add Product')}</span>
+          </Button>
+        </Link>
+      }
+    >
+      <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard
             title={getText('merchant.products.totalProducts', 'Total Products')}
@@ -511,6 +501,6 @@ export default function ProductsPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   )
 }

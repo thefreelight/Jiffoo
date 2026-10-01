@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useT, useLocale } from 'shared/src/i18n/react'
+import { PageShell } from '@/components/layout/page-shell'
 import { useToast } from '@/hooks/use-toast'
 
 
@@ -179,20 +180,8 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-            {getText('merchant.customers.title', 'Customers')}
-          </h1>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
-            {getText('merchant.customers.subtitle', 'Identity & Access Management')}
-          </span>
-        </div>
-      </div>
-
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+    <PageShell title={getText('merchant.customers.title', 'Customers')}>
+      <div className="space-y-6">
         {/* In-page Navigation */}
         <PageNav items={navItems} />
 
@@ -442,6 +431,6 @@ export default function CustomersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div >
+    </PageShell>
   )
 }

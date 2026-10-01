@@ -14,6 +14,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { PageShell } from '@/components/layout/page-shell'
 import { useOrders, useOrderStats, useUpdateOrderStatus, type Order } from '@/lib/hooks/use-api'
 import { toast } from 'sonner'
 import { StatsCard } from '@/components/dashboard/stats-card'
@@ -172,20 +173,8 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-            {getText('merchant.orders.title', 'Orders')}
-          </h1>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
-            Transaction Ledger Node
-          </span>
-        </div>
-      </div>
-
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+    <PageShell title={getText('merchant.orders.title', 'Orders')}>
+      <div className="space-y-6">
         {/* Welcome Section */}
         <div className="space-y-1">
           <h2 className="text-2xl font-black text-gray-900 tracking-tight">{getText('merchant.orders.overview', 'Transaction Matrix')}</h2>
@@ -535,6 +524,6 @@ export default function OrdersPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }

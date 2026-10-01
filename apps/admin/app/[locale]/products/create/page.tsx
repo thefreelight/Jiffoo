@@ -25,6 +25,7 @@ import {
 import { useCreateProduct, useUploadProductImage, useCategories } from '@/lib/hooks/use-api'
 import { useT } from 'shared/src/i18n/react'
 import { VariantsEditor } from '@/components/products/VariantsEditor'
+import { PageShell } from '@/components/layout/page-shell'
 import { generateId } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -129,35 +130,28 @@ export default function CreateProductPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-gray-100 rounded-xl w-10 h-10">
-            <ArrowLeft className="w-5 h-5 text-gray-900" />
-          </Button>
-          <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-              {getText('products.create.title', 'Create New Product')}
-            </h1>
-            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">Product Management</span>
-          </div>
-        </div>
-        <div className="flex items-center space-x-3">
-          <Button variant="outline" onClick={() => router.push('/products')} className="text-gray-500 border-gray-200 hover:bg-gray-50 font-semibold text-sm rounded-xl h-10 px-6">
+    <PageShell
+      title={getText('products.create.title', 'Create New Product')}
+      description="Product Management"
+      actions={
+        <>
+          <Button variant="outline" onClick={() => router.push('/products')} className="text-slate-500 border-slate-200 hover:bg-slate-50 text-sm font-semibold rounded-lg h-9 px-4">
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={createProductMutation.isPending}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-8 h-10 rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 h-9 rounded-lg active:scale-95 transition-all"
           >
             {createProductMutation.isPending ? 'Sending...' : 'Save Product'}
           </Button>
-        </div>
-      </div>
-
-      <div className="w-full px-4 py-6 sm:px-10 sm:py-10">
+        </>
+      }
+    >
+      <div className="space-y-6">
+        <Button variant="ghost" size="sm" className="-ml-2 rounded-lg text-slate-500 hover:text-slate-900" onClick={() => router.back()}>
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Main Info */}
           <div className="lg:col-span-2 space-y-8">
@@ -274,6 +268,6 @@ export default function CreateProductPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }
