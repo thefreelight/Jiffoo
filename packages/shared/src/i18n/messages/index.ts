@@ -11,7 +11,6 @@ import type { Messages, AppName } from '../types';
 import * as enMessages from './en';
 import * as zhHansMessages from './zh-Hans';
 import * as zhHantMessages from './zh-Hant';
-import * as zhHansMessages from './zh-Hans';
 
 /**
  * All messages organized by locale
