@@ -39,6 +39,12 @@ export interface ServerStoreContextOptions {
 interface StoreContextApiResponse {
   success?: boolean;
   data?: ServerStoreContext;
+  // Snapshot-serving deployments answer with the bare store context (no
+  // success envelope); those fields are what the bare-shape check below
+  // sniffs on before accepting the payload as a full ServerStoreContext.
+  storeId?: unknown;
+  storeName?: unknown;
+  theme?: unknown;
 }
 
 const DEFAULT_STORE_CONTEXT_TIMEOUT_MS = 2000;
