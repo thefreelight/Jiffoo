@@ -31,7 +31,6 @@ import {
   ChevronRight,
   ChevronUp,
   Monitor,
-  Radar,
   ShieldCheck,
   Radar,
 } from 'lucide-react'
@@ -77,13 +76,6 @@ const baseNavigationConfig: NavigationItem[] = [
     href: '/products',
     icon: Package,
     requiredPermissions: [ADMIN_PERMISSIONS.PRODUCTS_READ],
-  },
-  {
-    id: 'tool-discovery',
-    nameKey: 'merchant.nav.toolDiscovery',
-    fallback: 'Tool Discovery',
-    href: '/tool-discovery',
-    icon: Radar,
   },
   {
     id: 'inventory',
