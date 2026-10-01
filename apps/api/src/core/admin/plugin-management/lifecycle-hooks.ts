@@ -1,6 +1,7 @@
 import { prisma } from '@/config/database';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-package';
 import { loadPluginEntryModule } from '@/core/admin/extension-installer/plugin-module-loader';
 import type { LifecycleHookName, PluginManifest } from '@jiffoo/shared';
 import { redactPluginText } from './config-crypto';
@@ -42,7 +43,7 @@ async function callInternalLifecycleHook(hookName: LifecycleHookName, context: L
   const entryModule = manifest.entryModule || 'server/index.js';
   const row = await prisma.pluginInstall.findUnique({ where: { slug: context.pluginSlug } });
   const pluginPackage = row?.zipHash
-    ? await pluginPackageStore.get(context.pluginSlug, row.zipHash) : null;
+    ? await resolveCurrentPluginPackage(context.pluginSlug, row.zipHash) : null;
   if (!pluginPackage || !await pluginPackage.exists(entryModule)) throw new Error(`Plugin entry module not found: ${entryModule}`);
   const entryPath = pluginPackage.getEntryPath(entryModule);
   const mod = await loadPluginEntryModule(entryPath, { version: manifest.version });

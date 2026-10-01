@@ -42,8 +42,12 @@ export async function orderRoutes(fastify: FastifyInstance) {
       }
       if (error?.statusCode === 409) return sendError(reply, 409, error.code || 'CONFLICT', error.message);
       if (error?.code === 'PLUGIN_PACKAGE_UNAVAILABLE') return sendError(reply, 503, 'PLUGIN_PACKAGE_UNAVAILABLE', 'Checkout plugin package is unavailable');
+      if (error?.code === 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT') return sendError(reply, 503, error.code, 'Checkout plugin package materialization timed out');
+      if (error?.code === 'PLUGIN_PACKAGE_CORRUPT') return sendError(reply, 500, error.code, 'Checkout plugin package is corrupt');
       if (error?.code === 'CONTRACT_RESPONSE_INVALID' || error?.code === 'CONTRACT_CALL_FAILED') return sendError(reply, 502, 'CONTRACT_CALL_FAILED', 'Checkout provider is temporarily unavailable');
-      return sendError(reply, 400, 'BAD_REQUEST', error.message);
+      if (/^(Shipping address|Order must contain|Product not found:|Product is not available:|Variant ID is required|Variant not found:|Variant is not available:|Insufficient stock|User not found|PAYMENT_METHOD_UNAVAILABLE)/.test(error?.message || ''))
+        return sendError(reply, 400, 'BAD_REQUEST', error.message);
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Order creation failed');
     }
   });
 

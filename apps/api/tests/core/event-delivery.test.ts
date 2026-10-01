@@ -150,10 +150,17 @@ describe('durable plugin event delivery', () => {
       child.once('exit', exit);
     });
   }
-  async function child(timeoutMs = EVENT_HANDLER_TIMEOUT_MS) {
+  async function child(timeoutMs = EVENT_HANDLER_TIMEOUT_MS, extensionsRoot?: string) {
     const process = fork(path.resolve('tests/helpers/event-worker-child.ts'), [], {
       execArgv: ['--import', 'tsx'], stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-      env: { ...globalThis.process.env, DATABASE_URL: globalThis.process.env.DATABASE_URL_TEST, EVENT_TEST_TIMEOUT_MS: String(timeoutMs) },
+      env: {
+        ...globalThis.process.env, DATABASE_URL: globalThis.process.env.DATABASE_URL_TEST,
+        EVENT_TEST_TIMEOUT_MS: String(timeoutMs),
+        ...(extensionsRoot ? {
+          EXTENSIONS_PATH: extensionsRoot, JIFFOO_TEST_ISOLATED_PLUGIN_ROOT: '1',
+          JIFFOO_TEST_BUILTIN_SOURCE_ROOT: path.resolve(globalThis.process.env.EXTENSIONS_PATH || 'extensions'),
+        } : {}),
+      },
     });
     const output = { stdout: '', stderr: '' };
     process.stdout?.on('data', (data) => { output.stdout += data.toString(); });
@@ -176,11 +183,12 @@ describe('durable plugin event delivery', () => {
     return (await fs.readFile(path.join(directory, 'attempts.log'), 'utf8')).trim().split('\n').map((line) => JSON.parse(line) as { eventId: string; installationId: string; attempt: number });
   }
 
-  it('J: a missing current hash returns 503 and event delivery retries without using another directory', async () => {
+  it('J: a missing current package and blob returns 503 and event delivery retries', async () => {
     const installation = await plugin();
     const row = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: installation.pluginSlug } });
     const pkg = await pluginPackageStore.get(installation.pluginSlug, row.zipHash!);
     await fs.rm(pkg!.getEntryPath(''), { recursive: true, force: true });
+    await prisma.pluginPackageBlob.deleteMany({ where: { pluginSlug: installation.pluginSlug, zipHash: row.zipHash! } });
     const response = await app.inject({ method: 'GET', url: `/api/v1/extensions/plugin/${installation.pluginSlug}/api/status` });
     expect(response.statusCode).toBe(503);
     expect(response.json().error.code).toBe('PLUGIN_PACKAGE_UNAVAILABLE');
@@ -188,7 +196,25 @@ describe('durable plugin event delivery', () => {
     await run();
     const result = await delivery(event.id, installation.id);
     await expectDelivery(result, { status: 'PENDING', attempts: 1 });
-    expect(result.lastError).toContain('Plugin package unavailable');
+    expect(result.lastError).toContain('PLUGIN_PACKAGE_UNAVAILABLE');
+  });
+
+  it('F: a real worker with an empty package root materializes the ZIP and delivers an event', async () => {
+    const installation = await plugin();
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'worker-empty-packages-'));
+    try {
+      expect(await fs.readdir(root)).toEqual([]);
+      const event = await emit();
+      const worker = await child(EVENT_HANDLER_TIMEOUT_MS, root);
+      const operation = command(worker);
+      await operation.claimed;
+      await operation.done;
+      await expectDelivery(await delivery(event.id, installation.id), { status: 'SUCCEEDED', attempts: 1 });
+      expect(await fs.readFile(path.join(directory, `${installation.id}-${event.id}.effect`), 'utf8')).toContain(event.id);
+      expect(await fs.access(path.join(root, 'plugins', installation.pluginSlug))).toBeUndefined();
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
   });
 
   it('H: a real worker delivers each new business event once to a plugin subscribed to all four types', async () => {

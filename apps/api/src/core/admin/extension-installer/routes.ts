@@ -19,11 +19,22 @@ import { readStoredPluginManifest } from './stored-manifest';
 import { themeManagementRoutes } from './theme-routes';
 import { prisma } from '@/config/database';
 import { Prisma } from '@prisma/client';
+import { PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
+import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 
 // Per spec (EXTENSIONS_IMPLEMENTATION.md) size limits for offline ZIP installs
 const ZIP_SIZE_LIMITS: Record<ExtensionKind, number> = {
-  'plugin': 50 * 1024 * 1024, // 50MB
+  'plugin': PLUGIN_MAX_ZIP_SIZE,
   'bundle': 500 * 1024 * 1024, // 500MB
+};
+
+const packageUnavailableResponse = {
+  ...errorResponseSchema,
+  description: 'PLUGIN_PACKAGE_UNAVAILABLE or PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT',
+};
+const packageCorruptResponse = {
+  ...errorResponseSchema,
+  description: 'Includes PLUGIN_PACKAGE_CORRUPT',
 };
 
 function formatBytes(bytes: number): string {
@@ -157,15 +168,15 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         200: { type: 'string' },
         400: errorResponseSchema,
         404: errorResponseSchema,
-        503: errorResponseSchema,
-        500: errorResponseSchema,
+        503: packageUnavailableResponse,
+        500: packageCorruptResponse,
       },
     }
   }, async (request, reply) => {
     try {
       await handlePluginGateway(request, reply, '/', fastify);
     } catch (error: any) {
-      if (error instanceof PluginGatewayError) {
+      if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
       fastify.log.error('Plugin gateway failed');
@@ -191,8 +202,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         200: { type: 'string' },
         400: errorResponseSchema,
         404: errorResponseSchema,
-        503: errorResponseSchema,
-        500: errorResponseSchema,
+        503: packageUnavailableResponse,
+        500: packageCorruptResponse,
       },
     }
   }, async (request, reply) => {
@@ -200,7 +211,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       const targetPath = (request.params as any)['*'] || '';
       await handlePluginGateway(request, reply, `/${targetPath}`, fastify);
     } catch (error: any) {
-      if (error instanceof PluginGatewayError) {
+      if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
       fastify.log.error('Plugin gateway failed');
@@ -225,8 +236,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         200: { type: 'string' },
         400: errorResponseSchema,
         404: errorResponseSchema,
-        503: errorResponseSchema,
-        500: errorResponseSchema,
+        503: packageUnavailableResponse,
+        500: packageCorruptResponse,
       },
     }
   }, async (request, reply) => {
@@ -239,7 +250,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       }
       await handlePluginGateway(request, reply, '/health', fastify, { requireEnabled: false });
     } catch (error: any) {
-      if (error instanceof PluginGatewayError) {
+      if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
       fastify.log.error('Plugin health gateway failed');
@@ -264,8 +275,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         200: { type: 'string' },
         400: errorResponseSchema,
         404: errorResponseSchema,
-        503: errorResponseSchema,
-        500: errorResponseSchema,
+        503: packageUnavailableResponse,
+        500: packageCorruptResponse,
       },
     }
   }, async (request, reply) => {
@@ -278,7 +289,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       }
       await handlePluginGateway(request, reply, '/manifest', fastify, { requireEnabled: false });
     } catch (error: any) {
-      if (error instanceof PluginGatewayError) {
+      if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
       fastify.log.error('Plugin manifest gateway failed');
@@ -592,7 +603,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       }
 
       // Get uploaded file
-      const data = await request.file();
+      const data = await request.file({ limits: { fileSize: PLUGIN_MAX_ZIP_SIZE }, throwFileSizeLimit: true });
       if (!data) {
         return sendError(reply, 400, 'BAD_REQUEST', 'No file uploaded');
       }
@@ -603,12 +614,15 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       }
 
       // Install extension
-      const { stream: limitedStream, getTotalBytes } = enforceZipSizeLimit(data.file as Readable, kind);
+      const zipBytes = await data.toBuffer();
+      if (data.file.truncated || zipBytes.length > PLUGIN_MAX_ZIP_SIZE) {
+        return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', 'Plugin ZIP exceeds 10 MiB');
+      }
       const confirmationField = data.fields?.confirmUnsigned;
       const confirmUnsigned = !Array.isArray(confirmationField)
         && confirmationField?.type === 'field'
         && confirmationField.value === 'true';
-      const result = await extensionInstaller.installFromZip(kind, limitedStream, {
+      const result = await extensionInstaller.installFromZip(kind, Readable.from(zipBytes), {
         confirmUnsigned,
         actorUserId: request.user!.id,
       });
@@ -620,7 +634,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       return sendSuccess(reply, {
         filename: data.filename || `${result.slug}.zip`,
         originalName: data.filename || `${result.slug}.zip`,
-        size: getTotalBytes(),
+        size: zipBytes.length,
         mimetype: data.mimetype || 'application/zip',
         url: `/api/v1/extensions/${kind}/install`,
         ...result,

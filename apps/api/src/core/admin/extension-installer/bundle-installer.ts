@@ -37,6 +37,7 @@ import { ExtensionInstallerError } from './errors';
 import { incrementPluginRegistryVersion } from './plugin-registry-version';
 import { encryptPluginConfig } from '@/core/admin/plugin-management/config-crypto';
 import { readStoredPluginManifest } from './stored-manifest';
+import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 
 // ============================================================================
 // Types
@@ -153,6 +154,11 @@ export async function installBundle(zipStream: Readable): Promise<BundleInstallR
 
         // Read plugin ZIP
         const pluginZipPath = path.join(tempDir, pluginEntry.zip);
+        if ((await fs.stat(pluginZipPath)).size > PLUGIN_MAX_ZIP_SIZE) {
+          throw new ExtensionInstallerError(`Plugin ZIP exceeds ${PLUGIN_MAX_ZIP_SIZE} bytes`, {
+            code: 'PAYLOAD_TOO_LARGE', statusCode: 413,
+          });
+        }
         const pluginZipContent = await fs.readFile(pluginZipPath);
         const pluginStream = bufferToStream(pluginZipContent);
 

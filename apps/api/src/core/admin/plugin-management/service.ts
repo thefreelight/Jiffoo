@@ -10,6 +10,7 @@ import { CacheService } from '@/core/cache/service';
 import type { PluginMeta, PluginState, PluginConfig, InstalledPluginsResponse } from './types';
 import { validateInstanceConfig, validateInstanceKeyFormat } from '@/core/admin/extension-installer/utils';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-package';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
 import { incrementPluginRegistryVersion } from '@/core/admin/extension-installer/plugin-registry-version';
@@ -470,9 +471,9 @@ export async function isPluginEnabled(
   }
 
   const pluginPackage = await prisma.pluginInstall.findUnique({ where: { slug } });
-  const pluginPackageFiles = pluginPackage?.zipHash
-    ? await pluginPackageStore.get(slug, pluginPackage.zipHash) : null;
-  return !!pluginPackageFiles && await pluginPackageFiles.exists('manifest.json');
+  if (!pluginPackage?.zipHash) return false;
+  const pluginPackageFiles = await resolveCurrentPluginPackage(slug, pluginPackage.zipHash);
+  return await pluginPackageFiles.exists('manifest.json');
 }
 
 /**
@@ -591,7 +592,7 @@ export async function restorePlugin(slug: string): Promise<void> {
   }
 
   const pluginPackageFiles = pluginPackage.zipHash
-    ? await pluginPackageStore.get(slug, pluginPackage.zipHash) : null;
+    ? await resolveCurrentPluginPackage(slug, pluginPackage.zipHash, true) : null;
   if (!pluginPackageFiles || !await pluginPackageFiles.exists('manifest.json')) {
     throw Object.assign(new Error(`Plugin "${slug}" files are missing. Please reinstall from ZIP.`), { statusCode: 400 });
   }

@@ -575,21 +575,35 @@ export async function calculateStreamHash(
 export async function spoolStreamToTempFileAndHash(
   stream: Readable,
   prefix: string,
+  maxBytes?: number,
 ): Promise<{ hash: string; filePath: string; cleanup: () => Promise<void> }> {
   const { directory: tempDir, filePath } = await pluginPackageStore.createTemporaryFile(prefix, 'package.zip');
   const hash = createHash('sha256');
   const output = createWriteStream(filePath);
+  let total = 0;
 
-  await pipeline(
-    stream,
-    new Transform({
-      transform(chunk, _encoding, callback) {
-        hash.update(chunk as Buffer);
-        callback(null, chunk);
-      },
-    }),
-    output,
-  );
+  try {
+    await pipeline(
+      stream,
+      new Transform({
+        transform(chunk, _encoding, callback) {
+          total += (chunk as Buffer).length;
+          if (maxBytes !== undefined && total > maxBytes) {
+            callback(Object.assign(new Error('Plugin ZIP exceeds the size limit'), {
+              code: 'PAYLOAD_TOO_LARGE', statusCode: 413,
+            }));
+            return;
+          }
+          hash.update(chunk as Buffer);
+          callback(null, chunk);
+        },
+      }),
+      output,
+    );
+  } catch (error) {
+    await fs.rm(tempDir, { recursive: true, force: true });
+    throw error;
+  }
 
   return {
     hash: hash.digest('hex'),

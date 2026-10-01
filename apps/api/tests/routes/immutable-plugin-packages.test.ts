@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createHash, randomUUID } from 'node:crypto';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import { createWriteStream, promises as fs } from 'node:fs';
@@ -28,7 +28,7 @@ const source = (tag: string, blocked = false) => `module.exports = { register(ct
 } };`;
 
 async function archive(pluginSlug: string, tag: string, options: {
-  version?: string; code?: string; incompleteSignature?: boolean;
+  version?: string; code?: string; incompleteSignature?: boolean; padding?: Buffer;
 } = {}): Promise<Buffer> {
   const root = await fs.mkdtemp(path.join(tmpdir(), 'immutable-zip-'));
   const target = path.join(root, 'plugin.zip');
@@ -47,6 +47,7 @@ async function archive(pluginSlug: string, tag: string, options: {
         entryModule: 'server/index.js', permissions: [], contracts: [],
       }), { name: 'manifest.json' });
       zip.append(options.code ?? source(tag), { name: 'server/index.js' });
+      if (options.padding) zip.append(options.padding, { name: 'padding.bin' });
       if (options.incompleteSignature) zip.append('{}', { name: 'META-INF/jiffoo/package-signature.json' });
       void zip.finalize();
     });
@@ -68,12 +69,15 @@ describe('immutable plugin package deployment', () => {
     token = (await createAdminWithToken()).token;
     base = await app.listen({ port: 0, host: '127.0.0.1' });
   });
-  afterAll(async () => {
+  afterEach(async () => {
     for (const id of slugs) {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: id } });
       await prisma.pluginInstall.deleteMany({ where: { slug: id } });
       await clearTestPluginCache(id);
     }
+    slugs.clear();
+  });
+  afterAll(async () => {
     await deleteAllTestUsers();
     await app.close();
   });
@@ -145,6 +149,202 @@ describe('immutable plugin package deployment', () => {
     childProcess.send({ kind: 'stop' });
     await exited;
   }
+
+  async function isolatedChild(options: { observe?: boolean; barrier?: boolean } = {}) {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'materialize-cache-'));
+    expect(await fs.readdir(root)).toEqual([]);
+    const worker = fork(path.resolve('tests/helpers/plugin-lease-child.ts'), [], {
+      execArgv: ['--import', 'tsx'], stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+      env: {
+        ...process.env, NODE_ENV: 'test', EXTENSIONS_PATH: root,
+        JIFFOO_TEST_ISOLATED_PLUGIN_ROOT: '1',
+        JIFFOO_TEST_BUILTIN_SOURCE_ROOT: path.resolve(process.env.EXTENSIONS_PATH || 'extensions'),
+        JIFFOO_TEST_PLUGIN_MATERIALIZE_OBSERVE: options.observe ? '1' : '0',
+        JIFFOO_TEST_PLUGIN_MATERIALIZE_BARRIER: options.barrier ? '1' : '0',
+      },
+    });
+    const ready = await message(worker, 'ready');
+    return { worker, root, base: ready.base as string };
+  }
+  async function closeIsolated(child: Awaited<ReturnType<typeof isolatedChild>>) {
+    child.worker.send({ kind: 'plugin-materialize-release' });
+    await stop(child.worker);
+    await fs.rm(child.root, { recursive: true, force: true });
+  }
+  const check = async (url: string, id: string) => {
+    const response = await fetch(`${url}/api/v1/extensions/plugin/${id}/api/status`);
+    return { status: response.status, body: await response.json() };
+  };
+
+  it('A a separate process with an empty root materializes and runs the DB-current ZIP', async () => {
+    const id = own();
+    expect((await upload(await archive(id, 'remote'))).status).toBe(200);
+    await enabled(id);
+    const child = await isolatedChild();
+    try {
+      await expect(fs.access(path.join(child.root, 'plugins', id))).rejects.toMatchObject({ code: 'ENOENT' });
+      expect(await check(child.base, id)).toMatchObject({ status: 200, body: { tag: 'remote' } });
+    } finally { await closeIsolated(child); }
+  });
+
+  it.each(['bytes', 'sizeBytes'] as const)('B tampered %s is corrupt and cannot execute the entry', async (tamper) => {
+    const id = own();
+    const zip = await archive(id, 'never', {
+      code: `if (process.env.JIFFOO_TEST_ISOLATED_PLUGIN_ROOT === '1') require('fs').writeFileSync(${JSON.stringify(path.join(tmpdir(), `materialize-effect-${id}`))}, 'executed'); ${source('never')}`,
+    });
+    const effect = path.join(tmpdir(), `materialize-effect-${id}`);
+    expect((await upload(zip)).status).toBe(200);
+    await enabled(id);
+    await prisma.pluginPackageBlob.update({
+      where: { pluginSlug_zipHash: { pluginSlug: id, zipHash: hash(zip) } },
+      data: tamper === 'bytes' ? { bytes: Buffer.from('tampered') } : { sizeBytes: zip.length + 1 },
+    });
+    const child = await isolatedChild();
+    try {
+      expect(await check(child.base, id)).toMatchObject({ status: 500, body: { error: { code: 'PLUGIN_PACKAGE_CORRUPT' } } });
+      await expect(fs.access(effect)).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally { await closeIsolated(child); await fs.rm(effect, { force: true }); }
+  });
+
+  it('C concurrent requests for one hash read and publish exactly once', async () => {
+    const id = own();
+    expect((await upload(await archive(id, 'shared'))).status).toBe(200);
+    await enabled(id);
+    const child = await isolatedChild({ observe: true, barrier: true });
+    const seen: string[] = [];
+    child.worker.on('message', (value: any) => { if (value?.kind?.startsWith('plugin-materialize-')) seen.push(value.kind); });
+    try {
+      const ready = message(child.worker, 'plugin-materialize-ready');
+      const first = check(child.base, id);
+      expect((await ready).slug).toBe(id);
+      const second = check(child.base, id);
+      const released = message(child.worker, 'plugin-materialize-released');
+      child.worker.send({ kind: 'plugin-materialize-release' });
+      expect((await released).slug).toBe(id);
+      expect((await Promise.all([first, second])).map((result) => result.status)).toEqual([200, 200]);
+      expect(seen.filter((kind) => kind === 'plugin-materialize-read')).toHaveLength(1);
+      expect(seen.filter((kind) => kind === 'plugin-materialize-publish')).toHaveLength(1);
+    } finally { await closeIsolated(child); }
+  });
+
+  it('D a missing blob returns PLUGIN_PACKAGE_UNAVAILABLE', async () => {
+    const id = own();
+    const zip = await archive(id, 'missing');
+    expect((await upload(zip)).status).toBe(200);
+    await enabled(id);
+    await prisma.pluginPackageBlob.delete({ where: { pluginSlug_zipHash: { pluginSlug: id, zipHash: hash(zip) } } });
+    const child = await isolatedChild();
+    try {
+      expect(await check(child.base, id)).toMatchObject({ status: 503, body: { error: { code: 'PLUGIN_PACKAGE_UNAVAILABLE' } } });
+    } finally { await closeIsolated(child); }
+  });
+
+  it('E a held materialization times out and a late publish serves the next call', async () => {
+    const id = own();
+    expect((await upload(await archive(id, 'late'))).status).toBe(200);
+    await enabled(id);
+    const child = await isolatedChild({ barrier: true });
+    try {
+      const ready = message(child.worker, 'plugin-materialize-ready');
+      const started = Date.now();
+      const first = check(child.base, id);
+      expect((await ready).slug).toBe(id);
+      expect(await first).toMatchObject({ status: 503, body: { error: { code: 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT' } } });
+      expect(Date.now() - started).toBeLessThan(12_000);
+      const released = message(child.worker, 'plugin-materialize-released');
+      child.worker.send({ kind: 'plugin-materialize-release' });
+      expect((await released).slug).toBe(id);
+      expect(await check(child.base, id)).toMatchObject({ status: 200, body: { tag: 'late' } });
+    } finally { await closeIsolated(child); }
+  }, 20_000);
+
+  it('G only two different hashes enter materialization concurrently', async () => {
+    const ids = [own(), own(), own()];
+    for (const id of ids) {
+      expect((await upload(await archive(id, id))).status).toBe(200);
+      await enabled(id);
+    }
+    const child = await isolatedChild({ barrier: true, observe: true });
+    const reads: string[] = [];
+    child.worker.on('message', (value: any) => { if (value?.kind === 'plugin-materialize-read') reads.push(value.slug); });
+    try {
+      const finished = message(child.worker, 'resolved-packages');
+      void finished.catch(() => undefined);
+      const firstTwo = new Promise<string[]>((resolve) => {
+        const seen: string[] = [];
+        const observe = (value: any) => {
+          if (value?.kind !== 'plugin-materialize-ready') return;
+          seen.push(value.slug);
+          if (seen.length === 2) { child.worker.off('message', observe); resolve(seen); }
+        };
+        child.worker.on('message', observe);
+      });
+      child.worker.send({ kind: 'resolve-packages', slugs: ids });
+      const active = new Set(await firstTwo);
+      expect(active.size).toBe(2);
+      expect([...active].every((id) => ids.includes(id))).toBe(true);
+      expect(new Set(reads)).toEqual(active);
+      const thirdReady = message(child.worker, 'plugin-materialize-ready');
+      child.worker.send({ kind: 'plugin-materialize-release' });
+      expect(ids.filter((id) => !active.has(id))).toEqual([(await thirdReady).slug]);
+      child.worker.send({ kind: 'plugin-materialize-release' });
+      expect((await finished).results).toEqual(['ok', 'ok', 'ok']);
+      expect(new Set(reads)).toEqual(new Set(ids));
+    } finally { await closeIsolated(child); }
+  }, 60_000);
+
+  it('H a changed DB-current hash cannot run the old candidate', async () => {
+    const id = own();
+    expect((await upload(await archive(id, 'old'))).status).toBe(200);
+    await enabled(id);
+    const child = await isolatedChild({ barrier: true });
+    try {
+      const ready = message(child.worker, 'plugin-materialize-ready');
+      const first = check(child.base, id);
+      expect((await ready).slug).toBe(id);
+      expect((await upload(await archive(id, 'new', { version: '2.0.0' }))).status).toBe(200);
+      child.worker.send({ kind: 'plugin-materialize-release' });
+      expect(await first).toMatchObject({ status: 503, body: { error: { code: 'PLUGIN_PACKAGE_UNAVAILABLE' } } });
+      const nextReady = message(child.worker, 'plugin-materialize-ready');
+      const next = check(child.base, id);
+      expect((await nextReady).slug).toBe(id);
+      child.worker.send({ kind: 'plugin-materialize-release' });
+      expect(await next).toMatchObject({ status: 200, body: { tag: 'new' } });
+    } finally { await closeIsolated(child); }
+  });
+
+  it('I plugin uploads and bundle-embedded plugin ZIPs reject over 10 MiB', async () => {
+    const id = own();
+    const large = await archive(id, 'large', { padding: randomBytes(10 * 1024 * 1024) });
+    expect(large.length).toBeGreaterThan(10 * 1024 * 1024);
+    const rejectedUpload = await upload(large);
+    expect(rejectedUpload, JSON.stringify(rejectedUpload)).toMatchObject({ status: 413, body: { error: { code: 'PAYLOAD_TOO_LARGE' } } });
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'oversize-bundle-'));
+    try {
+      const target = path.join(root, 'bundle.zip');
+      await new Promise<void>((resolve, reject) => {
+        const output = createWriteStream(target);
+        const zip = archiver('zip');
+        output.once('close', resolve);
+        output.once('error', reject);
+        zip.once('error', reject);
+        zip.pipe(output);
+        zip.append(JSON.stringify({
+          schemaVersion: 1, name: 'Oversize plugin', version: '1.0.0',
+          install: { plugins: [{ zip: 'plugins/plugin.zip', slug: id }] },
+        }), { name: 'bundle.json' });
+        zip.append(large, { name: 'plugins/plugin.zip', store: true });
+        void zip.finalize();
+      });
+      const form = new FormData();
+      form.set('file', new Blob([await fs.readFile(target)], { type: 'application/zip' }), 'bundle.zip');
+      const response = await fetch(`${base}/api/v1/extensions/bundle/install`, {
+        method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form,
+      });
+      expect(response.status, JSON.stringify(await response.clone().json())).toBe(413);
+      expect((await response.json()).error.code).toBe('PAYLOAD_TOO_LARGE');
+    } finally { await fs.rm(root, { recursive: true, force: true }); }
+  });
 
   it('A new install persists the exact ZIP bytes, hash, and size', async () => {
     const id = own();

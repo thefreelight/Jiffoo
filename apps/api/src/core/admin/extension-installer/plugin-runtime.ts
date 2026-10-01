@@ -25,6 +25,7 @@ import { randomUUID } from 'crypto';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import type { PluginManifest } from './types';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { resolveCurrentPluginPackage, PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
 import { loadPluginEntryModule } from './plugin-module-loader';
 import { validatePluginCompatibility, PluginLoaderError } from './plugin-compatibility';
 import {
@@ -231,9 +232,7 @@ function logAudit(entry: GatewayAuditLog, fastify?: FastifyInstance): void {
 async function readPluginManifest(plugin: PluginInstall): Promise<PluginManifest> {
   try {
     readStoredPluginManifest(plugin);
-    const pluginPackage = plugin.zipHash
-      ? await pluginPackageStore.get(plugin.slug, plugin.zipHash) : null;
-    if (!pluginPackage) throw new PluginGatewayError(`Plugin package unavailable: ${plugin.slug}`, 'PLUGIN_PACKAGE_UNAVAILABLE', 503);
+    const pluginPackage = await resolveCurrentPluginPackage(plugin.slug, plugin.zipHash || undefined);
     const packageManifest: unknown = JSON.parse(await pluginPackage.readText('manifest.json'));
     const issues = getPluginManifestIssues(packageManifest);
     if (issues.length > 0 || !isPluginManifest(packageManifest)) {
@@ -603,10 +602,7 @@ async function ensureInternalRuntime(
   }
 
   const entryModule = manifest.entryModule || 'server/index.js';
-  const pluginPackage = ctx.zipHash ? await pluginPackageStore.get(slug, ctx.zipHash) : null;
-  if (!pluginPackage) {
-    throw new PluginGatewayError(`Plugin package unavailable: ${slug}`, 'PLUGIN_PACKAGE_UNAVAILABLE', 503);
-  }
+  const pluginPackage = await resolveCurrentPluginPackage(slug, ctx.zipHash);
   if (!await pluginPackage.exists(entryModule)) {
     throw new PluginGatewayError(`Plugin entry module not found: ${entryModule}`, 'PLUGIN_LOAD_FAILED', 400);
   }
@@ -695,7 +691,7 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
 }
 
 export class ContractCallError extends Error {
-  constructor(public readonly code: 'CONTRACT_RESPONSE_INVALID' | 'CONTRACT_CALL_FAILED' | 'PLUGIN_PACKAGE_UNAVAILABLE', message: string) { super(message); }
+  constructor(public readonly code: 'CONTRACT_RESPONSE_INVALID' | 'CONTRACT_CALL_FAILED' | 'PLUGIN_PACKAGE_UNAVAILABLE' | 'PLUGIN_PACKAGE_CORRUPT' | 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT', message: string) { super(message); }
 }
 
 const contractMethods = { payment: paymentV1Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
@@ -726,8 +722,7 @@ export async function callContract(
   let manifest: PluginManifest;
   try { manifest = await readPluginManifest(pkg); } catch (error) {
     await recordPluginFailure(slug, error, 'contract');
-    if (error instanceof PluginGatewayError && error.code === 'PLUGIN_PACKAGE_UNAVAILABLE')
-      throw new ContractCallError('PLUGIN_PACKAGE_UNAVAILABLE', error.message);
+    if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
     throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} manifest is invalid`);
   }
   if (!manifest.contracts?.some((contract) => contract.name === contractName && contract.version === version)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} does not declare ${contractName} v${version}`);
@@ -755,8 +750,7 @@ export async function callContract(
     return parsed.data;
   } catch (error) {
     if (error instanceof ContractCallError) throw error;
-    if (error instanceof PluginGatewayError && error.code === 'PLUGIN_PACKAGE_UNAVAILABLE')
-      throw new ContractCallError('PLUGIN_PACKAGE_UNAVAILABLE', error.message);
+    if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
     await recordPluginFailure(slug, error, 'contract', instance.id); recordBreakerResult(slug, false);
     throw new ContractCallError('CONTRACT_CALL_FAILED', redactPluginText(`Contract call failed for ${slug}: ${error instanceof Error ? error.message : String(error)}`, config, manifest));
   }
@@ -1017,7 +1011,7 @@ export async function handlePluginGateway(
     statusCode = reply.statusCode;
     return;
   } catch (error: any) {
-    if (error instanceof PluginGatewayError) {
+    if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
       statusCode = error.statusCode;
       errorMessage = error.message;
     } else {

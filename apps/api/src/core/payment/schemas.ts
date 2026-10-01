@@ -106,7 +106,12 @@ export const paymentSchemas = {
         idempotencyKey: { type: 'string', description: 'Idempotency key to avoid duplicate payment sessions' },
       },
     },
-    response: { ...createTypedCrudResponses(paymentSessionSchema), 409: errorResponseSchema },
+    response: {
+      ...createTypedCrudResponses(paymentSessionSchema),
+      409: errorResponseSchema,
+      500: { ...errorResponseSchema, description: 'Includes PLUGIN_PACKAGE_CORRUPT' },
+      503: { ...errorResponseSchema, description: 'PLUGIN_PACKAGE_UNAVAILABLE or PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT' },
+    },
   },
 
   // GET /api/payments/verify/:sessionId
@@ -137,7 +142,8 @@ export const paymentSchemas = {
     },
     response: {
       ...createTypedCrudResponses(webhookResponseSchema),
-      503: errorResponseSchema,
+      500: { ...errorResponseSchema, description: 'Includes PLUGIN_PACKAGE_CORRUPT' },
+      503: { ...errorResponseSchema, description: 'PLUGIN_PACKAGE_UNAVAILABLE or PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT' },
     },
   },
 } as const;

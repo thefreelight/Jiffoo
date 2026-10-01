@@ -1,5 +1,6 @@
 import { EventDeliveryEngine } from '../../src/infra/events/delivery';
 import { prisma } from '../../src/config/database';
+import { seedBuiltinCache } from './seed-builtin-cache';
 
 if (new URL(process.env.DATABASE_URL!).pathname !== '/jiffoo_core_test'
   || new URL(process.env.REDIS_URL!).pathname !== '/15') throw new Error('Event child requires isolated test services');
@@ -44,4 +45,11 @@ process.on('message', async (message: { command: string; requestId: string }) =>
     process.send!({ kind: 'error', requestId: message.requestId, message: error instanceof Error ? error.message : String(error) });
   }
 });
-process.send!({ kind: 'ready', pid: process.pid });
+if (process.env.JIFFOO_TEST_ISOLATED_PLUGIN_ROOT === '1') {
+  void seedBuiltinCache().then(
+    () => process.send!({ kind: 'ready', pid: process.pid }),
+    (error) => { process.send!({ kind: 'error', message: String(error) }); process.exitCode = 1; },
+  );
+} else {
+  process.send!({ kind: 'ready', pid: process.pid });
+}

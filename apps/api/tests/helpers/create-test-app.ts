@@ -259,7 +259,7 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
     // Register multipart for file uploads
     await fastify.register(multipart, {
       limits: {
-        fileSize: 5 * 1024 * 1024,
+        fileSize: 500 * 1024 * 1024,
         files: 1,
       },
     });

@@ -16,6 +16,7 @@ import {
 } from './types';
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-package';
 import { InvalidStoredManifestError, readStoredPluginManifest } from './stored-manifest';
 import type { PluginInstall } from '@prisma/client';
 
@@ -111,8 +112,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
         const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
         const packages = await PluginManagementService.getAllPluginPackages();
         return Promise.all(packages.map(async (pkg) => {
-          const pluginPackage = pkg.zipHash ? await pluginPackageStore.get(pkg.slug, pkg.zipHash) : null;
-          if (!pluginPackage) throw new Error(`Plugin package files are missing for "${pkg.slug}"`);
+          const pluginPackage = await resolveCurrentPluginPackage(pkg.slug, pkg.zipHash || undefined);
           return {
           id: pkg.id,
           slug: pkg.slug,
@@ -158,8 +158,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
         if (!pkg) {
           return null;
         }
-        const pluginPackage = pkg.zipHash ? await pluginPackageStore.get(pkg.slug, pkg.zipHash) : null;
-        if (!pluginPackage) throw new Error(`Plugin package files are missing for "${pkg.slug}"`);
+        const pluginPackage = await resolveCurrentPluginPackage(pkg.slug, pkg.zipHash || undefined);
         return {
           id: pkg.id,
           slug: pkg.slug,

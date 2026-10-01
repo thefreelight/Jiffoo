@@ -43,7 +43,9 @@ import { syncEventSubscriptions } from '@/infra/events/emit';
 import { decryptPluginConfig } from '@/core/admin/plugin-management/config-crypto';
 import { redactPluginFailure } from './plugin-failure';
 import { verifyPluginZip } from 'shared/plugin-signing';
+import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
+import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-package';
 import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
 
 function parseJsonArray(value: unknown): string[] {
@@ -124,7 +126,7 @@ export class PluginFsInstaller implements IPluginInstaller {
       hash: zipHash,
       filePath: zipFilePath,
       cleanup: cleanupTempZip,
-    } = await spoolStreamToTempFileAndHash(zipStream, 'plugin-install');
+    } = await spoolStreamToTempFileAndHash(zipStream, 'plugin-install', PLUGIN_MAX_ZIP_SIZE);
     tempZipCleanup = cleanupTempZip;
 
     try {
@@ -530,10 +532,7 @@ export class PluginFsInstaller implements IPluginInstaller {
   async get(slug: string): Promise<InstalledPlugin | null> {
     const installed = await prisma.pluginInstall.findUnique({ where: { slug } });
     if (!installed || installed.deletedAt || !installed.zipHash) return null;
-    const pluginPackage = await pluginPackageStore.get(slug, installed.zipHash);
-    if (!pluginPackage) {
-      return null;
-    }
+    const pluginPackage = await resolveCurrentPluginPackage(slug, installed.zipHash);
     return this.rebuildMetaFromManifest(slug, pluginPackage, installed);
   }
 

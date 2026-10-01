@@ -400,7 +400,12 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       });
     } catch (error: any) {
       LoggerService.logPayment('create-session-error', undefined, undefined, { error: error.message });
-      return sendError(reply, 400, 'BAD_REQUEST', error.message);
+      if (error?.code === 'PLUGIN_PACKAGE_UNAVAILABLE' || error?.code === 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT')
+        return sendError(reply, 503, error.code, error.message);
+      if (error?.code === 'PLUGIN_PACKAGE_CORRUPT') return sendError(reply, 500, error.code, error.message);
+      if (error?.code === 'CONTRACT_CALL_FAILED' || error?.code === 'CONTRACT_RESPONSE_INVALID')
+        return sendError(reply, 502, 'CONTRACT_CALL_FAILED', 'Payment provider is temporarily unavailable');
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Payment session creation failed');
     }
   });
 
@@ -456,9 +461,16 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     }
     LoggerService.logPayment('webhook-received', undefined, undefined, { provider });
     const rawBody = typeof request.body === 'string' ? request.body : JSON.stringify(request.body || {});
-    const result = await callContract(provider, 'payment', 1, 'handleWebhook', { headers: request.headers as Record<string, string>, query: request.query as Record<string, string>, rawBody }) as any;
-    const { applyNormalizedPluginWebhook } = await import('./plugin-webhook');
-    await Promise.all(result.events.map((event: any) => applyNormalizedPluginWebhook(provider, { received: true, handled: true, providerEventId: event.providerEventId, sessionId: event.sessionId, normalizedStatus: event.status })));
-    return sendSuccess(reply, { received: true });
+    try {
+      const result = await callContract(provider, 'payment', 1, 'handleWebhook', { headers: request.headers as Record<string, string>, query: request.query as Record<string, string>, rawBody }) as any;
+      const { applyNormalizedPluginWebhook } = await import('./plugin-webhook');
+      await Promise.all(result.events.map((event: any) => applyNormalizedPluginWebhook(provider, { received: true, handled: true, providerEventId: event.providerEventId, sessionId: event.sessionId, normalizedStatus: event.status })));
+      return sendSuccess(reply, { received: true });
+    } catch (error: any) {
+      if (error?.code === 'PLUGIN_PACKAGE_UNAVAILABLE' || error?.code === 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT')
+        return sendError(reply, 503, error.code, error.message);
+      if (error?.code === 'PLUGIN_PACKAGE_CORRUPT') return sendError(reply, 500, error.code, error.message);
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Payment webhook failed');
+    }
   });
 }

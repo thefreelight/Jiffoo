@@ -197,7 +197,11 @@ export const orderSchemas = {
         expectedTotal: { type: 'string', pattern: '^\\d+(?:\\.\\d+)?$', description: 'Confirmed quote total' },
       },
     },
-    response: { ...createTypedCreateResponses(orderResponseSchema), 503: errorResponseSchema },
+    response: {
+      ...createTypedCreateResponses(orderResponseSchema),
+      500: { ...errorResponseSchema, description: 'Includes PLUGIN_PACKAGE_CORRUPT' },
+      503: { ...errorResponseSchema, description: 'PLUGIN_PACKAGE_UNAVAILABLE or PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT' },
+    },
   },
 
   // GET /api/orders/ (paginated)

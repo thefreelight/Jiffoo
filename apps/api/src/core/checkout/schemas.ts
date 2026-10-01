@@ -63,6 +63,10 @@ export const checkoutSchemas = {
       required: ['shippingAddress'],
       properties: { shippingAddress: shippingAddressSchema, shippingOptionId: { type: 'string' } },
     },
-    response: { ...createTypedReadResponses(quoteResponseSchema), 503: errorResponseSchema },
+    response: {
+      ...createTypedReadResponses(quoteResponseSchema),
+      500: { ...errorResponseSchema, description: 'Includes PLUGIN_PACKAGE_CORRUPT' },
+      503: { ...errorResponseSchema, description: 'PLUGIN_PACKAGE_UNAVAILABLE or PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT' },
+    },
   },
 } as const;
