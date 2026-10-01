@@ -33,7 +33,6 @@ import {
   LogOut,
   ChevronUp,
   ChevronDown,
-  Crown,
   Radar,
   ShieldCheck,
 } from 'lucide-react'
@@ -440,24 +439,6 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
             )
           })}
         </nav>
-
-        {/* Pro upsell card */}
-        <button
-          type="button"
-          className="mt-4 flex w-full shrink-0 items-center gap-3 rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-violet-50 p-3 text-left transition-colors hover:border-indigo-200"
-          aria-label={getText('merchant.nav.proTagline', '解锁更多高阶功能')}
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
-            <Crown className="h-5 w-5 text-violet-500" />
-          </span>
-          <span className="flex min-w-0 flex-col">
-            <span className="text-sm font-bold text-slate-900">Jiffoo Pro</span>
-            <span className="truncate text-[11px] text-slate-400">
-              {getText('merchant.nav.proTagline', '解锁更多高阶功能')}
-            </span>
-          </span>
-          <ChevronUp className="ml-auto h-4 w-4 shrink-0 -rotate-90 text-slate-300" />
-        </button>
 
         {/* User Account Section */}
         <div className="mt-4 shrink-0 pt-4 border-t border-gray-50">

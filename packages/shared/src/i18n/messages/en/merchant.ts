@@ -22,7 +22,6 @@ export const merchant = {
     jobSources: 'Job Sources',
     roleSuperAdmin: 'Super Admin',
     roleMember: 'Member',
-    proTagline: 'Unlock more advanced features',
   },
 
   // Extensions (Plugins + Themes)

@@ -22,7 +22,6 @@ export const merchant = {
     jobSources: 'Job Sources',
     roleSuperAdmin: '超级管理员',
     roleMember: '成员',
-    proTagline: '解锁更多高阶功能',
   },
 
   // Extensions (Plugins + Themes)
