@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PluginFsInstaller } from '@/core/admin/extension-installer/plugin-fs-installer';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { createAdminUser, deleteTestUser, type TestUser } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 
@@ -70,7 +71,7 @@ describe('PluginFsInstaller unsigned packages', () => {
       await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: admin.id } });
       await deleteTestUser(admin.id);
     }
-    await pluginPackageStore.delete(slug);
+    await clearTestPluginCache(slug);
     await cleanupArchive?.();
   });
 
@@ -129,7 +130,7 @@ module.exports.__lifecycle_onUninstall = async function onUninstall() { await fs
     } finally {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: hookSlug } });
       await prisma.pluginInstall.deleteMany({ where: { slug: hookSlug } });
-      await pluginPackageStore.delete(hookSlug);
+      await clearTestPluginCache(hookSlug);
       await fs.rm(markerPath, { force: true });
       await first.cleanup();
       await second.cleanup();

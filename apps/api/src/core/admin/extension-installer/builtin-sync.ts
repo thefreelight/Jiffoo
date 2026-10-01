@@ -3,18 +3,20 @@ import path from 'path';
 import { prisma } from '@/config/database';
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 
 const BUILTIN_SYNC_LOCK = 824_301_551;
 
 export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
-  await prisma.$executeRawUnsafe(`SELECT pg_advisory_lock(${BUILTIN_SYNC_LOCK})`);
-  try {
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(${BUILTIN_SYNC_LOCK})::text`;
     const entries = await fs.readdir(builtinRoot, { withFileTypes: true });
     for (const entry of entries.filter((candidate) => candidate.isDirectory()).sort((left, right) => left.name.localeCompare(right.name))) {
       const directory = path.join(builtinRoot, entry.name);
       const manifest = JSON.parse(await fs.readFile(path.join(directory, 'manifest.json'), 'utf8')) as { slug: string; version: string };
       const installed = await prisma.pluginInstall.findUnique({ where: { slug: manifest.slug } });
-      if (installed && installed.version === manifest.version) continue;
+      if (installed && installed.version === manifest.version && installed.zipHash
+        && await pluginPackageStore.get(manifest.slug, installed.zipHash)) continue;
       const wasInstalled = Boolean(installed);
       await pluginFsInstaller.installFromDirectory(directory, { source: 'builtin' });
       if (!wasInstalled) {
@@ -33,7 +35,5 @@ export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
         });
       }
     }
-  } finally {
-    await prisma.$executeRawUnsafe(`SELECT pg_advisory_unlock(${BUILTIN_SYNC_LOCK})`);
-  }
+  }, { timeout: 120_000 });
 }

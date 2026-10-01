@@ -374,7 +374,7 @@ async function updateInstance(
     try {
       if (isEnabling) {
         const { validateCandidateRuntime } = await import('@/core/admin/extension-installer/plugin-runtime');
-        await validateCandidateRuntime(existing.pluginSlug, manifest, existing.id, runtimeConfig);
+        await validateCandidateRuntime(existing.pluginSlug, pluginPackage.zipHash || '', manifest, existing.id, runtimeConfig);
       } else {
         await warmPluginInstanceRuntime(existing.pluginSlug, existing.id, runtimeConfig);
       }
@@ -467,7 +467,9 @@ export async function isPluginEnabled(
     return false;
   }
 
-  const pluginPackageFiles = await pluginPackageStore.get(slug);
+  const pluginPackage = await prisma.pluginInstall.findUnique({ where: { slug } });
+  const pluginPackageFiles = pluginPackage?.zipHash
+    ? await pluginPackageStore.get(slug, pluginPackage.zipHash) : null;
   return !!pluginPackageFiles && await pluginPackageFiles.exists('manifest.json');
 }
 
@@ -578,7 +580,8 @@ export async function restorePlugin(slug: string): Promise<void> {
     throw new Error(`Plugin "${slug}" is already installed`);
   }
 
-  const pluginPackageFiles = await pluginPackageStore.get(slug);
+  const pluginPackageFiles = pluginPackage.zipHash
+    ? await pluginPackageStore.get(slug, pluginPackage.zipHash) : null;
   if (!pluginPackageFiles || !await pluginPackageFiles.exists('manifest.json')) {
     throw new Error(`Plugin "${slug}" files are missing. Please reinstall from ZIP.`);
   }
@@ -646,8 +649,6 @@ export async function purgePlugin(slug: string): Promise<void> {
 
   const defaultInstance = await getDefaultInstance(slug);
   await assertNotLastEnabledProvider(slug, Boolean(defaultInstance?.enabled), pluginPackage.manifestJson);
-
-  await pluginPackageStore.delete(slug);
 
   await prisma.$transaction(async (tx) => {
     await tx.pluginInstall.delete({ where: { slug } });

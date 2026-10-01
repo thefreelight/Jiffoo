@@ -21,6 +21,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers, type TestUser } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
 interface PluginArchiveOptions {
@@ -130,7 +131,7 @@ describe('Extensions Installer Endpoints', () => {
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: uploadSlug } });
     await prisma.pluginInstall.deleteMany({ where: { slug: uploadSlug } });
     await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: adminUser.id } });
-    await pluginPackageStore.delete(uploadSlug);
+    await clearTestPluginCache(uploadSlug);
     await cleanupArchive?.();
     await deleteAllTestUsers();
     await app.close();
@@ -155,7 +156,7 @@ describe('Extensions Installer Endpoints', () => {
       expect(response.json().error.message).toContain('storefrontScript');
       expect(await prisma.pluginInstall.count({ where: { slug } })).toBe(0);
       expect(await prisma.pluginInstallation.count({ where: { pluginSlug: slug } })).toBe(0);
-      expect(await pluginPackageStore.get(slug)).toBeNull();
+      expect(await pluginPackageStore.list()).not.toContain(slug);
     } finally {
       await archive.cleanup();
     }
@@ -195,7 +196,7 @@ describe('Extensions Installer Endpoints', () => {
     } finally {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
       await prisma.pluginInstall.deleteMany({ where: { slug } });
-      await pluginPackageStore.delete(slug);
+      await clearTestPluginCache(slug);
       await archive.cleanup();
     }
   });
@@ -213,7 +214,7 @@ describe('Extensions Installer Endpoints', () => {
       expect(rejectedInstall.json().error.code).toBe(code);
       expect(await prisma.pluginInstall.count({ where: { slug } })).toBe(0);
       expect(await prisma.pluginInstallation.count({ where: { pluginSlug: slug } })).toBe(0);
-      expect(await pluginPackageStore.get(slug)).toBeNull();
+      expect(await pluginPackageStore.list()).not.toContain(slug);
 
       const installed = await uploadPlugin(base.archivePath);
       expect(installed.statusCode).toBe(200);
@@ -233,7 +234,8 @@ describe('Extensions Installer Endpoints', () => {
       expect(rejectedUpgrade.json().error.code).toBe(code);
       expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).version).toBe('1.0.0');
       expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: instance.id } })).enabled).toBe(true);
-      const packageFiles = await pluginPackageStore.get(slug);
+      const current = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } });
+      const packageFiles = await pluginPackageStore.get(slug, current.zipHash!);
       expect(JSON.parse(await packageFiles!.readText('manifest.json')).version).toBe('1.0.0');
       const active = await app.inject({ method: 'GET', url: `/api/v1/extensions/plugin/${slug}/api/status` });
       expect(active.statusCode).toBe(200);
@@ -241,7 +243,7 @@ describe('Extensions Installer Endpoints', () => {
     } finally {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
       await prisma.pluginInstall.deleteMany({ where: { slug } });
-      await pluginPackageStore.delete(slug);
+      await clearTestPluginCache(slug);
       await base.cleanup();
       await unsafe.cleanup();
     }
@@ -311,7 +313,7 @@ describe('Extensions Installer Endpoints', () => {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: uploadSlug } });
       await prisma.pluginInstall.deleteMany({ where: { slug: uploadSlug } });
       await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: adminUser.id } });
-      await pluginPackageStore.delete(uploadSlug);
+      await clearTestPluginCache(uploadSlug);
       const archive = await createUnsignedPluginArchive(uploadSlug, { shippingContract: true });
       cleanupArchive = archive.cleanup;
 
@@ -444,7 +446,7 @@ describe('Extensions Installer Endpoints', () => {
         await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: builtinSlug } });
         await prisma.pluginInstall.deleteMany({ where: { slug: builtinSlug } });
         await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: adminUser.id } });
-        await pluginPackageStore.delete(builtinSlug);
+        await clearTestPluginCache(builtinSlug);
 
         const unconfirmed = await multipartPluginUpload(archive.archivePath, false);
         const unconfirmedResponse = await app.inject({
@@ -463,7 +465,7 @@ describe('Extensions Installer Endpoints', () => {
       } finally {
         await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: builtinSlug } });
         await prisma.pluginInstall.deleteMany({ where: { slug: builtinSlug } });
-        await pluginPackageStore.delete(builtinSlug);
+        await clearTestPluginCache(builtinSlug);
         await archive.cleanup();
       }
     });
@@ -503,7 +505,7 @@ describe('Extensions Installer Endpoints', () => {
       } finally {
         await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: esmSlug } });
         await prisma.pluginInstall.deleteMany({ where: { slug: esmSlug } });
-        await pluginPackageStore.delete(esmSlug);
+        await clearTestPluginCache(esmSlug);
         await archive.cleanup();
       }
     });

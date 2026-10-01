@@ -1,4 +1,4 @@
-import { createTypedReadResponses } from '@/types/common-dto';
+import { createTypedReadResponses, errorResponseSchema } from '@/types/common-dto';
 
 const shippingAddressSchema = {
   type: 'object',
@@ -63,6 +63,6 @@ export const checkoutSchemas = {
       required: ['shippingAddress'],
       properties: { shippingAddress: shippingAddressSchema, shippingOptionId: { type: 'string' } },
     },
-    response: createTypedReadResponses(quoteResponseSchema),
+    response: { ...createTypedReadResponses(quoteResponseSchema), 503: errorResponseSchema },
   },
 } as const;

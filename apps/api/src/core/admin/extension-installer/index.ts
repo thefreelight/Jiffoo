@@ -111,7 +111,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
         const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
         const packages = await PluginManagementService.getAllPluginPackages();
         return Promise.all(packages.map(async (pkg) => {
-          const pluginPackage = await pluginPackageStore.get(pkg.slug);
+          const pluginPackage = pkg.zipHash ? await pluginPackageStore.get(pkg.slug, pkg.zipHash) : null;
           if (!pluginPackage) throw new Error(`Plugin package files are missing for "${pkg.slug}"`);
           return {
           id: pkg.id,
@@ -158,7 +158,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
         if (!pkg) {
           return null;
         }
-        const pluginPackage = await pluginPackageStore.get(pkg.slug);
+        const pluginPackage = pkg.zipHash ? await pluginPackageStore.get(pkg.slug, pkg.zipHash) : null;
         if (!pluginPackage) throw new Error(`Plugin package files are missing for "${pkg.slug}"`);
         return {
           id: pkg.id,

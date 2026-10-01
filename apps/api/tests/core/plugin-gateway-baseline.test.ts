@@ -20,6 +20,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
 
 describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
   let app: FastifyInstance;
@@ -62,9 +63,6 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
       'utf-8',
     );
 
-    await pluginPackageStore.put(slug, pluginDir);
-    pluginDir = (await pluginPackageStore.get(slug))!.getEntryPath('');
-
     await fs.writeFile(
       path.join(pluginDir, entryModule),
       `
@@ -90,6 +88,7 @@ module.exports = { register(ctx) {
       'utf-8',
     );
 
+    const zipHash = await publishTestPlugin(slug, pluginDir);
     await prisma.pluginInstall.create({
       data: {
         slug,
@@ -100,6 +99,7 @@ module.exports = { register(ctx) {
         runtimeType: 'internal-fastify',
         entryModule,
         source: 'local-zip',
+        zipHash,
         manifestJson: manifest,
         permissions: JSON.stringify([]),
       },
@@ -118,7 +118,7 @@ module.exports = { register(ctx) {
   afterAll(async () => {
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
     await prisma.pluginInstall.deleteMany({ where: { slug } });
-    await pluginPackageStore.delete(slug);
+    await clearTestPluginCache(slug);
     await deleteAllTestUsers();
     await app.close();
   });

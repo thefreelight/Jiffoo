@@ -4,6 +4,8 @@ import os from 'os';
 import { promises as fs } from 'fs';
 import { executeLifecycleHook, type LifecycleContext } from '@/core/admin/plugin-management/lifecycle-hooks';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
+import { getTestPrisma } from '../helpers/db';
 import type { PluginManifest } from '@jiffoo/shared';
 
 describe('Plugin lifecycle hooks', () => {
@@ -12,7 +14,8 @@ describe('Plugin lifecycle hooks', () => {
   let pluginDir = '';
 
   afterAll(async () => {
-    await pluginPackageStore.delete(slug);
+    await getTestPrisma().pluginInstall.deleteMany({ where: { slug } });
+    await clearTestPluginCache(slug);
     await fs.rm(markerPath, { force: true });
     await fs.rm(pluginDir, { recursive: true, force: true });
   });
@@ -32,8 +35,6 @@ module.exports.__lifecycle_onEnable = async function onEnable(context) {
       'utf-8',
     );
 
-    await pluginPackageStore.put(slug, pluginDir);
-
     const manifest: PluginManifest = {
       schemaVersion: 1,
       slug,
@@ -49,6 +50,11 @@ module.exports.__lifecycle_onEnable = async function onEnable(context) {
         onEnable: true,
       },
     };
+    await fs.writeFile(path.join(pluginDir, 'manifest.json'), JSON.stringify(manifest));
+    const zipHash = await publishTestPlugin(slug, pluginDir);
+    await getTestPrisma().pluginInstall.create({
+      data: { slug, name: manifest.name, version: manifest.version, source: 'local-zip', zipHash, manifestJson: manifest },
+    });
 
     const context: LifecycleContext = {
       installationId: 'inst_test',

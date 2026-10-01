@@ -10,6 +10,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { CERT_PATH, SIGNATURE_PATH, issuePublisherCertificate, signPackage } from 'shared/plugin-signing';
 import { otherPublisher, testPublisher, testRoot, untrustedRoot } from '../fixtures/plugin-signing-keys';
 
@@ -77,7 +78,7 @@ describe('Signed plugin uploads over HTTP', () => {
     for (const slug of slugs) {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
       await prisma.pluginInstall.deleteMany({ where: { slug } });
-      await pluginPackageStore.delete(slug);
+      await clearTestPluginCache(slug);
     }
     await deleteAllTestUsers();
     await app.close();
@@ -94,7 +95,7 @@ describe('Signed plugin uploads over HTTP', () => {
   }
   async function absent(slug: string) {
     expect(await prisma.pluginInstall.count({ where: { slug } })).toBe(0);
-    expect(await pluginPackageStore.get(slug)).toBeNull();
+    expect(await pluginPackageStore.list()).not.toContain(slug);
   }
   async function rejected(slug: string, entries: FileEntry[], code: string, status = 422) {
     const result = await upload(entries);
@@ -164,7 +165,8 @@ describe('Signed plugin uploads over HTTP', () => {
     const result = await upload(signedEntries(slug, { version: '2.0.0', publisherId: 'publisher-y' }));
     expect(result.status).toBe(409); expect(result.body.error.code).toBe('PUBLISHER_CHANGE_FORBIDDEN');
     expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).version).toBe('1.0.0');
-    expect(await pluginPackageStore.get(slug)).not.toBeNull();
+    const row = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } });
+    expect(await pluginPackageStore.get(slug, row.zipHash!)).not.toBeNull();
     expect((await health()).status).toBe(200);
   });
   it('J requires signatures on upgrades of signed plugins', async () => {

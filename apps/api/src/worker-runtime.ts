@@ -14,6 +14,8 @@ import { env } from './config/env';
 import { WORKER_HEARTBEAT_PREFIX, WORKER_HEARTBEAT_TTL_SECONDS, WORKER_HEARTBEAT_INTERVAL_MS, WORKER_TASKS } from './infra/worker-health';
 import { pluginSecretsKey } from './core/admin/plugin-management/config-crypto';
 import { assertTestRootEnvironment } from 'shared/plugin-signing';
+import { syncBuiltinPlugins } from './core/admin/extension-installer/builtin-sync';
+import path from 'node:path';
 
 export async function startWorkerRuntime(options: { redisUrl?: string; healthPort?: number } = {}) {
   assertTestRootEnvironment();
@@ -92,6 +94,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     try { await heartbeatRedis.connect(); } catch { throw new Error('Redis unavailable at worker startup'); }
     redisConnections.push({ name: 'cache', client: redisCache.getRawClient() });
     await redisCache.connect();
+    await syncBuiltinPlugins(path.join(process.cwd(), 'builtin-plugins'));
     await eventDelivery.start();
     await run(cleanupEvents, 'Event cleanup failed');
     cleanupTimer = setInterval(() => void run(cleanupEvents, 'Event cleanup failed'), EVENT_CLEANUP_INTERVAL_MS);

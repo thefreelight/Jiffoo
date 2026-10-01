@@ -12,6 +12,7 @@ import { EventDeliveryEngine, claimEventDeliveries, recoverEventLeases, CLAIM_EV
 import { cleanupEvents } from '@/infra/events/cleanup';
 import { startWorkerRuntime } from '@/worker-runtime';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { publishTestPlugin } from '../helpers/plugin-cache';
 import { dropInternalRuntime } from '@/core/admin/extension-installer/plugin-runtime';
 import { hasEventHandler } from '@/core/admin/extension-installer/contract-v1-runtime';
 import { eventRegistry, getPluginManifestIssues, type EventKey, type EventSubscription } from '@jiffoo/shared';
@@ -66,7 +67,7 @@ describe('durable plugin event delivery', () => {
   const eventIds: string[] = [];
   const users: string[] = [];
   const products: string[] = [];
-  const children: Array<{ child: ChildProcess; exited: Promise<unknown[]> }> = [];
+  const children: Array<{ child: ChildProcess; exited: Promise<unknown[]>; output: { stdout: string; stderr: string } }> = [];
 
   beforeEach(async () => {
     app = await createTestApp({ disableRedis: false });
@@ -107,6 +108,28 @@ describe('durable plugin event delivery', () => {
     return event;
   }
   const delivery = (eventId: string, installationId: string) => prisma.eventDelivery.findUniqueOrThrow({ where: { eventId_installationId: { eventId, installationId } } });
+  async function expectDelivery(
+    row: Awaited<ReturnType<typeof delivery>>,
+    expected: Partial<Awaited<ReturnType<typeof delivery>>>,
+  ) {
+    try {
+      expect(row).toMatchObject(expected);
+    } catch (error) {
+      const installation = await prisma.pluginInstallation.findUnique({ where: { id: row.installationId } });
+      const slug = installation?.pluginSlug;
+      const plugin = slug ? await prisma.pluginInstall.findUnique({ where: { slug } }) : null;
+      const registry = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
+      const root = process.env.EXTENSIONS_PATH || path.join(process.cwd(), 'extensions');
+      const cachePath = slug ? path.join(root, 'plugins', slug) : null;
+      const entries = cachePath
+        ? await fs.readdir(cachePath, { withFileTypes: true }).then((items) => items.map((item) => item.name))
+          .catch((failure: NodeJS.ErrnoException) => [`${failure.code}: ${failure.message}`])
+        : null;
+      const scene = { expected, row, plugin, registryVersion: registry?.pluginRegistryVersion, cachePath, entries,
+        workers: children.map(({ child, output }) => ({ pid: child.pid, ...output })) };
+      throw new Error(`Delivery assertion failed: ${JSON.stringify(scene)}\n${String(error)}`);
+    }
+  }
   async function due(id: string) {
     await prisma.$executeRaw`UPDATE event_deliveries SET "nextAttemptAt" = statement_timestamp() WHERE id = ${id}`;
   }
@@ -129,11 +152,14 @@ describe('durable plugin event delivery', () => {
   }
   async function child(timeoutMs = EVENT_HANDLER_TIMEOUT_MS) {
     const process = fork(path.resolve('tests/helpers/event-worker-child.ts'), [], {
-      execArgv: ['--import', 'tsx'], stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+      execArgv: ['--import', 'tsx'], stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
       env: { ...globalThis.process.env, DATABASE_URL: globalThis.process.env.DATABASE_URL_TEST, EVENT_TEST_TIMEOUT_MS: String(timeoutMs) },
     });
+    const output = { stdout: '', stderr: '' };
+    process.stdout?.on('data', (data) => { output.stdout += data.toString(); });
+    process.stderr?.on('data', (data) => { output.stderr += data.toString(); });
     const exited = once(process, 'exit');
-    children.push({ child: process, exited });
+    children.push({ child: process, exited, output });
     await wait(process, 'ready');
     return process;
   }
@@ -149,6 +175,21 @@ describe('durable plugin event delivery', () => {
   async function attempts() {
     return (await fs.readFile(path.join(directory, 'attempts.log'), 'utf8')).trim().split('\n').map((line) => JSON.parse(line) as { eventId: string; installationId: string; attempt: number });
   }
+
+  it('J: a missing current hash returns 503 and event delivery retries without using another directory', async () => {
+    const installation = await plugin();
+    const row = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: installation.pluginSlug } });
+    const pkg = await pluginPackageStore.get(installation.pluginSlug, row.zipHash!);
+    await fs.rm(pkg!.getEntryPath(''), { recursive: true, force: true });
+    const response = await app.inject({ method: 'GET', url: `/api/v1/extensions/plugin/${installation.pluginSlug}/api/status` });
+    expect(response.statusCode).toBe(503);
+    expect(response.json().error.code).toBe('PLUGIN_PACKAGE_UNAVAILABLE');
+    const event = await emit();
+    await run();
+    const result = await delivery(event.id, installation.id);
+    await expectDelivery(result, { status: 'PENDING', attempts: 1 });
+    expect(result.lastError).toContain('Plugin package unavailable');
+  });
 
   it('H: a real worker delivers each new business event once to a plugin subscribed to all four types', async () => {
     const types = ['customer.created', 'product.created', 'product.updated', 'order.fulfilled'] as const;
@@ -202,9 +243,10 @@ module.exports = { register(ctx) {
     await command(worker, 'drain-all').done;
     for (const record of records) {
       eventRegistry[record.type as EventKey].parse(record.data);
-      expect(await prisma.eventDelivery.findUniqueOrThrow({
+      const delivered = await prisma.eventDelivery.findUniqueOrThrow({
         where: { eventId_installationId: { eventId: record.id, installationId: installation.id } },
-      })).toMatchObject({ status: 'SUCCEEDED', attempts: 1 });
+      });
+      await expectDelivery(delivered, { status: 'SUCCEEDED', attempts: 1 });
       expect(JSON.parse(await fs.readFile(path.join(directory, `${record.type}-${record.id}.effect`), 'utf8'))).toEqual(record.data);
     }
     expect((await fs.readdir(directory)).filter((name) => name.endsWith('.effect'))).toHaveLength(4);
@@ -237,25 +279,47 @@ module.exports = { register(ctx) {
   });
 
   it('B: a real event INSERT failure aborts HTTP order creation and rolls back stock, order and notification writes', async () => {
-    await syncBuiltinPlugins(path.resolve('builtin-plugins'));
-    const buyer = await createUserWithToken(); users.push(buyer.user.id);
-    const product = await createTestProduct({ stock: 5, price: 10 }); products.push(product.id);
-    const items = [{ productId: product.id, variantId: product.variants[0].id, quantity: 1 }];
-    const address = { firstName: 'Test', lastName: 'Buyer', phone: '+1', addressLine1: '1 Test St', city: 'Toronto', state: 'ON', postalCode: 'M5V 2T6', country: 'CA' };
-    const total = await checkoutTotal(app, buyer.token, items, address, 'free-shipping:free');
-    await prisma.$executeRawUnsafe(`ALTER TABLE event_records ADD CONSTRAINT event_test_rejection CHECK (data->>'userId' <> '${buyer.user.id}')`);
+    let constraintAdded = false;
+    let buyerId: string | undefined;
+    let responseBody: unknown;
     try {
+      await syncBuiltinPlugins(path.resolve('builtin-plugins'));
+      const buyer = await createUserWithToken(); users.push(buyer.user.id);
+      buyerId = buyer.user.id;
+      const product = await createTestProduct({ stock: 5, price: 10 }); products.push(product.id);
+      const items = [{ productId: product.id, variantId: product.variants[0].id, quantity: 1 }];
+      const address = { firstName: 'Test', lastName: 'Buyer', phone: '+1', addressLine1: '1 Test St', city: 'Toronto', state: 'ON', postalCode: 'M5V 2T6', country: 'CA' };
+      const total = await checkoutTotal(app, buyer.token, items, address, 'free-shipping:free');
+      await prisma.$executeRawUnsafe(`ALTER TABLE event_records ADD CONSTRAINT event_test_rejection CHECK (data->>'userId' <> '${buyer.user.id}')`);
+      constraintAdded = true;
       const response = await app.inject({
         method: 'POST', url: '/api/v1/orders', headers: buyer.authHeader,
         payload: { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal: total },
       });
+      responseBody = { statusCode: response.statusCode, body: response.body };
       expect(response.statusCode).toBe(500);
       expect(response.json().success).toBe(false);
       expect(await prisma.order.count({ where: { userId: buyer.user.id } })).toBe(0);
       expect(await prisma.eventRecord.count({ where: { data: { path: ['userId'], equals: buyer.user.id } } })).toBe(0);
       expect(await prisma.notification.count({ where: { toAddress: buyer.user.email } })).toBe(0);
       expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock).toBe(5);
-    } finally { await prisma.$executeRawUnsafe('ALTER TABLE event_records DROP CONSTRAINT event_test_rejection'); }
+    } catch (error) {
+      const plugins = await prisma.pluginInstall.findMany({
+        where: { slug: { in: ['free-shipping', 'manual-payment'] } },
+        select: { slug: true, zipHash: true, version: true },
+      });
+      const registry = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
+      const root = process.env.EXTENSIONS_PATH || path.join(process.cwd(), 'extensions');
+      const cache = await Promise.all(plugins.map(async (plugin) => ({
+        slug: plugin.slug, zipHash: plugin.zipHash,
+        entries: await fs.readdir(path.join(root, 'plugins', plugin.slug)).catch((failure: NodeJS.ErrnoException) => [`${failure.code}: ${failure.message}`]),
+      })));
+      const orders = buyerId ? await prisma.order.findMany({ where: { userId: buyerId } }) : [];
+      const events = buyerId ? await prisma.eventRecord.findMany({ where: { data: { path: ['userId'], equals: buyerId } } }) : [];
+      throw new Error(`B scene: ${JSON.stringify({ cause: String(error), responseBody, plugins, registryVersion: registry?.pluginRegistryVersion, cache, orders, events })}`);
+    } finally {
+      if (constraintAdded) await prisma.$executeRawUnsafe('ALTER TABLE event_records DROP CONSTRAINT event_test_rejection');
+    }
   });
 
   it('C: rejects unknown events, unknown versions and invalid payloads before any event or delivery write', async () => {
@@ -291,11 +355,11 @@ module.exports = { register(ctx) {
     const first = await child();
     await command(first).done;
     const failed = await delivery(event.id, installation.id);
-    expect(failed).toMatchObject({ status: 'PENDING', attempts: 1, lastError: 'fixture handler failure' });
+    await expectDelivery(failed, { status: 'PENDING', attempts: 1, lastError: 'fixture handler failure' });
     await due(failed.id);
     const second = await child();
     await command(second).done;
-    expect(await delivery(event.id, installation.id)).toMatchObject({ status: 'SUCCEEDED', attempts: 2 });
+    await expectDelivery(await delivery(event.id, installation.id), { status: 'SUCCEEDED', attempts: 2 });
     expect((await fs.readdir(directory)).filter((name) => name.endsWith('.effect'))).toEqual([`${installation.id}-${event.id}.effect`]);
     expect(JSON.parse(await fs.readFile(path.join(directory, `${installation.id}-${event.id}.effect`), 'utf8'))).toEqual({ id: event.id, data: payload });
     expect(await attempts()).toEqual([
@@ -312,16 +376,15 @@ module.exports = { register(ctx) {
       await run();
       const [{ after }] = await prisma.$queryRaw<Array<{ after: Date }>>`SELECT clock_timestamp() AS after`;
       const row = await delivery(event.id, installation.id);
-      expect(row.attempts).toBe(attempt);
       if (attempt < 8) {
-        expect(row.status).toBe('PENDING');
+        await expectDelivery(row, { status: 'PENDING', attempts: attempt });
         const delay = EVENT_RETRY_SECONDS[attempt - 1] * 1000;
         expect(row.nextAttemptAt.getTime()).toBeGreaterThanOrEqual(before.getTime() + delay - 1);
         expect(row.nextAttemptAt.getTime()).toBeLessThanOrEqual(after.getTime() + delay + 1);
         expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: installation.id } })).lastFailureAt).toBeNull();
         await due(row.id);
       } else {
-        expect(row.status).toBe('FAILED');
+        await expectDelivery(row, { status: 'FAILED', attempts: attempt });
         expect(row.finishedAt).not.toBeNull();
         expect(await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: installation.id } })).toMatchObject({ lastFailureAt: row.finishedAt, lastFailureMessage: 'fixture handler failure' });
       }
@@ -333,7 +396,7 @@ module.exports = { register(ctx) {
     const event = await emit();
     const process = await child(200);
     await command(process).done;
-    expect(await delivery(event.id, installation.id)).toMatchObject({ status: 'PENDING', attempts: 1, lastError: 'Event handler timed out after 200ms' });
+    await expectDelivery(await delivery(event.id, installation.id), { status: 'PENDING', attempts: 1, lastError: 'Event handler timed out after 200ms' });
   });
 
   it('H: a blocked installation occupies one slot while another plugin completes in the same worker', async () => {
@@ -351,8 +414,8 @@ module.exports = { register(ctx) {
     expect((await secondBatch.claimed).count).toBeLessThanOrEqual(1);
     process.send({ command: 'release', installationId: slow.id });
     await Promise.all([batch.done, secondBatch.done]);
-    expect(await delivery(first.id, slow.id)).toMatchObject({ status: 'SUCCEEDED', attempts: 1 });
-    expect(await delivery(first.id, fast.id)).toMatchObject({ status: 'SUCCEEDED', attempts: 1 });
+    await expectDelivery(await delivery(first.id, slow.id), { status: 'SUCCEEDED', attempts: 1 });
+    await expectDelivery(await delivery(first.id, fast.id), { status: 'SUCCEEDED', attempts: 1 });
     expect((await attempts()).filter((row) => row.installationId === slow.id)).toHaveLength(1);
   });
 
@@ -371,8 +434,7 @@ module.exports = { register(ctx) {
       claims: claims.map((entry, index) => ({ worker: [first.pid, second.pid][index], count: entry.count })),
     });
     expect(rows, state).toHaveLength(installs.length);
-    expect(rows.map((row) => ({ status: row.status, attempts: row.attempts })), state)
-      .toEqual(Array.from({ length: installs.length }, () => ({ status: 'SUCCEEDED', attempts: 1 })));
+    for (const row of rows) await expectDelivery(row, { status: 'SUCCEEDED', attempts: 1 });
     const log = await attempts();
     expect(log, state).toHaveLength(installs.length);
     expect(new Set(log.map((row) => row.installationId)).size, state).toBe(installs.length);
@@ -393,12 +455,12 @@ module.exports = { register(ctx) {
     const row = await delivery(event.id, installation.id);
     await prisma.$executeRaw`UPDATE event_deliveries SET "leaseUntil" = statement_timestamp() - interval '1 second' WHERE id = ${row.id}`;
     expect(await recoverEventLeases()).toBe(1);
-    expect(await delivery(event.id, installation.id)).toMatchObject({ status: 'PENDING', attempts: 1, lastError: 'Event delivery lease expired' });
+    await expectDelivery(await delivery(event.id, installation.id), { status: 'PENDING', attempts: 1, lastError: 'Event delivery lease expired' });
     await due(row.id);
     await prisma.pluginInstallation.update({ where: { id: installation.id }, data: { configJson: { directory } } });
     const second = await child();
     await command(second).done;
-    expect(await delivery(event.id, installation.id)).toMatchObject({ status: 'SUCCEEDED', attempts: 2 });
+    await expectDelivery(await delivery(event.id, installation.id), { status: 'SUCCEEDED', attempts: 2 });
     expect((await attempts()).map((entry) => entry.eventId)).toEqual([event.id, event.id]);
   });
 
@@ -412,13 +474,13 @@ module.exports = { register(ctx) {
     await prisma.pluginInstallation.update({ where: { id: deleted.id }, data: { deletedAt: new Date() } });
     await prisma.$transaction((tx) => syncEventSubscriptions(tx, removed.pluginSlug, []));
     await run();
-    expect(await delivery(event.id, disabled.id)).toMatchObject({ status: 'SKIPPED', skipReason: 'disabled', attempts: 1 });
-    expect(await delivery(event.id, deleted.id)).toMatchObject({ status: 'SKIPPED', skipReason: 'deleted', attempts: 1 });
-    expect(await delivery(event.id, removed.id)).toMatchObject({ status: 'SKIPPED', skipReason: 'subscription_removed', attempts: 0 });
+    await expectDelivery(await delivery(event.id, disabled.id), { status: 'SKIPPED', skipReason: 'disabled', attempts: 1 });
+    await expectDelivery(await delivery(event.id, deleted.id), { status: 'SKIPPED', skipReason: 'deleted', attempts: 1 });
+    await expectDelivery(await delivery(event.id, removed.id), { status: 'SKIPPED', skipReason: 'subscription_removed', attempts: 0 });
     const enabled = await app.inject({ method: 'PATCH', url: `/api/v1/extensions/plugin/${disabled.pluginSlug}/instances/${disabled.id}`, headers: { authorization: `Bearer ${options.adminToken}` }, payload: { enabled: true } });
     expect(enabled.statusCode).toBe(200);
     await run();
-    expect((await delivery(event.id, disabled.id)).status).toBe('SKIPPED');
+    await expectDelivery(await delivery(event.id, disabled.id), { status: 'SKIPPED' });
     expect(await fs.readdir(directory)).toEqual([]);
   });
 
@@ -446,7 +508,7 @@ module.exports = { register(ctx) {
     const batch = command(first);
     await entered;
     const claimed = await delivery(event.id, installation.id);
-    expect(claimed.status).toBe('RUNNING');
+    await expectDelivery(claimed, { status: 'RUNNING' });
     await prisma.$executeRaw`UPDATE event_deliveries SET "leaseUntil" = statement_timestamp() - interval '1 second' WHERE id = ${claimed.id}`;
     await recoverEventLeases();
     await due(claimed.id);
@@ -454,18 +516,27 @@ module.exports = { register(ctx) {
     const second = await child();
     await command(second).done;
     const replacement = await delivery(event.id, installation.id);
-    expect(replacement).toMatchObject({ status: 'SUCCEEDED', attempts: 2, claimToken: null });
+    await expectDelivery(replacement, { status: 'SUCCEEDED', attempts: 2, claimToken: null });
     first.send({ command: 'release', installationId: installation.id });
     await batch.done;
     expect(await delivery(event.id, installation.id)).toEqual(replacement);
     const loadEvent = await emit();
     await dropInternalRuntime(installation.id);
-    const pkg = await pluginPackageStore.get(installation.pluginSlug);
-    await pkg!.writeText('server/index.js', 'module.exports = {};');
+    const current = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: installation.pluginSlug } });
+    const pkg = await pluginPackageStore.get(installation.pluginSlug, current.zipHash!);
+    const sourceDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'event-bad-entry-'));
+    try {
+      await fs.cp(pkg!.getEntryPath(''), sourceDirectory, { recursive: true });
+      await fs.rm(path.join(sourceDirectory, '.complete.json'));
+      await fs.writeFile(path.join(sourceDirectory, 'server/index.js'), 'module.exports = {};');
+      const zipHash = await publishTestPlugin(installation.pluginSlug, sourceDirectory);
+      await prisma.pluginInstall.update({ where: { slug: installation.pluginSlug }, data: { zipHash } });
+    } finally {
+      await fs.rm(sourceDirectory, { recursive: true, force: true });
+    }
     await run();
     const result = await delivery(loadEvent.id, installation.id);
-    expect(result.status).toBe('PENDING');
-    expect(result.attempts).toBe(1);
+    await expectDelivery(result, { status: 'PENDING', attempts: 1 });
     expect(result.lastError).toContain('must export an object with register(ctx)');
   });
 
@@ -537,7 +608,8 @@ module.exports = { register(ctx) {
       expect(claimed.length).toBeLessThanOrEqual(16);
       expect(claimed.length).toBeGreaterThan(0);
       expect(new Set(claimed.map((row) => row.installationId)).size).toBe(claimed.length);
-      expect(claimed.every((row) => row.status === 'RUNNING' && !!row.claimToken)).toBe(true);
+      for (const row of claimed) await expectDelivery(row, { status: 'RUNNING' });
+      expect(claimed.every((row) => !!row.claimToken)).toBe(true);
     } finally {
       await prisma.eventDelivery.deleteMany({ where: { installationId: { in: installs.map((row) => row.id) } } });
       await prisma.eventRecord.deleteMany({ where: { aggregateId: prefix } });

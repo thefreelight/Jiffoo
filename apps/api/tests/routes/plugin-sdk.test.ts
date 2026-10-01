@@ -9,6 +9,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { issuePublisherCertificate, readPluginZipEntries } from 'shared/plugin-signing';
 import { otherPublisher, testRoot, testPublisher, untrustedRoot } from '../fixtures/plugin-signing-keys';
 
@@ -47,7 +48,7 @@ describe('Built plugin SDK CLI', () => {
     for (const id of installed) {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: id } });
       await prisma.pluginInstall.deleteMany({ where: { slug: id } });
-      await pluginPackageStore.delete(id);
+      await clearTestPluginCache(id);
     }
     await deleteAllTestUsers();
     await app.close();

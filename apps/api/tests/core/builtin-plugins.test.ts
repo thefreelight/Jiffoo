@@ -7,6 +7,7 @@ import { PluginManagementService } from '@/core/admin/plugin-management/service'
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { getTestPrisma } from '../helpers/db';
+import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
 
 const prisma = getTestPrisma();
 const builtinRoot = path.resolve(process.cwd(), 'builtin-plugins');
@@ -16,7 +17,7 @@ async function removeBuiltins(): Promise<void> {
   await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: { in: slugs } } });
   await prisma.pluginInstall.deleteMany({ where: { slug: { in: slugs } } });
   await prisma.adminStaffAuditLog.deleteMany({ where: { action: 'BUILTIN_PLUGIN_INSTALLED' } });
-  await Promise.all(slugs.map((slug) => pluginPackageStore.delete(slug)));
+  await Promise.all(slugs.map(clearTestPluginCache));
 }
 
 describe('Builtin plugins', () => {
@@ -96,11 +97,10 @@ describe('Builtin plugins', () => {
     try {
       await fs.writeFile(path.join(source, 'manifest.json'), JSON.stringify({ schemaVersion: 1, slug: secondSlug, name: secondSlug, version: '1.0.0', description: 'Second shipping provider', category: 'shipping', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'index.js', permissions: [], contracts: [{ name: 'shipping', version: 1 }] }));
       await fs.writeFile(path.join(source, 'index.js'), "module.exports = { register(ctx) { ctx.contracts.implement('shipping', 1, { quote: () => ({ options: [] }) }); } };");
-      const deployment = await pluginPackageStore.put(secondSlug, source);
-      await deployment.commit();
-      const storedPackage = await pluginPackageStore.get(secondSlug);
+      const zipHash = await publishTestPlugin(secondSlug, source);
+      const storedPackage = await pluginPackageStore.get(secondSlug, zipHash);
       const storedManifest = JSON.parse(await fs.readFile(storedPackage!.getEntryPath('manifest.json'), 'utf8'));
-      await prisma.pluginInstall.create({ data: { slug: secondSlug, name: secondSlug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip', manifestJson: storedManifest } });
+      await prisma.pluginInstall.create({ data: { slug: secondSlug, name: secondSlug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip', zipHash, manifestJson: storedManifest } });
       const second = await prisma.pluginInstallation.create({ data: { pluginSlug: secondSlug, instanceKey: 'default', enabled: true } });
       const free = await PluginManagementService.getDefaultInstance('free-shipping');
       await expect(PluginManagementService.updateInstance(free!.id, { enabled: false })).resolves.toMatchObject({ enabled: false });
@@ -109,7 +109,7 @@ describe('Builtin plugins', () => {
     } finally {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: secondSlug } });
       await prisma.pluginInstall.deleteMany({ where: { slug: secondSlug } });
-      await pluginPackageStore.delete(secondSlug);
+      await clearTestPluginCache(secondSlug);
       await fs.rm(source, { recursive: true, force: true });
       const free = await PluginManagementService.getDefaultInstance('free-shipping');
       if (free && !free.enabled) await prisma.pluginInstallation.update({ where: { id: free.id }, data: { enabled: true } });

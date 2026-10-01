@@ -14,7 +14,6 @@ import { Readable } from 'stream';
 import { createReadStream } from 'fs';
 import archiver from 'archiver';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '@/config/database';
 import {
   IPluginInstaller,
@@ -75,8 +74,6 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
-/** Metadata filename for installed plugins */
-const INSTALLED_META_FILE = '.installed.json';
 const BUILTIN_PLUGIN_SLUGS = new Set([
   'manual-payment',
   'free-shipping',
@@ -145,8 +142,16 @@ export class PluginFsInstaller implements IPluginInstaller {
         throw error;
       }
       // Same ZIP already installed and not deleted - return existing plugin info
-      const existingPackage = await pluginPackageStore.get(existingByHash.slug);
-      if (!existingPackage) throw new Error(`Plugin package files are missing for "${existingByHash.slug}"`);
+      let existingPackage = await pluginPackageStore.get(existingByHash.slug, zipHash);
+      if (!existingPackage) {
+        tempDir = await extractZipToTemp(createReadStream(zipFilePath), 'plugin');
+        const extracted = await resolveExtractedPackageRoot(tempDir, 'plugin');
+        const stagedManifest = await readJsonFile<PluginManifest>(extracted.manifestPath);
+        validatePluginManifest(stagedManifest);
+        if (stagedManifest.slug !== existingByHash.slug || stagedManifest.version !== existingByHash.version)
+          throw new Error('Installed package identity does not match the uploaded ZIP');
+        existingPackage = (await pluginPackageStore.put(existingByHash.slug, zipHash, extracted.rootDir)).package;
+      }
       return {
         id: existingByHash.id,
         slug: existingByHash.slug,
@@ -242,7 +247,7 @@ export class PluginFsInstaller implements IPluginInstaller {
 
       // 8. TWO-PHASE COMMIT WITH WARM VALIDATION
       // Phase 1: atomically replace the package through the storage boundary.
-      deployment = await pluginPackageStore.put(manifest.slug, rootDir);
+      deployment = await pluginPackageStore.put(manifest.slug, zipHash, rootDir);
       const targetDir = deployment.package.getEntryPath('');
       wasNewInstall = !existingBySlug;
 
@@ -262,7 +267,7 @@ export class PluginFsInstaller implements IPluginInstaller {
 
           // Warm each instance (will throw if any fails)
           for (const instance of enabledInstances) {
-            await validateCandidateRuntime(manifest.slug, manifest, instance.id, decryptPluginConfig(manifest, parseJsonObject(instance.configJson)));
+            await validateCandidateRuntime(manifest.slug, zipHash, manifest, instance.id, decryptPluginConfig(manifest, parseJsonObject(instance.configJson)));
           }
 
           // All instances warmed successfully - proceed with DB update
@@ -331,7 +336,6 @@ export class PluginFsInstaller implements IPluginInstaller {
             zipHash,
           };
 
-          await this.saveInstalledMeta(manifest.slug, installedPlugin);
           await deployment.commit();
           deployment = null;
           const { reconcilePluginState } = await import('./plugin-reconciliation');
@@ -451,7 +455,6 @@ export class PluginFsInstaller implements IPluginInstaller {
             zipHash,
           };
 
-          await this.saveInstalledMeta(manifest.slug, installedPlugin);
           await deployment.commit();
           deployment = null;
           await CacheService.incrementPluginVersion();
@@ -490,12 +493,8 @@ export class PluginFsInstaller implements IPluginInstaller {
    * Uninstall plugin
    */
   async uninstall(slug: string): Promise<void> {
-    const pluginPackage = await pluginPackageStore.get(slug);
-    if (!pluginPackage) {
-      throw new Error(`Plugin "${slug}" is not installed`);
-    }
-
-    await pluginPackageStore.delete(slug);
+    const installed = await prisma.pluginInstall.findUnique({ where: { slug } });
+    if (!installed) throw new Error(`Plugin "${slug}" is not installed`);
   }
 
   /**
@@ -503,7 +502,8 @@ export class PluginFsInstaller implements IPluginInstaller {
    */
   async list(): Promise<InstalledPlugin[]> {
     const plugins: InstalledPlugin[] = [];
-    for (const slug of await pluginPackageStore.list()) {
+    const rows = await prisma.pluginInstall.findMany({ where: { deletedAt: null }, select: { slug: true } });
+    for (const { slug } of rows) {
         const plugin = await this.get(slug);
         if (plugin) {
           plugins.push(plugin);
@@ -517,27 +517,13 @@ export class PluginFsInstaller implements IPluginInstaller {
    * Get installed plugin details
    */
   async get(slug: string): Promise<InstalledPlugin | null> {
-    const pluginPackage = await pluginPackageStore.get(slug);
+    const installed = await prisma.pluginInstall.findUnique({ where: { slug } });
+    if (!installed || installed.deletedAt || !installed.zipHash) return null;
+    const pluginPackage = await pluginPackageStore.get(slug, installed.zipHash);
     if (!pluginPackage) {
       return null;
     }
-
-    // Prefer reading .installed.json
-    try {
-      return JSON.parse(await pluginPackage.readText(INSTALLED_META_FILE)) as InstalledPlugin;
-    } catch {
-      // If no metadata file exists, rebuild from manifest.json
-      return this.rebuildMetaFromManifest(slug, pluginPackage);
-    }
-  }
-
-  /**
-   * Save installed metadata
-   */
-  private async saveInstalledMeta(slug: string, meta: InstalledPlugin): Promise<void> {
-    const pluginPackage = await pluginPackageStore.get(slug);
-    if (!pluginPackage) throw new Error(`Plugin "${slug}" is not installed`);
-    await pluginPackage.writeText(INSTALLED_META_FILE, JSON.stringify(meta, null, 2));
+    return this.rebuildMetaFromManifest(slug, pluginPackage, installed);
   }
 
   /**
@@ -545,15 +531,14 @@ export class PluginFsInstaller implements IPluginInstaller {
    */
   private async rebuildMetaFromManifest(
     slug: string,
-    pluginPackage: Awaited<ReturnType<typeof pluginPackageStore.get>>
+    pluginPackage: Awaited<ReturnType<typeof pluginPackageStore.get>>,
+    installed: Awaited<ReturnType<typeof prisma.pluginInstall.findUnique>>,
   ): Promise<InstalledPlugin | null> {
     try {
-      if (!pluginPackage) return null;
+      if (!pluginPackage || !installed) return null;
       const manifest = JSON.parse(await pluginPackage.readText('manifest.json')) as PluginManifest;
-      const stat = await pluginPackage.stat();
-
       return {
-        id: uuidv4(),
+        id: installed.id,
         slug: manifest.slug || slug,
         name: manifest.name || slug,
         version: manifest.version || '0.0.0',
@@ -566,8 +551,9 @@ export class PluginFsInstaller implements IPluginInstaller {
         permissions: manifest.permissions,
         author: manifest.author,
         authorUrl: manifest.authorUrl,
-        installedAt: stat.birthtime,
-        updatedAt: stat.mtime,
+        installedAt: installed.installedAt,
+        updatedAt: installed.updatedAt,
+        zipHash: installed.zipHash ?? undefined,
       };
     } catch {
       return null;

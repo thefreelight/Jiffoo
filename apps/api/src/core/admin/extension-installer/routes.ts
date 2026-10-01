@@ -157,6 +157,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         200: { type: 'string' },
         400: errorResponseSchema,
         404: errorResponseSchema,
+        503: errorResponseSchema,
         500: errorResponseSchema,
       },
     }
@@ -190,6 +191,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         200: { type: 'string' },
         400: errorResponseSchema,
         404: errorResponseSchema,
+        503: errorResponseSchema,
         500: errorResponseSchema,
       },
     }
@@ -223,6 +225,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         200: { type: 'string' },
         400: errorResponseSchema,
         404: errorResponseSchema,
+        503: errorResponseSchema,
         500: errorResponseSchema,
       },
     }
@@ -261,6 +264,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         200: { type: 'string' },
         400: errorResponseSchema,
         404: errorResponseSchema,
+        503: errorResponseSchema,
         500: errorResponseSchema,
       },
     }

@@ -94,6 +94,7 @@ export type PluginGatewayErrorCode =
   | 'INSTANCE_DISABLED'
   | 'PLUGIN_INVALID_MANIFEST'
   | 'PLUGIN_LOAD_FAILED'
+  | 'PLUGIN_PACKAGE_UNAVAILABLE'
   | 'PLUGIN_UPGRADE_RESTART_REQUIRED'
   | 'PLUGIN_TIMEOUT'
   | 'INVALID_SLUG'
@@ -113,6 +114,7 @@ export class PluginGatewayError extends Error {
 type InternalRuntime = {
   app: FastifyInstance;
   manifest: PluginManifest;
+  zipHash: string;
   createdAt: Date;
   installationId: string;
   config: Record<string, unknown>;
@@ -125,6 +127,7 @@ type InternalRuntime = {
 /** Context for a gateway request (resolved from query params) */
 interface GatewayContext {
   slug: string;
+  zipHash: string;
   installationId: string;
   instanceKey: string;
   config: Record<string, unknown>;
@@ -228,8 +231,9 @@ function logAudit(entry: GatewayAuditLog, fastify?: FastifyInstance): void {
 async function readPluginManifest(plugin: PluginInstall): Promise<PluginManifest> {
   try {
     readStoredPluginManifest(plugin);
-    const pluginPackage = await pluginPackageStore.get(plugin.slug);
-    if (!pluginPackage) throw new Error('Plugin package not found');
+    const pluginPackage = plugin.zipHash
+      ? await pluginPackageStore.get(plugin.slug, plugin.zipHash) : null;
+    if (!pluginPackage) throw new PluginGatewayError(`Plugin package unavailable: ${plugin.slug}`, 'PLUGIN_PACKAGE_UNAVAILABLE', 503);
     const packageManifest: unknown = JSON.parse(await pluginPackage.readText('manifest.json'));
     const issues = getPluginManifestIssues(packageManifest);
     if (issues.length > 0 || !isPluginManifest(packageManifest)) {
@@ -541,6 +545,7 @@ async function resolveGatewayContext(
 
   return {
     slug,
+    zipHash: pluginPackage.zipHash || '',
     installationId: instance.id,
     instanceKey: instance.instanceKey,
     config,
@@ -576,7 +581,7 @@ async function ensureInternalRuntime(
   // Check if existing runtime has same config (simple JSON comparison)
   if (existing) {
     const configChanged = JSON.stringify(existing.config) !== JSON.stringify(ctx.config);
-    if (!configChanged && existing.manifest.version === manifest.version) {
+    if (!configChanged && existing.zipHash === ctx.zipHash) {
       return hold ? holdRuntime(existing) : existing;
     }
     // Config or version changed - need to recreate runtime
@@ -598,8 +603,11 @@ async function ensureInternalRuntime(
   }
 
   const entryModule = manifest.entryModule || 'server/index.js';
-  const pluginPackage = await pluginPackageStore.get(slug);
-  if (!pluginPackage || !await pluginPackage.exists(entryModule)) {
+  const pluginPackage = ctx.zipHash ? await pluginPackageStore.get(slug, ctx.zipHash) : null;
+  if (!pluginPackage) {
+    throw new PluginGatewayError(`Plugin package unavailable: ${slug}`, 'PLUGIN_PACKAGE_UNAVAILABLE', 503);
+  }
+  if (!await pluginPackage.exists(entryModule)) {
     throw new PluginGatewayError(`Plugin entry module not found: ${entryModule}`, 'PLUGIN_LOAD_FAILED', 400);
   }
   const entryPath = pluginPackage.getEntryPath(entryModule);
@@ -631,6 +639,7 @@ async function ensureInternalRuntime(
     const newRuntime: InternalRuntime = {
       app: candidateApp,
       manifest,
+      zipHash: ctx.zipHash,
       createdAt: new Date(),
       installationId: ctx.installationId,
       config: ctx.config,
@@ -686,7 +695,7 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
 }
 
 export class ContractCallError extends Error {
-  constructor(public readonly code: 'CONTRACT_RESPONSE_INVALID' | 'CONTRACT_CALL_FAILED', message: string) { super(message); }
+  constructor(public readonly code: 'CONTRACT_RESPONSE_INVALID' | 'CONTRACT_CALL_FAILED' | 'PLUGIN_PACKAGE_UNAVAILABLE', message: string) { super(message); }
 }
 
 const contractMethods = { payment: paymentV1Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
@@ -715,13 +724,18 @@ export async function callContract(
   const instance = await PluginManagementService.getDefaultInstance(slug);
   if (!pkg || !instance?.enabled || instance.deletedAt) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} is not enabled`);
   let manifest: PluginManifest;
-  try { manifest = await readPluginManifest(pkg); } catch (error) { await recordPluginFailure(slug, error, 'contract'); throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} manifest is invalid`); }
+  try { manifest = await readPluginManifest(pkg); } catch (error) {
+    await recordPluginFailure(slug, error, 'contract');
+    if (error instanceof PluginGatewayError && error.code === 'PLUGIN_PACKAGE_UNAVAILABLE')
+      throw new ContractCallError('PLUGIN_PACKAGE_UNAVAILABLE', error.message);
+    throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} manifest is invalid`);
+  }
   if (!manifest.contracts?.some((contract) => contract.name === contractName && contract.version === version)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} does not declare ${contractName} v${version}`);
   if (!isBreakerAllowed(slug)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} circuit breaker is open`);
   let config: Record<string, unknown> = {};
   try {
     config = decryptPluginConfig(manifest, parseJsonObject(instance.configJson));
-    const runtime = await ensureInternalRuntime(slug, manifest, { slug, installationId: instance.id, instanceKey: instance.instanceKey, config }, true);
+    const runtime = await ensureInternalRuntime(slug, manifest, { slug, zipHash: pkg.zipHash || '', installationId: instance.id, instanceKey: instance.instanceKey, config }, true);
     const invocation = runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: input as Record<string, unknown> });
     void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
     const response = await Promise.race([
@@ -741,6 +755,8 @@ export async function callContract(
     return parsed.data;
   } catch (error) {
     if (error instanceof ContractCallError) throw error;
+    if (error instanceof PluginGatewayError && error.code === 'PLUGIN_PACKAGE_UNAVAILABLE')
+      throw new ContractCallError('PLUGIN_PACKAGE_UNAVAILABLE', error.message);
     await recordPluginFailure(slug, error, 'contract', instance.id); recordBreakerResult(slug, false);
     throw new ContractCallError('CONTRACT_CALL_FAILED', redactPluginText(`Contract call failed for ${slug}: ${error instanceof Error ? error.message : String(error)}`, config, manifest));
   }
@@ -771,7 +787,7 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
   let runtime: InternalRuntime;
   try {
     runtime = await ensureInternalRuntime(instance.pluginSlug, manifest, {
-      slug: instance.pluginSlug, installationId, instanceKey: instance.instanceKey, config: decryptPluginConfig(manifest, parseJsonObject(instance.configJson)),
+      slug: instance.pluginSlug, zipHash: instance.plugin.zipHash || '', installationId, instanceKey: instance.instanceKey, config: decryptPluginConfig(manifest, parseJsonObject(instance.configJson)),
     }, true);
   } catch (error) {
     await recordPluginFailure(instance.pluginSlug, error, 'event', installationId);
@@ -797,8 +813,8 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
   }
 }
 
-export async function validateCandidateRuntime(slug: string, manifest: PluginManifest, installationId: string, config: Record<string, unknown>): Promise<void> {
-  const pkg = await pluginPackageStore.get(slug);
+export async function validateCandidateRuntime(slug: string, zipHash: string, manifest: PluginManifest, installationId: string, config: Record<string, unknown>): Promise<void> {
+  const pkg = await pluginPackageStore.get(slug, zipHash);
   if (!pkg) throw new Error(`Plugin package missing: ${slug}`);
   const mod = await loadPluginEntryModule(pkg.getEntryPath(manifest.entryModule || 'server/index.js'));
   const entry = mod.default || mod;
@@ -906,6 +922,7 @@ export async function warmPluginRuntime(slug: string): Promise<{ restartRequired
     // Create context for this instance
     const ctx: GatewayContext = {
       slug,
+      zipHash: plugin.zipHash || '',
       installationId: instance.id,
       instanceKey: instance.instanceKey,
       config: decryptPluginConfig(manifest, parseJsonObject(instance.configJson)),
@@ -953,6 +970,7 @@ export async function warmPluginInstanceRuntime(
 
   const ctx: GatewayContext = {
     slug,
+    zipHash: plugin.zipHash || '',
     installationId: instance.id,
     instanceKey: instance.instanceKey,
     config: config ?? decryptPluginConfig(manifest, parseJsonObject(instance.configJson)),
@@ -991,6 +1009,7 @@ export async function handlePluginGateway(
     // Read manifest
     const plugin = await PluginManagementService.getPluginPackage(slug);
     if (!plugin) throw new PluginGatewayError(`Plugin "${slug}" not found`, 'PLUGIN_NOT_FOUND', 404);
+    if (ctx.zipHash !== (plugin.zipHash || '')) ctx = await resolveGatewayContext(slug, request, options);
     trustLevel = plugin.trustLevel;
     manifest = await readPluginManifest(plugin);
 

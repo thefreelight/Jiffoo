@@ -7,6 +7,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
 
 describe('stored manifest admin responses', () => {
   const prisma = getTestPrisma();
@@ -19,8 +20,7 @@ describe('stored manifest admin responses', () => {
   beforeAll(async () => {
     sourceDirectory = await fs.mkdtemp(path.join(os.tmpdir(), '.stored-manifest-admin-'));
     await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), '{}', 'utf-8');
-    const deployment = await pluginPackageStore.put(slug, sourceDirectory);
-    await deployment.commit();
+    const zipHash = await publishTestPlugin(slug, sourceDirectory);
     await prisma.pluginInstall.create({
       data: {
         slug,
@@ -28,6 +28,7 @@ describe('stored manifest admin responses', () => {
         version: '1.0.0',
         runtimeType: 'internal-fastify',
         source: 'local-zip',
+        zipHash,
         manifestJson: {},
       },
     });
@@ -43,7 +44,7 @@ describe('stored manifest admin responses', () => {
     await app.close();
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
     await prisma.pluginInstall.deleteMany({ where: { slug } });
-    await pluginPackageStore.delete(slug);
+    await clearTestPluginCache(slug);
     await fs.rm(sourceDirectory, { recursive: true, force: true });
     await deleteAllTestUsers();
   });

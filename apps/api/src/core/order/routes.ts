@@ -41,6 +41,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to create order');
       }
       if (error?.statusCode === 409) return sendError(reply, 409, error.code || 'CONFLICT', error.message);
+      if (error?.code === 'PLUGIN_PACKAGE_UNAVAILABLE') return sendError(reply, 503, 'PLUGIN_PACKAGE_UNAVAILABLE', 'Checkout plugin package is unavailable');
       if (error?.code === 'CONTRACT_RESPONSE_INVALID' || error?.code === 'CONTRACT_CALL_FAILED') return sendError(reply, 502, 'CONTRACT_CALL_FAILED', 'Checkout provider is temporarily unavailable');
       return sendError(reply, 400, 'BAD_REQUEST', error.message);
     }

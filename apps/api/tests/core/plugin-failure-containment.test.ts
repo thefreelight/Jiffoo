@@ -6,6 +6,7 @@ import { getTestPrisma } from '../helpers/db';
 import { recordPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
 import { handlePluginProcessFailure } from '@/core/admin/extension-installer/plugin-process-failure';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
 import { resetPluginState } from '@/core/admin/extension-installer/plugin-state';
 
 describe('Plugin failure containment', () => {
@@ -16,7 +17,7 @@ describe('Plugin failure containment', () => {
   afterAll(async () => {
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
     await prisma.pluginInstall.deleteMany({ where: { slug } });
-    await pluginPackageStore.delete(slug);
+    await clearTestPluginCache(slug);
     await Promise.all(sourceDirectories.map((directory) => fs.rm(directory, { recursive: true, force: true })));
   });
 
@@ -24,9 +25,9 @@ describe('Plugin failure containment', () => {
     const source = await fs.mkdtemp(path.join(os.tmpdir(), '.plugin-failure-'));
     sourceDirectories.push(source);
     await fs.writeFile(path.join(source, 'manifest.json'), '{}', 'utf-8');
-    await pluginPackageStore.put(slug, source);
+    const zipHash = await publishTestPlugin(slug, source);
     await prisma.pluginInstall.create({
-      data: { slug, name: slug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip' },
+      data: { slug, name: slug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip', zipHash },
     });
     const installation = await prisma.pluginInstallation.create({
       data: { pluginSlug: slug, instanceKey: 'default', enabled: true },
@@ -47,7 +48,8 @@ describe('Plugin failure containment', () => {
   });
 
   it('attributes plugin stack paths without exiting the process', async () => {
-    const packageDirectory = (await pluginPackageStore.get(slug))!.getEntryPath('index.js');
+    const row = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } });
+    const packageDirectory = (await pluginPackageStore.get(slug, row.zipHash!))!.getEntryPath('index.js');
     const error = new Error('plugin process failure');
     error.stack = `Error: plugin process failure\n    at plugin (${packageDirectory}:1:1)`;
     const exitSpy = vi.spyOn(process, 'exit');

@@ -197,7 +197,7 @@ export const orderSchemas = {
         expectedTotal: { type: 'string', pattern: '^\\d+(?:\\.\\d+)?$', description: 'Confirmed quote total' },
       },
     },
-    response: createTypedCreateResponses(orderResponseSchema),
+    response: { ...createTypedCreateResponses(orderResponseSchema), 503: errorResponseSchema },
   },
 
   // GET /api/orders/ (paginated)

@@ -40,7 +40,9 @@ export async function executeLifecycleHook(hookName: LifecycleHookName, context:
 
 async function callInternalLifecycleHook(hookName: LifecycleHookName, context: LifecycleContext, manifest: PluginManifest): Promise<void> {
   const entryModule = manifest.entryModule || 'server/index.js';
-  const pluginPackage = await pluginPackageStore.get(context.pluginSlug);
+  const row = await prisma.pluginInstall.findUnique({ where: { slug: context.pluginSlug } });
+  const pluginPackage = row?.zipHash
+    ? await pluginPackageStore.get(context.pluginSlug, row.zipHash) : null;
   if (!pluginPackage || !await pluginPackage.exists(entryModule)) throw new Error(`Plugin entry module not found: ${entryModule}`);
   const entryPath = pluginPackage.getEntryPath(entryModule);
   const mod = await loadPluginEntryModule(entryPath, { version: manifest.version });

@@ -4,6 +4,7 @@ import os from 'os';
 import { promises as fs } from 'fs';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { warmPluginInstanceRuntime } from '@/core/admin/extension-installer/plugin-runtime';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
@@ -36,7 +37,7 @@ describe('Plugin lifecycle reconciliation', () => {
       resetRateLimiter(slug);
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
       await prisma.pluginInstall.deleteMany({ where: { slug } });
-      await pluginPackageStore.delete(slug);
+      await clearTestPluginCache(slug);
     }));
     await Promise.all(sourceDirectories.splice(0).map((directory) => fs.rm(directory, { recursive: true, force: true })));
     await Promise.all(markerPaths.splice(0).map((marker) => fs.rm(marker, { force: true })));
@@ -65,10 +66,9 @@ describe('Plugin lifecycle reconciliation', () => {
     };
     await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify(manifest), 'utf-8');
     await fs.writeFile(path.join(sourceDirectory, 'server', 'index.js'), source, 'utf-8');
-    const deployment = await pluginPackageStore.put(slug, sourceDirectory);
-    await deployment.commit();
+    const zipHash = await publishTestPlugin(slug, sourceDirectory);
     await prisma.pluginInstall.create({
-      data: { slug, name: slug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip', manifestJson: manifest },
+      data: { slug, name: slug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip', zipHash, manifestJson: manifest },
     });
     await prisma.$transaction((tx) => syncEventSubscriptions(tx, slug, manifest.subscriptions));
     const installation = await prisma.pluginInstallation.create({
@@ -293,19 +293,7 @@ module.exports = {
   it('refuses a package manifest whose version differs from the installed record', async () => {
     const slug = `manifest-version-${Date.now().toString(36)}`.slice(0, 30);
     const installationId = await createPlugin(slug, 'module.exports = { register() {} };');
-    const pluginPackage = await pluginPackageStore.get(slug);
-    await pluginPackage!.writeText('manifest.json', JSON.stringify({
-      schemaVersion: 1,
-      slug,
-      name: slug,
-      version: '2.0.0',
-      description: 'Mismatched package manifest',
-      author: 'test-suite',
-      runtimeType: 'internal-fastify',
-      hostProtocol: 'internal-fastify-v1',
-      entryModule: 'server/index.js',
-      permissions: [],
-    }));
+    await prisma.pluginInstall.update({ where: { slug }, data: { version: '2.0.0' } });
 
     await loadEnabledPluginRuntimes();
 
