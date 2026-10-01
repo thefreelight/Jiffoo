@@ -397,7 +397,7 @@ Object.assign(themeMessages.en, { 'travelpass.cart.subtotal':'Subtotal ({count} 
 Object.assign(themeMessages['zh-Hans'], { 'travelpass.cart.subtotal':'小计（{count} 件）', 'cart.instantEmail':'即时（电子邮件）', 'cart.refundPolicy':'7 天退款政策' });
 Object.assign(themeMessages['zh-Hant'], { 'travelpass.cart.subtotal':'小計（{count} 件）', 'cart.instantEmail':'即時（電郵）', 'cart.refundPolicy':'7 天退款政策' });
 
-const EXTRA_MESSAGES: Record<Locale, Record<string, string>> = {
+const EXTRA_MESSAGES: Partial<Record<Locale, Record<string, string>>> = {
   en: { 'cart.package': 'eSIM Package', 'cart.delivery': 'Delivery', 'cart.secureCheckout': 'Secure checkout', 'cart.instantDelivery': 'Instant eSIM delivery', 'header.currency': 'Currency', 'contact.selectTopic': 'Select a topic', 'contact.activation': 'eSIM Activation Help', 'contact.connectivity': 'Connectivity Issues', 'contact.billing': 'Billing & Refunds', 'contact.account': 'Account Issues', 'contact.other': 'Other' },
   'zh-Hans': { 'cart.package': 'eSIM 套餐', 'cart.delivery': '配送', 'cart.secureCheckout': '安全结算', 'cart.instantDelivery': 'eSIM 即时交付', 'header.currency': '货币', 'contact.selectTopic': '选择主题', 'contact.activation': 'eSIM 激活帮助', 'contact.connectivity': '连接问题', 'contact.billing': '账单与退款', 'contact.account': '账户问题', 'contact.other': '其他' },
   'zh-Hant': { 'cart.package': 'eSIM 套餐', 'cart.delivery': '配送', 'cart.secureCheckout': '安全結帳', 'cart.instantDelivery': 'eSIM 即時交付', 'header.currency': '貨幣', 'contact.selectTopic': '選擇主題', 'contact.activation': 'eSIM 啟用協助', 'contact.connectivity': '連線問題', 'contact.billing': '帳單與退款', 'contact.account': '帳戶問題', 'contact.other': '其他' },
@@ -409,7 +409,7 @@ const EXTRA_MESSAGES: Record<Locale, Record<string, string>> = {
 
 // One merged dictionary handed to the SDK chain; every Object.assign
 // block above has run before this module-level merge.
-const CHAIN_MESSAGES: Record<Locale, Record<string, string>> = {
+const CHAIN_MESSAGES: Partial<Record<Locale, Record<string, string>>> = {
   en: { ...themeMessages.en, ...EXTRA_MESSAGES.en },
   'zh-Hans': { ...themeMessages['zh-Hans'], ...EXTRA_MESSAGES['zh-Hans'] },
   'zh-Hant': { ...themeMessages['zh-Hant'], ...EXTRA_MESSAGES['zh-Hant'] },
