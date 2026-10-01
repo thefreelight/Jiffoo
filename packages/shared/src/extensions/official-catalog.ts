@@ -68,9 +68,17 @@ export interface OfficialCatalogSolutionPackageMeta {
   setupStepCount: number;
 }
 
+export type OfficialExtensionCategory =
+  | 'analytics'
+  | 'email'
+  | 'integration'
+  | 'marketing'
+  | 'seo';
+
 export interface OfficialCatalogEntry {
   slug: string;
   name: string;
+  category?: OfficialExtensionCategory;
   kind: OfficialExtensionKind;
   target?: 'shop' | 'admin';
   listingDomain: MarketplaceListingDomain;
