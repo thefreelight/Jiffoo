@@ -50,6 +50,8 @@ import { extensionInstallerRoutes } from '@/core/admin/extension-installer/route
 import { adminExternalOrdersIntegrationRoutes } from '@/core/admin/external-orders-integration/routes';
 // Market integration routes
 import { marketRoutes } from '@/core/admin/market/routes';
+// Marketplace submission pipeline (developer submit + admin review)
+import { developerSubmissionRoutes, adminSubmissionReviewRoutes } from '@/core/marketplace-submissions/routes';
 // Theme App Gateway routes
 import { themeAppGatewayRoutes } from '@/core/admin/theme-app-runtime/gateway';
 // Webhook admin routes
@@ -133,6 +135,10 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // Official Market integration routes (§4.9)
   await fastify.register(marketRoutes, { prefix: '/api/admin/market' });
+
+  // Marketplace submission pipeline
+  await fastify.register(developerSubmissionRoutes, { prefix: '/api/v1' });
+  await fastify.register(adminSubmissionReviewRoutes, { prefix: '/api/admin/marketplace' });
 
   // Theme App Gateway (reverse proxy to running Theme Apps)
   // This allows frontends to access Theme Apps through the API server

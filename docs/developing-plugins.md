@@ -129,15 +129,55 @@ The SDK ships a compatibility checker (`checkPluginCompatibility`,
 ## Packaging and distribution
 
 The official marketplace is curated: plugins ship as versioned artifacts from the official
-catalog, and merchants install/enable them from the admin marketplace. To propose a plugin for
-the catalog, open an issue or discussion in this repository with:
+catalog, and merchants install/enable them from the admin marketplace. Submit your plugin
+through the submission pipeline:
 
-1. Plugin slug, category, and one-paragraph description
-2. The surfaces and capabilities it requests
-3. How settings and secrets are handled
+### 1. Create the submission
 
-Keep your plugin build reproducible from a public source repository — the review covers
-manifest correctness, surface usage, and data handling.
+```bash
+curl -X POST https://<api-host>/api/v1/developer/submissions \
+  -H 'content-type: application/json' \
+  -d '{
+    "kind": "plugin",
+    "slug": "my-plugin",
+    "name": "My Plugin",
+    "version": "0.0.1",
+    "contractVersion": "v1",
+    "category": "integration",
+    "description": "What the plugin does, in a sentence or two.",
+    "developerName": "Your Name",
+    "developerEmail": "you@example.com",
+    "sourceUrl": "https://github.com/you/my-plugin",
+    "artifactUrl": "https://github.com/you/my-plugin/releases/download/v0.0.1/my-plugin-0.0.1.zip",
+    "manifest": { "id": "my-plugin", "version": "0.0.1", "contract": "v1", "category": "integration", "uses": ["api", "events"] }
+  }'
+```
+
+The response includes an automated **validation report** (`{ ok, issues[] }`). `error`-level
+issues block review; `warning`s are shown to the reviewer. Fix your plugin or manifest and
+create the submission again if needed.
+
+### 2. Submit for review
+
+```bash
+curl -X POST https://<api-host>/api/v1/developer/submissions/<id>/submit
+```
+
+This requires the validation to pass and an `artifactUrl` to be attached.
+
+### 3. Track the decision
+
+```bash
+curl https://<api-host>/api/v1/developer/submissions/<id>
+```
+
+Possible outcomes: **approved** (enters the catalog publish flow), **rejected**, or
+**changes_requested** (fix the noted issues, re-create the submission at a new patch version,
+and submit again). You can list your own submissions with
+`GET /api/v1/developer/submissions?email=you@example.com`.
+
+Keep your plugin build reproducible from a public source repository — review covers manifest
+correctness, surface usage, and data handling.
 
 ## See also
 
