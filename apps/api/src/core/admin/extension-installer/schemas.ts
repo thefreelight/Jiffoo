@@ -311,7 +311,7 @@ export const extensionInstallerSchemas = {
         slug: { type: 'string', description: 'Plugin slug to uninstall' },
       },
     },
-    response: createTypedDeleteResponses(uninstallPluginResultSchema),
+    response: { ...createTypedDeleteResponses(uninstallPluginResultSchema), 409: errorResponseSchema },
   },
 
   // POST /api/extensions/plugin/:slug/restore
@@ -323,7 +323,7 @@ export const extensionInstallerSchemas = {
         slug: { type: 'string', description: 'Plugin slug to restore' },
       },
     },
-    response: createTypedCreateResponses(restorePluginResultSchema),
+    response: { ...createTypedCreateResponses(restorePluginResultSchema), 409: errorResponseSchema },
   },
 
   // DELETE /api/extensions/plugin/:slug/purge
@@ -335,7 +335,7 @@ export const extensionInstallerSchemas = {
         slug: { type: 'string', description: 'Plugin slug to purge permanently' },
       },
     },
-    response: createTypedDeleteResponses(purgePluginResultSchema),
+    response: { ...createTypedDeleteResponses(purgePluginResultSchema), 409: errorResponseSchema },
   },
 
 } as const;

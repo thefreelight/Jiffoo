@@ -10,6 +10,8 @@ import { CacheService } from '@/core/cache/service';
 import type { PluginMeta, PluginState, PluginConfig, InstalledPluginsResponse } from './types';
 import { validateInstanceConfig, validateInstanceKeyFormat } from '@/core/admin/extension-installer/utils';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
+import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
 import { incrementPluginRegistryVersion } from '@/core/admin/extension-installer/plugin-registry-version';
 import { assertPluginConfigReadyForEnable } from '@/core/admin/extension-installer/config-readiness';
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
@@ -508,6 +510,8 @@ export async function getInstanceConfig(
  * Files are preserved by default for safety
  */
 export async function uninstallPlugin(slug: string): Promise<void> {
+  const token = await acquirePluginOperationLease(slug, 'uninstall');
+  try {
   // Check if plugin exists
   const pluginPackage = await prisma.pluginInstall.findUnique({
     where: { slug },
@@ -539,6 +543,7 @@ export async function uninstallPlugin(slug: string): Promise<void> {
 
   // Soft delete: set deletedAt on package and disable all non-deleted instances
   await prisma.$transaction(async (tx) => {
+    await fencePluginOperationLease(tx, slug, token);
     // Set deletedAt on plugin package
     await tx.pluginInstall.update({
       where: { slug },
@@ -562,32 +567,38 @@ export async function uninstallPlugin(slug: string): Promise<void> {
   await CacheService.delete(`plugins:config:${slug}`);
   await CacheService.incrementPluginVersion();
   await reconcilePluginState(slug);
+  } finally {
+    await releasePluginOperationLease(slug, token);
+  }
 }
 
 /**
  * Restore plugin from soft-uninstalled state.
  */
 export async function restorePlugin(slug: string): Promise<void> {
+  const token = await acquirePluginOperationLease(slug, 'restore');
+  try {
   const pluginPackage = await prisma.pluginInstall.findUnique({
     where: { slug },
   });
 
   if (!pluginPackage) {
-    throw new Error(`Plugin "${slug}" not found`);
+    throw Object.assign(new Error(`Plugin "${slug}" not found`), { statusCode: 404 });
   }
 
   if (!pluginPackage.deletedAt) {
-    throw new Error(`Plugin "${slug}" is already installed`);
+    throw Object.assign(new Error(`Plugin "${slug}" is already installed`), { statusCode: 400 });
   }
 
   const pluginPackageFiles = pluginPackage.zipHash
     ? await pluginPackageStore.get(slug, pluginPackage.zipHash) : null;
   if (!pluginPackageFiles || !await pluginPackageFiles.exists('manifest.json')) {
-    throw new Error(`Plugin "${slug}" files are missing. Please reinstall from ZIP.`);
+    throw Object.assign(new Error(`Plugin "${slug}" files are missing. Please reinstall from ZIP.`), { statusCode: 400 });
   }
 
   const manifest = readStoredPluginManifest(pluginPackage);
   await prisma.$transaction(async (tx) => {
+    await fencePluginOperationLease(tx, slug, token);
     await tx.pluginInstall.update({
       where: { slug },
       data: { deletedAt: null },
@@ -628,6 +639,9 @@ export async function restorePlugin(slug: string): Promise<void> {
   await CacheService.delete(`plugins:config:${slug}`);
   await CacheService.incrementPluginVersion();
   await reconcilePluginState(slug);
+  } finally {
+    await releasePluginOperationLease(slug, token);
+  }
 }
 
 /**
@@ -635,22 +649,26 @@ export async function restorePlugin(slug: string): Promise<void> {
  * Removes plugin files and permanently deletes plugin package + instances records.
  */
 export async function purgePlugin(slug: string): Promise<void> {
+  const token = await acquirePluginOperationLease(slug, 'purge');
+  try {
   const pluginPackage = await prisma.pluginInstall.findUnique({
     where: { slug },
   });
 
   if (!pluginPackage) {
-    throw new Error(`Plugin "${slug}" not found`);
+    throw Object.assign(new Error(`Plugin "${slug}" not found`), { statusCode: 404 });
   }
 
   if (pluginPackage.source === 'builtin') {
-    throw new Error('Cannot purge built-in plugins');
+    throw Object.assign(new Error('Cannot purge built-in plugins'), { statusCode: 400 });
   }
 
   const defaultInstance = await getDefaultInstance(slug);
   await assertNotLastEnabledProvider(slug, Boolean(defaultInstance?.enabled), pluginPackage.manifestJson);
 
   await prisma.$transaction(async (tx) => {
+    await fencePluginOperationLease(tx, slug, token);
+    await pluginPackageBlobStore.deleteAll(tx, slug);
     await tx.pluginInstall.delete({ where: { slug } });
     await incrementPluginRegistryVersion(tx);
   });
@@ -659,6 +677,9 @@ export async function purgePlugin(slug: string): Promise<void> {
   await CacheService.delete(`plugins:config:${slug}`);
   await CacheService.incrementPluginVersion();
   await reconcilePluginState(slug);
+  } finally {
+    await releasePluginOperationLease(slug, token);
+  }
 }
 
 // ============================================================================

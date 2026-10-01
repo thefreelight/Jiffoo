@@ -123,6 +123,8 @@ export const common = {
     serverError: 'Server error. Please try again later.',
     networkError: 'Network error. Please check your connection.',
     rateLimited: 'Too many requests. Please try again later.',
+    pluginOperationInProgress: 'Another operation is in progress for this plugin.',
+    pluginOperationLeaseLost: 'The plugin operation lost its lease. Please retry.',
     timeout: 'Request timed out. Please try again.',
     unknown: 'An unknown error occurred',
     componentUnavailable: 'Unable to load component',

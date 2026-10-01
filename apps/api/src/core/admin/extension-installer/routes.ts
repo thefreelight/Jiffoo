@@ -671,6 +671,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         uninstalled: true,
       }, `plugin "${slug}" uninstalled successfully`);
     } catch (error: any) {
+      if (error?.statusCode === 409) return sendError(reply, 409, error.code, error.message);
       fastify.log.error({ err: error }, 'Failed to uninstall plugin');
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to uninstall plugin');
     }
@@ -699,8 +700,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       }, `plugin "${slug}" restored successfully`);
     } catch (error: any) {
       const message = error?.message || 'Failed to restore plugin';
-      const statusCode = typeof error?.statusCode === 'number' ? error.statusCode : message.includes('not found') ? 404 : 400;
-      return sendError(reply, statusCode, error?.code || 'RESTORE_ERROR', message);
+      const statusCode = typeof error?.statusCode === 'number' ? error.statusCode : 500;
+      return sendError(reply, statusCode, error?.code || (statusCode === 500 ? 'INTERNAL_SERVER_ERROR' : 'RESTORE_ERROR'), message);
     }
   });
 
@@ -726,8 +727,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         purged: true,
       }, `plugin "${slug}" purged permanently`);
     } catch (error: any) {
-      const statusCode = error?.message?.includes('not found') ? 404 : 400;
-      return sendError(reply, statusCode, 'PURGE_ERROR', error.message || 'Failed to purge plugin');
+      const statusCode = typeof error?.statusCode === 'number' ? error.statusCode : 500;
+      return sendError(reply, statusCode, error?.code || (statusCode === 500 ? 'INTERNAL_SERVER_ERROR' : 'PURGE_ERROR'), error.message || 'Failed to purge plugin');
     }
   });
 

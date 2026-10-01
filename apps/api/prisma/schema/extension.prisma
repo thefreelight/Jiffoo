@@ -38,12 +38,39 @@ model PluginInstall {
 
   installations PluginInstallation[]
   eventSubscriptions PluginEventSubscription[]
+  packageBlobs PluginPackageBlob[]
 
   @@index([category])
   @@index([runtimeType])
   @@index([zipHash])
   @@index([deletedAt])
   @@map("plugin_installs")
+  @@schema("public")
+}
+
+model PluginPackageBlob {
+  id         String   @id @default(cuid())
+  pluginSlug String
+  zipHash    String
+  bytes      Bytes
+  sizeBytes  Int
+  createdAt  DateTime @default(now())
+
+  plugin PluginInstall @relation(fields: [pluginSlug], references: [slug], onDelete: Cascade)
+
+  @@unique([pluginSlug, zipHash])
+  @@map("plugin_package_blobs")
+  @@schema("public")
+}
+
+model PluginOperationLease {
+  slug       String   @id
+  token      String
+  operation  String
+  acquiredAt DateTime
+  expiresAt  DateTime
+
+  @@map("plugin_operation_leases")
   @@schema("public")
 }
 

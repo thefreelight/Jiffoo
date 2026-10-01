@@ -12,6 +12,7 @@
 
 import { Readable } from 'stream';
 import { createReadStream } from 'fs';
+import { promises as fs } from 'fs';
 import archiver from 'archiver';
 import path from 'path';
 import { prisma } from '@/config/database';
@@ -42,6 +43,8 @@ import { syncEventSubscriptions } from '@/infra/events/emit';
 import { decryptPluginConfig } from '@/core/admin/plugin-management/config-crypto';
 import { redactPluginFailure } from './plugin-failure';
 import { verifyPluginZip } from 'shared/plugin-signing';
+import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
+import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
 
 function parseJsonArray(value: unknown): string[] {
   if (!value) return [];
@@ -114,6 +117,7 @@ export class PluginFsInstaller implements IPluginInstaller {
     let deployment: PluginPackageDeployment | null = null;
     let tempZipCleanup: (() => Promise<void>) | null = null;
     let wasNewInstall = false;
+    let lease: { slug: string; token: string } | null = null;
 
     // 1. Stream the ZIP to disk while calculating its hash to avoid buffering large packages in memory.
     const {
@@ -125,6 +129,18 @@ export class PluginFsInstaller implements IPluginInstaller {
 
     try {
     const publisher = await verifyPluginZip(zipFilePath);
+    tempDir = await extractZipToTemp(createReadStream(zipFilePath), 'plugin');
+    const { rootDir, manifestPath } = await resolveExtractedPackageRoot(tempDir, 'plugin');
+    const manifest = await readJsonFile<PluginManifest>(manifestPath);
+    validatePluginManifest(manifest);
+    if (options?.source !== 'builtin' && BUILTIN_PLUGIN_SLUGS.has(manifest.slug)) {
+      const error = Object.assign(new Error(`Plugin slug "${manifest.slug}" is reserved for a built-in plugin`), { statusCode: 400, code: 'SLUG_RESERVED' });
+      throw error;
+    }
+    if (options?.source !== 'builtin') {
+      lease = { slug: manifest.slug, token: await acquirePluginOperationLease(manifest.slug, 'install') };
+      await testLeaseBarrier('acquired', manifest.slug, zipHash);
+    }
     // 2. Check if same hash already installed (idempotency)
     // CRITICAL: Must filter deletedAt=null, otherwise soft-deleted plugins will be treated as installed
     const existingByHash = await prisma.pluginInstall.findFirst({
@@ -144,13 +160,17 @@ export class PluginFsInstaller implements IPluginInstaller {
       // Same ZIP already installed and not deleted - return existing plugin info
       let existingPackage = await pluginPackageStore.get(existingByHash.slug, zipHash);
       if (!existingPackage) {
-        tempDir = await extractZipToTemp(createReadStream(zipFilePath), 'plugin');
-        const extracted = await resolveExtractedPackageRoot(tempDir, 'plugin');
-        const stagedManifest = await readJsonFile<PluginManifest>(extracted.manifestPath);
-        validatePluginManifest(stagedManifest);
-        if (stagedManifest.slug !== existingByHash.slug || stagedManifest.version !== existingByHash.version)
-          throw new Error('Installed package identity does not match the uploaded ZIP');
-        existingPackage = (await pluginPackageStore.put(existingByHash.slug, zipHash, extracted.rootDir)).package;
+        existingPackage = (await pluginPackageStore.put(existingByHash.slug, zipHash, rootDir)).package;
+      }
+      if (manifest.slug !== existingByHash.slug || manifest.version !== existingByHash.version)
+        throw new Error('Installed package identity does not match the uploaded ZIP');
+      if (lease) {
+        const bytes = await fs.readFile(zipFilePath);
+        await prisma.$transaction(async (tx) => {
+          await fencePluginOperationLease(tx, lease!.slug, lease!.token);
+          await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, bytes);
+          await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
+        });
       }
       return {
         id: existingByHash.id,
@@ -176,26 +196,6 @@ export class PluginFsInstaller implements IPluginInstaller {
         zipHash,
       };
     }
-
-      // 3. Extract to temporary directory with security validation
-      tempDir = await extractZipToTemp(createReadStream(zipFilePath), 'plugin');
-
-      // 4. Resolve package root & read manifest.json
-      const { rootDir, manifestPath } = await resolveExtractedPackageRoot(
-        tempDir,
-        'plugin'
-      );
-      const manifest = await readJsonFile<PluginManifest>(manifestPath);
-
-      // 5. Validate manifest
-      validatePluginManifest(manifest);
-
-      if (options?.source !== 'builtin' && BUILTIN_PLUGIN_SLUGS.has(manifest.slug)) {
-        const error = new Error(`Plugin slug "${manifest.slug}" is reserved for a built-in plugin`) as Error & { statusCode?: number; code?: string };
-        error.statusCode = 400;
-        error.code = 'SLUG_RESERVED';
-        throw error;
-      }
 
       // Uploaded packages always use the established unsigned confirmation and audit flow.
       const trustLevel = publisher ? 'signed' : deriveTrustLevel(options?.source || 'local-zip');
@@ -248,6 +248,7 @@ export class PluginFsInstaller implements IPluginInstaller {
       // 8. TWO-PHASE COMMIT WITH WARM VALIDATION
       // Phase 1: atomically replace the package through the storage boundary.
       deployment = await pluginPackageStore.put(manifest.slug, zipHash, rootDir);
+      if (lease) await testLeaseBarrier('published', manifest.slug, zipHash);
       const targetDir = deployment.package.getEntryPath('');
       wasNewInstall = !existingBySlug;
 
@@ -273,6 +274,11 @@ export class PluginFsInstaller implements IPluginInstaller {
           // All instances warmed successfully - proceed with DB update
           // CRITICAL: Set deletedAt=null to restore visibility (in case of re-install after soft delete)
           const pluginInstall = await prisma.$transaction(async (tx) => {
+            if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
+            if (lease) {
+              await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, await fs.readFile(zipFilePath));
+              await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
+            }
             const updatedInstall = await tx.pluginInstall.update({
               where: { slug: manifest.slug },
               data: {
@@ -364,14 +370,14 @@ export class PluginFsInstaller implements IPluginInstaller {
           deployment = null;
 
 
-          throw new Error(
-            `Plugin upgrade failed: ${safeFailure}. Old version restored.`
-          );
+          if (warmError?.code === 'PLUGIN_OPERATION_LEASE_LOST') throw warmError;
+          throw new Error(`Plugin upgrade failed: ${safeFailure}. Old version restored.`);
         }
       } else {
         // NEW INSTALL: Create a disabled instance; enablement is a separate transition.
         try {
           const result = await prisma.$transaction(async (tx) => {
+            if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
             const install = await tx.pluginInstall.create({
               data: {
                 slug: manifest.slug,
@@ -393,6 +399,10 @@ export class PluginFsInstaller implements IPluginInstaller {
                 permissions: manifest.permissions ?? null,
               },
             });
+            if (lease) {
+              await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, await fs.readFile(zipFilePath));
+              await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
+            }
 
             await tx.pluginInstallation.create({
               data: {
@@ -477,6 +487,7 @@ export class PluginFsInstaller implements IPluginInstaller {
 
       throw error;
     } finally {
+      if (lease) await releasePluginOperationLease(lease.slug, lease.token);
       if (tempZipCleanup) {
         await tempZipCleanup().catch(() => {});
       }
@@ -559,6 +570,19 @@ export class PluginFsInstaller implements IPluginInstaller {
       return null;
     }
   }
+}
+
+async function testLeaseBarrier(stage: 'acquired' | 'published', slug: string, zipHash: string): Promise<void> {
+  if (process.env.NODE_ENV !== 'test' || process.env.JIFFOO_TEST_PLUGIN_LEASE_BARRIER !== stage || !process.send) return;
+  process.send({ kind: 'plugin-lease-ready', stage, slug, zipHash });
+  await new Promise<void>((resolve) => {
+    const release = (message: unknown) => {
+      if ((message as { kind?: string })?.kind !== 'plugin-lease-release') return;
+      process.off('message', release);
+      resolve();
+    };
+    process.on('message', release);
+  });
 }
 
 /** Singleton instance */

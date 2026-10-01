@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createHash, randomUUID } from 'node:crypto';
+import { fork, type ChildProcess } from 'node:child_process';
+import { once } from 'node:events';
 import { createWriteStream, promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -10,6 +12,7 @@ import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
+import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 
 const prisma = getTestPrisma();
 const hash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -76,10 +79,13 @@ describe('immutable plugin package deployment', () => {
   });
 
   async function upload(bytes: Buffer, confirmUnsigned = true) {
+    return uploadTo(base, bytes, confirmUnsigned);
+  }
+  async function uploadTo(url: string, bytes: Buffer, confirmUnsigned = true) {
     const form = new FormData();
     if (confirmUnsigned) form.set('confirmUnsigned', 'true');
     form.set('file', new Blob([bytes], { type: 'application/zip' }), 'plugin.zip');
-    const response = await fetch(`${base}/api/v1/extensions/plugin/install`, {
+    const response = await fetch(`${url}/api/v1/extensions/plugin/install`, {
       method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form,
     });
     return { status: response.status, body: await response.json() };
@@ -100,6 +106,213 @@ describe('immutable plugin package deployment', () => {
     expect(pkg).not.toBeNull();
     return pkg!.getEntryPath('');
   }
+  async function blobInvariant(id: string, bytes: Buffer) {
+    const rows = await prisma.pluginPackageBlob.findMany({
+      where: { pluginSlug: id }, select: { zipHash: true, sizeBytes: true },
+    });
+    expect(rows).toEqual([{ zipHash: hash(bytes), sizeBytes: bytes.length }]);
+    expect(Buffer.from((await pluginPackageBlobStore.get(id, hash(bytes)))!.bytes)).toEqual(bytes);
+  }
+  function child(stage: 'acquired' | 'published') {
+    return fork(path.resolve('tests/helpers/plugin-lease-child.ts'), [], {
+      execArgv: ['--import', 'tsx'], stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+      env: { ...process.env, NODE_ENV: 'test', JIFFOO_TEST_PLUGIN_LEASE_BARRIER: stage },
+    });
+  }
+  function message(process: ChildProcess, kind: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        process.off('message', receive);
+        process.off('error', fail);
+        process.off('exit', exit);
+      };
+      const fail = (error: Error) => { cleanup(); reject(error); };
+      const exit = (code: number | null) => fail(new Error(`Child exited before ${kind}: ${code}`));
+      const receive = (value: any) => {
+        if (value?.kind !== kind && value?.kind !== 'error') return;
+        cleanup();
+        if (value.kind === 'error') reject(new Error(value.message));
+        else resolve(value);
+      };
+      process.on('message', receive);
+      process.on('error', fail);
+      process.on('exit', exit);
+    });
+  }
+  async function stop(childProcess: ChildProcess) {
+    if (childProcess.exitCode !== null) return;
+    const exited = once(childProcess, 'exit');
+    childProcess.send({ kind: 'stop' });
+    await exited;
+  }
+
+  it('A new install persists the exact ZIP bytes, hash, and size', async () => {
+    const id = own();
+    const zip = await archive(id, 'blob');
+    expect((await upload(zip)).status).toBe(200);
+    await blobInvariant(id, zip);
+  });
+
+  it('B upgrade retains only the new ZIP blob', async () => {
+    const id = own();
+    expect((await upload(await archive(id, 'old'))).status).toBe(200);
+    const next = await archive(id, 'new', { version: '2.0.0' });
+    expect((await upload(next)).status).toBe(200);
+    await blobInvariant(id, next);
+  });
+
+  it('C signature rejection leaves the row and blob unchanged without a lease', async () => {
+    const id = own();
+    const original = await archive(id, 'old');
+    expect((await upload(original)).status).toBe(200);
+    expect((await upload(await archive(id, 'bad', { incompleteSignature: true }))).status).toBe(422);
+    expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).zipHash).toBe(hash(original));
+    await blobInvariant(id, original);
+    expect(await prisma.pluginOperationLease.findUnique({ where: { slug: id } })).toBeNull();
+  });
+
+  it('C candidate prewarm failure preserves the row and blob without a lease', async () => {
+    const id = own();
+    const original = await archive(id, 'old');
+    expect((await upload(original)).status).toBe(200);
+    await enabled(id);
+    const bad = await archive(id, 'bad', { version: '2.0.0', code: 'module.exports = {};' });
+    expect((await upload(bad)).status).toBeGreaterThanOrEqual(400);
+    expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).zipHash).toBe(hash(original));
+    await blobInvariant(id, original);
+    expect(await prisma.pluginOperationLease.findUnique({ where: { slug: id } })).toBeNull();
+  });
+
+  it('D identical ZIP keeps one blob and repairs a missing blob on reupload', async () => {
+    const id = own();
+    const zip = await archive(id, 'same');
+    expect((await upload(zip)).status).toBe(200);
+    const initial = await pluginPackageBlobStore.get(id, hash(zip));
+    expect((await upload(zip)).status).toBe(200);
+    expect((await pluginPackageBlobStore.get(id, hash(zip)))?.id).toBe(initial?.id);
+    await blobInvariant(id, zip);
+    await prisma.pluginPackageBlob.delete({ where: { pluginSlug_zipHash: { pluginSlug: id, zipHash: hash(zip) } } });
+    expect((await upload(zip)).status).toBe(200);
+    await blobInvariant(id, zip);
+  });
+
+  it('E soft uninstall retains the blob, restore succeeds, and purge removes it', async () => {
+    const id = own();
+    const zip = await archive(id, 'retained');
+    expect((await upload(zip)).status).toBe(200);
+    const headers = { authorization: `Bearer ${token}` };
+    expect((await fetch(`${base}/api/v1/extensions/plugin/${id}`, { method: 'DELETE', headers })).status).toBe(200);
+    await blobInvariant(id, zip);
+    expect((await fetch(`${base}/api/v1/extensions/plugin/${id}/restore`, { method: 'POST', headers })).status).toBe(200);
+    await blobInvariant(id, zip);
+    expect((await fetch(`${base}/api/v1/extensions/plugin/${id}/purge`, { method: 'DELETE', headers })).status).toBe(200);
+    expect(await prisma.pluginPackageBlob.count({ where: { pluginSlug: id } })).toBe(0);
+  });
+
+  it('F builtin plugins have no blob rows', async () => {
+    expect(await prisma.pluginPackageBlob.count({ where: { pluginSlug: { in: ['manual-payment', 'free-shipping', 'zero-tax', 'manual-fulfillment', 'console-email'] } } })).toBe(0);
+  });
+
+  it('G concurrent uploads of one slug reject the second while the first holds its lease', async () => {
+    const id = own();
+    const zip = await archive(id, 'held');
+    const worker = child('acquired');
+    try {
+      const ready = await message(worker, 'ready');
+      const entered = message(worker, 'plugin-lease-ready');
+      const first = uploadTo(ready.base, zip);
+      await entered;
+      const second = await upload(zip);
+      expect(second).toMatchObject({ status: 409, body: { error: { code: 'PLUGIN_OPERATION_IN_PROGRESS' } } });
+      worker.send({ kind: 'plugin-lease-release' });
+      expect((await first).status).toBe(200);
+      await blobInvariant(id, zip);
+    } finally {
+      worker.send({ kind: 'plugin-lease-release' });
+      await stop(worker);
+    }
+  });
+
+  it('H expired lease takeover fences the old publisher without deleting the new lease', async () => {
+    const id = own();
+    const oldZip = await archive(id, 'old');
+    const newZip = await archive(id, 'new', { version: '2.0.0' });
+    const a = child('published');
+    const b = child('published');
+    try {
+      const [aReady, bReady] = await Promise.all([message(a, 'ready'), message(b, 'ready')]);
+      const aEntered = message(a, 'plugin-lease-ready');
+      const first = uploadTo(aReady.base, oldZip);
+      await aEntered;
+      await prisma.pluginOperationLease.update({ where: { slug: id }, data: { expiresAt: new Date(0) } });
+      const bEntered = message(b, 'plugin-lease-ready');
+      const second = uploadTo(bReady.base, newZip);
+      await bEntered;
+      const bLease = await prisma.pluginOperationLease.findUniqueOrThrow({ where: { slug: id } });
+      a.send({ kind: 'plugin-lease-release' });
+      expect(await first).toMatchObject({ status: 409, body: { error: { code: 'PLUGIN_OPERATION_LEASE_LOST' } } });
+      expect((await prisma.pluginOperationLease.findUniqueOrThrow({ where: { slug: id } })).token).toBe(bLease.token);
+      b.send({ kind: 'plugin-lease-release' });
+      expect((await second).status).toBe(200);
+      expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).zipHash).toBe(hash(newZip));
+      await blobInvariant(id, newZip);
+      expect(await packagePath(id, hash(oldZip))).toBeDefined();
+      expect(await packagePath(id, hash(newZip))).toBeDefined();
+    } finally {
+      a.send({ kind: 'plugin-lease-release' });
+      b.send({ kind: 'plugin-lease-release' });
+      await stop(a);
+      await stop(b);
+    }
+  });
+
+  it('I different slugs acquire leases independently in real processes', async () => {
+    const ids = [own(), own()];
+    const zips = await Promise.all(ids.map((id) => archive(id, 'parallel')));
+    const workers = ids.map(() => child('acquired'));
+    try {
+      const ready = await Promise.all(workers.map((worker) => message(worker, 'ready')));
+      const entered = workers.map((worker) => message(worker, 'plugin-lease-ready'));
+      const uploads = workers.map((worker, index) => uploadTo(ready[index].base, zips[index]));
+      await Promise.all(entered);
+      workers.forEach((worker) => worker.send({ kind: 'plugin-lease-release' }));
+      expect((await Promise.all(uploads)).map((result) => result.status)).toEqual([200, 200]);
+      for (let index = 0; index < ids.length; index++) await blobInvariant(ids[index], zips[index]);
+    } finally {
+      workers.forEach((worker) => worker.send({ kind: 'plugin-lease-release' }));
+      await Promise.all(workers.map(stop));
+    }
+  });
+
+  it('J uninstall, restore, and purge reject a held slug lease', async () => {
+    const id = own();
+    const zip = await archive(id, 'held');
+    expect((await upload(zip)).status).toBe(200);
+    const lease = await prisma.pluginOperationLease.create({
+      data: { slug: id, token: randomUUID(), operation: 'test', acquiredAt: new Date(), expiresAt: new Date(Date.now() + 60000) },
+    });
+    const headers = { authorization: `Bearer ${token}` };
+    try {
+      for (const [method, suffix] of [['DELETE', ''], ['POST', '/restore'], ['DELETE', '/purge']] as const) {
+        const response = await fetch(`${base}/api/v1/extensions/plugin/${id}${suffix}`, { method, headers });
+        expect(response.status).toBe(409);
+        expect((await response.json()).error.code).toBe('PLUGIN_OPERATION_IN_PROGRESS');
+      }
+      expect((await prisma.pluginOperationLease.findUniqueOrThrow({ where: { slug: id } })).token).toBe(lease.token);
+    } finally {
+      await prisma.pluginOperationLease.delete({ where: { slug: id } });
+    }
+    await blobInvariant(id, zip);
+  });
+
+  it('K success and failure both release the operation lease', async () => {
+    const id = own();
+    const zip = await archive(id, 'success');
+    expect((await upload(zip)).status).toBe(200);
+    expect(await prisma.pluginOperationLease.findUnique({ where: { slug: id } })).toBeNull();
+    expect((await upload(await archive(id, 'failure', { version: '2.0.0' }), false)).status).toBe(400);
+    expect(await prisma.pluginOperationLease.findUnique({ where: { slug: id } })).toBeNull();
+  });
 
   it('A upload publishes a complete hash directory without post-publish writes', async () => {
     const id = own();

@@ -1,0 +1,17 @@
+import { createTestApp } from './create-test-app';
+
+async function main() {
+  const app = await createTestApp({ disableFileSystem: false });
+  const base = await app.listen({ port: 0, host: '127.0.0.1' });
+  process.send?.({ kind: 'ready', base });
+  process.on('message', async (message: unknown) => {
+    if ((message as { kind?: string })?.kind !== 'stop') return;
+    await app.close();
+    process.exit(0);
+  });
+}
+
+main().catch((error) => {
+  process.send?.({ kind: 'error', message: error instanceof Error ? error.stack : String(error) });
+  process.exitCode = 1;
+});

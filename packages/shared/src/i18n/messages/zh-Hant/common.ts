@@ -123,6 +123,8 @@ export const common = {
     serverError: '伺服器錯誤，請稍後重試。',
     networkError: '網路錯誤，請檢查您的連線。',
     rateLimited: '請求過於頻繁，請稍後再試。',
+    pluginOperationInProgress: '此外掛有另一項操作正在進行。',
+    pluginOperationLeaseLost: '外掛操作的租約已失效，請重試。',
     timeout: '請求逾時，請重試。',
     unknown: '發生未知錯誤',
     componentUnavailable: '無法載入組件',
