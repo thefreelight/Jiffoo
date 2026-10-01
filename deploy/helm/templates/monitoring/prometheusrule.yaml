@@ -3,9 +3,9 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: {{ include "jiffoo-mall-core.fullname" . }}-alerts
+  name: {{ include "jiffoo.fullname" . }}-alerts
   labels:
-    {{- include "jiffoo-mall-core.labels" . | nindent 4 }}
+    {{- include "jiffoo.labels" . | nindent 4 }}
     app.kubernetes.io/component: monitoring
   {{- with .Values.monitoring.alerts.labels }}
     {{- toYaml . | nindent 4 }}
@@ -18,9 +18,9 @@ spec:
         - alert: JiffooBackendHighErrorRate
           expr: |
             (
-              sum(rate(http_errors_total{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"}[5m])) 
+              sum(rate(http_errors_total{service="{{ include "jiffoo.fullname" . }}-backend"}[5m])) 
               / 
-              sum(rate(http_requests_total{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"}[5m]))
+              sum(rate(http_requests_total{service="{{ include "jiffoo.fullname" . }}-backend"}[5m]))
             ) > 0.05
           for: 2m
           labels:
@@ -34,9 +34,9 @@ spec:
         # 2. Readiness Probe Failures
         - alert: JiffooBackendNotReady
           expr: |
-            kube_deployment_status_replicas_ready{deployment="{{ include "jiffoo-mall-core.fullname" . }}-backend"} 
+            kube_deployment_status_replicas_ready{deployment="{{ include "jiffoo.fullname" . }}-backend"} 
             < 
-            kube_deployment_spec_replicas{deployment="{{ include "jiffoo-mall-core.fullname" . }}-backend"}
+            kube_deployment_spec_replicas{deployment="{{ include "jiffoo.fullname" . }}-backend"}
           for: 5m
           labels:
             severity: warning
@@ -50,7 +50,7 @@ spec:
         - alert: JiffooBackendHighDbLatency
           expr: |
             histogram_quantile(0.95, 
-              sum(rate(db_query_duration_seconds_bucket{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"}[5m])) by (le)
+              sum(rate(db_query_duration_seconds_bucket{service="{{ include "jiffoo.fullname" . }}-backend"}[5m])) by (le)
             ) > 0.5
           for: 3m
           labels:
@@ -64,7 +64,7 @@ spec:
         # 4. Redis Connection Issues
         - alert: JiffooBackendRedisDown
           expr: |
-            redis_connection_status{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"} == 0
+            redis_connection_status{service="{{ include "jiffoo.fullname" . }}-backend"} == 0
           for: 1m
           labels:
             severity: critical
@@ -77,7 +77,7 @@ spec:
         # 5. Plugin Errors
         - alert: JiffooBackendPluginErrors
           expr: |
-            sum(rate(plugin_errors_total{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"}[5m])) > 0.1
+            sum(rate(plugin_errors_total{service="{{ include "jiffoo.fullname" . }}-backend"}[5m])) > 0.1
           for: 5m
           labels:
             severity: warning
@@ -91,7 +91,7 @@ spec:
         - alert: JiffooBackendHighLatency
           expr: |
             histogram_quantile(0.95, 
-              sum(rate(http_request_duration_seconds_bucket{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"}[5m])) by (le)
+              sum(rate(http_request_duration_seconds_bucket{service="{{ include "jiffoo.fullname" . }}-backend"}[5m])) by (le)
             ) > 2
           for: 5m
           labels:
@@ -106,7 +106,7 @@ spec:
         - alert: JiffooBackendCrashLoop
           expr: |
             increase(kube_pod_container_status_restarts_total{
-              pod=~"{{ include "jiffoo-mall-core.fullname" . }}-backend.*"
+              pod=~"{{ include "jiffoo.fullname" . }}-backend.*"
             }[1h]) > 3
           for: 5m
           labels:

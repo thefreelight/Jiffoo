@@ -3,9 +3,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "jiffoo-mall-core.fullname" . }}-dashboard-overview
+  name: {{ include "jiffoo.fullname" . }}-dashboard-overview
   labels:
-    {{- include "jiffoo-mall-core.labels" . | nindent 4 }}
+    {{- include "jiffoo.labels" . | nindent 4 }}
     {{ .Values.monitoring.grafana.label }}: {{ .Values.monitoring.grafana.labelValue | quote }}
   annotations:
     grafana_folder: {{ .Values.monitoring.grafana.folder | quote }}
