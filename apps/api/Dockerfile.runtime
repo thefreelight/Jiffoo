@@ -1,6 +1,6 @@
 # Recovery image for a locally verified API build when upstream OS package
 # repositories are unavailable during the normal multi-stage build.
-FROM harbor.lafdru.local/library/node:20-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 

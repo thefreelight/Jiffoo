@@ -1,8 +1,8 @@
 # Global configuration
 global:
   image:
-    registry: harbor.lafdru.local
-    repository: jiffoo-mall-core
+    registry: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com
+    repository: jiffoo
     tag: latest
     pullPolicy: IfNotPresent
 

@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: jiffoo-mall-core-shop
-  namespace: jiffoo-mall-core-dev
+  name: jiffoo-shop
+  namespace: jiffoo-dev
   labels:
-    app: jiffoo-mall-core
+    app: jiffoo
     service: shop
 spec:
   replicas: 1
@@ -15,19 +15,19 @@ spec:
       maxSurge: 1
   selector:
     matchLabels:
-      app: jiffoo-mall-core
+      app: jiffoo
       service: shop
   template:
     metadata:
       labels:
-        app: jiffoo-mall-core
+        app: jiffoo
         service: shop
     spec:
       imagePullSecrets:
         - name: harbor-registry
       containers:
         - name: shop
-          image: harbor.lafdru.local/jiffoo-mall-core/shop:latest
+          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:latest
           imagePullPolicy: Always
           ports:
             - name: http
@@ -35,7 +35,7 @@ spec:
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: jiffoo-mall-core-config
+                name: jiffoo-config
           env:
             - name: PORT
               value: "3000"
@@ -72,10 +72,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: jiffoo-mall-core-shop
-  namespace: jiffoo-mall-core-dev
+  name: jiffoo-shop
+  namespace: jiffoo-dev
   labels:
-    app: jiffoo-mall-core
+    app: jiffoo
     service: shop
 spec:
   type: NodePort
@@ -86,6 +86,6 @@ spec:
       name: http
       nodePort: 30001
   selector:
-    app: jiffoo-mall-core
+    app: jiffoo
     service: shop
 

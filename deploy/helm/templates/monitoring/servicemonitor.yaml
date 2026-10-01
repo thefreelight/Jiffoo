@@ -3,9 +3,9 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "jiffoo-mall-core.fullname" . }}-backend
+  name: {{ include "jiffoo.fullname" . }}-backend
   labels:
-    {{- include "jiffoo-mall-core.labels" . | nindent 4 }}
+    {{- include "jiffoo.labels" . | nindent 4 }}
     app.kubernetes.io/component: monitoring
   {{- with .Values.monitoring.serviceMonitor.labels }}
     {{- toYaml . | nindent 4 }}
@@ -13,7 +13,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      {{- include "jiffoo-mall-core.serviceSelectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "serviceName" "backend") | nindent 6 }}
+      {{- include "jiffoo.serviceSelectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "serviceName" "backend") | nindent 6 }}
   endpoints:
     - port: http
       path: /metrics

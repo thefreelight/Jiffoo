@@ -82,7 +82,7 @@ config:
     JWT_EXPIRES_IN: "7d"
 
     # API Service URL (内部服务地址，用于 Next.js SSR 和代理)
-    API_SERVICE_URL: "http://jiffoo-mall-core-backend:3002"
+    API_SERVICE_URL: "http://jiffoo-backend:3002"
 
     # Frontend API URLs for development (using NodePort for mainland China access)
     # Backend API is on port 30002
