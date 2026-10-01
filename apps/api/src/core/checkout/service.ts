@@ -1,13 +1,24 @@
 import { CartService } from '@/core/cart/service';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
+import { recordPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
 import { decimalToMinor, minorToDecimal } from '@/core/payment/minor-units';
 
 type Address = { country: string; state?: string; city?: string; postalCode?: string; addressLine1?: string; addressLine2?: string };
 
 function contractAddress(address: Address) {
   return { country: address.country, region: address.state, city: address.city, postalCode: address.postalCode, line1: address.addressLine1, line2: address.addressLine2 };
+}
+
+function unavailableProvider(): never {
+  throw new ContractCallError('CONTRACT_CALL_FAILED', 'Checkout provider is temporarily unavailable');
+}
+
+async function excludeFailedProvider(slug: string, error: unknown): Promise<void> {
+  if (!(error instanceof ContractCallError)) throw error;
+  await recordPluginFailure(slug, error, 'checkout');
+  console.error(JSON.stringify({ event: 'checkout_provider_excluded', slug, reason: error.code }));
 }
 
 export class CheckoutService {
@@ -22,23 +33,41 @@ export class CheckoutService {
     currency: string,
     items: Array<{ productId: string; variantId: string; quantity: number; unitPriceMinor: number }>,
     input: { shippingAddress: Address; shippingOptionId?: string },
+    allowUnavailableForOrder = false,
   ) {
     const subtotalMinor = items.reduce((total, item) => total + item.unitPriceMinor * item.quantity, 0);
     const shippingProviders = await PluginManagementService.listProviders('shipping');
+    const failedShippingSlugs = new Set<string>();
     const shippingOptions = (await Promise.all(shippingProviders.map(async (provider) => {
-      const result = await callContract(provider.pluginSlug, 'shipping', 1, 'quote', { currency, items, subtotalMinor, address: contractAddress(input.shippingAddress) }) as { options: Array<{ id: string; label: string; amountMinor: number; estimatedDays?: { min: number; max: number } }> };
+      let result: { options: Array<{ id: string; label: string; amountMinor: number; estimatedDays?: { min: number; max: number } }> };
+      try {
+        result = await callContract(provider.pluginSlug, 'shipping', 1, 'quote', { currency, items, subtotalMinor, address: contractAddress(input.shippingAddress) }) as typeof result;
+      } catch (error) {
+        await excludeFailedProvider(provider.pluginSlug, error);
+        failedShippingSlugs.add(provider.pluginSlug);
+        return [];
+      }
       return result.options.map((option) => ({ id: `${provider.pluginSlug}:${option.id}`, providerSlug: provider.pluginSlug, label: option.label, amount: minorToDecimal(option.amountMinor, currency), amountMinor: option.amountMinor, estimatedDays: option.estimatedDays }));
     }))).flat();
     const paymentPackages = await PluginManagementService.getAllPluginPackages();
     const paymentMethods = (await Promise.all(paymentPackages.map(async (pkg) => {
       const instance = await PluginManagementService.getDefaultInstance(pkg.slug);
       if (!instance?.enabled || !Array.isArray((pkg.manifestJson as { contracts?: unknown[] }).contracts) || !(pkg.manifestJson as { contracts: Array<{ name: string; version: number }> }).contracts.some((contract) => contract.name === 'payment' && contract.version === 1)) return null;
-      const description = await callContract(pkg.slug, 'payment', 1, 'describe', { storeCurrency: currency }) as { displayName: string; requiresManualConfirmation: boolean; supportedCurrencies: string[] };
+      let description: { displayName: string; requiresManualConfirmation: boolean; supportedCurrencies: string[] };
+      try {
+        description = await callContract(pkg.slug, 'payment', 1, 'describe', { storeCurrency: currency }) as typeof description;
+      } catch (error) {
+        await excludeFailedProvider(pkg.slug, error);
+        return null;
+      }
       return description.supportedCurrencies.includes(currency) ? { providerSlug: pkg.slug, displayName: description.displayName, requiresManualConfirmation: description.requiresManualConfirmation } : null;
     }))).filter((method): method is NonNullable<typeof method> => method !== null);
+    if (!allowUnavailableForOrder && (!shippingOptions.length || !paymentMethods.length)) unavailableProvider();
     if (!input.shippingOptionId) return { currency, subtotal: minorToDecimal(subtotalMinor, currency), shippingOptions, paymentMethods };
     const selected = shippingOptions.find((option) => option.id === input.shippingOptionId);
     if (!selected) {
+      if (allowUnavailableForOrder && failedShippingSlugs.has(input.shippingOptionId.split(':')[0]))
+        return { currency, subtotal: minorToDecimal(subtotalMinor, currency), shippingOptions, paymentMethods };
       const error = new Error('SHIPPING_OPTION_UNAVAILABLE') as Error & { statusCode?: number; code?: string };
       error.statusCode = 409;
       error.code = 'SHIPPING_OPTION_UNAVAILABLE';

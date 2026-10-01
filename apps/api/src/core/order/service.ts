@@ -277,7 +277,7 @@ export class OrderService {
         addressLine2: normalizedShippingAddress.addressLine2,
       },
       shippingOptionId: data.shippingOptionId,
-    });
+    }, true);
     const selectedShipping = quote.shippingOptions.find((option) => option.id === data.shippingOptionId);
     if (!selectedShipping) {
       const error = new Error('SHIPPING_METHOD_UNAVAILABLE') as Error & { statusCode?: number; code?: string };
@@ -292,7 +292,10 @@ export class OrderService {
     try {
       description = await callContract(data.paymentMethod, 'payment', 1, 'describe', { storeCurrency: currency }) as { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
     } catch (error) {
-      if (error instanceof ContractCallError) throw error;
+      if (error instanceof ContractCallError) {
+        const unavailable = new Error('PAYMENT_METHOD_UNAVAILABLE') as Error & { statusCode: number; code: string };
+        unavailable.statusCode = 409; unavailable.code = 'PAYMENT_METHOD_UNAVAILABLE'; throw unavailable;
+      }
       throw error;
     }
     if (!description.supportedCurrencies.includes(currency)) throw new Error('PAYMENT_METHOD_UNAVAILABLE');

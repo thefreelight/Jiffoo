@@ -719,7 +719,8 @@ export async function callContract(
   } catch (error) {
     await recordPluginFailure(slug, error, 'contract');
     if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
-    throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin registry reconciliation failed for ${slug}`);
+    if (error instanceof PluginGatewayError) throw new ContractCallError('CONTRACT_CALL_FAILED', error.message);
+    throw error;
   }
   if (version !== 1 || !(contractName in contractMethods) || !(method in contractMethods[contractName])) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractName} v${version}/${method}`);
   const pkg = await PluginManagementService.getPluginPackage(slug);
@@ -729,36 +730,44 @@ export async function callContract(
   try { manifest = await readPluginManifest(pkg); } catch (error) {
     await recordPluginFailure(slug, error, 'contract');
     if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
-    throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} manifest is invalid`);
+    if (error instanceof PluginGatewayError || error instanceof SyntaxError) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} manifest is invalid`);
+    throw error;
   }
   if (!manifest.contracts?.some((contract) => contract.name === contractName && contract.version === version)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} does not declare ${contractName} v${version}`);
   if (!isBreakerAllowed(slug)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} circuit breaker is open`);
-  let config: Record<string, unknown> = {};
+  const config = decryptPluginConfig(manifest, parseJsonObject(instance.configJson));
+  let runtime: InternalRuntime;
   try {
-    config = decryptPluginConfig(manifest, parseJsonObject(instance.configJson));
-    const runtime = await ensureInternalRuntime(slug, manifest, { slug, zipHash: pkg.zipHash || '', installationId: instance.id, instanceKey: instance.instanceKey, config }, true);
+    runtime = await ensureInternalRuntime(slug, manifest, { slug, zipHash: pkg.zipHash || '', installationId: instance.id, instanceKey: instance.instanceKey, config }, true);
+  } catch (error) {
+    if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
+    if (error instanceof PluginGatewayError) throw new ContractCallError('CONTRACT_CALL_FAILED', error.message);
+    throw error;
+  }
+  try {
     const invocation = runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: input as Record<string, unknown> });
     void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
     const response = await Promise.race([
       invocation,
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Contract call timed out')), getPluginTimeoutMs())),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new ContractCallError('CONTRACT_CALL_FAILED', 'Contract call timed out')), getPluginTimeoutMs())),
     ]);
     if (response.statusCode >= 400) {
       const failure = response.json() as { error?: unknown };
-      throw new Error(`Contract route returned ${response.statusCode}: ${typeof failure.error === 'string' ? failure.error : 'Plugin failure'}`);
+      throw new ContractCallError('CONTRACT_CALL_FAILED', redactPluginText(`Contract route returned ${response.statusCode}: ${typeof failure.error === 'string' ? failure.error : 'Plugin failure'}`, config, manifest));
     }
     const parsed = (contractMethods[contractName][method as keyof typeof contractMethods[typeof contractName]] as { output: { safeParse(value: unknown): { success: boolean; data?: unknown; error?: { message: string } } } }).output.safeParse(response.json());
     if (!parsed.success || (contractName === 'tax' && !isValidTaxResult(input, parsed.data))) {
       const error = new ContractCallError('CONTRACT_RESPONSE_INVALID', `Invalid ${contractName} v${version} ${method} response: ${parsed.success ? 'tax totals or lines are inconsistent' : parsed.error?.message}`);
-      await recordPluginFailure(slug, error, 'contract'); recordBreakerResult(slug, false); throw error;
+      throw error;
     }
     recordBreakerResult(slug, true);
     return parsed.data;
   } catch (error) {
-    if (error instanceof ContractCallError) throw error;
-    if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
-    await recordPluginFailure(slug, error, 'contract', instance.id); recordBreakerResult(slug, false);
-    throw new ContractCallError('CONTRACT_CALL_FAILED', redactPluginText(`Contract call failed for ${slug}: ${error instanceof Error ? error.message : String(error)}`, config, manifest));
+    if (error instanceof ContractCallError) {
+      await recordPluginFailure(slug, error, 'contract', instance.id);
+      recordBreakerResult(slug, false);
+    }
+    throw error;
   }
 }
 
