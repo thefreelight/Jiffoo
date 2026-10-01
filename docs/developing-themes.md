@@ -110,10 +110,38 @@ and the pure-rendering principle for anything merchant-configurable.
 ## Packaging and distribution
 
 Like plugins, the official marketplace is curated — themes ship as versioned artifacts from the
-official catalog. To propose a theme, open an issue or discussion in this repository with the
-slug, target (`shop`/`admin`), form, and screenshots (desktop + mobile). Review covers manifest
-correctness, ThemeRuntime usage (no bypassed data access), settings schema quality, and the
-attribution policy.
+official catalog. Submit your theme through the submission pipeline (`"kind": "theme"`):
+
+```bash
+curl -X POST https://<api-host>/api/v1/developer/submissions \
+  -H 'content-type: application/json' \
+  -d '{
+    "kind": "theme",
+    "slug": "my-theme",
+    "name": "My Theme",
+    "version": "0.1.0",
+    "description": "One-line description of the theme look and target audience.",
+    "developerName": "Your Name",
+    "developerEmail": "you@example.com",
+    "sourceUrl": "https://github.com/you/my-theme",
+    "artifactUrl": "https://github.com/you/my-theme/releases/download/v0.1.0/my-theme-0.1.0.zip",
+    "manifest": {
+      "schemaVersion": 1, "slug": "my-theme", "name": "My Theme", "version": "0.1.0",
+      "target": "shop",
+      "entry": { "tokensCSS": "tokens.css", "templatesDir": "templates", "settingsSchema": "schemas/settings.schema.json" },
+      "poweredBy": { "removable": false }
+    }
+  }'
+```
+
+Automated validation covers the manifest contract: `target` (`shop`/`admin`), semver version,
+`entry` fields (tokensCSS required), and the `poweredBy` attribution declaration. Then submit
+for review (`POST .../submissions/<id>/submit`) and track the decision
+(`GET .../submissions/<id>`) exactly as with plugins — see
+[Developing Plugins](./developing-plugins.md#packaging-and-distribution) for the full flow.
+
+Review covers manifest correctness, ThemeRuntime usage (no bypassed data access), settings
+schema quality, screenshots (desktop + mobile), and the attribution policy.
 
 ## See also
 
