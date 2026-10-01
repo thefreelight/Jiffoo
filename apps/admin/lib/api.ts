@@ -1191,12 +1191,24 @@ export const upgradeApi = {
     releaseNotes?: string | null;
     changelogUrl?: string | null;
     sourceArchiveUrl?: string | null;
+    checksumUrl?: string | null;
+    releaseTag?: string | null;
+    repository?: string | null;
+    deliveryMode?: 'image-first' | 'source-archive' | null;
+    runtimeImages?: {
+      api: string;
+      admin: string;
+      shop: string;
+      updater: string;
+    } | null;
     releaseDate?: string | null;
     releaseChannel: 'stable' | 'prerelease';
     deploymentMode: 'single-host' | 'docker-compose' | 'k8s' | 'unsupported';
     deploymentModeSource: 'env' | 'k8s-signals' | 'compose-signals' | 'single-host-signals' | 'fallback';
     deploymentModeReason?: string | null;
     oneClickUpgradeSupported: boolean;
+    oneClickUpgradeAvailable?: boolean;
+    oneClickUpgradeBlockedReason?: string | null;
     updateSource: 'env-manifest' | 'default-public-manifest' | 'local-fallback';
     manifestUrl?: string | null;
     manifestStatus: 'available' | 'missing' | 'unreachable' | 'invalid';
