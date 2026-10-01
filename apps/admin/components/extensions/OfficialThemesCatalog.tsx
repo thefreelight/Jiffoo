@@ -266,13 +266,13 @@ export function OfficialThemesCatalog({
 
               const priceLabel = managedPackage
                 ? getText('merchant.themes.includedInPackage', 'Included in package')
-                : formatPrice(item);
+                : formatPrice(item) ?? getText('merchant.extensions.priceFree', '免费');
               const installedVersionLabel = item.installedVersion ? `v${item.installedVersion}` : '—';
               const latestVersionLabel = item.latestVersion ? `v${item.latestVersion}` : `v${item.version}`;
 
               return (
               <Card key={item.slug} className="overflow-hidden rounded-[1.35rem] border-gray-100 shadow-sm">
-                <div className="h-36 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-4 text-white">
+                <div className="h-36 bg-gradient-to-br from-[#eaf1ff] via-[#eef1fe] to-[#ece7fd] p-4 text-slate-900">
                   <div className="flex h-full flex-col justify-between">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3">
@@ -281,36 +281,36 @@ export function OfficialThemesCatalog({
                           name={item.name}
                           kind="theme"
                           thumbnailUrl={item.thumbnailUrl}
-                          className="h-10 w-10 shrink-0 border border-white/15"
+                          className="h-10 w-10 shrink-0 border border-white/80 shadow-sm"
                         />
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <OfficialBadge compact className="border-white/15 bg-white/10 text-white" />
+                            <OfficialBadge compact className="border-white/80 bg-white/90 text-slate-700" />
                             {hasSolutionSemantics ? (
-                              <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white">
-                                <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                              <Badge variant="outline" className="rounded-lg border-white/80 bg-white/90 text-slate-700">
+                                <ShieldCheck className="mr-1 h-3.5 w-3.5 text-blue-500" />
                                 {controlPlaneSolution?.badgeLabel || getText('merchant.package.solutionBadge', 'Theme-first solution')}
                               </Badge>
                             ) : null}
                             {isManagedDefaultTheme ? (
-                              <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white">
+                              <Badge variant="outline" className="rounded-lg border-white/80 bg-white/90 text-slate-700">
                                 {getText('merchant.package.defaultThemeBadge', 'Default package theme')}
                               </Badge>
                             ) : null}
                           </div>
-                          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.25em] text-white/60">
+                          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
                             {getText('merchant.themes.embeddedFullTheme', 'Embedded Full Theme')}
                           </p>
                           <h3 className="mt-2 text-xl font-semibold leading-tight">{item.name}</h3>
                         </div>
                       </div>
-                      <Sparkles className="h-6 w-6 text-white/70" />
+                      <Sparkles className="h-6 w-6 text-blue-400" />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white">
+                      <Badge variant="outline" className="rounded-lg border-white/80 bg-white/90 text-slate-700">
                         {priceLabel}
                       </Badge>
-                      <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white">
+                      <Badge variant="outline" className="rounded-lg border-white/80 bg-white/90 text-slate-700">
                         {formatInstallState(item.installState, getText)}
                       </Badge>
                       {item.updateAvailable && item.latestVersion ? (
