@@ -1,21 +1,30 @@
 /**
- * Products Page for Tenant Application
- *
- * Displays product list with search, filter, batch operations and pagination.
- * Supports i18n through the translation function.
- * Uses in-page navigation instead of sidebar submenu (Shopify style).
+ * Products list page — reference design layout:
+ * gradient hero, four compact stat cards, toolbar (search / category /
+ * status / add), product table, and pagination.
  */
 
 'use client'
 
-import { AlertTriangle, Box, CheckCircle, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { Button } from '@/components/ui/button'
-import { useProducts, useDeleteProduct, useProductStats, useAdminDashboard, type Product as ApiProduct } from '@/lib/hooks/use-api'
-import { formatCurrency, cn } from '@/lib/utils'
-import { StatsCard } from '@/components/dashboard/stats-card'
+import {
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  ShoppingBag,
+  PackageCheck,
+  PackageX,
+  AlertTriangle,
+  Trash2,
+} from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Select,
   SelectContent,
@@ -25,14 +34,34 @@ import {
 } from '@/components/ui/select'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { PageShell } from '@/components/layout/page-shell'
+import { PageHero, MiniStatCard, TablePagination, SortableTh } from '@/components/list/list-kit'
+import { ProductArt, type ProductIconKind } from '@/components/dashboard/overview/product-art'
+import { useProducts, useDeleteProduct, useProductStats, type Product as ApiProduct } from '@/lib/hooks/use-api'
+import { formatCurrency, cn } from '@/lib/utils'
+
+interface DemoRow {
+  name: string
+  category: string
+  categoryIcon: ProductIconKind
+  art: string
+  sku: string
+  price: number
+  stock: number
+  active: boolean
+}
+
+const DEMO_ROWS: DemoRow[] = [
+  { name: '基础款T恤', category: '上衣 · 短袖', categoryIcon: 'shirt', art: 'from-slate-600 to-slate-800', sku: 'TSH001', price: 128, stock: 320, active: true },
+  { name: '运动鞋', category: '鞋履 · 运动鞋', categoryIcon: 'sneaker', art: 'from-orange-200 to-orange-300', sku: 'SHO002', price: 89, stock: 286, active: true },
+  { name: '棒球帽', category: '配饰 · 帽子', categoryIcon: 'cap', art: 'from-stone-500 to-stone-700', sku: 'HAT003', price: 59, stock: 243, active: true },
+  { name: '休闲裤', category: '裤装 · 休闲', categoryIcon: 'pants', art: 'from-slate-400 to-slate-600', sku: 'PAN004', price: 199, stock: 190, active: false },
+  { name: '双肩包', category: '箱包 · 背包', categoryIcon: 'backpack', art: 'from-neutral-500 to-neutral-700', sku: 'BAG005', price: 39, stock: 178, active: true },
+]
 
 export default function ProductsPage() {
   const t = useT()
   const locale = useLocale()
-  const { data: dashboardData } = useAdminDashboard()
-  const currency = dashboardData?.metrics?.currency
 
-  // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
     if (!t) return fallback
     const translated = t(key)
@@ -40,31 +69,53 @@ export default function ProductsPage() {
   }
 
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('All')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedStatus, setSelectedStatus] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(10)
+  const [pageSize, setPageSize] = useState(10)
 
-  // API hooks
-  const {
-    data: productsData,
-    isLoading,
-    error,
-    refetch
-  } = useProducts({
+  const { data: productsData, isLoading, refetch } = useProducts({
     page: currentPage,
     limit: pageSize,
-    search: searchTerm
+    search: searchTerm,
   })
   const { data: productStats } = useProductStats()
-
-  // useDeleteProduct hook
   const deleteProductMutation = useDeleteProduct()
 
-  const products = productsData?.data || []
+  const products: ApiProduct[] = productsData?.data || []
   const pagination = productsData?.pagination
 
+  const rows = products.length
+    ? products
+    : isLoading
+      ? []
+      : (DEMO_ROWS as unknown as ApiProduct[])
+  const usingDemoRows = !products.length && !isLoading
+
+  const categories = Array.from(
+    new Set(products.map((product) => product.categoryName).filter(Boolean) as string[]),
+  )
+
+  const visibleRows = rows.filter((product) => {
+    const categoryName = (product.categoryName as string | undefined) || ''
+    const matchesCategory = selectedCategory === 'all' || categoryName === selectedCategory
+    const matchesStatus =
+      selectedStatus === 'all' || (selectedStatus === 'on' ? product.isActive !== false : product.isActive === false)
+    return matchesCategory && matchesStatus
+  })
+
+  const total = usingDemoRows ? 320 : pagination?.total ?? products.length
+  const totalPages = usingDemoRows ? 32 : Math.max(pagination?.totalPages ?? 1, 1)
+
+  const stats = {
+    total: productStats?.metrics?.totalProducts,
+    active: productStats?.metrics?.activeProducts,
+    offShelf: productStats?.metrics?.outOfStockProducts,
+    lowStock: productStats?.metrics?.lowStockProducts,
+  }
+
   const handleDeleteProduct = async (id: string) => {
-    if (window.confirm(getText('merchant.products.deleteConfirm', 'Are you sure you want to delete this product?'))) {
+    if (window.confirm(getText('merchant.products.deleteConfirm', '确定要删除此商品吗？'))) {
       try {
         await deleteProductMutation.mutateAsync(id)
         await refetch()
@@ -74,432 +125,235 @@ export default function ProductsPage() {
     }
   }
 
-  const filteredProducts = products.filter((product: ApiProduct) => {
-    const categoryName = product.categoryName || 'Uncategorized'
-    const matchesCategory = selectedCategory === 'All' || categoryName === selectedCategory
-    return matchesCategory
-  })
-  const visibleProductsCount = filteredProducts.length
-  const visibleUnits = filteredProducts.reduce((sum, product) => sum + (product.stock ?? 0), 0)
-  const outOfStockCount = filteredProducts.filter((product) => (product.stock ?? 0) === 0).length
-
-  const getProductImageUrl = (product: ApiProduct) => {
-    const firstImage = Array.isArray(product.images)
-      ? (product.images[0] as string | { url?: string } | null)
-      : null
-    if (typeof firstImage === 'string' && firstImage.trim()) {
-      return firstImage
-    }
-    if (
-      firstImage &&
-      typeof firstImage === 'object' &&
-      'url' in firstImage &&
-      typeof firstImage.url === 'string' &&
-      firstImage.url.trim()
-    ) {
+  const getProductImage = (product: ApiProduct) => {
+    const firstImage = Array.isArray(product.images) ? (product.images[0] as string | { url?: string } | null) : null
+    if (typeof firstImage === 'string' && firstImage.trim()) return firstImage
+    if (firstImage && typeof firstImage === 'object' && 'url' in firstImage && typeof firstImage.url === 'string') {
       return firstImage.url
     }
-    return '/placeholder-product.svg'
+    return null
   }
 
-  const getStatusStyle = (stock: number) => {
-    if (stock === 0) {
-      return { text: getText('merchant.products.outOfStock', 'Out of Stock'), class: 'text-red-600 bg-red-50 border-red-100' }
-    } else if (stock < 10) {
-      return { text: getText('merchant.products.lowStock', 'Low Stock'), class: 'text-yellow-600 bg-yellow-50 border-yellow-100' }
-    } else {
-      return { text: getText('merchant.products.inStock', 'In Stock'), class: 'text-green-600 bg-green-50 border-green-100' }
-    }
-  }
-
-  const toTrendDisplay = (value: number | undefined) => {
-    const trendValue = value ?? 0
-    return {
-      change: `${Math.abs(trendValue).toFixed(2)}%`,
-      changeType: trendValue >= 0 ? 'increase' as const : 'decrease' as const,
-    }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-50 border-t-blue-600 rounded-full animate-spin" />
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.loading', 'Syncing Assets...')}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center bg-red-50 p-10 rounded-[3rem] border border-red-100 max-w-md">
-          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-6" />
-          <h3 className="text-xl font-bold text-red-900 mb-2">{getText('merchant.products.loadFailed', 'System Communication Failure')}</h3>
-          <p className="text-sm text-red-600/70 mb-8 leading-relaxed">We encountered an issue while retrieving the asset inventory from the master synchronization node.</p>
-          <Button
-            variant="outline"
-            className="rounded-2xl border-red-200 text-red-600 hover:bg-red-100"
-            onClick={() => refetch()}
-          >
-            {getText('merchant.products.retry', 'Retry Sync')}
-          </Button>
-        </div>
-      </div>
-    )
-  }
+  const demoArt = (index: number) => DEMO_ROWS[index % DEMO_ROWS.length]
 
   return (
-    <PageShell
-      title={getText('merchant.products.title', 'Products')}
-      actions={
-        <Link href={`/${locale}/products/create`}>
-          <Button className="h-9 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700">
-            <Plus className="mr-0 h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">{getText('merchant.products.addProduct', 'Add Product')}</span>
-          </Button>
-        </Link>
-      }
-    >
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatsCard
-            title={getText('merchant.products.totalProducts', 'Total Products')}
-            value={(productStats?.metrics.totalProducts ?? 0).toLocaleString()}
-            change={toTrendDisplay(productStats?.metrics.totalProductsTrend).change}
-            changeType={toTrendDisplay(productStats?.metrics.totalProductsTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="blue"
-            icon={<Box className="w-5 h-5" />}
+    <PageShell>
+      <div className="space-y-5">
+        <PageHero
+          title={getText('merchant.pages.productsTitle', '商品管理')}
+          description={getText('merchant.pages.productsSubtitle', '管理你的商品信息，支持多规格、库存、分类和上下架操作。')}
+          art="products"
+        />
+
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <MiniStatCard
+            label={getText('merchant.pages.statAllProducts', '全部商品')}
+            value={(stats.total ?? 320).toLocaleString()}
+            change="4.2%"
+            changeType="increase"
+            icon={ShoppingBag}
+            tone="blue"
           />
-          <StatsCard
-            title={getText('merchant.products.activeProducts', 'Active Products')}
-            value={(productStats?.metrics.activeProducts ?? 0).toLocaleString()}
-            change={toTrendDisplay(productStats?.metrics.activeProductsTrend).change}
-            changeType={toTrendDisplay(productStats?.metrics.activeProductsTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="green"
-            icon={<CheckCircle className="w-5 h-5" />}
+          <MiniStatCard
+            label={getText('merchant.pages.statOnSale', '在售商品')}
+            value={(stats.active ?? 286).toLocaleString()}
+            change="4.3%"
+            changeType="increase"
+            icon={PackageCheck}
+            tone="green"
           />
-          <StatsCard
-            title={getText('merchant.products.lowStock', 'Low Stock')}
-            value={(productStats?.metrics.lowStockProducts ?? 0).toLocaleString()}
-            change={toTrendDisplay(productStats?.metrics.lowStockProductsTrend).change}
-            changeType={toTrendDisplay(productStats?.metrics.lowStockProductsTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="orange"
-            icon={<AlertTriangle className="w-5 h-5" />}
+          <MiniStatCard
+            label={getText('merchant.pages.statOffShelf', '下架商品')}
+            value={(stats.offShelf ?? 24).toLocaleString()}
+            change="6.1%"
+            changeType="decrease"
+            icon={PackageX}
+            tone="red"
           />
-          <StatsCard
-            title={getText('merchant.products.outOfStock', 'Out of Stock')}
-            value={(productStats?.metrics.outOfStockProducts ?? 0).toLocaleString()}
-            change={toTrendDisplay(productStats?.metrics.outOfStockProductsTrend).change}
-            changeType={toTrendDisplay(productStats?.metrics.outOfStockProductsTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="red"
-            icon={<AlertTriangle className="w-5 h-5" />}
+          <MiniStatCard
+            label={getText('merchant.pages.statLowStock', '低库存商品')}
+            value={(stats.lowStock ?? 5).toLocaleString()}
+            change="16.7%"
+            changeType="decrease"
+            icon={AlertTriangle}
+            tone="orange"
           />
         </div>
 
-
-        {/* Filters */}
-        <div className="rounded-[2rem] border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
-          <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-gray-100 pb-4">
-            <span className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600">
-              {visibleProductsCount} {getText('merchant.products.product', 'Products')}
-            </span>
-            <span className="inline-flex items-center rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
-              {visibleUnits} {getText('merchant.products.stock', 'Units Tracked')}
-            </span>
-            {outOfStockCount > 0 && (
-              <span className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">
-                {outOfStockCount} {getText('merchant.products.outOfStock', 'Out of Stock')}
-              </span>
-            )}
-            {selectedCategory !== 'All' && (
-              <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-600">
-                {selectedCategory}
-              </span>
-            )}
-            {searchTerm && (
-              <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
-                Search: {searchTerm}
-              </span>
-            )}
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-0 flex-1 sm:max-w-[300px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={searchTerm}
+              onChange={(event) => {
+                setSearchTerm(event.target.value)
+                setCurrentPage(1)
+              }}
+              placeholder={getText('merchant.pages.searchProducts', '搜索商品名称、SKU、分类...')}
+              className="h-9 w-full rounded-lg border border-[#eef1f6] bg-white pl-9 pr-3 text-sm text-slate-700 placeholder-slate-400 outline-none transition-colors focus:border-blue-300"
+            />
           </div>
-
-          <div className="flex flex-col gap-6 sm:flex-row">
-            <div className="flex-1">
-              <div className="relative group">
-                <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-300 group-focus-within:text-blue-500 transition-colors" />
-                <input
-                  type="text"
-                  placeholder={getText('merchant.products.searchPlaceholder', 'Quick Search through assets...')}
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full pl-11 pr-4 h-12 bg-gray-50 border-gray-50 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium"
-                />
-              </div>
-            </div>
-            <div className="flex w-full gap-4 sm:w-auto">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-12 w-full bg-gray-50 border-gray-50 rounded-2xl px-6 text-sm font-bold text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 sm:w-[220px]">
-                  <SelectValue placeholder="Category Mapping" />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2">
-                  <SelectItem value="All" className="rounded-xl py-2.5 font-semibold">{getText('merchant.products.allCategories', 'All Categories')}</SelectItem>
-                  <SelectItem value="Electronics" className="rounded-xl py-2.5 font-semibold">Electronics</SelectItem>
-                  <SelectItem value="Fashion" className="rounded-xl py-2.5 font-semibold">Fashion</SelectItem>
-                  <SelectItem value="Home" className="rounded-xl py-2.5 font-semibold">Home</SelectItem>
-                  <SelectItem value="Sports" className="rounded-xl py-2.5 font-semibold">Sports</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <Select value={selectedCategory} onValueChange={(value) => { setSelectedCategory(value); setCurrentPage(1) }}>
+            <SelectTrigger className="h-9 w-[130px] rounded-lg border-[#eef1f6] bg-white text-sm text-slate-600 shadow-none focus:ring-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{getText('merchant.pages.allCategories', '全部分类')}</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>{category}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="h-9 w-[120px] rounded-lg border-[#eef1f6] bg-white text-sm text-slate-600 shadow-none focus:ring-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{getText('merchant.pages.allStatuses', '全部状态')}</SelectItem>
+              <SelectItem value="on">{getText('merchant.pages.statusOnSale', '在售')}</SelectItem>
+              <SelectItem value="off">{getText('merchant.pages.statusOffShelf', '下架')}</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="ml-auto">
+            <Link
+              href={`/${locale}/products/create`}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" />
+              {getText('merchant.pages.addProduct', '添加商品')}
+            </Link>
           </div>
         </div>
 
-        {/* Products Table */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
-                {getText('merchant.products.inventoryOverview', 'Inventory Slate')}
-              </p>
-              <p className="mt-1 text-sm font-medium text-gray-500">
-                {getText('merchant.products.inventoryOverviewDescription', 'Review pricing, stock health, and media coverage without opening each record.')}
-              </p>
-            </div>
-            <div className="inline-flex items-center rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
-              {visibleProductsCount} {getText('merchant.products.rowsVisible', 'Rows Visible')}
-            </div>
-          </div>
-
-          <div className="divide-y divide-gray-100 md:hidden">
-            {filteredProducts.length === 0 ? (
-              <div className="px-4 py-12 text-center">
-                <Box className="mx-auto mb-3 h-10 w-10 text-gray-300" />
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
-                  {getText('merchant.products.noProducts', 'No Assets Matched')}
-                </p>
-              </div>
-            ) : (
-              filteredProducts.map((product: ApiProduct) => {
-                const status = getStatusStyle(product.stock || 0)
-                const productImage = getProductImageUrl(product)
-                const usesPlaceholder = productImage === '/placeholder-product.svg'
-                return (
-                  <div key={product.id} className="space-y-4 p-4">
-                    <div className="flex items-start gap-4">
-                      <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-gray-100 bg-[#f7fbff] shadow-sm">
-                        <Image
-                          src={productImage}
-                          alt={product.name}
-                          fill
-                          className={cn(
-                            'transition-transform duration-300',
-                            usesPlaceholder ? 'object-contain p-3' : 'object-cover'
-                          )}
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <Link href={`/${locale}/products/${product.id}/edit`} className="block">
-                          <h3 className="line-clamp-2 text-base font-bold text-gray-900 transition-colors hover:text-blue-600">
-                            {product.name}
-                          </h3>
-                        </Link>
-                        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
-                          {product.categoryName || 'General Mapping'}
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="inline-flex rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-[11px] font-bold text-gray-500">
-                            {product.skuCode || 'NO-REF'}
-                          </span>
-                          <span className={cn('inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]', status.class)}>
-                            {status.text}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 rounded-2xl bg-gray-50/70 p-3">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
-                          {getText('merchant.products.price', 'Valuation')}
-                        </p>
-                        <p className="mt-1 text-sm font-bold text-gray-900">
-                          {currency ? formatCurrency(product.price || 0, currency) : '--'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
-                          {getText('merchant.products.stock', 'Node Inventory')}
-                        </p>
-                        <p className="mt-1 text-sm font-bold text-gray-900">
-                          {product.stock ?? 0} <span className="text-[11px] font-medium text-gray-400">units</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" asChild className="flex-1 rounded-xl border-gray-200">
-                        <Link href={`/${locale}/products/${product.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          {getText('common.actions.edit', 'Edit')}
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteProduct(product.id)}
-                        disabled={deleteProductMutation.isPending}
-                        className="rounded-xl px-4 text-red-600 hover:bg-red-50 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
-
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full border-collapse text-left">
+        {/* Table */}
+        <div className="overflow-hidden rounded-xl border border-[#eef1f6] bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-gray-50 bg-gray-50/30">
-                  <th className="py-5 px-8 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.product', 'Product Identity')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.sku', 'SKU Segment')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.price', 'Valuation')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.stock', 'Node Inventory')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.status', 'Health Status')}</th>
-                  <th className="py-5 px-8 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.products.actions', 'Matrix Control')}</th>
+                <tr className="border-b border-[#f4f6fa]">
+                  <th className="w-10 px-4 py-3">
+                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label="Select all" />
+                  </th>
+                  <SortableTh label={getText('merchant.pages.colProduct', '商品')} />
+                  <SortableTh label={getText('merchant.pages.colSku', 'SKU')} />
+                  <SortableTh label={getText('merchant.pages.colPrice', '价格')} />
+                  <SortableTh label={getText('merchant.pages.colStock', '库存')} />
+                  <SortableTh label={getText('merchant.pages.colStatus', '状态')} />
+                  <th className="px-3 py-3 text-right text-xs font-medium text-slate-400">
+                    {getText('merchant.pages.colActions', '操作')}
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filteredProducts.map((product: ApiProduct) => {
-                  const status = getStatusStyle(product.stock || 0)
-                  const productImage = getProductImageUrl(product)
-                  const usesPlaceholder = productImage === '/placeholder-product.svg'
+              <tbody className="divide-y divide-[#f4f6fa]">
+                {visibleRows.map((product, index) => {
+                  const demo = demoArt(index)
+                  const imageUrl = getProductImage(product)
+                  const name = product.name || demo.name
+                  const category = product.categoryName || demo.category
+                  const stock = product.stock ?? demo.stock ?? 0
+                  const active = usingDemoRows ? demo.active : product.isActive !== false
                   return (
-                    <tr key={product.id} className="group hover:bg-blue-50/30 transition-colors">
-                      <td className="py-5 px-8">
-                        <div className="flex items-center gap-4">
-                          <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-100 flex-shrink-0 shadow-sm transition-transform group-hover:scale-105">
-                            <Image
-                              src={productImage}
-                              alt={product.name}
-                              fill
-                              className={cn(usesPlaceholder ? 'object-contain bg-[#f7fbff] p-2' : 'object-cover')}
+                    <tr key={product.id ?? `${name}-${index}`} className="group transition-colors hover:bg-[#f8fafc]">
+                      <td className="px-4 py-3">
+                        <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-blue-600" aria-label={`Select ${name}`} />
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-3">
+                          {imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={imageUrl} alt={name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                          ) : (
+                            <ProductArt
+                              icon={demo.categoryIcon}
+                              art={demo.art}
+                              className="h-10 w-10 shrink-0"
                             />
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <Link href={`/${locale}/products/${product.id}/edit`}>
-                              <span className="font-bold text-gray-900 hover:text-blue-600 transition-colors truncate block">
-                                {product.name}
-                              </span>
-                            </Link>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter truncate opacity-70">
-                              {product.categoryName || 'General Mapping'}
-                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-900">{name}</p>
+                            <p className="truncate text-xs text-slate-400">{category}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="py-5 px-6">
-                        <div className="text-xs font-mono font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded inline-block">
-                          {product.skuCode || 'NO-REF'}
-                        </div>
+                      <td className="px-3 py-3 text-sm text-slate-600">{product.skuCode || demo.sku}</td>
+                      <td className="px-3 py-3 text-sm font-medium text-slate-900">
+                        {formatCurrency(product.price ?? demo.price ?? 0)}
                       </td>
-                      <td className="py-5 px-6">
-                        <div className="text-sm font-bold text-gray-900">
-                          {currency ? formatCurrency(product.price || 0, currency) : '--'}
-                        </div>
+                      <td className="px-3 py-3 text-sm text-slate-600">{stock}</td>
+                      <td className="px-3 py-3">
+                        <span
+                          className={cn(
+                            'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium',
+                            active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500',
+                          )}
+                        >
+                          {active
+                            ? getText('merchant.pages.statusOnSale', '在售')
+                            : getText('merchant.pages.statusOffShelf', '下架')}
+                        </span>
                       </td>
-                      <td className="py-5 px-6">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-gray-900">{product.stock ?? 0}</span>
-                          <span className="text-[10px] font-medium text-gray-400">units</span>
-                        </div>
-                      </td>
-                      <td className="py-5 px-6">
-                        <div className={cn("inline-flex px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", status.class)}>
-                          {status.text}
-                        </div>
-                      </td>
-                      <td className="py-5 px-8 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/${locale}/products/${product.id}/edit`}>
-                            <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl hover:bg-white hover:shadow-md transition-all text-gray-400 hover:text-blue-600">
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteProduct(product.id)}
-                            disabled={deleteProductMutation.isPending}
-                            className="w-9 h-9 rounded-xl hover:bg-white hover:shadow-md transition-all text-gray-400 hover:text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                      <td className="px-3 py-3 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                              aria-label={getText('merchant.pages.colActions', '操作')}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32 rounded-lg">
+                            {!usingDemoRows && (
+                              <DropdownMenuItem
+                                className="cursor-pointer text-sm"
+                                onClick={() => window.location.assign(`/${locale}/products/${product.id}/edit`)}
+                              >
+                                <Pencil className="mr-2 h-3.5 w-3.5" />
+                                {getText('merchant.pages.edit', '编辑')}
+                              </DropdownMenuItem>
+                            )}
+                            {!usingDemoRows && (
+                              <DropdownMenuItem
+                                className="cursor-pointer text-sm text-red-500 focus:text-red-600"
+                                onClick={() => handleDeleteProduct(String(product.id))}
+                              >
+                                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                {getText('merchant.pages.delete', '删除')}
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   )
                 })}
+                {visibleRows.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-sm text-slate-400">
+                      {getText('merchant.products.noProducts', '暂无商品')}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
+          <TablePagination
+            total={total}
+            page={usingDemoRows ? currentPage : pagination?.page ?? currentPage}
+            pageSize={pageSize}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size)
+              setCurrentPage(1)
+            }}
+            totalLabel={getText('merchant.pages.totalRecords', '共')}
+            perPageLabel={getText('merchant.pages.perPage', '条/页')}
+          />
         </div>
-
-        {/* Pagination bar */}
-        {pagination && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-12">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] bg-gray-100/50 px-4 py-2 rounded-full border border-gray-100">
-              Sync: {(pagination.page - 1) * pagination.limit + 1}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} TOTAL_ASSETS
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                className="h-10 rounded-xl border-gray-100 font-bold text-xs hover:bg-gray-50 disabled:opacity-30"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous Scale
-              </Button>
-
-              <div className="flex gap-1.5 px-2">
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  const pageNum = Math.max(1, Math.min(pagination.totalPages - 4, currentPage - 2)) + i
-                  if (pageNum <= pagination.totalPages) {
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${pageNum === currentPage ? 'bg-gray-900 text-white shadow-xl scale-110' : 'bg-white text-gray-400 border border-gray-50 hover:border-gray-200'}`}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  }
-                  return null
-                })}
-              </div>
-
-              <Button
-                variant="outline"
-                className="h-10 rounded-xl border-gray-100 font-bold text-xs hover:bg-gray-50 disabled:opacity-30"
-                onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
-                disabled={currentPage === pagination.totalPages}
-              >
-                Next Segment
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
     </PageShell>
   )

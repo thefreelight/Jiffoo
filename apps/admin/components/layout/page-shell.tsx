@@ -11,7 +11,8 @@
 import { cn } from '@/lib/utils'
 
 interface PageShellProps {
-  title: string
+  /** Omit to let the page hero act as the header (list pages). */
+  title?: string
   description?: string
   /** Right-aligned header actions (buttons, filters, etc.). */
   actions?: React.ReactNode
