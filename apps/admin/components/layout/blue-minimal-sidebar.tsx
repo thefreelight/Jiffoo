@@ -148,8 +148,8 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
       },
       {
         id: 'inventory',
-        nameKey: 'merchant.inventory.title',
-        fallback: '库存预测',
+        nameKey: 'merchant.nav.inventory',
+        fallback: '库存',
         href: '/inventory',
         icon: Archive,
         requiredPermissions: [ADMIN_PERMISSIONS.INVENTORY_READ, ADMIN_PERMISSIONS.INVENTORY_FORECAST],

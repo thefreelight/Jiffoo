@@ -84,6 +84,7 @@ export const common = {
 
   // Labels
   labels: {
+    all: '全部',
     file: '檔案',
     by: '由',
     builtin: '內建',

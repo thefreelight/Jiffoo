@@ -81,6 +81,7 @@ export const merchant = {
 
   // Navigation
   nav: {
+    inventory: 'Inventory',
     dashboard: 'Dashboard',
     products: 'Products',
     orders: 'Orders',
@@ -99,6 +100,12 @@ export const merchant = {
 
   // Extensions (Plugins + Themes)
   extensions: {
+    installStateActive: 'Active',
+    installStateInstalled: 'Installed',
+    installStateNotInstalled: 'Not installed',
+    priceFree: 'Free',
+    badgeInstalled: 'Installed',
+    badgeOfficial: 'Official',
     subtitle: 'Official marketplace access and install status for your store.',
     platformConnection: 'Platform connection',
     platformConnectionDescription: 'Use your platform account to access the official marketplace and settlement features.',
@@ -1030,6 +1037,9 @@ export const merchant = {
 
   // Themes
   themes: {
+    targetStorefront: 'Storefront',
+    embeddedFullTheme: 'Embedded Full Theme',
+    editConfig: 'Edit Config',
     title: 'Themes',
     subtitle: 'Storefront themes, activation status, and official marketplace.',
     management: 'Themes',

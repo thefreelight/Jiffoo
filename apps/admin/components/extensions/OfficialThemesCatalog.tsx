@@ -31,11 +31,24 @@ interface OfficialThemesCatalogProps {
   managedPackage?: ManagedPackageDefinition | null;
 }
 
-function formatPrice(item: OfficialCatalogItem): string {
+function formatPrice(item: OfficialCatalogItem): string | null {
   if (item.pricingModel === 'free' || item.price <= 0) {
-    return 'Free';
+    return null;
   }
   return `${item.pricingModel === 'subscription' ? 'Subscription' : 'One-time'} · ${item.currency} ${item.price}`;
+}
+
+function formatInstallState(state: string, getText: (key: string, fallback: string) => string): string {
+  if (state === 'not_installed') return getText('merchant.extensions.installStateNotInstalled', '未安装');
+  if (state === 'installed') return getText('merchant.extensions.installStateInstalled', '已安装');
+  if (state === 'active') return getText('merchant.extensions.installStateActive', '使用中');
+  return state.replace('_', ' ');
+}
+
+function formatCategory(category: string, getText: (key: string, fallback: string) => string): string {
+  if (category === 'storefront') return getText('merchant.themes.targetStorefront', '商店前台');
+  if (category === 'admin') return getText('merchant.themes.targetAdmin', '管理后台');
+  return category;
 }
 
 export function OfficialThemesCatalog({
@@ -297,8 +310,8 @@ export function OfficialThemesCatalog({
                       <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white">
                         {priceLabel}
                       </Badge>
-                      <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white capitalize">
-                        {item.installState.replace('_', ' ')}
+                      <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white">
+                        {formatInstallState(item.installState, getText)}
                       </Badge>
                       {item.updateAvailable && item.latestVersion ? (
                         <Badge variant="outline" className="rounded-lg border-amber-200 bg-amber-50 text-amber-900">
@@ -318,8 +331,8 @@ export function OfficialThemesCatalog({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="rounded-lg capitalize">
-                      {item.category}
+                    <Badge variant="secondary" className="rounded-lg">
+                      {formatCategory(item.category, getText)}
                     </Badge>
                     <Badge variant="outline" className="rounded-lg capitalize">
                       {item.releaseStatus === 'published'

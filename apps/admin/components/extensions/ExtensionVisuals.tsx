@@ -1,5 +1,7 @@
 'use client';
 
+import { useT } from 'shared/src/i18n/react';
+
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -107,6 +109,10 @@ interface OfficialBadgeProps {
 }
 
 export function OfficialBadge({ className, compact = false }: OfficialBadgeProps) {
+  const t = useT();
+  const label = t && t('merchant.extensions.badgeOfficial') !== 'merchant.extensions.badgeOfficial'
+    ? t('merchant.extensions.badgeOfficial')
+    : '官方';
   return (
     <Badge
       variant="outline"
@@ -117,12 +123,16 @@ export function OfficialBadge({ className, compact = false }: OfficialBadgeProps
       )}
     >
       <ShieldCheck className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
-      Official
+      {label}
     </Badge>
   );
 }
 
 export function InstalledPluginBadge({ className }: { className?: string }) {
+  const t = useT();
+  const label = t && t('merchant.extensions.badgeInstalled') !== 'merchant.extensions.badgeInstalled'
+    ? t('merchant.extensions.badgeInstalled')
+    : '已安装';
   return (
     <Badge
       variant="outline"

@@ -81,6 +81,7 @@ export const merchant = {
 
   // Navigation
   nav: {
+    inventory: '庫存',
     dashboard: '儀表板',
     products: '商品',
     orders: '訂單',
@@ -99,6 +100,12 @@ export const merchant = {
 
   // Extensions (Plugins + Themes)
   extensions: {
+    installStateActive: '使用中',
+    installStateInstalled: '已安裝',
+    installStateNotInstalled: '未安裝',
+    priceFree: '免費',
+    badgeInstalled: '已安裝',
+    badgeOfficial: '官方',
     subtitle: '管理官方市集連線與商店安裝狀態。',
     platformConnection: '平台連線',
     platformConnectionDescription: '使用您的平台帳號以存取官方市集與結算功能。',
@@ -1000,6 +1007,9 @@ export const merchant = {
 
   // Themes
   themes: {
+    targetStorefront: '商店前台',
+    embeddedFullTheme: '完整內嵌主題',
+    editConfig: '編輯配置',
     installSuccess: '主題安裝成功',
     installFailed: '安裝失敗',
     rollback: '回滾',
