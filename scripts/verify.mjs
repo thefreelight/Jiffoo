@@ -175,6 +175,13 @@ for (const [name, commands] of steps) {
       testOutputs.push({ name, kind: args.includes('vitest') ? 'vitest' : 'e2e', output });
       if (result.status !== 0) {
         process.stdout.write(output);
+      } else if (args.includes('vitest') && !quick) {
+        const files = new Map();
+        for (const line of output.replace(/\x1b\[[0-9;]*m/g, '').split(/\r?\n/)) {
+          const match = line.match(/\b(tests\/\S+?\.(?:test|spec)\.[cm]?[jt]sx?) \((\d+) tests?(?: \| \d+ skipped)?\)/);
+          if (match) files.set(match[1], match[0]);
+        }
+        for (const file of files.values()) console.log(file);
       } else if (name === 'Run browser E2E') {
         for (const line of output.split(/\r?\n/)) {
           if (line.includes('Observed browser contexts:') || line.includes('E2E context guard:')) console.log(line);
