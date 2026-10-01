@@ -107,9 +107,22 @@ export interface OrderShippedPayload {
 }
 
 export interface OrderRefundedPayload {
+    /** Existing consumers use this as the order identifier. */
     id: string;
+    orderId: string;
+    refundId: string;
+    userId: string;
+    paymentId?: string;
     amount: number;
+    currency: string;
+    fullyRefunded: boolean;
     reason?: string;
+    providerRefundId?: string;
+    /** Refunded quantities, when the producer has line-level audit data. */
+    items?: Array<{
+        orderItemId: string;
+        quantity: number;
+    }>;
 }
 
 export interface OrderStatusChangedPayload {

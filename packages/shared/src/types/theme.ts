@@ -118,6 +118,7 @@ export interface ThemePackage {
     // User center pages
     ProfilePage: React.ComponentType<ProfilePageProps>;
     ProfileSettingsPage?: React.ComponentType<ProfileSettingsPageProps>;
+    AffiliatePage?: React.ComponentType<AffiliatePageProps>;
     // Content pages
     ContactPage: React.ComponentType<ContactPageProps>;
     HelpPage: React.ComponentType<HelpPageProps>;
@@ -170,7 +171,7 @@ export interface ThemeConfig {
     locale?: Locale;
   };
   site?: {
-    archetype?: 'storefront' | 'landing-commerce' | 'product-site' | 'app-download';
+    archetype?: 'storefront' | 'app-download';
     eyebrow?: string;
     headline?: string;
     subheadline?: string;
@@ -267,6 +268,7 @@ export interface CheckoutFormData {
   postalCode: string;
   country: string;
   paymentMethod: string;
+  promoCode?: string;
 }
 
 /**
@@ -285,6 +287,17 @@ export interface CheckoutPageProps extends ThemeI18nProps {
     displayName: string;
     icon?: string;
   }>;
+  savedAddress?: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    addressLine1?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  } | null;
   onSubmit: (data: CheckoutFormData) => Promise<void>;
   onBack: () => void;
 }
@@ -408,7 +421,7 @@ export interface OrderDetailPageProps extends ThemeI18nProps {
  */
 export interface OrderSuccessPageProps extends ThemeI18nProps {
   orderNumber: string;
-  order?: ShopOrderDetailDTO | null;
+  order?: { id?: string; items?: Array<{ productKind?: string; productName?: string; fulfillmentStatus?: string | null; fulfillmentData?: Record<string, unknown> | null }> } | null;
   isVerifying?: boolean;
   config?: ThemeConfig;
   onContinueShopping: () => void;
@@ -439,6 +452,7 @@ export interface ProfilePageProps extends ThemeI18nProps {
   isLoading: boolean;
   isAuthenticated: boolean;
   config?: ThemeConfig;
+  onNavigate?: (path: string) => void;
   onNavigateToSettings: () => void;
   onNavigateToOrders: () => void;
   onNavigateToLogin: () => void;
@@ -471,6 +485,14 @@ export interface ProfileSettingsPageProps extends ThemeI18nProps {
     timezone?: string;
   }) => Promise<void>;
   onChangePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  onNavigateBack: () => void;
+  onNavigateToLogin: () => void;
+}
+
+export interface AffiliatePageProps extends ThemeI18nProps {
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  config?: ThemeConfig;
   onNavigateBack: () => void;
   onNavigateToLogin: () => void;
 }
@@ -562,6 +584,8 @@ export interface RegisterPageProps extends ThemeI18nProps {
   socialAuthStatus?: SocialAuthStatus;
   onSubmit: (data: {
     email: string;
+    /** Stable account name used for greeting and username login. */
+    username?: string;
     password: string;
     confirmPassword: string;
     firstName: string;

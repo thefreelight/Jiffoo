@@ -30,7 +30,7 @@ export interface ThemeConfig {
     locale?: Locale;
   };
   site?: {
-    archetype?: 'storefront' | 'landing-commerce' | 'product-site';
+    archetype?: 'storefront';
     eyebrow?: string;
     headline?: string;
     subheadline?: string;

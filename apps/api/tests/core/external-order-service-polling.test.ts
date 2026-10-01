@@ -10,11 +10,23 @@ const { prismaMock } = vi.hoisted(() => ({
     orderItem: {
       update: vi.fn(),
     },
+    shipment: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
+    order: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 
 vi.mock('@/config/database', () => ({
   prisma: prismaMock,
+}));
+
+vi.mock('@/services/transactional-email.service', () => ({
+  TransactionalEmailService: { send: vi.fn().mockResolvedValue({ messageId: 'email-event-1' }) },
 }));
 
 describe('ExternalOrderService.pollExternalOrderLinks', () => {
@@ -253,6 +265,38 @@ describe('ExternalOrderService.pollExternalOrderLinks', () => {
         }),
       })
     );
+  });
+
+  it('upserts canonical shipment data from an Odoo push', async () => {
+    prismaMock.externalOrderLink.findMany.mockResolvedValue([{
+      id: 'link_ship_1', provider: 'odoo', installationId: 'ins_1', storeId: 'store_1',
+      coreOrderId: 'order_ship_1', coreOrderItemId: 'item_ship_1', externalOrderRef: '89000006',
+      externalOrderName: 'SO0006',
+      orderItem: {
+        id: 'item_ship_1', fulfillmentData: JSON.stringify({ productType: 'card' }),
+        product: { typeData: JSON.stringify({ sourceProductType: 'card', provider: 'odoo' }) },
+        variant: { skuCode: 'card_1' },
+      },
+    }]);
+    prismaMock.shipment.findFirst.mockResolvedValue(null);
+    prismaMock.order.findUnique.mockResolvedValue({ customerEmail: 'buyer@example.com', user: { email: 'buyer@example.com' } });
+
+    const { ExternalOrderService } = await import('@/core/external-orders/service');
+    await ExternalOrderService.applySupplierPushStatus({
+      provider: 'odoo', installationId: 'ins_1', externalOrderRef: '89000006',
+      externalStatus: 'shipped', shipmentId: 'ODOO-SHIP-6', carrierCode: 'DHL',
+      carrierName: 'DHL Express', trackingNumber: 'TRACK-0006',
+      trackingUrl: 'https://example.com/track/TRACK-0006', shipmentStatus: 'in_transit',
+      shippedAt: '2026-08-01T08:00:00.000Z', estimatedDeliveryAt: '2026-08-05T08:00:00.000Z',
+      lastCheckedAt: '2026-08-01T09:00:00.000Z', shipmentEvents: [{ status: 'picked_up' }],
+    });
+
+    expect(prismaMock.shipment.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        orderId: 'order_ship_1', carrier: 'DHL Express', trackingNumber: 'TRACK-0006', status: 'SHIPPED',
+        metadata: expect.objectContaining({ externalShipmentId: 'ODOO-SHIP-6', carrierCode: 'DHL' }),
+      }),
+    });
   });
 
   it('throttles polling when link was synced too recently', async () => {

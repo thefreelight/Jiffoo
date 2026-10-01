@@ -28,6 +28,7 @@ export interface UserProfileResponse {
   avatar?: string;
   role: string;
   isActive: boolean;
+  emailVerified: boolean;
   orderCount: number;
   totalOrders: number;
   totalSpent: number;

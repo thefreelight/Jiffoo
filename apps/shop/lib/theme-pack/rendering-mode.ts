@@ -54,6 +54,10 @@ export function hasPackagedThemeRuntime(manifest?: ThemePackManifest | null): bo
   return typeof manifest?.entry?.runtimeJS === 'string' && manifest.entry.runtimeJS.trim().length > 0;
 }
 
+export function shouldRenderDefaultRecommendations(manifest?: ThemePackManifest | null): boolean {
+  return !getEmbeddedRendererSlug(manifest) && !hasPackagedThemeRuntime(manifest);
+}
+
 export function resolveThemeRendererSlug(options: {
   manifest?: ThemePackManifest | null;
   activeThemeSlug?: string | null;

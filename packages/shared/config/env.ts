@@ -123,7 +123,15 @@ class EnvironmentConfig {
    * Get required environment variable
    */
   getRequired<T = string>(key: string): T {
-    const value = process.env[key];
+    // Next.js only inlines NEXT_PUBLIC_* variables when referenced statically.
+    // Keep this map explicit so browser bundles receive their configured values.
+    const publicEnv: Record<string, string | undefined> = {
+      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+      NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
+      NEXT_PUBLIC_SHOP_URL: process.env.NEXT_PUBLIC_SHOP_URL,
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    };
+    const value = key.startsWith('NEXT_PUBLIC_') ? publicEnv[key] : process.env[key];
 
     // Client-side: Provide development defaults for NEXT_PUBLIC_* variables
     if (this.isClient && key.startsWith('NEXT_PUBLIC_')) {

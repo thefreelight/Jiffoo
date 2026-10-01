@@ -36,7 +36,7 @@
       "enableQuickView": false
     },
     "site": {
-      "archetype": "product-site",
+      "archetype": "storefront",
       "eyebrow": "Creator-grade AI film lab",
       "headline": "Turn photos and clips into painterly worlds that feel ready to publish.",
       "subheadline": "Launch a lighter, sharper creative storefront with guided image restyling, async video transformation, and a more cinematic visual system for imagic.art.",

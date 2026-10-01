@@ -60,6 +60,7 @@ export const Header = React.memo(function Header({
   const site = resolveBokmooSiteConfig(config);
   const mobileMenuId = 'bokmoo-mobile-menu';
   const isZhHant = locale === 'zh-Hant';
+  const accountInitial = ((user?.firstName || user?.email || 'B').trim().charAt(0) || 'B').toUpperCase();
 
   const openHref = React.useCallback(
     (href: string) => {
@@ -78,6 +79,7 @@ export const Header = React.memo(function Header({
     { label: isZhHant ? '使用方式' : 'How It Works', onClick: () => openHref('/#how-it-works') },
     { label: isZhHant ? '關於我們' : 'About Us', onClick: () => openHref('/contact') },
     { label: isZhHant ? '支援' : 'Support', onClick: () => openHref('/help') },
+    { label: isZhHant ? '推廣' : 'Affiliate', onClick: () => openHref('/affiliate') },
   ];
 
   return (
@@ -122,21 +124,36 @@ export const Header = React.memo(function Header({
             <ChevronDown className="h-4 w-4" />
           </button>
 
-          <button
-            onClick={isAuthenticated ? onNavigateToProfile : onNavigateToLogin}
-            className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] px-5 text-sm font-medium text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
-            type="button"
-          >
-            {isAuthenticated ? user?.firstName || (isZhHant ? '帳戶' : 'Account') : isZhHant ? '登入' : 'Log In'}
-          </button>
-
-          <button
-            onClick={isAuthenticated ? onNavigateToProfile : onNavigateToRegister}
-            className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,white)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-bold tracking-[0.01em] text-[var(--bokmoo-bg)] shadow-[0_14px_30px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.34)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING}`}
-            type="button"
-          >
-            {isAuthenticated ? (isZhHant ? '控制台' : 'Dashboard') : isZhHant ? '立即開始' : 'Get Started'}
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={onNavigateToProfile}
+              className={`inline-flex min-h-[2.75rem] items-center gap-2.5 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(0,0,0,0.16))] pl-1.5 pr-4 text-sm font-semibold text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_54%,transparent)] ${FOCUS_VISIBLE_RING}`}
+              type="button"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_86%,white),color-mix(in_oklab,var(--bokmoo-gold)_66%,black))] text-[0.8rem] font-bold text-[var(--bokmoo-bg)]">
+                {accountInitial}
+              </span>
+              {isZhHant ? '我的帳戶' : 'My Account'}
+              <ChevronDown className="h-4 w-4 text-[var(--bokmoo-copy-soft)]" />
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onNavigateToLogin}
+                className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] px-5 text-sm font-medium text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
+                type="button"
+              >
+                {isZhHant ? '登入' : 'Log In'}
+              </button>
+              <button
+                onClick={onNavigateToRegister}
+                className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,white)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-bold tracking-[0.01em] text-[var(--bokmoo-bg)] shadow-[0_14px_30px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.34)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING}`}
+                type="button"
+              >
+                {isZhHant ? '立即開始' : 'Get Started'}
+              </button>
+            </>
+          )}
 
           <button
             onClick={onNavigateToCart}
@@ -203,13 +220,13 @@ export const Header = React.memo(function Header({
                   className={`rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                  {isZhHant ? '帳戶' : 'Account'}
-                </button>
-                <button
-                  onClick={() => {
-                    onLogout();
-                    setIsMenuOpen(false);
-                  }}
+                    {isZhHant ? '我的帳戶' : 'My Account'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      onLogout();
+                      setIsMenuOpen(false);
+                    }}
                   className={`rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-copy)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >

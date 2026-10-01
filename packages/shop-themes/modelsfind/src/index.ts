@@ -79,7 +79,7 @@ export const theme: ThemePackage = {
       enableQuickView: false,
     },
     site: {
-      archetype: 'product-site',
+      archetype: 'storefront',
       eyebrow: 'Curated model directory',
       headline: 'Editorial model profiles, instant availability cues, and premium booking requests in one refined destination.',
       subheadline:

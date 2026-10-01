@@ -15,6 +15,33 @@ import { EmailVerificationService } from '@/services/email-verification.service'
 import { completeBootstrapPasswordRotation, getPublicAuthBootstrapStatus } from './bootstrap';
 
 export async function authRoutes(fastify: FastifyInstance) {
+  fastify.post('/guest', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as { guestId?: string; installId?: string; deviceId?: string };
+      const result = await AuthService.guest(body);
+      return sendSuccess(reply, {
+        account: {
+          id: result.user.id,
+          name: result.user.username,
+          displayName: result.user.username,
+          email: '',
+          phone: null,
+          membership: 'Guest',
+          accountType: 'guest',
+          guestId: result.guestId,
+        },
+        accountType: 'guest',
+        guestId: result.guestId,
+        accessToken: result.access_token,
+        token: result.token,
+        tokenType: result.token_type,
+        refreshToken: result.refresh_token,
+      }, 'Guest session created', 201);
+    } catch (error: any) {
+      return sendError(reply, 400, 'GUEST_SESSION_FAILED', error.message);
+    }
+  });
+
   // Public login configuration
   fastify.get('/login-config', {
     schema: {
@@ -43,9 +70,24 @@ export async function authRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { email, username, password } = request.body as any;
-      const result = await AuthService.register({ email, username, password });
+      const authorization = request.headers.authorization;
+      let guestUserId: string | undefined;
+      if (authorization?.startsWith('Bearer ')) {
+        try {
+          const payload = AuthService.verifyToken(authorization.slice(7));
+          guestUserId = payload?.role === 'GUEST' ? payload.userId : undefined;
+        } catch {
+          guestUserId = undefined;
+        }
+      }
+      const result = guestUserId
+        ? await AuthService.convertGuest(guestUserId, { email, username, password })
+        : await AuthService.register({ email, username, password });
       return sendSuccess(reply, result, 'Registration successful', 201);
     } catch (error: any) {
+      if (error.code === 'EMAIL_NOT_VERIFIED') {
+        return sendError(reply, 409, 'EMAIL_NOT_VERIFIED', error.message);
+      }
       return sendError(reply, 400, 'REGISTRATION_FAILED', error.message);
     }
   });
@@ -60,8 +102,8 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const { email, password } = request.body as any;
-      const result = await AuthService.login({ email, password });
+      const { identifier, email, password } = request.body as any;
+      const result = await AuthService.login(identifier ? { identifier, password } : { email, password });
       return sendSuccess(reply, result);
     } catch (error: any) {
       if (error.message === 'Account is inactive') {
@@ -199,6 +241,30 @@ export async function authRoutes(fastify: FastifyInstance) {
           message: error.message
         }
       });
+    }
+  });
+
+  fastify.post('/verify-email/code', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Verify email address with a six-digit code',
+      body: {
+        type: 'object',
+        required: ['email', 'code'],
+        properties: {
+          email: { type: 'string', format: 'email' },
+          code: { type: 'string', pattern: '^\\d{6}$' },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    try {
+      const { email, code } = request.body as { email: string; code: string };
+      const result = await EmailVerificationService.verifyCode(email, code);
+      if (!result.success) return sendError(reply, 400, 'VERIFICATION_FAILED', result.error || 'Failed to verify email');
+      return sendSuccess(reply, null, 'Email verified successfully');
+    } catch (error: any) {
+      return sendError(reply, 500, 'VERIFICATION_ERROR', error.message);
     }
   });
 

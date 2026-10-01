@@ -12,11 +12,13 @@ import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/store'
 import { useManagedPackageBranding } from '@/lib/hooks/use-api'
 import { authApi } from '@/lib/api'
-import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { UserRound, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { JiffooMark } from '@/components/branding/jiffoo-mark'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
 import type { AuthBootstrapStatus } from 'shared/src/types/auth'
 import { ZodError } from 'zod'
+import { AdminLanguageSwitcher } from '@/components/i18n/admin-language-switcher'
 // Validation using shared Zod schema
 import { loginSchema } from 'shared'
 
@@ -26,7 +28,7 @@ export default function AdminLoginPage() {
   const t = useT()
   const locale = useLocale()
   const brandingQuery = useManagedPackageBranding()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -49,7 +51,10 @@ export default function AdminLoginPage() {
 
     async function redirectFreshInstall() {
       try {
-        const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '')
+        const configuredApiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '')
+        const apiBaseUrl = configuredApiBaseUrl === '/api' || configuredApiBaseUrl.endsWith('/api')
+          ? `${configuredApiBaseUrl}/v1`
+          : configuredApiBaseUrl
         const response = await fetch(`${apiBaseUrl}/install/status`, { credentials: 'include' })
         if (!response.ok) return
 
@@ -73,7 +78,7 @@ export default function AdminLoginPage() {
     const branding = brandingQuery.data
     document.title = branding?.mode === 'managed' && branding.displayBrandName
       ? `${branding.displayBrandName} Admin`
-      : 'Commerce Admin - Management Dashboard'
+      : 'Jiffoo Admin'
   }, [brandingQuery.data])
 
   useEffect(() => {
@@ -128,15 +133,15 @@ export default function AdminLoginPage() {
 
     // Validation using shared Zod schema
     try {
-      loginSchema.parse({ email, password });
+      loginSchema.parse({ identifier, password });
       // Validation passed, proceed with login
-      await login(email, password)
+      await login(identifier, password)
       // Redirect logic after successful login is handled in useEffect
     } catch (error: unknown) {
       if (error instanceof ZodError) {
         const firstPath = String(error.issues[0]?.path?.[0] || '')
-        if (firstPath === 'email') {
-          setError(getText('common.validation.invalidEmail', 'Please enter a valid email address'))
+        if (firstPath === 'identifier') {
+          setError(getText('merchant.auth.identifierRequired', 'Enter your email or username'))
         } else {
           setError(getText('common.errors.validation', 'Validation Error'))
         }
@@ -155,7 +160,7 @@ export default function AdminLoginPage() {
   const fillDemo = () => {
     const credentials = bootstrapStatus?.credentials
     if (!credentials) return
-    setEmail(credentials.email)
+    setIdentifier(credentials.email)
     setPassword(credentials.password)
   }
 
@@ -166,13 +171,13 @@ export default function AdminLoginPage() {
   const isManagedBranding = brandingQuery.data?.mode === 'managed'
   const brandedTitle = isManagedBranding
     ? brandingQuery.data?.displayBrandName || 'Store Admin'
-    : getText('merchant.auth.title', 'Store Console')
+    : getText('merchant.auth.title', 'Jiffoo Admin')
   const brandedSubtitle = isManagedBranding
     ? brandingQuery.data?.displaySolutionName || 'AUTHENTICATION INTERFACE'
     : getText('merchant.auth.welcomeBack', 'SECURE ACCESS')
   const brandedFooter = isManagedBranding
     ? `© 2026 ${(brandingQuery.data?.displayBrandName || 'STORE ADMIN').toUpperCase()}. ALL RIGHTS RESERVED.`
-    : getText('merchant.auth.copyright', '© 2026 STORE CONSOLE. ALL RIGHTS RESERVED.')
+    : getText('merchant.auth.copyright', '© 2026 JIFFOO. ALL RIGHTS RESERVED.')
 
   if (isAuthenticated) {
     return (
@@ -183,13 +188,14 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#fcfdfe] p-4">
+    <div className="relative min-h-screen flex items-center justify-center bg-[#fcfdfe] p-4">
+      <div className="absolute right-5 top-5 sm:right-8 sm:top-7">
+        <AdminLanguageSwitcher />
+      </div>
       <div className="w-full max-w-md space-y-6">
         {/* Logo and Title */}
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-sm">
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
+          <JiffooMark size="lg" className="justify-center" />
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
               {brandedTitle}
@@ -222,19 +228,21 @@ export default function AdminLoginPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Email Field */}
+              {/* Account identifier field */}
               <div className="space-y-3">
-                <label htmlFor="email" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">
-                  {getText('merchant.auth.emailAddress', 'EMAIL INTERFACE')}
+                <label htmlFor="identifier" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">
+                  {getText('merchant.auth.emailOrUsername', 'EMAIL OR USERNAME')}
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <UserRound className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={getText('merchant.auth.enterEmail', 'Enter your email')}
+                    id="identifier"
+                    name="username"
+                    type="text"
+                    autoComplete="username"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder={getText('merchant.auth.enterEmailOrUsername', 'Enter your email or username')}
                     className="w-full pl-11 pr-4 py-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50/50 text-sm font-bold text-gray-900"
                     required
                     disabled={isLoading}
@@ -252,6 +260,7 @@ export default function AdminLoginPage() {
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={getText('merchant.auth.enterPassword', 'Enter your password')}
@@ -286,6 +295,12 @@ export default function AdminLoginPage() {
                 )}
               </Button>
             </form>
+
+            <p className="text-center text-xs text-gray-500">
+              <a href={`/${locale}/auth/forgot-password`} className="underline underline-offset-4 hover:text-gray-700">
+                {getText('merchant.auth.forgotPassword', 'Forgot password?')}
+              </a>
+            </p>
 
             {isLoadingBootstrap ? (
               <div className="pt-6 border-t border-gray-50">

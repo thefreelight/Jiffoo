@@ -39,6 +39,7 @@ function createNextConfig(options = {}) {
   const {
     appName = 'App',
     port = 3000,
+    apiRouteHandler = false,
     images = {},
     experimental = {},
     ...otherOptions
@@ -121,15 +122,23 @@ function createNextConfig(options = {}) {
 
       return [
 
-        // Core API proxy
-        {
+        // Core API proxy. Apps with a route handler must own /api themselves so
+        // OpenNext does not preempt the handler with an external rewrite.
+        ...(!apiRouteHandler ? [{
           source: '/api/:path*',
           destination: `${apiServiceUrl}/api/:path*`,
-        },
+        }] : []),
         // Extension static files proxy
         {
           source: '/extensions/:path*',
           destination: `${apiServiceUrl}/extensions/:path*`,
+        },
+        // Plugin runtime mount proxy: plugin storefront/admin components
+        // fetch /plugins/<slug>/store|admin/... which the Core API in-process
+        // plugin runtime serves (e.g. Support Hub contact launcher config).
+        {
+          source: '/plugins/:path*',
+          destination: `${apiServiceUrl}/plugins/:path*`,
         },
         // Uploads static files proxy
         {

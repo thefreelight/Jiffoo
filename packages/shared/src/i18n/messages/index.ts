@@ -9,6 +9,7 @@ import type { Locale } from '../config';
 import type { Messages, AppName } from '../types';
 
 import * as enMessages from './en';
+import * as zhHansMessages from './zh-Hans';
 import * as zhHantMessages from './zh-Hant';
 import * as zhHansMessages from './zh-Hans';
 
@@ -95,4 +96,3 @@ export function getNamespaceMessages(
   const messages = allMessages[locale] || allMessages.en;
   return messages[namespace];
 }
-

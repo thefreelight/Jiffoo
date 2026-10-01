@@ -11,7 +11,8 @@ import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { shouldRequirePasswordRotation } from './bootstrap';
-import { createAuthUser, findAuthUserByEmail, findAuthUserById } from './user-compat';
+import { createAuthUser, findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './user-compat';
+import crypto from 'node:crypto';
 
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
 const DEFAULT_DEMO_ADMIN_PASSWORD = 'jiffoo';
@@ -55,6 +56,45 @@ const authUserSelect = {
 } as const;
 
 export class AuthService {
+  static async guest(input: { guestId?: string; installId?: string; deviceId?: string }): Promise<AuthResponse & { accountType: 'guest'; guestId: string }> {
+    const suppliedGuestDigest = input.guestId?.trim().match(/^guest_([a-f0-9]{32})$/i)?.[1];
+    const hint = input.installId || input.deviceId || input.guestId || crypto.randomUUID();
+    const digest = suppliedGuestDigest || crypto.createHash('sha256').update(hint).digest('hex').slice(0, 32);
+    const guestId = input.guestId?.trim() || `guest_${digest}`;
+    const email = `${digest}@guest.bokmoo.invalid`;
+
+    let user = await findAuthUserByEmail(email);
+    if (!user) {
+      user = await createAuthUser({
+        email,
+        username: guestId.slice(0, 50),
+        password: await PasswordUtils.hash(crypto.randomUUID()),
+        role: 'GUEST',
+        emailVerified: true,
+      });
+    }
+
+    if (!user.isActive) throw new Error('Account is inactive');
+    const accessToken = JwtUtils.sign({ userId: user.id, email: user.email, role: user.role });
+    const refreshToken = JwtUtils.signRefresh({ userId: user.id });
+    return {
+      user: {
+        id: user.id,
+        email: '',
+        username: user.username,
+        role: user.role,
+        emailVerified: true,
+        avatar: user.avatar,
+      },
+      accountType: 'guest',
+      guestId,
+      access_token: accessToken,
+      token_type: 'Bearer',
+      expires_in: 604800,
+      refresh_token: refreshToken,
+      token: accessToken,
+    };
+  }
   private static isDemoModeEnabled(): boolean {
     return process.env.JIFFOO_DEMO_MODE === 'true';
   }
@@ -147,19 +187,21 @@ export class AuthService {
    * @throws Error if a user with the same email or username already exists
    */
   static async register(data: RegisterRequest): Promise<AuthResponse> {
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: data.email },
-          { username: data.username }
-        ]
-      },
-      select: { id: true },
-    });
-
-    if (existingUser) {
+    const existingEmailUser = await findAuthUserByEmail(data.email);
+    if (existingEmailUser) {
+      if (!existingEmailUser.emailVerified) {
+        const error = new Error('This email is already registered but has not been verified yet. Enter the verification code we sent, or request a new one.');
+        Object.assign(error, { code: 'EMAIL_NOT_VERIFIED' });
+        throw error;
+      }
       throw new Error('User with this email or username already exists');
     }
+
+    const existingUsername = await prisma.user.findFirst({
+      where: { username: data.username },
+      select: { id: true },
+    });
+    if (existingUsername) throw new Error('User with this email or username already exists');
 
     const hashedPassword = await PasswordUtils.hash(data.password);
     const requireEmailVerification = this.shouldRequireEmailVerification();
@@ -174,11 +216,14 @@ export class AuthService {
 
     if (requireEmailVerification) {
       // Send verification email
-      await EmailVerificationService.sendVerificationEmail(
+      const verificationDelivery = await EmailVerificationService.sendVerificationEmail(
         user.id,
         user.email,
         user.username
       );
+      if (!verificationDelivery.success) {
+        throw new Error(verificationDelivery.error || 'Verification email could not be sent');
+      }
     }
 
     const token = JwtUtils.sign({
@@ -211,17 +256,70 @@ export class AuthService {
     };
   }
 
+  static async convertGuest(userId: string, data: RegisterRequest): Promise<AuthResponse> {
+    const guest = await findAuthUserById(userId);
+    if (!guest || guest.role !== 'GUEST' || !guest.email.endsWith('@guest.bokmoo.invalid')) {
+      throw new Error('Guest session is invalid');
+    }
+    const duplicate = await prisma.user.findFirst({
+      where: { OR: [{ email: data.email }, { username: data.username }], NOT: { id: userId } },
+      select: { id: true },
+    });
+    if (duplicate) throw new Error('User with this email or username already exists');
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        email: data.email,
+        username: data.username,
+        password: await PasswordUtils.hash(data.password),
+        role: 'USER',
+        emailVerified: !this.shouldRequireEmailVerification(),
+      },
+      select: authUserSelect,
+    });
+    if (!user.emailVerified) {
+      const verificationDelivery = await EmailVerificationService.sendVerificationEmail(
+        user.id,
+        user.email,
+        user.username
+      );
+      if (!verificationDelivery.success) {
+        throw new Error(verificationDelivery.error || 'Verification email could not be sent');
+      }
+    }
+    const token = JwtUtils.sign({ userId: user.id, email: user.email, role: user.role });
+    const refreshToken = JwtUtils.signRefresh({ userId: user.id });
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        emailVerified: user.emailVerified,
+        avatar: user.avatar,
+        requiresPasswordRotation: false,
+      },
+      access_token: token,
+      token_type: 'Bearer',
+      expires_in: 604800,
+      refresh_token: refreshToken,
+      token,
+    };
+  }
+
   /**
    * Authenticate a user and generate session tokens
    *
    * Validates user credentials and generates new access and refresh tokens upon successful authentication.
    *
-   * @param data Login credentials containing email and password
+   * @param data Login credentials containing an email or username and password
    * @returns Authentication response with user details and OAuth2-compliant tokens
-   * @throws Error if the email does not exist or password is incorrect
+   * @throws Error if the identifier does not exist, is ambiguous, or the password is incorrect
    */
   static async login(data: LoginRequest): Promise<AuthResponse> {
-    const user = await findAuthUserByEmail(data.email);
+    const identifier = data.identifier ?? data.email;
+    const user = await findAuthUserByIdentifier(identifier);
 
     if (!user) {
       throw new Error('Invalid email or password');

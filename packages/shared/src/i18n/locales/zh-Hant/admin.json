@@ -7,7 +7,8 @@
         "analytics": "資料分析",
         "settings": "系統設定",
         "plugins": "外掛管理",
-        "themes": "佈景主題管理"
+        "themes": "佈景主題管理",
+        "jobSources": "職位來源"
     },
     "dashboard": {
         "title": "儀表板",

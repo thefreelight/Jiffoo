@@ -235,7 +235,13 @@ describe('Auth Endpoints', () => {
         },
       });
 
-      expect([400, 409, 500]).toContain(response.statusCode);
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toMatchObject({
+        success: false,
+        error: {
+          code: 'EMAIL_NOT_VERIFIED',
+        },
+      });
     });
   });
 
@@ -269,6 +275,20 @@ describe('Auth Endpoints', () => {
       expect(body.data).toHaveProperty('token');
       expect(body.data).toHaveProperty('access_token');
       expect(body.data.user.email).toBe(testUser.email);
+    });
+
+    it('should login successfully with a username', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: {
+          identifier: testUser.username,
+          password: testUser.password,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().data.user.username).toBe(testUser.username);
     });
 
     it('should return 400 for unverified email', async () => {

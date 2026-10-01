@@ -79,6 +79,7 @@ export default function ProfilePage() {
       config={config}
       locale={nav.locale}
       t={t}
+      onNavigate={(path) => nav.push(path)}
       onNavigateToSettings={() => nav.push('/profile/settings')}
       onNavigateToOrders={() => nav.push('/orders')}
       onNavigateToLogin={() => nav.push('/auth/login')}

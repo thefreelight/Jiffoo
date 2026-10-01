@@ -1,7 +1,7 @@
 /**
- * Simplified Chinese (converted from Traditional copy) Messages Index
+ * Simplified Chinese Messages Index
  * 
- * Aggregates all Simplified Chinese (converted from Traditional copy) message namespaces for export.
+ * Aggregates all Simplified Chinese message namespaces for export.
  */
 
 export { common } from './common';

@@ -68,6 +68,13 @@ export const authApi = {
   }>> => apiClient.login({ email, password }),
 
   register: (data: RegisterRequest): Promise<ApiResponse<{
+    user?: {
+      id: string;
+      email: string;
+      username: string;
+      role: string;
+      emailVerified?: boolean;
+    };
     access_token: string;
     token_type: string;
     expires_in: number;
@@ -85,6 +92,18 @@ export const authApi = {
 
   verifyEmail: (token: string): Promise<ApiResponse<any>> =>
     apiClient.get('/auth/verify-email', { params: { token } }),
+
+  verifyEmailCode: (email: string, code: string): Promise<ApiResponse<any>> =>
+    apiClient.post('/auth/verify-email/code', { email, code }),
+
+  forgotPassword: (email: string): Promise<ApiResponse<void>> =>
+    apiClient.forgotPassword(email),
+
+  resetPassword: (data: { email: string; code: string; password: string }): Promise<ApiResponse<void>> =>
+    apiClient.resetPassword(data),
+
+  resendVerification: (email: string): Promise<ApiResponse<any>> =>
+    apiClient.post('/auth/resend-verification', { email }),
 };
 
 // Auth Gateway API REMOVED - Legacy
@@ -198,7 +217,9 @@ export const ordersApi = {
       postalCode: string;
     };
     customerEmail?: string;
+    locale?: string;
     discountCodes?: string[];  // Optional discount codes to apply to order
+    affiliateCode?: string;    // Referral/promo code: buyer discount + affiliate attribution
   }): Promise<ApiResponse<ShopOrderDetailDTO>> =>
     apiClient.post(API_ENDPOINTS.ORDERS.CREATE, data),
 
@@ -267,6 +288,7 @@ export const paymentApi = {
   verifySession: (sessionId: string): Promise<ApiResponse<{
     sessionId: string;
     orderId?: string;
+    orderNumber?: string;
     status: string;
     paidAt?: string;
     paymentMethod?: string;

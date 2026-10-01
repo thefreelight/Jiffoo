@@ -1,6 +1,7 @@
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { UpdateEmailRequest, UpdateProfileRequest } from './types';
+import { EmailVerificationService } from '@/services/email-verification.service';
 
 /**
  * User Account Service
@@ -12,6 +13,7 @@ export class AccountService {
     email: true,
     username: true,
     avatar: true,
+    emailVerified: true,
     role: true,
     isActive: true,
     createdAt: true,
@@ -75,6 +77,7 @@ export class AccountService {
   }
 
   static async updateEmail(userId: string, data: UpdateEmailRequest) {
+    const normalizedEmail = data.newEmail.trim().toLowerCase();
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -90,7 +93,7 @@ export class AccountService {
 
     const existing = await prisma.user.findFirst({
       where: {
-        email: data.newEmail,
+        email: normalizedEmail,
         id: { not: userId },
       },
       select: { id: true },
@@ -103,11 +106,23 @@ export class AccountService {
     const updatedProfile = await prisma.user.update({
       where: { id: userId },
       data: {
-        email: data.newEmail,
+        email: normalizedEmail,
+        emailVerified: false,
+        verificationToken: null,
+        verificationTokenExpiry: null,
         updatedAt: new Date(),
       },
       select: this.profileSelect,
     });
+
+    const verification = await EmailVerificationService.sendVerificationEmail(
+      userId,
+      updatedProfile.email,
+      updatedProfile.username,
+    );
+    if (!verification.success) {
+      throw new Error(verification.error || 'Failed to send email verification code');
+    }
 
     return {
       ...updatedProfile,

@@ -38,7 +38,7 @@ const FeaturesConfigSchema = z.object({
  * Site Config Schema
  */
 const SiteConfigSchema = z.object({
-  archetype: z.enum(['storefront', 'landing-commerce', 'product-site']).optional(),
+  archetype: z.enum(['storefront', 'app-download']).optional(),
   eyebrow: z.string().max(120).optional(),
   headline: z.string().max(240).optional(),
   subheadline: z.string().max(400).optional(),

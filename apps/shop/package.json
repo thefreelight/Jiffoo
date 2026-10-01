@@ -5,23 +5,23 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3003",
-    "build": "pnpm --filter shared build && next build",
-    "pages:build": "pnpm --filter shared build && npx @cloudflare/next-on-pages",
-    "workers:build:bokmoo": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=https://api.bokmoo.com/api API_SERVICE_URL=https://api.bokmoo.com SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 opennextjs-cloudflare build --config wrangler.bokmoo.toml --dangerouslyUseUnsupportedNextVersion",
+    "build": "next build",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "preview:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "workers:build:bokmoo": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=/api API_SERVICE_URL=https://api.bokmoo.com SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 opennextjs-cloudflare build --config wrangler.bokmoo.toml --dangerouslyUseUnsupportedNextVersion",
     "workers:deploy:bokmoo": "pnpm workers:build:bokmoo && opennextjs-cloudflare deploy --config wrangler.bokmoo.toml",
+    "workers:build:remoteradar": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=/api API_SERVICE_URL=https://api.remoteradar.cc SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 NEXT_PUBLIC_FALLBACK_STORE_NAME=RemoteRadar NEXT_PUBLIC_FALLBACK_THEME_SLUG=remoteradar next build --webpack && opennextjs-cloudflare build --config wrangler.remoteradar.toml --skipNextBuild",
+    "workers:deploy:remoteradar": "pnpm workers:build:remoteradar && opennextjs-cloudflare deploy --config wrangler.remoteradar.toml",
     "start": "next start -p 3003",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "docker:build": "docker build -t shop:latest .",
-    "clean": "if (Test-Path .next) { Remove-Item -Recurse -Force .next }",
-    "workers:build:easyeuicc": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=https://api.easyeuicc.cc/api API_SERVICE_URL=https://api.easyeuicc.cc SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 next build --webpack && NEXT_PUBLIC_API_URL=https://api.easyeuicc.cc/api API_SERVICE_URL=https://api.easyeuicc.cc SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 opennextjs-cloudflare build --config wrangler.easyeuicc.toml --skipNextBuild",
-    "workers:deploy:easyeuicc": "pnpm workers:build:easyeuicc && opennextjs-cloudflare deploy --config wrangler.easyeuicc.toml",
-    "workers:build:navtoai": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=https://navapi.navtoai.com/api API_SERVICE_URL=https://navapi.navtoai.com SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 opennextjs-cloudflare build --config wrangler.navtoai.toml --dangerouslyUseUnsupportedNextVersion",
-    "workers:deploy:navtoai": "pnpm workers:build:navtoai && opennextjs-cloudflare deploy --config wrangler.navtoai.toml",
-    "workers:build:demo": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=/api API_SERVICE_URL=https://demo-api.jiffoo.com SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 opennextjs-cloudflare build --config wrangler.demo.toml",
-    "workers:deploy:demo": "pnpm workers:build:demo && opennextjs-cloudflare deploy --config wrangler.demo.toml"
+    "clean": "if (Test-Path .next) { Remove-Item -Recurse -Force .next }"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "7.2.0",
@@ -50,7 +50,7 @@
     "framer-motion": "^11.15.0",
     "idb": "^8.0.1",
     "lucide-react": "^0.460.0",
-    "next": "16.0.7",
+    "next": "16.2.10",
     "next-themes": "^0.4.6",
     "react": "19.2.1",
     "react-dom": "19.2.1",
@@ -79,15 +79,12 @@
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.20",
     "eslint": "^9",
-    "eslint-config-next": "16.0.1",
+    "eslint-config-next": "16.2.10",
     "jsdom": "^27.2.0",
     "msw": "^2.12.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.8.3",
     "vitest": "^4.0.14"
-  },
-  "engines": {
-    "node": ">=20.9.0"
   }
 }

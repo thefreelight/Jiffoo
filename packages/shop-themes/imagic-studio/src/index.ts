@@ -70,7 +70,7 @@ export const theme: ThemePackage = {
       enableQuickView: false,
     },
     site: {
-      archetype: 'product-site',
+      archetype: 'storefront',
       eyebrow: 'Creator-grade AI film lab',
       headline: 'Turn stills and short clips into painterly worlds that feel ready to publish.',
       subheadline:

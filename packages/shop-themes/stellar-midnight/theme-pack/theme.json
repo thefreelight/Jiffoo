@@ -34,7 +34,7 @@
       "enableQuickView": false
     },
     "site": {
-      "archetype": "product-site",
+      "archetype": "storefront",
       "eyebrow": "Automation control-room theme",
       "headline": "Codex Team Automation Panel",
       "subheadline": "Launch a dark SaaS storefront that explains the product, previews live execution telemetry, and sells automation plans from one focused surface.",
@@ -52,8 +52,7 @@
     "automation",
     "dashboard",
     "dark-theme",
-    "pricing",
-    "product-site"
+    "pricing"
   ],
   "engines": {
     "jiffoo-theme-sdk": "^0.2.0",

@@ -42,7 +42,7 @@ export interface ProxyConfig {
  * Paths that should NEVER be forwarded to Theme App
  * These are handled by next.config.js rewrites to Core API
  */
-const NEVER_FORWARD_PREFIXES = ['/api/', '/extensions/', '/uploads/', '/theme-app/'];
+const NEVER_FORWARD_PREFIXES = ['/api/', '/plugins/', '/extensions/', '/uploads/', '/theme-app/'];
 const DEFAULT_THEME_APP_PROXY_TIMEOUT_MS = 1000;
 
 function isThemeAppProxyDisabled(): boolean {

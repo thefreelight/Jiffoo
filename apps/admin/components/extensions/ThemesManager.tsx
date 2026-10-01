@@ -196,7 +196,7 @@ export function ThemesManager() {
     <div className="space-y-6">
       {record ? null : <PlatformConnectionCard getText={getText} />}
 
-      <div className="flex flex-col justify-between gap-4 rounded-[1.75rem] border border-gray-100 bg-white p-6 shadow-sm lg:flex-row lg:items-center">
+      <div className="flex flex-col justify-between gap-4 rounded-lg border border-gray-100 bg-white p-6 shadow-sm lg:flex-row lg:items-center">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">
             {getText('merchant.themes.management', 'Themes')}
@@ -226,14 +226,14 @@ export function ThemesManager() {
 
         <div className="flex flex-wrap items-center gap-3">
           {record?.offerKind === 'theme_first_solution' ? (
-            <Button asChild variant="outline" className="rounded-xl">
+            <Button asChild variant="outline" className="rounded-lg">
               <Link href={`/${locale}/package`}>
                 {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
               </Link>
             </Button>
           ) : null}
           <Tabs value={target} onValueChange={(v) => setTarget(v as any)}>
-            <TabsList className="bg-slate-100/70 p-1 rounded-xl">
+            <TabsList className="bg-slate-100/70 p-1 rounded-lg">
               {availableTargets.includes('shop') && (
                 <TabsTrigger value="shop" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-xs font-bold uppercase tracking-wider px-5 py-2">{getText('merchant.themes.targetShop', 'Shop')}</TabsTrigger>
               )}
@@ -245,7 +245,7 @@ export function ThemesManager() {
 
           <Dialog open={configOpen} onOpenChange={setConfigOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" disabled={!currentActiveTheme || updateConfigMutation.isPending} className="rounded-xl">
+              <Button variant="outline" disabled={!currentActiveTheme || updateConfigMutation.isPending} className="rounded-lg">
                 {getText('merchant.themes.editConfig', 'Edit Config')}
               </Button>
             </DialogTrigger>
@@ -262,14 +262,14 @@ export function ThemesManager() {
                   id="theme-config-json"
                   value={configText}
                   onChange={(e) => setConfigText(e.target.value)}
-                  className="min-h-56 font-mono text-xs rounded-xl"
+                  className="min-h-56 font-mono text-xs rounded-lg"
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setConfigOpen(false)} className="rounded-xl">
+                <Button variant="outline" onClick={() => setConfigOpen(false)} className="rounded-lg">
                   {getText('common.actions.cancel', 'Cancel')}
                 </Button>
-                <Button onClick={handleUpdateConfig} disabled={updateConfigMutation.isPending} className="rounded-xl">
+                <Button onClick={handleUpdateConfig} disabled={updateConfigMutation.isPending} className="rounded-lg">
                   {updateConfigMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   {getText('common.actions.saveChanges', 'Save Changes')}
                 </Button>
@@ -280,7 +280,7 @@ export function ThemesManager() {
           {currentActiveTheme?.previousSlug && (
             <Dialog>
               <DialogTrigger asChild>
-                <Button variant="outline" disabled={rollbackMutation.isPending} className="rounded-xl">
+                <Button variant="outline" disabled={rollbackMutation.isPending} className="rounded-lg">
                   <RotateCcw className="mr-2 h-4 w-4" />
                   {getText('merchant.themes.rollback', 'Rollback')}
                 </Button>
@@ -295,7 +295,7 @@ export function ThemesManager() {
                 <DialogFooter>
                   <Button
                     variant="outline"
-                    className="rounded-xl"
+                    className="rounded-lg"
                     onClick={(e: any) => {
                       const closeBtn = e.currentTarget
                         .closest('[role="dialog"]')
@@ -305,7 +305,7 @@ export function ThemesManager() {
                   >
                     {getText('common.actions.cancel', 'Cancel')}
                   </Button>
-                  <Button onClick={() => rollbackMutation.mutate(target)} className="rounded-xl">
+                  <Button onClick={() => rollbackMutation.mutate(target)} className="rounded-lg">
                     {rollbackMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : getText('common.actions.confirm', 'Confirm')}
                   </Button>
                 </DialogFooter>
@@ -316,7 +316,7 @@ export function ThemesManager() {
           {officialCatalogData?.officialMarketOnly || record ? null : (
             <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
               <DialogTrigger asChild>
-                <Button className="rounded-xl shadow-lg shadow-blue-500/20">
+                <Button className="rounded-lg shadow-lg shadow-blue-500/20">
                   <Upload className="mr-2 h-4 w-4" />
                   {getText('merchant.themes.uploadTitle', 'Upload Theme')}
                 </Button>
@@ -334,10 +334,10 @@ export function ThemesManager() {
                     <Label className="text-left sm:text-right">{getText('merchant.themes.type', 'Type')}</Label>
                     <div className="sm:col-span-3">
                       <Select value={themeType} onValueChange={(v) => setThemeType(v as 'pack' | 'app')}>
-                        <SelectTrigger className="rounded-xl">
+                        <SelectTrigger className="rounded-lg">
                           <SelectValue placeholder={getText('merchant.themes.type', 'Type')} />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl">
+                        <SelectContent className="rounded-lg">
                           <SelectItem value="pack" className="rounded-lg">{getText('merchant.themes.typePack', 'Theme Pack (L3.5)')}</SelectItem>
                           <SelectItem value="app" className="rounded-lg">{getText('merchant.themes.typeApp', 'Theme App (L4)')}</SelectItem>
                         </SelectContent>
@@ -357,7 +357,7 @@ export function ThemesManager() {
                       id="theme-file"
                       type="file"
                       accept=".zip"
-                      className="rounded-xl sm:col-span-3"
+                      className="rounded-lg sm:col-span-3"
                       onChange={(e) => {
                         const file = e.target.files?.[0] || null;
                         setSelectedFile(file);
@@ -369,10 +369,10 @@ export function ThemesManager() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setUploadOpen(false)} className="rounded-xl">
+                  <Button variant="outline" onClick={() => setUploadOpen(false)} className="rounded-lg">
                     {getText('common.actions.cancel', 'Cancel')}
                   </Button>
-                  <Button onClick={handleUpload} disabled={!selectedFile || installMutation.isPending} className="rounded-xl">
+                  <Button onClick={handleUpload} disabled={!selectedFile || installMutation.isPending} className="rounded-lg">
                     {installMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {getText('merchant.themes.install', 'Install')}
                   </Button>
@@ -492,7 +492,7 @@ function ThemeList({
         const isDefaultPackageTheme = managedPackage?.defaultThemeSlug === theme.slug;
 
         return (
-          <Card key={`${theme.slug}:${theme.type ?? 'pack'}`} className={`rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300 ${isActive ? 'ring-2 ring-blue-500 shadow-xl shadow-blue-500/10' : 'hover:shadow-md'}`}>
+          <Card key={`${theme.slug}:${theme.type ?? 'pack'}`} className={`rounded-lg border border-gray-100 shadow-sm overflow-hidden transition-all duration-300 ${isActive ? 'ring-2 ring-blue-500 shadow-xl shadow-blue-500/10' : 'hover:shadow-md'}`}>
             <div className="aspect-[16/9] bg-gray-100 relative group overflow-hidden">
               {previewUrl ? (
                 <img src={previewUrl} alt={theme.name} className="object-cover w-full h-full transform transition-transform duration-500 group-hover:scale-105" />
@@ -566,14 +566,14 @@ function ThemeList({
             </CardContent>
             <CardFooter className="p-6 pt-4">
               {isActive ? (
-                <Button className="w-full rounded-xl bg-blue-50 text-blue-600 font-bold hover:bg-blue-100" variant="ghost" disabled>
+                <Button className="w-full rounded-lg bg-blue-50 text-blue-600 font-bold hover:bg-blue-100" variant="ghost" disabled>
                   <Check className="mr-2 h-4 w-4" />
                   {getText('merchant.themes.currentTheme', 'Current Theme')}
                 </Button>
               ) : (
                 <div className="flex w-full gap-3">
                   {isThemeFirstSolution ? (
-                    <Button asChild variant="outline" className="rounded-xl">
+                    <Button asChild variant="outline" className="rounded-lg">
                       <Link href={`/${locale}/package`}>
                         {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
                       </Link>
@@ -581,7 +581,7 @@ function ThemeList({
                   ) : null}
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button className="flex-1 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200" disabled={isActivating}>
+                      <Button className="flex-1 rounded-lg font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200" disabled={isActivating}>
                         {getText('merchant.themes.activate', 'Activate')}
                       </Button>
                     </DialogTrigger>
@@ -597,7 +597,7 @@ function ThemeList({
                       <DialogFooter>
                         <Button
                           variant="outline"
-                          className="rounded-xl"
+                          className="rounded-lg"
                           onClick={(e: any) => {
                             const closeBtn = e.currentTarget
                               .closest('[role="dialog"]')
@@ -607,14 +607,14 @@ function ThemeList({
                         >
                           {getText('common.actions.cancel', 'Cancel')}
                         </Button>
-                        <Button onClick={() => onActivate(theme)} className="rounded-xl">{getText('merchant.themes.activate', 'Activate')}</Button>
+                        <Button onClick={() => onActivate(theme)} className="rounded-lg">{getText('merchant.themes.activate', 'Activate')}</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
 
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button className="flex-1 rounded-xl font-bold border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-100" variant="outline" disabled={!canUninstall || isUninstalling}>
+                      <Button className="flex-1 rounded-lg font-bold border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-100" variant="outline" disabled={!canUninstall || isUninstalling}>
                         {getText('merchant.themes.uninstall', 'Uninstall')}
                       </Button>
                     </DialogTrigger>
@@ -632,12 +632,12 @@ function ThemeList({
                         </DialogDescription>
                       </DialogHeader>
                       <DialogFooter>
-                        <Button variant="outline" className="rounded-xl">
+                        <Button variant="outline" className="rounded-lg">
                           {getText('common.actions.cancel', 'Cancel')}
                         </Button>
                         <Button
                           variant="destructive"
-                          className="rounded-xl"
+                          className="rounded-lg"
                           disabled={!canUninstall || isUninstalling}
                           onClick={() => onUninstall(theme)}
                         >

@@ -5,7 +5,7 @@
  * Configure global test environment, mocks, and cleanup hooks.
  */
 
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -32,6 +32,17 @@ if (!/(^|[_-])test([^a-zA-Z0-9]|$)/i.test(dbUrl)) {
 
 process.env.DATABASE_URL_TEST = dbUrl;
 process.env.DATABASE_URL = dbUrl;
+
+// The test database has no SMTP plugin installation subscribed to `email.send`,
+// so TransactionalEmailService.send throws and any registration that runs with
+// email verification enabled (the default) fails with 400. Stub delivery only:
+// the outbox event still lands exactly as in production, so register/verify
+// flows behave identically minus the network hop.
+vi.mock('@/services/transactional-email.service', async (importOriginal) => {
+  const actual: any = await importOriginal();
+  actual.TransactionalEmailService.send = async () => ({ messageId: 'test-stub' });
+  return actual;
+});
 
 import { cleanupDatabase, setupTestDatabase, disconnectDatabase } from './helpers/db';
 

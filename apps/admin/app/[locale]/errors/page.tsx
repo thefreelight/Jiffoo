@@ -31,7 +31,9 @@ export default function ErrorsPage() {
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
+    if (!t) return fallback
+    const translated = t(key)
+    return translated === key ? fallback : translated
   }
 
   // Page navigation items
@@ -97,8 +99,8 @@ export default function ErrorsPage() {
   // Calculate stats from errors data
   const errorStats = {
     total: pagination?.total || 0,
-    critical: errors.filter((err: ErrorLog) => err.severity === 'CRITICAL').length,
-    error: errors.filter((err: ErrorLog) => err.severity === 'ERROR').length,
+    critical: errors.filter((err: ErrorLog) => err.severity?.toLowerCase() === 'critical').length,
+    error: errors.filter((err: ErrorLog) => err.severity?.toLowerCase() === 'error').length,
     resolved: errors.filter((err: ErrorLog) => err.resolved).length,
   }
 
@@ -228,10 +230,10 @@ export default function ErrorsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">{getText('merchant.errors.allSeverity', 'All Severity')}</SelectItem>
-                  <SelectItem value="CRITICAL">{getText('merchant.errors.critical', 'Critical')}</SelectItem>
-                  <SelectItem value="ERROR">{getText('merchant.errors.error', 'Error')}</SelectItem>
-                  <SelectItem value="WARNING">{getText('merchant.errors.warning', 'Warning')}</SelectItem>
-                  <SelectItem value="INFO">{getText('merchant.errors.info', 'Info')}</SelectItem>
+                  <SelectItem value="critical">{getText('merchant.errors.critical', 'Critical')}</SelectItem>
+                  <SelectItem value="error">{getText('merchant.errors.error', 'Error')}</SelectItem>
+                  <SelectItem value="warning">{getText('merchant.errors.warning', 'Warning')}</SelectItem>
+                  <SelectItem value="info">{getText('merchant.errors.info', 'Info')}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={selectedResolved} onValueChange={setSelectedResolved}>

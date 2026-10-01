@@ -13,6 +13,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '../../lib/utils'
 import { useT, useLocale } from 'shared/src/i18n/react'
+import { useAuthStore } from '@/lib/store'
+import { canAccessAnyPermission, getSystemNavHref } from '@/lib/admin-access'
+import { ADMIN_PERMISSIONS, type AdminPermission } from 'shared'
+import { JiffooMark } from '@/components/branding/jiffoo-mark'
 
 import {
   LayoutDashboard,
@@ -24,6 +28,7 @@ import {
   Sliders,
   Activity,
   Palette,
+  ShieldCheck,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -36,6 +41,7 @@ interface NavigationItem {
   fallback: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  requiredPermissions?: readonly AdminPermission[];
 }
 
 // Base navigation configuration - Shopify style flat menu
@@ -46,42 +52,56 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
+    requiredPermissions: [ADMIN_PERMISSIONS.DASHBOARD_READ],
   },
   {
     nameKey: 'merchant.products.title',
     fallback: 'Products',
     href: '/products',
     icon: Package,
+    requiredPermissions: [ADMIN_PERMISSIONS.PRODUCTS_READ],
   },
   {
     nameKey: 'merchant.orders.title',
     fallback: 'Orders',
     href: '/orders',
     icon: FileText,
+    requiredPermissions: [ADMIN_PERMISSIONS.ORDERS_READ],
   },
   {
     nameKey: 'merchant.customers.title',
     fallback: 'Customers',
     href: '/customers',
     icon: Users,
+    requiredPermissions: [ADMIN_PERMISSIONS.CUSTOMERS_READ],
+  },
+  {
+    nameKey: 'merchant.nav.staff',
+    fallback: 'Staff',
+    href: '/staff',
+    icon: ShieldCheck,
+    requiredPermissions: [ADMIN_PERMISSIONS.STAFF_READ],
   },
   {
     nameKey: 'merchant.nav.plugins',
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
+    requiredPermissions: [ADMIN_PERMISSIONS.PLUGINS_READ],
   },
   {
     nameKey: 'merchant.nav.themes',
     fallback: 'Themes',
     href: '/themes',
     icon: Palette,
+    requiredPermissions: [ADMIN_PERMISSIONS.THEMES_READ],
   },
   {
     nameKey: 'merchant.nav.systemHealth',
     fallback: 'System Health',
     href: '/system/health',
     icon: Activity,
+    requiredPermissions: [ADMIN_PERMISSIONS.HEALTH_READ],
   },
 ];
 
@@ -90,8 +110,12 @@ export function Sidebar({ className, onCloseMobile }: SidebarProps) {
   const pathname = usePathname()
   const locale = useLocale()
   const t = useT()
+  const { user } = useAuthStore()
 
-  const navigationConfig = baseNavigationConfig;
+  const navigationConfig = useMemo(
+    () => baseNavigationConfig.filter((item) => canAccessAnyPermission(user, item.requiredPermissions)),
+    [user],
+  );
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -114,12 +138,7 @@ export function Sidebar({ className, onCloseMobile }: SidebarProps) {
       {/* Header - Shopify style clean header */}
       <div className="flex items-center justify-between h-14 px-3 border-b border-gray-200">
         {!isCollapsed && (
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 bg-gray-900 dark:bg-blue-600 rounded-md flex items-center justify-center">
-              <span className="text-white font-semibold text-sm">S</span>
-            </div>
-            <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm tracking-tight">Store Console</span>
-          </div>
+          <JiffooMark size="sm" />
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -144,7 +163,9 @@ export function Sidebar({ className, onCloseMobile }: SidebarProps) {
       {/* Navigation - Shopify style flat menu */}
       <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
         {navigationConfig.map((item) => {
-          const localizedHref = getLocalizedHref(item.href)
+          const localizedHref = item.href === '/system/health'
+            ? getSystemNavHref(user, locale)
+            : getLocalizedHref(item.href)
           // Prefix matching for active state - highlights parent when on child routes
           const isActive = pathname === localizedHref || pathname.startsWith(localizedHref + '/')
           const itemName = getText(item.nameKey, item.fallback)

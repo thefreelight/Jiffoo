@@ -305,6 +305,20 @@ addCheck('release workflows require publishable release refs', () => {
   );
 });
 
+addCheck('ACR image workflows disable unsupported OCI attestations', () => {
+  const imageWorkflow = read('.github/workflows/publish-oss-release-images.yml');
+  const agileImageWorkflow = read('.github/workflows/oss-agile-build-push.yml');
+
+  for (const [label, workflow] of [
+    ['release image workflow', imageWorkflow],
+    ['agile image workflow', agileImageWorkflow],
+  ]) {
+    assertIncludes(workflow, '--provenance=false', `${label} provenance compatibility`);
+    assertIncludes(workflow, '--sbom=false', `${label} SBOM compatibility`);
+    assertBefore(workflow, '--sbom=false', '--build-arg "HTTP_PROXY="', `${label} attestation flags before build args`);
+  }
+});
+
 addCheck('OSS release workflow runs Admin/shop/release quality gates', () => {
   const workflow = read('.github/workflows/publish-oss-release-images.yml');
   const releaseQualityGateRunner = read('scripts/run-release-quality-gates.mjs');
@@ -653,6 +667,10 @@ addCheck('self-hosted feed workflow verifies images, release assets, and public 
     '.release/self-hosted/core-update-manifest.json',
     'name: Verify GitHub release assets',
     '--github-release "$RELEASE_TAG"',
+    'CORE_UPDATE_FEED_SYNC_TOKEN: ${{ secrets.CORE_UPDATE_FEED_SYNC_TOKEN }}',
+    'https://platform-api.jiffoo.com/api/releases/core/feed/${encoded_asset}',
+    'x-core-update-feed-sync-token: ${CORE_UPDATE_FEED_SYNC_TOKEN}',
+    'publish_asset releases/core/manifest.json',
     'name: Verify live runtime before public feed publication',
     'name: Verify public feed',
     '--public-url https://get.jiffoo.com/releases/core/manifest.json',
@@ -1246,6 +1264,28 @@ addCheck('local OSS release helper can quarantine existing bad releases', () => 
     'verifyQuarantinedRelease(version, options);',
     'verifyReleaseHistoryAvailability(false, options)',
     'release helper verifies history after quarantine',
+  );
+});
+
+addCheck('local OSS release helper always rebuilds release assets', () => {
+  const releaseHelper = read('scripts/release-oss-patch.mjs');
+  const validationPath = section(
+    releaseHelper,
+    'if (!skipChecks) {',
+    'if (!publish) {',
+    'release helper validation and feed build path',
+  );
+
+  assertIncludes(
+    validationPath,
+    'buildFeed(version, releaseDate, notes, dryRun);',
+    'release feed is rebuilt even with --skip-checks',
+  );
+  assertBefore(
+    validationPath,
+    '}\n\n  // --skip-checks only skips validation.',
+    'buildFeed(version, releaseDate, notes, dryRun);',
+    'release feed build remains outside the skip-checks validation branch',
   );
 });
 

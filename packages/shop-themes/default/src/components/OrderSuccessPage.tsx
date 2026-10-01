@@ -8,9 +8,9 @@ import { CheckCircle, Package, Mail, ArrowRight, Download, Key, QrCode, Truck } 
 import type { OrderSuccessPageProps } from '../../../../shared/src/types/theme';
 
 type FulfillmentItem = {
-  productName: string;
-  fulfillmentStatus: string | null;
-  fulfillmentData: Record<string, unknown> | null;
+  productName?: string;
+  fulfillmentStatus?: string | null;
+  fulfillmentData?: Record<string, unknown> | null;
 };
 
 function hasDigitalDelivery(items?: Array<{ fulfillmentData?: Record<string, unknown> | null }>): boolean {
@@ -26,7 +26,7 @@ function hasDigitalDelivery(items?: Array<{ fulfillmentData?: Record<string, unk
   });
 }
 
-function getDigitalItems(items?: Array<{ productName: string; fulfillmentStatus: string | null; fulfillmentData: Record<string, unknown> | null }>): FulfillmentItem[] {
+function getDigitalItems(items?: Array<{ productName?: string; fulfillmentStatus?: string | null; fulfillmentData?: Record<string, unknown> | null }>): FulfillmentItem[] {
   if (!items) return [];
   return items.filter(item => {
     if (!item.fulfillmentData) return false;

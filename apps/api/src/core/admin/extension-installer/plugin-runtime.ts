@@ -28,7 +28,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { URL } from 'url';
-import { createHmac, randomUUID } from 'crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import type { PluginManifest } from './types';
 import { getPluginDir } from './utils';
@@ -42,6 +42,12 @@ import {
   getPluginTimeoutMs,
   MAX_RESPONSE_SIZE_BYTES,
 } from './gateway-protection';
+import {
+  clearContractV1EventHandlers,
+  dispatchContractV1Event,
+  isContractV1Runtime,
+  registerContractV1Runtime,
+} from './contract-v1-runtime';
 
 // ============================================================================
 // Constants
@@ -442,6 +448,18 @@ function injectPlatformHeaders(
 function inferCaller(request: FastifyRequest): CallerType {
   // SECURITY FIX: Do NOT trust inbound x-caller header
   // It is stripped by sanitizeForwardHeaders and only re-injected with platform-inferred value
+  // Internal service calls authenticate with the platform integration token. This
+  // check must run before browser heuristics, otherwise loopback calls inherit
+  // the default shop caller and wallet/email routes reject them.
+  const expected = (process.env.CATALOG_IMPORT_TOKEN || '').trim();
+  const provided = getHeaderValue(request, 'x-platform-integration-token').trim();
+  if (expected && provided) {
+    const expectedBytes = Buffer.from(expected);
+    const providedBytes = Buffer.from(provided);
+    if (expectedBytes.length === providedBytes.length && timingSafeEqual(expectedBytes, providedBytes)) {
+      return 'api-internal';
+    }
+  }
 
   // Fallback 1: Detect from Referer (most reliable for browser requests)
   const refererHeader = request.headers.referer || request.headers.referrer;
@@ -708,8 +726,8 @@ async function ensureInternalRuntime(
 
   try {
     const mod = await loadPluginEntryModule(entryPath, { version: manifest.version });
-    const pluginFn = (mod as any).default || mod;
-    if (typeof pluginFn !== 'function') {
+    const pluginEntry = (mod as any).default || mod;
+    if (typeof pluginEntry !== 'function' && !isContractV1Runtime(pluginEntry)) {
       throw new Error('Plugin does not export a Fastify plugin function');
     }
 
@@ -718,7 +736,15 @@ async function ensureInternalRuntime(
     const config = ctx.config || {};
     
     // Phase 2: Register and ready (may fail here)
-    await candidateApp.register(pluginFn, config as any);
+    if (isContractV1Runtime(pluginEntry)) {
+      await registerContractV1Runtime(candidateApp, pluginEntry, {
+        slug,
+        installationId: ctx.installationId,
+        config,
+      });
+    } else {
+      await candidateApp.register(pluginEntry, config as any);
+    }
     await candidateApp.ready();
 
     // Phase 3: Candidate succeeded - create runtime object
@@ -767,9 +793,33 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
       // Ignore close errors
     }
     internalRuntimes.delete(installationId);
+    clearContractV1EventHandlers(installationId);
     return true;
   }
   return false;
+}
+
+export async function dispatchPluginRuntimeEvent(eventType: string, payload: unknown): Promise<number> {
+  const packages = await PluginManagementService.getAllPluginPackages();
+  let delivered = 0;
+
+  for (const pkg of packages) {
+    if (pkg.runtimeType !== 'internal-fastify') continue;
+    const manifest = await readPluginManifest(pkg.slug);
+    const instances = await PluginManagementService.getPluginInstances(pkg.slug);
+    for (const instance of instances) {
+      if (!instance.enabled || instance.deletedAt) continue;
+      await ensureInternalRuntime(pkg.slug, manifest, {
+        slug: pkg.slug,
+        installationId: instance.id,
+        instanceKey: instance.instanceKey,
+        config: parseJsonObject(instance.configJson),
+      });
+      delivered += await dispatchContractV1Event(instance.id, eventType, payload);
+    }
+  }
+
+  return delivered;
 }
 
 async function proxyToExternalHttp(

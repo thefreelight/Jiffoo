@@ -55,6 +55,8 @@ export const common = {
     goHome: '返回首頁',
     continueShopping: '繼續購物',
     configure: '設定',
+    manage: '管理',
+    viewDetails: '檢視詳情',
   },
 
   // Status
@@ -84,6 +86,7 @@ export const common = {
 
   // Labels
   labels: {
+    all: '全部',
     file: '檔案',
     by: '由',
     builtin: '內建',

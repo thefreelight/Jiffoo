@@ -2,7 +2,7 @@ import type { ThemeConfig } from 'shared/src/types/theme';
 
 export interface ModelsfindSiteConfig {
   brandName: string;
-  archetype: 'storefront' | 'landing-commerce' | 'product-site' | 'app-download';
+  archetype: 'storefront' | 'app-download';
   eyebrow: string;
   headline: string;
   subheadline: string;
@@ -18,7 +18,7 @@ export interface ModelsfindSiteConfig {
 
 const DEFAULT_SITE_CONFIG: ModelsfindSiteConfig = {
   brandName: 'modelsfind',
-  archetype: 'product-site',
+  archetype: 'storefront',
   eyebrow: 'Curated model directory',
   headline: 'Editorial model profiles, instant availability cues, and premium booking requests in one refined destination.',
   subheadline:

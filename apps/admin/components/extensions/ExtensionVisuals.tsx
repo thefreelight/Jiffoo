@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Blocks, Palette, ShieldCheck, Sparkles, Languages, CreditCard, DatabaseZap, Puzzle } from 'lucide-react';
+import { Blocks, Palette, ShieldCheck, Sparkles, Languages, Puzzle } from 'lucide-react';
 
 type ExtensionKind = 'plugin' | 'theme';
 
@@ -39,7 +39,7 @@ function resolveExtensionPalette(slug: string, kind: ExtensionKind) {
 
   if (slug === 'stripe') {
     return {
-      icon: CreditCard,
+      icon: StripeMark,
       shell: 'bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 text-white shadow-violet-500/20',
     };
   }
@@ -53,7 +53,7 @@ function resolveExtensionPalette(slug: string, kind: ExtensionKind) {
 
   if (slug === 'odoo') {
     return {
-      icon: DatabaseZap,
+      icon: OdooMark,
       shell: 'bg-gradient-to-br from-emerald-500 via-green-500 to-lime-500 text-white shadow-emerald-500/20',
     };
   }
@@ -62,6 +62,22 @@ function resolveExtensionPalette(slug: string, kind: ExtensionKind) {
     icon: Blocks,
     shell: 'bg-gradient-to-br from-blue-600 via-cyan-500 to-teal-400 text-white shadow-blue-500/20',
   };
+}
+
+function StripeMark({ className }: { className?: string }) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="none">
+    <path d="M6 7.25c1.5-1.45 3.55-2.2 6.1-2.2 2.25 0 4.25.55 5.9 1.65v3.05c-1.5-.95-3.2-1.45-5.15-1.45-1.3 0-2.15.28-2.15.78 0 .45.55.63 2.6.9 3.25.42 5.1 1.45 5.1 4.45 0 2.8-2.3 4.65-6.05 4.65-2.55 0-4.7-.62-6.35-1.85v-3.25c1.75 1.2 3.8 1.85 6.1 1.85 1.45 0 2.25-.35 2.25-.92 0-.5-.62-.7-2.7-.98C8.35 13.58 6 12.45 6 9.6c0-.85.2-1.65.6-2.35Z" fill="currentColor" />
+  </svg>;
+}
+
+function OdooMark({ className }: { className?: string }) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="none">
+    <circle cx="8" cy="8" r="3.2" fill="currentColor" opacity=".98" />
+    <circle cx="16" cy="8" r="3.2" fill="currentColor" opacity=".8" />
+    <circle cx="8" cy="16" r="3.2" fill="currentColor" opacity=".8" />
+    <circle cx="16" cy="16" r="3.2" fill="currentColor" opacity=".98" />
+    <path d="M8 11.2v1.6M16 11.2v1.6M11.2 8h1.6M11.2 16h1.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+  </svg>;
 }
 
 export function ExtensionAvatar({

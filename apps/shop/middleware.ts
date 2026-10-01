@@ -11,7 +11,6 @@
 import { ROUTE_LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
 import { createProxyHandler, type ProxyConfig } from 'shared/src/proxy';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
 /**
  * Shop proxy configuration
@@ -32,8 +31,9 @@ const shopProxyConfig: ProxyConfig = {
  * 4. Pass through
  */
 const baseProxy = createProxyHandler(shopProxyConfig);
+type ProxyRequest = Parameters<typeof baseProxy>[0];
 
-function isInstallRootRequest(request: NextRequest): boolean {
+function isInstallRootRequest(request: ProxyRequest): boolean {
   const host = request.headers.get('host')?.split(':')[0]?.toLowerCase();
   const pathname = request.nextUrl.pathname;
 
@@ -44,7 +44,22 @@ function isInstallRootRequest(request: NextRequest): boolean {
   return pathname === '/' || pathname === `/${DEFAULT_LOCALE}`;
 }
 
-export async function middleware(request: NextRequest) {
+function isOfficialArtifactRequest(request: ProxyRequest): boolean {
+  const host = request.headers.get('host')?.split(':')[0]?.toLowerCase();
+  return host === 'get.jiffoo.com' && request.nextUrl.pathname.startsWith('/official-artifacts/');
+}
+
+export function officialArtifactRedirect(request: ProxyRequest): NextResponse | null {
+  if (!isOfficialArtifactRequest(request)) return null;
+  const target = new URL(`https://artifacts.jiffoo.com${request.nextUrl.pathname}`);
+  target.search = request.nextUrl.search;
+  return NextResponse.redirect(target, 307);
+}
+
+export async function middleware(request: ProxyRequest) {
+  const artifactRedirect = officialArtifactRedirect(request);
+  if (artifactRedirect) return artifactRedirect;
+
   if (isInstallRootRequest(request)) {
     return NextResponse.redirect(new URL('/install.sh', request.url));
   }
@@ -60,6 +75,7 @@ export async function middleware(request: NextRequest) {
  *
  * Excluded paths (handled by next.config.js rewrites):
  * - /api/* - Core API routes (prevents infinite loop)
+ * - /plugins/* - Plugin runtime mount for storefront slots
  * - /extensions/* - Extension static files
  * - /uploads/* - Upload files
  * - /theme-app/* - Theme App Gateway (prevents infinite loop)
@@ -68,5 +84,5 @@ export async function middleware(request: NextRequest) {
  * NOTE: Next.js requires matcher to be a static literal, cannot be imported.
  */
 export const config = {
-  matcher: ['/((?!api/|extensions/|uploads/|theme-app/|favicon.ico).*)'],
+  matcher: ['/((?!api/|plugins/|extensions/|uploads/|theme-app/|favicon.ico).*)'],
 };

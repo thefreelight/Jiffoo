@@ -19,7 +19,9 @@ vi.mock('@/config/database', () => ({
     user: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -74,7 +76,9 @@ import { resetAuthCompatibilityCache } from '@/core/auth/user-compat';
 const mockPrismaUser = prisma.user as {
   findFirst: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
+  findMany: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
 };
 
 const mockPasswordUtils = PasswordUtils as {
@@ -127,6 +131,50 @@ describe('AuthService', () => {
     }
   });
 
+  describe('guest', () => {
+    it('creates a resumable guest account from the installation id', async () => {
+      const createdGuest = {
+        ...TEST_USER,
+        id: 'guest-user-id',
+        email: '8a91375e84c389c8a7c3827a313ac363@guest.bokmoo.invalid',
+        username: 'guest_8a91375e84c389c8a7c3827a313ac363',
+        role: 'GUEST',
+      };
+      mockPrismaUser.findUnique.mockResolvedValueOnce(null);
+      mockPrismaUser.create.mockResolvedValueOnce(createdGuest);
+      mockPasswordUtils.hash.mockResolvedValue('guest-password');
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
+
+      const result = await AuthService.guest({ installId: 'install-123' });
+
+      expect(result).toMatchObject({
+        accountType: 'guest',
+        guestId: 'guest_8a91375e84c389c8a7c3827a313ac363',
+        access_token: ACCESS_TOKEN,
+        refresh_token: REFRESH_TOKEN,
+      });
+      expect(mockPrismaUser.create).toHaveBeenCalledOnce();
+    });
+
+    it('resumes a guest using the returned guest id', async () => {
+      const guest = {
+        ...TEST_USER,
+        email: '55c52f20c115c1877104893650a70d62@guest.bokmoo.invalid',
+        username: 'guest_55c52f20c115c1877104893650a70d62',
+        role: 'GUEST',
+      };
+      mockPrismaUser.findUnique.mockResolvedValueOnce(guest);
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
+
+      const result = await AuthService.guest({ guestId: guest.username });
+
+      expect(result.guestId).toBe(guest.username);
+      expect(mockPrismaUser.create).not.toHaveBeenCalled();
+    });
+  });
+
   // -----------------------------------------------------------------------
   // register
   // -----------------------------------------------------------------------
@@ -149,7 +197,7 @@ describe('AuthService', () => {
         emailVerified: false,
       };
 
-      mockPrismaUser.findFirst.mockResolvedValue(null);
+      mockPrismaUser.findUnique.mockResolvedValue(null);
       mockPasswordUtils.hash.mockResolvedValue('hashed-pw');
       mockPrismaUser.create.mockResolvedValue(createdUser);
       mockEmailVerification.sendVerificationEmail.mockResolvedValue({ success: true });
@@ -158,14 +206,13 @@ describe('AuthService', () => {
 
       const result = await AuthService.register(registerData);
 
-      // Verify duplicate check was performed
+      // Verify both unique identifiers were checked independently.
+      expect(mockPrismaUser.findUnique).toHaveBeenCalledWith({
+        where: { email: registerData.email },
+        select: expect.objectContaining({ id: true, emailVerified: true }),
+      });
       expect(mockPrismaUser.findFirst).toHaveBeenCalledWith({
-        where: {
-          OR: [
-            { email: registerData.email },
-            { username: registerData.username },
-          ],
-        },
+        where: { username: registerData.username },
         select: { id: true },
       });
 
@@ -230,14 +277,42 @@ describe('AuthService', () => {
       });
     });
 
+    it('does not issue an authenticated session when verification delivery fails', async () => {
+      mockPrismaUser.findUnique.mockResolvedValue(null);
+      mockPasswordUtils.hash.mockResolvedValue('hashed-pw');
+      mockPrismaUser.create.mockResolvedValue({
+        id: 'failed-email-user', email: registerData.email, username: registerData.username,
+        password: 'hashed-pw', role: 'USER', avatar: null, emailVerified: false,
+      });
+      mockEmailVerification.sendVerificationEmail.mockResolvedValue({ success: false, error: 'SMTP unavailable' });
+
+      await expect(AuthService.register(registerData)).rejects.toThrow('SMTP unavailable');
+      expect(mockJwtUtils.sign).not.toHaveBeenCalled();
+    });
+
     it('should throw when a user with the same email or username already exists', async () => {
-      mockPrismaUser.findFirst.mockResolvedValue(TEST_USER);
+      mockPrismaUser.findUnique.mockResolvedValueOnce(TEST_USER);
 
       await expect(AuthService.register(registerData)).rejects.toThrow(
         'User with this email or username already exists'
       );
 
       // Should not attempt to create the user
+      expect(mockPrismaUser.create).not.toHaveBeenCalled();
+      expect(mockPasswordUtils.hash).not.toHaveBeenCalled();
+    });
+
+    it('marks an existing unverified email as resumable verification', async () => {
+      mockPrismaUser.findUnique.mockResolvedValueOnce({
+        ...TEST_USER,
+        email: registerData.email,
+        emailVerified: false,
+      });
+
+      await expect(AuthService.register(registerData)).rejects.toMatchObject({
+        code: 'EMAIL_NOT_VERIFIED',
+        message: expect.stringContaining('has not been verified'),
+      });
       expect(mockPrismaUser.create).not.toHaveBeenCalled();
       expect(mockPasswordUtils.hash).not.toHaveBeenCalled();
     });
@@ -255,7 +330,7 @@ describe('AuthService', () => {
         emailVerified: true,
       };
 
-      mockPrismaUser.findFirst.mockResolvedValue(null);
+      mockPrismaUser.findUnique.mockResolvedValue(null);
       mockPasswordUtils.hash.mockResolvedValue('hashed-pw');
       mockPrismaUser.create.mockResolvedValue(createdUser);
       mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
@@ -285,6 +360,42 @@ describe('AuthService', () => {
       });
       expect(mockEmailVerification.sendVerificationEmail).not.toHaveBeenCalled();
       expect(result.user.emailVerified).toBe(true);
+    });
+  });
+
+  describe('convertGuest', () => {
+    it('upgrades the same user id so guest-owned data remains attached', async () => {
+      const guest = {
+        ...TEST_USER,
+        email: 'abc@guest.bokmoo.invalid',
+        role: 'GUEST',
+      };
+      const converted = {
+        ...guest,
+        email: 'member@bokmoo.com',
+        username: 'member',
+        role: 'USER',
+        emailVerified: true,
+      };
+      mockPrismaUser.findUnique.mockResolvedValueOnce(guest);
+      mockPrismaUser.findFirst.mockResolvedValueOnce(null);
+      mockPrismaUser.update.mockResolvedValueOnce(converted);
+      mockPasswordUtils.hash.mockResolvedValue('new-hash');
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
+      process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = 'false';
+
+      const result = await AuthService.convertGuest(guest.id, {
+        email: converted.email,
+        username: converted.username,
+        password: 'Password123!',
+      });
+
+      expect(result.user.id).toBe(guest.id);
+      expect(result.user.role).toBe('USER');
+      expect(mockPrismaUser.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: guest.id },
+      }));
     });
   });
 
@@ -338,6 +449,40 @@ describe('AuthService', () => {
         refresh_token: REFRESH_TOKEN,
         token: ACCESS_TOKEN,
       });
+    });
+
+    it('should authenticate with an unambiguous username', async () => {
+      mockPrismaUser.findMany.mockResolvedValue([TEST_USER]);
+      mockPasswordUtils.verify.mockResolvedValue(true);
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
+
+      const result = await AuthService.login({ identifier: TEST_USER.username, password: loginData.password });
+
+      expect(mockPrismaUser.findMany).toHaveBeenCalledWith({
+        where: { username: TEST_USER.username },
+        take: 2,
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          password: true,
+          role: true,
+          isActive: true,
+          emailVerified: true,
+          avatar: true,
+        },
+      });
+      expect(result.user.username).toBe(TEST_USER.username);
+    });
+
+    it('should reject an ambiguous username', async () => {
+      mockPrismaUser.findMany.mockResolvedValue([TEST_USER, { ...TEST_USER, id: 'user-id-2' }]);
+
+      await expect(AuthService.login({ identifier: TEST_USER.username, password: loginData.password })).rejects.toThrow(
+        'Invalid email or password'
+      );
+      expect(mockPasswordUtils.verify).not.toHaveBeenCalled();
     });
 
     it('should throw when the email does not exist', async () => {

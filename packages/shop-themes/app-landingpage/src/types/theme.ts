@@ -63,7 +63,7 @@ export interface ThemeConfig {
     locale?: CoreLocale;
   };
   site?: {
-    archetype?: 'storefront' | 'landing-commerce' | 'product-site' | 'app-download';
+    archetype?: 'storefront' | 'app-download';
     eyebrow?: string;
     headline?: string;
     subheadline?: string;

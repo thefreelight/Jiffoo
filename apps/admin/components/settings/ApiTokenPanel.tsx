@@ -56,7 +56,7 @@ export function ApiTokenPanel() {
     try {
       const response = await fetch('/api/v1/admin/api-tokens', {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+          Authorization: `Bearer ${localStorage.getItem('auth_token') || ''}`,
         },
       })
       if (!response.ok) throw new Error('Failed to load tokens')
@@ -89,7 +89,7 @@ export function ApiTokenPanel() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+          Authorization: `Bearer ${localStorage.getItem('auth_token') || ''}`,
         },
         body: JSON.stringify({ label: newLabel, scopes: newScopes }),
       })
@@ -121,7 +121,7 @@ export function ApiTokenPanel() {
       const response = await fetch(`/api/v1/admin/api-tokens/${tokenId}`, {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+          Authorization: `Bearer ${localStorage.getItem('auth_token') || ''}`,
         },
       })
 

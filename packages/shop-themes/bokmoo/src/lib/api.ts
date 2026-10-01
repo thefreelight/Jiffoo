@@ -76,6 +76,7 @@ export interface BokmooApiOrderItem {
   productId: string;
   variantId?: string;
   productName: string;
+  productKind?: string;
   quantity: number;
   unitPrice?: number;
   totalPrice?: number;
@@ -93,6 +94,12 @@ export interface BokmooApiOrder {
   createdAt: string;
   updatedAt?: string;
   status?: string;
+  shipments?: Array<{
+    id: string; carrier: string; carrierCode?: string | null; carrierName?: string | null;
+    trackingNumber: string; trackingUrl?: string | null; status: string;
+    shippedAt?: string | null; deliveredAt?: string | null; estimatedDeliveryAt?: string | null; lastCheckedAt?: string | null;
+    events?: Array<{ status: string; description?: string | null; occurredAt: string }>;
+  }>;
   items: BokmooApiOrderItem[];
 }
 
@@ -101,6 +108,57 @@ export interface BokmooOrderListResponse {
   page?: number;
   limit?: number;
   total?: number;
+}
+
+export interface BokmooAffiliatePartner {
+  id: string;
+  userId: string;
+  code: string;
+  status: string;
+  displayName?: string | null;
+  email?: string | null;
+  commissionRate: number;
+  organizationId?: string | null;
+  memberRole?: string | null;
+  currency: string;
+}
+
+export interface BokmooAffiliateCommission {
+  id: string;
+  order_id?: string;
+  orderId?: string;
+  order_amount?: number;
+  orderAmount?: number;
+  commission_rate?: number;
+  commissionRate?: number;
+  amount: number;
+  currency: string;
+  status: string;
+  created_at?: string;
+  createdAt?: string;
+}
+
+export interface BokmooAffiliateMember {
+  id: string;
+  userId: string;
+  role: string;
+  status: string;
+  joinedAt: string;
+  username?: string | null;
+  email?: string | null;
+  partnerId?: string | null;
+  partnerCode?: string | null;
+}
+
+export interface BokmooAffiliateOrganization {
+  id: string;
+  ownerUserId: string;
+  code: string;
+  name: string;
+  status: string;
+  commissionRate: number;
+  currency: string;
+  members: BokmooAffiliateMember[];
 }
 
 export interface BokmooInstructionSet {
@@ -277,6 +335,28 @@ function normalizeSupport(value: unknown, source: Record<string, unknown>): Bokm
   };
 }
 
+/**
+ * Storefront API calls must stay same-origin: the configured `apiBaseUrl`
+ * (for example https://api.bokmoo.com) is a server-to-server hint and the
+ * native core API sends no CORS headers, so a browser fetch to it from the
+ * storefront origin always fails with "Failed to fetch". The storefront
+ * Worker proxies /api/* to the same core, so collapse any cross-origin base
+ * to the current origin when running in a browser.
+ */
+function storefrontSameOriginBase(baseUrl: string): string {
+  try {
+    if (typeof location !== 'undefined' && !baseUrl.startsWith('/')) {
+      const target = new URL(baseUrl, location.origin);
+      if (target.origin !== location.origin) {
+        return '';
+      }
+    }
+  } catch {
+    /* keep the configured base when it cannot be parsed */
+  }
+  return baseUrl;
+}
+
 async function requestEnvelope<T>(
   config: BokmooApiConfig,
   endpoint: string,
@@ -297,7 +377,7 @@ async function requestEnvelope<T>(
     headers.Authorization = `Bearer ${resolvedToken}`;
   }
 
-  const url = `${config.baseUrl.replace(/\/$/, '')}${endpoint}`;
+  const url = `${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ''))}${endpoint}`;
   const response = await fetch(url, {
     method,
     headers,
@@ -362,17 +442,46 @@ function mapVariant(variant: BokmooApiVariant): ThemeProductVariant {
   };
 }
 
+// Odoo-synced catalog names carry an internal "[SKU] " prefix (and sometimes a
+// trailing version token) that must never reach the storefront shelf.
+export function displayProductTitle(name: string | null | undefined): string {
+  const cleaned = String(name || '')
+    .replace(/^\[[^\]]*\]\s*/, '')
+    .replace(/\s+V\d+$/i, '')
+    .trim();
+  return cleaned || String(name || '');
+}
+
+// Catalog media URLs are core-relative ("/media/..."); the shop host has no
+// /media route, so resolve them against the core API base before rendering.
+export function resolveBokmooMediaUrl(url: string | null | undefined, apiBaseUrl?: string): string | null {
+  const value = String(url || '').trim();
+  if (!value) return null;
+  if (/^(https?:)?\/\//i.test(value) || value.startsWith('data:')) return value;
+  if (!apiBaseUrl) return value;
+  return `${apiBaseUrl.replace(/\/+$/, '')}${value.startsWith('/') ? '' : '/'}${value}`;
+}
+
 export function mapBokmooApiProductToThemeProduct(product: BokmooApiProduct): ThemeProduct {
   const esim = product.typeData?.esim;
   const imageUrl = product.images?.[0]?.url || product.image;
   const regionTag = esim?.region || esim?.country || 'Travel';
   const technology = buildTechnologyLabel(esim);
+  // The core's product-level price is the odoo list price; the sellable
+  // amount is the variant sale price. Prefer the cheapest active variant so
+  // the storefront "Starting at" figure matches what checkout actually bills.
+  const variantPrices = (product.variants || [])
+    .map((variant) => Number(variant.salePrice || 0))
+    .filter((price) => price > 0);
+  const sellablePrice = variantPrices.length > 0
+    ? Math.min(...variantPrices)
+    : Number(product.price || 0);
 
   return {
     id: product.id,
-    name: product.name,
-    description: product.description || `${product.name} travel connectivity package`,
-    price: Number(product.price || 0),
+    name: displayProductTitle(product.name),
+    description: product.description || `${displayProductTitle(product.name)} travel connectivity package`,
+    price: sellablePrice,
     sku: product.slug || product.id,
     category: {
       id: esim?.region || 'esim',
@@ -429,7 +538,7 @@ export function mapBokmooApiOrderToThemeOrder(order: BokmooApiOrder) {
     totalAmount: Number(order.totalAmount || 0),
     currency: order.currency || 'USD',
     shippingAddress: null,
-    shipments: [],
+    shipments: (order.shipments || []).map((shipment) => ({ ...shipment, trackingUrl: shipment.trackingUrl || null, shippedAt: shipment.shippedAt || null, deliveredAt: shipment.deliveredAt || null, estimatedDeliveryAt: shipment.estimatedDeliveryAt || null, lastCheckedAt: shipment.lastCheckedAt || null })),
     items: (order.items || []).map((item) => {
       const quantity = Number(item.quantity || 1);
       const unitPrice = Number(item.unitPrice ?? item.totalPrice ?? 0);
@@ -585,4 +694,46 @@ export async function getBokmooInstallSession(
 ): Promise<BokmooInstallSession> {
   const session = await request<BokmooInstallSession>(config, `/api/orders/${orderId}/install-session`);
   return normalizeInstallSession(session);
+}
+
+const affiliateBase = '/api/v1/plugins/affiliate/store';
+
+export async function getBokmooAffiliatePartner(config: BokmooApiConfig): Promise<BokmooAffiliatePartner> {
+  return request<BokmooAffiliatePartner>(config, `${affiliateBase}/partners/me`);
+}
+
+export async function registerBokmooAffiliatePartner(
+  config: BokmooApiConfig,
+  input: { displayName: string; organizationCode?: string }
+): Promise<BokmooAffiliatePartner> {
+  return request<BokmooAffiliatePartner>(config, `${affiliateBase}/partners/register`, 'POST', input);
+}
+
+export async function getBokmooAffiliateCommissions(config: BokmooApiConfig): Promise<BokmooAffiliateCommission[]> {
+  const result = await request<{ items: BokmooAffiliateCommission[] }>(config, `${affiliateBase}/commissions`);
+  return result.items || [];
+}
+
+export async function getBokmooAffiliateOrganization(config: BokmooApiConfig): Promise<BokmooAffiliateOrganization> {
+  return request<BokmooAffiliateOrganization>(config, `${affiliateBase}/organizations/me`);
+}
+
+export async function createBokmooAffiliateOrganization(
+  config: BokmooApiConfig,
+  input: { name: string; commissionRate: number }
+): Promise<BokmooAffiliateOrganization> {
+  return request<BokmooAffiliateOrganization>(config, `${affiliateBase}/organizations`, 'POST', input);
+}
+
+export async function addBokmooAffiliateMember(
+  config: BokmooApiConfig,
+  organizationId: string,
+  input: { email: string; role: 'INFLUENCER' | 'MANAGER' }
+): Promise<{ organizationId: string; userId: string; role: string }> {
+  return request(config, `${affiliateBase}/organizations/${encodeURIComponent(organizationId)}/members`, 'POST', input);
+}
+
+export async function getBokmooOrganizationCommissions(config: BokmooApiConfig): Promise<BokmooAffiliateCommission[]> {
+  const result = await request<{ items: BokmooAffiliateCommission[] }>(config, `${affiliateBase}/organizations/commissions`);
+  return result.items || [];
 }

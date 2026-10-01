@@ -1,52 +1,17 @@
-'use client';
+/**
+ * Pricing Page — server wrapper for page-level SEO metadata.
+ */
+import type { Metadata } from 'next';
+import { getServerStoreContext } from '@/lib/server-store-context';
+import { resolvePublicOrigin } from '@/lib/server-api-url';
+import { generatePublicPageMetadata } from '@/lib/seo/public-page-metadata';
+import PricingPageClient from './PricingPageClient';
 
-import { ErrorState, LoadingState } from '@/components/ui/state-components';
-import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useShopTheme } from '@/lib/themes/provider';
-import { useT } from 'shared/src/i18n/react';
+interface Props { params: Promise<{ locale: string }> }
 
-export default function PricingPage() {
-  const { theme, config, isLoading } = useShopTheme();
-  const nav = useLocalizedNavigation();
-  const t = useT();
-
-  const getText = (key: string, fallback: string): string => (t ? t(key) : fallback);
-
-  if (isLoading) {
-    return (
-      <LoadingState
-        type="spinner"
-        message={getText('common.actions.loading', 'Loading...')}
-        fullPage
-      />
-    );
-  }
-
-  const PricingPageComponent = (theme?.components as any)?.PricingPage;
-
-  if (!PricingPageComponent) {
-    const NotFoundComponent = theme?.components?.NotFound;
-    if (NotFoundComponent) {
-      return (
-        <NotFoundComponent
-          route="/pricing"
-          message={getText('common.errors.pricingUnavailable', 'Pricing component unavailable')}
-          config={config}
-          onGoHome={() => nav.push('/')}
-          t={t}
-        />
-      );
-    }
-
-    return (
-      <ErrorState
-        title={getText('common.errors.themeUnavailable', 'Theme Component Unavailable')}
-        message={getText('common.errors.pricingUnavailable', 'Unable to load pricing component')}
-        onGoHome={() => nav.push('/')}
-        fullPage
-      />
-    );
-  }
-
-  return <PricingPageComponent config={config} t={t} />;
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const [{ locale }, ctx, origin] = await Promise.all([params, getServerStoreContext({ cache: 'no-store' }), resolvePublicOrigin()]);
+  return generatePublicPageMetadata({ route: 'pricing', locale, origin, brandName: ctx?.theme?.config?.brand?.name?.trim() || ctx?.storeName?.trim() });
 }
+
+export default function Page() { return <PricingPageClient />; }
