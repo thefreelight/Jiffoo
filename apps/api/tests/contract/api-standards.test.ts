@@ -212,7 +212,7 @@ describe('API Standards Contract', () => {
     expect(violations).toEqual([]);
   });
 
-  it('multipart upload endpoints should include UploadResult fields in success data', () => {
+  it('multipart upload and preview endpoints should declare their canonical success fields', () => {
     const violations: string[] = [];
     const requiredUploadFields = ['filename', 'originalName', 'size', 'mimetype', 'url'];
 
@@ -224,7 +224,10 @@ describe('API Standards Contract', () => {
       const dataSchema = derefSchema(successSchema?.properties?.data as JsonSchema | undefined);
       const required = new Set(dataSchema?.required || []);
 
-      const missing = requiredUploadFields.filter((field) => !required.has(field));
+      const expectedFields = path === '/api/v1/extensions/plugin/preview' && method === 'POST'
+        ? ['package', 'current', 'operation', 'compatibility', 'requiresUnsignedConfirmation', 'expiresAt', 'previewToken']
+        : requiredUploadFields;
+      const missing = expectedFields.filter((field) => !required.has(field));
       if (missing.length > 0) {
         violations.push(`${method} ${path}: multipart success data missing UploadResult fields ${missing.join(',')}`);
       }

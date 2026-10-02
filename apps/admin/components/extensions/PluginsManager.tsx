@@ -8,6 +8,7 @@ import { marketplaceErrorKey, useMarketplaceCatalog, useMarketplaceInstall, useM
 import { Button } from '@/components/ui/button';
 import { DisablePluginControl } from '@/components/plugins/DisablePluginControl';
 import { PluginTrustLabel } from './PluginTrust';
+import { PluginUpload } from './PluginUpload';
 
 function MarketplaceCard({ entry, busy, install }: { entry: MarketplaceEntry; busy: boolean; install: (pluginId: string, version: string) => void }) {
   const t = useT();
@@ -64,6 +65,7 @@ export function PluginsManager() {
     }
   };
   return <div className="space-y-5">
+    <PluginUpload testSigningMode={status.data?.testSigningMode === true} />
     <nav aria-label={text('views')} className="flex gap-3">
       <Button variant={view === 'installed' ? 'default' : 'outline'} aria-pressed={view === 'installed'} onClick={() => setView('installed')}>{text('installedPlugins')}</Button>
       <Button variant={view === 'marketplace' ? 'default' : 'outline'} aria-pressed={view === 'marketplace'} onClick={() => setView('marketplace')}>{text('title')}</Button>

@@ -77,10 +77,9 @@ export async function installFixturePlugin(
       archive.directory(sourceDirectory, false);
       void archive.finalize();
     });
-    await extensionInstaller.installFromZip('plugin', Readable.from(await fs.readFile(archivePath)), {
-      confirmUnsigned: true,
-      actorUserId: options.adminUserId,
-    });
+    const bytes = await fs.readFile(archivePath);
+    const { localUploadOptions } = await import('./plugin-upload');
+    await extensionInstaller.installFromZip('plugin', Readable.from(bytes), await localUploadOptions(bytes, options.adminUserId));
     const instance = await prisma.pluginInstallation.findUniqueOrThrow({
       where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } },
     });

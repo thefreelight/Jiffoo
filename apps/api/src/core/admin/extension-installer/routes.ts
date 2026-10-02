@@ -5,7 +5,7 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { Readable, PassThrough } from 'stream';
+import { Readable } from 'stream';
 import { authMiddleware, requireAdmin, optionalAuthMiddleware } from '@/core/auth/middleware';
 import { extensionInstaller, type ExtensionKind } from './index';
 import { sendSuccess, sendError } from '@/utils/response';
@@ -13,7 +13,6 @@ import { extensionInstallerSchemas } from './schemas';
 import { errorResponseSchema } from '@/utils/schema-helpers';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { handlePluginGateway, PluginGatewayError } from './plugin-runtime';
-import { bundleInstaller } from './bundle-installer';
 import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
 import { readStoredPluginManifest } from './stored-manifest';
 import { themeManagementRoutes } from './theme-routes';
@@ -26,12 +25,7 @@ import { fetchMarketplaceCatalog, marketplaceUrl, MarketplaceError } from './mar
 import { checkPluginApiCompatibility } from './plugin-compatibility';
 import { compareVersions } from './version-utils';
 import { installMarketplacePlugin } from './marketplace-install';
-
-// Per spec (EXTENSIONS_IMPLEMENTATION.md) size limits for offline ZIP installs
-const ZIP_SIZE_LIMITS: Record<ExtensionKind, number> = {
-  'plugin': PLUGIN_MAX_ZIP_SIZE,
-  'bundle': 500 * 1024 * 1024, // 500MB
-};
+import { previewPluginUpload } from './plugin-upload';
 
 const packageUnavailableResponse = {
   ...errorResponseSchema,
@@ -41,42 +35,6 @@ const packageCorruptResponse = {
   ...errorResponseSchema,
   description: 'Includes PLUGIN_PACKAGE_CORRUPT',
 };
-
-function formatBytes(bytes: number): string {
-  const units = ['B', 'KB', 'MB', 'GB'];
-  let value = bytes;
-  let unitIndex = 0;
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024;
-    unitIndex++;
-  }
-  return `${Math.round(value * 100) / 100}${units[unitIndex]}`;
-}
-
-function enforceZipSizeLimit(stream: Readable, kind: ExtensionKind): { stream: Readable; getTotalBytes: () => number } {
-  const maxBytes = ZIP_SIZE_LIMITS[kind] ?? (10 * 1024 * 1024);
-  const pass = new PassThrough();
-  let total = 0;
-
-  stream.on('data', (chunk: Buffer) => {
-    total += chunk.length;
-    if (total > maxBytes) {
-      const err: any = new Error(
-        `ZIP file too large for ${kind}: ${formatBytes(total)} (max ${formatBytes(maxBytes)})`
-      );
-      err.statusCode = 413;
-      err.code = 'PAYLOAD_TOO_LARGE';
-      stream.destroy(err);
-    }
-  });
-
-  stream.on('error', (err) => pass.destroy(err));
-  stream.pipe(pass);
-  return {
-    stream: pass,
-    getTotalBytes: () => total,
-  };
-}
 
 // Plugin categories (hardcoded)
 const PLUGIN_CATEGORIES = [
@@ -420,6 +378,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
               slug: { type: 'string' }, version: { type: 'string' }, publisherId: { type: 'string' },
               publisherVerified: { type: 'boolean' }, installedVersion: { type: 'string' },
               signingRoot: { type: 'string', enum: ['official', 'test'], nullable: true },
+              warnings: { type: 'array', items: { type: 'string' } },
             } },
           } },
           400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema,
@@ -430,11 +389,12 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       },
     }, async (request, reply) => {
       try {
-        const plugin = await installMarketplacePlugin(request.body.pluginId, request.body.version);
+        const plugin = await installMarketplacePlugin(request.body.pluginId, request.body.version, request.user!.id);
         return sendSuccess(reply, {
           slug: plugin.slug, version: plugin.version, publisherId: plugin.publisherId,
           publisherVerified: plugin.signingRoot === 'official', signingRoot: plugin.signingRoot ?? null,
           installedVersion: plugin.version,
+          warnings: plugin.warnings ?? [],
         });
       } catch (error) {
         if (error instanceof MarketplaceError) return sendError(reply, error.statusCode, error.code, error.message);
@@ -641,95 +601,34 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // ============================================================================
-  // Bundle Installation
-  // ============================================================================
-
-  /**
-   * POST /api/extensions/bundle/install
-   * Install bundle from ZIP
-   *
-   * Bundle format:
-   * - bundle.json (manifest)
-   * - extensions/ (directory containing extension ZIPs)
-   */
-  admin.post('/bundle/install', {
-    schema: {
-      tags: ['admin-plugins'],
-      summary: 'Install bundle from ZIP',
-      description: 'Upload and install a bundle containing multiple extensions (Admin only)',
-      security: [{ bearerAuth: [] }],
-      consumes: ['multipart/form-data'],
-      ...extensionInstallerSchemas.installBundle,
-    }
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    try {
-      // Get uploaded file
-      const data = await request.file();
-      if (!data) {
-        return sendError(reply, 400, 'BAD_REQUEST', 'No file uploaded');
-      }
-
-      // Validate file type
-      if (!data.filename.toLowerCase().endsWith('.zip')) {
-        return sendError(reply, 400, 'BAD_REQUEST', 'File must be a ZIP archive');
-      }
-
-      // Install bundle
-      const { stream: limitedStream, getTotalBytes } = enforceZipSizeLimit(data.file as Readable, 'bundle');
-      const result = await bundleInstaller.install(limitedStream);
-
-      // Count successes and failures
-      const successCount = result.installed.filter(i => i.success).length;
-      const failureCount = result.installed.filter(i => !i.success).length;
-
-      let message = `Bundle "${result.manifest.name}" v${result.manifest.version} installed: ${successCount} extensions`;
-      if (failureCount > 0) {
-        message += ` (${failureCount} optional extensions failed)`;
-      }
-
-      return sendSuccess(reply, {
-        filename: data.filename || 'bundle.zip',
-        originalName: data.filename || 'bundle.zip',
-        size: getTotalBytes(),
-        mimetype: data.mimetype || 'application/zip',
-        url: '/api/v1/extensions/bundle/install',
-        name: result.manifest.name,
-        version: result.manifest.version,
-        bundleHash: result.bundleHash,
-        installed: result.installed,
-      }, message);
-    } catch (error: any) {
-      const statusCode =
-        typeof error?.statusCode === 'number' && Number.isFinite(error.statusCode)
-          ? error.statusCode
-          : 500;
-      const code =
-        statusCode === 413
-          ? 'PAYLOAD_TOO_LARGE'
-          : typeof error?.code === 'string'
-            ? error.code
-          : statusCode >= 500
-            ? 'INTERNAL_SERVER_ERROR'
-            : 'BAD_REQUEST';
-
-      if (statusCode >= 500) {
-        fastify.log.error({ err: error }, 'Failed to install bundle');
-      } else {
-        fastify.log.warn({ err: error }, 'Bundle install rejected');
-      }
-
-      return sendError(reply, statusCode, code, error?.message || 'Failed to install bundle');
-    }
-  });
-
   /**
    * POST /api/extensions/:kind/install
    * Install extension from ZIP
    *
    * kind: 'plugin'
    */
-  admin.post<{ Params: InstallParams }>('/:kind/install', {
+  admin.post('/plugin/preview', {
+    // Multipart fields are validated after consuming the bounded file stream.
+    validatorCompiler: () => (value: unknown) => ({ value }),
+    schema: { tags: ['admin-plugins'], summary: 'Preview a local plugin ZIP without executing it', security: [{ bearerAuth: [] }],
+      consumes: ['multipart/form-data'], ...extensionInstallerSchemas.previewPlugin },
+  }, async (request, reply) => {
+    try {
+      if (!request.isMultipart()) return sendError(reply, 400, 'BAD_REQUEST', 'A multipart plugin ZIP is required');
+      const data = await request.file({ limits: { fileSize: PLUGIN_MAX_ZIP_SIZE }, throwFileSizeLimit: true });
+      if (!data || !data.filename.toLowerCase().endsWith('.zip')) return sendError(reply, 400, 'BAD_REQUEST', 'A plugin ZIP is required');
+      const bytes = await data.toBuffer();
+      if (data.fieldname !== 'file' || Object.keys(data.fields).some(name => name !== 'file')) return sendError(reply, 400, 'BAD_REQUEST', 'Preview accepts only one file field');
+      if (data.file.truncated || bytes.length > PLUGIN_MAX_ZIP_SIZE) return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', 'Plugin ZIP exceeds 10 MiB');
+      return sendSuccess(reply, await previewPluginUpload(bytes, request.user!.id));
+    } catch (error: any) {
+      const status = error?.code === 'FST_REQ_FILE_TOO_LARGE' ? 413 : typeof error?.statusCode === 'number' ? error.statusCode : 500;
+      return sendError(reply, status, status === 413 ? 'PAYLOAD_TOO_LARGE' : error?.code || 'INTERNAL_SERVER_ERROR', status >= 500 ? 'Plugin preview failed' : error.message);
+    }
+  });
+
+  admin.post('/plugin/install', {
+    validatorCompiler: () => (value: unknown) => ({ value }),
     schema: {
       tags: ['admin-plugins'],
       summary: 'Install extension from ZIP',
@@ -738,14 +637,10 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       consumes: ['multipart/form-data'],
       ...extensionInstallerSchemas.installExtension,
     }
-  }, async (request: FastifyRequest<{ Params: InstallParams }>, reply: FastifyReply) => {
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const { kind } = request.params;
-
-      // Validate kind
-      if (kind !== 'plugin') {
-        return sendError(reply, 400, 'BAD_REQUEST', 'Invalid extension kind. Must be: plugin');
-      }
+      const kind = 'plugin' as const;
+      if (!request.isMultipart()) return sendError(reply, 400, 'BAD_REQUEST', 'A multipart plugin ZIP is required');
 
       // Get uploaded file
       const data = await request.file({ limits: { fileSize: PLUGIN_MAX_ZIP_SIZE }, throwFileSizeLimit: true });
@@ -760,6 +655,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
 
       // Install extension
       const zipBytes = await data.toBuffer();
+      if (data.fieldname !== 'file' || Object.keys(data.fields).some(name => !['file', 'previewToken', 'confirmUnsigned', 'confirmationSlug'].includes(name)))
+        return sendError(reply, 400, 'BAD_REQUEST', 'Unexpected plugin upload field');
       if (data.file.truncated || zipBytes.length > PLUGIN_MAX_ZIP_SIZE) {
         return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', 'Plugin ZIP exceeds 10 MiB');
       }
@@ -767,15 +664,16 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       const confirmUnsigned = !Array.isArray(confirmationField)
         && confirmationField?.type === 'field'
         && confirmationField.value === 'true';
+      const field = (name: string) => {
+        const value = data.fields?.[name];
+        return !Array.isArray(value) && value?.type === 'field' && typeof value.value === 'string' ? value.value : undefined;
+      };
       const result = await extensionInstaller.installFromZip(kind, Readable.from(zipBytes), {
         confirmUnsigned,
         actorUserId: request.user!.id,
+        previewToken: field('previewToken'), confirmationSlug: field('confirmationSlug'),
       });
 
-      const defaultInstance = await PluginManagementService.getDefaultInstance(result.slug);
-      if (!defaultInstance) {
-        await PluginManagementService.createDefaultInstance(result.slug, { enabled: false });
-      }
       return sendSuccess(reply, {
         filename: data.filename || `${result.slug}.zip`,
         originalName: data.filename || `${result.slug}.zip`,

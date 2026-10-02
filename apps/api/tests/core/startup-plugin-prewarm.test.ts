@@ -15,6 +15,8 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { installFixturePlugin } from '../helpers/fixture-plugin';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
+import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
+import { snapshotPluginRows, restoreBuiltinRows, assertPluginRowsUnchanged } from '../helpers/plugin-db-snapshot';
 
 const httpSource = (tag: string) => `module.exports = { register(ctx) {
   ctx.http.route({ method: 'GET', path: '/status', handler: () => ({ tag: '${tag}' }) });
@@ -41,8 +43,13 @@ describe('startup plugin package prewarm', () => {
   const slugs: string[] = [];
   const events: string[] = [];
   const started: Started[] = [];
+  let before: Awaited<ReturnType<typeof snapshotPluginRows>>;
+  let builtinSlugs: string[];
 
   beforeEach(async () => {
+    before = await snapshotPluginRows();
+    builtinSlugs = (await fs.readdir(path.resolve('builtin-plugins'), { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+    await syncBuiltinPlugins(path.resolve('builtin-plugins'));
     app = await createTestApp({ disableRedis: false });
     const admin = await createAdminWithToken();
     token = admin.token;
@@ -67,6 +74,12 @@ describe('startup plugin package prewarm', () => {
     }
     await deleteAllTestUsers();
     await app.close();
+    await restoreBuiltinRows({
+      installs: before.installs.filter((row) => builtinSlugs.includes(row.slug)),
+      blobs: before.blobs.filter((row) => builtinSlugs.includes(row.pluginSlug)),
+      installations: before.installations.filter((row) => builtinSlugs.includes(row.pluginSlug)),
+    }, builtinSlugs);
+    await assertPluginRowsUnchanged(before);
   });
 
   async function install(source: string, subscription = false, config?: Record<string, unknown>, shipping = false): Promise<string> {
@@ -252,7 +265,8 @@ describe('startup plugin package prewarm', () => {
     expect(missing.status).toBe(503);
     expect(await missing.json()).toMatchObject({ error: { code: 'PLUGIN_PACKAGE_UNAVAILABLE' } });
     const before = (await prisma.systemSettings.findUniqueOrThrow({ where: { id: 'system' } })).pluginRegistryVersion;
-    await pluginFsInstaller.install(Readable.from(Buffer.from(blob.bytes)), { confirmUnsigned: true, actorUserId: userId });
+    const { localUploadOptions } = await import('../helpers/plugin-upload');
+    await pluginFsInstaller.install(Readable.from(Buffer.from(blob.bytes)), await localUploadOptions(Buffer.from(blob.bytes), userId));
     expect((await prisma.systemSettings.findUniqueOrThrow({ where: { id: 'system' } })).pluginRegistryVersion).toBeGreaterThan(before);
     const repaired = await fetch(`${item.base}/api/v1/extensions/plugin/${slug}/api/status`, { headers: { connection: 'close' } });
     expect(repaired.status).toBe(200);

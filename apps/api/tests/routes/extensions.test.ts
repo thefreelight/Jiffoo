@@ -96,8 +96,14 @@ async function multipartPluginUpload(
 ): Promise<{ headers: Record<string, string>; payload: Buffer }> {
   const boundary = `----jiffoo-${Date.now().toString(36)}`;
   const file = await fs.readFile(archivePath);
+  const { previewPluginUpload } = await import('@/core/admin/extension-installer/plugin-upload');
+  let preview: Awaited<ReturnType<typeof previewPluginUpload>> | undefined;
+  try { preview = await previewPluginUpload(file, uploadActorId); }
+  catch (error) { if (!(error && typeof error === 'object' && 'statusCode' in error && Number(error.statusCode) < 500)) throw error; }
   const parts: Buffer[] = [];
+  if (preview) parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="previewToken"\r\n\r\n${preview.previewToken}\r\n`));
   if (confirmUnsigned) {
+    if (preview) parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="confirmationSlug"\r\n\r\n${preview.package.slug}\r\n`));
     parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="confirmUnsigned"\r\n\r\ntrue\r\n`));
   }
   parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="plugin.zip"\r\nContent-Type: application/zip\r\n\r\n`));
@@ -109,6 +115,7 @@ async function multipartPluginUpload(
   };
 }
 
+let uploadActorId: string;
 describe('Extensions Installer Endpoints', () => {
   let app: FastifyInstance;
   let userToken: string;
@@ -125,12 +132,13 @@ describe('Extensions Installer Endpoints', () => {
     userToken = uToken;
     adminToken = admin.token;
     adminUser = admin.user;
+    uploadActorId = adminUser.id;
   });
 
   afterAll(async () => {
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: uploadSlug } });
     await prisma.pluginInstall.deleteMany({ where: { slug: uploadSlug } });
-    await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: adminUser.id } });
+    await prisma.adminAuditEvent.deleteMany({ where: { actorId: adminUser.id } });
     await clearTestPluginCache(uploadSlug);
     await cleanupArchive?.();
     await deleteAllTestUsers();
@@ -299,20 +307,20 @@ describe('Extensions Installer Endpoints', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it('should return 400 for invalid kind', async () => {
+    it('should return 404 for the removed dynamic installation kind', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/v1/extensions/invalid-kind/install',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(404);
     });
 
     it('installs a no-config ZIP disabled, then enables its shipping contract through Admin', async () => {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: uploadSlug } });
       await prisma.pluginInstall.deleteMany({ where: { slug: uploadSlug } });
-      await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: adminUser.id } });
+      await prisma.adminAuditEvent.deleteMany({ where: { actorId: adminUser.id } });
       await clearTestPluginCache(uploadSlug);
       const archive = await createUnsignedPluginArchive(uploadSlug, { shippingContract: true });
       cleanupArchive = archive.cleanup;
@@ -326,8 +334,8 @@ describe('Extensions Installer Endpoints', () => {
       });
       expect(unconfirmedResponse.statusCode).toBe(400);
       expect(unconfirmedResponse.json().error.code).toBe('UNSIGNED_CONFIRMATION_REQUIRED');
-      expect(await prisma.adminStaffAuditLog.count({
-        where: { staffUserId: adminUser.id, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' },
+      expect(await prisma.adminAuditEvent.count({
+        where: { actorId: adminUser.id, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' },
       })).toBe(0);
 
       const confirmed = await multipartPluginUpload(archive.archivePath, true);
@@ -341,13 +349,13 @@ describe('Extensions Installer Endpoints', () => {
       expect(installedResponse.json().data.slug).toBe(uploadSlug);
 
       const [audit, plugin] = await Promise.all([
-        prisma.adminStaffAuditLog.findFirst({
-          where: { staffUserId: adminUser.id, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' },
+        prisma.adminAuditEvent.findFirst({
+          where: { actorId: adminUser.id, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' },
           orderBy: { createdAt: 'desc' },
         }),
         prisma.pluginInstall.findUnique({ where: { slug: uploadSlug } }),
       ]);
-      expect(audit?.metadata).toMatchObject({ slug: uploadSlug, version: '1.0.0', source: 'local-zip' });
+      expect(audit?.summary).toMatchObject({ slug: uploadSlug, version: '1.0.0', source: 'local-zip' });
       expect(plugin).not.toBeNull();
       expect(plugin?.trustLevel).toBe('unsigned');
       expect(audit!.createdAt.getTime()).toBeLessThanOrEqual(plugin!.installedAt.getTime());
@@ -415,7 +423,7 @@ describe('Extensions Installer Endpoints', () => {
         url: '/api/v1/extensions/plugin',
         headers: { authorization: `Bearer ${adminToken}` },
       });
-      expect(listResponse.statusCode).toBe(200);
+      expect(listResponse.statusCode, listResponse.body).toBe(200);
       expect(listResponse.json().data.items.find((item: { slug: string }) => item.slug === uploadSlug).manifestError.issues).toEqual(
         expect.arrayContaining([expect.objectContaining({ path: 'schemaVersion' })]),
       );
@@ -445,7 +453,7 @@ describe('Extensions Installer Endpoints', () => {
       try {
         await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: builtinSlug } });
         await prisma.pluginInstall.deleteMany({ where: { slug: builtinSlug } });
-        await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: adminUser.id } });
+        await prisma.adminAuditEvent.deleteMany({ where: { actorId: adminUser.id } });
         await clearTestPluginCache(builtinSlug);
 
         const unconfirmed = await multipartPluginUpload(archive.archivePath, false);
@@ -457,8 +465,8 @@ describe('Extensions Installer Endpoints', () => {
         });
         expect(unconfirmedResponse.statusCode).toBe(400);
         expect(unconfirmedResponse.json().error.code).toBe('MANIFEST_TRUST_LEVEL_NOT_ALLOWED');
-        expect(await prisma.adminStaffAuditLog.count({
-          where: { staffUserId: adminUser.id, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' },
+        expect(await prisma.adminAuditEvent.count({
+          where: { actorId: adminUser.id, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' },
         })).toBe(0);
 
         expect(await prisma.pluginInstall.findUnique({ where: { slug: builtinSlug } })).toBeNull();

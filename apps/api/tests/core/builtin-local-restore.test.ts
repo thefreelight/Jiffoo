@@ -7,6 +7,7 @@ import path from 'node:path';
 import { prisma } from '@/config/database';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { packBuiltinPlugin } from '@/core/admin/extension-installer/builtin-package';
+import { snapshotPluginRows, restoreBuiltinRows, assertPluginRowsUnchanged } from '../helpers/plugin-db-snapshot';
 
 const builtinRoot = path.resolve('builtin-plugins');
 const roots: string[] = [];
@@ -43,7 +44,11 @@ describe('builtin deterministic packing and local restore', () => {
   });
 
   it('A restores a builtin in an empty real-process root without DB, registry, or lifecycle changes', async () => {
+    const slugs = (await fs.readdir(builtinRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+    const original = await snapshotPluginRows(slugs);
+    try {
     await syncBuiltinPlugins(builtinRoot);
+    const before = await snapshotPluginRows(slugs);
     const beforeRows = await prisma.pluginInstall.findMany({ where: { source: 'builtin' }, orderBy: { slug: 'asc' } });
     const beforeRegistry = (await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion;
     const beforeAudit = await prisma.adminStaffAuditLog.count({ where: { action: 'BUILTIN_PLUGIN_INSTALLED' } });
@@ -58,6 +63,11 @@ describe('builtin deterministic packing and local restore', () => {
     expect(await prisma.pluginInstall.findMany({ where: { source: 'builtin' }, orderBy: { slug: 'asc' } })).toEqual(beforeRows);
     expect((await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion).toBe(beforeRegistry);
     expect(await prisma.adminStaffAuditLog.count({ where: { action: 'BUILTIN_PLUGIN_INSTALLED' } })).toBe(beforeAudit);
+    await fs.rm(root, { recursive: true, force: true });
+    await assertPluginRowsUnchanged(before, slugs);
+    } finally {
+      await restoreBuiltinRows(original, slugs);
+    }
   });
 
   it('B packs identical builtin bytes and hashes twice and in separate processes', async () => {

@@ -812,6 +812,38 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    upload: {
+      "title": "Upload a local plugin",
+      "file": "Plugin ZIP",
+      "preview": "Preview package",
+      "working": "Working…",
+      "install": "Install",
+      "upgrade": "Upgrade",
+      "unchanged": "Unchanged package",
+      "capabilities": "Declared capabilities (unverified)",
+      "incompatible": "This package is incompatible with the current API.",
+      "warning": "This unsigned plugin runs in the same process as Core with database access. It is not sandboxed. Only install code you trust.",
+      "continue": "Continue",
+      "cancel": "Cancel",
+      "installNow": "Install package",
+      "confirmationTitle": "Confirm unsigned plugin installation",
+      "typeSlug": "Type the exact plugin slug to confirm",
+      "confirmationSlug": "Plugin slug confirmation",
+      "confirmInstall": "Confirm installation",
+      "downgrade": "Downgrade is not supported. Upload a higher version.",
+      "versionContentChanged": "This version has different package content. Increase the version before uploading.",
+      "publisherChanged": "The publisher cannot change during an upgrade.",
+      "signatureRequired": "A signed plugin cannot be upgraded with an unsigned package.",
+      "previewRequired": "The preview expired or the installation changed. Preview the ZIP again.",
+      "confirmationRequired": "Confirm the warning and type the exact plugin slug.",
+      "tooLarge": "The plugin ZIP exceeds 10 MiB.",
+      "busy": "Another plugin operation is in progress. Preview again when it completes.",
+      "signatureInvalid": "The package signature or publisher certificate is invalid.",
+      "failed": "The plugin upload failed. Preview again and retry.",
+      "success": "Package installed. New plugins stay disabled until configured and enabled.",
+      "unchangedSuccess": "The same package was verified and repaired if needed. Enablement was not changed.",
+      "installedWithWarning": "The package was installed, but a runtime or lifecycle warning occurred."
+    },
     marketplace: {
       title: 'Marketplace', views: 'Plugin views', installedPlugins: 'Installed plugins', details: 'Details', version: 'Version', publisher: 'Publisher', installedVersion: 'Installed version', none: 'None',
       loading: 'Loading marketplace…', loadError: 'Could not load the marketplace.', retry: 'Retry', notConfigured: 'Marketplace is not configured.', empty: 'No marketplace plugins available.',

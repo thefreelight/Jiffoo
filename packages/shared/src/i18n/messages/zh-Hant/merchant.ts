@@ -812,6 +812,38 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    upload: {
+      "title": "上傳本地外掛",
+      "file": "外掛 ZIP",
+      "preview": "預覽外掛套件",
+      "working": "正在處理…",
+      "install": "安裝",
+      "upgrade": "升級",
+      "unchanged": "相同外掛套件",
+      "capabilities": "宣告的能力（未驗證）",
+      "incompatible": "此外掛套件與目前 API 不相容。",
+      "warning": "此未簽章外掛與 Core 在同一程序中執行，並可存取資料庫。它不在沙箱中執行。請僅安裝您信任的程式碼。",
+      "continue": "繼續",
+      "cancel": "取消",
+      "installNow": "安裝外掛套件",
+      "confirmationTitle": "確認安裝未簽章外掛",
+      "typeSlug": "輸入準確的外掛識別碼以確認",
+      "confirmationSlug": "確認外掛識別碼",
+      "confirmInstall": "確認安裝",
+      "downgrade": "不支援降級，請上傳更高版本。",
+      "versionContentChanged": "此版本的外掛套件內容不同，請提高版本號後上傳。",
+      "publisherChanged": "升級時不能更換發佈者。",
+      "signatureRequired": "已簽章外掛不能使用未簽章套件升級。",
+      "previewRequired": "預覽已過期或安裝狀態已改變，請重新預覽 ZIP。",
+      "confirmationRequired": "請確認警告並輸入準確的外掛識別碼。",
+      "tooLarge": "外掛 ZIP 超過 10 MiB。",
+      "busy": "其他外掛操作正在進行，請在完成後重新預覽。",
+      "signatureInvalid": "套件簽章或發佈者憑證無效。",
+      "failed": "外掛上傳失敗，請重新預覽後重試。",
+      "success": "外掛套件已安裝。新外掛在設定並啟用前保持停用。",
+      "unchangedSuccess": "已驗證相同外掛套件，並按需修復；啟用狀態未改變。",
+      "installedWithWarning": "外掛套件已安裝，但出現執行階段或生命週期警告。"
+    },
     marketplace: {
       title: '外掛市集', views: '外掛檢視', installedPlugins: '已安裝外掛', details: '詳情', version: '版本', publisher: '發佈者', installedVersion: '已安裝版本', none: '無',
       loading: '正在載入外掛市集…', loadError: '無法載入外掛市集。', retry: '重試', notConfigured: '尚未設定外掛市集。', empty: '外掛市集暫無外掛。',

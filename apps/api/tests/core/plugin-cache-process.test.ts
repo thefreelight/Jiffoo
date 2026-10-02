@@ -5,6 +5,8 @@ import { once } from 'node:events';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
+import { snapshotPluginRows, restoreBuiltinRows } from '../helpers/plugin-db-snapshot';
 
 function message(child: ChildProcess, kind: string): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -36,6 +38,10 @@ describe('cross-process immutable plugin cache', () => {
   });
 
   it('F starts a real process with an empty cache and runs a builtin', async () => {
+    const slugs = (await fs.readdir(path.resolve('builtin-plugins'), { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+    const before = await snapshotPluginRows(slugs);
+    try {
+    await syncBuiltinPlugins(path.resolve('builtin-plugins'));
     const root = await fs.mkdtemp(path.join(os.tmpdir(), 'builtin-empty-cache-'));
     roots.push(root);
     const child = fork(path.resolve('tests/helpers/builtin-cache-child.ts'), [], {
@@ -53,6 +59,9 @@ describe('cross-process immutable plugin cache', () => {
     const entries = await fs.readdir(path.join(root, 'plugins', 'free-shipping'));
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatch(/^[a-f0-9]{64}$/);
+    } finally {
+      await restoreBuiltinRows(before, slugs);
+    }
   });
 
   it('G two real processes publish the same hash atomically on one shared path', async () => {

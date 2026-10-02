@@ -21,6 +21,7 @@ const areas = [
   '28-disabled-payment-plugin',
   '29-plugin-config',
   '30-marketplace',
+  '31-plugin-upload',
 ];
 
 export default defineConfig({

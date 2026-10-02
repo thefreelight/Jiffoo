@@ -19,11 +19,8 @@ import type {
 /**
  * Extension type enum - all installable content types
  * - plugin: Plugin for backend functionality
- * - bundle: Bundle containing multiple extensions
  */
-export type ExtensionKind =
-  | 'plugin'
-  | 'bundle';
+export type ExtensionKind = 'plugin';
 
 /** Extension source */
 export type ExtensionSource = 'local-zip' | 'builtin' | 'marketplace';
@@ -32,6 +29,8 @@ export type PluginInstallOptions = {
   source?: string;
   confirmUnsigned?: boolean;
   actorUserId?: string;
+  previewToken?: string;
+  confirmationSlug?: string;
   lease?: { slug: string; token: string };
   expectedMarketplaceIdentity?: { version: string; publisherId: string };
 };
@@ -48,6 +47,9 @@ export type PluginTrustLevel = SharedPluginTrustLevel;
 
 /** Installation result */
 export interface InstallResult {
+  name: string;
+  trustLevel?: PluginTrustLevel;
+  warnings?: string[];
   kind: ExtensionKind;
   slug: string;
   version: string;
@@ -73,6 +75,7 @@ export interface UninstallResult {
 
 /** Installed plugin package information (corresponds to PluginInstall in DB) */
 export interface InstalledPlugin {
+  warnings?: string[];
   id: string;
   slug: string;
   name: string;
@@ -150,7 +153,7 @@ export type PluginManifest = SharedPluginManifest;
 /** Unified Extension Installer Interface */
 export interface IExtensionInstaller {
   /** Install extension from ZIP */
-  installFromZip(kind: ExtensionKind, zipStream: Readable, options?: { source?: string; confirmUnsigned?: boolean; actorUserId?: string }): Promise<InstallResult>;
+  installFromZip(kind: ExtensionKind, zipStream: Readable, options?: PluginInstallOptions): Promise<InstallResult>;
   /** Uninstall extension */
   uninstall(kind: ExtensionKind, slug: string): Promise<UninstallResult>;
   /** List installed extensions */

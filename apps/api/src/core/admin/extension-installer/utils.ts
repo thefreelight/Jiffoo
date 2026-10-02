@@ -7,7 +7,7 @@
 import { createReadStream, createWriteStream, promises as fs } from 'fs';
 import path from 'path';
 import { pipeline } from 'stream/promises';
-import { Readable, PassThrough, Transform } from 'stream';
+import { Readable, Transform } from 'stream';
 import { createGunzip } from 'zlib';
 import { createHash } from 'crypto';
 import { Parse } from 'unzip-stream';
@@ -267,7 +267,7 @@ export async function resolveExtractedPackageRoot(
  * Get manifest filename
  */
 export function getManifestFileName(kind: ExtensionKind): string {
-  return kind === 'bundle' ? 'bundle.json' : 'manifest.json';
+  return 'manifest.json';
 }
 
 /**
@@ -541,34 +541,6 @@ export async function calculateFileHash(filePath: string): Promise<string> {
 }
 
 /**
- * Calculate SHA-256 hash from a readable stream
- * Returns both the hash and a new readable stream (for further processing)
- */
-export async function calculateStreamHash(
-  stream: Readable
-): Promise<{ hash: string; buffer: Buffer }> {
-  return new Promise((resolve, reject) => {
-    const hash = createHash('sha256');
-    const chunks: Buffer[] = [];
-
-    stream.on('data', (chunk: Buffer) => {
-      hash.update(chunk);
-      chunks.push(chunk);
-    });
-
-    stream.on('end', () => {
-      const buffer = Buffer.concat(chunks);
-      resolve({
-        hash: hash.digest('hex'),
-        buffer,
-      });
-    });
-
-    stream.on('error', reject);
-  });
-}
-
-/**
  * Stream a ZIP payload to disk while calculating its SHA-256 hash.
  * This avoids buffering large packages fully in memory during install.
  */
@@ -617,8 +589,3 @@ export async function spoolStreamToTempFileAndHash(
 /**
  * Create a readable stream from a buffer
  */
-export function bufferToStream(buffer: Buffer): Readable {
-  const stream = new PassThrough();
-  stream.end(buffer);
-  return stream;
-}

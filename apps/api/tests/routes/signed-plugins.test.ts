@@ -85,12 +85,8 @@ describe('Signed plugin uploads over HTTP', () => {
   });
   const own = () => { const slug = uniqueSlug(); slugs.add(slug); return slug; };
   async function upload(entries: FileEntry[] | Buffer, confirmUnsigned = false) {
-    const form = new FormData();
-    if (confirmUnsigned) form.set('confirmUnsigned', 'true');
-    form.set('file', new Blob([Buffer.isBuffer(entries) ? entries : await zip(entries)], { type: 'application/zip' }), 'plugin.zip');
-    const response = await fetch(`${base}/api/v1/extensions/plugin/install`, {
-      method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form,
-    });
+    const { uploadPluginZip } = await import('../helpers/plugin-upload');
+    const response = await uploadPluginZip(base, token, Buffer.isBuffer(entries) ? entries : await zip(entries), confirmUnsigned);
     return { status: response.status, body: await response.json() };
   }
   async function absent(slug: string) {

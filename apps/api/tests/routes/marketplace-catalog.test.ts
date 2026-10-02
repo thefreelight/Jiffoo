@@ -59,12 +59,8 @@ async function upload(slug: string) {
   }), { name: 'manifest.json' });
   archive.append('module.exports = { register() {} };', { name: 'dist/index.js' });
   void archive.finalize();
-  const form = new FormData();
-  form.set('confirmUnsigned', 'true');
-  form.set('file', new Blob([await collected], { type: 'application/zip' }), 'plugin.zip');
-  return fetch(`${appBase}/api/v1/extensions/plugin/install`, {
-    method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form,
-  });
+  const { uploadPluginZip } = await import('../helpers/plugin-upload');
+  return uploadPluginZip(appBase, token, await collected);
 }
 
 beforeAll(async () => {

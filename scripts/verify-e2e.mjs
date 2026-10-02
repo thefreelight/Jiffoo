@@ -85,6 +85,7 @@ playwrightGroups.push(['27-admin-audit-events']);
 playwrightGroups.push(['28-disabled-payment-plugin']);
 playwrightGroups.push(['29-plugin-config']);
 playwrightGroups.push(['30-marketplace']);
+playwrightGroups.push(['31-plugin-upload']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);

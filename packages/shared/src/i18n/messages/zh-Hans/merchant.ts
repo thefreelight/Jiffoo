@@ -812,6 +812,38 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    upload: {
+      "title": "上传本地插件",
+      "file": "插件 ZIP",
+      "preview": "预览插件包",
+      "working": "正在处理…",
+      "install": "安装",
+      "upgrade": "升级",
+      "unchanged": "相同插件包",
+      "capabilities": "声明的能力（未验证）",
+      "incompatible": "此插件包与当前 API 不兼容。",
+      "warning": "此未签名插件与 Core 在同一进程中运行，并可访问数据库。它不在沙箱中运行。请仅安装您信任的代码。",
+      "continue": "继续",
+      "cancel": "取消",
+      "installNow": "安装插件包",
+      "confirmationTitle": "确认安装未签名插件",
+      "typeSlug": "输入准确的插件标识以确认",
+      "confirmationSlug": "确认插件标识",
+      "confirmInstall": "确认安装",
+      "downgrade": "不支持降级，请上传更高版本。",
+      "versionContentChanged": "此版本的插件包内容不同，请提高版本号后上传。",
+      "publisherChanged": "升级时不能更换发布者。",
+      "signatureRequired": "已签名插件不能使用未签名插件包升级。",
+      "previewRequired": "预览已过期或安装状态已改变，请重新预览 ZIP。",
+      "confirmationRequired": "请确认警告并输入准确的插件标识。",
+      "tooLarge": "插件 ZIP 超过 10 MiB。",
+      "busy": "其他插件操作正在进行，请在完成后重新预览。",
+      "signatureInvalid": "插件包签名或发布者证书无效。",
+      "failed": "插件上传失败，请重新预览后重试。",
+      "success": "插件包已安装。新插件在配置并启用前保持停用。",
+      "unchangedSuccess": "已验证相同插件包，并按需修复；启用状态未改变。",
+      "installedWithWarning": "插件包已安装，但出现运行时或生命周期警告。"
+    },
     marketplace: {
       title: '插件市场', views: '插件视图', installedPlugins: '已安装插件', details: '详情', version: '版本', publisher: '发布者', installedVersion: '已安装版本', none: '无',
       loading: '正在加载插件市场…', loadError: '无法加载插件市场。', retry: '重试', notConfigured: '尚未配置插件市场。', empty: '插件市场暂无插件。',

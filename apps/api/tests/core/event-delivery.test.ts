@@ -24,6 +24,7 @@ import { installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-pl
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { callContract, deliverInstallationEvent } from '@/core/admin/extension-installer/plugin-runtime';
 import { ensurePluginRegistryFresh } from '@/core/admin/extension-installer/plugin-registry-freshness';
+import { snapshotPluginRows, restoreBuiltinRows, assertPluginRowsUnchanged } from '../helpers/plugin-db-snapshot';
 
 const subscriptions: EventSubscription[] = [{ type: 'order.created', version: 1 }];
 const payload = { id: 'snapshot-order', userId: 'snapshot-user', totalAmount: 10, currency: 'USD', items: [] };
@@ -67,9 +68,11 @@ describe('durable plugin event delivery', () => {
   const eventIds: string[] = [];
   const users: string[] = [];
   const products: string[] = [];
+  let pluginRowsBefore: Awaited<ReturnType<typeof snapshotPluginRows>>;
   const children: Array<{ child: ChildProcess; exited: Promise<unknown[]>; output: { stdout: string; stderr: string } }> = [];
 
   beforeEach(async () => {
+    pluginRowsBefore = await snapshotPluginRows();
     app = await createTestApp({ disableRedis: false });
     const admin = await createAdminWithToken();
     users.push(admin.user.id);
@@ -93,6 +96,13 @@ describe('durable plugin event delivery', () => {
     for (const id of products.splice(0)) await deleteTestProduct(id);
     await app.close();
     await fs.rm(directory, { recursive: true, force: true });
+    const builtinSlugs = (await fs.readdir(path.resolve('builtin-plugins'), { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+    await restoreBuiltinRows({
+      installs: pluginRowsBefore.installs.filter((row) => builtinSlugs.includes(row.slug)),
+      blobs: pluginRowsBefore.blobs.filter((row) => builtinSlugs.includes(row.pluginSlug)),
+      installations: pluginRowsBefore.installations.filter((row) => builtinSlugs.includes(row.pluginSlug)),
+    }, builtinSlugs);
+    await assertPluginRowsUnchanged(pluginRowsBefore);
   });
 
   async function plugin(config: Record<string, unknown> = {}, source = fixtureSource, declarations = subscriptions, enable = true) {
@@ -213,6 +223,10 @@ describe('durable plugin event delivery', () => {
       expect(await fs.readFile(path.join(directory, `${installation.id}-${event.id}.effect`), 'utf8')).toContain(event.id);
       expect(await fs.access(path.join(root, 'plugins', installation.pluginSlug))).toBeUndefined();
     } finally {
+      for (const item of children.splice(0)) {
+        if (item.child.connected) item.child.send({ command: 'stop', requestId: randomUUID() });
+        await item.exited;
+      }
       await fs.rm(root, { recursive: true, force: true });
     }
   });

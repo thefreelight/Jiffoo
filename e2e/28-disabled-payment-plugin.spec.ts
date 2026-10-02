@@ -75,11 +75,16 @@ async function setupFixture(
   const fixture: Fixture = { slug, authorization, page, shop: await context.newPage(), context, request, installed: false, orderId: null };
   try {
     await removeFixture(fixture);
+    const packageBytes = await fixtureZip(slug);
+    const preview = await request.post(`${api}/extensions/plugin/preview`, { headers: { authorization }, multipart: { file: { name: 'plugin.zip', mimeType: 'application/zip', buffer: packageBytes } } });
+    expect(preview.ok()).toBe(true);
+    const previewToken = (await preview.json()).data.previewToken;
     const uploaded = await request.post(`${api}/extensions/plugin/install`, {
       headers: { authorization },
       multipart: {
         confirmUnsigned: 'true',
-        file: { name: `${slug}.zip`, mimeType: 'application/zip', buffer: await fixtureZip(slug) },
+        previewToken, confirmationSlug: slug,
+        file: { name: `${slug}.zip`, mimeType: 'application/zip', buffer: packageBytes },
       },
     });
     expect(uploaded.status(), await uploaded.text()).toBe(200);

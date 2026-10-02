@@ -49,6 +49,8 @@ import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-package';
 import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
+import { assertUploadPreview, assertUploadSnapshot, inspectPluginUpload, PluginUploadError, uploadOperation, writePluginInstallAudit, type UploadInspection, type UploadSnapshot } from './plugin-upload';
+import { checkPluginApiCompatibility } from './plugin-compatibility';
 
 function parseJsonArray(value: unknown): string[] {
   if (!value) return [];
@@ -95,7 +97,7 @@ const BUILTIN_PLUGIN_SLUGS = new Set([
 export class PluginFsInstaller implements IPluginInstaller {
   async installFromDirectory(
     directory: string,
-    options: { source?: string; confirmUnsigned?: boolean; actorUserId?: string } = {},
+    options: PluginInstallOptions = {},
   ): Promise<InstalledPlugin> {
     const { bytes } = await packBuiltinPlugin(directory);
     return this.install(Readable.from(bytes), options);
@@ -119,6 +121,9 @@ export class PluginFsInstaller implements IPluginInstaller {
     let tempZipCleanup: (() => Promise<void>) | null = null;
     let wasNewInstall = false;
     let lease: { slug: string; token: string } | null = null;
+    let inspection: UploadInspection | undefined;
+    let snapshot: UploadSnapshot | undefined;
+    let operation: 'install' | 'upgrade' | 'unchanged' = 'install';
 
     // 1. Stream the ZIP to disk while calculating its hash to avoid buffering large packages in memory.
     const {
@@ -154,6 +159,21 @@ export class PluginFsInstaller implements IPluginInstaller {
     if (options?.source !== 'builtin') {
       lease = options?.lease ?? { slug: manifest.slug, token: await acquirePluginOperationLease(manifest.slug, 'install') };
       await testLeaseBarrier('acquired', manifest.slug, zipHash);
+      inspection = await inspectPluginUpload(await fs.readFile(zipFilePath));
+      const current = await prisma.pluginInstall.findUnique({ where: { slug: manifest.slug } });
+      if (options?.source !== 'marketplace') snapshot = assertUploadPreview(options?.previewToken, options?.actorUserId, inspection, current);
+      operation = uploadOperation(inspection, current);
+      if (!checkPluginApiCompatibility(manifest).compatible) throw new PluginUploadError('INCOMPATIBLE_API_VERSION', 422);
+      if (!options?.actorUserId) throw new PluginUploadError('PLUGIN_PREVIEW_REQUIRED', 409);
+      if (!publisher) {
+        if (!options.confirmUnsigned || options.confirmationSlug !== manifest.slug)
+          throw new PluginUploadError('UNSIGNED_CONFIRMATION_REQUIRED', 400, 'Confirm the unsigned warning and type the plugin slug');
+        await prisma.$transaction(async (tx) => {
+          await fencePluginOperationLease(tx, lease!.slug, lease!.token);
+          await assertUploadSnapshot(tx, manifest.slug, snapshot!);
+          await writePluginInstallAudit(tx, options.actorUserId!, 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED', inspection!, operation, current?.version ?? null, options?.source ?? 'local-zip');
+        });
+      }
     }
     // 2. Check if same hash already installed (idempotency)
     // CRITICAL: Must filter deletedAt=null, otherwise soft-deleted plugins will be treated as installed
@@ -182,12 +202,20 @@ export class PluginFsInstaller implements IPluginInstaller {
         const bytes = await fs.readFile(zipFilePath);
         await prisma.$transaction(async (tx) => {
           await fencePluginOperationLease(tx, lease!.slug, lease!.token);
+          if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
           await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, bytes);
           await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
           await tx.pluginInstall.update({ where: { slug: manifest.slug }, data: {
             signingRoot: publisher?.signingRoot ?? null,
+            updatedAt: new Date(Math.max(Date.now(), existingByHash.updatedAt.getTime() + 1)),
             ...(options?.source === 'marketplace' ? { source: 'marketplace' } : {}),
           } });
+          await tx.pluginInstallation.upsert({
+            where: { pluginSlug_instanceKey: { pluginSlug: manifest.slug, instanceKey: 'default' } },
+            create: { pluginSlug: manifest.slug, instanceKey: 'default', enabled: false, configJson: {}, grantedPermissions: manifest.permissions ?? [] },
+            update: {},
+          });
+          await writePluginInstallAudit(tx, options!.actorUserId!, 'PLUGIN_INSTALLED', inspection!, operation, existingByHash.version, options?.source ?? 'local-zip');
           await incrementPluginRegistryVersion(tx);
         });
       }
@@ -236,34 +264,8 @@ export class PluginFsInstaller implements IPluginInstaller {
         throw error;
       }
 
-      if (trustLevel === 'unsigned') {
-        if (!options?.confirmUnsigned || !options.actorUserId) {
-          const error: any = new Error('Unsigned packages require explicit merchant confirmation');
-          error.statusCode = 400;
-          error.code = 'UNSIGNED_CONFIRMATION_REQUIRED';
-          throw error;
-        }
-        const actor = await prisma.user.findUnique({
-          where: { id: options.actorUserId },
-          select: { id: true, email: true, username: true },
-        });
-        if (!actor) throw new Error('Unsigned package confirmation actor was not found');
-        await prisma.adminStaffAuditLog.create({
-          data: {
-            staffUserId: actor.id,
-            staffEmail: actor.email,
-            staffUsername: actor.username,
-            actorUserId: actor.id,
-            actorEmail: actor.email,
-            actorUsername: actor.username,
-            action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED',
-            metadata: { slug: manifest.slug, version: manifest.version, zipHash, source: options.source || 'local-zip' },
-          },
-        });
-      }
-
       // 7. Check if slug already exists (update/restore scenario)
-      const now = new Date();
+      const now = new Date(Math.max(Date.now(), (existingBySlug?.updatedAt.getTime() ?? 0) + 1));
 
       // 8. TWO-PHASE COMMIT WITH WARM VALIDATION
       // Phase 1: atomically replace the package through the storage boundary.
@@ -295,6 +297,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           // CRITICAL: Set deletedAt=null to restore visibility (in case of re-install after soft delete)
           const pluginInstall = await prisma.$transaction(async (tx) => {
             if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
+            if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
             if (lease) {
               await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, await fs.readFile(zipFilePath));
               await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
@@ -333,6 +336,12 @@ export class PluginFsInstaller implements IPluginInstaller {
               }
             }
             await syncEventSubscriptions(tx, manifest.slug, manifest.subscriptions);
+            await tx.pluginInstallation.upsert({
+              where: { pluginSlug_instanceKey: { pluginSlug: manifest.slug, instanceKey: 'default' } },
+              create: { pluginSlug: manifest.slug, instanceKey: 'default', enabled: false, configJson: {}, grantedPermissions: manifest.permissions ?? [] },
+              update: {},
+            });
+            if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, operation === 'upgrade' ? 'PLUGIN_UPGRADED' : 'PLUGIN_INSTALLED', inspection, operation, existingBySlug.version, options?.source ?? 'local-zip');
             await incrementPluginRegistryVersion(tx);
             return updatedInstall;
           });
@@ -364,6 +373,8 @@ export class PluginFsInstaller implements IPluginInstaller {
             zipHash,
           };
 
+          const warnings: string[] = [];
+          try {
           await deployment.commit();
           deployment = null;
           const { reconcilePluginState } = await import('./plugin-reconciliation');
@@ -372,15 +383,17 @@ export class PluginFsInstaller implements IPluginInstaller {
             where: { pluginSlug_instanceKey: { pluginSlug: manifest.slug, instanceKey: 'default' } },
           });
           if (existingBySlug.version !== manifest.version && upgradedDefaultInstance && hasLifecycleHook(manifest, 'onUpgrade')) {
-            await executeLifecycleHook('onUpgrade', {
+            const hook = await executeLifecycleHook('onUpgrade', {
               installationId: upgradedDefaultInstance.id,
               pluginSlug: manifest.slug,
               instanceKey: upgradedDefaultInstance.instanceKey,
               config: decryptPluginConfig(manifest, parseJsonObject(upgradedDefaultInstance.configJson)),
               previousVersion: existingBySlug.version,
             }, manifest);
+            if (!hook.success) warnings.push('PLUGIN_UPGRADE_HOOK_WARNING');
           }
-          return installedPlugin;
+          } catch { warnings.push('PLUGIN_POST_COMMIT_WARNING'); deployment = null; }
+          return { ...installedPlugin, warnings };
 
         } catch (warmError: any) {
           // WARM FAILED: Rollback file system, keep old version
@@ -393,13 +406,14 @@ export class PluginFsInstaller implements IPluginInstaller {
 
 
           if (warmError?.code === 'PLUGIN_OPERATION_LEASE_LOST') throw warmError;
-          throw new Error(`Plugin upgrade failed: ${safeFailure}. Old version restored.`);
+          throw new Error(`Plugin upgrade failed before the package transaction committed: ${safeFailure}`);
         }
       } else {
         // NEW INSTALL: Create a disabled instance; enablement is a separate transition.
         try {
           const result = await prisma.$transaction(async (tx) => {
             if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
+            if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
             const install = await tx.pluginInstall.create({
               data: {
                 slug: manifest.slug,
@@ -438,6 +452,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             });
 
             await syncEventSubscriptions(tx, manifest.slug, manifest.subscriptions);
+            if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, 'PLUGIN_INSTALLED', inspection, operation, null, options?.source ?? 'local-zip');
             await incrementPluginRegistryVersion(tx);
 
             return install;
@@ -453,13 +468,17 @@ export class PluginFsInstaller implements IPluginInstaller {
             },
           });
 
+          const warnings: string[] = [];
           if (defaultInstance && hasLifecycleHook(manifest, 'onInstall')) {
-            await executeLifecycleHook('onInstall', {
+            try {
+            const hook = await executeLifecycleHook('onInstall', {
               installationId: defaultInstance.id,
               pluginSlug: manifest.slug,
               instanceKey: defaultInstance.instanceKey,
               config: decryptPluginConfig(manifest, parseJsonObject(defaultInstance.configJson)),
             }, manifest);
+            if (!hook.success) warnings.push('PLUGIN_INSTALL_HOOK_WARNING');
+            } catch { warnings.push('PLUGIN_POST_COMMIT_WARNING'); }
           }
 
 
@@ -491,10 +510,12 @@ export class PluginFsInstaller implements IPluginInstaller {
 
           await deployment.commit();
           deployment = null;
+          try {
           await CacheService.incrementPluginVersion();
           const { reconcilePluginState } = await import('./plugin-reconciliation');
           await reconcilePluginState(manifest.slug);
-          return installedPlugin;
+          } catch { warnings.push('PLUGIN_POST_COMMIT_WARNING'); }
+          return { ...installedPlugin, warnings };
 
         } catch (dbError) {
           // DB transaction failed: ROLLBACK file system changes

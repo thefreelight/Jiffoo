@@ -164,11 +164,8 @@ describe('Built plugin SDK CLI', () => {
       expect(output).not.toContain(testRoot.privateKey);
       expect(zip.includes(Buffer.from(pem))).toBe(false);
       expect(zip.includes(Buffer.from(testRoot.privateKey))).toBe(false);
-      const form = new FormData();
-      form.set('file', new Blob([zip], { type: 'application/zip' }), 'plugin.zip');
-      const response = await fetch(`${base}/api/v1/extensions/plugin/install`, {
-        method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form,
-      });
+      const { uploadPluginZip } = await import('../helpers/plugin-upload');
+      const response = await uploadPluginZip(base, token, zip, false);
       expect(response.status).toBe(200);
       expect((await response.json()).data).toMatchObject({ publisherId: 'sdk-publisher', publisherName: 'SDK Publisher', publisherVerified: false, signingRoot: 'test' });
       expect(await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).toMatchObject({ trustLevel: 'signed', signingRoot: 'test', publisherId: 'sdk-publisher' });

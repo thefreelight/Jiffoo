@@ -15,6 +15,9 @@ import { env } from '@/config/env';
 import { CERT_PATH, SIGNATURE_PATH, issuePublisherCertificate, signPackage } from 'shared/plugin-signing';
 import { otherPublisher, testPublisher, testRoot } from '../fixtures/plugin-signing-keys';
 import { downloadPackage } from '@/core/admin/extension-installer/marketplace-install';
+import { fork } from 'node:child_process';
+import { once } from 'node:events';
+import { snapshotPluginRows, assertPluginRowsUnchanged } from '../helpers/plugin-db-snapshot';
 
 const prisma = getTestPrisma();
 const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -30,6 +33,7 @@ let base: string;
 let server: Server;
 let origin: string;
 let token: string;
+let actorId: string;
 let catalogBody: unknown;
 let packageBody: Buffer;
 let packageHandler: ((request: IncomingMessage, response: ServerResponse) => void) | undefined;
@@ -115,7 +119,9 @@ async function downloadTemps() {
 beforeAll(async () => {
   process.env.JIFFOO_TEST_MARKETPLACE_OVERRIDE = 'true';
   app = await createTestApp({ disableFileSystem: false });
-  token = (await createAdminWithToken()).token;
+  const admin = await createAdminWithToken();
+  token = admin.token;
+  actorId = admin.user.id;
   base = await app.listen({ port: 0, host: '127.0.0.1' });
   server = createServer((incoming, outgoing) => {
     if (incoming.url?.startsWith('/package.zip')) {
@@ -152,6 +158,39 @@ afterAll(async () => {
 });
 
 describe('Marketplace installation', () => {
+  it.each(['install', 'upgrade'] as const)('I marketplace %s rolls back package, instance, registry and success audit on a real audit write failure', async operation => {
+    const slug = own();
+    if (operation === 'upgrade') {
+      setCatalog(slug, await packageZip(slug));
+      expect((await request(slug)).statusCode).toBe(200);
+      expect(await prisma.adminAuditEvent.count({ where: { targetId: slug, action: 'PLUGIN_INSTALLED', actorId } })).toBe(1);
+      await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
+    }
+    const version = operation === 'upgrade' ? '2.0.0' : '1.0.0';
+    setCatalog(slug, await packageZip(slug, version), version);
+    const before = await snapshotPluginRows([slug]);
+    const registry = (await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion;
+    const duplicate = await prisma.adminAuditEvent.create({ data: { actorId, action: 'collision', targetType: 'test', targetId: slug, summary: {} } });
+    const worker = fork(path.resolve('tests/helpers/plugin-upload-child.ts'), [], {
+      execArgv: ['--import', 'tsx'], env: { ...process.env, NODE_ENV: 'test', JIFFOO_TEST_PLUGIN_LEASE_BARRIER: 'audit' },
+    });
+    const receive = (kind: string) => new Promise<any>((resolve, reject) => {
+      const listener = (value: any) => { if (value.kind === kind) { worker.off('message', listener); resolve(value); } };
+      worker.on('message', listener); worker.once('error', reject);
+    });
+    const exited = once(worker, 'exit');
+    await receive('ready');
+    const audit = receive('plugin-audit-ready'), done = receive('done');
+    worker.send({ slug, marketplace: { pluginId: slug, version, actorId } });
+    const action = operation === 'upgrade' ? 'PLUGIN_UPGRADED' : 'PLUGIN_INSTALLED';
+    expect((await audit).action).toBe(action);
+    worker.send({ kind: 'plugin-audit-release', eventId: duplicate.id });
+    expect((await done).statusCode).toBe(500);
+    await exited;
+    await assertPluginRowsUnchanged(before, [slug]);
+    expect((await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion).toBe(registry);
+    expect(await prisma.adminAuditEvent.count({ where: { targetId: slug, action } })).toBe(0);
+  });
   it('F maps a refused package connection to MARKETPLACE_DOWNLOAD_UNAVAILABLE', async () => {
     const slug = own();
     setCatalog(slug, await packageZip(slug));
@@ -211,6 +250,7 @@ describe('Marketplace installation', () => {
     expect(row).toMatchObject({ source: 'marketplace', publisherId: 'publisher-x', trustLevel: 'signed', signingRoot: 'test', zipHash: sha(bytes) });
     expect(await prisma.pluginPackageBlob.count({ where: { pluginSlug: slug } })).toBe(1);
     expect(await pluginPackageStore.get(slug, sha(bytes))).not.toBeNull();
+    expect(await prisma.adminAuditEvent.findFirstOrThrow({ where: { targetId: slug, action: 'PLUGIN_INSTALLED' } })).toMatchObject({ actorId, summary: { source: 'marketplace', version: '1.0.0', hash: sha(bytes) } });
     for (const url of [`/api/v1/extensions/plugin/${slug}`, '/api/v1/extensions/plugin']) {
       const result = await app.inject({ url, headers: { authorization: `Bearer ${token}` } });
       expect(result.statusCode).toBe(200);
@@ -230,6 +270,7 @@ describe('Marketplace installation', () => {
     expect(await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).toMatchObject({ version: '2.0.0', zipHash: sha(next), source: 'marketplace' });
     expect(await prisma.pluginPackageBlob.count({ where: { pluginSlug: slug } })).toBe(1);
     expect(await pluginPackageStore.get(slug, sha(next))).not.toBeNull();
+    expect(await prisma.adminAuditEvent.findFirstOrThrow({ where: { targetId: slug, action: 'PLUGIN_UPGRADED' } })).toMatchObject({ actorId, summary: { source: 'marketplace', version: '2.0.0', previousVersion: '1.0.0', hash: sha(next) } });
   });
 
   it('C refuses unsigned packages and unsigned confirmation in the request', async () => {
@@ -379,12 +420,8 @@ describe('Marketplace installation', () => {
 
   it('N keeps unsigned uploads on local-zip with explicit confirmation', async () => {
     const slug = own();
-    const form = new FormData();
-    form.set('confirmUnsigned', 'true');
-    form.set('file', new Blob([await packageZip(slug, '1.0.0', { unsigned: true })], { type: 'application/zip' }), 'plugin.zip');
-    const response = await fetch(`${base}/api/v1/extensions/plugin/install`, {
-      method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form,
-    });
+    const { uploadPluginZip } = await import('../helpers/plugin-upload');
+    const response = await uploadPluginZip(base, token, await packageZip(slug, '1.0.0', { unsigned: true }));
     expect(response.status).toBe(200);
     expect((await response.json()).data.source).toBe('local-zip');
     expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).source).toBe('local-zip');

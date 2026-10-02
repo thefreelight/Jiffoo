@@ -29,7 +29,7 @@ export function validateFileExtension(filename: string, kind?: string): void {
         );
     }
 
-    // Bundles and plugins allow built artifacts, including JavaScript and nested ZIP files.
+    // Plugins allow built artifacts, including JavaScript and nested ZIP files.
     if (pluginViolation?.extension) {
         const ext = pluginViolation.extension;
         throw new ExtensionInstallerError(

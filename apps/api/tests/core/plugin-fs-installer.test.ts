@@ -9,6 +9,7 @@ import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { createAdminUser, deleteTestUser, type TestUser } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
+import { localUploadOptions } from '../helpers/plugin-upload';
 
 async function createPluginArchive(
   slug: string,
@@ -80,24 +81,22 @@ describe('PluginFsInstaller unsigned packages', () => {
     cleanupArchive = archive.cleanup;
     const registryBefore = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
 
-    await expect(installer.install(createReadStream(archive.archivePath))).rejects.toMatchObject({
+    await expect(installer.install(createReadStream(archive.archivePath), await localUploadOptions(await fs.readFile(archive.archivePath), admin.id, false))).rejects.toMatchObject({
       code: 'UNSIGNED_CONFIRMATION_REQUIRED',
       statusCode: 400,
     });
-    expect(await prisma.adminStaffAuditLog.count({ where: { staffUserId: admin.id } })).toBe(0);
+    expect(await prisma.adminAuditEvent.count({ where: { actorId: admin.id } })).toBe(0);
 
-    const installed = await installer.install(createReadStream(archive.archivePath), {
-      confirmUnsigned: true,
-      actorUserId: admin.id,
-    });
+    const installed = await installer.install(createReadStream(archive.archivePath), await localUploadOptions(await fs.readFile(archive.archivePath), admin.id));
 
     expect(installed.runtimeType).toBe('internal-fastify');
     expect(installed.trustLevel).toBe('unsigned');
-    const audit = await prisma.adminStaffAuditLog.findFirst({
-      where: { staffUserId: admin.id, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' },
+    const audit = await prisma.adminAuditEvent.findFirst({
+      where: { actorId: admin.id, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' },
       orderBy: { createdAt: 'desc' },
     });
-    expect(audit?.metadata).toMatchObject({ slug, version: '1.0.0', source: 'local-zip' });
+    expect(audit?.targetId).toBe(slug);
+    expect(audit?.summary).toMatchObject({ version: '1.0.0', source: 'local-zip' });
     const registryAfter = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
     expect(registryAfter?.pluginRegistryVersion).toBe((registryBefore?.pluginRegistryVersion ?? 0) + 1);
   });
@@ -122,8 +121,8 @@ module.exports.__lifecycle_onUninstall = async function onUninstall() { await fs
     });
 
     try {
-      await installer.install(createReadStream(first.archivePath), { confirmUnsigned: true, actorUserId: admin.id });
-      await installer.install(createReadStream(second.archivePath), { confirmUnsigned: true, actorUserId: admin.id });
+      await installer.install(createReadStream(first.archivePath), await localUploadOptions(await fs.readFile(first.archivePath), admin.id));
+      await installer.install(createReadStream(second.archivePath), await localUploadOptions(await fs.readFile(second.archivePath), admin.id));
       await PluginManagementService.uninstallPlugin(hookSlug);
 
       expect(await fs.readFile(markerPath, 'utf-8')).toBe('upgrade\nuninstall\n');

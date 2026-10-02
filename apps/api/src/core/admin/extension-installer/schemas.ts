@@ -127,55 +127,17 @@ const purgePluginResultSchema = {
   required: ['kind', 'slug', 'purged'],
 } as const;
 
-// ============================================================================
-// Bundle Install Result Schema
-// ============================================================================
-
-const bundleInstallResultSchema = {
-  type: 'object',
-  properties: {
-    name: { type: 'string', description: 'Bundle name' },
-    version: { type: 'string', description: 'Bundle version' },
-    bundleHash: { type: 'string', description: 'Bundle hash for deduplication' },
-    installed: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          kind: { type: 'string', description: 'Extension kind' },
-          slug: { type: 'string', description: 'Extension slug' },
-          version: { type: 'string', description: 'Extension version' },
-          success: { type: 'boolean', description: 'Whether installation succeeded' },
-          error: { type: 'string', nullable: true, description: 'Error message if failed' },
-        },
-      },
-      description: 'Installation results for each extension',
-    },
-  },
-  required: ['name', 'version', 'bundleHash', 'installed'],
-} as const;
-
 const extensionInstallWithUploadSchema = {
   type: 'object',
   properties: {
     ...uploadResultSchema.properties,
     ...extensionMetaSchema.properties,
+    kind: { type: 'string', const: 'plugin' },
+    warnings: { type: 'array', items: { type: 'string' } },
   },
   required: [
     ...uploadResultSchema.required,
     ...extensionMetaSchema.required,
-  ],
-} as const;
-
-const bundleInstallWithUploadSchema = {
-  type: 'object',
-  properties: {
-    ...uploadResultSchema.properties,
-    ...bundleInstallResultSchema.properties,
-  },
-  required: [
-    ...uploadResultSchema.required,
-    ...bundleInstallResultSchema.required,
   ],
 } as const;
 
@@ -239,37 +201,41 @@ export const extensionInstallerSchemas = {
     response: { ...createTypedUpdateResponses(pluginInstanceSchema), 409: errorResponseSchema, 503: errorResponseSchema },
   },
 
-  // POST /api/extensions/bundle/install
-  installBundle: {
-    response: {
-      ...createTypedCreateResponses(bundleInstallWithUploadSchema),
-      413: errorResponseSchema,
-      422: errorResponseSchema,
-      409: errorResponseSchema,
-    },
-  },
-
   // POST /api/extensions/:kind/install
   installExtension: {
-    params: {
-      type: 'object',
-      required: ['kind'],
-      properties: {
-        kind: {
-          type: 'string',
-          enum: ['plugin'],
-          description: 'Extension kind',
-        },
-      },
-    },
+    body: { type: 'object', required: ['file', 'previewToken'], additionalProperties: false, properties: {
+      file: { type: 'string', format: 'binary' }, previewToken: { type: 'string', maxLength: 8192 },
+      confirmUnsigned: { type: 'string', enum: ['true', 'false'] }, confirmationSlug: { type: 'string' },
+    } },
     response: {
-      ...createTypedCreateResponses(extensionInstallWithUploadSchema),
+      200: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean' }, message: { type: 'string' }, data: extensionInstallWithUploadSchema } },
+      400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 500: errorResponseSchema,
       413: errorResponseSchema,
       422: errorResponseSchema,
       409: errorResponseSchema,
     },
     lastFailureAt: { type: 'string', format: 'date-time', nullable: true, description: 'Last plugin failure timestamp' },
     lastFailureMessage: { type: 'string', nullable: true, description: 'Last plugin failure message' },
+  },
+
+  previewPlugin: {
+    body: { type: 'object', required: ['file'], additionalProperties: false, properties: { file: { type: 'string', format: 'binary' } } },
+    response: {
+      200: { type: 'object', required: ['success', 'data'], properties: {
+        success: { type: 'boolean' }, data: { type: 'object', required: ['package', 'current', 'operation', 'compatibility', 'requiresUnsignedConfirmation', 'expiresAt', 'previewToken'], properties: {
+          package: { type: 'object', required: ['slug', 'name', 'version', 'hash', 'trust', 'publisher', 'declaredCapabilities'], properties: {
+            slug: { type: 'string' }, name: { type: 'string' }, version: { type: 'string' }, hash: { type: 'string' }, trust: { type: 'string', enum: ['signed', 'unsigned'] },
+            publisher: { type: 'object', nullable: true, properties: { publisherId: { type: 'string' }, publisherName: { type: 'string' }, publisherCertificateFingerprint: { type: 'string' }, signingRoot: { type: 'string', enum: ['official', 'test'] } } },
+            declaredCapabilities: { type: 'array', items: { type: 'string' } },
+          } },
+          current: { type: 'object', required: ['version', 'hash', 'state'], properties: { version: { type: 'string', nullable: true }, hash: { type: 'string', nullable: true }, state: { type: 'string', enum: ['installed', 'uninstalled', 'not-installed'] } } },
+          operation: { type: 'string', enum: ['install', 'upgrade', 'unchanged'] },
+          compatibility: { type: 'object', required: ['compatible', 'currentApiVersion'], properties: { compatible: { type: 'boolean' }, currentApiVersion: { type: 'string' }, requiredApiVersion: { type: 'string' }, reason: { type: 'string' } } },
+          requiresUnsignedConfirmation: { type: 'boolean' }, expiresAt: { type: 'string', format: 'date-time' }, previewToken: { type: 'string' },
+        } },
+      } },
+      400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 409: errorResponseSchema, 413: errorResponseSchema, 422: errorResponseSchema, 500: errorResponseSchema,
+    },
   },
 
   // GET /api/extensions/plugin

@@ -68,7 +68,7 @@ export async function downloadPackage(entry: CatalogVersion, base: string): Prom
   }
 }
 
-export async function installMarketplacePlugin(pluginId: string, version: string) {
+export async function installMarketplacePlugin(pluginId: string, version: string, actorUserId: string) {
   const catalog = await fetchMarketplaceCatalog({ bypassCache: true, forInstall: true });
   const plugin = catalog.plugins.find((candidate) => candidate.id === pluginId);
   const entry = plugin?.versions.find((candidate) => candidate.version === version);
@@ -87,6 +87,7 @@ export async function installMarketplacePlugin(pluginId: string, version: string
     download = await downloadPackage(entry, base);
     return await pluginFsInstaller.install(createReadStream(download.filePath), {
       source: 'marketplace', lease,
+      actorUserId,
       expectedMarketplaceIdentity: { version: entry.version, publisherId: plugin.publisherId },
     });
   } finally {

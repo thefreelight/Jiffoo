@@ -236,6 +236,7 @@ export async function deleteAllTestUsers(): Promise<void> {
   if (users.length === 0) return;
 
   const userIds = users.map(u => u.id);
+  await prisma.adminAuditEvent.deleteMany({ where: { actorId: { in: userIds } } });
 
   const carts = await prisma.cart.findMany({
     where: { userId: { in: userIds } },

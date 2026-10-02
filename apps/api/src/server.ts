@@ -112,7 +112,7 @@ async function buildApp() {
     await fastify.register(multipart, {
       limits: {
         // Extension installs can be large. We enforce stricter per-kind limits in the installer routes.
-        fileSize: 500 * 1024 * 1024, // 500MB (Bundle v1 max)
+        fileSize: 500 * 1024 * 1024, // Global upload ceiling; package routes enforce their own limits.
         files: 1
       }
     });

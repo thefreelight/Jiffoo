@@ -92,12 +92,8 @@ async function install(slug: string, root: 'official' | 'test' | 'unsigned', sou
       headers: { authorization: `Bearer ${token}` }, payload: { pluginId: slug, version: '1.0.0' },
     });
   }
-  const form = new FormData();
-  form.set('file', new Blob([zip], { type: 'application/zip' }), 'plugin.zip');
-  if (root === 'unsigned') form.set('confirmUnsigned', 'true');
-  const response = await fetch(`${base}/api/v1/extensions/plugin/install`, {
-    method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form,
-  });
+  const { uploadPluginZip } = await import('../helpers/plugin-upload');
+  const response = await uploadPluginZip(base, token, zip, root === 'unsigned');
   return { statusCode: response.status, json: () => response.json() };
 }
 

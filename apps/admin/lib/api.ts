@@ -668,18 +668,12 @@ export const pluginsApi = {
     }
   },
 
-  installFromZip: (file: File): Promise<ApiResponse<{ slug: string; version: string }>> => {
+  installFromZip: (file: File, previewToken: string, confirmationSlug?: string): Promise<ApiResponse<{ slug: string; version: string; warnings: string[] }>> => {
     const formData = new FormData();
+    formData.append('previewToken', previewToken);
+    if (confirmationSlug !== undefined) { formData.append('confirmUnsigned', 'true'); formData.append('confirmationSlug', confirmationSlug); }
     formData.append('file', file);
     return apiClient.post('/extensions/plugin/install', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
-
-  installBundleFromZip: (file: File): Promise<ApiResponse<any>> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return apiClient.post('/extensions/bundle/install', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },

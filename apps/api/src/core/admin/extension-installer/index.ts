@@ -64,12 +64,15 @@ export class ExtensionInstaller implements IExtensionInstaller {
    * 2. Read and validate manifest.json
    * 3. Save metadata - .installed.json
    */
-  async installFromZip(kind: ExtensionKind, zipStream: Readable, options?: { source?: string; confirmUnsigned?: boolean; actorUserId?: string }): Promise<InstallResult> {
+  async installFromZip(kind: ExtensionKind, zipStream: Readable, options?: import('./types').PluginInstallOptions): Promise<InstallResult> {
     switch (kind) {
       case 'plugin': {
         const plugin = await pluginFsInstaller.install(zipStream, options);
         return {
           kind,
+          name: plugin.name,
+          trustLevel: plugin.trustLevel,
+          warnings: plugin.warnings ?? [],
           slug: plugin.slug,
           version: plugin.version,
           source: plugin.source,

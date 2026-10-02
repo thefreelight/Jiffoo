@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
@@ -13,6 +13,7 @@ import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
+import { snapshotPluginRows, assertPluginRowsUnchanged } from '../helpers/plugin-db-snapshot';
 
 const prisma = getTestPrisma();
 const hash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -63,6 +64,8 @@ describe('immutable plugin package deployment', () => {
   let token: string;
   const slugs = new Set<string>();
   const own = () => { const id = slug(); slugs.add(id); return id; };
+  let before: Awaited<ReturnType<typeof snapshotPluginRows>>;
+  beforeEach(async () => { before = await snapshotPluginRows(); });
 
   beforeAll(async () => {
     app = await createTestApp({ disableFileSystem: false });
@@ -76,6 +79,7 @@ describe('immutable plugin package deployment', () => {
       await clearTestPluginCache(id);
     }
     slugs.clear();
+    await assertPluginRowsUnchanged(before);
   });
   afterAll(async () => {
     await deleteAllTestUsers();
@@ -86,12 +90,8 @@ describe('immutable plugin package deployment', () => {
     return uploadTo(base, bytes, confirmUnsigned);
   }
   async function uploadTo(url: string, bytes: Buffer, confirmUnsigned = true) {
-    const form = new FormData();
-    if (confirmUnsigned) form.set('confirmUnsigned', 'true');
-    form.set('file', new Blob([bytes], { type: 'application/zip' }), 'plugin.zip');
-    const response = await fetch(`${url}/api/v1/extensions/plugin/install`, {
-      method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form,
-    });
+    const { uploadPluginZip } = await import('../helpers/plugin-upload');
+    const response = await uploadPluginZip(url, token, bytes, confirmUnsigned);
     return { status: response.status, body: await response.json() };
   }
   async function enabled(id: string) {
@@ -151,6 +151,9 @@ describe('immutable plugin package deployment', () => {
   }
 
   async function isolatedChild(options: { observe?: boolean; barrier?: boolean } = {}) {
+    const builtinSlugs = (await prisma.pluginInstall.findMany({ where: { source: 'builtin' } })).map((row) => row.slug);
+    const builtinBefore = await snapshotPluginRows(builtinSlugs);
+    const rowsBefore = await snapshotPluginRows();
     const root = await fs.mkdtemp(path.join(tmpdir(), 'materialize-cache-'));
     expect(await fs.readdir(root)).toEqual([]);
     const worker = fork(path.resolve('tests/helpers/plugin-lease-child.ts'), [], {
@@ -164,12 +167,21 @@ describe('immutable plugin package deployment', () => {
       },
     });
     const ready = await message(worker, 'ready');
-    return { worker, root, base: ready.base as string };
+    return { worker, root, base: ready.base as string, builtinSlugs, builtinBefore, rowsBefore };
   }
   async function closeIsolated(child: Awaited<ReturnType<typeof isolatedChild>>) {
     child.worker.send({ kind: 'plugin-materialize-release' });
     await stop(child.worker);
     await fs.rm(child.root, { recursive: true, force: true });
+    // Resolution-failure scenarios deliberately record health on caller-owned fixtures.
+    // Reset those fields after the child stops, then compare every complete row.
+    for (const row of child.rowsBefore.installations.filter((row) => slugs.has(row.pluginSlug))) {
+      await prisma.pluginInstallation.update({ where: { id: row.id }, data: {
+        lastFailureAt: row.lastFailureAt, lastFailureMessage: row.lastFailureMessage, updatedAt: row.updatedAt,
+      } });
+    }
+    await assertPluginRowsUnchanged(child.builtinBefore, child.builtinSlugs);
+    await assertPluginRowsUnchanged(child.rowsBefore);
   }
   const check = async (url: string, id: string) => {
     const response = await fetch(`${url}/api/v1/extensions/plugin/${id}/api/status`);
@@ -303,6 +315,8 @@ describe('immutable plugin package deployment', () => {
       const first = check(child.base, id);
       expect((await ready).slug).toBe(id);
       expect((await upload(await archive(id, 'new', { version: '2.0.0' }))).status).toBe(200);
+      // The parent intentionally upgrades this fixture while the child is held.
+      child.rowsBefore = await snapshotPluginRows();
       child.worker.send({ kind: 'plugin-materialize-release' });
       expect(await first).toMatchObject({ status: 503, body: { error: { code: 'PLUGIN_PACKAGE_UNAVAILABLE' } } });
       const nextReady = message(child.worker, 'plugin-materialize-ready');
@@ -313,37 +327,12 @@ describe('immutable plugin package deployment', () => {
     } finally { await closeIsolated(child); }
   });
 
-  it('I plugin uploads and bundle-embedded plugin ZIPs reject over 10 MiB', async () => {
+  it('I plugin uploads reject over 10 MiB', async () => {
     const id = own();
     const large = await archive(id, 'large', { padding: randomBytes(10 * 1024 * 1024) });
     expect(large.length).toBeGreaterThan(10 * 1024 * 1024);
     const rejectedUpload = await upload(large);
     expect(rejectedUpload, JSON.stringify(rejectedUpload)).toMatchObject({ status: 413, body: { error: { code: 'PAYLOAD_TOO_LARGE' } } });
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'oversize-bundle-'));
-    try {
-      const target = path.join(root, 'bundle.zip');
-      await new Promise<void>((resolve, reject) => {
-        const output = createWriteStream(target);
-        const zip = archiver('zip');
-        output.once('close', resolve);
-        output.once('error', reject);
-        zip.once('error', reject);
-        zip.pipe(output);
-        zip.append(JSON.stringify({
-          schemaVersion: 1, name: 'Oversize plugin', version: '1.0.0',
-          install: { plugins: [{ zip: 'plugins/plugin.zip', slug: id }] },
-        }), { name: 'bundle.json' });
-        zip.append(large, { name: 'plugins/plugin.zip', store: true });
-        void zip.finalize();
-      });
-      const form = new FormData();
-      form.set('file', new Blob([await fs.readFile(target)], { type: 'application/zip' }), 'bundle.zip');
-      const response = await fetch(`${base}/api/v1/extensions/bundle/install`, {
-        method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form,
-      });
-      expect(response.status, JSON.stringify(await response.clone().json())).toBe(413);
-      expect((await response.json()).error.code).toBe('PAYLOAD_TOO_LARGE');
-    } finally { await fs.rm(root, { recursive: true, force: true }); }
   });
 
   it('A new install persists the exact ZIP bytes, hash, and size', async () => {
@@ -593,7 +582,7 @@ describe('immutable plugin package deployment', () => {
     expect(await fs.stat(directory)).toBeDefined();
   });
 
-  it('H same-version different-hash upgrade runs new code while an in-flight old call completes', async () => {
+  it('H version-changing different-hash upgrade runs new code while an in-flight old call completes', async () => {
     const id = own();
     const oldZip = await archive(id, 'old', { code: source('old', true) });
     expect((await upload(oldZip)).status).toBe(200);
@@ -606,7 +595,7 @@ describe('immutable plugin package deployment', () => {
     try {
       const inFlight = status(id);
       await enteredPromise;
-      const nextZip = await archive(id, 'new');
+      const nextZip = await archive(id, 'new', { version: '2.0.0' });
       expect((await upload(nextZip)).status).toBe(200);
       delete (globalThis as any).__pluginBarrier;
       expect(await (await status(id)).json()).toMatchObject({ tag: 'new' });

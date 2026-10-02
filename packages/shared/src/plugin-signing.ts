@@ -49,7 +49,6 @@ export function getPluginFileViolation(filename: string): { code: string; extens
 }
 export const PLUGIN_MAX_ZIP_SIZE = 10 * 1024 * 1024;
 export function extensionMaxFileSize(kind?: string): number {
-  if (kind === 'bundle') return 100 * 1024 * 1024;
   if (kind === 'plugin') return 50 * 1024 * 1024;
   return 5 * 1024 * 1024;
 }
@@ -178,8 +177,8 @@ function rawEntries(zip: Buffer): ZipEntry[] {
   return entries;
 }
 
-export async function verifyPluginZip(filePath: string): Promise<PublisherIdentity | null> {
-  const zip = await readFile(filePath);
+export async function verifyPluginZip(input: string | Buffer): Promise<PublisherIdentity | null> {
+  const zip = typeof input === 'string' ? await readFile(input) : input;
   let entries: ZipEntry[];
   try { entries = rawEntries(zip); } catch (error) {
     if (error instanceof PackageVerificationError) throw error;
@@ -225,9 +224,10 @@ export function validatePluginZipPaths(entries: PluginZipEntry[]): void {
   }
 }
 
-export function readPluginZipEntries(zip: Buffer): PluginZipEntry[] {
+export function readPluginZipEntries(zip: Buffer, allowDirectories = false): PluginZipEntry[] {
   const entries = rawEntries(zip);
-  validatePluginZipPaths(entries);
+  validatePluginZipPaths(allowDirectories ? entries.map((entry) => entry.path.endsWith('/')
+    ? { ...entry, path: entry.path.slice(0, -1), mode: 0o100644 } : entry) : entries);
   return entries;
 }
 

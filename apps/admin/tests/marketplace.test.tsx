@@ -21,6 +21,7 @@ vi.mock('next/navigation', () => ({ usePathname: () => mocks.pathname }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: PropsWithChildren<{ href: string }>) => <a {...props}>{children}</a> }));
 vi.mock('@/components/auth/ProtectedRoute', () => ({ default: ({ children }: PropsWithChildren) => <>{children}</> }));
 vi.mock('@/components/layout/blue-minimal-sidebar', () => ({ BlueMinimalSidebar: () => null }));
+vi.mock('@/components/extensions/PluginUpload', () => ({ PluginUpload: () => null }));
 vi.mock('@/lib/hooks/use-api', () => ({ useInstalledPlugins: mocks.installed, useTogglePlugin: () => ({ mutate: vi.fn(), isPending: false }) }));
 vi.mock('@/lib/api', async (original) => ({ ...await original<typeof import('@/lib/api')>(), apiClient: { get: vi.fn(), post: vi.fn() } }));
 vi.mock('@/lib/marketplace', async (original) => ({
