@@ -37,7 +37,19 @@ vi.mock('@/config/database', () => {
     },
   };
 
-  return { prisma };
+  const systemSettings = {
+    findUnique: vi.fn(async () => ({ id: 'system', settings: JSON.stringify({ developerAccounts: [] }) })),
+    update: vi.fn(async ({ data }: { data: { settings: string } }) => {
+      storedSettings = data.settings;
+      return { id: 'system' };
+    }),
+  };
+  let storedSettings = JSON.stringify({ developerAccounts: [] });
+  // keep findUnique reading the latest stored value
+  systemSettings.findUnique.mockImplementation(async () => ({ id: 'system', settings: storedSettings }));
+
+  const prismaWithSettings = { ...prisma, systemSettings };
+  return { prisma: prismaWithSettings };
 });
 
 import { prisma } from '@/config/database';
@@ -158,5 +170,51 @@ describe('MarketplaceSubmissionsService', () => {
     await expect(
       service.createSubmission({ ...pluginSubmissionFixture(), kind: 'widget' } as never),
     ).rejects.toMatchObject({ code: 'SUBMISSION_KIND_INVALID', statusCode: 400 });
+  });
+});
+
+
+describe('developer accounts', async () => {
+  const accounts = await import('@/core/marketplace-submissions/developer-accounts');
+
+  it('issues a shown-once key and resolves it via bearer auth helper', async () => {
+    const { account, apiKey } = await accounts.createDeveloperAccount({ name: 'Dev', email: 'dev2@example.com' });
+    expect(apiKey.startsWith('jfdev_')).toBe(true);
+    expect(account.keyPrefix).toBe(apiKey.slice(0, 12));
+
+    const request = { headers: { authorization: `Bearer ${apiKey}` } } as never;
+    const reply = { code: vi.fn().mockReturnThis(), status: vi.fn().mockReturnThis(), send: vi.fn() } as never;
+    await accounts.developerAuth(request, reply);
+    expect(accounts.getDeveloperIdentity(request).email).toBe('dev2@example.com');
+  });
+
+  it('rejects unknown and revoked keys', async () => {
+    const request = { headers: { authorization: 'Bearer jfdev_deadbeef' } } as never;
+    const reply = { code: vi.fn().mockReturnThis(), status: vi.fn().mockReturnThis(), send: vi.fn() } as never;
+    await accounts.developerAuth(request, reply);
+    expect(reply.send).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+
+    const { account } = await accounts.createDeveloperAccount({ name: 'Revoked', email: 'rev@example.com' });
+    await accounts.revokeDeveloperAccount(account.id);
+    const request2 = { headers: { authorization: `Bearer jfdev_valid-looking-${account.id}` } } as never;
+    const reply2 = { code: vi.fn().mockReturnThis(), status: vi.fn().mockReturnThis(), send: vi.fn() } as never;
+    await accounts.developerAuth(request2, reply2);
+    expect(reply2.send).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
+  });
+});
+
+describe('MarketplaceSubmissionsService publish lifecycle', () => {
+  it('publishes only from approved and records the catalogRef', async () => {
+    const created = await service.createSubmission(pluginSubmissionFixture());
+    const id = (created.submission as { id: string }).id;
+    await expect(service.publish(id, 'admin@example.com')).rejects.toMatchObject({
+      code: 'SUBMISSION_INVALID_TRANSITION',
+    });
+    await service.setArtifact(id, 'https://example.com/artifact.zip');
+    await service.submitForReview(id);
+    await service.approve(id, { notes: 'ok', reviewer: 'admin@example.com' });
+    const published = await service.publish(id, 'admin@example.com');
+    expect((published as { status: string; catalogRef: string }).status).toBe('published');
+    expect((published as { catalogRef: string }).catalogRef).toBe(`submission:${id}`);
   });
 });

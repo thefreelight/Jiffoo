@@ -4,28 +4,31 @@
 // Lifecycle: draft -> submitted -> (approved | rejected | changes_requested -> submitted)
 // Approval hands the entry to the catalog publish flow.
 model ExtensionSubmission {
-  id              String    @id @default(cuid())
-  kind            String // 'plugin' | 'theme'
-  slug            String
-  name            String
-  version         String
-  contractVersion String? // plugins: 'v1'
-  category        String?
-  description     String
-  developerName   String
-  developerEmail  String
-  sourceUrl       String?
-  manifestJson    Json // parsed manifest as submitted
-  artifactUrl     String? // zip / .jplugin / .jtheme the host can fetch
-  checksumSha256  String?
-  status          String    @default("draft") // draft|submitted|changes_requested|approved|rejected|published
-  validationJson  Json? // automated validation report [{level, code, message}]
-  reviewNotes     String?
-  reviewedBy      String?
-  reviewedAt      DateTime?
-  catalogRef      String? // catalog entry reference once published
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id                  String    @id @default(cuid())
+  kind                String // 'plugin' | 'theme'
+  slug                String
+  name                String
+  version             String
+  contractVersion     String? // plugins: 'v1'
+  category            String?
+  description         String
+  developerName       String
+  developerEmail      String
+  sourceUrl           String?
+  manifestJson        Json // parsed manifest as submitted
+  artifactUrl         String? // zip / .jplugin / .jtheme the host can fetch
+  artifactStoragePath String? // server-local stored upload (takes precedence over artifactUrl)
+  artifactFilename    String?
+  artifactSize        Int?
+  checksumSha256      String?
+  status              String    @default("draft") // draft|submitted|changes_requested|approved|rejected|published
+  validationJson      Json? // automated validation report [{level, code, message}]
+  reviewNotes         String?
+  reviewedBy          String?
+  reviewedAt          DateTime?
+  catalogRef          String? // catalog entry reference once published
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@unique([slug, version])
   @@index([status])

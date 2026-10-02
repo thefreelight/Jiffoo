@@ -22,7 +22,11 @@ interface Submission {
   developerEmail: string;
   sourceUrl: string | null;
   artifactUrl: string | null;
+  artifactStoragePath: string | null;
+  artifactFilename: string | null;
+  artifactSize: number | null;
   checksumSha256: string | null;
+  catalogRef: string | null;
   status: string;
   validationJson: unknown;
   reviewNotes: string | null;
@@ -40,6 +44,17 @@ const STATUS_STYLES: Record<string, string> = {
   approved: 'bg-emerald-50 text-emerald-700',
   rejected: 'bg-red-50 text-red-700',
 };
+
+async function downloadStoredArtifact(id: string, fallbackName: string) {
+  const response = await apiClient.get(`/admin/marketplace/submissions/${id}/artifact`, { responseType: 'blob' });
+  const blob = response as unknown as Blob;
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fallbackName;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
 
 function parseIssues(validationJson: unknown): ValidationIssue[] {
   if (validationJson && typeof validationJson === 'object' && Array.isArray((validationJson as { issues?: unknown }).issues)) {
@@ -182,8 +197,21 @@ export function SubmissionsReview() {
               )}
               {selected.artifactUrl && (
                 <a href={selected.artifactUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                  Artifact ↗
+                  Artifact (remote) ↗
                 </a>
+              )}
+              {selected.artifactStoragePath && (
+                <button
+                  type="button"
+                  className="text-left text-blue-600 hover:underline"
+                  onClick={() =>
+                    void downloadStoredArtifact(selected.id, selected.artifactFilename ?? `${selected.slug}.zip`).catch(
+                      () => setError('Failed to download stored artifact'),
+                    )
+                  }
+                >
+                  Artifact (stored){selected.artifactSize ? ` · ${(selected.artifactSize / 1024 / 1024).toFixed(1)}MB` : ''} ⬇
+                </button>
               )}
             </div>
 
@@ -218,6 +246,40 @@ export function SubmissionsReview() {
                 {JSON.stringify((selected as unknown as { manifestJson?: unknown }).manifestJson, null, 2)}
               </pre>
             </details>
+
+            {selected.status === 'approved' && (
+              <div className="space-y-2 border-t border-gray-100 pt-4">
+                <p className="text-xs text-gray-500">
+                  Approved — publishing records the catalog reference (<code className="font-mono">submission:{selected.id}</code>) and hands the entry to the market publish flow.
+                </p>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    setError(null);
+                    try {
+                      await apiClient.post(`/admin/marketplace/submissions/${selected.id}/publish`, {});
+                      setNotes('');
+                      await load();
+                    } catch (err) {
+                      setError(isAdminApiError(err) ? err.message : 'Failed to publish submission');
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Publish to catalog
+                </button>
+              </div>
+            )}
+
+            {selected.status === 'published' && (
+              <div className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                Published — catalog reference <span className="font-mono">{selected.catalogRef}</span>
+              </div>
+            )}
 
             {selected.status === 'submitted' && (
               <div className="space-y-2 border-t border-gray-100 pt-4">
