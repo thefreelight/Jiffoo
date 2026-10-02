@@ -132,10 +132,19 @@ The official marketplace is curated: plugins ship as versioned artifacts from th
 catalog, and merchants install/enable them from the admin marketplace. Submit your plugin
 through the submission pipeline:
 
+### 0. Get a developer API key
+
+Submissions are authenticated with a developer API key (`jfdev_…`) issued by the platform
+team — request yours with your developer name, email, and company. Keys identify every
+submission, so the review always knows who submitted.
+
+Prefer a form? A self-service submission page lives at **`/developer-portal`** on the API host.
+
 ### 1. Create the submission
 
 ```bash
 curl -X POST https://<api-host>/api/v1/developer/submissions \
+  -H 'authorization: Bearer jfdev_your-key' \
   -H 'content-type: application/json' \
   -d '{
     "kind": "plugin",
@@ -160,21 +169,30 @@ create the submission again if needed.
 ### 2. Submit for review
 
 ```bash
-curl -X POST https://<api-host>/api/v1/developer/submissions/<id>/submit
+curl -X POST https://<api-host>/api/v1/developer/submissions/<id>/submit \
+  -H 'authorization: Bearer jfdev_your-key'
 ```
 
-This requires the validation to pass and an `artifactUrl` to be attached.
+This requires the validation to pass and an artifact to be attached. Attach one either as an
+https URL or upload the file directly:
+
+```bash
+curl -X POST https://<api-host>/api/v1/developer/submissions/<id>/artifact/upload \
+  -H 'authorization: Bearer jfdev_your-key' \
+  -F 'artifact=@dist/my-plugin-0.0.1.zip'   # max 200MB
+```
 
 ### 3. Track the decision
 
 ```bash
-curl https://<api-host>/api/v1/developer/submissions/<id>
+curl -H 'authorization: Bearer jfdev_your-key' \
+  https://<api-host>/api/v1/developer/submissions/<id>
 ```
 
-Possible outcomes: **approved** (enters the catalog publish flow), **rejected**, or
-**changes_requested** (fix the noted issues, re-create the submission at a new patch version,
-and submit again). You can list your own submissions with
-`GET /api/v1/developer/submissions?email=you@example.com`.
+Possible outcomes: **approved** → **published** (the platform records the catalog reference
+and hands the entry to the market publish flow), **rejected**, or **changes_requested** (fix
+the noted issues, re-create the submission at a new patch version, and submit again). List
+your own submissions with `GET /api/v1/developer/submissions` — the key defines ownership.
 
 Keep your plugin build reproducible from a public source repository — review covers manifest
 correctness, surface usage, and data handling.

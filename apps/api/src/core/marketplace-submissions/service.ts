@@ -200,6 +200,55 @@ export class MarketplaceSubmissionsService {
     });
   }
 
+  /**
+   * Record a stored upload (multipart) on the submission.
+   */
+  async setStoredArtifact(
+    id: string,
+    stored: { storagePath: string; filename: string; size: number },
+  ) {
+    const submission = await this.getSubmission(id);
+    if (!['draft', 'changes_requested'].includes(submission.status)) {
+      throw new SubmissionError(
+        409,
+        'SUBMISSION_NOT_EDITABLE',
+        `Artifact can only be set while draft or changes_requested (current: ${submission.status})`,
+      );
+    }
+    return this.prisma.extensionSubmission.update({
+      where: { id },
+      data: {
+        artifactStoragePath: stored.storagePath,
+        artifactFilename: stored.filename,
+        artifactSize: stored.size,
+      },
+    });
+  }
+
+  /**
+   * Publish an approved submission into the catalog flow. The catalogRef
+   * links the marketplace entry back to the approved submission record.
+   */
+  async publish(id: string, reviewer: string) {
+    const submission = await this.getSubmission(id);
+    if (submission.status !== 'approved') {
+      throw new SubmissionError(
+        409,
+        'SUBMISSION_INVALID_TRANSITION',
+        `Only approved submissions can be published (current: ${submission.status})`,
+      );
+    }
+    return this.prisma.extensionSubmission.update({
+      where: { id },
+      data: {
+        status: 'published',
+        catalogRef: `submission:${id}`,
+        reviewedBy: reviewer,
+        reviewedAt: new Date(),
+      },
+    });
+  }
+
   async approve(id: string, review: ReviewInput) {
     const submission = await this.getSubmission(id);
     if (submission.status !== 'submitted') {

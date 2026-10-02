@@ -114,6 +114,7 @@ official catalog. Submit your theme through the submission pipeline (`"kind": "t
 
 ```bash
 curl -X POST https://<api-host>/api/v1/developer/submissions \
+  -H 'authorization: Bearer jfdev_your-key' \
   -H 'content-type: application/json' \
   -d '{
     "kind": "theme",
@@ -135,10 +136,11 @@ curl -X POST https://<api-host>/api/v1/developer/submissions \
 ```
 
 Automated validation covers the manifest contract: `target` (`shop`/`admin`), semver version,
-`entry` fields (tokensCSS required), and the `poweredBy` attribution declaration. Then submit
-for review (`POST .../submissions/<id>/submit`) and track the decision
-(`GET .../submissions/<id>`) exactly as with plugins — see
-[Developing Plugins](./developing-plugins.md#packaging-and-distribution) for the full flow.
+`entry` fields (tokensCSS required), and the `poweredBy` attribution declaration. All
+submissions authenticate with a developer API key (`authorization: Bearer jfdev_…`) — see
+[Developing Plugins](./developing-plugins.md#packaging-and-distribution) for the full flow
+(api-key issuance, artifact upload, the `/developer-portal` web form, and the
+approved → published review lifecycle).
 
 Review covers manifest correctness, ThemeRuntime usage (no bypassed data access), settings
 schema quality, screenshots (desktop + mobile), and the attribution policy.
