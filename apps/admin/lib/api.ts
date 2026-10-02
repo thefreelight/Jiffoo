@@ -364,8 +364,33 @@ export { getAdminClient };
 
 // Auth API
 export const authApi = {
-  login: (email: string, password: string) =>
-    apiClient.login({ email, password }),
+  /**
+   * Admin login. Native admin runtimes expose /v1/admin/auth/login, which
+   * issues the admin-audience token required by /admin/* endpoints; runtimes
+   * without that surface fall back to the shared user login.
+   */
+  login: async (email: string, password: string) => {
+    try {
+      const native = await apiClient.post<{
+        access_token: string;
+        token_type: string;
+        expires_in: number;
+        refresh_token?: string;
+      }>('/v1/admin/auth/login', { identifier: email, password }, { withCredentials: true });
+      if (native.success && native.data?.access_token) {
+        apiClient.setToken(native.data.access_token);
+        if (native.data.refresh_token) {
+          (apiClient as unknown as { setRefreshToken: (token: string) => void }).setRefreshToken(
+            native.data.refresh_token,
+          );
+        }
+        return native as unknown as ApiResponse<{ user: UserProfile }>;
+      }
+    } catch {
+      // Native admin auth surface not available; fall through to shared login.
+    }
+    return apiClient.login({ email, password });
+  },
 
   getLoginConfig: (): Promise<ApiResponse<{
     demoModeEnabled: boolean;
@@ -376,14 +401,53 @@ export const authApi = {
   }>> =>
     apiClient.get('/auth/login-config'),
 
-  me: (): Promise<ApiResponse<UserProfile>> => apiClient.getProfile(),
+  /** Prefer the native admin profile; fall back to the shared profile. */
+  me: async (): Promise<ApiResponse<UserProfile>> => {
+    try {
+      const native = await apiClient.get<{
+        id: string;
+        email: string;
+        username: string | null;
+        role: string;
+        avatar?: string | null;
+      }>('/v1/admin/auth/me');
+      if (native.success && native.data) {
+        const profile = native.data as unknown as UserProfile;
+        return {
+          ...native,
+          data: {
+            ...profile,
+            firstName: profile.username || profile.email?.split('@')[0] || 'Admin',
+          },
+        };
+      }
+    } catch {
+      // Fall through to the shared profile endpoint.
+    }
+    return apiClient.getProfile();
+  },
 
   bootstrapStatus: (): Promise<ApiResponse<AuthBootstrapStatus>> =>
     apiClient.get('/auth/bootstrap-status'),
 
-  logout: () => apiClient.logout(),
+  logout: async () => {
+    try {
+      await apiClient.post('/v1/admin/auth/logout', {}, { withCredentials: true });
+    } catch {
+      // Native logout surface not available; clear local auth regardless.
+    }
+    apiClient.clearAuth();
+  },
 
-  refreshToken: () => apiClient.refreshAuthToken(),
+  refreshToken: async () => {
+    try {
+      return await apiClient.post('/v1/admin/auth/refresh', {
+        refresh_token: (apiClient as unknown as { getRefreshToken: () => string }).getRefreshToken(),
+      });
+    } catch {
+      return apiClient.refreshAuthToken();
+    }
+  },
 
   changePassword: (currentPassword: string, newPassword: string): Promise<ApiResponse<{ passwordChanged: boolean; changedAt: string }>> =>
     apiClient.post('/auth/change-password', { currentPassword, newPassword }),
