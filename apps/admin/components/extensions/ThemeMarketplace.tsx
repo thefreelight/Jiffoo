@@ -229,7 +229,7 @@ function ThemePreview({ item, className }: { item: OfficialCatalogItem; classNam
       <img
         src={candidateSources[0]}
         alt={item.name}
-        className={cn('object-cover', className)}
+        className={cn('object-cover object-top', className)}
         onError={() => setFailedSources((sources) => [...sources, candidateSources[0]])}
       />
     );
