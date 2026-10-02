@@ -392,6 +392,12 @@ export const authApi = {
     return apiClient.login({ email, password });
   },
 
+  forgotPassword: (email: string): Promise<ApiResponse<void>> =>
+    apiClient.forgotPassword(email),
+
+  resetPassword: (data: { token: string; password: string }): Promise<ApiResponse<void>> =>
+    apiClient.resetPassword(data),
+
   getLoginConfig: (): Promise<ApiResponse<{
     demoModeEnabled: boolean;
     demoCredentials: {
