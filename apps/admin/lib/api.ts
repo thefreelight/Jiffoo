@@ -515,8 +515,8 @@ export const pluginsApi = {
     const response = await apiClient.get(`/extensions/plugin/${slug}/disable-impact`);
     return unwrapApiResponse(response as ApiResponse<{ pendingPaymentOrders: number }>);
   },
-  getInstalled: async (page = 1, limit = 20): Promise<ApiResponse<PageResult<PluginMetaWithState>>> => {
-    const response = await apiClient.get('/extensions/plugin', { params: { page, limit } }) as ApiResponse<PageResult<any>>;
+  getInstalled: async (page = 1, limit = 20, state: 'active' | 'removed' = 'active'): Promise<ApiResponse<PageResult<PluginMetaWithState>>> => {
+    const response = await apiClient.get('/extensions/plugin', { params: { page, limit, state } }) as ApiResponse<PageResult<any>>;
     if (!response.success || !response.data) {
       return response as ApiResponse<PageResult<PluginMetaWithState>>;
     }
@@ -684,8 +684,8 @@ export const pluginsApi = {
   restore: (slug: string): Promise<ApiResponse<{ kind: 'plugin'; slug: string; restored: boolean }>> =>
     apiClient.post(`/extensions/plugin/${slug}/restore`),
 
-  purge: (slug: string): Promise<ApiResponse<{ kind: 'plugin'; slug: string; purged: boolean }>> =>
-    apiClient.delete(`/extensions/plugin/${slug}/purge`),
+  purge: (slug: string, confirmationSlug: string): Promise<ApiResponse<{ kind: 'plugin'; slug: string; purged: boolean }>> =>
+    apiClient.delete(`/extensions/plugin/${slug}/purge`, { data: { confirmationSlug } }),
 
   // ============================================================================
   // Instance Management API (Multi-instance support)

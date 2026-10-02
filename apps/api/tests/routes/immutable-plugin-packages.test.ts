@@ -394,7 +394,8 @@ describe('immutable plugin package deployment', () => {
     await blobInvariant(id, zip);
     expect((await fetch(`${base}/api/v1/extensions/plugin/${id}/restore`, { method: 'POST', headers })).status).toBe(200);
     await blobInvariant(id, zip);
-    expect((await fetch(`${base}/api/v1/extensions/plugin/${id}/purge`, { method: 'DELETE', headers })).status).toBe(200);
+    expect((await fetch(`${base}/api/v1/extensions/plugin/${id}`, { method: 'DELETE', headers })).status).toBe(200);
+    expect((await fetch(`${base}/api/v1/extensions/plugin/${id}/purge`, { method: 'DELETE', headers: { ...headers, 'content-type': 'application/json' }, body: JSON.stringify({ confirmationSlug: id }) })).status).toBe(200);
     expect(await prisma.pluginPackageBlob.count({ where: { pluginSlug: id } })).toBe(0);
   });
 
@@ -577,7 +578,8 @@ describe('immutable plugin package deployment', () => {
     expect((await fetch(`${base}/api/v1/extensions/plugin/${id}`, { method: 'DELETE', headers })).status).toBe(200);
     expect(await fs.stat(directory)).toBeDefined();
     expect((await fetch(`${base}/api/v1/extensions/plugin/${id}/restore`, { method: 'POST', headers })).status).toBe(200);
-    expect((await fetch(`${base}/api/v1/extensions/plugin/${id}/purge`, { method: 'DELETE', headers })).status).toBe(200);
+    expect((await fetch(`${base}/api/v1/extensions/plugin/${id}`, { method: 'DELETE', headers })).status).toBe(200);
+    expect((await fetch(`${base}/api/v1/extensions/plugin/${id}/purge`, { method: 'DELETE', headers: { ...headers, 'content-type': 'application/json' }, body: JSON.stringify({ confirmationSlug: id }) })).status).toBe(200);
     expect(await prisma.pluginInstall.findUnique({ where: { slug: id } })).toBeNull();
     expect(await fs.stat(directory)).toBeDefined();
   });
@@ -620,8 +622,9 @@ describe('immutable plugin package deployment', () => {
     try {
       const inFlight = status(id);
       await enteredPromise;
+      expect((await fetch(`${base}/api/v1/extensions/plugin/${id}`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
       expect((await fetch(`${base}/api/v1/extensions/plugin/${id}/purge`, {
-        method: 'DELETE', headers: { authorization: `Bearer ${token}` },
+        method: 'DELETE', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ confirmationSlug: id }),
       })).status).toBe(200);
       delete (globalThis as any).__pluginBarrier;
       expect((await status(id)).status).toBe(404);

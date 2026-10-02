@@ -67,6 +67,18 @@ afterAll(async () => {
 });
 
 describe('Local plugin upload preview', () => {
+  it('G incompatible API requirement in a real ZIP is rejected server-side on final install with nothing installed', async () => {
+    const slug = own(), bytes = await archive(slug, '1.0.0', 'module.exports = { register() {} };', false, 'v99');
+    const preview = await request(bytes, {}, token, '/api/v1/extensions/plugin/preview');
+    expect(preview.statusCode).toBe(200); expect(preview.json().data.compatibility.compatible).toBe(false);
+    const response = await request(bytes, { previewToken: preview.json().data.previewToken, confirmUnsigned: 'true', confirmationSlug: slug });
+    expect(response.statusCode).toBe(422); expect(response.json().error.code).toBe('INCOMPATIBLE_API_VERSION');
+    expect(await prisma.pluginInstall.count({ where: { slug } })).toBe(0);
+    expect(await prisma.pluginInstallation.count({ where: { pluginSlug: slug } })).toBe(0);
+    expect(await prisma.pluginPackageBlob.count({ where: { pluginSlug: slug } })).toBe(0);
+    expect(await prisma.adminAuditEvent.count({ where: { targetId: slug } })).toBe(0);
+    expect(await pluginPackageStore.list()).not.toContain(slug);
+  });
   it('A preview parses a real archive without executing entry or hooks or changing database or package storage', async () => {
     const slug = own(), marker = path.join(directory, 'preview-marker');
     const bytes = await archive(slug, '1.0.0', `require('fs').writeFileSync(${JSON.stringify(marker)}, 'executed'); module.exports = { register() {}, __lifecycle_onInstall() {} };`, true);

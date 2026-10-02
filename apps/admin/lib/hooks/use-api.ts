@@ -14,6 +14,7 @@ import { useT } from 'shared/src/i18n/react';
 import { useAuthStore } from '../store';
 import { resolveApiErrorMessage } from '../error-utils';
 import { createCrudHooks, CrudPaginationParams } from './crud-factory';
+import { pluginLifecycleErrorKey } from '../plugin-lifecycle';
 
 // Re-export CRUD factory for convenience
 export { createCrudHooks } from './crud-factory';
@@ -816,11 +817,11 @@ const pluginQueryKeys = {
 const marketQueryKeys = { all: ['extensions'] as const };
 
 // Get installed plugins
-export function useInstalledPlugins() {
+export function useInstalledPlugins(state: 'active' | 'removed' = 'active') {
   return useQuery({
-    queryKey: pluginQueryKeys.installed(),
+    queryKey: pluginQueryKeys.installed(state),
     queryFn: async () => {
-      const response = await pluginsApi.getInstalled();
+      const response = await pluginsApi.getInstalled(1, 100, state);
       return unwrapApiResponse(response);
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -868,7 +869,7 @@ export function useUpdatePluginConfig() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.config(variables.slug) });
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success('Plugin configuration updated successfully');
     },
@@ -894,7 +895,7 @@ export function useTogglePlugin() {
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success(`Plugin ${variables.enabled ? 'enabled' : 'disabled'} successfully`);
     },
@@ -907,20 +908,20 @@ export function useTogglePlugin() {
 // Uninstall plugin mutation
 export function useUninstallPlugin() {
   const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
+  const t = useT();
 
   return useMutation({
     mutationFn: async (slug: string) => {
       const response = await pluginsApi.uninstall(slug);
       return unwrapApiResponse(response);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Plugin uninstalled successfully');
+      toast.success(t('merchant.plugins.lifecycle.uninstallSuccess'));
     },
     onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
+      toast.error(t(`merchant.plugins.lifecycle.${pluginLifecycleErrorKey(error)}`));
     },
   });
 }
@@ -928,20 +929,20 @@ export function useUninstallPlugin() {
 // Restore plugin mutation (soft-uninstall rollback)
 export function useRestorePlugin() {
   const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
+  const t = useT();
 
   return useMutation({
     mutationFn: async (slug: string) => {
       const response = await pluginsApi.restore(slug);
       return unwrapApiResponse(response);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Plugin restored successfully');
+      toast.success(t('merchant.plugins.lifecycle.restoreSuccess'));
     },
     onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
+      toast.error(t(`merchant.plugins.lifecycle.${pluginLifecycleErrorKey(error)}`));
     },
   });
 }
@@ -949,20 +950,20 @@ export function useRestorePlugin() {
 // Purge plugin mutation (hard delete)
 export function usePurgePlugin() {
   const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
+  const t = useT();
 
   return useMutation({
-    mutationFn: async (slug: string) => {
-      const response = await pluginsApi.purge(slug);
+    mutationFn: async ({ slug, confirmationSlug }: { slug: string; confirmationSlug: string }) => {
+      const response = await pluginsApi.purge(slug, confirmationSlug);
       return unwrapApiResponse(response);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Plugin purged permanently');
+      toast.success(t('merchant.plugins.lifecycle.purgeSuccess'));
     },
     onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
+      toast.error(t(`merchant.plugins.lifecycle.${pluginLifecycleErrorKey(error)}`));
     },
   });
 }

@@ -812,6 +812,22 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    lifecycle: {
+      removed: '已卸载', uninstall: '卸载', restore: '恢复', purge: '删除插件',
+      uninstallTitle: '卸载插件', restoreTitle: '恢复插件', purgeTitle: '永久删除插件',
+      uninstallDescription: '停止新的工作。插件包、配置、凭据和插件数据均保留，可以恢复。',
+      restoreDescription: '恢复插件后保持禁用。请单独启用插件以恢复新的工作。',
+      purgeDescription: '永久删除安装记录以及 Core 存储的配置和凭据。订单历史保留。不会删除插件自身的数据。',
+      typeSlug: '输入插件标识以确认', slugConfirmation: '确认插件标识',
+      cancel: '取消', confirm: '确认', working: '处理中…',
+      uninstallSuccess: '插件已卸载', restoreSuccess: '插件已恢复并保持禁用', purgeSuccess: '插件安装记录已删除',
+      notFound: '找不到插件。', builtinProtected: '不能移除内置插件。', alreadyRemoved: '此插件已经卸载。',
+      notRemoved: '请先卸载此插件。', confirmationRequired: '请输入完整且匹配的插件标识以确认删除。',
+      unfinishedPayments: '此插件存在未完成的支付工作。请处理完成后再删除安装记录。',
+      packageUnavailable: '插件包不可用。请重新安装插件包以恢复。', packageCorrupt: '插件包已损坏。请重新安装插件包。',
+      reinstallRequired: '请重新安装此插件后再恢复。', testSigningDisabled: '签名策略禁止使用测试签名插件。',
+      lastProvider: '不能卸载最后一个已启用的提供方。', busy: '另一个操作正在进行，请完成后重试。', failed: '插件操作失败。',
+    },
     upload: {
       "title": "上传本地插件",
       "file": "插件 ZIP",

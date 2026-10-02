@@ -61,6 +61,13 @@ const extensionMetaSchema = {
       required: ['issues'],
     },
     deletedAt: { type: 'string', format: 'date-time', nullable: true, description: 'Soft-delete timestamp for uninstalled plugin' },
+    packageState: {
+      type: 'object', required: ['status', 'code'],
+      properties: {
+        status: { type: 'string', enum: ['available', 'unavailable', 'corrupt'] },
+        code: { type: 'string', nullable: true, enum: ['PLUGIN_PACKAGE_UNAVAILABLE', 'PLUGIN_PACKAGE_CORRUPT', null] },
+      },
+    },
   },
   required: ['slug', 'name', 'version'],
 } as const;
@@ -252,6 +259,7 @@ export const extensionInstallerSchemas = {
       properties: {
         page: { type: 'integer', default: 1, minimum: 1, description: 'Page number' },
         limit: { type: 'integer', default: 20, minimum: 1, maximum: 100, description: 'Page size' },
+        state: { type: 'string', enum: ['active', 'removed'], default: 'active' },
       },
     },
     response: createTypedReadResponses(createPageResultSchema(extensionMetaSchema)),
@@ -279,7 +287,7 @@ export const extensionInstallerSchemas = {
         slug: { type: 'string', description: 'Plugin slug to uninstall' },
       },
     },
-    response: { ...createTypedDeleteResponses(uninstallPluginResultSchema), 409: errorResponseSchema },
+    response: { ...createTypedDeleteResponses(uninstallPluginResultSchema), 400: errorResponseSchema, 409: errorResponseSchema },
   },
 
   // POST /api/extensions/plugin/:slug/restore
@@ -291,11 +299,15 @@ export const extensionInstallerSchemas = {
         slug: { type: 'string', description: 'Plugin slug to restore' },
       },
     },
-    response: { ...createTypedCreateResponses(restorePluginResultSchema), 409: errorResponseSchema, 503: errorResponseSchema },
+    response: { ...createTypedReadResponses(restorePluginResultSchema), 409: errorResponseSchema, 503: errorResponseSchema },
   },
 
   // DELETE /api/extensions/plugin/:slug/purge
   purgePlugin: {
+    body: {
+      type: 'object', additionalProperties: false,
+      properties: { confirmationSlug: { type: 'string' } },
+    },
     params: {
       type: 'object',
       required: ['slug'],
@@ -303,7 +315,7 @@ export const extensionInstallerSchemas = {
         slug: { type: 'string', description: 'Plugin slug to purge permanently' },
       },
     },
-    response: { ...createTypedDeleteResponses(purgePluginResultSchema), 409: errorResponseSchema },
+    response: { ...createTypedDeleteResponses(purgePluginResultSchema), 400: errorResponseSchema, 409: errorResponseSchema },
   },
 
 } as const;

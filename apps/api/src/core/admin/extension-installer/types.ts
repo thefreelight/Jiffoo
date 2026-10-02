@@ -54,7 +54,7 @@ export interface InstallResult {
   slug: string;
   version: string;
   source: ExtensionSource;
-  fsPath: string;
+  fsPath?: string;
   publisherId?: string | null;
   publisherName?: string | null;
   publisherVerified?: boolean;
@@ -75,6 +75,7 @@ export interface UninstallResult {
 
 /** Installed plugin package information (corresponds to PluginInstall in DB) */
 export interface InstalledPlugin {
+  packageState?: { status: 'available' | 'unavailable' | 'corrupt'; code: 'PLUGIN_PACKAGE_UNAVAILABLE' | 'PLUGIN_PACKAGE_CORRUPT' | null };
   warnings?: string[];
   id: string;
   slug: string;
@@ -92,7 +93,7 @@ export interface InstalledPlugin {
   publisherCertificateFingerprint?: string | null;
   entryModule?: string;        // For internal-fastify, e.g. 'server/index.js'
   source: ExtensionSource;
-  fsPath: string;
+  fsPath?: string;
   permissions?: string[];
   author?: string;
   authorUrl?: string;
@@ -157,7 +158,7 @@ export interface IExtensionInstaller {
   /** Uninstall extension */
   uninstall(kind: ExtensionKind, slug: string): Promise<UninstallResult>;
   /** List installed extensions */
-  listInstalled(kind: ExtensionKind): Promise<InstalledExtensionMeta[]>;
+  listInstalled(kind: ExtensionKind, state?: 'active' | 'removed'): Promise<InstalledExtensionMeta[]>;
   /** Get extension details */
   getInstalled(kind: ExtensionKind, slug: string): Promise<InstalledExtensionMeta | null>;
 }

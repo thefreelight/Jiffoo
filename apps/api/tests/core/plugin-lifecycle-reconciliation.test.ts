@@ -260,9 +260,10 @@ module.exports = { register(ctx) {
     const afterRestore = (await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion ?? 0;
     expect(afterRestore).toBe(before + 2);
 
-    await PluginManagementService.purgePlugin(slug);
+    await PluginManagementService.uninstallPlugin(slug);
+    await PluginManagementService.purgePlugin(slug, slug);
     const afterPurge = (await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion ?? 0;
-    expect(afterPurge).toBe(afterRestore + 1);
+    expect(afterPurge).toBe(afterRestore + 2);
   });
 
   it('records an unknown stored manifest field while loading healthy plugins', async () => {

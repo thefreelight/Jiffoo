@@ -61,6 +61,7 @@ interface ListParams {
 interface PaginationQuery {
   page?: number;
   limit?: number;
+  state?: 'active' | 'removed';
 }
 
 interface GetParams {
@@ -714,21 +715,21 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-plugins'],
       summary: 'Uninstall plugin package',
-      description: 'Uninstall a plugin by slug, removes all instances (Admin only)',
+      description: 'Stop new plugin work while retaining the package, configuration, credentials and plugin data (Admin only)',
       security: [{ bearerAuth: [] }],
       ...extensionInstallerSchemas.uninstallPlugin,
     }
   }, async (request: FastifyRequest<{ Params: { slug: string } }>, reply: FastifyReply) => {
     try {
       const { slug } = request.params;
-      await PluginManagementService.uninstallPlugin(slug);
+      await PluginManagementService.uninstallPlugin(slug, request.user!.id);
       return sendSuccess(reply, {
         kind: 'plugin',
         slug,
         uninstalled: true,
       }, `plugin "${slug}" uninstalled successfully`);
     } catch (error: any) {
-      if (error?.statusCode === 409) return sendError(reply, 409, error.code, error.message);
+      if ([400, 404, 409].includes(error?.statusCode)) return sendError(reply, error.statusCode, error.code, error.message);
       fastify.log.error({ err: error }, 'Failed to uninstall plugin');
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to uninstall plugin');
     }
@@ -749,7 +750,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest<{ Params: { slug: string } }>, reply: FastifyReply) => {
     try {
       const { slug } = request.params;
-      await PluginManagementService.restorePlugin(slug);
+      await PluginManagementService.restorePlugin(slug, request.user!.id);
       return sendSuccess(reply, {
         kind: 'plugin',
         slug,
@@ -766,18 +767,26 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * DELETE /api/extensions/plugin/:slug/purge
    * Permanently purge plugin package and files
    */
-  admin.delete<{ Params: { slug: string } }>('/plugin/:slug/purge', {
+  admin.delete<{ Params: { slug: string }; Body: { confirmationSlug?: string } }>('/plugin/:slug/purge', {
+    preValidation: async (request, reply) => {
+      const body = request.body as unknown;
+      if (body !== undefined && body !== null && (typeof body !== 'object' || Array.isArray(body)
+        || ('confirmationSlug' in body && typeof body.confirmationSlug !== 'string'))) {
+        return sendError(reply, 400, 'PLUGIN_PURGE_CONFIRMATION_REQUIRED', 'Type the plugin slug to confirm deletion');
+      }
+      request.body ??= {};
+    },
     schema: {
       tags: ['admin-plugins'],
       summary: 'Purge plugin package',
-      description: 'Permanently remove plugin records and files (Admin only)',
+      description: 'Delete Core installation records, configuration, credentials and blob; preserve plugin data and order history (Admin only)',
       security: [{ bearerAuth: [] }],
       ...extensionInstallerSchemas.purgePlugin,
     }
-  }, async (request: FastifyRequest<{ Params: { slug: string } }>, reply: FastifyReply) => {
+  }, async (request, reply: FastifyReply) => {
     try {
       const { slug } = request.params;
-      await PluginManagementService.purgePlugin(slug);
+      await PluginManagementService.purgePlugin(slug, request.body?.confirmationSlug, request.user!.id);
       return sendSuccess(reply, {
         kind: 'plugin',
         slug,
@@ -805,7 +814,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     try {
       const safePage = Math.max(1, Number(request.query?.page) || 1);
       const safeLimit = Math.min(100, Math.max(1, Number(request.query?.limit) || 20));
-      const extensions = await extensionInstaller.listInstalled(request.params.kind);
+      const extensions = await extensionInstaller.listInstalled(request.params.kind, request.query.state);
       const total = extensions.length;
       const items = extensions.slice((safePage - 1) * safeLimit, safePage * safeLimit);
       return sendSuccess(reply, {

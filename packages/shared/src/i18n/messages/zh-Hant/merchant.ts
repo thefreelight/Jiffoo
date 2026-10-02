@@ -812,6 +812,22 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    lifecycle: {
+      removed: '已解除安裝', uninstall: '解除安裝', restore: '還原', purge: '刪除外掛',
+      uninstallTitle: '解除安裝外掛', restoreTitle: '還原外掛', purgeTitle: '永久刪除外掛',
+      uninstallDescription: '停止新的工作。外掛套件、設定、憑證和外掛資料均保留，可以還原。',
+      restoreDescription: '還原外掛後保持停用。請單獨啟用外掛以恢復新的工作。',
+      purgeDescription: '永久刪除安裝記錄以及 Core 儲存的設定和憑證。訂單歷史保留。不會刪除外掛自身的資料。',
+      typeSlug: '輸入外掛識別碼以確認', slugConfirmation: '確認外掛識別碼',
+      cancel: '取消', confirm: '確認', working: '處理中…',
+      uninstallSuccess: '外掛已解除安裝', restoreSuccess: '外掛已還原並保持停用', purgeSuccess: '外掛安裝記錄已刪除',
+      notFound: '找不到外掛。', builtinProtected: '不能移除內建外掛。', alreadyRemoved: '此外掛已經解除安裝。',
+      notRemoved: '請先解除安裝此外掛。', confirmationRequired: '請輸入完整且相符的外掛識別碼以確認刪除。',
+      unfinishedPayments: '此外掛存在未完成的付款工作。請處理完成後再刪除安裝記錄。',
+      packageUnavailable: '外掛套件無法使用。請重新安裝套件以還原。', packageCorrupt: '外掛套件已損壞。請重新安裝套件。',
+      reinstallRequired: '請重新安裝此外掛後再還原。', testSigningDisabled: '簽章政策禁止使用測試簽章外掛。',
+      lastProvider: '不能解除安裝最後一個已啟用的提供者。', busy: '另一個操作正在進行，請完成後重試。', failed: '外掛操作失敗。',
+    },
     upload: {
       "title": "上傳本地外掛",
       "file": "外掛 ZIP",

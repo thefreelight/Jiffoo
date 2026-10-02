@@ -111,8 +111,8 @@ describe('Payments Endpoints', () => {
   });
 
   afterAll(async () => {
-    if (paymentFixtureInstalled) await removeFixturePlugin({ app, adminToken, adminUserId }, paymentFixtureSlug);
     await deleteAllTestOrders();
+    if (paymentFixtureInstalled) await removeFixturePlugin({ app, adminToken, adminUserId }, paymentFixtureSlug);
     await deleteAllTestProducts();
     await deleteAllTestUsers();
     await app.close();

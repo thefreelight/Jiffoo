@@ -50,7 +50,7 @@ async function removeFixture(fixture: Fixture) {
   const headers = { authorization: fixture.authorization };
   const uninstalled = await fixture.request.delete(endpoint, { headers });
   expect(uninstalled.status(), await uninstalled.text()).toBe(200);
-  const purged = await fixture.request.delete(`${endpoint}/purge`, { headers });
+  const purged = await fixture.request.delete(`${endpoint}/purge`, { headers, data: { confirmationSlug: fixture.slug } });
   expect(purged.status(), await purged.text()).toBe(200);
   fixture.installed = false;
 }

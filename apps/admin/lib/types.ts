@@ -122,6 +122,7 @@ export interface OrderDetail {
 
 // Plugin types
 export interface PluginMetaWithState {
+  packageState?: { status: 'available' | 'unavailable' | 'corrupt'; code: string | null }
   slug: string
   name: string
   version: string

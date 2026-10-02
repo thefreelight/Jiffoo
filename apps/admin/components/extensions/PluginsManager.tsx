@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { DisablePluginControl } from '@/components/plugins/DisablePluginControl';
 import { PluginTrustLabel } from './PluginTrust';
 import { PluginUpload } from './PluginUpload';
+import { PluginLifecycle } from './PluginLifecycle';
 
 function MarketplaceCard({ entry, busy, install }: { entry: MarketplaceEntry; busy: boolean; install: (pluginId: string, version: string) => void }) {
   const t = useT();
@@ -43,12 +44,12 @@ export function PluginsManager() {
   const locale = useLocale();
   const t = useT();
   const text = (key: string) => t(`merchant.plugins.marketplace.${key}`);
-  const installed = useInstalledPlugins();
+  const [view, setView] = useState<'installed' | 'removed' | 'marketplace'>('installed');
+  const installed = useInstalledPlugins(view === 'removed' ? 'removed' : 'active');
   const toggle = useTogglePlugin();
   const status = useMarketplaceStatus();
   const catalog = useMarketplaceCatalog(status.data?.configured === true);
   const mutation = useMarketplaceInstall();
-  const [view, setView] = useState<'installed' | 'marketplace'>('installed');
   const [feedback, setFeedback] = useState<{ error: boolean; key: string } | null>(null);
   const submitting = useRef(false);
   const install = async (pluginId: string, version: string) => {
@@ -68,17 +69,20 @@ export function PluginsManager() {
     <PluginUpload testSigningMode={status.data?.testSigningMode === true} />
     <nav aria-label={text('views')} className="flex gap-3">
       <Button variant={view === 'installed' ? 'default' : 'outline'} aria-pressed={view === 'installed'} onClick={() => setView('installed')}>{text('installedPlugins')}</Button>
+      <Button variant={view === 'removed' ? 'default' : 'outline'} aria-pressed={view === 'removed'} onClick={() => setView('removed')}>{t('merchant.plugins.lifecycle.removed')}</Button>
       <Button variant={view === 'marketplace' ? 'default' : 'outline'} aria-pressed={view === 'marketplace'} onClick={() => setView('marketplace')}>{text('title')}</Button>
     </nav>
     {feedback && <p role={feedback.error ? 'alert' : 'status'} className={feedback.error ? 'text-danger-strong' : 'text-success-strong'}>{text(feedback.key)}</p>}
-    {view === 'installed' ? <section aria-label={text('installedPlugins')} className="space-y-4">
+    {view !== 'marketplace' ? <section aria-label={view === 'removed' ? t('merchant.plugins.lifecycle.removed') : text('installedPlugins')} className="space-y-4">
       {(installed.data?.items ?? []).map((plugin) => <article aria-label={plugin.name} key={plugin.slug} className="rounded-xl border border-cool-soft bg-surface p-5 space-y-3">
         <h3 className="font-semibold">{plugin.name}</h3><p>{text('version')}: {plugin.version}</p>
         {status.data && <PluginTrustLabel plugin={plugin} testSigningMode={status.data.testSigningMode} />}
-        <div className="flex gap-3">{plugin.enabled
+        {plugin.packageState?.code && <p role="alert">{t(`merchant.plugins.lifecycle.${plugin.packageState.status === 'corrupt' ? 'packageCorrupt' : 'packageUnavailable'}`)}</p>}
+        <div className="flex gap-3">{view === 'installed' && <>{plugin.enabled
           ? <DisablePluginControl slug={plugin.slug} category={plugin.category} label={text('disable')} onDisable={() => toggle.mutateAsync({ slug: plugin.slug, enabled: false })} />
-          : <Button disabled={toggle.isPending} onClick={() => toggle.mutate({ slug: plugin.slug, enabled: true })}>{text('enable')}</Button>}
-          <Button asChild><Link href={`/${locale}/plugins/${plugin.slug}`}>{text('manage')}</Link></Button></div>
+          : <Button disabled={toggle.isPending || Boolean(plugin.packageState?.code)} onClick={() => toggle.mutate({ slug: plugin.slug, enabled: true })}>{text('enable')}</Button>}
+          <Button asChild><Link href={`/${locale}/plugins/${plugin.slug}`}>{text('manage')}</Link></Button></>}
+          <PluginLifecycle plugin={plugin} /></div>
       </article>)}
     </section> : <section aria-label={text('title')} className="space-y-4">
       {status.isLoading || (status.data?.configured && catalog.isLoading) ? <p role="status">{text('loading')}</p>

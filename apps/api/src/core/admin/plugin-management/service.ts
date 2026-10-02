@@ -10,7 +10,7 @@ import { CacheService } from '@/core/cache/service';
 import type { PluginMeta, PluginState, PluginConfig, InstalledPluginsResponse } from './types';
 import { validateInstanceConfig, validateInstanceKeyFormat } from '@/core/admin/extension-installer/utils';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
-import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-package';
+import { resolveCurrentPluginPackage, PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
 import { assertPluginSigningAllowed } from '@/core/admin/extension-installer/plugin-signing-policy';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
@@ -23,6 +23,7 @@ import { decryptPluginConfig, encryptPluginConfig, redactPluginText } from './co
 import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
 import { getPluginManifestIssues, parsePluginConfigSchema, validatePluginConfig } from '@jiffoo/shared';
 import { ExtensionInstallerError } from '@/core/admin/extension-installer/errors';
+import { writePluginAudit } from '@/core/admin/extension-installer/plugin-audit';
 
 type ProviderContract = 'payment' | 'shipping' | 'tax' | 'fulfillment' | 'notification';
 type UpdatedInstance = PluginInstallation & { replacedPlugins: string[] };
@@ -32,6 +33,19 @@ const SLUG_REGEX = /^[a-z][a-z0-9-]{0,30}[a-z0-9]$/;
 
 // Reserved instance keys
 const RESERVED_INSTANCE_KEYS = ['default'];
+
+async function waitForLifecycleLease(slug: string, operation: string): Promise<void> {
+  if (process.env.NODE_ENV !== 'test' || process.env.JIFFOO_TEST_PLUGIN_LEASE_BARRIER !== 'acquired' || !process.send) return;
+  process.send({ kind: 'plugin-lease-ready', slug, operation });
+  await new Promise<void>((resolve) => {
+    const receive = (message: unknown) => {
+      if ((message as { kind?: string })?.kind !== 'plugin-lease-release') return;
+      process.off('message', receive);
+      resolve();
+    };
+    process.on('message', receive);
+  });
+}
 
 async function reconcilePluginState(slug: string): Promise<void> {
   const { reconcilePluginState: reconcile } = await import('@/core/admin/extension-installer/plugin-reconciliation');
@@ -513,24 +527,25 @@ export async function getInstanceConfig(
  * Uninstall plugin (soft delete - sets deletedAt on package and disables all instances)
  * Files are preserved by default for safety
  */
-export async function uninstallPlugin(slug: string): Promise<void> {
+export async function uninstallPlugin(slug: string, actorId = 'system'): Promise<void> {
   const token = await acquirePluginOperationLease(slug, 'uninstall');
   try {
+  await waitForLifecycleLease(slug, 'uninstall');
   // Check if plugin exists
   const pluginPackage = await prisma.pluginInstall.findUnique({
     where: { slug },
   });
 
   if (!pluginPackage) {
-    throw new Error(`Plugin "${slug}" not found`);
+    throw new ExtensionInstallerError(`Plugin "${slug}" not found`, { statusCode: 404, code: 'PLUGIN_NOT_FOUND' });
   }
 
   if (pluginPackage.source === 'builtin') {
-    throw new Error('Cannot uninstall built-in plugins');
+    throw new ExtensionInstallerError('Cannot uninstall built-in plugins', { statusCode: 400, code: 'PLUGIN_BUILTIN_PROTECTED' });
   }
 
   if (pluginPackage.deletedAt) {
-    throw new Error(`Plugin "${slug}" is already uninstalled`);
+    throw new ExtensionInstallerError(`Plugin "${slug}" is already uninstalled`, { statusCode: 409, code: 'PLUGIN_ALREADY_UNINSTALLED' });
   }
 
   const defaultInstance = await getDefaultInstance(slug);
@@ -563,6 +578,7 @@ export async function uninstallPlugin(slug: string): Promise<void> {
       data: { enabled: false },
     });
     await incrementPluginRegistryVersion(tx);
+    await writePluginAudit(tx, actorId, 'PLUGIN_UNINSTALLED', slug, { slug, version: pluginPackage.version });
   });
 
   // Files are preserved by the package store for safety and re-installation.
@@ -579,29 +595,30 @@ export async function uninstallPlugin(slug: string): Promise<void> {
 /**
  * Restore plugin from soft-uninstalled state.
  */
-export async function restorePlugin(slug: string): Promise<void> {
+export async function restorePlugin(slug: string, actorId = 'system'): Promise<void> {
   const token = await acquirePluginOperationLease(slug, 'restore');
   try {
+  await waitForLifecycleLease(slug, 'restore');
   const pluginPackage = await prisma.pluginInstall.findUnique({
     where: { slug },
   });
 
   if (!pluginPackage) {
-    throw Object.assign(new Error(`Plugin "${slug}" not found`), { statusCode: 404 });
+    throw new ExtensionInstallerError(`Plugin "${slug}" not found`, { statusCode: 404, code: 'PLUGIN_NOT_FOUND' });
   }
 
   if (!pluginPackage.deletedAt) {
-    throw Object.assign(new Error(`Plugin "${slug}" is already installed`), { statusCode: 400 });
+    throw new ExtensionInstallerError(`Plugin "${slug}" is not uninstalled`, { statusCode: 409, code: 'PLUGIN_NOT_UNINSTALLED' });
   }
   assertPluginSigningAllowed(pluginPackage);
 
   const pluginPackageFiles = pluginPackage.zipHash
     ? await resolveCurrentPluginPackage(slug, pluginPackage.zipHash, true) : null;
   if (!pluginPackageFiles || !await pluginPackageFiles.exists('manifest.json')) {
-    throw Object.assign(new Error(`Plugin "${slug}" files are missing. Please reinstall from ZIP.`), { statusCode: 400 });
+    throw new PluginPackageResolutionError('PLUGIN_PACKAGE_UNAVAILABLE', 503, slug);
   }
 
-  const manifest = readStoredPluginManifest(pluginPackage);
+  readStoredPluginManifest(pluginPackage);
   await prisma.$transaction(async (tx) => {
     await fencePluginOperationLease(tx, slug, token);
     await tx.pluginInstall.update({
@@ -619,25 +636,16 @@ export async function restorePlugin(slug: string): Promise<void> {
     });
 
     if (defaultInstance) {
-      const defaultConfig = parseJsonObject(defaultInstance.configJson);
-      const canEnable = (() => {
-        try {
-          assertPluginConfigReadyForEnable(slug, manifest, defaultConfig);
-          return true;
-        } catch {
-          return false;
-        }
-      })();
-
       await tx.pluginInstallation.update({
         where: { id: defaultInstance.id },
         data: {
           deletedAt: null,
-          enabled: canEnable,
+          enabled: false,
         },
       });
     }
     await incrementPluginRegistryVersion(tx);
+    await writePluginAudit(tx, actorId, 'PLUGIN_RESTORED', slug, { slug, version: pluginPackage.version, enabled: false });
   });
 
   await CacheService.delete('plugins:installed');
@@ -651,31 +659,41 @@ export async function restorePlugin(slug: string): Promise<void> {
 
 /**
  * Purge plugin (hard delete)
- * Removes plugin files and permanently deletes plugin package + instances records.
+ * Deletes Core installation records and blobs; plugin-owned data and immutable directories remain.
  */
-export async function purgePlugin(slug: string): Promise<void> {
+export async function purgePlugin(slug: string, confirmationSlug?: string, actorId = 'system'): Promise<void> {
   const token = await acquirePluginOperationLease(slug, 'purge');
   try {
+  await waitForLifecycleLease(slug, 'purge');
   const pluginPackage = await prisma.pluginInstall.findUnique({
     where: { slug },
   });
 
   if (!pluginPackage) {
-    throw Object.assign(new Error(`Plugin "${slug}" not found`), { statusCode: 404 });
+    throw new ExtensionInstallerError(`Plugin "${slug}" not found`, { statusCode: 404, code: 'PLUGIN_NOT_FOUND' });
   }
 
   if (pluginPackage.source === 'builtin') {
-    throw Object.assign(new Error('Cannot purge built-in plugins'), { statusCode: 400 });
+    throw new ExtensionInstallerError('Cannot purge built-in plugins', { statusCode: 400, code: 'PLUGIN_BUILTIN_PROTECTED' });
   }
 
-  const defaultInstance = await getDefaultInstance(slug);
-  await assertNotLastEnabledProvider(slug, Boolean(defaultInstance?.enabled), pluginPackage.manifestJson);
+  if (!pluginPackage.deletedAt) {
+    throw new ExtensionInstallerError(`Plugin "${slug}" is not uninstalled`, { statusCode: 409, code: 'PLUGIN_NOT_UNINSTALLED' });
+  }
+  if (confirmationSlug !== slug) {
+    throw new ExtensionInstallerError('Type the plugin slug to confirm deletion', { statusCode: 400, code: 'PLUGIN_PURGE_CONFIRMATION_REQUIRED' });
+  }
 
   await prisma.$transaction(async (tx) => {
     await fencePluginOperationLease(tx, slug, token);
+    const pending = await tx.payment.count({ where: { paymentMethod: slug, status: 'PENDING' } });
+    if (pending) {
+      throw new ExtensionInstallerError('Plugin has unfinished payment work', { statusCode: 409, code: 'PLUGIN_UNFINISHED_PAYMENTS' });
+    }
     await pluginPackageBlobStore.deleteAll(tx, slug);
     await tx.pluginInstall.delete({ where: { slug } });
     await incrementPluginRegistryVersion(tx);
+    await writePluginAudit(tx, actorId, 'PLUGIN_PURGED', slug, { slug, version: pluginPackage.version });
   });
 
   await CacheService.delete('plugins:installed');

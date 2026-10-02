@@ -22,6 +22,7 @@ const areas = [
   '29-plugin-config',
   '30-marketplace',
   '31-plugin-upload',
+  '32-plugin-removal',
 ];
 
 export default defineConfig({

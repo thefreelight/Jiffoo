@@ -812,6 +812,22 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    lifecycle: {
+      removed: 'Removed', uninstall: 'Uninstall', restore: 'Restore', purge: 'Delete plugin',
+      uninstallTitle: 'Uninstall plugin', restoreTitle: 'Restore plugin', purgeTitle: 'Delete plugin permanently',
+      uninstallDescription: 'New work stops. The package, configuration, credentials and plugin data are kept and can be restored.',
+      restoreDescription: 'Restore this plugin in a disabled state. Enable it separately to resume new work.',
+      purgeDescription: 'The installation record and configuration/credentials stored by Core are permanently deleted. Order history is kept. The plugin’s own data is NOT deleted.',
+      typeSlug: 'Type the plugin slug to confirm', slugConfirmation: 'Plugin slug confirmation',
+      cancel: 'Cancel', confirm: 'Confirm', working: 'Working…',
+      uninstallSuccess: 'Plugin uninstalled', restoreSuccess: 'Plugin restored and disabled', purgeSuccess: 'Plugin installation deleted',
+      notFound: 'Plugin not found.', builtinProtected: 'Built-in plugins cannot be removed.', alreadyRemoved: 'This plugin is already uninstalled.',
+      notRemoved: 'Uninstall this plugin first.', confirmationRequired: 'Type the exact plugin slug to confirm deletion.',
+      unfinishedPayments: 'This plugin has unfinished payment work. Resolve it before deleting the installation.',
+      packageUnavailable: 'Plugin package is unavailable. Reinstall the package to restore it.', packageCorrupt: 'Plugin package is corrupt. Reinstall the package.',
+      reinstallRequired: 'Reinstall this plugin before restoring it.', testSigningDisabled: 'Test-signed plugins are disabled by signing policy.',
+      lastProvider: 'The last enabled provider cannot be uninstalled.', busy: 'Another operation is in progress. Try again when it finishes.', failed: 'Plugin operation failed.',
+    },
     upload: {
       "title": "Upload a local plugin",
       "file": "Plugin ZIP",

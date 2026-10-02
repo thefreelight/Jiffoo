@@ -98,10 +98,16 @@ export async function installFixturePlugin(
 }
 
 export async function removeFixturePlugin(options: FixturePluginInstallOptions, slug: string): Promise<void> {
+  const installed = await prisma.pluginInstall.findUnique({ where: { slug } });
+  if (installed && !installed.deletedAt) {
+    const uninstalled = await options.app.inject({ method: 'DELETE', url: `/api/v1/extensions/plugin/${slug}`, headers: { authorization: `Bearer ${options.adminToken}` } });
+    if (uninstalled.statusCode !== 200) throw new Error(`Fixture uninstall failed: ${uninstalled.payload}`);
+  }
   const response = await options.app.inject({
     method: 'DELETE',
     url: `/api/v1/extensions/plugin/${slug}/purge`,
     headers: { authorization: `Bearer ${options.adminToken}` },
+    payload: { confirmationSlug: slug },
   });
   if (response.statusCode !== 200 && response.statusCode !== 404) {
     throw new Error(`Fixture plugin "${slug}" purge failed: ${response.statusCode} ${response.payload}`);

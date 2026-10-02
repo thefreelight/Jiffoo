@@ -7,15 +7,13 @@ const enabled = process.env.VISUAL_SET === 'review';
 const parkedPages = new WeakSet<Page>();
 
 async function parkPointer(page: Page) {
-  const headings = page.getByRole('heading', { name: /.+/ });
-  for (const heading of await headings.all()) {
-    if (!await heading.isVisible()) continue;
-    const box = await heading.boundingBox();
-    expect(box, 'Review heading has visible bounds').not.toBeNull();
-    await heading.hover({ position: { x: box!.width - 1, y: box!.height / 2 } });
-    return;
-  }
-  expect(page.url(), 'Only the initial blank page may have no capture heading').toBe('about:blank');
+  if (page.url() === 'about:blank') return;
+  const heading = page.getByRole('heading', { name: /.+/ }).filter({ visible: true }).first();
+  await expect(heading, `Review capture requires a visible heading at ${page.url()}`)
+    .toBeVisible({ timeout: 10_000 });
+  const box = await heading.boundingBox();
+  expect(box, 'Review heading has visible bounds').not.toBeNull();
+  await heading.hover({ position: { x: box!.width - 1, y: box!.height / 2 } });
 }
 
 function parkBeforeNavigation(page: Page) {

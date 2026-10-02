@@ -16,7 +16,9 @@ import {
 } from './types';
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
-import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-package';
+import { createHash } from 'node:crypto';
+import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
+import { readPluginZipEntries } from 'shared/plugin-signing';
 import { InvalidStoredManifestError, readStoredPluginManifest } from './stored-manifest';
 import type { PluginInstall } from '@prisma/client';
 
@@ -49,6 +51,28 @@ function getManifestResponse(pkg: PluginInstall) {
       return { manifestError: { issues: error.issues } };
     }
     throw error;
+  }
+}
+
+async function packageState(pkg: PluginInstall): Promise<InstalledExtensionMeta['packageState']> {
+  if ('manifestError' in getManifestResponse(pkg)) return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
+  if (!pkg.zipHash) return { status: 'unavailable', code: 'PLUGIN_PACKAGE_UNAVAILABLE' };
+  if (!/^[a-f0-9]{64}$/.test(pkg.zipHash)) return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
+  if (pkg.source === 'builtin') {
+    return await pluginPackageStore.get(pkg.slug, pkg.zipHash)
+      ? { status: 'available', code: null } : { status: 'unavailable', code: 'PLUGIN_PACKAGE_UNAVAILABLE' };
+  }
+  const blob = await pluginPackageBlobStore.get(pkg.slug, pkg.zipHash);
+  if (!blob) return { status: 'unavailable', code: 'PLUGIN_PACKAGE_UNAVAILABLE' };
+  try {
+    const bytes = Buffer.from(blob.bytes);
+    if (blob.sizeBytes !== bytes.length || createHash('sha256').update(bytes).digest('hex') !== pkg.zipHash) {
+      return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
+    }
+    readPluginZipEntries(bytes, pkg.trustLevel === 'unsigned');
+    return { status: 'available', code: null };
+  } catch {
+    return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
   }
 }
 
@@ -109,14 +133,14 @@ export class ExtensionInstaller implements IExtensionInstaller {
   /**
    * List installed extensions
    */
-  async listInstalled(kind: ExtensionKind): Promise<InstalledExtensionMeta[]> {
+  async listInstalled(kind: ExtensionKind, state: 'active' | 'removed' = 'active'): Promise<InstalledExtensionMeta[]> {
     switch (kind) {
       case 'plugin': {
         // Read from DB instead of disk scan (exclude soft-uninstalled packages from admin list)
         const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
-        const packages = await PluginManagementService.getAllPluginPackages();
+        const packages = (await PluginManagementService.getAllPluginPackages({ includeDeleted: state === 'removed' }))
+          .filter((pkg) => state === 'removed' ? Boolean(pkg.deletedAt) : !pkg.deletedAt);
         return Promise.all(packages.map(async (pkg) => {
-          const pluginPackage = await resolveCurrentPluginPackage(pkg.slug, pkg.zipHash || undefined);
           return {
           id: pkg.id,
           slug: pkg.slug,
@@ -127,7 +151,8 @@ export class ExtensionInstaller implements IExtensionInstaller {
           runtimeType: 'internal-fastify',
           entryModule: pkg.entryModule || undefined,
           source: pkg.source as ExtensionSource,
-          fsPath: pluginPackage.getEntryPath(''),
+          packageState: await packageState(pkg),
+          deletedAt: pkg.deletedAt,
           permissions: parseJsonArray(pkg.permissions),
           author: pkg.author || undefined,
           authorUrl: pkg.authorUrl || undefined,
@@ -161,7 +186,6 @@ export class ExtensionInstaller implements IExtensionInstaller {
         if (!pkg) {
           return null;
         }
-        const pluginPackage = await resolveCurrentPluginPackage(pkg.slug, pkg.zipHash || undefined);
         return {
           id: pkg.id,
           slug: pkg.slug,
@@ -172,7 +196,8 @@ export class ExtensionInstaller implements IExtensionInstaller {
           runtimeType: 'internal-fastify',
           entryModule: pkg.entryModule || undefined,
           source: pkg.source as ExtensionSource,
-          fsPath: pluginPackage.getEntryPath(''),
+          packageState: await packageState(pkg),
+          deletedAt: pkg.deletedAt,
           permissions: parseJsonArray(pkg.permissions),
           author: pkg.author || undefined,
           authorUrl: pkg.authorUrl || undefined,
