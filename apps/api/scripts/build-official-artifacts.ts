@@ -227,6 +227,39 @@ async function runShellCommand(command: string, cwd: string): Promise<void> {
   });
 }
 
+const THEME_PREVIEW_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'svg'] as const;
+
+/**
+ * Publish each official theme's marketplace preview asset
+ * (theme-pack/assets/thumbnail.<ext>) into the artifacts bundle under
+ * visuals/themes/<slug>/ so the CDN serves fresh, real rendered previews
+ * alongside the artifacts on every publish run.
+ */
+async function publishThemeVisuals(
+  entries: OfficialCatalogEntry[],
+  outputDir: string,
+): Promise<void> {
+  for (const entry of entries) {
+    if (entry.kind !== 'theme') continue;
+    const assetsDir = path.join(
+      OFFICIAL_EXTENSIONS_VENDOR_PATH,
+      'packages',
+      'shop-themes',
+      entry.slug,
+      'theme-pack',
+      'assets',
+    );
+    for (const extension of THEME_PREVIEW_EXTENSIONS) {
+      const sourcePath = path.join(assetsDir, `thumbnail.${extension}`);
+      if (!(await pathExists(sourcePath))) continue;
+      const destPath = path.join(outputDir, 'visuals', 'themes', entry.slug, `thumbnail.${extension}`);
+      await ensureDir(path.dirname(destPath));
+      await fs.copyFile(sourcePath, destPath);
+      break;
+    }
+  }
+}
+
 async function copyIfExists(sourcePath: string, destPath: string): Promise<boolean> {
   if (!(await pathExists(sourcePath))) {
     return false;
@@ -795,6 +828,8 @@ export async function buildOfficialArtifacts(
   for (const entry of selectedEntries) {
     items.push(await buildSingleArtifact(entry, outputDir, options.artifactBaseUrl));
   }
+
+  await publishThemeVisuals(selectedEntries, outputDir);
 
   const result: BuildOfficialArtifactsResult = {
     generatedAt: new Date().toISOString(),
