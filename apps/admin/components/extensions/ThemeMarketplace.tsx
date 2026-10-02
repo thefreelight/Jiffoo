@@ -213,18 +213,24 @@ function MiniPreview({ tint, className }: { tint: StyleTint; className?: string 
  * back to the generated mini mockup when a theme has none (or it fails to
  * load).
  */
+const ARTIFACTS_VISUALS_BASE = 'https://get.jiffoo.com/official-artifacts/visuals/themes';
+
 function ThemePreview({ item, className }: { item: OfficialCatalogItem; className?: string }) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const showImage = Boolean(item.thumbnailUrl) && !imageFailed;
+  const [failedSources, setFailedSources] = useState<string[]>([]);
+  const candidateSources = [
+    item.thumbnailUrl,
+    `${ARTIFACTS_VISUALS_BASE}/${item.slug}/thumbnail.jpg`,
+  ].filter((source): source is string => Boolean(source) && !failedSources.includes(source as string));
+  const showImage = candidateSources.length > 0;
 
   if (showImage) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={item.thumbnailUrl}
+        src={candidateSources[0]}
         alt={item.name}
         className={cn('object-cover', className)}
-        onError={() => setImageFailed(true)}
+        onError={() => setFailedSources((sources) => [...sources, candidateSources[0]])}
       />
     );
   }
