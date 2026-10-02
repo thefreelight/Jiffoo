@@ -434,3 +434,50 @@ model RecommendationConfig {
   @@map("recommendation_configs")
   @@schema("public")
 }
+
+// ============================================================
+// SHIPMENT (reactivated 2026-10: external-orders shipment status tracking)
+// Was dormant 2026-07..2026-10; superseded comment no longer applies.
+// ============================================================
+// ============================================================
+// ============================================================
+model Shipment {
+  id             String         @id @default(cuid())
+  orderId        String
+  carrier        String?
+  trackingNumber String?
+  status         ShipmentStatus @default(PENDING)
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  order Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items ShipmentItem[]
+
+  @@index([orderId])
+  @@index([trackingNumber])
+  @@index([status])
+  @@map("shipments")
+  @@schema("public")
+}
+
+// ============================================================
+// ============================================================
+model ShipmentItem {
+  id          String   @id @default(cuid())
+  shipmentId  String
+  orderItemId String
+  quantity    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  shipment  Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([orderItemId])
+  @@map("shipment_items")
+  @@schema("public")
+}
