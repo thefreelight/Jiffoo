@@ -3,12 +3,12 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { productionSafetyViolations } from './production-safety';
 
-export function validateMarketplaceUrl(value: string | undefined, nodeEnv: string): string | undefined {
+export function validateMarketplaceUrl(value: string | undefined, nodeEnv: string, testSigningMode = false): string | undefined {
   if (value === undefined || value === '') return undefined;
   let url: URL;
   try { url = new URL(value); } catch { throw new Error('EXTENSION_MARKETPLACE_URL must be an absolute URL'); }
   if (url.username || url.password || url.hash || url.search || !url.hostname ||
-    (url.protocol !== 'https:' && !(nodeEnv === 'test' && url.protocol === 'http:' && url.hostname === '127.0.0.1'))) {
+    (url.protocol !== 'https:' && !((nodeEnv === 'test' || testSigningMode) && url.protocol === 'http:' && url.hostname === '127.0.0.1'))) {
     throw new Error('EXTENSION_MARKETPLACE_URL requires HTTPS, no credentials, query or fragment (test permits http://127.0.0.1 only)');
   }
   return url.href;
@@ -52,6 +52,7 @@ export const envSchema = z.object({
   STOREFRONT_URL: z.string().url().optional(),
   ADMIN_URL: z.string().url().optional(),
   EXTENSION_MARKETPLACE_URL: z.string().optional(),
+  EXTENSION_TEST_SIGNING_MODE: z.enum(['true', 'false']).transform((value) => value === 'true').default('false'),
   EXTENSION_MARKETPLACE_DOWNLOAD_TIMEOUT_MS: z.coerce.number().int().min(100).max(120000).default(30000),
 
   VAULT_ADDR: z.string().optional(),
@@ -96,7 +97,7 @@ export const envSchema = z.object({
     context.addIssue({ code: z.ZodIssueCode.custom, message });
   }
   try {
-    validateMarketplaceUrl(value.EXTENSION_MARKETPLACE_URL, value.NODE_ENV);
+    validateMarketplaceUrl(value.EXTENSION_MARKETPLACE_URL, value.NODE_ENV, value.EXTENSION_TEST_SIGNING_MODE);
   } catch (error) {
     context.addIssue({ code: z.ZodIssueCode.custom, path: ['EXTENSION_MARKETPLACE_URL'], message: (error as Error).message });
   }

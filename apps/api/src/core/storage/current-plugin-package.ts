@@ -7,7 +7,8 @@ import { extractZipToTemp, cleanupTemp, readJsonFile, resolveExtractedPackageRoo
 import type { PluginManifest } from '@/core/admin/extension-installer/types';
 import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 
-type ResolutionCode = 'PLUGIN_PACKAGE_UNAVAILABLE' | 'PLUGIN_PACKAGE_CORRUPT' | 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT';
+type ResolutionCode = 'PLUGIN_PACKAGE_UNAVAILABLE' | 'PLUGIN_PACKAGE_CORRUPT' | 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT'
+  | 'PLUGIN_REINSTALL_REQUIRED' | 'PLUGIN_TEST_SIGNING_DISABLED';
 
 export class PluginPackageResolutionError extends Error {
   constructor(public readonly code: ResolutionCode, public readonly statusCode: number, slug: string) {

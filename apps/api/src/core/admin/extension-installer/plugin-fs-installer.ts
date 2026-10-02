@@ -184,9 +184,10 @@ export class PluginFsInstaller implements IPluginInstaller {
           await fencePluginOperationLease(tx, lease!.slug, lease!.token);
           await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, bytes);
           await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
-          if (options?.source === 'marketplace') {
-            await tx.pluginInstall.update({ where: { slug: manifest.slug }, data: { source: 'marketplace' } });
-          }
+          await tx.pluginInstall.update({ where: { slug: manifest.slug }, data: {
+            signingRoot: publisher?.signingRoot ?? null,
+            ...(options?.source === 'marketplace' ? { source: 'marketplace' } : {}),
+          } });
           await incrementPluginRegistryVersion(tx);
         });
       }
@@ -201,7 +202,8 @@ export class PluginFsInstaller implements IPluginInstaller {
         trustLevel: existingByHash.trustLevel,
         publisherId: existingByHash.publisherId,
         publisherName: existingByHash.publisherName,
-        publisherVerified: existingByHash.trustLevel === 'signed',
+        publisherVerified: publisher?.signingRoot === 'official',
+        signingRoot: publisher?.signingRoot ?? null,
         publisherCertificateFingerprint: existingByHash.publisherCertificateFingerprint,
         entryModule: existingByHash.entryModule || undefined,
         source: (options?.source === 'marketplace' ? 'marketplace' : existingByHash.source) as ExtensionSource,
@@ -304,6 +306,7 @@ export class PluginFsInstaller implements IPluginInstaller {
                 author: manifest.author, authorUrl: manifest.authorUrl, category: manifest.category,
                 runtimeType: manifest.runtimeType, entryModule: manifest.entryModule, zipHash,
                 manifestJson: manifest, permissions: manifest.permissions ?? null, trustLevel, deletedAt: null, updatedAt: now,
+                signingRoot: publisher?.signingRoot ?? null,
                 publisherId: publisher?.publisherId ?? null,
                 publisherName: publisher?.publisherName ?? null,
                 publisherCertificateFingerprint: publisher?.publisherCertificateFingerprint ?? null,
@@ -347,7 +350,8 @@ export class PluginFsInstaller implements IPluginInstaller {
             trustLevel: pluginInstall.trustLevel,
             publisherId: pluginInstall.publisherId,
             publisherName: pluginInstall.publisherName,
-            publisherVerified: pluginInstall.trustLevel === 'signed',
+            publisherVerified: pluginInstall.signingRoot === 'official',
+            signingRoot: pluginInstall.signingRoot as 'official' | 'test' | null,
             publisherCertificateFingerprint: pluginInstall.publisherCertificateFingerprint,
             entryModule: manifest.entryModule,
             source: (options?.source || 'local-zip') as ExtensionSource,
@@ -409,6 +413,7 @@ export class PluginFsInstaller implements IPluginInstaller {
                 entryModule: manifest.entryModule,
                 source: options?.source || 'local-zip',
                 trustLevel,
+                signingRoot: publisher?.signingRoot ?? null,
                 publisherId: publisher?.publisherId ?? null,
                 publisherName: publisher?.publisherName ?? null,
                 publisherCertificateFingerprint: publisher?.publisherCertificateFingerprint ?? null,
@@ -470,7 +475,8 @@ export class PluginFsInstaller implements IPluginInstaller {
             trustLevel: pluginInstall.trustLevel,
             publisherId: pluginInstall.publisherId,
             publisherName: pluginInstall.publisherName,
-            publisherVerified: pluginInstall.trustLevel === 'signed',
+            publisherVerified: pluginInstall.signingRoot === 'official',
+            signingRoot: pluginInstall.signingRoot as 'official' | 'test' | null,
             publisherCertificateFingerprint: pluginInstall.publisherCertificateFingerprint,
             entryModule: manifest.entryModule,
             source: (options?.source || 'local-zip') as ExtensionSource,
@@ -573,6 +579,12 @@ export class PluginFsInstaller implements IPluginInstaller {
         runtimeType: manifest.runtimeType || 'internal-fastify',
         entryModule: manifest.entryModule,
         source: installed.source as ExtensionSource,
+        trustLevel: installed.trustLevel,
+        publisherId: installed.publisherId,
+        publisherName: installed.publisherName,
+        publisherVerified: installed.signingRoot === 'official',
+        signingRoot: installed.signingRoot as 'official' | 'test' | null,
+        publisherCertificateFingerprint: installed.publisherCertificateFingerprint,
         fsPath: pluginPackage.getEntryPath(''),
         permissions: manifest.permissions,
         author: manifest.author,

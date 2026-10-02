@@ -42,6 +42,7 @@ import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
 import { getPluginTimeoutMs, isBreakerAllowed, recordBreakerResult } from './gateway-protection';
 import { decryptPluginConfig, redactPluginText } from '@/core/admin/plugin-management/config-crypto';
+import { pluginSigningError } from './plugin-signing-policy';
 
 // ============================================================================
 // Constants
@@ -96,6 +97,8 @@ export type PluginGatewayErrorCode =
   | 'PLUGIN_INVALID_MANIFEST'
   | 'PLUGIN_LOAD_FAILED'
   | 'PLUGIN_PACKAGE_UNAVAILABLE'
+  | 'PLUGIN_REINSTALL_REQUIRED'
+  | 'PLUGIN_TEST_SIGNING_DISABLED'
   | 'PLUGIN_UPGRADE_RESTART_REQUIRED'
   | 'PLUGIN_TIMEOUT'
   | 'INVALID_SLUG'
@@ -231,6 +234,10 @@ function logAudit(entry: GatewayAuditLog, fastify?: FastifyInstance): void {
 
 async function readPluginManifest(plugin: PluginInstall): Promise<PluginManifest> {
   try {
+    const signingError = pluginSigningError(plugin);
+    if (signingError) throw new PluginPackageResolutionError(
+      signingError.code as 'PLUGIN_REINSTALL_REQUIRED' | 'PLUGIN_TEST_SIGNING_DISABLED', 503, plugin.slug,
+    );
     readStoredPluginManifest(plugin);
     const pluginPackage = await resolveCurrentPluginPackage(plugin.slug, plugin.zipHash || undefined);
     const packageManifest: unknown = JSON.parse(await pluginPackage.readText('manifest.json'));
@@ -469,6 +476,8 @@ async function resolveGatewayContext(
       404
     );
   }
+  const signingError = pluginSigningError(pluginPackage);
+  if (signingError) throw new PluginGatewayError(signingError.message, signingError.code as PluginGatewayErrorCode, 503);
 
   const query = request.query as Record<string, string | undefined>;
 
@@ -574,6 +583,11 @@ async function ensureInternalRuntime(
   ctx: GatewayContext,
   hold = false,
 ): Promise<InternalRuntime> {
+  const plugin = await PluginManagementService.getPluginPackage(slug);
+  if (plugin) {
+    const signingError = pluginSigningError(plugin);
+    if (signingError) throw new PluginGatewayError(signingError.message, signingError.code as PluginGatewayErrorCode, 503);
+  }
   const runtimeKey = ctx.installationId;
   const existing = internalRuntimes.get(runtimeKey);
 
@@ -691,7 +705,7 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
 }
 
 export class ContractCallError extends Error {
-  constructor(public readonly code: 'CONTRACT_RESPONSE_INVALID' | 'CONTRACT_CALL_FAILED' | 'PLUGIN_PACKAGE_UNAVAILABLE' | 'PLUGIN_PACKAGE_CORRUPT' | 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT', message: string) { super(message); }
+  constructor(public readonly code: 'CONTRACT_RESPONSE_INVALID' | 'CONTRACT_CALL_FAILED' | 'PLUGIN_PACKAGE_UNAVAILABLE' | 'PLUGIN_PACKAGE_CORRUPT' | 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT' | 'PLUGIN_REINSTALL_REQUIRED' | 'PLUGIN_TEST_SIGNING_DISABLED', message: string) { super(message); }
 }
 
 const contractMethods = { payment: paymentV1Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
@@ -726,6 +740,8 @@ export async function callContract(
   const pkg = await PluginManagementService.getPluginPackage(slug);
   const instance = await PluginManagementService.getDefaultInstance(slug);
   if (!pkg || !instance?.enabled || instance.deletedAt) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} is not enabled`);
+  const signingError = pluginSigningError(pkg);
+  if (signingError) throw new ContractCallError(signingError.code as 'PLUGIN_REINSTALL_REQUIRED' | 'PLUGIN_TEST_SIGNING_DISABLED', signingError.message);
   let manifest: PluginManifest;
   try { manifest = await readPluginManifest(pkg); } catch (error) {
     await recordPluginFailure(slug, error, 'contract');
@@ -794,6 +810,8 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
   const instance = await prisma.pluginInstallation.findUnique({ where: { id: installationId }, include: { plugin: true } });
   if (!instance || instance.deletedAt || instance.plugin.deletedAt) return 'deleted';
   if (!instance.enabled) return 'disabled';
+  const signingError = pluginSigningError(instance.plugin);
+  if (signingError) throw signingError;
   const subscription = await prisma.pluginEventSubscription.findUnique({
     where: { pluginSlug_eventType_version: { pluginSlug: instance.pluginSlug, eventType: event.type, version: event.version } },
   });
@@ -924,6 +942,8 @@ async function forwardToInternalFastify(
 export async function warmPluginRuntime(slug: string): Promise<{ restartRequired: boolean }> {
   const plugin = await PluginManagementService.getPluginPackage(slug);
   if (!plugin) throw new PluginGatewayError(`Plugin "${slug}" not found`, 'PLUGIN_NOT_FOUND', 404);
+  const signingError = pluginSigningError(plugin);
+  if (signingError) throw new PluginGatewayError(signingError.message, signingError.code as PluginGatewayErrorCode, 503);
   const manifest = await readPluginManifest(plugin);
   if (manifest.runtimeType !== 'internal-fastify') {
     return { restartRequired: false };

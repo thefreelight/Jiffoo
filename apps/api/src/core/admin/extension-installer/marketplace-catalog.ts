@@ -22,6 +22,7 @@ export type CatalogPlugin = {
   name: string;
   description: string;
   publisherId: string;
+  declaredCapabilities?: string[];
   versions: CatalogVersion[];
 };
 export type MarketplaceCatalog = { schemaVersion: 1; plugins: CatalogPlugin[] };
@@ -52,12 +53,19 @@ export function validateCatalog(value: unknown, base: string, forInstall = false
   const ids = new Set<string>();
   const slugs = new Set<string>();
   for (const plugin of value.plugins) {
-    if (!exactKeys(plugin, ['id', 'slug', 'name', 'description', 'publisherId', 'versions']) ||
+    if (!exactKeys(plugin, plugin && typeof plugin === 'object' && 'declaredCapabilities' in plugin
+      ? ['id', 'slug', 'name', 'description', 'publisherId', 'declaredCapabilities', 'versions']
+      : ['id', 'slug', 'name', 'description', 'publisherId', 'versions']) ||
       typeof plugin.id !== 'string' || !slugPattern.test(plugin.id) ||
       typeof plugin.slug !== 'string' || !slugPattern.test(plugin.slug) ||
       typeof plugin.name !== 'string' || !plugin.name.trim() || plugin.name.length > 200 ||
       typeof plugin.description !== 'string' || plugin.description.length > 2000 ||
       typeof plugin.publisherId !== 'string' || !publisherPattern.test(plugin.publisherId) ||
+      (plugin.declaredCapabilities !== undefined &&
+        (!Array.isArray(plugin.declaredCapabilities) || plugin.declaredCapabilities.length > 20 ||
+          plugin.declaredCapabilities.some((capability: unknown) => typeof capability !== 'string' ||
+            !/^[a-z][a-z0-9-]{0,63}$/.test(capability)) ||
+          new Set(plugin.declaredCapabilities).size !== plugin.declaredCapabilities.length)) ||
       !Array.isArray(plugin.versions) || !plugin.versions.length || plugin.versions.length > 100 ||
       ids.has(plugin.id) || slugs.has(plugin.slug)) invalid();
     ids.add(plugin.id);

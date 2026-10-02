@@ -5,6 +5,7 @@ import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-packa
 import { loadPluginEntryModule } from '@/core/admin/extension-installer/plugin-module-loader';
 import type { LifecycleHookName, PluginManifest } from '@jiffoo/shared';
 import { redactPluginText } from './config-crypto';
+import { assertPluginSigningAllowed } from '@/core/admin/extension-installer/plugin-signing-policy';
 
 export interface LifecycleContext {
   installationId: string;
@@ -42,6 +43,7 @@ export async function executeLifecycleHook(hookName: LifecycleHookName, context:
 async function callInternalLifecycleHook(hookName: LifecycleHookName, context: LifecycleContext, manifest: PluginManifest): Promise<void> {
   const entryModule = manifest.entryModule || 'server/index.js';
   const row = await prisma.pluginInstall.findUnique({ where: { slug: context.pluginSlug } });
+  if (row) assertPluginSigningAllowed(row);
   const pluginPackage = row?.zipHash
     ? await resolveCurrentPluginPackage(context.pluginSlug, row.zipHash) : null;
   if (!pluginPackage || !await pluginPackage.exists(entryModule)) throw new Error(`Plugin entry module not found: ${entryModule}`);

@@ -24,6 +24,7 @@ model PluginInstall {
   publisherId String?
   publisherName String?
   publisherCertificateFingerprint String?
+  signingRoot String?
   installPath String?
 
   zipHash      String?

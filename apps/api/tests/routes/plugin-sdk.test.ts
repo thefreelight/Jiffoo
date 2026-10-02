@@ -170,8 +170,8 @@ describe('Built plugin SDK CLI', () => {
         method: 'POST', headers: { authorization: `Bearer ${token}` }, body: form,
       });
       expect(response.status).toBe(200);
-      expect((await response.json()).data).toMatchObject({ publisherId: 'sdk-publisher', publisherName: 'SDK Publisher', publisherVerified: true });
-      expect(await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).toMatchObject({ trustLevel: 'signed', publisherId: 'sdk-publisher' });
+      expect((await response.json()).data).toMatchObject({ publisherId: 'sdk-publisher', publisherName: 'SDK Publisher', publisherVerified: false, signingRoot: 'test' });
+      expect(await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).toMatchObject({ trustLevel: 'signed', signingRoot: 'test', publisherId: 'sdk-publisher' });
     } finally { await fs.rm(dir, { recursive: true, force: true }); }
   });
 });

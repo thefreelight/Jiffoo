@@ -19,7 +19,8 @@ import { prewarmPluginPackages } from './core/storage/prewarm-plugin-packages';
 import path from 'node:path';
 
 export async function startWorkerRuntime(options: { redisUrl?: string; healthPort?: number } = {}) {
-  assertTestRootEnvironment();
+  assertTestRootEnvironment(env.EXTENSION_TEST_SIGNING_MODE);
+  if (env.EXTENSION_TEST_SIGNING_MODE) console.warn('Test signing mode is enabled for the worker');
   pluginSecretsKey();
   const instanceId = randomUUID();
   const startedAt = new Date().toISOString();

@@ -11,6 +11,7 @@ import type { PluginMeta, PluginState, PluginConfig, InstalledPluginsResponse } 
 import { validateInstanceConfig, validateInstanceKeyFormat } from '@/core/admin/extension-installer/utils';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-package';
+import { assertPluginSigningAllowed } from '@/core/admin/extension-installer/plugin-signing-policy';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
 import { incrementPluginRegistryVersion } from '@/core/admin/extension-installer/plugin-registry-version';
@@ -234,6 +235,7 @@ async function createDefaultInstance(
   }
 
   const effectiveEnabled = options?.enabled ?? true;
+  if (effectiveEnabled) assertPluginSigningAllowed(pluginPackage);
   const effectiveConfig = (options?.config ?? {}) as Record<string, unknown>;
   const manifest = readStoredPluginManifest(pluginPackage);
   const storedConfig = encryptPluginConfig(manifest, effectiveConfig);
@@ -343,6 +345,7 @@ async function updateInstance(
     }
   }
   const nextEnabled = updates.enabled !== undefined ? updates.enabled : existing.enabled;
+  if (nextEnabled) assertPluginSigningAllowed(pluginPackage);
 
   if (nextEnabled) {
     try {
@@ -590,6 +593,7 @@ export async function restorePlugin(slug: string): Promise<void> {
   if (!pluginPackage.deletedAt) {
     throw Object.assign(new Error(`Plugin "${slug}" is already installed`), { statusCode: 400 });
   }
+  assertPluginSigningAllowed(pluginPackage);
 
   const pluginPackageFiles = pluginPackage.zipHash
     ? await resolveCurrentPluginPackage(slug, pluginPackage.zipHash, true) : null;

@@ -14,6 +14,7 @@ import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { env } from '@/config/env';
 import { CERT_PATH, SIGNATURE_PATH, issuePublisherCertificate, signPackage } from 'shared/plugin-signing';
 import { otherPublisher, testPublisher, testRoot } from '../fixtures/plugin-signing-keys';
+import { downloadPackage } from '@/core/admin/extension-installer/marketplace-install';
 
 const prisma = getTestPrisma();
 const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -151,15 +152,63 @@ afterAll(async () => {
 });
 
 describe('Marketplace installation', () => {
+  it('F maps a refused package connection to MARKETPLACE_DOWNLOAD_UNAVAILABLE', async () => {
+    const slug = own();
+    setCatalog(slug, await packageZip(slug));
+    let markClosed!: () => void;
+    const closed = new Promise<void>((resolve) => { markClosed = resolve; });
+    const catalogOnly = createServer((_incoming, outgoing) => {
+      outgoing.setHeader('connection', 'close');
+      outgoing.end(JSON.stringify(catalogBody));
+      catalogOnly.close(markClosed);
+    });
+    await new Promise<void>((resolve) => catalogOnly.listen(0, '127.0.0.1', resolve));
+    const previousUrl = process.env.JIFFOO_TEST_MARKETPLACE_URL;
+    process.env.JIFFOO_TEST_MARKETPLACE_URL = `http://127.0.0.1:${(catalogOnly.address() as import('node:net').AddressInfo).port}/catalog`;
+    try {
+      await rejectInstall(slug, 'MARKETPLACE_DOWNLOAD_UNAVAILABLE', 502);
+    } finally {
+      await closed;
+      process.env.JIFFOO_TEST_MARKETPLACE_URL = previousUrl;
+    }
+  });
+
+  it('F maps a package DNS failure to MARKETPLACE_DOWNLOAD_UNAVAILABLE', async () => {
+    await expect(downloadPackage({
+      version: '1.0.0', minApiVersion: 'v1', sha256: 'a'.repeat(64),
+      size: 1, downloadUrl: '/package.zip',
+    }, 'https://jiffoo-nonexistent.invalid/catalog')).rejects.toMatchObject({
+      code: 'MARKETPLACE_DOWNLOAD_UNAVAILABLE', statusCode: 502,
+    });
+  });
+
+  it('G maps a non-2xx package response to MARKETPLACE_DOWNLOAD_UNAVAILABLE', async () => {
+    const slug = own();
+    setCatalog(slug, await packageZip(slug));
+    packageHandler = (_incoming, outgoing) => { outgoing.writeHead(503); outgoing.end('unavailable'); };
+    try {
+      await rejectInstall(slug, 'MARKETPLACE_DOWNLOAD_UNAVAILABLE', 502);
+    } finally {
+      packageHandler = undefined;
+    }
+  });
+
+  it('H rejects an incompatible catalog version before downloading', async () => {
+    const slug = own();
+    setCatalog(slug, await packageZip(slug), '1.0.0', { minApiVersion: 'v999' });
+    const before = packageRequests;
+    await rejectInstall(slug, 'MARKETPLACE_INCOMPATIBLE_API_VERSION', 422);
+    expect(packageRequests).toBe(before);
+  });
   it('A installs a signed version with marketplace source, blob and immutable package', async () => {
     const slug = own();
     const bytes = await packageZip(slug);
     setCatalog(slug, bytes);
     const response = await request(slug);
     expect(response.statusCode).toBe(200);
-    expect(response.json().data).toMatchObject({ slug, version: '1.0.0', publisherId: 'publisher-x', publisherVerified: true, installedVersion: '1.0.0' });
+    expect(response.json().data).toMatchObject({ slug, version: '1.0.0', publisherId: 'publisher-x', publisherVerified: false, signingRoot: 'test', installedVersion: '1.0.0' });
     const row = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } });
-    expect(row).toMatchObject({ source: 'marketplace', publisherId: 'publisher-x', trustLevel: 'signed', zipHash: sha(bytes) });
+    expect(row).toMatchObject({ source: 'marketplace', publisherId: 'publisher-x', trustLevel: 'signed', signingRoot: 'test', zipHash: sha(bytes) });
     expect(await prisma.pluginPackageBlob.count({ where: { pluginSlug: slug } })).toBe(1);
     expect(await pluginPackageStore.get(slug, sha(bytes))).not.toBeNull();
     for (const url of [`/api/v1/extensions/plugin/${slug}`, '/api/v1/extensions/plugin']) {
@@ -201,7 +250,8 @@ describe('Marketplace installation', () => {
 
   it.each(['sha256', 'size'])('D rejects a mismatched %s and clears the temp file', async (field) => {
     const slug = own();
-    setCatalog(slug, await packageZip(slug), '1.0.0', { [field]: field === 'size' ? packageBody.length - 1 : 'f'.repeat(64) });
+    const bytes = await packageZip(slug);
+    setCatalog(slug, bytes, '1.0.0', { [field]: field === 'size' ? bytes.length + 1 : 'f'.repeat(64) });
     const before = await downloadTemps();
     await rejectInstall(slug, 'MARKETPLACE_DIGEST_MISMATCH', 422);
     expect(await downloadTemps()).toEqual(before);

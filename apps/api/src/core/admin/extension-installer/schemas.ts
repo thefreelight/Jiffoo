@@ -30,6 +30,7 @@ const extensionMetaSchema = {
     publisherId: { type: 'string', nullable: true },
     publisherName: { type: 'string', nullable: true },
     publisherVerified: { type: 'boolean' },
+    signingRoot: { type: 'string', enum: ['official', 'test'], nullable: true },
     publisherCertificateFingerprint: { type: 'string', nullable: true },
     source: { type: 'string', nullable: true, description: 'Extension source' },
     manifestJson: {
@@ -234,7 +235,7 @@ export const extensionInstallerSchemas = {
         },
       },
     },
-    response: createTypedUpdateResponses(pluginInstanceSchema),
+    response: { ...createTypedUpdateResponses(pluginInstanceSchema), 503: errorResponseSchema },
   },
 
   // POST /api/extensions/bundle/install
@@ -323,7 +324,7 @@ export const extensionInstallerSchemas = {
         slug: { type: 'string', description: 'Plugin slug to restore' },
       },
     },
-    response: { ...createTypedCreateResponses(restorePluginResultSchema), 409: errorResponseSchema },
+    response: { ...createTypedCreateResponses(restorePluginResultSchema), 409: errorResponseSchema, 503: errorResponseSchema },
   },
 
   // DELETE /api/extensions/plugin/:slug/purge

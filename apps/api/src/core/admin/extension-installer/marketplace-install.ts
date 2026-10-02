@@ -10,7 +10,7 @@ import { checkPluginApiCompatibility } from './plugin-compatibility';
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { fetchMarketplaceCatalog, MarketplaceError, marketplaceUrl, type CatalogVersion } from './marketplace-catalog';
 
-async function downloadPackage(entry: CatalogVersion, base: string): Promise<{ filePath: string; cleanup: () => Promise<void> }> {
+export async function downloadPackage(entry: CatalogVersion, base: string): Promise<{ filePath: string; cleanup: () => Promise<void> }> {
   const url = new URL(entry.downloadUrl, base);
   if (url.origin !== new URL(base).origin || url.username || url.password || url.hash) {
     throw new MarketplaceError('MARKETPLACE_DOWNLOAD_ORIGIN_FORBIDDEN', 422);

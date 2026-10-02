@@ -56,6 +56,7 @@ export interface InstallResult {
   publisherId?: string | null;
   publisherName?: string | null;
   publisherVerified?: boolean;
+  signingRoot?: 'official' | 'test' | null;
   publisherCertificateFingerprint?: string | null;
 }
 
@@ -84,6 +85,7 @@ export interface InstalledPlugin {
   publisherId?: string | null;
   publisherName?: string | null;
   publisherVerified?: boolean;
+  signingRoot?: 'official' | 'test' | null;
   publisherCertificateFingerprint?: string | null;
   entryModule?: string;        // For internal-fastify, e.g. 'server/index.js'
   source: ExtensionSource;

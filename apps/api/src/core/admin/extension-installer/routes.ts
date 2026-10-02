@@ -18,6 +18,7 @@ import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/con
 import { readStoredPluginManifest } from './stored-manifest';
 import { themeManagementRoutes } from './theme-routes';
 import { prisma } from '@/config/database';
+import { env } from '@/config/env';
 import { Prisma } from '@prisma/client';
 import { PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
 import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
@@ -315,12 +316,16 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         response: {
           200: { type: 'object', required: ['success', 'data'], properties: {
             success: { type: 'boolean' },
-            data: { type: 'object', required: ['configured'], properties: { configured: { type: 'boolean' } } },
+            data: { type: 'object', required: ['configured', 'testSigningMode'], properties: {
+              configured: { type: 'boolean' }, testSigningMode: { type: 'boolean' },
+            } },
           } },
           401: errorResponseSchema, 403: errorResponseSchema,
         },
       },
-    }, async (_request, reply) => sendSuccess(reply, { configured: Boolean(marketplaceUrl()) }));
+    }, async (_request, reply) => sendSuccess(reply, {
+      configured: Boolean(marketplaceUrl()), testSigningMode: env.EXTENSION_TEST_SIGNING_MODE,
+    }));
 
     admin.get('/marketplace/catalog', {
       schema: {
@@ -335,6 +340,11 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
               items: { type: 'array', items: { type: 'object', required: ['id', 'slug', 'name', 'description', 'publisherId', 'versions', 'installedVersion', 'installedPublisherId', 'updateAvailable'], properties: {
                 id: { type: 'string' }, slug: { type: 'string' }, name: { type: 'string' },
                 description: { type: 'string' }, publisherId: { type: 'string' },
+                declaredCapabilities: { type: 'array', items: { type: 'string' } },
+                declaredCapabilitiesVerified: { type: 'boolean', const: false },
+                capabilities: { type: 'array', items: { type: 'string' } },
+                capabilitiesSource: { type: 'string', enum: ['package', 'declared'] },
+                signingRoot: { type: 'string', enum: ['official', 'test'], nullable: true },
                 installedVersion: { type: 'string', nullable: true },
                 installedPublisherId: { type: 'string', nullable: true },
                 updateAvailable: { type: 'boolean' },
@@ -354,7 +364,6 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         const catalog = await fetchMarketplaceCatalog();
         const installed = await prisma.pluginInstall.findMany({
           where: { deletedAt: null, slug: { in: catalog.plugins.map((plugin) => plugin.slug) } },
-          select: { slug: true, version: true, publisherId: true },
         });
         const bySlug = new Map(installed.map((record) => [record.slug, record]));
         const items = catalog.plugins.map((plugin) => {
@@ -365,6 +374,12 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
           }));
           return {
             ...plugin, versions,
+            ...(plugin.declaredCapabilities !== undefined ? { declaredCapabilitiesVerified: false } : {}),
+            capabilities: current
+              ? [...new Set(readStoredPluginManifest(current).contracts?.map((contract) => contract.name) ?? [])]
+              : plugin.declaredCapabilities ?? [],
+            capabilitiesSource: current ? 'package' : 'declared',
+            ...(current ? { signingRoot: current.signingRoot } : {}),
             installedVersion: current?.version ?? null,
             installedPublisherId: current?.publisherId ?? null,
             updateAvailable: Boolean(current && current.publisherId === plugin.publisherId &&
@@ -401,9 +416,10 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         response: {
           200: { type: 'object', required: ['success', 'data'], properties: {
             success: { type: 'boolean' },
-            data: { type: 'object', required: ['slug', 'version', 'publisherId', 'publisherVerified', 'installedVersion'], properties: {
+            data: { type: 'object', required: ['slug', 'version', 'publisherId', 'publisherVerified', 'installedVersion', 'signingRoot'], properties: {
               slug: { type: 'string' }, version: { type: 'string' }, publisherId: { type: 'string' },
               publisherVerified: { type: 'boolean' }, installedVersion: { type: 'string' },
+              signingRoot: { type: 'string', enum: ['official', 'test'], nullable: true },
             } },
           } },
           400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema,
@@ -417,7 +433,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         const plugin = await installMarketplacePlugin(request.body.pluginId, request.body.version);
         return sendSuccess(reply, {
           slug: plugin.slug, version: plugin.version, publisherId: plugin.publisherId,
-          publisherVerified: true, installedVersion: plugin.version,
+          publisherVerified: plugin.signingRoot === 'official', signingRoot: plugin.signingRoot ?? null,
+          installedVersion: plugin.version,
         });
       } catch (error) {
         if (error instanceof MarketplaceError) return sendError(reply, error.statusCode, error.code, error.message);

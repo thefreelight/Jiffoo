@@ -28,6 +28,7 @@ export type PublisherIdentity = {
   publisherId: string;
   publisherName: string;
   publisherCertificateFingerprint: string;
+  signingRoot: 'official' | 'test';
 };
 export class PackageVerificationError extends Error {
   readonly statusCode = 422;
@@ -97,13 +98,39 @@ export function issuePublisherCertificate(
 export function signPackage(files: PackageSignature['files'], publisherPrivateKeyPem: string): PackageSignature {
   return { schemaVersion: 1, algorithm: 'Ed25519', files, signature: sign(null, packagePayload(files), createPrivateKey(publisherPrivateKeyPem)).toString('base64url') };
 }
-export function assertTestRootEnvironment(nodeEnv = process.env.NODE_ENV, testRoot = process.env.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY): void {
-  if (testRoot && nodeEnv !== 'test') throw new Error('JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY is allowed only under NODE_ENV=test');
+export function assertTestRootEnvironment(
+  mode = process.env.EXTENSION_TEST_SIGNING_MODE === 'true',
+  testRoot = process.env.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY,
+): void {
+  const overrideFlag = process.env.JIFFOO_TEST_OFFICIAL_ROOT_OVERRIDE;
+  const overrideKey = process.env.JIFFOO_TEST_OFFICIAL_ROOT_PUBLIC_KEY;
+  if (process.env.NODE_ENV !== 'test' && (overrideFlag !== undefined || overrideKey !== undefined)) {
+    throw new Error('Official root override is allowed only under NODE_ENV=test');
+  }
+  if (overrideFlag !== undefined && overrideFlag !== 'true') throw new Error('JIFFOO_TEST_OFFICIAL_ROOT_OVERRIDE must be true when set');
+  if (overrideFlag === 'true') {
+    if (!overrideKey || overrideKey === testRoot) throw new Error('Official root override requires a distinct substitute public key');
+    try { publicKey(overrideKey); } catch { throw new Error('Official root override requires a valid Ed25519 public key'); }
+  } else if (overrideKey !== undefined) {
+    throw new Error('Official root override key requires JIFFOO_TEST_OFFICIAL_ROOT_OVERRIDE=true');
+  }
+  if (!mode && testRoot) throw new Error('JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY requires EXTENSION_TEST_SIGNING_MODE=true');
+  if (mode) {
+    if (!testRoot || testRoot === OFFICIAL_ROOT_PUBLIC_KEY) throw new Error('EXTENSION_TEST_SIGNING_MODE requires a distinct test root public key');
+    try { publicKey(testRoot); } catch { throw new Error('EXTENSION_TEST_SIGNING_MODE requires a valid Ed25519 test root public key'); }
+  }
 }
-export function trustedRootKeys(): string[] {
-  assertTestRootEnvironment();
-  return process.env.NODE_ENV === 'test' && process.env.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY
-    ? [OFFICIAL_ROOT_PUBLIC_KEY, process.env.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY] : [OFFICIAL_ROOT_PUBLIC_KEY];
+export function trustedRootKeys(): Array<{ key: string; kind: 'official' | 'test' }> {
+  const mode = process.env.EXTENSION_TEST_SIGNING_MODE === 'true';
+  const testRoot = process.env.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY;
+  assertTestRootEnvironment(mode, testRoot);
+  const officialKey = process.env.NODE_ENV === 'test' &&
+    process.env.JIFFOO_TEST_OFFICIAL_ROOT_OVERRIDE === 'true'
+    ? process.env.JIFFOO_TEST_OFFICIAL_ROOT_PUBLIC_KEY!
+    : OFFICIAL_ROOT_PUBLIC_KEY;
+  return mode && testRoot
+    ? [{ key: officialKey, kind: 'official' }, { key: testRoot, kind: 'test' }]
+    : [{ key: officialKey, kind: 'official' }];
 }
 
 export type PluginZipEntry = { path: string; content: Buffer; flags: number; mode: number };
@@ -164,7 +191,7 @@ export async function verifyPluginZip(filePath: string): Promise<PublisherIdenti
   if (!cert && !sig) return null;
   if (!cert || !sig) fail('INCOMPLETE_PACKAGE_SIGNATURE');
   validatePluginZipPaths(entries);
-  const certificate = verifyPublisherCertificate(cert!.content);
+  const { certificate, signingRoot } = verifyPublisherCertificateWithRoot(cert!.content);
   let signature: PackageSignature;
   try {
     signature = JSON.parse(decoder.decode(sig!.content));
@@ -180,7 +207,7 @@ export async function verifyPluginZip(filePath: string): Promise<PublisherIdenti
       file.path !== actual[index].path || file.sha256 !== actual[index].sha256 ||
       Object.keys(file).sort().join(',') !== 'path,sha256')) fail('PACKAGE_CONTENT_MISMATCH');
   if (!verify(null, packagePayload(signature!.files), publicKey(certificate.publicKey), base64url(signature!.signature))) fail('INVALID_PACKAGE_SIGNATURE');
-  return { publisherId: certificate.publisherId, publisherName: certificate.publisherName, publisherCertificateFingerprint: hash(cert!.content) };
+  return { publisherId: certificate.publisherId, publisherName: certificate.publisherName, publisherCertificateFingerprint: hash(cert!.content), signingRoot };
 }
 
 export function validatePluginZipPaths(entries: PluginZipEntry[]): void {
@@ -205,6 +232,12 @@ export function readPluginZipEntries(zip: Buffer): PluginZipEntry[] {
 }
 
 export function verifyPublisherCertificate(bytes: Buffer): PublisherCertificate {
+  return verifyPublisherCertificateWithRoot(bytes).certificate;
+}
+
+export function verifyPublisherCertificateWithRoot(bytes: Buffer): {
+  certificate: PublisherCertificate; signingRoot: 'official' | 'test';
+} {
   let certificate: PublisherCertificate;
   try {
     certificate = JSON.parse(decoder.decode(bytes));
@@ -217,9 +250,9 @@ export function verifyPublisherCertificate(bytes: Buffer): PublisherCertificate 
     base64url(certificate.rootSignature);
   } catch { fail('INVALID_PUBLISHER_CERTIFICATE'); }
   const { rootSignature, ...unsigned } = certificate!;
-  const trusted = trustedRootKeys().some((root) => {
-    try { return verify(null, certificatePayload(unsigned), publicKey(root), base64url(rootSignature)); } catch { return false; }
+  const root = trustedRootKeys().find(({ key }) => {
+    try { return verify(null, certificatePayload(unsigned), publicKey(key), base64url(rootSignature)); } catch { return false; }
   });
-  if (!trusted) fail('UNTRUSTED_PUBLISHER_CERTIFICATE');
-  return certificate!;
+  if (!root) fail('UNTRUSTED_PUBLISHER_CERTIFICATE');
+  return { certificate: certificate!, signingRoot: root!.kind };
 }

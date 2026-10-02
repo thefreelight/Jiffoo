@@ -104,13 +104,13 @@ describe('Signed plugin uploads over HTTP', () => {
     await absent(slug);
   }
 
-  it('A valid signed install persists and exposes a verified publisher', async () => {
+  it('A valid test-signed install persists and exposes its test root', async () => {
     const slug = own();
     const result = await upload(signedEntries(slug));
     expect(result.status).toBe(200);
-    expect(result.body.data).toMatchObject({ publisherId: 'publisher-x', publisherName: 'Publisher X', publisherVerified: true });
+    expect(result.body.data).toMatchObject({ publisherId: 'publisher-x', publisherName: 'Publisher X', publisherVerified: false, signingRoot: 'test' });
     const row = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } });
-    expect(row).toMatchObject({ trustLevel: 'signed', publisherId: 'publisher-x', publisherName: 'Publisher X' });
+    expect(row).toMatchObject({ trustLevel: 'signed', signingRoot: 'test', publisherId: 'publisher-x', publisherName: 'Publisher X' });
     expect(row.publisherCertificateFingerprint).toMatch(/^[a-f0-9]{64}$/);
     for (const url of [`/api/v1/extensions/plugin/${slug}`, '/api/v1/extensions/plugin']) {
       const response = await fetch(`${base}${url}`, { headers: { authorization: `Bearer ${token}` } });
@@ -120,7 +120,8 @@ describe('Signed plugin uploads over HTTP', () => {
       expect(plugin).toMatchObject({
         publisherId: 'publisher-x',
         publisherName: 'Publisher X',
-        publisherVerified: true,
+        publisherVerified: false,
+        signingRoot: 'test',
         publisherCertificateFingerprint: row.publisherCertificateFingerprint,
       });
     }

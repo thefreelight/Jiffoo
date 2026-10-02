@@ -76,7 +76,8 @@ export class ExtensionInstaller implements IExtensionInstaller {
           fsPath: plugin.fsPath,
           publisherId: plugin.publisherId ?? null,
           publisherName: plugin.publisherName ?? null,
-          publisherVerified: plugin.trustLevel === 'signed',
+          publisherVerified: plugin.signingRoot === 'official',
+          signingRoot: plugin.signingRoot ?? null,
           publisherCertificateFingerprint: plugin.publisherCertificateFingerprint ?? null,
         };
       }
@@ -134,7 +135,8 @@ export class ExtensionInstaller implements IExtensionInstaller {
           trustLevel: pkg.trustLevel,
           publisherId: pkg.publisherId,
           publisherName: pkg.publisherName,
-          publisherVerified: pkg.trustLevel === 'signed',
+          publisherVerified: pkg.signingRoot === 'official',
+          signingRoot: pkg.signingRoot as 'official' | 'test' | null,
           publisherCertificateFingerprint: pkg.publisherCertificateFingerprint,
           };
         }));
@@ -178,7 +180,8 @@ export class ExtensionInstaller implements IExtensionInstaller {
           trustLevel: pkg.trustLevel,
           publisherId: pkg.publisherId,
           publisherName: pkg.publisherName,
-          publisherVerified: pkg.trustLevel === 'signed',
+          publisherVerified: pkg.signingRoot === 'official',
+          signingRoot: pkg.signingRoot as 'official' | 'test' | null,
           publisherCertificateFingerprint: pkg.publisherCertificateFingerprint,
         };
       }

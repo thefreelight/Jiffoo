@@ -420,7 +420,8 @@ async function buildApp() {
 
 export async function startApiRuntime(options: { port?: number; host?: string } = {}) {
   try {
-    assertTestRootEnvironment();
+    assertTestRootEnvironment(env.EXTENSION_TEST_SIGNING_MODE);
+    if (env.EXTENSION_TEST_SIGNING_MODE) console.warn('Test signing mode is enabled for the API');
     pluginSecretsKey();
     const app = await buildApp();
 

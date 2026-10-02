@@ -92,7 +92,7 @@ afterAll(async () => {
 describe('Marketplace catalog API', () => {
   it('A reports not configured and preserves plugin uploads', async () => {
     delete process.env.JIFFOO_TEST_MARKETPLACE_URL;
-    expect((await get('status')).json().data).toEqual({ configured: false });
+    expect((await get('status')).json().data).toEqual({ configured: false, testSigningMode: true });
     const result = await get('catalog');
     expect(result.statusCode).toBe(503);
     expect(result.json().error.code).toBe('MARKETPLACE_NOT_CONFIGURED');
@@ -135,6 +135,34 @@ describe('Marketplace catalog API', () => {
       await prisma.pluginInstall.deleteMany({ where: { slug } });
       await clearTestPluginCache(slug);
     }
+  });
+
+  it('I returns declared capabilities without claiming verification for an uninstalled catalog entry', async () => {
+    configure();
+    serve({ ...catalog(), plugins: [{ ...catalog().plugins[0], declaredCapabilities: ['payment', 'shipping'] }] });
+    const result = await get('catalog');
+    expect(result.statusCode).toBe(200);
+    expect(result.json().data.items[0]).toMatchObject({
+      declaredCapabilities: ['payment', 'shipping'], declaredCapabilitiesVerified: false,
+      capabilities: ['payment', 'shipping'], capabilitiesSource: 'declared',
+    });
+    expect(result.json().data.items[0].signingRoot).toBeUndefined();
+    expect(result.json().data.items[0].publisherVerified).toBeUndefined();
+  });
+
+  it.each([
+    'payment', ['payment', 1], ['payment', 'payment'], ['Invalid Name'],
+  ])('I invalid declared capabilities invalidate the whole catalog: %j', async (capabilities) => {
+    configure();
+    serve({ ...catalog(), plugins: [{ ...catalog().plugins[0], declaredCapabilities: capabilities }] });
+    const result = await get('catalog');
+    expect(result.statusCode).toBe(502);
+    expect(result.json().error.code).toBe('MARKETPLACE_CATALOG_INVALID');
+  });
+
+  it('I status exposes test signing mode to Admin only', async () => {
+    expect((await get('status')).json().data.testSigningMode).toBe(true);
+    expect((await get('status', '')).statusCode).toBe(401);
   });
 
   it.each([
