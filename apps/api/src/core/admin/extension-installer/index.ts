@@ -122,9 +122,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
           category: pkg.category || 'general',
           runtimeType: 'internal-fastify',
           entryModule: pkg.entryModule || undefined,
-          source: (pkg.source === 'builtin' || pkg.source === 'local-zip'
-            ? pkg.source 
-            : 'local-zip') as ExtensionSource, // Map DB source to ExtensionSource
+          source: pkg.source as ExtensionSource,
           fsPath: pluginPackage.getEntryPath(''),
           permissions: parseJsonArray(pkg.permissions),
           author: pkg.author || undefined,
@@ -168,9 +166,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
           category: pkg.category || 'general',
           runtimeType: 'internal-fastify',
           entryModule: pkg.entryModule || undefined,
-          source: (pkg.source === 'builtin' || pkg.source === 'local-zip'
-            ? pkg.source 
-            : 'local-zip') as ExtensionSource, // Map DB source to ExtensionSource
+          source: pkg.source as ExtensionSource,
           fsPath: pluginPackage.getEntryPath(''),
           permissions: parseJsonArray(pkg.permissions),
           author: pkg.author || undefined,

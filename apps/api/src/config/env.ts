@@ -52,6 +52,7 @@ export const envSchema = z.object({
   STOREFRONT_URL: z.string().url().optional(),
   ADMIN_URL: z.string().url().optional(),
   EXTENSION_MARKETPLACE_URL: z.string().optional(),
+  EXTENSION_MARKETPLACE_DOWNLOAD_TIMEOUT_MS: z.coerce.number().int().min(100).max(120000).default(30000),
 
   VAULT_ADDR: z.string().optional(),
   VAULT_TOKEN: z.string().optional(),

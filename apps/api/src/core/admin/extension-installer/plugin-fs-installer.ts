@@ -20,6 +20,8 @@ import {
   IPluginInstaller,
   InstalledPlugin,
   PluginManifest,
+  type PluginInstallOptions,
+  type ExtensionSource,
 } from './types';
 import { CacheService } from '@/core/cache/service';
 import {
@@ -111,7 +113,7 @@ export class PluginFsInstaller implements IPluginInstaller {
    * 6. Create/update database records (PluginInstall + default instance)
    * 7. Write local metadata file
    */
-  async install(zipStream: Readable, options?: { source?: string; confirmUnsigned?: boolean; actorUserId?: string }): Promise<InstalledPlugin> {
+  async install(zipStream: Readable, options?: PluginInstallOptions): Promise<InstalledPlugin> {
     let tempDir: string | null = null;
     let deployment: PluginPackageDeployment | null = null;
     let tempZipCleanup: (() => Promise<void>) | null = null;
@@ -128,16 +130,29 @@ export class PluginFsInstaller implements IPluginInstaller {
 
     try {
     const publisher = await verifyPluginZip(zipFilePath);
+    if (options?.source === 'marketplace' && !publisher) {
+      throw Object.assign(new Error('Marketplace packages must be signed'), { code: 'MARKETPLACE_SIGNATURE_REQUIRED', statusCode: 422 });
+    }
     tempDir = await extractZipToTemp(createReadStream(zipFilePath), 'plugin');
     const { rootDir, manifestPath } = await resolveExtractedPackageRoot(tempDir, 'plugin');
     const manifest = await readJsonFile<PluginManifest>(manifestPath);
     validatePluginManifest(manifest);
+    if (options?.source === 'marketplace') {
+      if (!options.lease || !options.expectedMarketplaceIdentity) throw new Error('Marketplace install requires a lease and expected identity');
+      if (manifest.slug !== options.lease.slug ||
+        manifest.version !== options.expectedMarketplaceIdentity.version ||
+        publisher!.publisherId !== options.expectedMarketplaceIdentity.publisherId) {
+        throw Object.assign(new Error('Marketplace package identity differs from the catalog'), {
+          code: 'MARKETPLACE_IDENTITY_MISMATCH', statusCode: 422,
+        });
+      }
+    }
     if (options?.source !== 'builtin' && BUILTIN_PLUGIN_SLUGS.has(manifest.slug)) {
       const error = Object.assign(new Error(`Plugin slug "${manifest.slug}" is reserved for a built-in plugin`), { statusCode: 400, code: 'SLUG_RESERVED' });
       throw error;
     }
     if (options?.source !== 'builtin') {
-      lease = { slug: manifest.slug, token: await acquirePluginOperationLease(manifest.slug, 'install') };
+      lease = options?.lease ?? { slug: manifest.slug, token: await acquirePluginOperationLease(manifest.slug, 'install') };
       await testLeaseBarrier('acquired', manifest.slug, zipHash);
     }
     // 2. Check if same hash already installed (idempotency)
@@ -169,6 +184,9 @@ export class PluginFsInstaller implements IPluginInstaller {
           await fencePluginOperationLease(tx, lease!.slug, lease!.token);
           await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, bytes);
           await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
+          if (options?.source === 'marketplace') {
+            await tx.pluginInstall.update({ where: { slug: manifest.slug }, data: { source: 'marketplace' } });
+          }
           await incrementPluginRegistryVersion(tx);
         });
       }
@@ -186,7 +204,7 @@ export class PluginFsInstaller implements IPluginInstaller {
         publisherVerified: existingByHash.trustLevel === 'signed',
         publisherCertificateFingerprint: existingByHash.publisherCertificateFingerprint,
         entryModule: existingByHash.entryModule || undefined,
-        source: 'local-zip',
+        source: (options?.source === 'marketplace' ? 'marketplace' : existingByHash.source) as ExtensionSource,
         fsPath: existingPackage.getEntryPath(''),
         permissions: parseJsonArray(existingByHash.permissions),
         author: existingByHash.author || undefined,
@@ -282,7 +300,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             const updatedInstall = await tx.pluginInstall.update({
               where: { slug: manifest.slug },
               data: {
-                name: manifest.name, version: manifest.version, description: manifest.description,
+                name: manifest.name, version: manifest.version, source: options?.source || 'local-zip', description: manifest.description,
                 author: manifest.author, authorUrl: manifest.authorUrl, category: manifest.category,
                 runtimeType: manifest.runtimeType, entryModule: manifest.entryModule, zipHash,
                 manifestJson: manifest, permissions: manifest.permissions ?? null, trustLevel, deletedAt: null, updatedAt: now,
@@ -332,7 +350,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             publisherVerified: pluginInstall.trustLevel === 'signed',
             publisherCertificateFingerprint: pluginInstall.publisherCertificateFingerprint,
             entryModule: manifest.entryModule,
-            source: 'local-zip',
+            source: (options?.source || 'local-zip') as ExtensionSource,
             fsPath: targetDir,
             permissions: manifest.permissions,
             author: manifest.author,
@@ -455,7 +473,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             publisherVerified: pluginInstall.trustLevel === 'signed',
             publisherCertificateFingerprint: pluginInstall.publisherCertificateFingerprint,
             entryModule: manifest.entryModule,
-            source: 'local-zip',
+            source: (options?.source || 'local-zip') as ExtensionSource,
             fsPath: targetDir,
             permissions: manifest.permissions,
             author: manifest.author,
@@ -487,7 +505,7 @@ export class PluginFsInstaller implements IPluginInstaller {
 
       throw error;
     } finally {
-      if (lease) await releasePluginOperationLease(lease.slug, lease.token);
+      if (lease && !options?.lease) await releasePluginOperationLease(lease.slug, lease.token);
       if (tempZipCleanup) {
         await tempZipCleanup().catch(() => {});
       }
@@ -554,7 +572,7 @@ export class PluginFsInstaller implements IPluginInstaller {
         category: manifest.category || 'general',
         runtimeType: manifest.runtimeType || 'internal-fastify',
         entryModule: manifest.entryModule,
-        source: 'local-zip',
+        source: installed.source as ExtensionSource,
         fsPath: pluginPackage.getEntryPath(''),
         permissions: manifest.permissions,
         author: manifest.author,

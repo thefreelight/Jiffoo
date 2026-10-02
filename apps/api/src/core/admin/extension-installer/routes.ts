@@ -24,6 +24,7 @@ import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 import { fetchMarketplaceCatalog, marketplaceUrl, MarketplaceError } from './marketplace-catalog';
 import { checkPluginApiCompatibility } from './plugin-compatibility';
 import { compareVersions } from './version-utils';
+import { installMarketplacePlugin } from './marketplace-install';
 
 // Per spec (EXTENSIONS_IMPLEMENTATION.md) size limits for offline ZIP installs
 const ZIP_SIZE_LIMITS: Record<ExtensionKind, number> = {
@@ -375,6 +376,58 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         if (error instanceof MarketplaceError) return sendError(reply, error.statusCode, error.code, error.message);
         fastify.log.error({ err: error }, 'Marketplace catalog failed');
         return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Marketplace catalog failed');
+      }
+    });
+
+    admin.post<{ Body: { pluginId: string; version: string } }>('/marketplace/install', {
+      preValidation: (request, reply, done) => {
+        if (request.body && typeof request.body === 'object' && !Array.isArray(request.body) &&
+          Object.keys(request.body).some((key) => key !== 'pluginId' && key !== 'version')) {
+          void sendError(reply, 400, 'BAD_REQUEST', 'Unexpected marketplace install field');
+          return;
+        }
+        done();
+      },
+      schema: {
+        tags: ['admin-plugins'], summary: 'Install a marketplace plugin',
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: 'object', required: ['pluginId', 'version'], additionalProperties: false,
+          properties: {
+            pluginId: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,30}[a-z0-9]$' },
+            version: { type: 'string', pattern: '^\\d+\\.\\d+\\.\\d+$' },
+          },
+        },
+        response: {
+          200: { type: 'object', required: ['success', 'data'], properties: {
+            success: { type: 'boolean' },
+            data: { type: 'object', required: ['slug', 'version', 'publisherId', 'publisherVerified', 'installedVersion'], properties: {
+              slug: { type: 'string' }, version: { type: 'string' }, publisherId: { type: 'string' },
+              publisherVerified: { type: 'boolean' }, installedVersion: { type: 'string' },
+            } },
+          } },
+          400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema,
+          404: errorResponseSchema, 409: errorResponseSchema, 413: errorResponseSchema,
+          422: errorResponseSchema, 500: errorResponseSchema, 502: errorResponseSchema,
+          503: errorResponseSchema, 504: errorResponseSchema,
+        },
+      },
+    }, async (request, reply) => {
+      try {
+        const plugin = await installMarketplacePlugin(request.body.pluginId, request.body.version);
+        return sendSuccess(reply, {
+          slug: plugin.slug, version: plugin.version, publisherId: plugin.publisherId,
+          publisherVerified: true, installedVersion: plugin.version,
+        });
+      } catch (error) {
+        if (error instanceof MarketplaceError) return sendError(reply, error.statusCode, error.code, error.message);
+        if (error && typeof error === 'object' && 'statusCode' in error && 'code' in error &&
+          typeof error.statusCode === 'number' && typeof error.code === 'string' &&
+          [409, 413, 422].includes(error.statusCode)) {
+          return sendError(reply, error.statusCode, error.code, error.code);
+        }
+        fastify.log.error({ err: error }, 'Marketplace install failed');
+        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Marketplace install failed');
       }
     });
 

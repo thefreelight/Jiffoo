@@ -26,7 +26,15 @@ export type ExtensionKind =
   | 'bundle';
 
 /** Extension source */
-export type ExtensionSource = 'local-zip' | 'builtin';
+export type ExtensionSource = 'local-zip' | 'builtin' | 'marketplace';
+
+export type PluginInstallOptions = {
+  source?: string;
+  confirmUnsigned?: boolean;
+  actorUserId?: string;
+  lease?: { slug: string; token: string };
+  expectedMarketplaceIdentity?: { version: string; publisherId: string };
+};
 
 /** Plugin runtime type */
 export type PluginRuntimeType = SharedPluginRuntimeType;
@@ -151,7 +159,7 @@ export interface IExtensionInstaller {
 
 /** Plugin Installer Interface */
 export interface IPluginInstaller {
-  install(zipStream: Readable, options?: { source?: string; confirmUnsigned?: boolean; actorUserId?: string }): Promise<InstalledPlugin>;
+  install(zipStream: Readable, options?: PluginInstallOptions): Promise<InstalledPlugin>;
   uninstall(slug: string): Promise<void>;
   list(): Promise<InstalledPlugin[]>;
   get(slug: string): Promise<InstalledPlugin | null>;

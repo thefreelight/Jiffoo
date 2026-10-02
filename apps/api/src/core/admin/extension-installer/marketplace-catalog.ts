@@ -46,7 +46,7 @@ function exactKeys(value: unknown, keys: string[]): value is Record<string, unkn
     Object.keys(value).sort().join(',') === [...keys].sort().join(',');
 }
 
-export function validateCatalog(value: unknown, base: string): MarketplaceCatalog {
+export function validateCatalog(value: unknown, base: string, forInstall = false): MarketplaceCatalog {
   if (!exactKeys(value, ['schemaVersion', 'plugins']) || value.schemaVersion !== 1 ||
     !Array.isArray(value.plugins) || value.plugins.length > 1000) invalid();
   const ids = new Set<string>();
@@ -74,16 +74,19 @@ export function validateCatalog(value: unknown, base: string): MarketplaceCatalo
       let url: URL;
       try { url = new URL(entry.downloadUrl, base); } catch { invalid(); }
       if (url.origin !== new URL(base).origin || url.username || url.password || url.hash ||
-        !['https:', 'http:'].includes(url.protocol)) invalid();
+        !['https:', 'http:'].includes(url.protocol)) {
+        if (forInstall) throw new MarketplaceError('MARKETPLACE_DOWNLOAD_ORIGIN_FORBIDDEN', 422);
+        invalid();
+      }
     }
   }
   return value as MarketplaceCatalog;
 }
 
-export async function fetchMarketplaceCatalog(): Promise<MarketplaceCatalog> {
+export async function fetchMarketplaceCatalog(options: { bypassCache?: boolean; forInstall?: boolean } = {}): Promise<MarketplaceCatalog> {
   const url = marketplaceUrl();
   if (!url) throw new MarketplaceError('MARKETPLACE_NOT_CONFIGURED', 503);
-  if (cache?.url === url && cache.expires > Date.now()) return cache.catalog;
+  if (!options.bypassCache && cache?.url === url && cache.expires > Date.now()) return cache.catalog;
   const controller = new AbortController();
   let timer: NodeJS.Timeout;
   const deadline = new Promise<never>((_resolve, reject) => {
@@ -111,8 +114,8 @@ export async function fetchMarketplaceCatalog(): Promise<MarketplaceCatalog> {
     }
     let parsed: unknown;
     try { parsed = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { invalid(); }
-    const catalog = validateCatalog(parsed, url);
-    cache = { url, catalog, expires: Date.now() + CACHE_TTL_MS };
+    const catalog = validateCatalog(parsed, url, options.forInstall);
+    if (!options.bypassCache) cache = { url, catalog, expires: Date.now() + CACHE_TTL_MS };
     return catalog;
   } catch (error) {
     if (error instanceof MarketplaceError) throw error;
