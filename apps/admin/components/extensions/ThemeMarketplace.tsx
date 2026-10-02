@@ -208,6 +208,29 @@ function MiniPreview({ tint, className }: { tint: StyleTint; className?: string 
   );
 }
 
+/**
+ * Card/hero preview: prefer the official catalog thumbnail artwork and fall
+ * back to the generated mini mockup when a theme has none (or it fails to
+ * load).
+ */
+function ThemePreview({ item, className }: { item: OfficialCatalogItem; className?: string }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = Boolean(item.thumbnailUrl) && !imageFailed;
+
+  if (showImage) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={item.thumbnailUrl}
+        alt={item.name}
+        className={cn('object-cover', className)}
+        onError={() => setImageFailed(true)}
+      />
+    );
+  }
+  return <MiniPreview tint={tintForSlug(item.slug)} className={className} />;
+}
+
 /* ------------------------------------------------------------------ */
 /* Marketplace component                                               */
 
@@ -416,11 +439,6 @@ export function ThemeMarketplace() {
 
   /* ---------------- rendering ---------------- */
 
-  const renderTint = (item: OfficialCatalogItem): StyleTint =>
-    usingDemoStyles
-      ? DEMO_STYLES.find((style) => style.slug === item.slug)?.tint ?? tintForSlug(item.slug)
-      : tintForSlug(item.slug);
-
   const renderDots = (item: OfficialCatalogItem): string[] =>
     usingDemoStyles
       ? DEMO_STYLES.find((style) => style.slug === item.slug)?.dots ?? dotsForSlug(item.slug)
@@ -516,7 +534,7 @@ export function ThemeMarketplace() {
               </div>
             </div>
             <div className="pointer-events-none relative hidden min-w-0 flex-1 md:block">
-              <MiniPreview tint={renderTint(featured)} className="ml-auto h-44 w-full max-w-[420px] rotate-[1deg] drop-shadow-xl" />
+              <ThemePreview item={featured} className="ml-auto h-44 w-full max-w-[420px] rotate-[1deg] rounded-xl object-cover drop-shadow-xl" />
             </div>
           </div>
         </section>
@@ -586,7 +604,7 @@ export function ThemeMarketplace() {
                 className="group overflow-hidden rounded-xl border border-[#eef1f6] bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-blue-500/5"
               >
                 <div className="relative p-2 pb-0">
-                  <MiniPreview tint={renderTint(item)} className="h-36 w-full" />
+                  <ThemePreview item={item} className="h-36 w-full rounded-lg" />
                   {isActive && (
                     <span className="absolute left-4 top-4 inline-flex items-center rounded-md bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white shadow-sm">
                       {getText('merchant.themes.market.currentBadge', '当前使用')}
