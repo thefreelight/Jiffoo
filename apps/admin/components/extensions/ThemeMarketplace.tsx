@@ -218,8 +218,8 @@ const ARTIFACTS_VISUALS_BASE = 'https://get.jiffoo.com/official-artifacts/visual
 function ThemePreview({ item, className }: { item: OfficialCatalogItem; className?: string }) {
   const [failedSources, setFailedSources] = useState<string[]>([]);
   const candidateSources = [
-    item.thumbnailUrl,
     `${ARTIFACTS_VISUALS_BASE}/${item.slug}/thumbnail.jpg`,
+    item.thumbnailUrl,
   ].filter((source): source is string => Boolean(source) && !failedSources.includes(source as string));
   const showImage = candidateSources.length > 0;
 
