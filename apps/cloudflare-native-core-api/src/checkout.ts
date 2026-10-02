@@ -79,6 +79,30 @@ function orderNumber(): string {
   return `ord_${Date.now().toString(36)}_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`;
 }
 
+const SHIPPING_ADDRESS_FIELDS = ['name', 'phone', 'line1', 'city', 'state', 'postalCode', 'country'] as const;
+
+export type NormalizedShippingAddress = Record<(typeof SHIPPING_ADDRESS_FIELDS)[number], string>;
+
+/** Accepts the client address payload; returns a trimmed, complete address or
+ *  null when any required field is missing/blank (null = caller must reject
+ *  the order for physical goods). */
+export function normalizeShippingAddress(raw: unknown): NormalizedShippingAddress | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const source = raw as Record<string, unknown>;
+  const address: Record<string, string> = {};
+  for (const field of SHIPPING_ADDRESS_FIELDS) {
+    const value = typeof source[field] === 'string' ? (source[field] as string).trim() : '';
+    if (!value) return null;
+    address[field] = value;
+  }
+  const line2 = typeof source.line2 === 'string' ? source.line2.trim() : '';
+  if (line2) address.line2 = line2;
+  if (address.country.length !== 2 || address.country !== address.country.toUpperCase()) {
+    address.country = address.country.toUpperCase();
+  }
+  return address as NormalizedShippingAddress;
+}
+
 export function checkoutLocale(request: Request, explicitLocale?: string): 'zh-CN' | 'en' {
   const candidate = explicitLocale?.trim() || request.headers.get('accept-language') || '';
   return candidate.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en';
@@ -155,6 +179,12 @@ async function createOrder(
   ).bind(user.id).first<{ shipping_amount: number; method_name: string; plugin_slug: string }>();
   const requiresShipping = items.some((item) => item.productKind === 'goods' || item.productKind === 'consumable');
   const shippingAmount = requiresShipping ? shipping?.shipping_amount ?? 0 : 0;
+  // Physical goods are shipped after payment: a complete delivery address is
+  // mandatory, otherwise the customer can never receive the product.
+  const shippingAddress = normalizeShippingAddress(body.shippingAddress);
+  if (requiresShipping && !shippingAddress) {
+    return failure(400, 'SHIPPING_ADDRESS_REQUIRED', 'A complete shipping address is required for physical products');
+  }
   // Promo codes double as buyer discounts and affiliate attribution.
   const affiliateCodeRaw = typeof body.affiliateCode === 'string' ? body.affiliateCode.trim().toUpperCase() : '';
   const affiliatePartner = affiliateCodeRaw
@@ -179,7 +209,7 @@ async function createOrder(
     shippingProvider: requiresShipping ? shipping?.plugin_slug ?? null : null,
     appliedDiscounts: [],
     currency: 'USD',
-    shippingAddress: body.shippingAddress ?? null,
+    shippingAddress: shippingAddress ?? body.shippingAddress ?? null,
     customerEmail: user.email,
     locale: checkoutLocale(request, body.locale),
     items,
@@ -435,6 +465,7 @@ async function createPaymentIntent(request: Request, env: CheckoutEnv, user: Nat
     return failure(409, 'INVALID_ORDER_TOTAL', 'Order total is not chargeable');
   }
   const order = JSON.parse(row.payload) as Record<string, unknown>;
+  const shippingAddress = normalizeShippingAddress(order.shippingAddress);
   const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
   const form = new URLSearchParams({
     amount: String(amount),
@@ -442,6 +473,16 @@ async function createPaymentIntent(request: Request, env: CheckoutEnv, user: Nat
     'automatic_payment_methods[enabled]': 'true',
     'metadata[orderId]': String(order.id),
   });
+  if (shippingAddress) {
+    form.set('shipping[name]', shippingAddress.name);
+    form.set('shipping[phone]', shippingAddress.phone);
+    form.set('shipping[address][line1]', shippingAddress.line1);
+    if (shippingAddress.line2) form.set('shipping[address][line2]', shippingAddress.line2);
+    form.set('shipping[address][city]', shippingAddress.city);
+    form.set('shipping[address][state]', shippingAddress.state);
+    form.set('shipping[address][postal_code]', shippingAddress.postalCode);
+    form.set('shipping[address][country]', shippingAddress.country);
+  }
   const stripe = await fetch('https://api.stripe.com/v1/payment_intents', {
     method: 'POST',
     headers: {
