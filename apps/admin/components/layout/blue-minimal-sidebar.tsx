@@ -204,7 +204,7 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
       {
         id: 'themes',
         nameKey: 'merchant.nav.themes',
-        fallback: '主题',
+        fallback: '主题市场',
         href: '/themes',
         icon: Palette,
         requiredPermissions: [ADMIN_PERMISSIONS.THEMES_READ],
