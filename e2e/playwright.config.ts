@@ -20,6 +20,7 @@ const areas = [
   '27-admin-audit-events',
   '28-disabled-payment-plugin',
   '29-plugin-config',
+  '30-marketplace',
 ];
 
 export default defineConfig({

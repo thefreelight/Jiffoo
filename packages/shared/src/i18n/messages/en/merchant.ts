@@ -812,6 +812,24 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    marketplace: {
+      title: 'Marketplace', views: 'Plugin views', installedPlugins: 'Installed plugins', details: 'Details', version: 'Version', publisher: 'Publisher', installedVersion: 'Installed version', none: 'None',
+      loading: 'Loading marketplace…', loadError: 'Could not load the marketplace.', retry: 'Retry', notConfigured: 'Marketplace is not configured.', empty: 'No marketplace plugins available.',
+      verifiedAtInstall: 'Verified at install', declaredCapabilities: 'Declared capabilities (unverified)', updateAvailable: 'Update available', incompatible: 'Incompatible version', requiresApi: 'Requires API',
+      install: 'Install', update: 'Update', installed: 'Installed', installing: 'Installing…', installSuccess: 'Plugin installed successfully.', enable: 'Enable', disable: 'Disable', manage: 'Manage',
+      testSigningMode: 'Test signing mode', testSigningWarning: 'Test roots are trusted. Test-signed plugins are not officially verified.',
+      notFound: 'This plugin version was not found. Refresh the catalog.', conflict: 'Another plugin operation is in progress or conflicts with this installation.', tooLarge: 'The plugin package is too large.',
+      invalidPackage: 'The package failed signature, identity, digest or compatibility checks.', unavailable: 'The marketplace is unavailable. Try again later.', timeout: 'The marketplace request timed out. Try again.', genericError: 'Could not install the plugin. Try again.',
+      testSigningDisabled: 'Test signing is disabled. Enable test signing mode before using this plugin.', reinstallRequired: 'Reinstall this plugin to establish its signing root.',
+      trust: {
+        verified: 'Verified', verifiedExplanation: 'Signed by an official trusted publisher root.',
+        testSigned: 'Test-signed', testSignedExplanation: 'Signed by a test root; not officially verified.',
+        unsigned: 'Unsigned', unsignedExplanation: 'This package has no verified publisher signature.',
+        builtin: 'Built-in', builtinExplanation: 'Provided by Jiffoo Core.',
+        reinstallRequired: 'Reinstall required', reinstallRequiredExplanation: 'The signed package has no classified signing root.',
+        testSigningDisabled: 'Test signing disabled', testSigningDisabledExplanation: 'This test-signed plugin cannot run while test signing mode is off.',
+      },
+    },
     disableWarningTitle: 'Disable payment method?',
     disableWarning: '{count} orders awaiting payment use this payment method. After disabling, their payment notifications cannot be processed until you re-enable it.',
     disableAnyway: 'Disable anyway',

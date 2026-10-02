@@ -455,6 +455,8 @@ function toPluginState(slug: string, detail: any, instance: PluginInstance | nul
     author: detail?.author,
     category: detail?.category,
     runtimeType: detail?.runtimeType,
+    trustLevel: detail?.trustLevel,
+    signingRoot: detail?.signingRoot,
     source: detail?.source || 'installed',
   } as PluginState;
 }

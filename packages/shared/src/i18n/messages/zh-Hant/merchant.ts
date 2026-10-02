@@ -812,6 +812,24 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    marketplace: {
+      title: '外掛市集', views: '外掛檢視', installedPlugins: '已安裝外掛', details: '詳情', version: '版本', publisher: '發佈者', installedVersion: '已安裝版本', none: '無',
+      loading: '正在載入外掛市集…', loadError: '無法載入外掛市集。', retry: '重試', notConfigured: '尚未設定外掛市集。', empty: '外掛市集暫無外掛。',
+      verifiedAtInstall: '安裝時驗證', declaredCapabilities: '宣告的能力（未驗證）', updateAvailable: '有可用更新', incompatible: '版本不相容', requiresApi: '需要 API',
+      install: '安裝', update: '更新', installed: '已安裝', installing: '正在安裝…', installSuccess: '外掛安裝成功。', enable: '啟用', disable: '停用', manage: '管理',
+      testSigningMode: '測試簽章模式', testSigningWarning: '目前信任測試根。測試簽章外掛不屬於官方已驗證外掛。',
+      notFound: '找不到此外掛版本，請重新整理目錄。', conflict: '其他外掛操作正在進行，或與本次安裝衝突。', tooLarge: '外掛套件過大。',
+      invalidPackage: '外掛套件未通過簽章、身分、摘要或相容性檢查。', unavailable: '外掛市集暫時無法使用，請稍後重試。', timeout: '外掛市集請求逾時，請重試。', genericError: '無法安裝外掛，請重試。',
+      testSigningDisabled: '測試簽章已關閉，請啟用測試簽章模式後使用此外掛。', reinstallRequired: '請重新安裝此外掛以確認簽章根。',
+      trust: {
+        verified: '已驗證', verifiedExplanation: '由官方信任的發佈者根簽章。',
+        testSigned: '測試簽章', testSignedExplanation: '由測試根簽章，未經官方驗證。',
+        unsigned: '未簽章', unsignedExplanation: '此外掛套件沒有已驗證的發佈者簽章。',
+        builtin: '內建', builtinExplanation: '由 Jiffoo Core 提供。',
+        reinstallRequired: '需重新安裝', reinstallRequiredExplanation: '此簽章外掛套件的簽章根尚未分類。',
+        testSigningDisabled: '測試簽章已關閉', testSigningDisabledExplanation: '測試簽章模式關閉時，此測試簽章外掛無法執行。',
+      },
+    },
     disableWarningTitle: '停用付款方式？',
     disableWarning: '有 {count} 筆待付款訂單使用此付款方式。停用後，這些訂單的付款通知將無法處理，直到重新啟用。',
     disableAnyway: '仍然停用',

@@ -14,5 +14,5 @@ export function pluginSigningError(plugin: { trustLevel: string; signingRoot: st
 
 export function assertPluginSigningAllowed(plugin: { trustLevel: string; signingRoot: string | null }): void {
   const error = pluginSigningError(plugin);
-  if (error) throw error;
+  if (error) throw Object.assign(error, { statusCode: 409 });
 }

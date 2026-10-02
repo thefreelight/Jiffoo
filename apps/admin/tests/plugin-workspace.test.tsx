@@ -11,6 +11,7 @@ const { usePluginConfig, usePluginInstances } = vi.hoisted(() => ({
 
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string) => key }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: React.PropsWithChildren<{ href: string }>) => <a {...props}>{children}</a> }));
+vi.mock('@/lib/marketplace', () => ({ useMarketplaceStatus: () => ({ data: { configured: false, testSigningMode: false } }) }));
 vi.mock('@/lib/hooks/use-api', () => ({
   usePluginConfig,
   usePluginInstances,

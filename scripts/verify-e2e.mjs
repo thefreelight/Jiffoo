@@ -1,12 +1,14 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync } from 'node:fs';
+import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { createRequire } from 'node:module';
+import { testRoot } from '../apps/api/tests/fixtures/plugin-signing-keys.ts';
 
 const started = performance.now();
 const visual = process.argv.includes('--visual');
 const compare = process.argv.includes('--compare');
+const review = visual && process.env.VISUAL_CAPTURE_SET === 'review';
 const databaseUrl = process.env.DATABASE_URL_TEST;
 let databaseName;
 try {
@@ -30,6 +32,9 @@ const env = {
   DATABASE_URL: databaseUrl,
   DATABASE_URL_TEST: databaseUrl,
   NODE_ENV: 'production',
+  EXTENSION_MARKETPLACE_URL: 'http://127.0.0.1:3010/catalog',
+  EXTENSION_TEST_SIGNING_MODE: 'true',
+  JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY: testRoot.publicKey,
   REDIS_URL: 'redis://localhost:6379/14',
   DISABLE_RATE_LIMITER: 'false',
   RATE_LIMITER_FAIL_CLOSED: 'true',
@@ -47,7 +52,7 @@ const env = {
   VISUAL_SET: visual ? (process.env.VISUAL_CAPTURE_SET || (compare ? 'current' : 'baseline')) : '',
 };
 if (visual) {
-  if (!['baseline', 'current', 'noise-1', 'noise-2'].includes(env.VISUAL_SET)) {
+  if (!['baseline', 'current', 'noise-1', 'noise-2', 'review'].includes(env.VISUAL_SET)) {
     throw new Error('Invalid VISUAL_CAPTURE_SET');
   }
   mkdirSync(resolve(root, 'e2e/visual-results', env.VISUAL_SET), { recursive: true });
@@ -66,7 +71,7 @@ const playwrightGroups = [
   ['01-install', '02-login', '03-password', '04-language', '05-settings', '06-health-plugins', '07-products', '08-orders', '09-customers'],
   ['10-staff', '11-forgot-password', '12-translations', '13-shop', '14-shop-registration', '15-shop-account', '16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund', '19-themes', '20-admin-theme', '21-shop-page-boundaries', '22-shop-payment-csp'],
 ];
-if (visual) {
+if (visual && !review) {
   const finalProjects = playwrightGroups[1].splice(playwrightGroups[1].indexOf('20-admin-theme'));
   playwrightGroups.push(['visual']);
   playwrightGroups.push(finalProjects);
@@ -79,6 +84,7 @@ playwrightGroups.push(['26-shop-purchase-tracking']);
 playwrightGroups.push(['27-admin-audit-events']);
 playwrightGroups.push(['28-disabled-payment-plugin']);
 playwrightGroups.push(['29-plugin-config']);
+playwrightGroups.push(['30-marketplace']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);
@@ -153,6 +159,19 @@ async function health() {
   throw new Error('API, Admin or Shop did not become healthy within 60 seconds');
 }
 
+async function marketplaceHealth() {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    if (children.some((child) => child.exitCode !== null)) throw new Error('Marketplace exited before health checks completed');
+    try {
+      if ((await fetch('http://127.0.0.1:3010/health')).ok) return;
+    } catch {
+      // Package generation is still running.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error('Local marketplace did not become healthy within 60 seconds');
+}
+
 async function stop() {
   for (const child of children.reverse()) {
     if (child.exitCode !== null) continue;
@@ -196,16 +215,27 @@ async function resetE2eRedis() {
   }
 }
 
+async function runPlaywrightGroup(args) {
+  const reportPath = resolve(resultsDir, 'playwright-report.json');
+  if (existsSync(reportPath)) unlinkSync(reportPath);
+  try {
+    await asyncCommand(args);
+  } finally {
+    if (existsSync(reportPath)) {
+      const { stats } = JSON.parse(readFileSync(reportPath, 'utf8'));
+      for (const key of Object.keys(playwrightCounts)) playwrightCounts[key] += stats[key];
+    }
+  }
+}
+
 async function runPlaywrightGroups() {
   for (const [index, projects] of playwrightGroups.entries()) {
     await resetE2eLoginLimit();
-    await asyncCommand([
+    await runPlaywrightGroup([
       'exec', 'playwright', 'test', '--config=e2e/playwright.config.ts',
       ...(index ? ['--no-deps'] : []),
       ...projects.map((project) => `--project=${project}`),
     ]);
-    const { stats } = JSON.parse(readFileSync(resolve(resultsDir, 'playwright-report.json'), 'utf8'));
-    for (const key of Object.keys(playwrightCounts)) playwrightCounts[key] += stats[key];
   }
 }
 
@@ -219,9 +249,14 @@ try {
   await step('Clear dedicated E2E Redis database', resetE2eRedis);
   await step('Reset test database', () => command(['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']));
   await step('Build shared package', () => command(['--filter', 'shared', 'build']));
+  await step('Build plugin SDK', () => command(['--filter', 'plugin-sdk', 'build']));
   await step('Build API', () => command(['--filter', 'api', 'build']));
   await step('Build Admin', () => command(['--filter', 'admin', 'build']));
   await step('Build Shop', () => command(['--filter', 'shop', 'build']));
+  await step('Start local marketplace', async () => {
+    service('marketplace', ['--import', 'tsx', 'e2e/marketplace-server.ts'], root);
+    await marketplaceHealth();
+  });
   await step('Start API, worker, Admin and Shop', () => {
     apiService('api', 'start');
     apiService('worker', 'start:worker');

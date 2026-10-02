@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import type { PluginMetaWithState } from '@/lib/types';
 import { ExtensionAvatar } from '@/components/extensions/ExtensionVisuals';
 import { ChevronRight, Settings2 } from 'lucide-react';
+import { PluginTrust } from './PluginTrust';
 
 interface InstalledPluginsRailProps {
   locale: string;
@@ -99,6 +100,7 @@ export function InstalledPluginsRail({
                     <div className="flex items-center gap-2">
                       <p className="truncate font-semibold text-cool-ink">{plugin.name}</p>
                     </div>
+                    <PluginTrust plugin={plugin} />
                     <div className="mt-1 flex items-center gap-2 text-xs text-cool-base">
                       <span className="truncate">v{plugin.version}</span>
                       <span className="text-cool-pale">•</span>

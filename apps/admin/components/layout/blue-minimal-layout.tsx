@@ -15,6 +15,7 @@ import { BlueMinimalSidebar } from './blue-minimal-sidebar'
 import ProtectedRoute from '../auth/ProtectedRoute'
 import { isPublicAdminRoute } from './public-routes'
 import { ThemeAssets } from '@/lib/theme-assets'
+import { TestSigningBanner } from './TestSigningBanner'
 
 interface BlueMinimalLayoutProps {
   children: React.ReactNode
@@ -58,6 +59,7 @@ export function BlueMinimalLayout({ children, logo = null, loginBackground = nul
 
             {/* Page Content - with skip-to-content target from GitLab */}
             <main id="main" tabIndex={-1} className="flex-1 overflow-y-auto">
+              <TestSigningBanner />
               {children}
             </main>
           </div>

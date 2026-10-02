@@ -25,6 +25,8 @@ export function hasLifecycleHook(manifest: PluginManifest | null | undefined, ho
 
 export async function executeLifecycleHook(hookName: LifecycleHookName, context: LifecycleContext, manifest: PluginManifest): Promise<LifecycleResult> {
   if (!hasLifecycleHook(manifest, hookName)) return { success: true, durationMs: 0 };
+  const plugin = await prisma.pluginInstall.findUnique({ where: { slug: context.pluginSlug } });
+  if (plugin) assertPluginSigningAllowed(plugin);
   const startTime = Date.now();
   try {
     await callInternalLifecycleHook(hookName, context, manifest);

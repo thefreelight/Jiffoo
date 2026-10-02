@@ -191,6 +191,7 @@ export const extensionInstallerSchemas = {
       400: errorResponseSchema,
       404: errorResponseSchema,
       500: errorResponseSchema,
+      503: errorResponseSchema,
     },
   },
 
@@ -235,7 +236,7 @@ export const extensionInstallerSchemas = {
         },
       },
     },
-    response: { ...createTypedUpdateResponses(pluginInstanceSchema), 503: errorResponseSchema },
+    response: { ...createTypedUpdateResponses(pluginInstanceSchema), 409: errorResponseSchema, 503: errorResponseSchema },
   },
 
   // POST /api/extensions/bundle/install

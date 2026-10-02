@@ -128,7 +128,9 @@ export interface PluginMetaWithState {
   category?: string
   description?: string
   author?: string
-  source: 'installed' | 'builtin' | 'local-zip'
+  source: 'installed' | 'builtin' | 'local-zip' | 'marketplace'
+  trustLevel?: 'builtin' | 'signed' | 'unsigned' | null
+  signingRoot?: 'official' | 'test' | null
   enabled: boolean
   deletedAt?: string | null
   uninstalled?: boolean
@@ -138,6 +140,8 @@ export interface PluginMetaWithState {
 }
 
 export interface PluginState {
+  trustLevel?: 'builtin' | 'signed' | 'unsigned' | null
+  signingRoot?: 'official' | 'test' | null
   slug: string
   enabled: boolean
   hidden?: boolean

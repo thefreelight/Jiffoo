@@ -812,6 +812,24 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    marketplace: {
+      title: '插件市场', views: '插件视图', installedPlugins: '已安装插件', details: '详情', version: '版本', publisher: '发布者', installedVersion: '已安装版本', none: '无',
+      loading: '正在加载插件市场…', loadError: '无法加载插件市场。', retry: '重试', notConfigured: '尚未配置插件市场。', empty: '插件市场暂无插件。',
+      verifiedAtInstall: '安装时验证', declaredCapabilities: '声明的能力（未验证）', updateAvailable: '有可用更新', incompatible: '版本不兼容', requiresApi: '需要 API',
+      install: '安装', update: '更新', installed: '已安装', installing: '正在安装…', installSuccess: '插件安装成功。', enable: '启用', disable: '停用', manage: '管理',
+      testSigningMode: '测试签名模式', testSigningWarning: '当前信任测试根。测试签名插件不属于官方已验证插件。',
+      notFound: '未找到此插件版本，请刷新目录。', conflict: '其他插件操作正在进行，或与本次安装冲突。', tooLarge: '插件包过大。',
+      invalidPackage: '插件包未通过签名、身份、摘要或兼容性检查。', unavailable: '插件市场暂时不可用，请稍后重试。', timeout: '插件市场请求超时，请重试。', genericError: '无法安装插件，请重试。',
+      testSigningDisabled: '测试签名已关闭，请启用测试签名模式后使用此插件。', reinstallRequired: '请重新安装此插件以确认签名根。',
+      trust: {
+        verified: '已验证', verifiedExplanation: '由官方信任的发布者根签名。',
+        testSigned: '测试签名', testSignedExplanation: '由测试根签名，未经官方验证。',
+        unsigned: '未签名', unsignedExplanation: '此插件包没有已验证的发布者签名。',
+        builtin: '内置', builtinExplanation: '由 Jiffoo Core 提供。',
+        reinstallRequired: '需重新安装', reinstallRequiredExplanation: '此签名插件包的签名根尚未分类。',
+        testSigningDisabled: '测试签名已关闭', testSigningDisabledExplanation: '测试签名模式关闭时，此测试签名插件无法运行。',
+      },
+    },
     disableWarningTitle: '禁用付款方式？',
     disableWarning: '有 {count} 笔待付款订单使用此付款方式。禁用后，这些订单的付款通知将无法处理，直到重新启用。',
     disableAnyway: '仍然禁用',

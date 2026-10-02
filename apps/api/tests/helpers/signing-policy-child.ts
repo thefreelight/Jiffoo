@@ -7,6 +7,8 @@ import { resetPluginState } from '../../src/core/admin/extension-installer/plugi
 import { CheckoutService } from '../../src/core/checkout/service';
 import { assertTestRootEnvironment } from 'shared/plugin-signing';
 import { createTestApp } from './create-test-app';
+import { executeLifecycleHook } from '../../src/core/admin/plugin-management/lifecycle-hooks';
+import type { PluginManifest } from 'shared';
 
 async function run() {
   if (process.env.NODE_ENV !== 'test' || process.env.JIFFOO_TEST_SIGNING_POLICY_CHILD !== 'true' || !process.send) {
@@ -21,7 +23,7 @@ async function run() {
   const describe = (name: string) => callContract(name, 'payment', 1, 'describe', { storeCurrency: 'USD' });
   const capture = async (operation: () => Promise<unknown>) => {
     try { return { value: await operation() }; }
-    catch (error) { return { code: (error as { code?: string }).code, message: String(error) }; }
+    catch (error) { return { code: (error as { code?: string }).code, statusCode: (error as { statusCode?: number }).statusCode, message: String(error) }; }
   };
   const gateway = () => app.inject({ url: `/api/v1/extensions/plugin/${slug}/api/health` });
   const headers = { authorization: `Bearer ${token}` };
@@ -47,6 +49,9 @@ async function run() {
       const load = await capture(() => warmPluginInstanceRuntime(slug, instance.id));
       const invoke = await capture(() => describe(slug));
       const response = await gateway();
+      const lifecycle = await capture(async () => executeLifecycleHook('onEnable', {
+        installationId: instance.id, pluginSlug: slug, instanceKey: 'default', config: {},
+      }, { lifecycle: { onEnable: true } } as PluginManifest));
       const detail = await app.inject({ url: `/api/v1/extensions/plugin/${slug}`, headers });
       const list = await app.inject({ url: '/api/v1/extensions/plugin', headers });
       const enable = await app.inject({
@@ -65,7 +70,7 @@ async function run() {
         const restore = await app.inject({ method: 'POST', url: `/api/v1/extensions/plugin/${slug}/restore`, headers });
         const preserved = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } });
         result = {
-          load, invoke, gatewayStatus: response.statusCode, gatewayError: response.json().error.code,
+          load, invoke, lifecycle, gatewayStatus: response.statusCode, gatewayError: response.json().error.code,
           detailStatus: detail.statusCode, detailRoot: detail.json().data.signingRoot, listStatus: list.statusCode,
           enableStatus: enable.statusCode, enableError: enable.json().error.code,
           restoreStatus: restore.statusCode, restoreError: restore.json().error.code,

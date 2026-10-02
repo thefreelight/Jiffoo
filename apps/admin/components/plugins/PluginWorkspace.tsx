@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
+import { PluginTrust } from '@/components/extensions/PluginTrust';
 import { DisablePluginControl } from '@/components/plugins/DisablePluginControl';
 import { toast } from 'sonner';
 
@@ -198,6 +199,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               <CardDescription>{data.description || 'Manage the extension configuration.'}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-center gap-3">
+              <PluginTrust plugin={data} />
               <Badge variant={selected?.enabled ? 'default' : 'outline'}>{selected?.enabled ? 'Enabled' : 'Disabled'}</Badge>
               <Badge variant={readiness.ready ? 'default' : 'outline'}>{readiness.ready ? 'Configuration ready' : 'Configuration required'}</Badge>
             </CardContent>

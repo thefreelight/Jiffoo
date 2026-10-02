@@ -16,6 +16,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { testRoot, testPublisher, untrustedRoot } from '../fixtures/plugin-signing-keys';
+import { extensionInstallerSchemas } from '@/core/admin/extension-installer/schemas';
 
 const previous = {
   override: process.env.JIFFOO_TEST_OFFICIAL_ROOT_OVERRIDE,
@@ -161,6 +162,11 @@ afterAll(async () => {
 });
 
 describe('installed plugin signing policy', () => {
+  it('A declares administrator conflict and runtime unavailable response schemas', () => {
+    expect(extensionInstallerSchemas.updateInstance.response).toHaveProperty('409');
+    expect(extensionInstallerSchemas.restorePlugin.response).toHaveProperty('409');
+    expect(extensionInstallerSchemas.pluginGateway.response).toHaveProperty('503');
+  });
   it.each([
     ['official', 'upload'], ['test', 'upload'], ['official', 'marketplace'], ['test', 'marketplace'],
   ] as const)('B persists %s classification through %s without verifying a test root', async (root, source) => {
@@ -195,9 +201,10 @@ describe('installed plugin signing policy', () => {
     await installed(slug, 'test');
     await installed(official, 'official');
     const blocked = await child('off', slug, official);
+    expect(blocked.lifecycle).toMatchObject({ statusCode: 409, code: 'PLUGIN_TEST_SIGNING_DISABLED' });
     for (const field of ['load', 'invoke']) expect(blocked[field].code).toBe('PLUGIN_TEST_SIGNING_DISABLED');
     for (const field of ['gateway', 'enable', 'restore']) {
-      expect(blocked[`${field}Status`]).toBe(503);
+      expect(blocked[`${field}Status`]).toBe(field === 'gateway' ? 503 : 409);
       expect(blocked[`${field}Error`]).toBe('PLUGIN_TEST_SIGNING_DISABLED');
     }
     expect(blocked.keptDeleted).toBe(true);
@@ -235,9 +242,10 @@ describe('installed plugin signing policy', () => {
     await installed(unsigned, 'unsigned');
     await prisma.pluginInstall.update({ where: { slug }, data: { signingRoot: null } });
     const blocked = await child('off', slug, official);
+    expect(blocked.lifecycle).toMatchObject({ statusCode: 409, code: 'PLUGIN_REINSTALL_REQUIRED' });
     for (const field of ['load', 'invoke']) expect(blocked[field].code).toBe('PLUGIN_REINSTALL_REQUIRED');
     for (const field of ['gateway', 'enable', 'restore']) {
-      expect(blocked[`${field}Status`]).toBe(503);
+      expect(blocked[`${field}Status`]).toBe(field === 'gateway' ? 503 : 409);
       expect(blocked[`${field}Error`]).toBe('PLUGIN_REINSTALL_REQUIRED');
     }
     expect(blocked.keptDeleted).toBe(true);
