@@ -171,7 +171,7 @@ export interface ThemeConfig {
     locale?: Locale;
   };
   site?: {
-    archetype?: 'storefront' | 'app-download';
+    archetype?: 'storefront' | 'app-download' | 'product-site';
     eyebrow?: string;
     headline?: string;
     subheadline?: string;

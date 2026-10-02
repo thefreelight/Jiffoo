@@ -77,8 +77,17 @@
       "shared/types/dto": [
         "../../packages/shared/dist/shared/src/types/dto/index.d.ts"
       ],
+      "shared/core-update/*": [
+        "../../packages/shared/src/core-update/*"
+      ],
+      "shared/src": [
+        "../../packages/shared/src/index.ts"
+      ],
       "shared/src/*": [
         "../../packages/shared/src/*"
+      ],
+      "shared/*": [
+        "../../packages/shared/*"
       ],
       "shared": [
         "../../packages/shared"

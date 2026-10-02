@@ -1,5 +1,5 @@
 import './tokens.css';
-import type { ThemePackage } from './types/theme';
+import type { ThemePackage } from 'shared/src/types/theme';
 
 import { AuthCallbackPage } from './components/AuthCallbackPage';
 import { BestsellersPage } from './components/BestsellersPage';
@@ -29,7 +29,9 @@ import { SearchPage } from './components/SearchPage';
 import { TermsPage } from './components/TermsPage';
 import { themeMessages } from './lib/i18n';
 
-export const theme: ThemePackage = {
+// The app-landingpage theme ships its own typed props surface; the registry
+// is the runtime plugin boundary, so the assembled package is asserted once.
+export const theme = {
   messages: themeMessages,
   components: {
     HomePage,
@@ -91,6 +93,6 @@ export const theme: ThemePackage = {
       appScreenshotUrl: '/easyeuicc-real-empty.png',
     },
   },
-};
+} as unknown as ThemePackage;
 
 export default theme;

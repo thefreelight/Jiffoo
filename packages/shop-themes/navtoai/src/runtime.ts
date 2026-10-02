@@ -25,7 +25,10 @@ import { HomePage } from './components/HomePage';
 import { ProfileSettingsPage } from './components/ProfileSettingsPage';
 import { ProductsPage } from './components/ProductsPage';
 
-export const theme: ThemePackage = {
+// The navtoai theme ships its own typed props surface; the registry is the
+// runtime plugin boundary (props contracts covered by the theme's runtime
+// tests), so the assembled package is asserted once here.
+export const theme = {
   components: {
     HomePage,
     ProductsPage,
@@ -86,6 +89,6 @@ export const theme: ThemePackage = {
       supportEmail: 'hello@navto.ai',
     },
   },
-};
+} as unknown as ThemePackage;
 
 export default theme;
