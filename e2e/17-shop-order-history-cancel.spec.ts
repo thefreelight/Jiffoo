@@ -1,4 +1,5 @@
 import { expect, test } from './local-requests';
+import { captureViewportProof } from './review-capture';
 import { login, ownerEmail, shopLogin } from './helpers';
 
 test('customer order history, detail, and cancellation are reflected in Admin', async ({ page, newObservedContext }) => {
@@ -66,7 +67,7 @@ test('Q Shop home, cart and orders fit the mobile viewport without horizontal ov
     expect(lastBounds).not.toBeNull();
     expect(lastBounds!.x).toBeGreaterThanOrEqual(0);
     expect(lastBounds!.x + lastBounds!.width).toBeLessThanOrEqual(390);
-    const image = await page.screenshot({ type: 'png', fullPage: true, animations: 'disabled' });
+    const image = await captureViewportProof(page);
     expect(image.readUInt32BE(16), 'full-page PNG width proves the whole document fits, not only the header').toBe(390);
   };
   await page.goto('http://127.0.0.1:3003/en');

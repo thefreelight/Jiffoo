@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 
@@ -172,6 +172,7 @@ for (const [name, commands] of steps) {
     });
     if (capture) {
       const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+      if (process.env.VERIFY_RAW_OUTPUT_LOG) appendFileSync(process.env.VERIFY_RAW_OUTPUT_LOG, `\n=== ${name} ===\n${output}`, 'utf8');
       testOutputs.push({ name, kind: args.includes('vitest') ? 'vitest' : 'e2e', output });
       if (result.status !== 0) {
         process.stdout.write(output);

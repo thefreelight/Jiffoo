@@ -1,7 +1,6 @@
-import { expect, test } from './local-requests';
+import { captureReview, expect, test } from './review-capture';
 import type { APIRequestContext, Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { mkdir } from 'node:fs/promises';
 import { api, login, ownerEmail } from './helpers';
 
 const origin = 'http://127.0.0.1:3003';
@@ -197,7 +196,6 @@ test('E history is paginated newest first, renders literal code and restores wit
 });
 
 test('F renders translated headings in both Chinese locales and captures page review views', async ({ page }) => {
-  await mkdir('e2e/visual-results/batch-3-review', { recursive: true });
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     await page.setViewportSize({ width, height });
     await expect(page.getByRole('heading', { name: 'Tracking & custom code', exact: true })).toBeVisible();
@@ -209,7 +207,7 @@ test('F renders translated headings in both Chinese locales and captures page re
       expect(menu).not.toBeNull();
       expect(heading!.y).toBeGreaterThanOrEqual(menu!.y + menu!.height);
     }
-    await page.screenshot({ path: `e2e/visual-results/batch-3-review/en-${width}.png`, fullPage: true, animations: 'disabled' });
+    await captureReview(page, 'storefront-code-review', `en-${width}`);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const [locale, title, history, provider] of [
@@ -220,8 +218,6 @@ test('F renders translated headings in both Chinese locales and captures page re
     await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: history, exact: true })).toBeVisible();
     await expect(page.getByLabel(provider, { exact: true })).toBeVisible();
-    if (locale === 'zh-Hans') await page.screenshot({
-      path: 'e2e/visual-results/batch-3-review/zh-Hans-1440.png', fullPage: true, animations: 'disabled',
-    });
+    if (locale === 'zh-Hans') await captureReview(page, 'storefront-code-review', 'zh-Hans-1440');
   }
 });

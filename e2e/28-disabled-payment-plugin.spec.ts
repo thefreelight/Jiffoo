@@ -1,13 +1,10 @@
-import { expect, test } from './local-requests';
+import { captureReview, expect, test } from './review-capture';
 import { randomUUID } from 'node:crypto';
-import { mkdir } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import archiver from 'archiver';
 import type { APIRequestContext, BrowserContext, Page } from '@playwright/test';
 import { login, ownerEmail } from './helpers';
 
 const api = 'http://127.0.0.1:3001/api/v1';
-const resultDir = resolve('e2e/test-results');
 
 async function fixtureZip(slug: string): Promise<Buffer> {
   const manifest = {
@@ -65,7 +62,6 @@ async function setupFixture(
 ): Promise<Fixture> {
   const slug = `isolation-${randomUUID().replaceAll('-', '').slice(0, 16)}`;
   await page.setViewportSize({ width: 1440, height: 900 });
-  await mkdir(resultDir, { recursive: true });
   const bearer = new Promise<string>((resolveToken) => {
     page.on('request', (observed) => {
       const header = observed.headers().authorization;
@@ -159,7 +155,7 @@ test('B warns for a pending payment, Cancel preserves enablement and Disable any
     await page.getByRole('button', { name: 'Disable plugin' }).click();
     const dialog = page.getByRole('dialog', { name: 'Disable payment method?' });
     await expect(dialog).toContainText('1 orders awaiting payment use this payment method.');
-    await page.screenshot({ path: resolve(resultDir, 'disabled-plugin-dialog.png') });
+    await captureReview(page, 'disabled-plugin-review', 'disabled-plugin-dialog');
     await dialog.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByRole('button', { name: 'Disable plugin' })).toBeVisible();
     await page.getByRole('button', { name: 'Disable plugin' }).click();
@@ -196,7 +192,7 @@ test('C stale checkout shows the unavailable payment message, refreshes methods 
     await fixture.shop.getByRole('button', { name: 'Place order' }).click();
     await expect(fixture.shop.getByText('This payment method is no longer available. Please choose another.', { exact: true })).toBeVisible();
     await expect(fixture.shop.getByRole('radio', { name: 'Fixture payment' })).toHaveCount(0);
-    await fixture.shop.screenshot({ path: resolve(resultDir, 'disabled-plugin-checkout-message.png') });
+    await captureReview(fixture.shop, 'disabled-plugin-review', 'disabled-plugin-checkout-message');
     await fixture.shop.goto('/en/account/orders');
     await expect(fixture.shop.getByRole('link', { name: 'View details' })).toHaveCount(0);
   } finally {

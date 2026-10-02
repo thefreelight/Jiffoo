@@ -1,7 +1,6 @@
-import { expect, test } from './local-requests';
+import { captureReview, expect, test } from './review-capture';
 import type { APIRequestContext, Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { mkdir } from 'node:fs/promises';
 import { api, login, ownerEmail } from './helpers';
 import type { Order } from '../apps/shop/lib/checkout-types';
 
@@ -283,8 +282,7 @@ test('H exact Baidu SPA and commerce hints render in all three Admin languages',
     await page.goto(`/${locale}/storefront-code`);
     for (const text of texts) await expect(page.getByText(text, { exact: true })).toBeVisible();
     if (locale === 'en') {
-      await mkdir('e2e/test-results/provider-review', { recursive: true });
-      await page.screenshot({ path: 'e2e/test-results/provider-review/admin-en-1440.png' });
+      await captureReview(page, 'provider-review', 'admin-en-1440');
     }
   }
 });

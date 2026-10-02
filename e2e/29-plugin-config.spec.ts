@@ -1,6 +1,5 @@
-import { expect, test } from './local-requests';
+import { captureReview, expect, test } from './review-capture';
 import { randomUUID } from 'node:crypto';
-import path from 'node:path';
 import { login, ownerEmail } from './helpers';
 
 test('J Admin edits manual payment configuration and a new customer order displays the instructions', async ({ page, newObservedContext }) => {
@@ -16,14 +15,14 @@ test('J Admin edits manual payment configuration and a new customer order displa
   const previousInstructions = await instructions.inputValue();
   const previousTimeout = await timeout.inputValue();
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.screenshot({ path: path.resolve('test-results/manual-payment-config-unset-1440x900.png') });
+  await captureReview(page, 'plugin-config-review', 'manual-payment-config-unset-1440x900');
   const updated = `E2E payment instructions ${randomUUID()}`;
   const context = await newObservedContext({ baseURL: 'http://127.0.0.1:3003', viewport: { width: 1440, height: 900 } });
   const shop = await context.newPage();
   try {
     await instructions.fill(updated);
     await timeout.fill('48');
-    await page.screenshot({ path: path.resolve('test-results/manual-payment-config-1440x900.png') });
+    await captureReview(page, 'plugin-config-review', 'manual-payment-config-1440x900');
     await page.getByRole('button', { name: 'Save configuration' }).click();
     await expect(instructions).toHaveValue(updated);
 

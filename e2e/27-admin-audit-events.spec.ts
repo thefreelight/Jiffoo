@@ -1,7 +1,7 @@
-import { expect, test } from './local-requests';
+import { captureReview, expect, test } from './review-capture';
 import type { APIRequestContext, Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import archiver from 'archiver';
 import { api, login, ownerEmail } from './helpers';
@@ -157,7 +157,6 @@ test('I expanded details show literal revision JSON and an empty writer summary 
 test('J Chinese titles and column headers are exact and review views fit desktop and mobile', async ({ page, request }) => {
   await saveConfig(request);
   await open(page);
-  await mkdir('e2e/test-results/audit-review', { recursive: true });
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
     await expect(page.getByRole('heading', { name: 'Audit log', exact: true })).toBeVisible();
@@ -165,7 +164,7 @@ test('J Chinese titles and column headers are exact and review views fit desktop
     expect(heading).not.toBeNull();
     expect(heading!.x).toBeGreaterThanOrEqual(0);
     expect(heading!.x + heading!.width).toBeLessThanOrEqual(width);
-    await page.screenshot({ path: `e2e/test-results/audit-review/en-${width}.png`, animations: 'disabled' });
+    await captureReview(page, 'audit-review', `en-${width}`);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const entry of [
@@ -178,6 +177,6 @@ test('J Chinese titles and column headers are exact and review views fit desktop
     await expect(table).toHaveAttribute('aria-busy', 'false');
     for (const column of entry.columns) await expect(table.getByRole('columnheader', { name: column, exact: true })).toBeVisible();
     await expect(table.getByText(entry.locale === 'zh-Hans' ? '已保存跟踪配置' : '已儲存追蹤設定', { exact: true }).first()).toBeVisible();
-    if (entry.locale === 'zh-Hans') await page.screenshot({ path: 'e2e/test-results/audit-review/zh-Hans-1440.png', animations: 'disabled' });
+    if (entry.locale === 'zh-Hans') await captureReview(page, 'audit-review', 'zh-Hans-1440');
   }
 });
