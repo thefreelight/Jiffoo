@@ -6,7 +6,7 @@
     "jiffoo-plugin": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/generate-types.mjs",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
