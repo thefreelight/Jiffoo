@@ -12202,7 +12202,8 @@
   }
   function mapBokmooApiProductToThemeProduct(product) {
     const esim = product.typeData?.esim;
-    const imageUrl = product.images?.[0]?.url || product.image;
+    const firstImage = product.images?.[0];
+    const imageUrl = (typeof firstImage === "string" ? firstImage : firstImage?.url) || product.image;
     const regionTag = esim?.region || esim?.country || "Travel";
     const technology = buildTechnologyLabel(esim);
     const variantPrices = (product.variants || []).map((variant) => Number(variant.salePrice || 0)).filter((price) => price > 0);
@@ -14932,7 +14933,10 @@
               name: displayProductTitle(item.name),
               description: String(item.description || ""),
               price: variantPrices[0] ?? Number(item.price || 0),
-              image: resolveBokmooMediaUrl(item.images?.[0]?.url || item.image, site.apiBaseUrl)
+              image: resolveBokmooMediaUrl(
+                (typeof item.images?.[0] === "string" ? item.images[0] : item.images?.[0]?.url) || item.image,
+                site.apiBaseUrl
+              )
             };
           })
         );
@@ -16715,7 +16719,7 @@
     const stockValue = Number(currentVariant?.inventory ?? normalizedProduct?.inventory?.available ?? 0);
     const priceValue = Number(currentVariant?.price ?? normalizedProduct?.price ?? 0);
     const maxQuantity = Math.max(1, Math.min(stockValue || 1, 10));
-    const image = getProductImage2(normalizedProduct);
+    const image = resolveBokmooMediaUrl(getProductImage2(normalizedProduct), site.apiBaseUrl);
     react_default.useEffect(() => {
       if (product) return;
       const productId = getProductIdFromLocation();
@@ -17005,14 +17009,101 @@
     tokenStyle.id = tokenStyleId;
     document.head.appendChild(tokenStyle);
   }
-  tokenStyle.textContent = ':root {\n  --bokmoo-bg: oklch(0.055 0.006 75);\n  --bokmoo-bg-elevated: oklch(0.082 0.008 75);\n  --bokmoo-bg-soft: oklch(0.118 0.01 75);\n  --bokmoo-panel: oklch(0.095 0.009 75 / 0.96);\n  --bokmoo-panel-strong: oklch(0.14 0.013 75 / 0.98);\n  --bokmoo-surface: var(--bokmoo-bg-elevated);\n  --bokmoo-surface-alt: var(--bokmoo-bg-soft);\n  --bokmoo-ink: oklch(0.97 0.006 86);\n  --bokmoo-copy: oklch(0.78 0.011 82);\n  --bokmoo-copy-soft: oklch(0.57 0.01 82);\n  --bokmoo-line: oklch(0.29 0.019 78 / 0.34);\n  --bokmoo-line-strong: oklch(0.52 0.034 78 / 0.52);\n  --bokmoo-gold: oklch(0.76 0.105 80);\n  --bokmoo-gold-strong: oklch(0.86 0.11 82);\n  --bokmoo-gold-soft: oklch(0.2 0.042 79);\n  --bokmoo-primary: var(--bokmoo-gold);\n  --bokmoo-primary-strong: var(--bokmoo-gold-strong);\n  --bokmoo-primary-soft: var(--bokmoo-gold-soft);\n  --bokmoo-silver: oklch(0.86 0.01 255);\n  --bokmoo-success: oklch(0.77 0.09 150);\n  --bokmoo-warning: oklch(0.81 0.1 82);\n  --bokmoo-danger: oklch(0.66 0.19 28);\n  --bokmoo-shadow: 0 34px 110px -48px rgba(0, 0, 0, 0.92);\n  --bokmoo-shadow-glow: 0 0 58px color-mix(in oklab, var(--bokmoo-gold) 30%, transparent);\n  --bokmoo-orbit-glow: radial-gradient(circle, color-mix(in oklab, var(--bokmoo-gold) 54%, transparent) 0%, transparent 68%);\n  --bokmoo-hero-gold-field: color-mix(in oklab, var(--bokmoo-gold) 42%, transparent);\n  --bokmoo-card-edge: color-mix(in oklab, var(--bokmoo-gold) 52%, transparent);\n  --bokmoo-card-glow: 0 64px 180px rgba(0, 0, 0, 0.82), 0 0 90px color-mix(in oklab, var(--bokmoo-gold) 18%, transparent);\n  --bokmoo-radius-xl: 2rem;\n  --bokmoo-radius-lg: 1.5rem;\n  --bokmoo-radius-md: 1rem;\n  --bokmoo-radius-sm: 0.75rem;\n  --bokmoo-display: "Avenir Next", "Satoshi", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;\n  --bokmoo-sans: "Avenir Next", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;\n  --bokmoo-grid:\n    linear-gradient(to right, color-mix(in oklab, var(--bokmoo-line) 72%, transparent) 1px, transparent 1px),\n    linear-gradient(to bottom, color-mix(in oklab, var(--bokmoo-line) 72%, transparent) 1px, transparent 1px);\n\n  /* Compatibility aliases for reused shared components */\n  --vault-bg: var(--bokmoo-bg);\n  --vault-surface: var(--bokmoo-bg-elevated);\n  --vault-surface-alt: var(--bokmoo-bg-soft);\n  --vault-ink: var(--bokmoo-ink);\n  --vault-copy: var(--bokmoo-copy);\n  --vault-copy-soft: var(--bokmoo-copy-soft);\n  --vault-line: var(--bokmoo-line);\n  --vault-primary: var(--bokmoo-gold);\n  --vault-primary-strong: var(--bokmoo-gold-strong);\n  --vault-primary-soft: var(--bokmoo-gold-soft);\n  --vault-accent: var(--bokmoo-silver);\n  --vault-success: var(--bokmoo-success);\n  --vault-warning: var(--bokmoo-warning);\n  --vault-danger: var(--bokmoo-danger);\n  --vault-shadow: var(--bokmoo-shadow);\n  --vault-radius-lg: var(--bokmoo-radius-lg);\n  --vault-radius-md: var(--bokmoo-radius-md);\n  --vault-radius-sm: var(--bokmoo-radius-sm);\n  --vault-grid: var(--bokmoo-grid);\n}\n\nbody {\n  background:\n    radial-gradient(circle at 82% 8%, color-mix(in oklab, var(--bokmoo-gold) 13%, transparent), transparent 18%),\n    radial-gradient(circle at 75% 28%, color-mix(in oklab, var(--bokmoo-gold) 8%, transparent), transparent 24%),\n    radial-gradient(circle at 20% 80%, color-mix(in oklab, var(--bokmoo-gold) 4%, transparent), transparent 22%),\n    var(--bokmoo-bg);\n  color: var(--bokmoo-ink);\n  font-family: var(--bokmoo-sans);\n  letter-spacing: 0.01em;\n}\n\nh1,\nh2,\nh3,\nh4,\nh5,\nh6 {\n  font-family: var(--bokmoo-display);\n  font-weight: 700;\n}\n\n::selection {\n  background: color-mix(in oklab, var(--bokmoo-gold) 38%, transparent);\n  color: var(--bokmoo-ink);\n}\n';
+  tokenStyle.textContent = `:root {
+  --bokmoo-bg: oklch(0.055 0.006 75);
+  --bokmoo-bg-elevated: oklch(0.082 0.008 75);
+  --bokmoo-bg-soft: oklch(0.118 0.01 75);
+  --bokmoo-panel: oklch(0.095 0.009 75 / 0.96);
+  --bokmoo-panel-strong: oklch(0.14 0.013 75 / 0.98);
+  --bokmoo-surface: var(--bokmoo-bg-elevated);
+  --bokmoo-surface-alt: var(--bokmoo-bg-soft);
+  --bokmoo-ink: oklch(0.97 0.006 86);
+  --bokmoo-copy: oklch(0.78 0.011 82);
+  --bokmoo-copy-soft: oklch(0.57 0.01 82);
+  --bokmoo-line: oklch(0.29 0.019 78 / 0.34);
+  --bokmoo-line-strong: oklch(0.52 0.034 78 / 0.52);
+  --bokmoo-gold: oklch(0.76 0.105 80);
+  --bokmoo-gold-strong: oklch(0.86 0.11 82);
+  --bokmoo-gold-soft: oklch(0.2 0.042 79);
+  --bokmoo-primary: var(--bokmoo-gold);
+  --bokmoo-primary-strong: var(--bokmoo-gold-strong);
+  --bokmoo-primary-soft: var(--bokmoo-gold-soft);
+  --bokmoo-silver: oklch(0.86 0.01 255);
+  --bokmoo-success: oklch(0.77 0.09 150);
+  --bokmoo-warning: oklch(0.81 0.1 82);
+  --bokmoo-danger: oklch(0.66 0.19 28);
+  --bokmoo-shadow: 0 34px 110px -48px rgba(0, 0, 0, 0.92);
+  --bokmoo-shadow-glow: 0 0 58px color-mix(in oklab, var(--bokmoo-gold) 30%, transparent);
+  --bokmoo-orbit-glow: radial-gradient(circle, color-mix(in oklab, var(--bokmoo-gold) 54%, transparent) 0%, transparent 68%);
+  --bokmoo-hero-gold-field: color-mix(in oklab, var(--bokmoo-gold) 42%, transparent);
+  --bokmoo-card-edge: color-mix(in oklab, var(--bokmoo-gold) 52%, transparent);
+  --bokmoo-card-glow: 0 64px 180px rgba(0, 0, 0, 0.82), 0 0 90px color-mix(in oklab, var(--bokmoo-gold) 18%, transparent);
+  --bokmoo-radius-xl: 2rem;
+  --bokmoo-radius-lg: 1.5rem;
+  --bokmoo-radius-md: 1rem;
+  --bokmoo-radius-sm: 0.75rem;
+  --bokmoo-display: "Avenir Next", "Satoshi", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --bokmoo-sans: "Avenir Next", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --bokmoo-grid:
+    linear-gradient(to right, color-mix(in oklab, var(--bokmoo-line) 72%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--bokmoo-line) 72%, transparent) 1px, transparent 1px);
+
+  /* Compatibility aliases for reused shared components */
+  --vault-bg: var(--bokmoo-bg);
+  --vault-surface: var(--bokmoo-bg-elevated);
+  --vault-surface-alt: var(--bokmoo-bg-soft);
+  --vault-ink: var(--bokmoo-ink);
+  --vault-copy: var(--bokmoo-copy);
+  --vault-copy-soft: var(--bokmoo-copy-soft);
+  --vault-line: var(--bokmoo-line);
+  --vault-primary: var(--bokmoo-gold);
+  --vault-primary-strong: var(--bokmoo-gold-strong);
+  --vault-primary-soft: var(--bokmoo-gold-soft);
+  --vault-accent: var(--bokmoo-silver);
+  --vault-success: var(--bokmoo-success);
+  --vault-warning: var(--bokmoo-warning);
+  --vault-danger: var(--bokmoo-danger);
+  --vault-shadow: var(--bokmoo-shadow);
+  --vault-radius-lg: var(--bokmoo-radius-lg);
+  --vault-radius-md: var(--bokmoo-radius-md);
+  --vault-radius-sm: var(--bokmoo-radius-sm);
+  --vault-grid: var(--bokmoo-grid);
+}
+
+/*
+ * Global element rules are scoped under body[data-theme='bokmoo'] so the
+ * statically-bundled copy cannot restyle OTHER storefronts (the registry
+ * imports every embedded theme's runtime, tokens included). The root
+ * layout renders data-theme from the active store theme slug.
+ */
+body[data-theme='bokmoo'] {
+  background:
+    radial-gradient(circle at 82% 8%, color-mix(in oklab, var(--bokmoo-gold) 13%, transparent), transparent 18%),
+    radial-gradient(circle at 75% 28%, color-mix(in oklab, var(--bokmoo-gold) 8%, transparent), transparent 24%),
+    radial-gradient(circle at 20% 80%, color-mix(in oklab, var(--bokmoo-gold) 4%, transparent), transparent 22%),
+    var(--bokmoo-bg);
+  color: var(--bokmoo-ink);
+  font-family: var(--bokmoo-sans);
+  letter-spacing: 0.01em;
+}
+
+body[data-theme='bokmoo'] :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--bokmoo-display);
+  font-weight: 700;
+}
+
+body[data-theme='bokmoo'] ::selection {
+  background: color-mix(in oklab, var(--bokmoo-gold) 38%, transparent);
+  color: var(--bokmoo-ink);
+}
+`;
   var existingMeta = runtime_default && typeof runtime_default === "object" && runtime_default.meta && typeof runtime_default.meta === "object" ? runtime_default.meta : {};
   window.__JIFFOO_THEME_RUNTIME__ = {
     ...runtime_default,
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.11",
+      version: "1.1.12",
       target: "shop"
     }
   };
