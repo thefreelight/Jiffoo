@@ -9,5 +9,5 @@ export default async function StorefrontRoot({ children }: { children: React.Rea
   const libraryOverrides = resolveProviderLibraryOverrides(
     process.env.STOREFRONT_PROVIDER_LIBRARY_OVERRIDES, process.env.STOREFRONT_URL,
   );
-  return <DocumentRoot>{children}{slots ? <StorefrontCodeLoader slots={slots} libraryOverrides={libraryOverrides} /> : <PurchaseTrackingDisabled />}</DocumentRoot>;
+  return DocumentRoot({ children: <>{children}{slots ? <StorefrontCodeLoader slots={slots} libraryOverrides={libraryOverrides} /> : <PurchaseTrackingDisabled />}</> });
 }

@@ -30,7 +30,7 @@ export function ThemeShell({ context, locale, navigation, theme, loggedIn, cartC
   loggedIn: boolean; cartCount: number; children?: React.ReactNode;
 }) {
   return <>
-    <style precedence="theme" dangerouslySetInnerHTML={{ __html: themeStyle(theme) }} />
+    <style data-shop-theme="" dangerouslySetInnerHTML={{ __html: themeStyle(theme) }} />
     <Header context={context} locale={locale} categories={navigation} loggedIn={loggedIn}
       cartCount={cartCount} options={theme?.layout.header} />
     {children}

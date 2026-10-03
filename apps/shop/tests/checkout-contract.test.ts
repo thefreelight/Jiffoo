@@ -11,6 +11,7 @@ import { countryCodes, localizedCountries } from '../lib/countries';
 import { buildCancelReason, orderStatuses, paymentStatuses, orderStatusLabel, paymentStatusLabel } from '../lib/order-labels';
 
 vi.mock('server-only', () => ({}));
+vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-shop-locale': 'en' }) }));
 
 vi.mock('../lib/storefront-messages', async () => {
   const [en, zhHans, zhHant] = await Promise.all([
@@ -86,9 +87,9 @@ describe('Shop checkout boundaries', () => {
     expect(StorefrontRoot).not.toBe(PaymentRoot);
     expect(readFileSync(path.join(app, '(payment)/layout.tsx'), 'utf8'))
       .toBe("export { default } from '@/components/document-root';\n");
-    const expected = renderToStaticMarkup(createElement('html', null, createElement('body', null, 'root-boundary')));
+    const expected = renderToStaticMarkup(createElement('html', { lang: 'en' }, createElement('body', null, 'root-boundary')));
     expect(renderToStaticMarkup(await StorefrontRoot({ children: 'root-boundary' }))).toBe(expected);
-    expect(renderToStaticMarkup(PaymentRoot({ children: 'root-boundary' }))).toBe(expected);
+    expect(renderToStaticMarkup(await PaymentRoot({ children: 'root-boundary' }))).toBe(expected);
     for (const group of ['(payment)', '(storefront)']) {
       expect(readFileSync(path.join(app, group, '[locale]/layout.tsx'), 'utf8'))
         .toBe("export { default } from '@/components/locale-layout';\n\nexport const dynamic = 'force-dynamic';\n");

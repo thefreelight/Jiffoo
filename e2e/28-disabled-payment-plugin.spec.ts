@@ -140,6 +140,7 @@ async function cleanup(fixture: Fixture) {
         await fixture.shop.getByRole('combobox', { name: 'Reason' }).selectOption('other');
         await fixture.shop.getByRole('textbox', { name: 'Other reason' }).fill('Fixture cleanup');
         await fixture.shop.getByRole('button', { name: 'Confirm cancellation' }).click();
+        await expect(fixture.shop.getByText('Cancelled', { exact: true })).toBeVisible();
       }
     }
     await removeFixture(fixture);

@@ -38,8 +38,12 @@ describe('payment script CSP', () => {
           expect(response.headers.get('x-middleware-request-content-security-policy')).toBe(policy);
           expect(isPaymentPath(`${pathname}/`)).toBe(true);
         } else {
-          expect(response.headers.get('x-middleware-override-headers')).toBeNull();
+          expect(response.headers.get('x-middleware-override-headers'))
+            .toBe(route.includes('[locale]') ? 'x-shop-locale' : '');
+          expect(response.headers.get('x-middleware-request-content-security-policy')).toBeNull();
         }
+        expect(response.headers.get('x-middleware-request-x-shop-locale'))
+          .toBe(route.includes('[locale]') ? locale : null);
       }
     }
     for (const pathname of ['/', '/reset-password', '/verify-email', '/checkout', '/bff/checkout/quote',

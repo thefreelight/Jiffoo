@@ -24,6 +24,7 @@ const areas = [
   '31-plugin-upload',
   '32-plugin-removal',
   '33-plugin-recorded-error',
+  '34-shop-reload',
 ];
 
 export default defineConfig({

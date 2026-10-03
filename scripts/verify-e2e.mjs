@@ -50,6 +50,7 @@ const env = {
   STOREFRONT_URL: 'http://127.0.0.1:3003',
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
   VISUAL_SET: visual ? (process.env.VISUAL_CAPTURE_SET || (compare ? 'current' : 'baseline')) : '',
+  E2E_RELOAD_STRESS: process.env.E2E_RELOAD_STRESS || '',
 };
 if (visual) {
   if (!['baseline', 'current', 'noise-1', 'noise-2', 'review'].includes(env.VISUAL_SET)) {
@@ -88,6 +89,7 @@ playwrightGroups.push(['30-marketplace']);
 playwrightGroups.push(['31-plugin-upload']);
 playwrightGroups.push(['32-plugin-removal']);
 playwrightGroups.push(['33-plugin-recorded-error']);
+playwrightGroups.push(['34-shop-reload']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);

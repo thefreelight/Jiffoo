@@ -180,6 +180,22 @@ describe('T2 Shop theme rendering', () => {
     expect(html.match(/<style/g)).toHaveLength(1);
   });
 
+  it('U renders one plain theme style without resource precedence or href and replaces changed CSS', () => {
+    const render = (theme: ShopTheme) => markup(createElement(ThemeShell, {
+      context, locale: 'en', navigation: [group], theme, loggedIn: false, cartCount: 0,
+    }));
+    const first = render(fixture);
+    expect(first).toContain('<style data-shop-theme="">');
+    expect(first.match(/<style\b/g)).toHaveLength(1);
+    expect(first).not.toContain('precedence=');
+    expect(first).not.toMatch(/<style[^>]*href=/);
+    expect(render(fixture)).toBe(first);
+    const changed = render({ ...fixture, tokens: { ...fixture.tokens, primary: '#654321' } });
+    expect(changed).toContain('--shop-primary: #654321;');
+    expect(changed).not.toContain('--shop-primary: #123456;');
+    expect(changed.match(/<style\b/g)).toHaveLength(1);
+  });
+
   it('G emits complete built-in font stacks for Shop', () => {
     for (const [id, stack] of Object.entries({
       'system-sans': 'system-ui, -apple-system, sans-serif',
