@@ -9,4 +9,10 @@ cd apps/admin
 rm -f proxy.ts
 # next-on-pages requires edge runtime; repo source stays Node-compatible for self-hosted deploys
 printf '\nexport const runtime = "edge";\n' >> app/layout.tsx
+# cloudflare-entry.ts imports .open-next/worker.js which only exists after a worker
+# build; park it so the Next type-check pass does not resolve it.
+mv cloudflare-entry.ts cloudflare-entry.ts.bak
 npx @cloudflare/next-on-pages
+rc=$?
+mv cloudflare-entry.ts.bak cloudflare-entry.ts
+exit $rc

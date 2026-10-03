@@ -14,7 +14,9 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "test": "vitest run --config vitest.config.mts && node ../../scripts/verify-admin-quality-gate.mjs",
-    "docker:build": "docker build -t admin:latest ."
+    "docker:build": "docker build -t admin:latest .",
+    "workers:build:admin-app": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=/api NEXT_PUBLIC_ADMIN_URL=https://admin.jiffoo.com sh -c 'mv cloudflare-entry.ts cloudflare-entry.ts.bak && pnpm exec next build --webpack; rc=$?; mv cloudflare-entry.ts.bak cloudflare-entry.ts; exit $rc' && pnpm exec opennextjs-cloudflare build --skipNextBuild --config wrangler.admin-app.toml",
+    "workers:deploy:admin-app": "pnpm workers:build:admin-app && pnpm exec opennextjs-cloudflare deploy --config wrangler.admin-app.toml"
   },
   "dependencies": {
     "@hookform/resolvers": "3.10.0",
