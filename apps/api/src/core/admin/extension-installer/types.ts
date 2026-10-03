@@ -75,6 +75,8 @@ export interface UninstallResult {
 
 /** Installed plugin package information (corresponds to PluginInstall in DB) */
 export interface InstalledPlugin {
+  lastFailureAt?: Date | null;
+  lastFailureMessage?: string | null;
   packageState?: { status: 'available' | 'unavailable' | 'corrupt'; code: 'PLUGIN_PACKAGE_UNAVAILABLE' | 'PLUGIN_PACKAGE_CORRUPT' | null };
   warnings?: string[];
   id: string;

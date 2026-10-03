@@ -34,7 +34,7 @@ import {
   registerContractV1Runtime,
 } from './contract-v1-runtime';
 import { registerPluginStateReset } from './plugin-state';
-import { recordPluginFailure } from './plugin-failure';
+import { recordPluginFailure, redactPluginFailure } from './plugin-failure';
 import { readStoredPluginManifest } from './stored-manifest';
 import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
@@ -847,6 +847,7 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
 }
 
 export async function validateCandidateRuntime(slug: string, zipHash: string, manifest: PluginManifest, installationId: string, config: Record<string, unknown>): Promise<void> {
+  try {
   const pkg = await pluginPackageStore.get(slug, zipHash);
   if (!pkg) throw new Error(`Plugin package missing: ${slug}`);
   const mod = await loadPluginEntryModule(pkg.getEntryPath(manifest.entryModule || 'server/index.js'));
@@ -857,6 +858,10 @@ export async function validateCandidateRuntime(slug: string, zipHash: string, ma
     await registerContractV1Runtime(app, entry, { slug, installationId, version: manifest.version, config, configSchema: manifest.configSchema, declaredContracts: manifest.contracts || [], subscriptions: manifest.subscriptions || [] });
     await app.ready();
   } finally { await app.close(); }
+  } catch (error) {
+    await recordPluginFailure(slug, error, 'candidate', installationId, { config, manifest });
+    throw new Error(await redactPluginFailure(slug, error, installationId, { config, manifest }));
+  }
 }
 
 async function forwardToInternalFastify(

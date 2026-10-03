@@ -10,6 +10,7 @@ import { DisablePluginControl } from '@/components/plugins/DisablePluginControl'
 import { PluginTrustLabel } from './PluginTrust';
 import { PluginUpload } from './PluginUpload';
 import { PluginLifecycle } from './PluginLifecycle';
+import { LastRecordedError } from '@/components/plugins/LastRecordedError';
 
 function MarketplaceCard({ entry, busy, install }: { entry: MarketplaceEntry; busy: boolean; install: (pluginId: string, version: string) => void }) {
   const t = useT();
@@ -77,6 +78,7 @@ export function PluginsManager() {
       {(installed.data?.items ?? []).map((plugin) => <article aria-label={plugin.name} key={plugin.slug} className="rounded-xl border border-cool-soft bg-surface p-5 space-y-3">
         <h3 className="font-semibold">{plugin.name}</h3><p>{text('version')}: {plugin.version}</p>
         {status.data && <PluginTrustLabel plugin={plugin} testSigningMode={status.data.testSigningMode} />}
+        <LastRecordedError lastFailureAt={plugin.lastFailureAt} lastFailureMessage={plugin.lastFailureMessage} />
         {plugin.packageState?.code && <p role="alert">{t(`merchant.plugins.lifecycle.${plugin.packageState.status === 'corrupt' ? 'packageCorrupt' : 'packageUnavailable'}`)}</p>}
         <div className="flex gap-3">{view === 'installed' && <>{plugin.enabled
           ? <DisablePluginControl slug={plugin.slug} category={plugin.category} label={text('disable')} onDisable={() => toggle.mutateAsync({ slug: plugin.slug, enabled: false })} />

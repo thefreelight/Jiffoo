@@ -61,6 +61,8 @@ const extensionMetaSchema = {
       required: ['issues'],
     },
     deletedAt: { type: 'string', format: 'date-time', nullable: true, description: 'Soft-delete timestamp for uninstalled plugin' },
+    lastFailureAt: { type: 'string', format: 'date-time', nullable: true, description: 'Timestamp of the last recorded error; not current health' },
+    lastFailureMessage: { type: 'string', nullable: true, maxLength: 500, description: 'Sanitized last recorded error; historical information' },
     packageState: {
       type: 'object', required: ['status', 'code'],
       properties: {

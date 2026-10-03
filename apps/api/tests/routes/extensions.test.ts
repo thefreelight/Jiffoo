@@ -504,7 +504,8 @@ describe('Extensions Installer Endpoints', () => {
           headers: { authorization: `Bearer ${adminToken}` },
           payload: { enabled: true },
         });
-        expect(enableResponse.statusCode).toBe(400);
+        expect(enableResponse.statusCode).toBe(500);
+        expect(enableResponse.json().error.code).toBe('INTERNAL_SERVER_ERROR');
 
         const unchangedInstance = await prisma.pluginInstallation.findUnique({
           where: { pluginSlug_instanceKey: { pluginSlug: esmSlug, instanceKey: 'default' } },

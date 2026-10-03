@@ -218,7 +218,8 @@ describe('plugin secret configuration', () => {
         method: 'PATCH', url: `/api/v1/extensions/plugin/${slug}/instances/${row.id}`,
         headers: { authorization: `Bearer ${admin.token}` }, payload: { enabled: true },
       });
-      expect(rejected.statusCode).toBe(400);
+      expect(rejected.statusCode).toBe(500);
+      expect(rejected.json().error.code).toBe('INTERNAL_SERVER_ERROR');
       expect(rejected.json().error.message).toContain('***');
       expect(rejected.payload).not.toContain(secret);
       expect(JSON.stringify(spy.mock.calls)).not.toContain(secret);

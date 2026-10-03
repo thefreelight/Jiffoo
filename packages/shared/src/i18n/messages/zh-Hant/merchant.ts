@@ -812,6 +812,7 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    lastRecordedError: { label: '最近記錄的錯誤', historical: '歷史記錄，不代表目前健康狀態，也不表示外掛不健康或已停用。' },
     lifecycle: {
       removed: '已解除安裝', uninstall: '解除安裝', restore: '還原', purge: '刪除外掛',
       uninstallTitle: '解除安裝外掛', restoreTitle: '還原外掛', purgeTitle: '永久刪除外掛',

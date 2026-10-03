@@ -87,6 +87,7 @@ playwrightGroups.push(['29-plugin-config']);
 playwrightGroups.push(['30-marketplace']);
 playwrightGroups.push(['31-plugin-upload']);
 playwrightGroups.push(['32-plugin-removal']);
+playwrightGroups.push(['33-plugin-recorded-error']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);

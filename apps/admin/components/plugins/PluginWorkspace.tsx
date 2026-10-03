@@ -25,6 +25,7 @@ import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRa
 import { PluginTrust } from '@/components/extensions/PluginTrust';
 import { DisablePluginControl } from '@/components/plugins/DisablePluginControl';
 import { toast } from 'sonner';
+import { LastRecordedError } from './LastRecordedError';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -204,6 +205,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               <Badge variant={readiness.ready ? 'default' : 'outline'}>{readiness.ready ? 'Configuration ready' : 'Configuration required'}</Badge>
             </CardContent>
           </Card>
+          <LastRecordedError lastFailureAt={data.lastFailureAt} lastFailureMessage={data.lastFailureMessage} />
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),360px]">
             <div className="space-y-5">
               {schema && Object.keys(schema.properties).length ? <GenericConfigEditor schema={schema} draft={draft} meta={meta} saving={saving} locale={locale} errors={fieldErrors} onChange={(field, value) => setDraft((current) => ({ ...current, [field]: value }))} onSave={() => void save()} /> : <Alert><Settings2 className="h-4 w-4" /><AlertTitle>No configuration declared</AlertTitle><AlertDescription>This extension does not declare configuration fields.</AlertDescription></Alert>}

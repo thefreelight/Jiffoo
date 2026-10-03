@@ -122,6 +122,8 @@ export interface OrderDetail {
 
 // Plugin types
 export interface PluginMetaWithState {
+  lastFailureAt?: string | null
+  lastFailureMessage?: string | null
   packageState?: { status: 'available' | 'unavailable' | 'corrupt'; code: string | null }
   slug: string
   name: string
@@ -141,6 +143,8 @@ export interface PluginMetaWithState {
 }
 
 export interface PluginState {
+  lastFailureAt?: string | null
+  lastFailureMessage?: string | null
   trustLevel?: 'builtin' | 'signed' | 'unsigned' | null
   signingRoot?: 'official' | 'test' | null
   slug: string

@@ -34,8 +34,29 @@ describe('Admin plugin removal', () => {
     mocks.purge.mockReset().mockImplementation(async (slug) => { rows = rows.filter(row => row.slug !== slug); return success({ slug, purged: true }); });
   });
   afterEach(async () => { await act(async () => root.unmount()); client.clear(); container.remove(); vi.restoreAllMocks(); });
-  const flush = async () => { await vi.waitFor(async () => { await act(async () => {}); expect(document.querySelector('article')).not.toBeNull(); }); };
-  const render = async () => { await act(async () => root.render(<QueryClientProvider client={client}><PluginsManager /></QueryClientProvider>)); await flush(); };
+  const waitForState = async (
+    state: 'active' | 'removed',
+    targets: { present?: string[]; absent?: string[] },
+    mutationCompleted = false,
+  ) => {
+    await vi.waitFor(async () => {
+      await act(async () => {});
+      expect(client.isFetching({ queryKey: ['plugins'] })).toBe(0);
+      expect(client.getQueryState(['plugins', 'installed', state])).toMatchObject({ status: 'success', fetchStatus: 'idle' });
+      expect(client.isMutating()).toBe(0);
+      if (mutationCompleted) {
+        expect(client.getMutationCache().getAll().at(-1)?.state.status).toBe('success');
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
+      }
+      const articles = Array.from(container.getElementsByTagName('article'));
+      for (const name of targets.present ?? []) expect(articles.filter(article => article.getAttribute('aria-label') === name)).toHaveLength(1);
+      for (const name of targets.absent ?? []) expect(articles.filter(article => article.getAttribute('aria-label') === name)).toHaveLength(0);
+    });
+  };
+  const render = async (initialFixture = 'removal-fixture') => {
+    await act(async () => root.render(<QueryClientProvider client={client}><PluginsManager /></QueryClientProvider>));
+    await waitForState('active', { present: [initialFixture] });
+  };
   const buttons = (name: string) => Array.from(document.getElementsByTagName('button')).filter(button => button.textContent === name);
   const button = (name: string) => { const matches = buttons(name); expect(matches).toHaveLength(1); return matches[0]; };
   const click = async (name: string) => { await act(async () => button(name).click()); };
@@ -44,46 +65,49 @@ describe('Admin plugin removal', () => {
 
   it('H Removed view shows database metadata and only restore and delete actions while package errors isolate their plugin', async () => {
     rows = [plugin('healthy'), plugin('missing', false, 'unavailable'), plugin('broken', false, 'corrupt'), plugin('removed-fixture', true)];
-    await render(); expect(container.textContent).toContain(en.plugins.lifecycle.packageUnavailable); expect(container.textContent).toContain(en.plugins.lifecycle.packageCorrupt);
+    await render('healthy'); expect(container.textContent).toContain(en.plugins.lifecycle.packageUnavailable); expect(container.textContent).toContain(en.plugins.lifecycle.packageCorrupt);
     const articles = Array.from(container.getElementsByTagName('article'));
     expect(articles.find(article => article.getAttribute('aria-label') === 'healthy')?.textContent).toContain('Enable');
     for (const slug of ['missing', 'broken']) expect(Array.from(articles.find(article => article.getAttribute('aria-label') === slug)!.getElementsByTagName('button')).find(button => button.textContent === 'Enable')?.disabled).toBe(true);
-    await click('Removed'); await flush(); expect(container.textContent).toContain('removed-fixture'); expect(button('Restore')).toBeDefined(); expect(button('Delete plugin')).toBeDefined(); expect(buttons('Enable')).toHaveLength(0); expect(buttons('Uninstall')).toHaveLength(0);
+    await click('Removed'); await waitForState('removed', { present: ['removed-fixture'], absent: ['healthy', 'missing', 'broken'] }); expect(container.textContent).toContain('removed-fixture'); expect(button('Restore')).toBeDefined(); expect(button('Delete plugin')).toBeDefined(); expect(buttons('Enable')).toHaveLength(0); expect(buttons('Uninstall')).toHaveLength(0);
   });
   it('I uninstall dialog states retention, cancel sends nothing and confirmation refreshes active and removed queries', async () => {
     await render(); await click('Uninstall'); expect(dialog().textContent).toContain(en.plugins.lifecycle.uninstallDescription);
     await click('Cancel'); expect(mocks.uninstall).not.toHaveBeenCalled(); await click('Uninstall'); await click('Confirm');
-    await act(async () => { await vi.waitFor(() => expect(mocks.uninstall).toHaveBeenCalledTimes(1)); });
-    expect(mocks.uninstall).toHaveBeenCalledWith('removal-fixture'); await click('Removed'); await flush(); expect(container.textContent).toContain('removal-fixture');
+    await waitForState('active', { absent: ['removal-fixture'] }, true);
+    expect(mocks.uninstall).toHaveBeenCalledTimes(1);
+    expect(mocks.uninstall).toHaveBeenCalledWith('removal-fixture'); await click('Removed'); await waitForState('removed', { present: ['removal-fixture'] }); expect(container.textContent).toContain('removal-fixture');
     expect(mocks.installed.mock.calls.filter(call => call[2] === 'active').length).toBeGreaterThan(1);
   });
   it('I restore dialog states disabled restoration, cancel sends nothing and confirmation returns to the disabled active list', async () => {
-    rows = [plugin('active-fixture'), plugin('removal-fixture', true)]; await render(); await click('Removed'); await flush(); await click('Restore');
+    rows = [plugin('active-fixture'), plugin('removal-fixture', true)]; await render('active-fixture'); await click('Removed'); await waitForState('removed', { present: ['removal-fixture'], absent: ['active-fixture'] }); await click('Restore');
     expect(dialog().textContent).toContain(en.plugins.lifecycle.restoreDescription); await click('Cancel'); expect(mocks.restore).not.toHaveBeenCalled();
-    await click('Restore'); await click('Confirm'); await act(async () => { await vi.waitFor(() => expect(mocks.restore).toHaveBeenCalledTimes(1)); });
-    await click('Installed plugins'); await flush(); expect(container.textContent).toContain('removal-fixture'); expect(buttons('Enable')).toHaveLength(2);
+    await click('Restore'); await click('Confirm'); await waitForState('removed', { absent: ['removal-fixture'] }, true);
+    expect(mocks.restore).toHaveBeenCalledTimes(1);
+    await click('Installed plugins'); await waitForState('active', { present: ['active-fixture', 'removal-fixture'] }); expect(container.textContent).toContain('removal-fixture'); expect(buttons('Enable')).toHaveLength(2);
   });
   it('I purge dialog honestly describes retained data, requires the exact slug and cancel sends nothing', async () => {
-    rows = [plugin('active-fixture'), plugin('removal-fixture', true)]; await render(); await click('Removed'); await flush(); await click('Delete plugin');
+    rows = [plugin('active-fixture'), plugin('removal-fixture', true)]; await render('active-fixture'); await click('Removed'); await waitForState('removed', { present: ['removal-fixture'], absent: ['active-fixture'] }); await click('Delete plugin');
     expect(dialog().textContent).toContain(en.plugins.lifecycle.purgeDescription); expect(button('Confirm').disabled).toBe(true);
     await type('wrong'); expect(button('Confirm').disabled).toBe(true); await click('Cancel'); expect(mocks.purge).not.toHaveBeenCalled();
     await click('Delete plugin'); await type('removal-fixture'); expect(button('Confirm').disabled).toBe(false); await click('Confirm');
-    await act(async () => { await vi.waitFor(() => expect(mocks.purge).toHaveBeenCalledTimes(1)); }); expect(mocks.purge).toHaveBeenCalledWith('removal-fixture', 'removal-fixture');
+    await waitForState('removed', { absent: ['removal-fixture'] }, true); expect(mocks.purge).toHaveBeenCalledTimes(1); expect(mocks.purge).toHaveBeenCalledWith('removal-fixture', 'removal-fixture');
     expect(mocks.installed.mock.calls.filter(call => call[2] === 'removed').length).toBeGreaterThan(1);
   });
   it.each(['uninstall', 'restore', 'purge'] as const)('I %s confirmation cannot double submit while its real mutation promise is pending', async operation => {
     rows = [plugin('active-fixture'), plugin('removal-fixture', operation !== 'uninstall')];
     let release!: (value: unknown) => void; const pending = new Promise(resolve => { release = resolve; }); mocks[operation].mockReturnValue(pending);
-    await render(); if (operation !== 'uninstall') { await click('Removed'); await flush(); }
+    await render('active-fixture'); if (operation !== 'uninstall') { await click('Removed'); await waitForState('removed', { present: ['removal-fixture'], absent: ['active-fixture'] }); }
     if (operation === 'uninstall') rows = [plugin('removal-fixture')];
     const label = { uninstall: 'Uninstall', restore: 'Restore', purge: 'Delete plugin' }[operation];
     const target = buttons(label).at(-1)!; await act(async () => target.click()); if (operation === 'purge') await type('removal-fixture');
     await act(async () => { const confirm = button('Confirm'); confirm.click(); confirm.click(); }); expect(mocks[operation]).toHaveBeenCalledTimes(1);
     expect(button('Working…').disabled).toBe(true); await act(async () => release(success({ slug: 'removal-fixture' })));
+    await waitForState(operation === 'uninstall' ? 'active' : 'removed', { present: ['removal-fixture'] }, true);
   });
   it('J unfinished-payment refusal remains visible in the dialog without deleting the installation', async () => {
     rows = [plugin('active-fixture'), plugin('removal-fixture', true)]; mocks.purge.mockRejectedValue({ code: 'PLUGIN_UNFINISHED_PAYMENTS' });
-    await render(); await click('Removed'); await flush(); await click('Delete plugin'); await type('removal-fixture'); await click('Confirm');
+    await render('active-fixture'); await click('Removed'); await waitForState('removed', { present: ['removal-fixture'], absent: ['active-fixture'] }); await click('Delete plugin'); await type('removal-fixture'); await click('Confirm');
     await vi.waitFor(async () => { await act(async () => {}); expect(dialog().textContent).toContain(en.plugins.lifecycle.unfinishedPayments); }); expect(rows.some(row => row.slug === 'removal-fixture')).toBe(true);
   });
   it.each([

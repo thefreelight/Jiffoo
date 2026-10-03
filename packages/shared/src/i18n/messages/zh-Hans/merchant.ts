@@ -812,6 +812,7 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    lastRecordedError: { label: '最近记录的错误', historical: '历史记录，不代表当前健康状态，也不表示插件不健康或已禁用。' },
     lifecycle: {
       removed: '已卸载', uninstall: '卸载', restore: '恢复', purge: '删除插件',
       uninstallTitle: '卸载插件', restoreTitle: '恢复插件', purgeTitle: '永久删除插件',

@@ -4,6 +4,7 @@ import { prisma } from '@/config/database';
 import { parseEventPayload, type EventKey, type PluginEvent } from '@jiffoo/shared';
 import { deliverInstallationEvent } from '@/core/admin/extension-installer/plugin-runtime';
 import type { EventTransaction } from './emit';
+import { redactPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
 
 export const EVENT_HANDLER_TIMEOUT_MS = 30_000;
 export const EVENT_LEASE_SECONDS = 60;
@@ -54,6 +55,7 @@ export async function claimEventDeliveries(
 }
 
 async function finishFailure(transaction: EventTransaction, delivery: EventDelivery, error: string): Promise<void> {
+  error = await redactPluginFailure('', error, delivery.installationId);
   const tx = transaction as Prisma.TransactionClient;
   const final = delivery.attempts >= EVENT_MAX_ATTEMPTS;
   const delay = final ? 0 : EVENT_RETRY_SECONDS[delivery.attempts - 1];

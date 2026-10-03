@@ -372,6 +372,8 @@ export const healthApi = {
 
 // Plugin Instance types
 export interface PluginInstance {
+  lastFailureAt?: string | null;
+  lastFailureMessage?: string | null;
   installationId: string;
   pluginSlug: string;
   instanceKey: string;
@@ -441,6 +443,8 @@ function toPluginState(slug: string, detail: any, instance: PluginInstance | nul
 
   return {
     slug,
+    lastFailureAt: detail?.lastFailureAt ?? null,
+    lastFailureMessage: detail?.lastFailureMessage ?? null,
     enabled: instance?.enabled ?? false,
     config,
     configMeta: instance?.configMeta,

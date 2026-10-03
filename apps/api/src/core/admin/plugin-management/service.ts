@@ -399,7 +399,7 @@ async function updateInstance(
         await warmPluginInstanceRuntime(existing.pluginSlug, existing.id, runtimeConfig);
       }
     } catch (error: any) {
-      throw new Error(redactPluginText(`Plugin runtime failed to load: ${error.message}`, runtimeConfig, manifest));
+      throw new ExtensionInstallerError(redactPluginText(`Plugin runtime failed to load: ${error.message}`, runtimeConfig, manifest), { statusCode: 500, code: 'INTERNAL_SERVER_ERROR' });
     }
   }
 

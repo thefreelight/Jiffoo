@@ -812,6 +812,7 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    lastRecordedError: { label: 'Last recorded error', historical: 'Historical information. This is not current health and does not mean the plugin is unhealthy or disabled.' },
     lifecycle: {
       removed: 'Removed', uninstall: 'Uninstall', restore: 'Restore', purge: 'Delete plugin',
       uninstallTitle: 'Uninstall plugin', restoreTitle: 'Restore plugin', purgeTitle: 'Delete plugin permanently',

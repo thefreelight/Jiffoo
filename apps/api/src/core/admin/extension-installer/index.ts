@@ -19,6 +19,8 @@ import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { createHash } from 'node:crypto';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { readPluginZipEntries } from 'shared/plugin-signing';
+import { prisma } from '@/config/database';
+import { redactPluginFailure } from './plugin-failure';
 import { InvalidStoredManifestError, readStoredPluginManifest } from './stored-manifest';
 import type { PluginInstall } from '@prisma/client';
 
@@ -74,6 +76,18 @@ async function packageState(pkg: PluginInstall): Promise<InstalledExtensionMeta[
   } catch {
     return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
   }
+}
+
+async function lastRecordedError(slug: string) {
+  const instance = await prisma.pluginInstallation.findUnique({
+    where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } },
+    select: { id: true, lastFailureAt: true, lastFailureMessage: true },
+  });
+  return {
+    lastFailureAt: instance?.lastFailureAt ?? null,
+    lastFailureMessage: instance?.lastFailureMessage === null || !instance
+      ? null : await redactPluginFailure(slug, instance.lastFailureMessage, instance.id),
+  };
 }
 
 /**
@@ -152,6 +166,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
           entryModule: pkg.entryModule || undefined,
           source: pkg.source as ExtensionSource,
           packageState: await packageState(pkg),
+          ...await lastRecordedError(pkg.slug),
           deletedAt: pkg.deletedAt,
           permissions: parseJsonArray(pkg.permissions),
           author: pkg.author || undefined,
@@ -197,6 +212,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
           entryModule: pkg.entryModule || undefined,
           source: pkg.source as ExtensionSource,
           packageState: await packageState(pkg),
+          ...await lastRecordedError(pkg.slug),
           deletedAt: pkg.deletedAt,
           permissions: parseJsonArray(pkg.permissions),
           author: pkg.author || undefined,

@@ -4,8 +4,9 @@ import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-package';
 import { loadPluginEntryModule } from '@/core/admin/extension-installer/plugin-module-loader';
 import type { LifecycleHookName, PluginManifest } from '@jiffoo/shared';
-import { redactPluginText } from './config-crypto';
+import { recordPluginFailure, redactPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
 import { assertPluginSigningAllowed } from '@/core/admin/extension-installer/plugin-signing-policy';
+import { ExtensionInstallerError } from '@/core/admin/extension-installer/errors';
 
 export interface LifecycleContext {
   installationId: string;
@@ -33,11 +34,19 @@ export async function executeLifecycleHook(hookName: LifecycleHookName, context:
     LoggerService.logPerformance(`lifecycle.${hookName}`, Date.now() - startTime, { pluginSlug: context.pluginSlug, installationId: context.installationId, success: true });
     return { success: true, durationMs: Date.now() - startTime };
   } catch (error: any) {
-    const errorMessage = redactPluginText(error?.message || 'Unknown error', context.config, manifest);
+    const errorMessage = await redactPluginFailure(context.pluginSlug, error, context.installationId, { config: context.config, manifest });
     const durationMs = Date.now() - startTime;
     LoggerService.logError(new Error(errorMessage), { context: `Lifecycle hook ${hookName}`, pluginSlug: context.pluginSlug, installationId: context.installationId, durationMs });
-    if (hookName === 'onEnable') throw new Error(`Lifecycle hook onEnable failed for plugin "${context.pluginSlug}": ${errorMessage}`);
-    try { await prisma.pluginInstallation.update({ where: { id: context.installationId }, data: { lifecycleWarning: `${hookName} failed: ${errorMessage}` } }); } catch {}
+    if (hookName === 'onEnable') {
+      await recordPluginFailure(context.pluginSlug, error, hookName, context.installationId, { config: context.config, manifest });
+      throw new ExtensionInstallerError(`Lifecycle hook onEnable failed for plugin "${context.pluginSlug}": ${errorMessage}`, { statusCode: 500, code: 'INTERNAL_SERVER_ERROR' });
+    }
+    try {
+      await prisma.$transaction(async tx => {
+        await recordPluginFailure(context.pluginSlug, error, hookName, context.installationId, { config: context.config, manifest }, tx);
+        await tx.pluginInstallation.update({ where: { id: context.installationId }, data: { lifecycleWarning: `${hookName} failed: ${errorMessage}` } });
+      });
+    } catch {}
     return { success: false, error: errorMessage, durationMs };
   }
 }

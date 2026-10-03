@@ -900,6 +900,7 @@ export function useTogglePlugin() {
       toast.success(`Plugin ${variables.enabled ? 'enabled' : 'disabled'} successfully`);
     },
     onError: (error: unknown) => {
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
       toast.error(getErrorMessage(error));
     },
   });
@@ -1010,11 +1011,12 @@ export function useUpdatePluginInstance() {
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.instances(variables.slug) });
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success('Instance updated successfully');
     },
     onError: (error: unknown) => {
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
       toast.error(getErrorMessage(error));
     },
   });
