@@ -54,7 +54,9 @@ export interface BokmooApiProduct {
   price: number;
   currency?: string;
   image?: string;
-  images?: Array<{
+  // Storefront product DTOs and the native catalog sync expose plain URL
+  // strings; the client cards API may return rich objects.
+  images?: Array<string | {
     url: string;
     alt?: string;
   }>;
@@ -464,7 +466,8 @@ export function resolveBokmooMediaUrl(url: string | null | undefined, apiBaseUrl
 
 export function mapBokmooApiProductToThemeProduct(product: BokmooApiProduct): ThemeProduct {
   const esim = product.typeData?.esim;
-  const imageUrl = product.images?.[0]?.url || product.image;
+  const firstImage = product.images?.[0];
+  const imageUrl = (typeof firstImage === 'string' ? firstImage : firstImage?.url) || product.image;
   const regionTag = esim?.region || esim?.country || 'Travel';
   const technology = buildTechnologyLabel(esim);
   // The core's product-level price is the odoo list price; the sellable
