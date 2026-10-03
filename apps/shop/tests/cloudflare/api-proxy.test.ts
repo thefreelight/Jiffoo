@@ -45,6 +45,25 @@ describe('proxyApiRequest', () => {
     expect(forwarded.headers.get('x-forwarded-host')).toBe('demo.jiffoo.com');
   });
 
+  it('forwards core-served media paths with their cache-busting query', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('png', {
+      status: 200,
+      headers: { 'content-type': 'image/png' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await proxyApiRequest(
+      new Request('https://bokmoo.com/media/odoo-product-6?v=2026-08-24%2010%3A13%3A56'),
+      'https://api.bokmoo.com',
+    );
+
+    expect(response?.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    const forwarded = fetchMock.mock.calls[0]?.[0] as Request;
+    expect(forwarded.url).toBe('https://api.bokmoo.com/media/odoo-product-6?v=2026-08-24%2010%3A13%3A56');
+  });
+
   it('does not intercept non-API requests', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);

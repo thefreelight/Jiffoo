@@ -140,7 +140,10 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
               name: displayProductTitle(item.name),
               description: String(item.description || ''),
               price: variantPrices[0] ?? Number(item.price || 0),
-              image: resolveBokmooMediaUrl(item.images?.[0]?.url || item.image, site.apiBaseUrl),
+              image: resolveBokmooMediaUrl(
+                (typeof item.images?.[0] === 'string' ? item.images[0] : item.images?.[0]?.url) || item.image,
+                site.apiBaseUrl
+              ),
             };
           })
         );

@@ -73,16 +73,18 @@ export async function middleware(request: ProxyRequest) {
  * IMPORTANT: This matcher MUST NOT exclude /_next/* because Theme App mode
  * needs to forward static resources to the Theme App server.
  *
- * Excluded paths (handled by next.config.js rewrites):
+ * Excluded paths:
  * - /api/* - Core API routes (prevents infinite loop)
  * - /plugins/* - Plugin runtime mount for storefront slots
  * - /extensions/* - Extension static files
  * - /uploads/* - Upload files
+ * - /media/* - Core API media (proxied by app/media route handler; the locale
+ *   redirect must not prefix it, the path has no route in the shop app)
  * - /theme-app/* - Theme App Gateway (prevents infinite loop)
  * - favicon.ico - Browser default request
  *
  * NOTE: Next.js requires matcher to be a static literal, cannot be imported.
  */
 export const config = {
-  matcher: ['/((?!api/|plugins/|extensions/|uploads/|theme-app/|favicon.ico).*)'],
+  matcher: ['/((?!api/|plugins/|extensions/|uploads/|media/|theme-app/|favicon.ico).*)'],
 };

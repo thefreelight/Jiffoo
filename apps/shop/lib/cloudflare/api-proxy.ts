@@ -4,9 +4,12 @@
  * `/api/` is the Core API surface. `/plugins/` is the in-process plugin
  * runtime mount used by plugin storefront slots (e.g. Support Hub's
  * `/plugins/support-hub/store/config`); without it the request would fall
- * into the Next layer and be swallowed by the locale redirect.
+ * into the Next layer and be swallowed by the locale redirect. `/media/`
+ * is Core-served product media (e.g. odoo catalog images stored as
+ * origin-relative paths); only the Core API worker can serve it, so the
+ * same locale-redirect swallow applies.
  */
-const PROXIED_API_PREFIXES = ['/api/', '/plugins/'];
+const PROXIED_API_PREFIXES = ['/api/', '/plugins/', '/media/'];
 
 function resolveApiUrl(requestUrl: string, apiServiceUrl: string): URL | null {
   const url = new URL(requestUrl);

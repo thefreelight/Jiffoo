@@ -13,7 +13,7 @@ import {
 import { cn } from '@jiffoo/ui';
 import type { Product } from 'shared/src/types/product';
 import type { ProductDetailPageProps } from 'shared/src/types/theme';
-import { getBokmooProduct, getProductIdFromLocation, mapBokmooApiProductToThemeProduct, normalizeProductForTheme } from '../lib/api';
+import { getBokmooProduct, getProductIdFromLocation, mapBokmooApiProductToThemeProduct, normalizeProductForTheme, resolveBokmooMediaUrl } from '../lib/api';
 import { getBokmooTravelProfile } from '../lib/digital-fulfillment';
 import { resolveBokmooSiteConfig } from '../site';
 
@@ -56,7 +56,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
   const stockValue = Number(currentVariant?.inventory ?? normalizedProduct?.inventory?.available ?? 0);
   const priceValue = Number(currentVariant?.price ?? normalizedProduct?.price ?? 0);
   const maxQuantity = Math.max(1, Math.min(stockValue || 1, 10));
-  const image = getProductImage(normalizedProduct);
+  const image = resolveBokmooMediaUrl(getProductImage(normalizedProduct), site.apiBaseUrl);
 
   React.useEffect(() => {
     if (product) return;
