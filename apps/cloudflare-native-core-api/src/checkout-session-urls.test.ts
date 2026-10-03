@@ -79,6 +79,34 @@ describe('storefront payment result defaults', () => {
     }
   });
 
+  it('accepts the storefront /payments/create-session spelling as an alias', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    getNativeStripeSecret.mockResolvedValue({ mode: 'test', value: 'sk_test_example' });
+    const calls: string[] = [];
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn(async (_input: unknown, init?: RequestInit) => {
+      calls.push(String(init?.body ?? ''));
+      return Response.json({ id: 'cs_test_1', url: 'https://checkout.stripe.com/c/pay/cs_test_1', expires_at: Math.floor(Date.now() / 1000) + 3600 });
+    }) as unknown as typeof fetch;
+    try {
+      const response = await tryNativeCheckout(
+        new Request('https://api.example/api/v1/payments/create-session', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', origin: 'https://remoteradar.cc' },
+          body: JSON.stringify({ paymentMethod: 'stripe', orderId: 'ord-test-1', idempotencyKey: 'idem-alias' }),
+        }),
+        { DB: sessionDb(), NATIVE_CHECKOUT_ENABLED: 'true' } as never,
+        () => Promise.resolve(null),
+      );
+      expect(response?.status).toBe(201);
+      expect(calls).toHaveLength(1);
+      const form = new URLSearchParams(calls[0]);
+      expect(form.get('success_url')).toBe('https://remoteradar.cc/payment/success?session_id={CHECKOUT_SESSION_ID}');
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it('honors explicit success and cancel URLs', async () => {
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
     getNativeStripeSecret.mockResolvedValue({ mode: 'test', value: 'sk_test_example' });
