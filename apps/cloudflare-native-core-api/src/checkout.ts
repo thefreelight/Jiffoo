@@ -637,7 +637,7 @@ export async function tryNativeCheckout(
   }
   const relevant = (url.pathname === '/api/v1/orders' && request.method === 'POST')
     || (/^\/api\/v1\/orders\/[^/]+\/cancel$/.test(url.pathname) && request.method === 'POST')
-    || (url.pathname === '/api/v1/payments/sessions' && request.method === 'POST')
+    || ((url.pathname === '/api/v1/payments/sessions' || url.pathname === '/api/v1/payments/create-session') && request.method === 'POST')
     || (url.pathname === '/api/v1/payments/intents' && request.method === 'POST')
     || (/^\/api\/v1\/payments\/sessions\/[^/]+$/.test(url.pathname) && request.method === 'GET');
   if (!relevant) return null;
@@ -647,7 +647,12 @@ export async function tryNativeCheckout(
   if (url.pathname === '/api/v1/orders' && request.method === 'POST') return createOrder(request, env, user, loadProduct);
   const cancel = url.pathname.match(/^\/api\/v1\/orders\/([^/]+)\/cancel$/);
   if (cancel) return cancelOrder(request, env, user, cancel[1]);
-  if (url.pathname === '/api/v1/payments/sessions') return createPaymentSession(request, env, user);
+  if (url.pathname === '/api/v1/payments/sessions' || url.pathname === '/api/v1/payments/create-session') {
+    // '/create-session' is the storefront contract spelling
+    // (shared API_ENDPOINTS.CART/checkout + remoteradar workspace modal);
+    // '/sessions' is the original native spelling. Same handler, one contract.
+    return createPaymentSession(request, env, user);
+  }
   if (url.pathname === '/api/v1/payments/intents') return createPaymentIntent(request, env, user);
   const verify = url.pathname.match(/^\/api\/v1\/payments\/sessions\/([^/]+)$/);
   if (verify) return verifyPaymentSession(env, user, verify[1]);
