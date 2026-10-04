@@ -396,8 +396,8 @@ version and may include a controlled database migration.
 
 Core updates are performed by the operator with one official host command.
 The command performs, in order: release identity and integrity verification,
-installed-plugin compatibility checks, backup before any migration, maintenance
-with all API and worker instances stopped or drained, Core and plugin
+installed-plugin compatibility checks, maintenance with all API and worker
+instances stopped or drained, backup before any migration, Core and plugin
 migrations, application start, and health checks. Daily operations, extensions,
 and themes remain in Admin without SSH access or service restart. Admin shows
 the current version and health only; V1 has no update UI and no updater
