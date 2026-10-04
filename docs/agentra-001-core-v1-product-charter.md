@@ -9,10 +9,12 @@ Jiffoo Core V1 is a self-hosted commerce appliance for one merchant and one
 storefront.
 
 A merchant deploys Core once, owns its store data and operating environment,
-and then manages daily commerce operations, extensions, themes, and Core
-upgrades from the Admin application. The merchant must not need SSH access, a
-plugin-specific deployment, or a service restart to begin using an installed
-extension. This is the primary differentiator.
+and then manages daily commerce operations, extensions, and themes from the
+Admin application. Core updates are performed by the operator with one official
+host command; Admin shows the current version and health, not an update UI.
+The merchant must not need SSH access, a plugin-specific deployment, or a
+service restart to begin using an installed extension. This is the primary
+differentiator.
 
 Jiffoo is not a hosted marketplace platform. It combines the merchant control
 of self-hosted software with a modern extension experience: install, configure,
@@ -20,14 +22,16 @@ enable, use, update, and diagnose from one product surface. Merchants can
 write their own extensions; Core provides the published contracts and tooling
 required to make that promise real.
 
-Core V1 is delivered as a single instance. Its architecture must not prevent
-future multi-instance deployment for Core itself: Core keeps no mutable
+Core V1 must run correctly with multiple API and worker instances sharing
+PostgreSQL, Redis, and object storage. This is verified under Docker Compose
+with at least two API and two worker instances. Core keeps no mutable
 request-scoped state in process memory, and reaches plugin packages and
 uploaded files through a storage abstraction rather than a fixed local path.
 Extensions run in-process. Core does not constrain the state an extension
 holds. An extension declares its own statelessness for multi-instance
 deployment; Core does not enforce it in V1. Multi-instance orchestration
-itself is not a V1 feature.
+supports these shared-state instances in V1. Kubernetes deployment profiles,
+autoscaling, and zero-downtime rolling Core updates are deferred.
 
 ## 2. Merchant Journeys
 
@@ -78,13 +82,14 @@ Shop theme.
 
 ### Update Core
 
-The merchant sees an available Core version and chooses whether to update.
-Before changing the running version, Core explains the target version,
-compatibility impact, backup requirement, and whether database migration is
-required. Core rejects an unverifiable release or an incompatible installed
-extension. After an update, Core reports the health result and makes the prior
-application version available when no Core or plugin migration has been
-applied for that update.
+The operator updates Core with one official host command. Before changing the
+running version, the command reports the target version, compatibility impact,
+backup requirement, and whether database migration is required. It rejects an
+unverifiable release or an incompatible installed plugin. A failed update with
+no migration automatically restores the prior application version. After any
+Core or plugin migration is applied, recovery uses a documented command to
+restore the pre-update backup, not application rollback. Admin shows the current
+version and health only; there is no Core update UI in V1.
 
 ## 3. Core V1 Capabilities
 
@@ -204,20 +209,27 @@ Known limitations (2026-10-04):
 
 ### State and Storage Boundaries
 
-Core V1 runs as one instance but is built so a later multi-instance deployment
-adds orchestration rather than requiring rearchitecture.
+Core V1 supports multiple API and worker instances sharing PostgreSQL, Redis,
+and object storage. The Docker Compose acceptance setup runs at least two API
+and two worker instances.
 
 - Session state lives outside the process.
 - Plugin ZIP bytes are persisted in PostgreSQL. PluginPackageStore exposes
   immutable content-addressed local package directories materialized from
   those bytes. No code outside the storage abstraction resolves a package
   path.
-- Merchant-uploaded files follow the same pattern.
+- Theme package bytes are persisted in PostgreSQL like plugin packages and
+  materialized on every instance through the storage abstraction.
+- Merchant-uploaded files use a storage abstraction with a local-disk backend
+  for development and single-host use, and an S3-compatible backend for
+  production. The default Compose deployment ships a self-hosted S3-compatible
+  service shared by all instances.
 - Background jobs take a distributed lock rather than assuming a single
   instance. Scheduled jobs are idempotent.
 - Core maintains a plugin registry version counter in the database, incremented
-  on install, enable, disable and update. V1 writes it; a later multi-instance
-  deployment reads it to trigger reload.
+  on install, enable, disable and update. Each instance reads it to trigger
+  coordinated runtime reload. Registry reload and cache invalidation use
+  separate signals and counters.
 
 After any extension lifecycle action, every piece of plugin-derived in-process
 state is consistent with the database state for that installation. Every
@@ -236,6 +248,10 @@ Known limitation (2026-10-04): the current runtime executes exported
 {id, sql} migrations during runtime registration, rather than discovering
 plain .sql files against a manifest declaration. It does not establish the
 package-derived default schema described below.
+
+There is no production data to preserve when changing the migration format.
+The packaged .sql format is a clean break: exported {id, sql} migrations are
+rejected, with no legacy ledger reconciliation.
 
 A plugin must not run prisma migrate deploy, because that writes to
 Core's _prisma_migrations ledger. A plugin may not ship a generated Prisma
@@ -368,27 +384,35 @@ leave the worktree, per §7.
 ### Core Updates
 
 Docker Compose is the single V1 reference delivery form. Its backup, image
-switch, migration, health check, and application-version rollback flows define
-the supported update behavior. A single binary is not a V1 promise.
-
-The Docker Compose update flow assumes a single instance and a local
-filesystem. Multi-instance update orchestration is deferred (§6).
+switch, migration, health check, and backup-restore flows define the supported
+update behavior. A single binary is not a V1 promise. The deployment supports
+multiple API and worker instances sharing PostgreSQL, Redis, and object storage.
+Kubernetes deployment profiles, autoscaling, and zero-downtime rolling Core
+updates are deferred (§6).
 
 Core updates and extension updates are separate merchant operations. Extension
 updates replace one verified package. Core updates replace the Core application
 version and may include a controlled database migration.
 
-Core updates are operator initiated. A supported update verifies the exact
-release identity and integrity, checks installed-extension compatibility,
-requires a current backup before any database migration, enters a safe
-maintenance flow when required, and validates post-update health.
+Core updates are performed by the operator with one official host command.
+The command performs, in order: release identity and integrity verification,
+installed-plugin compatibility checks, backup before any migration, maintenance
+with all API and worker instances stopped or drained, Core and plugin
+migrations, application start, and health checks. Daily operations, extensions,
+and themes remain in Admin without SSH access or service restart. Admin shows
+the current version and health only; V1 has no update UI and no updater
+container with Docker socket access.
 
-Before every database write, Core audits Core migration names, order, and
-SHA-256 fingerprints against the selected release line. It audits plugin
+Before any migration write in the update flow, Core audits Core migration
+names, order, and SHA-256 fingerprints against the selected release line. It audits plugin
 migration names, order, and SHA-256 fingerprints against each installed package
 manifest. Any drift or mismatch blocks the update. Once any Core or plugin
 migration has been applied after the backup snapshot taken for that update,
-Core does not offer application rollback for that update.
+Core does not offer application rollback for that update. A failed update with
+no migration automatically restores the prior application version. After any
+migration is applied, recovery is a restore from the pre-update backup using a
+documented host command. This audit requirement applies to migration writes in
+the update flow, not every business write.
 
 ### Extension Lifecycle
 
@@ -508,6 +532,10 @@ are demonstrated:
 16. An enabled extension raises an unhandled asynchronous error. The Core
     process continues serving, the failure is recorded with its originating
     extension, and no other extension's capability is affected.
+17. At least two API and two worker instances run under Docker Compose sharing
+    PostgreSQL, Redis, and S3-compatible object storage. Shared rate limiting,
+    task claims and fencing, extension lifecycle and runtime reload, and plugin,
+    theme, and uploaded-file availability remain correct across instances.
 
 ## 6. Deferred Decisions
 
@@ -524,12 +552,8 @@ The following are not implied by Core V1 and require a new product decision:
 - promotion and discount as an extension contract;
 - official extension and theme source, artifact publication, production
   rollout, or closed-source repository work inside the Core worktree.
-- multi-instance deployment: package distribution to all instances, per-request
-  registry version checking and reload, plugin load coordination during rolling
-  updates, and multi-instance Core update orchestration. Registry reload and
-  cache invalidation are separate signals requiring separate counters.
-  Concurrent registry loading across instances requires coordination;
-- Kubernetes and other deployment profiles;
+- Kubernetes deployment profiles, autoscaling, and zero-downtime rolling Core
+  updates;
 - consent management and cookie banner for storefront tracking;
 - sandboxed extension execution. V1 chooses publisher accountability over
   technical isolation. Products that sandbox extension code restrict it to
@@ -546,7 +570,8 @@ in the worktree does not make them V1 surfaces.
 - The Cloudflare Worker application is a separate deployment surface outside
   Docker Compose, the single V1 reference delivery form.
 - Kubernetes updater tooling is a Kubernetes deployment surface; §6 defers
-  Kubernetes and other deployment profiles.
+  Kubernetes deployment profiles, autoscaling, and zero-downtime rolling Core
+  updates.
 - The external plugin demo example is a remote execution model from an earlier
   batch; remote hosted extensions are not V1 features.
 - Multi-store functionality is outside V1 because §4 requires one merchant and

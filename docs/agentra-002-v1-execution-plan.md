@@ -287,6 +287,27 @@ Prerequisites:
 Failure Containment
 Blocked by: process-level exception handlers with extension attribution
 
+## Scenario 17 — multi-instance correctness
+
+Charter text: At least two API and two worker instances run under Docker Compose sharing
+PostgreSQL, Redis, and S3-compatible object storage. Shared rate limiting,
+task claims and fencing, extension lifecycle and runtime reload, and plugin,
+theme, and uploaded-file availability remain correct across instances.
+Status: NOT STARTED (assessed 2026-10-04)
+Prerequisites:
+State and Storage Boundaries
+shared rate limiting and circuit breaker state
+distributed task claims and fencing
+cross-instance extension lifecycle and runtime reload
+plugin and theme package persistence and materialization
+S3-compatible merchant-uploaded file storage
+Docker Compose delivery
+Blocked by: shared limiter and breaker state; task claims and fencing including
+payment reconciliation; coordinated registry and runtime reload across instances;
+theme package persistence and materialization on every instance; S3-compatible
+upload backend and self-hosted Compose service; two-API and two-worker Compose
+verification.
+
 ## Development order
 
 1. Extension foundation: five capability contracts; lifecycle rebuild of plugin-derived state (15); process-level failure containment (16); validation of stored manifests and persisted trust tier; storage boundary (12).
@@ -294,7 +315,7 @@ Blocked by: process-level exception handlers with extension attribution
 3. Shop and declarative themes (7), then tracking and custom code (14).
 4. Event layer (6) and disabled-extension isolation (8). COMPLETE (2026-09-30).
 5. Extension Center: marketplace index (2), signature verification and Extension SDK (3, 4, 13). COMPLETE (2026-10-04), closed by c79c7e2e6 with 35-extension-center.spec.ts A-F and the marketplace, upload, signing and SDK specifications recorded above. Phase completion does not close the real payment provider launch blockers, Scenario 10 migration audit gap or Scenario 12 static audit.
-6. Delivery: Docker Compose, Core updates and plugin migrations (9, 10), release verification (11).
+6. Delivery: Docker Compose with a self-hosted S3-compatible service, shared upload storage, multi-instance correctness verified with at least two API and two worker instances (17), one official operator host update command and a documented backup-restore command, Core updates and plugin migrations (9, 10), and exact-release verification (11). Kubernetes deployment profiles, autoscaling, zero-downtime rolling Core updates, an Admin update UI, and an updater container with Docker socket access are not V1 Delivery work.
 
 Pre-launch required (assessed 2026-10-04):
 
@@ -308,6 +329,11 @@ Pre-launch required (assessed 2026-10-04):
 
 ## Recorded product decisions
 
+- Delivery scope (2026-10-04): Core updates use one official operator command on the host. It performs release identity verification, installed-plugin compatibility checks, backup before any migration, maintenance with all API and worker instances stopped or drained, Core and plugin migrations, start, and health checks, in that order. A failed update with no migration automatically restores the prior application version; after any migration is applied, there is no application rollback, and recovery restores the pre-update backup using a documented command. Admin shows current version and health only, with no V1 update UI or updater container with Docker socket access. Daily operations, extensions, and themes remain fully in Admin without SSH or restart.
+- Multi-instance correctness (2026-10-04): V1 runs correctly with multiple API and worker instances sharing PostgreSQL, Redis, and object storage, verified with at least two API and two worker instances under Docker Compose. Kubernetes deployment profiles, autoscaling, and zero-downtime rolling Core updates are deferred.
+- Merchant-uploaded files (2026-10-04): the storage abstraction provides a local-disk backend for development and single-host use, and an S3-compatible backend for production. Default Compose ships a self-hosted S3-compatible service. Theme package bytes are persisted in PostgreSQL like plugin package bytes.
+- Plugin migration format (2026-10-04): there is no production data. Packaged .sql migrations replace exported {id, sql} migrations as a clean break; the old form is rejected, with no legacy ledger reconciliation.
+- Update migration audit (2026-10-04): "before every database write" means before any migration write in the update flow, not every business write.
 - The API is served only under /api/v1.
 - Customers must log in to add to cart and to check out; there are no guest accounts. Browsing does not require login.
 - Email is a notification, never a gate: delivery failure never blocks registration, login or ordering, and unverified accounts can log in and order.
