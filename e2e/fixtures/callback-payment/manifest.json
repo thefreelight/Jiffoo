@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "slug": "e2e-callback-payment",
+  "name": "E2E Callback Payment",
+  "version": "1.0.0",
+  "description": "Local field-signed PSP callback fixture",
+  "category": "payment",
+  "runtimeType": "internal-fastify",
+  "hostProtocol": "internal-fastify-v1",
+  "entryModule": "index.js",
+  "permissions": [],
+  "contracts": [{ "name": "payment", "version": 1 }],
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "webhookSecret": { "type": "string", "title": "Webhook secret", "sensitive": true, "minLength": 16 }
+    },
+    "required": ["webhookSecret"]
+  }
+}

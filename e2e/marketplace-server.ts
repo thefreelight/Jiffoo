@@ -21,9 +21,9 @@ function command(args: string[]) {
   if (result.status !== 0) throw new Error(`SDK ${args[0]} failed: ${result.stdout}${result.stderr}`);
 }
 
-async function packageVersion(slug: string, name: string, version: string, minApiVersion = 'v1') {
+async function packageVersion(slug: string, name: string, version: string, minApiVersion = 'v1', fixture = 'apps/api/builtin-plugins/free-shipping') {
   const source = path.join(temporary, `${slug}-${version}`);
-  await fs.cp(path.resolve(root, 'apps/api/builtin-plugins/free-shipping'), source, { recursive: true });
+  await fs.cp(path.resolve(root, fixture), source, { recursive: true });
   const manifestPath = path.join(source, 'manifest.json');
   const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
   Object.assign(manifest, { slug, name, version, minApiVersion });
@@ -58,7 +58,13 @@ try {
   const corrupt = Buffer.from(packages.get(brokenVersion.downloadUrl)!);
   corrupt[corrupt.length - 1] ^= 1;
   packages.set(brokenVersion.downloadUrl, corrupt);
-  const catalog = JSON.stringify({ schemaVersion: 1, plugins: [compatible, {
+  const payment = {
+    id: 'e2e-callback-payment', slug: 'e2e-callback-payment', name: 'E2E Callback Payment',
+    description: 'Local PSP with field-based callback HMAC.', publisherId,
+    declaredCapabilities: ['payment'],
+    versions: [await packageVersion('e2e-callback-payment', 'E2E Callback Payment', '1.0.0', 'v1', 'e2e/fixtures/callback-payment')],
+  };
+  const catalog = JSON.stringify({ schemaVersion: 1, plugins: [compatible, payment, {
     id: 'e2e-market-broken', slug: 'e2e-market-broken', name: 'E2E Broken Package',
     description: 'The served bytes deliberately fail the catalog digest check.', publisherId,
     declaredCapabilities: ['shipping'], versions: [brokenVersion],

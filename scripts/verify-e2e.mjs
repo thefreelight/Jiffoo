@@ -90,6 +90,7 @@ playwrightGroups.push(['31-plugin-upload']);
 playwrightGroups.push(['32-plugin-removal']);
 playwrightGroups.push(['33-plugin-recorded-error']);
 playwrightGroups.push(['34-shop-reload']);
+playwrightGroups.push(['35-extension-center']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);
@@ -190,13 +191,14 @@ async function stop() {
   for (const log of logs) await new Promise((resolve) => log.end(resolve));
 }
 
-async function resetE2eLoginLimit() {
+async function resetE2eLoginLimit(resetRegistration = false) {
   const apiRequire = createRequire(resolve(root, 'apps/api/package.json'));
   const { createClient } = apiRequire('redis');
   const client = createClient({ url: env.REDIS_URL });
   await client.connect();
   try {
     await client.del('rl:login:ip:127.0.0.1');
+    if (resetRegistration) await client.del('rl:register:ip:127.0.0.1');
     await client.del('rl:ip:127.0.0.1');
     for await (const keys of client.scanIterator({ MATCH: 'stats:admin-dashboard:*' })) {
       if (keys.length) await client.del(keys);
@@ -235,7 +237,7 @@ async function runPlaywrightGroup(args) {
 
 async function runPlaywrightGroups() {
   for (const [index, projects] of playwrightGroups.entries()) {
-    await resetE2eLoginLimit();
+    await resetE2eLoginLimit(projects.includes('35-extension-center'));
     await runPlaywrightGroup([
       'exec', 'playwright', 'test', '--config=e2e/playwright.config.ts',
       ...(index ? ['--no-deps'] : []),

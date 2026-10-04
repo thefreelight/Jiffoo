@@ -25,6 +25,7 @@ const areas = [
   '32-plugin-removal',
   '33-plugin-recorded-error',
   '34-shop-reload',
+  '35-extension-center',
 ];
 
 export default defineConfig({
