@@ -1,6 +1,27 @@
 # Visual verification
 
-Set `DATABASE_URL_TEST` to the dedicated `jiffoo_core_test` database and check for leftover services on ports 3001-3003 before each run. The visual project follows the normal E2E flows, so its captures use seeded state. It is opt-in and does not run as part of standard `pnpm verify`.
+Set `DATABASE_URL_TEST` to the dedicated `jiffoo_core_test` database and check for leftover services on ports 3001-3003 before each run. The baseline visual project follows the normal E2E flows, so its captures use seeded state. It is opt-in and does not run as part of standard `pnpm verify`.
+
+Functional review screenshots are separately opt-in: set
+`VISUAL_CAPTURE_SET=review` when running `pnpm visual:capture`. Participating
+specifications use the review-capture helper to save review artifacts under
+their selected `e2e/visual-results` sets; these are not the baseline/current
+comparison project. Without that flag, the helper adds no disk capture. PNG
+bytes required for the existing viewport-overflow assertion remain part of
+the functional test. The runner passes this value to the review-capture helper
+as `VISUAL_SET`; setting `VISUAL_SET` directly on the standard runner has no
+effect.
+
+`E2E_RELOAD_STRESS=1` enables the reload reproducer in
+`34-shop-reload.spec.ts`, with twenty home reloads and ten checkout reloads
+instead of one each.
+
+Known open issue (2026-10-04): intermittent React #418 hydration failure,
+not yet resolved; reproducible through the opt-in E2E_RELOAD_STRESS=1 reload
+path. Plain theme style rendering and server-derived document language do
+not establish that it is fixed.
+The hydration failure is not capture noise or an allowed visual exclusion.
+Preserve the failure evidence before another run.
 
 Run `pnpm visual:capture` with `VISUAL_CAPTURE_SET=baseline` on the reference code. Capture `noise-1` and `noise-2` without code changes between runs, then compare them with `node scripts/visual-compare.mjs noise-1 noise-2`. Run `pnpm visual:compare` on the changed code to capture `current` and compare it with `baseline`. The report includes each page and viewport's differing pixel percentage, maximum per-channel delta, and named dynamic exclusions. Captures and difference images are ignored under `e2e/visual-results`.
 

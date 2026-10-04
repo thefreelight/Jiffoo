@@ -1,9 +1,12 @@
 # AGENTRA-002: Core V1 Execution Plan
 
 Derived from docs/agentra-001-core-v1-product-charter.md §5.
-This document records WHICH acceptance scenarios pass, WHAT blocks the rest, the development order, and product decisions made after the charter. It does not record code state, file paths, line numbers, or test
-results — those are obtained by fresh inspection when needed and are never
-stored here. Update it only when a scenario's status actually changes.
+This document records WHICH acceptance scenarios pass, WHAT blocks the rest,
+the development order, and product decisions made after the charter. Status
+changes record their assessment date, supporting commits and acceptance
+specifications. Detailed code state, source line numbers and transient test
+output are obtained by fresh inspection and are not stored here. Update it
+when a scenario's status or remaining blocker changes.
 
 ## Scenario 1 — disconnected installation completes a baseline order
 
@@ -21,17 +24,31 @@ Blocked by: builtin plugin installation; builtin manual payment, free shipping, 
 
 Charter text: When the marketplace index is unreachable, browsing is unavailable and
 local package upload still works.
-Status: PARTIAL (assessed 2026-09-22)
+Status: COMPLETE (assessed 2026-10-04)
+Commits: 52d5f7f14, bc268d7e1, 1ab053b23, 2c9d0798e
+Evidence: marketplace-catalog.test.ts covers unavailable and unconfigured
+catalogs and preserved local upload; plugin-upload-preview.test.ts and
+31-plugin-upload.spec.ts cover the normal local upload path.
 Prerequisites:
 Extension Center
-Blocked by: marketplace index browsing and download
+Blocked by: none
 
 ## Scenario 3 — signed extension completes the Core order transition
 
 Charter text: A signed extension is downloaded from the marketplace, verified,
 configured in Admin, enabled without restarting Core, selected in checkout,
 receives its provider callback, and completes the Core order transition.
-Status: PARTIAL (assessed 2026-09-22)
+Status: COMPLETE (assessed 2026-10-04)
+Commits: ac2307e80, c9185bf43, bc268d7e1, 1ab053b23, c79c7e2e6
+Evidence: 35-extension-center.spec.ts B-F demonstrate signed marketplace
+installation, configuration, enablement without restart, checkout, a verified
+provider callback, persistent Paid state, replay idempotency, rejected
+signatures and tampering, disabled callbacks and provider-session isolation.
+Acceptance uses a test-signed fixture protocol; it does not demonstrate a
+real payment provider's raw-HTTP-byte signature verification.
+Known limitations: real payment provider launch is blocked by reconstructed
+webhook rawBody and verification failures returning 500 rather than a stable
+authentication error.
 Prerequisites:
 Extension Center
 extension registry
@@ -41,20 +58,27 @@ compatibility policy
 trust policy
 payment
 Commerce Kernel
-Blocked by: marketplace download; signature verification; persisted trust tier; validation of stored manifests; one shared payment state transition
+Blocked by: none for the demonstrated acceptance scenario; the real payment
+provider launch blockers remain open.
 
 ## Scenario 4 — unsigned extension upload and identical install and enable flow
 
 Charter text: An unsigned extension is uploaded, an explicit warning is shown, a second
 merchant confirmation is required and audited, and the identical install and
 enable flow succeeds.
-Status: PARTIAL (assessed 2026-09-22)
+Status: COMPLETE (assessed 2026-10-04)
+Commits: ac2307e80, bc268d7e1, 2c9d0798e
+Evidence: 31-plugin-upload.spec.ts M demonstrates the warning, typed second
+confirmation and audit; plugin-upload-preview.test.ts verifies confirmation
+before execution and removal of bundle installation; extensions.test.ts
+demonstrates disabled local installation followed by the normal Admin enable
+transition. Local upload and marketplace use the shared installer.
 Prerequisites:
 Extension Center
 installation lifecycle
 trust policy
 audit
-Blocked by: persisted trust tier; marketplace download sharing the identical install path
+Blocked by: none
 
 ## Scenario 5 — tax contract participates in checkout
 
@@ -147,7 +171,14 @@ Prerequisites:
 Core Updates
 Plugin Database and Migrations
 Plugin migration history
-Blocked by: Core update flow; plugin migration ledger; migration audit
+Blocked by: Core update flow; package-manifest verification of plugin
+migration identity, order and SHA-256; plugin migration audit; the SDK plugin
+database access path, delivered together with the Scenario 10 migration work.
+Known limitations (assessed 2026-10-04 at c79c7e2e6): the runtime migration
+ledger compares exported SQL checksums only with prior ledger entries.
+contract-v1-runtime.test.ts does not establish the charter's installed-package
+manifest audit. The migration audit and SDK database access path are
+pre-launch requirements for Scenario 10.
 
 ## Scenario 11 — exact release commit verification
 
@@ -158,31 +189,49 @@ Prerequisites:
 Core public API
 five capability contracts
 Extension SDK
-Blocked by: Shop; Extension SDK; capability contracts
+Blocked by: completion of all release acceptance scenarios and verification
+of the exact selected release commit. Shop, Extension SDK and the five
+capability contracts are no longer missing implementation prerequisites.
 
 ## Scenario 12 — storage abstraction and request-scoped state static audit
 
 Charter text: No code outside the storage abstraction resolves a plugin package or
 uploaded file path, and no request-scoped state is held in process memory.
 This is a static audit, not a runtime test.
-Status: PARTIAL (assessed 2026-09-23)
+Status: PARTIAL (assessed 2026-10-04)
+Commits: ea541f96c, 49274c49b, d4ff25415, 808a96cd7
+Evidence: storage-boundary-guard.test.ts checks package and uploaded-file path
+resolution through storage stores; immutable-plugin-packages.test.ts and
+startup-plugin-prewarm.test.ts cover package publication and materialization.
+The pattern guard is supporting evidence, not a complete static audit.
 Prerequisites:
 State and Storage Boundaries
 PluginPackageStore interface
 Merchant-uploaded files
 Session state
-Blocked by: plugin package paths resolved outside PluginPackageStore; in-process rate-limit state
+Blocked by: request-derived in-process rate-limit state and completion of the
+static audit. Auth rate limiting retains an in-memory fallback, and the
+shared rate limiter still provides an in-memory store.
 
 ## Scenario 13 — Extension SDK scaffolds a new extension
 
 Charter text: The Extension SDK scaffolds a new extension, runs it in local development
 mode, packages and signs it, and the resulting package installs into Core
 through the normal upload path.
-Status: NOT STARTED (assessed 2026-09-22)
+Status: COMPLETE (assessed 2026-10-04)
+Commits: 0d18f123f, 4c080c770, 0272ff9fe, c79c7e2e6
+Evidence: 35-extension-center.spec.ts A demonstrates an SDK-created shipping
+plugin running dev, building, signing, uploading, configuring, enabling and
+participating in checkout. plugin-sdk-create.test.ts and
+plugin-sdk-transfer.test.ts cover scaffold validation, CommonJS bundling,
+upload confirmation and test-signed watch behavior.
+Known limitations: the SDK and PluginContext do not yet provide the plugin
+database access path. This is a pre-launch requirement delivered together
+with the Scenario 10 plugin migration work.
 Prerequisites:
 Extension SDK
 Extension Center
-Blocked by: Extension SDK; package signing
+Blocked by: none for the scaffold acceptance scenario.
 
 ## Scenario 14 — tracking integration and custom code snippet
 
@@ -190,17 +239,27 @@ Charter text: A merchant configures a tracking integration and a custom code sni
 Admin. Both render on the storefront and on the order confirmation page
 without rebuilding the Shop application, neither appears on the payment
 form page, and both changes are recorded as auditable merchant actions.
-Status: COMPLETE (2026-09-29)
+Status: COMPLETE (2026-09-29; limitations reassessed 2026-10-04)
+Evidence: bac127d1 through beee5dd0 delivered the tracking and custom-code
+flows; ef6f3df29 adds 34-shop-reload.spec.ts A-C for plain theme style and
+server-derived document language.
+Known open issue (2026-10-04): intermittent React #418 hydration failure,
+not yet resolved; reproducible through the opt-in E2E_RELOAD_STRESS=1 reload
+path. Plain theme style rendering and server-derived document language do
+not establish that it is fixed.
 Product decisions: GA4/Meta/Baidu storefront tracking emits one purchase event
 per order. Merchant free code uses head, body-start and body-end slots. Payment
 pages exclude both mechanisms with strict script CSP. Admin provides configuration,
 revisions, restore, a master switch and an audit log viewer.
 Delivered in bac127d1 through beee5dd0.
-Deferred (charter:379/392/397): executable signed storefront extensions, UI slots,
+Deferred (charter §6): executable signed storefront extensions, UI slots,
 CSP and data access; consent management/cookie banner; storefront script sandboxing
 with structured-event subscriptions.
-SDK follow-up (Scenarios 3/4/13): extension manifests accept unknown browser-script
-and injection-point declarations; closing this schema is outside Scenario 14.
+Manifest boundary reassessed 2026-10-04 at c79c7e2e6:
+plugin-manifest-contract.test.ts rejects unknown top-level and nested contract,
+API-range and lifecycle fields; extensions.test.ts rejects an unknown manifest
+field before package or installation writes. Browser-script and injection-point
+declarations are not accepted extension manifest fields.
 Prerequisites:
 Storefront Tracking and Custom Code
 audit
@@ -234,8 +293,18 @@ Blocked by: process-level exception handlers with extension attribution
 2. Baseline order: builtin plugins and checkout contracts (1, 5); notification delivery; unpaid-order timeout.
 3. Shop and declarative themes (7), then tracking and custom code (14).
 4. Event layer (6) and disabled-extension isolation (8). COMPLETE (2026-09-30).
-5. Extension Center: marketplace index (2), signature verification and Extension SDK (3, 4, 13).
+5. Extension Center: marketplace index (2), signature verification and Extension SDK (3, 4, 13). COMPLETE (2026-10-04), closed by c79c7e2e6 with 35-extension-center.spec.ts A-F and the marketplace, upload, signing and SDK specifications recorded above. Phase completion does not close the real payment provider launch blockers, Scenario 10 migration audit gap or Scenario 12 static audit.
 6. Delivery: Docker Compose, Core updates and plugin migrations (9, 10), release verification (11).
+
+Pre-launch required (assessed 2026-10-04):
+
+1. Rate limiting runs before the authenticated user is identified, so the global per-user key does not apply and users sharing an egress IP can be limited together; a rate-limited Shop catalog render becomes a 500. The global in-memory fallback store has no capacity bound, and the plugin gateway limiter is a per-process Map rather than shared state; these rate-limiting boundaries require correction before launch.
+2. Unknown errors that currently fall through to 400 or 404 must become explicit business codes or 500. A payment callback for a never-installed provider currently returns 500 and must return 404.
+3. Theme package bytes are stored only on one server's local disk and are unavailable to another instance without shared storage. They must follow the plugin package persistence and materialization approach before launch.
+4. Payment webhook rawBody is reconstructed from the parsed body rather than preserved as the original HTTP bytes. Original-byte delivery is required before launching real payment providers.
+5. Webhook verification failures return 500 instead of a stable, non-retryable authentication failure. Provider-independent authentication semantics are required before launching real payment providers.
+6. Plugin migrations are not verified against the installed package manifest for identity, order and SHA-256, or audited as required. This is a pre-launch requirement delivered with Scenario 10.
+7. The SDK and PluginContext provide no plugin database access path. This is a pre-launch requirement delivered together with the Scenario 10 plugin migration work.
 
 ## Recorded product decisions
 

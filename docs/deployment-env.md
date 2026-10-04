@@ -26,3 +26,22 @@ Root `pnpm start` and `pnpm dev` include both processes alongside their existing
 applications. The worker runs notification delivery, unpaid-order timeout,
 payment reconciliation and event processing. The worker exits at startup if
 Redis is unavailable.
+
+Set EXTENSION_MARKETPLACE_URL to the operator's static catalog URL. The
+marketplace requires HTTPS; HTTP is allowed only on 127.0.0.1 when
+EXTENSION_TEST_SIGNING_MODE=true or NODE_ENV=test. Catalog and package
+requests reject redirects, package URLs must remain on the catalog origin,
+and marketplace installation accepts signed plugin packages only.
+
+EXTENSION_TEST_SIGNING_MODE defaults to false and is available in any
+environment. Configure API and worker consistently. Enabling it requires
+JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY to be a valid Ed25519 public key distinct
+from the official root. Startup rejects invalid mode values, a root supplied
+while the mode is off, and a missing, invalid or official root while it is on.
+API and worker warn when enabled; authenticated Admin shows the banner and
+labels test-root packages Test-signed. Official-root override inputs remain
+restricted to NODE_ENV=test.
+
+Turning the mode off blocks use of installed test-signed plugins. It does not
+convert them into official packages or prevent Core startup solely because
+they remain installed.

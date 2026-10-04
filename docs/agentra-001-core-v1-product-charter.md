@@ -1,7 +1,7 @@
 # AGENTRA-001: Jiffoo Core V1 Product Charter
 
 Status: active
-Updated: 2026-09-20
+Updated: 2026-10-04
 
 ## 1. Product Promise
 
@@ -41,16 +41,32 @@ no extension is installed.
 
 ### Add a Capability
 
-The merchant browses a static marketplace JSON index or uploads a local
-package. The index contains a package name, version, download URL, SHA-256,
-and publisher. It is not a V1 service API. If the index is unavailable,
-Extension Center has no browsable list, while local upload remains available.
+The merchant browses a static marketplace JSON catalog configured by the
+operator through EXTENSION_MARKETPLACE_URL, or uploads a local plugin ZIP.
+The catalog declares plugin identity, publisher, versions, API compatibility,
+download URL, size and SHA-256. It is not a V1 marketplace service API. If the
+catalog is unavailable or unconfigured, browsing is unavailable while local
+upload remains available.
 
-Marketplace download fetches a package only. Downloaded and uploaded packages
-then follow one identical installation path: verification, compatibility
-checking, migration handling, settings-page generation, and enablement. The
-index SHA-256 verifies downloaded bytes only; it never establishes package
-trust.
+Marketplace packages must be signed. Package downloads stay on the catalog's
+origin; catalog and package requests do not follow redirects. HTTPS is
+required, except that HTTP on 127.0.0.1 is allowed in test-signing mode or
+under NODE_ENV=test. The catalog's publisher and digest declarations do not
+establish package trust; Core verifies the downloaded package.
+
+Downloaded and locally uploaded plugin packages use the same verified
+installer and compatibility policy. Installation does not enable a plugin;
+configuration and enablement use the normal Admin lifecycle transition.
+The catalog SHA-256 verifies downloaded bytes only; it never establishes
+package trust.
+
+Local upload is preview-first. Preview validates the archive and reports its
+identity, trust, compatibility and proposed operation without executing plugin
+code. Final installation requires the preview token and the same package.
+Unsigned installation requires a separate warning and an exact typed-slug
+confirmation, recorded in AdminAuditEvent before plugin execution. Bundle
+installation is removed; plugins are installed through marketplace or the
+normal local ZIP upload path.
 
 Before activation, Core shows the package version, declared capabilities,
 compatibility, publisher identity when verifiable, and verification state. A
@@ -82,12 +98,34 @@ The Core public API is versioned and remains owned by Core. Plugins may access
 the self-hosted database under their publisher accountability boundary, while
 Core remains the authority for its product semantics and support contract.
 
+Known limitations (2026-10-04):
+
+- Pre-launch blocker for real payment providers: webhook rawBody is derived
+  from the parsed request body and is not the original HTTP bytes. The signed
+  acceptance fixture verifies its own canonical field protocol and does not
+  validate real PSP raw-byte signature support.
+- Pre-launch blocker for real payment providers: webhook verification failures
+  return 500 rather than a stable authentication error. Rejected signatures
+  preserve payment and order state, but the current response semantics are
+  not the provider-independent authentication contract.
+- Accepted V1 limitation: two administrators concurrently removing two
+  different enabled payment providers can both pass the last-provider check
+  and leave no enabled provider. Per-slug operation leases do not serialize
+  this cross-provider decision.
+
+Known open issue (2026-10-04): order-detail date formatting in Shop and Admin
+has no fixed timezone; the timezone policy is not yet decided.
+
 ### Extension Center and Execution
 
 Core provides one Extension Center for marketplace downloads and local package
 uploads. It has one extension registry, one package manifest, one installation
 lifecycle, one compatibility policy, one visibility policy, and one trust
 policy.
+
+Known limitation (2026-10-04): each Admin plugin-list request reads and hashes
+the stored package blob for every returned non-builtin plugin to report
+package state. The list has no metadata-only integrity fast path.
 
 V1 has exactly one local execution model. Packages run in-process through a
 fixed plugin gateway. Plugin code is reached only through an isolated Fastify
@@ -105,14 +143,25 @@ Native modules cannot be required a second time, so a package containing one
 cannot be updated without restarting Core, which defeats the product promise
 in §1.
 
-The Extension SDK provides the database access path plugins use. This is a
-connection and versioning arrangement. It does not restrict which schemas,
-tables, or SQL statements a plugin may use, per §4. When a plugin is updated,
-module cache invalidation covers the entry module and its dependency tree.
+The Extension SDK is required to provide the database connection and
+versioning arrangement plugins use. It does not restrict which schemas,
+tables, or SQL statements a plugin may use, per §4.
+
+Known limitation (2026-10-04): the SDK and PluginContext do not yet provide
+the plugin database access path. This is a pre-launch requirement delivered
+together with the Scenario 10 plugin migration work.
+
+When a plugin is updated, module cache invalidation covers the entry module
+and its dependency tree.
 Invalidating only the entry module leaves the prior version's dependencies
 resident and serving. Repeated extension updates in one Core process accumulate
 memory because Node.js cannot unload a module. Periodic Core restart is
 expected operational practice and is not a defect.
+
+Known limitation (2026-10-04): old content-addressed plugin version
+directories are retained during the process lifetime, including after update
+or purge. A process restart releases module memory; no automatic removal of
+these directories on restart is currently established.
 
 Core V1 defines five capability contracts, each owned and versioned by Core:
 payment, shipping, tax, fulfillment, and notification. The tax contract is
@@ -138,15 +187,31 @@ an implementation detail. V1 executes extension code in-process by design. A
 signature establishes accountability, not isolation, so containment of failure
 is Core's responsibility rather than the package's.
 
+Admin list and detail show the sanitized last recorded plugin error and its
+timestamp. Recording is throttled per plugin for five seconds. A successful
+enable, invocation or restore does not clear it; it is historical information,
+not a current health verdict.
+
+Known limitations (2026-10-04):
+
+- Accepted V1 limitation: plugin code runs in-process and cannot be forcibly
+  interrupted. A timed-out invocation can keep running, a synchronous
+  infinite loop blocks its process, including the worker, and there is no
+  process isolation.
+- Accepted V1 limitation: install-time candidate prewarm and module loading
+  have no overall execution deadline. The 15-minute operation lease fences
+  publication; it is not an execution timeout and does not stop plugin code.
+
 ### State and Storage Boundaries
 
 Core V1 runs as one instance but is built so a later multi-instance deployment
 adds orchestration rather than requiring rearchitecture.
 
 - Session state lives outside the process.
-- Plugin packages are reached through a PluginPackageStore interface. V1 ships
-  a local-directory implementation. No code outside that interface resolves a
-  package path.
+- Plugin ZIP bytes are persisted in PostgreSQL. PluginPackageStore exposes
+  immutable content-addressed local package directories materialized from
+  those bytes. No code outside the storage abstraction resolves a package
+  path.
 - Merchant-uploaded files follow the same pattern.
 - Background jobs take a distributed lock rather than assuming a single
   instance. Scheduled jobs are idempotent.
@@ -163,9 +228,16 @@ contradicts the database. This is a static audit, like scenario 12.
 
 ### Plugin Database and Migrations
 
-Core discovers and executes database migrations packaged by a plugin during
-its install or update. Plugin migrations are plain .sql files executed by Core
-itself. A plugin must not run prisma migrate deploy, because that writes to
+Core is required to discover and execute plain .sql migrations packaged by a
+plugin during install or update, with the package-manifest audit specified
+below.
+
+Known limitation (2026-10-04): the current runtime executes exported
+{id, sql} migrations during runtime registration, rather than discovering
+plain .sql files against a manifest declaration. It does not establish the
+package-derived default schema described below.
+
+A plugin must not run prisma migrate deploy, because that writes to
 Core's _prisma_migrations ledger. A plugin may not ship a generated Prisma
 client or another native module for queries.
 
@@ -176,10 +248,17 @@ applies no GRANT restriction and a package may still reach Core tables, per
 namespace, leaving collision-safety to package authors with no default
 protection.
 
-Plugin migration history is recorded in a dedicated plugin migration ledger,
-separate from the Core migration ledger. Before execution, Core verifies each
-plugin migration file's identity, order, and SHA-256 against the SHA-256
-recorded in the installed package manifest, and records its result for audit.
+Plugin migration history must be recorded in a dedicated plugin migration
+ledger, separate from the Core migration ledger. Before execution, Core must
+verify each plugin migration file's identity, order, and SHA-256 against the
+installed package manifest, and record its result for audit.
+
+Known limitation (2026-10-04): plugin_runtime_migrations is a separate ledger,
+but the current implementation compares SQL content checksums only with prior
+ledger entries. It does not verify manifest identity, order or SHA-256, or
+record the required package audit and migration-result semantics. This is a
+pre-launch blocker for Scenario 10.
+
 A checksum computed from migration contents and compared only to a prior
 ledger entry does not satisfy this requirement: it detects modification of an
 installed package migration but not substitution of the package. Core
@@ -210,10 +289,27 @@ deferred.
 ### Extension SDK
 
 Core ships an Extension SDK versioned alongside Core. It includes TypeScript
-interface definitions for the five capability contracts and event layer, a
-plugin scaffold, a local development mode, and packaging and signing tooling.
-Without published contracts and tooling, the promise that merchants can write
-their own extensions cannot be met.
+definitions for the five capability contracts and event layer, create
+scaffolds for integration, shipping and payment plugins, and keygen, pack,
+sign, upload and dev commands. Scaffold builds produce CommonJS packages.
+
+Upload uses the normal preview and final-install path with an administrator
+access token. Unsigned upload requires an interactive terminal and exact
+typed-slug confirmation; it is never automatically uploaded by dev mode.
+An explicit --enable uses the normal enable transition only for a first
+installation and does not re-enable an existing installation.
+
+Dev mode requires a loopback Core URL and a package that Core preview
+classifies as test-signed. It uses <slug>-dev and strictly numeric
+major.minor.patch versions, incrementing the patch above the greater source
+or installed development version. It watches and rebuilds changed output,
+then packages, signs and uploads it; unchanged output is skipped and a build
+failure preserves the last good installation. The source manifest is not
+rewritten.
+
+Known limitation (2026-10-04): the SDK and PluginContext do not yet provide
+the plugin database access path. This is a pre-launch requirement delivered
+together with the Scenario 10 plugin migration work.
 
 ### Storefront Tracking and Custom Code
 
@@ -242,6 +338,11 @@ change detection on those pages. The requirement covers all scripts on the
 payment page, including analytics and chat widgets. Core's default deployment
 must not place a merchant under that obligation. Changes to either mechanism
 take effect without rebuilding or redeploying the Shop application.
+
+Known open issue (2026-10-04): intermittent React #418 hydration failure,
+not yet resolved; reproducible through the opt-in E2E_RELOAD_STRESS=1 reload
+path. Plain theme style rendering and server-derived document language do
+not establish that it is fixed.
 
 ### Themes
 
@@ -300,20 +401,43 @@ disabled are never delivered, even after it is re-enabled. For a disabled
 payment extension, inbound payment callbacks are refused with a retryable
 response, reconciliation skips it, and manual mark-paid is blocked; Admin warns
 about orders awaiting payment before it is disabled. Core continues to protect
-already-created orders according to its transaction state rules. Physical
-package deletion and extension-data deletion are not V1 requirements.
+already-created orders according to its transaction state rules.
+
+Uninstall is a soft removal: the plugin is disabled and appears in Removed,
+while configuration, encrypted credentials, package bytes and local directories
+are retained. Restore validates the retained package and signing policy and
+keeps the plugin disabled; enabling remains a separate merchant action.
+Builtin plugins cannot be uninstalled or purged.
+
+Purge requires prior uninstall and exact typed-slug confirmation. Any PENDING
+payment for the plugin blocks purge. Purge deletes Core-held installation
+records, configuration, secrets and package blobs, and records an
+AdminAuditEvent. It preserves order and payment history, plugin-owned data,
+the plugin migration ledger and local package directories.
 
 ## 4. Non-Negotiable Rules
 
 - Core is single merchant and single storefront. It has no multi-tenant SaaS,
   Super Admin, commercial-plan, subscription, or platform-account requirement.
 - There are three package trust tiers with identical execution rights:
-  builtin ships with Core; signed has verifiable publisher identity and
-  package integrity; unsigned has neither. Core displays publisher identity
-  and verification state when available.
+  builtin ships with Core; signed has certificate-verified publisher identity
+  and package integrity; unsigned has neither. Core persists the signing-root
+  classification separately from the trust tier.
+- EXTENSION_TEST_SIGNING_MODE is an operator switch available in any
+  environment and defaults off. It requires a valid Ed25519
+  JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY distinct from the official root.
+  Authenticated Admin displays a test-signing banner; test-root packages are
+  labeled Test-signed and are never presented as officially Verified.
+- API and worker refuse startup for an invalid mode value, a test root while
+  mode is off, or an enabled mode with a missing, invalid or official test
+  root. Official-root override inputs are allowed only under NODE_ENV=test.
+  Turning test-signing mode off blocks loading, enabling, restoring and
+  invoking installed test-signed plugins; it does not by itself prevent Core
+  startup. Signed records without an established signing root require
+  reinstall.
 - An unsigned package may install and execute local business code. Core shows
-  an explicit warning, requires a second merchant confirmation, and records
-  that confirmation in the audit log before installation continues.
+  an explicit warning, requires a separate exact typed-slug confirmation, and
+  records it in AdminAuditEvent before plugin execution.
 - A package signature establishes publisher accountability, not technical
   isolation. Core does not restrict a package's database schema, table, or SQL
   access in V1. The package-derived default schema in §3 is a naming convention
@@ -393,7 +517,10 @@ The following are not implied by Core V1 and require a new product decision:
 - executable signed storefront extensions, UI slots, CSP, and data access;
 - plugin-owned custom Admin pages and analytics dashboards;
 - multiple configuration instances for one extension;
-- physical extension uninstallation and extension data deletion;
+- automatic reclamation of retained local package directories and deletion
+  of plugin-owned database data or plugin migration history; Core-held
+  installation records, configuration, secrets and package blobs can be
+  deleted through the audited purge operation;
 - promotion and discount as an extension contract;
 - official extension and theme source, artifact publication, production
   rollout, or closed-source repository work inside the Core worktree.
