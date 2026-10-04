@@ -85,7 +85,7 @@ describe('Plugin SDK create and generated projects', () => {
       expect(manifest.configSchema.properties.apiKey).toEqual({ type: 'string', title: 'API key', sensitive: true });
       expect(await fs.readdir(output)).toEqual(['.gitignore', 'manifest.json', 'package.json', 'src', 'tools', 'types']);
       const packageJson = JSON.parse(await fs.readFile(path.join(output, 'package.json'), 'utf8'));
-      expect(Object.keys(packageJson.scripts)).toEqual(['build', 'pack', 'sign']);
+      expect(Object.keys(packageJson.scripts)).toEqual(['build', 'pack', 'sign', 'upload', 'dev']);
       expect(packageJson.devDependencies).toEqual({ esbuild: '0.27.2' });
     });
   });

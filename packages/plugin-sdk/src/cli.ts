@@ -6,6 +6,8 @@ import path from 'node:path';
 import { finished } from 'node:stream/promises';
 import { getPluginManifestIssues } from 'shared';
 import { createPlugin } from './create';
+import { uploadZip, formatSdkError, redact, SdkError } from './upload';
+import { dev } from './dev';
 import {
   CERT_PATH, SIGNATURE_PATH, extensionMaxFileSize, getPluginFileViolation, isPathWithinExtensionBase, PLUGIN_MAX_ZIP_SIZE, readPluginZipEntries,
   signPackage, verifyPublisherCertificate, validatePluginZipPaths,
@@ -16,6 +18,11 @@ const HELP = `jiffoo-plugin create --slug <slug> --name <name> --output <dir> [-
 jiffoo-plugin keygen --out <private.pem>
 jiffoo-plugin pack --input <dir> --output <zip>
 jiffoo-plugin sign --input <unsigned.zip> --certificate <cert.json> --key <private.pem> --output <signed.zip>
+jiffoo-plugin upload --zip <path> [--enable]
+jiffoo-plugin dev [--enable]
+upload/dev read JIFFOO_CORE_URL and JIFFOO_ADMIN_TOKEN from the environment only.
+dev requires JIFFOO_DEV_CERTIFICATE and JIFFOO_DEV_PRIVATE_KEY, plus the existing SDK test-root signing configuration.
+dev stops gracefully on Ctrl+C or closed non-interactive stdin.
 pack excludes exactly: .git/; node_modules/; .DS_Store; .env; .env.*; *.pem; *.key`;
 const date = new Date('1980-01-01T00:00:00.000Z');
 const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex');
@@ -93,14 +100,24 @@ async function writeZip(output: string, entries: Entry[]) {
 }
 async function main() {
   const [command, ...args] = process.argv.slice(2);
-  if (!command || command === '--help' || command === 'help') { console.log(HELP); return; }
-  if (command === 'create') {
+  if (!command || command === '--help' || command === 'help') { console.log(redact(HELP)); return; }
+  if (command === 'upload' || command === 'dev') {
+    let enable = false;
+    let zip: string | undefined;
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '--enable' && !enable) enable = true;
+      else if (command === 'upload' && args[i] === '--zip' && !zip && args[i + 1] && !args[i + 1].startsWith('--')) zip = args[++i];
+      else failure('INVALID_ARGUMENTS');
+    }
+    if (command === 'upload') { if (!zip) failure('INVALID_ARGUMENTS'); await uploadZip(zip, enable); }
+    else await dev(enable);
+  } else if (command === 'create') {
     await createPlugin(options(args, ['--slug', '--name', '--output'], ['--category']));
   } else if (command === 'keygen') {
     const flags = options(args, ['--out']);
     const { privateKey, publicKey } = generateKeyPairSync('ed25519');
     await fs.writeFile(flags['--out'], privateKey.export({ format: 'pem', type: 'pkcs8' }), { flag: 'wx', mode: 0o600 });
-    console.log(publicKey.export({ format: 'der', type: 'spki' }).toString('base64url'));
+    console.log(redact(publicKey.export({ format: 'der', type: 'spki' }).toString('base64url')));
   } else if (command === 'pack') {
     const flags = options(args, ['--input', '--output']);
     const root = path.resolve(flags['--input']);
@@ -109,7 +126,7 @@ async function main() {
     const entries = await collect(root);
     checkContent(entries);
     await writeZip(output, entries);
-    for (const entry of entries) console.log(entry.path);
+    for (const entry of entries) console.log(redact(entry.path));
   } else if (command === 'sign') {
     const flags = options(args, ['--input', '--certificate', '--key', '--output']);
     const entries = readPluginZipEntries(await fs.readFile(flags['--input'])).map(({ path: name, content }) => ({ path: name, content }));
@@ -129,6 +146,7 @@ async function main() {
   } else failure('UNKNOWN_COMMAND');
 }
 main().catch((error: unknown) => {
-  console.error(error instanceof Error && /^[A-Z_]+(?::|$)/.test(error.message) ? error.message : 'IO_OR_PACKAGE_ERROR');
+  if (process.argv[2] === 'dev') console.log(redact(`jiffoo-dev: failed ${error instanceof SdkError ? error.code : 'SDK_OPERATION_FAILED'}`));
+  console.error(error instanceof SdkError ? formatSdkError(error) : redact(error instanceof Error && /^[A-Z_]+(?::|$)/.test(error.message) ? error.message : 'IO_OR_PACKAGE_ERROR'));
   process.exitCode = 1;
 });

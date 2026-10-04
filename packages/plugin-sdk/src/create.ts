@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { getPluginManifestIssues } from 'shared';
+import { redact } from './upload';
 
 const categories = ['integration', 'shipping', 'payment'] as const;
 const builtins = new Set(['manual-payment', 'free-shipping', 'zero-tax', 'manual-fulfillment', 'console-email']);
@@ -35,6 +36,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+function redact(message) {
+  for (const secret of [process.env.JIFFOO_ADMIN_TOKEN, process.env.JIFFOO_CORE_URL]) {
+    if (secret) message = message.replaceAll(secret, '[redacted]');
+  }
+  return message;
+}
 try {
   const sdk = process.env.JIFFOO_PLUGIN_SDK;
   if (!sdk) throw new Error('SDK_ENV_REQUIRED: set JIFFOO_PLUGIN_SDK to the built SDK cli.js path');
@@ -44,7 +51,9 @@ try {
   const artifacts = path.join(root, 'artifacts');
   const unsigned = path.join(artifacts, manifest.slug + '-' + manifest.version + '-unsigned.zip');
   let flags;
-  if (command === 'pack' && args.length === 0) {
+  if (command === 'upload' || command === 'dev') {
+    flags = [command, ...args];
+  } else if (command === 'pack' && args.length === 0) {
     flags = ['pack', '--input', path.join(root, 'dist/package'), '--output', unsigned];
   } else if (command === 'sign') {
     const options = new Map();
@@ -57,7 +66,7 @@ try {
       try { await access(filename); } catch { throw new Error(flag === '--certificate' ? 'CERTIFICATE_NOT_FOUND' : 'PRIVATE_KEY_NOT_FOUND'); }
     }
     flags = ['sign', '--input', unsigned, '--certificate', options.get('--certificate'), '--key', options.get('--key'), '--output', path.join(artifacts, manifest.slug + '-' + manifest.version + '-signed.zip')];
-  } else { throw new Error('INVALID_SDK_COMMAND: supported commands are pack and sign'); }
+  } else { throw new Error('INVALID_SDK_COMMAND: supported commands are pack, sign, upload and dev'); }
   await mkdir(artifacts, { recursive: true });
   const code = await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [path.resolve(sdk), ...flags], { cwd: root, stdio: 'inherit', shell: false, windowsHide: true });
@@ -66,7 +75,7 @@ try {
   });
   process.exitCode = code;
 } catch (error) {
-  console.error(error.message);
+  console.error(redact(/^[A-Z_]+(?::|$)/.test(error.message) ? error.message : 'SDK_RUNNER_FAILED: diagnostic values have been withheld'));
   process.exitCode = 1;
 }
 `;
@@ -147,7 +156,7 @@ export async function createPlugin(flags: Record<string, string>): Promise<void>
   const types = await fs.readFile(path.join(__dirname, 'template-types/index.d.ts'), 'utf8');
   const packageJson = {
     name: slug, version: '1.0.0', private: true,
-    scripts: { build: 'node tools/build.mjs', pack: 'node tools/build.mjs && node tools/sdk.mjs pack', sign: 'node tools/sdk.mjs sign' },
+    scripts: { build: 'node tools/build.mjs', pack: 'node tools/build.mjs && node tools/sdk.mjs pack', sign: 'node tools/sdk.mjs sign', upload: 'node tools/sdk.mjs upload', dev: 'node tools/sdk.mjs dev' },
     devDependencies: { esbuild: '0.27.2' },
   };
   const files: Record<string, string> = {
@@ -171,5 +180,5 @@ export async function createPlugin(flags: Record<string, string>): Promise<void>
     await fs.rm(output, { recursive: true, force: true });
     throw error;
   }
-  console.log(`Created ${category} plugin: ${output}`);
+  console.log(redact(`Created ${category} plugin: ${output}`));
 }
