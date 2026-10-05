@@ -356,7 +356,37 @@ export async function tryPostoryStore(request: Request, env: PostoryEnv): Promis
  * Postory compat entry: serves the store slice plus the /api/auth/* alias the
  * postory website uses (native handlers speak /api/v1/auth/*). Returns null
  * for anything else so the main router continues.
+ *
+ * Cross-origin: https://postory.cc calls this worker from the browser, so
+ * responses carry CORS headers for the website origins and OPTIONS preflights
+ * are answered here (the K8s ingress used to do this; the worker must too —
+ * without it every browser sign-in dies as "Failed to fetch").
  */
+const POSTORY_ALLOWED_ORIGINS = new Set(['https://postory.cc', 'https://www.postory.cc']);
+
+function postoryCorsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get('origin') || '';
+  const headers: Record<string, string> = {
+    'access-control-allow-methods': 'GET, POST, OPTIONS',
+    'access-control-allow-headers': 'content-type, authorization',
+    'access-control-max-age': '86400',
+    vary: 'Origin',
+  };
+  if (POSTORY_ALLOWED_ORIGINS.has(origin)) {
+    headers['access-control-allow-origin'] = origin;
+    headers['access-control-allow-credentials'] = 'true';
+  }
+  return headers;
+}
+
+function withPostoryCors(request: Request, response: Response): Response {
+  const headers = postoryCorsHeaders(request);
+  if (Object.keys(headers).length === 0) return response;
+  const merged = new Headers(response.headers);
+  for (const [key, value] of Object.entries(headers)) merged.set(key, value);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers: merged });
+}
+
 export async function tryPostoryCompat(request: Request, env: PostoryEnv): Promise<Response | null> {
   if (env.POSTORY_STORE_ENABLED !== 'true') return null;
   const url = new URL(request.url);
@@ -364,13 +394,21 @@ export async function tryPostoryCompat(request: Request, env: PostoryEnv): Promi
   // dispatch chain reaches this adapter — accept both spellings so direct
   // callers and the rewritten form hit the same handlers.
   const pathname = url.pathname.replace(/^\/api\/v1\//, '/api/');
+  const inScope = pathname === '/api/auth' || pathname.startsWith('/api/auth/') || pathname.startsWith('/api/extensions/plugin/');
+  if (!inScope) return null;
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: postoryCorsHeaders(request) });
+  }
+
   const rewritten = new Request(`https://${url.host}${pathname}${url.search}`, request);
 
   if (pathname === '/api/auth' || pathname.startsWith('/api/auth/')) {
     const rewrittenPath = `/api/v1${pathname.slice('/api/auth'.length)}`;
     const authRequest = new Request(`https://${url.host}${rewrittenPath}${url.search}`, request);
-    return await tryNativeAuth(authRequest, env as never, async () => new Response(null, { status: 404 }));
+    const authResponse = await tryNativeAuth(authRequest, env as never, async () => new Response(null, { status: 404 }));
+    return authResponse ? withPostoryCors(request, authResponse) : null;
   }
 
-  return await tryPostoryStore(rewritten, env);
+  return withPostoryCors(request, await tryPostoryStore(rewritten, env));
 }

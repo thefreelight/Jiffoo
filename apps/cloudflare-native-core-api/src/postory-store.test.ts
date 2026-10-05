@@ -275,3 +275,43 @@ describe('postory store compat', () => {
     expect(response!.status).toBe(403);
   });
 });
+
+describe('postory CORS', () => {
+  it('answers OPTIONS preflights with 204 and website CORS headers', async () => {
+    const { db } = createDb();
+    const response = await tryPostoryCompat(
+      new Request('https://api.postory.cc/api/auth/login', {
+        method: 'OPTIONS',
+        headers: { origin: 'https://postory.cc', 'access-control-request-method': 'POST' },
+      }),
+      baseEnv(db),
+    );
+    expect(response?.status).toBe(204);
+    expect(response?.headers.get('access-control-allow-origin')).toBe('https://postory.cc');
+    expect(response?.headers.get('access-control-allow-headers')).toContain('content-type');
+    expect(response?.headers.get('access-control-allow-credentials')).toBe('true');
+  });
+
+  it('adds CORS headers to actual responses from website origins', async () => {
+    const { db } = createDb();
+    const response = await tryPostoryCompat(
+      new Request('https://api.postory.cc/api/extensions/plugin/subscription/api/store/plans?product=postory', {
+        headers: { origin: 'https://postory.cc' },
+      }),
+      baseEnv(db),
+    );
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get('access-control-allow-origin')).toBe('https://postory.cc');
+  });
+
+  it('does not emit CORS headers for unknown origins', async () => {
+    const { db } = createDb();
+    const response = await tryPostoryCompat(
+      new Request('https://api.postory.cc/api/extensions/plugin/subscription/api/store/plans?product=postory', {
+        headers: { origin: 'https://evil.example' },
+      }),
+      baseEnv(db),
+    );
+    expect(response?.headers.get('access-control-allow-origin')).toBeNull();
+  });
+});
