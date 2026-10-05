@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import {
   LOCALE_COOKIE,
-  attachLocaleCookie,
   handleLocaleRedirect,
   matchLocaleFromAcceptLanguage,
   type ProxyConfig,
@@ -65,7 +63,7 @@ describe('matchLocaleFromAcceptLanguage', () => {
 });
 
 describe('handleLocaleRedirect', () => {
-  it('redirects first-time visitors to their browser language and remembers it', () => {
+  it('redirects first-time visitors to their browser language without persisting it', () => {
     const response = handleLocaleRedirect(
       makeRequest('/', { acceptLanguage: 'zh-CN,zh;q=0.9,en;q=0.8' }),
       CONFIG,
@@ -73,7 +71,7 @@ describe('handleLocaleRedirect', () => {
 
     expect(response?.status).toBe(307);
     expect(response?.headers.get('location')).toBe('https://shop.example.com/zh-Hant');
-    expect(response?.cookies.get(LOCALE_COOKIE)?.value).toBe('zh-Hant');
+    expect(response?.cookies.get(LOCALE_COOKIE)).toBeUndefined();
   });
 
   it('redirects to the persisted locale cookie before consulting the browser language', () => {
@@ -97,13 +95,8 @@ describe('handleLocaleRedirect', () => {
     expect(response?.headers.get('location')).toBe('https://shop.example.com/en/products');
   });
 
-  it('passes locale-prefixed paths through for the caller to attach the cookie', () => {
+  it('passes locale-prefixed paths through without setting cookies', () => {
     expect(handleLocaleRedirect(makeRequest('/zh-Hant/products'), CONFIG)).toBeNull();
-  });
-
-  it('attachLocaleCookie sets the persisted locale preference', () => {
-    const response = attachLocaleCookie(NextResponse.next(), 'zh-Hant');
-    expect(response.cookies.get(LOCALE_COOKIE)?.value).toBe('zh-Hant');
   });
 
   it('leaves skipped paths untouched', () => {
