@@ -1,5 +1,5 @@
 import { logger } from '@/core/logger/unified-logger';
-import { reconcilePendingPayments, type PaymentReconciliationOptions } from '@/core/payment/reconciliation';
+import { reconcilePendingPayments, type PaymentReconciliationOptions, type PaymentReconciliationResult } from '@/core/payment/reconciliation';
 
 type PaymentReconciliationJobOptions = PaymentReconciliationOptions & {
   intervalMs?: number;
@@ -22,7 +22,7 @@ export class PaymentReconciliationJob {
   }
 
   private static run(): void {
-    const operation = this.reconcileNow();
+    const operation = this.reconcileNow().then(() => undefined);
     this.pending.add(operation);
     void operation.finally(() => this.pending.delete(operation));
   }
@@ -60,7 +60,7 @@ export class PaymentReconciliationJob {
   /**
    * Run reconciliation once
    */
-  static async reconcileNow(): Promise<void> {
+  static async reconcileNow(): Promise<PaymentReconciliationResult | undefined> {
     const startTime = Date.now();
     try {
       const { limit, maxAgeMinutes, minAgeMinutes } = this.options;
@@ -77,6 +77,7 @@ export class PaymentReconciliationJob {
         skipped,
         durationMs: duration,
       });
+      return { scanned, updated, failed, skipped };
     } catch (error) {
       logger.error('Payment reconciliation failed', { error });
     }

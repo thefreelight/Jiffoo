@@ -247,7 +247,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
    * POST /api/account/avatar
    */
   fastify.post('/avatar', {
-    preHandler: [authMiddleware],
+    onRequest: [authMiddleware],
     schema: {
       tags: ['account'],
       summary: 'Upload Avatar',

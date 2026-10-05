@@ -36,7 +36,6 @@ describe('Production app startup', () => {
     Object.assign(env, {
       NODE_ENV: 'production',
       JWT_SECRET: 'short',
-      RATE_LIMITER_FAIL_CLOSED: true,
       CORS_ORIGIN: 'https://admin.example.com',
       STOREFRONT_URL: 'https://store.example.com',
       ADMIN_URL: 'https://admin.example.com',

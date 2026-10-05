@@ -116,7 +116,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * Individual plugins should implement their own auth as needed.
    */
   fastify.all<{ Params: { slug: string } }>('/plugin/:slug/api', {
-    preHandler: optionalAuthMiddleware,
+    onRequest: optionalAuthMiddleware,
     schema: {
       tags: ['plugin-gateway'],
       summary: 'Plugin Gateway (root)',
@@ -149,7 +149,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   });
 
   fastify.all<{ Params: { slug: string; '*': string } }>('/plugin/:slug/api/*', {
-    preHandler: optionalAuthMiddleware,
+    onRequest: optionalAuthMiddleware,
     schema: {
       tags: ['plugin-gateway'],
       summary: 'Plugin Gateway (wildcard)',
@@ -184,7 +184,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get<{ Params: { slug: string } }>('/plugin/:slug/health', {
-    preHandler: optionalAuthMiddleware,
+    onRequest: optionalAuthMiddleware,
     schema: {
       tags: ['plugin-gateway'],
       summary: 'Plugin Health',
@@ -223,7 +223,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   });
 
   fastify.get<{ Params: { slug: string } }>('/plugin/:slug/manifest', {
-    preHandler: optionalAuthMiddleware,
+    onRequest: optionalAuthMiddleware,
     schema: {
       tags: ['plugin-gateway'],
       summary: 'Plugin Manifest',

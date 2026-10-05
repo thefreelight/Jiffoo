@@ -10,6 +10,7 @@ import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { createAdminUser, deleteTestUser, type TestUser } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { localUploadOptions } from '../helpers/plugin-upload';
+import { createHash, randomUUID } from 'node:crypto';
 
 async function createPluginArchive(
   slug: string,
@@ -133,6 +134,53 @@ module.exports.__lifecycle_onUninstall = async function onUninstall() { await fs
       await fs.rm(markerPath, { force: true });
       await first.cleanup();
       await second.cleanup();
+    }
+  });
+  it('L2: package publication advances protectionGeneration and registry version exactly once', async () => {
+    const updateSlug = `update-gen-${randomUUID().slice(0, 12)}`;
+    const first = await createPluginArchive(updateSlug);
+    const second = await createPluginArchive(updateSlug, { version: '2.0.0' });
+    try {
+      await installer.install(createReadStream(first.archivePath), await localUploadOptions(await fs.readFile(first.archivePath), admin.id));
+      const before = await prisma.pluginInstallation.findUniqueOrThrow({ where: { pluginSlug_instanceKey: { pluginSlug: updateSlug, instanceKey: 'default' } } });
+      const registry = await prisma.systemSettings.findUniqueOrThrow({ where: { id: 'system' } });
+      const published = await installer.install(createReadStream(second.archivePath), await localUploadOptions(await fs.readFile(second.archivePath), admin.id));
+      const after = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: before.id } });
+      const pkg = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: updateSlug } });
+      expect(pkg.version).toBe('2.0.0');
+      expect(pkg.zipHash).toBe(published.zipHash);
+      expect(after.protectionGeneration).toBe(before.protectionGeneration + 1n);
+      expect((await prisma.systemSettings.findUniqueOrThrow({ where: { id: 'system' } })).pluginRegistryVersion).toBe(registry.pluginRegistryVersion + 1);
+    } finally {
+      await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: updateSlug } });
+      await prisma.pluginInstall.deleteMany({ where: { slug: updateSlug } });
+      await clearTestPluginCache(updateSlug); await first.cleanup(); await second.cleanup();
+    }
+  });
+  it('L2: a real registry integer overflow rolls back package publication and protectionGeneration', async () => {
+    const updateSlug = `rollback-gen-${randomUUID().slice(0, 12)}`;
+    const first = await createPluginArchive(updateSlug);
+    const second = await createPluginArchive(updateSlug, { version: '2.0.0' });
+    let registryVersion: number | undefined;
+    try {
+      await installer.install(createReadStream(first.archivePath), await localUploadOptions(await fs.readFile(first.archivePath), admin.id));
+      const before = await prisma.pluginInstallation.findUniqueOrThrow({ where: { pluginSlug_instanceKey: { pluginSlug: updateSlug, instanceKey: 'default' } } });
+      const pkg = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: updateSlug } });
+      registryVersion = (await prisma.systemSettings.findUniqueOrThrow({ where: { id: 'system' } })).pluginRegistryVersion;
+      await prisma.systemSettings.update({ where: { id: 'system' }, data: { pluginRegistryVersion: 2147483647 } });
+      const bytes = await fs.readFile(second.archivePath);
+      await expect(installer.install(createReadStream(second.archivePath), await localUploadOptions(bytes, admin.id))).rejects.toThrow(/out of range|numeric.*overflow|P2020|22003/i);
+      const after = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: before.id } });
+      const retained = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: updateSlug } });
+      expect(after.protectionGeneration).toBe(before.protectionGeneration);
+      expect(retained.version).toBe(pkg.version); expect(retained.zipHash).toBe(pkg.zipHash);
+      expect((await prisma.systemSettings.findUniqueOrThrow({ where: { id: 'system' } })).pluginRegistryVersion).toBe(2147483647);
+      expect(await prisma.pluginPackageBlob.count({ where: { pluginSlug: updateSlug, zipHash: createHash('sha256').update(bytes).digest('hex') } })).toBe(0);
+    } finally {
+      if (registryVersion !== undefined) await prisma.systemSettings.update({ where: { id: 'system' }, data: { pluginRegistryVersion: registryVersion } });
+      await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: updateSlug } });
+      await prisma.pluginInstall.deleteMany({ where: { slug: updateSlug } });
+      await clearTestPluginCache(updateSlug); await first.cleanup(); await second.cleanup();
     }
   });
 });

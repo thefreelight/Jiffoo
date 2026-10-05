@@ -40,7 +40,8 @@ import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notifi
 import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
-import { getPluginTimeoutMs, isBreakerAllowed, recordBreakerResult } from './gateway-protection';
+import { getPluginTimeoutMs } from './gateway-protection';
+import { sharedProtection, pluginProtectionScope, SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
 import { decryptPluginConfig, redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { pluginSigningError } from './plugin-signing-policy';
 
@@ -121,6 +122,7 @@ type InternalRuntime = {
   zipHash: string;
   createdAt: Date;
   installationId: string;
+  protectionGeneration: bigint;
   config: Record<string, unknown>;
   handlers: ReadonlyMap<string, PluginEventHandler>;
   references: number;
@@ -133,6 +135,7 @@ interface GatewayContext {
   slug: string;
   zipHash: string;
   installationId: string;
+  protectionGeneration: bigint;
   instanceKey: string;
   config: Record<string, unknown>;
 }
@@ -555,6 +558,7 @@ async function resolveGatewayContext(
     slug,
     zipHash: pluginPackage.zipHash || '',
     installationId: instance.id,
+    protectionGeneration: instance.protectionGeneration,
     instanceKey: instance.instanceKey,
     config,
   };
@@ -594,7 +598,7 @@ async function ensureInternalRuntime(
   // Check if existing runtime has same config (simple JSON comparison)
   if (existing) {
     const configChanged = JSON.stringify(existing.config) !== JSON.stringify(ctx.config);
-    if (!configChanged && existing.zipHash === ctx.zipHash) {
+    if (!configChanged && existing.zipHash === ctx.zipHash && existing.protectionGeneration === ctx.protectionGeneration) {
       return hold ? holdRuntime(existing) : existing;
     }
     // Config or version changed - need to recreate runtime
@@ -653,6 +657,7 @@ async function ensureInternalRuntime(
       createdAt: new Date(),
       installationId: ctx.installationId,
       config: ctx.config,
+      protectionGeneration: ctx.protectionGeneration,
       handlers: registration.handlers,
       references: 0,
       retired: false,
@@ -750,18 +755,25 @@ export async function callContract(
     throw error;
   }
   if (!manifest.contracts?.some((contract) => contract.name === contractName && contract.version === version)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} does not declare ${contractName} v${version}`);
-  if (!isBreakerAllowed(slug)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} circuit breaker is open`);
+  const permit = await sharedProtection.breaker(pluginProtectionScope(instance.id, instance.protectionGeneration));
+  if (!permit) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} circuit breaker is open`);
   const config = decryptPluginConfig(manifest, parseJsonObject(instance.configJson));
   let runtime: InternalRuntime;
   try {
-    runtime = await ensureInternalRuntime(slug, manifest, { slug, zipHash: pkg.zipHash || '', installationId: instance.id, instanceKey: instance.instanceKey, config }, true);
+    runtime = await ensureInternalRuntime(slug, manifest, { slug, zipHash: pkg.zipHash || '', installationId: instance.id, protectionGeneration: instance.protectionGeneration, instanceKey: instance.instanceKey, config }, true);
   } catch (error) {
     if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
     if (error instanceof PluginGatewayError) throw new ContractCallError('CONTRACT_CALL_FAILED', error.message);
     throw error;
   }
+  let injected = false;
   try {
+    const latest = await prisma.pluginInstallation.findUnique({ where: { id: instance.id } });
+    if (!latest?.enabled || latest.deletedAt || latest.protectionGeneration !== instance.protectionGeneration) {
+      throw Object.assign(new Error('Plugin lifecycle changed before invocation'), { statusCode: 503, code: 'PLUGIN_DISABLED' });
+    }
     const invocation = runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: input as Record<string, unknown> });
+    injected = true;
     void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
     const response = await Promise.race([
       invocation,
@@ -776,14 +788,16 @@ export async function callContract(
       const error = new ContractCallError('CONTRACT_RESPONSE_INVALID', `Invalid ${contractName} v${version} ${method} response: ${parsed.success ? 'tax totals or lines are inconsistent' : parsed.error?.message}`);
       throw error;
     }
-    recordBreakerResult(slug, true);
+    await sharedProtection.result(permit, true);
     return parsed.data;
   } catch (error) {
     if (error instanceof ContractCallError) {
       await recordPluginFailure(slug, error, 'contract', instance.id);
-      recordBreakerResult(slug, false);
+      await sharedProtection.result(permit, false);
     }
     throw error;
+  } finally {
+    if (!injected) await releaseRuntime(runtime);
   }
 }
 
@@ -820,7 +834,7 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
   let runtime: InternalRuntime;
   try {
     runtime = await ensureInternalRuntime(instance.pluginSlug, manifest, {
-      slug: instance.pluginSlug, zipHash: instance.plugin.zipHash || '', installationId, instanceKey: instance.instanceKey, config: decryptPluginConfig(manifest, parseJsonObject(instance.configJson)),
+      slug: instance.pluginSlug, zipHash: instance.plugin.zipHash || '', installationId, protectionGeneration: instance.protectionGeneration, instanceKey: instance.instanceKey, config: decryptPluginConfig(manifest, parseJsonObject(instance.configJson)),
     }, true);
   } catch (error) {
     await recordPluginFailure(instance.pluginSlug, error, 'event', installationId);
@@ -874,6 +888,21 @@ async function forwardToInternalFastify(
   requestId: string,
   caller: CallerType
 ): Promise<void> {
+  const installation = await prisma.pluginInstallation.findUnique({ where: { id: ctx.installationId } });
+  if (!installation?.enabled || installation.deletedAt || installation.protectionGeneration !== ctx.protectionGeneration) throw Object.assign(new Error('Plugin lifecycle changed before invocation'), { code: 'PLUGIN_DISABLED', statusCode: 503 });
+  const scope = pluginProtectionScope(installation.id, installation.protectionGeneration);
+  const limit = await sharedProtection.rate(`${scope}:http`, 60000, 60);
+  if (!limit.allowed) {
+    reply.code(429).header('Retry-After', limit.retryAfter).header('Cache-Control', 'no-store')
+      .send({ success: false, error: { code: 'PLUGIN_GATEWAY_RATE_LIMITED', message: 'Plugin request limit exceeded' } });
+    return;
+  }
+  const permit = await sharedProtection.breaker(scope);
+  if (!permit) {
+    reply.code(503).header('Retry-After', 30).header('Cache-Control', 'no-store')
+      .send({ success: false, error: { code: 'PLUGIN_CIRCUIT_OPEN', message: 'Plugin is temporarily unavailable' } });
+    return;
+  }
   const runtime = await ensureInternalRuntime(slug, manifest, ctx, true);
   let injected = false;
   try {
@@ -911,6 +940,10 @@ async function forwardToInternalFastify(
     }, REQUEST_TIMEOUT_MS);
   });
 
+  const latest = await prisma.pluginInstallation.findUnique({ where: { id: installation.id } });
+  if (!latest?.enabled || latest.deletedAt || latest.protectionGeneration !== installation.protectionGeneration) {
+    throw Object.assign(new Error('Plugin lifecycle changed before invocation'), { statusCode: 503, code: 'PLUGIN_DISABLED' });
+  }
   const invocation = runtime.app.inject({
       method: request.method as any,
       url: forwardUrl,
@@ -924,6 +957,7 @@ async function forwardToInternalFastify(
     timeoutPromise,
   ]);
 
+  await sharedProtection.result(permit, res.statusCode < 500);
   reply.code(res.statusCode);
   for (const [k, v] of Object.entries(res.headers)) {
     if (k.toLowerCase() === 'transfer-encoding') continue;
@@ -935,6 +969,9 @@ async function forwardToInternalFastify(
   reply.send(res.statusCode >= 400
     ? redactPluginText(Buffer.isBuffer(body) ? body.toString('utf8') : String(body), ctx.config, manifest)
     : body);
+  } catch (error) {
+    if (!(error instanceof SharedProtectionUnavailable) && injected) await sharedProtection.result(permit, false);
+    throw error;
   } finally {
     if (!injected) await releaseRuntime(runtime);
   }
@@ -964,6 +1001,7 @@ export async function warmPluginRuntime(slug: string): Promise<{ restartRequired
       slug,
       zipHash: plugin.zipHash || '',
       installationId: instance.id,
+      protectionGeneration: instance.protectionGeneration,
       instanceKey: instance.instanceKey,
       config: decryptPluginConfig(manifest, parseJsonObject(instance.configJson)),
     };
@@ -1012,6 +1050,7 @@ export async function warmPluginInstanceRuntime(
     slug,
     zipHash: plugin.zipHash || '',
     installationId: instance.id,
+    protectionGeneration: instance.protectionGeneration,
     instanceKey: instance.instanceKey,
     config: config ?? decryptPluginConfig(manifest, parseJsonObject(instance.configJson)),
   };
@@ -1057,6 +1096,7 @@ export async function handlePluginGateway(
     statusCode = reply.statusCode;
     return;
   } catch (error: any) {
+    if (error instanceof SharedProtectionUnavailable) { statusCode = 503; errorMessage = error.message; sendProtectionUnavailable(reply); return; }
     if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
       statusCode = error.statusCode;
       errorMessage = error.message;

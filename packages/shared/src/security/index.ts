@@ -4,13 +4,9 @@
 
 // Rate Limiter
 export {
-  RateLimiter,
-  MemoryRateLimitStore,
-  RedisRateLimitStore,
   RateLimitPresets,
   type RateLimitConfig,
   type RateLimitResult,
-  type RateLimitStore,
 } from './rate-limiter';
 
 // Security Headers
@@ -30,15 +26,6 @@ export {
   type CorsConfig,
   type CorsResult,
 } from './cors-manager';
-
-// Circuit Breaker
-export {
-  CircuitBreaker,
-  CircuitBreakerError,
-  CircuitState,
-  type CircuitBreakerConfig,
-  type CircuitBreakerStats,
-} from './circuit-breaker';
 
 // Retry Handler
 export {

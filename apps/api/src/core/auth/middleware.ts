@@ -17,6 +17,7 @@ export async function authMiddleware(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  if (request.user && !(request as any).apiToken) return;
   try {
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -67,6 +68,7 @@ export async function optionalAuthMiddleware(
   request: FastifyRequest,
   _reply: FastifyReply
 ) {
+  if (request.user) return;
   try {
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -75,6 +77,19 @@ export async function optionalAuthMiddleware(
 
     const token = authHeader.substring(7);
     if (!token) return;
+
+    if (token.startsWith('jiffoo_')) {
+      const identity = await ApiTokenService.validateToken(token);
+      if (identity) {
+        (request as any).apiToken = identity;
+        request.user = {
+          id: `api:${identity.tokenId}`, userId: `api:${identity.tokenId}`,
+          email: `${identity.label.replace(/\s+/g, '-').toLowerCase()}@api-token.local`,
+          username: identity.label, role: 'CUSTOMER', emailVerified: true, roles: ['CUSTOMER'],
+        };
+      }
+      return;
+    }
 
     const payload = JwtUtils.verify(token);
 

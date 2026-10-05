@@ -21,6 +21,7 @@ import { LoggerService } from '@/core/logger/unified-logger';
 import { PaymentStatus } from '@/core/order/types';
 import { syncPaymentFromPlugin } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
 import { Prisma } from '@prisma/client';
 import { decimalToMinor } from './minor-units';
 import { createNotification } from '@/core/notifications/service';
@@ -102,7 +103,7 @@ async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
       supportedCurrencies: description.supportedCurrencies,
       isLive: isLiveMode(parseConfigJson(defaultInstance.configJson)),
     });
-    } catch { continue; }
+    } catch (error) { if (error instanceof SharedProtectionUnavailable) throw error; continue; }
   }
 
   return methods;
@@ -400,6 +401,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       });
     } catch (error: any) {
       LoggerService.logPayment('create-session-error', undefined, undefined, { error: error.message });
+      if (error instanceof SharedProtectionUnavailable) return sendProtectionUnavailable(reply);
       if (error?.code === 'PLUGIN_PACKAGE_UNAVAILABLE' || error?.code === 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT')
         return sendError(reply, 503, error.code, error.message);
       if (error?.code === 'PLUGIN_PACKAGE_CORRUPT') return sendError(reply, 500, error.code, error.message);
@@ -469,6 +471,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       if (error?.code === 'PLUGIN_PACKAGE_UNAVAILABLE' || error?.code === 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT')
         return sendError(reply, 503, error.code, error.message);
+      if (error instanceof SharedProtectionUnavailable) return sendProtectionUnavailable(reply);
       if (error?.code === 'PLUGIN_PACKAGE_CORRUPT') return sendError(reply, 500, error.code, error.message);
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Payment webhook failed');
     }

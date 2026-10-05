@@ -1,12 +1,24 @@
 import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
-import { MemoryRateLimitStore } from '@shared/security';
+import { SharedProtection } from '@/infra/shared-protection';
+import { RateLimitPresets } from '@shared/security';
+import { env } from '@/config/env';
+import { randomUUID } from 'node:crypto';
+import Redis from 'ioredis';
 import rateLimiterPlugin from '../src/plugins/rate-limiter';
 import { parseTrustedProxies } from 'shared/trusted-proxies';
 
 function appWithTrust(value: string) {
   const app = Fastify({ trustProxy: parseTrustedProxies(value) });
-  app.register(rateLimiterPlugin, { enabled: true, store: new MemoryRateLimitStore() });
+  const protection = new SharedProtection(env.REDIS_URL);
+  const namespace = `test:trusted:${randomUUID()}`;
+  app.register(rateLimiterPlugin, { enabled: true, store: protection, global: { ...RateLimitPresets.default, keyPrefix: namespace } });
+  app.addHook('onClose', async () => {
+    protection.close();
+    const client = new Redis(env.REDIS_URL);
+    try { const keys = await client.keys(`${namespace}:*`); if (keys.length) await client.del(...keys); }
+    finally { client.disconnect(); }
+  });
   app.post('/api/v1/auth/login', async () => ({ ok: true }));
   return app;
 }

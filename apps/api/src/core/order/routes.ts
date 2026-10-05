@@ -3,6 +3,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
+import { SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
 import { Prisma } from '@prisma/client';
 import { OrderService } from './service';
 import { InvalidOrderTransitionError } from './transition';
@@ -33,6 +34,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
       );
       return sendSuccess(reply, order, undefined, 201);
     } catch (error: any) {
+      if (error instanceof SharedProtectionUnavailable) return sendProtectionUnavailable(reply);
       if (error instanceof Prisma.PrismaClientKnownRequestError
         || error instanceof Prisma.PrismaClientUnknownRequestError
         || error instanceof Prisma.PrismaClientInitializationError

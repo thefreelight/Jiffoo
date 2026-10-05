@@ -30,6 +30,9 @@ import swagger from '@fastify/swagger';
 import swaggerUI from '@fastify/swagger-ui';
 import path from 'path';
 import { env } from '@/config/env';
+import { optionalAuthMiddleware } from '@/core/auth/middleware';
+import { sharedProtection, SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
+import { isProtectionExempt } from '@/plugins/rate-limiter';
 import { assertProductionSafety } from '@/config/production-safety';
 import { prisma } from '@/config/database';
 import { redisCache } from '@/core/cache/redis';
@@ -82,7 +85,6 @@ async function buildApp() {
     assertProductionSafety({
       NODE_ENV: env.NODE_ENV ?? 'development',
       JWT_SECRET: env.JWT_SECRET ?? '',
-      RATE_LIMITER_FAIL_CLOSED: env.RATE_LIMITER_FAIL_CLOSED ?? true,
       CORS_ORIGIN: env.CORS_ORIGIN ?? '',
       STOREFRONT_URL: process.env.STOREFRONT_URL ?? '',
       ADMIN_URL: process.env.ADMIN_URL ?? '',
@@ -222,6 +224,7 @@ async function buildApp() {
 
     // Global error handler to standardize all error responses
     fastify.setErrorHandler((error: any, request, reply) => {
+      if (error instanceof SharedProtectionUnavailable) return sendProtectionUnavailable(reply);
       // Log the error
       LoggerService.logError(error, {
         context: 'Global error handler',
@@ -407,6 +410,9 @@ async function buildApp() {
 
     // Register Global Rate Limiter
     await registerGlobalRateLimiter(fastify, env.NODE_ENV ?? 'development', process.env.DISABLE_RATE_LIMITER === 'true');
+    fastify.addHook('onRequest', async (request, reply) => {
+      if (!isProtectionExempt(request)) await optionalAuthMiddleware(request, reply);
+    });
 
     // Register all core API routes
     await registerRoutes(fastify);
@@ -454,6 +460,7 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
       app,
       async stop() {
         await app.close();
+        sharedProtection.close();
         await redisCache.disconnect();
         await prisma.$disconnect();
       },

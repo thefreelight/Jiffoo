@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import path from 'path';
 import os from 'os';
 import { promises as fs } from 'fs';
@@ -7,23 +7,22 @@ import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { warmPluginInstanceRuntime } from '@/core/admin/extension-installer/plugin-runtime';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract, handlePluginGateway } from '@/core/admin/extension-installer/plugin-runtime';
+import Fastify from 'fastify';
+import Redis from 'ioredis';
+import { env } from '@/config/env';
+import { sharedProtection, pluginProtectionScope } from '@/infra/shared-protection';
 import { hasEventHandler } from '@/core/admin/extension-installer/contract-v1-runtime';
 import { EventDeliveryEngine } from '@/infra/events/delivery';
 import { emitEvent, syncEventSubscriptions } from '@/infra/events/emit';
 import { resetPluginRegistryFreshness } from '@/core/admin/extension-installer/plugin-registry-freshness';
 import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plugin-reconciliation';
-import {
-  getBreakerState,
-  isRateLimitAllowed,
-  recordBreakerFailure,
-  resetBreaker,
-  resetRateLimiter,
-} from '@/core/admin/extension-installer/gateway-protection';
+const protectionRedis = new Redis(env.REDIS_URL);
 
 const prisma = getTestPrisma();
 
 describe('Plugin lifecycle reconciliation', () => {
+  afterAll(() => { protectionRedis.disconnect(); sharedProtection.close(); });
   const slugs: string[] = [];
   const sourceDirectories: string[] = [];
   const markerPaths: string[] = [];
@@ -33,8 +32,11 @@ describe('Plugin lifecycle reconciliation', () => {
     await prisma.eventDelivery.deleteMany({ where: { eventId: { in: eventIds } } });
     await prisma.eventRecord.deleteMany({ where: { id: { in: eventIds.splice(0) } } });
     await Promise.all(slugs.splice(0).map(async (slug) => {
-      resetBreaker(slug);
-      resetRateLimiter(slug);
+      const installations = await prisma.pluginInstallation.findMany({ where: { pluginSlug: slug } });
+      for (const installation of installations) {
+        const keys = await protectionRedis.keys(`jiffoo:protection:plugin:{${installation.id}:*`);
+        if (keys.length) await protectionRedis.del(...keys);
+      }
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
       await prisma.pluginInstall.deleteMany({ where: { slug } });
       await clearTestPluginCache(slug);
@@ -77,7 +79,7 @@ describe('Plugin lifecycle reconciliation', () => {
     return installation.id;
   }
 
-  it('drops runtime event handlers and protection state on disable, then loads a fresh runtime on enable', async () => {
+  it('K: disable and enable switch the shared protection generation and load a fresh runtime', async () => {
     const slug = `reconcile-${Date.now().toString(36)}`.slice(0, 30);
     const installationId = await createPlugin(slug, `
 module.exports = {
@@ -87,17 +89,77 @@ module.exports = {
 
     await warmPluginInstanceRuntime(slug, installationId);
     expect(hasEventHandler(installationId, 'order.created', 1)).toBe(true);
-    for (let index = 0; index < 10; index += 1) recordBreakerFailure(slug);
-    expect(getBreakerState(slug)).toBe('open');
-    expect(isRateLimitAllowed(slug, 1)).toBe(true);
-    expect(isRateLimitAllowed(slug, 1)).toBe(false);
+    const original = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: installationId } });
+    const scope = pluginProtectionScope(installationId, original.protectionGeneration);
+    for (let index = 0; index < 10; index += 1) {
+      const permit = await sharedProtection.breaker(scope);
+      await sharedProtection.result(permit!, false);
+    }
+    expect(await sharedProtection.breaker(scope)).toBeNull();
+    expect((await sharedProtection.rate(`${scope}:http`, 60000, 1)).allowed).toBe(true);
+    expect((await sharedProtection.rate(`${scope}:http`, 60000, 1)).allowed).toBe(false);
 
     await PluginManagementService.updateInstance(installationId, { enabled: false });
     expect(hasEventHandler(installationId, 'order.created', 1)).toBe(false);
-    expect(getBreakerState(slug)).toBe('closed');
-    expect(isRateLimitAllowed(slug, 1)).toBe(true);
+    const disabled = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: installationId } });
+    expect(disabled.protectionGeneration).toBe(original.protectionGeneration + 1n);
     await PluginManagementService.updateInstance(installationId, { enabled: true });
     expect(hasEventHandler(installationId, 'order.created', 1)).toBe(true);
+    const enabled = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: installationId } });
+    const next = pluginProtectionScope(installationId, enabled.protectionGeneration);
+    expect(enabled.protectionGeneration).toBe(original.protectionGeneration + 2n);
+    expect(await sharedProtection.breaker(next)).not.toBeNull();
+    expect((await sharedProtection.rate(`${next}:http`, 60000, 1)).allowed).toBe(true);
+  });
+
+  it('I: the real HTTP gateway enforces its shared 60-per-minute quota without recording plugin failures', async () => {
+    const slug = `http-limit-${Date.now().toString(36)}`.slice(0, 30);
+    const id = await createPlugin(slug, `module.exports = { register(ctx) { ctx.http.route({ method: 'GET', path: '/check', handler: () => ({ ok: true }) }); } };`);
+    const app = Fastify();
+    app.get('/plugin/:slug/check', (request, reply) => handlePluginGateway(request as any, reply, '/check', app));
+    try {
+      for (let i = 0; i < 60; i++) expect((await app.inject(`/plugin/${slug}/check`)).statusCode).toBe(200);
+      const response = await app.inject(`/plugin/${slug}/check`);
+      expect(response.statusCode).toBe(429); expect(Number(response.headers['retry-after'])).toBeGreaterThan(0);
+      expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id } })).lastFailureMessage).toBeNull();
+    } finally { await app.close(); }
+  });
+
+  it('L: configuration, uninstall and restore advance generation while failed enable does not', async () => {
+    const slug = `gen-path-${Date.now().toString(36)}`.slice(0, 30);
+    const id = await createPlugin(slug, 'module.exports = { register() {} };');
+    await PluginManagementService.updateInstance(id, { config: { value: 1 } });
+    expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id } })).protectionGeneration).toBe(1n);
+    await PluginManagementService.uninstallPlugin(slug);
+    await PluginManagementService.restorePlugin(slug);
+    expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id } })).protectionGeneration).toBe(3n);
+    const brokenSlug = `gen-fail-${Date.now().toString(36)}`.slice(0, 30);
+    const broken = await createPlugin(brokenSlug, 'module.exports = {};', false);
+    await expect(PluginManagementService.updateInstance(broken, { enabled: true })).rejects.toThrow();
+    expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: broken } })).protectionGeneration).toBe(0n);
+  });
+  it('M: disabled contract rejection never records a plugin failure or consumes breaker samples', async () => {
+    const slug = `disabled-gen-${Date.now().toString(36)}`.slice(0, 30);
+    const id = await createPlugin(slug, 'module.exports = { register() {} };', false);
+    await expect(callContract(slug, 'shipping', 1, 'quote', {})).rejects.toThrow('not enabled');
+    const row = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id } });
+    expect(row.lastFailureMessage).toBeNull();
+    expect(await protectionRedis.zcard(`${pluginProtectionScope(id, row.protectionGeneration)}:failures`)).toBe(0);
+  });
+  it('L3: a real disable transaction failure preserves protectionGeneration and enabled state', async () => {
+    const slug = `disable-rollback-${Date.now().toString(36)}`.slice(0, 30);
+    const id = await createPlugin(slug, 'module.exports = { register() {} };');
+    const original = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id } });
+    const settings = await prisma.systemSettings.upsert({ where: { id: 'system' }, create: { id: 'system' }, update: {} });
+    try {
+      await prisma.systemSettings.update({ where: { id: 'system' }, data: { pluginRegistryVersion: 2147483647 } });
+      await expect(PluginManagementService.updateInstance(id, { enabled: false })).rejects.toThrow(/22003/);
+      const after = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id } });
+      expect(after.enabled).toBe(true); expect(after.protectionGeneration).toBe(original.protectionGeneration);
+      expect((await prisma.systemSettings.findUniqueOrThrow({ where: { id: 'system' } })).pluginRegistryVersion).toBe(2147483647);
+    } finally {
+      await prisma.systemSettings.update({ where: { id: 'system' }, data: { pluginRegistryVersion: settings.pluginRegistryVersion } });
+    }
   });
 
   it('rejects an enable when runtime loading fails without changing the database state', async () => {

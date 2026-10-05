@@ -13,7 +13,6 @@ import { sendSuccess, sendError } from '@/utils/response';
 import { authSchemas } from './schemas';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { acceptStaffInvite, requestPasswordReset, resetPassword } from './account-recovery';
-import { rateLimitMiddleware } from './rate-limit-middleware';
 import { JwtUtils } from '@/utils/jwt';
 import { createSuccessResponseSchema, createTypedUpdateResponses, errorResponseSchema } from '@/types/common-dto';
 import { isPrismaDatabaseError } from '@/utils/route-error-mapper';
@@ -27,7 +26,6 @@ export async function authRoutes(fastify: FastifyInstance) {
   } as const;
 
   fastify.post('/forgot-password', {
-    preHandler: [rateLimitMiddleware],
     schema: {
       tags: ['auth'], summary: 'Request a password reset',
       body: {
@@ -40,11 +38,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       response: {
         200: createSuccessResponseSchema(acknowledgementSchema),
         400: errorResponseSchema,
-        429: {
-          type: 'object',
-          properties: { success: { type: 'boolean', enum: [false] }, error: { type: 'string' } },
-          required: ['success', 'error'],
-        },
+        429: errorResponseSchema,
+        503: errorResponseSchema,
         500: errorResponseSchema,
       },
     },

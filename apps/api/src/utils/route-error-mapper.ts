@@ -1,4 +1,5 @@
 import { ZodError } from 'zod';
+import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 import { Prisma } from '@prisma/client';
 
 export function isPrismaDatabaseError(error: unknown): boolean {
@@ -103,6 +104,7 @@ export function mapAdminOrderRouteError(
   error: unknown,
   options: MapRouteErrorOptions
 ): MappedRouteError {
+  if (error instanceof SharedProtectionUnavailable) return { status: 503, code: error.code, message: error.message };
   if (error instanceof ZodError) {
     return mapZodError(error);
   }

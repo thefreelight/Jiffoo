@@ -192,14 +192,20 @@ async function stop() {
 }
 
 async function resetE2eLoginLimit(resetRegistration = false) {
+  if (new URL(env.REDIS_URL).pathname !== '/14')
+    throw new Error('Refusing to clear limits outside the dedicated E2E Redis DB 14');
   const apiRequire = createRequire(resolve(root, 'apps/api/package.json'));
   const { createClient } = apiRequire('redis');
   const client = createClient({ url: env.REDIS_URL });
   await client.connect();
   try {
-    await client.del('rl:login:ip:127.0.0.1');
-    if (resetRegistration) await client.del('rl:register:ip:127.0.0.1');
-    await client.del('rl:ip:127.0.0.1');
+    await client.del('jiffoo:protection:rl:/api/v1/auth/login:ip:127.0.0.1');
+    if (resetRegistration) await client.del('jiffoo:protection:rl:/api/v1/auth/register:ip:127.0.0.1');
+    await client.del('jiffoo:protection:rl:anonymous:ip:127.0.0.1');
+    await client.del('jiffoo:protection:rl:abuse:ip:127.0.0.1');
+    for await (const keys of client.scanIterator({ MATCH: 'jiffoo:protection:rl:user:*' })) {
+      if (keys.length) await client.del(keys);
+    }
     for await (const keys of client.scanIterator({ MATCH: 'stats:admin-dashboard:*' })) {
       if (keys.length) await client.del(keys);
     }
@@ -216,7 +222,9 @@ async function resetE2eRedis() {
   const client = createClient({ url: env.REDIS_URL });
   await client.connect();
   try {
-    await client.flushDb();
+    for await (const keys of client.scanIterator({ MATCH: '*' })) {
+      if (keys.length) await client.del(keys);
+    }
   } finally {
     await client.quit();
   }

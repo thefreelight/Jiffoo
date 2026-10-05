@@ -3,6 +3,8 @@ import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { prisma } from '@/config/database';
 import path from 'node:path';
 
+import { sharedProtection } from '../../src/infra/shared-protection';
+
 async function main() {
   try {
     await syncBuiltinPlugins(path.join(process.cwd(), 'builtin-plugins'));
@@ -13,6 +15,7 @@ async function main() {
   } catch (error) {
     process.send?.({ kind: 'error', message: error instanceof Error ? error.message : String(error) });
   } finally {
+    sharedProtection.close();
     await prisma.$disconnect();
     process.disconnect?.();
   }

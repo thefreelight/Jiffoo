@@ -1,551 +1,129 @@
-/**
- * Rate Limit Middleware Tests
- *
- * Coverage:
- * - Normal Redis operation with rate limiting
- * - Redis failure with fail-closed mode (in-memory fallback)
- * - Redis failure with fail-open mode (allows requests)
- * - In-memory limiter enforcement
- * - X-RateLimit-Source header verification
- * - Redis reconnection handling
- */
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import Redis from 'ioredis';
+import { SharedProtection } from '@/infra/shared-protection';
+import { protectionApp } from '../helpers/protection-app';
+import { getTestPrisma } from '../helpers/db';
+import { JwtUtils } from '@/utils/jwt';
+import { env } from '@/config/env';
+import { ApiTokenService } from '@/core/auth/api-token';
+import { redisCache } from '@/core/cache/redis';
+import Fastify from 'fastify';
+import rateLimiter from '@/plugins/rate-limiter';
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { FastifyInstance } from 'fastify';
-import { createMinimalTestApp } from '../helpers/create-test-app';
-import { createRateLimiter } from '../../src/core/auth/rate-limit-middleware';
-import { redisCache } from '../../src/core/cache/redis';
-import { inMemoryRateLimiter } from '../../src/core/auth/in-memory-rate-limiter';
-import { env } from '../../src/config/env';
-
-describe('Rate Limit Middleware', () => {
-  let app: FastifyInstance | null = null;
-  const originalFailClosed = env.RATE_LIMITER_FAIL_CLOSED;
-
-  beforeEach(async () => {
-    app = await createMinimalTestApp();
-    // Clear in-memory rate limiter before each test
-    inMemoryRateLimiter.clear();
-    // Reset all mocks
-    vi.clearAllMocks();
-    env.RATE_LIMITER_FAIL_CLOSED = originalFailClosed;
-  });
-
+describe('shared request protection', () => {
+  const namespace = `test:protection:${randomUUID()}`;
+  const protection = new SharedProtection(env.REDIS_URL);
+  const redis = new Redis(env.REDIS_URL);
+  const prisma = getTestPrisma();
+  const userIds: string[] = [];
+  const apps: Awaited<ReturnType<typeof protectionApp>>[] = [];
+  let index = 0;
+  async function app() { const value = await protectionApp(protection, `${namespace}:${index++}`); apps.push(value); return value; }
+  async function user() {
+    const id = randomUUID();
+    const row = await prisma.user.create({ data: { id, email: `${id}@protection.example`, username: id, password: 'unused', role: 'CUSTOMER' } });
+    userIds.push(id);
+    return JwtUtils.sign({ userId: id, sv: row.sessionVersion });
+  }
   afterEach(async () => {
-    if (app) {
-      await app.close();
-      app = null;
-    }
-    env.RATE_LIMITER_FAIL_CLOSED = originalFailClosed;
-    delete process.env.RATE_LIMITER_FAIL_CLOSED;
+    await Promise.all(apps.splice(0).map((value) => value.close()));
+    await prisma.user.deleteMany({ where: { id: { in: userIds.splice(0) } } });
+    const keys = await redis.keys(`${namespace}:*`);
+    if (keys.length) await redis.del(...keys);
   });
-
-  describe('Normal Redis Operation', () => {
-    beforeEach(() => {
-      // Mock Redis as connected
-      vi.spyOn(redisCache, 'getConnectionStatus').mockReturnValue(true);
-    });
-
-    it('should allow requests under rate limit', async () => {
-      const rateLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60000 });
-
-      // Mock Redis operations
-      let count = 0;
-      vi.spyOn(redisCache, 'get').mockResolvedValue(count);
-      vi.spyOn(redisCache, 'set').mockImplementation(async (key, value) => {
-        count = value as number;
-        return true;
-      });
-
-      // Register test route with rate limiter
-      app!.get('/test-rate-limit', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      // Make requests under the limit
-      for (let i = 0; i < 5; i++) {
-        const response = await app!.inject({
-          method: 'GET',
-          url: '/test-rate-limit',
-          remoteAddress: '127.0.0.1',
-        });
-
-        expect(response.statusCode).toBe(200);
-        expect(response.headers['x-ratelimit-source']).toBe('redis');
-        const body = response.json();
-        expect(body.success).toBe(true);
-      }
-    });
-
-    it('should block requests over rate limit', async () => {
-      const rateLimiter = createRateLimiter({ maxRequests: 3, windowMs: 60000 });
-
-      // Mock Redis to return count at limit
-      vi.spyOn(redisCache, 'get').mockResolvedValue(3);
-      vi.spyOn(redisCache, 'set').mockResolvedValue(true);
-
-      // Register test route
-      app!.get('/test-rate-limit-exceeded', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      const response = await app!.inject({
-        method: 'GET',
-        url: '/test-rate-limit-exceeded',
-        remoteAddress: '127.0.0.1',
-      });
-
-      expect(response.statusCode).toBe(429);
-      expect(response.headers['x-ratelimit-source']).toBe('redis');
-      const body = response.json();
-      expect(body.success).toBe(false);
-      expect(body.error).toContain('Too many requests');
-    });
-
-    it('should enforce rate limits per IP address', async () => {
-      const rateLimiter = createRateLimiter({ maxRequests: 2, windowMs: 60000 });
-
-      const counts: Record<string, number> = {};
-      vi.spyOn(redisCache, 'get').mockImplementation(async (key) => {
-        return counts[key] || 0;
-      });
-      vi.spyOn(redisCache, 'set').mockImplementation(async (key, value) => {
-        counts[key] = value as number;
-        return true;
-      });
-
-      // Register test route
-      app!.get('/test-per-ip', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      // IP 1 makes 2 requests (under limit)
-      for (let i = 0; i < 2; i++) {
-        const response = await app!.inject({
-          method: 'GET',
-          url: '/test-per-ip',
-          remoteAddress: '192.168.1.1',
-        });
-        expect(response.statusCode).toBe(200);
-      }
-
-      // IP 1 makes 3rd request (over limit)
-      const response1 = await app!.inject({
-        method: 'GET',
-        url: '/test-per-ip',
-        remoteAddress: '192.168.1.1',
-      });
-      expect(response1.statusCode).toBe(429);
-
-      // IP 2 makes request (should succeed, different IP)
-      const response2 = await app!.inject({
-        method: 'GET',
-        url: '/test-per-ip',
-        remoteAddress: '192.168.1.2',
-      });
-      expect(response2.statusCode).toBe(200);
-    });
+  afterAll(() => { protection.close(); redis.disconnect(); });
+  it('A: anonymous clients use independent trusted IP buckets', async () => {
+    const value = await app();
+    for (let i = 0; i < 3; i++) expect((await value.inject({ url: '/read', remoteAddress: '192.0.2.1' })).statusCode).toBe(200);
+    expect((await value.inject({ url: '/read', remoteAddress: '192.0.2.1' })).statusCode).toBe(429);
+    expect((await value.inject({ url: '/read', remoteAddress: '192.0.2.2' })).statusCode).toBe(200);
   });
-
-  describe('Redis Failure with Fail-Closed Mode (Default)', () => {
-    beforeEach(() => {
-      // Mock Redis as disconnected
-      vi.spyOn(redisCache, 'getConnectionStatus').mockReturnValue(false);
-      // Set fail-closed mode
-      process.env.RATE_LIMITER_FAIL_CLOSED = 'true';
-    });
-
-    it('should use in-memory fallback when Redis is disconnected', async () => {
-      const rateLimiter = createRateLimiter({ maxRequests: 3, windowMs: 60000 });
-
-      // Register test route
-      app!.get('/test-fallback', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      const response = await app!.inject({
-        method: 'GET',
-        url: '/test-fallback',
-        remoteAddress: '127.0.0.1',
-      });
-
-      expect(response.statusCode).toBe(200);
-      expect(response.headers['x-ratelimit-source']).toBe('memory');
-      const body = response.json();
-      expect(body.success).toBe(true);
-    });
-
-    it('should enforce rate limits with in-memory fallback', async () => {
-      const rateLimiter = createRateLimiter({ maxRequests: 3, windowMs: 60000 });
-
-      // Register test route
-      app!.get('/test-fallback-limit', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      // Make requests up to the limit
-      for (let i = 0; i < 3; i++) {
-        const response = await app!.inject({
-          method: 'GET',
-          url: '/test-fallback-limit',
-          remoteAddress: '127.0.0.1',
-        });
-        expect(response.statusCode).toBe(200);
-        expect(response.headers['x-ratelimit-source']).toBe('memory');
-      }
-
-      // 4th request should be blocked
-      const response = await app!.inject({
-        method: 'GET',
-        url: '/test-fallback-limit',
-        remoteAddress: '127.0.0.1',
-      });
-
-      expect(response.statusCode).toBe(429);
-      expect(response.headers['x-ratelimit-source']).toBe('memory');
-      const body = response.json();
-      expect(body.success).toBe(false);
-      expect(body.error).toContain('Too many requests');
-    });
-
-    it('should handle Redis operation errors gracefully', async () => {
-      // Mock Redis as connected but operations fail
-      vi.spyOn(redisCache, 'getConnectionStatus').mockReturnValue(true);
-      vi.spyOn(redisCache, 'get').mockRejectedValue(new Error('Redis connection lost'));
-      vi.spyOn(redisCache, 'set').mockRejectedValue(new Error('Redis connection lost'));
-
-      const rateLimiter = createRateLimiter({ maxRequests: 3, windowMs: 60000 });
-
-      // Register test route
-      app!.get('/test-redis-error', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      const response = await app!.inject({
-        method: 'GET',
-        url: '/test-redis-error',
-        remoteAddress: '127.0.0.1',
-      });
-
-      // Should fall back to in-memory limiter
-      expect(response.statusCode).toBe(200);
-      expect(response.headers['x-ratelimit-source']).toBe('memory');
-    });
+  it('B: authenticated users sharing an egress IP have separate user budgets', async () => {
+    const value = await app(); const first = await user(); const second = await user();
+    for (let i = 0; i < 3; i++) expect((await value.inject({ url: '/protected', headers: { authorization: `Bearer ${first}` } })).statusCode).toBe(200);
+    expect((await value.inject({ url: '/protected', headers: { authorization: `Bearer ${first}` } })).statusCode).toBe(429);
+    expect((await value.inject({ url: '/protected', headers: { authorization: `Bearer ${second}` } })).statusCode).toBe(200);
   });
-
-  describe('Redis Failure with Fail-Open Mode', () => {
-    beforeEach(() => {
-      // Mock Redis as disconnected
-      vi.spyOn(redisCache, 'getConnectionStatus').mockReturnValue(false);
-      // Set fail-open mode
-      env.RATE_LIMITER_FAIL_CLOSED = false;
-    });
-
-    it('should allow requests when Redis is disconnected in fail-open mode', async () => {
-      const rateLimiter = createRateLimiter({ maxRequests: 1, windowMs: 60000 });
-
-      // Register test route
-      app!.get('/test-fail-open', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      // Make multiple requests - all should succeed even though limit is 1
-      for (let i = 0; i < 5; i++) {
-        const response = await app!.inject({
-          method: 'GET',
-          url: '/test-fail-open',
-          remoteAddress: '127.0.0.1',
-        });
-
-        expect(response.statusCode).toBe(200);
-        expect(response.headers['x-ratelimit-source']).toBe('disabled');
-        const body = response.json();
-        expect(body.success).toBe(true);
-      }
-    });
+  it('C: changing IP does not replenish a verified user budget and invalid tokens do not create identity', async () => {
+    const value = await app(); const token = await user();
+    for (let i = 0; i < 3; i++) await value.inject({ url: '/protected', remoteAddress: `192.0.2.${i + 1}`, headers: { authorization: `Bearer ${token}` } });
+    expect((await value.inject({ url: '/protected', remoteAddress: '192.0.2.9', headers: { authorization: `Bearer ${token}` } })).statusCode).toBe(429);
+    expect((await value.inject({ url: '/protected', headers: { authorization: 'Bearer invalid' } })).statusCode).toBe(401);
+    expect((await value.inject({ url: '/read', headers: { authorization: 'Bearer invalid' } })).json().user).toBeNull();
   });
-
-  describe('In-Memory Rate Limiter Behavior', () => {
-    beforeEach(() => {
-      // Mock Redis as disconnected
-      vi.spyOn(redisCache, 'getConnectionStatus').mockReturnValue(false);
-      // Set fail-closed mode
-      env.RATE_LIMITER_FAIL_CLOSED = true;
-    });
-
-    it('should correctly track counts across multiple requests', async () => {
-      const rateLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60000 });
-
-      // Register test route
-      app!.get('/test-count-tracking', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      // Make 5 requests - all should succeed
-      for (let i = 1; i <= 5; i++) {
-        const response = await app!.inject({
-          method: 'GET',
-          url: '/test-count-tracking',
-          remoteAddress: '127.0.0.1',
-        });
-        expect(response.statusCode).toBe(200);
-
-        // Verify count is being tracked
-        const count = inMemoryRateLimiter.getCount('rate_limit:127.0.0.1');
-        expect(count).toBe(i);
-      }
-
-      // 6th request should be blocked
-      const response = await app!.inject({
-        method: 'GET',
-        url: '/test-count-tracking',
-        remoteAddress: '127.0.0.1',
-      });
-      expect(response.statusCode).toBe(429);
-    });
-
-    it('should isolate rate limits by IP address', async () => {
-      const rateLimiter = createRateLimiter({ maxRequests: 2, windowMs: 60000 });
-
-      // Register test route
-      app!.get('/test-ip-isolation', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      // IP 1 makes 2 requests
-      for (let i = 0; i < 2; i++) {
-        const response = await app!.inject({
-          method: 'GET',
-          url: '/test-ip-isolation',
-          remoteAddress: '10.0.0.1',
-        });
-        expect(response.statusCode).toBe(200);
-      }
-
-      // IP 1's 3rd request should be blocked
-      const response1 = await app!.inject({
-        method: 'GET',
-        url: '/test-ip-isolation',
-        remoteAddress: '10.0.0.1',
-      });
-      expect(response1.statusCode).toBe(429);
-
-      // IP 2's requests should succeed
-      const response2 = await app!.inject({
-        method: 'GET',
-        url: '/test-ip-isolation',
-        remoteAddress: '10.0.0.2',
-      });
-      expect(response2.statusCode).toBe(200);
-
-      // Verify both IPs are tracked separately
-      expect(inMemoryRateLimiter.getCount('rate_limit:10.0.0.1')).toBe(3);
-      expect(inMemoryRateLimiter.getCount('rate_limit:10.0.0.2')).toBe(1);
-    });
-
-    it('should reset counts after window expires', async () => {
-      const shortWindow = 100; // 100ms
-      const rateLimiter = createRateLimiter({ maxRequests: 2, windowMs: shortWindow });
-
-      // Register test route
-      app!.get('/test-window-reset', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      // Make 2 requests (reach limit)
-      for (let i = 0; i < 2; i++) {
-        const response = await app!.inject({
-          method: 'GET',
-          url: '/test-window-reset',
-          remoteAddress: '127.0.0.1',
-        });
-        expect(response.statusCode).toBe(200);
-      }
-
-      // 3rd request should be blocked
-      const blockedResponse = await app!.inject({
-        method: 'GET',
-        url: '/test-window-reset',
-        remoteAddress: '127.0.0.1',
-      });
-      expect(blockedResponse.statusCode).toBe(429);
-
-      // Wait for window to expire
-      await new Promise(resolve => setTimeout(resolve, shortWindow + 50));
-
-      // New request should succeed after window expires
-      const newResponse = await app!.inject({
-        method: 'GET',
-        url: '/test-window-reset',
-        remoteAddress: '127.0.0.1',
-      });
-      expect(newResponse.statusCode).toBe(200);
-    });
+  it('D: API token identity precedes post-auth limits without bypassing scope authorization', async () => {
+    await redisCache.connect();
+    await prisma.systemSettings.upsert({ where: { id: 'system' }, create: { id: 'system' }, update: {} });
+    const token = await ApiTokenService.createToken(`protection-${randomUUID()}`, ['catalog:read']);
+    const denied = await ApiTokenService.createToken(`protection-denied-${randomUUID()}`, ['orders:read']);
+    const value = await app();
+    try {
+      expect((await value.inject({ url: '/token', headers: { authorization: `Bearer ${denied.token}` } })).statusCode).toBe(403);
+      for (let i = 0; i < 3; i++) expect((await value.inject({ url: '/token', headers: { authorization: `Bearer ${token.token}` } })).json().user).toBe(`api:${token.record.id}`);
+      expect((await value.inject({ url: '/token', headers: { authorization: `Bearer ${token.token}` } })).statusCode).toBe(429);
+    } finally { await ApiTokenService.revokeToken(token.record.id); await ApiTokenService.revokeToken(denied.record.id); }
   });
-
-  describe('Redis Reconnection Handling', () => {
-    it('should switch back to Redis when it reconnects', async () => {
-      const rateLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60000 });
-
-      // Start with Redis disconnected
-      const getConnectionStatusSpy = vi.spyOn(redisCache, 'getConnectionStatus')
-        .mockReturnValue(false);
-
-      // Set fail-closed mode
-      process.env.RATE_LIMITER_FAIL_CLOSED = 'true';
-
-      // Register test route
-      app!.get('/test-reconnect', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      // First request uses in-memory fallback
-      const response1 = await app!.inject({
-        method: 'GET',
-        url: '/test-reconnect',
-        remoteAddress: '127.0.0.1',
-      });
-      expect(response1.statusCode).toBe(200);
-      expect(response1.headers['x-ratelimit-source']).toBe('memory');
-
-      // Simulate Redis reconnection
-      getConnectionStatusSpy.mockReturnValue(true);
-      vi.spyOn(redisCache, 'get').mockResolvedValue(0);
-      vi.spyOn(redisCache, 'set').mockResolvedValue(true);
-
-      // Next request should use Redis
-      const response2 = await app!.inject({
-        method: 'GET',
-        url: '/test-reconnect',
-        remoteAddress: '127.0.0.1',
-      });
-      expect(response2.statusCode).toBe(200);
-      expect(response2.headers['x-ratelimit-source']).toBe('redis');
-    });
+  it('E: login and registration policies count once and remain isolated', async () => {
+    const value = await app();
+    for (let i = 0; i < 20; i++) expect((await value.inject({ method: 'POST', url: '/api/v1/auth/login' })).statusCode).toBe(200);
+    const rejected = await value.inject({ method: 'POST', url: '/api/v1/auth/login' });
+    expect(rejected.statusCode).toBe(429); expect(rejected.json().error.code).toBe('RATE_LIMITED');
+    expect((await value.inject({ method: 'POST', url: '/api/v1/auth/register' })).statusCode).toBe(200);
   });
-
-  describe('X-RateLimit-Source Header', () => {
-    it('should set correct header for Redis source', async () => {
-      vi.spyOn(redisCache, 'getConnectionStatus').mockReturnValue(true);
-      vi.spyOn(redisCache, 'get').mockResolvedValue(0);
-      vi.spyOn(redisCache, 'set').mockResolvedValue(true);
-
-      const rateLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60000 });
-
-      app!.get('/test-header-redis', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      const response = await app!.inject({
-        method: 'GET',
-        url: '/test-header-redis',
-        remoteAddress: '127.0.0.1',
-      });
-
-      expect(response.headers['x-ratelimit-source']).toBe('redis');
-    });
-
-    it('should set correct header for memory source', async () => {
-      vi.spyOn(redisCache, 'getConnectionStatus').mockReturnValue(false);
-      env.RATE_LIMITER_FAIL_CLOSED = true;
-
-      const rateLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60000 });
-
-      app!.get('/test-header-memory', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      const response = await app!.inject({
-        method: 'GET',
-        url: '/test-header-memory',
-        remoteAddress: '127.0.0.1',
-      });
-
-      expect(response.headers['x-ratelimit-source']).toBe('memory');
-    });
-
-    it('should set correct header for disabled source', async () => {
-      vi.spyOn(redisCache, 'getConnectionStatus').mockReturnValue(false);
-      env.RATE_LIMITER_FAIL_CLOSED = false;
-
-      const rateLimiter = createRateLimiter({ maxRequests: 5, windowMs: 60000 });
-
-      app!.get('/test-header-disabled', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      const response = await app!.inject({
-        method: 'GET',
-        url: '/test-header-disabled',
-        remoteAddress: '127.0.0.1',
-      });
-
-      expect(response.headers['x-ratelimit-source']).toBe('disabled');
-    });
+  it('E2: forgot-password uses the unified 100-per-minute auth policy and counts each request once', async () => {
+    const prefix = `${namespace}:forgot`;
+    const value = Fastify();
+    let calls = 0;
+    await value.register(rateLimiter, { store: protection, global: { windowMs: 60000, maxRequests: 1000, keyPrefix: prefix } });
+    value.post('/api/v1/auth/forgot-password', async () => ({ calls: ++calls }));
+    try {
+      for (let i = 0; i < 100; i++) expect((await value.inject({ method: 'POST', url: '/api/v1/auth/forgot-password' })).statusCode).toBe(200);
+      const rejected = await value.inject({ method: 'POST', url: '/api/v1/auth/forgot-password' });
+      expect(rejected.statusCode).toBe(429);
+      expect(rejected.json().error.code).toBe('RATE_LIMITED');
+      expect(calls).toBe(100);
+      expect(await redis.zcard(`${prefix}:/api/v1/auth/forgot-password:ip:127.0.0.1`)).toBe(100);
+      expect(await redis.exists(`${prefix}:anonymous:ip:127.0.0.1`)).toBe(0);
+    } finally { await value.close(); }
   });
-
-  describe('Custom Rate Limit Configuration', () => {
-    beforeEach(() => {
-      vi.spyOn(redisCache, 'getConnectionStatus').mockReturnValue(true);
-    });
-
-    it('should respect custom maxRequests configuration', async () => {
-      const customLimit = 10;
-      const rateLimiter = createRateLimiter({ maxRequests: customLimit, windowMs: 60000 });
-
-      let count = 0;
-      vi.spyOn(redisCache, 'get').mockImplementation(async () => count);
-      vi.spyOn(redisCache, 'set').mockImplementation(async (key, value) => {
-        count = value as number;
-        return true;
-      });
-
-      app!.get('/test-custom-limit', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      // Make requests up to custom limit
-      for (let i = 0; i < customLimit; i++) {
-        const response = await app!.inject({
-          method: 'GET',
-          url: '/test-custom-limit',
-          remoteAddress: '127.0.0.1',
-        });
-        expect(response.statusCode).toBe(200);
-      }
-
-      // Next request should be blocked
-      const response = await app!.inject({
-        method: 'GET',
-        url: '/test-custom-limit',
-        remoteAddress: '127.0.0.1',
-      });
-      expect(response.statusCode).toBe(429);
-    });
-
-    it('should use default configuration when no config provided', async () => {
-      const rateLimiter = createRateLimiter(); // Uses defaults: 100 requests/minute
-
-      let count = 0;
-      vi.spyOn(redisCache, 'get').mockImplementation(async () => count);
-      vi.spyOn(redisCache, 'set').mockImplementation(async (key, value) => {
-        count = value as number;
-        return true;
-      });
-
-      app!.get('/test-default-config', { preHandler: rateLimiter }, async () => {
-        return { success: true };
-      });
-
-      // Should allow many requests (default is 100)
-      for (let i = 0; i < 50; i++) {
-        const response = await app!.inject({
-          method: 'GET',
-          url: '/test-default-config',
-          remoteAddress: '127.0.0.1',
-        });
-        expect(response.statusCode).toBe(200);
-      }
-    });
+  it('F: concurrent permits are atomic with unique members and bounded TTL', async () => {
+    const key = `${namespace}:atomic`;
+    const results = await Promise.all(Array.from({ length: 30 }, () => protection.rate(key, 60000, 7)));
+    expect(results.filter((value) => value.allowed)).toHaveLength(7);
+    expect(await redis.zcard(key)).toBe(7); expect(await redis.pttl(key)).toBeGreaterThan(0);
+    expect(results.filter((value) => !value.allowed).every((value) => value.retryAfter > 0)).toBe(true);
+  });
+  it('Q: exact health routes remain available during Redis failure with stable 503 headers', async () => {
+    const failed = new SharedProtection('redis://127.0.0.1:1');
+    const value = await protectionApp(failed, `${namespace}:failed`);
+    try {
+      expect((await value.inject('/health/live')).statusCode).toBe(200);
+      const response = await value.inject('/health-not-exempt');
+      expect(response.statusCode).toBe(503); expect(response.json().error.code).toBe('SHARED_PROTECTION_UNAVAILABLE');
+      expect(response.headers['retry-after']).toBe('5'); expect(response.headers['cache-control']).toBe('no-store');
+      expect((await value.inject({ method: 'POST', url: '/health/live' })).statusCode).toBe(503);
+    } finally { await value.close(); failed.close(); }
+  });
+  it('A: the pre-auth abuse ceiling is ten times the normal policy', async () => {
+    const value = await app();
+    for (let i = 0; i < 30; i++) await value.inject('/read');
+    const response = await value.inject('/read');
+    expect(response.statusCode).toBe(429); expect(response.headers['x-ratelimit-limit']).toBe('30');
+  });
+  it('F: expired accepted members are pruned without extending a rejected window', async () => {
+    const key = `${namespace}:expired`;
+    await redis.zadd(key, 0, 'old-request');
+    expect((await protection.rate(key, 60000, 1)).allowed).toBe(true);
+    const ttl = await redis.pttl(key);
+    expect((await protection.rate(key, 60000, 1)).allowed).toBe(false);
+    expect(await redis.pttl(key)).toBeLessThanOrEqual(ttl);
+    expect(await redis.zcard(key)).toBe(1);
+  });
+  it('Q: a closed protection connection is rebuilt without losing the Redis budget', async () => {
+    const key = `${namespace}:reopen`;
+    expect((await protection.rate(key, 60000, 1)).allowed).toBe(true);
+    protection.close();
+    expect((await protection.rate(key, 60000, 1)).allowed).toBe(false);
   });
 });

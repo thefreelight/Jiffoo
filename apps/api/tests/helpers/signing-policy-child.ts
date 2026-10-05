@@ -1,6 +1,7 @@
 import { env, envSchema } from '../../src/config/env';
 import { prisma } from '../../src/config/database';
 import { redisCache } from '../../src/core/cache/redis';
+import { sharedProtection } from '../../src/infra/shared-protection';
 import { PluginManagementService } from '../../src/core/admin/plugin-management/service';
 import { callContract, warmPluginInstanceRuntime } from '../../src/core/admin/extension-installer/plugin-runtime';
 import { resetPluginState } from '../../src/core/admin/extension-installer/plugin-state';
@@ -92,6 +93,7 @@ async function run() {
     await resetPluginState('free-shipping');
     await app.close();
     await redisCache.disconnect();
+    sharedProtection.close();
     await prisma.$disconnect();
   }
 }

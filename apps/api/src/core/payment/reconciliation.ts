@@ -1,4 +1,5 @@
 import { prisma } from '@/config/database';
+import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 import { OrderStatus, PaymentStatus } from '@/core/order/types';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { assertOrderTransition } from '@/core/order/transition';
@@ -148,7 +149,8 @@ export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean>
   }
 
   let data: { status: string; providerEventId?: string };
-  try { data = await callContract(payment.paymentMethod, 'payment', 1, 'getSessionStatus', { sessionId }) as typeof data; } catch { return false; }
+  try { data = await callContract(payment.paymentMethod, 'payment', 1, 'getSessionStatus', { sessionId }) as typeof data; }
+  catch (error) { if (error instanceof SharedProtectionUnavailable) throw error; return false; }
   const status = normalizeMethodKey(data.status);
   const providerEventId = data.providerEventId || sessionId;
 
@@ -313,8 +315,9 @@ export async function reconcilePendingPayments(
       if (didUpdate) {
         updated += 1;
       }
-    } catch {
-      failed += 1;
+    } catch (error) {
+      if (error instanceof SharedProtectionUnavailable) skipped += 1;
+      else failed += 1;
     }
   }
 

@@ -33,8 +33,6 @@ export const envSchema = z.object({
   API_HOST: z.string().default('0.0.0.0'),
   WORKER_HEALTH_PORT: z.coerce.number().int().min(0).max(65535).default(3004),
 
-  // Rate Limiting
-  RATE_LIMITER_FAIL_CLOSED: z.string().transform((v) => v === 'true').default('true'),
 
   // JWT
   JWT_SECRET: z.string(),
@@ -88,7 +86,6 @@ export const envSchema = z.object({
   const violations = productionSafetyViolations({
     NODE_ENV: value.NODE_ENV,
     JWT_SECRET: value.JWT_SECRET,
-    RATE_LIMITER_FAIL_CLOSED: value.RATE_LIMITER_FAIL_CLOSED,
     CORS_ORIGIN: value.CORS_ORIGIN,
     STOREFRONT_URL: value.STOREFRONT_URL ?? '',
     ADMIN_URL: value.ADMIN_URL ?? '',

@@ -208,6 +208,7 @@ model PluginInstallation {
   instanceKey String
 
   enabled Boolean @default(true)
+  protectionGeneration BigInt @default(0)
 
   configJson Json?
 

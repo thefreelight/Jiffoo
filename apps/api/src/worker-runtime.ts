@@ -1,4 +1,5 @@
 import { prisma } from './config/database';
+import { sharedProtection } from './infra/shared-protection';
 import { redisCache } from './core/cache/redis';
 import { OrderService } from './core/order/service';
 import { deliverPendingNotifications } from './core/notifications/delivery';
@@ -90,6 +91,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     await redisCache.disconnect();
     await cacheEnded;
     await prisma.$disconnect();
+    sharedProtection.close();
   };
   try {
     redisConnections.push({ name: 'heartbeat', client: heartbeatRedis });

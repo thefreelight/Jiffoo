@@ -430,6 +430,7 @@ async function updateInstance(
   }
 
   const updated = await prisma.$transaction(async (tx) => {
+    if (updates.enabled !== undefined || updates.config !== undefined) updateData.protectionGeneration = { increment: 1 };
     const next = await tx.pluginInstallation.update({ where: { id: installationId }, data: updateData });
     await incrementPluginRegistryVersion(tx);
     return next;
@@ -575,7 +576,7 @@ export async function uninstallPlugin(slug: string, actorId = 'system'): Promise
         pluginSlug: slug,
         deletedAt: null,
       },
-      data: { enabled: false },
+      data: { enabled: false, protectionGeneration: { increment: 1 } },
     });
     await incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_UNINSTALLED', slug, { slug, version: pluginPackage.version });
@@ -641,6 +642,7 @@ export async function restorePlugin(slug: string, actorId = 'system'): Promise<v
         data: {
           deletedAt: null,
           enabled: false,
+          protectionGeneration: { increment: 1 },
         },
       });
     }

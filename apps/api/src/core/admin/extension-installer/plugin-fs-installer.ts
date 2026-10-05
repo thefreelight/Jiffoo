@@ -213,7 +213,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           await tx.pluginInstallation.upsert({
             where: { pluginSlug_instanceKey: { pluginSlug: manifest.slug, instanceKey: 'default' } },
             create: { pluginSlug: manifest.slug, instanceKey: 'default', enabled: false, configJson: {}, grantedPermissions: manifest.permissions ?? [] },
-            update: {},
+            update: { protectionGeneration: { increment: 1 } },
           });
           await writePluginInstallAudit(tx, options!.actorUserId!, 'PLUGIN_INSTALLED', inspection!, operation, existingByHash.version, options?.source ?? 'local-zip');
           await incrementPluginRegistryVersion(tx);
@@ -339,7 +339,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             await tx.pluginInstallation.upsert({
               where: { pluginSlug_instanceKey: { pluginSlug: manifest.slug, instanceKey: 'default' } },
               create: { pluginSlug: manifest.slug, instanceKey: 'default', enabled: false, configJson: {}, grantedPermissions: manifest.permissions ?? [] },
-              update: {},
+              update: { protectionGeneration: { increment: 1 } },
             });
             if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, operation === 'upgrade' ? 'PLUGIN_UPGRADED' : 'PLUGIN_INSTALLED', inspection, operation, existingBySlug.version, options?.source ?? 'local-zip');
             await incrementPluginRegistryVersion(tx);
