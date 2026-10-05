@@ -13,7 +13,7 @@ export default async function VerifyEmailPage({ params, searchParams }: {
   if (!token) return <AuthForm mode="verify-email" locale={locale} labels={t} next={`/${locale}/account`} />;
   return <main className="mx-auto max-w-md px-4 py-12">
     <h1 className="text-2xl font-semibold">{t.verify}</h1>
-    <VerifyEmailAction token={token} labels={t} />
+    <VerifyEmailAction token={token} labels={t} locale={locale} />
     <Link className="mt-6 block text-action" href={`/${locale}/account`}>{t.back}</Link>
   </main>;
 }

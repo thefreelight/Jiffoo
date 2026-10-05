@@ -6,6 +6,7 @@ import type { ShopLocale } from '@/lib/locale';
 import { storefrontMessages } from '@/lib/storefront-messages';
 import { formatPrice } from '@/lib/price';
 import { buildCancelReason, orderStatusLabel, paymentStatusLabel, type CancelReason } from '@/lib/order-labels';
+import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
 
 export function OrderDetail({ initialOrder, locale }: { initialOrder: Order; locale: ShopLocale }) {
   const [order, setOrder] = useState(initialOrder);
@@ -14,15 +15,18 @@ export function OrderDetail({ initialOrder, locale }: { initialOrder: Order; loc
   const [other, setOther] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const availability = useShopAvailability(locale);
   const t = storefrontMessages(locale);
   const date = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
   const cancel = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (availability.blocked) return;
+    availability.clear();
     const cancelReason = buildCancelReason(locale, reason, other);
     if (!cancelReason) { setError(t.orders.cancelError); return; }
     setBusy(true);
     try {
-      const response = await fetch(`/bff/orders/${order.id}/cancel`, {
+      const response = await availabilityFetch(`/bff/orders/${order.id}/cancel`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cancelReason }),
       });
       const result = await response.json() as { success: boolean; data?: Order };
@@ -30,7 +34,8 @@ export function OrderDetail({ initialOrder, locale }: { initialOrder: Order; loc
       setOrder(result.data);
       setConfirming(false);
       setError('');
-    } catch {
+    } catch (error) {
+      if (availability.capture(error)) return;
       setError(t.orders.cancelError);
     } finally {
       setBusy(false);
@@ -83,11 +88,11 @@ export function OrderDetail({ initialOrder, locale }: { initialOrder: Order; loc
             <input value={other} onChange={(event) => setOther(event.target.value)} required maxLength={200}
               className="mt-1 block w-full rounded-shop border border-line bg-surface p-2" />
           </label>}
-          <button disabled={busy} className="rounded-shop bg-action px-4 py-2 text-action-ink">{t.orders.confirmCancel}</button>
+          <button disabled={busy || availability.blocked} className="rounded-shop bg-action px-4 py-2 text-action-ink">{t.orders.confirmCancel}</button>
         </form>}
     </>}
     {order.status === 'CANCELLED' && <dl><dt>{t.orders.cancelReason}</dt><dd>{order.cancelReason}</dd>
       {order.cancelledAt && <><dt>{t.orders.cancelledAt}</dt><dd>{date(order.cancelledAt)}</dd></>}</dl>}
-    {error && <p role="alert">{error}</p>}
+    {(availability.message || error) && <p role="alert">{availability.message || error}</p>}
   </main>;
 }

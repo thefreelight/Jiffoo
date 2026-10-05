@@ -1,6 +1,8 @@
 import 'server-only';
 import type { ShopLocale } from './locale';
-import { shopApiHeaders } from './api-headers';
+import { serverCoreResponse } from './core-transport';
+import { withAvailability } from './availability-boundary';
+import { ShopAvailability } from './availability';
 
 export type ThemeSection = {
   id: string;
@@ -27,17 +29,16 @@ export type ShopTheme = {
 };
 
 export async function getShopTheme(locale: ShopLocale): Promise<ShopTheme | null> {
+  return withAvailability(async () => {
   try {
-    const base = process.env.API_SERVICE_URL || 'http://127.0.0.1:3001';
-    const url = new URL('/api/v1/store/theme', base);
-    url.searchParams.set('target', 'shop');
-    url.searchParams.set('locale', locale);
-    const response = await fetch(url, { cache: 'no-store', headers: await shopApiHeaders() });
+    const response = await serverCoreResponse(`/store/theme?target=shop&locale=${encodeURIComponent(locale)}`);
     if (!response.ok) throw new Error(`Theme API returned ${response.status}`);
     const body = await response.json() as { data: ShopTheme };
     return body.data;
   } catch (error) {
+    if (error instanceof ShopAvailability) throw error;
     console.error('Shop theme unavailable; using Core defaults', error);
     return null;
   }
+  });
 }

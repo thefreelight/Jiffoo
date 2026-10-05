@@ -1,10 +1,7 @@
 import { notFound } from 'next/navigation';
-import { categories, getStoreContext } from '@/lib/catalog';
 import { Header } from '@/components/header';
 import { isShopLocale } from '@/lib/locale';
-import { accountProfile } from '@/lib/server-account';
-import { customerCart } from '@/lib/server-checkout';
-import { getShopTheme } from '@/lib/theme';
+import { shopBootstrap } from '@/lib/server-bootstrap';
 import { themeStyle } from '@/lib/theme-style';
 import { Footer } from '@/components/footer';
 import type { StoreContext, Category } from '@/lib/catalog';
@@ -17,10 +14,8 @@ export default async function LocaleLayout({ children, params }: {
 }) {
   const { locale } = await params;
   if (!isShopLocale(locale)) notFound();
-  const [context, theme] = await Promise.all([getStoreContext(), getShopTheme(locale)]);
+  const { context, theme, navigation, profile, cart } = await shopBootstrap();
   if (!isShopLocale(locale) || !context.supportedLocales.includes(locale)) notFound();
-  const [navigation, profile] = await Promise.all([categories(locale), accountProfile()]);
-  const cart = profile ? await customerCart() : null;
   return <ThemeShell context={context} locale={locale} navigation={navigation} theme={theme}
     loggedIn={!!profile} cartCount={cart?.itemCount ?? 0}>{children}</ThemeShell>;
 }

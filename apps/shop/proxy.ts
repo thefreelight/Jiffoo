@@ -4,6 +4,8 @@ import { isShopLocale } from './lib/locale';
 
 export function proxy(request: NextRequest) {
   const headers = new Headers(request.headers);
+  headers.delete('x-shop-return-path');
+  headers.set('x-shop-return-path', request.nextUrl.pathname + request.nextUrl.search);
   const locale = request.nextUrl.pathname.split('/')[1];
   headers.delete('x-shop-locale');
   if (isShopLocale(locale)) headers.set('x-shop-locale', locale);

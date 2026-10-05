@@ -12,6 +12,7 @@ import { buildCancelReason, orderStatuses, paymentStatuses, orderStatusLabel, pa
 
 vi.mock('server-only', () => ({}));
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-shop-locale': 'en' }) }));
+vi.mock('../lib/server-bootstrap', () => ({ shopBootstrap: async () => ({ slots: null }) }));
 
 vi.mock('../lib/storefront-messages', async () => {
   const [en, zhHans, zhHant] = await Promise.all([

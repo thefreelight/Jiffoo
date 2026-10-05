@@ -26,6 +26,7 @@ const areas = [
   '33-plugin-recorded-error',
   '34-shop-reload',
   '35-extension-center',
+  '36-shop-availability',
 ];
 
 export default defineConfig({
@@ -46,7 +47,7 @@ export default defineConfig({
   projects: [...areas.map((name, index) => ({
     name,
     testMatch: `${name}.spec.ts`,
-    use: { baseURL: ['13-shop', '14-shop-registration', '15-shop-account'].includes(name) ? 'http://127.0.0.1:3003' : 'http://127.0.0.1:3002' },
+    use: { baseURL: ['13-shop', '14-shop-registration', '15-shop-account', '36-shop-availability'].includes(name) ? 'http://127.0.0.1:3003' : 'http://127.0.0.1:3002' },
     dependencies: index ? [areas[index - 1]] : [],
   })), {
     name: 'visual',

@@ -5,6 +5,7 @@ import { getStorefrontCode } from '../lib/storefront-code';
 vi.mock('server-only', () => ({}));
 vi.mock('next/headers', () => ({
   headers: async () => new Headers({ 'x-forwarded-for': '127.0.0.1' }),
+  cookies: async () => ({ get: () => undefined }),
 }));
 
 afterEach(() => vi.unstubAllEnvs());
@@ -31,8 +32,8 @@ const data = {
 };
 
 describe('Storefront code server fetch', () => {
-  it('I returns no code for a non-2xx public API response', async () => {
-    await withApi(503, { success: true, data }, async () => expect(await getStorefrontCode()).toBeNull());
+  it('I returns no code for a non-availability non-2xx public API response', async () => {
+    await withApi(500, { success: true, data }, async () => expect(await getStorefrontCode()).toBeNull());
   });
 
   it('I returns no code for invalid public API response shapes', async () => {

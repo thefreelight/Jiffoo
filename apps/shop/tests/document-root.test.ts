@@ -13,8 +13,7 @@ import { locales } from '../lib/locale';
 const requestHeaders = vi.hoisted(() => ({ value: new Headers() }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/headers', () => ({ headers: async () => requestHeaders.value }));
-vi.mock('../lib/storefront-code', () => ({ getStorefrontCode: async () => null }));
-vi.mock('../lib/catalog', () => ({ getStoreContext: async () => ({ defaultLocale: 'zh-Hant' }) }));
+vi.mock('../lib/server-bootstrap', () => ({ shopBootstrap: async () => ({ context: { defaultLocale: 'zh-Hant' }, slots: null }) }));
 afterEach(() => vi.restoreAllMocks());
 
 it('A document roots render the route language for storefront and payment in every locale', async () => {

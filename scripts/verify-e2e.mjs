@@ -91,6 +91,8 @@ playwrightGroups.push(['32-plugin-removal']);
 playwrightGroups.push(['33-plugin-recorded-error']);
 playwrightGroups.push(['34-shop-reload']);
 playwrightGroups.push(['35-extension-center']);
+// Quota exhaustion runs alone and last; project boundaries clean only protection keys in test DB 14.
+playwrightGroups.push(['36-shop-availability']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);

@@ -2,7 +2,8 @@ import 'server-only';
 import { notFound } from 'next/navigation';
 import { storefrontMessages } from './storefront-messages';
 import { isShopLocale, type ShopLocale } from './locale';
-import { shopApiHeaders } from './api-headers';
+import { serverCoreResponse } from './core-transport';
+import { withAvailability } from './availability-boundary';
 
 export type StoreContext = {
   storeName: string;
@@ -43,20 +44,26 @@ export type Product = {
 export type PageResult<T> = { items: T[]; page: number; totalPages: number; total: number };
 
 async function api<T>(path: string, params: Record<string, string | number> = {}): Promise<T | null> {
-  const base = process.env.API_SERVICE_URL || 'http://127.0.0.1:3001';
-  const url = new URL(`/api/v1${path}`, base);
-  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value));
-  const response = await fetch(url, { cache: 'no-store', headers: await shopApiHeaders() });
+  return withAvailability(async () => {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) query.set(key, String(value));
+  const response = await serverCoreResponse(`${path}${query.size ? `?${query}` : ''}`);
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`Shop API request failed: ${response.status}`);
   const body = await response.json() as { data: T };
   return body.data;
+  });
 }
 
-export async function getStoreContext(): Promise<StoreContext> {
+export async function readStoreContext(): Promise<StoreContext> {
   const context = await api<StoreContext>('/store/context');
   if (!context) throw new Error('Store context unavailable');
   return context;
+}
+
+export async function getStoreContext(): Promise<StoreContext> {
+  const { shopBootstrap } = await import('./server-bootstrap');
+  return (await shopBootstrap()).context;
 }
 
 export async function requireLocale(value: string) {

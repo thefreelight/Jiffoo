@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import type { ShopLocale } from '@/lib/locale';
 import Link from 'next/link';
+import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
 
 type Profile = { username: string; email: string; locale: string | null; emailVerified: boolean };
 
@@ -15,14 +16,17 @@ export function AccountManagement({ locale, profile: initial, labels, locales }:
   const [profile, setProfile] = useState(initial);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const availability = useShopAvailability(locale);
   const submit = (path: string, method: string, onSuccess?: (data: Profile) => void) =>
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (availability.blocked) return;
+      availability.clear();
       setMessage('');
       setError('');
       const body = Object.fromEntries(new FormData(event.currentTarget).entries());
       try {
-        const response = await fetch(`/bff${path}`, {
+        const response = await availabilityFetch(`/bff${path}`, {
           method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
         });
         const result = await response.json() as { success: boolean; data?: Profile; error?: { code: string } };
@@ -36,19 +40,25 @@ export function AccountManagement({ locale, profile: initial, labels, locales }:
         }
         if (onSuccess && result.data) onSuccess(result.data);
         setMessage(path === '/auth/change-password' ? labels.passwordUpdated : labels.accountUpdated);
-      } catch {
+      } catch (error) {
+        if (availability.capture(error)) return;
         setError(labels.verificationFailed);
       }
     };
   const resend = async () => {
+    if (availability.blocked) return;
+    availability.clear();
+    let unavailable = false;
     try {
-      await fetch('/bff/auth/resend-verification', {
+      await availabilityFetch('/bff/auth/resend-verification', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: profile.email }),
       });
+    } catch (error) {
+      unavailable = availability.capture(error);
+      if (!unavailable) throw error;
     } finally {
-      setMessage(labels.requestReceived);
-      setError('');
+      if (!unavailable) { setMessage(labels.requestReceived); setError(''); }
     }
   };
   const field = (label: string, name: string, value?: string, type = 'text') =>
@@ -59,13 +69,13 @@ export function AccountManagement({ locale, profile: initial, labels, locales }:
     <Link href={`/${locale}/account/orders`} className="inline-block text-action underline">{labels.orders}</Link>
     {!profile.emailVerified && <section aria-label={labels.unverified} className="border-l-2 border-action pl-4">
       <p>{labels.unverified}</p>
-      <button type="button" onClick={resend} className="mt-2 text-sm text-action underline">{labels.resend}</button>
+      <button type="button" disabled={availability.blocked} onClick={resend} className="mt-2 text-sm text-action underline">{labels.resend}</button>
     </section>}
     <section aria-label={labels.profile} className="border-t border-line pt-5">
       <h2 className="mb-4 text-lg font-semibold">{labels.profile}</h2>
       <form onSubmit={submit('/account/profile', 'PUT', (data) => setProfile(data))} className="space-y-4">
         {field(labels.username, 'username', profile.username)}
-        <button className="rounded-shop bg-action px-4 py-2 text-action-ink">{labels.submit}</button>
+        <button disabled={availability.blocked} className="rounded-shop bg-action px-4 py-2 text-action-ink">{labels.submit}</button>
       </form>
     </section>
     <section aria-label={labels.language} className="border-t border-line pt-5">
@@ -76,7 +86,7 @@ export function AccountManagement({ locale, profile: initial, labels, locales }:
             {locales.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
         </label>
-        <button className="rounded-shop bg-action px-4 py-2 text-action-ink">{labels.submit}</button>
+        <button disabled={availability.blocked} className="rounded-shop bg-action px-4 py-2 text-action-ink">{labels.submit}</button>
       </form>
     </section>
     <section aria-label={labels.changeEmail} className="border-t border-line pt-5">
@@ -85,7 +95,7 @@ export function AccountManagement({ locale, profile: initial, labels, locales }:
       <form onSubmit={submit('/account/email', 'PUT', (data) => setProfile(data))} className="space-y-4">
         {field(labels.newEmail, 'newEmail', undefined, 'email')}
         {field(labels.currentPassword, 'currentPassword', undefined, 'password')}
-        <button className="rounded-shop bg-action px-4 py-2 text-action-ink">{labels.changeEmail}</button>
+        <button disabled={availability.blocked} className="rounded-shop bg-action px-4 py-2 text-action-ink">{labels.changeEmail}</button>
       </form>
     </section>
     <section aria-label={labels.changePassword} className="border-t border-line pt-5">
@@ -93,7 +103,7 @@ export function AccountManagement({ locale, profile: initial, labels, locales }:
       <form onSubmit={submit('/auth/change-password', 'POST')} className="space-y-4">
         {field(labels.currentPassword, 'currentPassword', undefined, 'password')}
         {field(labels.newPassword, 'newPassword', undefined, 'password')}
-        <button className="rounded-shop bg-action px-4 py-2 text-action-ink">{labels.changePassword}</button>
+        <button disabled={availability.blocked} className="rounded-shop bg-action px-4 py-2 text-action-ink">{labels.changePassword}</button>
       </form>
     </section>
     <section aria-label={labels.deleteAccount} className="border-t border-line pt-5">
@@ -101,10 +111,10 @@ export function AccountManagement({ locale, profile: initial, labels, locales }:
       <p className="mb-4 text-sm text-subtle">{labels.deleteWarning}</p>
       <form onSubmit={submit('/account', 'DELETE')} className="space-y-4">
         {field(labels.currentPassword, 'currentPassword', undefined, 'password')}
-        <button className="rounded-shop border border-line px-4 py-2 text-ink">{labels.deleteAccount}</button>
+        <button disabled={availability.blocked} className="rounded-shop border border-line px-4 py-2 text-ink">{labels.deleteAccount}</button>
       </form>
     </section>
     {message && <p role="status" className="text-action">{message}</p>}
-    {error && <p role="alert" className="text-ink">{error}</p>}
+    {(availability.message || error) && <p role="alert" className="text-ink">{availability.message || error}</p>}
   </main>;
 }

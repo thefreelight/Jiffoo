@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { shopApi } from '@/lib/server-account';
+import { shopApi } from '@/lib/core-transport';
+import { classifyAvailability, type ShopAvailability } from '@/lib/availability';
 import {
   ACCESS_COOKIE, REFRESH_COOKIE, REFRESH_SECONDS, ORIGIN_ERROR,
   allowedBffRoute, cookieOptions, stripTokens,
@@ -23,6 +24,12 @@ function clearTokens(response: NextResponse) {
   response.cookies.set(REFRESH_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
 }
 
+function unavailableResponse(error: ShopAvailability): NextResponse {
+  return NextResponse.json({ success: false, error: { code: error.code, message: 'Please try again later', details: { retryAt: error.retryAt, retryAfter: error.retryAfter() } } }, {
+    status: error.status, headers: { 'Retry-After': String(error.retryAfter()), 'Cache-Control': 'no-store' },
+  });
+}
+
 async function handle(request: NextRequest, { params }: Params): Promise<NextResponse> {
   if (request.method !== 'GET' && request.headers.get('origin') !== storefrontOrigin()) {
     return NextResponse.json({ success: false, error: { code: ORIGIN_ERROR, message: 'Invalid request origin' } }, { status: 403 });
@@ -41,7 +48,9 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
   }
   const send = (token?: string) => shopApi(upstreamPath, token, init);
   if (path === '/auth/logout') {
-    await send(access);
+    const upstream = await send(access);
+    const unavailable = await classifyAvailability(upstream);
+    if (unavailable) return unavailableResponse(unavailable);
     const response = NextResponse.json({ success: true, data: { loggedOut: true } });
     clearTokens(response);
     return response;
@@ -57,6 +66,8 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refresh }),
     });
+    const unavailable = await classifyAvailability(refreshResponse);
+    if (unavailable) return unavailableResponse(unavailable);
     if (refreshResponse.ok) {
       const body = await refreshResponse.json() as { data: Tokens };
       renewed = body.data;
@@ -68,6 +79,8 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
       return response;
     }
   }
+  const unavailable = await classifyAvailability(upstream);
+  if (unavailable) return unavailableResponse(unavailable);
   const body = await upstream.json();
   const response = NextResponse.json(stripTokens(body), { status: upstream.status });
   if (upstream.ok && ['/auth/login', '/auth/register', '/auth/refresh', '/auth/change-password'].includes(path)) {

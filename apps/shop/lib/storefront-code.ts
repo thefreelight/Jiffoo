@@ -1,5 +1,7 @@
 import 'server-only';
-import { shopApiHeaders } from './api-headers';
+import { serverCoreResponse } from './core-transport';
+import { withAvailability } from './availability-boundary';
+import { ShopAvailability } from './availability';
 import type { ProviderIds } from './storefront-providers';
 
 export type StorefrontCodeSlots = {
@@ -10,11 +12,9 @@ export type StorefrontCodeSlots = {
 export type StorefrontCode = StorefrontCodeSlots & ProviderIds;
 
 export async function getStorefrontCode(): Promise<StorefrontCode | null> {
+  return withAvailability(async () => {
   try {
-    const base = process.env.API_SERVICE_URL || 'http://127.0.0.1:3001';
-    const response = await fetch(new URL('/api/v1/store/storefront-code', base), {
-      cache: 'no-store', headers: await shopApiHeaders(),
-    });
+    const response = await serverCoreResponse('/store/storefront-code');
     if (!response.ok) return null;
     const body: unknown = await response.json();
     if (!body || typeof body !== 'object' || !('success' in body) || body.success !== true ||
@@ -35,7 +35,9 @@ export async function getStorefrontCode(): Promise<StorefrontCode | null> {
       bodyEndCode: data.bodyEndCode as string,
     };
     return Object.values(slots).some(Boolean) ? slots : null;
-  } catch {
+  } catch (error) {
+    if (error instanceof ShopAvailability) throw error;
     return null;
   }
+  });
 }
