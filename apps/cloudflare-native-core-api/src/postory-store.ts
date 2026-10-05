@@ -410,5 +410,6 @@ export async function tryPostoryCompat(request: Request, env: PostoryEnv): Promi
     return authResponse ? withPostoryCors(request, authResponse) : null;
   }
 
-  return withPostoryCors(request, await tryPostoryStore(rewritten, env));
+  const storeResponse = await tryPostoryStore(rewritten, env);
+  return storeResponse ? withPostoryCors(request, storeResponse) : null;
 }

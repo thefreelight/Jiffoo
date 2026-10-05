@@ -59,6 +59,7 @@ import { tryNativeBokmooConnect } from './bokmoo-connect';
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & {
   DEMO_MODE?: string;
   EXPECTED_D1_SCHEMA_VERSION?: string;
+  POSTORY_STORE_ENABLED?: string;
 };
 
 interface Snapshot {
@@ -398,6 +399,36 @@ export default {
           userAgent: request.headers.get('user-agent'),
           ip: request.headers.get('cf-connecting-ip'),
         }));
+      }
+      // Postory website (https://postory.cc) is cross-origin to this worker:
+      // answer preflights here and stamp CORS onto every in-scope response so
+      // handler-level wrappers can't drop them (website sign-in regression).
+      if (env.POSTORY_STORE_ENABLED === 'true') {
+        const requestPath = new URL(request.url).pathname;
+        const inPostoryScope = requestPath.startsWith('/api/auth/') || requestPath.startsWith('/api/v1/auth/') || requestPath.startsWith('/api/extensions/plugin/');
+        if (inPostoryScope) {
+          const origin = request.headers.get('origin') || '';
+          const allowed = origin === 'https://postory.cc' || origin === 'https://www.postory.cc';
+          if (request.method === 'OPTIONS') {
+            return new Response(null, {
+              status: 204,
+              headers: {
+                ...(allowed ? { 'access-control-allow-origin': origin, 'access-control-allow-credentials': 'true' } : {}),
+                'access-control-allow-methods': 'GET, POST, OPTIONS',
+                'access-control-allow-headers': 'content-type, authorization',
+                'access-control-max-age': '86400',
+                vary: 'Origin',
+              },
+            });
+          }
+          if (allowed && request.headers.get('origin')) {
+            const stamped = new Headers(response.headers);
+            stamped.set('access-control-allow-origin', origin);
+            stamped.set('access-control-allow-credentials', 'true');
+            stamped.set('vary', 'Origin');
+            return new Response(response.body, { status: response.status, statusText: response.statusText, headers: stamped });
+          }
+        }
       }
       return response;
     } catch (error) {
