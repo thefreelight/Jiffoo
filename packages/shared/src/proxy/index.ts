@@ -112,12 +112,12 @@ export function getLocaleFromPathname(
 }
 
 /**
- * Locale preference cookie (Next.js i18n convention). Set whenever a visitor
- * browses a locale-prefixed path or accepts a detected locale; honored before
- * Accept-Language detection so an explicit choice always wins.
+ * Locale preference cookie (Next.js i18n convention). Represents an explicit
+ * visitor choice (language switcher) and is honored before Accept-Language
+ * detection. The middleware never sets it: passive browsing must keep
+ * following the system language, so only the storefront switcher writes it.
  */
 export const LOCALE_COOKIE = 'NEXT_LOCALE';
-const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 /**
  * Match the visitor's preferred locale from an Accept-Language header.
@@ -152,19 +152,6 @@ export function matchLocaleFromAcceptLanguage(
   }
 
   return undefined;
-}
-
-/**
- * Attach the locale preference cookie to a response so the visitor's choice
- * persists across visits.
- */
-export function attachLocaleCookie(response: NextResponse, locale: string): NextResponse {
-  response.cookies.set(LOCALE_COOKIE, locale, {
-    path: '/',
-    maxAge: LOCALE_COOKIE_MAX_AGE,
-    sameSite: 'lax',
-  });
-  return response;
 }
 
 /**
@@ -328,7 +315,8 @@ export function handleLocaleRedirect(
   const pathnameLocale = getLocaleFromPathname(pathname, config.locales);
 
   if (pathnameLocale) {
-    // Locale exists: pass through (the handler attaches the locale cookie)
+    // Locale exists: pass through (no cookie — passive browsing follows the
+    // system language; only an explicit switcher choice writes the cookie)
     return null;
   }
 
@@ -341,6 +329,8 @@ export function handleLocaleRedirect(
   }
 
   // 2. First visit: adapt to the visitor's system/browser language
+  // (redirect only — detection must not persist, so a later change of the
+  // system language is still honored)
   const detectedLocale = matchLocaleFromAcceptLanguage(
     request.headers.get('accept-language'),
     config.locales
@@ -348,7 +338,7 @@ export function handleLocaleRedirect(
   if (detectedLocale) {
     const url = request.nextUrl.clone();
     url.pathname = `/${detectedLocale}${pathname === '/' ? '' : pathname}`;
-    return attachLocaleCookie(NextResponse.redirect(url), detectedLocale);
+    return NextResponse.redirect(url);
   }
 
   // 3. No preference signal: fall back to the configured default locale
@@ -396,13 +386,9 @@ export function createProxyHandler(config: ProxyConfig) {
       return localeRedirectResponse;
     }
 
-    // Step 4: Pass through, remembering the visitor's locale choice
-    const pathnameLocale = getLocaleFromPathname(pathname, config.locales);
-    const response = NextResponse.next();
-    if (pathnameLocale) {
-      return attachLocaleCookie(response, pathnameLocale);
-    }
-    return response;
+    // Step 4: Pass through (no cookie — browsing a locale-prefixed URL is not
+    // an explicit choice; only the storefront switcher persists NEXT_LOCALE)
+    return NextResponse.next();
   };
 }
 
