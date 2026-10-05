@@ -331,6 +331,10 @@ export function ThemeMarketplace() {
 
   const visibleItems = useMemo(() => {
     let list = [...items];
+    // Client-specific product-site themes are registered with
+    // availableInMarket=false in the platform catalog; the market grid only
+    // shows themes that are actually published for installation.
+    list = list.filter((item) => item.availableInMarket !== false);
     if (mineOnly) list = list.filter((item) => item.installState !== 'not_installed');
     if (activeTag !== 'all') list = list.filter((item) => tagOf(item) === activeTag);
     if (searchTerm.trim()) {
