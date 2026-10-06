@@ -153,7 +153,7 @@ describe('Checkout provider failure containment', () => {
     const payment = await quote();
     expect(payment.statusCode).toBe(502);
     expect(payment.json().error).toMatchObject({
-      code: 'CONTRACT_CALL_FAILED', message: 'Checkout provider is temporarily unavailable',
+      code: 'CONTRACT_CALL_FAILED', message: 'Provider is temporarily unavailable',
     });
     await toggle('manual-payment', true);
     disabledBuiltins.pop();
@@ -162,7 +162,7 @@ describe('Checkout provider failure containment', () => {
     const shipping = await quote();
     expect(shipping.statusCode).toBe(502);
     expect(shipping.json().error).toMatchObject({
-      code: 'CONTRACT_CALL_FAILED', message: 'Checkout provider is temporarily unavailable',
+      code: 'CONTRACT_CALL_FAILED', message: 'Provider is temporarily unavailable',
     });
   });
 

@@ -9,7 +9,32 @@ import { StorageAdapter, StorageAdapterFactory } from './storage-adapters';
 
 // API Response type - Import from shared types for consistency
 import type { ApiResponse as SharedApiResponse } from '../src/types/api';
+import type { PluginBusinessErrorResponse } from '../src/extensions/plugin-contract';
 export type ApiResponse<T = any> = SharedApiResponse<T>;
+
+function isPluginGatewayUrl(value: string): boolean {
+  const path = new URL(value, 'http://core.invalid').pathname;
+  return /^\/api\/v1\/extensions\/plugin\/[^/]+\/(?:api(?:\/|$)|health$|manifest$)/.test(path);
+}
+
+function pluginBusinessEnvelope(value: unknown): PluginBusinessErrorResponse | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const body = value as { success?: unknown; error?: { code?: unknown; message?: unknown } };
+  const code = body.error?.code, message = body.error?.message;
+  if (body.success !== false || typeof code !== 'string' || !code.trim() || code.length > 128
+    || typeof message !== 'string' || !message.trim() || message.length > 512
+    || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(message)) return null;
+  return { success: false, error: { code, message } };
+}
+
+export function isAuthRejection(status: number | undefined, code: string | undefined): boolean {
+  return status === 401 && ['UNAUTHORIZED', 'INVALID_TOKEN', 'SESSION_REVOKED', 'REFRESH_FAILED', 'NO_REFRESH_TOKEN', 'LOGIN_FAILED'].includes(code ?? '')
+    || status === 403 && code === 'ACCOUNT_INACTIVE';
+}
+
+export class ApiClientError extends Error {
+  constructor(message: string, readonly statusCode: number, readonly code: string, readonly details?: unknown) { super(message); }
+}
 
 // Paginated response type
 export interface PaginatedResponse<T = any> {
@@ -162,7 +187,8 @@ export class ApiClient {
           return this.axiosInstance(originalRequest);
         }
 
-        if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
+        if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest
+          && !isPluginGatewayUrl(this.axiosInstance.getUri(originalRequest))) {
           originalRequest._retry = true;
 
           try {
@@ -172,7 +198,8 @@ export class ApiClient {
               return this.axiosInstance(originalRequest);
             }
           } catch (refreshError) {
-            // Refresh failed, clear auth and redirect to login
+            if (!axios.isAxiosError(refreshError) || !isAuthRejection(refreshError.response?.status, refreshError.response?.data?.error?.code)) return Promise.reject(refreshError);
+            // Only a real refresh authentication rejection invalidates credentials.
             this.clearAuth();
             if (typeof window !== 'undefined') {
               // Auto-detect locale from current URL path
@@ -264,7 +291,7 @@ export class ApiClient {
       }
 
       const response = await axios.post(
-        `${envConfig.getApiServiceBaseUrl()}/auth/refresh`,
+        `${this.axiosInstance.defaults.baseURL}/auth/refresh`,
         { refresh_token: refreshToken },
         { withCredentials: true }
       );
@@ -281,35 +308,45 @@ export class ApiClient {
 
         return access_token || 'refreshed';
       }
+      throw new ApiClientError('Invalid authentication response', response.status, 'INVALID_RESPONSE');
     } catch (error) {
-      console.debug('Token refresh failed:', error);
+      throw error;
     }
 
-    return null;
   }
 
   // Generic Request Method
   public async request<T = any>(config: AxiosRequestConfig): Promise<ApiResponse<T>> {
     try {
       const response: AxiosResponse<ApiResponse<T>> = await this.axiosInstance(config);
-      return response.data;
+      return { ...response.data, httpStatus: response.status, pluginBusinessError: false };
     } catch (error) {
       if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if (status !== undefined && status >= 400 && status < 500
+          && isPluginGatewayUrl(this.axiosInstance.getUri(config))) {
+          const business = pluginBusinessEnvelope(error.response?.data);
+          if (business) return { ...business, httpStatus: status, pluginBusinessError: true };
+          return { success: false, httpStatus: status, pluginBusinessError: false,
+            error: { code: 'REQUEST_FAILED', message: 'Request failed' } };
+        }
         const apiError = error.response?.data as ApiResponse<T>;
-        if (apiError) {
-          return apiError;
+        if (apiError && apiError.success === false && typeof apiError.error?.code === 'string') {
+          return { ...apiError, httpStatus: error.response!.status, pluginBusinessError: false };
         }
 
         return {
           success: false,
+          httpStatus: error.response?.status,
           error: {
             code: 'REQUEST_FAILED',
-            message: error.message
+            message: 'Request failed'
           },
           message: error.response?.statusText || 'Request failed',
         };
       }
 
+      if (error instanceof ApiClientError) return { success: false, httpStatus: error.statusCode, error: { code: error.code, message: error.message, details: error.details } };
       return {
         success: false,
         error: {

@@ -49,7 +49,7 @@ export function generateSnapshot() {
   lines.push('}', 'declare const eventRegistry: { readonly [K in keyof EventPayloadMap]: { _output: EventPayloadMap[K] } };',
     'export type EventKey = keyof typeof eventRegistry;', "export type EventPayload<K extends EventKey> = (typeof eventRegistry)[K]['_output'];");
   for (const name of ['EventSubscription', 'PluginEvent', 'PluginEventHandler']) lines.push(declaration(eventSource, name).getText());
-  for (const name of ['PluginContext', 'PluginEntryModule']) lines.push(declaration(files[0], name).getText());
+  for (const name of ['PluginContext', 'PluginEntryModule', 'PluginBusinessErrorResponse']) lines.push(declaration(files[0], name).getText());
   lines.push(declaration(lifecyclePath, 'LifecycleContext').getText());
   const hooks = checker.getTypeAtLocation(variable(files[0], 'PLUGIN_LIFECYCLE_HOOKS').name);
   lines.push('export interface PluginLifecycleExports {');

@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { AuthTokenPurpose } from '@prisma/client';
 import { env } from '@/config/env';
 import type { NotificationTransaction } from '@/core/notifications/service';
+import { ApiError } from '@/utils/api-errors';
 
 const durations: Record<AuthTokenPurpose, number> = {
   EMAIL_VERIFICATION: 24 * 60 * 60 * 1000,
@@ -36,14 +37,15 @@ export async function issueAuthToken(tx: NotificationTransaction, userId: string
 }
 
 export async function consumeAuthToken(tx: NotificationTransaction, token: string, purpose: AuthTokenPurpose) {
+  const rejection = () => new ApiError(purpose === 'PASSWORD_RESET' ? 'INVALID_RESET_TOKEN' : purpose === 'STAFF_INVITE' ? 'INVALID_INVITE_TOKEN' : 'VERIFICATION_FAILED');
   const row = await tx.authToken.findUnique({ where: { tokenHash: hashAuthToken(token) } });
   if (!row || row.purpose !== purpose || row.consumedAt || row.expiresAt <= new Date() || row.attempts >= 5) {
-    throw new Error('Invalid or expired token');
+    throw rejection();
   }
   const result = await tx.authToken.updateMany({
     where: { id: row.id, consumedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: 5 } },
     data: { consumedAt: new Date() },
   });
-  if (result.count !== 1) throw new Error('Invalid or expired token');
+  if (result.count !== 1) throw rejection();
   return row;
 }

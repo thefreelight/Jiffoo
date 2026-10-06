@@ -26,6 +26,7 @@ import { checkPluginApiCompatibility } from './plugin-compatibility';
 import { compareVersions } from './version-utils';
 import { installMarketplacePlugin } from './marketplace-install';
 import { previewPluginUpload } from './plugin-upload';
+import { sendKnownError } from '@/utils/api-errors';
 
 const packageUnavailableResponse = {
   ...errorResponseSchema,
@@ -139,7 +140,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       await handlePluginGateway(request, reply, '/', fastify);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
@@ -174,7 +177,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     try {
       const targetPath = (request.params as any)['*'] || '';
       await handlePluginGateway(request, reply, `/${targetPath}`, fastify);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
@@ -213,7 +218,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         return reply.send('disabled');
       }
       await handlePluginGateway(request, reply, '/health', fastify, { requireEnabled: false });
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
@@ -252,7 +259,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         return reply.send(JSON.stringify(readStoredPluginManifest(plugin)));
       }
       await handlePluginGateway(request, reply, '/manifest', fastify, { requireEnabled: false });
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
@@ -347,6 +356,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         });
         return sendSuccess(reply, { schemaVersion: 1, items });
       } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
         if (error instanceof MarketplaceError) return sendError(reply, error.statusCode, error.code, error.message);
         fastify.log.error({ err: error }, 'Marketplace catalog failed');
         return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Marketplace catalog failed');
@@ -398,6 +409,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
           warnings: plugin.warnings ?? [],
         });
       } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
         if (error instanceof MarketplaceError) return sendError(reply, error.statusCode, error.code, error.message);
         if (error && typeof error === 'object' && 'statusCode' in error && 'code' in error &&
           typeof error.statusCode === 'number' && typeof error.code === 'string' &&
@@ -515,7 +528,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         total,
         totalPages: Math.ceil(total / safeLimit),
       });
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -585,7 +600,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         updatedAt: instance.updatedAt.toISOString(),
         replacedPlugins: instance.replacedPlugins,
       });
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof Prisma.PrismaClientKnownRequestError
         || error instanceof Prisma.PrismaClientUnknownRequestError
         || error instanceof Prisma.PrismaClientInitializationError
@@ -622,7 +639,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       if (data.fieldname !== 'file' || Object.keys(data.fields).some(name => name !== 'file')) return sendError(reply, 400, 'BAD_REQUEST', 'Preview accepts only one file field');
       if (data.file.truncated || bytes.length > PLUGIN_MAX_ZIP_SIZE) return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', 'Plugin ZIP exceeds 10 MiB');
       return sendSuccess(reply, await previewPluginUpload(bytes, request.user!.id));
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       const status = error?.code === 'FST_REQ_FILE_TOO_LARGE' ? 413 : typeof error?.statusCode === 'number' ? error.statusCode : 500;
       return sendError(reply, status, status === 413 ? 'PAYLOAD_TOO_LARGE' : error?.code || 'INTERNAL_SERVER_ERROR', status >= 500 ? 'Plugin preview failed' : error.message);
     }
@@ -683,7 +702,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         url: `/api/v1/extensions/${kind}/install`,
         ...result,
       }, `${kind} "${result.slug}" v${result.version} installed successfully`);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       const statusCode =
         typeof error?.statusCode === 'number' && Number.isFinite(error.statusCode)
           ? error.statusCode
@@ -728,7 +749,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         slug,
         uninstalled: true,
       }, `plugin "${slug}" uninstalled successfully`);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if ([400, 404, 409].includes(error?.statusCode)) return sendError(reply, error.statusCode, error.code, error.message);
       fastify.log.error({ err: error }, 'Failed to uninstall plugin');
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to uninstall plugin');
@@ -756,7 +779,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         slug,
         restored: true,
       }, `plugin "${slug}" restored successfully`);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       const message = error?.message || 'Failed to restore plugin';
       const statusCode = typeof error?.statusCode === 'number' ? error.statusCode : 500;
       return sendError(reply, statusCode, error?.code || (statusCode === 500 ? 'INTERNAL_SERVER_ERROR' : 'RESTORE_ERROR'), message);
@@ -792,7 +817,9 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         slug,
         purged: true,
       }, `plugin "${slug}" purged permanently`);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       const statusCode = typeof error?.statusCode === 'number' ? error.statusCode : 500;
       return sendError(reply, statusCode, error?.code || (statusCode === 500 ? 'INTERNAL_SERVER_ERROR' : 'PURGE_ERROR'), error.message || 'Failed to purge plugin');
     }
@@ -825,6 +852,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         totalPages: Math.ceil(total / safeLimit),
       });
     } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       const message = error instanceof Error ? error.message : 'Failed to list plugins';
       fastify.log.error({ err: error }, 'Failed to list plugins');
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
@@ -851,6 +880,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       }
       return sendSuccess(reply, extension);
     } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       const message = error instanceof Error ? error.message : 'Failed to get plugin';
       fastify.log.error({ err: error }, 'Failed to get plugin');
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);

@@ -11,6 +11,7 @@ import { dualAuthMiddleware } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
 import { orderSchemas } from './schemas';
 import { claimOrderPurchase, TrackingClaimError } from './tracking-claim';
+import { sendKnownError } from '@/utils/api-errors';
 
 export async function orderRoutes(fastify: FastifyInstance) {
   // Apply dual auth (JWT or API token with checkout:create scope)
@@ -33,7 +34,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
         payload
       );
       return sendSuccess(reply, order, undefined, 201);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof SharedProtectionUnavailable) return sendProtectionUnavailable(reply);
       if (error instanceof Prisma.PrismaClientKnownRequestError
         || error instanceof Prisma.PrismaClientUnknownRequestError
@@ -72,7 +75,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
         status
       );
       return sendSuccess(reply, result);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -94,7 +99,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
         return sendError(reply, 404, 'NOT_FOUND', 'Order not found');
       }
       return sendSuccess(reply, order);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -112,6 +119,8 @@ export async function orderRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       return sendSuccess(reply, await claimOrderPurchase(id, request.user!.id));
     } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof TrackingClaimError) {
         return sendError(reply, error.statusCode, error.code, error.message);
       }
@@ -134,7 +143,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
       const { cancelReason } = request.body as any;
       const order = await OrderService.cancelOrder(id, request.user!.id, cancelReason);
       return sendSuccess(reply, order);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error?.message === 'Order not found') {
         return sendError(reply, 404, 'NOT_FOUND', 'Order not found');
       }

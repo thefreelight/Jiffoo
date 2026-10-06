@@ -395,8 +395,8 @@ describe('Payments Endpoints', () => {
         },
       });
 
-      // The generic webhook handler returns success
-      expect([200, 400, 401, 500]).toContain(response.statusCode);
+      expect(response.statusCode).toBe(404);
+      expect(response.json().error.code).toBe('PLUGIN_NOT_FOUND');
     });
 
     it('should handle webhook with signature header', async () => {
@@ -416,8 +416,8 @@ describe('Payments Endpoints', () => {
         },
       });
 
-      // Generic webhook handler accepts the request
-      expect([200, 400, 401, 500]).toContain(response.statusCode);
+      expect(response.statusCode).toBe(404);
+      expect(response.json().error.code).toBe('PLUGIN_NOT_FOUND');
     });
 
     it('should not require JWT authentication', async () => {

@@ -1,5 +1,5 @@
 import { FastifyReply } from 'fastify';
-import { PROTECTION_RETRY_SECONDS } from '@/infra/shared-protection';
+import { catalogError, sendMappedError } from './api-errors';
 
 export function sendSuccess(reply: FastifyReply, data: any, message?: string, statusCode: number = 200) {
     return reply.code(statusCode).send({
@@ -9,14 +9,6 @@ export function sendSuccess(reply: FastifyReply, data: any, message?: string, st
     });
 }
 
-export function sendError(reply: FastifyReply, httpStatus: number, code: string, message: string, details?: unknown) {
-    if (code === 'SHARED_PROTECTION_UNAVAILABLE') reply.header('Retry-After', PROTECTION_RETRY_SECONDS).header('Cache-Control', 'no-store');
-    return reply.code(httpStatus).send({
-        success: false,
-        error: {
-            code,
-            message,
-            details,
-        },
-    });
+export function sendError(reply: FastifyReply, _httpStatus: number, code: string, _message: string, details?: unknown) {
+    return sendMappedError(reply, catalogError(code, details));
 }

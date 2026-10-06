@@ -830,6 +830,7 @@ export const merchant = {
       lastProvider: 'The last enabled provider cannot be uninstalled.', busy: 'Another operation is in progress. Try again when it finishes.', failed: 'Plugin operation failed.',
     },
     upload: {
+      unknownManifestField: 'The plugin manifest contains an unsupported field.',
       "title": "Upload a local plugin",
       "file": "Plugin ZIP",
       "preview": "Preview package",

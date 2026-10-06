@@ -233,7 +233,7 @@ describe('Shop checkout contract', () => {
     });
     expect(response.statusCode).toBe(409);
     expect(response.json().error).toMatchObject({
-      code: 'INVALID_ORDER_TRANSITION', message: 'Invalid order transition from PROCESSING to CANCELLED',
+      code: 'INVALID_ORDER_TRANSITION', message: 'Invalid order transition.',
     });
     const unchanged = await prisma.order.findUniqueOrThrow({ where: { id } });
     expect(unchanged.status).toBe('PROCESSING');

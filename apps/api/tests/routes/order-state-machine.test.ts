@@ -121,7 +121,7 @@ describe('ORD-1 order state machine routes', () => {
     const response = await adminAction(id, action, payload);
     expect(response.statusCode).toBe(409);
     expect(response.json().error).toMatchObject({ code: 'INVALID_ORDER_TRANSITION' });
-    expect(response.json().error.message).toContain(`from ${from} to ${to}`);
+    expect(response.json().error.message).toBe('Invalid order transition.');
     expect(await prisma.order.findUniqueOrThrow({ where: { id } })).toEqual(before);
     expect(await prisma.orderStatusHistory.count({ where: { orderId: id } })).toBe(history);
     expect(await prisma.notification.count({ where: { relatedId: id } })).toBe(notifications);

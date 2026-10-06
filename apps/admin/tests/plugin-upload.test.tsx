@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ApiErrorCodes } from 'shared';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -39,8 +40,8 @@ describe('Local plugin upload', () => {
     expect(container.textContent).toContain('Declared capabilities (unverified): shipping');
   });
   it.each([
-    ['PLUGIN_DOWNGRADE_NOT_SUPPORTED', 'downgrade'], ['PLUGIN_VERSION_CONTENT_CHANGED', 'versionContentChanged'],
-    ['PUBLISHER_CHANGE_FORBIDDEN', 'publisherChanged'], ['SIGNED_UPGRADE_REQUIRED', 'signatureRequired'], ['PACKAGE_CONTENT_MISMATCH', 'signatureInvalid'],
+    [ApiErrorCodes.PLUGIN_DOWNGRADE_NOT_SUPPORTED, 'downgrade'], [ApiErrorCodes.PLUGIN_VERSION_CONTENT_CHANGED, 'versionContentChanged'],
+    [ApiErrorCodes.PUBLISHER_CHANGE_FORBIDDEN, 'publisherChanged'], [ApiErrorCodes.SIGNED_UPGRADE_REQUIRED, 'signatureRequired'], [ApiErrorCodes.PACKAGE_CONTENT_MISMATCH, 'signatureInvalid'],
   ] as const)('J preview shows the %s outcome message', async (code, key) => {
     previewApi.mockRejectedValue({ code }); await preview(); expect(container.textContent).toContain(en.plugins.upload[key]); expect(installApi).not.toHaveBeenCalled();
   });

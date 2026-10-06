@@ -3,6 +3,7 @@ import { prisma } from '@/config/database';
 import { createNotification, verificationLink, type NotificationTransaction } from '@/core/notifications/service';
 import { consumeAuthToken, hashVerificationCode, issueAuthToken } from '@/core/auth/auth-token';
 import { staffInviteLink } from '@/core/auth/account-recovery';
+import { ApiError } from '@/utils/api-errors';
 
 export class EmailVerificationService {
   static generateCode(): string {
@@ -14,7 +15,7 @@ export class EmailVerificationService {
       await prisma.$transaction((tx) => this.createVerification(tx, userId, email, username));
       return { success: true };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to queue verification' };
+      throw error;
     }
   }
 
@@ -33,11 +34,12 @@ export class EmailVerificationService {
       await prisma.$transaction(async (tx) => {
         const row = await consumeAuthToken(tx, token, 'EMAIL_VERIFICATION');
         const updated = await tx.user.updateMany({ where: { id: row.userId, emailVerified: false }, data: { emailVerified: true } });
-        if (updated.count !== 1) throw new Error('Email is already verified');
+        if (updated.count !== 1) throw new ApiError('VERIFICATION_FAILED');
       });
       return { success: true };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to verify email' };
+      if (error instanceof ApiError && error.code === 'VERIFICATION_FAILED') return { success: false, error: error.message };
+      throw error;
     }
   }
 
@@ -71,12 +73,13 @@ export class EmailVerificationService {
           where: { id: row.id, consumedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: 5 } },
           data: { consumedAt: new Date() },
         });
-        if (claimed.count !== 1) throw new Error('Invalid email or verification code');
+        if (claimed.count !== 1) throw new ApiError('VERIFICATION_FAILED');
         await tx.user.update({ where: { id: user.id }, data: { emailVerified: true } });
       });
       return { success: true };
-    } catch {
-      return { success: false, error: 'Invalid email or verification code' };
+    } catch (error) {
+      if (error instanceof ApiError && error.code === 'VERIFICATION_FAILED') return { success: false, error: error.message };
+      throw error;
     }
   }
 
@@ -91,7 +94,7 @@ export class EmailVerificationService {
       await prisma.$transaction((tx) => this.createStaffInvitation(tx, userId, email, username));
       return { success: true };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to queue invitation' };
+      throw error;
     }
   }
 

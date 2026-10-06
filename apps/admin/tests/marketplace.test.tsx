@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ApiErrorCodes } from 'shared';
 import { act, type PropsWithChildren } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -127,7 +128,7 @@ describe('Admin marketplace and protected test signing banner', () => {
 
   it.each([
     [404, 'notFound'], [409, 'conflict'], [413, 'tooLarge'], [422, 'invalidPackage'],
-    [502, 'unavailable'], [503, 'notConfigured'], [504, 'timeout'], [500, 'genericError'],
+    [502, 'unavailable'], [503, 'unavailable'], [504, 'timeout'], [500, 'genericError'],
   ] as const)('D maps HTTP %s to a visible localized error', async (status, key) => {
     mutateAsync.mockRejectedValue({ status });
     await open(); await click('Details'); await click('Install');
@@ -135,9 +136,9 @@ describe('Admin marketplace and protected test signing banner', () => {
   });
 
   it.each([
-    ['MARKETPLACE_PLUGIN_NOT_FOUND', 'notFound'], ['PLUGIN_OPERATION_IN_PROGRESS', 'conflict'], ['PAYLOAD_TOO_LARGE', 'tooLarge'],
-    ['MARKETPLACE_DIGEST_MISMATCH', 'invalidPackage'], ['MARKETPLACE_DOWNLOAD_UNAVAILABLE', 'unavailable'], ['MARKETPLACE_NOT_CONFIGURED', 'notConfigured'],
-    ['MARKETPLACE_DOWNLOAD_TIMEOUT', 'timeout'], ['PLUGIN_TEST_SIGNING_DISABLED', 'testSigningDisabled'], ['PLUGIN_REINSTALL_REQUIRED', 'reinstallRequired'], ['UNKNOWN', 'genericError'],
+    [ApiErrorCodes.MARKETPLACE_PLUGIN_NOT_FOUND, 'notFound'], [ApiErrorCodes.PLUGIN_OPERATION_IN_PROGRESS, 'conflict'], [ApiErrorCodes.PAYLOAD_TOO_LARGE, 'tooLarge'],
+    [ApiErrorCodes.MARKETPLACE_DIGEST_MISMATCH, 'invalidPackage'], [ApiErrorCodes.MARKETPLACE_DOWNLOAD_UNAVAILABLE, 'unavailable'], [ApiErrorCodes.MARKETPLACE_NOT_CONFIGURED, 'notConfigured'],
+    [ApiErrorCodes.MARKETPLACE_DOWNLOAD_TIMEOUT, 'timeout'], [ApiErrorCodes.PLUGIN_TEST_SIGNING_CONFLICT, 'testSigningDisabled'], [ApiErrorCodes.PLUGIN_REINSTALL_CONFLICT, 'reinstallRequired'], [ApiErrorCodes.DATABASE_UNAVAILABLE, 'unavailable'], [ApiErrorCodes.SHARED_PROTECTION_UNAVAILABLE, 'unavailable'], [ApiErrorCodes.QUOTE_CHANGED, 'genericError'],
   ])('D maps code %s to its clear message', async (code, key) => {
     expect(marketplaceErrorKey({ code })).toBe(key);
     mutateAsync.mockRejectedValue({ code });

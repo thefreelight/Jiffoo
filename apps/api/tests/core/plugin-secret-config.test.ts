@@ -220,7 +220,7 @@ describe('plugin secret configuration', () => {
       });
       expect(rejected.statusCode).toBe(500);
       expect(rejected.json().error.code).toBe('INTERNAL_SERVER_ERROR');
-      expect(rejected.json().error.message).toContain('***');
+      expect(rejected.json().error.message).toBe('Internal server error');
       expect(rejected.payload).not.toContain(secret);
       expect(JSON.stringify(spy.mock.calls)).not.toContain(secret);
     } finally {

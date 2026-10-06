@@ -133,7 +133,7 @@ describe('Plugin uninstall, restore and purge', () => {
   it('C restore refuses a signed package without an established signing root', async () => {
     const slug = await fixture(); expect((await request(slug, 'uninstall')).status).toBe(200);
     await prisma.pluginInstall.update({ where: { slug }, data: { trustLevel: 'signed', signingRoot: null } });
-    await error(slug, 'restore', 409, 'PLUGIN_REINSTALL_REQUIRED');
+    await error(slug, 'restore', 409, 'PLUGIN_REINSTALL_CONFLICT');
     expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).deletedAt).not.toBeNull();
   });
   it('C restore remains disabled with credentials kept and the normal enable transition then invokes the package', async () => {

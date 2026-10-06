@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ApiErrorCodes } from 'shared';
 import { act, type PropsWithChildren } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -19,7 +20,7 @@ vi.mock('@/lib/api', async original => ({ ...await original<typeof import('@/lib
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const success = (data: unknown) => ({ success: true, data });
-const plugin = (slug = 'removal-fixture', removed = false, state = 'available') => ({ slug, name: slug, version: '1.0.0', source: 'local-zip', enabled: false, uninstalled: removed, packageState: { status: state, code: state === 'available' ? null : state === 'corrupt' ? 'PLUGIN_PACKAGE_CORRUPT' : 'PLUGIN_PACKAGE_UNAVAILABLE' } });
+const plugin = (slug = 'removal-fixture', removed = false, state = 'available') => ({ slug, name: slug, version: '1.0.0', source: 'local-zip', enabled: false, uninstalled: removed, packageState: { status: state, code: state === 'available' ? null : state === 'corrupt' ? ApiErrorCodes.PLUGIN_PACKAGE_CORRUPT : ApiErrorCodes.PLUGIN_PACKAGE_UNAVAILABLE } });
 
 describe('Admin plugin removal', () => {
   let root: Root, container: HTMLDivElement, client: QueryClient;
@@ -106,15 +107,15 @@ describe('Admin plugin removal', () => {
     await waitForState(operation === 'uninstall' ? 'active' : 'removed', { present: ['removal-fixture'] }, true);
   });
   it('J unfinished-payment refusal remains visible in the dialog without deleting the installation', async () => {
-    rows = [plugin('active-fixture'), plugin('removal-fixture', true)]; mocks.purge.mockRejectedValue({ code: 'PLUGIN_UNFINISHED_PAYMENTS' });
+    rows = [plugin('active-fixture'), plugin('removal-fixture', true)]; mocks.purge.mockRejectedValue({ code: ApiErrorCodes.PLUGIN_UNFINISHED_PAYMENTS });
     await render('active-fixture'); await click('Removed'); await waitForState('removed', { present: ['removal-fixture'], absent: ['active-fixture'] }); await click('Delete plugin'); await type('removal-fixture'); await click('Confirm');
     await vi.waitFor(async () => { await act(async () => {}); expect(dialog().textContent).toContain(en.plugins.lifecycle.unfinishedPayments); }); expect(rows.some(row => row.slug === 'removal-fixture')).toBe(true);
   });
   it.each([
-    ['PLUGIN_NOT_FOUND', 'notFound'], ['PLUGIN_BUILTIN_PROTECTED', 'builtinProtected'], ['PLUGIN_ALREADY_UNINSTALLED', 'alreadyRemoved'], ['PLUGIN_NOT_UNINSTALLED', 'notRemoved'],
-    ['PLUGIN_PURGE_CONFIRMATION_REQUIRED', 'confirmationRequired'], ['PLUGIN_UNFINISHED_PAYMENTS', 'unfinishedPayments'], ['PLUGIN_PACKAGE_UNAVAILABLE', 'packageUnavailable'],
-    ['PLUGIN_PACKAGE_CORRUPT', 'packageCorrupt'], ['PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT', 'packageUnavailable'], ['PLUGIN_REINSTALL_REQUIRED', 'reinstallRequired'],
-    ['PLUGIN_TEST_SIGNING_DISABLED', 'testSigningDisabled'], ['LAST_PROVIDER_REQUIRED', 'lastProvider'], ['PLUGIN_OPERATION_IN_PROGRESS', 'busy'], ['PLUGIN_OPERATION_LEASE_LOST', 'busy'], ['INTERNAL_SERVER_ERROR', 'failed'],
+    [ApiErrorCodes.PLUGIN_NOT_FOUND, 'notFound'], [ApiErrorCodes.PLUGIN_BUILTIN_PROTECTED, 'builtinProtected'], [ApiErrorCodes.PLUGIN_ALREADY_UNINSTALLED, 'alreadyRemoved'], [ApiErrorCodes.PLUGIN_NOT_UNINSTALLED, 'notRemoved'],
+    [ApiErrorCodes.PLUGIN_PURGE_CONFIRMATION_REQUIRED, 'confirmationRequired'], [ApiErrorCodes.PLUGIN_UNFINISHED_PAYMENTS, 'unfinishedPayments'], [ApiErrorCodes.PLUGIN_PACKAGE_UNAVAILABLE, 'packageUnavailable'],
+    [ApiErrorCodes.PLUGIN_PACKAGE_CORRUPT, 'packageCorrupt'], [ApiErrorCodes.PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT, 'packageUnavailable'], [ApiErrorCodes.PLUGIN_REINSTALL_CONFLICT, 'reinstallRequired'],
+    [ApiErrorCodes.PLUGIN_TEST_SIGNING_CONFLICT, 'testSigningDisabled'], [ApiErrorCodes.LAST_PROVIDER_REQUIRED, 'lastProvider'], [ApiErrorCodes.PLUGIN_OPERATION_IN_PROGRESS, 'busy'], [ApiErrorCodes.PLUGIN_OPERATION_LEASE_LOST, 'busy'], [ApiErrorCodes.INTERNAL_SERVER_ERROR, 'failed'],
   ])('J maps %s to a localized lifecycle message', (code, key) => { expect(pluginLifecycleErrorKey({ code })).toBe(key); });
   it('K every lifecycle string is present in English, Simplified Chinese and Traditional Chinese', () => {
     for (const locale of [hans, hant]) { expect(Object.keys(locale.plugins.lifecycle).sort()).toEqual(Object.keys(en.plugins.lifecycle).sort()); for (const value of Object.values(locale.plugins.lifecycle)) expect(value.length).toBeGreaterThan(0); }

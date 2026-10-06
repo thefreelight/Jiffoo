@@ -1,5 +1,6 @@
 'use client';
 import { apiClient, unwrapApiResponse } from './api';
+import { ApiErrorCodes, isApiErrorCode, type ApiErrorCode } from 'shared';
 
 export interface PluginUploadPreview {
   package: { slug: string; name: string; version: string; hash: string; trust: 'signed' | 'unsigned'; declaredCapabilities: string[];
@@ -23,14 +24,15 @@ export const pluginUploadApi = {
 };
 export function pluginUploadErrorKey(error: unknown) {
   const code = (error as { code?: string })?.code;
-  const keys: Record<string, string> = {
+  const keys: Partial<Record<ApiErrorCode, string>> = {
+    UNKNOWN_MANIFEST_FIELD: 'unknownManifestField',
     PLUGIN_DOWNGRADE_NOT_SUPPORTED: 'downgrade', PLUGIN_VERSION_CONTENT_CHANGED: 'versionContentChanged',
     PUBLISHER_CHANGE_FORBIDDEN: 'publisherChanged', SIGNED_UPGRADE_REQUIRED: 'signatureRequired',
     PLUGIN_PREVIEW_REQUIRED: 'previewRequired', UNSIGNED_CONFIRMATION_REQUIRED: 'confirmationRequired',
     INCOMPATIBLE_API_VERSION: 'incompatible', PAYLOAD_TOO_LARGE: 'tooLarge',
     PLUGIN_OPERATION_IN_PROGRESS: 'busy', PLUGIN_OPERATION_LEASE_LOST: 'busy',
   };
-  if (code && keys[code]) return keys[code];
-  if (code?.includes('SIGNATURE') || code?.includes('CERTIFICATE') || code === 'PACKAGE_CONTENT_MISMATCH') return 'signatureInvalid';
+  if (isApiErrorCode(code) && keys[code]) return keys[code];
+  if (code?.includes('SIGNATURE') || code?.includes('CERTIFICATE') || code === ApiErrorCodes.PACKAGE_CONTENT_MISMATCH) return 'signatureInvalid';
   return 'failed';
 }

@@ -121,6 +121,8 @@ export const common = {
     unauthorized: '未授权的存取',
     forbidden: '禁止存取',
     serverError: '伺服器错误，请稍后重试。',
+    temporarilyUnavailable: '服务暂时不可用，请稍后重试。',
+    requestCouldNotBeCompleted: '无法完成请求。',
     networkError: '网路错误，请检查您的连线。',
     rateLimited: '请求过于频繁，请稍后再试。',
     pluginOperationInProgress: '此插件有另一项操作正在进行。',

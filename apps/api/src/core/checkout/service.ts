@@ -17,7 +17,7 @@ function unavailableProvider(): never {
 
 async function excludeFailedProvider(slug: string, error: unknown): Promise<void> {
   if (!(error instanceof ContractCallError)) throw error;
-  await recordPluginFailure(slug, error, 'checkout');
+  if (error.code !== 'PLUGIN_DISABLED') await recordPluginFailure(slug, error, 'checkout');
   console.error(JSON.stringify({ event: 'checkout_provider_excluded', slug, reason: error.code }));
 }
 

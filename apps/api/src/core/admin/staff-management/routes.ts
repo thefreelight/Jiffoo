@@ -3,6 +3,7 @@ import { createSuccessResponseSchema, createTypedCreateResponses, createTypedRea
 import { sendError, sendSuccess } from '@/utils/response';
 import { generateStaffInviteLink } from '@/core/auth/account-recovery';
 import { StaffManagementError, StaffManagementService } from './service';
+import { sendKnownError } from '@/utils/api-errors';
 
 const adminSchema = {
   type: 'object',
@@ -68,6 +69,8 @@ export async function adminStaffRoutes(fastify: FastifyInstance) {
     try {
       return sendSuccess(reply, await StaffManagementService.createStaff(request.user!.id, request.body as { email: string; username: string }), undefined, 201);
     } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return handleError(error, reply);
     }
   });
@@ -82,6 +85,8 @@ export async function adminStaffRoutes(fastify: FastifyInstance) {
     try {
       return sendSuccess(reply, await StaffManagementService.removeStaff(request.user!.id, (request.params as { userId: string }).userId));
     } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return handleError(error, reply);
     }
   });
@@ -94,6 +99,8 @@ export async function adminStaffRoutes(fastify: FastifyInstance) {
     try {
       return sendSuccess(reply, await StaffManagementService.resendStaffInvite((request.params as { userId: string }).userId));
     } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return handleError(error, reply);
     }
   });
@@ -104,7 +111,9 @@ export async function adminStaffRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       return sendSuccess(reply, { link: await generateStaffInviteLink((request.params as { userId: string }).userId) }, undefined, 201);
-    } catch {
+    } catch (caughtError) {
+      const knownErrorResponse = sendKnownError(reply, caughtError);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 409, 'INVITE_NOT_AVAILABLE', 'Invitation not available');
     }
   });

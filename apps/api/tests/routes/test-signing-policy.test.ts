@@ -197,11 +197,11 @@ describe('installed plugin signing policy', () => {
     await installed(slug, 'test');
     await installed(official, 'official');
     const blocked = await child('off', slug, official);
-    expect(blocked.lifecycle).toMatchObject({ statusCode: 409, code: 'PLUGIN_TEST_SIGNING_DISABLED' });
+    expect(blocked.lifecycle).toMatchObject({ statusCode: 409, code: 'PLUGIN_TEST_SIGNING_CONFLICT' });
     for (const field of ['load', 'invoke']) expect(blocked[field].code).toBe('PLUGIN_TEST_SIGNING_DISABLED');
     for (const field of ['gateway', 'enable', 'restore']) {
       expect(blocked[`${field}Status`]).toBe(field === 'gateway' ? 503 : 409);
-      expect(blocked[`${field}Error`]).toBe('PLUGIN_TEST_SIGNING_DISABLED');
+      expect(blocked[`${field}Error`]).toBe(field === 'gateway' ? 'PLUGIN_TEST_SIGNING_DISABLED' : 'PLUGIN_TEST_SIGNING_CONFLICT');
     }
     expect(blocked.keptDeleted).toBe(true);
     expect(blocked.detailStatus).toBe(200);
@@ -238,11 +238,11 @@ describe('installed plugin signing policy', () => {
     await installed(unsigned, 'unsigned');
     await prisma.pluginInstall.update({ where: { slug }, data: { signingRoot: null } });
     const blocked = await child('off', slug, official);
-    expect(blocked.lifecycle).toMatchObject({ statusCode: 409, code: 'PLUGIN_REINSTALL_REQUIRED' });
+    expect(blocked.lifecycle).toMatchObject({ statusCode: 409, code: 'PLUGIN_REINSTALL_CONFLICT' });
     for (const field of ['load', 'invoke']) expect(blocked[field].code).toBe('PLUGIN_REINSTALL_REQUIRED');
     for (const field of ['gateway', 'enable', 'restore']) {
       expect(blocked[`${field}Status`]).toBe(field === 'gateway' ? 503 : 409);
-      expect(blocked[`${field}Error`]).toBe('PLUGIN_REINSTALL_REQUIRED');
+      expect(blocked[`${field}Error`]).toBe(field === 'gateway' ? 'PLUGIN_REINSTALL_REQUIRED' : 'PLUGIN_REINSTALL_CONFLICT');
     }
     expect(blocked.keptDeleted).toBe(true);
     expect(blocked.detailStatus).toBe(200);

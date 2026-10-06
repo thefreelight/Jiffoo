@@ -5,13 +5,15 @@ import { serverCoreResponse } from './core-transport';
 import { withAvailability } from './availability-boundary';
 import type { Cart, Order } from './checkout-types';
 import type { PageResult } from './catalog';
+import { CoreHttpError, coreAuthRejection, coreNotFound } from './core-errors';
 
 export async function customerData<T>(path: string): Promise<T | null> {
   return withAvailability(async () => {
   const token = (await cookies()).get(ACCESS_COOKIE)?.value;
   if (!token) return null;
   const response = await serverCoreResponse(path);
-  if (!response.ok) return null;
+  if (await coreAuthRejection(response) || await coreNotFound(response)) return null;
+  if (!response.ok) throw new CoreHttpError(response.status);
   return ((await response.json()) as { data: T }).data;
   });
 }

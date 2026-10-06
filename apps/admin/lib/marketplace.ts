@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient, unwrapApiResponse, type ApiResponse } from '@/lib/api';
+import { ApiErrorCodes, isApiErrorCode, type ApiErrorCode } from 'shared';
 
 export interface MarketplaceStatus { configured: boolean; testSigningMode: boolean }
 export interface MarketplaceVersion {
@@ -51,12 +52,18 @@ export function marketplaceErrorKey(error: unknown): string {
   const value = error as { code?: string; status?: number; statusCode?: number; response?: { status?: number; data?: { error?: { code?: string } } } } | null;
   const code = value?.response?.data?.error?.code ?? value?.code ?? '';
   const status = value?.response?.status ?? value?.status ?? value?.statusCode;
-  if (code === 'PLUGIN_TEST_SIGNING_DISABLED') return 'testSigningDisabled';
-  if (code === 'PLUGIN_REINSTALL_REQUIRED') return 'reinstallRequired';
-  if (code === 'MARKETPLACE_PLUGIN_NOT_FOUND' || status === 404) return 'notFound';
-  if (code.includes('CONFLICT') || code.includes('LEASE') || ['PLUGIN_OPERATION_IN_PROGRESS', 'PUBLISHER_CHANGE_FORBIDDEN', 'SIGNED_UPGRADE_REQUIRED'].includes(code) || status === 409) return 'conflict';
-  if (code === 'PAYLOAD_TOO_LARGE' || code.includes('TOO_LARGE') || status === 413) return 'tooLarge';
-  if (code === 'MARKETPLACE_NOT_CONFIGURED' || status === 503) return 'notConfigured';
+  const specific: Partial<Record<ApiErrorCode, string>> = {
+    [ApiErrorCodes.PLUGIN_TEST_SIGNING_CONFLICT]: 'testSigningDisabled',
+    [ApiErrorCodes.PLUGIN_REINSTALL_CONFLICT]: 'reinstallRequired',
+    [ApiErrorCodes.MARKETPLACE_NOT_CONFIGURED]: 'notConfigured',
+    [ApiErrorCodes.DATABASE_UNAVAILABLE]: 'unavailable',
+    [ApiErrorCodes.SHARED_PROTECTION_UNAVAILABLE]: 'unavailable',
+  };
+  if (isApiErrorCode(code) && specific[code]) return specific[code];
+  if (code === ApiErrorCodes.MARKETPLACE_PLUGIN_NOT_FOUND || status === 404) return 'notFound';
+  if (code.includes('CONFLICT') || code.includes('LEASE') || new Set<string>([ApiErrorCodes.PLUGIN_OPERATION_IN_PROGRESS, ApiErrorCodes.PUBLISHER_CHANGE_FORBIDDEN, ApiErrorCodes.SIGNED_UPGRADE_REQUIRED]).has(code) || status === 409) return 'conflict';
+  if (code === ApiErrorCodes.PAYLOAD_TOO_LARGE || code.includes('TOO_LARGE') || status === 413) return 'tooLarge';
+  if (status === 503) return 'unavailable';
   if (code.includes('TIMEOUT') || status === 504) return 'timeout';
   if (code.includes('UNAVAILABLE') || status === 502) return 'unavailable';
   if (code.includes('SIGNATURE') || code.includes('CERTIFICATE') || code.includes('DIGEST') || code.includes('IDENTITY') || code.includes('INCOMPATIBLE') || code.includes('ORIGIN_FORBIDDEN') || status === 422) return 'invalidPackage';

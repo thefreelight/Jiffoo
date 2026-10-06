@@ -121,6 +121,8 @@ export const common = {
     unauthorized: 'Unauthorized access',
     forbidden: 'Access forbidden',
     serverError: 'Server error. Please try again later.',
+    temporarilyUnavailable: 'Service temporarily unavailable. Please try again later.',
+    requestCouldNotBeCompleted: 'The request could not be completed.',
     networkError: 'Network error. Please check your connection.',
     rateLimited: 'Too many requests. Please try again later.',
     pluginOperationInProgress: 'Another operation is in progress for this plugin.',

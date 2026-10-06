@@ -1,5 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { InstallService } from './service';
+import { ApiError, sendMappedError } from '@/utils/api-errors';
+import { errorResponseSchema } from '@/types/common-dto';
 
 export async function installRoutes(fastify: FastifyInstance) {
   /**
@@ -79,21 +81,10 @@ export async function installRoutes(fastify: FastifyInstance) {
             code: { type: 'string' }
           }
         },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            error: { type: 'string' }
-          }
-        },
-        409: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            error: { type: 'string' },
-            code: { type: 'string' }
-          }
-        }
+        400: errorResponseSchema,
+        409: errorResponseSchema,
+        500: errorResponseSchema,
+        503: errorResponseSchema
       }
     }
   }, async (request, reply) => {
@@ -102,10 +93,7 @@ export async function installRoutes(fastify: FastifyInstance) {
     // Check if already installed
     const status = await InstallService.checkInstallationStatus();
     if (status.isInstalled) {
-      return reply.code(400).send({
-        success: false,
-        error: 'System is already installed'
-      });
+      return sendMappedError(reply, new ApiError('INSTALL_ALREADY_COMPLETED'));
     }
 
     const result = await InstallService.completeInstallation({
@@ -115,10 +103,6 @@ export async function installRoutes(fastify: FastifyInstance) {
       adminPassword: body.adminPassword,
       adminUsername: body.adminUsername
     });
-
-    if (!result.success) {
-      return reply.code(result.code === 'INSTALL_EMAIL_IN_USE' ? 409 : 400).send(result);
-    }
 
     return reply.send(result);
   });

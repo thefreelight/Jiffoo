@@ -5,6 +5,7 @@
 import { FastifyInstance } from 'fastify';
 import { HealthMonitoringService } from './service';
 import { sendError, sendSuccess } from '@/utils/response';
+import { sendKnownError } from '@/utils/api-errors';
 
 export async function healthMonitoringRoutes(fastify: FastifyInstance) {
 
@@ -84,6 +85,8 @@ export async function healthMonitoringRoutes(fastify: FastifyInstance) {
       const data = await HealthMonitoringService.getHealthSummary();
       return sendSuccess(reply, data);
     } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       const message = error instanceof Error ? error.message : 'Failed to fetch health summary';
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
     }

@@ -3,6 +3,7 @@ import type { ShopLocale } from './locale';
 import { serverCoreResponse } from './core-transport';
 import { withAvailability } from './availability-boundary';
 import { ShopAvailability } from './availability';
+import { CoreHttpError, coreErrorCode } from './core-errors';
 
 export type ThemeSection = {
   id: string;
@@ -32,13 +33,13 @@ export async function getShopTheme(locale: ShopLocale): Promise<ShopTheme | null
   return withAvailability(async () => {
   try {
     const response = await serverCoreResponse(`/store/theme?target=shop&locale=${encodeURIComponent(locale)}`);
-    if (!response.ok) throw new Error(`Theme API returned ${response.status}`);
+    if (response.status === 404 && await coreErrorCode(response) === 'THEME_NOT_FOUND') return null;
+    if (!response.ok) throw new CoreHttpError(response.status);
     const body = await response.json() as { data: ShopTheme };
     return body.data;
   } catch (error) {
     if (error instanceof ShopAvailability) throw error;
-    console.error('Shop theme unavailable; using Core defaults', error);
-    return null;
+    throw error;
   }
   });
 }

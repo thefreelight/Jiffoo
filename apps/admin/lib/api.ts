@@ -64,7 +64,8 @@ export class AdminApiError extends Error {
   code: string;
   details?: unknown;
 
-  constructor(message: string, code: string = 'ERROR', details?: unknown) {
+  constructor(message: string, code: string = 'ERROR', details?: unknown, readonly status: number = 0,
+    readonly source: 'core' | 'plugin-business' = 'core') {
     super(message);
     this.name = 'AdminApiError';
     this.code = code;
@@ -90,13 +91,9 @@ export function unwrapApiResponse<T>(response: ApiResponse<T>): T {
     message = (error as { message?: string }).message || message;
     code = (error as { code?: string }).code || code;
     details = (error as { details?: unknown }).details;
-  } else if (typeof error === 'string') {
-    message = error;
-  } else if (response.message) {
-    message = response.message;
   }
 
-  throw new AdminApiError(message, code, details);
+  throw new AdminApiError(message, code, details, response.httpStatus, response.pluginBusinessError ? 'plugin-business' : 'core');
 }
 
 export interface DashboardData {
@@ -470,7 +467,7 @@ async function fetchPluginDetail(slug: string): Promise<any> {
   if (!response.success) {
     const message = response.error?.message || `Plugin "${slug}" not found`;
     const code = response.error?.code || 'NOT_FOUND';
-    throw new AdminApiError(message, code, response.error?.details);
+    throw new AdminApiError(message, code, response.error?.details, response.httpStatus);
   }
   return response.data || {};
 }
@@ -479,7 +476,8 @@ async function fetchPluginInstances(slug: string): Promise<PluginInstance[]> {
   const response = await apiClient.get(`/extensions/plugin/${slug}/instances`, {
     params: { page: 1, limit: 100 },
   }) as ApiResponse<PageResult<PluginInstance>>;
-  if (!response.success || !response.data) return [];
+  if (!response.success) unwrapApiResponse(response);
+  if (!response.data) return [];
   return response.data.items || [];
 }
 
@@ -527,7 +525,7 @@ export const pluginsApi = {
 
     const items = await Promise.all(
       (response.data.items || []).map(async (plugin: any) => {
-        const defaultInstance = await getDefaultInstance(plugin.slug).catch(() => null);
+        const defaultInstance = plugin.deletedAt ? null : await getDefaultInstance(plugin.slug);
         const parsedManifest = parseManifestJson(plugin?.manifestJson);
         const configSchema = (parsedManifest?.configSchema || plugin?.configSchema || undefined) as Record<string, any> | undefined;
         const config = (defaultInstance?.config || {}) as Record<string, any>;
@@ -567,12 +565,11 @@ export const pluginsApi = {
         data: toPluginState(slug, detail, instance),
       };
     } catch (error: any) {
+      const normalized = toApiErrorPayload(error, 'ERROR', 'Request failed');
       return {
         success: false,
-        error: {
-          code: 'NOT_FOUND',
-          message: error?.message || `Plugin "${slug}" not found`,
-        },
+        httpStatus: isAdminApiError(error) ? error.status : undefined,
+        error: normalized,
       };
     }
   },
@@ -606,6 +603,7 @@ export const pluginsApi = {
       const normalized = toApiErrorPayload(error, 'UPDATE_ERROR', 'Failed to update plugin config');
       return {
         success: false,
+        httpStatus: isAdminApiError(error) ? error.status : undefined,
         error: normalized,
       };
     }
@@ -640,6 +638,7 @@ export const pluginsApi = {
       const normalized = toApiErrorPayload(error, 'UPDATE_ERROR', 'Failed to enable plugin');
       return {
         success: false,
+        httpStatus: isAdminApiError(error) ? error.status : undefined,
         error: normalized,
       };
     }
@@ -667,6 +666,7 @@ export const pluginsApi = {
       const normalized = toApiErrorPayload(error, 'UPDATE_ERROR', 'Failed to disable plugin');
       return {
         success: false,
+        httpStatus: isAdminApiError(error) ? error.status : undefined,
         error: normalized,
       };
     }

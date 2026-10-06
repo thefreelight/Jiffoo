@@ -13,6 +13,7 @@ import multipart from '@fastify/multipart';
 import cookie from '@fastify/cookie';
 import swagger from '@fastify/swagger';
 import { getTestPrisma } from './db';
+import { ApiError, sendMappedError, safeIssues } from '@/utils/api-errors';
 
 export interface CreateTestAppOptions {
   /**
@@ -212,43 +213,8 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
 
   try {
     // Standardize error responses to match API envelope and OpenAPI schemas
-    fastify.setErrorHandler((error: any, _request, reply) => {
-      if (error?.validation) {
-        const issues = error.validation.map((issue: any) => ({
-          path: issue.instancePath?.replace(/^\//, '') || issue.params?.missingProperty || 'unknown',
-          message: issue.message || 'Validation failed',
-          code: issue.keyword?.toUpperCase() || 'VALIDATION_ERROR',
-        }));
-
-        return reply.code(400).send({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Request validation failed',
-            details: { issues },
-          },
-        });
-      }
-
-      const statusCode = error?.statusCode || 500;
-      const code =
-        statusCode === 401 ? 'UNAUTHORIZED' :
-          statusCode === 403 ? 'FORBIDDEN' :
-            statusCode === 404 ? 'NOT_FOUND' :
-              statusCode === 429 ? 'RATE_LIMITED' :
-                statusCode === 413 ? 'PAYLOAD_TOO_LARGE' :
-                  statusCode === 400 ? (error?.code || 'BAD_REQUEST') :
-                    'INTERNAL_SERVER_ERROR';
-
-      return reply.code(statusCode).send({
-        success: false,
-        error: {
-          code,
-          message: error?.message || 'An error occurred',
-          details: error?.details,
-        },
-      });
-    });
+    fastify.setSchemaErrorFormatter((errors) => new ApiError('VALIDATION_ERROR', { issues: safeIssues(errors) }));
+    fastify.setErrorHandler((error, _request, reply) => sendMappedError(reply, error));
 
     // Register cookie support
     await fastify.register(cookie, {
@@ -373,6 +339,8 @@ export async function createMinimalTestApp(): Promise<FastifyInstance> {
     logger: false,
     disableRequestLogging: true,
   });
+  fastify.setSchemaErrorFormatter((errors) => new ApiError('VALIDATION_ERROR', { issues: safeIssues(errors) }));
+  fastify.setErrorHandler((error, _request, reply) => sendMappedError(reply, error));
 
   await fastify.register(cookie, {
     secret: 'test-secret',

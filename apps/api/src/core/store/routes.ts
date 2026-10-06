@@ -9,6 +9,7 @@ import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { createTypedReadResponses } from '@/types/common-dto';
 import { STORE_SUPPORTED_LOCALES } from './localization';
+import { sendKnownError } from '@/utils/api-errors';
 
 function setHttpCache(reply: FastifyReply, data: any, maxAge: number, swr: number) {
   const etag = `"${createHash('md5').update(JSON.stringify(data)).digest('hex')}"`;
@@ -101,7 +102,9 @@ export async function storeRoutes(fastify: FastifyInstance) {
                 return reply.code(304).send();
             }
             return sendSuccess(reply, contextData);
-        } catch (error: any) {
+        } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
             return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
         }
     });

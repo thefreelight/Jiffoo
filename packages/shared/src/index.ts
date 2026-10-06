@@ -1,4 +1,5 @@
 // API Types
+export * from './error-codes';
 export * from './types/api';
 export * from './types/auth';
 export * from './types/user';

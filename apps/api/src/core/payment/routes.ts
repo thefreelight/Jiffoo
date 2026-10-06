@@ -22,6 +22,7 @@ import { PaymentStatus } from '@/core/order/types';
 import { syncPaymentFromPlugin } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
+import { ApiError, sendKnownError, sendMappedError } from '@/utils/api-errors';
 import { Prisma } from '@prisma/client';
 import { decimalToMinor } from './minor-units';
 import { createNotification } from '@/core/notifications/service';
@@ -401,6 +402,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       });
     } catch (error: any) {
       LoggerService.logPayment('create-session-error', undefined, undefined, { error: error.message });
+      const known = sendKnownError(reply, error); if (known) return known;
       if (error instanceof SharedProtectionUnavailable) return sendProtectionUnavailable(reply);
       if (error?.code === 'PLUGIN_PACKAGE_UNAVAILABLE' || error?.code === 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT')
         return sendError(reply, 503, error.code, error.message);
@@ -458,6 +460,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       where: { pluginSlug_instanceKey: { pluginSlug: provider, instanceKey: 'default' } },
       include: { plugin: { select: { deletedAt: true } } },
     });
+    if (!installation) return sendMappedError(reply, new ApiError('PLUGIN_NOT_FOUND'));
     if (installation && (!installation.enabled || installation.deletedAt || installation.plugin.deletedAt)) {
       return sendError(reply, 503, 'PLUGIN_DISABLED', 'Payment provider is disabled');
     }
@@ -469,6 +472,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       await Promise.all(result.events.map((event: any) => applyNormalizedPluginWebhook(provider, { received: true, handled: true, providerEventId: event.providerEventId, sessionId: event.sessionId, normalizedStatus: event.status })));
       return sendSuccess(reply, { received: true });
     } catch (error: any) {
+      const known = sendKnownError(reply, error); if (known) return known;
       if (error?.code === 'PLUGIN_PACKAGE_UNAVAILABLE' || error?.code === 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT')
         return sendError(reply, 503, error.code, error.message);
       if (error instanceof SharedProtectionUnavailable) return sendProtectionUnavailable(reply);

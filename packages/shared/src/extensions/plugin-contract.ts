@@ -24,6 +24,12 @@ export const INTERNAL_FASTIFY_HOST_PROTOCOL = 'internal-fastify-v1';
 
 export type PluginHostProtocol = typeof INTERNAL_FASTIFY_HOST_PROTOCOL;
 
+/** Plugin gateway business messages are bounded plain text, never HTML. */
+export interface PluginBusinessErrorResponse {
+  success: false;
+  error: { code: string; message: string };
+}
+
 /**
  * Trust level assigned to a plugin at install time.
  *

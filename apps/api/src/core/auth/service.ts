@@ -10,10 +10,12 @@ import { PasswordUtils } from '@/utils/password';
 import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
-import { findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './user-compat';
+import { findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './identity';
 import { negotiateNotificationLocale, normalizeNotificationLocale } from '@/core/notifications/service';
 import { emitEvent } from '@/infra/events/emit';
 import { customerSnapshot } from '@/infra/events/snapshots';
+import { ApiError } from '@/utils/api-errors';
+import jwt from 'jsonwebtoken';
 
 export interface AuthResponse {
   user: {
@@ -63,18 +65,16 @@ export class AuthService {
     const existingEmailUser = await findAuthUserByEmail(data.email);
     if (existingEmailUser) {
       if (!existingEmailUser.emailVerified) {
-        const error = new Error('This email is already registered but has not been verified yet. Enter the verification code we sent, or request a new one.');
-        Object.assign(error, { code: 'EMAIL_NOT_VERIFIED' });
-        throw error;
+        throw new ApiError('EMAIL_NOT_VERIFIED');
       }
-      throw new Error('User with this email or username already exists');
+      throw new ApiError('REGISTRATION_FAILED');
     }
 
     const existingUsername = await prisma.user.findFirst({
       where: { username: data.username },
       select: { id: true },
     });
-    if (existingUsername) throw new Error('User with this email or username already exists');
+    if (existingUsername) throw new ApiError('REGISTRATION_FAILED');
 
     const hashedPassword = await PasswordUtils.hash(data.password);
     const user = await prisma.$transaction(async (tx) => {
@@ -142,10 +142,10 @@ export class AuthService {
 
     const isValid = await PasswordUtils.verify(data.password, user?.password ?? missingUserPasswordHash);
     if (!user || !isValid) {
-      throw new Error('Invalid email or password');
+      throw new ApiError('LOGIN_FAILED');
     }
     if (!user.isActive) {
-      throw new Error('Account is inactive');
+      throw new ApiError('ACCOUNT_INACTIVE');
     }
 
     const token = JwtUtils.sign({
@@ -204,10 +204,10 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new ApiError('USER_NOT_FOUND');
     }
     if (!user.isActive) {
-      throw new Error('Account is inactive');
+      throw new ApiError('ACCOUNT_INACTIVE');
     }
 
     return user;
@@ -230,10 +230,10 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new ApiError('USER_NOT_FOUND');
     }
     if (!user.isActive) {
-      throw new Error('Account is inactive');
+      throw new ApiError('ACCOUNT_INACTIVE');
     }
 
     const token = JwtUtils.sign({
@@ -260,19 +260,20 @@ export class AuthService {
     let payload;
     try {
       payload = JwtUtils.verify(refreshToken);
-    } catch {
-      throw new Error('Invalid refresh token');
+    } catch (error) {
+      if (!(error instanceof jwt.JsonWebTokenError || error instanceof jwt.TokenExpiredError || error instanceof jwt.NotBeforeError)) throw error;
+      throw new ApiError('REFRESH_FAILED');
     }
     if (!payload.userId || payload.type !== 'refresh') {
-      throw new Error('Invalid refresh token');
+      throw new ApiError('REFRESH_FAILED');
     }
 
     const user = await findAuthUserById(payload.userId);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new ApiError('REFRESH_FAILED');
     if (payload.sv !== user.sessionVersion) {
-      throw Object.assign(new Error('Session revoked'), { code: 'SESSION_REVOKED' });
+      throw new ApiError('SESSION_REVOKED');
     }
-    if (!user.isActive) throw new Error('Account is inactive');
+    if (!user.isActive) throw new ApiError('ACCOUNT_INACTIVE');
 
     const accessToken = JwtUtils.sign({
       userId: user.id, email: user.email, role: user.role, sv: user.sessionVersion,

@@ -9,7 +9,7 @@ import { JiffooMark } from '@/components/branding/jiffoo-mark'
 
 type InstallStatus = { isInstalled: boolean; version?: string; siteName?: string }
 type DatabaseStatus = { connected: boolean; error?: string }
-type InstallResult = { success: boolean; error?: string }
+type InstallResult = { success: boolean; error?: { code: string; message: string } }
 
 function getApiBaseUrl() {
   return (process.env.NEXT_PUBLIC_API_URL || '/api/v1').replace(/\/$/, '')
@@ -22,7 +22,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   })
   const data = await response.json().catch(() => null)
-  if (!response.ok) throw new Error(data?.error || data?.message || 'Request failed')
+  if (!response.ok) throw new Error(data?.error?.message || 'Request failed')
   return data as T
 }
 
@@ -78,7 +78,7 @@ export default function InstallPage() {
         method: 'POST',
         body: JSON.stringify({ siteName: siteName.trim(), adminUsername: username.trim(), adminEmail: email.trim(), adminPassword: password }),
       })
-      if (!result.success) throw new Error(result.error || 'Installation failed')
+      if (!result.success) throw new Error(result.error?.message || 'Installation failed')
       try {
         await login(username.trim(), password)
         router.replace(`/${locale}/dashboard`)

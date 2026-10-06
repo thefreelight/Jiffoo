@@ -31,6 +31,8 @@ import swaggerUI from '@fastify/swagger-ui';
 import path from 'path';
 import { env } from '@/config/env';
 import { optionalAuthMiddleware } from '@/core/auth/middleware';
+import { ApiError, sendMappedError, safeIssues } from '@/utils/api-errors';
+import { declareErrorSchemas, checkErrorSchemas } from '@/utils/error-schemas';
 import { sharedProtection, SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
 import { isProtectionExempt } from '@/plugins/rate-limiter';
 import { assertProductionSafety } from '@/config/production-safety';
@@ -89,6 +91,9 @@ async function buildApp() {
       STOREFRONT_URL: process.env.STOREFRONT_URL ?? '',
       ADMIN_URL: process.env.ADMIN_URL ?? '',
     }, process.env.DISABLE_RATE_LIMITER);
+    declareErrorSchemas(fastify);
+    fastify.setSchemaErrorFormatter((errors) => new ApiError('VALIDATION_ERROR', { issues: safeIssues(errors) }));
+    fastify.setNotFoundHandler((_request, reply) => sendMappedError(reply, new ApiError('NOT_FOUND')));
     // Initialize Redis connection
     try {
       await redisCache.connect();
@@ -222,79 +227,10 @@ async function buildApp() {
 
     });
 
-    // Global error handler to standardize all error responses
-    fastify.setErrorHandler((error: any, request, reply) => {
-      if (error instanceof SharedProtectionUnavailable) return sendProtectionUnavailable(reply);
-      // Log the error
-      LoggerService.logError(error, {
-        context: 'Global error handler',
-        url: request.url,
-        method: request.method,
-      });
-
-      // Handle Fastify validation errors (schema validation failures)
-      if (error.validation) {
-        const issues = error.validation.map((issue: any) => ({
-          path: issue.instancePath?.replace(/^\//, '') || issue.params?.missingProperty || 'unknown',
-          message: issue.message || 'Validation failed',
-          code: issue.keyword?.toUpperCase() || 'VALIDATION_ERROR',
-        }));
-
-        return reply.code(400).send({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Request validation failed',
-            details: { issues },
-          },
-        });
-      }
-
-      // Handle 404 Not Found
-      if (error.statusCode === 404) {
-        return reply.code(404).send({
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: error.message || 'Resource not found',
-          },
-        });
-      }
-
-      // Handle 401 Unauthorized
-      if (error.statusCode === 401) {
-        return reply.code(401).send({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: error.message || 'Unauthorized',
-          },
-        });
-      }
-
-      // Handle 403 Forbidden
-      if (error.statusCode === 403) {
-        return reply.code(403).send({
-          success: false,
-          error: {
-            code: 'FORBIDDEN',
-            message: error.message || 'Forbidden',
-          },
-        });
-      }
-
-      // Handle other known HTTP status codes
-      const statusCode = error.statusCode || 500;
-      const errorCode = statusCode === 500 ? 'INTERNAL_SERVER_ERROR' : error.code || 'ERROR';
-
-      return reply.code(statusCode).send({
-        success: false,
-        error: {
-          code: errorCode,
-          message: error.message || 'An error occurred',
-          ...(error.statusCode !== 500 && { details: error.details }),
-        },
-      });
+    // The only exception-to-HTTP boundary; public messages come from the catalog.
+    fastify.setErrorHandler((error, request, reply) => {
+      LoggerService.logError(error instanceof Error ? error : new Error('Unhandled exception'), { context: 'Global error handler', method: request.method, requestId: request.id });
+      return sendMappedError(reply, error);
     });
 
     // Root endpoint
@@ -416,6 +352,10 @@ async function buildApp() {
 
     // Register all core API routes
     await registerRoutes(fastify);
+    fastify.addHook('onReady', async () => {
+      const violations = checkErrorSchemas(fastify.swagger() as Parameters<typeof checkErrorSchemas>[0]);
+      if (violations.length) throw new Error(`Incomplete error schemas: ${violations.join('; ')}`);
+    });
 
     return fastify;
   } catch (error) {

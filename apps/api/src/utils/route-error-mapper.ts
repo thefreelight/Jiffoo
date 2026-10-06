@@ -1,6 +1,7 @@
 import { ZodError } from 'zod';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 import { Prisma } from '@prisma/client';
+import { ApiError, isDatabaseUnavailable, mapApiError } from './api-errors';
 
 export function isPrismaDatabaseError(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError
@@ -64,6 +65,10 @@ export function mapAccountRouteError(
   error: unknown,
   options: MapRouteErrorOptions
 ): MappedRouteError {
+  if (error instanceof ApiError || error instanceof SharedProtectionUnavailable || isDatabaseUnavailable(error)) {
+    const mapped = mapApiError(error);
+    return { status: mapped.status, ...mapped.body.error };
+  }
   if (error instanceof ZodError) {
     return mapZodError(error);
   }
@@ -104,6 +109,10 @@ export function mapAdminOrderRouteError(
   error: unknown,
   options: MapRouteErrorOptions
 ): MappedRouteError {
+  if (error instanceof ApiError || isDatabaseUnavailable(error)) {
+    const mapped = mapApiError(error);
+    return { status: mapped.status, ...mapped.body.error };
+  }
   if (error instanceof SharedProtectionUnavailable) return { status: 503, code: error.code, message: error.message };
   if (error instanceof ZodError) {
     return mapZodError(error);

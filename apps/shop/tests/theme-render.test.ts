@@ -4,7 +4,6 @@ import { createElement } from 'react';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { PathnameContext, SearchParamsContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 import type { ShopTheme, ThemeSection } from '../lib/theme';
-import { getShopTheme } from '../lib/theme';
 import { themeStyle } from '../lib/theme-style';
 import { SectionRenderer, sectionRegistry } from '../components/theme-sections';
 import { Header } from '../components/header';
@@ -225,12 +224,8 @@ describe('T2 Shop theme rendering', () => {
     expect(css).toContain('--shop-font-heading: system-ui, -apple-system, sans-serif;');
   });
 
-  it('E falls back to Core defaults when the theme fetch fails', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const theme = await getShopTheme('en');
-    expect(theme).toBeNull();
-    expect(log).toHaveBeenCalled();
+  it('E renders Core defaults for a legitimate absent theme', () => {
+    const theme = null;
     const html = markup(createElement(ThemeShell, { context, locale: 'en', navigation: [group],
       theme, loggedIn: false, cartCount: 0 }, createElement('main', null, 'Store works')));
     expect(html).toContain('Store works');

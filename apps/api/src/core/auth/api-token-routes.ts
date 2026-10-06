@@ -12,6 +12,7 @@
 import { FastifyInstance } from 'fastify';
 import { sendSuccess, sendError } from '@/utils/response';
 import { ApiTokenService, type ApiTokenScope } from '@/core/auth/api-token';
+import { sendKnownError } from '@/utils/api-errors';
 
 export async function apiTokenRoutes(fastify: FastifyInstance) {
   // All routes require admin authentication
@@ -58,7 +59,9 @@ export async function apiTokenRoutes(fastify: FastifyInstance) {
         createdAt: result.record.createdAt,
         message: 'Save this token securely — it will not be shown again.',
       }, 'Token created successfully', 201);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -75,7 +78,9 @@ export async function apiTokenRoutes(fastify: FastifyInstance) {
     try {
       const tokens = await ApiTokenService.listTokens();
       return sendSuccess(reply, tokens);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -100,7 +105,9 @@ export async function apiTokenRoutes(fastify: FastifyInstance) {
       const { tokenId } = request.params as { tokenId: string };
       await ApiTokenService.revokeToken(tokenId);
       return sendSuccess(reply, { tokenId, revoked: true }, 'Token revoked successfully');
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error.statusCode === 404 || error.code === 'NOT_FOUND') {
         return sendError(reply, 404, 'NOT_FOUND', error.message);
       }

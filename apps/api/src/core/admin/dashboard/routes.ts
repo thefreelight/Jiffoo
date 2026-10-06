@@ -6,6 +6,7 @@ import { FastifyInstance } from 'fastify';
 import { AdminDashboardService } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminDashboardSchemas } from './schemas';
+import { sendKnownError } from '@/utils/api-errors';
 
 export async function adminDashboardRoutes(fastify: FastifyInstance) {
     // Apply auth hooks
@@ -25,7 +26,9 @@ export async function adminDashboardRoutes(fastify: FastifyInstance) {
             const includeArray = include ? include.split(',') : [];
             const data = await AdminDashboardService.getDashboardMetrics(includeArray);
             return sendSuccess(reply, data);
-        } catch (error: any) {
+        } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
             return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to fetch dashboard data');
         }
     });

@@ -39,7 +39,7 @@ describe('Install re-submission', () => {
       },
     });
     expect(response.statusCode).toBe(409);
-    expect(response.json()).toMatchObject({ success: false, code: 'INSTALL_EMAIL_IN_USE' });
+    expect(response.json()).toMatchObject({ success: false, error: { code: 'INSTALL_EMAIL_IN_USE' } });
     expect((await prisma.user.findUniqueOrThrow({ where: { id: existing.id } })).role).toBe(role);
   });
 
@@ -90,7 +90,7 @@ describe('Install re-submission', () => {
       },
     });
     expect(second.statusCode).toBe(400);
-    expect(second.json()).toMatchObject({ success: false, error: 'System is already installed' });
+    expect(second.json()).toMatchObject({ success: false, error: { code: 'INSTALL_ALREADY_COMPLETED', message: 'System is already installed' } });
     expect(await prisma.user.count()).toBe(usersBefore);
     expect(await prisma.user.count({ where: { role: 'ADMIN' } })).toBe(adminsBefore);
   });

@@ -27,6 +27,7 @@ describe('Admin API response unwrap', () => {
     try {
       unwrapApiResponse({
         success: false,
+        httpStatus: 503,
         error: {
           code: 'MISSING_RELEASE_ASSETS',
           message: 'Release assets are missing',
@@ -39,19 +40,20 @@ describe('Admin API response unwrap', () => {
         code: 'MISSING_RELEASE_ASSETS',
         message: 'Release assets are missing',
         details: { missing: ['release-manifest.json'] },
+        status: 503,
       });
     }
   });
 
-  it('normalizes string and message-only failures', () => {
+  it('sanitizes noncanonical string and message-only failures', () => {
     expect(() => unwrapApiResponse({
       success: false,
       error: 'Feed did not converge',
-    } as any)).toThrow('Feed did not converge');
+    } as any)).toThrow('Request failed');
 
     expect(() => unwrapApiResponse({
       success: false,
       message: 'Runtime verifier failed',
-    })).toThrow('Runtime verifier failed');
+    })).toThrow('Request failed');
   });
 });

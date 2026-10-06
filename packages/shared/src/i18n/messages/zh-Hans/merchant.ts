@@ -830,6 +830,7 @@ export const merchant = {
       lastProvider: '不能卸载最后一个已启用的提供方。', busy: '另一个操作正在进行，请完成后重试。', failed: '插件操作失败。',
     },
     upload: {
+      unknownManifestField: '插件清单包含不支持的字段。',
       "title": "上传本地插件",
       "file": "插件 ZIP",
       "preview": "预览插件包",

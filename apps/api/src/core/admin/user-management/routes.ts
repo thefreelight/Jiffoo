@@ -7,6 +7,7 @@ import { AdminUserService, CustomerManagementError } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminUserSchemas } from './schemas';
 import { isPrismaDatabaseError } from '@/utils/route-error-mapper';
+import { sendKnownError } from '@/utils/api-errors';
 
 export async function adminUserRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all admin user routes (before schema validation)
@@ -25,7 +26,9 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
       const { page, limit, search } = request.query as any;
       const result = await AdminUserService.getUsers(page, limit, search);
       return sendSuccess(reply, result);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -43,7 +46,9 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     try {
       const result = await AdminUserService.getUserStats();
       return sendSuccess(reply, result);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -65,7 +70,9 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
         return sendError(reply, 404, 'NOT_FOUND', 'User not found');
       }
       return sendSuccess(reply, user);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -83,7 +90,9 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     try {
       const user = await AdminUserService.createUser(request.body as any);
       return sendSuccess(reply, user, undefined, 201);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (isPrismaDatabaseError(error)) {
         request.log.error({ err: error }, 'Customer creation database failure');
         return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to create customer');
@@ -107,7 +116,9 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
       const { id } = request.params as any;
       const user = await AdminUserService.updateUser(id, request.body as any);
       return sendSuccess(reply, user);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof CustomerManagementError) return sendError(reply, error.statusCode, error.code, error.message);
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
@@ -130,7 +141,9 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
         userId: id,
         deleted: result.deleted,
       }, 'User permanently deleted');
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof CustomerManagementError) return sendError(reply, error.statusCode, error.code, error.message);
       if (error.code === 'P2025' || error.message === 'User not found') {
         return sendError(reply, 404, 'NOT_FOUND', 'User not found');

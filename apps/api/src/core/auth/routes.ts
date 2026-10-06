@@ -10,12 +10,12 @@ import { authMiddleware, requireAdmin } from './middleware';
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { sendSuccess, sendError } from '@/utils/response';
+import { ApiError, sendMappedError } from '@/utils/api-errors';
 import { authSchemas } from './schemas';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { acceptStaffInvite, requestPasswordReset, resetPassword } from './account-recovery';
 import { JwtUtils } from '@/utils/jwt';
 import { createSuccessResponseSchema, createTypedUpdateResponses, errorResponseSchema } from '@/types/common-dto';
-import { isPrismaDatabaseError } from '@/utils/route-error-mapper';
 
 export async function authRoutes(fastify: FastifyInstance) {
   const acknowledgementSchema = {
@@ -66,8 +66,8 @@ export async function authRoutes(fastify: FastifyInstance) {
     try {
       await resetPassword(token, newPassword);
       return sendSuccess(reply, { completed: true });
-    } catch {
-      return sendError(reply, 400, 'INVALID_RESET_TOKEN', 'Invalid or expired reset token');
+    } catch (error) {
+      return sendMappedError(reply, error);
     }
   });
 
@@ -88,8 +88,8 @@ export async function authRoutes(fastify: FastifyInstance) {
     try {
       await acceptStaffInvite(token, password);
       return sendSuccess(reply, { completed: true });
-    } catch {
-      return sendError(reply, 400, 'INVALID_INVITE_TOKEN', 'Invalid or expired invitation');
+    } catch (error) {
+      return sendMappedError(reply, error);
     }
   });
 
@@ -106,15 +106,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       const { email, username, password, locale } = request.body as { email: string; username: string; password: string; locale?: 'en' | 'zh-Hans' | 'zh-Hant' };
       const result = await AuthService.register({ email, username, password, locale }, request.headers['accept-language']);
       return sendSuccess(reply, result, 'Registration successful', 201);
-    } catch (error: any) {
-      if (isPrismaDatabaseError(error)) {
-        request.log.error({ err: error }, 'Registration database failure');
-        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to register user');
-      }
-      if (error.code === 'EMAIL_NOT_VERIFIED') {
-        return sendError(reply, 409, 'EMAIL_NOT_VERIFIED', error.message);
-      }
-      return sendError(reply, 400, 'REGISTRATION_FAILED', error.message);
+    } catch (error) {
+      return sendMappedError(reply, error);
     }
   });
 
@@ -131,11 +124,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       const { identifier, email, password } = request.body as any;
       const result = await AuthService.login(identifier ? { identifier, password } : { email, password });
       return sendSuccess(reply, result);
-    } catch (error: any) {
-      if (error.message === 'Account is inactive') {
-        return sendError(reply, 403, 'ACCOUNT_INACTIVE', error.message);
-      }
-      return sendError(reply, 401, 'LOGIN_FAILED', error.message);
+    } catch (error) {
+      return sendMappedError(reply, error);
     }
   });
 
@@ -153,8 +143,8 @@ export async function authRoutes(fastify: FastifyInstance) {
     try {
       const user = await AuthService.getCurrentUser(request.user!.id);
       return sendSuccess(reply, user); // Directly return UserProfile, no nesting
-    } catch (error: any) {
-      return sendError(reply, 401, 'UNAUTHORIZED', error.message);
+    } catch (error) {
+      return sendMappedError(reply, error);
     }
   });
 
@@ -171,18 +161,12 @@ export async function authRoutes(fastify: FastifyInstance) {
     try {
       const { refresh_token } = request.body as any;
       if (!refresh_token) {
-        throw new Error('Refresh token is required');
+        throw new ApiError('REFRESH_FAILED');
       }
       const result = await AuthService.refreshSession(refresh_token);
       return sendSuccess(reply, result);
-    } catch (error: any) {
-      if (error.code === 'SESSION_REVOKED') {
-        return sendError(reply, 401, 'SESSION_REVOKED', error.message);
-      }
-      if (error.message === 'Account is inactive') {
-        return sendError(reply, 403, 'ACCOUNT_INACTIVE', error.message);
-      }
-      return sendError(reply, 401, 'REFRESH_FAILED', error.message);
+    } catch (error) {
+      return sendMappedError(reply, error);
     }
   });
 
@@ -243,14 +227,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         data: null,
         message: 'Email verified successfully'
       });
-    } catch (error: any) {
-      return reply.code(500).send({
-        success: false,
-        error: {
-          code: 'VERIFICATION_ERROR',
-          message: error.message
-        }
-      });
+    } catch (error) {
+      return sendMappedError(reply, error);
     }
   });
 
@@ -273,8 +251,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       const result = await EmailVerificationService.verifyCode(email, code);
       if (!result.success) return sendError(reply, 400, 'VERIFICATION_FAILED', result.error || 'Failed to verify email');
       return sendSuccess(reply, null, 'Email verified successfully');
-    } catch (error: any) {
-      return sendError(reply, 500, 'VERIFICATION_ERROR', error.message);
+    } catch (error) {
+      return sendMappedError(reply, error);
     }
   });
 
@@ -327,14 +305,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         data: null,
         message: 'Verification requested'
       });
-    } catch (error: any) {
-      return reply.code(500).send({
-        success: false,
-        error: {
-          code: 'RESEND_ERROR',
-          message: error.message
-        }
-      });
+    } catch (error) {
+      return sendMappedError(reply, error);
     }
   });
 
@@ -379,8 +351,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         }),
         refresh_token: JwtUtils.signRefresh({ userId: updated.id, sv: updated.sessionVersion }),
       }, 'Password changed successfully');
-    } catch (error: any) {
-      return sendError(reply, 500, 'CHANGE_PASSWORD_FAILED', error.message);
+    } catch (error) {
+      return sendMappedError(reply, error);
     }
   });
 }

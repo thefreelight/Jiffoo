@@ -7,6 +7,7 @@ import { CartService, InsufficientCartStockError } from './service';
 import { dualAuthMiddleware } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
 import { cartSchemas } from './schemas';
+import { sendKnownError } from '@/utils/api-errors';
 
 export async function cartRoutes(fastify: FastifyInstance) {
   // Apply dual auth (JWT or API token with cart:write scope)
@@ -25,7 +26,9 @@ export async function cartRoutes(fastify: FastifyInstance) {
     try {
       const cart = await CartService.getCart(request.user!.id);
       return sendSuccess(reply, cart);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -50,7 +53,9 @@ export async function cartRoutes(fastify: FastifyInstance) {
         fulfillmentData
       );
       return sendSuccess(reply, cart);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof InsufficientCartStockError) {
         return sendError(reply, 409, error.code, error.message, { availableQuantity: error.availableQuantity });
       }
@@ -82,7 +87,9 @@ export async function cartRoutes(fastify: FastifyInstance) {
       const { items } = request.body as any;
       const cart = await (CartService as any).batchAddToCart(request.user!.id, items);
       return sendSuccess(reply, cart);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof InsufficientCartStockError) {
         return sendError(reply, 409, error.code, error.message, { availableQuantity: error.availableQuantity });
       }
@@ -113,7 +120,9 @@ export async function cartRoutes(fastify: FastifyInstance) {
         quantity
       );
       return sendSuccess(reply, cart);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof InsufficientCartStockError) {
         return sendError(reply, 409, error.code, error.message, { availableQuantity: error.availableQuantity });
       }
@@ -139,7 +148,9 @@ export async function cartRoutes(fastify: FastifyInstance) {
       const { itemId } = request.params as any;
       const cart = await CartService.removeFromCart(request.user!.id, itemId);
       return sendSuccess(reply, cart);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error.code === 'P2025' || error.message === 'Cart item not found') {
         return sendError(reply, 404, 'NOT_FOUND', 'Cart item not found');
       }
@@ -160,7 +171,9 @@ export async function cartRoutes(fastify: FastifyInstance) {
     try {
       const cart = await CartService.clearCart(request.user!.id);
       return sendSuccess(reply, cart);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });

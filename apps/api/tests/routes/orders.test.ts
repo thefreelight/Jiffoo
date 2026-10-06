@@ -472,7 +472,7 @@ describe('Orders Endpoints', () => {
         const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal: '0.00' } });
         expect(response.statusCode).toBe(502);
         expect(response.json().error.code).toBe('CONTRACT_CALL_FAILED');
-        expect(response.json().error.message).toBe('Checkout provider is temporarily unavailable');
+        expect(response.json().error.message).toBe('Provider is temporarily unavailable');
         expect(response.body).not.toContain('Tax provider unavailable');
         expect(response.body).not.toContain('TAX_UNAVAILABLE');
         expect(await prisma.order.count()).toBe(countBefore);

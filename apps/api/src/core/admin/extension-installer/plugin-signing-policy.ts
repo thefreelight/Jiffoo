@@ -1,4 +1,5 @@
 import { env } from '@/config/env';
+import { ApiError } from '@/utils/api-errors';
 
 export function pluginSigningError(plugin: { trustLevel: string; signingRoot: string | null }): Error & {
   code: string; statusCode: number;
@@ -14,5 +15,5 @@ export function pluginSigningError(plugin: { trustLevel: string; signingRoot: st
 
 export function assertPluginSigningAllowed(plugin: { trustLevel: string; signingRoot: string | null }): void {
   const error = pluginSigningError(plugin);
-  if (error) throw Object.assign(error, { statusCode: 409 });
+  if (error) throw new ApiError(error.code === 'PLUGIN_REINSTALL_REQUIRED' ? 'PLUGIN_REINSTALL_CONFLICT' : 'PLUGIN_TEST_SIGNING_CONFLICT');
 }

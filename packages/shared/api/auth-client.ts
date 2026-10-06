@@ -3,7 +3,7 @@
  * Provides methods for all authentication-related API calls
  */
 
-import { ApiClient, ApiResponse, LoginCredentials, RegisterData, UserProfile } from './client';
+import { ApiClient, ApiResponse, LoginCredentials, RegisterData, UserProfile, isAuthRejection } from './client';
 import { RefreshTokenResponse } from '../src/types/auth';
 import { API_ENDPOINTS } from '../src/utils/constants';
 
@@ -158,6 +158,7 @@ export class AuthClient extends ApiClient {
     if (!refreshToken) {
       return {
         success: false,
+        httpStatus: 401,
         error: {
           code: 'NO_REFRESH_TOKEN',
           message: 'No refresh token available'
@@ -206,19 +207,16 @@ export class AuthClient extends ApiClient {
           }
         };
       } else {
-        // Auth invalid, clear local status
-        this.clearAuth();
-        return {
-          success: true,
-          data: { valid: false }
-        };
+        if (isAuthRejection(profileResponse.httpStatus, profileResponse.error?.code)) {
+          this.clearAuth();
+          return { success: true, data: { valid: false } };
+        }
+        return { success: false, httpStatus: profileResponse.httpStatus, error: profileResponse.error };
       }
     } catch (error) {
-      // Auth invalid, clear local status
-      this.clearAuth();
       return {
-        success: true,
-        data: { valid: false }
+        success: false,
+        error: { code: 'REQUEST_FAILED', message: 'Unable to validate authentication' }
       };
     }
   }

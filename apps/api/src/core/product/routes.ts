@@ -9,6 +9,7 @@ import { DEFAULT_LOCALE, type Locale } from '@/utils/i18n';
 import { sendSuccess, sendError } from '@/utils/response';
 import { productSchemas } from './schemas';
 import { CacheService } from '@/core/cache/service';
+import { sendKnownError } from '@/utils/api-errors';
 
 function setHttpCache(reply: FastifyReply, data: any, maxAge: number, swr: number) {
   const etag = `"${createHash('md5').update(JSON.stringify(data)).digest('hex')}"`;
@@ -44,7 +45,9 @@ export async function productRoutes(fastify: FastifyInstance) {
         return reply.code(304).send();
       }
       return sendSuccess(reply, result);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -70,7 +73,9 @@ export async function productRoutes(fastify: FastifyInstance) {
         return reply.code(304).send();
       }
       return sendSuccess(reply, categories);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -114,7 +119,9 @@ export async function productRoutes(fastify: FastifyInstance) {
         return reply.code(304).send();
       }
       return sendSuccess(reply, products);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
@@ -144,7 +151,9 @@ export async function productRoutes(fastify: FastifyInstance) {
         return reply.code(304).send();
       }
       return sendSuccess(reply, product);
-    } catch (error: any) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });

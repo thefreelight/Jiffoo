@@ -40,7 +40,8 @@ import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notifi
 import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
-import { getPluginTimeoutMs } from './gateway-protection';
+import { getPluginTimeoutMs, MAX_RESPONSE_SIZE_BYTES } from './gateway-protection';
+import { ApiError, sendMappedError, isDatabaseUnavailable, type ErrorCode } from '@/utils/api-errors';
 import { sharedProtection, pluginProtectionScope, SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
 import { decryptPluginConfig, redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { pluginSigningError } from './plugin-signing-policy';
@@ -709,8 +710,15 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
   return false;
 }
 
-export class ContractCallError extends Error {
-  constructor(public readonly code: 'CONTRACT_RESPONSE_INVALID' | 'CONTRACT_CALL_FAILED' | 'PLUGIN_PACKAGE_UNAVAILABLE' | 'PLUGIN_PACKAGE_CORRUPT' | 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT' | 'PLUGIN_REINSTALL_REQUIRED' | 'PLUGIN_TEST_SIGNING_DISABLED', message: string) { super(message); }
+export class ContractCallError extends ApiError {
+  constructor(code: ErrorCode, internalMessage: string) { super(code); this.message = internalMessage; }
+}
+
+function contractGatewayError(error: PluginGatewayError): ContractCallError {
+  const code = error.code === 'PLUGIN_NOT_FOUND' || error.code === 'INSTANCE_NOT_FOUND' ? 'PLUGIN_NOT_FOUND'
+    : error.code === 'INSTANCE_DISABLED' ? 'PLUGIN_DISABLED'
+      : error.code === 'PLUGIN_TIMEOUT' ? 'PLUGIN_TIMEOUT' : 'CONTRACT_CALL_FAILED';
+  return new ContractCallError(code, error.message);
 }
 
 const contractMethods = { payment: paymentV1Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
@@ -738,46 +746,48 @@ export async function callContract(
   } catch (error) {
     await recordPluginFailure(slug, error, 'contract');
     if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
-    if (error instanceof PluginGatewayError) throw new ContractCallError('CONTRACT_CALL_FAILED', error.message);
+    if (error instanceof PluginGatewayError) throw contractGatewayError(error);
     throw error;
   }
   if (version !== 1 || !(contractName in contractMethods) || !(method in contractMethods[contractName])) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractName} v${version}/${method}`);
   const pkg = await PluginManagementService.getPluginPackage(slug);
   const instance = await PluginManagementService.getDefaultInstance(slug);
-  if (!pkg || !instance?.enabled || instance.deletedAt) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} is not enabled`);
+  if (!pkg || !instance) throw new ContractCallError('PLUGIN_NOT_FOUND', `Plugin ${slug} is not installed`);
+  if (!instance.enabled || instance.deletedAt) throw new ContractCallError('PLUGIN_DISABLED', `Plugin ${slug} is not enabled`);
   const signingError = pluginSigningError(pkg);
   if (signingError) throw new ContractCallError(signingError.code as 'PLUGIN_REINSTALL_REQUIRED' | 'PLUGIN_TEST_SIGNING_DISABLED', signingError.message);
   let manifest: PluginManifest;
   try { manifest = await readPluginManifest(pkg); } catch (error) {
     await recordPluginFailure(slug, error, 'contract');
     if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
-    if (error instanceof PluginGatewayError || error instanceof SyntaxError) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} manifest is invalid`);
+    if (error instanceof PluginGatewayError) throw contractGatewayError(error);
+    if (error instanceof SyntaxError) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} manifest is invalid`);
     throw error;
   }
   if (!manifest.contracts?.some((contract) => contract.name === contractName && contract.version === version)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} does not declare ${contractName} v${version}`);
   const permit = await sharedProtection.breaker(pluginProtectionScope(instance.id, instance.protectionGeneration));
-  if (!permit) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} circuit breaker is open`);
+  if (!permit) throw new ContractCallError('PLUGIN_CIRCUIT_OPEN', `Plugin ${slug} circuit breaker is open`);
   const config = decryptPluginConfig(manifest, parseJsonObject(instance.configJson));
   let runtime: InternalRuntime;
   try {
     runtime = await ensureInternalRuntime(slug, manifest, { slug, zipHash: pkg.zipHash || '', installationId: instance.id, protectionGeneration: instance.protectionGeneration, instanceKey: instance.instanceKey, config }, true);
   } catch (error) {
     if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
-    if (error instanceof PluginGatewayError) throw new ContractCallError('CONTRACT_CALL_FAILED', error.message);
+    if (error instanceof PluginGatewayError) throw contractGatewayError(error);
     throw error;
   }
   let injected = false;
   try {
     const latest = await prisma.pluginInstallation.findUnique({ where: { id: instance.id } });
     if (!latest?.enabled || latest.deletedAt || latest.protectionGeneration !== instance.protectionGeneration) {
-      throw Object.assign(new Error('Plugin lifecycle changed before invocation'), { statusCode: 503, code: 'PLUGIN_DISABLED' });
+      throw new ContractCallError('PLUGIN_DISABLED', 'Plugin is disabled');
     }
     const invocation = runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: input as Record<string, unknown> });
     injected = true;
     void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
     const response = await Promise.race([
       invocation,
-      new Promise<never>((_, reject) => setTimeout(() => reject(new ContractCallError('CONTRACT_CALL_FAILED', 'Contract call timed out')), getPluginTimeoutMs())),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new ContractCallError('PLUGIN_TIMEOUT', 'Contract call timed out')), getPluginTimeoutMs())),
     ]);
     if (response.statusCode >= 400) {
       const failure = response.json() as { error?: unknown };
@@ -791,7 +801,7 @@ export async function callContract(
     await sharedProtection.result(permit, true);
     return parsed.data;
   } catch (error) {
-    if (error instanceof ContractCallError) {
+    if (error instanceof ContractCallError && injected) {
       await recordPluginFailure(slug, error, 'contract', instance.id);
       await sharedProtection.result(permit, false);
     }
@@ -889,7 +899,7 @@ async function forwardToInternalFastify(
   caller: CallerType
 ): Promise<void> {
   const installation = await prisma.pluginInstallation.findUnique({ where: { id: ctx.installationId } });
-  if (!installation?.enabled || installation.deletedAt || installation.protectionGeneration !== ctx.protectionGeneration) throw Object.assign(new Error('Plugin lifecycle changed before invocation'), { code: 'PLUGIN_DISABLED', statusCode: 503 });
+  if (!installation?.enabled || installation.deletedAt || installation.protectionGeneration !== ctx.protectionGeneration) throw new ApiError('PLUGIN_DISABLED');
   const scope = pluginProtectionScope(installation.id, installation.protectionGeneration);
   const limit = await sharedProtection.rate(`${scope}:http`, 60000, 60);
   if (!limit.allowed) {
@@ -903,6 +913,8 @@ async function forwardToInternalFastify(
       .send({ success: false, error: { code: 'PLUGIN_CIRCUIT_OPEN', message: 'Plugin is temporarily unavailable' } });
     return;
   }
+  const bound = await prisma.pluginInstallation.findUnique({ where: { id: installation.id } });
+  if (!bound?.enabled || bound.deletedAt || bound.protectionGeneration !== installation.protectionGeneration) throw new ApiError('PLUGIN_DISABLED');
   const runtime = await ensureInternalRuntime(slug, manifest, ctx, true);
   let injected = false;
   try {
@@ -942,7 +954,7 @@ async function forwardToInternalFastify(
 
   const latest = await prisma.pluginInstallation.findUnique({ where: { id: installation.id } });
   if (!latest?.enabled || latest.deletedAt || latest.protectionGeneration !== installation.protectionGeneration) {
-    throw Object.assign(new Error('Plugin lifecycle changed before invocation'), { statusCode: 503, code: 'PLUGIN_DISABLED' });
+    throw new ApiError('PLUGIN_DISABLED');
   }
   const invocation = runtime.app.inject({
       method: request.method as any,
@@ -957,20 +969,25 @@ async function forwardToInternalFastify(
     timeoutPromise,
   ]);
 
-  await sharedProtection.result(permit, res.statusCode < 500);
+  const raw = (res as any).rawPayload;
+  const body = raw !== undefined ? raw : res.payload;
+  let replaceError = res.statusCode >= 500;
+  if (res.statusCode >= 400 && !replaceError) {
+    const bytes = Buffer.isBuffer(body) ? body : Buffer.from(String(body));
+    if (bytes.length > MAX_RESPONSE_SIZE_BYTES) replaceError = true;
+    else { try { JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); } catch { replaceError = true; } }
+  }
+  await sharedProtection.result(permit, !replaceError);
+  if (replaceError) { sendMappedError(reply, new ApiError('PLUGIN_ERROR')); return; }
   reply.code(res.statusCode);
   for (const [k, v] of Object.entries(res.headers)) {
     if (k.toLowerCase() === 'transfer-encoding') continue;
     if (v !== undefined) reply.header(k, v as any);
   }
 
-  const raw = (res as any).rawPayload;
-  const body = raw !== undefined ? raw : res.payload;
-  reply.send(res.statusCode >= 400
-    ? redactPluginText(Buffer.isBuffer(body) ? body.toString('utf8') : String(body), ctx.config, manifest)
-    : body);
+  reply.send(body);
   } catch (error) {
-    if (!(error instanceof SharedProtectionUnavailable) && injected) await sharedProtection.result(permit, false);
+    if (!(error instanceof SharedProtectionUnavailable) && !isDatabaseUnavailable(error) && !(error instanceof ApiError && error.code === 'PLUGIN_DISABLED') && injected) await sharedProtection.result(permit, false);
     throw error;
   } finally {
     if (!injected) await releaseRuntime(runtime);

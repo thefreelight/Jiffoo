@@ -61,7 +61,7 @@ import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { JwtUtils } from '@/utils/jwt';
 import { EmailVerificationService } from '@/services/email-verification.service';
-import { resetAuthCompatibilityCache } from '@/core/auth/user-compat';
+import jwt from 'jsonwebtoken';
 
 // ---------------------------------------------------------------------------
 // Typed mock helpers
@@ -118,7 +118,6 @@ const REFRESH_TOKEN = 'mock-refresh-token';
 describe('AuthService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    resetAuthCompatibilityCache();
   });
 
   // -----------------------------------------------------------------------
@@ -427,55 +426,13 @@ describe('AuthService', () => {
       expect(result.user.emailVerified).toBe(false);
     });
 
-    it('should fall back to legacy user records when emailVerified column is unavailable', async () => {
-      const legacyUser = {
-        id: TEST_USER.id,
-        email: TEST_USER.email,
-        username: TEST_USER.username,
-        password: TEST_USER.password,
-        role: TEST_USER.role,
-        isActive: TEST_USER.isActive,
-        avatar: TEST_USER.avatar,
-        sessionVersion: TEST_USER.sessionVersion,
-      };
+    it('propagates login schema failures without legacy queries', async () => {
 
-      mockPrismaUser.findUnique
-        .mockRejectedValueOnce(new Error('The column `users.emailVerified` does not exist in the current database.'))
-        .mockResolvedValueOnce(legacyUser);
-      mockPasswordUtils.verify.mockResolvedValue(true);
-      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
-      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
-
-      const result = await AuthService.login(loginData);
-
-      expect(mockPrismaUser.findUnique).toHaveBeenNthCalledWith(1, {
-        where: { email: loginData.email },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          password: true,
-          role: true,
-          isActive: true,
-          emailVerified: true,
-          avatar: true,
-          sessionVersion: true,
-        },
-      });
-      expect(mockPrismaUser.findUnique).toHaveBeenNthCalledWith(2, {
-        where: { email: loginData.email },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          password: true,
-          role: true,
-          isActive: true,
-          avatar: true,
-          sessionVersion: true,
-        },
-      });
-      expect(result.user.emailVerified).toBe(true);
+      const failure = new Error('Canonical user query failed');
+      mockPrismaUser.findUnique.mockRejectedValueOnce(failure);
+      await expect(AuthService.login(loginData)).rejects.toBe(failure);
+      expect(mockPrismaUser.findUnique).toHaveBeenCalledTimes(1);
+      expect(mockJwtUtils.sign).not.toHaveBeenCalled();
     });
   });
 
@@ -587,34 +544,18 @@ describe('AuthService', () => {
       });
     });
 
-    it('should refresh sessions against legacy user rows when emailVerified is unavailable', async () => {
-      const refreshPayload = { userId: TEST_USER.id, type: 'refresh' as const, sv: 0 };
-      const legacyUser = {
-        id: TEST_USER.id,
-        email: TEST_USER.email,
-        username: TEST_USER.username,
-        password: TEST_USER.password,
-        role: TEST_USER.role,
-        isActive: TEST_USER.isActive,
-        avatar: TEST_USER.avatar,
-        sessionVersion: TEST_USER.sessionVersion,
-      };
-
-      mockJwtUtils.verify.mockReturnValue(refreshPayload);
-      mockPrismaUser.findUnique
-        .mockRejectedValueOnce(new Error('The column `users.emailVerified` does not exist in the current database.'))
-        .mockResolvedValueOnce(legacyUser);
-      mockJwtUtils.sign.mockReturnValue('new-access-token');
-      mockJwtUtils.signRefresh.mockReturnValue('new-refresh-token');
-
-      const result = await AuthService.refreshSession('valid-refresh-token');
-
-      expect(result.user.emailVerified).toBe(true);
+    it('propagates refresh schema failures without legacy queries', async () => {
+      mockJwtUtils.verify.mockReturnValue({ userId: TEST_USER.id, sv: 0, type: 'refresh' });
+      const failure = new Error('Canonical user query failed');
+      mockPrismaUser.findUnique.mockRejectedValueOnce(failure);
+      await expect(AuthService.refreshSession('refresh-token')).rejects.toBe(failure);
+      expect(mockPrismaUser.findUnique).toHaveBeenCalledTimes(1);
+      expect(mockJwtUtils.sign).not.toHaveBeenCalled();
     });
 
     it('should throw when the refresh token is invalid (verify throws)', async () => {
       mockJwtUtils.verify.mockImplementation(() => {
-        throw new Error('jwt expired');
+        throw new jwt.TokenExpiredError('jwt expired', new Date());
       });
 
       await expect(AuthService.refreshSession('expired-token')).rejects.toThrow(

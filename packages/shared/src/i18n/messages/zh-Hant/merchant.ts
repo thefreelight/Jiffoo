@@ -830,6 +830,7 @@ export const merchant = {
       lastProvider: '不能解除安裝最後一個已啟用的提供者。', busy: '另一個操作正在進行，請完成後重試。', failed: '外掛操作失敗。',
     },
     upload: {
+      unknownManifestField: '外掛清單包含不支援的欄位。',
       "title": "上傳本地外掛",
       "file": "外掛 ZIP",
       "preview": "預覽外掛套件",

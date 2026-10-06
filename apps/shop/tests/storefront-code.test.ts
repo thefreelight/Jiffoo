@@ -32,18 +32,18 @@ const data = {
 };
 
 describe('Storefront code server fetch', () => {
-  it('I returns no code for a non-availability non-2xx public API response', async () => {
-    await withApi(500, { success: true, data }, async () => expect(await getStorefrontCode()).toBeNull());
+  it('I propagates a non-availability server failure instead of hiding storefront code', async () => {
+    await withApi(500, { success: true, data }, async () => expect(getStorefrontCode()).rejects.toMatchObject({ status: 500 }));
   });
 
-  it('I returns no code for invalid public API response shapes', async () => {
+  it('I propagates invalid public API response shapes instead of treating them as empty code', async () => {
     for (const body of [
       null, {}, { success: false, data }, { success: true, data: null },
       { success: true, data: { ...data, headCode: 1 } },
       { success: true, data: { ...data, bodyStartCode: null } },
       { success: true, data: { ...data, bodyEndCode: 'x'.repeat(65537) } },
       { success: true, data: { ...data, metaPixelId: 1 } },
-    ]) await withApi(200, body, async () => expect(await getStorefrontCode()).toBeNull());
+    ]) await withApi(200, body, async () => expect(getStorefrontCode()).rejects.toMatchObject({ status: 500 }));
   });
 
   it('I returns provider IDs and code slots and omits only entirely empty configurations', async () => {
@@ -56,8 +56,8 @@ describe('Storefront code server fetch', () => {
       async () => expect(await getStorefrontCode()).toBeNull());
   });
 
-  it('I returns no code for malformed JSON or a failed connection', async () => {
-    await withApi(200, 'invalid JSON', async () => expect(await getStorefrontCode()).toBeNull(), true);
-    await withApi(0, null, async () => expect(await getStorefrontCode()).toBeNull());
+  it('I propagates malformed JSON and failed connections to the safe error boundary', async () => {
+    await withApi(200, 'invalid JSON', async () => expect(getStorefrontCode()).rejects.toThrow(), true);
+    await withApi(0, null, async () => expect(getStorefrontCode()).rejects.toThrow());
   });
 });

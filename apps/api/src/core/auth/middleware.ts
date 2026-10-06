@@ -1,7 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { JwtUtils } from '@/utils/jwt';
 import { sendError } from '@/utils/response';
-import { findAuthIdentityById } from './user-compat';
+import { findAuthIdentityById } from './identity';
+import jwt from 'jsonwebtoken';
 import { ApiTokenService, type ApiTokenScope } from './api-token';
 
 /**
@@ -30,6 +31,8 @@ export async function authMiddleware(
     }
 
     const payload = JwtUtils.verify(token);
+    if (typeof payload.userId !== 'string' || payload.type === 'refresh') return sendError(reply, 401, 'INVALID_TOKEN', 'Invalid token claims');
+    if (!Number.isSafeInteger(payload.sv)) return sendError(reply, 401, 'SESSION_REVOKED', 'Session revoked');
 
     // Get user info from database
     const user = await findAuthIdentityById(payload.userId);
@@ -56,7 +59,8 @@ export async function authMiddleware(
       roles,
     };
 
-  } catch {
+  } catch (error) {
+    if (!(error instanceof jwt.JsonWebTokenError || error instanceof jwt.TokenExpiredError || error instanceof jwt.NotBeforeError)) throw error;
     return sendError(reply, 401, 'UNAUTHORIZED', 'Invalid or expired token');
   }
 }
@@ -92,6 +96,7 @@ export async function optionalAuthMiddleware(
     }
 
     const payload = JwtUtils.verify(token);
+    if (typeof payload.userId !== 'string' || !Number.isSafeInteger(payload.sv) || payload.type === 'refresh') return;
 
     const user = await findAuthIdentityById(payload.userId);
 
@@ -106,7 +111,8 @@ export async function optionalAuthMiddleware(
         roles: [user.role],
       };
     }
-  } catch {
+  } catch (error) {
+    if (!(error instanceof jwt.JsonWebTokenError || error instanceof jwt.TokenExpiredError || error instanceof jwt.NotBeforeError)) throw error;
     // Ignore error, user not logged in
   }
 }

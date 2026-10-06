@@ -4,6 +4,7 @@ import { CheckoutService } from './service';
 import { sendError, sendSuccess } from '@/utils/response';
 import { checkoutSchemas } from './schemas';
 import { SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
+import { sendKnownError } from '@/utils/api-errors';
 
 export async function checkoutRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', dualAuthMiddleware('checkout:create'));
@@ -11,7 +12,9 @@ export async function checkoutRoutes(fastify: FastifyInstance) {
     try {
       const body = request.body as { shippingAddress: { country: string; state?: string; city?: string; postalCode?: string; addressLine1?: string; addressLine2?: string }; shippingOptionId?: string };
       return sendSuccess(reply, await CheckoutService.quote(request.user!.id, body));
-    } catch (error: unknown) {
+    } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
       if (error instanceof SharedProtectionUnavailable) return sendProtectionUnavailable(reply);
       if (error && typeof error === 'object' && 'code' in error && error.code === 'PLUGIN_PACKAGE_UNAVAILABLE')
         return sendError(reply, 503, 'PLUGIN_PACKAGE_UNAVAILABLE', 'Checkout plugin package is unavailable');

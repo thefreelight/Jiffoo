@@ -6,6 +6,7 @@ import { FastifyPluginAsync } from 'fastify';
 import { systemSettingsService } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminSettingsSchemas } from './schemas';
+import { sendKnownError } from '@/utils/api-errors';
 
 const systemSettingsRoutes: FastifyPluginAsync = async (fastify) => {
     // Require Admin for all system settings routes
@@ -23,7 +24,9 @@ const systemSettingsRoutes: FastifyPluginAsync = async (fastify) => {
         try {
             const settings = await systemSettingsService.getAllSettings();
             return sendSuccess(reply, settings);
-        } catch (error: any) {
+        } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
             return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to fetch settings');
         }
     });
@@ -47,7 +50,9 @@ const systemSettingsRoutes: FastifyPluginAsync = async (fastify) => {
         try {
             const updated = await systemSettingsService.batchUpdate(settings);
             return sendSuccess(reply, updated, `${Object.keys(updated).length} settings updated`);
-        } catch (error: any) {
+        } catch (error) {
+      const knownErrorResponse = sendKnownError(reply, error);
+      if (knownErrorResponse) return knownErrorResponse;
             return sendError(reply, 400, 'BAD_REQUEST', error.message || 'Failed to update settings');
         }
     });

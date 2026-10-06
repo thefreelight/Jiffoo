@@ -1,4 +1,8 @@
 export interface ApiResponse<T = unknown> {
+  /** HTTP transport metadata; not part of the Core JSON envelope. */
+  httpStatus?: number;
+  /** Client-validated plugin gateway business envelope; never trusted from the wire. */
+  pluginBusinessError?: boolean;
   success: boolean;
   data?: T;
   message?: string;

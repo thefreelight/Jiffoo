@@ -161,7 +161,7 @@ describe('Extensions Installer Endpoints', () => {
     try {
       const response = await uploadPlugin(archive.archivePath);
       expect(response.statusCode).toBe(400);
-      expect(response.json().error.message).toContain('storefrontScript');
+      expect(response.json().error).toMatchObject({ code: 'UNKNOWN_MANIFEST_FIELD', message: 'Unknown manifest field.' });
       expect(await prisma.pluginInstall.count({ where: { slug } })).toBe(0);
       expect(await prisma.pluginInstallation.count({ where: { pluginSlug: slug } })).toBe(0);
       expect(await pluginPackageStore.list()).not.toContain(slug);
@@ -365,7 +365,7 @@ describe('Extensions Installer Endpoints', () => {
       });
       expect(defaultInstance).not.toBeNull();
       expect(defaultInstance!.enabled).toBe(false);
-      await expect(callContract(uploadSlug, 'shipping', 1, 'quote', { currency: 'USD', items: [], subtotalMinor: 0, address: { country: 'US' } })).rejects.toMatchObject({ code: 'CONTRACT_CALL_FAILED', message: `Plugin ${uploadSlug} is not enabled` });
+      await expect(callContract(uploadSlug, 'shipping', 1, 'quote', { currency: 'USD', items: [], subtotalMinor: 0, address: { country: 'US' } })).rejects.toMatchObject({ code: 'PLUGIN_DISABLED', message: `Plugin ${uploadSlug} is not enabled` });
       const enableResponse = await app.inject({
         method: 'PATCH',
         url: `/api/v1/extensions/plugin/${uploadSlug}/instances/${defaultInstance!.id}`,

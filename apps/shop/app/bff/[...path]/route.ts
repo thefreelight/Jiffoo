@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { shopApi } from '@/lib/core-transport';
 import { classifyAvailability, type ShopAvailability } from '@/lib/availability';
+import { coreAuthRejection, safeCoreFailure } from '@/lib/core-errors';
 import {
   ACCESS_COOKIE, REFRESH_COOKIE, REFRESH_SECONDS, ORIGIN_ERROR,
   allowedBffRoute, cookieOptions, stripTokens,
@@ -51,6 +52,7 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
     const upstream = await send(access);
     const unavailable = await classifyAvailability(upstream);
     if (unavailable) return unavailableResponse(unavailable);
+    if (!upstream.ok) return new NextResponse((await safeCoreFailure(upstream)).body, { status: upstream.status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
     const response = NextResponse.json({ success: true, data: { loggedOut: true } });
     clearTokens(response);
     return response;
@@ -74,15 +76,23 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
       access = renewed.access_token;
       upstream = await send(access);
     } else {
-      const response = NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED' } }, { status: 401 });
-      clearTokens(response);
+      const rejected = await coreAuthRejection(refreshResponse);
+      const failure = refreshResponse.status >= 500 ? await safeCoreFailure(refreshResponse) : refreshResponse;
+      const response = NextResponse.json(await failure.json(), { status: failure.status, headers: { 'Cache-Control': 'no-store' } });
+      if (rejected) clearTokens(response);
       return response;
     }
   }
   const unavailable = await classifyAvailability(upstream);
   if (unavailable) return unavailableResponse(unavailable);
+  if (upstream.status >= 500) {
+    const failure = await safeCoreFailure(upstream);
+    return NextResponse.json(await failure.json(), { status: failure.status, headers: { 'Cache-Control': 'no-store' } });
+  }
+  const refreshRejected = path === '/auth/refresh' && await coreAuthRejection(upstream);
   const body = await upstream.json();
   const response = NextResponse.json(stripTokens(body), { status: upstream.status });
+  if (refreshRejected) clearTokens(response);
   if (upstream.ok && ['/auth/login', '/auth/register', '/auth/refresh', '/auth/change-password'].includes(path)) {
     const tokens = (body as { data: Tokens | PasswordTokens }).data;
     setTokens(response, { ...tokens, expires_in: 'expires_in' in tokens ? tokens.expires_in : REFRESH_SECONDS });

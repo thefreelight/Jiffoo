@@ -212,7 +212,7 @@ module.exports = { register(ctx) {
         payload: { enabled: true },
       });
       expect(response.statusCode).toBe(400);
-      expect(response.json().error.message).toContain('Only the default plugin instance is supported');
+      expect(response.json().error.message).toBe('Update error.');
     } finally {
       await prisma.pluginInstallation.delete({ where: { id: nonDefault.id } });
     }

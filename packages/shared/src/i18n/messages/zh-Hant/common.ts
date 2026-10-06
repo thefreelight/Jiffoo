@@ -121,6 +121,8 @@ export const common = {
     unauthorized: '未授權的存取',
     forbidden: '禁止存取',
     serverError: '伺服器錯誤，請稍後重試。',
+    temporarilyUnavailable: '服務暫時無法使用，請稍後重試。',
+    requestCouldNotBeCompleted: '無法完成請求。',
     networkError: '網路錯誤，請檢查您的連線。',
     rateLimited: '請求過於頻繁，請稍後再試。',
     pluginOperationInProgress: '此外掛有另一項操作正在進行。',

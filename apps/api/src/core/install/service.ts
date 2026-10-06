@@ -5,6 +5,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { prisma } from '@/config/database';
+import { Prisma } from '@prisma/client';
+import { ApiError } from '@/utils/api-errors';
 import bcrypt from 'bcryptjs';
 
 export interface InstallationStatus {
@@ -147,7 +149,7 @@ export class InstallService {
         siteName: (settings.settings as Record<string, unknown> | null)?.['branding.platform_name'] as string | undefined
       };
     } catch (error) {
-      return { isInstalled: false };
+      throw error;
     }
   }
 
@@ -155,24 +157,24 @@ export class InstallService {
     try {
       await prisma.$queryRaw`SELECT 1`;
       return { connected: true };
-    } catch {
-      return { connected: false };
+    } catch (error) {
+      throw error;
     }
   }
 
-  static async completeInstallation(data: InstallData): Promise<{ success: boolean; error?: string; code?: string }> {
+  static async completeInstallation(data: InstallData): Promise<{ success: true }> {
     try {
       const runtimeVersion = resolveCurrentVersion();
       const hashedPassword = await bcrypt.hash(data.adminPassword, 10);
       return await prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT pg_advisory_xact_lock(9131472026)::text`;
         const settings = await tx.systemSettings.findUnique({ where: { id: 'system' } });
-        if (settings?.isInstalled) return { success: false, error: 'System is already installed' };
+        if (settings?.isInstalled) throw new ApiError('INSTALL_ALREADY_COMPLETED');
 
         const email = data.adminEmail.trim().toLowerCase();
         const existingAdmin = await tx.user.findUnique({ where: { email } });
         if (existingAdmin) {
-          return { success: false, error: 'Email is already in use', code: 'INSTALL_EMAIL_IN_USE' };
+          throw new ApiError('INSTALL_EMAIL_IN_USE');
         }
         const adminUser = await tx.user.create({
           data: {
@@ -203,10 +205,10 @@ export class InstallService {
         return { success: true };
       });
     } catch (error: any) {
-      if (error?.code === 'P2002') {
-        return { success: false, error: 'Email is already in use', code: 'INSTALL_EMAIL_IN_USE' };
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002' && String(error.meta?.target).includes('email')) {
+        throw new ApiError('INSTALL_EMAIL_IN_USE');
       }
-      return { success: false, error: error.message };
+      throw error;
     }
   }
 
