@@ -79,6 +79,38 @@ function orderNumber(): string {
   return `ord_${Date.now().toString(36)}_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`;
 }
 
+const SHIPPING_ADDRESS_REQUIRED_FIELDS = ['name', 'phone', 'line1', 'city', 'country'] as const;
+const SHIPPING_ADDRESS_OPTIONAL_FIELDS = ['state', 'postalCode'] as const;
+const SHIPPING_ADDRESS_FIELDS = [...SHIPPING_ADDRESS_REQUIRED_FIELDS, ...SHIPPING_ADDRESS_OPTIONAL_FIELDS] as const;
+
+export type NormalizedShippingAddress = Record<(typeof SHIPPING_ADDRESS_FIELDS)[number], string>;
+
+/** Accepts the client address payload; returns a trimmed address or null when
+ *  a required field is missing/blank (null = caller must reject the order for
+ *  physical goods). State/province and postal code are optional — many real
+ *  addresses (and Chinese checkout habits) leave them blank or merged into
+ *  the street line. */
+export function normalizeShippingAddress(raw: unknown): NormalizedShippingAddress | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const source = raw as Record<string, unknown>;
+  const address: Record<string, string> = {};
+  for (const field of SHIPPING_ADDRESS_REQUIRED_FIELDS) {
+    const value = typeof source[field] === 'string' ? (source[field] as string).trim() : '';
+    if (!value) return null;
+    address[field] = value;
+  }
+  for (const field of SHIPPING_ADDRESS_OPTIONAL_FIELDS) {
+    const value = typeof source[field] === 'string' ? (source[field] as string).trim() : '';
+    if (value) address[field] = value;
+  }
+  const line2 = typeof source.line2 === 'string' ? source.line2.trim() : '';
+  if (line2) address.line2 = line2;
+  if (address.country.length !== 2 || address.country !== address.country.toUpperCase()) {
+    address.country = address.country.toUpperCase();
+  }
+  return address as NormalizedShippingAddress;
+}
+
 export function checkoutLocale(request: Request, explicitLocale?: string): 'zh-CN' | 'en' {
   const candidate = explicitLocale?.trim() || request.headers.get('accept-language') || '';
   return candidate.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en';
@@ -155,6 +187,12 @@ async function createOrder(
   ).bind(user.id).first<{ shipping_amount: number; method_name: string; plugin_slug: string }>();
   const requiresShipping = items.some((item) => item.productKind === 'goods' || item.productKind === 'consumable');
   const shippingAmount = requiresShipping ? shipping?.shipping_amount ?? 0 : 0;
+  // Physical goods are shipped after payment: a complete delivery address is
+  // mandatory, otherwise the customer can never receive the product.
+  const shippingAddress = normalizeShippingAddress(body.shippingAddress);
+  if (requiresShipping && !shippingAddress) {
+    return failure(400, 'SHIPPING_ADDRESS_REQUIRED', 'A complete shipping address is required for physical products');
+  }
   // Promo codes double as buyer discounts and affiliate attribution.
   const affiliateCodeRaw = typeof body.affiliateCode === 'string' ? body.affiliateCode.trim().toUpperCase() : '';
   const affiliatePartner = affiliateCodeRaw
@@ -179,7 +217,7 @@ async function createOrder(
     shippingProvider: requiresShipping ? shipping?.plugin_slug ?? null : null,
     appliedDiscounts: [],
     currency: 'USD',
-    shippingAddress: body.shippingAddress ?? null,
+    shippingAddress: shippingAddress ?? body.shippingAddress ?? null,
     customerEmail: user.email,
     locale: checkoutLocale(request, body.locale),
     items,
@@ -294,6 +332,14 @@ function encodeStripeForm(order: Record<string, unknown>, successUrl: string, ca
   });
   form.set('metadata[orderId]', String(order.id));
   form.set('payment_intent_data[metadata][orderId]', String(order.id));
+  // Physical goods: collect the delivery address on the hosted page. Stripe
+  // rejects the constraint when the cart is digital, so only set it for
+  // orders that recorded a shipping address at creation.
+  if (order.shippingAddress) {
+    ['CN', 'US', 'GB', 'CA', 'AU', 'HK', 'SG', 'JP', 'DE', 'FR'].forEach((country, index) => {
+      form.set(`shipping_address_collection[allowed_countries][${index}]`, country);
+    });
+  }
   return form;
 }
 
@@ -415,6 +461,18 @@ async function createPaymentIntent(request: Request, env: CheckoutEnv, user: Nat
   ).bind(body.orderId, user.id).first<OrderSnapshotRow>();
   if (!row) return failure(404, 'NOT_FOUND', 'Order not found');
   if (row.payment_status === 'PAID') return failure(409, 'ORDER_ALREADY_PAID', 'Order is already paid');
+  // WeChat Pay (and Alipay once the account is approved) are redirect wallets:
+  // they render only in hosted Checkout, never in the native PaymentSheet.
+  // Respond without a clientSecret for mainland-China-geo / Chinese-language
+  // shoppers so the apps route them to the hosted session, which also gives
+  // CNY adaptive pricing.
+  const geoCountry = typeof request.cf?.country === 'string'
+    ? request.cf.country
+    : (request.headers.get('cf-ipcountry') ?? '');
+  const acceptLanguage = (request.headers.get('accept-language') ?? '').trim().toLowerCase();
+  if (geoCountry === 'CN' || acceptLanguage.startsWith('zh')) {
+    return success({ route: 'hosted_checkout' });
+  }
   const idempotencyKey = typeof body.idempotencyKey === 'string' && body.idempotencyKey.trim()
     ? `intent:${body.idempotencyKey.trim()}`
     : `order:${body.orderId}:stripe-intent`;
@@ -423,6 +481,7 @@ async function createPaymentIntent(request: Request, env: CheckoutEnv, user: Nat
     return failure(409, 'INVALID_ORDER_TOTAL', 'Order total is not chargeable');
   }
   const order = JSON.parse(row.payload) as Record<string, unknown>;
+  const shippingAddress = normalizeShippingAddress(order.shippingAddress);
   const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
   const form = new URLSearchParams({
     amount: String(amount),
@@ -430,6 +489,16 @@ async function createPaymentIntent(request: Request, env: CheckoutEnv, user: Nat
     'automatic_payment_methods[enabled]': 'true',
     'metadata[orderId]': String(order.id),
   });
+  if (shippingAddress) {
+    form.set('shipping[name]', shippingAddress.name);
+    form.set('shipping[phone]', shippingAddress.phone);
+    form.set('shipping[address][line1]', shippingAddress.line1);
+    if (shippingAddress.line2) form.set('shipping[address][line2]', shippingAddress.line2);
+    form.set('shipping[address][city]', shippingAddress.city);
+    form.set('shipping[address][state]', shippingAddress.state);
+    form.set('shipping[address][postal_code]', shippingAddress.postalCode);
+    form.set('shipping[address][country]', shippingAddress.country);
+  }
   const stripe = await fetch('https://api.stripe.com/v1/payment_intents', {
     method: 'POST',
     headers: {
@@ -545,6 +614,30 @@ async function handleStripeWebhook(request: Request, env: CheckoutEnv): Promise<
     const row = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(orderId).first<{ payload: string }>();
     if (row) {
       const order = JSON.parse(row.payload) as Record<string, unknown>;
+      // Hosted-checkout sync: when the buyer entered the delivery address on
+      // the Stripe page (or left it to Stripe's collector), write it back
+      // into the order so fulfillment and the App can see it.
+      if (!order.shippingAddress) {
+        const shipping = (object.shipping ?? null) as Record<string, unknown> | null;
+        const stripeAddress = (shipping?.address ?? null) as Record<string, unknown> | null;
+        if (stripeAddress && typeof shipping?.name === 'string' && shipping.name.trim()) {
+          order.shippingAddress = {
+            name: shipping.name.trim(),
+            phone: typeof shipping.phone === 'string' ? shipping.phone.trim() : '',
+            line1: String(stripeAddress.line1 ?? '').trim(),
+            line2: String(stripeAddress.line2 ?? '').trim(),
+            city: String(stripeAddress.city ?? '').trim(),
+            state: String(stripeAddress.state ?? '').trim(),
+            postalCode: String(stripeAddress.postal_code ?? '').trim(),
+            country: String(stripeAddress.country ?? 'CN').trim().toUpperCase(),
+          };
+          Object.assign(order, { updatedAt: now });
+          statements.push(
+            env.DB.prepare('UPDATE native_order_snapshots SET payload = ?1, source_updated_at = ?2 WHERE id = ?3')
+              .bind(JSON.stringify(order), now, orderId),
+          );
+        }
+      }
       Object.assign(order, { status: 'PAID', paymentStatus: 'PAID', updatedAt: now });
       statements.push(
         env.DB.prepare("UPDATE native_payment_sessions SET status = 'SUCCEEDED', updated_at = ?1 WHERE id = ?2").bind(now, sessionId),
@@ -584,7 +677,7 @@ export async function tryNativeCheckout(
   }
   const relevant = (url.pathname === '/api/v1/orders' && request.method === 'POST')
     || (/^\/api\/v1\/orders\/[^/]+\/cancel$/.test(url.pathname) && request.method === 'POST')
-    || (url.pathname === '/api/v1/payments/sessions' && request.method === 'POST')
+    || ((url.pathname === '/api/v1/payments/sessions' || url.pathname === '/api/v1/payments/create-session') && request.method === 'POST')
     || (url.pathname === '/api/v1/payments/intents' && request.method === 'POST')
     || (/^\/api\/v1\/payments\/sessions\/[^/]+$/.test(url.pathname) && request.method === 'GET');
   if (!relevant) return null;
@@ -594,7 +687,12 @@ export async function tryNativeCheckout(
   if (url.pathname === '/api/v1/orders' && request.method === 'POST') return createOrder(request, env, user, loadProduct);
   const cancel = url.pathname.match(/^\/api\/v1\/orders\/([^/]+)\/cancel$/);
   if (cancel) return cancelOrder(request, env, user, cancel[1]);
-  if (url.pathname === '/api/v1/payments/sessions') return createPaymentSession(request, env, user);
+  if (url.pathname === '/api/v1/payments/sessions' || url.pathname === '/api/v1/payments/create-session') {
+    // '/create-session' is the storefront contract spelling
+    // (shared API_ENDPOINTS.CART/checkout + remoteradar workspace modal);
+    // '/sessions' is the original native spelling. Same handler, one contract.
+    return createPaymentSession(request, env, user);
+  }
   if (url.pathname === '/api/v1/payments/intents') return createPaymentIntent(request, env, user);
   const verify = url.pathname.match(/^\/api\/v1\/payments\/sessions\/([^/]+)$/);
   if (verify) return verifyPaymentSession(env, user, verify[1]);
