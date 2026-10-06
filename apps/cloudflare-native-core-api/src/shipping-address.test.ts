@@ -56,7 +56,9 @@ describe('normalizeShippingAddress', () => {
   it('returns null when any required field is blank or missing', () => {
     expect(normalizeShippingAddress(null)).toBeNull();
     expect(normalizeShippingAddress({})).toBeNull();
-    expect(normalizeShippingAddress({ name: '张三', phone: '13800138000', line1: ' address ', city: '', state: '京', postalCode: '100000', country: 'CN' })).toBeNull();
+    expect(normalizeShippingAddress({ name: '张三', phone: '13800138000', line1: ' address ', city: '', state: '', postalCode: '', country: 'CN' })).toBeNull();
+    // state/postalCode are optional now
+    expect(normalizeShippingAddress({ name: '张三', phone: '13800138000', line1: ' address ', city: '北京', state: '', postalCode: '', country: 'CN' })).not.toBeNull();
   });
 
   it('trims fields, uppercases country, and keeps optional line2', () => {

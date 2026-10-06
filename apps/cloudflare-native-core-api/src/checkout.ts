@@ -79,21 +79,29 @@ function orderNumber(): string {
   return `ord_${Date.now().toString(36)}_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`;
 }
 
-const SHIPPING_ADDRESS_FIELDS = ['name', 'phone', 'line1', 'city', 'state', 'postalCode', 'country'] as const;
+const SHIPPING_ADDRESS_REQUIRED_FIELDS = ['name', 'phone', 'line1', 'city', 'country'] as const;
+const SHIPPING_ADDRESS_OPTIONAL_FIELDS = ['state', 'postalCode'] as const;
+const SHIPPING_ADDRESS_FIELDS = [...SHIPPING_ADDRESS_REQUIRED_FIELDS, ...SHIPPING_ADDRESS_OPTIONAL_FIELDS] as const;
 
 export type NormalizedShippingAddress = Record<(typeof SHIPPING_ADDRESS_FIELDS)[number], string>;
 
-/** Accepts the client address payload; returns a trimmed, complete address or
- *  null when any required field is missing/blank (null = caller must reject
- *  the order for physical goods). */
+/** Accepts the client address payload; returns a trimmed address or null when
+ *  a required field is missing/blank (null = caller must reject the order for
+ *  physical goods). State/province and postal code are optional — many real
+ *  addresses (and Chinese checkout habits) leave them blank or merged into
+ *  the street line. */
 export function normalizeShippingAddress(raw: unknown): NormalizedShippingAddress | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const source = raw as Record<string, unknown>;
   const address: Record<string, string> = {};
-  for (const field of SHIPPING_ADDRESS_FIELDS) {
+  for (const field of SHIPPING_ADDRESS_REQUIRED_FIELDS) {
     const value = typeof source[field] === 'string' ? (source[field] as string).trim() : '';
     if (!value) return null;
     address[field] = value;
+  }
+  for (const field of SHIPPING_ADDRESS_OPTIONAL_FIELDS) {
+    const value = typeof source[field] === 'string' ? (source[field] as string).trim() : '';
+    if (value) address[field] = value;
   }
   const line2 = typeof source.line2 === 'string' ? source.line2.trim() : '';
   if (line2) address.line2 = line2;
@@ -324,6 +332,14 @@ function encodeStripeForm(order: Record<string, unknown>, successUrl: string, ca
   });
   form.set('metadata[orderId]', String(order.id));
   form.set('payment_intent_data[metadata][orderId]', String(order.id));
+  // Physical goods: collect the delivery address on the hosted page. Stripe
+  // rejects the constraint when the cart is digital, so only set it for
+  // orders that recorded a shipping address at creation.
+  if (order.shippingAddress) {
+    ['CN', 'US', 'GB', 'CA', 'AU', 'HK', 'SG', 'JP', 'DE', 'FR'].forEach((country, index) => {
+      form.set(`shipping_address_collection[allowed_countries][${index}]`, country);
+    });
+  }
   return form;
 }
 
@@ -598,6 +614,30 @@ async function handleStripeWebhook(request: Request, env: CheckoutEnv): Promise<
     const row = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(orderId).first<{ payload: string }>();
     if (row) {
       const order = JSON.parse(row.payload) as Record<string, unknown>;
+      // Hosted-checkout sync: when the buyer entered the delivery address on
+      // the Stripe page (or left it to Stripe's collector), write it back
+      // into the order so fulfillment and the App can see it.
+      if (!order.shippingAddress) {
+        const shipping = (object.shipping ?? null) as Record<string, unknown> | null;
+        const stripeAddress = (shipping?.address ?? null) as Record<string, unknown> | null;
+        if (stripeAddress && typeof shipping?.name === 'string' && shipping.name.trim()) {
+          order.shippingAddress = {
+            name: shipping.name.trim(),
+            phone: typeof shipping.phone === 'string' ? shipping.phone.trim() : '',
+            line1: String(stripeAddress.line1 ?? '').trim(),
+            line2: String(stripeAddress.line2 ?? '').trim(),
+            city: String(stripeAddress.city ?? '').trim(),
+            state: String(stripeAddress.state ?? '').trim(),
+            postalCode: String(stripeAddress.postal_code ?? '').trim(),
+            country: String(stripeAddress.country ?? 'CN').trim().toUpperCase(),
+          };
+          Object.assign(order, { updatedAt: now });
+          statements.push(
+            env.DB.prepare('UPDATE native_order_snapshots SET payload = ?1, source_updated_at = ?2 WHERE id = ?3')
+              .bind(JSON.stringify(order), now, orderId),
+          );
+        }
+      }
       Object.assign(order, { status: 'PAID', paymentStatus: 'PAID', updatedAt: now });
       statements.push(
         env.DB.prepare("UPDATE native_payment_sessions SET status = 'SUCCEEDED', updated_at = ?1 WHERE id = ?2").bind(now, sessionId),
