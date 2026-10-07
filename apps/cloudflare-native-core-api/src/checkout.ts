@@ -80,7 +80,7 @@ function orderNumber(): string {
 }
 
 const SHIPPING_ADDRESS_REQUIRED_FIELDS = ['name', 'phone', 'line1', 'city', 'country'] as const;
-const SHIPPING_ADDRESS_OPTIONAL_FIELDS = ['state', 'postalCode'] as const;
+const SHIPPING_ADDRESS_OPTIONAL_FIELDS = ['state', 'postalCode', 'line2'] as const;
 const SHIPPING_ADDRESS_FIELDS = [...SHIPPING_ADDRESS_REQUIRED_FIELDS, ...SHIPPING_ADDRESS_OPTIONAL_FIELDS] as const;
 
 export type NormalizedShippingAddress = Record<(typeof SHIPPING_ADDRESS_FIELDS)[number], string>;
@@ -103,8 +103,6 @@ export function normalizeShippingAddress(raw: unknown): NormalizedShippingAddres
     const value = typeof source[field] === 'string' ? (source[field] as string).trim() : '';
     if (value) address[field] = value;
   }
-  const line2 = typeof source.line2 === 'string' ? source.line2.trim() : '';
-  if (line2) address.line2 = line2;
   if (address.country.length !== 2 || address.country !== address.country.toUpperCase()) {
     address.country = address.country.toUpperCase();
   }
@@ -332,13 +330,22 @@ function encodeStripeForm(order: Record<string, unknown>, successUrl: string, ca
   });
   form.set('metadata[orderId]', String(order.id));
   form.set('payment_intent_data[metadata][orderId]', String(order.id));
-  // Physical goods: collect the delivery address on the hosted page. Stripe
-  // rejects the constraint when the cart is digital, so only set it for
-  // orders that recorded a shipping address at creation.
-  if (order.shippingAddress) {
-    ['CN', 'US', 'GB', 'CA', 'AU', 'HK', 'SG', 'JP', 'DE', 'FR'].forEach((country, index) => {
-      form.set(`shipping_address_collection[allowed_countries][${index}]`, country);
-    });
+  // The order already carries the delivery address (required for physical
+  // goods at order creation), so bind it to the PaymentIntent instead of
+  // making the shopper re-enter it on the hosted page. Digital orders have
+  // no address and need none.
+  const address = (order.shippingAddress && typeof order.shippingAddress === 'object'
+    && !Array.isArray(order.shippingAddress)) ? order.shippingAddress as Record<string, unknown> : null;
+  const field = (key: string) => (typeof address?.[key] === 'string' ? (address[key] as string).trim() : '');
+  if (address && field('name') && field('line1') && field('country')) {
+    form.set('payment_intent_data[shipping][name]', field('name'));
+    if (field('phone')) form.set('payment_intent_data[shipping][phone]', field('phone'));
+    form.set('payment_intent_data[shipping][address][line1]', field('line1'));
+    if (field('line2')) form.set('payment_intent_data[shipping][address][line2]', field('line2'));
+    form.set('payment_intent_data[shipping][address][city]', field('city'));
+    if (field('state')) form.set('payment_intent_data[shipping][address][state]', field('state'));
+    if (field('postalCode')) form.set('payment_intent_data[shipping][address][postal_code]', field('postalCode'));
+    form.set('payment_intent_data[shipping][address][country]', field('country').toUpperCase());
   }
   return form;
 }
