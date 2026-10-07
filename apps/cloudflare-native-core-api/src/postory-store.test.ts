@@ -106,7 +106,7 @@ describe('postory store compat', () => {
     );
     const payload = await response!.json();
     expect(payload.success).toBe(true);
-    expect(payload.data.map((plan: { slug: string }) => plan.slug)).toEqual(['trial', 'local-yearly', 'founder-yearly']);
+    expect(payload.data.map((plan: { slug: string }) => plan.slug)).toEqual(['trial', 'local-yearly', 'founder-yearly', 'cloud-yearly']);
   });
 
   it('rejects unknown products', async () => {

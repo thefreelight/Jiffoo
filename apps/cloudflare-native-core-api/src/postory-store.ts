@@ -90,6 +90,17 @@ const PLANS: PostoryPlan[] = [
     isActive: true,
     entitlements: PLAN_ENTITLEMENTS,
   },
+  {
+    id: 'postory_cloud_yearly',
+    slug: 'cloud-yearly',
+    name: 'Postory Cloud',
+    amount: 1999,
+    currency: 'usd',
+    billingCycle: 'yearly',
+    trialDays: 0,
+    isActive: true,
+    entitlements: { ...PLAN_ENTITLEMENTS, cloudArchive: true, cloudSync: true },
+  },
 ];
 
 function json(data: unknown, status = 200): Response {
