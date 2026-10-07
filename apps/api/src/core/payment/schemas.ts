@@ -135,13 +135,10 @@ export const paymentSchemas = {
         provider: { type: 'string', description: 'Payment provider name' },
       },
     },
-    body: {
-      type: 'object',
-      additionalProperties: true,
-      description: 'Webhook payload forwarded by the payment provider (provider-specific JSON structure)',
-    },
     response: {
       ...createTypedCrudResponses(webhookResponseSchema),
+      413: errorResponseSchema,
+      415: errorResponseSchema,
       500: { ...errorResponseSchema, description: 'Includes PLUGIN_PACKAGE_CORRUPT' },
       503: { ...errorResponseSchema, description: 'PLUGIN_PACKAGE_UNAVAILABLE or PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT' },
     },

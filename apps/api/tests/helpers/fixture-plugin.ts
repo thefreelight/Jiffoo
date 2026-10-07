@@ -24,8 +24,8 @@ export const checkoutPaymentFixtureSource = `module.exports = { register(ctx) {
     }),
     getSessionStatus: () => ({ status: 'pending' }),
     handleWebhook: (input) => {
-      const event = JSON.parse(input.rawBody);
-      return { events: [{ providerEventId: event.providerEventId, sessionId: event.sessionId, status: 'succeeded' }] };
+      const event = JSON.parse(Buffer.from(input.rawBody).toString('utf8'));
+      return { verification: 'verified', events: [{ providerEventId: event.providerEventId, sessionId: event.sessionId, status: 'succeeded' }] };
     },
   });
 } };`;

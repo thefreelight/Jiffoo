@@ -30,7 +30,7 @@ const paymentSource = `module.exports = { register(ctx) {
     describe: (input) => ({ displayName: 'Signing fixture', requiresManualConfirmation: true,
       unpaidTimeoutMinutes: 60, supportedCurrencies: [input.storeCurrency] }),
     createSession: () => ({ sessionId: 'fixture', action: { type: 'none' } }),
-    getSessionStatus: () => ({ status: 'pending' }), handleWebhook: () => ({ events: [] }),
+    getSessionStatus: () => ({ status: 'pending' }), handleWebhook: () => ({ verification: 'verified', events: [] }),
   });
 } };`;
 const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');

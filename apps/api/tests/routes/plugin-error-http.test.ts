@@ -53,7 +53,7 @@ beforeAll(async () => {
         if(kind==='timeout'){process.send?.({kind:'fixture-entered',slug:ctx.plugin.slug});await new Promise(resolve=>process.once('b2a-release-'+ctx.plugin.slug,resolve));return {ok:true};}
         return reply.code(500).send({secret:'PRIVATE_PLUGIN_BODY',sql:'PRIVATE_SQL'});
       }});
-      ctx.contracts.implement('payment',1,{describe:()=>({displayName:'Fixture',requiresManualConfirmation:false,unpaidTimeoutMinutes:30,supportedCurrencies:['USD']}),createSession:()=>({sessionId:'fixture',action:{type:'none'}}),getSessionStatus:()=>({status:'pending'}),handleWebhook:()=>({events:[]})});
+      ctx.contracts.implement('payment',1,{describe:()=>({displayName:'Fixture',requiresManualConfirmation:false,unpaidTimeoutMinutes:30,supportedCurrencies:['USD']}),createSession:()=>({sessionId:'fixture',action:{type:'none'}}),getSessionStatus:()=>({status:'pending'}),handleWebhook:()=>({verification:'verified',events:[]})});
     }};`;
     await fs.writeFile(path.join(directory, 'server/index.js'), source);
     const zip = path.join(directory, 'plugin.zip');

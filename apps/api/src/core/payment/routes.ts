@@ -26,6 +26,7 @@ import { ApiError, sendKnownError, sendMappedError } from '@/utils/api-errors';
 import { Prisma } from '@prisma/client';
 import { decimalToMinor } from './minor-units';
 import { createNotification } from '@/core/notifications/service';
+import { paymentWebhookRoutes } from './webhook-routes';
 
 function setHttpCache(reply: FastifyReply, data: unknown) {
   const etag = `"${createHash('md5').update(JSON.stringify(data)).digest('hex')}"`;
@@ -445,39 +446,5 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // Payment webhooks are handled by individual plugins
-  // Core provides a generic registration for these via extension hooks
-  fastify.post('/webhook/:provider', {
-    schema: {
-      tags: ['payments'],
-      summary: 'Payment webhook endpoint',
-      description: 'Webhook endpoint for payment providers (handled by plugins)',
-      ...paymentSchemas.webhook,
-    }
-  }, async (request, reply) => {
-    const { provider } = request.params as { provider: string };
-    const installation = await prisma.pluginInstallation.findUnique({
-      where: { pluginSlug_instanceKey: { pluginSlug: provider, instanceKey: 'default' } },
-      include: { plugin: { select: { deletedAt: true } } },
-    });
-    if (!installation) return sendMappedError(reply, new ApiError('PLUGIN_NOT_FOUND'));
-    if (installation && (!installation.enabled || installation.deletedAt || installation.plugin.deletedAt)) {
-      return sendError(reply, 503, 'PLUGIN_DISABLED', 'Payment provider is disabled');
-    }
-    LoggerService.logPayment('webhook-received', undefined, undefined, { provider });
-    const rawBody = typeof request.body === 'string' ? request.body : JSON.stringify(request.body || {});
-    try {
-      const result = await callContract(provider, 'payment', 1, 'handleWebhook', { headers: request.headers as Record<string, string>, query: request.query as Record<string, string>, rawBody }) as any;
-      const { applyNormalizedPluginWebhook } = await import('./plugin-webhook');
-      await Promise.all(result.events.map((event: any) => applyNormalizedPluginWebhook(provider, { received: true, handled: true, providerEventId: event.providerEventId, sessionId: event.sessionId, normalizedStatus: event.status })));
-      return sendSuccess(reply, { received: true });
-    } catch (error: any) {
-      const known = sendKnownError(reply, error); if (known) return known;
-      if (error?.code === 'PLUGIN_PACKAGE_UNAVAILABLE' || error?.code === 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT')
-        return sendError(reply, 503, error.code, error.message);
-      if (error instanceof SharedProtectionUnavailable) return sendProtectionUnavailable(reply);
-      if (error?.code === 'PLUGIN_PACKAGE_CORRUPT') return sendError(reply, 500, error.code, error.message);
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Payment webhook failed');
-    }
-  });
+  await fastify.register(paymentWebhookRoutes);
 }

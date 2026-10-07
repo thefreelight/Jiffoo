@@ -127,10 +127,10 @@ function callback(order: Order): Callback {
 }
 function signature(event: Callback) {
   // Independently encode the documented fixture protocol; do not import its implementation.
-  return createHmac('sha256', secret).update(JSON.stringify(['e2e-payment-v1', event.eventId, event.sessionId, event.status, event.amountMinor, event.currency]), 'utf8').digest('hex');
+  return createHmac('sha256', secret).update('e2e-payment-raw-v1\n', 'utf8').update(Buffer.from(JSON.stringify(event), 'utf8')).digest('hex');
 }
 async function send(request: APIRequestContext, event: Callback, signed = signature(event)) {
-  return request.post(`${apiOrigin}/payments/webhook/${provider}`, { headers: { 'x-e2e-signature': signed }, data: event });
+  return request.post(`${apiOrigin}/payments/webhook/${provider}`, { headers: { 'content-type': 'application/json', 'x-e2e-signature': signed }, data: Buffer.from(JSON.stringify(event), 'utf8') });
 }
 async function pending(request: APIRequestContext, order: Order, token: string) {
   expect(await api<Order>(request, `/orders/${order.id}`, { token })).toMatchObject({ status: 'PENDING', paymentStatus: 'PENDING' });
@@ -218,7 +218,9 @@ for (const letter of ['B', 'C', 'D', 'E', 'F'] as const) {
         ] as const) {
           const rejected = await send(request, payload, signed);
           console.log(`D callback ${name}: HTTP ${rejected.status()}`);
-          expect(rejected.ok()).toBe(false);
+          expect(rejected.status()).toBe(401);
+          expect((await rejected.json()).error.code).toBe('PAYMENT_WEBHOOK_AUTHENTICATION_FAILED');
+          expect(rejected.headers()['cache-control']).toBe('no-store');
           expect(await pending(request, order, token)).toEqual(before);
         }
         return;

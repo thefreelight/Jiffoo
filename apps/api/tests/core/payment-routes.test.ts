@@ -285,6 +285,7 @@ describe('Payment Routes', () => {
     it('accepts a payment v1 webhook event', async () => {
       (prisma.pluginInstallation.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ enabled: true, deletedAt: null, plugin: { deletedAt: null } });
       (callContract as ReturnType<typeof vi.fn>).mockResolvedValue({
+        verification: 'verified',
         events: [{ providerEventId: 'provider-event-1', sessionId: 'plugin-session-1', status: 'succeeded' }],
       });
       const tx = {

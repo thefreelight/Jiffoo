@@ -115,7 +115,8 @@ describe('Plugin SDK create and generated projects', () => {
     });
   });
 
-  it.each(['integration', 'shipping', 'payment'] as const)('C %s template builds, packs, installs, enables and runs through the real Core runtime', async category => {
+  it.each(['integration', 'shipping', 'payment', 'payment-webhook'] as const)('C %s template builds, packs, installs, enables and runs through the real Core runtime', async entry => {
+    const category = entry === 'payment-webhook' ? 'payment' : entry;
     await temporary(async directory => {
       const slug = id(), project = path.join(directory, 'project');
       const before = await snapshotPluginRows();
@@ -155,6 +156,12 @@ describe('Plugin SDK create and generated projects', () => {
           const input = { orderId: 'order-1', amountMinor: 1250, currency: 'EUR', customer: { id: 'customer-1', email: 'customer@example.com' }, returnUrl: 'https://shop.example/return', cancelUrl: 'https://shop.example/cancel', idempotencyKey: 'request-1' };
           expect(await callContract(slug, 'payment', 1, 'createSession', input)).toEqual({ sessionId: 'manual_order-1_request-1', action: { type: 'instructions', text: 'Transfer to the configured account.' } });
           expect(await callContract(slug, 'payment', 1, 'getSessionStatus', { sessionId: 'manual_order-1_request-1' })).toEqual({ status: 'pending' });
+          if (entry === 'payment-webhook') {
+            const rejected = await fetch(`${base}/api/v1/payments/webhook/${slug}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            expect(rejected.status).toBe(401);
+            expect(rejected.headers.get('Cache-Control')).toBe('no-store');
+            expect(await rejected.json()).toEqual({ success: false, error: { code: 'PAYMENT_WEBHOOK_AUTHENTICATION_FAILED', message: 'Payment webhook authentication failed' } });
+          }
         }
       } finally {
         if (installationId) await dropInternalRuntime(installationId);

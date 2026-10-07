@@ -115,11 +115,14 @@ export function register(ctx: PluginContext): void {
     describe: input => ({ displayName: 'Manual payment', requiresManualConfirmation: true, unpaidTimeoutMinutes: hours * 60, supportedCurrencies: [input.storeCurrency], instructions }),
     createSession: input => ({ sessionId: 'manual_' + input.orderId + '_' + input.idempotencyKey, action: { type: 'instructions', text: instructions } }),
     getSessionStatus: () => ({ status: 'pending' }),
+    // Manual payment does not authenticate provider callbacks.
+    handleWebhook: () => ({ verification: 'rejected', reasonCode: 'WEBHOOK_NOT_SUPPORTED' }),
   };
   ctx.contracts.implement('payment', 1, {
     describe: input => payment.describe(input as PaymentV1Input<'describe'>),
     createSession: input => payment.createSession(input as PaymentV1Input<'createSession'>),
     getSessionStatus: input => payment.getSessionStatus(input as PaymentV1Input<'getSessionStatus'>),
+    handleWebhook: input => payment.handleWebhook!(input as PaymentV1Input<'handleWebhook'>),
   });
 }
 `,

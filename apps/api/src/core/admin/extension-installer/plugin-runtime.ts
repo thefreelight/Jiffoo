@@ -45,6 +45,7 @@ import { ApiError, sendMappedError, isDatabaseUnavailable, type ErrorCode } from
 import { sharedProtection, pluginProtectionScope, SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
 import { decryptPluginConfig, redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { pluginSigningError } from './plugin-signing-policy';
+import { encodePaymentWebhook } from './payment-webhook-wire';
 
 // ============================================================================
 // Constants
@@ -777,7 +778,8 @@ export async function callContract(
     if (!latest?.enabled || latest.deletedAt || latest.protectionGeneration !== instance.protectionGeneration) {
       throw new ContractCallError('PLUGIN_DISABLED', 'Plugin is disabled');
     }
-    const invocation = runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: input as Record<string, unknown> });
+    const webhook = contractName === 'payment' && method === 'handleWebhook';
+    const invocation = runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: webhook ? encodePaymentWebhook(input) : input as Record<string, unknown> });
     injected = true;
     void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
     const response = await Promise.race([
@@ -785,12 +787,17 @@ export async function callContract(
       new Promise<never>((_, reject) => setTimeout(() => reject(new ContractCallError('PLUGIN_TIMEOUT', 'Contract call timed out')), getPluginTimeoutMs())),
     ]);
     if (response.statusCode >= 400) {
+      if (webhook) throw new ContractCallError('PLUGIN_ERROR', `Contract route returned ${response.statusCode}`);
       const failure = response.json() as { error?: unknown };
       throw new ContractCallError('CONTRACT_CALL_FAILED', redactPluginText(`Contract route returned ${response.statusCode}: ${typeof failure.error === 'string' ? failure.error : 'Plugin failure'}`, config, manifest));
     }
-    const parsed = (contractMethods[contractName][method as keyof typeof contractMethods[typeof contractName]] as { output: { safeParse(value: unknown): { success: boolean; data?: unknown; error?: { message: string } } } }).output.safeParse(response.json());
+    let responseBody: unknown;
+    if (webhook) {
+      try { responseBody = response.json(); } catch { throw new ContractCallError('PLUGIN_ERROR', 'Contract response is not JSON'); }
+    } else responseBody = response.json();
+    const parsed = (contractMethods[contractName][method as keyof typeof contractMethods[typeof contractName]] as { output: { safeParse(value: unknown): { success: boolean; data?: unknown; error?: { message: string } } } }).output.safeParse(responseBody);
     if (!parsed.success || (contractName === 'tax' && !isValidTaxResult(input, parsed.data))) {
-      const error = new ContractCallError('CONTRACT_RESPONSE_INVALID', `Invalid ${contractName} v${version} ${method} response: ${parsed.success ? 'tax totals or lines are inconsistent' : parsed.error?.message}`);
+      const error = new ContractCallError(webhook ? 'PLUGIN_ERROR' : 'CONTRACT_RESPONSE_INVALID', `Invalid ${contractName} v${version} ${method} response: ${parsed.success ? 'tax totals or lines are inconsistent' : parsed.error?.message}`);
       throw error;
     }
     await sharedProtection.result(permit, true);

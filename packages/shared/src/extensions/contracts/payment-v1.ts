@@ -3,6 +3,36 @@ import { z } from 'zod';
 const currency = z.string().regex(/^[A-Z]{3}$/);
 const minor = z.number().int();
 
+export const paymentWebhookInputSchema = z.object({
+  rawBody: z.custom<Uint8Array>(value => value instanceof Uint8Array).refine(value => value.byteLength <= 1024 * 1024),
+  contentType: z.string().min(1),
+  headers: z.record(z.array(z.string())),
+  query: z.record(z.union([z.string(), z.array(z.string())])),
+}).strict();
+
+const webhookResponse = z.object({
+  contentType: z.enum(['application/json', 'text/plain']),
+  body: z.string().refine(value => new TextEncoder().encode(value).byteLength <= 16 * 1024),
+}).strict().refine(value => {
+  if (value.contentType !== 'application/json') return true;
+  try { JSON.parse(value.body); return true; } catch { return false; }
+});
+export const webhookOutcomeSchema = z.discriminatedUnion('verification', [
+  z.object({
+    verification: z.literal('verified'),
+    events: z.array(z.object({ providerEventId: z.string().min(1), sessionId: z.string().min(1), status: z.enum(['succeeded', 'failed']) }).strict()),
+    response: webhookResponse.optional(),
+  }).strict(),
+  z.object({
+    verification: z.literal('rejected'),
+    reasonCode: z.enum(['MISSING_SIGNATURE', 'INVALID_SIGNATURE', 'SIGNATURE_EXPIRED', 'INVALID_PAYLOAD', 'WEBHOOK_NOT_SUPPORTED']),
+    response: webhookResponse.optional(),
+  }).strict(),
+]);
+
+export type PaymentWebhookInput = z.infer<typeof paymentWebhookInputSchema>;
+export type WebhookOutcome = z.infer<typeof webhookOutcomeSchema>;
+
 export const paymentV1Methods = {
   describe: {
     input: z.object({ storeCurrency: currency }).strict(),
@@ -30,8 +60,8 @@ export const paymentV1Methods = {
     output: z.object({ status: z.enum(['pending', 'succeeded', 'failed', 'cancelled']), providerEventId: z.string().min(1).optional() }).strict(),
   },
   handleWebhook: {
-    input: z.object({ headers: z.record(z.string()), query: z.record(z.string()), rawBody: z.string() }).strict(),
-    output: z.object({ events: z.array(z.object({ providerEventId: z.string().min(1), sessionId: z.string().min(1), status: z.enum(['succeeded', 'failed']) }).strict()) }).strict(),
+    input: paymentWebhookInputSchema,
+    output: webhookOutcomeSchema,
   },
   refund: {
     input: z.object({ sessionId: z.string().min(1), amountMinor: minor, currency, idempotencyKey: z.string().min(1) }).strict(),

@@ -18,7 +18,7 @@ const paymentSource = (fail: boolean) => `module.exports = { register(ctx) {
     }; },
     createSession: () => ({ sessionId: 'fixture', action: { type: 'none' } }),
     getSessionStatus: () => ({ status: 'pending' }),
-    handleWebhook: () => ({ events: [] }),
+    handleWebhook: () => ({ verification: 'verified', events: [] }),
   });
 } };`;
 const shippingSource = (fail: boolean) => `module.exports = { register(ctx) {

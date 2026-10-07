@@ -122,6 +122,7 @@ export const errorCatalog = {
   [ApiErrorCodes.PAYMENT_METHOD_MISMATCH]: { status: 409, message: "Payment method mismatch." },
   [ApiErrorCodes.PAYMENT_PLUGIN_NOT_ENABLED]: { status: 409, message: "Payment plugin not enabled." },
   [ApiErrorCodes.PAYMENT_PROVIDER_DISABLED]: { status: 409, message: "Payment provider disabled." },
+  [ApiErrorCodes.PAYMENT_WEBHOOK_AUTHENTICATION_FAILED]: { status: 401, message: 'Payment webhook authentication failed' },
   [ApiErrorCodes.PLUGIN_ALREADY_UNINSTALLED]: { status: 409, message: "Plugin already uninstalled." },
   [ApiErrorCodes.PLUGIN_BUILTIN_PROTECTED]: { status: 400, message: "Plugin builtin protected." },
   [ApiErrorCodes.PLUGIN_CIRCUIT_OPEN]: { status: 503, message: "Plugin circuit open." },

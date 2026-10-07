@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { prisma } from '@/config/database';
 import { fulfillmentV1Methods, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods, isEventKey, type PluginContext, type PluginEntryModule, type EventSubscription, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 import { redactPluginText } from '@/core/admin/plugin-management/config-crypto';
+import { decodePaymentWebhook, PAYMENT_WEBHOOK_WIRE_LIMIT } from './payment-webhook-wire';
 
 type JsonObject = Record<string, unknown>;
 type RuntimeOptions = { slug: string; installationId: string; version: string; config: JsonObject; configSchema?: unknown; declaredContracts: Array<{ name: string; version: number }>; subscriptions: EventSubscription[] };
@@ -67,9 +68,10 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
       implemented.add(`${name}:v${version}`);
       for (const [method, handler] of Object.entries(implementation)) {
         if (!(method in methods) || typeof handler !== 'function') throw new Error(`Unknown ${name} v1 method ${method}`);
-        app.post(`/__contracts/${name}/v1/${method}`, async (request: FastifyRequest, reply: FastifyReply) => {
+        const webhook = name === 'payment' && method === 'handleWebhook';
+        app.post(`/__contracts/${name}/v1/${method}`, webhook ? { bodyLimit: PAYMENT_WEBHOOK_WIRE_LIMIT } : {}, async (request: FastifyRequest, reply: FastifyReply) => {
           try {
-            return reply.send(await handler(request.body));
+            return reply.send(await handler(webhook ? decodePaymentWebhook(request.body) : request.body));
           } catch (error) {
             return reply.code(500).send({ error: redact(error instanceof Error ? error.message : String(error)) });
           }
