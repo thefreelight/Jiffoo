@@ -81,9 +81,12 @@ export async function tryPostoryPlatform(request: Request, env: PlatformEnv): Pr
   if (method === 'GET' && pathname === PLATFORM + '/plaza') {
     const rows = await env.DB.prepare(
       `SELECT c.id, c.title, c.description, c.cover_emoji, c.access_tier, c.price_cents, c.currency,
+              s.share_id, u.username AS owner_username,
               (SELECT COUNT(*) FROM postory_collection_items i WHERE i.collection_id = c.id) AS item_count
        FROM postory_collections c
-       WHERE c.visibility = 'public' AND EXISTS (SELECT 1 FROM postory_collection_shares s WHERE s.collection_id = c.id AND s.revoked_at IS NULL)
+       JOIN postory_collection_shares s ON s.collection_id = c.id AND s.revoked_at IS NULL
+       JOIN native_users u ON u.id = c.owner_id
+       WHERE c.visibility = 'public'
        ORDER BY c.updated_at DESC LIMIT 100`,
     ).all<Record<string, unknown>>();
     return json((rows.results ?? []) as unknown[]);
@@ -103,15 +106,26 @@ export async function tryPostoryPlatform(request: Request, env: PlatformEnv): Pr
        WHERE c.id = ?1 AND c.visibility = 'public'`,
     ).bind(share.collection_id).first<Record<string, unknown>>();
     if (!collection) return fail(404, 'SHARE_NOT_FOUND', 'This collection is not shared.');
+
+    // Paid/subscriber collections: only the owner and entitled viewers see content.
+    const viewer = await authenticateNativeUser(request, env as never).catch(() => null);
+    const locked = collection.access_tier !== 'free' && collection.owner_id !== viewer?.id;
+    const entitled = locked ? await hasPaidCollectionAccess(env, share.collection_id, viewer?.id) : true;
+
     const items = await env.DB.prepare(
       `SELECT id, title, author_handle, url, note, tombstone, position
        FROM postory_collection_items WHERE collection_id = ?1 ORDER BY position`,
     ).bind(share.collection_id).all<Record<string, unknown>>();
-    // Tombstoned (deleted) items expose the marker only — never the content.
-    const safeItems = (items.results ?? []).map((item: Record<string, unknown>) =>
-      item.tombstone ? { id: item.id, tombstone: true, position: item.position } : item,
-    );
-    return json({ collection, items: safeItems });
+    const safeItems = (items.results ?? []).map((item: Record<string, unknown>) => {
+      if (item.tombstone) return { id: item.id, tombstone: true, position: item.position };
+      if (locked && !entitled) return { id: item.id, position: item.position, locked: true };
+      return item;
+    });
+    return json({
+      collection: { ...collection, locked: locked && !entitled },
+      items: safeItems,
+      locked: locked && !entitled,
+    });
   }
 
   // ---- authenticated ----
@@ -277,6 +291,18 @@ export async function tryPostoryPlatform(request: Request, env: PlatformEnv): Pr
 
 function collectionRoutePatch(collectionId: string): string {
   return collectionId;
+}
+
+async function hasPaidCollectionAccess(env: PlatformEnv, collectionId: string, viewerId: string | undefined): Promise<boolean> {
+  if (!viewerId) return false;
+  const paid = await env.DB.prepare(
+    "SELECT id FROM postory_collection_orders WHERE collection_id = ?1 AND buyer_id = ?2 AND status = 'PAID' LIMIT 1",
+  ).bind(collectionId, viewerId).first<{ id: string }>();
+  if (paid) return true;
+  const sub = await env.DB.prepare(
+    "SELECT plan_slug FROM postory_subscriptions WHERE user_id = ?1 AND status = 'active' AND current_period_end > datetime('now') LIMIT 1",
+  ).bind(viewerId).first<{ plan_slug: string }>();
+  return Boolean(sub?.plan_slug && sub.plan_slug !== 'trial');
 }
 
 async function insertCollectionOrder(
