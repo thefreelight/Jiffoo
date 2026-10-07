@@ -1,5 +1,6 @@
 import { authenticateNativeUser, tryNativeAuth, type NativeSessionUser } from './auth';
 import { md5Hex } from './shipping-providers';
+import { tryPostoryPlatform } from './postory-platform';
 
 /**
  * Postory store slice for the CF-native runtime.
@@ -421,6 +422,9 @@ export async function tryPostoryCompat(request: Request, env: PostoryEnv): Promi
   }
 
   const storeResponse = await tryPostoryStore(rewritten, env);
+  const platformResponse = await tryPostoryPlatform(rewritten, env as never);
+  if (platformResponse) return withPostoryCors(request, platformResponse);
+
   return storeResponse ? withPostoryCors(request, storeResponse) : null;
 }
 
