@@ -5,13 +5,14 @@
 */
 
 import { prisma } from '@/config/database';
+import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 import { CacheService } from '@/core/cache/service';
 import { InventoryService } from '@/core/inventory/service';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { emitEvent } from '@/infra/events/emit';
 import { productSnapshot } from '@/infra/events/snapshots';
 
-export class CatalogConflictError extends Error {
+export class CatalogConflictError extends ApiError {
   constructor(public readonly code: 'DEFAULT_LOCALE_TRANSLATION' | 'CATEGORY_NOT_EMPTY') {
     super(code);
   }
@@ -66,7 +67,7 @@ function resolveVariantSalePrice(variant: ProductVariantData): number {
   const candidate = variant.salePrice ?? variant.basePrice;
   const normalized = Number(candidate);
   if (!Number.isFinite(normalized) || normalized < 0) {
-    throw new Error('Invalid variant price');
+    throw new ApiError('INTERNAL_SERVER_ERROR');
   }
   return normalized;
 }
@@ -505,7 +506,7 @@ export class AdminProductService {
     let variantsToCreate = data.variants;
 
     if (!variantsToCreate || variantsToCreate.length === 0) {
-      throw new Error('At least one variant is required');
+      throw new ApiError('INTERNAL_SERVER_ERROR');
     }
 
     const product = await prisma.$transaction(async (tx) => {
@@ -583,7 +584,7 @@ export class AdminProductService {
     if (data.images !== undefined) updateData.typeData = { images: data.images };
 
 
-    await prisma.$transaction(async (tx) => {
+    await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
       // Update product core fields
       await tx.product.update({
         where: { id: productId },
@@ -657,7 +658,7 @@ export class AdminProductService {
         }
       }
       await emitEvent(tx, 'product.updated', 1, productId, await productSnapshot(tx, productId));
-    });
+    }), { notFound: 'NOT_FOUND' });
 
     await CacheService.incrementProductVersion();
     await CacheService.deleteProduct(productId);
@@ -670,9 +671,9 @@ export class AdminProductService {
    * Delete product
    */
   static async deleteProduct(productId: string) {
-    await prisma.product.delete({
+    await knownPrismaOperation(() => prisma.product.delete({
       where: { id: productId }
-    });
+    }), { notFound: 'NOT_FOUND' });
 
     await CacheService.incrementProductVersion();
     await CacheService.deleteProduct(productId);
@@ -748,7 +749,7 @@ export class AdminProductService {
 
   static async updateCategory(id: string, data: { name?: string; slug?: string; description?: string; translations?: ContentTranslation[] }) {
     await rejectDefaultLocaleTranslation(data.translations);
-    await prisma.$transaction(async (tx) => {
+    await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
       await tx.category.update({
         where: { id },
         data: {
@@ -763,20 +764,20 @@ export class AdminProductService {
           });
         }
       }
-    });
+    }), { notFound: 'INTERNAL_SERVER_ERROR' });
     await CacheService.incrementProductVersion();
     return this.getCategoryById(id);
   }
 
   static async deleteCategory(id: string) {
-    await prisma.$transaction(async (tx) => {
+    await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
       const [products, children] = await Promise.all([
         tx.product.count({ where: { categoryId: id } }),
         tx.category.count({ where: { parentId: id } }),
       ]);
       if (products || children) throw new CatalogConflictError('CATEGORY_NOT_EMPTY');
       await tx.category.delete({ where: { id } });
-    });
+    }), { notFound: 'INTERNAL_SERVER_ERROR' });
     await CacheService.incrementProductVersion();
   }
 

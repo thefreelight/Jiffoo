@@ -3,6 +3,7 @@
  */
 
 import { prisma } from '@/config/database';
+import { ApiError, knownPrismaOperation, type ErrorCode } from '@/utils/api-errors';
 import { PasswordUtils } from '@/utils/password';
 import { CacheService } from '@/core/cache/service';
 import { emitEvent } from '@/infra/events/emit';
@@ -178,7 +179,7 @@ export class AdminUserService {
     });
 
     if (existingUser) {
-      throw new Error('Email already exists');
+      throw new ApiError('BAD_REQUEST');
     }
 
     const hashedPassword = await PasswordUtils.hash(data.password);
@@ -266,7 +267,7 @@ export class AdminUserService {
       });
 
       if (!existingUser) {
-        throw new Error('User not found');
+        throw new ApiError('NOT_FOUND');
       }
       if (existingUser.role === 'ADMIN') {
         throw new CustomerManagementError('Administrator accounts are managed separately', 'ADMIN_ACCOUNT_PROTECTED', 409);
@@ -296,9 +297,9 @@ export class AdminUserService {
         });
       }
 
-      await tx.user.delete({
+      await knownPrismaOperation(() => tx.user.delete({
         where: { id: userId, role: 'USER' },
-      });
+      }), { notFound: 'NOT_FOUND' });
     });
 
     // Invalidate user list cache and specific user cache
@@ -315,8 +316,8 @@ export class AdminUserService {
 
 }
 
-export class CustomerManagementError extends Error {
-  constructor(message: string, public readonly code: string, public readonly statusCode: number) {
-    super(message);
+export class CustomerManagementError extends ApiError {
+  constructor(_message: string, code: ErrorCode, _statusCode: number) {
+    super(code);
   }
 }

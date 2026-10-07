@@ -1,11 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
+import { ApiError } from '@/utils/api-errors';
 
 type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 function conflict(code: 'PLUGIN_OPERATION_IN_PROGRESS' | 'PLUGIN_OPERATION_LEASE_LOST'): Error {
-  return Object.assign(new Error(code), { code, statusCode: 409 });
+  return new ApiError(code);
 }
 
 export async function acquirePluginOperationLease(slug: string, operation: string): Promise<string> {

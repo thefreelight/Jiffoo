@@ -1,3 +1,4 @@
+import { ApiError } from '@/utils/api-errors';
 import { CartService } from '@/core/cart/service';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
@@ -24,7 +25,7 @@ async function excludeFailedProvider(slug: string, error: unknown): Promise<void
 export class CheckoutService {
   static async quote(userId: string, input: { shippingAddress: Address; shippingOptionId?: string }) {
     const [cart, currency] = await Promise.all([CartService.getCart(userId), systemSettingsService.getShopCurrency()]);
-    if (!cart.items.length) throw new Error('Cart is empty');
+    if (!cart.items.length) throw new ApiError('BAD_REQUEST');
     const items = cart.items.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity, unitPriceMinor: decimalToMinor(item.price, currency) }));
     return this.quoteItems(currency, items, input);
   }
@@ -68,10 +69,7 @@ export class CheckoutService {
     if (!selected) {
       if (allowUnavailableForOrder && failedShippingSlugs.has(input.shippingOptionId.split(':')[0]))
         return { currency, subtotal: minorToDecimal(subtotalMinor, currency), shippingOptions, paymentMethods };
-      const error = new Error('SHIPPING_OPTION_UNAVAILABLE') as Error & { statusCode?: number; code?: string };
-      error.statusCode = 409;
-      error.code = 'SHIPPING_OPTION_UNAVAILABLE';
-      throw error;
+      throw new ApiError('SHIPPING_OPTION_UNAVAILABLE');
     }
     const taxProvider = await PluginManagementService.resolveSingleProvider('tax');
     if (!taxProvider) return { currency, subtotal: minorToDecimal(subtotalMinor, currency), shippingOptions, paymentMethods, tax: '0', taxInclusive: false, total: minorToDecimal(subtotalMinor + selected.amountMinor, currency) };

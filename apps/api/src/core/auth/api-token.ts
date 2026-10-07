@@ -21,6 +21,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { createHash } from 'crypto';
 import { prisma } from '@/config/database';
+import { ApiError } from '@/utils/api-errors';
 import { CacheService } from '@/core/cache/service';
 import { logger } from '@/core/logger/logger';
 import { sendError } from '@/utils/response';
@@ -174,10 +175,7 @@ export const ApiTokenService = {
     const records = await getTokenRecords();
     const record = records.find((r) => r.id === tokenId);
     if (!record) {
-      throw Object.assign(new Error(`Token "${tokenId}" not found`), {
-        statusCode: 404,
-        code: 'NOT_FOUND',
-      });
+      throw new ApiError('NOT_FOUND');
     }
     record.revokedAt = new Date().toISOString();
     await saveTokenRecords(records);

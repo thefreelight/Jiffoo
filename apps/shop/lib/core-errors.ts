@@ -16,7 +16,7 @@ export async function coreAuthRejection(response: Response): Promise<boolean> {
 }
 
 export async function coreNotFound(response: Response): Promise<boolean> {
-  return response.status === 404 && ['NOT_FOUND', 'USER_NOT_FOUND', 'ACCOUNT_NOT_FOUND', 'THEME_NOT_FOUND'].includes(await coreErrorCode(response) ?? '');
+  return response.status === 404 && ['NOT_FOUND', 'USER_NOT_FOUND', 'THEME_NOT_FOUND'].includes(await coreErrorCode(response) ?? '');
 }
 
 export async function safeCoreFailure(response: Response): Promise<Response> {

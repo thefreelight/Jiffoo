@@ -1,4 +1,5 @@
 import { prisma } from '@/config/database';
+import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 import { CacheService } from '@/core/cache/service';
 import type { InventoryListItem } from './types';
 import { emitEvent } from '@/infra/events/emit';
@@ -12,6 +13,13 @@ export type InventoryStockTx = {
 };
 
 export class InventoryService {
+  static async setStockById(variantId: string, quantity: number): Promise<void> {
+    await knownPrismaOperation(() => prisma.$transaction(async tx => {
+      const variant = await tx.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { productId: true } });
+      await this.setStock(tx, variantId, quantity);
+      await emitEvent(tx, 'product.updated', 1, variant.productId, await productSnapshot(tx, variant.productId));
+    }), { notFound: 'NOT_FOUND' });
+  }
   static async getAvailableStockByVariantIds(variantIds: string[]): Promise<Map<string, number>> {
     if (variantIds.length === 0) return new Map();
 
@@ -48,7 +56,7 @@ export class InventoryService {
       where: { id: variantId, stock: { gte: quantity } },
       data: { stock: { decrement: quantity } },
     });
-    if (result.count === 0) throw new Error('Insufficient stock');
+    if (result.count === 0) throw new ApiError('BAD_REQUEST');
   }
 
   static async incrementStock(tx: InventoryStockTx, variantId: string, quantity: number): Promise<void> {
@@ -70,9 +78,9 @@ export class InventoryService {
     quantity: number,
     details: { type: string; reason?: string; notes?: string; userId?: string; referenceId?: string; metadata?: unknown }
   ) {
-    if (!Number.isInteger(quantity) || quantity === 0) throw new Error('Quantity must be a non-zero integer');
+    if (!Number.isInteger(quantity) || quantity === 0) throw new ApiError('VALIDATION_ERROR');
 
-    return prisma.$transaction(async (tx) => {
+    return knownPrismaOperation(() => prisma.$transaction(async (tx) => {
       const variant = await tx.productVariant.update({
         where: { id: variantId },
         data: { stock: { increment: quantity } },
@@ -82,7 +90,7 @@ export class InventoryService {
       await emitEvent(tx, 'product.updated', 1, variant.productId, await productSnapshot(tx, variant.productId));
       await CacheService.incrementProductVersion();
       return variant;
-    });
+    }), { notFound: 'NOT_FOUND' });
   }
 
   static async listStock(page = 1, limit = 20): Promise<{ items: InventoryListItem[]; page: number; limit: number; total: number; totalPages: number }> {

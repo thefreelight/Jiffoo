@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { sendError, sendSuccess } from '@/utils/response';
@@ -42,12 +43,19 @@ const summary = (record: {
   source: record.source, trustLevel: record.trustLevel,
   installedAt: record.installedAt.toISOString(), updatedAt: record.updatedAt.toISOString(),
 });
-const respondError = (reply: Parameters<typeof sendError>[0], cause: unknown) => {
-  if (cause instanceof ExtensionInstallerError)
-    return sendError(reply, cause.statusCode, cause.code, cause.message, cause.details);
-  throw cause;
-};
+function sendThemeError(reply: Parameters<typeof sendError>[0], cause: unknown) {
+  if (cause instanceof ExtensionInstallerError && (
+    cause.code === 'THEME_MANIFEST_TOO_LARGE' || cause.code === 'THEME_FONT_TOO_LARGE' || cause.code === 'THEME_IMAGE_TOO_LARGE'
+  )) {
+    return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Internal server error');
+  }
+  return sendMappedError(reply, cause);
+}
 
+function sendPublicThemeError(reply: Parameters<typeof sendError>[0], cause: unknown) {
+  if (cause instanceof ExtensionInstallerError) return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Internal server error');
+  return sendMappedError(reply, cause);
+}
 export async function themeManagementRoutes(fastify: FastifyInstance) {
   fastify.post('/theme/install', {
     schema: {
@@ -75,7 +83,7 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
         source: 'uploaded', confirmUnsigned, actorUserId: request.user?.id,
       });
       return sendSuccess(reply, summary(installed));
-    } catch (cause) { return respondError(reply, cause); }
+    } catch (cause) { return sendThemeError(reply, cause); }
   });
 
   fastify.get('/theme', {
@@ -110,7 +118,7 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try { return sendSuccess(reply, await uninstallTheme(request.params.slug, request.user!.id)); }
-    catch (cause) { return respondError(reply, cause); }
+    catch (cause) { return sendThemeError(reply, cause); }
   });
 
   const targetParams = {
@@ -129,7 +137,7 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try { return sendSuccess(reply, await activateTheme(request.params.target, request.body.slug, request.user!.id)); }
-    catch (cause) { return respondError(reply, cause); }
+    catch (cause) { return sendThemeError(reply, cause); }
   });
   fastify.post<{ Params: { target: 'shop' | 'admin' } }>('/themes/:target/restore-previous', {
     schema: {
@@ -138,7 +146,7 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try { return sendSuccess(reply, await restorePreviousTheme(request.params.target, request.user!.id)); }
-    catch (cause) { return respondError(reply, cause); }
+    catch (cause) { return sendThemeError(reply, cause); }
   });
   const config = {
     type: 'object', properties: {
@@ -152,7 +160,7 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
     schema: { tags: ['admin-themes'], security: [{ bearerAuth: [] }], params, response: { 200: success(config), ...errors } },
   }, async (request, reply) => {
     try { return sendSuccess(reply, await getThemeConfig(request.params.slug)); }
-    catch (cause) { return respondError(reply, cause); }
+    catch (cause) { return sendThemeError(reply, cause); }
   });
   fastify.put<{ Params: { slug: string }; Body: { values: Record<string, unknown>; expectedRevision: number; homeSections?: unknown } }>('/themes/:slug/config', {
     schema: {
@@ -175,7 +183,7 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
         request.params.slug, request.body.values, request.body.expectedRevision, request.user!.id,
         request.body.homeSections,
       ));
-    } catch (cause) { return respondError(reply, cause); }
+    } catch (cause) { return sendThemeError(reply, cause); }
   });
   fastify.post<{ Params: { slug: string } }>('/themes/:slug/config/restore-previous', {
     schema: {
@@ -188,7 +196,7 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try { return sendSuccess(reply, await restoreThemeConfig(request.params.slug, request.user!.id)); }
-    catch (cause) { return respondError(reply, cause); }
+    catch (cause) { return sendThemeError(reply, cause); }
   });
 }
 
@@ -205,9 +213,13 @@ export async function publicThemeAssetRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     reply.header('Cache-Control', 'no-store');
-    const resolved = await resolveTheme(request.query.target, request.query.locale);
-    return resolved ? sendSuccess(reply, resolved)
-      : sendError(reply, 404, 'THEME_NOT_FOUND', 'No active theme');
+    try {
+      const resolved = await resolveTheme(request.query.target, request.query.locale);
+      return resolved ? sendSuccess(reply, resolved)
+        : sendError(reply, 404, 'THEME_NOT_FOUND', 'No active theme');
+    } catch (cause) {
+      return sendPublicThemeError(reply, cause);
+    }
   });
   fastify.get<{ Params: { slug: string; version: string; '*': string } }>(
     '/themes/:slug/:version/*',
@@ -228,12 +240,16 @@ export async function publicThemeAssetRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { slug, version } = request.params;
-      const asset = await readThemeAsset(slug, version, request.params['*']);
-      if (!asset) return sendError(reply, 404, 'THEME_ASSET_NOT_FOUND', 'Theme asset not found');
-      reply.header('X-Content-Type-Options', 'nosniff');
-      reply.header('Cache-Control', 'public, max-age=31536000, immutable');
-      return reply.type(asset.type).send(asset.content);
+      try {
+        const { slug, version } = request.params;
+        const asset = await readThemeAsset(slug, version, request.params['*']);
+        if (!asset) return sendError(reply, 404, 'THEME_ASSET_NOT_FOUND', 'Theme asset not found');
+        reply.header('X-Content-Type-Options', 'nosniff');
+        reply.header('Cache-Control', 'public, max-age=31536000, immutable');
+        return reply.type(asset.type).send(asset.content);
+      } catch (cause) {
+        return sendPublicThemeError(reply, cause);
+      }
     },
   );
 }

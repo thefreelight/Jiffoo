@@ -15,8 +15,8 @@ const settingSchemas = ((themeManifestSchema.oneOf[0].properties.settings as unk
   .map((schema) => ajv.compile(schema));
 const locales = ['en', 'zh-Hans', 'zh-Hant'];
 
-function fail(code: string, statusCode: number, path: string): never {
-  throw new ExtensionInstallerError(`${code}: ${path}`, { code, statusCode, details: { path } });
+function fail(code: import('@/utils/api-errors').ErrorCode, _statusCode: number, path: string): never {
+  throw new ExtensionInstallerError(`${code}: ${path}`, { code, details: { path } });
 }
 
 export async function audit(tx: { adminAuditEvent: { create: (args: any) => Promise<unknown> } }, actorId: string, action: string, targetId: string, summary: object = {}, targetType = 'theme') {

@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 /**
  * Store Public Routes
  * Provides store context and global configuration for Shop frontend
@@ -102,10 +103,6 @@ export async function storeRoutes(fastify: FastifyInstance) {
                 return reply.code(304).send();
             }
             return sendSuccess(reply, contextData);
-        } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-            return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-        }
+        } catch (error) { return sendMappedError(reply, error); }
     });
 }

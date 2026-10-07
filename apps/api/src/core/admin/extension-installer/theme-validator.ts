@@ -24,8 +24,8 @@ const validateSections = Object.fromEntries(
 
 export type ValidatedTheme = { manifest: ThemeManifest; files: Map<string, Buffer> };
 
-function fail(code: string, location: string, statusCode = 400): never {
-  throw new ExtensionInstallerError(`${code}: ${location}`, { code, statusCode, details: { path: location } });
+function fail(code: import('@/utils/api-errors').ErrorCode, location: string, _statusCode?: number): never {
+  throw new ExtensionInstallerError(`${code}: ${location}`, { code, details: { path: location } });
 }
 
 function checkMagic(name: string, bytes: Buffer): void {

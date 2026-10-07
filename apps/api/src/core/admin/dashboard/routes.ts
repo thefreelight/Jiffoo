@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 /**
  * Admin Dashboard Routes
  */
@@ -26,10 +27,6 @@ export async function adminDashboardRoutes(fastify: FastifyInstance) {
             const includeArray = include ? include.split(',') : [];
             const data = await AdminDashboardService.getDashboardMetrics(includeArray);
             return sendSuccess(reply, data);
-        } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-            return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to fetch dashboard data');
-        }
+        } catch (error) { return sendMappedError(reply, error); }
     });
 }

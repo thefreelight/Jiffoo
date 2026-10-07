@@ -16,6 +16,7 @@ import { promises as fs } from 'fs';
 import { packBuiltinPlugin } from './builtin-package';
 import path from 'path';
 import { prisma } from '@/config/database';
+import { ExtensionInstallerError } from './errors';
 import {
   IPluginInstaller,
   InstalledPlugin,
@@ -136,7 +137,7 @@ export class PluginFsInstaller implements IPluginInstaller {
     try {
     const publisher = await verifyPluginZip(zipFilePath);
     if (options?.source === 'marketplace' && !publisher) {
-      throw Object.assign(new Error('Marketplace packages must be signed'), { code: 'MARKETPLACE_SIGNATURE_REQUIRED', statusCode: 422 });
+      throw new ExtensionInstallerError('Marketplace packages must be signed', { code: 'MARKETPLACE_SIGNATURE_REQUIRED' });
     }
     tempDir = await extractZipToTemp(createReadStream(zipFilePath), 'plugin');
     const { rootDir, manifestPath } = await resolveExtractedPackageRoot(tempDir, 'plugin');
@@ -147,14 +148,13 @@ export class PluginFsInstaller implements IPluginInstaller {
       if (manifest.slug !== options.lease.slug ||
         manifest.version !== options.expectedMarketplaceIdentity.version ||
         publisher!.publisherId !== options.expectedMarketplaceIdentity.publisherId) {
-        throw Object.assign(new Error('Marketplace package identity differs from the catalog'), {
-          code: 'MARKETPLACE_IDENTITY_MISMATCH', statusCode: 422,
+        throw new ExtensionInstallerError('Marketplace package identity differs from the catalog', {
+          code: 'MARKETPLACE_IDENTITY_MISMATCH',
         });
       }
     }
     if (options?.source !== 'builtin' && BUILTIN_PLUGIN_SLUGS.has(manifest.slug)) {
-      const error = Object.assign(new Error(`Plugin slug "${manifest.slug}" is reserved for a built-in plugin`), { statusCode: 400, code: 'SLUG_RESERVED' });
-      throw error;
+      throw new ExtensionInstallerError(`Plugin slug "${manifest.slug}" is reserved for a built-in plugin`, { code: 'SLUG_RESERVED' });
     }
     if (options?.source !== 'builtin') {
       lease = options?.lease ?? { slug: manifest.slug, token: await acquirePluginOperationLease(manifest.slug, 'install') };
@@ -186,10 +186,7 @@ export class PluginFsInstaller implements IPluginInstaller {
 
     if (existingByHash) {
       if (publisher?.publisherId !== (existingByHash.publisherId ?? undefined)) {
-        const error = new Error('Publisher change forbidden') as Error & { statusCode: number; code: string };
-        error.statusCode = publisher ? 409 : 409;
-        error.code = publisher ? 'PUBLISHER_CHANGE_FORBIDDEN' : 'SIGNED_UPGRADE_REQUIRED';
-        throw error;
+        throw new ExtensionInstallerError('Publisher change forbidden', { code: publisher ? 'PUBLISHER_CHANGE_FORBIDDEN' : 'SIGNED_UPGRADE_REQUIRED' });
       }
       // Same ZIP already installed and not deleted - return existing plugin info
       let existingPackage = await pluginPackageStore.get(existingByHash.slug, zipHash);
@@ -252,16 +249,10 @@ export class PluginFsInstaller implements IPluginInstaller {
         where: { slug: manifest.slug },
       });
       if (existingBySlug?.trustLevel === 'signed' && !publisher) {
-        const error = new Error('Signed upgrade required') as Error & { statusCode: number; code: string };
-        error.statusCode = 409;
-        error.code = 'SIGNED_UPGRADE_REQUIRED';
-        throw error;
+        throw new ExtensionInstallerError('Signed upgrade required', { code: 'SIGNED_UPGRADE_REQUIRED' });
       }
       if (existingBySlug?.publisherId && publisher && existingBySlug.publisherId !== publisher.publisherId) {
-        const error = new Error('Publisher change forbidden') as Error & { statusCode: number; code: string };
-        error.statusCode = 409;
-        error.code = 'PUBLISHER_CHANGE_FORBIDDEN';
-        throw error;
+        throw new ExtensionInstallerError('Publisher change forbidden', { code: 'PUBLISHER_CHANGE_FORBIDDEN' });
       }
 
       // 7. Check if slug already exists (update/restore scenario)

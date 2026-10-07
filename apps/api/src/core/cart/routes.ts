@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 /**
  * Cart Routes
  */
@@ -26,11 +27,7 @@ export async function cartRoutes(fastify: FastifyInstance) {
     try {
       const cart = await CartService.getCart(request.user!.id);
       return sendSuccess(reply, cart);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Add to cart
@@ -53,24 +50,7 @@ export async function cartRoutes(fastify: FastifyInstance) {
         fulfillmentData
       );
       return sendSuccess(reply, cart);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof InsufficientCartStockError) {
-        return sendError(reply, 409, error.code, error.message, { availableQuantity: error.availableQuantity });
-      }
-      const message = error.message;
-      if (message === 'Product or variant not found') {
-        return sendError(reply, 404, 'NOT_FOUND', message);
-      }
-      if (message === 'Product is not available' || message === 'Product is no longer available from source') {
-        return sendError(reply, 400, 'BAD_REQUEST', message);
-      }
-      if (message === 'Supplier product requires cardUid' || message === 'Supplier card product requires shippingAddress') {
-        return sendError(reply, 400, 'BAD_REQUEST', message);
-      }
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Batch add to cart
@@ -87,18 +67,7 @@ export async function cartRoutes(fastify: FastifyInstance) {
       const { items } = request.body as any;
       const cart = await (CartService as any).batchAddToCart(request.user!.id, items);
       return sendSuccess(reply, cart);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof InsufficientCartStockError) {
-        return sendError(reply, 409, error.code, error.message, { availableQuantity: error.availableQuantity });
-      }
-      const message = error.message;
-      if (message.includes('Product or variant not found')) {
-        return sendError(reply, 404, 'NOT_FOUND', message);
-      }
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Update cart item
@@ -120,18 +89,7 @@ export async function cartRoutes(fastify: FastifyInstance) {
         quantity
       );
       return sendSuccess(reply, cart);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof InsufficientCartStockError) {
-        return sendError(reply, 409, error.code, error.message, { availableQuantity: error.availableQuantity });
-      }
-      const message = error.message;
-      if (message === 'Cart not found' || message === 'Cart item not found') {
-        return sendError(reply, 404, 'NOT_FOUND', message);
-      }
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Remove from cart
@@ -148,14 +106,7 @@ export async function cartRoutes(fastify: FastifyInstance) {
       const { itemId } = request.params as any;
       const cart = await CartService.removeFromCart(request.user!.id, itemId);
       return sendSuccess(reply, cart);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error.code === 'P2025' || error.message === 'Cart item not found') {
-        return sendError(reply, 404, 'NOT_FOUND', 'Cart item not found');
-      }
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Clear cart
@@ -171,11 +122,7 @@ export async function cartRoutes(fastify: FastifyInstance) {
     try {
       const cart = await CartService.clearCart(request.user!.id);
       return sendSuccess(reply, cart);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
 }

@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 import { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { InventoryService } from './service';
@@ -5,7 +6,6 @@ import { sendError, sendSuccess } from '@/utils/response';
 import { emitEvent } from '@/infra/events/emit';
 import { productSnapshot } from '@/infra/events/snapshots';
 import { createSuccessResponseSchema, errorResponseSchema } from '@/types/common-dto';
-import { isPrismaDatabaseError } from '@/utils/route-error-mapper';
 
 export async function adminInventoryRoutes(fastify: FastifyInstance) {
   fastify.get('/', async (request, reply) => {
@@ -42,17 +42,9 @@ export async function adminInventoryRoutes(fastify: FastifyInstance) {
       return sendError(reply, 400, 'VALIDATION_ERROR', 'variantId and a non-negative integer quantity are required');
     }
     try {
-      await prisma.$transaction(async (tx) => {
-        const variant = await tx.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { productId: true } });
-        await InventoryService.setStock(tx, variantId, quantity);
-        await emitEvent(tx, 'product.updated', 1, variant.productId, await productSnapshot(tx, variant.productId));
-      });
+      await InventoryService.setStockById(variantId, quantity);
       return sendSuccess(reply, { variantId, stock: quantity });
-    } catch (error: any) {
-      if (error?.code === 'P2025') return sendError(reply, 404, 'NOT_FOUND', 'Variant not found');
-      request.log.error({ err: error }, 'Inventory set failure');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to set inventory');
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.post('/adjustments', {
@@ -91,13 +83,6 @@ export async function adminInventoryRoutes(fastify: FastifyInstance) {
     }
     try {
       return sendSuccess(reply, await InventoryService.adjustStock(body.variantId, body.quantity, body), undefined, 201);
-    } catch (error: any) {
-      if (error?.code === 'P2025') return sendError(reply, 404, 'NOT_FOUND', 'Variant not found');
-      if (isPrismaDatabaseError(error)) {
-        request.log.error({ err: error }, 'Inventory adjustment database failure');
-        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to adjust inventory');
-      }
-      return sendError(reply, 404, 'NOT_FOUND', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 }

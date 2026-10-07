@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 /**
  * Admin Order Routes
  */
@@ -6,7 +7,6 @@ import { FastifyInstance } from 'fastify';
 import { AdminOrderService } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminOrderSchemas } from './schemas';
-import { mapAdminOrderRouteError } from '@/utils/route-error-mapper';
 
 export async function adminOrderRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all admin order routes (before schema validation)
@@ -25,14 +25,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
       const { page, limit, status, search } = request.query as any;
       const result = await AdminOrderService.getOrders(page, limit, status, search);
       return sendSuccess(reply, result);
-    } catch (error: unknown) {
-      const mapped = mapAdminOrderRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to fetch orders',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Get global order stats
@@ -48,14 +41,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     try {
       const result = await AdminOrderService.getOrderStats();
       return sendSuccess(reply, result);
-    } catch (error: unknown) {
-      const mapped = mapAdminOrderRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to fetch order stats',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Get order by ID
@@ -75,14 +61,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
         return sendError(reply, 404, 'NOT_FOUND', 'Order not found');
       }
       return sendSuccess(reply, order);
-    } catch (error: unknown) {
-      const mapped = mapAdminOrderRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to get order',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.post('/:id/record-manual-payment', {
@@ -99,14 +78,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
       const { reference } = (request.body || {}) as { reference?: string };
       const order = await AdminOrderService.recordManualPayment(id, request.user!.id, reference);
       return sendSuccess(reply, order);
-    } catch (error: unknown) {
-      const mapped = mapAdminOrderRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to record manual payment',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Ship order
@@ -124,14 +96,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
       const data = request.body as any;
       const result = await AdminOrderService.shipOrder(id, data);
       return sendSuccess(reply, result);
-    } catch (error: unknown) {
-      const mapped = mapAdminOrderRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to ship order',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.post('/:id/deliver', {
@@ -145,13 +110,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params as { id: string };
       return sendSuccess(reply, await AdminOrderService.deliverOrder(id));
-    } catch (error: unknown) {
-      const mapped = mapAdminOrderRouteError(error, {
-        defaultStatus: 500, defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to mark order delivered',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Refund order
@@ -173,14 +132,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
         idempotencyKey: data.idempotencyKey
       });
       return sendSuccess(reply, refund);
-    } catch (error: unknown) {
-      const mapped = mapAdminOrderRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to refund order',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Cancel order
@@ -198,13 +150,6 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
       const data = request.body as any;
       const order = await AdminOrderService.cancelOrder(id, data);
       return sendSuccess(reply, order);
-    } catch (error: unknown) {
-      const mapped = mapAdminOrderRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to cancel order',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 }

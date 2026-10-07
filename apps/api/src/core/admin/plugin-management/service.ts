@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '@/config/database';
+import { ApiError } from '@/utils/api-errors';
 import { CacheService } from '@/core/cache/service';
 import type { PluginMeta, PluginState, PluginConfig, InstalledPluginsResponse } from './types';
 import { validateInstanceConfig, validateInstanceKeyFormat } from '@/core/admin/extension-installer/utils';
@@ -19,7 +20,7 @@ import { assertPluginConfigReadyForEnable } from '@/core/admin/extension-install
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
 import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
 import { mergeSecretConfigForUpdate } from './config-secrets';
-import { decryptPluginConfig, encryptPluginConfig, redactPluginText } from './config-crypto';
+import { decryptPluginConfig, encryptPluginConfig, redactPluginText, PluginConfigDecryptionError } from './config-crypto';
 import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
 import { getPluginManifestIssues, parsePluginConfigSchema, validatePluginConfig } from '@jiffoo/shared';
 import { ExtensionInstallerError } from '@/core/admin/extension-installer/errors';
@@ -66,12 +67,12 @@ async function warmPluginInstanceRuntime(
  */
 function validateInstanceKey(instanceKey: string): void {
   if (instanceKey !== 'default') {
-    throw new Error('Only the default plugin instance is supported');
+    throw Object.assign(new ApiError('UPDATE_ERROR'), { message: 'Only the default plugin instance is supported' });
   }
   try {
     validateInstanceKeyFormat(instanceKey);
   } catch (error: any) {
-    throw new Error(error.message);
+    throw error;
   }
 }
 
@@ -80,7 +81,7 @@ function validateInstanceKey(instanceKey: string): void {
  */
 function validateSlug(slug: string): void {
   if (!SLUG_REGEX.test(slug)) {
-    throw new Error(`Invalid slug format: "${slug}". Must match ^[a-z][a-z0-9-]{0,30}[a-z0-9]$`);
+    throw new ApiError('UPDATE_ERROR');
   }
 }
 
@@ -126,11 +127,7 @@ async function assertNotLastEnabledProvider(pluginSlug: string, enabled: boolean
       && getPluginManifestIssues(provider.plugin.manifestJson).length === 0,
     );
     if (validProviders.length === 1 && validProviders[0].pluginSlug === pluginSlug) {
-      const error = new Error(`The last enabled ${contract} provider cannot be disabled`) as Error & { statusCode?: number; code?: string; contract?: string };
-      error.statusCode = 409;
-      error.code = 'LAST_PROVIDER_REQUIRED';
-      error.contract = contract;
-      throw error;
+      throw Object.assign(new ApiError('LAST_PROVIDER_REQUIRED'), { contract });
     }
   }
 }
@@ -238,14 +235,14 @@ async function createDefaultInstance(
     try {
       validateInstanceConfig(options.config);
     } catch (error: any) {
-      throw new Error(error.message);
+      throw error;
     }
   }
 
   // CRITICAL: Verify plugin package exists and is not soft-deleted
   const pluginPackage = await getPluginPackage(slug);
   if (!pluginPackage) {
-    throw new Error(`Plugin "${slug}" not found`);
+    throw new ApiError('UPDATE_ERROR');
   }
 
   const effectiveEnabled = options?.enabled ?? true;
@@ -257,7 +254,7 @@ async function createDefaultInstance(
     try {
       assertPluginConfigReadyForEnable(slug, manifest, storedConfig);
     } catch (error: any) {
-      throw new Error(error.message);
+      throw error;
     }
   }
 
@@ -273,9 +270,9 @@ async function createDefaultInstance(
 
   if (existing) {
     if (existing.deletedAt) {
-      throw new Error('The default plugin instance was deleted and cannot be recreated.');
+      throw new ApiError('UPDATE_ERROR');
     }
-    throw new Error(`Instance "${instanceKey}" already exists for plugin "${slug}"`);
+    throw new ApiError('UPDATE_ERROR');
   }
 
   const instance = await prisma.pluginInstallation.create({
@@ -311,7 +308,8 @@ async function updateInstance(
     try {
       validateInstanceConfig(updates.config);
     } catch (error: any) {
-      throw new Error(error.message);
+      if (error instanceof ExtensionInstallerError && error.code === 'INVALID_CONFIG_FORMAT') throw new ApiError('UPDATE_ERROR');
+      throw error;
     }
   }
 
@@ -320,19 +318,19 @@ async function updateInstance(
   });
 
   if (!existing) {
-    throw new Error(`Installation "${installationId}" not found`);
+    throw new ApiError('UPDATE_ERROR');
   }
 
   validateInstanceKey(existing.instanceKey);
 
   if (existing.deletedAt) {
-    throw new Error(`Installation "${installationId}" has been deleted`);
+    throw new ApiError('UPDATE_ERROR');
   }
 
   // CRITICAL: Verify plugin package is not soft-deleted
   const pluginPackage = await getPluginPackage(existing.pluginSlug);
   if (!pluginPackage) {
-    throw new Error(`Plugin "${existing.pluginSlug}" not found`);
+    throw new ApiError('UPDATE_ERROR');
   }
 
   const existingConfig = parseJsonObject(existing.configJson);
@@ -345,10 +343,16 @@ async function updateInstance(
     if (typeof value === 'string' && value.trim()) delete retainedSecrets[field];
   }
   const storedConfig = updates.config !== undefined ? encryptPluginConfig(manifest, nextConfig, retainedSecrets) : nextConfig;
-  const runtimeConfig = decryptPluginConfig(manifest, storedConfig);
+  let runtimeConfig: Record<string, unknown>;
+  try {
+    runtimeConfig = decryptPluginConfig(manifest, storedConfig);
+  } catch (error) {
+    if (error instanceof PluginConfigDecryptionError) throw new ApiError('UPDATE_ERROR');
+    throw error;
+  }
   if (updates.config !== undefined && manifest.configSchema !== undefined) {
     const { schema, issues: schemaIssues } = parsePluginConfigSchema(manifest.configSchema);
-    if (!schema) throw new Error(`Invalid plugin configSchema: ${schemaIssues.map((issue) => issue.path).join(', ')}`);
+    if (!schema) throw new ApiError('UPDATE_ERROR');
     const issues = validatePluginConfig(schema, runtimeConfig);
     if (issues.length) {
       throw new ExtensionInstallerError(`Invalid plugin configuration: ${issues.map((issue) => issue.path).join(', ')}`, {
@@ -365,7 +369,8 @@ async function updateInstance(
     try {
       assertPluginConfigReadyForEnable(existing.pluginSlug, manifest, storedConfig);
     } catch (error: any) {
-      throw new Error(error.message);
+      if (error instanceof ExtensionInstallerError && error.code === 'PLUGIN_CONFIG_REQUIRED') throw new ApiError('UPDATE_ERROR');
+      throw error;
     }
   }
 

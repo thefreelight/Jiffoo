@@ -1,18 +1,20 @@
 import { isVersionCompatible } from '@jiffoo/shared/versioning/compatibility-checker';
 import { isValidVersion } from '@jiffoo/shared/versioning/version-parser';
 import { apiVersionConfig } from '@/config/api-versions';
+import { ApiError } from '@/utils/api-errors';
 import type { PluginManifest } from './types';
 
-export type PluginLoaderErrorCode = 'INCOMPATIBLE_API_VERSION' | 'INVALID_VERSION_FORMAT' | 'MISSING_VERSION_INFO' | 'VERSION_CHECK_FAILED';
+export type PluginLoaderErrorCode = 'INCOMPATIBLE_API_VERSION' | 'INVALID_VERSION_FORMAT' | 'VERSION_CHECK_FAILED';
 
-export class PluginLoaderError extends Error {
+export class PluginLoaderError extends ApiError {
   constructor(
     message: string,
     public readonly code: PluginLoaderErrorCode,
     public readonly pluginSlug: string,
     public readonly details?: Record<string, unknown>,
   ) {
-    super(message);
+    super(code);
+    this.message = message;
     this.name = 'PluginLoaderError';
   }
 }

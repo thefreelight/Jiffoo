@@ -8,8 +8,8 @@ import { validateThemeFiles, validateThemeZip } from './theme-validator';
 import { audit, validateConfig } from './theme-runtime';
 import { validateHomeSections, type HomeSection } from './theme-home-sections';
 
-function error(code: string, message: string, statusCode = 400): never {
-  throw new ExtensionInstallerError(message, { code, statusCode });
+function error(code: import('@/utils/api-errors').ErrorCode, message: string, _statusCode?: number): never {
+  throw new ExtensionInstallerError(message, { code });
 }
 
 function compareVersions(left: string, right: string): number {

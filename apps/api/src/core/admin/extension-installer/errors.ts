@@ -1,21 +1,20 @@
-export class ExtensionInstallerError extends Error {
-  statusCode: number;
-  code: string;
+import { ApiError, type ErrorCode } from '@/utils/api-errors';
+
+export class ExtensionInstallerError extends ApiError {
   details?: unknown;
 
   constructor(
     message: string,
-    options?: {
+    options: {
       statusCode?: number;
-      code?: string;
+      code: ErrorCode;
       details?: unknown;
       cause?: unknown;
     }
   ) {
-    super(message);
+    super(options.code, options.details);
+    this.message = message;
     this.name = 'ExtensionInstallerError';
-    this.statusCode = options?.statusCode ?? 400;
-    this.code = options?.code ?? 'BAD_REQUEST';
     this.details = options?.details;
     if (options?.cause !== undefined) {
       (this as any).cause = options.cause;

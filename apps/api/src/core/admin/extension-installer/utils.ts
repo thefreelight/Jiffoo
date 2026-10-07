@@ -16,6 +16,7 @@ import {
   PluginManifest,
 } from './types';
 import { ExtensionInstallerError } from './errors';
+import { catalogError } from '@/utils/api-errors';
 import { validateVersionFormat, validateVersionRange } from './version-utils';
 import { getPluginManifestIssues } from '@jiffoo/shared';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
@@ -390,7 +391,7 @@ export function validatePluginManifest(manifest: PluginManifest): void {
     const issue = issues[0];
     throw new ExtensionInstallerError(
       `Invalid plugin manifest: ${issue.path} ${issue.message}`,
-      { code: issue.code, statusCode: 400 }
+      { code: catalogError(issue.code).code, statusCode: 400 }
     );
   }
 }
@@ -561,9 +562,7 @@ export async function spoolStreamToTempFileAndHash(
         transform(chunk, _encoding, callback) {
           total += (chunk as Buffer).length;
           if (maxBytes !== undefined && total > maxBytes) {
-            callback(Object.assign(new Error('Plugin ZIP exceeds the size limit'), {
-              code: 'PAYLOAD_TOO_LARGE', statusCode: 413,
-            }));
+            callback(new ExtensionInstallerError('Plugin ZIP exceeds the size limit', { code: 'PAYLOAD_TOO_LARGE' }));
             return;
           }
           hash.update(chunk as Buffer);

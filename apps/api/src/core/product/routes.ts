@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 /**
  * Product Routes
  */
@@ -45,11 +46,7 @@ export async function productRoutes(fastify: FastifyInstance) {
         return reply.code(304).send();
       }
       return sendSuccess(reply, result);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Get categories
@@ -73,11 +70,7 @@ export async function productRoutes(fastify: FastifyInstance) {
         return reply.code(304).send();
       }
       return sendSuccess(reply, categories);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.get('/by-slug/:slug', {
@@ -119,11 +112,7 @@ export async function productRoutes(fastify: FastifyInstance) {
         return reply.code(304).send();
       }
       return sendSuccess(reply, products);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Get product by ID (Must be last to avoid collision with static routes)
@@ -151,10 +140,6 @@ export async function productRoutes(fastify: FastifyInstance) {
         return reply.code(304).send();
       }
       return sendSuccess(reply, product);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 }

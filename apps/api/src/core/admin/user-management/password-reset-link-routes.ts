@@ -1,5 +1,6 @@
+import { sendMappedError } from '@/utils/api-errors';
 import type { FastifyInstance } from 'fastify';
-import { generateCustomerResetLink } from '@/core/auth/account-recovery';
+import { AccountRecoveryService } from '@/core/auth/account-recovery';
 import { createTypedCreateResponses, errorResponseSchema } from '@/types/common-dto';
 import { sendError, sendSuccess } from '@/utils/response';
 import { sendKnownError } from '@/utils/api-errors';
@@ -21,12 +22,8 @@ export async function customerPasswordResetLinkRoutes(fastify: FastifyInstance) 
   }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      const link = await generateCustomerResetLink(id, request.user!.id);
+      const link = await AccountRecoveryService.generateCustomerResetLink(id, request.user!.id);
       return sendSuccess(reply, { link }, 'Reset link generated', 201);
-    } catch (caughtError) {
-      const knownErrorResponse = sendKnownError(reply, caughtError);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 404, 'NOT_FOUND', 'Customer not found');
-    }
+    } catch (caughtError) { return sendMappedError(reply, caughtError); }
   });
 }

@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 /**
  * API Token Management Routes (Admin)
  *
@@ -59,11 +60,7 @@ export async function apiTokenRoutes(fastify: FastifyInstance) {
         createdAt: result.record.createdAt,
         message: 'Save this token securely — it will not be shown again.',
       }, 'Token created successfully', 201);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // List all active tokens
@@ -78,11 +75,7 @@ export async function apiTokenRoutes(fastify: FastifyInstance) {
     try {
       const tokens = await ApiTokenService.listTokens();
       return sendSuccess(reply, tokens);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Revoke a token
@@ -105,13 +98,6 @@ export async function apiTokenRoutes(fastify: FastifyInstance) {
       const { tokenId } = request.params as { tokenId: string };
       await ApiTokenService.revokeToken(tokenId);
       return sendSuccess(reply, { tokenId, revoked: true }, 'Token revoked successfully');
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error.statusCode === 404 || error.code === 'NOT_FOUND') {
-        return sendError(reply, 404, 'NOT_FOUND', error.message);
-      }
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 }

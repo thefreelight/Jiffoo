@@ -1,3 +1,4 @@
+import { ApiError } from '@/utils/api-errors';
 /**
  * System Settings Service
  * Handles platform-wide configuration settings using Prisma
@@ -179,9 +180,9 @@ export class SystemSettingsService {
      * Set a single setting
      */
     async setSetting(key: string, value: SettingValue): Promise<void> {
-        if (key === 'branding.store_url') throw new Error('Storefront URL is configured through STOREFRONT_URL');
+        if (key === 'branding.store_url') throw new ApiError('BAD_REQUEST');
         if (key === 'localization.locale' && !['en', 'zh-Hans', 'zh-Hant'].includes(String(value))) {
-            throw new Error('Invalid store locale');
+            throw new ApiError('BAD_REQUEST');
         }
         const settings = await this.getSettingsObject();
         settings[key] = value;
@@ -205,9 +206,9 @@ export class SystemSettingsService {
      * Batch update settings - returns full settings Map
      */
     async batchUpdate(updates: Record<string, SettingValue>): Promise<Record<string, any>> {
-        if ('branding.store_url' in updates) throw new Error('Storefront URL is configured through STOREFRONT_URL');
+        if ('branding.store_url' in updates) throw new ApiError('BAD_REQUEST');
         if ('localization.locale' in updates && !['en', 'zh-Hans', 'zh-Hant'].includes(String(updates['localization.locale']))) {
-            throw new Error('Invalid store locale');
+            throw new ApiError('BAD_REQUEST');
         }
         const settings = await this.getSettingsObject();
         Object.assign(settings, updates);

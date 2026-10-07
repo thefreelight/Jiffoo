@@ -1,4 +1,5 @@
 import { OrderPaymentStatus, OrderStatus } from '@prisma/client';
+import { ApiError } from '@/utils/api-errors';
 
 const allowed: Record<OrderStatus, readonly OrderStatus[]> = {
   PENDING: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
@@ -9,12 +10,11 @@ const allowed: Record<OrderStatus, readonly OrderStatus[]> = {
   REFUNDED: [],
 };
 
-export class InvalidOrderTransitionError extends Error {
-  readonly code = 'INVALID_ORDER_TRANSITION';
-  readonly statusCode = 409;
+export class InvalidOrderTransitionError extends ApiError {
 
   constructor(from: OrderStatus, to: OrderStatus) {
-    super(`Invalid order transition from ${from} to ${to}`);
+    super('INVALID_ORDER_TRANSITION');
+    this.message = `Invalid order transition from ${from} to ${to}`;
   }
 }
 

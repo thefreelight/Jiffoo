@@ -5,6 +5,7 @@
  */
 
 import path from 'path';
+import { catalogError } from '@/utils/api-errors';
 import { ExtensionInstallerError } from './errors';
 import { extensionMaxFileSize, getPluginFileViolation, isPathWithinExtensionBase, PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 
@@ -34,7 +35,7 @@ export function validateFileExtension(filename: string, kind?: string): void {
         const ext = pluginViolation.extension;
         throw new ExtensionInstallerError(
             `Forbidden file type detected: ${ext}. This file type is not allowed for ${kind || 'extension'} security reasons.`,
-            { code: pluginViolation.code, statusCode: 400 }
+            { code: catalogError(pluginViolation.code).code, statusCode: 400 }
         );
     }
 }

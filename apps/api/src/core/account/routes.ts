@@ -1,10 +1,10 @@
+import { sendMappedError } from '@/utils/api-errors';
 import { FastifyInstance } from 'fastify';
 import { AccountService } from './service';
 import { UpdateEmailSchema, UpdateProfileSchema } from './types';
 import { authMiddleware } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
-import { UploadService } from '@/core/upload/service';
-import { mapAccountRouteError } from '@/utils/route-error-mapper';
+import { UploadService, UploadValidationError } from '@/core/upload/service';
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { StaffManagementError } from '@/core/admin/staff-management/service';
@@ -77,14 +77,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
         accountType: 'customer',
       };
       return sendSuccess(reply, { account, profile: account });
-    } catch (error: unknown) {
-      const mapped = mapAccountRouteError(error, {
-        defaultStatus: 404,
-        defaultCode: 'ACCOUNT_NOT_FOUND',
-        defaultMessage: 'Account not found',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.delete('', {
@@ -111,36 +104,14 @@ export async function accountRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const userId = request.user!.id;
-      await prisma.$transaction(async (tx) => {
-        const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
-        const valid = await PasswordUtils.verify((request.body as { currentPassword: string }).currentPassword, user.password);
-        if (!valid) throw new Error('Current password is incorrect');
-        if (user.role === 'ADMIN') {
-          const settings = await tx.systemSettings.findUnique({ where: { id: 'system' }, select: { installedBy: true } });
-          if (settings?.installedBy === userId) {
-            throw new StaffManagementError('Cannot remove the install admin', 'INSTALL_ADMIN_PROTECTED', 409);
-          }
-          throw new StaffManagementError('Cannot remove yourself', 'SELF_REMOVAL_FORBIDDEN', 409);
-        }
-        await tx.user.update({ where: { id: userId, role: 'USER' }, data: { isActive: false } });
-      });
+      await AccountService.deleteAccount(userId, (request.body as { currentPassword: string }).currentPassword);
       return sendSuccess(reply, {
         deleted: true,
         userId,
         unboundCardIds: [],
         message: 'Your account deletion request was completed.',
       });
-    } catch (error: unknown) {
-      if (error instanceof StaffManagementError) {
-        return sendError(reply, error.statusCode, error.code, error.message);
-      }
-      const mapped = mapAccountRouteError(error, {
-        defaultStatus: 400,
-        defaultCode: 'ACCOUNT_DELETE_FAILED',
-        defaultMessage: 'Failed to delete account',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   /**
@@ -159,14 +130,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
     try {
       const profile = await AccountService.getProfile(request.user!.id);
       return sendSuccess(reply, profile);
-    } catch (error: unknown) {
-      const mapped = mapAccountRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to get profile',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   /**
@@ -197,14 +161,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
         updateData
       );
       return sendSuccess(reply, updatedProfile, 'Profile updated successfully');
-    } catch (error: unknown) {
-      const mapped = mapAccountRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to update profile',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   /**
@@ -232,14 +189,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
       const updateData = UpdateEmailSchema.parse(request.body);
       const updatedProfile = await AccountService.updateEmail(request.user!.id, updateData);
       return sendSuccess(reply, updatedProfile, 'Email updated. Verify your new address using the verification instructions.');
-    } catch (error: unknown) {
-      const mapped = mapAccountRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Failed to update email',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   /**
@@ -266,13 +216,11 @@ export async function accountRoutes(fastify: FastifyInstance) {
 
       const result = await UploadService.uploadProductImage(data);
       return sendSuccess(reply, result);
-    } catch (error: unknown) {
-      const mapped = mapAccountRouteError(error, {
-        defaultStatus: 500,
-        defaultCode: 'INTERNAL_SERVER_ERROR',
-        defaultMessage: 'Upload failed',
-      });
-      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
+    } catch (error) {
+      if (error instanceof UploadValidationError) {
+        return sendError(reply, 400, 'VALIDATION_ERROR', error.message, error.details);
+      }
+      return sendMappedError(reply, error);
     }
   });
 

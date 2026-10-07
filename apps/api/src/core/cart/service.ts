@@ -1,14 +1,13 @@
 import { prisma } from '@/config/database';
+import { ApiError } from '@/utils/api-errors';
 import { InventoryService } from '@/core/inventory/service';
 import { currentLinePrice } from '@/core/order/current-pricing';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 
-export class InsufficientCartStockError extends Error {
-  readonly statusCode = 409;
-  readonly code = 'INSUFFICIENT_STOCK';
+export class InsufficientCartStockError extends ApiError {
 
   constructor(readonly availableQuantity: number) {
-    super(`Only ${availableQuantity} available`);
+    super('INSUFFICIENT_STOCK', { availableQuantity });
   }
 }
 
@@ -143,7 +142,7 @@ export class CartService {
       });
 
       if (!product || !product.isActive) {
-        throw new Error('Product is not available');
+        throw new ApiError('BAD_REQUEST');
       }
 
       const variant = variantId
@@ -151,7 +150,7 @@ export class CartService {
         : product.variants[0];
 
       if (!variant) {
-        throw new Error('Product or variant not found');
+        throw new ApiError('NOT_FOUND');
       }
 
       // Check if item already exists
@@ -204,7 +203,7 @@ export class CartService {
     }>
   ): Promise<Cart> {
     if (!Array.isArray(items) || items.length === 0) {
-      throw new Error('Items are required');
+      throw new ApiError('INTERNAL_SERVER_ERROR');
     }
 
     await prisma.$transaction(async (tx) => {
@@ -244,10 +243,10 @@ export class CartService {
         const product = productMap.get(item.productId);
 
         if (!product) {
-          throw new Error('Product or variant not found');
+          throw new ApiError('NOT_FOUND');
         }
         if (!product.isActive) {
-          throw new Error('Product is not available');
+          throw new ApiError('INTERNAL_SERVER_ERROR');
         }
 
         const variant = item.variantId
@@ -255,7 +254,7 @@ export class CartService {
           : product.variants[0];
 
         if (!variant) {
-          throw new Error('Product or variant not found');
+          throw new ApiError('NOT_FOUND');
         }
 
         const existingItem = await tx.cartItem.findFirst({
@@ -322,12 +321,12 @@ export class CartService {
       });
 
       if (!cart) {
-        throw new Error('Cart not found');
+        throw new ApiError('NOT_FOUND');
       }
 
       const item = cart.items.find(i => i.id === itemId);
       if (!item) {
-        throw new Error('Cart item not found');
+        throw new ApiError('NOT_FOUND');
       }
 
       if (quantity <= 0) {

@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 /**
  * Admin health summary routes.
  */
@@ -84,11 +85,6 @@ export async function healthMonitoringRoutes(fastify: FastifyInstance) {
     try {
       const data = await HealthMonitoringService.getHealthSummary();
       return sendSuccess(reply, data);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      const message = error instanceof Error ? error.message : 'Failed to fetch health summary';
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 }

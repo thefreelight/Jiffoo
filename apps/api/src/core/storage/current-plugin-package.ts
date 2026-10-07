@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { ApiError } from '@/utils/api-errors';
 import { createReadStream, promises as fs } from 'node:fs';
 import { prisma } from '@/config/database';
 import { pluginPackageBlobStore } from './plugin-package-blob-store';
@@ -10,9 +11,10 @@ import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 type ResolutionCode = 'PLUGIN_PACKAGE_UNAVAILABLE' | 'PLUGIN_PACKAGE_CORRUPT' | 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT'
   | 'PLUGIN_REINSTALL_REQUIRED' | 'PLUGIN_TEST_SIGNING_DISABLED';
 
-export class PluginPackageResolutionError extends Error {
-  constructor(public readonly code: ResolutionCode, public readonly statusCode: number, slug: string) {
-    super(`Plugin package resolution failed for ${slug}: ${code}`);
+export class PluginPackageResolutionError extends ApiError {
+  constructor(code: ResolutionCode, _statusCode: number, slug: string) {
+    super(code);
+    this.message = `Plugin package resolution failed for ${slug}: ${code}`;
   }
 }
 

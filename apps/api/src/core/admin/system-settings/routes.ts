@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 /**
  * System Settings Routes
  * API endpoints for managing platform settings
@@ -24,11 +25,7 @@ const systemSettingsRoutes: FastifyPluginAsync = async (fastify) => {
         try {
             const settings = await systemSettingsService.getAllSettings();
             return sendSuccess(reply, settings);
-        } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-            return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to fetch settings');
-        }
+        } catch (error) { return sendMappedError(reply, error); }
     });
 
     // Batch update settings
@@ -50,11 +47,7 @@ const systemSettingsRoutes: FastifyPluginAsync = async (fastify) => {
         try {
             const updated = await systemSettingsService.batchUpdate(settings);
             return sendSuccess(reply, updated, `${Object.keys(updated).length} settings updated`);
-        } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-            return sendError(reply, 400, 'BAD_REQUEST', error.message || 'Failed to update settings');
-        }
+        } catch (error) { return sendMappedError(reply, error); }
     });
 };
 

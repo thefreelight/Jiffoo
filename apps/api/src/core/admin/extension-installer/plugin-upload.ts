@@ -1,4 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { isDeepStrictEqual } from 'node:util';
 import type { PluginInstall } from '@prisma/client';
 import { prisma } from '@/config/database';
@@ -11,8 +12,8 @@ import { compareVersions } from './version-utils';
 import type { PluginManifest } from './types';
 import { writePluginAudit } from './plugin-audit';
 
-export class PluginUploadError extends Error {
-  constructor(public readonly code: string, public readonly statusCode: number, message = code) { super(message); }
+export class PluginUploadError extends ApiError {
+  constructor(code: ErrorCode, _statusCode: number, _message: string = code) { super(code); }
 }
 export type UploadSnapshot = { id: string; hash: string | null; updatedAt: string; deletedAt: string | null } | null;
 export type UploadInspection = Awaited<ReturnType<typeof inspectPluginUpload>>;

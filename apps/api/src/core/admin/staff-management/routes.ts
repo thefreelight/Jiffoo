@@ -1,7 +1,8 @@
+import { sendMappedError } from '@/utils/api-errors';
 import type { FastifyInstance } from 'fastify';
 import { createSuccessResponseSchema, createTypedCreateResponses, createTypedReadResponses, errorResponseSchema } from '@/types/common-dto';
 import { sendError, sendSuccess } from '@/utils/response';
-import { generateStaffInviteLink } from '@/core/auth/account-recovery';
+import { AccountRecoveryService } from '@/core/auth/account-recovery';
 import { StaffManagementError, StaffManagementService } from './service';
 import { sendKnownError } from '@/utils/api-errors';
 
@@ -24,13 +25,6 @@ const pageSchema = {
   },
   required: ['items', 'page', 'limit', 'total', 'totalPages'],
 } as const;
-
-function handleError(error: unknown, reply: any) {
-  if (error instanceof StaffManagementError) {
-    return sendError(reply, error.statusCode, error.code, error.message);
-  }
-  throw error;
-}
 
 export async function adminStaffRoutes(fastify: FastifyInstance) {
   fastify.get('/', {
@@ -68,11 +62,7 @@ export async function adminStaffRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       return sendSuccess(reply, await StaffManagementService.createStaff(request.user!.id, request.body as { email: string; username: string }), undefined, 201);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return handleError(error, reply);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.delete('/:userId', {
@@ -84,11 +74,7 @@ export async function adminStaffRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       return sendSuccess(reply, await StaffManagementService.removeStaff(request.user!.id, (request.params as { userId: string }).userId));
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return handleError(error, reply);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.post('/:userId/invite', {
@@ -98,11 +84,7 @@ export async function adminStaffRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       return sendSuccess(reply, await StaffManagementService.resendStaffInvite((request.params as { userId: string }).userId));
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return handleError(error, reply);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.post('/:userId/invite-link', {
@@ -110,11 +92,7 @@ export async function adminStaffRoutes(fastify: FastifyInstance) {
       response: { ...createTypedCreateResponses({ type: 'object', properties: { link: { type: 'string' } } }) } },
   }, async (request, reply) => {
     try {
-      return sendSuccess(reply, { link: await generateStaffInviteLink((request.params as { userId: string }).userId) }, undefined, 201);
-    } catch (caughtError) {
-      const knownErrorResponse = sendKnownError(reply, caughtError);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 409, 'INVITE_NOT_AVAILABLE', 'Invitation not available');
-    }
+      return sendSuccess(reply, { link: await AccountRecoveryService.generateStaffInviteLink((request.params as { userId: string }).userId) }, undefined, 201);
+    } catch (caughtError) { return sendMappedError(reply, caughtError); }
   });
 }

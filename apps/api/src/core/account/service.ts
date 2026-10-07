@@ -1,3 +1,4 @@
+import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { UpdateEmailRequest, UpdateProfileRequest } from './types';
@@ -8,6 +9,17 @@ import { EmailVerificationService } from '@/services/email-verification.service'
  * Focused on personal profile management
  */
 export class AccountService {
+  static async deleteAccount(userId: string, currentPassword: string): Promise<void> {
+    await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+      if (!await PasswordUtils.verify(currentPassword, user.password)) throw new ApiError('INVALID_PASSWORD');
+      if (user.role === 'ADMIN') {
+        const settings = await tx.systemSettings.findUnique({ where: { id: 'system' }, select: { installedBy: true } });
+        throw new ApiError(settings?.installedBy === userId ? 'INSTALL_ADMIN_PROTECTED' : 'SELF_REMOVAL_FORBIDDEN');
+      }
+      await tx.user.update({ where: { id: userId, role: 'USER' }, data: { isActive: false } });
+    }), { notFound: 'NOT_FOUND' });
+  }
   private static readonly profileSelect = {
     id: true,
     email: true,
@@ -49,7 +61,7 @@ export class AccountService {
     });
 
     if (!profile) {
-      throw new Error('User not found');
+      throw new ApiError('NOT_FOUND');
     }
 
     return {
@@ -62,14 +74,14 @@ export class AccountService {
    * Update user profile
    */
   static async updateProfile(userId: string, updateData: UpdateProfileRequest) {
-    const updatedProfile = await prisma.user.update({
+    const updatedProfile = await knownPrismaOperation(() => prisma.user.update({
       where: { id: userId },
       data: {
         ...updateData,
         updatedAt: new Date()
       },
       select: this.profileSelect
-    });
+    }), { notFound: 'NOT_FOUND' });
 
     return {
       ...updatedProfile,
@@ -84,12 +96,12 @@ export class AccountService {
     });
 
     if (!user) {
-      throw new Error('User not found');
+      throw new ApiError('NOT_FOUND');
     }
 
     const isValidPassword = await PasswordUtils.verify(data.currentPassword, user.password);
     if (!isValidPassword) {
-      throw new Error('Current password is incorrect');
+      throw new ApiError('INVALID_PASSWORD');
     }
 
     const existing = await prisma.user.findFirst({
@@ -101,10 +113,10 @@ export class AccountService {
     });
 
     if (existing) {
-      throw new Error('Email is already in use');
+      throw new ApiError('EMAIL_TAKEN');
     }
 
-    const updatedProfile = await prisma.$transaction(async (tx) => {
+    const updatedProfile = await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
       const updated = await tx.user.update({
         where: { id: userId },
         data: {
@@ -116,7 +128,7 @@ export class AccountService {
       });
       await EmailVerificationService.createVerification(tx, userId, updated.email, updated.username);
       return updated;
-    });
+    }), { notFound: 'NOT_FOUND', duplicateEmail: 'INTERNAL_SERVER_ERROR' });
 
     return {
       ...updatedProfile,

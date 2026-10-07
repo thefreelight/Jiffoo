@@ -1,3 +1,4 @@
+import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 /**
  * Admin Order Service
  * Handles order management operations including shipping, refunds, and cancellations
@@ -17,11 +18,8 @@ import { emitEvent } from '@/infra/events/emit';
 import { recordPaymentSucceeded } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
-function codedError(code: string, message: string): Error & { code: string; statusCode: number } {
-  const error = new Error(message) as Error & { code: string; statusCode: number };
-  error.code = code;
-  error.statusCode = 409;
-  return error;
+function codedError(code: import('@/utils/api-errors').ErrorCode, _message: string): ApiError {
+  return new ApiError(code);
 }
 
 const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
@@ -366,10 +364,10 @@ export class AdminOrderService {
       select: { id: true, paymentStatus: true, paymentMethod: true },
     });
     if (!order) {
-      throw new Error('Order not found');
+      throw new ApiError('NOT_FOUND');
     }
     if (order.paymentStatus === PaymentStatus.PAID) {
-      throw new Error('Order is already paid');
+      throw new ApiError('VALIDATION_ERROR');
     }
 
     if (!order.paymentMethod) {
@@ -398,17 +396,17 @@ export class AdminOrderService {
       orderBy: { createdAt: 'desc' },
     });
     if (!payment) {
-      throw new Error('No pending payment found for order');
+      throw new ApiError('INTERNAL_SERVER_ERROR');
     }
 
-    await recordPaymentSucceeded({
+    await knownPrismaOperation(() => recordPaymentSucceeded({
       paymentId: payment.id,
       providerEventId: `manual:${payment.id}`,
       reason: 'manual_payment_recorded',
       actorType: 'admin',
       actorId,
       metadata: reference ? { reference } : undefined,
-    });
+    }), { notFound: 'NOT_FOUND' });
 
     await CacheService.incrementOrderVersion();
     return this.getOrderById(orderId);
@@ -428,7 +426,7 @@ export class AdminOrderService {
     });
 
     if (!order) {
-      throw new Error('Order not found');
+      throw new ApiError('NOT_FOUND');
     }
 
     assertOrderTransition(order.status, OrderStatus.SHIPPED, order.paymentStatus);
@@ -453,10 +451,10 @@ export class AdminOrderService {
       });
 
       // Update order status to SHIPPED
-      const updated = await tx.order.update({
+      const updated = await knownPrismaOperation(() => tx.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.SHIPPED }
-      });
+      }), { notFound: 'NOT_FOUND' });
       await emitEvent(tx, 'order.fulfilled', 1, orderId, {
         id: updated.id, userId: updated.userId, status: 'SHIPPED',
         subtotalAmount: Number(updated.subtotalAmount), shippingAmount: Number(updated.shippingAmount),
@@ -499,14 +497,14 @@ export class AdminOrderService {
       where: { id: orderId },
       select: { status: true, paymentStatus: true },
     });
-    if (!order) throw new Error('Order not found');
+    if (!order) throw new ApiError('NOT_FOUND');
     assertOrderTransition(order.status, OrderStatus.DELIVERED, order.paymentStatus);
 
     await prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
+      const updated = await knownPrismaOperation(() => tx.order.update({
         where: { id: orderId },
         data: { status: OrderStatus.DELIVERED },
-      });
+      }), { notFound: 'NOT_FOUND' });
       await recordOrderStatusHistory(tx, {
         orderId, fromStatus: order.status, toStatus: updated.status,
         fromPaymentStatus: order.paymentStatus, toPaymentStatus: updated.paymentStatus,
@@ -537,7 +535,7 @@ export class AdminOrderService {
     });
 
     if (!order) {
-      throw new Error('Order not found');
+      throw new ApiError('NOT_FOUND');
     }
 
     assertOrderTransition(order.status, OrderStatus.REFUNDED, order.paymentStatus);
@@ -547,7 +545,7 @@ export class AdminOrderService {
 
     const payment = order.payments[0];
     if (!payment) {
-      throw new Error('No successful payment found for this order');
+      throw new ApiError('VALIDATION_ERROR');
     }
 
     const refundAmount = Number(order.totalAmount);
@@ -615,13 +613,13 @@ export class AdminOrderService {
           items: order.items.map((item) => ({ orderItemId: item.id, quantity: item.quantity })),
         });
 
-        const updated = await tx.order.update({
+        const updated = await knownPrismaOperation(() => tx.order.update({
           where: { id: orderId },
           data: {
             paymentStatus: PaymentStatus.REFUNDED,
             status: OrderStatus.REFUNDED,
           },
-        });
+        }), { notFound: 'NOT_FOUND' });
         await createOrderNotification(tx, 'refunded', orderId);
 
         await recordOrderStatusHistory(tx, {
@@ -636,7 +634,7 @@ export class AdminOrderService {
 
         if (order.status === OrderStatus.PROCESSING) {
           for (const item of order.items) {
-            await InventoryService.incrementStock(tx, item.variantId, item.quantity);
+            await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity), { notFound: 'NOT_FOUND' });
           }
         }
       });
@@ -665,7 +663,7 @@ export class AdminOrderService {
     });
 
     if (!order) {
-      throw new Error('Order not found');
+      throw new ApiError('NOT_FOUND');
     }
 
     assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
@@ -675,14 +673,14 @@ export class AdminOrderService {
         where: { orderId, status: 'PENDING' },
         data: { status: 'CANCELLED' },
       });
-      const updated = await tx.order.update({
+      const updated = await knownPrismaOperation(() => tx.order.update({
         where: { id: orderId },
         data: {
           status: OrderStatus.CANCELLED,
           cancelReason: data.cancelReason,
           cancelledAt: new Date(),
         }
-      });
+      }), { notFound: 'NOT_FOUND' });
       await createOrderNotification(tx, 'cancelled', orderId, { reason: data.cancelReason });
 
       await recordOrderStatusHistory(tx, {
@@ -696,7 +694,7 @@ export class AdminOrderService {
       });
 
       for (const item of order.items) {
-        await InventoryService.incrementStock(tx, item.variantId, item.quantity);
+        await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity), { notFound: 'NOT_FOUND' });
       }
     });
 

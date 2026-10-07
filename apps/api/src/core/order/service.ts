@@ -1,3 +1,4 @@
+import { ApiError } from '@/utils/api-errors';
 /**
  * Order Service
  *
@@ -93,7 +94,7 @@ export class OrderService {
     for (const field of requiredFields) {
       const value = (address[field] as unknown as string | undefined)?.trim();
       if (!value) {
-        throw new Error(`Shipping address field "${field}" is required`);
+        throw new ApiError('BAD_REQUEST');
       }
     }
 
@@ -102,10 +103,10 @@ export class OrderService {
 
     if (countryRequiresStatePostal(address.country, normalizedCountries)) {
       if (!address.state || address.state.trim().length === 0) {
-        throw new Error('Shipping address field "state" is required for the selected country');
+        throw new ApiError('BAD_REQUEST');
       }
       if (!address.postalCode || address.postalCode.trim().length === 0) {
-        throw new Error('Shipping address field "postalCode" is required for the selected country');
+        throw new ApiError('BAD_REQUEST');
       }
     }
   }
@@ -165,7 +166,7 @@ export class OrderService {
       select: { email: true },
     });
     if (!user) {
-      throw new Error('User not found');
+      throw new ApiError('BAD_REQUEST');
     }
     const currency = await systemSettingsService.getShopCurrency();
 
@@ -180,7 +181,7 @@ export class OrderService {
     let requiresOrderShipping = false;
 
     if (!data.items || data.items.length === 0) {
-      throw new Error('Order must contain at least one item');
+      throw Object.assign(new ApiError('BAD_REQUEST'), { message: 'Order must contain at least one item' });
     }
 
     // Batch fetch all products to avoid N+1 query problem
@@ -209,26 +210,26 @@ export class OrderService {
       const product = productMap.get(item.productId);
 
       if (!product) {
-        throw new Error(`Product not found: ${item.productId}`);
+        throw new ApiError('BAD_REQUEST');
       }
 
       if (!product.isActive) {
-        throw new Error(`Product is not available: ${product.name}`);
+        throw new ApiError('BAD_REQUEST');
       }
 
       const variantId = item.variantId;
 
       if (!variantId) {
-        throw new Error(`Variant ID is required for product: ${product.name}`);
+        throw new ApiError('BAD_REQUEST');
       }
 
       const variant = product.variants.find(v => v.id === variantId);
       if (!variant) {
-        throw new Error(`Variant not found: ${variantId}`);
+        throw new ApiError('BAD_REQUEST');
       }
 
       if (!variant.isActive) {
-        throw new Error(`Variant is not available: ${variant.name}`);
+        throw new ApiError('BAD_REQUEST');
       }
 
       if (product.requiresShipping) {
@@ -240,7 +241,7 @@ export class OrderService {
       const stock = stockMap.get(variantId) ?? 0;
 
       if (stock < requestedQuantity) {
-        throw new Error(`Insufficient stock for variant ${variant.name} of product: ${product.name}`);
+        throw Object.assign(new ApiError('BAD_REQUEST'), { message: `Insufficient stock for variant ${variant.name} of product: ${product.name}` });
       }
 
       totalAmount += unitPrice * item.quantity;
@@ -253,7 +254,7 @@ export class OrderService {
     }
 
     if (requiresOrderShipping && !data.shippingAddress) {
-      throw new Error('Shipping address is required for shippable items');
+      throw new ApiError('BAD_REQUEST');
     }
 
     if (normalizedShippingAddress) {
@@ -261,7 +262,7 @@ export class OrderService {
     }
 
     // Unified currency from settings
-    if (!normalizedShippingAddress) throw new Error('Shipping address is required');
+    if (!normalizedShippingAddress) throw new ApiError('BAD_REQUEST');
     const quote = await CheckoutService.quoteItems(currency, orderItems.map((item) => ({
       productId: item.productId,
       variantId: item.variantId,
@@ -280,25 +281,22 @@ export class OrderService {
     }, true);
     const selectedShipping = quote.shippingOptions.find((option) => option.id === data.shippingOptionId);
     if (!selectedShipping) {
-      const error = new Error('SHIPPING_METHOD_UNAVAILABLE') as Error & { statusCode?: number; code?: string };
-      error.statusCode = 409; error.code = 'SHIPPING_METHOD_UNAVAILABLE'; throw error;
+      throw new ApiError('SHIPPING_METHOD_UNAVAILABLE');
     }
     const payment = quote.paymentMethods.find((method) => method.providerSlug === data.paymentMethod);
     if (!payment) {
-      const error = new Error('PAYMENT_METHOD_UNAVAILABLE') as Error & { statusCode?: number; code?: string };
-      error.statusCode = 409; error.code = 'PAYMENT_METHOD_UNAVAILABLE'; throw error;
+      throw new ApiError('PAYMENT_METHOD_UNAVAILABLE');
     }
     let description: { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
     try {
       description = await callContract(data.paymentMethod, 'payment', 1, 'describe', { storeCurrency: currency }) as { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
     } catch (error) {
       if (error instanceof ContractCallError) {
-        const unavailable = new Error('PAYMENT_METHOD_UNAVAILABLE') as Error & { statusCode: number; code: string };
-        unavailable.statusCode = 409; unavailable.code = 'PAYMENT_METHOD_UNAVAILABLE'; throw unavailable;
+        throw new ApiError('PAYMENT_METHOD_UNAVAILABLE');
       }
       throw error;
     }
-    if (!description.supportedCurrencies.includes(currency)) throw new Error('PAYMENT_METHOD_UNAVAILABLE');
+    if (!description.supportedCurrencies.includes(currency)) throw new ApiError('BAD_REQUEST');
     const taxProvider = await PluginManagementService.resolveSingleProvider('tax');
     const taxLines = orderItems.map((item, index) => ({ lineId: String(index), productId: item.productId, variantId: item.variantId, quantity: item.quantity, amountMinor: decimalToMinor(item.unitPrice * item.quantity, currency) }));
     const shippingMinor = selectedShipping.amountMinor;
@@ -311,8 +309,7 @@ export class OrderService {
     totalAmount = subtotalAmount + shippingAmount + (tax.pricesIncludeTax ? 0 : taxAmount);
     if (decimalToMinor(data.expectedTotal, currency) !==
       decimalToMinor(subtotalAmount, currency) + shippingMinor + (tax.pricesIncludeTax ? 0 : tax.totalTaxMinor)) {
-      const error = new Error('QUOTE_CHANGED') as Error & { statusCode?: number; code?: string };
-      error.statusCode = 409; error.code = 'QUOTE_CHANGED'; throw error;
+      throw new ApiError('QUOTE_CHANGED');
     }
     const unpaidExpiresAt = new Date(Date.now() + description.unpaidTimeoutMinutes * 60_000);
 
@@ -562,7 +559,7 @@ export class OrderService {
     });
 
     if (!order) {
-      throw new Error('Order not found');
+      throw Object.assign(new ApiError('NOT_FOUND'), { message: 'Order not found' });
     }
 
     assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);

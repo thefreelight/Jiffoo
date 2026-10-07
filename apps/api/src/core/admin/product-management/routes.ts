@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 /**
  * Admin Product Routes
  */
@@ -5,9 +6,8 @@
 import { FastifyInstance } from 'fastify';
 import { AdminProductService, CatalogConflictError } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
-import { UploadService } from '@/core/upload/service';
+import { UploadService, UploadValidationError } from '@/core/upload/service';
 import { adminProductSchemas } from './schemas';
-import { isPrismaDatabaseError } from '@/utils/route-error-mapper';
 import { sendKnownError } from '@/utils/api-errors';
 
 export async function adminProductRoutes(fastify: FastifyInstance) {
@@ -27,11 +27,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       const { page, limit, ...filters } = request.query as any;
       const result = await AdminProductService.getProducts(page, limit, filters);
       return sendSuccess(reply, result);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Get global product stats
@@ -47,11 +43,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
     try {
       const result = await AdminProductService.getProductStats();
       return sendSuccess(reply, result);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Get single product
@@ -71,11 +63,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
         return sendError(reply, 404, 'NOT_FOUND', 'Product not found');
       }
       return sendSuccess(reply, product);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Create product
@@ -91,19 +79,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
     try {
       const product = await AdminProductService.createProduct(request.body as any);
       return sendSuccess(reply, product, undefined, 201);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (isPrismaDatabaseError(error)) {
-        request.log.error({ err: error }, 'Product creation database failure');
-        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to create product');
-      }
-      if (error instanceof CatalogConflictError) return sendError(reply, 400, error.code, error.message);
-      if (error.message.includes('variants') || error.message.includes('at least 1')) {
-        return sendError(reply, 400, 'VALIDATION_ERROR', error.message);
-      }
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Update product
@@ -120,19 +96,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       const { id } = request.params as any;
       const product = await AdminProductService.updateProduct(id, request.body as any);
       return sendSuccess(reply, product);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof CatalogConflictError) return sendError(reply, 400, error.code, error.message);
-      if (error.code === 'P2025' || error.message === 'Product not found') {
-        return sendError(reply, 404, 'NOT_FOUND', 'Product not found');
-      }
-      if (isPrismaDatabaseError(error)) {
-        request.log.error({ err: error }, 'Product update database failure');
-        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to update product');
-      }
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Delete product
@@ -152,14 +116,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
         productId: id,
         deleted: true,
       }, 'Product deleted');
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error.code === 'P2025' || error.message === 'Product not found') {
-        return sendError(reply, 404, 'NOT_FOUND', 'Product not found');
-      }
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Upload product image
@@ -183,9 +140,10 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       const result = await UploadService.uploadProductImage(data);
       return sendSuccess(reply, result);
     } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 400, 'UPLOAD_FAILED', error.message || 'Upload failed');
+      if (error instanceof UploadValidationError) {
+        return sendError(reply, 400, 'UPLOAD_FAILED', error.message, error.details);
+      }
+      return sendMappedError(reply, error);
     }
   });
 
@@ -203,11 +161,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       const { page, limit } = request.query as { page?: number; limit?: number };
       const categories = await AdminProductService.getCategories(page, limit);
       return sendSuccess(reply, categories);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.get('/categories/:id', {
@@ -230,12 +184,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
     try {
       const category = await AdminProductService.createCategory(request.body as any);
       return sendSuccess(reply, category, undefined, 201);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof CatalogConflictError) return sendError(reply, 400, error.code, error.message);
-      throw error;
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.put('/categories/:id', {
@@ -248,12 +197,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
     try {
       const category = await AdminProductService.updateCategory(id, request.body as any);
       return sendSuccess(reply, category);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof CatalogConflictError) return sendError(reply, 400, error.code, error.message);
-      throw error;
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.delete('/categories/:id', {
@@ -266,12 +210,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
     try {
       await AdminProductService.deleteCategory(id);
       return sendSuccess(reply, { categoryId: id, deleted: true });
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof CatalogConflictError) return sendError(reply, 409, error.code, error.message);
-      throw error;
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
 }

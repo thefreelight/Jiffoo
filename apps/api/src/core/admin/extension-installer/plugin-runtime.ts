@@ -101,19 +101,14 @@ export type PluginGatewayErrorCode =
   | 'PLUGIN_PACKAGE_UNAVAILABLE'
   | 'PLUGIN_REINSTALL_REQUIRED'
   | 'PLUGIN_TEST_SIGNING_DISABLED'
-  | 'PLUGIN_UPGRADE_RESTART_REQUIRED'
   | 'PLUGIN_TIMEOUT'
   | 'INVALID_SLUG'
   | 'INVALID_INSTANCE_KEY';
 
-export class PluginGatewayError extends Error {
-  public readonly code: PluginGatewayErrorCode;
-  public readonly statusCode: number;
-
+export class PluginGatewayError extends ApiError {
   constructor(message: string, code: PluginGatewayErrorCode, statusCode: number) {
-    super(message);
-    this.code = code;
-    this.statusCode = statusCode;
+    super(code);
+    this.message = message;
   }
 }
 

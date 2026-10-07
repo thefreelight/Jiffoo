@@ -1,3 +1,4 @@
+import { sendMappedError } from '@/utils/api-errors';
 /**
  * Order Routes
  */
@@ -34,26 +35,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         payload
       );
       return sendSuccess(reply, order, undefined, 201);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof SharedProtectionUnavailable) return sendProtectionUnavailable(reply);
-      if (error instanceof Prisma.PrismaClientKnownRequestError
-        || error instanceof Prisma.PrismaClientUnknownRequestError
-        || error instanceof Prisma.PrismaClientInitializationError
-        || error instanceof Prisma.PrismaClientRustPanicError) {
-        request.log.error({ err: error }, 'Order creation database failure');
-        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to create order');
-      }
-      if (error?.statusCode === 409) return sendError(reply, 409, error.code || 'CONFLICT', error.message);
-      if (error?.code === 'PLUGIN_PACKAGE_UNAVAILABLE') return sendError(reply, 503, 'PLUGIN_PACKAGE_UNAVAILABLE', 'Checkout plugin package is unavailable');
-      if (error?.code === 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT') return sendError(reply, 503, error.code, 'Checkout plugin package materialization timed out');
-      if (error?.code === 'PLUGIN_PACKAGE_CORRUPT') return sendError(reply, 500, error.code, 'Checkout plugin package is corrupt');
-      if (error?.code === 'CONTRACT_RESPONSE_INVALID' || error?.code === 'CONTRACT_CALL_FAILED') return sendError(reply, 502, 'CONTRACT_CALL_FAILED', 'Checkout provider is temporarily unavailable');
-      if (/^(Shipping address|Order must contain|Product not found:|Product is not available:|Variant ID is required|Variant not found:|Variant is not available:|Insufficient stock|User not found|PAYMENT_METHOD_UNAVAILABLE)/.test(error?.message || ''))
-        return sendError(reply, 400, 'BAD_REQUEST', error.message);
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Order creation failed');
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Get user orders
@@ -75,11 +57,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         status
       );
       return sendSuccess(reply, result);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Get order by ID
@@ -99,11 +77,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         return sendError(reply, 404, 'NOT_FOUND', 'Order not found');
       }
       return sendSuccess(reply, order);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   fastify.post('/:id/tracking-claim', {
@@ -118,14 +92,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
     try {
       const { id } = request.params as { id: string };
       return sendSuccess(reply, await claimOrderPurchase(id, request.user!.id));
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof TrackingClaimError) {
-        return sendError(reply, error.statusCode, error.code, error.message);
-      }
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to claim purchase tracking');
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   // Cancel order
@@ -143,16 +110,6 @@ export async function orderRoutes(fastify: FastifyInstance) {
       const { cancelReason } = request.body as any;
       const order = await OrderService.cancelOrder(id, request.user!.id, cancelReason);
       return sendSuccess(reply, order);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error?.message === 'Order not found') {
-        return sendError(reply, 404, 'NOT_FOUND', 'Order not found');
-      }
-      if (error instanceof InvalidOrderTransitionError) {
-        return sendError(reply, 409, error.code, error.message);
-      }
-      return sendError(reply, 400, 'BAD_REQUEST', error.message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 }

@@ -1,9 +1,10 @@
 import { Prisma } from '@prisma/client';
+import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { prisma } from '@/config/database';
 
-export class TrackingClaimError extends Error {
-  constructor(public statusCode: 404 | 409, public code: string, message: string) {
-    super(message);
+export class TrackingClaimError extends ApiError {
+  constructor(_statusCode: 404 | 409, code: ErrorCode, _message: string) {
+    super(code);
   }
 }
 

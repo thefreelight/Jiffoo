@@ -1,9 +1,15 @@
 import { ApiErrorCodes, type ApiErrorCode } from 'shared';
 import { Prisma } from '@prisma/client';
+import { ZodError } from 'zod';
+import { PackageVerificationError } from 'shared/plugin-signing';
 import { errorCodes, type FastifyReply } from 'fastify';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 
 export const errorCatalog = {
+  [ApiErrorCodes.VERSION_CHECK_FAILED]: { status: 500, message: 'Internal server error' },
+  [ApiErrorCodes.THEME_MANIFEST_TOO_LARGE]: { status: 413, message: 'Theme manifest is too large' },
+  [ApiErrorCodes.THEME_FONT_TOO_LARGE]: { status: 413, message: 'Theme font is too large' },
+  [ApiErrorCodes.THEME_IMAGE_TOO_LARGE]: { status: 413, message: 'Theme image is too large' },
   [ApiErrorCodes.PLUGIN_REINSTALL_CONFLICT]: { status: 409, message: 'Plugin must be reinstalled before this operation' },
   [ApiErrorCodes.PLUGIN_TEST_SIGNING_CONFLICT]: { status: 409, message: 'Test-signed plugin cannot be used in this environment' },
   [ApiErrorCodes.CATEGORY_NOT_EMPTY]: { status: 409, message: 'Category not empty.' },
@@ -47,9 +53,7 @@ export const errorCatalog = {
   [ApiErrorCodes.UNKNOWN_MANIFEST_FIELD]: { status: 400, message: 'Unknown manifest field.' },
   [ApiErrorCodes.UNSUPPORTED_HOST_PROTOCOL]: { status: 400, message: 'Unsupported host protocol.' },
   [ApiErrorCodes.UNTRUSTED_PUBLISHER_CERTIFICATE]: { status: 422, message: 'Untrusted publisher certificate.' },
-  [ApiErrorCodes.ACCOUNT_DELETE_FAILED]: { status: 400, message: "Account delete failed." },
   [ApiErrorCodes.ACCOUNT_INACTIVE]: { status: 403, message: "Account is inactive" },
-  [ApiErrorCodes.ACCOUNT_NOT_FOUND]: { status: 404, message: "Account not found." },
   [ApiErrorCodes.ADMIN_ACCOUNT_PROTECTED]: { status: 409, message: "Admin account protected." },
   [ApiErrorCodes.BAD_REQUEST]: { status: 400, message: "Invalid request" },
   [ApiErrorCodes.CHANGE_PASSWORD_FAILED]: { status: 500, message: "Change password failed." },
@@ -227,6 +231,17 @@ export function catalogError(code: string, details?: unknown): ApiError {
   return new ApiError(Object.hasOwn(errorCatalog, code) ? code as ErrorCode : 'INTERNAL_SERVER_ERROR', details);
 }
 
+export async function knownPrismaOperation<T>(operation: () => Promise<T>, context: { notFound?: ErrorCode; duplicateEmail?: ErrorCode }): Promise<T> {
+  try { return await operation(); }
+  catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025' && context.notFound) throw new ApiError(context.notFound);
+      if (error.code === 'P2002' && context.duplicateEmail && String(error.meta?.target).includes('email')) throw new ApiError(context.duplicateEmail);
+    }
+    throw error;
+  }
+}
+
 function fieldPath(value: unknown): string | undefined {
   if (typeof value !== 'string' || value.length > 200 || !/^[a-zA-Z0-9_.$/[\]-]*$/.test(value) || value.includes('..')) return undefined;
   return value;
@@ -248,6 +263,12 @@ export function safeIssues(issues: unknown): Array<{ path: string; message: stri
 function detailsFor(error: ApiError): unknown {
   if (!error.safeDetails || typeof error.safeDetails !== 'object' || errorCatalog[error.code].status >= 500) return undefined;
   const input = error.safeDetails as Record<string, unknown>;
+  if (error.code === 'VALIDATION_ERROR' || error.code === 'UPLOAD_FAILED') {
+    if (Array.isArray(input.allowedTypes) && input.allowedTypes.every(value => typeof value === 'string' && ['image/jpeg', 'image/png', 'image/webp'].includes(value))) {
+      return { allowedTypes: [...input.allowedTypes] };
+    }
+    if (typeof input.maxBytes === 'number' && Number.isSafeInteger(input.maxBytes) && input.maxBytes > 0) return { maxBytes: input.maxBytes };
+  }
   if (error.code === 'VALIDATION_ERROR') return { issues: safeIssues(input.issues) };
   if (error.code === 'INVALID_PLUGIN_CONFIG') return { fields: safeIssues(input.fields) };
   if (error.code === 'INSUFFICIENT_STOCK' && typeof input.availableQuantity === 'number' && Number.isSafeInteger(input.availableQuantity) && input.availableQuantity >= 0) return { availableQuantity: input.availableQuantity };
@@ -261,6 +282,8 @@ function detailsFor(error: ApiError): unknown {
 
 export function mapApiError(error: unknown) {
   const known = error instanceof ApiError && Object.hasOwn(errorCatalog, error.code) ? error
+    : error instanceof PackageVerificationError ? catalogError(error.code)
+    : error instanceof ZodError ? new ApiError('VALIDATION_ERROR', { issues: error.issues.map(issue => ({ path: issue.path.join('.'), code: issue.code })) })
     : error instanceof SharedProtectionUnavailable ? new ApiError('SHARED_PROTECTION_UNAVAILABLE')
       : isDatabaseUnavailable(error) ? new ApiError('DATABASE_UNAVAILABLE')
         : error instanceof errorCodes.FST_ERR_CTP_BODY_TOO_LARGE ? new ApiError('PAYLOAD_TOO_LARGE')

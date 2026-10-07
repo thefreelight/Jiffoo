@@ -1,4 +1,5 @@
 import { env, validateMarketplaceUrl } from '@/config/env';
+import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 
 const MAX_CATALOG_BYTES = 1024 * 1024;
@@ -27,8 +28,8 @@ export type CatalogPlugin = {
 };
 export type MarketplaceCatalog = { schemaVersion: 1; plugins: CatalogPlugin[] };
 
-export class MarketplaceError extends Error {
-  constructor(readonly code: string, readonly statusCode: number) { super(code); }
+export class MarketplaceError extends ApiError {
+  constructor(code: ErrorCode, _statusCode: number) { super(code); }
 }
 
 let cache: { url: string; expires: number; catalog: MarketplaceCatalog } | undefined;

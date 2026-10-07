@@ -1,8 +1,17 @@
-
 import { MultipartFile } from '@fastify/multipart';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
+
+export class UploadValidationError extends Error {
+  constructor(
+    readonly reason: 'INVALID_TYPE' | 'TOO_LARGE',
+    readonly details: { allowedTypes?: string[]; maxBytes?: number },
+  ) {
+    super(reason === 'INVALID_TYPE' ? 'Invalid file type' : 'File too large');
+    this.name = 'UploadValidationError';
+  }
+}
 
 export interface UploadResult {
   filename: string;
@@ -23,17 +32,28 @@ export class UploadService {
     large: { width: 1200, height: 1200 }
   };
 
+  private static async readImageBuffer(file: MultipartFile): Promise<Buffer> {
+    let buffer: Buffer;
+    try {
+      buffer = await file.toBuffer();
+    } catch (error) {
+      if (file.file.truncated) throw new UploadValidationError('TOO_LARGE', { maxBytes: this.MAX_FILE_SIZE });
+      throw error;
+    }
+    if (file.file.truncated || buffer.length > this.MAX_FILE_SIZE) {
+      throw new UploadValidationError('TOO_LARGE', { maxBytes: this.MAX_FILE_SIZE });
+    }
+    return buffer;
+  }
+
   static async uploadProductImage(file: MultipartFile): Promise<UploadResult> {
     // Validate file type
     if (!this.ALLOWED_TYPES.includes(file.mimetype)) {
-      throw new Error(`Invalid file type. Allowed types: ${this.ALLOWED_TYPES.join(', ')}`);
+      throw new UploadValidationError('INVALID_TYPE', { allowedTypes: [...this.ALLOWED_TYPES] });
     }
 
     // Validate file size
-    const buffer = await file.toBuffer();
-    if (buffer.length > this.MAX_FILE_SIZE) {
-      throw new Error(`File too large. Maximum size: ${this.MAX_FILE_SIZE / 1024 / 1024}MB`);
-    }
+    const buffer = await this.readImageBuffer(file);
 
     const fileId = randomUUID();
     const ext = path.extname(file.filename || '.jpg');
@@ -69,13 +89,10 @@ export class UploadService {
   static async uploadAvatar(file: MultipartFile): Promise<UploadResult> {
     // Validate file type
     if (!this.ALLOWED_TYPES.includes(file.mimetype)) {
-      throw new Error(`Invalid file type. Allowed types: ${this.ALLOWED_TYPES.join(', ')}`);
+      throw new UploadValidationError('INVALID_TYPE', { allowedTypes: [...this.ALLOWED_TYPES] });
     }
 
-    const buffer = await file.toBuffer();
-    if (buffer.length > this.MAX_FILE_SIZE) {
-      throw new Error(`File too large. Maximum size: ${this.MAX_FILE_SIZE / 1024 / 1024}MB`);
-    }
+    const buffer = await this.readImageBuffer(file);
 
     const fileId = randomUUID();
     const ext = path.extname(file.filename || '.jpg');

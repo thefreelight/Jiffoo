@@ -1,3 +1,4 @@
+import { mapApiError, sendMappedError } from '@/utils/api-errors';
 /**
  * Extension Installer Routes
  * 
@@ -14,7 +15,8 @@ import { errorResponseSchema } from '@/utils/schema-helpers';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { handlePluginGateway, PluginGatewayError } from './plugin-runtime';
 import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
-import { readStoredPluginManifest } from './stored-manifest';
+import { InvalidStoredManifestError, readStoredPluginManifest } from './stored-manifest';
+import { ExtensionInstallerError } from './errors';
 import { themeManagementRoutes } from './theme-routes';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
@@ -22,10 +24,10 @@ import { Prisma } from '@prisma/client';
 import { PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
 import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 import { fetchMarketplaceCatalog, marketplaceUrl, MarketplaceError } from './marketplace-catalog';
-import { checkPluginApiCompatibility } from './plugin-compatibility';
+import { checkPluginApiCompatibility, PluginLoaderError } from './plugin-compatibility';
 import { compareVersions } from './version-utils';
 import { installMarketplacePlugin } from './marketplace-install';
-import { previewPluginUpload } from './plugin-upload';
+import { previewPluginUpload, PluginUploadError } from './plugin-upload';
 import { sendKnownError } from '@/utils/api-errors';
 
 const packageUnavailableResponse = {
@@ -36,6 +38,22 @@ const packageCorruptResponse = {
   ...errorResponseSchema,
   description: 'Includes PLUGIN_PACKAGE_CORRUPT',
 };
+
+function sendReadDependencyError(reply: FastifyReply, error: unknown) {
+  if (error instanceof InvalidStoredManifestError || error instanceof ExtensionInstallerError
+    || error instanceof PluginLoaderError || error instanceof PluginUploadError) {
+    return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Internal server error');
+  }
+  return sendMappedError(reply, error);
+}
+
+function sendMarketplaceInstallError(reply: FastifyReply, error: unknown) {
+  if (error instanceof PluginLoaderError || ((error instanceof ExtensionInstallerError || error instanceof PluginUploadError)
+    && ![409, 413, 422].includes(mapApiError(error).status))) {
+    return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Internal server error');
+  }
+  return sendMappedError(reply, error);
+}
 
 // Plugin categories (hardcoded)
 const PLUGIN_CATEGORIES = [
@@ -140,15 +158,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       await handlePluginGateway(request, reply, '/', fastify);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
-        return sendError(reply, error.statusCode, error.code, error.message);
-      }
-      fastify.log.error('Plugin gateway failed');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Plugin gateway failed');
-    }
+    } catch (error) { return sendReadDependencyError(reply, error); }
   });
 
   fastify.all<{ Params: { slug: string; '*': string } }>('/plugin/:slug/api/*', {
@@ -177,15 +187,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     try {
       const targetPath = (request.params as any)['*'] || '';
       await handlePluginGateway(request, reply, `/${targetPath}`, fastify);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
-        return sendError(reply, error.statusCode, error.code, error.message);
-      }
-      fastify.log.error('Plugin gateway failed');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Plugin gateway failed');
-    }
+    } catch (error) { return sendReadDependencyError(reply, error); }
   });
 
   fastify.get<{ Params: { slug: string } }>('/plugin/:slug/health', {
@@ -218,15 +220,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         return reply.send('disabled');
       }
       await handlePluginGateway(request, reply, '/health', fastify, { requireEnabled: false });
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
-        return sendError(reply, error.statusCode, error.code, error.message);
-      }
-      fastify.log.error('Plugin health gateway failed');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Plugin health gateway failed');
-    }
+    } catch (error) { return sendReadDependencyError(reply, error); }
   });
 
   fastify.get<{ Params: { slug: string } }>('/plugin/:slug/manifest', {
@@ -259,15 +253,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         return reply.send(JSON.stringify(readStoredPluginManifest(plugin)));
       }
       await handlePluginGateway(request, reply, '/manifest', fastify, { requireEnabled: false });
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
-        return sendError(reply, error.statusCode, error.code, error.message);
-      }
-      fastify.log.error('Plugin manifest gateway failed');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Plugin manifest gateway failed');
-    }
+    } catch (error) { return sendReadDependencyError(reply, error); }
   });
 
   // Slug-level routes removed - use instance-level API only
@@ -355,13 +341,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
           };
         });
         return sendSuccess(reply, { schemaVersion: 1, items });
-      } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-        if (error instanceof MarketplaceError) return sendError(reply, error.statusCode, error.code, error.message);
-        fastify.log.error({ err: error }, 'Marketplace catalog failed');
-        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Marketplace catalog failed');
-      }
+      } catch (error) { return sendReadDependencyError(reply, error); }
     });
 
     admin.post<{ Body: { pluginId: string; version: string } }>('/marketplace/install', {
@@ -408,18 +388,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
           installedVersion: plugin.version,
           warnings: plugin.warnings ?? [],
         });
-      } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-        if (error instanceof MarketplaceError) return sendError(reply, error.statusCode, error.code, error.message);
-        if (error && typeof error === 'object' && 'statusCode' in error && 'code' in error &&
-          typeof error.statusCode === 'number' && typeof error.code === 'string' &&
-          [409, 413, 422].includes(error.statusCode)) {
-          return sendError(reply, error.statusCode, error.code, error.code);
-        }
-        fastify.log.error({ err: error }, 'Marketplace install failed');
-        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Marketplace install failed');
-      }
+      } catch (error) { return sendMarketplaceInstallError(reply, error); }
     });
 
     admin.get<{ Params: { slug: string } }>('/plugin/:slug/disable-impact', {
@@ -456,7 +425,12 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       if (!plugin || plugin.deletedAt) {
         return sendError(reply, 404, 'NOT_FOUND', 'Plugin not found');
       }
-      const manifest = readStoredPluginManifest(plugin);
+      let manifest: ReturnType<typeof readStoredPluginManifest>;
+      try {
+        manifest = readStoredPluginManifest(plugin);
+      } catch (error) {
+        return sendReadDependencyError(reply, error);
+      }
       const pendingPaymentOrders = manifest.contracts?.some((contract) => contract.name === 'payment')
         ? await prisma.order.count({
           where: {
@@ -528,11 +502,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         total,
         totalPages: Math.ceil(total / safeLimit),
       });
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
+    } catch (error) { return sendReadDependencyError(reply, error); }
   });
 
   /**
@@ -600,23 +570,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         updatedAt: instance.updatedAt.toISOString(),
         replacedPlugins: instance.replacedPlugins,
       });
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if (error instanceof Prisma.PrismaClientKnownRequestError
-        || error instanceof Prisma.PrismaClientUnknownRequestError
-        || error instanceof Prisma.PrismaClientInitializationError
-        || error instanceof Prisma.PrismaClientRustPanicError) {
-        request.log.error({ err: error }, 'Plugin instance database failure');
-        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', 'Unable to update plugin instance');
-      }
-      const statusCode =
-        typeof error?.statusCode === 'number' && Number.isFinite(error.statusCode)
-          ? error.statusCode
-          : 400;
-      const code = typeof error?.code === 'string' ? error.code : 'UPDATE_ERROR';
-      return sendError(reply, statusCode, code, error.message, error?.details);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   /**
@@ -640,10 +594,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       if (data.file.truncated || bytes.length > PLUGIN_MAX_ZIP_SIZE) return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', 'Plugin ZIP exceeds 10 MiB');
       return sendSuccess(reply, await previewPluginUpload(bytes, request.user!.id));
     } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      const status = error?.code === 'FST_REQ_FILE_TOO_LARGE' ? 413 : typeof error?.statusCode === 'number' ? error.statusCode : 500;
-      return sendError(reply, status, status === 413 ? 'PAYLOAD_TOO_LARGE' : error?.code || 'INTERNAL_SERVER_ERROR', status >= 500 ? 'Plugin preview failed' : error.message);
+      if (error instanceof fastify.multipartErrors.RequestFileTooLargeError) return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', 'Plugin ZIP exceeds 10 MiB');
+      return sendMappedError(reply, error);
     }
   });
 
@@ -703,28 +655,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         ...result,
       }, `${kind} "${result.slug}" v${result.version} installed successfully`);
     } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      const statusCode =
-        typeof error?.statusCode === 'number' && Number.isFinite(error.statusCode)
-          ? error.statusCode
-          : 500;
-      const code =
-        statusCode === 413
-          ? 'PAYLOAD_TOO_LARGE'
-          : typeof error?.code === 'string'
-            ? error.code
-          : statusCode >= 500
-            ? 'INTERNAL_SERVER_ERROR'
-            : 'BAD_REQUEST';
-
-      if (statusCode >= 500) {
-        fastify.log.error({ err: error }, 'Failed to install extension');
-      } else {
-        fastify.log.warn({ err: error }, 'Extension install rejected');
-      }
-
-      return sendError(reply, statusCode, code, error?.message || 'Failed to install extension');
+      if (error instanceof fastify.multipartErrors.RequestFileTooLargeError) return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', 'Plugin ZIP exceeds 10 MiB');
+      return sendMappedError(reply, error);
     }
   });
 
@@ -749,13 +681,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         slug,
         uninstalled: true,
       }, `plugin "${slug}" uninstalled successfully`);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      if ([400, 404, 409].includes(error?.statusCode)) return sendError(reply, error.statusCode, error.code, error.message);
-      fastify.log.error({ err: error }, 'Failed to uninstall plugin');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to uninstall plugin');
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   /**
@@ -779,13 +705,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         slug,
         restored: true,
       }, `plugin "${slug}" restored successfully`);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      const message = error?.message || 'Failed to restore plugin';
-      const statusCode = typeof error?.statusCode === 'number' ? error.statusCode : 500;
-      return sendError(reply, statusCode, error?.code || (statusCode === 500 ? 'INTERNAL_SERVER_ERROR' : 'RESTORE_ERROR'), message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   /**
@@ -817,12 +737,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         slug,
         purged: true,
       }, `plugin "${slug}" purged permanently`);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      const statusCode = typeof error?.statusCode === 'number' ? error.statusCode : 500;
-      return sendError(reply, statusCode, error?.code || (statusCode === 500 ? 'INTERNAL_SERVER_ERROR' : 'PURGE_ERROR'), error.message || 'Failed to purge plugin');
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   /**
@@ -851,13 +766,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         total,
         totalPages: Math.ceil(total / safeLimit),
       });
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      const message = error instanceof Error ? error.message : 'Failed to list plugins';
-      fastify.log.error({ err: error }, 'Failed to list plugins');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   /**
@@ -879,13 +788,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         return sendError(reply, 404, 'NOT_FOUND', `plugin "${request.params.slug}" not found`);
       }
       return sendSuccess(reply, extension);
-    } catch (error) {
-      const knownErrorResponse = sendKnownError(reply, error);
-      if (knownErrorResponse) return knownErrorResponse;
-      const message = error instanceof Error ? error.message : 'Failed to get plugin';
-      fastify.log.error({ err: error }, 'Failed to get plugin');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
-    }
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   });

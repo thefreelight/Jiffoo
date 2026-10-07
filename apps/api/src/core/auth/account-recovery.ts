@@ -1,3 +1,4 @@
+import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
 import { issueAuthToken, consumeAuthToken } from './auth-token';
@@ -46,27 +47,29 @@ export async function acceptStaffInvite(token: string, passwordInput: string): P
   });
 }
 
-export async function generateCustomerResetLink(userId: string, actorUserId: string): Promise<string> {
-  return prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
-    if (user.role === 'ADMIN') throw new Error('Administrator accounts cannot be managed as customers');
-    const actor = await tx.user.findUniqueOrThrow({ where: { id: actorUserId } });
-    const token = await issueAuthToken(tx, user.id, 'PASSWORD_RESET');
-    await tx.adminStaffAuditLog.create({
-      data: {
-        staffUserId: user.id, staffEmail: user.email, staffUsername: user.username,
-        actorUserId: actor.id, actorEmail: actor.email, actorUsername: actor.username,
-        action: 'CUSTOMER_PASSWORD_RESET_LINK_GENERATED',
-      },
+export class AccountRecoveryService {
+  static async generateCustomerResetLink(userId: string, actorUserId: string): Promise<string> {
+    return prisma.$transaction(async (tx) => {
+      const user = await knownPrismaOperation(() => tx.user.findUniqueOrThrow({ where: { id: userId } }), { notFound: 'NOT_FOUND' });
+      if (user.role === 'ADMIN') throw new ApiError('NOT_FOUND');
+      const actor = await knownPrismaOperation(() => tx.user.findUniqueOrThrow({ where: { id: actorUserId } }), { notFound: 'NOT_FOUND' });
+      const token = await issueAuthToken(tx, user.id, 'PASSWORD_RESET');
+      await tx.adminStaffAuditLog.create({
+        data: {
+          staffUserId: user.id, staffEmail: user.email, staffUsername: user.username,
+          actorUserId: actor.id, actorEmail: actor.email, actorUsername: actor.username,
+          action: 'CUSTOMER_PASSWORD_RESET_LINK_GENERATED',
+        },
+      });
+      return passwordResetLink(token, 'storefront', user.locale);
     });
-    return passwordResetLink(token, 'storefront', user.locale);
-  });
-}
+  }
 
-export async function generateStaffInviteLink(userId: string): Promise<string> {
-  return prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({ where: { id: userId } });
-    if (!user || user.role !== 'ADMIN' || user.emailVerified) throw new Error('Staff invitation not available');
-    return staffInviteLink(await issueAuthToken(tx, userId, 'STAFF_INVITE'), user.locale);
-  });
+  static async generateStaffInviteLink(userId: string): Promise<string> {
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({ where: { id: userId } });
+      if (!user || user.role !== 'ADMIN' || user.emailVerified) throw new ApiError('INVITE_NOT_AVAILABLE');
+      return staffInviteLink(await issueAuthToken(tx, userId, 'STAFF_INVITE'), user.locale);
+    });
+  }
 }

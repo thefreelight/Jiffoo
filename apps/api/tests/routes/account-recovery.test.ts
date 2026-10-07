@@ -7,7 +7,7 @@ import { getTestPrisma } from '../helpers/db';
 import { hashAuthToken, issueAuthToken } from '@/core/auth/auth-token';
 import { env, envSchema } from '@/config/env';
 import { PasswordUtils } from '@/utils/password';
-import { generateCustomerResetLink, staffInviteLink } from '@/core/auth/account-recovery';
+import { AccountRecoveryService, staffInviteLink } from '@/core/auth/account-recovery';
 
 describe('Account recovery', () => {
   const prisma = getTestPrisma();
@@ -67,7 +67,7 @@ describe('Account recovery', () => {
     const request = await app.inject({ method: 'POST', url: '/api/v1/auth/forgot-password', payload: { email: account.email } });
     expect(request.statusCode).toBe(200);
     expect(new URL(await notificationLink(account.id)).pathname).toBe('/zh-Hant/reset-password');
-    const generated = await generateCustomerResetLink(account.id, actor.id);
+    const generated = await AccountRecoveryService.generateCustomerResetLink(account.id, actor.id);
     expect(new URL(generated).pathname).toBe('/zh-Hant/reset-password');
     expect(new URL(generated).searchParams.get('token')).toBeTruthy();
     expect(new URL(staffInviteLink('staff-token', 'zh-Hant')).pathname).toBe('/zh-Hant/auth/accept-invite');

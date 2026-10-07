@@ -1,15 +1,17 @@
 import { randomUUID } from 'node:crypto';
+import { ApiError, type ErrorCode } from '@/utils/api-errors';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { EmailVerificationService } from '@/services/email-verification.service';
 
-export class StaffManagementError extends Error {
+export class StaffManagementError extends ApiError {
   constructor(
     message: string,
-    public readonly code: string,
-    public readonly statusCode: number,
+    code: ErrorCode,
+    _statusCode: number,
   ) {
-    super(message);
+    super(code);
   }
 }
 
@@ -85,7 +87,7 @@ export class StaffManagementService {
         return { ...user, isInstallAdmin: false };
       });
     } catch (error) {
-      if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002' && String(error.meta?.target).includes('email')) {
         throw new StaffManagementError('Email already exists', 'CONFLICT', 409);
       }
       throw error;
