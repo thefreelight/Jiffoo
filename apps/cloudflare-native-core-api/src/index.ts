@@ -9,6 +9,7 @@ import { tryNativeAdminStaff } from './admin-staff';
 import { tryNativeShipping } from './shipping';
 import { tryNativeShipmentRead } from './shipments';
 import { releaseStaleInventoryReservations, tryNativeCheckout } from './checkout';
+import { tryNativeAddressBook } from './address-book';
 import { tryNativePluginOrders } from './plugin-orders';
 import { processCheckoutOutbox } from './outbox';
 import { tryNativeShopperAccount } from './shopper-account';
@@ -377,6 +378,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeShipmentRead) return nativeShipmentRead;
     const nativeCheckout = await tryNativeCheckout(nativeRequest, env, (productId) => loadProduct(productId, env));
     if (nativeCheckout) return nativeCheckout;
+    const nativeAddressBook = await tryNativeAddressBook(nativeRequest, env);
+    if (nativeAddressBook) return nativeAddressBook;
     const nativePluginOrders = await tryNativePluginOrders(nativeRequest, env);
     if (nativePluginOrders) return nativePluginOrders;
     const nativeAdminOrders = await tryNativeAdminOrders(nativeRequest, env, (proxyRequest) => proxy(proxyRequest, env));
