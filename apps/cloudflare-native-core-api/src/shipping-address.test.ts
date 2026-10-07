@@ -122,3 +122,82 @@ describe('physical order requires a shipping address', () => {
     expect(payload.data.shippingAddress).toBeNull();
   });
 });
+
+describe('encodeStripeForm via /payments/sessions', () => {
+  const orderWithAddress = {
+    id: 'ord_test_1', currency: 'USD', status: 'PENDING',
+    shippingAddress: {
+      name: '张三', phone: '+8613800001111', line1: '9F, Block A, 88 Century Avenue',
+      line2: '', city: 'Shanghai', state: '', postalCode: '200000', country: 'CN',
+    },
+    items: [{ productId: 'prod_goods_1', productName: 'Bokmoo Card V1', unitPrice: 20, quantity: 1 }],
+  };
+  const digitalOrder = {
+    id: 'ord_test_2', currency: 'USD', status: 'PENDING', shippingAddress: null,
+    items: [{ productId: 'prod_digital_1', productName: 'eSIM', unitPrice: 5, quantity: 1 }],
+  };
+
+  function sessionsDb(order: Record<string, unknown>) {
+    return {
+      prepare: (sql: string) => ({
+        bind: (..._values: unknown[]) => ({
+          first: async () => (sql.includes('native_order_snapshots')
+            ? { payload: JSON.stringify(order), total_amount: 20, currency: 'USD', payment_status: 'PENDING' }
+            : null),
+          run: async () => ({ success: true }),
+        }),
+        first: async () => null,
+        run: async () => ({ success: true }),
+      }),
+      batch: async (statements: unknown[]) => statements,
+    };
+  }
+
+  async function createSession(order: Record<string, unknown>) {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const { getNativeStripeSecret } = await import('./plugin-settings');
+    (getNativeStripeSecret as ReturnType<typeof vi.fn>).mockResolvedValue({ mode: 'test', value: 'sk_test_stub' });
+    const captured: { body?: string } = {};
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      captured.body = String(init?.body ?? '');
+      return new Response(JSON.stringify({
+        id: 'cs_test_1', url: 'https://checkout.stripe.com/c/pay/cs_test_1',
+        expires_at: Math.floor(Date.now() / 1000) + 86400, payment_intent: 'pi_test_1',
+      }), { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const response = await tryNativeCheckout(
+      new Request('https://api.example/api/v1/payments/sessions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ paymentMethod: 'stripe', orderId: order.id }),
+      }),
+      { DB: sessionsDb(order), NATIVE_CHECKOUT_ENABLED: 'true' } as never,
+      loadGoods,
+    );
+    vi.unstubAllGlobals();
+    const payload = response ? await (response as Response).json() : {};
+    return { response, payload, body: new URLSearchParams(captured.body ?? '') };
+  }
+
+  it('binds the stored address to the payment intent instead of re-collecting it on Stripe', async () => {
+    const { response, body } = await createSession(orderWithAddress);
+    expect(response?.status).toBe(201);
+    expect([...body.keys()].filter((key) => key.startsWith('shipping_address_collection'))).toEqual([]);
+    expect(body.get('payment_intent_data[shipping][name]')).toBe('张三');
+    expect(body.get('payment_intent_data[shipping][phone]')).toBe('+8613800001111');
+    expect(body.get('payment_intent_data[shipping][address][line1]')).toBe('9F, Block A, 88 Century Avenue');
+    expect(body.get('payment_intent_data[shipping][address][city]')).toBe('Shanghai');
+    expect(body.get('payment_intent_data[shipping][address][postal_code]')).toBe('200000');
+    expect(body.get('payment_intent_data[shipping][address][country]')).toBe('CN');
+    expect(body.has('payment_intent_data[shipping][address][state]')).toBe(false);
+    expect(body.has('payment_intent_data[shipping][address][line2]')).toBe(false);
+  });
+
+  it('sets no address constraint for digital orders', async () => {
+    const { response, body } = await createSession(digitalOrder);
+    expect(response?.status).toBe(201);
+    expect([...body.keys()].filter((key) => key.startsWith('shipping_address_collection'))).toEqual([]);
+    expect([...body.keys()].filter((key) => key.startsWith('payment_intent_data[shipping]'))).toEqual([]);
+  });
+});
