@@ -2,7 +2,8 @@ import Ajv from 'ajv';
 import type { Prisma } from '@prisma/client';
 import { themeManifestSchema, type ThemeManifest, type ThemeTarget } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
-import { themePackageStore } from '@/core/storage/plugin-package-store';
+import { resolveThemePackage, type ThemeFiles } from '@/core/storage/current-theme-package';
+import { withThemeLeases, fenceThemeLeases, type ThemeLease } from '@/core/storage/theme-operation-lease';
 import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
 import { ExtensionInstallerError } from './errors';
 import { defaultHomeSections, validateHomeSections } from './theme-home-sections';
@@ -25,13 +26,13 @@ export async function audit(tx: { adminAuditEvent: { create: (args: any) => Prom
   });
 }
 
-export async function validateConfig(manifest: ThemeManifest, values: Record<string, unknown>): Promise<void> {
+export async function validateConfig(manifest: ThemeManifest, values: Record<string, unknown>, pkg: ThemeFiles): Promise<void> {
   if (!values || typeof values !== 'object' || Array.isArray(values)) fail('THEME_CONFIG_INVALID', 400, '/values');
   const settings = new Map(manifest.settings.map((setting) => [setting.id, setting]));
   for (const [key, value] of Object.entries(values)) {
     const path = `/values/${key}`;
     if (key === '$homeSections') {
-      await validateHomeSections(manifest, value, path);
+      await validateHomeSections(manifest, value, pkg, path);
       continue;
     }
     const setting = settings.get(key);
@@ -57,7 +58,6 @@ export async function validateConfig(manifest: ThemeManifest, values: Record<str
     if (setting.type === 'product-list' && (value as unknown[]).length > constraints.maxItems)
       fail('THEME_CONFIG_INVALID', 400, path);
     if (setting.type === 'image' && typeof value === 'string' && value.startsWith('assets/')) {
-      const pkg = await themePackageStore.get(manifest.slug);
       if (!pkg || !await pkg.exists(value)) fail('THEME_CONFIG_INVALID', 400, path);
     }
     if (setting.type === 'image' && typeof value === 'string' && value.startsWith('/uploads/')
@@ -89,21 +89,24 @@ export async function saveThemeConfig(
   slug: string, values: Record<string, unknown>, expectedRevision: number, actorId: string,
   homeSections?: unknown,
 ) {
+  return withThemeLeases(null, slug, 'config-update', async leases => {
   const theme = await prisma.theme.findUnique({ where: { slug } });
   if (!theme) fail('THEME_NOT_FOUND', 404, slug);
   const manifest = theme.manifestJson as unknown as ThemeManifest;
+  const pkg = await resolveThemePackage(slug, theme.packageHash);
   const current = await prisma.themeConfiguration.findUnique({ where: { slug } });
   const next = { ...values };
   if (homeSections !== undefined) {
     if (homeSections === null) delete next.$homeSections;
     else {
-      await validateHomeSections(manifest, homeSections);
+      await validateHomeSections(manifest, homeSections, pkg);
       next.$homeSections = homeSections;
     }
   } else if ('$homeSections' in ((current?.values ?? {}) as object))
     next.$homeSections = ((current!.values as Record<string, unknown>).$homeSections);
-  await validateConfig(manifest, next);
+  await validateConfig(manifest, next, pkg);
   return prisma.$transaction(async (tx) => {
+    await fenceThemeLeases(tx, leases);
     const current = await tx.themeConfiguration.findUnique({ where: { slug } });
     if ((current?.revision ?? 0) !== expectedRevision)
       fail('THEME_CONFIG_CONFLICT', 409, '/expectedRevision');
@@ -127,39 +130,61 @@ export async function saveThemeConfig(
     return { settings: manifest.settings, values: next, revision,
       homeSections: defaultHomeSections(manifest, next) };
   });
+  });
 }
 
 export async function restoreThemeConfig(slug: string, actorId: string) {
+  return withThemeLeases(null, slug, 'config-restore', async leases => {
+  const theme = await prisma.theme.findUnique({ where: { slug } });
+  if (!theme) fail('THEME_NOT_FOUND', 404, slug);
+  const pkg = await resolveThemePackage(slug, theme.packageHash);
   return prisma.$transaction(async (tx) => {
+    await fenceThemeLeases(tx, leases);
     const current = await tx.themeConfiguration.findUnique({ where: { slug } });
     if (!current) fail('THEME_CONFIG_NO_PREVIOUS', 409, slug);
     const prior = await tx.themeConfigRevision.findFirst({
       where: { slug, revision: { lt: current.revision } }, orderBy: { revision: 'desc' },
     });
     if (!prior) fail('THEME_CONFIG_NO_PREVIOUS', 409, slug);
+    await validateConfig(theme.manifestJson as unknown as ThemeManifest, prior.values as Record<string, unknown>, pkg);
     const revision = current.revision + 1;
     await tx.themeConfiguration.update({ where: { slug }, data: { revision, values: prior.values as Prisma.InputJsonValue } });
     await tx.themeConfigRevision.create({ data: { slug, revision, values: prior.values as Prisma.InputJsonValue } });
     await audit(tx, actorId, 'theme.config.restore', slug, { revision, fromRevision: prior.revision });
     return { values: prior.values, revision };
   });
+  });
 }
 
-export async function activateTheme(target: ThemeTarget, slug: string, actorId: string, action = 'theme.activate') {
+async function activateWithLeases(target: ThemeTarget, slug: string, actorId: string, action: string, leases: ThemeLease[], onlyIfEmpty = false) {
+  if (onlyIfEmpty) {
+    const current = await prisma.themeActive.findUnique({ where: { target } });
+    if (current) return { target, slug: current.slug, packageHash: current.packageHash };
+  }
+  const candidate = await prisma.theme.findUnique({ where: { slug } });
+  if (!candidate) fail('THEME_NOT_FOUND', 404, slug);
+  if (candidate.target !== target) fail('THEME_TARGET_MISMATCH', 409, slug);
+  await resolveThemePackage(slug, candidate.packageHash);
   return prisma.$transaction(async (tx) => {
+    await fenceThemeLeases(tx, leases);
     const theme = await tx.theme.findUnique({ where: { slug } });
     if (!theme) fail('THEME_NOT_FOUND', 404, slug);
     if (theme.target !== target) fail('THEME_TARGET_MISMATCH', 409, slug);
     await tx.themeActive.upsert({
-      where: { target }, create: { target, slug }, update: { slug },
+      where: { target }, create: { target, slug, packageHash: theme.packageHash }, update: { slug, packageHash: theme.packageHash },
     });
-    await tx.themeActivation.create({ data: { target, slug, actorId } });
-    await audit(tx, actorId, action, slug, { target });
-    return { target, slug };
+    await tx.themeActivation.create({ data: { target, slug, packageHash: theme.packageHash, actorId } });
+    await audit(tx, actorId, action, slug, { target, packageHash: theme.packageHash });
+    return { target, slug, packageHash: theme.packageHash };
   });
 }
 
+export async function activateTheme(target: ThemeTarget, slug: string, actorId: string, action = 'theme.activate', onlyIfEmpty = false) {
+  return withThemeLeases(target, slug, 'activate', leases => activateWithLeases(target, slug, actorId, action, leases, onlyIfEmpty));
+}
+
 export async function restorePreviousTheme(target: ThemeTarget, actorId: string) {
+  return withThemeLeases(target, null, 'restore-previous', async targetLeases => {
   const active = await prisma.themeActive.findUnique({ where: { target } });
   const history = await prisma.themeActivation.findMany({
     where: { target }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -167,7 +192,8 @@ export async function restorePreviousTheme(target: ThemeTarget, actorId: string)
   for (const entry of history) {
     if (entry.slug === active?.slug) continue;
     if (await prisma.theme.findUnique({ where: { slug: entry.slug } }))
-      return activateTheme(target, entry.slug, actorId, 'theme.restore_previous');
+      return withThemeLeases(null, entry.slug, 'restore-previous', leases => activateWithLeases(target, entry.slug, actorId, 'theme.restore_previous', [...targetLeases, ...leases]));
   }
   fail('THEME_NO_PREVIOUS', 409, target);
+  });
 }

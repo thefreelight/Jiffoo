@@ -14,6 +14,7 @@ export type ShopTheme = {
   target: 'shop';
   slug: string;
   version: string;
+  packageHash: string;
   tokens: Record<string, unknown>;
   fonts: Array<{ id: string; family: string; url: string; weight: number; style: 'normal' | 'italic' }>;
   copy: Record<string, string>;

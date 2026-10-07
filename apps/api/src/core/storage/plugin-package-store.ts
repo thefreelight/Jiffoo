@@ -1,5 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import { themeTestBarrier } from './theme-test-hooks';
+import { randomUUID } from 'node:crypto';
 
 async function renameWithRetry(source: string, target: string): Promise<void> {
   for (let attempt = 1; attempt <= 5; attempt += 1) {
@@ -66,7 +68,7 @@ class LocalPluginPackage implements PluginPackage {
 class LocalPluginPackageStore implements PluginPackageStore {
   private readonly root: string;
 
-  constructor(kind: 'plugins' | 'themes' = 'plugins') {
+  constructor(private readonly kind: 'plugins' | 'themes' = 'plugins') {
     const configuredRoot = process.env.EXTENSIONS_PATH || 'extensions';
     const extensionsRoot = path.isAbsolute(configuredRoot)
       ? configuredRoot
@@ -81,12 +83,13 @@ class LocalPluginPackageStore implements PluginPackageStore {
     await fs.mkdir(path.dirname(targetDirectory), { recursive: true });
     await fs.mkdir(temporaryRoot, { recursive: true });
     const temporaryDirectory = await fs.mkdtemp(path.join(temporaryRoot, `publish-${slug}-`));
-    const marker = JSON.stringify({ slug, zipHash });
+    const marker = this.marker(slug, zipHash);
     let published = false;
     try {
       await fs.cp(sourceDirectory, temporaryDirectory, { recursive: true });
       await fs.writeFile(path.join(temporaryDirectory, '.complete.json'), marker, 'utf8');
-      if (process.env.NODE_ENV === 'test' && process.env.JIFFOO_TEST_PLUGIN_PUBLISH_BARRIER === '1' && process.send) {
+      if (this.kind === 'themes') await themeTestBarrier('publish', slug, zipHash);
+      if (this.kind === 'plugins' && process.env.NODE_ENV === 'test' && process.env.JIFFOO_TEST_PLUGIN_PUBLISH_BARRIER === '1' && process.send) {
         process.send({ kind: 'plugin-publish-ready', slug, zipHash });
         await new Promise<void>((resolve) => {
           const release = (message: unknown) => {
@@ -101,7 +104,13 @@ class LocalPluginPackageStore implements PluginPackageStore {
         await renameWithRetry(temporaryDirectory, targetDirectory);
         published = true;
       } catch (error) {
-        if (!await this.isComplete(targetDirectory, marker)) throw error;
+        if (!await this.isComplete(targetDirectory, marker)) {
+          if (this.kind !== 'themes' || !await fs.access(targetDirectory).then(() => true, () => false)) throw error;
+          // Only incomplete caches are quarantined; valid old hash directories stay untouched.
+          await renameWithRetry(targetDirectory, path.join(temporaryRoot, `incomplete-${randomUUID()}`));
+          await renameWithRetry(temporaryDirectory, targetDirectory);
+          published = true;
+        }
       }
     } catch (error) {
       throw error;
@@ -120,7 +129,7 @@ class LocalPluginPackageStore implements PluginPackageStore {
   async get(slug: string, zipHash: string): Promise<PluginPackage | null> {
     this.assertHash(zipHash);
     const directory = path.join(this.root, slug, zipHash);
-    return await this.isComplete(directory, JSON.stringify({ slug, zipHash }))
+    return await this.isComplete(directory, this.marker(slug, zipHash))
       ? new LocalPluginPackage(directory) : null;
   }
 
@@ -159,6 +168,10 @@ class LocalPluginPackageStore implements PluginPackageStore {
     if (!/^[a-f0-9]{64}$/.test(hash)) throw new Error('Invalid plugin package hash');
   }
 
+  private marker(slug: string, hash: string): string {
+    return JSON.stringify(this.kind === 'themes' ? { slug, packageHash: hash } : { slug, zipHash: hash });
+  }
+
   private async isComplete(directory: string, marker: string): Promise<boolean> {
     try {
       return await fs.readFile(path.join(directory, '.complete.json'), 'utf8') === marker;
@@ -170,52 +183,4 @@ class LocalPluginPackageStore implements PluginPackageStore {
 
 export const pluginPackageStore: PluginPackageStore = new LocalPluginPackageStore();
 
-class LocalThemePackageStore {
-  private readonly root: string;
-
-  constructor() {
-    const configuredRoot = process.env.EXTENSIONS_PATH || 'extensions';
-    const extensionsRoot = path.isAbsolute(configuredRoot)
-      ? configuredRoot : path.join(process.cwd(), configuredRoot);
-    this.root = path.join(extensionsRoot, 'themes');
-  }
-
-  async put(slug: string, sourceDirectory: string): Promise<PluginPackageDeployment> {
-    const target = path.join(this.root, slug);
-    const backup = `${target}.__backup_${Date.now()}`;
-    await fs.mkdir(this.root, { recursive: true });
-    const existed = await fs.access(target).then(() => true, () => false);
-    if (existed) await renameWithRetry(target, backup);
-    try {
-      await renameWithRetry(sourceDirectory, target);
-    } catch (error) {
-      if (existed) await renameWithRetry(backup, target);
-      throw error;
-    }
-    return {
-      package: new LocalPluginPackage(target),
-      commit: async () => { if (existed) await fs.rm(backup, { recursive: true, force: true }); },
-      rollback: async () => {
-        await fs.rm(target, { recursive: true, force: true });
-        if (existed) await renameWithRetry(backup, target);
-      },
-    };
-  }
-
-  async get(slug: string): Promise<PluginPackage | null> {
-    const pkg = new LocalPluginPackage(path.join(this.root, slug));
-    return await pkg.exists() ? pkg : null;
-  }
-
-  async delete(slug: string): Promise<void> {
-    await fs.rm(path.join(this.root, slug), { recursive: true, force: true });
-  }
-
-  async createTemporaryDirectory(prefix: string): Promise<string> {
-    const root = path.join(this.root, '.tmp');
-    await fs.mkdir(root, { recursive: true });
-    return fs.mkdtemp(path.join(root, `${prefix}-`));
-  }
-}
-
-export const themePackageStore = new LocalThemePackageStore();
+export const themePackageStore: PluginPackageStore = new LocalPluginPackageStore('themes');

@@ -46,6 +46,8 @@ import traceContextPlugin from '@/core/logger/trace-context';
 import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { prewarmPluginPackages } from '@/core/storage/prewarm-plugin-packages';
+import { prewarmThemePackages } from '@/core/storage/prewarm-theme-packages';
+import { assertThemeTestHooks } from '@/core/storage/theme-test-hooks';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plugin-reconciliation';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
@@ -83,6 +85,7 @@ export async function registerGlobalRateLimiter(
 }
 
 async function buildApp() {
+  assertThemeTestHooks();
   try {
     assertProductionSafety({
       NODE_ENV: env.NODE_ENV ?? 'development',
@@ -377,6 +380,7 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
     await syncBuiltinPlugins(path.join(process.cwd(), 'builtin-plugins'));
     await prewarmPluginPackages();
     await syncBuiltinThemes(path.join(process.cwd(), 'builtin-themes'));
+    await prewarmThemePackages();
     await loadEnabledPluginRuntimes();
 
     await app.listen({

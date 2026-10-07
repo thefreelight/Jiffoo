@@ -7,14 +7,11 @@ import { activateTheme } from './theme-runtime';
 const LOCK = 824_301_552;
 
 export async function syncBuiltinThemes(root: string): Promise<void> {
-  await prisma.$executeRawUnsafe(`SELECT pg_advisory_lock(${LOCK})`);
-  try {
+  await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(${LOCK})::text`;
     for (const entry of (await fs.readdir(root, { withFileTypes: true })).filter((item) => item.isDirectory())) {
       const installed = await installBuiltinTheme(path.join(root, entry.name));
-      if (!await prisma.themeActive.findUnique({ where: { target: installed.target } }))
-        await activateTheme(installed.target as 'shop' | 'admin', installed.slug, 'system');
+      await activateTheme(installed.target as 'shop' | 'admin', installed.slug, 'system', 'theme.activate', true);
     }
-  } finally {
-    await prisma.$executeRawUnsafe(`SELECT pg_advisory_unlock(${LOCK})`);
-  }
+  }, { timeout: 120000 });
 }

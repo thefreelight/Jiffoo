@@ -7,20 +7,21 @@ export type AdminTheme = {
   loginBackground: string | null;
 };
 
-const assetPath = /^\/api\/v1\/themes\/[a-z][a-z0-9-]+\/[0-9]+\.[0-9]+\.[0-9]+\/assets\/[a-zA-Z0-9_/-]+\.(?:png|jpe?g|webp)$/;
-const fontPath = /^\/api\/v1\/themes\/[a-z][a-z0-9-]+\/[0-9]+\.[0-9]+\.[0-9]+\/fonts\/[a-zA-Z0-9_/-]+\.woff2$/;
+const assetPath = /^\/api\/v1\/themes\/[a-z][a-z0-9-]+\/[a-f0-9]{64}\/assets\/[a-zA-Z0-9_/-]+\.(?:png|jpe?g|webp)$/;
+const fontPath = /^\/api\/v1\/themes\/[a-z][a-z0-9-]+\/[a-f0-9]{64}\/fonts\/[a-zA-Z0-9_/-]+\.woff2$/;
 
 function parseAdminTheme(value: unknown): AdminTheme | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const theme = value as Record<string, unknown>;
   if (theme.target !== 'admin' || typeof theme.slug !== 'string'
-    || typeof theme.version !== 'string' || !theme.tokens || typeof theme.tokens !== 'object'
+    || typeof theme.version !== 'string' || typeof theme.packageHash !== 'string' || !/^[a-f0-9]{64}$/.test(theme.packageHash) || !theme.tokens || typeof theme.tokens !== 'object'
     || Array.isArray(theme.tokens) || !Array.isArray(theme.fonts)) return null;
-  const asset = (item: unknown) => item === null || (typeof item === 'string' && assetPath.test(item));
+  const prefix = `/api/v1/themes/${theme.slug}/${theme.packageHash}/`;
+  const asset = (item: unknown) => item === null || (typeof item === 'string' && assetPath.test(item) && item.startsWith(prefix));
   if (!asset(theme.logo) || !asset(theme.loginBackground)) return null;
   if (!theme.fonts.every((font) => font && typeof font === 'object'
     && typeof font.id === 'string' && typeof font.family === 'string'
-    && typeof font.url === 'string' && fontPath.test(font.url)
+    && typeof font.url === 'string' && fontPath.test(font.url) && font.url.startsWith(prefix)
     && Number.isInteger(font.weight) && ['normal', 'italic'].includes(font.style))) return null;
   return theme as AdminTheme;
 }

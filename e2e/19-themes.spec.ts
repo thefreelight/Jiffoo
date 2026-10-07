@@ -1,13 +1,15 @@
-import { expect, test } from './local-requests';
+import { captureReview, expect, test } from './review-capture';
 import { login, ownerEmail } from './helpers';
 import { themePackage } from './theme-package';
+import { createHash } from 'node:crypto';
 
 test('Admin theme loop updates Shop live, restores and rejects executable packages', async ({ page, context }) => {
+  const bytes = await themePackage(), packageHash = createHash('sha256').update(bytes).digest('hex');
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.getByRole('link', { name: 'Themes' }).click();
   await expect(page.getByRole('heading', { name: 'Default Shop' })).toBeVisible();
   await page.getByLabel('Theme package', { exact: true }).setInputFiles({
-    name: 'e2e-shop-theme.zip', mimeType: 'application/zip', buffer: await themePackage(),
+    name: 'e2e-shop-theme.zip', mimeType: 'application/zip', buffer: bytes,
   });
   await page.getByLabel('I trust this unsigned theme package').check();
   await page.getByRole('button', { name: 'Upload theme' }).click();
@@ -21,7 +23,10 @@ test('Admin theme loop updates Shop live, restores and rejects executable packag
   await shop.goto('http://127.0.0.1:3003/en');
   await expect(shop.getByRole('button', { name: 'Categories' })).toBeVisible();
   await expect(shop.getByRole('heading', { name: 'Theme launch' })).toBeVisible();
+  await expect(shop.getByRole('img', { name: 'Theme hero', exact: true }))
+    .toHaveAttribute('src', `/api/v1/themes/e2e-shop-theme/${packageHash}/assets/hero.png`);
   await expect(shop.getByRole('link', { name: 'Browse products' })).toHaveCSS('background-color', 'rgb(204, 0, 51)');
+  await captureReview(shop, 'theme-package-review', 'shop-active-hash-en', { width: 1440, height: 900 });
 
   await row.getByRole('button', { name: 'Configure' }).click();
   await page.getByRole('region', { name: 'Configure E2E Shop Theme' })

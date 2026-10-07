@@ -33,6 +33,17 @@ const config: ThemeConfig = {
 };
 
 describe('Admin theme settings and validation', () => {
+  it('B4 maps storage and lease failures distinctly in all three locales', () => {
+    const cases = { THEME_PACKAGE_UNAVAILABLE: 'unavailable', THEME_PACKAGE_MATERIALIZATION_TIMEOUT: 'unavailable', THEME_PACKAGE_CORRUPT: 'corrupt', THEME_OPERATION_IN_PROGRESS: 'busy', THEME_OPERATION_LEASE_LOST: 'leaseLost' } as const;
+    for (const [code, key] of Object.entries(cases)) {
+      expect(themeErrorKeys[code as keyof typeof themeErrorKeys]).toBe(key);
+      for (const locale of ['en', 'zh-Hans', 'zh-Hant'] as const) {
+        const text = themeError(locale, code);
+        expect(text).not.toBe(themeError(locale, 'UNKNOWN_ERROR'));
+        expect(text).not.toContain(code);
+      }
+    }
+  });
   let root: Root;
   let container: HTMLDivElement;
   beforeEach(() => {

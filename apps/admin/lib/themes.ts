@@ -9,6 +9,7 @@ export type ThemeSetting = {
 };
 export type ThemeRecord = {
   slug: string; name: string; version: string; target: 'shop' | 'admin';
+  packageHash: string;
   source: 'builtin' | 'uploaded'; trustLevel: string;
   manifestJson: { assets: Record<string, string>; settings: ThemeSetting[] };
 };

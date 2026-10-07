@@ -7,6 +7,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { themePackageStore } from '@/core/storage/plugin-package-store';
+import { clearTestThemeCache } from '../helpers/theme-cache';
 
 const prisma = getTestPrisma();
 const suffix = Date.now().toString(36);
@@ -63,7 +64,7 @@ describe('T1a theme management HTTP', () => {
   afterAll(async () => {
     await prisma.theme.deleteMany({ where: { slug: { in: [shopSlug, adminSlug, builtinSlug] } } });
     await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: adminId, action: 'THEME_UNSIGNED_INSTALL_CONFIRMED' } });
-    for (const slug of [shopSlug, adminSlug, builtinSlug]) await themePackageStore.delete(slug);
+    for (const slug of [shopSlug, adminSlug, builtinSlug]) await clearTestThemeCache(slug);
     await deleteAllTestUsers();
     await app.close();
   });
@@ -129,22 +130,25 @@ describe('T1a theme management HTTP', () => {
   });
 
   it('H serves validated images/fonts with content type, nosniff and immutable cache, not unknown files', async () => {
+    const hash = (await prisma.theme.findUniqueOrThrow({ where: { slug: adminSlug } })).packageHash;
     for (const [file, type] of [
       ['assets/logo.png', 'image/png'], ['fonts/title.woff2', 'font/woff2'],
     ]) {
-      const response = await app.inject({ method: 'GET', url: `/api/v1/themes/${adminSlug}/1.0.0/${file}` });
+      const response = await app.inject({ method: 'GET', url: `/api/v1/themes/${adminSlug}/${hash}/${file}` });
       expect(response.statusCode).toBe(200);
       expect(response.headers['content-type']).toContain(type);
       expect(response.headers['x-content-type-options']).toBe('nosniff');
       expect(response.headers['cache-control']).toContain('immutable');
     }
     for (const file of ['assets/other.png', 'assets/../theme.json']) {
-      const response = await app.inject({ method: 'GET', url: `/api/v1/themes/${adminSlug}/1.0.0/${file}` });
+      const response = await app.inject({ method: 'GET', url: `/api/v1/themes/${adminSlug}/${hash}/${file}` });
       expect([400, 404]).toContain(response.statusCode);
     }
   });
 
-  it('G removes uploaded files and row, but rejects builtin uninstallation', async () => {
+  it('G deletes the theme and blobs without deleting immutable local caches, but rejects builtin uninstallation', async () => {
+    const hash = (await prisma.theme.findUniqueOrThrow({ where: { slug: shopSlug } })).packageHash;
+    expect(await themePackageStore.get(shopSlug, hash)).not.toBeNull();
     await prisma.theme.create({
       data: {
         slug: builtinSlug, version: '1.0.0', target: 'admin', name: 'Builtin',
@@ -159,6 +163,8 @@ describe('T1a theme management HTTP', () => {
     const removed = await app.inject({ method: 'DELETE', url: `/api/v1/extensions/theme/${shopSlug}`, headers });
     expect(removed.statusCode).toBe(200);
     expect(await prisma.theme.findUnique({ where: { slug: shopSlug } })).toBeNull();
-    expect(await themePackageStore.get(shopSlug)).toBeNull();
+    expect(await prisma.themePackageBlob.count({ where: { themeSlug: shopSlug } })).toBe(0);
+    expect(await themePackageStore.get(shopSlug, hash)).not.toBeNull();
+    expect((await app.inject({ url: `/api/v1/themes/${shopSlug}/${hash}/assets/logo.png` })).statusCode).toBe(404);
   });
 });

@@ -1,16 +1,24 @@
 import { themeCoreDefaults, type ThemeManifest, type ThemeTarget } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
+import { Prisma } from '@prisma/client';
+import { resolveThemePackage, ThemePackageResolutionError } from '@/core/storage/current-theme-package';
 
 type Locale = 'en' | 'zh-Hans' | 'zh-Hant';
-const assetUrl = (slug: string, version: string, file: string) =>
+const assetUrl = (slug: string, packageHash: string, file: string) =>
   file.startsWith('assets/') || file.startsWith('fonts/')
-    ? `/api/v1/themes/${slug}/${version}/${file}` : file;
+    ? `/api/v1/themes/${slug}/${packageHash}/${file}` : file;
 
 export async function resolveTheme(target: ThemeTarget, locale: Locale) {
-  const active = await prisma.themeActive.findUnique({ where: { target } });
-  if (!active) return null;
-  const theme = await prisma.theme.findUnique({ where: { slug: active.slug }, include: { configuration: true } });
-  if (!theme) return null;
+  const snapshot = await prisma.$transaction(async tx => {
+    const active = await tx.themeActive.findUnique({ where: { target } });
+    if (!active) return null;
+    const theme = await tx.theme.findUnique({ where: { slug: active.slug }, include: { configuration: true } });
+    if (!theme || theme.packageHash !== active.packageHash) throw new ThemePackageResolutionError('THEME_PACKAGE_UNAVAILABLE');
+    return theme;
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+  if (!snapshot) return null;
+  const theme = snapshot;
+  await resolveThemePackage(theme.slug, theme.packageHash);
   const manifest = theme.manifestJson as unknown as ThemeManifest;
   const values = (theme.configuration?.values ?? {}) as Record<string, unknown>;
   const effective = Object.fromEntries(manifest.settings.map((setting) =>
@@ -28,22 +36,22 @@ export async function resolveTheme(target: ThemeTarget, locale: Locale) {
         return record[locale];
       return Object.fromEntries(Object.entries(record).map(([key, item]) => [key, resolve(item)]));
     }
-    if (typeof value === 'string') return assetUrl(theme.slug, theme.version, value);
+    if (typeof value === 'string') return assetUrl(theme.slug, theme.packageHash, value);
     return value;
   };
   const fonts = manifest.fonts.map((font) => ({
-    id: font.id, family: font.family, url: assetUrl(theme.slug, theme.version, font.file),
+    id: font.id, family: font.family, url: assetUrl(theme.slug, theme.packageHash, font.file),
     weight: font.weight, style: font.style,
   }));
   return target === 'admin'
     ? {
-      target, slug: theme.slug, version: theme.version, tokens, fonts,
-      logo: manifest.assets.logo ? assetUrl(theme.slug, theme.version, manifest.assets.logo) : null,
+      target, slug: theme.slug, version: theme.version, packageHash: theme.packageHash, tokens, fonts,
+      logo: manifest.assets.logo ? assetUrl(theme.slug, theme.packageHash, manifest.assets.logo) : null,
       loginBackground: manifest.assets['login-background']
-        ? assetUrl(theme.slug, theme.version, manifest.assets['login-background']) : null,
+        ? assetUrl(theme.slug, theme.packageHash, manifest.assets['login-background']) : null,
     }
     : {
-      target, slug: theme.slug, version: theme.version, tokens, fonts,
+      target, slug: theme.slug, version: theme.version, packageHash: theme.packageHash, tokens, fonts,
       copy: resolve(manifest.copy), layout: resolve({
         ...(manifest.layout as object),
         pages: {

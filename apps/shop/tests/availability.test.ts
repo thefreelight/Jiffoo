@@ -3,6 +3,13 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { availabilityResponse, classifyAvailability, resolveAvailabilityReads, retryDeadline, safeRetryTarget, ShopAvailability } from '../lib/availability';
 
+it('B4 theme package 503 follows the existing availability deadline and retains its typed code', async () => {
+  for (const code of ['THEME_PACKAGE_UNAVAILABLE', 'THEME_PACKAGE_MATERIALIZATION_TIMEOUT']) {
+    const error = await classifyAvailability(new Response(JSON.stringify({ error: { code } }), { status: 503, headers: { 'Retry-After': '5' } }), 1000);
+    expect(error).toMatchObject({ status: 503, code, retryAt: 6000 });
+  }
+});
+
 it('O parses Retry-After, preserves absolute deadlines and waits for the latest parallel failure', async () => {
   const now = Date.parse('Mon, 05 Oct 2026 06:00:00 GMT');
   expect(retryDeadline('12', now)).toBe(now + 12000);

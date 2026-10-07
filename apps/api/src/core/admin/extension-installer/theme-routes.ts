@@ -32,7 +32,7 @@ const success = (data: unknown) => ({
 const errors = {
   400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema,
   404: errorResponseSchema, 409: errorResponseSchema, 413: errorResponseSchema,
-  500: errorResponseSchema,
+  500: errorResponseSchema, 503: errorResponseSchema,
 };
 const summary = (record: {
   slug: string; version: string; target: string; name: string; manifestJson: unknown;
@@ -126,8 +126,8 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
     required: ['target'], additionalProperties: false,
   } as const;
   const activation = {
-    type: 'object', properties: { target: { type: 'string' }, slug: { type: 'string' } },
-    required: ['target', 'slug'], additionalProperties: false,
+    type: 'object', properties: { target: { type: 'string' }, slug: { type: 'string' }, packageHash: { type: 'string' } },
+    required: ['target', 'slug', 'packageHash'], additionalProperties: false,
   } as const;
   fastify.post<{ Params: { target: 'shop' | 'admin' }; Body: { slug: string } }>('/themes/:target/activate', {
     schema: {
@@ -221,31 +221,34 @@ export async function publicThemeAssetRoutes(fastify: FastifyInstance) {
       return sendPublicThemeError(reply, cause);
     }
   });
-  fastify.get<{ Params: { slug: string; version: string; '*': string } }>(
-    '/themes/:slug/:version/*',
+  fastify.get<{ Params: { slug: string; packageHash: string; '*': string } }>(
+    '/themes/:slug/:packageHash/*',
     {
       schema: {
-        tags: ['themes'], summary: 'Read a versioned theme asset or font',
+        tags: ['themes'], summary: 'Read an immutable theme asset or font',
         params: {
           type: 'object', properties: {
-            slug: { type: 'string' }, version: { type: 'string' }, '*': { type: 'string' },
+            slug: { type: 'string' }, packageHash: { type: 'string', pattern: '^[a-f0-9]{64}$' }, '*': { type: 'string' },
           },
-          required: ['slug', 'version', '*'], additionalProperties: false,
+          required: ['slug', 'packageHash', '*'], additionalProperties: false,
         },
         response: {
           200: { type: 'string', format: 'binary' },
           400: errorResponseSchema, 404: errorResponseSchema,
-          500: errorResponseSchema,
+          500: errorResponseSchema, 503: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
+      reply.header('Cache-Control', 'no-store');
       try {
-        const { slug, version } = request.params;
-        const asset = await readThemeAsset(slug, version, request.params['*']);
+        const { slug, packageHash } = request.params;
+        const asset = await readThemeAsset(slug, packageHash, request.params['*']);
         if (!asset) return sendError(reply, 404, 'THEME_ASSET_NOT_FOUND', 'Theme asset not found');
         reply.header('X-Content-Type-Options', 'nosniff');
         reply.header('Cache-Control', 'public, max-age=31536000, immutable');
+        reply.header('ETag', asset.etag);
+        if (request.headers['if-none-match'] === asset.etag) return reply.code(304).send();
         return reply.type(asset.type).send(asset.content);
       } catch (cause) {
         return sendPublicThemeError(reply, cause);

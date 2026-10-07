@@ -7,12 +7,14 @@ import os from 'os';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
-import { themePackageStore } from '@/core/storage/plugin-package-store';
+import { clearTestThemeCache } from '../helpers/theme-cache';
 import { syncBuiltinThemes } from '@/core/admin/extension-installer/builtin-theme-sync';
 import { themeTokensToCss } from '@jiffoo/shared';
+import { themeFixture, themeFiles, zipTheme } from '../helpers/theme-package-fixture';
 
 const prisma = getTestPrisma();
 const suffix = Date.now().toString(36);
+const categoryId = `theme-category-${suffix}`;
 const slug = `runtime-${suffix}`;
 const second = `other-${suffix}`;
 const adminSlug = `backoffice-${suffix}`;
@@ -31,7 +33,7 @@ const base = async (name = slug, version = '1.0.0') => ({
     { id: 'color', type: 'color', label: local, default: '#123456', constraints: {}, bindsToken: 'primary' },
     { id: 'caption', type: 'text', label: local, default: local, constraints: { maxLength: 30 } },
     { id: 'picture', type: 'image', label: local, default: 'assets/hero.png', constraints: {} },
-    { id: 'category', type: 'category', label: local, default: 'existing', constraints: {} },
+    { id: 'category', type: 'category', label: local, default: categoryId, constraints: {} },
     { id: 'products', type: 'product-list', label: local, default: [], constraints: { maxItems: 3 } },
     { id: 'quantity', type: 'number', label: local, default: 1, constraints: { min: 0, max: 10, step: 1 } },
   ],
@@ -93,7 +95,7 @@ describe('T1b theme runtime', () => {
       await prisma.themeActivation.deleteMany({ where: { slug: ownSlug } });
       await prisma.theme.deleteMany({ where: { slug: ownSlug } });
       await prisma.adminAuditEvent.deleteMany({ where: { targetId: ownSlug } });
-      await themePackageStore.delete(ownSlug);
+      await clearTestThemeCache(ownSlug);
     }
   };
   beforeAll(async () => {
@@ -102,6 +104,7 @@ describe('T1b theme runtime', () => {
     token = actor.token;
     actorId = actor.user.id;
     customer = (await createUserWithToken()).token;
+    await prisma.category.create({ data: { id: categoryId, slug: categoryId, name: 'Theme category' } });
   });
   afterAll(async () => {
     await prisma.themeActive.deleteMany({ where: { slug: { in: [slug, second, adminSlug, 'default-shop', 'default-admin'] } } });
@@ -109,7 +112,8 @@ describe('T1b theme runtime', () => {
     await prisma.adminAuditEvent.deleteMany({ where: { targetId: { in: [slug, second, adminSlug, 'default-shop', 'default-admin'] } } });
     await prisma.theme.deleteMany({ where: { slug: { in: [slug, second, adminSlug, 'default-shop', 'default-admin'] } } });
     await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: actorId, action: 'THEME_UNSIGNED_INSTALL_CONFIRMED' } });
-    for (const name of [slug, second, adminSlug, 'default-shop', 'default-admin']) await themePackageStore.delete(name);
+    for (const name of [slug, second, adminSlug, 'default-shop', 'default-admin']) await clearTestThemeCache(name);
+    await prisma.category.delete({ where: { id: categoryId } });
     await deleteAllTestUsers();
     await app.close();
   });
@@ -200,16 +204,17 @@ describe('T1b theme runtime', () => {
     expect((await admin('PUT', url, { values: { color: '#abcdef', caption: local, quantity: 8 }, expectedRevision: 3 })).statusCode).toBe(200);
   });
 
-  it('G resolves localized settings and versioned assets without internals', async () => {
+  it('G resolves localized settings and hash-addressed assets without private internals', async () => {
     expect((await admin('POST', '/api/v1/extensions/themes/shop/activate', { slug })).statusCode).toBe(200);
     const response = await app.inject({ url: '/api/v1/store/theme?target=shop&locale=en' });
     expect(response.headers['cache-control']).toBe('no-store');
     const data = response.json().data;
     expect(data.tokens.primary).toBe('#abcdef');
     expect(data.layout.pages.home.sections[0].settings.title).toBe('Hello');
-    expect(data.fonts[0].url).toContain(`/api/v1/themes/${slug}/1.0.0/fonts/title.woff2`);
+    expect(data.fonts[0].url).toBe(`/api/v1/themes/${slug}/${(await prisma.theme.findUniqueOrThrow({ where: { slug } })).packageHash}/fonts/title.woff2`);
     expect((await app.inject({ url: data.fonts[0].url })).statusCode).toBe(200);
-    expect(JSON.stringify(data)).not.toMatch(/packageHash|manifestJson|installedAt/);
+    expect(data.packageHash).toBe((await prisma.theme.findUniqueOrThrow({ where: { slug } })).packageHash);
+    expect(JSON.stringify(data)).not.toMatch(/manifestJson|installedAt/);
     const adminTheme = (await app.inject({ url: '/api/v1/store/theme?target=admin&locale=en' })).json().data;
     expect(adminTheme.tokens.primary).toBeDefined();
     expect(adminTheme.logo).toBeNull();
@@ -220,7 +225,7 @@ describe('T1b theme runtime', () => {
     expect((await upload(adminManifest)).statusCode).toBe(200);
     expect((await admin('POST', '/api/v1/extensions/themes/admin/activate', { slug: adminSlug })).statusCode).toBe(200);
     const branded = (await app.inject({ url: '/api/v1/store/theme?target=admin&locale=zh-Hans' })).json().data;
-    expect(branded.logo).toContain(`/api/v1/themes/${adminSlug}/1.0.0/assets/hero.png`);
+    expect(branded.logo).toBe(`/api/v1/themes/${adminSlug}/${(await prisma.theme.findUniqueOrThrow({ where: { slug: adminSlug } })).packageHash}/assets/hero.png`);
     expect(branded.loginBackground).toBe(branded.logo);
     expect((await app.inject({ url: branded.logo })).statusCode).toBe(200);
   });
@@ -301,7 +306,7 @@ describe('T1b theme runtime', () => {
       await prisma.adminStaffAuditLog.deleteMany({
         where: { staffUserId: actorId, action: 'THEME_UNSIGNED_INSTALL_CONFIRMED' },
       });
-      await themePackageStore.delete(firstSlug);
+      await clearTestThemeCache(firstSlug);
     }
   });
 
@@ -408,5 +413,33 @@ describe('T1b theme runtime', () => {
     const response = await upload(manifest);
     expect(response.statusCode).toBe(400);
     expect(response.json().error.details.path).toBe('/settings/0/id');
+  });
+
+  it('H config validation uses the current hash after an upgrade drops an old packaged asset', async () => {
+    const fixture = await themeFixture();
+    try {
+      const installed = await fixture.install(), files = await themeFiles(installed.slug, 'shop', '2.0.0');
+      const manifest = JSON.parse(files.get('theme.json')!.toString()); manifest.settings = []; files.set('theme.json', Buffer.from(JSON.stringify(manifest))); files.delete('assets/hero.png');
+      expect((await fixture.upload(fixture.primary, await zipTheme(files))).status).toBe(200);
+      const response = await fixture.mutate(fixture.primary, `/api/v1/extensions/themes/${installed.slug}/config`, 'PUT', {
+        values: {}, expectedRevision: 0, homeSections: [{ id: 'old', type: 'hero-banner', settings: { title: local, image: 'assets/hero.png' } }],
+      });
+      expect(response.status).toBe(400); expect(response.json().error.code).toBe('THEME_CONFIG_INVALID');
+      expect(await prisma.themeConfiguration.findUnique({ where: { slug: installed.slug } })).toBeNull();
+    } finally { await fixture.close(); }
+  });
+  it('H configuration restore revalidates old revisions against the current package without writing invalid values', async () => {
+    const fixture = await themeFixture();
+    try {
+      const installed = await fixture.install(), url = `/api/v1/extensions/themes/${installed.slug}/config`;
+      expect((await fixture.mutate(fixture.primary, url, 'PUT', { values: {}, expectedRevision: 0, homeSections: [{ id: 'old', type: 'hero-banner', settings: { title: local, image: 'assets/hero.png' } }] })).status).toBe(200);
+      const files = await themeFiles(installed.slug, 'shop', '2.0.0'), manifest = JSON.parse(files.get('theme.json')!.toString());
+      manifest.settings = []; files.set('theme.json', Buffer.from(JSON.stringify(manifest))); files.delete('assets/hero.png');
+      expect((await fixture.upload(fixture.primary, await zipTheme(files))).status).toBe(200);
+      const before = await prisma.themeConfiguration.findUniqueOrThrow({ where: { slug: installed.slug } });
+      const restored = await fixture.mutate(fixture.primary, `${url}/restore-previous`, 'POST', {});
+      expect(restored.status).toBe(400); expect(restored.json().error.code).toBe('THEME_CONFIG_INVALID');
+      expect(await prisma.themeConfiguration.findUniqueOrThrow({ where: { slug: installed.slug } })).toEqual(before);
+    } finally { await fixture.close(); }
   });
 });

@@ -1,7 +1,7 @@
 import Ajv from 'ajv';
 import { merchantSectionSchemas, SECTION_TYPES, type ThemeManifest } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
-import { themePackageStore } from '@/core/storage/plugin-package-store';
+import type { ThemeFiles } from '@/core/storage/current-theme-package';
 import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
 import { ExtensionInstallerError } from './errors';
 
@@ -33,11 +33,10 @@ export function defaultHomeSections(manifest: ThemeManifest, values: Record<stri
 }
 
 export async function validateHomeSections(
-  manifest: ThemeManifest, sections: unknown, base = '/homeSections',
+  manifest: ThemeManifest, sections: unknown, pkg: ThemeFiles, base = '/homeSections',
 ): Promise<void> {
   if (manifest.target !== 'shop' || !Array.isArray(sections) || sections.length > 30) fail(base);
   const seen = new Set<string>();
-  const pkg = await themePackageStore.get(manifest.slug);
   for (const [index, section] of (sections as unknown[]).entries()) {
     const path = `${base}/${index}`;
     const type = (section as HomeSection | null)?.type;

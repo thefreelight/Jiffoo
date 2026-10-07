@@ -10,7 +10,11 @@ export async function themePackage(forbidden = false): Promise<Buffer> {
     archive.on('end', done);
     archive.on('error', fail);
   });
-  archive.append(await readFile(resolve(__dirname, 'fixtures/themes/test-shop-theme/theme.json')), { name: 'theme.json' });
+  const manifest = JSON.parse(await readFile(resolve(__dirname, 'fixtures/themes/test-shop-theme/theme.json'), 'utf8'));
+  manifest.layout.pages.home.sections[0].settings.image = 'assets/hero.png';
+  manifest.layout.pages.home.sections[0].settings.alt = { en: 'Theme hero', 'zh-Hans': '主题主视觉', 'zh-Hant': '主題主視覺' };
+  archive.append(JSON.stringify(manifest), { name: 'theme.json' });
+  archive.append(await readFile(resolve(__dirname, 'fixtures/themes/test-admin-logo.png')), { name: 'assets/hero.png' });
   if (forbidden) archive.append('console.log("not allowed")', { name: 'scripts/run.js' });
   await archive.finalize();
   await finished;

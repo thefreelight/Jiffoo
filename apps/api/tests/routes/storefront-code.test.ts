@@ -1,12 +1,13 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import type { CodeValues } from '@/core/admin/storefront-code/service';
+import { zipTheme } from '../helpers/theme-package-fixture';
 
 const prisma = getTestPrisma();
 const url = '/api/v1/admin/storefront-code';
@@ -293,16 +294,19 @@ describe('Scenario 14 storefront code API', () => {
   });
 
   it('K preserves the existing theme audit target, action and summary for configuration saves', async () => {
-    const slug = `code-audit-${randomUUID()}`;
+    const slug = `code-audit-${randomUUID().slice(0, 12)}`;
     ownThemeSlugs.push(slug);
     const manifest = {
       ...JSON.parse(readFileSync(path.resolve('builtin-themes/default-shop/theme.json'), 'utf8')),
       slug,
     };
+    const bytes = await zipTheme(new Map([['theme.json', Buffer.from(JSON.stringify(manifest))]]));
+    const packageHash = createHash('sha256').update(bytes).digest('hex');
     await prisma.theme.create({
-      data: { slug, version: '1.0.0', target: 'shop', name: slug, packageHash: 'test',
+      data: { slug, version: '1.0.0', target: 'shop', name: slug, packageHash,
         source: 'uploaded', trustLevel: 'unsigned', manifestJson: manifest },
     });
+    await prisma.themePackageBlob.create({ data: { themeSlug: slug, packageHash, bytes, sizeBytes: bytes.length } });
     const response = await app.inject({
       method: 'PUT', url: `/api/v1/extensions/themes/${slug}/config`,
       headers: { authorization: `Bearer ${token}` }, payload: { values: {}, expectedRevision: 0 },
