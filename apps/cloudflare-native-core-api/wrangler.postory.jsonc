@@ -15,12 +15,12 @@
     {
       "binding": "DB",
       "database_name": "postory-production",
-      "database_id": "REPLACE_WITH_D1_ID",
+      "database_id": "7ba7ce91-b426-4315-8fc6-1b495842ef4e",
       "migrations_dir": "migrations"
     }
   ],
   "kv_namespaces": [
-    { "binding": "CACHE", "id": "REPLACE_WITH_KV_ID" }
+    { "binding": "CACHE", "id": "3352fd2203934901a992e85403dd7b6e" }
   ],
   "r2_buckets": [
     { "binding": "ASSETS", "bucket_name": "postory-production-assets" }

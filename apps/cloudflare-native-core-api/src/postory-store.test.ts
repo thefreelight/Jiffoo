@@ -276,6 +276,56 @@ describe('postory store compat', () => {
   });
 });
 
+describe('CN customer payment rails', () => {
+  it('unlocks alipay/wechat_pay for Chinese-locale browsers', async () => {
+    const { db } = createDb();
+    authenticateNativeUser.mockResolvedValue(USER);
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: 'cs_live_cn', url: 'https://checkout.stripe.com/c/pay/cs_live_cn' }), { status: 200 }));
+    const globalFetch = globalThis.fetch;
+    globalThis.fetch = fetcher as typeof fetch;
+    try {
+      const response = await tryPostoryCompat(
+        new Request('https://api.postory.cc/api/extensions/plugin/subscription/api/store/subscriptions/checkout', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'accept-language': 'zh-CN,zh;q=0.9', authorization: 'Bearer tok' },
+          body: JSON.stringify({ plan: 'local-yearly', paymentMethod: 'stripe' }),
+        }),
+        baseEnv(db),
+      );
+      expect(response?.status).toBe(200);
+      const form = new URLSearchParams(fetcher.mock.calls[0]?.[1]?.body as string);
+      expect(form.get('payment_method_types[0]')).toBe('card');
+      expect(form.get('payment_method_types[1]')).toBe('alipay');
+      expect(form.get('payment_method_types[2]')).toBe('wechat_pay');
+      expect(form.get('payment_method_options[wechat_pay][client]')).toBe('web');
+    } finally {
+      globalThis.fetch = globalFetch;
+    }
+  });
+
+  it('keeps automatic payment methods for non-CN customers', async () => {
+    const { db } = createDb();
+    authenticateNativeUser.mockResolvedValue(USER);
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: 'cs_live_en', url: 'https://checkout.stripe.com/c/pay/cs_live_en' }), { status: 200 }));
+    const globalFetch = globalThis.fetch;
+    globalThis.fetch = fetcher as typeof fetch;
+    try {
+      await tryPostoryCompat(
+        new Request('https://api.postory.cc/api/extensions/plugin/subscription/api/store/subscriptions/checkout', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'accept-language': 'en-US,en;q=0.9', authorization: 'Bearer tok' },
+          body: JSON.stringify({ plan: 'local-yearly', paymentMethod: 'stripe' }),
+        }),
+        baseEnv(db),
+      );
+      const form = new URLSearchParams(fetcher.mock.calls[0]?.[1]?.body as string);
+      expect(form.get('payment_method_types[0]')).toBeNull();
+    } finally {
+      globalThis.fetch = globalFetch;
+    }
+  });
+});
+
 describe('postory CORS', () => {
   it('answers OPTIONS preflights with 204 and website CORS headers', async () => {
     const { db } = createDb();

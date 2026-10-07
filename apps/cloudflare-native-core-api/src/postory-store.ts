@@ -196,6 +196,7 @@ async function handleCheckout(request: Request, env: PostoryEnv, user: NativeSes
   const paymentMethod = body.paymentMethod === 'yipay' ? 'yipay' : 'stripe';
   const orderId = `porder_${crypto.randomUUID().replaceAll('-', '')}`;
   const origin = new URL(request.url).origin;
+  const cnCustomer = isCnLikelyCustomer(request);
 
   if (paymentMethod === 'stripe') {
     const secretKey = await secretValue(env.STRIPE_SECRET_KEY);
@@ -213,6 +214,15 @@ async function handleCheckout(request: Request, env: PostoryEnv, user: NativeSes
     if (user.email) form.set('customer_email', user.email);
     form.set('success_url', `${typeof body.successUrl === 'string' ? body.successUrl : origin + '/?checkout=success'}?session_id={CHECKOUT_SESSION_ID}`);
     form.set('cancel_url', typeof body.cancelUrl === 'string' ? body.cancelUrl : origin + '/?checkout=canceled');
+    // Chinese-likely customers (CN ip OR Chinese browser locale) get the CN
+    // rails explicitly — Stripe's automatic geo detection misses VPN/proxy
+    // users whose exit is overseas, and Alipay/WeChat don't appear for them.
+    if (cnCustomer) {
+      form.set('payment_method_types[0]', 'card');
+      form.set('payment_method_types[1]', 'alipay');
+      form.set('payment_method_types[2]', 'wechat_pay');
+      form.set('payment_method_options[wechat_pay][client]', 'web');
+    }
     const stripe = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
       headers: { authorization: `Bearer ${secretKey}`, 'content-type': 'application/x-www-form-urlencoded' },
@@ -412,4 +422,16 @@ export async function tryPostoryCompat(request: Request, env: PostoryEnv): Promi
 
   const storeResponse = await tryPostoryStore(rewritten, env);
   return storeResponse ? withPostoryCors(request, storeResponse) : null;
+}
+
+/**
+ * Composite CN-customer signal: connecting-IP country (VPN exit — weak) OR
+ * browser language (survives VPNs — strong). Either match unlocks the CN
+ * payment rails (alipay/wechat_pay) at checkout.
+ */
+function isCnLikelyCustomer(request: Request): boolean {
+  const cfCountry = (request as unknown as { cf?: { country?: string } }).cf?.country;
+  if (cfCountry === 'CN') return true;
+  const language = (request.headers.get('accept-language') || '').toLowerCase();
+  return language.startsWith('zh');
 }
