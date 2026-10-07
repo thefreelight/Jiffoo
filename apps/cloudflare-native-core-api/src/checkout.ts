@@ -56,11 +56,11 @@ interface PaymentSessionRow {
 
 type ProductLoader = (productId: string) => Promise<ProductDetail | null>;
 
-function success(data: unknown, status = 200, runtime = 'cloudflare-native-d1-checkout'): Response {
+export function success(data: unknown, status = 200, runtime = 'cloudflare-native-d1-checkout'): Response {
   return Response.json({ success: true, data }, { status, headers: { 'x-jiffoo-runtime': runtime } });
 }
 
-function failure(status: number, code: string, message: string): Response {
+export function failure(status: number, code: string, message: string): Response {
   return Response.json({ success: false, error: { code, message } }, {
     status,
     headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-checkout' },
