@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { PassThrough } from 'node:stream';
 import archiver from 'archiver';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
@@ -98,6 +99,7 @@ describe('Marketplace catalog API', () => {
     } finally {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
       await prisma.pluginInstall.deleteMany({ where: { slug } });
+      await cleanupPluginMigrationFixture(slug);
       await clearTestPluginCache(slug);
     }
   });
@@ -129,6 +131,7 @@ describe('Marketplace catalog API', () => {
     } finally {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
       await prisma.pluginInstall.deleteMany({ where: { slug } });
+      await cleanupPluginMigrationFixture(slug);
       await clearTestPluginCache(slug);
     }
   });

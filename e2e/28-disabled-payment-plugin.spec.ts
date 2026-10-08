@@ -83,11 +83,20 @@ async function setupFixture(
       headers: { authorization },
       multipart: {
         confirmUnsigned: 'true',
+        confirmMigrations: 'true',
         previewToken, confirmationSlug: slug,
         file: { name: `${slug}.zip`, mimeType: 'application/zip', buffer: packageBytes },
       },
     });
-    expect(uploaded.status(), await uploaded.text()).toBe(200);
+    expect(uploaded.status(), await uploaded.text()).toBe(202);
+    const operationId = (await uploaded.json()).data.operationId;
+    let outcome, cursor = '';
+    do {
+      const status = await request.get(`${api}/extensions/plugin/operations/${operationId}?wait=true${cursor}`, { headers: { authorization } });
+      expect(status.status()).toBe(200); outcome = (await status.json()).data;
+      cursor = `&phase=${encodeURIComponent(outcome.phase)}&committedPrefix=${outcome.committedPrefix}`;
+    } while (!outcome.terminal);
+    expect(outcome.phase).toBe('SUCCESS'); expect(outcome.result).toMatchObject({ slug, version: '1.0.0', warnings: [] });
     fixture.installed = true;
     await page.goto(`/en/plugins/${slug}`);
     await page.getByRole('button', { name: 'Enable plugin' }).click();

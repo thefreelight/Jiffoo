@@ -10,6 +10,8 @@ function conflict(code: 'PLUGIN_OPERATION_IN_PROGRESS' | 'PLUGIN_OPERATION_LEASE
 }
 
 export async function acquirePluginOperationLease(slug: string, operation: string): Promise<string> {
+  const existing = await prisma.$queryRaw<Array<{ valid: boolean }>>`SELECT "expiresAt" > clock_timestamp() AT TIME ZONE 'UTC' AS valid FROM plugin_operation_leases WHERE slug = ${slug}`;
+  if (existing[0]?.valid) throw conflict('PLUGIN_OPERATION_IN_PROGRESS');
   const token = randomUUID();
   const rows = await prisma.$queryRaw<Array<{ token: string }>>(Prisma.sql`
     INSERT INTO "plugin_operation_leases" ("slug", "token", "operation", "acquiredAt", "expiresAt")

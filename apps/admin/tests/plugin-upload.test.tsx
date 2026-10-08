@@ -17,7 +17,8 @@ vi.mock('shared/src/i18n/react', () => ({ useT: () => (key: string) => key.split
 function fixture(operation: PluginUploadPreview['operation'] = 'install', unsigned = false): PluginUploadPreview {
   return { package: { slug: 'upload-fixture', name: 'Upload fixture', version: '2.0.0', hash: 'hash', trust: unsigned ? 'unsigned' : 'signed', declaredCapabilities: ['shipping'], publisher: unsigned ? null : { publisherId: 'publisher', publisherName: 'Publisher', signingRoot: 'test' } },
     current: { version: operation === 'install' ? null : '1.0.0', hash: null, state: operation === 'install' ? 'not-installed' : 'installed' },
-    operation, compatibility: { compatible: true }, requiresUnsignedConfirmation: unsigned, previewToken: 'token', expiresAt: '2030-01-01T00:00:00Z' };
+    operation, compatibility: { compatible: true }, requiresUnsignedConfirmation: unsigned, previewToken: 'token', expiresAt: '2030-01-01T00:00:00Z',
+    migrationPlan: { schemaName: 'plugin_upload_fixture', provisionNamespace: true, changesDatabase: true, applied: [], pending: [{ id: 'one', order: 1, path: 'migrations/001.sql', sha256: '0'.repeat(64) }] } };
 }
 describe('Local plugin upload', () => {
   let root: Root, container: HTMLDivElement, client: QueryClient;

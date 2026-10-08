@@ -1,4 +1,5 @@
 import { beforeAll, afterAll, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { randomUUID } from 'node:crypto';
 import { createWriteStream, promises as fs } from 'node:fs';
 import path from 'node:path';
@@ -85,6 +86,7 @@ afterAll(async () => {
   const redis = new Redis(process.env.REDIS_URL!);
   try { if (installationId) { const keys = await redis.keys(`${pluginProtectionScope(installationId, generation)}:*`); if (keys.length) await redis.del(...keys); } } finally { redis.disconnect(); }
   await prisma.pluginInstall.deleteMany({ where: { slug: { in: [slug, restoreSlug] } } }); await prisma.user.deleteMany({ where: { id: admin?.id } });
+  for (const ownedSlug of [slug, restoreSlug]) await cleanupPluginMigrationFixture(ownedSlug);
 }, 60000);
 
 it('F real plugin success and bounded JSON business errors pass through unchanged', async () => {

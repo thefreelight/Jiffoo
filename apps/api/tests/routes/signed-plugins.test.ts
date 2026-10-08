@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { createWriteStream, promises as fs } from 'node:fs';
@@ -78,6 +79,7 @@ describe('Signed plugin uploads over HTTP', () => {
     for (const slug of slugs) {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
       await prisma.pluginInstall.deleteMany({ where: { slug } });
+      await cleanupPluginMigrationFixture(slug);
       await clearTestPluginCache(slug);
     }
     await deleteAllTestUsers();
@@ -85,9 +87,9 @@ describe('Signed plugin uploads over HTTP', () => {
   });
   const own = () => { const slug = uniqueSlug(); slugs.add(slug); return slug; };
   async function upload(entries: FileEntry[] | Buffer, confirmUnsigned = false) {
-    const { uploadPluginZip } = await import('../helpers/plugin-upload');
+    const { uploadPluginZip, completedPluginUploadBody } = await import('../helpers/plugin-upload');
     const response = await uploadPluginZip(base, token, Buffer.isBuffer(entries) ? entries : await zip(entries), confirmUnsigned);
-    return { status: response.status, body: await response.json() };
+    return { status: response.status, body: await completedPluginUploadBody(response) };
   }
   async function absent(slug: string) {
     expect(await prisma.pluginInstall.count({ where: { slug } })).toBe(0);

@@ -8,6 +8,8 @@ import { prisma } from '@/config/database';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { extensionInstaller } from '@/core/admin/extension-installer';
 import type { EventSubscription } from '@jiffoo/shared';
+import { createHash } from 'node:crypto';
+import { cleanupPluginMigrationFixture } from './plugin-migration-cleanup';
 
 export type FixtureContract = { name: 'shipping' | 'tax' | 'payment' | 'notification'; version: 1 };
 
@@ -42,7 +44,7 @@ export async function installFixturePlugin(
   category: 'shipping' | 'tax' | 'payment' | 'notification' | 'integration',
   contracts: FixtureContract[],
   source: string,
-  eventOptions: { subscriptions?: EventSubscription[]; config?: Record<string, unknown>; configSchema?: Record<string, unknown>; lifecycle?: Record<string, boolean>; version?: string; enable?: boolean } = {},
+  eventOptions: { subscriptions?: EventSubscription[]; config?: Record<string, unknown>; configSchema?: Record<string, unknown>; lifecycle?: Record<string, boolean>; version?: string; enable?: boolean; migrations?: Array<{ id: string; path: string; sql: string }> } = {},
 ): Promise<void> {
   const rootDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'checkout-fixture-'));
   const sourceDirectory = path.join(rootDirectory, 'package');
@@ -63,9 +65,14 @@ export async function installFixturePlugin(
     subscriptions: eventOptions.subscriptions ?? [],
     ...(eventOptions.configSchema ? { configSchema: eventOptions.configSchema } : {}),
     ...(eventOptions.lifecycle ? { lifecycle: eventOptions.lifecycle } : {}),
+    ...(eventOptions.migrations ? { database: { apiVersion: 1, migrations: eventOptions.migrations.map((file, index) => ({ id: file.id, order: index + 1, path: file.path, sha256: createHash('sha256').update(Buffer.from(file.sql)).digest('hex') })) } } : {}),
   };
   await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify(manifest), 'utf8');
   await fs.writeFile(path.join(sourceDirectory, 'server', 'index.js'), source, 'utf8');
+  for (const migration of eventOptions.migrations ?? []) {
+    await fs.mkdir(path.dirname(path.join(sourceDirectory, migration.path)), { recursive: true });
+    await fs.writeFile(path.join(sourceDirectory, migration.path), migration.sql, 'utf8');
+  }
   try {
     await new Promise<void>((resolve, reject) => {
       const output = createWriteStream(archivePath);
@@ -112,4 +119,5 @@ export async function removeFixturePlugin(options: FixturePluginInstallOptions, 
   if (response.statusCode !== 200 && response.statusCode !== 404) {
     throw new Error(`Fixture plugin "${slug}" purge failed: ${response.statusCode} ${response.payload}`);
   }
+  await cleanupPluginMigrationFixture(slug);
 }

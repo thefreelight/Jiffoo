@@ -26,8 +26,9 @@ import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 import { fetchMarketplaceCatalog, marketplaceUrl, MarketplaceError } from './marketplace-catalog';
 import { checkPluginApiCompatibility, PluginLoaderError } from './plugin-compatibility';
 import { compareVersions } from './version-utils';
-import { installMarketplacePlugin } from './marketplace-install';
+import { installMarketplacePlugin, previewMarketplacePlugin } from './marketplace-install';
 import { previewPluginUpload, PluginUploadError } from './plugin-upload';
+import { startPluginInstallOperation, getPluginInstallOperation, retryPluginInstallOperation } from './plugin-migration-operation';
 import { sendKnownError } from '@/utils/api-errors';
 
 const packageUnavailableResponse = {
@@ -344,10 +345,20 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       } catch (error) { return sendReadDependencyError(reply, error); }
     });
 
-    admin.post<{ Body: { pluginId: string; version: string } }>('/marketplace/install', {
+    admin.post<{ Body: { pluginId: string; version: string } }>('/marketplace/preview', {
+      schema: { tags: ['admin-plugins'], summary: 'Preview a verified marketplace artifact without loading its entry', security: [{ bearerAuth: [] }],
+        body: { type: 'object', required: ['pluginId', 'version'], additionalProperties: false, properties: { pluginId: { type: 'string' }, version: { type: 'string' } } },
+        response: { ...extensionInstallerSchemas.previewPlugin.response, 404: errorResponseSchema, 502: errorResponseSchema, 504: errorResponseSchema },
+      },
+    }, async (request, reply) => {
+      try { return sendSuccess(reply, await previewMarketplacePlugin(request.body.pluginId, request.body.version, request.user!.id)); }
+      catch (error) { return sendMarketplaceInstallError(reply, error); }
+    });
+
+    admin.post<{ Body: { pluginId: string; version: string; previewToken: string; confirmMigrations: boolean } }>('/marketplace/install', {
       preValidation: (request, reply, done) => {
         if (request.body && typeof request.body === 'object' && !Array.isArray(request.body) &&
-          Object.keys(request.body).some((key) => key !== 'pluginId' && key !== 'version')) {
+          Object.keys(request.body).some((key) => !['pluginId', 'version', 'previewToken', 'confirmMigrations'].includes(key))) {
           void sendError(reply, 400, 'BAD_REQUEST', 'Unexpected marketplace install field');
           return;
         }
@@ -357,22 +368,15 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         tags: ['admin-plugins'], summary: 'Install a marketplace plugin',
         security: [{ bearerAuth: [] }],
         body: {
-          type: 'object', required: ['pluginId', 'version'], additionalProperties: false,
+          type: 'object', required: ['pluginId', 'version', 'previewToken', 'confirmMigrations'], additionalProperties: false,
           properties: {
             pluginId: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,30}[a-z0-9]$' },
             version: { type: 'string', pattern: '^\\d+\\.\\d+\\.\\d+$' },
+            previewToken: { type: 'string', maxLength: 8192 }, confirmMigrations: { type: 'boolean' },
           },
         },
         response: {
-          200: { type: 'object', required: ['success', 'data'], properties: {
-            success: { type: 'boolean' },
-            data: { type: 'object', required: ['slug', 'version', 'publisherId', 'publisherVerified', 'installedVersion', 'signingRoot'], properties: {
-              slug: { type: 'string' }, version: { type: 'string' }, publisherId: { type: 'string' },
-              publisherVerified: { type: 'boolean' }, installedVersion: { type: 'string' },
-              signingRoot: { type: 'string', enum: ['official', 'test'], nullable: true },
-              warnings: { type: 'array', items: { type: 'string' } },
-            } },
-          } },
+          202: extensionInstallerSchemas.installExtension.response[202],
           400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema,
           404: errorResponseSchema, 409: errorResponseSchema, 413: errorResponseSchema,
           422: errorResponseSchema, 500: errorResponseSchema, 502: errorResponseSchema,
@@ -381,13 +385,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       },
     }, async (request, reply) => {
       try {
-        const plugin = await installMarketplacePlugin(request.body.pluginId, request.body.version, request.user!.id);
-        return sendSuccess(reply, {
-          slug: plugin.slug, version: plugin.version, publisherId: plugin.publisherId,
-          publisherVerified: plugin.signingRoot === 'official', signingRoot: plugin.signingRoot ?? null,
-          installedVersion: plugin.version,
-          warnings: plugin.warnings ?? [],
-        });
+        return sendSuccess(reply, await installMarketplacePlugin(request.body.pluginId, request.body.version, request.user!.id, request.body.previewToken, request.body.confirmMigrations), undefined, 202);
       } catch (error) { return sendMarketplaceInstallError(reply, error); }
     });
 
@@ -627,7 +625,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
 
       // Install extension
       const zipBytes = await data.toBuffer();
-      if (data.fieldname !== 'file' || Object.keys(data.fields).some(name => !['file', 'previewToken', 'confirmUnsigned', 'confirmationSlug'].includes(name)))
+      if (data.fieldname !== 'file' || Object.keys(data.fields).some(name => !['file', 'previewToken', 'confirmUnsigned', 'confirmationSlug', 'confirmMigrations'].includes(name)))
         return sendError(reply, 400, 'BAD_REQUEST', 'Unexpected plugin upload field');
       if (data.file.truncated || zipBytes.length > PLUGIN_MAX_ZIP_SIZE) {
         return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', 'Plugin ZIP exceeds 10 MiB');
@@ -640,24 +638,33 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         const value = data.fields?.[name];
         return !Array.isArray(value) && value?.type === 'field' && typeof value.value === 'string' ? value.value : undefined;
       };
-      const result = await extensionInstaller.installFromZip(kind, Readable.from(zipBytes), {
+      const operation = await startPluginInstallOperation(zipBytes, {
         confirmUnsigned,
+        confirmMigrations: field('confirmMigrations') === 'true',
         actorUserId: request.user!.id,
         previewToken: field('previewToken'), confirmationSlug: field('confirmationSlug'),
+        uploadMetadata: { filename: data.filename, size: zipBytes.length, mimetype: data.mimetype },
       });
-
-      return sendSuccess(reply, {
-        filename: data.filename || `${result.slug}.zip`,
-        originalName: data.filename || `${result.slug}.zip`,
-        size: zipBytes.length,
-        mimetype: data.mimetype || 'application/zip',
-        url: `/api/v1/extensions/${kind}/install`,
-        ...result,
-      }, `${kind} "${result.slug}" v${result.version} installed successfully`);
+      return sendSuccess(reply, operation, undefined, 202);
     } catch (error) {
       if (error instanceof fastify.multipartErrors.RequestFileTooLargeError) return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', 'Plugin ZIP exceeds 10 MiB');
       return sendMappedError(reply, error);
     }
+  });
+
+  admin.get<{ Params: { operationId: string }; Querystring: { wait?: boolean; phase?: string; committedPrefix?: number } }>('/plugin/operations/:operationId', {
+    schema: { tags: ['admin-plugins'], summary: 'Read a durable plugin installation operation', security: [{ bearerAuth: [] }], ...extensionInstallerSchemas.pluginOperation },
+  }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    try { return sendSuccess(reply, await getPluginInstallOperation(request.params.operationId, request.query.wait === true, request.query.phase !== undefined && request.query.committedPrefix !== undefined ? { phase: request.query.phase, committedPrefix: request.query.committedPrefix } : undefined)); }
+    catch (error) { return sendMappedError(reply, error); }
+  });
+
+  admin.post<{ Params: { operationId: string }; Body: { confirmMigrations: boolean } }>('/plugin/operations/:operationId/retry', {
+    schema: { tags: ['admin-plugins'], summary: 'Retry the retained plugin artifact without undoing migrations', security: [{ bearerAuth: [] }], ...extensionInstallerSchemas.retryPluginOperation },
+  }, async (request, reply) => {
+    try { return sendSuccess(reply, await retryPluginInstallOperation(request.params.operationId, request.user!.id, request.body.confirmMigrations), undefined, 202); }
+    catch (error) { return sendMappedError(reply, error); }
   });
 
   /**

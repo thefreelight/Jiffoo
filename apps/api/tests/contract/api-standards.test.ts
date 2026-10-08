@@ -47,7 +47,7 @@ function derefSchema(schema: JsonSchema | undefined | null): JsonSchema | undefi
 
 function getSuccessSchema(operation: Operation): JsonSchema | undefined {
   const responses = operation.responses || {};
-  const success = responses['200'] || responses['201'];
+  const success = responses['200'] || responses['201'] || responses['202'];
   return derefSchema(success?.content?.['application/json']?.schema as JsonSchema | undefined);
 }
 
@@ -225,7 +225,9 @@ describe('API Standards Contract', () => {
       const required = new Set(dataSchema?.required || []);
 
       const expectedFields = path === '/api/v1/extensions/plugin/preview' && method === 'POST'
-        ? ['package', 'current', 'operation', 'compatibility', 'requiresUnsignedConfirmation', 'expiresAt', 'previewToken']
+        ? ['package', 'current', 'operation', 'compatibility', 'migrationPlan', 'requiresUnsignedConfirmation', 'expiresAt', 'previewToken']
+        : path === '/api/v1/extensions/plugin/install' && method === 'POST'
+          ? ['operationId']
         : requiredUploadFields;
       const missing = expectedFields.filter((field) => !required.has(field));
       if (missing.length > 0) {

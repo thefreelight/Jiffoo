@@ -860,7 +860,22 @@ export const merchant = {
       "failed": "插件上传失败，请重新预览后重试。",
       "success": "插件包已安装。新插件在配置并启用前保持停用。",
       "unchangedSuccess": "已验证相同插件包，并按需修复；启用状态未改变。",
-      "installedWithWarning": "插件包已安装，但出现运行时或生命周期警告。"
+      "installedWithWarning": "插件包已安装，但出现运行时或生命周期警告。",
+      "migrationPlan": "数据库迁移计划",
+      "migrationNamespace": "插件 Schema",
+      "migrationProvision": "将创建",
+      "migrationApplied": "已应用文件数",
+      "backupRecommended": "建议先备份。继续安装不强制要求备份。",
+      "migrationConfirmation": "安装即确认执行上面列出的数据库变更。",
+      "migrationProgress": "正在安装。已应用迁移文件数",
+      "migrationRetry": "重试保留的插件包",
+      "migrationInvalid": "迁移声明或 SQL 文件无效。",
+      "migrationLegacy": "此插件包导出了旧格式迁移。请改用声明的 SQL 文件。",
+      "migrationDrift": "插件包修改了已应用的迁移历史。请保留完全一致的已应用前缀。",
+      "migrationFailed": "迁移失败。已提交的文件保留；请检查失败原因后重试。",
+      "migrationUnknown": "提交结果需要通过 ledger 核对。插件继续暂停。",
+      "needsRecovery": "需要恢复。插件继续暂停。请重试此插件包，或安装保留已应用前缀的更高版本。",
+      "migrationMaintenance": "此插件正在执行数据库维护，已暂停。请稍后重试。"
     },
     marketplace: {
       title: '插件市场', views: '插件视图', installedPlugins: '已安装插件', details: '详情', version: '版本', publisher: '发布者', installedVersion: '已安装版本', none: '无',

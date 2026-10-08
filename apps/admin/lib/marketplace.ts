@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient, unwrapApiResponse, type ApiResponse } from '@/lib/api';
 import { ApiErrorCodes, isApiErrorCode, type ApiErrorCode } from 'shared';
+import { waitPluginUploadOperation, type PluginUploadPreview, type PluginUploadOperation } from './plugin-upload';
 
 export interface MarketplaceStatus { configured: boolean; testSigningMode: boolean }
 export interface MarketplaceVersion {
@@ -17,13 +18,14 @@ export interface MarketplaceEntry {
 export const marketplaceApi = {
   status: async () => unwrapApiResponse(await apiClient.get<MarketplaceStatus>('/extensions/marketplace/status')),
   catalog: async () => unwrapApiResponse(await apiClient.get<{ items: MarketplaceEntry[] }>('/extensions/marketplace/catalog')),
-  install: async (pluginId: string, version: string) => {
-    const response = await apiClient.post<{ slug: string; version: string }>(
-      '/extensions/marketplace/install', { pluginId, version }, {
+  preview: async (pluginId: string, version: string) => unwrapApiResponse(await apiClient.post<PluginUploadPreview>('/extensions/marketplace/preview', { pluginId, version })),
+  install: async (pluginId: string, version: string, previewToken: string, confirmMigrations: boolean, progress?: (state: PluginUploadOperation) => void) => {
+    const response = await apiClient.post<{ operationId: string }>(
+      '/extensions/marketplace/install', { pluginId, version, previewToken, confirmMigrations }, {
         transformResponse: [(data: string, _headers: unknown, status?: number) => ({ ...JSON.parse(data), httpStatus: status })],
       },
-    ) as ApiResponse<{ slug: string; version: string }> & { httpStatus?: number };
-    try { return unwrapApiResponse(response); }
+    ) as ApiResponse<{ operationId: string }> & { httpStatus?: number };
+    try { return await waitPluginUploadOperation(unwrapApiResponse(response).operationId, progress); }
     catch (error) { throw Object.assign(error as Error, { status: response.httpStatus }); }
   },
 };
@@ -37,7 +39,7 @@ export function useMarketplaceCatalog(configured: boolean) {
 export function useMarketplaceInstall() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ pluginId, version }: { pluginId: string; version: string }) => marketplaceApi.install(pluginId, version),
+    mutationFn: ({ pluginId, version, previewToken, confirmMigrations, progress }: { pluginId: string; version: string; previewToken: string; confirmMigrations: boolean; progress?: (state: PluginUploadOperation) => void }) => marketplaceApi.install(pluginId, version, previewToken, confirmMigrations, progress),
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ['extensions', 'marketplace', 'catalog'] }),

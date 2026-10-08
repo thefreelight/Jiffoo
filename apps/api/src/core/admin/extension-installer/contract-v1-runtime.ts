@@ -1,6 +1,5 @@
-import { createHash } from 'crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { prisma } from '@/config/database';
+import { ApiError } from '@/utils/api-errors';
 import { fulfillmentV1Methods, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods, isEventKey, type PluginContext, type PluginEntryModule, type EventSubscription, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 import { redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { decodePaymentWebhook, PAYMENT_WEBHOOK_WIRE_LIMIT } from './payment-webhook-wire';
@@ -21,27 +20,16 @@ export function hasEventHandler(installationId: string, eventType: string, versi
 }
 export function clearContractV1EventHandlers(installationId: string): void { eventHandlers.delete(installationId); }
 export function isContractV1Runtime(value: unknown): value is PluginEntryModule { return !!value && typeof value === 'object' && typeof (value as PluginEntryModule).register === 'function'; }
-function checksum(sql: string): string { return createHash('sha256').update(sql).digest('hex'); }
-async function ensureMigrationLedger(): Promise<void> { await prisma.$executeRawUnsafe('CREATE TABLE IF NOT EXISTS plugin_runtime_migrations (plugin_slug TEXT NOT NULL, migration_id TEXT NOT NULL, checksum TEXT NOT NULL, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (plugin_slug, migration_id))'); }
-export async function runContractV1Migrations(slug: string, migrations: Array<{ id: string; sql: string }> = []): Promise<void> {
-  if (!migrations.length) return;
-  await ensureMigrationLedger();
-  for (const migration of migrations) {
-    const expectedChecksum = checksum(migration.sql);
-    await prisma.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', slug);
-      const existing = await tx.$queryRawUnsafe<Array<{ checksum: string }>>('SELECT checksum FROM plugin_runtime_migrations WHERE plugin_slug = $1 AND migration_id = $2', slug, migration.id);
-      if (existing[0]) { if (existing[0].checksum !== expectedChecksum) throw new Error(`PLUGIN_MIGRATION_DRIFT:${slug}:${migration.id}`); return; }
-      await tx.$executeRawUnsafe(migration.sql);
-      await tx.$executeRawUnsafe('INSERT INTO plugin_runtime_migrations (plugin_slug, migration_id, checksum) VALUES ($1, $2, $3)', slug, migration.id, expectedChecksum);
-    });
+export function assertNoLegacyPluginMigrations(value: unknown): void {
+  if ((typeof value === 'object' && value !== null || typeof value === 'function') && 'migrations' in value) {
+    throw new ApiError('PLUGIN_MIGRATION_LEGACY_FORMAT');
   }
 }
 export async function registerContractV1Runtime(app: FastifyInstance, runtime: PluginEntryModule, options: RuntimeOptions): Promise<{
   publish: () => void;
   handlers: ReadonlyMap<string, PluginEventHandler>;
 }> {
-  await runContractV1Migrations(options.slug, runtime.migrations);
+  assertNoLegacyPluginMigrations(runtime);
   const handlers = new Map<string, PluginEventHandler>();
   let registering = true;
   const implemented = new Set<string>();

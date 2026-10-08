@@ -6,6 +6,7 @@ import path from 'node:path';
 import archiver from 'archiver';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { CERT_PATH, SIGNATURE_PATH, issuePublisherCertificate, signPackage, trustedRootKeys, OFFICIAL_ROOT_PUBLIC_KEY } from 'shared/plugin-signing';
 import { prisma } from '@/config/database';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
@@ -87,14 +88,20 @@ async function install(slug: string, root: 'official' | 'test' | 'unsigned', sou
       versions: [{ version: '1.0.0', minApiVersion: 'v1', sha256: sha(zip), size: zip.length, downloadUrl: '/package.zip' }],
     }] };
     process.env.JIFFOO_TEST_MARKETPLACE_URL = `${origin}/${randomUUID()}`;
-    return app.inject({
-      method: 'POST', url: '/api/v1/extensions/marketplace/install',
-      headers: { authorization: `Bearer ${token}` }, payload: { pluginId: slug, version: '1.0.0' },
-    });
+    const { waitForPluginUpload, completedPluginUploadBody } = await import('../helpers/plugin-upload');
+    const headers = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
+    const previewResponse = await fetch(`${base}/api/v1/extensions/marketplace/preview`, { method: 'POST', headers, body: JSON.stringify({ pluginId: slug, version: '1.0.0' }) });
+    if (!previewResponse.ok) { const body = await previewResponse.json(); return { statusCode: previewResponse.status, json: async () => body }; }
+    const preview = (await previewResponse.json()).data;
+    const accepted = await fetch(`${base}/api/v1/extensions/marketplace/install`, { method: 'POST', headers, body: JSON.stringify({ pluginId: slug, version: '1.0.0', previewToken: preview.previewToken, confirmMigrations: true }) });
+    const response = await waitForPluginUpload(base, token, accepted);
+    const body = await completedPluginUploadBody(response);
+    return { statusCode: response.status, json: async () => body };
   }
-  const { uploadPluginZip } = await import('../helpers/plugin-upload');
+  const { uploadPluginZip, completedPluginUploadBody } = await import('../helpers/plugin-upload');
   const response = await uploadPluginZip(base, token, zip, root === 'unsigned');
-  return { statusCode: response.status, json: () => response.json() };
+  const body = await completedPluginUploadBody(response);
+  return { statusCode: response.status, json: async () => body };
 }
 
 async function installed(slug: string, root: 'official' | 'test' | 'unsigned') {
@@ -143,6 +150,7 @@ afterAll(async () => {
     await resetPluginState(slug);
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
     await prisma.pluginInstall.deleteMany({ where: { slug } });
+    await cleanupPluginMigrationFixture(slug);
     await clearTestPluginCache(slug);
   }
   await app?.close();

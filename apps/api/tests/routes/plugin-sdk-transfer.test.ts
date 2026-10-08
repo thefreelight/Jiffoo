@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { promises as fs } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { PassThrough } from 'node:stream';
 import path from 'node:path';
 import os from 'node:os';
@@ -94,7 +96,7 @@ beforeAll(async () => {
     if (request.method === 'PATCH' && request.url.includes('/instances/')) instancePatchCalls++;
   });
   app.addHook('onSend', async (request, reply, payload) => {
-    if (request.url === '/api/v1/extensions/plugin/install' && reply.statusCode === 200 && typeof payload === 'string') {
+    if (request.url.startsWith('/api/v1/extensions/plugin/operations/') && request.method === 'GET' && reply.statusCode === 200 && typeof payload === 'string' && JSON.parse(payload).data.phase === 'SUCCESS') {
       const slug = JSON.parse(payload).data.slug as string;
       installedHashes.push((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).zipHash);
       if (dropResponse) { dropResponse = false; reply.raw.destroy(); }
@@ -141,7 +143,7 @@ async function isolated(work: (fixture: Fixture) => Promise<void>, requestedSlug
     await fs.writeFile(environment.JIFFOO_DEV_CERTIFICATE, JSON.stringify(issuePublisherCertificate('transfer-publisher', 'Transfer Publisher', testPublisher.publicKey, testRoot.privateKey)));
     await fs.writeFile(environment.JIFFOO_DEV_PRIVATE_KEY, testPublisher.privateKey);
     await work({ directory, project, slug, certificate: environment.JIFFOO_DEV_CERTIFICATE, key: environment.JIFFOO_DEV_PRIVATE_KEY, token: admin.token, environment, children, own, users,
-      cli: spawnCli, start: (enable = false, changes = {}) => spawnCli(['dev', ...(enable ? ['--enable'] : [])], changes),
+      cli: spawnCli, start: (enable = false, changes = {}) => spawnCli(['dev', '--confirm-migrations', ...(enable ? ['--enable'] : [])], changes),
       zip: async (signed = true) => {
         sync(path.join(project, 'tools/build.mjs'), []);
         const unsigned = path.join(directory, `unsigned-${++archiveCounter}.zip`);
@@ -159,6 +161,7 @@ async function isolated(work: (fixture: Fixture) => Promise<void>, requestedSlug
       await resetPluginState(id);
       await prisma.pluginOperationLease.deleteMany({ where: { slug: id } });
       await prisma.pluginInstall.deleteMany({ where: { slug: id } });
+      await cleanupPluginMigrationFixture(id);
       await clearTestPluginCache(id);
     }
     await prisma.adminAuditEvent.deleteMany({ where: { actorId: { in: users } } });
@@ -178,7 +181,7 @@ async function isolated(work: (fixture: Fixture) => Promise<void>, requestedSlug
 }
 
 async function runUpload(fixture: Fixture, zip: string, enable = false, changes: NodeJS.ProcessEnv = {}) {
-  const child = fixture.cli(['upload', '--zip', zip, ...(enable ? ['--enable'] : [])], changes);
+  const child = fixture.cli(['upload', '--zip', zip, '--confirm-migrations', ...(enable ? ['--enable'] : [])], changes);
   return { child, code: await child.stop() };
 }
 async function instance(slug: string) { return prisma.pluginInstallation.findFirstOrThrow({ where: { pluginSlug: slug } }); }
@@ -193,6 +196,32 @@ function privateOutput(child: CliProcess, fixture: Fixture, token = fixture.toke
 }
 
 describe('Plugin SDK upload and local development', () => {
+  it('J dev preserves namespace and committed history, watches migrations and reports applied-file drift without resetting data', async () => {
+    await isolated(async fixture => {
+      const child = fixture.start(); await child.wait(/^jiffoo-dev: uploaded 1\.0\.1$/); await child.idle();
+      const slug = `${fixture.slug}-dev`;
+      const namespace = await prisma.pluginNamespace.findUniqueOrThrow({ where: { slug } });
+      const first = await prisma.pluginMigrationSuccess.findMany({ where: { namespaceId: namespace.id } }); expect(first).toHaveLength(1);
+      await prisma.$executeRawUnsafe(`INSERT INTO "${namespace.schemaName}".integration_records (id, value) VALUES ('kept', 'data')`);
+      const manifestFile = path.join(fixture.project, 'manifest.json');
+      const manifest = JSON.parse(await fs.readFile(manifestFile, 'utf8'));
+      const nextSql = 'ALTER TABLE integration_records ADD COLUMN flag INTEGER NOT NULL DEFAULT 0;\n';
+      manifest.database.migrations.push({ id: '002_flag', order: 2, path: 'migrations/002_flag.sql', sha256: createHash('sha256').update(Buffer.from(nextSql)).digest('hex') });
+      writeFileSync(path.join(fixture.project, 'migrations/002_flag.sql'), nextSql, 'utf8');
+      writeFileSync(manifestFile, JSON.stringify(manifest), 'utf8');
+      await child.wait(/^jiffoo-dev: uploaded 1\.0\.2$/); await child.idle();
+      expect(await prisma.pluginMigrationSuccess.findMany({ where: { namespaceId: namespace.id, order: 1 } })).toEqual(first);
+      expect(await prisma.$queryRawUnsafe(`SELECT id, value, flag FROM "${namespace.schemaName}".integration_records`)).toEqual([{ id: 'kept', value: 'data', flag: 0 }]);
+      const changed = (await fs.readFile(path.join(fixture.project, 'migrations/001_records.sql'), 'utf8')) + '-- changed applied bytes\n';
+      manifest.database.migrations[0].sha256 = createHash('sha256').update(Buffer.from(changed)).digest('hex');
+      writeFileSync(path.join(fixture.project, 'migrations/001_records.sql'), changed, 'utf8');
+      writeFileSync(manifestFile, JSON.stringify(manifest), 'utf8');
+      await child.wait(/^jiffoo-dev: failed PLUGIN_MIGRATION_DRIFT$/); expect(await child.stop()).toBe(1);
+      expect(await prisma.pluginNamespace.findUnique({ where: { slug } })).toEqual(namespace);
+      expect(await prisma.pluginMigrationSuccess.count({ where: { namespaceId: namespace.id } })).toBe(2);
+      expect(await prisma.$queryRawUnsafe(`SELECT id, value, flag FROM "${namespace.schemaName}".integration_records`)).toEqual([{ id: 'kept', value: 'data', flag: 0 }]);
+    });
+  });
   it.each([false, true])('A signed upload with first-install enable=%s prints a preview summary and preserves the existing enable transition', async enable => {
     await isolated(async fixture => {
       const transitions = instancePatchCalls;
@@ -230,7 +259,11 @@ describe('Plugin SDK upload and local development', () => {
       const input = Object.assign(new PassThrough(), { isTTY: true });
       const output = Object.assign(new PassThrough(), { isTTY: true });
       const prompt = deferred(); let text = '';
-      output.on('data', data => { text += data.toString(); if (text.includes('to confirm installation:')) prompt.resolve(); });
+      let migrationConfirmed = false;
+      output.on('data', data => {
+        text += data.toString(); if (text.includes('to confirm installation:')) prompt.resolve();
+        if (!migrationConfirmed && text.includes('Type APPLY')) { migrationConfirmed = true; input.end('APPLY\n'); }
+      });
       const previous = { url: process.env.JIFFOO_CORE_URL, token: process.env.JIFFOO_ADMIN_TOKEN };
       process.env.JIFFOO_CORE_URL = base; process.env.JIFFOO_ADMIN_TOKEN = fixture.token;
       try {
@@ -238,12 +271,12 @@ describe('Plugin SDK upload and local development', () => {
         const settled = result.then(() => null, error => error as Error & { code: string });
         await deadline(prompt.promise, 'Confirmation prompt was not emitted');
         expect(text).toContain('runs in the Core process, can access the database, and is not sandboxed');
-        input.end(`${answer === 'exact' ? fixture.slug : 'wrong-slug'}\n`);
+        input.write(`${answer === 'exact' ? fixture.slug : 'wrong-slug'}\n`);
         const error = await settled;
         if (answer === 'wrong') {
           expect(error?.code).toBe('UNSIGNED_CONFIRMATION_MISMATCH');
           expect(await prisma.pluginInstall.findUnique({ where: { slug: fixture.slug } })).toBeNull();
-        } else { expect(error).toBeNull(); expect((await instance(fixture.slug)).enabled).toBe(false); }
+        } else { expect(error).toBeNull(); expect((await instance(fixture.slug)).enabled).toBe(false); expect(migrationConfirmed).toBe(true); expect(text).toContain('We recommend a backup first.'); }
         expect(await prisma.adminAuditEvent.count({ where: { targetId: fixture.slug, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' } })).toBe(answer === 'exact' ? 1 : 0);
         expect(text).not.toContain(fixture.token); expect(text).not.toContain(base);
       } finally {
@@ -341,7 +374,7 @@ describe('Plugin SDK upload and local development', () => {
       privateOutput(child, fixture, token);
     });
   });
-  it.each([false, true])('D a lost install response with enable=%s retries the same signed ZIP bytes without creating a second version', async enable => {
+  it.each([false, true])('D a lost terminal operation response with enable=%s retries the same signed ZIP bytes without creating a second version', async enable => {
     await isolated(async fixture => {
       installedHashes = []; const calls = installCalls; dropResponse = true;
       const child = fixture.start(enable); await child.wait(/^jiffoo-dev: uploaded 1\.0\.1$/); await child.idle();
@@ -426,11 +459,11 @@ describe('Plugin SDK upload and local development', () => {
       const zip = await fixture.zip();
       const runner = path.join(fixture.project, 'tools/sdk.mjs');
       const environment = { ...fixture.environment, JIFFOO_PLUGIN_SDK: sdk };
-      const child = new CliProcess(['upload', '--zip', zip], environment, fixture.project, runner);
+      const child = new CliProcess(['upload', '--zip', zip, '--confirm-migrations'], environment, fixture.project, runner);
       fixture.children.push(child);
       expect(await child.stop(), child.stderr).toBe(0); expect((await instance(fixture.slug)).enabled).toBe(false);
       privateOutput(child, fixture);
-      const watcher = new CliProcess(['dev'], environment, fixture.project, runner);
+      const watcher = new CliProcess(['dev', '--confirm-migrations'], environment, fixture.project, runner);
       fixture.children.push(watcher);
       await watcher.wait(/^jiffoo-dev: uploaded 1\.0\.1$/); await watcher.idle();
       expect((await instance(`${fixture.slug}-dev`)).enabled).toBe(false);

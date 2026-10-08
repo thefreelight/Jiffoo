@@ -672,16 +672,6 @@ export const pluginsApi = {
     }
   },
 
-  installFromZip: (file: File, previewToken: string, confirmationSlug?: string): Promise<ApiResponse<{ slug: string; version: string; warnings: string[] }>> => {
-    const formData = new FormData();
-    formData.append('previewToken', previewToken);
-    if (confirmationSlug !== undefined) { formData.append('confirmUnsigned', 'true'); formData.append('confirmationSlug', confirmationSlug); }
-    formData.append('file', file);
-    return apiClient.post('/extensions/plugin/install', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
-
   uninstall: (slug: string): Promise<ApiResponse<{ kind: 'plugin'; slug: string; uninstalled: boolean }>> =>
     apiClient.delete(`/extensions/plugin/${slug}`),
 

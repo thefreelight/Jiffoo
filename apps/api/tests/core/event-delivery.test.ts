@@ -753,6 +753,8 @@ module.exports = { register(ctx) {
       } });
     } };`;
     try {
+      // Own the alternate provider instead of relying on another file's builtin sync.
+      await syncBuiltinPlugins(path.resolve('builtin-plugins'));
       await installFixturePlugin(options, slug, 'shipping', [{ name: 'shipping', version: 1 }], source);
       const other = await plugin({}, 'module.exports = { register() {} };', []);
       await ensurePluginRegistryFresh();

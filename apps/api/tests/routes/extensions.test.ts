@@ -16,6 +16,7 @@ import path from 'path';
 import archiver from 'archiver';
 import { randomUUID } from 'node:crypto';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers, type TestUser } from '../helpers/auth';
@@ -102,6 +103,7 @@ async function multipartPluginUpload(
   catch (error) { if (!(error && typeof error === 'object' && 'statusCode' in error && Number(error.statusCode) < 500)) throw error; }
   const parts: Buffer[] = [];
   if (preview) parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="previewToken"\r\n\r\n${preview.previewToken}\r\n`));
+  if (preview?.migrationPlan.changesDatabase) parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="confirmMigrations"\r\n\r\ntrue\r\n`));
   if (confirmUnsigned) {
     if (preview) parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="confirmationSlug"\r\n\r\n${preview.package.slug}\r\n`));
     parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="confirmUnsigned"\r\n\r\ntrue\r\n`));
@@ -121,6 +123,7 @@ describe('Extensions Installer Endpoints', () => {
   let userToken: string;
   let adminToken: string;
   let adminUser: TestUser;
+  let appBase: string;
   const prisma = getTestPrisma();
   const uploadSlug = `route-unsigned-${Date.now().toString(36)}`.slice(0, 32);
   let cleanupArchive: (() => Promise<void>) | undefined;
@@ -133,11 +136,13 @@ describe('Extensions Installer Endpoints', () => {
     adminToken = admin.token;
     adminUser = admin.user;
     uploadActorId = adminUser.id;
+    appBase = await app.listen({ port: 0, host: '127.0.0.1' });
   });
 
   afterAll(async () => {
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: uploadSlug } });
     await prisma.pluginInstall.deleteMany({ where: { slug: uploadSlug } });
+    await cleanupPluginMigrationFixture(uploadSlug);
     await prisma.adminAuditEvent.deleteMany({ where: { actorId: adminUser.id } });
     await clearTestPluginCache(uploadSlug);
     await cleanupArchive?.();
@@ -145,14 +150,13 @@ describe('Extensions Installer Endpoints', () => {
     await app.close();
   });
 
-  async function uploadPlugin(archivePath: string) {
+  async function uploadPlugin(archivePath: string, expectedPhase = 'SUCCESS') {
     const upload = await multipartPluginUpload(archivePath, true);
-    return app.inject({
-      method: 'POST',
-      url: '/api/v1/extensions/plugin/install',
-      headers: { authorization: `Bearer ${adminToken}`, ...upload.headers },
-      payload: upload.payload,
-    });
+    const { waitForPluginUpload, completedPluginUploadBody } = await import('../helpers/plugin-upload');
+    const accepted = await fetch(`${appBase}/api/v1/extensions/plugin/install`, { method: 'POST', headers: { authorization: `Bearer ${adminToken}`, ...upload.headers }, body: upload.payload });
+    const response = await waitForPluginUpload(appBase, adminToken, accepted, expectedPhase);
+    const body = await completedPluginUploadBody(response);
+    return { statusCode: response.status, json: () => body };
   }
 
   it('rejects an unknown manifest field before writing a package or installation', async () => {
@@ -204,6 +208,7 @@ describe('Extensions Installer Endpoints', () => {
     } finally {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
       await prisma.pluginInstall.deleteMany({ where: { slug } });
+      await cleanupPluginMigrationFixture(slug);
       await clearTestPluginCache(slug);
       await archive.cleanup();
     }
@@ -251,6 +256,7 @@ describe('Extensions Installer Endpoints', () => {
     } finally {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
       await prisma.pluginInstall.deleteMany({ where: { slug } });
+      await cleanupPluginMigrationFixture(slug);
       await clearTestPluginCache(slug);
       await base.cleanup();
       await unsafe.cleanup();
@@ -338,13 +344,7 @@ describe('Extensions Installer Endpoints', () => {
         where: { actorId: adminUser.id, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' },
       })).toBe(0);
 
-      const confirmed = await multipartPluginUpload(archive.archivePath, true);
-      const installedResponse = await app.inject({
-        method: 'POST',
-        url: '/api/v1/extensions/plugin/install',
-        headers: { authorization: `Bearer ${adminToken}`, ...confirmed.headers },
-        payload: confirmed.payload,
-      });
+      const installedResponse = await uploadPlugin(archive.archivePath);
       expect(installedResponse.statusCode).toBe(200);
       expect(installedResponse.json().data.slug).toBe(uploadSlug);
 
@@ -483,34 +483,14 @@ describe('Extensions Installer Endpoints', () => {
       const archive = await createUnsignedPluginArchive(esmSlug, { packageType: 'module' });
 
       try {
-        const upload = await multipartPluginUpload(archive.archivePath, true);
-        const response = await app.inject({
-          method: 'POST',
-          url: '/api/v1/extensions/plugin/install',
-          headers: { authorization: `Bearer ${adminToken}`, ...upload.headers },
-          payload: upload.payload,
-        });
+        const response = await uploadPlugin(archive.archivePath, 'FAILED');
 
         expect(response.statusCode).toBe(200);
 
-        const defaultInstance = await prisma.pluginInstallation.findUnique({
-          where: { pluginSlug_instanceKey: { pluginSlug: esmSlug, instanceKey: 'default' } },
-        });
-        expect(defaultInstance).not.toBeNull();
-
-        const enableResponse = await app.inject({
-          method: 'PATCH',
-          url: `/api/v1/extensions/plugin/${esmSlug}/instances/${defaultInstance!.id}`,
-          headers: { authorization: `Bearer ${adminToken}` },
-          payload: { enabled: true },
-        });
-        expect(enableResponse.statusCode).toBe(500);
-        expect(enableResponse.json().error.code).toBe('INTERNAL_SERVER_ERROR');
-
-        const unchangedInstance = await prisma.pluginInstallation.findUnique({
-          where: { pluginSlug_instanceKey: { pluginSlug: esmSlug, instanceKey: 'default' } },
-        });
-        expect(unchangedInstance?.enabled).toBe(false);
+        expect(response.json().operation.errorCode).toBe('INTERNAL_SERVER_ERROR');
+        expect(await prisma.pluginInstallation.count({ where: { pluginSlug: esmSlug } })).toBe(0);
+        expect(await prisma.pluginInstall.count({ where: { slug: esmSlug } })).toBe(0);
+        expect(await prisma.pluginNamespace.count({ where: { slug: esmSlug } })).toBe(0);
       } finally {
         await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: esmSlug } });
         await prisma.pluginInstall.deleteMany({ where: { slug: esmSlug } });

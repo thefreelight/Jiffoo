@@ -4,7 +4,8 @@ import { isDeepStrictEqual } from 'node:util';
 import type { PluginInstall } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
-import { PLUGIN_MAX_ZIP_SIZE, readPluginZipEntries, verifyPluginZip } from 'shared/plugin-signing';
+import { PLUGIN_MAX_ZIP_SIZE, readPluginZipEntries, verifyPluginZip, validatePluginMigrations } from 'shared/plugin-signing';
+import { migrationPlan } from './plugin-migration-executor';
 import { validateFileExtension, validateFileSize } from './security';
 import { validatePluginManifest } from './utils';
 import { checkPluginApiCompatibility } from './plugin-compatibility';
@@ -53,9 +54,12 @@ export async function inspectPluginUpload(bytes: Buffer) {
   try { manifest = JSON.parse(manifestEntry.content.toString('utf8')); }
   catch { throw new PluginUploadError('INVALID_JSON', 400, 'Invalid manifest.json'); }
   validatePluginManifest(manifest);
+  const packageRoot = manifestEntry.path.slice(0, -'manifest.json'.length);
+  const files = entries.filter(entry => !entry.path.endsWith('/')).map(entry => ({ ...entry, path: packageRoot && entry.path.startsWith(packageRoot) ? entry.path.slice(packageRoot.length) : entry.path }));
+  validatePluginMigrations(manifest.database, files);
   if (['manual-payment', 'free-shipping', 'zero-tax', 'manual-fulfillment', 'console-email'].includes(manifest.slug))
     throw new PluginUploadError('SLUG_RESERVED', 400);
-  return { manifest, publisher, hash: createHash('sha256').update(bytes).digest('hex'), trust: publisher ? 'signed' as const : 'unsigned' as const };
+  return { manifest, files, manifestDigest: createHash('sha256').update(manifestEntry.content).digest('hex'), publisher, hash: createHash('sha256').update(bytes).digest('hex'), trust: publisher ? 'signed' as const : 'unsigned' as const };
 }
 
 export function uploadOperation(inspection: UploadInspection, current: PluginInstall | null): 'install' | 'upgrade' | 'unchanged' {
@@ -72,6 +76,15 @@ export function uploadOperation(inspection: UploadInspection, current: PluginIns
   return comparison === 0 ? 'unchanged' : 'upgrade';
 }
 
+export async function assertPluginPackageHistory(inspection: UploadInspection): Promise<void> {
+  const published = await prisma.pluginMigrationOperation.findMany({ where: { slug: inspection.manifest.slug, phase: { in: ['SUCCESS', 'PUBLISHED'] } }, select: { packageVersion: true, packageHash: true } });
+  for (const prior of published) {
+    const comparison = compareVersions(inspection.manifest.version, prior.packageVersion);
+    if (comparison < 0) throw new PluginUploadError('PLUGIN_DOWNGRADE_NOT_SUPPORTED', 409);
+    if (comparison === 0 && inspection.hash !== prior.packageHash) throw new PluginUploadError('PLUGIN_VERSION_CONTENT_CHANGED', 409);
+  }
+}
+
 function previewKey() {
   return createHmac('sha256', env.JWT_SECRET).update('jiffoo-core/plugin-upload-preview/key/v1').digest();
 }
@@ -83,6 +96,8 @@ export async function previewPluginUpload(bytes: Buffer, actorId: string) {
   const inspection = await inspectPluginUpload(bytes);
   const current = await prisma.pluginInstall.findUnique({ where: { slug: inspection.manifest.slug } });
   const operation = uploadOperation(inspection, current);
+  await assertPluginPackageHistory(inspection);
+  const migrations = await migrationPlan(inspection.manifest.slug, inspection.manifest.database, inspection.files, inspection.publisher);
   const compatibility = checkPluginApiCompatibility(inspection.manifest);
   const expiresAt = Date.now() + 5 * 60_000;
   const payload: PreviewPayload = {
@@ -95,7 +110,7 @@ export async function previewPluginUpload(bytes: Buffer, actorId: string) {
     package: { slug: inspection.manifest.slug, name: inspection.manifest.name, version: inspection.manifest.version, hash: inspection.hash,
       trust: inspection.trust, publisher: inspection.publisher, declaredCapabilities: inspection.manifest.contracts?.map((contract) => contract.name) ?? [] },
     current: { version: current?.version ?? null, hash: current?.zipHash ?? null, state: current ? current.deletedAt ? 'uninstalled' : 'installed' : 'not-installed' },
-    operation, compatibility, requiresUnsignedConfirmation: inspection.trust === 'unsigned', expiresAt: new Date(expiresAt).toISOString(),
+    operation, compatibility, migrationPlan: migrations, requiresUnsignedConfirmation: inspection.trust === 'unsigned', expiresAt: new Date(expiresAt).toISOString(),
     previewToken: `${body}.${mac(body).toString('base64url')}`,
   };
 }

@@ -860,7 +860,22 @@ export const merchant = {
       "failed": "外掛上傳失敗，請重新預覽後重試。",
       "success": "外掛套件已安裝。新外掛在設定並啟用前保持停用。",
       "unchangedSuccess": "已驗證相同外掛套件，並按需修復；啟用狀態未改變。",
-      "installedWithWarning": "外掛套件已安裝，但出現執行階段或生命週期警告。"
+      "installedWithWarning": "外掛套件已安裝，但出現執行階段或生命週期警告。",
+      "migrationPlan": "資料庫遷移計畫",
+      "migrationNamespace": "外掛 Schema",
+      "migrationProvision": "將建立",
+      "migrationApplied": "已套用檔案數",
+      "backupRecommended": "建議先備份。繼續安裝不強制要求備份。",
+      "migrationConfirmation": "安裝即確認執行上面列出的資料庫變更。",
+      "migrationProgress": "正在安裝。已套用遷移檔案數",
+      "migrationRetry": "重試保留的外掛套件",
+      "migrationInvalid": "遷移宣告或 SQL 檔案無效。",
+      "migrationLegacy": "此外掛套件匯出了舊格式遷移。請改用宣告的 SQL 檔案。",
+      "migrationDrift": "外掛套件修改了已套用的遷移歷史。請保留完全一致的已套用前綴。",
+      "migrationFailed": "遷移失敗。已提交的檔案保留；請檢查失敗原因後重試。",
+      "migrationUnknown": "提交結果需要透過 ledger 核對。外掛繼續暫停。",
+      "needsRecovery": "需要復原。外掛繼續暫停。請重試此套件，或安裝保留已套用前綴的較高版本。",
+      "migrationMaintenance": "此外掛正在執行資料庫維護，已暫停。請稍後重試。"
     },
     marketplace: {
       title: '外掛市集', views: '外掛檢視', installedPlugins: '已安裝外掛', details: '詳情', version: '版本', publisher: '發佈者', installedVersion: '已安裝版本', none: '無',

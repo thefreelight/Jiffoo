@@ -40,6 +40,16 @@ const messages: Record<string, string> = {
   PACK_FAILED: 'Packaging failed; no upload was attempted.',
   SIGN_FAILED: 'Signing failed; check the publisher key, certificate and existing SDK test-root signing configuration.',
   WATCH_FAILED: 'The source watcher failed; development mode stopped.',
+  PLUGIN_MIGRATION_MANIFEST_INVALID: 'Migration declarations or files are invalid; regenerate declarations explicitly.',
+  PLUGIN_MIGRATION_LEGACY_FORMAT: 'The entry exports legacy migrations; package declared SQL files instead.',
+  PLUGIN_MIGRATION_DRIFT: 'Applied migration history changed; keep its exact prefix and publish a higher version.',
+  PLUGIN_MIGRATION_FAILED: 'Migration failed. Committed files were kept; inspect the operation before retrying.',
+  PLUGIN_MIGRATION_OUTCOME_UNKNOWN: 'Commit acknowledgement was lost; Core reconciles the ledger before recovery.',
+  PLUGIN_MIGRATION_RECOVERY_REQUIRED: 'The plugin remains paused; retry the same artifact or install a higher version preserving the prefix.',
+  PLUGIN_MIGRATION_CONFIRMATION_REQUIRED: 'Confirm the migration plan before installation.',
+  PLUGIN_MAINTENANCE: 'This plugin is paused for database maintenance; retry later.',
+  MIGRATION_TTY_REQUIRED: 'Database changes require an interactive confirmation or --confirm-migrations.',
+  MIGRATION_CONFIRMATION_MISMATCH: 'Database confirmation did not match; no install was attempted.',
 };
 
 export class SdkError extends Error {
@@ -54,6 +64,7 @@ export type Preview = {
   current: { version: string | null; state: 'installed' | 'uninstalled' | 'not-installed' };
   operation: 'install' | 'upgrade' | 'unchanged'; compatibility: { compatible: boolean };
   previewToken: string; requiresUnsignedConfirmation: boolean;
+  migrationPlan: { schemaName: string; provisionNamespace: boolean; changesDatabase: boolean; applied: Array<{ id: string; order: number; path: string; sha256: string }>; pending: Array<{ id: string; order: number; path: string; sha256: string }> };
 };
 
 export function redact(text: string, environment: NodeJS.ProcessEnv = process.env): string {
@@ -81,7 +92,7 @@ export class CoreClient {
     this.token = environment.JIFFOO_ADMIN_TOKEN;
   }
   write(output: Writable, text: string): void { output.write(redact(text, this.environment)); }
-  async request<T>(route: string, options: RequestInit = {}, allowMissing = false): Promise<T | null> {
+  async request<T>(route: string, options: RequestInit = {}, allowMissing = false, expectedStatus?: number): Promise<T | null> {
     let response: Response;
     try {
       response = await fetch(new URL(`/api/v1/extensions/${route}`, this.origin), {
@@ -98,6 +109,7 @@ export class CoreClient {
       const fallback = response.status === 401 ? 'UNAUTHORIZED' : response.status === 403 ? 'FORBIDDEN' : response.status === 422 ? 'INCOMPATIBLE_API_VERSION' : `CORE_HTTP_${response.status}`;
       throw new SdkError(code && Object.hasOwn(messages, code) ? code : fallback, response.status);
     }
+    if (expectedStatus !== undefined && response.status !== expectedStatus) throw new SdkError('INVALID_CORE_RESPONSE');
     if (!body.data) throw new SdkError('INVALID_CORE_RESPONSE');
     return body.data;
   }
@@ -105,12 +117,27 @@ export class CoreClient {
     const form = new FormData();
     form.set('file', new Blob([new Uint8Array(bytes)], { type: 'application/zip' }), 'plugin.zip');
     const preview = await this.request<Preview>('plugin/preview', { method: 'POST', body: form });
-    if (!preview?.package || !preview.current || !preview.compatibility || typeof preview.previewToken !== 'string') throw new SdkError('INVALID_CORE_RESPONSE');
+    if (!preview?.package || !preview.current || !preview.compatibility || !preview.migrationPlan || typeof preview.previewToken !== 'string') throw new SdkError('INVALID_CORE_RESPONSE');
     return preview;
   }
   async currentVersion(slug: string): Promise<string | null> {
     const detail = await this.request<{ version: string }>(`plugin/${encodeURIComponent(slug)}`, {}, true);
     return detail?.version ?? null;
+  }
+  async waitOperation(operationId: string): Promise<void> {
+    const deadline = Date.now() + 65 * 60_000;
+    let cursor = '';
+    while (Date.now() < deadline) {
+      const state = await this.request<{ terminal: boolean; phase: string; committedPrefix: number; result: unknown; errorCode: string | null }>(`plugin/operations/${encodeURIComponent(operationId)}?wait=true${cursor}`, {}, false, 200);
+      if (!state || typeof state.terminal !== 'boolean' || typeof state.phase !== 'string' || !Number.isInteger(state.committedPrefix)) throw new SdkError('INVALID_CORE_RESPONSE');
+      if (state.terminal) {
+        if (state.phase === 'SUCCESS' && state.result) return;
+        throw new SdkError(state.errorCode && Object.hasOwn(messages, state.errorCode) ? state.errorCode : 'PLUGIN_MIGRATION_RECOVERY_REQUIRED');
+      }
+      cursor = `&phase=${encodeURIComponent(state.phase)}&committedPrefix=${state.committedPrefix}`;
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+    throw new SdkError('PLUGIN_MIGRATION_OUTCOME_UNKNOWN');
   }
   async enable(slug: string): Promise<void> {
     const instances = await this.request<{ items: Array<{ installationId: string; instanceKey: string }> }>(`plugin/${encodeURIComponent(slug)}/instances`);
@@ -131,7 +158,7 @@ export async function confirmUnsigned(slug: string, streams: ConsoleStreams): Pr
 }
 
 export async function uploadBytes(client: CoreClient, bytes: Buffer, options: {
-  enable?: boolean; requireTestSigning?: boolean; retryTransport?: boolean; streams?: ConsoleStreams;
+  enable?: boolean; requireTestSigning?: boolean; retryTransport?: boolean; streams?: ConsoleStreams; confirmMigrations?: boolean;
 } = {}): Promise<Preview> {
   const streams = options.streams ?? { input: process.stdin, output: process.stdout };
   let firstInstall: boolean | undefined;
@@ -143,11 +170,21 @@ export async function uploadBytes(client: CoreClient, bytes: Buffer, options: {
       if (!options.requireTestSigning) client.write(streams.output, `${JSON.stringify({ slug: preview.package.slug, version: preview.package.version, operation: preview.operation, trust: preview.package.trust, signingRoot: preview.package.publisher?.signingRoot ?? null, compatibility: preview.compatibility.compatible, declaredCapabilities: preview.package.declaredCapabilities })}\n`);
       if (!preview.compatibility.compatible) throw new SdkError('INCOMPATIBLE_API_VERSION', 422);
       if (preview.requiresUnsignedConfirmation) await confirmUnsigned(preview.package.slug, streams);
+      if (preview.migrationPlan.changesDatabase && !options.confirmMigrations) {
+        if (!streams.input.isTTY) throw new SdkError('MIGRATION_TTY_REQUIRED');
+        client.write(streams.output, `${JSON.stringify(preview.migrationPlan)}\nWe recommend a backup first.\n`);
+        const reader = createInterface({ input: streams.input, output: streams.output, terminal: false });
+        try { if (await reader.question('Type APPLY to confirm these database changes: ') !== 'APPLY') throw new SdkError('MIGRATION_CONFIRMATION_MISMATCH'); }
+        finally { reader.close(); }
+      }
       const form = new FormData();
       form.set('previewToken', preview.previewToken);
+      if (preview.migrationPlan.changesDatabase) form.set('confirmMigrations', 'true');
       if (preview.requiresUnsignedConfirmation) { form.set('confirmUnsigned', 'true'); form.set('confirmationSlug', preview.package.slug); }
       form.set('file', new Blob([new Uint8Array(bytes)], { type: 'application/zip' }), 'plugin.zip');
-      await client.request('plugin/install', { method: 'POST', body: form });
+      const accepted = await client.request<{ operationId: string }>('plugin/install', { method: 'POST', body: form }, false, 202);
+      if (!accepted || typeof accepted.operationId !== 'string') throw new SdkError('INVALID_CORE_RESPONSE');
+      await client.waitOperation(accepted.operationId);
       if (options.enable && firstInstall) await client.enable(preview.package.slug);
       return preview;
     } catch (error) {
@@ -157,9 +194,9 @@ export async function uploadBytes(client: CoreClient, bytes: Buffer, options: {
   }
 }
 
-export async function uploadZip(filename: string, enable: boolean, streams?: ConsoleStreams): Promise<Preview> {
+export async function uploadZip(filename: string, enable: boolean, streams?: ConsoleStreams, confirmMigrations = false): Promise<Preview> {
   const client = new CoreClient();
   let bytes: Buffer;
   try { bytes = await fs.readFile(filename); } catch { throw new SdkError('ZIP_NOT_FOUND'); }
-  return uploadBytes(client, bytes, { enable, streams });
+  return uploadBytes(client, bytes, { enable, streams, confirmMigrations });
 }

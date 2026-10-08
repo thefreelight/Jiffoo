@@ -143,6 +143,7 @@ const extensionInstallWithUploadSchema = {
     ...extensionMetaSchema.properties,
     kind: { type: 'string', const: 'plugin' },
     warnings: { type: 'array', items: { type: 'string' } },
+    installedVersion: { type: 'string' },
   },
   required: [
     ...uploadResultSchema.required,
@@ -215,13 +216,15 @@ export const extensionInstallerSchemas = {
     body: { type: 'object', required: ['file', 'previewToken'], additionalProperties: false, properties: {
       file: { type: 'string', format: 'binary' }, previewToken: { type: 'string', maxLength: 8192 },
       confirmUnsigned: { type: 'string', enum: ['true', 'false'] }, confirmationSlug: { type: 'string' },
+      confirmMigrations: { type: 'string', enum: ['true', 'false'] },
     } },
     response: {
-      200: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean' }, message: { type: 'string' }, data: extensionInstallWithUploadSchema } },
+      202: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean' }, data: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string' } } } } },
       400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 500: errorResponseSchema,
       413: errorResponseSchema,
       422: errorResponseSchema,
       409: errorResponseSchema,
+      503: errorResponseSchema,
     },
     lastFailureAt: { type: 'string', format: 'date-time', nullable: true, description: 'Last plugin failure timestamp' },
     lastFailureMessage: { type: 'string', nullable: true, description: 'Last plugin failure message' },
@@ -231,7 +234,7 @@ export const extensionInstallerSchemas = {
     body: { type: 'object', required: ['file'], additionalProperties: false, properties: { file: { type: 'string', format: 'binary' } } },
     response: {
       200: { type: 'object', required: ['success', 'data'], properties: {
-        success: { type: 'boolean' }, data: { type: 'object', required: ['package', 'current', 'operation', 'compatibility', 'requiresUnsignedConfirmation', 'expiresAt', 'previewToken'], properties: {
+        success: { type: 'boolean' }, data: { type: 'object', required: ['package', 'current', 'operation', 'compatibility', 'migrationPlan', 'requiresUnsignedConfirmation', 'expiresAt', 'previewToken'], properties: {
           package: { type: 'object', required: ['slug', 'name', 'version', 'hash', 'trust', 'publisher', 'declaredCapabilities'], properties: {
             slug: { type: 'string' }, name: { type: 'string' }, version: { type: 'string' }, hash: { type: 'string' }, trust: { type: 'string', enum: ['signed', 'unsigned'] },
             publisher: { type: 'object', nullable: true, properties: { publisherId: { type: 'string' }, publisherName: { type: 'string' }, publisherCertificateFingerprint: { type: 'string' }, signingRoot: { type: 'string', enum: ['official', 'test'] } } },
@@ -239,12 +242,31 @@ export const extensionInstallerSchemas = {
           } },
           current: { type: 'object', required: ['version', 'hash', 'state'], properties: { version: { type: 'string', nullable: true }, hash: { type: 'string', nullable: true }, state: { type: 'string', enum: ['installed', 'uninstalled', 'not-installed'] } } },
           operation: { type: 'string', enum: ['install', 'upgrade', 'unchanged'] },
+          migrationPlan: { type: 'object', required: ['schemaName', 'provisionNamespace', 'applied', 'pending', 'changesDatabase'], additionalProperties: true },
           compatibility: { type: 'object', required: ['compatible', 'currentApiVersion'], properties: { compatible: { type: 'boolean' }, currentApiVersion: { type: 'string' }, requiredApiVersion: { type: 'string' }, reason: { type: 'string' } } },
           requiresUnsignedConfirmation: { type: 'boolean' }, expiresAt: { type: 'string', format: 'date-time' }, previewToken: { type: 'string' },
         } },
       } },
-      400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 409: errorResponseSchema, 413: errorResponseSchema, 422: errorResponseSchema, 500: errorResponseSchema,
+      400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 409: errorResponseSchema, 413: errorResponseSchema, 422: errorResponseSchema, 500: errorResponseSchema, 503: errorResponseSchema,
     },
+  },
+
+  pluginOperation: {
+    querystring: { type: 'object', additionalProperties: false, dependencies: { phase: ['committedPrefix'], committedPrefix: ['phase'] }, properties: { wait: { type: 'boolean' }, phase: { type: 'string', minLength: 1, maxLength: 64 }, committedPrefix: { type: 'integer', minimum: 0 } } },
+    params: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string', maxLength: 128 } } },
+    response: { 200: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean' }, data: {
+      type: 'object', required: ['operationId', 'slug', 'version', 'phase', 'terminal', 'committedPrefix', 'recoveryState', 'result', 'errorCode'], properties: {
+        operationId: { type: 'string' }, slug: { type: 'string' }, version: { type: 'string' }, phase: { type: 'string' }, terminal: { type: 'boolean' },
+        committedPrefix: { type: 'integer' }, recoveryState: { type: 'string' }, result: { ...extensionInstallWithUploadSchema, nullable: true }, errorCode: { type: 'string', nullable: true },
+      },
+    } } }, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 500: errorResponseSchema, 503: errorResponseSchema },
+  },
+
+  retryPluginOperation: {
+    params: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string', maxLength: 128 } } },
+    body: { type: 'object', required: ['confirmMigrations'], additionalProperties: false, properties: { confirmMigrations: { type: 'boolean' } } },
+    response: { 202: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean' }, data: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string' } } } } },
+      400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 409: errorResponseSchema, 422: errorResponseSchema, 500: errorResponseSchema, 503: errorResponseSchema },
   },
 
   // GET /api/extensions/plugin

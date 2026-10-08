@@ -16,6 +16,9 @@ export function validateMarketplaceUrl(value: string | undefined, nodeEnv: strin
 
 // Load .env from apps/api directory
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+if (process.env.JIFFOO_TEST_PLUGIN_MIGRATION_CONTROL !== undefined && process.env.NODE_ENV !== 'test') {
+  throw new Error('Plugin migration test controls are not permitted outside NODE_ENV=test');
+}
 
 export const envSchema = z.object({
   // Environment

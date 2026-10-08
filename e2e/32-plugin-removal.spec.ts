@@ -1,4 +1,4 @@
-import { captureReview, expect, test } from './review-capture';
+import { captureReview, prepareReviewDialog, expect, test } from './review-capture';
 import { login, ownerEmail } from './helpers';
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
@@ -86,7 +86,9 @@ async function install(page: Page) {
 }
 async function uninstall(page: Page, locale: keyof typeof labels = 'en', capture = false) {
   const text = labels[locale]; await page.goto(`/${locale}/plugins`);
-  await page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: text.uninstall, exact: true }).click();
+  const trigger = page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: text.uninstall, exact: true });
+  if (capture) await prepareReviewDialog(page, trigger, { width: 1440, height: 900 });
+  await trigger.click();
   const dialog = page.getByRole('dialog', { name: text.uninstallTitle, exact: true }); await expect(dialog).toContainText(text.uninstallDescription);
   if (capture) await captureReview(page, 'plugin-removal-review', `uninstall-dialog-${locale}`, { width: 1440, height: 900 });
   await dialog.getByRole('button', { name: text.confirm, exact: true }).click();
@@ -104,7 +106,9 @@ async function restore(page: Page, locale: keyof typeof labels = 'en') {
   await expect(article.getByRole('button', { name: 'Enable', exact: true })).toBeVisible(); await expect(article.getByRole('button', { name: 'Disable', exact: true })).toHaveCount(0);
 }
 async function purge(page: Page, slug: string, locale: keyof typeof labels = 'en', capture = false, blocked = false) {
-  const text = labels[locale]; await page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: text.purge, exact: true }).click();
+  const text = labels[locale], trigger = page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: text.purge, exact: true });
+  if (capture) await prepareReviewDialog(page, trigger, { width: 1440, height: 900 });
+  await trigger.click();
   const dialog = page.getByRole('dialog', { name: text.purgeTitle, exact: true }); await expect(dialog).toContainText(text.purgeDescription);
   await expect(dialog.getByRole('button', { name: text.confirm, exact: true })).toBeDisabled(); await dialog.getByLabel(text.slug, { exact: true }).fill(slug);
   if (capture) await captureReview(page, 'plugin-removal-review', `purge-dialog-${locale}`, { width: 1440, height: 900 });

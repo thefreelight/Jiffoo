@@ -40,9 +40,13 @@ describe('Admin marketplace and protected test signing banner', () => {
   let root: Root;
   let container: HTMLDivElement;
   let mutateAsync: ReturnType<typeof vi.fn>;
+  let queryClient: QueryClient;
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    vi.spyOn(marketplaceApi, 'preview').mockImplementation(async (id, version) => ({ package: { slug: id, name: 'Market plugin', version, hash: 'hash', trust: 'signed', declaredCapabilities: ['shipping'], publisher: { publisherId: 'publisher', publisherName: 'Publisher', signingRoot: 'test' } }, current: { version: null, hash: null, state: 'not-installed' }, operation: 'install', compatibility: { compatible: true }, requiresUnsignedConfirmation: false, expiresAt: '2030-01-01T00:00:00Z', previewToken: 'preview-token', migrationPlan: { schemaName: 'plugin_market_plugin', provisionNamespace: true, changesDatabase: true, applied: [], pending: [] } }));
+    vi.mocked(apiClient.get).mockResolvedValue({ success: true, data: { operationId: 'op-fixture', slug: 'market-plugin', version: '2.0.0', phase: 'SUCCESS', terminal: true, committedPrefix: 0, recoveryState: 'NONE', errorCode: null, result: { slug: 'market-plugin', version: '2.0.0', warnings: [] } } });
     mocks.pathname = '/en/plugins';
     mocks.status.mockReset().mockReturnValue({ data: { configured: true, testSigningMode: true }, isLoading: false });
     mocks.catalog.mockReturnValue({ data: { items: [fixture()] }, isLoading: false });
@@ -50,8 +54,8 @@ describe('Admin marketplace and protected test signing banner', () => {
     mutateAsync = vi.fn().mockResolvedValue({ slug: 'market-plugin', version: '1.0.0' });
     mocks.install.mockReturnValue({ mutateAsync, isPending: false });
   });
-  afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks(); });
-  const render = async (node = <PluginsManager />) => { await act(async () => root.render(node)); };
+  afterEach(async () => { await act(async () => root.unmount()); queryClient.clear(); container.remove(); vi.restoreAllMocks(); });
+  const render = async (node = <PluginsManager />) => { await act(async () => root.render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>)); };
   const button = (name: string) => Array.from(container.getElementsByTagName('button')).find((button) => button.textContent === name)!;
   const click = async (name: string) => { await act(async () => button(name).click()); };
   const open = async () => { await render(); await click('Marketplace'); };
@@ -84,40 +88,41 @@ describe('Admin marketplace and protected test signing banner', () => {
     expect(button('Installed').disabled).toBe(true);
   });
 
-  it('D sends only pluginId and version and prevents duplicate submissions until installation completes', async () => {
+  it('D sends identity, preview binding and explicit confirmation and prevents duplicate submissions until terminal completion', async () => {
     let release!: () => void;
     mutateAsync.mockImplementation(() => new Promise<void>((resolve) => { release = resolve; }));
     await open(); await click('Details'); await click('Install'); await click('Install');
-    expect(mutateAsync.mock.calls).toEqual([[{ pluginId: 'market-plugin', version: '1.0.0' }]]);
+    expect(mutateAsync.mock.calls).toEqual([[{ pluginId: 'market-plugin', version: '1.0.0', previewToken: 'preview-token', confirmMigrations: true, progress: expect.any(Function) }]]);
     mocks.install.mockReturnValue({ mutateAsync, isPending: true });
     await render(); expect(button('Installing…').disabled).toBe(true);
     await act(async () => release());
     expect(container.textContent).toContain('Plugin installed successfully.');
   });
 
-  it('D update submits the selected version only', async () => {
+  it('D update submits the selected version with its preview and confirmation', async () => {
     mocks.catalog.mockReturnValue({ data: { items: [fixture('1.0.0')] } });
     await open(); await click('Details');
     const select = container.getElementsByTagName('select')[0];
     await act(async () => { select.value = '2.0.0'; select.dispatchEvent(new Event('change', { bubbles: true })); });
     await click('Update');
-    expect(mutateAsync.mock.calls).toEqual([[{ pluginId: 'market-plugin', version: '2.0.0' }]]);
+    expect(mutateAsync.mock.calls).toEqual([[{ pluginId: 'market-plugin', version: '2.0.0', previewToken: 'preview-token', confirmMigrations: true, progress: expect.any(Function) }]]);
   });
 
-  it('D marketplace API sends exactly pluginId and version', async () => {
-    const post = vi.spyOn(apiClient, 'post').mockResolvedValue({ success: true, data: { slug: 'market-plugin', version: '2.0.0' } });
-    await marketplaceApi.install('market-plugin', '2.0.0');
-    expect(post).toHaveBeenCalledExactlyOnceWith('/extensions/marketplace/install', { pluginId: 'market-plugin', version: '2.0.0' }, { transformResponse: [expect.any(Function)] });
+  it('D marketplace API submits the bound plan and reads the terminal operation result', async () => {
+    const post = vi.spyOn(apiClient, 'post').mockResolvedValue({ success: true, data: { operationId: 'op-fixture' } });
+    const result = await marketplaceApi.install('market-plugin', '2.0.0', 'preview-token', true);
+    expect(post).toHaveBeenCalledExactlyOnceWith('/extensions/marketplace/install', { pluginId: 'market-plugin', version: '2.0.0', previewToken: 'preview-token', confirmMigrations: true }, { transformResponse: [expect.any(Function)] });
+    expect(apiClient.get).toHaveBeenCalledWith('/extensions/plugin/operations/op-fixture?wait=true'); expect(result).toEqual({ slug: 'market-plugin', version: '2.0.0', warnings: [] });
   });
 
   it('D successful real mutation invalidates both catalog and installed queries', async () => {
     const actual = await vi.importActual<typeof import('@/lib/marketplace')>('@/lib/marketplace');
     const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const invalidate = vi.spyOn(client, 'invalidateQueries');
-    vi.spyOn(marketplaceApi, 'install').mockResolvedValue({ slug: 'market-plugin', version: '2.0.0' });
+    vi.spyOn(marketplaceApi, 'install').mockResolvedValue({ slug: 'market-plugin', version: '2.0.0', warnings: [] });
     function Mutation() {
       const mutation = actual.useMarketplaceInstall();
-      return <button onClick={() => mutation.mutate({ pluginId: 'market-plugin', version: '2.0.0' })}>Run</button>;
+      return <button onClick={() => mutation.mutate({ pluginId: 'market-plugin', version: '2.0.0', previewToken: 'preview-token', confirmMigrations: true })}>Run</button>;
     }
     await render(<QueryClientProvider client={client}><Mutation /></QueryClientProvider>);
     await click('Run');

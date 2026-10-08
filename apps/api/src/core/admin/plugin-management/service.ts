@@ -15,6 +15,7 @@ import { resolveCurrentPluginPackage, PluginPackageResolutionError } from '@/cor
 import { assertPluginSigningAllowed } from '@/core/admin/extension-installer/plugin-signing-policy';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
+import { assertPluginOperationAvailable } from '@/core/admin/extension-installer/plugin-migration-gate';
 import { incrementPluginRegistryVersion } from '@/core/admin/extension-installer/plugin-registry-version';
 import { assertPluginConfigReadyForEnable } from '@/core/admin/extension-installer/config-readiness';
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
@@ -322,6 +323,7 @@ async function updateInstance(
   }
 
   validateInstanceKey(existing.instanceKey);
+  if (updates.enabled === true) await assertPluginOperationAvailable(existing.pluginSlug);
 
   if (existing.deletedAt) {
     throw new ApiError('UPDATE_ERROR');
@@ -602,6 +604,7 @@ export async function uninstallPlugin(slug: string, actorId = 'system'): Promise
  * Restore plugin from soft-uninstalled state.
  */
 export async function restorePlugin(slug: string, actorId = 'system'): Promise<void> {
+  await assertPluginOperationAvailable(slug);
   const token = await acquirePluginOperationLease(slug, 'restore');
   try {
   await waitForLifecycleLease(slug, 'restore');
@@ -669,6 +672,7 @@ export async function restorePlugin(slug: string, actorId = 'system'): Promise<v
  * Deletes Core installation records and blobs; plugin-owned data and immutable directories remain.
  */
 export async function purgePlugin(slug: string, confirmationSlug?: string, actorId = 'system'): Promise<void> {
+  await assertPluginOperationAvailable(slug);
   const token = await acquirePluginOperationLease(slug, 'purge');
   try {
   await waitForLifecycleLease(slug, 'purge');

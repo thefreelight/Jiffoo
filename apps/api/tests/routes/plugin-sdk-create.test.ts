@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -83,7 +84,7 @@ describe('Plugin SDK create and generated projects', () => {
       const manifest = JSON.parse(await fs.readFile(path.join(output, 'manifest.json'), 'utf8'));
       expect(manifest.category).toBe('integration');
       expect(manifest.configSchema.properties.apiKey).toEqual({ type: 'string', title: 'API key', sensitive: true });
-      expect(await fs.readdir(output)).toEqual(['.gitignore', 'manifest.json', 'package.json', 'src', 'tools', 'types']);
+      expect(await fs.readdir(output)).toEqual(['.gitignore', 'manifest.json', 'migrations', 'package.json', 'src', 'tools', 'types']);
       const packageJson = JSON.parse(await fs.readFile(path.join(output, 'package.json'), 'utf8'));
       expect(Object.keys(packageJson.scripts)).toEqual(['build', 'pack', 'sign', 'upload', 'dev']);
       expect(packageJson.devDependencies).toEqual({ esbuild: '0.27.2' });
@@ -132,7 +133,7 @@ describe('Plugin SDK create and generated projects', () => {
         successful(run(repoRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--skipLibCheck', '--target', 'ES2022', '--module', 'commonjs', path.join(project, 'src/index.ts')]));
         await build(project);
         const bytes = await packed(project, path.join(directory, 'unsigned.zip'));
-        expect(readPluginZipEntries(bytes).map(entry => entry.path)).toEqual(['index.js', 'manifest.json']);
+        expect(readPluginZipEntries(bytes).map(entry => entry.path)).toEqual(category === 'integration' ? ['index.js', 'manifest.json', 'migrations/001_records.sql'] : ['index.js', 'manifest.json']);
         const response = await uploadPluginZip(base, admin.token, bytes, true);
         expect(response.status).toBe(200);
         const installation = await prisma.pluginInstallation.findFirstOrThrow({ where: { pluginSlug: slug } });
@@ -166,6 +167,7 @@ describe('Plugin SDK create and generated projects', () => {
       } finally {
         if (installationId) await dropInternalRuntime(installationId);
         await prisma.pluginInstall.deleteMany({ where: { slug } });
+        await cleanupPluginMigrationFixture(slug);
         await prisma.adminAuditEvent.deleteMany({ where: { actorId: admin.user.id } });
         await clearTestPluginCache(slug);
         await deleteTestUser(admin.user.id);
@@ -194,8 +196,8 @@ describe('Plugin SDK create and generated projects', () => {
       const required = spawnSync(process.execPath, ['-e', 'const entry = require(process.argv[1]); console.log(entry.bundledValue); console.log(typeof entry.register);', path.join(project, 'dist/package/index.js')], { cwd: project, encoding: 'utf8', windowsHide: true });
       successful(required); expect(required.stdout.trim().split(/\r?\n/)).toEqual(['bundled', 'function']);
       const bytes = await packed(project, path.join(directory, 'plugin.zip'));
-      expect(readPluginZipEntries(bytes).map(entry => entry.path)).toEqual(['index.js', 'manifest.json']);
-      expect(await fs.readdir(path.join(project, 'dist/package'))).toEqual(['index.js', 'manifest.json']);
+      expect(readPluginZipEntries(bytes).map(entry => entry.path)).toEqual(['index.js', 'manifest.json', 'migrations/001_records.sql']);
+      expect(await fs.readdir(path.join(project, 'dist/package'))).toEqual(['index.js', 'manifest.json', 'migrations']);
     });
   });
 
@@ -267,6 +269,20 @@ describe('Plugin SDK create and generated projects', () => {
       await fs.appendFile(snapshot, '// changed snapshot\n');
       const mismatch = run(generator, ['--check', snapshot]);
       expect(mismatch.status).toBe(1); expect(mismatch.stderr).toContain('TYPE_SNAPSHOT_MISMATCH');
+    });
+  });
+  it('J helper computes raw-byte declarations and pack rejects a mismatched declaration without rewriting it', async () => {
+    await temporary(async directory => {
+      const project = path.join(directory, 'project'); successful(create(project)); await build(project);
+      const manifestFile = path.join(project, 'dist/package/manifest.json');
+      const before = await fs.readFile(manifestFile);
+      await fs.appendFile(path.join(project, 'dist/package/migrations/001_records.sql'), '-- changed bytes\r\n');
+      const rejected = run(sdk, ['pack', '--input', path.join(project, 'dist/package'), '--output', path.join(directory, 'invalid.zip')]);
+      expect(rejected.status).toBe(1); expect(rejected.stderr).toContain('PLUGIN_MIGRATION_MANIFEST_INVALID');
+      expect(await fs.readFile(manifestFile)).toEqual(before);
+      expect(await fs.access(path.join(directory, 'invalid.zip')).then(() => true, () => false)).toBe(false);
+      const helper = run(sdk, ['migrations', '--input', project]); successful(helper);
+      expect(JSON.parse(helper.stdout)).toEqual(JSON.parse(await fs.readFile(path.join(project, 'manifest.json'), 'utf8')).database);
     });
   });
 });

@@ -4,9 +4,27 @@ import { appendFileSync, existsSync, readFileSync, readdirSync, writeFileSync } 
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { startUploadTestStorage } from './upload-test-storage.mjs';
+import { resetTestPluginSchemas } from './reset-test-plugin-schemas.mjs';
 
 const databaseUrl = process.env.DATABASE_URL_TEST;
 const quick = process.argv.includes('--quick');
+const selectedArgument = process.argv.slice(2).filter(value => value.startsWith('--test-files='));
+if (selectedArgument.length > 1 || selectedArgument.length && !quick) {
+  console.error('--test-files is supported exactly once and only with --quick; full verification always runs every step.');
+  process.exit(1);
+}
+const selectedFiles = { api: [], admin: [], shop: [] };
+if (selectedArgument.length) {
+  const files = selectedArgument[0].slice('--test-files='.length).split(',');
+  for (const file of files) {
+    const match = file.match(/^apps\/(api|admin|shop)\/(tests\/[A-Za-z0-9_./-]+\.(?:test|spec)\.[cm]?[jt]sx?)$/);
+    if (!match || file.split('/').some(part => part === '.' || part === '..') || !existsSync(resolve(file))) {
+      console.error(`Invalid explicit test file: ${file}`);
+      process.exit(1);
+    }
+    selectedFiles[match[1]].push(match[2]);
+  }
+}
 const pnpmExecPath = process.env.npm_execpath;
 const pnpm = process.platform === 'win32' && pnpmExecPath ? process.execPath : process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const pnpmPrefix = process.platform === 'win32' && pnpmExecPath ? [pnpmExecPath] : [];
@@ -137,8 +155,12 @@ const steps = quick
       ['Type-check API, Shop and shared', [['--filter', 'shared', 'build'], ['exec', 'turbo', 'run', 'type-check', '--filter=api', '--filter=shop', '--filter=shared']]],
       ['Lint Shop', [['--filter', 'shop', 'lint']]],
       ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
-      ['Run changed API tests', [['--filter', 'api', 'exec', 'vitest', 'run', '--changed', '--passWithNoTests']]],
-      ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
+      ...(selectedArgument.length
+        ? Object.entries(selectedFiles).filter(([, files]) => files.length).map(([app, files]) => [`Run ${app === 'api' ? 'API' : app === 'admin' ? 'Admin' : 'Shop'} tests`, [['--filter', app, 'exec', 'vitest', 'run', ...files]]])
+        : [
+            ['Run changed API tests', [['--filter', 'api', 'exec', 'vitest', 'run', '--changed', '--passWithNoTests']]],
+            ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
+          ]),
     ]
   : [
       ['Install dependencies', [['install', '--frozen-lockfile']]],
@@ -164,6 +186,18 @@ for (const [name, commands] of steps) {
   console.log(`\n=== ${name} ===`);
   const startedAt = performance.now();
   let succeeded = true;
+
+  if (name === 'Reset test database') {
+    try {
+      await resetTestPluginSchemas(databaseUrl);
+    } catch (error) {
+      console.error(error);
+      results.push([name, 'FAIL', `${((performance.now() - startedAt) / 1000).toFixed(2)}s`]);
+      printSummary(results, testOutputs);
+      uploadStorage.stop();
+      process.exit(1);
+    }
+  }
 
   for (const args of commands) {
     if (args.join(' ') === '--filter api exec prisma generate') {

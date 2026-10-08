@@ -10,6 +10,7 @@ import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { createAdminUser, deleteTestUser, type TestUser } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { localUploadOptions } from '../helpers/plugin-upload';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { createHash, randomUUID } from 'node:crypto';
 
 async function createPluginArchive(
@@ -69,6 +70,7 @@ describe('PluginFsInstaller unsigned packages', () => {
   afterAll(async () => {
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
     await prisma.pluginInstall.deleteMany({ where: { slug } });
+    await cleanupPluginMigrationFixture(slug);
     if (admin) {
       await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: admin.id } });
       await deleteTestUser(admin.id);
@@ -130,6 +132,7 @@ module.exports.__lifecycle_onUninstall = async function onUninstall() { await fs
     } finally {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: hookSlug } });
       await prisma.pluginInstall.deleteMany({ where: { slug: hookSlug } });
+      await cleanupPluginMigrationFixture(hookSlug);
       await clearTestPluginCache(hookSlug);
       await fs.rm(markerPath, { force: true });
       await first.cleanup();
@@ -154,6 +157,7 @@ module.exports.__lifecycle_onUninstall = async function onUninstall() { await fs
     } finally {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: updateSlug } });
       await prisma.pluginInstall.deleteMany({ where: { slug: updateSlug } });
+      await cleanupPluginMigrationFixture(updateSlug);
       await clearTestPluginCache(updateSlug); await first.cleanup(); await second.cleanup();
     }
   });
@@ -169,7 +173,7 @@ module.exports.__lifecycle_onUninstall = async function onUninstall() { await fs
       registryVersion = (await prisma.systemSettings.findUniqueOrThrow({ where: { id: 'system' } })).pluginRegistryVersion;
       await prisma.systemSettings.update({ where: { id: 'system' }, data: { pluginRegistryVersion: 2147483647 } });
       const bytes = await fs.readFile(second.archivePath);
-      await expect(installer.install(createReadStream(second.archivePath), await localUploadOptions(bytes, admin.id))).rejects.toThrow(/out of range|numeric.*overflow|P2020|22003/i);
+      await expect(installer.install(createReadStream(second.archivePath), await localUploadOptions(bytes, admin.id))).rejects.toMatchObject({ code: 'INTERNAL_SERVER_ERROR', statusCode: 500 });
       const after = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: before.id } });
       const retained = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: updateSlug } });
       expect(after.protectionGeneration).toBe(before.protectionGeneration);
@@ -180,6 +184,7 @@ module.exports.__lifecycle_onUninstall = async function onUninstall() { await fs
       if (registryVersion !== undefined) await prisma.systemSettings.update({ where: { id: 'system' }, data: { pluginRegistryVersion: registryVersion } });
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: updateSlug } });
       await prisma.pluginInstall.deleteMany({ where: { slug: updateSlug } });
+      await cleanupPluginMigrationFixture(updateSlug);
       await clearTestPluginCache(updateSlug); await first.cleanup(); await second.cleanup();
     }
   });

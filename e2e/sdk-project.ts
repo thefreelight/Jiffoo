@@ -28,7 +28,7 @@ export async function shippingProject(slug: string) {
       name: `SDK Shipping ${slug}`,
       async devSmoke(token: string) {
         const original = await fs.readFile(path.join(project, 'manifest.json'), 'utf8');
-        const child = spawn(process.execPath, [sdk, 'dev'], {
+        const child = spawn(process.execPath, [sdk, 'dev', '--confirm-migrations'], {
           cwd: project, shell: false, windowsHide: true,
           env: { ...process.env, JIFFOO_CORE_URL: 'http://127.0.0.1:3001', JIFFOO_ADMIN_TOKEN: token, JIFFOO_DEV_CERTIFICATE: certificate, JIFFOO_DEV_PRIVATE_KEY: key },
         });

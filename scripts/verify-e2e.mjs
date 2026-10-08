@@ -5,6 +5,7 @@ import { performance } from 'node:perf_hooks';
 import { createRequire } from 'node:module';
 import { testRoot } from '../apps/api/tests/fixtures/plugin-signing-keys.ts';
 import { startUploadTestStorage } from './upload-test-storage.mjs';
+import { resetTestPluginSchemas } from './reset-test-plugin-schemas.mjs';
 
 const started = performance.now();
 const visual = process.argv.includes('--visual');
@@ -271,7 +272,10 @@ try {
     }
   });
   await step('Clear dedicated E2E Redis database', resetE2eRedis);
-  await step('Reset test database', () => command(['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']));
+  await step('Reset test database', async () => {
+    await resetTestPluginSchemas(databaseUrl);
+    await command(['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']);
+  });
   await step('Build shared package', () => command(['--filter', 'shared', 'build']));
   await step('Build plugin SDK', () => command(['--filter', 'plugin-sdk', 'build']));
   await step('Build API', () => command(['--filter', 'api', 'build']));

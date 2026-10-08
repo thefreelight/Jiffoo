@@ -2,6 +2,7 @@ import { createHash, createPrivateKey, createPublicKey, sign, verify } from 'nod
 import { inflateRawSync } from 'node:zlib';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+export * from './plugin-migrations';
 
 export const OFFICIAL_ROOT_PUBLIC_KEY = 'MCowBQYDK2VwAyEAA_zy6wrHIT-xusqZjtIoRFlK0wwe_08awdPoFnJhs6o';
 export const CERT_PATH = 'META-INF/jiffoo/publisher-cert.json';

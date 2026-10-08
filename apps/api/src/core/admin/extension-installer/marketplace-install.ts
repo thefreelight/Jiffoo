@@ -7,7 +7,8 @@ import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { acquirePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
 import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 import { checkPluginApiCompatibility } from './plugin-compatibility';
-import { pluginFsInstaller } from './plugin-fs-installer';
+import { startPluginInstallOperation } from './plugin-migration-operation';
+import { previewPluginUpload, inspectPluginUpload } from './plugin-upload';
 import { fetchMarketplaceCatalog, MarketplaceError, marketplaceUrl, type CatalogVersion } from './marketplace-catalog';
 
 export async function downloadPackage(entry: CatalogVersion, base: string): Promise<{ filePath: string; cleanup: () => Promise<void> }> {
@@ -68,7 +69,7 @@ export async function downloadPackage(entry: CatalogVersion, base: string): Prom
   }
 }
 
-export async function installMarketplacePlugin(pluginId: string, version: string, actorUserId: string) {
+async function marketplaceArtifact(pluginId: string, version: string, identified?: (slug: string) => Promise<void>) {
   const catalog = await fetchMarketplaceCatalog({ bypassCache: true, forInstall: true });
   const plugin = catalog.plugins.find((candidate) => candidate.id === pluginId);
   const entry = plugin?.versions.find((candidate) => candidate.version === version);
@@ -81,20 +82,32 @@ export async function installMarketplacePlugin(pluginId: string, version: string
   if (url.origin !== new URL(base).origin || url.username || url.password || url.hash) {
     throw new MarketplaceError('MARKETPLACE_DOWNLOAD_ORIGIN_FORBIDDEN', 422);
   }
-  const lease = { slug: plugin.slug, token: await acquirePluginOperationLease(plugin.slug, 'install') };
   let download: Awaited<ReturnType<typeof downloadPackage>> | undefined;
   try {
+    await identified?.(plugin.slug);
     download = await downloadPackage(entry, base);
-    return await pluginFsInstaller.install(createReadStream(download.filePath), {
-      source: 'marketplace', lease,
-      actorUserId,
-      expectedMarketplaceIdentity: { version: entry.version, publisherId: plugin.publisherId },
-    });
+    const bytes = await fs.readFile(download.filePath);
+    const inspection = await inspectPluginUpload(bytes);
+    if (!inspection.publisher) throw new MarketplaceError('MARKETPLACE_SIGNATURE_REQUIRED', 422);
+    if (inspection.manifest.slug !== plugin.slug || inspection.manifest.version !== version || inspection.publisher.publisherId !== plugin.publisherId) throw new MarketplaceError('MARKETPLACE_IDENTITY_MISMATCH', 422);
+    return { bytes, identity: { version: entry.version, publisherId: plugin.publisherId } };
   } finally {
-    try {
-      if (download) await download.cleanup();
-    } finally {
-      await releasePluginOperationLease(lease.slug, lease.token);
-    }
+    if (download) await download.cleanup();
   }
+}
+
+export async function previewMarketplacePlugin(pluginId: string, version: string, actorUserId: string) {
+  const artifact = await marketplaceArtifact(pluginId, version);
+  return previewPluginUpload(artifact.bytes, actorUserId);
+}
+
+export async function installMarketplacePlugin(pluginId: string, version: string, actorUserId: string, previewToken: string, confirmMigrations: boolean) {
+  let lease: { slug: string; token: string } | undefined;
+  let handedOff = false;
+  try {
+    const artifact = await marketplaceArtifact(pluginId, version, async slug => { lease = { slug, token: await acquirePluginOperationLease(slug, 'marketplace-install') }; });
+    const accepted = await startPluginInstallOperation(artifact.bytes, { source: 'marketplace', actorUserId, previewToken, confirmMigrations, expectedMarketplaceIdentity: artifact.identity, lease });
+    handedOff = true;
+    return accepted;
+  } finally { if (lease && !handedOff) await releasePluginOperationLease(lease.slug, lease.token); }
 }

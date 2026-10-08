@@ -51,7 +51,7 @@ test('J install real marketplace v1 and show Test-signed without Verified in lis
   await entry.getByRole('combobox', { name: 'E2E Marketplace Shipping Version' }).selectOption('1.0.0');
   const request = page.waitForRequest((request) => request.url().endsWith('/extensions/marketplace/install') && request.method() === 'POST');
   await entry.getByRole('button', { name: 'Install', exact: true }).click();
-  expect((await request).postDataJSON()).toEqual({ pluginId: 'e2e-market-shipping', version: '1.0.0' });
+  expect((await request).postDataJSON()).toEqual({ pluginId: 'e2e-market-shipping', version: '1.0.0', previewToken: expect.any(String), confirmMigrations: true });
   await expect(page.getByText('Plugin installed successfully.', { exact: true })).toBeVisible();
   await expect(entry.getByText('Update available', { exact: true })).toBeVisible();
   await capture(page, 'update-available');
@@ -83,9 +83,9 @@ test('K update marketplace v1 to v2 and refresh catalog and installed version', 
 test('L real digest failure displays an error and installs nothing', async ({ page }) => {
   await marketplace(page);
   const entry = page.getByRole('article', { name: 'E2E Broken Package' });
+  const response = page.waitForResponse((response) => response.url().endsWith('/extensions/marketplace/preview'));
   await entry.getByRole('button', { name: 'Details', exact: true }).click();
-  const response = page.waitForResponse((response) => response.url().endsWith('/extensions/marketplace/install'));
-  await entry.getByRole('button', { name: 'Install', exact: true }).click();
+  await expect(entry.getByRole('button', { name: 'Install', exact: true })).toBeDisabled();
   const failed = await response;
   expect(failed.status()).toBe(422);
   expect((await failed.json()).error.code).toBe('MARKETPLACE_DIGEST_MISMATCH');

@@ -12,14 +12,16 @@ import {
   CERT_PATH, SIGNATURE_PATH, extensionMaxFileSize, getPluginFileViolation, isPathWithinExtensionBase, PLUGIN_MAX_ZIP_SIZE, readPluginZipEntries,
   signPackage, verifyPublisherCertificate, validatePluginZipPaths,
   type PluginZipEntry,
+  validatePluginMigrations,
 } from 'shared/plugin-signing';
 
 const HELP = `jiffoo-plugin create --slug <slug> --name <name> --output <dir> [--category integration|shipping|payment]
 jiffoo-plugin keygen --out <private.pem>
 jiffoo-plugin pack --input <dir> --output <zip>
+jiffoo-plugin migrations --input <dir>
 jiffoo-plugin sign --input <unsigned.zip> --certificate <cert.json> --key <private.pem> --output <signed.zip>
-jiffoo-plugin upload --zip <path> [--enable]
-jiffoo-plugin dev [--enable]
+jiffoo-plugin upload --zip <path> [--enable] [--confirm-migrations]
+jiffoo-plugin dev [--enable] [--confirm-migrations]
 upload/dev read JIFFOO_CORE_URL and JIFFOO_ADMIN_TOKEN from the environment only.
 dev requires JIFFOO_DEV_CERTIFICATE and JIFFOO_DEV_PRIVATE_KEY, plus the existing SDK test-root signing configuration.
 dev stops gracefully on Ctrl+C or closed non-interactive stdin.
@@ -63,6 +65,7 @@ function checkContent(entries: Entry[]) {
   try { manifest = JSON.parse(manifestEntry.content.toString('utf8')); } catch { failure('INVALID_JSON', 'manifest.json'); }
   const issue = getPluginManifestIssues(manifest)[0];
   if (issue) failure(issue.code, `manifest.json:${issue.path}`);
+  validatePluginMigrations((manifest as { database?: unknown }).database, entries);
 }
 async function collect(root: string): Promise<Entry[]> {
   const result: Entry[] = [];
@@ -103,14 +106,16 @@ async function main() {
   if (!command || command === '--help' || command === 'help') { console.log(redact(HELP)); return; }
   if (command === 'upload' || command === 'dev') {
     let enable = false;
+    let confirmMigrations = false;
     let zip: string | undefined;
     for (let i = 0; i < args.length; i++) {
       if (args[i] === '--enable' && !enable) enable = true;
+      else if (args[i] === '--confirm-migrations' && !confirmMigrations) confirmMigrations = true;
       else if (command === 'upload' && args[i] === '--zip' && !zip && args[i + 1] && !args[i + 1].startsWith('--')) zip = args[++i];
       else failure('INVALID_ARGUMENTS');
     }
-    if (command === 'upload') { if (!zip) failure('INVALID_ARGUMENTS'); await uploadZip(zip, enable); }
-    else await dev(enable);
+    if (command === 'upload') { if (!zip) failure('INVALID_ARGUMENTS'); await uploadZip(zip, enable, undefined, confirmMigrations); }
+    else await dev(enable, confirmMigrations);
   } else if (command === 'create') {
     await createPlugin(options(args, ['--slug', '--name', '--output'], ['--category']));
   } else if (command === 'keygen') {
@@ -118,6 +123,14 @@ async function main() {
     const { privateKey, publicKey } = generateKeyPairSync('ed25519');
     await fs.writeFile(flags['--out'], privateKey.export({ format: 'pem', type: 'pkcs8' }), { flag: 'wx', mode: 0o600 });
     console.log(redact(publicKey.export({ format: 'der', type: 'spki' }).toString('base64url')));
+  } else if (command === 'migrations') {
+    const flags = options(args, ['--input']);
+    const entries = (await collect(path.join(path.resolve(flags['--input']), 'migrations'))).map(entry => ({ ...entry, path: `migrations/${entry.path}` }));
+    const migrations = entries.filter(entry => entry.path.toLowerCase().endsWith('.sql'))
+      .map((entry, index) => ({ id: path.basename(entry.path, '.sql'), order: index + 1, path: entry.path, sha256: sha256(entry.content) }));
+    const database = { apiVersion: 1, migrations };
+    validatePluginMigrations(database, entries);
+    console.log(JSON.stringify(database, null, 2));
   } else if (command === 'pack') {
     const flags = options(args, ['--input', '--output']);
     const root = path.resolve(flags['--input']);

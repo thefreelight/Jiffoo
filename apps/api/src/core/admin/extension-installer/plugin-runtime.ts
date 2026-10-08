@@ -33,6 +33,7 @@ import {
   isContractV1Runtime,
   registerContractV1Runtime,
 } from './contract-v1-runtime';
+import { withPluginMigrationGate, assertPluginNotPaused } from './plugin-migration-gate';
 import { registerPluginStateReset } from './plugin-state';
 import { recordPluginFailure, redactPluginFailure } from './plugin-failure';
 import { readStoredPluginManifest } from './stored-manifest';
@@ -677,6 +678,7 @@ async function ensureInternalRuntime(
 
     return newRuntime;
   } catch (error: any) {
+    if (error instanceof ApiError && error.code === 'PLUGIN_MIGRATION_LEGACY_FORMAT') throw error;
     await recordPluginFailure(slug, error, 'load', ctx.installationId, { config: ctx.config, manifest });
     // Candidate failed: old runtime (if exists) remains in map and continues serving
     throw new PluginGatewayError(
@@ -737,6 +739,7 @@ export async function callContract(
   method: string,
   input: unknown,
 ): Promise<unknown> {
+  await assertPluginNotPaused(slug);
   try {
     await ensurePluginRegistryFresh(slug);
   } catch (error) {
@@ -779,7 +782,7 @@ export async function callContract(
       throw new ContractCallError('PLUGIN_DISABLED', 'Plugin is disabled');
     }
     const webhook = contractName === 'payment' && method === 'handleWebhook';
-    const invocation = runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: webhook ? encodePaymentWebhook(input) : input as Record<string, unknown> });
+    const invocation = withPluginMigrationGate(slug, async () => runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: webhook ? encodePaymentWebhook(input) : input as Record<string, unknown> }));
     injected = true;
     void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
     const response = await Promise.race([
@@ -861,11 +864,10 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
     if (!await prisma.pluginEventSubscription.findUnique({
       where: { pluginSlug_eventType_version: { pluginSlug: latest.pluginSlug, eventType: event.type, version: event.version } },
     })) return 'subscription_removed';
-    try {
-      await handler(event);
-    } catch (error) {
-      throw new Error(redactPluginText(error instanceof Error ? error.message : String(error), runtime.config, manifest));
-    }
+    await withPluginMigrationGate(instance.pluginSlug, async () => {
+      try { await handler(event); }
+      catch (error) { throw new Error(redactPluginText(error instanceof Error ? error.message : String(error), runtime.config, manifest)); }
+    });
     return null;
   } finally {
     await releaseRuntime(runtime);
@@ -885,6 +887,7 @@ export async function validateCandidateRuntime(slug: string, zipHash: string, ma
     await app.ready();
   } finally { await app.close(); }
   } catch (error) {
+    if (error instanceof ApiError && error.code === 'PLUGIN_MIGRATION_LEGACY_FORMAT') throw error;
     await recordPluginFailure(slug, error, 'candidate', installationId, { config, manifest });
     throw new Error(await redactPluginFailure(slug, error, installationId, { config, manifest }));
   }
@@ -958,12 +961,12 @@ async function forwardToInternalFastify(
   if (!latest?.enabled || latest.deletedAt || latest.protectionGeneration !== installation.protectionGeneration) {
     throw new ApiError('PLUGIN_DISABLED');
   }
-  const invocation = runtime.app.inject({
+  const invocation = withPluginMigrationGate(slug, async () => runtime.app.inject({
       method: request.method as any,
       url: forwardUrl,
       headers,
       payload,
-    });
+    }));
   injected = true;
   void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), ctx.config, manifest)));
   const res = await Promise.race([
@@ -989,7 +992,7 @@ async function forwardToInternalFastify(
 
   reply.send(body);
   } catch (error) {
-    if (!(error instanceof SharedProtectionUnavailable) && !isDatabaseUnavailable(error) && !(error instanceof ApiError && error.code === 'PLUGIN_DISABLED') && injected) await sharedProtection.result(permit, false);
+    if (!(error instanceof SharedProtectionUnavailable) && !isDatabaseUnavailable(error) && !(error instanceof ApiError && ['PLUGIN_DISABLED', 'PLUGIN_MAINTENANCE'].includes(error.code)) && injected) await sharedProtection.result(permit, false);
     throw error;
   } finally {
     if (!injected) await releaseRuntime(runtime);
@@ -1100,6 +1103,7 @@ export async function handlePluginGateway(
   const caller = inferCaller(request);
 
   try {
+    await assertPluginNotPaused(slug);
     await ensurePluginRegistryFresh(slug);
     // Resolve instance context (handles instance selection, validation, and enable check)
     ctx = await resolveGatewayContext(slug, request, options);
@@ -1116,7 +1120,7 @@ export async function handlePluginGateway(
     return;
   } catch (error: any) {
     if (error instanceof SharedProtectionUnavailable) { statusCode = 503; errorMessage = error.message; sendProtectionUnavailable(reply); return; }
-    if (error instanceof PluginGatewayError || error instanceof PluginPackageResolutionError) {
+    if (error instanceof ApiError || error instanceof PluginPackageResolutionError) {
       statusCode = error.statusCode;
       errorMessage = error.message;
     } else {

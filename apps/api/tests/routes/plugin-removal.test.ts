@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
@@ -7,7 +8,6 @@ import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
-import { runContractV1Migrations } from '@/core/admin/extension-installer/contract-v1-runtime';
 import { extensionInstallerSchemas } from '@/core/admin/extension-installer/schemas';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
@@ -21,13 +21,12 @@ const slugs = new Set<string>(), orderIds = new Set<string>(), eventIds = new Se
 let before: Awaited<ReturnType<typeof snapshotPluginRows>>;
 let registryVersion: number | undefined;
 let registryUpdatedAt: Date | undefined;
-let ledgerExisted: boolean;
 const own = () => { const slug = `removal-${randomUUID().slice(0, 12)}`; slugs.add(slug); return slug; };
-async function fixture(config = false) {
+async function fixture(config = false, sql?: string) {
   const slug = own();
   await installFixturePlugin({ app, adminToken: token, adminUserId: actorId }, slug, 'integration', [],
     "module.exports={register(ctx){ctx.http.route({method:'GET',path:'/status',handler:async()=>({ok:true})});},__lifecycle_onEnable(){}};",
-    { enable: false, ...(config ? { configSchema: { type: 'object', properties: { label: { type: 'string' }, credential: { type: 'string', sensitive: true } }, required: ['label', 'credential'] }, config: { label: 'Kept label', credential: 'kept-secret' }, lifecycle: { onEnable: true } } : {}) });
+    { enable: false, ...(sql ? { migrations: [{ id: 'kept', path: 'migrations/001_kept.sql', sql }] } : {}), ...(config ? { configSchema: { type: 'object', properties: { label: { type: 'string' }, credential: { type: 'string', sensitive: true } }, required: ['label', 'credential'] }, config: { label: 'Kept label', credential: 'kept-secret' }, lifecycle: { onEnable: true } } : {}) });
   return slug;
 }
 async function request(slug: string, operation: 'uninstall' | 'restore' | 'purge', confirmation?: string, origin = base) {
@@ -60,7 +59,6 @@ beforeEach(async () => {
   before = await snapshotPluginRows();
   const settings = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
   registryVersion = settings?.pluginRegistryVersion; registryUpdatedAt = settings?.updatedAt;
-  ledgerExisted = Boolean((await prisma.$queryRawUnsafe<Array<{ name: string | null }>>("SELECT to_regclass('public.plugin_runtime_migrations')::text AS name"))[0].name);
 });
 afterEach(async () => {
   await prisma.eventRecord.deleteMany({ where: { id: { in: [...eventIds] } } }); eventIds.clear();
@@ -69,13 +67,10 @@ afterEach(async () => {
   for (const table of tables) await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "${table}"`); tables.clear();
   for (const slug of slugs) {
     await prisma.pluginInstall.deleteMany({ where: { slug } });
+    await cleanupPluginMigrationFixture(slug);
     await prisma.adminAuditEvent.deleteMany({ where: { targetId: slug } });
     await prisma.pluginOperationLease.deleteMany({ where: { slug } });
     await clearTestPluginCache(slug);
-  }
-  if (await prisma.$queryRawUnsafe<Array<{ name: string | null }>>("SELECT to_regclass('public.plugin_runtime_migrations')::text AS name").then(rows => rows[0].name)) {
-    for (const slug of slugs) await prisma.$executeRawUnsafe('DELETE FROM plugin_runtime_migrations WHERE plugin_slug = $1', slug);
-    if (!ledgerExisted) await prisma.$executeRawUnsafe('DROP TABLE plugin_runtime_migrations');
   }
   slugs.clear();
   if (registryVersion === undefined) await prisma.systemSettings.deleteMany({ where: { id: 'system' } });
@@ -171,10 +166,12 @@ describe('Plugin uninstall, restore and purge', () => {
     expect(absent.status).toBe(400); expect((await absent.json()).error.code).toBe('PLUGIN_PURGE_CONFIRMATION_REQUIRED');
   });
   it('D pending payments block purge; terminal history, plugin data, migration ledger, directories and events survive successful purge', async () => {
-    const slug = await fixture(true), table = `plugin_removal_${randomUUID().replaceAll('-', '')}`; tables.add(table);
-    await runContractV1Migrations(slug, [{ id: 'kept', sql: `CREATE TABLE "${table}" (value TEXT)` }]);
+    const table = `plugin_removal_${randomUUID().replaceAll('-', '')}`; tables.add(table);
+    const slug = await fixture(true, `CREATE TABLE public."${table}" (value TEXT)`);
     await prisma.$executeRawUnsafe(`INSERT INTO "${table}" VALUES ('kept')`);
-    const ledger = await prisma.$queryRawUnsafe('SELECT * FROM plugin_runtime_migrations WHERE plugin_slug = $1', slug);
+    const namespace = await prisma.pluginNamespace.findUniqueOrThrow({ where: { slug } });
+    const ledger = await prisma.pluginMigrationSuccess.findMany({ where: { namespaceId: namespace.id }, orderBy: { order: 'asc' } });
+    expect(ledger).toHaveLength(1); expect(ledger[0].migrationId).toBe('kept');
     await prisma.pluginEventSubscription.create({ data: { pluginSlug: slug, eventType: 'order.created', version: 1 } });
     const event = await prisma.eventRecord.create({ data: { type: 'order.created', version: 1, aggregateId: slug, data: { plugin: slug } } }); eventIds.add(event.id);
     const row = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } }); const pkg = await pluginPackageStore.get(slug, row.zipHash!);
@@ -182,7 +179,7 @@ describe('Plugin uninstall, restore and purge', () => {
     const payment = await prisma.payment.create({ data: { orderId: order.id, paymentMethod: slug, amount: 12, sessionId: randomUUID(), status: 'PENDING' } });
     expect((await request(slug, 'uninstall')).status).toBe(200);
     expect(await prisma.$queryRawUnsafe(`SELECT value FROM "${table}"`)).toEqual([{ value: 'kept' }]);
-    expect(await prisma.$queryRawUnsafe('SELECT * FROM plugin_runtime_migrations WHERE plugin_slug = $1', slug)).toEqual(ledger);
+    expect(await prisma.pluginMigrationSuccess.findMany({ where: { namespaceId: namespace.id }, orderBy: { order: 'asc' } })).toEqual(ledger);
     await error(slug, 'purge', 409, 'PLUGIN_UNFINISHED_PAYMENTS', slug);
     await prisma.payment.update({ where: { id: payment.id }, data: { status: 'SUCCEEDED' } });
     await prisma.order.update({ where: { id: order.id }, data: { status: 'DELIVERED', paymentStatus: 'PAID' } });
@@ -190,7 +187,8 @@ describe('Plugin uninstall, restore and purge', () => {
     expect((await request(slug, 'purge', slug)).status).toBe(200);
     expect(await prisma.pluginInstall.findUnique({ where: { slug } })).toBeNull(); expect(await prisma.pluginInstallation.count({ where: { pluginSlug: slug } })).toBe(0);
     expect(await prisma.pluginPackageBlob.count({ where: { pluginSlug: slug } })).toBe(0); expect(await prisma.pluginEventSubscription.count({ where: { pluginSlug: slug } })).toBe(0);
-    expect(await prisma.$queryRawUnsafe(`SELECT value FROM "${table}"`)).toEqual([{ value: 'kept' }]); expect(await prisma.$queryRawUnsafe('SELECT * FROM plugin_runtime_migrations WHERE plugin_slug = $1', slug)).toEqual(ledger);
+    expect(await prisma.$queryRawUnsafe(`SELECT value FROM "${table}"`)).toEqual([{ value: 'kept' }]); expect(await prisma.pluginMigrationSuccess.findMany({ where: { namespaceId: namespace.id }, orderBy: { order: 'asc' } })).toEqual(ledger);
+    expect(await prisma.pluginNamespace.findUnique({ where: { slug } })).toEqual(namespace);
     expect(await fs.stat(pkg!.getEntryPath(''))).toBeDefined(); expect(await prisma.eventRecord.findUnique({ where: { id: event.id } })).toEqual(event);
     expect(await prisma.order.findUnique({ where: { id: order.id } })).toEqual(historical); expect(await prisma.payment.findUnique({ where: { id: payment.id } })).toEqual(paid);
     for (const [url, bearer] of [[`/api/v1/admin/orders/${order.id}`, token], [`/api/v1/orders/${order.id}`, customerToken]]) {

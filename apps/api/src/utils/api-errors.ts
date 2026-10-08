@@ -1,7 +1,7 @@
 import { ApiErrorCodes, type ApiErrorCode } from 'shared';
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
-import { PackageVerificationError } from 'shared/plugin-signing';
+import { PackageVerificationError, PluginMigrationValidationError } from 'shared/plugin-signing';
 import { errorCodes, type FastifyReply } from 'fastify';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 
@@ -43,6 +43,14 @@ export const errorCatalog = {
   [ApiErrorCodes.PLUGIN_DOWNGRADE_NOT_SUPPORTED]: { status: 409, message: 'Plugin downgrade not supported.' },
   [ApiErrorCodes.LAST_PROVIDER_REQUIRED]: { status: 409, message: 'At least one provider must remain enabled' },
   [ApiErrorCodes.PLUGIN_OPERATION_IN_PROGRESS]: { status: 409, message: 'Plugin operation in progress.' },
+  [ApiErrorCodes.PLUGIN_MIGRATION_MANIFEST_INVALID]: { status: 422, message: 'Invalid plugin migration package.' },
+  [ApiErrorCodes.PLUGIN_MIGRATION_LEGACY_FORMAT]: { status: 422, message: 'Exported plugin migrations are not supported.' },
+  [ApiErrorCodes.PLUGIN_MIGRATION_DRIFT]: { status: 409, message: 'Plugin migration history differs from the package.' },
+  [ApiErrorCodes.PLUGIN_MIGRATION_FAILED]: { status: 500, message: 'Plugin migration failed.' },
+  [ApiErrorCodes.PLUGIN_MIGRATION_OUTCOME_UNKNOWN]: { status: 503, message: 'Plugin migration outcome requires reconciliation.' },
+  [ApiErrorCodes.PLUGIN_MIGRATION_RECOVERY_REQUIRED]: { status: 409, message: 'Plugin migration recovery is required.' },
+  [ApiErrorCodes.PLUGIN_MIGRATION_CONFIRMATION_REQUIRED]: { status: 409, message: 'Confirm the plugin database changes.' },
+  [ApiErrorCodes.PLUGIN_MAINTENANCE]: { status: 503, message: 'Plugin database maintenance is in progress.' },
   [ApiErrorCodes.PLUGIN_OPERATION_LEASE_LOST]: { status: 409, message: 'Plugin operation lease lost.' },
   [ApiErrorCodes.PLUGIN_PREVIEW_REQUIRED]: { status: 409, message: 'Plugin preview required.' },
   [ApiErrorCodes.PLUGIN_VERSION_CONTENT_CHANGED]: { status: 409, message: 'Plugin version content changed.' },
@@ -290,7 +298,7 @@ function detailsFor(error: ApiError): unknown {
 
 export function mapApiError(error: unknown) {
   const known = error instanceof ApiError && Object.hasOwn(errorCatalog, error.code) ? error
-    : error instanceof PackageVerificationError ? catalogError(error.code)
+    : error instanceof PackageVerificationError || error instanceof PluginMigrationValidationError ? catalogError(error.code)
     : error instanceof ZodError ? new ApiError('VALIDATION_ERROR', { issues: error.issues.map(issue => ({ path: issue.path.join('.'), code: issue.code })) })
     : error instanceof SharedProtectionUnavailable ? new ApiError('SHARED_PROTECTION_UNAVAILABLE')
       : isDatabaseUnavailable(error) ? new ApiError('DATABASE_UNAVAILABLE')

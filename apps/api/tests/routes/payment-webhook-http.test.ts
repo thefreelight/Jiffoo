@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { createHash, createHmac, randomUUID } from 'node:crypto';
 import { request as httpRequest, type OutgoingHttpHeaders } from 'node:http';
 import { createWriteStream, promises as fs } from 'node:fs';
@@ -90,6 +91,7 @@ afterAll(async () => {
   await prisma.payment.deleteMany({ where: { id: { in: paymentIds } } });
   await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
   await prisma.pluginInstall.deleteMany({ where: { slug } });
+  await cleanupPluginMigrationFixture(slug);
   if (admin) await prisma.user.deleteMany({ where: { id: admin.id } });
   const redis = new Redis(process.env.REDIS_URL!);
   try { if (installationId) { const keys = await redis.keys(`${pluginProtectionScope(installationId, generation)}:*`); if (keys.length) await redis.del(...keys); } }

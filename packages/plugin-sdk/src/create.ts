@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { getPluginManifestIssues } from 'shared';
 import { redact } from './upload';
 
@@ -8,7 +9,7 @@ const builtins = new Set(['manual-payment', 'free-shipping', 'zero-tax', 'manual
 const reserved = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
 const common = { schemaVersion: 1, version: '1.0.0', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'index.js', permissions: [] };
 
-const buildScript = `import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+const buildScript = `import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,6 +25,7 @@ try {
   await mkdir(staging, { recursive: true });
   await writeFile(path.join(staging, 'index.js'), result.outputFiles[0].contents);
   await writeFile(path.join(staging, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\\n');
+  if (manifest.database) await cp(path.join(root, 'migrations'), path.join(staging, 'migrations'), { recursive: true });
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;
@@ -149,7 +151,9 @@ export async function createPlugin(flags: Record<string, string>): Promise<void>
   const slug = flags['--slug'];
   const name = flags['--name'];
   const selected = template(category as typeof categories[number]);
-  const manifest = { ...common, slug, name, description: `${name} plugin`, category, contracts: selected.contracts, configSchema: selected.configSchema };
+  const migration = 'CREATE TABLE integration_records (id TEXT PRIMARY KEY, value TEXT NOT NULL);\n';
+  const database = category === 'integration' ? { apiVersion: 1, migrations: [{ id: '001_records', order: 1, path: 'migrations/001_records.sql', sha256: createHash('sha256').update(migration).digest('hex') }] } : undefined;
+  const manifest = { ...common, slug, name, description: `${name} plugin`, category, contracts: selected.contracts, configSchema: selected.configSchema, ...(database ? { database } : {}) };
   const issue = getPluginManifestIssues(manifest)[0];
   if (issue) throw new Error(`${issue.code}: ${issue.path}`);
   if (builtins.has(slug)) throw new Error('SLUG_RESERVED: builtin plugin slug');
@@ -168,6 +172,7 @@ export async function createPlugin(flags: Record<string, string>): Promise<void>
     'src/index.ts': selected.source, 'types/index.d.ts': types,
     'tools/build.mjs': buildScript, 'tools/sdk.mjs': sdkScript,
     '.gitignore': 'node_modules/\ndist/\nartifacts/\n.env\n.env.*\n*.pem\n*.key\n',
+    ...(database ? { 'migrations/001_records.sql': migration } : {}),
   };
   try { await fs.mkdir(output); }
   catch (error) {

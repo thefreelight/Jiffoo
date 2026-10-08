@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { createHash, createHmac, randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
@@ -16,7 +17,7 @@ import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
-import { localUploadOptions } from '../helpers/plugin-upload';
+import { localUploadOptions, waitForPluginUpload } from '../helpers/plugin-upload';
 
 let app: FastifyInstance;
 let token: string, actorId: string, otherToken: string, directory: string, base: string;
@@ -30,15 +31,18 @@ async function archive(slug: string, version = '1.0.0', source = 'module.exports
     runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'index.js', permissions: [], contracts: [], ...(hook ? { lifecycle: { onInstall: true, onUpgrade: true } } : {}) }), { name: 'manifest.json', date: new Date('1980-01-01') });
   zip.append(source, { name: 'index.js', date: new Date('1980-01-01') }); void zip.finalize(); return done;
 }
-async function request(bytes: Buffer, fields: Record<string, string> = {}, bearer = token, url = '/api/v1/extensions/plugin/install') {
+async function request(bytes: Buffer, fields: Record<string, string> = {}, bearer = token, url = '/api/v1/extensions/plugin/install', expectedPhase = 'SUCCESS') {
   const boundary = `boundary-${randomUUID()}`;
   const parts = Object.entries(fields).map(([name, value]) => Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`));
   parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="plugin.zip"\r\nContent-Type: application/zip\r\n\r\n`), bytes, Buffer.from(`\r\n--${boundary}--\r\n`));
-  return app.inject({ method: 'POST', url, headers: { authorization: `Bearer ${bearer}`, 'content-type': `multipart/form-data; boundary=${boundary}` }, payload: Buffer.concat(parts) });
+  const accepted = await fetch(`${base}${url}`, { method: 'POST', headers: { authorization: `Bearer ${bearer}`, 'content-type': `multipart/form-data; boundary=${boundary}` }, body: Buffer.concat(parts) });
+  const response = url.endsWith('/install') ? await waitForPluginUpload(base, bearer, accepted, expectedPhase) : accepted;
+  const body = await response.json();
+  return { statusCode: response.status, json: () => body };
 }
 async function fields(bytes: Buffer) {
   const preview = await previewPluginUpload(bytes, actorId);
-  return { previewToken: preview.previewToken, confirmUnsigned: 'true', confirmationSlug: preview.package.slug };
+  return { previewToken: preview.previewToken, confirmUnsigned: 'true', confirmMigrations: 'true', confirmationSlug: preview.package.slug };
 }
 function signedPayload(tokenValue: string, change: Record<string, unknown>) {
   const body = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(tokenValue.split('.')[0], 'base64url').toString()), ...change })).toString('base64url');
@@ -62,7 +66,7 @@ beforeAll(async () => {
   otherToken = (await createAdminWithToken()).token; directory = await fs.mkdtemp(path.join(os.tmpdir(), 'upload-preview-'));
 });
 afterAll(async () => {
-  for (const slug of slugs) { await prisma.pluginInstall.deleteMany({ where: { slug } }); await prisma.adminAuditEvent.deleteMany({ where: { targetId: slug } }); await clearTestPluginCache(slug); }
+  for (const slug of slugs) { await prisma.pluginInstall.deleteMany({ where: { slug } }); await cleanupPluginMigrationFixture(slug); await prisma.adminAuditEvent.deleteMany({ where: { targetId: slug } }); await clearTestPluginCache(slug); }
   await app.close(); await deleteAllTestUsers(); await fs.rm(directory, { recursive: true, force: true });
 });
 
@@ -126,7 +130,8 @@ describe('Local plugin upload preview', () => {
       if (!response.ok || !body.data.items.some(event => event.targetId === ${JSON.stringify(slug)} && event.summary.version === '2.0.0')) throw new Error('confirmation not committed');
       require('fs').writeFileSync(${JSON.stringify(marker)}, 'executed'); throw new Error('candidate failed');
     } };`);
-    const failed = await request(next, await fields(next)); expect(failed.statusCode).toBe(500);
+    const failed = await request(next, await fields(next), token, '/api/v1/extensions/plugin/install', 'FAILED');
+    expect(failed.statusCode).toBe(200); expect(failed.json().data.errorCode).toBe('INTERNAL_SERVER_ERROR');
     expect(await fs.readFile(marker, 'utf8')).toBe('executed');
     expect(await prisma.adminAuditEvent.count({ where: { targetId: slug, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' } })).toBe(2);
     expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).version).toBe('1.0.0');
@@ -175,17 +180,17 @@ describe('Local plugin upload preview', () => {
     const slug = own(), first = await archive(slug); expect((await request(first, await fields(first))).statusCode).toBe(200);
     const next = await archive(slug, '2.0.0', "module.exports = { register() {}, __lifecycle_onUpgrade() { throw new Error('hook failed'); } };", true);
     const response = await request(next, await fields(next)); expect(response.statusCode).toBe(200);
-    expect(response.json().data).toMatchObject({ version: '2.0.0', warnings: ['PLUGIN_UPGRADE_HOOK_WARNING'] });
+    expect(response.json().data.result).toMatchObject({ version: '2.0.0', warnings: ['PLUGIN_UPGRADE_HOOK_WARNING'] });
     expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).version).toBe('2.0.0');
     expect(await prisma.adminAuditEvent.count({ where: { targetId: slug, action: 'PLUGIN_UPGRADED' } })).toBe(1);
-    expect(extensionInstallerSchemas.installExtension.response).toHaveProperty('200'); expect(extensionInstallerSchemas.installExtension.response).not.toHaveProperty('201');
-    for (const status of [400, 401, 403, 409, 413, 422, 500]) expect(extensionInstallerSchemas.previewPlugin.response).toHaveProperty(String(status));
+    expect(extensionInstallerSchemas.installExtension.response).toHaveProperty('202'); expect(extensionInstallerSchemas.installExtension.response).not.toHaveProperty('200'); expect(extensionInstallerSchemas.installExtension.response).not.toHaveProperty('201');
+    for (const status of [400, 401, 403, 409, 413, 422, 500, 503]) expect(extensionInstallerSchemas.previewPlugin.response).toHaveProperty(String(status));
   });
   it('P bundle installation is absent and only local final or marketplace routes call an installer', async () => {
     const before = await prisma.pluginInstall.count(); const response = await app.inject({ method: 'POST', url: '/api/v1/extensions/bundle/install', headers: { authorization: `Bearer ${token}` } });
     expect(response.statusCode).toBe(404); expect(await prisma.pluginInstall.count()).toBe(before);
     const source = await fs.readFile(path.resolve('src/core/admin/extension-installer/routes.ts'), 'utf8');
-    expect(source).not.toContain('bundleInstaller'); expect(source.match(/extensionInstaller\.installFromZip\(/g)).toHaveLength(1); expect(source.match(/await installMarketplacePlugin\(/g)).toHaveLength(1);
+    expect(source).not.toContain('bundleInstaller'); expect(source).not.toContain('extensionInstaller.installFromZip('); expect(source.match(/startPluginInstallOperation\(/g)).toHaveLength(1); expect(source.match(/await installMarketplacePlugin\(/g)).toHaveLength(1);
     expect(source).toContain("admin.post('/plugin/preview'"); expect(source).toContain("admin.post('/plugin/install'");
   });
 });

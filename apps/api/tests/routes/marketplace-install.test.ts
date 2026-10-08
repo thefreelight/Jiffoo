@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import archiver from 'archiver';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
@@ -98,12 +99,23 @@ function setCatalog(slug: string, bytes: Buffer, version = '1.0.0', overrides: R
   }] };
 }
 
-function request(pluginId: string, version = '1.0.0', extra: Record<string, unknown> = {}) {
-  return app.inject({
-    method: 'POST', url: '/api/v1/extensions/marketplace/install',
-    headers: { authorization: `Bearer ${token}` },
-    payload: { pluginId, version, ...extra },
-  });
+const previews = new Map<string, string>();
+async function preparePreview(pluginId: string, version = '1.0.0') {
+  const response = await fetch(`${base}/api/v1/extensions/marketplace/preview`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ pluginId, version }) });
+  const body = await response.clone().json();
+  if (response.ok) previews.set(`${pluginId}/${version}`, body.data.previewToken);
+  return response;
+}
+async function request(pluginId: string, version = '1.0.0', extra: Record<string, unknown> = {}) {
+  const { waitForPluginUpload, completedPluginUploadBody } = await import('../helpers/plugin-upload');
+  if (!Object.keys(extra).length && !previews.has(`${pluginId}/${version}`)) {
+    const preview = await preparePreview(pluginId, version);
+    if (!preview.ok) { const body = await preview.json(); return { statusCode: preview.status, json: () => body }; }
+  }
+  const accepted = await fetch(`${base}/api/v1/extensions/marketplace/install`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ pluginId, version, previewToken: previews.get(`${pluginId}/${version}`) ?? 'unbound', confirmMigrations: true, ...extra }) });
+  const response = await waitForPluginUpload(base, token, accepted);
+  const body = await completedPluginUploadBody(response);
+  return { statusCode: response.status, json: () => body };
 }
 async function rejectInstall(slug: string, code: string, status: number) {
   const response = await request(slug);
@@ -147,6 +159,7 @@ afterAll(async () => {
   for (const slug of slugs) {
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
     await prisma.pluginInstall.deleteMany({ where: { slug } });
+    await cleanupPluginMigrationFixture(slug);
     await clearTestPluginCache(slug);
   }
   await deleteAllTestUsers();
@@ -366,6 +379,7 @@ describe('Marketplace installation', () => {
   it('I rejects a concurrent install before a second package request', async () => {
     const slug = own();
     setCatalog(slug, await packageZip(slug));
+    expect((await preparePreview(slug)).status).toBe(200);
     const packageRequestsBefore = packageRequests;
     let signal!: () => void;
     const started = new Promise<void>((resolve) => { signal = resolve; });
@@ -423,7 +437,7 @@ describe('Marketplace installation', () => {
     const { uploadPluginZip } = await import('../helpers/plugin-upload');
     const response = await uploadPluginZip(base, token, await packageZip(slug, '1.0.0', { unsigned: true }));
     expect(response.status).toBe(200);
-    expect((await response.json()).data.source).toBe('local-zip');
+    expect((await response.json()).data.result.source).toBe('local-zip');
     expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).source).toBe('local-zip');
   });
 });

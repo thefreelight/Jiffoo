@@ -52,6 +52,7 @@ import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-packa
 import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
 import { assertUploadPreview, assertUploadSnapshot, inspectPluginUpload, PluginUploadError, uploadOperation, writePluginInstallAudit, type UploadInspection, type UploadSnapshot } from './plugin-upload';
 import { checkPluginApiCompatibility } from './plugin-compatibility';
+import { startPluginInstallOperation, waitPluginInstallOperation, publishPluginMigrationOperation } from './plugin-migration-operation';
 
 function parseJsonArray(value: unknown): string[] {
   if (!value) return [];
@@ -117,6 +118,17 @@ export class PluginFsInstaller implements IPluginInstaller {
    * 7. Write local metadata file
    */
   async install(zipStream: Readable, options?: PluginInstallOptions): Promise<InstalledPlugin> {
+    if (options?.source !== 'builtin' && !options?.operationId) {
+      const chunks: Buffer[] = [];
+      let size = 0;
+      for await (const chunk of zipStream) {
+        const bytes = Buffer.from(chunk); size += bytes.length;
+        if (size > PLUGIN_MAX_ZIP_SIZE) throw new PluginUploadError('PAYLOAD_TOO_LARGE', 413);
+        chunks.push(bytes);
+      }
+      const operation = await startPluginInstallOperation(Buffer.concat(chunks), options ?? {});
+      return waitPluginInstallOperation(operation.operationId);
+    }
     let tempDir: string | null = null;
     let deployment: PluginPackageDeployment | null = null;
     let tempZipCleanup: (() => Promise<void>) | null = null;
@@ -143,6 +155,9 @@ export class PluginFsInstaller implements IPluginInstaller {
     const { rootDir, manifestPath } = await resolveExtractedPackageRoot(tempDir, 'plugin');
     const manifest = await readJsonFile<PluginManifest>(manifestPath);
     validatePluginManifest(manifest);
+    if (options?.source === 'builtin' && manifest.database) {
+      throw new ExtensionInstallerError('Builtin plugin database declarations require an explicit bootstrap', { code: 'PLUGIN_MIGRATION_MANIFEST_INVALID' });
+    }
     if (options?.source === 'marketplace') {
       if (!options.lease || !options.expectedMarketplaceIdentity) throw new Error('Marketplace install requires a lease and expected identity');
       if (manifest.slug !== options.lease.slug ||
@@ -161,14 +176,18 @@ export class PluginFsInstaller implements IPluginInstaller {
       await testLeaseBarrier('acquired', manifest.slug, zipHash);
       inspection = await inspectPluginUpload(await fs.readFile(zipFilePath));
       const current = await prisma.pluginInstall.findUnique({ where: { slug: manifest.slug } });
-      if (options?.source !== 'marketplace') snapshot = assertUploadPreview(options?.previewToken, options?.actorUserId, inspection, current);
+      if (options?.operationId) {
+        const owned = await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id: options.operationId } });
+        if (owned.slug !== manifest.slug || owned.packageHash !== zipHash || owned.actorId !== options.actorUserId || owned.leaseToken !== lease.token || owned.phase !== 'PUBLISHING') throw new PluginUploadError('PLUGIN_OPERATION_LEASE_LOST', 409);
+        snapshot = owned.expectedInstall as UploadSnapshot;
+      } else if (options?.source !== 'marketplace') snapshot = assertUploadPreview(options?.previewToken, options?.actorUserId, inspection, current);
       operation = uploadOperation(inspection, current);
       if (!checkPluginApiCompatibility(manifest).compatible) throw new PluginUploadError('INCOMPATIBLE_API_VERSION', 422);
       if (!options?.actorUserId) throw new PluginUploadError('PLUGIN_PREVIEW_REQUIRED', 409);
       if (!publisher) {
         if (!options.confirmUnsigned || options.confirmationSlug !== manifest.slug)
           throw new PluginUploadError('UNSIGNED_CONFIRMATION_REQUIRED', 400, 'Confirm the unsigned warning and type the plugin slug');
-        await prisma.$transaction(async (tx) => {
+        if (!options.operationId) await prisma.$transaction(async (tx) => {
           await fencePluginOperationLease(tx, lease!.slug, lease!.token);
           await assertUploadSnapshot(tx, manifest.slug, snapshot!);
           await writePluginInstallAudit(tx, options.actorUserId!, 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED', inspection!, operation, current?.version ?? null, options?.source ?? 'local-zip');
@@ -213,6 +232,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             update: { protectionGeneration: { increment: 1 } },
           });
           await writePluginInstallAudit(tx, options!.actorUserId!, 'PLUGIN_INSTALLED', inspection!, operation, existingByHash.version, options?.source ?? 'local-zip');
+          await publishPluginMigrationOperation(tx, options?.operationId);
           await incrementPluginRegistryVersion(tx);
         });
       }
@@ -271,7 +291,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           const { validateCandidateRuntime } = await import('./plugin-runtime');
 
           // Get all enabled, non-deleted instances
-          const enabledInstances = await prisma.pluginInstallation.findMany({
+          const enabledInstances = options?.operationId ? [] : await prisma.pluginInstallation.findMany({
             where: {
               pluginSlug: manifest.slug,
               enabled: true,
@@ -333,6 +353,7 @@ export class PluginFsInstaller implements IPluginInstaller {
               update: { protectionGeneration: { increment: 1 } },
             });
             if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, operation === 'upgrade' ? 'PLUGIN_UPGRADED' : 'PLUGIN_INSTALLED', inspection, operation, existingBySlug.version, options?.source ?? 'local-zip');
+            await publishPluginMigrationOperation(tx, options?.operationId);
             await incrementPluginRegistryVersion(tx);
             return updatedInstall;
           });
@@ -444,6 +465,7 @@ export class PluginFsInstaller implements IPluginInstaller {
 
             await syncEventSubscriptions(tx, manifest.slug, manifest.subscriptions);
             if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, 'PLUGIN_INSTALLED', inspection, operation, null, options?.source ?? 'local-zip');
+            await publishPluginMigrationOperation(tx, options?.operationId);
             await incrementPluginRegistryVersion(tx);
 
             return install;

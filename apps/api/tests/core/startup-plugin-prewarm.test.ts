@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { fork, type ChildProcess } from 'node:child_process';
@@ -70,6 +71,7 @@ describe('startup plugin package prewarm', () => {
     for (const slug of slugs.splice(0)) {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
       await prisma.pluginInstall.deleteMany({ where: { slug } });
+      await cleanupPluginMigrationFixture(slug);
       await clearTestPluginCache(slug);
     }
     await deleteAllTestUsers();

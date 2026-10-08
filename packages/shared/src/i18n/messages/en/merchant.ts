@@ -860,7 +860,22 @@ export const merchant = {
       "failed": "The plugin upload failed. Preview again and retry.",
       "success": "Package installed. New plugins stay disabled until configured and enabled.",
       "unchangedSuccess": "The same package was verified and repaired if needed. Enablement was not changed.",
-      "installedWithWarning": "The package was installed, but a runtime or lifecycle warning occurred."
+      "installedWithWarning": "The package was installed, but a runtime or lifecycle warning occurred.",
+      "migrationPlan": "Database migration plan",
+      "migrationNamespace": "Plugin schema",
+      "migrationProvision": "Will be created",
+      "migrationApplied": "Already applied files",
+      "backupRecommended": "We recommend a backup first. A backup is not required to continue.",
+      "migrationConfirmation": "Installing confirms the database changes listed above.",
+      "migrationProgress": "Installation in progress. Applied migration files",
+      "migrationRetry": "Retry the retained package",
+      "migrationInvalid": "The migration declarations or SQL files are invalid.",
+      "migrationLegacy": "This package exports legacy migrations. Use declared SQL files instead.",
+      "migrationDrift": "The package changed applied migration history. Keep the exact applied prefix.",
+      "migrationFailed": "A migration failed. Committed files were kept; inspect the failure before retrying.",
+      "migrationUnknown": "The commit outcome requires ledger reconciliation. The plugin remains paused.",
+      "needsRecovery": "Recovery is required. The plugin remains paused. Retry this package or install a higher version preserving the applied prefix.",
+      "migrationMaintenance": "This plugin is paused for database maintenance. Retry later."
     },
     marketplace: {
       title: 'Marketplace', views: 'Plugin views', installedPlugins: 'Installed plugins', details: 'Details', version: 'Version', publisher: 'Publisher', installedVersion: 'Installed version', none: 'None',

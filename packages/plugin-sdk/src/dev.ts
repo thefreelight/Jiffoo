@@ -64,7 +64,7 @@ async function command(entry: string, args: string[], cwd: string, code: string)
   });
 }
 
-export async function dev(enable: boolean): Promise<void> {
+export async function dev(enable: boolean, confirmMigrations = false): Promise<void> {
   const client = new CoreClient();
   if (!['localhost', '127.0.0.1', '[::1]'].includes(client.origin.hostname)) throw new SdkError('DEV_LOOPBACK_REQUIRED');
   const certificate = process.env.JIFFOO_DEV_CERTIFICATE;
@@ -125,7 +125,7 @@ export async function dev(enable: boolean): Promise<void> {
       await command(sdk, ['sign', '--input', unsigned, '--certificate', path.resolve(certificate!), '--key', path.resolve(key!), '--output', signed], project, 'SIGN_FAILED');
       if (stopping) return;
       const bytes = await fs.readFile(signed);
-      await uploadBytes(client, bytes, { requireTestSigning: true, retryTransport: true, enable: enable && !hasUploaded });
+      await uploadBytes(client, bytes, { requireTestSigning: true, retryTransport: true, enable: enable && !hasUploaded, confirmMigrations });
       lastFingerprint = fingerprint;
       lastVersion = version;
       hasUploaded = true;
@@ -154,6 +154,13 @@ export async function dev(enable: boolean): Promise<void> {
     }
   }
   try {
+    try {
+      const migrationDirectory = path.join(project, 'migrations');
+      await fs.access(migrationDirectory);
+      watchers.push(watch(migrationDirectory, { recursive: true }, changed));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
     watchers.push(watch(path.join(project, 'src'), { recursive: true }, (_event, filename) => {
       if (!filename || !filename.toString().split(/[\\/]/).some(part => ['dist', 'artifacts', 'node_modules'].includes(part))) changed();
     }));

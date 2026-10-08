@@ -28,6 +28,9 @@ export type ExtensionSource = 'local-zip' | 'builtin' | 'marketplace';
 export type PluginInstallOptions = {
   source?: string;
   confirmUnsigned?: boolean;
+  confirmMigrations?: boolean;
+  operationId?: string;
+  uploadMetadata?: { filename: string; mimetype: string; size: number };
   actorUserId?: string;
   previewToken?: string;
   confirmationSlug?: string;

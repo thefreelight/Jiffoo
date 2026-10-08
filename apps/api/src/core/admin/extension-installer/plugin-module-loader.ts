@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
+import { assertNoLegacyPluginMigrations } from './contract-v1-runtime';
 
 const runtimeRequire = createRequire(__filename);
 const ESM_PLUGIN_ERROR = 'ESM plugin packages are not supported in Core V1; the entry module must be CommonJS.';
@@ -56,5 +57,8 @@ export async function loadPluginEntryModule(
     delete runtimeRequire.cache[resolvedPath];
   }
 
-  return runtimeRequire(resolvedPath);
+  const entry = runtimeRequire(resolvedPath);
+  assertNoLegacyPluginMigrations(entry);
+  assertNoLegacyPluginMigrations(entry?.default);
+  return entry;
 }

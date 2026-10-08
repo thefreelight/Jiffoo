@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
@@ -76,6 +77,7 @@ describe('immutable plugin package deployment', () => {
     for (const id of slugs) {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: id } });
       await prisma.pluginInstall.deleteMany({ where: { slug: id } });
+      await cleanupPluginMigrationFixture(id);
       await clearTestPluginCache(id);
     }
     slugs.clear();
@@ -86,13 +88,13 @@ describe('immutable plugin package deployment', () => {
     await app.close();
   });
 
-  async function upload(bytes: Buffer, confirmUnsigned = true) {
-    return uploadTo(base, bytes, confirmUnsigned);
+  async function upload(bytes: Buffer, confirmUnsigned = true, expectedPhase = 'SUCCESS') {
+    return uploadTo(base, bytes, confirmUnsigned, expectedPhase);
   }
-  async function uploadTo(url: string, bytes: Buffer, confirmUnsigned = true) {
-    const { uploadPluginZip } = await import('../helpers/plugin-upload');
-    const response = await uploadPluginZip(url, token, bytes, confirmUnsigned);
-    return { status: response.status, body: await response.json() };
+  async function uploadTo(url: string, bytes: Buffer, confirmUnsigned = true, expectedPhase = 'SUCCESS') {
+    const { uploadPluginZip, completedPluginUploadBody } = await import('../helpers/plugin-upload');
+    const response = await uploadPluginZip(url, token, bytes, confirmUnsigned, expectedPhase);
+    return { status: response.status, body: await completedPluginUploadBody(response) };
   }
   async function enabled(id: string) {
     const instance = await prisma.pluginInstallation.findUniqueOrThrow({
@@ -366,7 +368,8 @@ describe('immutable plugin package deployment', () => {
     expect((await upload(original)).status).toBe(200);
     await enabled(id);
     const bad = await archive(id, 'bad', { version: '2.0.0', code: 'module.exports = {};' });
-    expect((await upload(bad)).status).toBeGreaterThanOrEqual(400);
+    const failed = await upload(bad, true, 'FAILED');
+    expect(failed.status).toBe(200); expect(failed.body.operation.errorCode).toBe('PLUGIN_LOAD_FAILED');
     expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).zipHash).toBe(hash(original));
     await blobInvariant(id, original);
     expect(await prisma.pluginOperationLease.findUnique({ where: { slug: id } })).toBeNull();
@@ -432,15 +435,29 @@ describe('immutable plugin package deployment', () => {
     try {
       const [aReady, bReady] = await Promise.all([message(a, 'ready'), message(b, 'ready')]);
       const aEntered = message(a, 'plugin-lease-ready');
-      const first = uploadTo(aReady.base, oldZip);
+      const first = uploadTo(aReady.base, oldZip, true, 'NEEDS_RECOVERY');
+      const firstSettled = first.then(result => ({ result, error: undefined }), error => ({ result: undefined, error }));
       await aEntered;
       await prisma.pluginOperationLease.update({ where: { slug: id }, data: { expiresAt: new Date(0) } });
       const bEntered = message(b, 'plugin-lease-ready');
       const second = uploadTo(bReady.base, newZip);
-      await bEntered;
+      await Promise.race([bEntered, second.then(result => { throw new Error(`Takeover finished before publication barrier: ${JSON.stringify(result)}`); })]);
       const bLease = await prisma.pluginOperationLease.findUniqueOrThrow({ where: { slug: id } });
+      const abandoned = await prisma.pluginMigrationOperation.findFirstOrThrow({ where: { slug: id, packageVersion: '1.0.0' } });
+      expect(abandoned).toMatchObject({ phase: 'NEEDS_RECOVERY', errorCode: 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN', recoveryState: 'LEASE_EXPIRED' });
+      expect(Buffer.from(abandoned.artifactBytes!)).toEqual(oldZip);
+      const aDrained = message(a, 'operations-drained');
       a.send({ kind: 'plugin-lease-release' });
-      expect(await first).toMatchObject({ status: 409, body: { error: { code: 'PLUGIN_OPERATION_LEASE_LOST' } } });
+      a.send({ kind: 'drain-operations' });
+      await aDrained;
+      const outcome = await firstSettled;
+      expect(outcome.error).toBeUndefined();
+      expect(outcome.result).toMatchObject({ status: 200, body: { operation: { phase: 'NEEDS_RECOVERY' } } });
+      const fenced = await fetch(`${aReady.base}/api/v1/extensions/plugin/operations/${outcome.result!.body.operation.operationId}`, { headers: { authorization: `Bearer ${token}` } });
+      expect(fenced.status).toBe(200);
+      expect((await fenced.json()).data).toMatchObject({ phase: 'NEEDS_RECOVERY', errorCode: 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN', committedPrefix: 0 });
+      expect(await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id: abandoned.id } })).toEqual(abandoned);
+      expect(await prisma.pluginInstall.findUnique({ where: { slug: id } })).toBeNull();
       expect((await prisma.pluginOperationLease.findUniqueOrThrow({ where: { slug: id } })).token).toBe(bLease.token);
       b.send({ kind: 'plugin-lease-release' });
       expect((await second).status).toBe(200);
@@ -453,6 +470,44 @@ describe('immutable plugin package deployment', () => {
       b.send({ kind: 'plugin-lease-release' });
       await stop(a);
       await stop(b);
+    }
+  });
+
+  it('H a stale runner cannot overwrite a recovered operation after the new lease holder publishes', async () => {
+    const id = own(), oldZip = await archive(id, 'old'), newZip = await archive(id, 'new', { version: '2.0.0' });
+    const a = child('published'), b = child('published');
+    try {
+      const [aReady, bReady] = await Promise.all([message(a, 'ready'), message(b, 'ready')]);
+      const aEntered = message(a, 'plugin-lease-ready');
+      const first = uploadTo(aReady.base, oldZip, true, 'NEEDS_RECOVERY');
+      void first.catch(() => undefined);
+      await aEntered;
+      await prisma.pluginOperationLease.update({ where: { slug: id }, data: { expiresAt: new Date(0) } });
+      const bEntered = message(b, 'plugin-lease-ready');
+      const second = uploadTo(bReady.base, newZip);
+      void second.catch(() => undefined);
+      await Promise.race([bEntered, second.then(result => { throw new Error(`Recovery finished before barrier: ${JSON.stringify(result)}`); })]);
+      const abandoned = await first;
+      expect(abandoned).toMatchObject({ status: 200, body: { operation: { phase: 'NEEDS_RECOVERY', errorCode: 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN' } } });
+      b.send({ kind: 'plugin-lease-release' });
+      expect((await second).status).toBe(200);
+      const recovered = await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id: abandoned.body.operation.operationId } });
+      const replacement = await prisma.pluginMigrationOperation.findFirstOrThrow({ where: { slug: id, packageVersion: '2.0.0' } });
+      expect(recovered).toMatchObject({ phase: 'RECOVERED', errorCode: 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN', recoveryState: `RECOVERED_BY:${replacement.id}` });
+      expect(recovered.artifactBytes).toBeNull();
+      expect(replacement).toMatchObject({ phase: 'SUCCESS', errorCode: null });
+      expect(replacement.artifactBytes).toBeNull();
+      const drained = message(a, 'operations-drained');
+      a.send({ kind: 'plugin-lease-release' }); a.send({ kind: 'drain-operations' });
+      await drained;
+      expect(await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id: recovered.id } })).toEqual(recovered);
+      expect(await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id: replacement.id } })).toEqual(replacement);
+      expect(await prisma.pluginOperationLease.findUnique({ where: { slug: id } })).toBeNull();
+      expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).zipHash).toBe(hash(newZip));
+      await blobInvariant(id, newZip);
+    } finally {
+      a.send({ kind: 'plugin-lease-release' }); b.send({ kind: 'plugin-lease-release' });
+      await stop(a); await stop(b);
     }
   });
 
@@ -552,8 +607,8 @@ describe('immutable plugin package deployment', () => {
     await enabled(id);
     const oldPath = await packagePath(id, hash(original));
     const bad = await archive(id, 'bad', { version: '2.0.0', code: 'module.exports = {};' });
-    const rejected = await upload(bad);
-    expect(rejected.status).toBeGreaterThanOrEqual(400);
+    const rejected = await upload(bad, true, 'FAILED');
+    expect(rejected.status).toBe(200); expect(rejected.body.operation.errorCode).toBe('PLUGIN_LOAD_FAILED');
     expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).zipHash).toBe(hash(original));
     expect(await fs.stat(oldPath)).toBeDefined();
   });

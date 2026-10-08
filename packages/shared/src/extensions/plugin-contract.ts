@@ -61,7 +61,33 @@ export interface PluginContext {
 
 export interface PluginEntryModule {
   register(ctx: PluginContext): void | Promise<void>;
-  migrations?: Array<{ id: string; sql: string }>;
+}
+
+export interface PluginMigrationDeclaration {
+  id: string;
+  order: number;
+  path: string;
+  sha256: string;
+}
+
+export interface PluginDatabaseDeclaration {
+  apiVersion: 1;
+  migrations: PluginMigrationDeclaration[];
+}
+
+export function pluginDatabaseDeclarationIsValid(value: unknown): value is PluginDatabaseDeclaration {
+  if (!isRecord(value) || value.apiVersion !== 1 || !Array.isArray(value.migrations)
+    || Object.keys(value).some(key => !['apiVersion', 'migrations'].includes(key))) return false;
+  const ids = new Set<string>(), paths = new Set<string>();
+  return value.migrations.every((item, index) => {
+    if (!isRecord(item) || Object.keys(item).some(key => !['id', 'order', 'path', 'sha256'].includes(key))
+      || typeof item.id !== 'string' || !item.id || /[\u0000\uD800-\uDFFF]/u.test(item.id)
+      || item.order !== index + 1 || typeof item.path !== 'string'
+      || !/^migrations\/[A-Za-z0-9][A-Za-z0-9_.-]*\.sql$/.test(item.path) || item.path.includes('..')
+      || typeof item.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(item.sha256)
+      || ids.has(item.id) || paths.has(item.path)) return false;
+    ids.add(item.id); paths.add(item.path); return true;
+  });
 }
 
 export interface PluginApiVersionRange {
@@ -112,6 +138,7 @@ export interface PluginManifest {
   requiredScopes?: string[];
   subscriptions?: EventSubscription[];
   lifecycle?: PluginLifecycleDeclaration;
+  database?: PluginDatabaseDeclaration;
 }
 
 export interface PluginManifestIssue {
@@ -158,7 +185,7 @@ const manifestFields = new Set([
   'runtimeType', 'hostProtocol', 'entryModule', 'permissions', 'author',
   'authorUrl', 'license', 'homepage', 'repository', 'icon', 'screenshots',
   'minApiVersion', 'sdkVersion', 'requiredApiVersion', 'dependencies', 'tags',
-  'configSchema', 'contracts', 'requiredScopes', 'subscriptions', 'lifecycle',
+  'configSchema', 'contracts', 'requiredScopes', 'subscriptions', 'lifecycle', 'database',
   'trustLevel', 'capabilities', 'webhooks',
 ]);
 
@@ -217,6 +244,10 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
   }
 
   rejectUnknown(issues, manifest, manifestFields, '');
+
+  if (manifest.database !== undefined && !pluginDatabaseDeclarationIsValid(manifest.database)) {
+    pushIssue(issues, 'database', 'Invalid plugin migration declaration', 'PLUGIN_MIGRATION_MANIFEST_INVALID');
+  }
 
   if (manifest.schemaVersion !== 1) {
     pushIssue(issues, 'schemaVersion', 'schemaVersion must be 1', 'INVALID_SCHEMA_VERSION');

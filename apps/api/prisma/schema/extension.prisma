@@ -75,6 +75,106 @@ model PluginOperationLease {
   @@schema("public")
 }
 
+model PluginNamespace {
+  id            Int      @id @default(autoincrement())
+  slug          String   @unique
+  schemaName    String   @unique
+  publisherKind String
+  publisherId   String?
+  provisionedAt DateTime?
+  createdAt     DateTime @default(now())
+  ledger        PluginMigrationSuccess[]
+  attempts      PluginMigrationAttempt[]
+
+  @@map("plugin_namespaces")
+  @@schema("public")
+}
+
+model PluginMigrationSuccess {
+  id             String   @id @default(cuid())
+  namespaceId    Int
+  order          Int
+  migrationId    String
+  path           String
+  sha256         String
+  packageHash    String
+  packageVersion String
+  manifestDigest String
+  operationId    String
+  actorId        String
+  appliedAt      DateTime @default(now())
+  durationMs     Int
+  namespace      PluginNamespace @relation(fields: [namespaceId], references: [id], onDelete: Restrict)
+  operation      PluginMigrationOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@unique([namespaceId, order])
+  @@unique([namespaceId, migrationId])
+  @@map("plugin_migration_successes")
+  @@schema("public")
+}
+
+enum PluginMigrationAttemptStatus {
+  SUCCESS
+  FAILED
+  UNKNOWN
+  ABORTED
+
+  @@schema("public")
+}
+
+model PluginMigrationAttempt {
+  id             String   @id @default(cuid())
+  namespaceId    Int
+  operationId    String
+  order          Int
+  migrationId    String
+  path           String
+  sha256         String
+  startedAt      DateTime @default(now())
+  endedAt        DateTime?
+  status         PluginMigrationAttemptStatus @default(UNKNOWN)
+  sqlstate       String?
+  errorCode      String?
+  resolution     String?
+  namespace      PluginNamespace @relation(fields: [namespaceId], references: [id], onDelete: Restrict)
+  operation      PluginMigrationOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@index([operationId, order])
+  @@map("plugin_migration_attempts")
+  @@schema("public")
+}
+
+model PluginMigrationOperation {
+  id              String   @id @default(cuid())
+  slug            String
+  actorId         String
+  packageHash     String
+  packageVersion  String
+  manifestDigest  String
+  manifest        Json
+  declarations    Json
+  expectedInstall Json
+  installOptions  Json
+  artifactBytes   Bytes?
+  leaseToken      String
+  phase           String   @default("QUEUED")
+  committedPrefix Int      @default(0)
+  recoveryState   String   @default("NONE")
+  confirmed       Boolean
+  result          Json?
+  errorCode       String?
+  createdAt       DateTime @default(now())
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  successes       PluginMigrationSuccess[]
+  attempts        PluginMigrationAttempt[]
+
+  @@index([slug, createdAt])
+  @@index([phase])
+  @@map("plugin_migration_operations")
+  @@schema("public")
+}
+
 enum PluginTrustLevel {
   builtin
   signed

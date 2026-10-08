@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { createPublicKey, randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { promises as fs } from 'node:fs';
@@ -48,6 +49,7 @@ describe('Built plugin SDK CLI', () => {
     for (const id of installed) {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: id } });
       await prisma.pluginInstall.deleteMany({ where: { slug: id } });
+      await cleanupPluginMigrationFixture(id);
       await clearTestPluginCache(id);
     }
     await deleteAllTestUsers();
@@ -167,7 +169,7 @@ describe('Built plugin SDK CLI', () => {
       const { uploadPluginZip } = await import('../helpers/plugin-upload');
       const response = await uploadPluginZip(base, token, zip, false);
       expect(response.status).toBe(200);
-      expect((await response.json()).data).toMatchObject({ publisherId: 'sdk-publisher', publisherName: 'SDK Publisher', publisherVerified: false, signingRoot: 'test' });
+      expect((await response.json()).data.result).toMatchObject({ publisherId: 'sdk-publisher', publisherName: 'SDK Publisher', publisherVerified: false, signingRoot: 'test' });
       expect(await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).toMatchObject({ trustLevel: 'signed', signingRoot: 'test', publisherId: 'sdk-publisher' });
     } finally { await fs.rm(dir, { recursive: true, force: true }); }
   });
