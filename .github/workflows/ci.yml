@@ -1,45 +1,233 @@
 name: CI
 
 on:
+  push:
+    branches: [codex/core-extension-boundary]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  verify:
-    runs-on: ubuntu-latest
+  api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     services:
       postgres:
-        image: postgres:14
+        image: postgres:18.2
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: jiffoo_core_test
-        ports:
-          - 5432:5432
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+          --health-cmd "pg_isready -U postgres -d jiffoo_core_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
       redis:
-        image: redis:7
-        ports:
-          - 6379:6379
+        image: redis:7.2
+        ports: ["6379:6379"]
         options: >-
           --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/jiffoo_core_test?schema=public
+      DATABASE_URL_TEST: postgresql://postgres@localhost:5432/jiffoo_core_test?schema=public
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Initialize verification artifacts
+        run: node scripts/verify-ci.mjs --initialize
       - uses: pnpm/action-setup@v4
         with:
           version: 9.0.0
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24.13.1
           cache: pnpm
-      - run: pnpm verify
+      - name: Docker version
+        run: docker version 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Microsoft Edge version
+        run: microsoft-edge --version 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Prepare approved upload storage image
+        run: |
+          docker pull --platform linux/amd64 pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+          docker tag pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Run verification catalogue
+        run: node scripts/verify-ci.mjs api ${{ matrix.shard }}/4
+      - name: Upload verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-api-${{ matrix.shard }}
+          path: ${{ runner.temp }}/verification/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-api-${{ matrix.shard }}
+          path: e2e/test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18.2
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: jiffoo_core_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d jiffoo_core_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7.2
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL_TEST: postgresql://postgres@localhost:5432/jiffoo_core_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Initialize verification artifacts
+        run: node scripts/verify-ci.mjs --initialize
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.13.1
+          cache: pnpm
+      - name: Docker version
+        run: docker version 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Microsoft Edge version
+        run: microsoft-edge --version 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Prepare approved upload storage image
+        run: |
+          docker pull --platform linux/amd64 pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+          docker tag pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Run verification catalogue
+        run: node scripts/verify-ci.mjs quality
+      - name: Upload verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-quality
+          path: ${{ runner.temp }}/verification/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-quality
+          path: e2e/test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18.2
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: jiffoo_core_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d jiffoo_core_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7.2
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL_TEST: postgresql://postgres@localhost:5432/jiffoo_core_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Initialize verification artifacts
+        run: node scripts/verify-ci.mjs --initialize
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.13.1
+          cache: pnpm
+      - name: Docker version
+        run: docker version 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Microsoft Edge version
+        run: microsoft-edge --version 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Prepare approved upload storage image
+        run: |
+          docker pull --platform linux/amd64 pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+          docker tag pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Run verification catalogue
+        run: node scripts/verify-ci.mjs e2e
+      - name: Upload verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-e2e
+          path: ${{ runner.temp }}/verification/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-e2e
+          path: e2e/test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+  summary:
+    if: always()
+    needs: [api, quality, e2e]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.13.1
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: verify-*
+          path: ${{ runner.temp }}/verification-inputs
+      - name: Require successful jobs and reconcile API coverage
+        if: always()
+        run: node scripts/verify-ci-summary.mjs "${{ runner.temp }}/verification-inputs" '${{ toJSON(needs) }}' 2>&1 | tee "${{ runner.temp }}/verification-summary.log"
+      - name: Publish merged verification summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-merged-summary
+          path: |
+            verify-summary.txt
+            ${{ runner.temp }}/verification-summary.log
+          retention-days: 14
+          if-no-files-found: error

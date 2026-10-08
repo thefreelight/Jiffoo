@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { testRoot } from '../apps/api/tests/fixtures/plugin-signing-keys.ts';
 import { startUploadTestStorage } from './upload-test-storage.mjs';
 import { resetTestPluginSchemas } from './reset-test-plugin-schemas.mjs';
+import { apiBuildStep } from './verify-steps.mjs';
 
 const started = performance.now();
 const visual = process.argv.includes('--visual');
@@ -278,7 +279,7 @@ try {
   });
   await step('Build shared package', () => command(['--filter', 'shared', 'build']));
   await step('Build plugin SDK', () => command(['--filter', 'plugin-sdk', 'build']));
-  await step('Build API', () => command(['--filter', 'api', 'build']));
+  await step(apiBuildStep[0], () => command(apiBuildStep[1][0]));
   await step('Build Admin', () => command(['--filter', 'admin', 'build']));
   await step('Build Shop', () => command(['--filter', 'shop', 'build']));
   await step('Start local marketplace', async () => {

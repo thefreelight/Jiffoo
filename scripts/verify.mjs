@@ -5,10 +5,21 @@ import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { startUploadTestStorage } from './upload-test-storage.mjs';
 import { resetTestPluginSchemas } from './reset-test-plugin-schemas.mjs';
+import { localSteps, ciSteps } from './verify-steps.mjs';
 
 const databaseUrl = process.env.DATABASE_URL_TEST;
 const quick = process.argv.includes('--quick');
 const selectedArgument = process.argv.slice(2).filter(value => value.startsWith('--test-files='));
+const ciArguments = process.argv.slice(2).filter(value => value.startsWith('--ci-'));
+const groupArguments = ciArguments.filter(value => value.startsWith('--ci-group='));
+const shardArguments = ciArguments.filter(value => value.startsWith('--ci-shard='));
+const group = groupArguments[0]?.slice('--ci-group='.length);
+const shard = shardArguments[0]?.slice('--ci-shard='.length);
+if (ciArguments.length && (process.env.GITHUB_ACTIONS !== 'true' || quick || selectedArgument.length || groupArguments.length !== 1 || shardArguments.length > 1 || ciArguments.length !== groupArguments.length + shardArguments.length)) {
+  console.error('CI group/shard selection requires GitHub Actions and cannot be combined with local selection.');
+  process.exit(1);
+}
+const plannedSteps = group ? ciSteps(databaseUrl, group, shard) : undefined;
 if (selectedArgument.length > 1 || selectedArgument.length && !quick) {
   console.error('--test-files is supported exactly once and only with --quick; full verification always runs every step.');
   process.exit(1);
@@ -138,7 +149,7 @@ function runPrismaGenerate() {
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     if (!isWindowsFileLock(output) || attempt === 3) {
-      if (isWindowsFileLock(output)) {
+      if (process.platform === 'win32' && isWindowsFileLock(output)) {
         console.error('The Prisma engine file is locked by another process. Open Resource Monitor (resmon) > CPU > Associated Handles, search query_engine, and close the process that holds it.');
       }
       return false;
@@ -149,39 +160,14 @@ function runPrismaGenerate() {
   return false;
 }
 
-const steps = quick
-  ? [
-      ['Prisma generate', [['--filter', 'api', 'exec', 'prisma', 'generate']]],
-      ['Type-check API, Shop and shared', [['--filter', 'shared', 'build'], ['exec', 'turbo', 'run', 'type-check', '--filter=api', '--filter=shop', '--filter=shared']]],
-      ['Lint Shop', [['--filter', 'shop', 'lint']]],
-      ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
-      ...(selectedArgument.length
-        ? Object.entries(selectedFiles).filter(([, files]) => files.length).map(([app, files]) => [`Run ${app === 'api' ? 'API' : app === 'admin' ? 'Admin' : 'Shop'} tests`, [['--filter', app, 'exec', 'vitest', 'run', ...files]]])
-        : [
-            ['Run changed API tests', [['--filter', 'api', 'exec', 'vitest', 'run', '--changed', '--passWithNoTests']]],
-            ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
-          ]),
-    ]
-  : [
-      ['Install dependencies', [['install', '--frozen-lockfile']]],
-      ['Validate and generate Prisma client', [['--filter', 'api', 'exec', 'prisma', 'validate'], ['--filter', 'api', 'exec', 'prisma', 'generate']]],
-      ['Build shared package', [['--filter', 'shared', 'build']]],
-      ['Build admin application', [['--filter', 'admin', 'build']]],
-      ['Build Shop application', [['--filter', 'shop', 'build']]],
-      ['Build plugin SDK', [['--filter', 'plugin-sdk', 'build']]],
-      ['Type-check workspace', [['exec', 'turbo', 'run', 'type-check', '--continue=always', '--force']]],
-      ['Lint Shop', [['--filter', 'shop', 'lint']]],
-      ['Export OpenAPI', [['--filter', 'api', 'export:openapi']]],
-      ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
-      ['Check Prisma migration drift', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'diff', '--from-url', databaseUrl, '--to-schema-datamodel', 'prisma/schema', '--exit-code']]],
-      ['Run API tests', [['--filter', 'api', 'exec', 'vitest', 'run']]],
-      ['Run Admin tests', [['--filter', 'admin', 'exec', 'vitest', 'run']]],
-      ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
-      ['Run browser E2E', [['verify:e2e']]],
-    ];
+const steps = plannedSteps ?? localSteps(databaseUrl, quick, selectedArgument, selectedFiles);
 
 const results = [];
 const testOutputs = [];
+let fullApiFiles = [];
+let apiFiles = [];
+const ciDirectory = group ? process.env.RUNNER_TEMP : undefined;
+if (group && !ciDirectory) throw new Error('RUNNER_TEMP is required for CI artifacts.');
 for (const [name, commands] of steps) {
   console.log(`\n=== ${name} ===`);
   const startedAt = performance.now();
@@ -200,6 +186,15 @@ for (const [name, commands] of steps) {
   }
 
   for (const args of commands) {
+    if (group === 'api' && name === 'Run API tests') {
+      const listPath = join(ciDirectory, 'api-files.json');
+      const list = spawnSync(pnpm, [...pnpmPrefix, '--filter', 'api', 'exec', 'vitest', 'list', '--filesOnly', `--json=${listPath}`], {
+        cwd: process.cwd(), env: childEnv, stdio: 'inherit',
+      });
+      if (list.status !== 0) { succeeded = false; break; }
+      fullApiFiles = JSON.parse(readFileSync(listPath, 'utf8')).map(item => relative(apiDirectory, item.file).replaceAll('\\', '/')).sort();
+      args.push('--reporter=default', '--reporter=verbose', '--reporter=json', `--outputFile.json=${join(ciDirectory, 'api-results.json')}`);
+    }
     if (args.join(' ') === '--filter api exec prisma generate') {
       if (!runPrismaGenerate()) {
         succeeded = false;
@@ -217,6 +212,9 @@ for (const [name, commands] of steps) {
       const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
       if (process.env.VERIFY_RAW_OUTPUT_LOG) appendFileSync(process.env.VERIFY_RAW_OUTPUT_LOG, `\n=== ${name} ===\n${output}`, 'utf8');
       testOutputs.push({ name, kind: args.includes('vitest') ? 'vitest' : 'e2e', output });
+      if (group === 'api' && name === 'Run API tests' && existsSync(join(ciDirectory, 'api-results.json'))) {
+        apiFiles = JSON.parse(readFileSync(join(ciDirectory, 'api-results.json'), 'utf8')).testResults.map(item => relative(apiDirectory, item.name).replaceAll('\\', '/')).sort();
+      }
       if (result.status !== 0) {
         process.stdout.write(output);
       } else if (args.includes('vitest') && !quick) {
@@ -282,6 +280,7 @@ function printSummary(summary, outputs) {
   }
   const block = `${lines.join('\n')}\n`;
   writeFileSync(summaryPath, block, 'utf8');
+  if (group) writeFileSync(join(ciDirectory, 'verify-result.json'), JSON.stringify({ group, shard, results: summary, outputs, fullApiFiles, apiFiles, valid }, null, 2));
   process.stdout.write(`\n${block}`);
   return valid;
 }
