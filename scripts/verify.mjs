@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
+import { startUploadTestStorage } from './upload-test-storage.mjs';
 
 const databaseUrl = process.env.DATABASE_URL_TEST;
 const quick = process.argv.includes('--quick');
@@ -47,6 +48,14 @@ if (databaseName !== 'jiffoo_core_test') {
 const childEnv = { ...process.env, DATABASE_URL: databaseUrl, DATABASE_URL_TEST: databaseUrl };
 for (const [name, value] of Object.entries(testDefaults)) {
   childEnv[name] ??= value;
+}
+let uploadStorage;
+try {
+  uploadStorage = await startUploadTestStorage();
+  Object.assign(childEnv, uploadStorage.env);
+} catch (error) {
+  console.error(error);
+  process.exit(1);
 }
 
 function listSchemaFiles(directory) {
@@ -125,7 +134,7 @@ function runPrismaGenerate() {
 const steps = quick
   ? [
       ['Prisma generate', [['--filter', 'api', 'exec', 'prisma', 'generate']]],
-      ['Type-check API, Shop and shared', [['exec', 'turbo', 'run', 'type-check', '--filter=api', '--filter=shop', '--filter=shared']]],
+      ['Type-check API, Shop and shared', [['--filter', 'shared', 'build'], ['exec', 'turbo', 'run', 'type-check', '--filter=api', '--filter=shop', '--filter=shared']]],
       ['Lint Shop', [['--filter', 'shop', 'lint']]],
       ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
       ['Run changed API tests', [['--filter', 'api', 'exec', 'vitest', 'run', '--changed', '--passWithNoTests']]],
@@ -199,11 +208,13 @@ for (const [name, commands] of steps) {
   results.push([name, succeeded ? 'PASS' : 'FAIL', `${((performance.now() - startedAt) / 1000).toFixed(2)}s`]);
   if (!succeeded) {
     printSummary(results, testOutputs);
+    uploadStorage.stop();
     process.exit(1);
   }
 }
 
 if (!printSummary(results, testOutputs)) process.exitCode = 1;
+uploadStorage.stop();
 
 function printSummary(summary, outputs) {
   const lines = ['=== Final test summary ==='];

@@ -112,10 +112,11 @@ export default function ProfilePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-3">
             <div className="space-y-3">
-              <label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest leading-none block">
+              <label htmlFor="profile-username" className="text-[10px] font-bold text-neutral-light uppercase tracking-widest leading-none block">
                 {getText('merchant.profile.username', 'Username')}
               </label>
               <Input
+                id="profile-username"
                 value={effectiveUsername}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={isLoading || updateProfile.isPending}
@@ -123,10 +124,11 @@ export default function ProfilePage() {
               />
             </div>
             <div className="space-y-3">
-              <label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest leading-none block">
+              <label htmlFor="profile-avatar-url" className="text-[10px] font-bold text-neutral-light uppercase tracking-widest leading-none block">
                 {getText('merchant.profile.avatarUrl', 'Avatar URL')}
               </label>
               <Input
+                id="profile-avatar-url"
                 value={effectiveAvatar}
                 onChange={(e) => setAvatarUrl(e.target.value)}
                 disabled={isLoading || updateProfile.isPending}

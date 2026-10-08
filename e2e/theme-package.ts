@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import archiver from 'archiver';
 
-export async function themePackage(forbidden = false): Promise<Buffer> {
+export async function themePackage(forbidden = false, uploadedMedia = false): Promise<Buffer> {
   const archive = archiver('zip', { zlib: { level: 9 } });
   const chunks: Buffer[] = [];
   archive.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -13,6 +13,14 @@ export async function themePackage(forbidden = false): Promise<Buffer> {
   const manifest = JSON.parse(await readFile(resolve(__dirname, 'fixtures/themes/test-shop-theme/theme.json'), 'utf8'));
   manifest.layout.pages.home.sections[0].settings.image = 'assets/hero.png';
   manifest.layout.pages.home.sections[0].settings.alt = { en: 'Theme hero', 'zh-Hans': '主题主视觉', 'zh-Hant': '主題主視覺' };
+  if (uploadedMedia) {
+    manifest.slug = 'e2e-upload-theme';
+    manifest.name = 'E2E Upload Theme';
+    manifest.settings.push({ id: 'hero-image', type: 'image',
+      label: { en: 'Hero image', 'zh-Hans': '主视觉图片', 'zh-Hant': '主視覺圖片' },
+      default: 'assets/hero.png', constraints: {} });
+    manifest.layout.pages.home.sections[0].settings.image = { $setting: 'hero-image' };
+  }
   archive.append(JSON.stringify(manifest), { name: 'theme.json' });
   archive.append(await readFile(resolve(__dirname, 'fixtures/themes/test-admin-logo.png')), { name: 'assets/hero.png' });
   if (forbidden) archive.append('console.log("not allowed")', { name: 'scripts/run.js' });

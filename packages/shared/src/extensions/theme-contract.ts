@@ -125,7 +125,7 @@ const merchantLiteral = (schema: unknown): unknown => {
     !!item && typeof item === 'object' && '$setting' in ((item as { properties?: object }).properties ?? {})))
     return merchantLiteral(record.anyOf[0]);
   if (record.pattern === image.pattern)
-    return { ...record, pattern: '^(?:assets/(?!.*(?:\\.\\.|//|/\\.))[a-zA-Z0-9_/-]+\\.(?:png|jpe?g|webp)|/uploads/products/[a-zA-Z0-9_-]+\\.(?:png|jpe?g|webp))$' };
+    return { ...record, pattern: '^(?:assets/(?!.*(?:\\.\\.|//|/\\.))[a-zA-Z0-9_/-]+\\.(?:png|jpe?g|webp)|/uploads/products/[a-f0-9]{64}/(?:original|thumb|medium|large)\\.(?:jpg|png|webp))$' };
   return Object.fromEntries(Object.entries(record).map(([key, item]) => [key, merchantLiteral(item)]));
 };
 export const merchantSectionSchemas = Object.fromEntries(
@@ -174,7 +174,7 @@ const settings = {
     oneOf: [
       ['color', color, object({})],
       ['text', localized, object({ maxLength: { type: 'integer', minimum: 1, maximum: 500 } }, ['maxLength'])],
-      ['image', { anyOf: [image, { type: 'string', pattern: '^/uploads/products/[a-zA-Z0-9_-]+\\.(?:png|jpe?g|webp)$' }] }, object({})],
+      ['image', { anyOf: [image, { type: 'string', pattern: '^/uploads/products/[a-f0-9]{64}/(?:original|thumb|medium|large)\\.(?:jpg|png|webp)$' }] }, object({})],
       ['category', text, object({})],
       ['product-list', list(text), object({ maxItems: { type: 'integer', minimum: 1, maximum: 20 } }, ['maxItems'])],
       ['boolean', { type: 'boolean' }, object({})],

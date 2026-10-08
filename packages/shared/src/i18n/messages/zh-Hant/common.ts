@@ -116,6 +116,8 @@ export const common = {
 
   // Error messages
   errors: {
+    uploadStorageUnavailable: '上傳儲存暫時無法使用，請稍後再試。',
+    uploadStorageCorrupt: '上傳的媒體已損毀，請重新上傳圖片。',
     general: '發生錯誤，請重試。',
     notFound: '找不到資料',
     unauthorized: '未授權的存取',

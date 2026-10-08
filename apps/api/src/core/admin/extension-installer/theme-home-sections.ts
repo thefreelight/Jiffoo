@@ -2,7 +2,7 @@ import Ajv from 'ajv';
 import { merchantSectionSchemas, SECTION_TYPES, type ThemeManifest } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
 import type { ThemeFiles } from '@/core/storage/current-theme-package';
-import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
+import { readMediaFile } from '@/core/storage/uploaded-media-set';
 import { ExtensionInstallerError } from './errors';
 
 export type HomeSection = { id: string; type: string; settings: Record<string, unknown> };
@@ -60,7 +60,7 @@ export async function validateHomeSections(
       } else if (typeof value === 'string' && value.startsWith('assets/')
         && (!pkg || !await pkg.exists(value))) fail(location);
       else if (typeof value === 'string' && value.startsWith('/uploads/')
-        && !await uploadedFileStore.get(value.slice('/uploads/'.length))) fail(location);
+        && !await readMediaFile(value.slice('/uploads/'.length))) fail(location);
     };
     await walk(item.settings, `${path}/settings`);
     const settings = item.settings;

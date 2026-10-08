@@ -26,6 +26,7 @@ const areas = [
   '33-plugin-recorded-error',
   '34-shop-reload',
   '35-extension-center',
+  '37-uploaded-storage',
   '36-shop-availability',
 ];
 

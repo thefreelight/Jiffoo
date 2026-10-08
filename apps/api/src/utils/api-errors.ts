@@ -202,6 +202,8 @@ export const errorCatalog = {
   [ApiErrorCodes.SHIPPING_OPTION_UNAVAILABLE]: { status: 409, message: 'Shipping option is unavailable' },
   [ApiErrorCodes.PAYMENT_METHOD_UNAVAILABLE]: { status: 409, message: 'Payment method is unavailable' },
   [ApiErrorCodes.UPLOAD_FAILED]: { status: 400, message: "Upload failed." },
+  [ApiErrorCodes.UPLOAD_STORAGE_UNAVAILABLE]: { status: 503, message: 'Upload storage is temporarily unavailable' },
+  [ApiErrorCodes.UPLOAD_STORAGE_CORRUPT]: { status: 500, message: 'Uploaded media is corrupt' },
   [ApiErrorCodes.UNSUPPORTED_MEDIA_TYPE]: { status: 415, message: 'Unsupported request content type' },
   [ApiErrorCodes.USER_NOT_FOUND]: { status: 404, message: "User not found" },
   [ApiErrorCodes.VALIDATION_ERROR]: { status: 400, message: "Request validation failed" },

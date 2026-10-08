@@ -1,3 +1,8 @@
+import { common as english } from 'shared/src/i18n/messages/en/common';
+import { common as simplifiedChinese } from 'shared/src/i18n/messages/zh-Hans/common';
+import { common as traditionalChinese } from 'shared/src/i18n/messages/zh-Hant/common';
+import type { ShopLocale } from './locale';
+
 export class CoreHttpError extends Error {
   constructor(readonly status: number, readonly code: string = 'INTERNAL_SERVER_ERROR') { super('Core service request failed'); }
 }
@@ -22,6 +27,13 @@ export async function coreNotFound(response: Response): Promise<boolean> {
 export async function safeCoreFailure(response: Response): Promise<Response> {
   const allowed = new Set(['INTERNAL_SERVER_ERROR', 'DATABASE_UNAVAILABLE', 'SHARED_PROTECTION_UNAVAILABLE', 'PLUGIN_DISABLED', 'PLUGIN_CIRCUIT_OPEN', 'PLUGIN_ERROR', 'PLUGIN_TIMEOUT', 'PLUGIN_PACKAGE_CORRUPT', 'PLUGIN_PACKAGE_UNAVAILABLE', 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT', 'CONTRACT_CALL_FAILED', 'CONTRACT_RESPONSE_INVALID']);
   const candidate = await coreErrorCode(response);
+  allowed.add('UPLOAD_STORAGE_UNAVAILABLE'); allowed.add('UPLOAD_STORAGE_CORRUPT');
   const code = candidate && allowed.has(candidate) ? candidate : 'INTERNAL_SERVER_ERROR';
   return Response.json({ success: false, error: { code, message: 'Core service request failed' } }, { status: response.status, headers: { 'Cache-Control': 'no-store' } });
+}
+const uploadMessages = { en: english.errors, 'zh-Hans': simplifiedChinese.errors, 'zh-Hant': traditionalChinese.errors };
+export function uploadStorageMessage(code: string, locale: ShopLocale): string | undefined {
+  if (code === 'UPLOAD_STORAGE_UNAVAILABLE') return uploadMessages[locale].uploadStorageUnavailable;
+  if (code === 'UPLOAD_STORAGE_CORRUPT') return uploadMessages[locale].uploadStorageCorrupt;
+  return undefined;
 }

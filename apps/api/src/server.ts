@@ -43,7 +43,8 @@ import { accessLogMiddleware, errorLogMiddleware } from '@/core/logger/middlewar
 import { registerRoutes } from '@/routes';
 import { performHealthCheck, livenessCheck, readinessCheck } from '@/utils/health-check';
 import traceContextPlugin from '@/core/logger/trace-context';
-import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
+import { uploadedObjectStore } from '@/core/storage/uploaded-object-store';
+import { readMediaFile } from '@/core/storage/uploaded-media-set';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { prewarmPluginPackages } from '@/core/storage/prewarm-plugin-packages';
 import { prewarmThemePackages } from '@/core/storage/prewarm-theme-packages';
@@ -86,6 +87,7 @@ export async function registerGlobalRateLimiter(
 
 async function buildApp() {
   assertThemeTestHooks();
+  await uploadedObjectStore.initialize();
   try {
     assertProductionSafety({
       NODE_ENV: env.NODE_ENV ?? 'development',
@@ -129,16 +131,14 @@ async function buildApp() {
 
     fastify.get('/uploads/*', async (request, reply) => {
       const key = (request.params as { '*': string })['*'];
-      const file = await uploadedFileStore.get(key);
-      if (!file) return reply.code(404).send({ error: 'File not found' });
-      const contentType = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.webp': 'image/webp',
-      }[path.extname(key).toLowerCase()];
-      if (contentType) reply.type(contentType);
-      return reply.send(file);
+      try {
+        const file = await readMediaFile(key);
+        if (!file) return sendMappedError(reply, new ApiError('NOT_FOUND'));
+        reply.type(file.mime).header('Content-Length', file.content.length)
+          .header('ETag', `"${file.sha256}"`).header('X-Content-Type-Options', 'nosniff')
+          .header('Cache-Control', 'public, max-age=31536000, immutable');
+        return reply.send(file.content);
+      } catch (error) { return sendMappedError(reply, error); }
     });
 
     await pluginPackageStore.ensureRoot();

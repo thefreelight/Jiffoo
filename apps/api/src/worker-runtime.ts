@@ -19,10 +19,12 @@ import { syncBuiltinPlugins } from './core/admin/extension-installer/builtin-syn
 import { prewarmPluginPackages } from './core/storage/prewarm-plugin-packages';
 import { prewarmThemePackages } from './core/storage/prewarm-theme-packages';
 import { assertThemeTestHooks } from './core/storage/theme-test-hooks';
+import { uploadedObjectStore } from './core/storage/uploaded-object-store';
 import path from 'node:path';
 
 export async function startWorkerRuntime(options: { redisUrl?: string; healthPort?: number } = {}) {
   assertThemeTestHooks();
+  await uploadedObjectStore.initialize();
   assertTestRootEnvironment(env.EXTENSION_TEST_SIGNING_MODE);
   if (env.EXTENSION_TEST_SIGNING_MODE) console.warn('Test signing mode is enabled for the worker');
   pluginSecretsKey();

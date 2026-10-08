@@ -32,6 +32,14 @@ export const envSchema = z.object({
   API_PORT: z.string().transform(Number).default('3001'),
   API_HOST: z.string().default('0.0.0.0'),
   WORKER_HEALTH_PORT: z.coerce.number().int().min(0).max(65535).default(3004),
+  UPLOAD_STORAGE_BACKEND: z.enum(['local', 's3']).default('local'),
+  UPLOAD_LOCAL_PATH: z.string().min(1).default('uploads'),
+  UPLOAD_S3_ENDPOINT: z.string().url().optional(),
+  UPLOAD_S3_REGION: z.string().min(1).optional(),
+  UPLOAD_S3_BUCKET: z.string().min(1).optional(),
+  UPLOAD_S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  UPLOAD_S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  UPLOAD_S3_FORCE_PATH_STYLE: z.enum(['true', 'false']).transform(value => value === 'true').default('false'),
 
 
   // JWT
@@ -83,6 +91,20 @@ export const envSchema = z.object({
   CDN_IMAGE_QUALITY: z.string().transform(Number).default('80'),
 
 }).superRefine((value, context) => {
+  if (value.NODE_ENV === 'production' && value.UPLOAD_STORAGE_BACKEND !== 's3') {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ['UPLOAD_STORAGE_BACKEND'], message: 'Production requires s3 upload storage' });
+  }
+  if (value.UPLOAD_STORAGE_BACKEND === 's3') {
+    for (const key of ['UPLOAD_S3_ENDPOINT', 'UPLOAD_S3_REGION', 'UPLOAD_S3_BUCKET', 'UPLOAD_S3_ACCESS_KEY_ID', 'UPLOAD_S3_SECRET_ACCESS_KEY'] as const) {
+      if (!value[key]) context.addIssue({ code: z.ZodIssueCode.custom, path: [key], message: `${key} is required for s3 upload storage` });
+    }
+    if (value.UPLOAD_S3_ENDPOINT && z.string().url().safeParse(value.UPLOAD_S3_ENDPOINT).success) {
+      const url = new URL(value.UPLOAD_S3_ENDPOINT);
+      if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash || (url.pathname !== '/' && url.pathname !== '')) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ['UPLOAD_S3_ENDPOINT'], message: 'Upload S3 endpoint requires HTTP(S), no credentials, path, query or fragment' });
+      }
+    }
+  }
   const violations = productionSafetyViolations({
     NODE_ENV: value.NODE_ENV,
     JWT_SECRET: value.JWT_SECRET,

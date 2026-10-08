@@ -214,7 +214,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
         return sendError(reply, 400, 'BAD_REQUEST', 'No file uploaded');
       }
 
-      const result = await UploadService.uploadProductImage(data);
+      const result = await UploadService.uploadAvatar(data);
       return sendSuccess(reply, result);
     } catch (error) {
       if (error instanceof UploadValidationError) {

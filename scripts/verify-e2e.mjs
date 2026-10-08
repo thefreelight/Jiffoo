@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { createRequire } from 'node:module';
 import { testRoot } from '../apps/api/tests/fixtures/plugin-signing-keys.ts';
+import { startUploadTestStorage } from './upload-test-storage.mjs';
 
 const started = performance.now();
 const visual = process.argv.includes('--visual');
@@ -59,6 +60,7 @@ if (visual) {
   mkdirSync(resolve(root, 'e2e/visual-results', env.VISUAL_SET), { recursive: true });
 }
 const results = [];
+let uploadStorage;
 const children = [];
 const logs = [];
 const providerStubMarker = readFileSync(resolve(root, 'e2e/provider-stubs/marker.js'), 'utf8');
@@ -91,6 +93,7 @@ playwrightGroups.push(['32-plugin-removal']);
 playwrightGroups.push(['33-plugin-recorded-error']);
 playwrightGroups.push(['34-shop-reload']);
 playwrightGroups.push(['35-extension-center']);
+playwrightGroups.push(['37-uploaded-storage']);
 // Quota exhaustion runs alone and last; project boundaries clean only protection keys in test DB 14.
 playwrightGroups.push(['36-shop-availability']);
 
@@ -257,6 +260,10 @@ async function runPlaywrightGroups() {
 }
 
 try {
+  await step('Preflight upload storage before database reset', async () => {
+    uploadStorage = await startUploadTestStorage();
+    Object.assign(env, uploadStorage.env, { UPLOAD_S3_BUCKET: `${uploadStorage.env.UPLOAD_S3_BUCKET}-e2e` });
+  });
   await step('Check observed browser contexts', () => {
     for (const args of [['--test', 'scripts/check-e2e-contexts.test.mjs'], ['scripts/check-e2e-contexts.mjs']]) {
       const result = spawnSync(process.execPath, args, { cwd: root, env, stdio: 'inherit' });
@@ -299,6 +306,7 @@ try {
   }
 } finally {
   await step('Stop E2E child processes', stop);
+  uploadStorage?.stop();
   try {
     console.log(`Playwright results: ${playwrightCounts.expected} passed, ${playwrightCounts.unexpected} failed, ${playwrightCounts.skipped} skipped`);
   } catch {

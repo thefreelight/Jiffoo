@@ -2,11 +2,22 @@ import { expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { availabilityResponse, classifyAvailability, resolveAvailabilityReads, retryDeadline, safeRetryTarget, ShopAvailability } from '../lib/availability';
+import { safeCoreFailure, uploadStorageMessage } from '../lib/core-errors';
 
 it('B4 theme package 503 follows the existing availability deadline and retains its typed code', async () => {
   for (const code of ['THEME_PACKAGE_UNAVAILABLE', 'THEME_PACKAGE_MATERIALIZATION_TIMEOUT']) {
     const error = await classifyAvailability(new Response(JSON.stringify({ error: { code } }), { status: 503, headers: { 'Retry-After': '5' } }), 1000);
     expect(error).toMatchObject({ status: 503, code, retryAt: 6000 });
+  }
+});
+it('B5 upload storage 503 retains its typed code and Retry-After deadline', async () => {
+  const error = await classifyAvailability(new Response(JSON.stringify({ error: { code: 'UPLOAD_STORAGE_UNAVAILABLE' } }),
+    { status: 503, headers: { 'Retry-After': '5' } }), 1000);
+  expect(error).toMatchObject({ status: 503, code: 'UPLOAD_STORAGE_UNAVAILABLE', retryAt: 6000 });
+  for (const [code, status] of [['UPLOAD_STORAGE_UNAVAILABLE', 503], ['UPLOAD_STORAGE_CORRUPT', 500]] as const) {
+    const response = await safeCoreFailure(Response.json({ error: { code, message: 'private' } }, { status }));
+    expect(response.status).toBe(status); expect((await response.json()).error.code).toBe(code);
+    for (const locale of ['en', 'zh-Hans', 'zh-Hant'] as const) expect(uploadStorageMessage(code, locale)).toBeTruthy();
   }
 });
 

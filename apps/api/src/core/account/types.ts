@@ -8,7 +8,7 @@ import { z } from 'zod';
 // Update profile schema
 export const UpdateProfileSchema = z.object({
   username: z.string().min(3).max(50).optional(),
-  avatar: z.string().url().optional(),
+  avatar: z.string().url().or(z.string().regex(/^\/uploads\/avatars\/[a-f0-9]{64}\/original\.(?:jpg|png|webp)$/)).optional(),
   locale: z.enum(['en', 'zh-Hans', 'zh-Hant']).optional(),
 });
 

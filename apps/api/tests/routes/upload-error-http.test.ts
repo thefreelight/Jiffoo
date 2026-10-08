@@ -22,6 +22,13 @@ for (const [route, code, userIndex] of [
   ['/api/v1/account/avatar', 'VALIDATION_ERROR', 0],
   ['/api/v1/admin/products/upload-image', 'UPLOAD_FAILED', 1],
 ] as const) {
+  it('A real TCP ' + route + ' rejects forged image MIME with the original 400 validation code', async () => {
+    const body = new FormData();
+    body.append('file', new Blob([new Uint8Array([1])], { type: 'image/png' }), 'upload.png');
+    const response = await fixture.request(route, { method: 'POST', headers: { Authorization: `Bearer ${signJwt(users[userIndex])}` }, body });
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe(code);
+  });
   it.each(['invalid type', 'too large'])('B real TCP ' + route + ' preserves HEAD 400 ' + code + ' for %s', async reason => {
     const body = new FormData();
     const bytes = reason === 'too large' ? new Uint8Array(5 * 1024 * 1024 + 1) : new Uint8Array([1]);
@@ -39,7 +46,7 @@ for (const [route, code, userIndex] of [
     expect(JSON.stringify(result)).not.toMatch(/stack|cause|Prisma|SQL/);
   });
   it('K real TCP ' + route + ' sanitizes a real transactional foreign-key failure to 500', async () => {
-    expect((await fixture.request('/api/v1/__fixture/b2b-constraint/upload', { method: 'POST' })).status).toBe(200);
+    expect((await fixture.request(`/api/v1/__fixture/b2b-constraint/${userIndex === 0 ? 'uploadAvatar' : 'upload'}`, { method: 'POST' })).status).toBe(200);
     const body = new FormData();
     body.append('file', new Blob([new Uint8Array([1])], { type: 'image/png' }), 'upload.png');
     const response = await fixture.request(route, { method: 'POST', headers: { Authorization: `Bearer ${signJwt(users[userIndex])}` }, body });

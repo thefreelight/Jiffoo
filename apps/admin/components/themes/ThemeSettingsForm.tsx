@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { productsApi, uploadApi, unwrapApiResponse } from '@/lib/api';
-import { themeMessage } from '@/lib/theme-messages';
+import { themeError, themeMessage } from '@/lib/theme-messages';
 import type { Locale, ThemeConfig, ThemeSetting } from '@/lib/themes';
 import { HomeSectionsEditor } from './HomeSectionsEditor';
 import type { HomeSection } from '@/lib/themes';
@@ -21,6 +21,7 @@ function Field({ setting, locale, value, onChange }: {
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const [products, setProducts] = useState<Array<{ id: string; name: string }>>([]);
   const [query, setQuery] = useState('');
+  const [uploadError, setUploadError] = useState('');
   if (setting.type === 'text') {
     const translated = value as Record<Locale, string>;
     return <fieldset className="space-y-2"><legend className="font-medium">{label}</legend>
@@ -43,9 +44,12 @@ function Field({ setting, locale, value, onChange }: {
     <label className="block text-sm">{themeMessage(locale, 'image')}
       <input type="file" accept="image/png,image/jpeg,image/webp" onChange={async (event) => {
         const file = event.target.files?.[0];
-        if (file) onChange(unwrapApiResponse(await uploadApi.uploadProductImage(file)).url);
+        if (!file) return;
+        setUploadError('');
+        try { onChange(unwrapApiResponse(await uploadApi.uploadProductImage(file)).url); }
+        catch (error) { setUploadError(themeError(locale, (error as { code?: string }).code ?? 'UNKNOWN_ERROR')); }
       }} />
-    </label></div>;
+    </label>{uploadError && <p role="alert">{uploadError}</p>}</div>;
   if (setting.type === 'category') return <div><label htmlFor={id}>{label}</label>
     <select id={id} className="block w-full rounded border p-2" value={String(value)}
       onFocus={async () => {

@@ -33,6 +33,15 @@ const config: ThemeConfig = {
 };
 
 describe('Admin theme settings and validation', () => {
+  it('B5 maps upload storage outages and corruption in all three locales', () => {
+    for (const [code, key] of [['UPLOAD_STORAGE_UNAVAILABLE', 'uploadUnavailable'], ['UPLOAD_STORAGE_CORRUPT', 'uploadCorrupt']] as const) {
+      expect(themeErrorKeys[code]).toBe(key);
+      for (const locale of ['en', 'zh-Hans', 'zh-Hant'] as const) {
+        expect(themeError(locale, code)).not.toBe(themeError(locale, 'UNKNOWN_ERROR'));
+        expect(themeError(locale, code)).not.toContain(code);
+      }
+    }
+  });
   it('B4 maps storage and lease failures distinctly in all three locales', () => {
     const cases = { THEME_PACKAGE_UNAVAILABLE: 'unavailable', THEME_PACKAGE_MATERIALIZATION_TIMEOUT: 'unavailable', THEME_PACKAGE_CORRUPT: 'corrupt', THEME_OPERATION_IN_PROGRESS: 'busy', THEME_OPERATION_LEASE_LOST: 'leaseLost' } as const;
     for (const [code, key] of Object.entries(cases)) {

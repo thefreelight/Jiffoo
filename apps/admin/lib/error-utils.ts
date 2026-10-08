@@ -14,6 +14,8 @@ const ERROR_CODE_TO_I18N_KEY: Partial<Record<ApiErrorCode, { key: string; fallba
   BAD_REQUEST: { key: 'common.errors.validation', fallback: 'Validation Error' },
   INTERNAL_SERVER_ERROR: { key: 'common.errors.serverError', fallback: 'Server error. Please try again later.' },
   RATE_LIMITED: { key: 'common.errors.rateLimited', fallback: 'Too many requests. Please try again later.' },
+  UPLOAD_STORAGE_UNAVAILABLE: { key: 'common.errors.uploadStorageUnavailable', fallback: 'Upload storage is temporarily unavailable. Try again shortly.' },
+  UPLOAD_STORAGE_CORRUPT: { key: 'common.errors.uploadStorageCorrupt', fallback: 'Uploaded media is corrupt. Upload the image again.' },
   PLUGIN_CONFIG_REQUIRED: { key: 'merchant.plugins.configRequired', fallback: 'Plugin configuration is required before enabling.' },
   PLUGIN_OPERATION_IN_PROGRESS: { key: 'common.errors.pluginOperationInProgress', fallback: 'Another operation is in progress for this plugin.' },
   PLUGIN_OPERATION_LEASE_LOST: { key: 'common.errors.pluginOperationLeaseLost', fallback: 'The plugin operation lost its lease. Please retry.' },

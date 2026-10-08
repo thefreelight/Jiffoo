@@ -65,6 +65,7 @@ async function main() {
     accountRead: { service: AccountService, method: 'getProfile' },
     accountDelete: { service: AccountService, method: 'deleteAccount' },
     upload: { service: UploadService, method: 'uploadProductImage' },
+    uploadAvatar: { service: UploadService, method: 'uploadAvatar' },
     customerCreate: { service: AdminUserService, method: 'createUser' },
     inventoryAdjustment: { service: InventoryService, method: 'adjustStock' },
     settingsBatch: { service: systemSettingsService, method: 'batchUpdate' },

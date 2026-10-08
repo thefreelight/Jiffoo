@@ -1,4 +1,5 @@
 import { isShopLocale, type ShopLocale } from './locale';
+import { uploadStorageMessage } from './core-errors';
 
 export type AvailabilityStatus = 429 | 503;
 export class ShopAvailability extends Error {
@@ -63,7 +64,8 @@ export const availabilityText: Record<ShopLocale, { limited: string; unavailable
 
 export function availabilityMessage(error: ShopAvailability, locale: ShopLocale, now = Date.now()): string {
   const text = availabilityText[locale];
-  return `${error.status === 429 ? text.limited : text.unavailable}. ${text.wait.replace('{seconds}', String(error.retryAfter(now)))}`;
+  const title = uploadStorageMessage(error.code, locale) ?? (error.status === 429 ? text.limited : text.unavailable);
+  return `${title}${title.endsWith('.') || title.endsWith('。') ? '' : '.'} ${text.wait.replace('{seconds}', String(error.retryAfter(now)))}`;
 }
 
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
@@ -80,7 +82,7 @@ export function availabilityResponse(request: Request, now = Date.now()): Respon
   const retryAt = url.searchParams.has('retryAt') && Number.isSafeInteger(requestedDeadline) && requestedDeadline >= 0 && requestedDeadline <= 8640000000000000 ? requestedDeadline : now + 5000;
   const retry = Math.max(0, Math.ceil((retryAt - now) / 1000));
   const text = availabilityText[locale];
-  const title = status === 429 ? text.limited : text.unavailable;
+  const title = uploadStorageMessage(code, locale) ?? (status === 429 ? text.limited : text.unavailable);
   const control = retry ? `<button id="retry" type="button" disabled>${escapeHtml(text.retry)}</button>` : `<a id="retry" role="button" href="${escapeHtml(target)}">${escapeHtml(text.retry)}</a>`;
   const html = `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><link rel="stylesheet" href="/availability.css"><script src="/availability.js" defer></script></head><body><main><p class="eyebrow">JIFFOO</p><h1>${escapeHtml(title)}</h1><p>${escapeHtml(text.description)}</p><p id="wait" role="status" data-template="${escapeHtml(text.wait)}" data-deadline="${retryAt}" data-target="${escapeHtml(target)}">${escapeHtml(text.wait.replace('{seconds}', String(retry)))}</p>${control}<noscript><p>${escapeHtml(text.noScript)}</p></noscript></main></body></html>`;
   return new Response(html, { status, headers: {

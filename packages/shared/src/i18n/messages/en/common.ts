@@ -116,6 +116,8 @@ export const common = {
 
   // Error messages
   errors: {
+    uploadStorageUnavailable: 'Upload storage is temporarily unavailable. Try again shortly.',
+    uploadStorageCorrupt: 'Uploaded media is corrupt. Upload the image again.',
     general: 'Something went wrong. Please try again.',
     notFound: 'Not found',
     unauthorized: 'Unauthorized access',

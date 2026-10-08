@@ -51,6 +51,8 @@ const labels = {
   corrupt: ['Theme package is corrupt. Install a valid package.', '主题包已损坏，请安装有效的主题包。', '主題包已損毀，請安裝有效的主題包。'],
   busy: ['Another theme operation is in progress. Try again shortly.', '另一个主题操作正在进行，请稍后重试。', '另一個主題操作正在進行，請稍後再試。'],
   leaseLost: ['Theme operation expired. Reload and try again.', '主题操作已过期，请刷新后重试。', '主題操作已逾時，請重新整理後再試。'],
+  uploadUnavailable: ['Upload storage is temporarily unavailable. Try again shortly.', '上传存储暂时不可用，请稍后重试。', '上傳儲存暫時無法使用，請稍後再試。'],
+  uploadCorrupt: ['Uploaded media is corrupt. Upload the image again.', '上传的媒体已损坏，请重新上传图片。', '上傳的媒體已損毀，請重新上傳圖片。'],
 } as const;
 
 export type ThemeLabel = keyof typeof labels;
@@ -73,6 +75,7 @@ export const themeErrorKeys = {
   THEME_CONFIG_NO_PREVIOUS: 'noPrevious', THEME_NO_PREVIOUS: 'noPrevious',
   THEME_PACKAGE_UNAVAILABLE: 'unavailable', THEME_PACKAGE_MATERIALIZATION_TIMEOUT: 'unavailable',
   THEME_PACKAGE_CORRUPT: 'corrupt', THEME_OPERATION_IN_PROGRESS: 'busy', THEME_OPERATION_LEASE_LOST: 'leaseLost',
+  UPLOAD_STORAGE_UNAVAILABLE: 'uploadUnavailable', UPLOAD_STORAGE_CORRUPT: 'uploadCorrupt',
 } as const satisfies Record<string, ThemeLabel>;
 
 export function themeError(locale: Locale, code: string, details?: unknown) {

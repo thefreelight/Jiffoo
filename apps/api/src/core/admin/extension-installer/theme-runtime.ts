@@ -4,7 +4,7 @@ import { themeManifestSchema, type ThemeManifest, type ThemeTarget } from '@jiff
 import { prisma } from '@/config/database';
 import { resolveThemePackage, type ThemeFiles } from '@/core/storage/current-theme-package';
 import { withThemeLeases, fenceThemeLeases, type ThemeLease } from '@/core/storage/theme-operation-lease';
-import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
+import { readMediaFile } from '@/core/storage/uploaded-media-set';
 import { ExtensionInstallerError } from './errors';
 import { defaultHomeSections, validateHomeSections } from './theme-home-sections';
 
@@ -61,7 +61,7 @@ export async function validateConfig(manifest: ThemeManifest, values: Record<str
       if (!pkg || !await pkg.exists(value)) fail('THEME_CONFIG_INVALID', 400, path);
     }
     if (setting.type === 'image' && typeof value === 'string' && value.startsWith('/uploads/')
-      && !await uploadedFileStore.get(value.slice('/uploads/'.length)))
+      && !await readMediaFile(value.slice('/uploads/'.length)))
       fail('THEME_CONFIG_INVALID', 400, path);
     if (setting.type === 'category' && !await prisma.category.findUnique({ where: { id: value as string } }))
       fail('THEME_CONFIG_INVALID', 400, path);
