@@ -141,8 +141,9 @@ export class EventDeliveryEngine {
         occurredAt: record.occurredAt.toISOString(), attempt: delivery.attempts,
         data: parseEventPayload(record.type as EventKey, record.version, record.data),
       };
-      return deliverInstallationEvent(delivery.installationId, Object.freeze(event));
+      return deliverInstallationEvent(delivery.installationId, Object.freeze(event), databaseAbort.signal);
     };
+    const databaseAbort = new AbortController();
     const invocation = invoke();
     // A timeout cannot cancel plugin code. Retain its local slot until it actually settles.
     void invocation.finally(() => this.installations.delete(delivery.installationId)).catch(() => undefined);
@@ -150,7 +151,7 @@ export class EventDeliveryEngine {
       const skipped = await Promise.race([
         invocation,
         new Promise<never>((_, reject) => {
-          timeout = setTimeout(() => reject(new Error(`Event handler timed out after ${this.timeoutMs}ms`)), this.timeoutMs);
+          timeout = setTimeout(() => { databaseAbort.abort(); reject(new Error(`Event handler timed out after ${this.timeoutMs}ms`)); }, this.timeoutMs);
         }),
       ]);
       await prisma.$executeRaw`

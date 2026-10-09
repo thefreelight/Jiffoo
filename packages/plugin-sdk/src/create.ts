@@ -140,6 +140,13 @@ export function register(ctx: PluginContext): void {
 export function register(ctx: PluginContext): void {
   const message = typeof ctx.config.message === 'string' ? ctx.config.message : 'Ready';
   ctx.http.route({ method: 'GET', path: '/status', handler: async () => ({ ok: true, message }) });
+  ctx.http.route({ method: 'POST', path: '/records', handler: async (request) => {
+    const { id, value } = request.body as { id: string; value: string };
+    return ctx.database.transaction(async tx => {
+      await tx.query('INSERT INTO integration_records (id, value) VALUES ($1, $2)', [id, value]);
+      return (await tx.query<{ id: string; value: string }>('SELECT id, value FROM integration_records WHERE id = $1', [id])).rows[0];
+    });
+  } });
 }
 `,
   };

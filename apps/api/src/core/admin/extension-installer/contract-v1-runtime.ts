@@ -3,6 +3,7 @@ import { ApiError } from '@/utils/api-errors';
 import { fulfillmentV1Methods, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods, isEventKey, type PluginContext, type PluginEntryModule, type EventSubscription, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 import { redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { decodePaymentWebhook, PAYMENT_WEBHOOK_WIRE_LIMIT } from './payment-webhook-wire';
+import { createPluginDatabase, withPluginDatabaseHandler } from './plugin-database';
 
 type JsonObject = Record<string, unknown>;
 type RuntimeOptions = { slug: string; installationId: string; version: string; config: JsonObject; configSchema?: unknown; declaredContracts: Array<{ name: string; version: number }>; subscriptions: EventSubscription[] };
@@ -36,14 +37,15 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
   const redact = (value: unknown) => redactPluginText(typeof value === 'string' ? value : JSON.stringify(value) ?? String(value), options.config, options);
   const context: PluginContext = {
     plugin: { slug: options.slug, installationId: options.installationId, version: options.version }, config: Object.freeze({ ...options.config }),
+    database: createPluginDatabase(options.slug, options.installationId),
     logger: { info: (message, data) => console.info(`[plugin:${options.slug}] ${redact(message)}`, data === undefined ? '' : redact(data)), warn: (message, data) => console.warn(`[plugin:${options.slug}] ${redact(message)}`, data === undefined ? '' : redact(data)), error: (message, data) => console.error(`[plugin:${options.slug}] ${redact(message)}`, data === undefined ? '' : redact(data)) },
-    http: { route: (route) => app.route({ method: route.method as any, url: route.path, handler: route.handler as any }) },
+    http: { route: (route) => app.route({ method: route.method as any, url: route.path, handler: (request, reply) => withPluginDatabaseHandler(options.slug, options.installationId, () => route.handler(request, reply)) }) },
     events: { subscribe: (eventType, version, handler) => {
       const key = `${eventType}:${version}`;
       if (!registering || !isEventKey(eventType) || version !== 1 || typeof handler !== 'function') throw new Error(`Invalid event registration ${key}`);
       if (!options.subscriptions.some((entry) => entry.type === eventType && entry.version === version)) throw new Error(`Undeclared event subscription ${key}`);
       if (handlers.has(key)) throw new Error(`Duplicate event handler ${key}`);
-      handlers.set(key, handler as PluginEventHandler);
+      handlers.set(key, event => withPluginDatabaseHandler(options.slug, options.installationId, () => handler(event as any)));
     } },
     contracts: { implement: (name, version, implementation) => {
       if (!(name in contractMethods) || version !== 1) throw new Error(`Unsupported contract ${name} v${version}`);
@@ -59,7 +61,7 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
         const webhook = name === 'payment' && method === 'handleWebhook';
         app.post(`/__contracts/${name}/v1/${method}`, webhook ? { bodyLimit: PAYMENT_WEBHOOK_WIRE_LIMIT } : {}, async (request: FastifyRequest, reply: FastifyReply) => {
           try {
-            return reply.send(await handler(webhook ? decodePaymentWebhook(request.body) : request.body));
+            return reply.send(await withPluginDatabaseHandler(options.slug, options.installationId, () => handler(webhook ? decodePaymentWebhook(request.body) : request.body)));
           } catch (error) {
             return reply.code(500).send({ error: redact(error instanceof Error ? error.message : String(error)) });
           }

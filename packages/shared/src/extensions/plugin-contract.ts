@@ -50,9 +50,30 @@ export interface PluginContractDeclaration {
   version: 1;
 }
 
+export type PluginDatabaseJson = null | boolean | number | string | readonly PluginDatabaseJson[] | { readonly [key: string]: PluginDatabaseJson };
+export type PluginDatabaseParameter = PluginDatabaseJson | Date | Uint8Array;
+export interface PluginDatabaseOptions { readonly signal?: AbortSignal; }
+export interface PluginDatabaseResult<Row extends Record<string, unknown>> {
+  readonly rows: readonly Row[];
+  readonly rowCount: number | null;
+}
+export interface PluginDatabaseTransaction {
+  query<Row extends Record<string, unknown> = Record<string, unknown>>(text: string, values: readonly PluginDatabaseParameter[], options?: PluginDatabaseOptions): Promise<PluginDatabaseResult<Row>>;
+}
+export interface PluginDatabase extends PluginDatabaseTransaction {
+  transaction<T>(run: (transaction: PluginDatabaseTransaction) => Promise<T>, options?: PluginDatabaseOptions): Promise<T>;
+}
+
 export interface PluginContext {
   plugin: { slug: string; installationId: string; version: string };
   config: Readonly<Record<string, unknown>>;
+  /**
+   * Parameterized queries and transactions admitted only during a live handler.
+   * Plugin code is trusted in-process code. The schema scope prevents accidental
+   * use of Core tables; it does not isolate a malicious plugin. Registration,
+   * detached timers and captured transactions after settlement cannot use this API.
+   */
+  readonly database: PluginDatabase;
   logger: { info(message: string, data?: unknown): void; warn(message: string, data?: unknown): void; error(message: string, data?: unknown): void };
   http: { route(route: { method: string; path: string; handler: (...args: any[]) => unknown }): void };
   events: { subscribe<K extends EventKey>(eventType: K, version: 1, handler: (event: PluginEvent<K>) => Promise<unknown> | unknown): void };

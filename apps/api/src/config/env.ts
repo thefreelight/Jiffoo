@@ -19,6 +19,9 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 if (process.env.JIFFOO_TEST_PLUGIN_MIGRATION_CONTROL !== undefined && process.env.NODE_ENV !== 'test') {
   throw new Error('Plugin migration test controls are not permitted outside NODE_ENV=test');
 }
+if (process.env.JIFFOO_TEST_PLUGIN_DATABASE_CONTROL !== undefined && process.env.NODE_ENV !== 'test') {
+  throw new Error('Plugin database test controls are not permitted outside NODE_ENV=test');
+}
 
 export const envSchema = z.object({
   // Environment
@@ -27,6 +30,7 @@ export const envSchema = z.object({
 
   // Database
   DATABASE_URL: z.string(),
+  PLUGIN_DB_POOL_MAX: z.coerce.number().int().min(1).max(64).default(4),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   PLUGIN_SECRETS_KEY: z.string().optional(),
   PRISMA_LOG_QUERY: z.string().transform((v) => v === 'true').default('false'),

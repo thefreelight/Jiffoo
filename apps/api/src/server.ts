@@ -37,6 +37,7 @@ import { sharedProtection, SharedProtectionUnavailable, sendProtectionUnavailabl
 import { isProtectionExempt } from '@/plugins/rate-limiter';
 import { assertProductionSafety } from '@/config/production-safety';
 import { prisma } from '@/config/database';
+import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
 import { redisCache } from '@/core/cache/redis';
 import { LoggerService, logger, unifiedLogger } from '@/core/logger/unified-logger';
 import { accessLogMiddleware, errorLogMiddleware } from '@/core/logger/middleware';
@@ -403,7 +404,9 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
     return {
       app,
       async stop() {
-        await app.close();
+        const closed = app.close();
+        await closePluginDatabase();
+        await closed;
         sharedProtection.close();
         await redisCache.disconnect();
         await prisma.$disconnect();
@@ -413,6 +416,7 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
     LoggerService.logError(error as Error, { context: 'Server startup' });
     console.error('Error starting server:', error);
     await fastify.close();
+    await closePluginDatabase();
     await redisCache.disconnect();
     await prisma.$disconnect();
     throw error;
@@ -423,6 +427,7 @@ const gracefulShutdown = async (signal: string) => {
   LoggerService.logSystem(`Received ${signal}, shutting down gracefully`);
 
   try {
+    await closePluginDatabase();
     await redisCache.disconnect();
     await prisma.$disconnect();
 

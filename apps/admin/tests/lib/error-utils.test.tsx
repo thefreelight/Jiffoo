@@ -15,6 +15,12 @@ import { merchant as hansMerchant } from '../../../../packages/shared/src/i18n/m
 import { merchant as hantMerchant } from '../../../../packages/shared/src/i18n/messages/zh-Hant/merchant';
 
 describe('Typed localized client error contracts', () => {
+  it.each([
+    [ApiErrorCodes.PLUGIN_DATABASE_BUSY, 503, 'Plugin database is busy. Try again shortly.'],
+    [ApiErrorCodes.PLUGIN_DATABASE_OUTCOME_UNKNOWN, 502, 'Plugin database commit outcome is unknown. Do not retry automatically.'],
+  ] as const)('J database code %s retains its specific safe client message', (code, status, expected) => {
+    expect(resolveApiErrorMessage(new AdminApiError('PRIVATE_DATABASE_DETAIL', code, undefined, status), key => key)).toBe(expected);
+  });
   it.each([[en, enMerchant], [hans, hansMerchant], [hant, hantMerchant]])('A4 unmatched Core codes never expose server text and use localized status classes in locale %#', (common, merchant) => {
     const translate = (key: string) => key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], { common, merchant }) as string;
     for (const [status, expected] of [[409, common.errors.requestCouldNotBeCompleted], [503, common.errors.temporarilyUnavailable], [502, common.errors.serverError], [500, common.errors.serverError]] as const) {

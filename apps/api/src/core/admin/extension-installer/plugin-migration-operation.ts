@@ -18,9 +18,12 @@ import { isContractV1Runtime } from './contract-v1-runtime';
 import { claimPluginNamespace, executePluginMigrationFiles, migrationPlan, renewPluginMigrationLease, namespaceProvisioningConfirmed, PLUGIN_MIGRATION_DEADLINE_MS } from './plugin-migration-executor';
 import { INCOMPLETE_PLUGIN_OPERATION_PHASES, updateOwnedPluginMigrationOperation, updateOwnedPluginMigrationAttempt } from './plugin-migration-gate';
 import type { InstalledPlugin, PluginInstallOptions } from './types';
+import { PluginDatabaseQueue } from './plugin-database-queue';
+import { pluginDatabaseBeforeMigrationRun, pluginDatabaseLimit } from './plugin-database-test-control';
 
 const terminal = new Set(['SUCCESS', 'FAILED', 'NEEDS_RECOVERY', 'RECOVERED']);
 const running = new Map<string, Promise<void>>();
+const migrationSlots = new PluginDatabaseQueue(2, 2, Number.POSITIVE_INFINITY);
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 export async function drainPluginInstallOperations(): Promise<void> { await Promise.all([...running.values()]); }
 
@@ -87,13 +90,26 @@ async function runPluginInstallOperation(id: string): Promise<void> {
   let initialPrefix = 0;
   let initiallyProvisioned = false;
   let finish: Prisma.PluginMigrationOperationUpdateManyMutationInput | undefined;
-  const assertDeadline = () => { if (Date.now() >= operation.createdAt.getTime() + PLUGIN_MIGRATION_DEADLINE_MS) throw new ApiError('PLUGIN_MIGRATION_FAILED'); };
+  let releaseSlot: (() => void) | undefined;
+  const queuedAbort = new AbortController();
+  const deadline = operation.createdAt.getTime() + pluginDatabaseLimit('migrationMs', PLUGIN_MIGRATION_DEADLINE_MS);
+  const assertDeadline = () => { if (Date.now() >= deadline) throw new ApiError('PLUGIN_MIGRATION_FAILED'); };
   const heartbeat = setInterval(() => {
     if (renewal) return;
-    renewal = renewPluginMigrationLease(operation.slug, operation.leaseToken).catch(error => { leaseError = error; }).finally(() => { renewal = undefined; });
+    renewal = renewPluginMigrationLease(operation.slug, operation.leaseToken).catch(error => { leaseError = error; queuedAbort.abort(); }).finally(() => { renewal = undefined; });
   }, 60_000);
   try {
+    const priorNamespace = await prisma.pluginNamespace.findUnique({ where: { slug: operation.slug } });
+    initiallyProvisioned = Boolean(priorNamespace?.provisionedAt);
+    initialPrefix = priorNamespace ? await prisma.pluginMigrationSuccess.count({ where: { namespaceId: priorNamespace.id } }) : 0;
+    // Waiting holds and renews the lease, remains QUEUED, and consumes the same deadline.
+    try { releaseSlot = await migrationSlots.acquire('migration-runs', queuedAbort.signal, Math.max(1, deadline - Date.now())); }
+    catch { throw new ApiError('PLUGIN_MIGRATION_FAILED'); }
+    if (leaseError) throw leaseError;
+    assertDeadline();
     await updateOwnedPluginMigrationOperation(operation, { phase: 'VALIDATING', startedAt: new Date() });
+    await pluginDatabaseBeforeMigrationRun();
+    assertDeadline();
     if (!operation.artifactBytes) throw new ApiError('PLUGIN_MIGRATION_RECOVERY_REQUIRED');
     const bytes = Buffer.from(operation.artifactBytes);
     const inspection = await inspectPluginUpload(bytes);
@@ -132,6 +148,7 @@ async function runPluginInstallOperation(id: string): Promise<void> {
     const recover = prefix > initialPrefix || !initiallyProvisioned && namespace?.provisionedAt || mapped.body.error.code === 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN';
     finish = { phase: recover ? 'NEEDS_RECOVERY' : 'FAILED', committedPrefix: Math.min(prefix, (operation.declarations as unknown as PluginMigrationDeclaration[]).length), errorCode: mapped.body.error.code, recoveryState: recover ? 'REQUIRED' : 'NONE', finishedAt: new Date() };
   } finally {
+    try {
     clearInterval(heartbeat);
     await renewal;
     await candidate?.rollback().catch(() => undefined);
@@ -146,6 +163,7 @@ async function runPluginInstallOperation(id: string): Promise<void> {
         await releasePluginOperationLease(operation.slug, operation.leaseToken);
       }
     } else await releasePluginOperationLease(operation.slug, operation.leaseToken);
+    } finally { releaseSlot?.(); }
   }
 }
 

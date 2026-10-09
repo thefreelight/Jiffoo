@@ -144,6 +144,36 @@ afterEach(async () => {
 afterAll(async () => { await app.close(); await deleteTestUser(actorId); });
 
 describe('Declared plugin migrations over real TCP', () => {
+  it('G unqualified migration CREATE targets only the plugin schema with public excluded', async () => {
+    const slug = own(), table = `scope_${randomUUID().replaceAll('-', '')}`;
+    await install(await archive(slug, [sqlFile(`CREATE TABLE ${table} (path TEXT); INSERT INTO ${table} VALUES (current_setting('search_path'));`)]));
+    const schema = pluginSchemaName(slug);
+    const rows = await prisma.$queryRawUnsafe<Array<{ path: string }>>(`SELECT path FROM "${schema}".${table}`);
+    expect(rows.map(row => row.path.replaceAll('"', ''))).toEqual([schema]);
+    expect(await prisma.$queryRaw`SELECT n.nspname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = ${table}`).toEqual([{ nspname: schema }]);
+  });
+  it('D dedicated migration runs are limited to two and further leased operations remain QUEUED', async () => {
+    const child = await apiChild('before-file', 1);
+    try {
+      const ids: string[] = [];
+      for (let index = 0; index < 2; index++) {
+        const { accepted } = await start(await archive(own(), [sqlFile('CREATE TABLE records (id INTEGER);')]), true, child.origin);
+        expect(accepted.status).toBe(202); ids.push((await accepted.json()).data.operationId);
+      }
+      const first = await child.next(), second = await child.next();
+      const queuedSlug = own();
+      const { accepted } = await start(await archive(queuedSlug, [sqlFile('CREATE TABLE records (id INTEGER);')]), true, child.origin);
+      expect(accepted.status).toBe(202); const queuedId = (await accepted.json()).data.operationId; ids.push(queuedId);
+      expect(await prisma.pluginMigrationOperation.findUnique({ where: { id: queuedId } })).toMatchObject({ phase: 'QUEUED', startedAt: null });
+      expect(await prisma.pluginOperationLease.findUnique({ where: { slug: queuedSlug } })).not.toBeNull();
+      const active = await prisma.$queryRaw<Array<{ id: string }>>`SELECT application_name AS id FROM pg_stat_activity WHERE application_name IN (${`jiffoo-plugin-migration:${first.operationId}`}, ${`jiffoo-plugin-migration:${second.operationId}`}, ${`jiffoo-plugin-migration:${queuedId}`})`;
+      expect(active).toHaveLength(2);
+      child.release(first); await terminal(first.operationId, 'SUCCESS', child.origin);
+      const third = await child.next(); expect(third.operationId).toBe(queuedId);
+      child.release(second); child.release(third);
+      for (const id of ids) await terminal(id, 'SUCCESS', child.origin);
+    } finally { await child.close(); }
+  });
   const invalid = ['missing file', 'extra file', 'outside migrations', 'duplicate id', 'duplicate order', 'nonconsecutive order', 'absolute path', 'backslash', 'parent path', 'wrong hash', 'uppercase hash', 'BOM', 'NUL', 'invalid UTF-8', 'wrong API version'] as const;
   it.each(invalid.flatMap(kind => ['preview', 'install'].map(route => [kind, route] as const)))('A rejects %s at %s without namespace or publication', async (kind, route) => {
     const slug = own(), first = sqlFile('CREATE TABLE records (id INTEGER PRIMARY KEY);');

@@ -135,7 +135,7 @@ export async function executePluginMigrationFiles(operation: PluginMigrationOper
         await fence(client, operation);
         await client.query(`SET LOCAL lock_timeout = '${lockTimeout}ms'`);
         await client.query(`SET LOCAL statement_timeout = '${Math.max(1, Math.min(control.statementTimeoutMs ?? statementTimeout, deadline - Date.now()))}ms'`);
-        await client.query(`SET LOCAL search_path = "${namespace.schemaName}", public`);
+        await client.query(`SET LOCAL search_path = "${namespace.schemaName}"`);
         if (!currentNamespace.provisionedAt) await client.query(`CREATE SCHEMA "${namespace.schemaName}"`);
         const file = files.find(candidate => candidate.path === declaration.path)!;
         await client.query(Buffer.from(file.content).toString('utf8'));

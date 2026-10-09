@@ -34,6 +34,8 @@ import {
   registerContractV1Runtime,
 } from './contract-v1-runtime';
 import { withPluginMigrationGate, assertPluginNotPaused } from './plugin-migration-gate';
+import { withPluginDatabaseInvocation, isPluginDatabaseError } from './plugin-database';
+import { pluginDatabaseLimit } from './plugin-database-test-control';
 import { registerPluginStateReset } from './plugin-state';
 import { recordPluginFailure, redactPluginFailure } from './plugin-failure';
 import { readStoredPluginManifest } from './stored-manifest';
@@ -782,13 +784,15 @@ export async function callContract(
       throw new ContractCallError('PLUGIN_DISABLED', 'Plugin is disabled');
     }
     const webhook = contractName === 'payment' && method === 'handleWebhook';
-    const invocation = withPluginMigrationGate(slug, async () => runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: webhook ? encodePaymentWebhook(input) : input as Record<string, unknown> }));
+    const databaseAbort = new AbortController();
+    const invocation = withPluginMigrationGate(slug, () => withPluginDatabaseInvocation(slug, instance.id, async () => runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: webhook ? encodePaymentWebhook(input) : input as Record<string, unknown> }), databaseAbort.signal));
     injected = true;
     void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
+    let timeout: NodeJS.Timeout;
     const response = await Promise.race([
       invocation,
-      new Promise<never>((_, reject) => setTimeout(() => reject(new ContractCallError('PLUGIN_TIMEOUT', 'Contract call timed out')), getPluginTimeoutMs())),
-    ]);
+      new Promise<never>((_, reject) => { timeout = setTimeout(() => { databaseAbort.abort(); reject(new ContractCallError('PLUGIN_TIMEOUT', 'Contract call timed out')); }, pluginDatabaseLimit('invocationMs', getPluginTimeoutMs())); }),
+    ]).finally(() => clearTimeout(timeout));
     if (response.statusCode >= 400) {
       if (webhook) throw new ContractCallError('PLUGIN_ERROR', `Contract route returned ${response.statusCode}`);
       const failure = response.json() as { error?: unknown };
@@ -806,7 +810,7 @@ export async function callContract(
     await sharedProtection.result(permit, true);
     return parsed.data;
   } catch (error) {
-    if (error instanceof ContractCallError && injected) {
+    if ((error instanceof ContractCallError || isPluginDatabaseError(error) && ['PLUGIN_ERROR', 'PLUGIN_TIMEOUT'].includes(error.code)) && injected) {
       await recordPluginFailure(slug, error, 'contract', instance.id);
       await sharedProtection.result(permit, false);
     }
@@ -828,7 +832,7 @@ registerPluginStateReset('internal-runtimes', async (slug, installationId) => {
   await Promise.all(runtimeIds.map((runtimeId) => dropInternalRuntime(runtimeId)));
 });
 
-export async function deliverInstallationEvent(installationId: string, event: PluginEvent): Promise<string | null> {
+export async function deliverInstallationEvent(installationId: string, event: PluginEvent, signal?: AbortSignal): Promise<string | null> {
   try {
     await ensurePluginRegistryFresh();
   } catch (error) {
@@ -864,10 +868,10 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
     if (!await prisma.pluginEventSubscription.findUnique({
       where: { pluginSlug_eventType_version: { pluginSlug: latest.pluginSlug, eventType: event.type, version: event.version } },
     })) return 'subscription_removed';
-    await withPluginMigrationGate(instance.pluginSlug, async () => {
+    await withPluginMigrationGate(instance.pluginSlug, () => withPluginDatabaseInvocation(instance.pluginSlug, installationId, async () => {
       try { await handler(event); }
-      catch (error) { throw new Error(redactPluginText(error instanceof Error ? error.message : String(error), runtime.config, manifest)); }
-    });
+      catch (error) { if (isPluginDatabaseError(error)) throw error; throw new Error(redactPluginText(error instanceof Error ? error.message : String(error), runtime.config, manifest)); }
+    }, signal));
     return null;
   } finally {
     await releaseRuntime(runtime);
@@ -947,32 +951,35 @@ async function forwardToInternalFastify(
   }
 
   // Timeout wrapper for internal inject
+  const databaseAbort = new AbortController();
+  let timeout: NodeJS.Timeout;
   const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
+    timeout = setTimeout(() => {
+      databaseAbort.abort();
       reject(new PluginGatewayError(
         `Plugin "${slug}" request timeout (${REQUEST_TIMEOUT_MS}ms)`,
         'PLUGIN_TIMEOUT',
         504
       ));
-    }, REQUEST_TIMEOUT_MS);
+    }, pluginDatabaseLimit('invocationMs', REQUEST_TIMEOUT_MS));
   });
 
   const latest = await prisma.pluginInstallation.findUnique({ where: { id: installation.id } });
   if (!latest?.enabled || latest.deletedAt || latest.protectionGeneration !== installation.protectionGeneration) {
     throw new ApiError('PLUGIN_DISABLED');
   }
-  const invocation = withPluginMigrationGate(slug, async () => runtime.app.inject({
+  const invocation = withPluginMigrationGate(slug, () => withPluginDatabaseInvocation(slug, installation.id, async () => runtime.app.inject({
       method: request.method as any,
       url: forwardUrl,
       headers,
       payload,
-    }));
+    }), databaseAbort.signal));
   injected = true;
   void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), ctx.config, manifest)));
   const res = await Promise.race([
     invocation,
     timeoutPromise,
-  ]);
+  ]).finally(() => clearTimeout(timeout));
 
   const raw = (res as any).rawPayload;
   const body = raw !== undefined ? raw : res.payload;
@@ -992,7 +999,7 @@ async function forwardToInternalFastify(
 
   reply.send(body);
   } catch (error) {
-    if (!(error instanceof SharedProtectionUnavailable) && !isDatabaseUnavailable(error) && !(error instanceof ApiError && ['PLUGIN_DISABLED', 'PLUGIN_MAINTENANCE'].includes(error.code)) && injected) await sharedProtection.result(permit, false);
+    if (!(error instanceof SharedProtectionUnavailable) && !isDatabaseUnavailable(error) && !(error instanceof ApiError && ['PLUGIN_DISABLED', 'PLUGIN_MAINTENANCE', 'DATABASE_UNAVAILABLE', 'PLUGIN_DATABASE_BUSY', 'PLUGIN_DATABASE_OUTCOME_UNKNOWN'].includes(error.code)) && injected) await sharedProtection.result(permit, false);
     throw error;
   } finally {
     if (!injected) await releaseRuntime(runtime);

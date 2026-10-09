@@ -1,4 +1,5 @@
 import { prisma } from './config/database';
+import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
 import { sharedProtection } from './infra/shared-protection';
 import { redisCache } from './core/cache/redis';
 import { OrderService } from './core/order/service';
@@ -82,7 +83,9 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     PaymentReconciliationJob.stop();
     if (cleanupTimer) clearInterval(cleanupTimer);
     cleanupTimer = null;
-    await Promise.all([...pending, eventDelivery.stop(), PaymentReconciliationJob.drain()]);
+    const eventStopped = eventDelivery.stop();
+    await closePluginDatabase();
+    await Promise.all([...pending, eventStopped, PaymentReconciliationJob.drain()]);
     if (heartbeatRedis.status === 'ready') {
       await run(() => heartbeatRedis.del(heartbeatKey), 'Worker heartbeat deletion failed');
     }

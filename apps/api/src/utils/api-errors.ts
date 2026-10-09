@@ -137,6 +137,8 @@ export const errorCatalog = {
   [ApiErrorCodes.PLUGIN_CONFIG_REQUIRED]: { status: 400, message: "Plugin config required." },
   [ApiErrorCodes.PLUGIN_DISABLED]: { status: 503, message: "Payment provider is disabled" },
   [ApiErrorCodes.PLUGIN_ERROR]: { status: 502, message: "Plugin request failed" },
+  [ApiErrorCodes.PLUGIN_DATABASE_BUSY]: { status: 503, message: 'Plugin database is busy. Try again shortly.' },
+  [ApiErrorCodes.PLUGIN_DATABASE_OUTCOME_UNKNOWN]: { status: 502, message: 'Plugin database commit outcome is unknown. Do not retry automatically.' },
   [ApiErrorCodes.PLUGIN_GATEWAY_RATE_LIMITED]: { status: 429, message: "Plugin gateway rate limited." },
   [ApiErrorCodes.PLUGIN_INVALID_MANIFEST]: { status: 400, message: "Plugin invalid manifest." },
   [ApiErrorCodes.PLUGIN_LOAD_FAILED]: { status: 400, message: "Plugin load failed." },

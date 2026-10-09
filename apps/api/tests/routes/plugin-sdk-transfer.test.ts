@@ -30,7 +30,7 @@ const sdk = path.join(root, 'packages/plugin-sdk/dist/cli.js');
 const sdkRequire = createRequire(sdk);
 const { uploadZip } = sdkRequire('./upload.js') as { uploadZip: (filename: string, enable: boolean, streams?: { input: PassThrough & { isTTY: boolean }; output: PassThrough }) => Promise<unknown> };
 const repoRequire = createRequire(path.join(root, 'package.json'));
-const projectSource = (message: string) => `import type { PluginContext } from '../types/index';\nexport function register(ctx: PluginContext) { ctx.http.route({ method: 'GET', path: '/status', handler: async () => ({ message: ${JSON.stringify(message)} }) }); }\n`;
+const projectSource = (message: string) => `import type { PluginContext } from '../types/index';\nexport function register(ctx: PluginContext) { ctx.http.route({ method: 'GET', path: '/status', handler: async () => { const result = await ctx.database.query<{ schema: string }>('SELECT current_schema() AS schema', []); if (result.rowCount !== 1 || result.rows[0].schema !== 'plugin_' + ctx.plugin.slug.replace(/[^a-z0-9]/g, '_')) throw new Error('Wrong dev database schema'); return { message: ${JSON.stringify(message)} }; } }); }\n`;
 function deferred<T = void>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>(done => { resolve = done; });

@@ -150,6 +150,8 @@ describe('Plugin SDK create and generated projects', () => {
           const status = await app.inject({ method: 'GET', url: `/api/v1/extensions/plugin/${slug}/api/status`, headers: admin.authHeader });
           expect(status.statusCode).toBe(200); expect(status.json()).toEqual({ ok: true, message: 'Configured status' });
           expect(status.body).not.toContain('never-echo-this-secret');
+          const record = await app.inject({ method: 'POST', url: `/api/v1/extensions/plugin/${slug}/api/records`, headers: admin.authHeader, payload: { id: 'sdk-record', value: "parameterized '; --" } });
+          expect(record.statusCode).toBe(200); expect(record.json()).toEqual({ id: 'sdk-record', value: "parameterized '; --" });
         } else if (category === 'shipping') {
           expect(await callContract(slug, 'shipping', 1, 'quote', { currency: 'USD', items: [], subtotalMinor: 0, address: { country: 'US' } })).toEqual({ options: [{ id: 'flat-rate', label: 'Configured flat rate', amountMinor: 725 }] });
         } else {
@@ -235,6 +237,9 @@ describe('Plugin SDK create and generated projects', () => {
       successful(run(generator, ['--check', snapshot]));
       const declarations = await fs.readFile(snapshot, 'utf8');
       for (const name of ['PluginContext', 'PluginEntryModule', 'PluginLifecycleExports', 'LifecycleContext', 'PaymentV1Contract', 'ShippingV1Contract', 'TaxV1Contract', 'FulfillmentV1Contract', 'NotificationV1Contract']) expect(declarations).toContain(`export interface ${name}`);
+      for (const name of ['PluginDatabase', 'PluginDatabaseTransaction', 'PluginDatabaseOptions', 'PluginDatabaseResult']) expect(declarations).toContain(`export interface ${name}`);
+      expect(declarations).toContain('Plugin code is trusted in-process code.');
+      expect(declarations).toContain('it does not isolate a malicious plugin.');
       expect(declarations).not.toMatch(/from ['"]|import\(/);
       const canonical = path.join(root, 'packages/shared/src').replace(/\\/g, '/');
       const assertions = [

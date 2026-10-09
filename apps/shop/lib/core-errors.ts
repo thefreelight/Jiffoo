@@ -28,8 +28,11 @@ export async function safeCoreFailure(response: Response): Promise<Response> {
   const allowed = new Set(['INTERNAL_SERVER_ERROR', 'DATABASE_UNAVAILABLE', 'SHARED_PROTECTION_UNAVAILABLE', 'PLUGIN_DISABLED', 'PLUGIN_CIRCUIT_OPEN', 'PLUGIN_ERROR', 'PLUGIN_TIMEOUT', 'PLUGIN_PACKAGE_CORRUPT', 'PLUGIN_PACKAGE_UNAVAILABLE', 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT', 'CONTRACT_CALL_FAILED', 'CONTRACT_RESPONSE_INVALID']);
   const candidate = await coreErrorCode(response);
   allowed.add('UPLOAD_STORAGE_UNAVAILABLE'); allowed.add('UPLOAD_STORAGE_CORRUPT');
+  for (const code of ['PLUGIN_DATABASE_BUSY', 'PLUGIN_DATABASE_OUTCOME_UNKNOWN', 'PLUGIN_MAINTENANCE']) allowed.add(code);
   const code = candidate && allowed.has(candidate) ? candidate : 'INTERNAL_SERVER_ERROR';
-  return Response.json({ success: false, error: { code, message: 'Core service request failed' } }, { status: response.status, headers: { 'Cache-Control': 'no-store' } });
+  const message = code === 'PLUGIN_DATABASE_BUSY' ? 'Plugin database is busy. Try again shortly.'
+    : code === 'PLUGIN_DATABASE_OUTCOME_UNKNOWN' ? 'Plugin database commit outcome is unknown. Do not retry automatically.' : 'Core service request failed';
+  return Response.json({ success: false, error: { code, message } }, { status: response.status, headers: { 'Cache-Control': 'no-store' } });
 }
 const uploadMessages = { en: english.errors, 'zh-Hans': simplifiedChinese.errors, 'zh-Hant': traditionalChinese.errors };
 export function uploadStorageMessage(code: string, locale: ShopLocale): string | undefined {

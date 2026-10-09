@@ -2,7 +2,7 @@ import { connect, createServer, type Socket } from 'node:net';
 import { once } from 'node:events';
 
 /** Forward real PostgreSQL protocol bytes and lose one successful COMMIT acknowledgement. */
-export async function commitAcknowledgementProxy(databaseUrl: string) {
+export async function commitAcknowledgementProxy(databaseUrl: string, prefix = 'jiffoo-plugin-migration:') {
   const target = new URL(databaseUrl);
   const upstreamHost = target.hostname;
   const upstreamPort = Number(target.port || 5432);
@@ -19,7 +19,7 @@ export async function commitAcknowledgementProxy(databaseUrl: string) {
     client.on('data', chunk => {
       // Observing protocol boundaries must never delay the real request stream.
       upstream.write(chunk);
-      if (rawTls || startup && !applicationName.startsWith('jiffoo-plugin-migration:')) return;
+      if (rawTls || startup && !applicationName.startsWith(prefix)) return;
       front = Buffer.concat([front, chunk]);
       while (front.length >= (startup ? 5 : 4)) {
         const length = startup ? front.readUInt32BE(1) + 1 : front.readUInt32BE(0);
@@ -32,8 +32,9 @@ export async function commitAcknowledgementProxy(databaseUrl: string) {
             for (let index = 0; index < fields.length - 1; index += 2) if (fields[index] === 'application_name') applicationName = fields[index + 1];
             startup = true;
           }
-        } else if (packet[0] === 81 && packet.subarray(5).toString('utf8') === 'COMMIT\0'
-          && applicationName.startsWith('jiffoo-plugin-migration:') && !dropped) {
+        } else if ((packet[0] === 81 && packet.subarray(5).toString('utf8') === 'COMMIT\0'
+          || packet[0] === 80 && packet.subarray(5).toString('utf8').startsWith('\0COMMIT\0'))
+          && applicationName.startsWith(prefix) && !dropped) {
           committing = true;
         }
       }
@@ -54,7 +55,7 @@ export async function commitAcknowledgementProxy(databaseUrl: string) {
         if (packet[0] !== 90) continue;
         if (command === 'COMMIT\0' && packet[5] === 73) {
           dropped = true; committing = false;
-          lost(applicationName.slice('jiffoo-plugin-migration:'.length));
+          lost(applicationName.slice(prefix.length));
           // The server has committed; the client sees a real disconnected TCP connection.
           client.destroy(); upstream.end(); return;
         }
