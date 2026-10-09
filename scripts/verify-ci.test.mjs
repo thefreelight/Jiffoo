@@ -54,6 +54,30 @@ test('CI union contains all full steps and every job retains database guards', (
   for (const plan of plans) for (const name of ['Install dependencies', 'Validate and generate Prisma client', 'Build plugin SDK', 'Reset test database', 'Check Prisma migration drift']) assert.ok(plan.some(([step]) => step === name));
 }));
 
+test('every API shard exports its own OpenAPI spec in full catalogue order before tests', () => inActions(() => {
+  const expected = ['Install dependencies', 'Validate and generate Prisma client', 'Build shared package', 'Build plugin SDK', 'Export OpenAPI', 'Reset test database', 'Check Prisma migration drift', 'Run API tests'];
+  const full = localSteps('test').map(([name]) => name);
+  for (const shard of ['1/4', '2/4', '3/4', '4/4']) {
+    const plan = ciSteps('test', 'api', shard);
+    assert.deepEqual(plan.map(([name]) => name), expected);
+    assert.deepEqual(plan.find(([name]) => name === 'Export OpenAPI')[1], localSteps('test').find(([name]) => name === 'Export OpenAPI')[1]);
+    assert.deepEqual(expected, full.filter(name => expected.includes(name)));
+  }
+}));
+
+test('summary requires OpenAPI export in each API shard even when quality exported it', () => inActions(() => {
+  const complete = mergeResults(reports(), needs);
+  assert.equal(complete.valid, true);
+  assert.match(complete.block, /\| Export OpenAPI \| PASS \| 5\.00s \|/);
+  for (let index = 0; index < 4; index++) {
+    const rows = reports();
+    rows[index].results = rows[index].results.filter(([name]) => name !== 'Export OpenAPI');
+    const result = mergeResults(rows, needs);
+    assert.equal(result.valid, false);
+    assert.ok(result.errors.includes('Incomplete job step catalogue: api'));
+  }
+}));
+
 test('complete successful reports reconcile exactly once and retain all suite summaries', () => inActions(() => {
   const result = mergeResults(reports(), needs);
   assert.equal(result.valid, true);

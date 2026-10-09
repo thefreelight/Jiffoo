@@ -74,9 +74,15 @@ export function setOpenApiSpec(spec: OpenAPISpec): void {
   openApiSpec = spec;
 }
 
-export function loadOpenApiSpec(): OpenAPISpec | null {
-  if (!openApiSpec && fs.existsSync(openapiPath)) {
-    openApiSpec = JSON.parse(fs.readFileSync(openapiPath, 'utf-8'));
+export function loadOpenApiSpec(): OpenAPISpec {
+  if (!openApiSpec) {
+    if (!fs.existsSync(openapiPath)) {
+      throw new Error(`OpenAPI spec is missing at ${openapiPath}. Run the verification "Export OpenAPI" step before spec-dependent tests.`);
+    }
+    openApiSpec = JSON.parse(fs.readFileSync(openapiPath, 'utf-8')) as OpenAPISpec;
+    if (!openApiSpec || !openApiSpec.paths || typeof openApiSpec.paths !== 'object') {
+      throw new Error(`OpenAPI spec is invalid at ${openapiPath}. Regenerate it with the verification "Export OpenAPI" step.`);
+    }
   }
   return openApiSpec;
 }
@@ -91,9 +97,6 @@ export function getAllOperations(): Array<{
   operationId: string;
 }> {
   const spec = loadOpenApiSpec();
-  if (!spec) {
-    return [];
-  }
 
   const operations: Array<{
     path: string;
@@ -153,7 +156,6 @@ export function getPublicOperations(): ReturnType<typeof getAllOperations> {
  */
 export function requiresAuth(path: string, method: string): boolean {
   const spec = loadOpenApiSpec();
-  if (!spec) return false;
 
   const pathItem = spec.paths[path];
   if (!pathItem) return false;
@@ -169,7 +171,6 @@ export function requiresAuth(path: string, method: string): boolean {
  */
 export function getResponseSchema(path: string, method: string, statusCode: number | string): any {
   const spec = loadOpenApiSpec();
-  if (!spec) return null;
 
   const pathItem = spec.paths[path];
   if (!pathItem) return null;
@@ -227,7 +228,6 @@ export function validateResponse(
  */
 export function getRequestBodySchema(path: string, method: string): any {
   const spec = loadOpenApiSpec();
-  if (!spec) return null;
 
   const pathItem = spec.paths[path];
   if (!pathItem) return null;

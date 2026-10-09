@@ -212,6 +212,9 @@ describe('Plugin SDK create and generated projects', () => {
       expect(run(sdkRunner, ['pack'], { ...noSdk, JIFFOO_PLUGIN_SDK: path.join(directory, 'absent.js') }).stderr).toContain('SDK_NOT_FOUND');
       expect(run(path.join(project, 'tools/build.mjs')).stderr).toContain('ESBUILD_NOT_FOUND');
       await build(project);
+      const sdkDirectory = path.join(directory, 'SDK with spaces');
+      await fs.symlink(path.join(root, 'packages/plugin-sdk'), sdkDirectory, process.platform === 'win32' ? 'junction' : 'dir');
+      const sdk = path.join(sdkDirectory, 'dist/cli.js');
       const env = { ...process.env, JIFFOO_PLUGIN_SDK: sdk };
       expect(sdk).toContain(' ');
       successful(run(sdkRunner, ['pack'], env));

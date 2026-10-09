@@ -39,7 +39,7 @@ export function ciSteps(databaseUrl, group, shard) {
   if (group === 'api' ? !/^[1-4]\/4$/.test(shard ?? '') : shard !== undefined) throw new Error('Only API groups accept a shard, from 1/4 to 4/4.');
   const common = new Set(['Install dependencies', 'Validate and generate Prisma client', 'Build shared package', 'Build plugin SDK', 'Reset test database', 'Check Prisma migration drift']);
   const tests = new Set(['Run API tests', 'Run Admin tests', 'Run Shop tests', 'Run browser E2E']);
-  return localSteps(databaseUrl).filter(([name]) => common.has(name) || (group === 'api' ? name === 'Run API tests' : group === 'e2e' ? name === 'Run browser E2E' : !tests.has(name) || ['Run Admin tests', 'Run Shop tests'].includes(name)))
+  return localSteps(databaseUrl).filter(([name]) => common.has(name) || (group === 'api' ? ['Export OpenAPI', 'Run API tests'].includes(name) : group === 'e2e' ? name === 'Run browser E2E' : !tests.has(name) || ['Run Admin tests', 'Run Shop tests'].includes(name)))
     .flatMap(step => group === 'quality' && step[0] === 'Build plugin SDK' ? [step, apiBuildStep] : [step])
     .map(([name, commands]) => [name, commands.map(args => name === 'Run API tests' ? [...args, `--shard=${shard}`] : [...args])]);
 }
