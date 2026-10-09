@@ -812,6 +812,14 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    databaseAudit: {
+      title: 'Plugin database integrity',
+      notice: 'This is the latest scan on this server and is cleared when it restarts. It does not prove that services are stopped and does not replace an audit during a complete system stop.',
+      loading: 'Loading the latest scan…', failed: 'Could not read or run the scan. Try again.',
+      scannedAt: 'Scan finished at', complete: 'Scan complete', incomplete: 'Scan incomplete; the result cannot clear an upgrade',
+      plugins: 'Installed plugins', blocking: 'Blocking findings', warnings: 'Warnings',
+      notScanned: 'No scan has run on this server.', scan: 'Run read-only scan', scanning: 'Scanning…',
+    },
     recovery: {
       title: 'Plugin recovery', loading: 'Loading plugin recovery status…', loadFailed: 'Could not load plugin recovery status. Refresh to try again.',
       maintenance: 'A server stopped abnormally and left work that was never confirmed. This plugin cannot be upgraded until all services are stopped during a maintenance window and the leftover work is cleared.',

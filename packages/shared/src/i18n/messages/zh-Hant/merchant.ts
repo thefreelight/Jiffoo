@@ -812,6 +812,14 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    databaseAudit: {
+      title: '外掛資料庫完整性',
+      notice: '這裡顯示本伺服器最近一次掃描，重新啟動後會清除。掃描不能證明服務已全部停止，也不能代替在全部服務停止後進行的稽核。',
+      loading: '正在載入最近一次掃描…', failed: '無法讀取或執行掃描，請重試。',
+      scannedAt: '掃描完成時間', complete: '掃描已完成', incomplete: '掃描未完成，不能依據此結果進行升級',
+      plugins: '已安裝外掛數', blocking: '阻止升級的問題數', warnings: '警告數',
+      notScanned: '本伺服器尚未執行掃描。', scan: '執行唯讀掃描', scanning: '正在掃描…',
+    },
     recovery: {
       title: '外掛復原', loading: '正在載入外掛復原狀態…', loadFailed: '無法載入外掛復原狀態，請重新整理後再試。',
       maintenance: '有伺服器異常停止，留下了未確認完成的工作。此外掛暫時無法升級，需要在維護時間內停止全部服務後處理。',

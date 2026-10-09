@@ -812,6 +812,14 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    databaseAudit: {
+      title: '插件数据库完整性',
+      notice: '这里显示本服务器最近一次扫描，重启后会清除。扫描不能证明服务已全部停止，也不能代替在全部服务停止后进行的审计。',
+      loading: '正在加载最近一次扫描…', failed: '无法读取或执行扫描，请重试。',
+      scannedAt: '扫描完成时间', complete: '扫描已完成', incomplete: '扫描未完成，不能依据此结果进行升级',
+      plugins: '已安装插件数', blocking: '阻止升级的问题数', warnings: '警告数',
+      notScanned: '本服务器尚未执行扫描。', scan: '执行只读扫描', scanning: '正在扫描…',
+    },
     recovery: {
       title: '插件恢复', loading: '正在加载插件恢复状态…', loadFailed: '无法加载插件恢复状态，请刷新后重试。',
       maintenance: '有服务器异常停止，留下了未确认完成的工作。此插件暂时无法升级，需要在维护时间内停止全部服务后处理。',
