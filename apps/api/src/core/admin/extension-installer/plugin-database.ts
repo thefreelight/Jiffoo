@@ -1,12 +1,11 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { randomUUID } from 'node:crypto';
 import { Pool, type PoolClient } from 'pg';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
 import { ApiError, isDatabaseUnavailable } from '@/utils/api-errors';
 import type { PluginDatabase, PluginDatabaseOptions, PluginDatabaseParameter, PluginDatabaseResult, PluginDatabaseTransaction } from '@jiffoo/shared';
 import { pluginSchemaName } from 'shared/plugin-signing';
-import { migrationConnectionUrl } from './plugin-migration-executor';
+import { processDatabaseUrl } from '@/infra/core-process-identity';
 import { PluginDatabaseQueue } from './plugin-database-queue';
 import { assertPluginDatabaseSql } from './plugin-database-sql';
 import { assertPluginDatabaseTestControl, observePluginDatabase, pluginDatabaseBeforeCommit, pluginDatabaseLimit, pluginDatabaseCallbackDeadline } from './plugin-database-test-control';
@@ -85,16 +84,15 @@ function admission(slug: string, installationId: string): Scope {
 }
 
 class PluginDatabaseRuntime {
-  private readonly applicationName = `jiffoo-plugin-runtime:${process.pid}:${randomUUID()}`;
   private readonly pool: Pool;
   private readonly queue: PluginDatabaseQueue;
   private readonly active = new Map<Promise<unknown>, AbortController>();
   private closing = false;
   private closeWork: Promise<void> | undefined;
   constructor(databaseUrl: string, poolMax: number, private readonly lookupNamespace: NamespaceLookup = slug => prisma.pluginNamespace.findUnique({ where: { slug }, select: { schemaName: true, provisionedAt: true } })) {
-    this.pool = new Pool({ connectionString: migrationConnectionUrl(databaseUrl), max: poolMax * 2,
+    this.pool = new Pool({ connectionString: processDatabaseUrl(databaseUrl, 'runtime', undefined, true), max: poolMax * 2,
       connectionTimeoutMillis: pluginDatabaseLimit('connectMs', 5_000), idleTimeoutMillis: 30_000, allowExitOnIdle: true,
-      application_name: this.applicationName });
+    });
     this.pool.on('error', () => undefined);
     this.queue = new PluginDatabaseQueue(poolMax);
   }
@@ -238,6 +236,7 @@ class PluginDatabaseRuntime {
   }
 
   snapshot(slug: string) { return this.queue.snapshot(slug); }
+  resources() { return { connections: this.pool.totalCount, idle: this.pool.idleCount, waiting: this.pool.waitingCount }; }
   close(): Promise<void> {
     if (this.closeWork) return this.closeWork;
     this.closing = true; this.queue.close();
@@ -248,6 +247,9 @@ class PluginDatabaseRuntime {
 }
 
 let runtime: PluginDatabaseRuntime | undefined;
+export function pluginDatabaseResources() {
+  return { poolCreated: runtime !== undefined, activeInvocations: invocations.size, ...(runtime?.resources() ?? { connections: 0, idle: 0, waiting: 0 }) };
+}
 export function createPluginDatabase(slug: string, installationId: string): PluginDatabase {
   runtime ??= new PluginDatabaseRuntime(env.DATABASE_URL, env.PLUGIN_DB_POOL_MAX);
   return runtime.database(slug, installationId);

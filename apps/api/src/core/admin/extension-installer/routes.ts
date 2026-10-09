@@ -26,6 +26,7 @@ import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 import { fetchMarketplaceCatalog, marketplaceUrl, MarketplaceError } from './marketplace-catalog';
 import { checkPluginApiCompatibility, PluginLoaderError } from './plugin-compatibility';
 import { compareVersions } from './version-utils';
+import { listPluginRecovery } from './plugin-recovery';
 import { installMarketplacePlugin, previewMarketplacePlugin } from './marketplace-install';
 import { previewPluginUpload, PluginUploadError } from './plugin-upload';
 import { startPluginInstallOperation, getPluginInstallOperation, retryPluginInstallOperation } from './plugin-migration-operation';
@@ -650,6 +651,13 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       if (error instanceof fastify.multipartErrors.RequestFileTooLargeError) return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', 'Plugin ZIP exceeds 10 MiB');
       return sendMappedError(reply, error);
     }
+  });
+
+  admin.get('/plugin/recovery', {
+    schema: { tags: ['admin-plugins'], summary: 'List persistent plugin recovery and maintenance requirements', security: [{ bearerAuth: [] }], response: { 200: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean', enum: [true] }, data: { type: 'object', required: ['items'], properties: { items: { type: 'array', items: { type: 'object', required: ['slug', 'markerCount', 'maintenanceRequired', 'operations'], properties: { slug: { type: 'string' }, markerCount: { type: 'integer' }, maintenanceRequired: { type: 'boolean' }, operations: { type: 'array', items: { type: 'object', required: ['operationId', 'slug', 'version', 'phase', 'committedPrefix', 'retryAvailable', 'publicationWarning'], properties: { operationId: { type: 'string' }, slug: { type: 'string' }, version: { type: 'string' }, phase: { type: 'string' }, committedPrefix: { type: 'integer' }, retryAvailable: { type: 'boolean' }, publicationWarning: { type: 'boolean' } } } } } } } } } } } } },
+  }, async (_request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    try { return sendSuccess(reply, await listPluginRecovery()); } catch (error) { return sendMappedError(reply, error); }
   });
 
   admin.get<{ Params: { operationId: string }; Querystring: { wait?: boolean; phase?: string; committedPrefix?: number } }>('/plugin/operations/:operationId', {

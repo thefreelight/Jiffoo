@@ -1,5 +1,9 @@
 import { prisma } from './config/database';
 import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
+import { startCoreProcess, drainCoreProcess, finishCoreProcess } from '@/infra/core-process';
+import { coreProcessIdentity } from '@/infra/core-process-identity';
+import { startPluginRecoverySweeper } from '@/core/admin/extension-installer/plugin-recovery';
+import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
 import { sharedProtection } from './infra/shared-protection';
 import { redisCache } from './core/cache/redis';
 import { OrderService } from './core/order/service';
@@ -9,7 +13,6 @@ import Redis from 'ioredis';
 import { EventDeliveryEngine } from './infra/events/delivery';
 import { cleanupEvents, EVENT_CLEANUP_INTERVAL_MS } from './infra/events/cleanup';
 import { PaymentReconciliationJob } from './jobs/payment-reconciliation';
-import { randomUUID } from 'node:crypto';
 import { hostname } from 'node:os';
 import { createServer } from 'node:http';
 import { env } from './config/env';
@@ -29,7 +32,8 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
   assertTestRootEnvironment(env.EXTENSION_TEST_SIGNING_MODE);
   if (env.EXTENSION_TEST_SIGNING_MODE) console.warn('Test signing mode is enabled for the worker');
   pluginSecretsKey();
-  const instanceId = randomUUID();
+  const instanceId = coreProcessIdentity.instanceId;
+  let recovery: ReturnType<typeof startPluginRecoverySweeper> | undefined;
   const startedAt = new Date().toISOString();
   const heartbeatKey = `${WORKER_HEARTBEAT_PREFIX}${instanceId}`;
   const heartbeatRedis = new Redis(options.redisUrl ?? env.REDIS_URL, { lazyConnect: true, retryStrategy: () => null, maxRetriesPerRequest: 1, connectTimeout: 1000 });
@@ -65,12 +69,15 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
       notifications: notificationTimer !== null,
       unpaidOrders: unpaidTimer !== null,
       paymentReconciliation: PaymentReconciliationJob.getStatus().hasScheduledUpdates,
+      pluginRecovery: recovery?.isRunning() ?? false,
     },
     eventHandlerTimeoutMs: eventDelivery.timeoutMs,
     redisConnected: redisCache.getConnectionStatus(),
     redisConnections: redisConnections.map(({ name, client }) => ({ name, status: client.status })),
   });
   const stop = async () => {
+    await drainCoreProcess();
+    await recovery?.stop();
     started = false;
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     heartbeatTimer = null;
@@ -86,6 +93,8 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     const eventStopped = eventDelivery.stop();
     await closePluginDatabase();
     await Promise.all([...pending, eventStopped, PaymentReconciliationJob.drain()]);
+    await drainPluginInstallOperations();
+    await finishCoreProcess();
     if (heartbeatRedis.status === 'ready') {
       await run(() => heartbeatRedis.del(heartbeatKey), 'Worker heartbeat deletion failed');
     }
@@ -102,6 +111,8 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     sharedProtection.close();
   };
   try {
+    await startCoreProcess('worker');
+    recovery = startPluginRecoverySweeper();
     redisConnections.push({ name: 'heartbeat', client: heartbeatRedis });
     try { await heartbeatRedis.connect(); } catch { throw new Error('Redis unavailable at worker startup'); }
     redisConnections.push({ name: 'cache', client: redisCache.getRawClient() });
@@ -109,6 +120,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     await syncBuiltinPlugins(path.join(process.cwd(), 'builtin-plugins'));
     await prewarmPluginPackages();
     await prewarmThemePackages();
+    await recovery.run();
     await eventDelivery.start();
     await run(cleanupEvents, 'Event cleanup failed');
     cleanupTimer = setInterval(() => void run(cleanupEvents, 'Event cleanup failed'), EVENT_CLEANUP_INTERVAL_MS);

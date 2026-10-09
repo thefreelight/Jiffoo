@@ -20,6 +20,7 @@ import archiver from 'archiver';
 import { createHash } from 'node:crypto';
 import { localUploadOptions } from '../helpers/plugin-upload';
 import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
+import { processApplicationName } from '@/infra/core-process-identity';
 
 let app: FastifyInstance, admin: Awaited<ReturnType<typeof createAdminWithToken>>, base: string, previousSwitch: string | undefined;
 const slugs = new Set<string>();
@@ -93,9 +94,9 @@ async function processFixture(role: 'api' | 'worker') {
   const queuedWork = new Promise<void>(resolve => { queued = resolve; });
   child.on('message', value => { const message = value as { kind: string; stage?: string }; if (message.kind === 'plugin-database-observation' && message.stage === 'queued') queued(); });
   let diagnostics = ''; child.stdout?.on('data', () => undefined); child.stderr?.on('data', chunk => { diagnostics += String(chunk); });
-  const ready = new Promise<{ base: string; pid: number }>((resolve, reject) => {
+  const ready = new Promise<{ base: string; pid: number; bootNonce: string }>((resolve, reject) => {
     child.once('error', reject); child.once('exit', code => reject(new Error(`Database process exited ${code}: ${diagnostics}`)));
-    child.on('message', message => { if ((message as { kind: string }).kind === 'ready') resolve(message as { base: string; pid: number }); });
+    child.on('message', message => { if ((message as { kind: string }).kind === 'ready') resolve(message as { base: string; pid: number; bootNonce: string }); });
   });
   const state = await ready;
   return { child, ...state, queued: queuedWork, event: (installationId: string) => new Promise<unknown>((resolve, reject) => {
@@ -143,8 +144,8 @@ it('C E two API and two real worker processes enforce per-process limits and dra
     work.push(...children.slice(0, 2).map((child, index) => fetch(`${child.base}/api/v1/extensions/plugin/${slug}/api/hold`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: `queued-api-${index}` }) }).then(async response => { expect(response.status).toBe(200); return response.json(); })));
     work.push(...children.slice(2).map(child => child.event(instance.id)));
     await Promise.all(children.map(child => child.queued));
-    const activity = await prisma.$queryRaw<Array<{ application_name: string }>>`SELECT application_name FROM pg_stat_activity WHERE application_name LIKE 'jiffoo-plugin-runtime:%' AND state = 'idle in transaction'`;
-    for (const child of children) expect(activity.filter(row => row.application_name.startsWith(`jiffoo-plugin-runtime:${child.pid}:`))).toHaveLength(1);
+    const activity = await prisma.$queryRaw<Array<{ application_name: string }>>`SELECT application_name FROM pg_stat_activity WHERE application_name LIKE 'jf:%:runtime' AND state = 'idle in transaction'`;
+    for (const child of children) expect(activity.filter(row => row.application_name === processApplicationName('runtime', child.bootNonce))).toHaveLength(1);
     const { operationId: id } = await upgrade(slug, code); operationId = id;
     // Long-poll the durable operation state; do not use a timing sleep as a latch.
     let state = await getPluginInstallOperation(id);

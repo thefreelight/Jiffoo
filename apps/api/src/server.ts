@@ -38,6 +38,8 @@ import { isProtectionExempt } from '@/plugins/rate-limiter';
 import { assertProductionSafety } from '@/config/production-safety';
 import { prisma } from '@/config/database';
 import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
+import { startCoreProcess, drainCoreProcess, finishCoreProcess } from '@/infra/core-process';
+import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
 import { redisCache } from '@/core/cache/redis';
 import { LoggerService, logger, unifiedLogger } from '@/core/logger/unified-logger';
 import { accessLogMiddleware, errorLogMiddleware } from '@/core/logger/middleware';
@@ -86,6 +88,16 @@ export async function registerGlobalRateLimiter(
   }
 }
 
+async function disconnectApiRedis(): Promise<void> {
+  const client = redisCache.getRawClient();
+  // Reconnecting/close already means the socket closed. disconnect cancels
+  // the retry timer, but ioredis does not emit another end for that socket.
+  const ended = ['end', 'close', 'reconnecting'].includes(client.status) ? Promise.resolve()
+    : new Promise<void>(resolve => client.once('end', resolve));
+  await redisCache.disconnect();
+  await ended;
+}
+
 async function buildApp() {
   assertThemeTestHooks();
   await uploadedObjectStore.initialize();
@@ -98,6 +110,15 @@ async function buildApp() {
       ADMIN_URL: process.env.ADMIN_URL ?? '',
     }, process.env.DISABLE_RATE_LIMITER);
     declareErrorSchemas(fastify);
+    fastify.addHook('onClose', async () => {
+      await drainCoreProcess();
+      await closePluginDatabase();
+      await drainPluginInstallOperations();
+      await finishCoreProcess();
+      sharedProtection.close();
+      await disconnectApiRedis();
+      await prisma.$disconnect();
+    });
     fastify.setSchemaErrorFormatter((errors) => new ApiError('VALIDATION_ERROR', { issues: safeIssues(errors) }));
     fastify.setNotFoundHandler((_request, reply) => sendMappedError(reply, new ApiError('NOT_FOUND')));
     // Initialize Redis connection
@@ -376,6 +397,7 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
     const app = await buildApp();
 
     await prisma.$connect();
+    await startCoreProcess('api');
     app.log.info('Database connected successfully');
 
     await syncBuiltinPlugins(path.join(process.cwd(), 'builtin-plugins'));
@@ -404,12 +426,10 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
     return {
       app,
       async stop() {
+        await drainCoreProcess();
         const closed = app.close();
         await closePluginDatabase();
         await closed;
-        sharedProtection.close();
-        await redisCache.disconnect();
-        await prisma.$disconnect();
       },
     };
   } catch (error) {
@@ -417,7 +437,8 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
     console.error('Error starting server:', error);
     await fastify.close();
     await closePluginDatabase();
-    await redisCache.disconnect();
+    await finishCoreProcess();
+    await disconnectApiRedis();
     await prisma.$disconnect();
     throw error;
   }

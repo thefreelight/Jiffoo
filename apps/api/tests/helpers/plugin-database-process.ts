@@ -8,6 +8,7 @@ import { deliverInstallationEvent } from '@/core/admin/extension-installer/plugi
 import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
 import { assertPluginDatabaseTestControl, withPluginDatabaseTestControl } from '@/core/admin/extension-installer/plugin-database-test-control';
 import type { PluginEvent } from '@jiffoo/shared';
+import { coreProcessIdentity } from '@/infra/core-process-identity';
 
 async function main() {
   assertPluginDatabaseTestControl();
@@ -32,6 +33,6 @@ async function main() {
     pending.add(work);
     void work.then(result => process.send?.({ kind: 'result', id: message.id, result }), error => process.send?.({ kind: 'result', id: message.id, code: error.code })).finally(() => pending.delete(work));
   });
-  process.send({ kind: 'ready', role, base, pid: process.pid });
+  process.send({ kind: 'ready', role, base, pid: process.pid, bootNonce: coreProcessIdentity.bootNonce });
 }
 void main().catch(error => { console.error(error); process.exitCode = 1; process.disconnect?.(); });

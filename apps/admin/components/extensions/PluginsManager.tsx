@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { DisablePluginControl } from '@/components/plugins/DisablePluginControl';
 import { PluginTrustLabel } from './PluginTrust';
 import { PluginUpload } from './PluginUpload';
+import { PluginRecovery } from './PluginRecovery';
 import { PluginLifecycle } from './PluginLifecycle';
 import { LastRecordedError } from '@/components/plugins/LastRecordedError';
 
@@ -109,6 +110,7 @@ export function PluginsManager() {
     finally { submitting.current = false; setRetrying(false); }
   };
   return <div className="space-y-5">
+    <PluginRecovery />
     <PluginUpload testSigningMode={status.data?.testSigningMode === true} />
     <nav aria-label={text('views')} className="flex gap-3">
       <Button variant={view === 'installed' ? 'default' : 'outline'} aria-pressed={view === 'installed'} onClick={() => setView('installed')}>{text('installedPlugins')}</Button>

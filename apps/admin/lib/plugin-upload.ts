@@ -16,6 +16,7 @@ export interface PluginUploadOperation {
   operationId: string; slug: string; version: string; phase: string; terminal: boolean; committedPrefix: number; recoveryState: string;
   result: { slug: string; version: string; warnings: string[] } | null; errorCode: string | null;
 }
+export interface PluginRecoveryList { items: Array<{ slug: string; markerCount: number; maintenanceRequired: boolean; operations: Array<{ operationId: string; slug: string; version: string; phase: string; committedPrefix: number; retryAvailable: boolean; publicationWarning: boolean }> }> }
 export async function waitPluginUploadOperation(operationId: string, progress?: (state: PluginUploadOperation) => void) {
   const deadline = Date.now() + 65 * 60_000;
   let cursor = '';
@@ -32,6 +33,7 @@ export async function waitPluginUploadOperation(operationId: string, progress?: 
   throw { code: 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN', operationId };
 }
 export const pluginUploadApi = {
+  recovery: async () => unwrapApiResponse(await apiClient.get<PluginRecoveryList>('/extensions/plugin/recovery')),
   preview: async (file: File) => {
     const form = new FormData(); form.append('file', file);
     return unwrapApiResponse(await apiClient.post<PluginUploadPreview>('/extensions/plugin/preview', form, { headers: { 'Content-Type': 'multipart/form-data' } }));

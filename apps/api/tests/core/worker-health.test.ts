@@ -119,7 +119,7 @@ describe('worker heartbeat and health', () => {
     expect(await admin.summary()).toEqual({ running: false, instances: 0, lastBeatAt: null });
   });
 
-  it('D: worker HTTP health checks Redis, lists five tasks, rejects other routes and closes on stop', async () => {
+  it('D: worker HTTP health checks Redis, lists six tasks, rejects other routes and closes on stop', async () => {
     const runtime = await startWorkerRuntime({ healthPort: 0 });
     stops.push(runtime.stop);
     const url = `http://127.0.0.1:${runtime.healthPort}`;

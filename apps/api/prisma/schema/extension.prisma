@@ -70,7 +70,10 @@ model PluginOperationLease {
   operation  String
   acquiredAt DateTime
   expiresAt  DateTime
+  ownerBootNonce String? @db.Uuid
+  owner CoreProcess? @relation(fields: [ownerBootNonce], references: [bootNonce], onDelete: Restrict)
 
+  @@index([operation, ownerBootNonce])
   @@map("plugin_operation_leases")
   @@schema("public")
 }
@@ -157,6 +160,8 @@ model PluginMigrationOperation {
   installOptions  Json
   artifactBytes   Bytes?
   leaseToken      String
+  ownerBootNonce  String? @db.Uuid
+  owner           CoreProcess? @relation(fields: [ownerBootNonce], references: [bootNonce], onDelete: Restrict)
   phase           String   @default("QUEUED")
   committedPrefix Int      @default(0)
   recoveryState   String   @default("NONE")
@@ -171,7 +176,29 @@ model PluginMigrationOperation {
 
   @@index([slug, createdAt])
   @@index([phase])
+  @@index([phase, createdAt, id])
   @@map("plugin_migration_operations")
+  @@schema("public")
+}
+
+model CoreProcess {
+  bootNonce        String @id @db.Uuid
+  instanceId       String @db.Uuid
+  kind             String
+  hostname         String
+  pid              Int
+  databaseRole     String
+  startedAt        DateTime @default(now())
+  heartbeatAt      DateTime @default(now())
+  state            String @default("LIVE")
+  drainedAt        DateTime?
+  deathConfirmedAt DateTime?
+  deathProof       Json?
+  leases           PluginOperationLease[]
+  operations       PluginMigrationOperation[]
+
+  @@index([state, heartbeatAt])
+  @@map("core_processes")
   @@schema("public")
 }
 

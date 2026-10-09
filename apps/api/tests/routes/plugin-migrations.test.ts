@@ -18,6 +18,7 @@ import { commitAcknowledgementProxy } from '../helpers/plugin-migration-commit-p
 import { createServer, type ServerResponse } from 'node:http';
 import { callContract, deliverInstallationEvent, validateCandidateRuntime, dropInternalRuntime } from '@/core/admin/extension-installer/plugin-runtime';
 import type { MigrationTestLimits } from '@/core/admin/extension-installer/plugin-migration-test-control';
+import { processApplicationName } from '@/infra/core-process-identity';
 
 type File = { path: string; content: Buffer; symlink?: boolean };
 const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -80,6 +81,7 @@ async function apiChild(heldStage: string, heldOrder = 1, statementTimeoutMs?: n
   const child = fork(path.resolve('tests/helpers/plugin-migration-api-child.ts'), [], { execArgv: ['--import', 'tsx'], env: { ...process.env, DATABASE_URL: databaseUrl, NODE_ENV: 'test', JIFFOO_TEST_PLUGIN_MIGRATION_CONTROL: '1' }, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
   const pending: Barrier[] = []; let notify: (() => void) | undefined;
   const held = new Set<Barrier>();
+  let bootNonce = '';
   let diagnostics = '';
   child.stderr?.on('data', chunk => { diagnostics += chunk.toString(); });
   child.stdout?.on('data', () => undefined);
@@ -91,8 +93,8 @@ async function apiChild(heldStage: string, heldOrder = 1, statementTimeoutMs?: n
   const started = new Promise<string>((resolve, reject) => { ready = resolve; child.once('error', reject); child.once('exit', code => reject(new Error(`API child exited before readiness: ${code}: ${diagnostics}`))); });
   const release = (message: Barrier, timeout = statementTimeoutMs) => { held.delete(message); child.send({ ...message, ...limits, statementTimeoutMs: timeout ?? limits.statementTimeoutMs, kind: 'plugin-migration-release' }); };
   child.on('message', value => {
-    const message = value as Barrier & { base?: string };
-    if (message.kind === 'ready') { ready(message.base!); return; }
+    const message = value as Barrier & { base?: string; bootNonce?: string };
+    if (message.kind === 'ready') { bootNonce = message.bootNonce!; ready(message.base!); return; }
     if (message.kind === 'plugin-migration-draining') { draining(message.operationId); return; }
     if (message.kind === 'plugin-migration-renewed') { renewed(message.operationId); return; }
     if (message.kind !== 'plugin-migration-barrier') return;
@@ -100,7 +102,7 @@ async function apiChild(heldStage: string, heldOrder = 1, statementTimeoutMs?: n
     else release(message);
   });
   const origin = await started;
-  return { child, origin, release, draining: drained, renewal, nextRenewal: () => new Promise<string>(resolve => {
+  return { child, origin, bootNonce, release, draining: drained, renewal, nextRenewal: () => new Promise<string>(resolve => {
     const observe = (value: unknown) => { const message = value as Barrier; if (message.kind === 'plugin-migration-renewed') { child.off('message', observe); resolve(message.operationId); } };
     child.on('message', observe);
   }), next: async () => {
@@ -166,7 +168,7 @@ describe('Declared plugin migrations over real TCP', () => {
       expect(accepted.status).toBe(202); const queuedId = (await accepted.json()).data.operationId; ids.push(queuedId);
       expect(await prisma.pluginMigrationOperation.findUnique({ where: { id: queuedId } })).toMatchObject({ phase: 'QUEUED', startedAt: null });
       expect(await prisma.pluginOperationLease.findUnique({ where: { slug: queuedSlug } })).not.toBeNull();
-      const active = await prisma.$queryRaw<Array<{ id: string }>>`SELECT application_name AS id FROM pg_stat_activity WHERE application_name IN (${`jiffoo-plugin-migration:${first.operationId}`}, ${`jiffoo-plugin-migration:${second.operationId}`}, ${`jiffoo-plugin-migration:${queuedId}`})`;
+      const active = await prisma.$queryRaw<Array<{ id: string }>>`SELECT application_name AS id FROM pg_stat_activity WHERE application_name IN (${processApplicationName('migration', child.bootNonce, first.operationId)}, ${processApplicationName('migration', child.bootNonce, second.operationId)}, ${processApplicationName('migration', child.bootNonce, queuedId)})`;
       expect(active).toHaveLength(2);
       child.release(first); await terminal(first.operationId, 'SUCCESS', child.origin);
       const third = await child.next(); expect(third.operationId).toBe(queuedId);
@@ -316,7 +318,7 @@ describe('Declared plugin migrations over real TCP', () => {
       const barrier = await child.next(); child.release(barrier);
       const state = await terminal(id, 'FAILED', child.origin); expect(state.errorCode).toBe('PLUGIN_MIGRATION_FAILED');
       expect(await prisma.pluginMigrationAttempt.findFirst({ where: { operationId: id } })).toMatchObject({ status: 'FAILED', ...(kind === 'deadline' ? {} : { sqlstate: kind === 'statement' ? '57014' : '55P03' }) });
-      expect(await prisma.$queryRaw`SELECT 1 FROM pg_stat_activity WHERE application_name = ${`jiffoo-plugin-migration:${id}`}`).toEqual([]);
+      expect(await prisma.$queryRaw`SELECT 1 FROM pg_stat_activity WHERE application_name = ${processApplicationName('migration', child.bootNonce, id)}`).toEqual([]);
       expect(await prisma.pluginMigrationSuccess.count({ where: { operationId: id } })).toBe(0);
     } finally { unlocked(); await blocker; await child.close(); }
   });
@@ -459,7 +461,7 @@ describe('Declared plugin migrations over real TCP', () => {
     try {
       const bytes = await archive(slug, [sqlFile('CREATE TABLE records (id INTEGER PRIMARY KEY); INSERT INTO records VALUES (7);')]);
       const { accepted } = await start(bytes, true, child.origin); expect(accepted.status).toBe(202);
-      const id = (await accepted.json()).data.operationId; const barrier = await child.next(); child.release(barrier);
+      const id = (await accepted.json()).data.operationId; const barrier = await child.next(); proxy.arm(processApplicationName('migration', child.bootNonce, id), id); child.release(barrier);
       expect(await proxy.acknowledged).toBe(id);
       const failed = await terminal(id, 'NEEDS_RECOVERY', child.origin); expect(failed.errorCode).toBe('PLUGIN_MIGRATION_OUTCOME_UNKNOWN'); expect(failed.committedPrefix).toBe(1);
       const namespace = await prisma.pluginNamespace.findUniqueOrThrow({ where: { slug } });

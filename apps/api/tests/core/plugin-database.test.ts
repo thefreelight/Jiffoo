@@ -15,6 +15,7 @@ import { migrationConnectionUrl } from '@/core/admin/extension-installer/plugin-
 import { commitAcknowledgementProxy } from '../helpers/plugin-migration-commit-proxy';
 import { withPluginMigrationGate } from '@/core/admin/extension-installer/plugin-migration-gate';
 import { tcpRelay } from '../helpers/error-http-fixture';
+import { processApplicationName, coreProcessIdentity } from '@/infra/core-process-identity';
 
 const deferred = <T = void>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; };
 const slugs = new Set<string>();
@@ -188,7 +189,7 @@ describe('Plugin runtime database against real PostgreSQL', () => {
     expect(await invoke(f, () => f.database.query('SELECT * FROM records', []))).toMatchObject({ rows: [] });
   });
   it('F lost real COMMIT acknowledgement is unknown and never retries the write', async () => {
-    const f = await fixture(), proxy = await commitAcknowledgementProxy(databaseUrl, 'jiffoo-plugin-runtime:');
+    const f = await fixture(), proxy = await commitAcknowledgementProxy(databaseUrl, processApplicationName('runtime', coreProcessIdentity.bootNonce));
     const proxied = createPluginDatabaseTestRuntime(proxy.databaseUrl, 1);
     try {
       const db = proxied.database(f.slug, f.slug);
@@ -249,7 +250,7 @@ describe('Plugin runtime database against real PostgreSQL', () => {
       pid = await started.promise;
       for (;;) {
         const rows = await prisma.$queryRaw<Array<{ state: string; query: string; application_name: string }>>`SELECT state, query, application_name FROM pg_stat_activity WHERE pid = ${pid}::integer`;
-        if (rows[0]?.state === 'active' && rows[0].query.includes('pg_sleep')) { expect(rows[0].application_name).toBe('jiffoo-core-url-override'); break; }
+        if (rows[0]?.state === 'active' && rows[0].query.includes('pg_sleep')) { expect(rows[0].application_name).toBe(processApplicationName('runtime', coreProcessIdentity.bootNonce)); break; }
       }
       relay.drop(); await failure;
       expect(await prisma.$queryRaw`SELECT 1 FROM pg_stat_activity WHERE pid = ${pid}::integer`).toEqual([]);

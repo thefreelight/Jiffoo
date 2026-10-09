@@ -812,6 +812,13 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    recovery: {
+      title: '插件恢复', loading: '正在加载插件恢复状态…', loadFailed: '无法加载插件恢复状态，请刷新后重试。',
+      maintenance: '有服务器异常停止，留下了未确认完成的工作。此插件暂时无法升级，需要在维护时间内停止全部服务后处理。',
+      committed: '已执行的迁移文件数', queued: '排队中', working: '正在安装', needsRecovery: '需要恢复', failed: '安装失败', completed: '安装完成',
+      publicationWarning: '插件已安装成功，但安装后的收尾步骤被中断，且没有自动重新执行。请检查插件是否正常。',
+      confirmRetry: '我已检查已提交的迁移，并确认重试保留的插件包。', retry: '重试保留的插件包', retryFailed: '恢复未完成，请检查当前状态后再重试。',
+    },
     lastRecordedError: { label: '最近记录的错误', historical: '历史记录，不代表当前健康状态，也不表示插件不健康或已禁用。' },
     lifecycle: {
       removed: '已卸载', uninstall: '卸载', restore: '恢复', purge: '删除插件',

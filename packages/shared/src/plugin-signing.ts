@@ -49,6 +49,9 @@ export function getPluginFileViolation(filename: string): { code: string; extens
   return forbiddenExtensions.has(extension) ? { code: extension === '.node' ? 'FORBIDDEN_NATIVE_MODULE' : 'FORBIDDEN_FILE_TYPE', extension } : null;
 }
 export const PLUGIN_MAX_ZIP_SIZE = 10 * 1024 * 1024;
+export const PLUGIN_MAX_ENTRY_SIZE = 5 * PLUGIN_MAX_ZIP_SIZE;
+export const PLUGIN_MAX_DECOMPRESSED_SIZE = 10 * PLUGIN_MAX_ZIP_SIZE;
+export const PLUGIN_MAX_ZIP_ENTRIES = 1024;
 export function extensionMaxFileSize(kind?: string): number {
   if (kind === 'plugin') return 50 * 1024 * 1024;
   return 5 * 1024 * 1024;
@@ -136,23 +139,27 @@ export function trustedRootKeys(): Array<{ key: string; kind: 'official' | 'test
 export type PluginZipEntry = { path: string; content: Buffer; flags: number; mode: number };
 type ZipEntry = PluginZipEntry;
 function rawEntries(zip: Buffer): ZipEntry[] {
+  if (zip.length > PLUGIN_MAX_ZIP_SIZE) fail('PAYLOAD_TOO_LARGE');
   let end = -1;
   for (let i = zip.length - 22; i >= Math.max(0, zip.length - 65557); i--) {
     if (zip.readUInt32LE(i) === 0x06054b50 && i + 22 + zip.readUInt16LE(i + 20) === zip.length) { end = i; break; }
   }
   if (end < 0 || zip.readUInt16LE(end + 4) || zip.readUInt16LE(end + 6)) throw new Error('Invalid ZIP directory');
   const count = zip.readUInt16LE(end + 10);
+  if (count > PLUGIN_MAX_ZIP_ENTRIES) fail('PAYLOAD_TOO_LARGE');
   const offset = zip.readUInt32LE(end + 16);
   const size = zip.readUInt32LE(end + 12);
   if (offset + size > end) throw new Error('Invalid ZIP directory');
   const entries: ZipEntry[] = [];
   let cursor = offset;
+  let total = 0;
   for (let n = 0; n < count; n++) {
     if (cursor + 46 > zip.length || zip.readUInt32LE(cursor) !== 0x02014b50) throw new Error('Invalid ZIP entry');
     const flags = zip.readUInt16LE(cursor + 8);
     const method = zip.readUInt16LE(cursor + 10);
     const compressed = zip.readUInt32LE(cursor + 20);
     const uncompressed = zip.readUInt32LE(cursor + 24);
+    if (uncompressed > PLUGIN_MAX_ENTRY_SIZE || total + uncompressed > PLUGIN_MAX_DECOMPRESSED_SIZE) fail('PAYLOAD_TOO_LARGE');
     const nameLength = zip.readUInt16LE(cursor + 28);
     const extraLength = zip.readUInt16LE(cursor + 30);
     const commentLength = zip.readUInt16LE(cursor + 32);
@@ -168,8 +175,10 @@ function rawEntries(zip: Buffer): ZipEntry[] {
     if (start + compressed > zip.length) fail('PACKAGE_CONTENT_MISMATCH');
     const bytes = zip.subarray(start, start + compressed);
     let content!: Buffer;
-    try { content = method === 0 ? bytes : method === 8 ? inflateRawSync(bytes) : fail('PACKAGE_CONTENT_MISMATCH'); }
-    catch { fail('PACKAGE_CONTENT_MISMATCH'); }
+    try { content = method === 0 ? bytes : method === 8 ? inflateRawSync(bytes, { maxOutputLength: Math.min(PLUGIN_MAX_ENTRY_SIZE, PLUGIN_MAX_DECOMPRESSED_SIZE - total) }) : fail('PACKAGE_CONTENT_MISMATCH'); }
+    catch (error) { if (error && typeof error === 'object' && 'code' in error && error.code === 'ERR_BUFFER_TOO_LARGE') fail('PAYLOAD_TOO_LARGE'); throw error instanceof PackageVerificationError ? error : new PackageVerificationError('PACKAGE_CONTENT_MISMATCH'); }
+    total += content.length;
+    if (content.length > PLUGIN_MAX_ENTRY_SIZE || total > PLUGIN_MAX_DECOMPRESSED_SIZE) fail('PAYLOAD_TOO_LARGE');
     if (content.length !== uncompressed) fail('PACKAGE_CONTENT_MISMATCH');
     entries.push({ path: name, content, flags, mode });
     cursor += 46 + nameLength + extraLength + commentLength;

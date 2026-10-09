@@ -812,6 +812,13 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    recovery: {
+      title: '外掛復原', loading: '正在載入外掛復原狀態…', loadFailed: '無法載入外掛復原狀態，請重新整理後再試。',
+      maintenance: '有伺服器異常停止，留下了未確認完成的工作。此外掛暫時無法升級，需要在維護時間內停止全部服務後處理。',
+      committed: '已執行的遷移檔案數', queued: '排隊中', working: '正在安裝', needsRecovery: '需要復原', failed: '安裝失敗', completed: '安裝完成',
+      publicationWarning: '外掛已安裝成功，但安裝後的收尾步驟被中斷，且沒有自動重新執行。請檢查外掛是否正常。',
+      confirmRetry: '我已檢查已提交的遷移，並確認重試保留的外掛套件。', retry: '重試保留的外掛套件', retryFailed: '復原未完成，請檢查目前狀態後再試。',
+    },
     lastRecordedError: { label: '最近記錄的錯誤', historical: '歷史記錄，不代表目前健康狀態，也不表示外掛不健康或已停用。' },
     lifecycle: {
       removed: '已解除安裝', uninstall: '解除安裝', restore: '還原', purge: '刪除外掛',

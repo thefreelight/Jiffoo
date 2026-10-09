@@ -1,5 +1,7 @@
 import type { PluginPackageBlob } from '@prisma/client';
 import { prisma } from '@/config/database';
+import { createHash } from 'node:crypto';
+import { ApiError } from '@/utils/api-errors';
 
 type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -13,11 +15,14 @@ export interface PluginPackageBlobStore {
 
 class PostgresPluginPackageBlobStore implements PluginPackageBlobStore {
   async put(tx: Transaction, slug: string, zipHash: string, bytes: Buffer): Promise<void> {
+    if (createHash('sha256').update(bytes).digest('hex') !== zipHash) throw new ApiError('PLUGIN_PACKAGE_CORRUPT');
     await tx.pluginPackageBlob.upsert({
       where: { pluginSlug_zipHash: { pluginSlug: slug, zipHash } },
       create: { pluginSlug: slug, zipHash, bytes: Uint8Array.from(bytes), sizeBytes: bytes.length },
       update: {},
     });
+    const stored = await tx.pluginPackageBlob.findUniqueOrThrow({ where: { pluginSlug_zipHash: { pluginSlug: slug, zipHash } } });
+    if (stored.sizeBytes !== stored.bytes.length || createHash('sha256').update(stored.bytes).digest('hex') !== zipHash) throw new ApiError('PLUGIN_PACKAGE_CORRUPT');
   }
 
   get(slug: string, zipHash: string): Promise<PluginPackageBlob | null> {

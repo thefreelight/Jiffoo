@@ -22,6 +22,9 @@ if (process.env.JIFFOO_TEST_PLUGIN_MIGRATION_CONTROL !== undefined && process.en
 if (process.env.JIFFOO_TEST_PLUGIN_DATABASE_CONTROL !== undefined && process.env.NODE_ENV !== 'test') {
   throw new Error('Plugin database test controls are not permitted outside NODE_ENV=test');
 }
+if (process.env.JIFFOO_TEST_PLUGIN_RECOVERY_CONTROL !== undefined && process.env.NODE_ENV !== 'test') {
+  throw new Error('Recovery test controls are not permitted outside NODE_ENV=test');
+}
 
 export const envSchema = z.object({
   // Environment

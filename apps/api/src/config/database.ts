@@ -1,12 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import { env } from './env';
 import { slowQueryExtension } from '@/infra/prisma-slow-query-extension';
+import { processDatabaseUrl } from '@/infra/core-process-identity';
 
 /**
  * Base Prisma Client
  * Configured with environment-specific logging and slow query detection (R5.5)
  */
 const prisma = new PrismaClient({
+  datasources: { db: { url: processDatabaseUrl(env.DATABASE_URL, 'core') } },
   log:
     env.NODE_ENV === 'development'
       ? env.PRISMA_LOG_QUERY

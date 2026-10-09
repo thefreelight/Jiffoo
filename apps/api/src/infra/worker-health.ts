@@ -5,7 +5,7 @@ import { winstonLogger } from '@/core/logger/unified-logger';
 export const WORKER_HEARTBEAT_PREFIX = 'worker:heartbeat:';
 export const WORKER_HEARTBEAT_TTL_SECONDS = 30;
 export const WORKER_HEARTBEAT_INTERVAL_MS = 10_000;
-export const WORKER_TASKS = ['eventDelivery', 'eventCleanup', 'notifications', 'unpaidOrders', 'paymentReconciliation'] as const;
+export const WORKER_TASKS = ['eventDelivery', 'eventCleanup', 'notifications', 'unpaidOrders', 'paymentReconciliation', 'pluginRecovery'] as const;
 
 export const workerHeartbeatSchema = z.object({
   instanceId: z.string().uuid(),

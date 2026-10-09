@@ -53,6 +53,7 @@ import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOp
 import { assertUploadPreview, assertUploadSnapshot, inspectPluginUpload, PluginUploadError, uploadOperation, writePluginInstallAudit, type UploadInspection, type UploadSnapshot } from './plugin-upload';
 import { checkPluginApiCompatibility } from './plugin-compatibility';
 import { startPluginInstallOperation, waitPluginInstallOperation, publishPluginMigrationOperation } from './plugin-migration-operation';
+import { recoveryTestBarrier } from './plugin-recovery-test-control';
 
 function parseJsonArray(value: unknown): string[] {
   if (!value) return [];
@@ -214,10 +215,10 @@ export class PluginFsInstaller implements IPluginInstaller {
       }
       if (manifest.slug !== existingByHash.slug || manifest.version !== existingByHash.version)
         throw new Error('Installed package identity does not match the uploaded ZIP');
-      if (lease) {
+      if (lease || options?.source === 'builtin') {
         const bytes = await fs.readFile(zipFilePath);
         await prisma.$transaction(async (tx) => {
-          await fencePluginOperationLease(tx, lease!.slug, lease!.token);
+          if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
           if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
           await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, bytes);
           await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
@@ -236,6 +237,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           await incrementPluginRegistryVersion(tx);
         });
       }
+      if (options?.operationId) await recoveryTestBarrier('publication-committed', options.operationId);
       return {
         id: existingByHash.id,
         slug: existingByHash.slug,
@@ -309,7 +311,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           const pluginInstall = await prisma.$transaction(async (tx) => {
             if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
             if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
-            if (lease) {
+            {
               await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, await fs.readFile(zipFilePath));
               await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
             }
@@ -386,6 +388,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           };
 
           const warnings: string[] = [];
+          if (options?.operationId) await recoveryTestBarrier('publication-committed', options.operationId);
           try {
           await deployment.commit();
           deployment = null;
@@ -448,7 +451,7 @@ export class PluginFsInstaller implements IPluginInstaller {
                 permissions: manifest.permissions ?? null,
               },
             });
-            if (lease) {
+            {
               await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, await fs.readFile(zipFilePath));
               await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
             }
@@ -482,6 +485,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           });
 
           const warnings: string[] = [];
+          if (options?.operationId) await recoveryTestBarrier('publication-committed', options.operationId);
           if (defaultInstance && hasLifecycleHook(manifest, 'onInstall')) {
             try {
             const hook = await executeLifecycleHook('onInstall', {

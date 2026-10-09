@@ -20,6 +20,11 @@ import { INCOMPLETE_PLUGIN_OPERATION_PHASES, updateOwnedPluginMigrationOperation
 import type { InstalledPlugin, PluginInstallOptions } from './types';
 import { PluginDatabaseQueue } from './plugin-database-queue';
 import { pluginDatabaseBeforeMigrationRun, pluginDatabaseLimit } from './plugin-database-test-control';
+import { ensureCoreProcess } from '@/infra/core-process';
+import { databaseNowMs } from '@/infra/database-clock';
+import { recoverPluginOperation, TERMINAL_PLUGIN_OPERATION_PHASES } from './plugin-recovery';
+import { recoveryLimit, recoveryTestBarrier } from './plugin-recovery-test-control';
+import { processApplicationName } from '@/infra/core-process-identity';
 
 const terminal = new Set(['SUCCESS', 'FAILED', 'NEEDS_RECOVERY', 'RECOVERED']);
 const running = new Map<string, Promise<void>>();
@@ -51,6 +56,7 @@ export async function startPluginInstallOperation(bytes: Buffer, options: Plugin
   }
   const token = options.lease?.token ?? await acquirePluginOperationLease(inspection.manifest.slug, 'migration-install');
   const id = randomUUID();
+  const ownerBootNonce = await ensureCoreProcess();
   try {
     await prisma.$transaction(async tx => {
       await fencePluginOperationLease(tx, inspection.manifest.slug, token);
@@ -68,7 +74,7 @@ export async function startPluginInstallOperation(bytes: Buffer, options: Plugin
         manifestDigest: inspection.manifestDigest, manifest: json(inspection.manifest), declarations: json(inspection.manifest.database?.migrations ?? []),
         expectedInstall: snapshot ? json(snapshot) : Prisma.JsonNull,
         installOptions: json({ source: options.source ?? 'local-zip', actorUserId: options.actorUserId, confirmUnsigned: options.confirmUnsigned === true, confirmationSlug: options.confirmationSlug, confirmMigrations: options.confirmMigrations === true, expectedMarketplaceIdentity: options.expectedMarketplaceIdentity, uploadMetadata: { filename: options.uploadMetadata?.filename ?? `${inspection.manifest.slug}.zip`, mimetype: options.uploadMetadata?.mimetype ?? 'application/zip', size: bytes.length } }),
-        artifactBytes: new Uint8Array(bytes), leaseToken: token,
+        artifactBytes: new Uint8Array(bytes), leaseToken: token, ownerBootNonce,
         confirmed: options.confirmMigrations === true, committedPrefix: plan.applied.length, recoveryState: incomplete.length ? 'FORWARD_RECOVERY' : 'NONE', createdAt: new Date(),
       } });
       if (!inspection.publisher) await writePluginInstallAudit(tx, options.actorUserId!, 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED', inspection, action, current?.version ?? null, options.source ?? 'local-zip');
@@ -93,23 +99,23 @@ async function runPluginInstallOperation(id: string): Promise<void> {
   let releaseSlot: (() => void) | undefined;
   const queuedAbort = new AbortController();
   const deadline = operation.createdAt.getTime() + pluginDatabaseLimit('migrationMs', PLUGIN_MIGRATION_DEADLINE_MS);
-  const assertDeadline = () => { if (Date.now() >= deadline) throw new ApiError('PLUGIN_MIGRATION_FAILED'); };
+  const assertDeadline = async () => { if (await databaseNowMs() >= deadline) throw new ApiError('PLUGIN_MIGRATION_FAILED'); };
   const heartbeat = setInterval(() => {
     if (renewal) return;
     renewal = renewPluginMigrationLease(operation.slug, operation.leaseToken).catch(error => { leaseError = error; queuedAbort.abort(); }).finally(() => { renewal = undefined; });
-  }, 60_000);
+  }, recoveryLimit('renewalMs', 60_000));
   try {
     const priorNamespace = await prisma.pluginNamespace.findUnique({ where: { slug: operation.slug } });
     initiallyProvisioned = Boolean(priorNamespace?.provisionedAt);
     initialPrefix = priorNamespace ? await prisma.pluginMigrationSuccess.count({ where: { namespaceId: priorNamespace.id } }) : 0;
     // Waiting holds and renews the lease, remains QUEUED, and consumes the same deadline.
-    try { releaseSlot = await migrationSlots.acquire('migration-runs', queuedAbort.signal, Math.max(1, deadline - Date.now())); }
+    try { releaseSlot = await migrationSlots.acquire('migration-runs', queuedAbort.signal, Math.max(1, deadline - await databaseNowMs())); }
     catch { throw new ApiError('PLUGIN_MIGRATION_FAILED'); }
     if (leaseError) throw leaseError;
-    assertDeadline();
+    await assertDeadline();
     await updateOwnedPluginMigrationOperation(operation, { phase: 'VALIDATING', startedAt: new Date() });
     await pluginDatabaseBeforeMigrationRun();
-    assertDeadline();
+    await assertDeadline();
     if (!operation.artifactBytes) throw new ApiError('PLUGIN_MIGRATION_RECOVERY_REQUIRED');
     const bytes = Buffer.from(operation.artifactBytes);
     const inspection = await inspectPluginUpload(bytes);
@@ -129,28 +135,32 @@ async function runPluginInstallOperation(id: string): Promise<void> {
       await validateCandidateRuntime(operation.slug, operation.packageHash, inspection.manifest, instance.id, decryptPluginConfig(inspection.manifest, config));
     }
     if (leaseError) throw leaseError;
-    assertDeadline();
+    await assertDeadline();
     const namespace = await claimPluginNamespace(operation, inspection.publisher);
     await reconcileUnknownAttempts(namespace.id, operation);
     await executePluginMigrationFiles(operation, namespace, inspection.files, operation.declarations as unknown as PluginMigrationDeclaration[]);
     if (leaseError) throw leaseError;
-    assertDeadline();
+    await assertDeadline();
     await candidate.commit(); candidate = undefined;
     await updateOwnedPluginMigrationOperation(operation, { phase: 'PUBLISHING' });
+    await recoveryTestBarrier('before-publish', id);
     const { pluginFsInstaller } = await import('./plugin-fs-installer');
     const options = operation.installOptions as unknown as PluginInstallOptions;
     const result = await pluginFsInstaller.install(Readable.from(bytes), { ...options, operationId: id, lease: { slug: operation.slug, token: operation.leaseToken } });
     finish = { phase: 'SUCCESS', result: json({ ...result, warnings: result.warnings ?? [] }), artifactBytes: null, recoveryState: 'NONE', finishedAt: new Date() };
   } catch (error) {
+    const durable = await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id } });
+    if (durable.phase === 'PUBLISHED' && durable.result) {
+      finish = { phase: 'SUCCESS', result: json({ ...(durable.result as Record<string, unknown>), warnings: ['PLUGIN_POST_COMMIT_WARNING'] }), artifactBytes: null, recoveryState: 'PUBLICATION_CONFIRMED', errorCode: null, finishedAt: new Date() };
+    } else {
     const mapped = mapApiError(error);
     const namespace = await prisma.pluginNamespace.findUnique({ where: { slug: operation.slug } });
     const prefix = namespace ? await prisma.pluginMigrationSuccess.count({ where: { namespaceId: namespace.id } }) : 0;
     const recover = prefix > initialPrefix || !initiallyProvisioned && namespace?.provisionedAt || mapped.body.error.code === 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN';
     finish = { phase: recover ? 'NEEDS_RECOVERY' : 'FAILED', committedPrefix: Math.min(prefix, (operation.declarations as unknown as PluginMigrationDeclaration[]).length), errorCode: mapped.body.error.code, recoveryState: recover ? 'REQUIRED' : 'NONE', finishedAt: new Date() };
+    }
   } finally {
     try {
-    clearInterval(heartbeat);
-    await renewal;
     await candidate?.rollback().catch(() => undefined);
     if (temporary) await cleanupTemp(temporary).catch(() => undefined);
     if (finish) {
@@ -163,7 +173,7 @@ async function runPluginInstallOperation(id: string): Promise<void> {
         await releasePluginOperationLease(operation.slug, operation.leaseToken);
       }
     } else await releasePluginOperationLease(operation.slug, operation.leaseToken);
-    } finally { releaseSlot?.(); }
+    } finally { clearInterval(heartbeat); await renewal; releaseSlot?.(); }
   }
 }
 
@@ -171,13 +181,24 @@ async function reconcileUnknownAttempts(namespaceId: number, operation: PluginMi
   for (const attempt of await prisma.pluginMigrationAttempt.findMany({ where: { namespaceId, status: 'UNKNOWN' } })) {
     if (attempt.order === 0) {
       const confirmed = await namespaceProvisioningConfirmed(namespaceId, attempt.operationId);
-      await updateOwnedPluginMigrationAttempt(operation, { id: attempt.id, namespaceId, status: 'UNKNOWN' }, { status: confirmed ? 'SUCCESS' : 'ABORTED', endedAt: new Date(), resolution: confirmed ? 'NAMESPACE_CONFIRMED' : 'NO_PROVISIONING_AUDIT' });
+      if (!confirmed) await proveOldExecutionEnded(operation, attempt.operationId);
+      await updateOwnedPluginMigrationAttempt(operation, { id: attempt.id, namespaceId, status: 'UNKNOWN' }, { status: confirmed ? 'SUCCESS' : 'ABORTED', endedAt: new Date(), resolution: confirmed ? 'NAMESPACE_CONFIRMED' : 'FENCED_EXECUTION_ENDED' });
       continue;
     }
     const ledger = await prisma.pluginMigrationSuccess.findUnique({ where: { namespaceId_order: { namespaceId, order: attempt.order } } });
     if (ledger && (ledger.migrationId !== attempt.migrationId || ledger.path !== attempt.path || ledger.sha256 !== attempt.sha256)) throw new ApiError('PLUGIN_MIGRATION_DRIFT');
-    await updateOwnedPluginMigrationAttempt(operation, { id: attempt.id, namespaceId, status: 'UNKNOWN' }, { status: ledger ? 'SUCCESS' : 'ABORTED', endedAt: new Date(), resolution: ledger ? 'LEDGER_CONFIRMED' : 'NO_SUCCESS_LEDGER' });
+    if (!ledger) await proveOldExecutionEnded(operation, attempt.operationId);
+    await updateOwnedPluginMigrationAttempt(operation, { id: attempt.id, namespaceId, status: 'UNKNOWN' }, { status: ledger ? 'SUCCESS' : 'ABORTED', endedAt: new Date(), resolution: ledger ? 'LEDGER_CONFIRMED' : 'FENCED_EXECUTION_ENDED' });
   }
+}
+async function proveOldExecutionEnded(current: PluginMigrationOperation, oldId: string): Promise<void> {
+  const old = await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id: oldId } });
+  if (!old.ownerBootNonce || old.leaseToken === current.leaseToken || !TERMINAL_PLUGIN_OPERATION_PHASES.includes(old.phase)) throw new ApiError('PLUGIN_MIGRATION_RECOVERY_REQUIRED');
+  // The current fenced lease was acquired after the old SQL transaction released
+  // its lease row lock. The old token cannot start another migration transaction.
+  const name = processApplicationName('migration', old.ownerBootNonce, old.id);
+  const rows = await prisma.$queryRaw<Array<{ active: boolean }>>`SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name = ${name}) AS active`;
+  if (rows[0].active) throw new ApiError('PLUGIN_MIGRATION_RECOVERY_REQUIRED');
 }
 
 type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -185,13 +206,15 @@ export async function publishPluginMigrationOperation(tx: Transaction, operation
   if (!operationId) return;
   const operation = await tx.pluginMigrationOperation.findUniqueOrThrow({ where: { id: operationId } });
   if (operation.phase !== 'PUBLISHING') throw new ApiError('PLUGIN_MIGRATION_RECOVERY_REQUIRED');
-  if (Date.now() >= operation.createdAt.getTime() + PLUGIN_MIGRATION_DEADLINE_MS) throw new ApiError('PLUGIN_MIGRATION_FAILED');
+  const time = await tx.$queryRaw<Array<{ expired: boolean }>>`SELECT clock_timestamp() AT TIME ZONE 'UTC' >= ${operation.createdAt} + interval '60 minutes' AS expired`;
+  if (time[0].expired) throw new ApiError('PLUGIN_MIGRATION_FAILED');
   await fencePluginOperationLease(tx, operation.slug, operation.leaseToken);
   const namespace = await tx.pluginNamespace.findUniqueOrThrow({ where: { slug: operation.slug } });
   const declarations = operation.declarations as unknown as PluginMigrationDeclaration[];
   const rows = await tx.pluginMigrationSuccess.findMany({ where: { namespaceId: namespace.id }, orderBy: { order: 'asc' } });
   if (!namespace.provisionedAt || rows.length !== declarations.length || rows.some((row, index) => row.order !== declarations[index].order || row.migrationId !== declarations[index].id || row.path !== declarations[index].path || row.sha256 !== declarations[index].sha256)) throw new ApiError('PLUGIN_MIGRATION_DRIFT');
-  const published = await tx.pluginMigrationOperation.updateMany({ where: { id: operationId, leaseToken: operation.leaseToken, phase: 'PUBLISHING' }, data: { phase: 'PUBLISHED' } });
+  const installed = await tx.pluginInstall.findUniqueOrThrow({ where: { slug: operation.slug } });
+  const published = await tx.pluginMigrationOperation.updateMany({ where: { id: operationId, leaseToken: operation.leaseToken, phase: 'PUBLISHING' }, data: { phase: 'PUBLISHED', result: json({ ...installed, zipHash: operation.packageHash, fsPath: installed.installPath ?? '', warnings: [] }) } });
   if (published.count !== 1) throw new ApiError('PLUGIN_OPERATION_LEASE_LOST');
   await tx.pluginMigrationOperation.updateMany({ where: { slug: operation.slug, id: { not: operationId }, phase: 'NEEDS_RECOVERY' }, data: { phase: 'RECOVERED', artifactBytes: null, recoveryState: `RECOVERED_BY:${operationId}` } });
 }
@@ -209,19 +232,8 @@ export async function getPluginInstallOperation(id: string, wait = false, observ
   let operation = await prisma.pluginMigrationOperation.findUnique({ where: { id } });
   if (!operation) throw new ApiError('NOT_FOUND');
   if (!terminal.has(operation.phase)) {
-    const lease = await prisma.pluginOperationLease.findUnique({ where: { slug: operation.slug } });
-    if (!lease || lease.token !== operation.leaseToken || lease.expiresAt.getTime() <= Date.now()) {
-      operation = await prisma.$transaction(async tx => {
-        // Serialize with lease takeover and publication, then recheck the observed state.
-        const owners = await tx.$queryRaw<Array<{ token: string; valid: boolean }>>`SELECT token, "expiresAt" > clock_timestamp() AT TIME ZONE 'UTC' AS valid FROM plugin_operation_leases WHERE slug = ${operation!.slug} FOR UPDATE`;
-        const current = await tx.pluginMigrationOperation.findUniqueOrThrow({ where: { id } });
-        if (terminal.has(current.phase) || owners[0]?.token === current.leaseToken && owners[0].valid) return current;
-        const abandoned = await tx.pluginMigrationOperation.updateMany({ where: { id, leaseToken: current.leaseToken, phase: current.phase }, data: { phase: 'NEEDS_RECOVERY', recoveryState: 'LEASE_EXPIRED', errorCode: 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN', finishedAt: new Date() } });
-        // A concurrent publication wins a CAS miss; return its authoritative row unchanged.
-        if (abandoned.count === 0) return tx.pluginMigrationOperation.findUniqueOrThrow({ where: { id } });
-        return tx.pluginMigrationOperation.findUniqueOrThrow({ where: { id } });
-      });
-    }
+    await recoverPluginOperation(id);
+    operation = await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id } });
   }
   const installed = operation.result as unknown as InstalledPlugin | null;
   const metadata = (operation.installOptions as unknown as PluginInstallOptions).uploadMetadata;
@@ -248,9 +260,9 @@ export async function retryPluginInstallOperation(id: string, actorId: string, c
 
 export async function waitPluginInstallOperation(id: string): Promise<InstalledPlugin> {
   const work = running.get(id);
-  if (!work) throw new ApiError('PLUGIN_MIGRATION_RECOVERY_REQUIRED');
-  await work;
-  const state = await getPluginInstallOperation(id);
+  if (work) await work;
+  let state = await getPluginInstallOperation(id);
+  while (!state.terminal) state = await getPluginInstallOperation(id, true, { phase: state.phase, committedPrefix: state.committedPrefix });
   if (state.phase !== 'SUCCESS') throw new ApiError((state.errorCode ?? 'PLUGIN_MIGRATION_FAILED') as ConstructorParameters<typeof ApiError>[0]);
   const operation = await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id } });
   const result = operation.result as unknown as InstalledPlugin;

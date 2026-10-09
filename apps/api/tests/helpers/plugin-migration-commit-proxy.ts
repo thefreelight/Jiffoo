@@ -2,7 +2,7 @@ import { connect, createServer, type Socket } from 'node:net';
 import { once } from 'node:events';
 
 /** Forward real PostgreSQL protocol bytes and lose one successful COMMIT acknowledgement. */
-export async function commitAcknowledgementProxy(databaseUrl: string, prefix = 'jiffoo-plugin-migration:') {
+export async function commitAcknowledgementProxy(databaseUrl: string, prefix = 'jf:') {
   const target = new URL(databaseUrl);
   const upstreamHost = target.hostname;
   const upstreamPort = Number(target.port || 5432);
@@ -10,6 +10,9 @@ export async function commitAcknowledgementProxy(databaseUrl: string, prefix = '
   let lost!: (operationId: string) => void;
   const acknowledged = new Promise<string>(resolve => { lost = resolve; });
   let dropped = false;
+  let operationId: string | undefined;
+  let selectedName: string | undefined;
+  const selected = (name: string) => selectedName ? name === selectedName : prefix === 'jf:' ? /^jf:[A-Za-z0-9_-]{22}:m:/.test(name) : name.startsWith(prefix);
   const server = createServer(client => {
     const upstream = connect({ host: upstreamHost, port: upstreamPort });
     sockets.add(client); sockets.add(upstream);
@@ -19,7 +22,7 @@ export async function commitAcknowledgementProxy(databaseUrl: string, prefix = '
     client.on('data', chunk => {
       // Observing protocol boundaries must never delay the real request stream.
       upstream.write(chunk);
-      if (rawTls || startup && !applicationName.startsWith(prefix)) return;
+      if (rawTls || startup && !selected(applicationName)) return;
       front = Buffer.concat([front, chunk]);
       while (front.length >= (startup ? 5 : 4)) {
         const length = startup ? front.readUInt32BE(1) + 1 : front.readUInt32BE(0);
@@ -34,7 +37,7 @@ export async function commitAcknowledgementProxy(databaseUrl: string, prefix = '
           }
         } else if ((packet[0] === 81 && packet.subarray(5).toString('utf8') === 'COMMIT\0'
           || packet[0] === 80 && packet.subarray(5).toString('utf8').startsWith('\0COMMIT\0'))
-          && applicationName.startsWith(prefix) && !dropped) {
+          && selected(applicationName) && !dropped) {
           committing = true;
         }
       }
@@ -55,7 +58,7 @@ export async function commitAcknowledgementProxy(databaseUrl: string, prefix = '
         if (packet[0] !== 90) continue;
         if (command === 'COMMIT\0' && packet[5] === 73) {
           dropped = true; committing = false;
-          lost(applicationName.slice(prefix.length));
+          lost(operationId ?? applicationName);
           // The server has committed; the client sees a real disconnected TCP connection.
           client.destroy(); upstream.end(); return;
         }
@@ -70,7 +73,7 @@ export async function commitAcknowledgementProxy(databaseUrl: string, prefix = '
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   const address = server.address(); if (!address || typeof address === 'string') throw new Error('Proxy did not get a TCP port');
   target.hostname = '127.0.0.1'; target.port = String(address.port);
-  return { databaseUrl: target.toString(), acknowledged, close: async () => {
+  return { databaseUrl: target.toString(), acknowledged, arm: (name: string, id: string) => { selectedName = name; operationId = id; }, close: async () => {
     for (const socket of sockets) socket.end();
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   } };

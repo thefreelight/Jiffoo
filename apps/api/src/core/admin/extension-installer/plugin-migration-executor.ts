@@ -8,6 +8,9 @@ import { pluginSchemaName, validatePluginMigrations, type MigrationPackageFile }
 import type { PluginMigrationDeclaration } from '@jiffoo/shared';
 import { PLUGIN_MIGRATION_LOCK_CLASS, RUNNING_PLUGIN_OPERATION_PHASES, fenceOwnedPluginMigrationOperation, updateOwnedPluginMigrationOperation, createOwnedPluginMigrationAttempt, updateOwnedPluginMigrationAttempt } from './plugin-migration-gate';
 import { pluginMigrationTestControl, observePluginMigrationDrain } from './plugin-migration-test-control';
+import { processDatabaseUrl } from '@/infra/core-process-identity';
+import { recoveryLimit } from './plugin-recovery-test-control';
+import { databaseNowMs } from '@/infra/database-clock';
 
 export const PLUGIN_MIGRATION_LOCK_TIMEOUT_MS = 5_000;
 export const PLUGIN_MIGRATION_STATEMENT_TIMEOUT_MS = 600_000;
@@ -54,7 +57,8 @@ export async function claimPluginNamespace(operation: PluginMigrationOperation, 
 }
 
 export async function renewPluginMigrationLease(slug: string, token: string): Promise<void> {
-  const count = await prisma.$executeRaw`UPDATE plugin_operation_leases SET "expiresAt" = (clock_timestamp() AT TIME ZONE 'UTC') + interval '15 minutes'
+  const leaseMs = recoveryLimit('leaseMs', 15 * 60_000);
+  const count = await prisma.$executeRaw`UPDATE plugin_operation_leases SET "expiresAt" = (clock_timestamp() AT TIME ZONE 'UTC') + ${leaseMs} * interval '1 millisecond'
     WHERE slug = ${slug} AND token = ${token} AND "expiresAt" > clock_timestamp() AT TIME ZONE 'UTC'`;
   if (count !== 1) throw new ApiError('PLUGIN_OPERATION_LEASE_LOST');
 }
@@ -72,12 +76,12 @@ export async function executePluginMigrationFiles(operation: PluginMigrationOper
     await updateOwnedPluginMigrationOperation(operation, { committedPrefix: prefix.length });
     return;
   }
-  const client = new Client({ connectionString: migrationConnectionUrl(env.DATABASE_URL), connectionTimeoutMillis: 5_000, application_name: `jiffoo-plugin-migration:${operation.id}` });
+  const client = new Client({ connectionString: processDatabaseUrl(env.DATABASE_URL, 'migration', operation.id, true), connectionTimeoutMillis: 5_000 });
   client.on('error', () => undefined);
   let deadline = operation.createdAt.getTime() + PLUGIN_MIGRATION_DEADLINE_MS;
   let deadlineExpired = false;
   const expire = () => { deadlineExpired = true; void client.end().catch(() => undefined); };
-  let deadlineTimer = setTimeout(expire, Math.max(1, deadline - Date.now()));
+  let deadlineTimer = setTimeout(expire, Math.max(1, deadline - await databaseNowMs()));
   let heartbeat: NodeJS.Timeout | undefined;
   let renewal: Promise<void> | undefined;
   let renewalError: unknown;
@@ -91,8 +95,8 @@ export async function executePluginMigrationFiles(operation: PluginMigrationOper
     });
     const limits = await pluginMigrationTestControl('before-drain', operation.id);
     if (limits.deadlineMs !== undefined) {
-      deadline = Math.min(deadline, Date.now() + limits.deadlineMs);
-      clearTimeout(deadlineTimer); deadlineTimer = setTimeout(expire, Math.max(1, deadline - Date.now()));
+      deadline = Math.min(deadline, await databaseNowMs() + limits.deadlineMs);
+      clearTimeout(deadlineTimer); deadlineTimer = setTimeout(expire, Math.max(1, deadline - await databaseNowMs()));
     }
     const lockTimeout = limits.lockTimeoutMs ?? PLUGIN_MIGRATION_LOCK_TIMEOUT_MS;
     const statementTimeout = limits.statementTimeoutMs ?? PLUGIN_MIGRATION_STATEMENT_TIMEOUT_MS;
@@ -100,14 +104,14 @@ export async function executePluginMigrationFiles(operation: PluginMigrationOper
     await client.query(`SET statement_timeout = '${lockTimeout}ms'`);
     try { await client.query('SELECT pg_advisory_lock($1::integer, $2::integer)', [PLUGIN_MIGRATION_LOCK_CLASS, namespace.id]); }
     catch { throw new ApiError('PLUGIN_MAINTENANCE'); }
-    const drainDeadline = Date.now() + (limits.drainTimeoutMs ?? PLUGIN_MIGRATION_LOCK_TIMEOUT_MS);
+    const drainDeadline = await databaseNowMs() + (limits.drainTimeoutMs ?? PLUGIN_MIGRATION_LOCK_TIMEOUT_MS);
     let announcedDrain = false;
     for (;;) {
       const markers = await client.query('SELECT EXISTS(SELECT 1 FROM public.plugin_operation_leases WHERE operation = $1) AS active', [`plugin-invocation:${operation.slug}`]);
       // Expired markers are still evidence of unknown work; never infer completion from a TTL.
       if (!markers.rows[0].active) break;
       if (!announcedDrain) { observePluginMigrationDrain(operation.id); announcedDrain = true; }
-      if (Date.now() >= drainDeadline) throw new ApiError('PLUGIN_MAINTENANCE');
+      if (await databaseNowMs() >= drainDeadline) throw new ApiError('PLUGIN_MAINTENANCE');
       await new Promise(resolve => setTimeout(resolve, 50));
     }
     await updateOwnedPluginMigrationOperation(operation, { phase: 'MIGRATING' });
@@ -123,18 +127,19 @@ export async function executePluginMigrationFiles(operation: PluginMigrationOper
     await updateOwnedPluginMigrationOperation(operation, { committedPrefix: existing.length });
     for (const declaration of declarations.slice(existing.length)) {
       if (renewalError) throw renewalError;
-      if (deadlineExpired || Date.now() >= deadline) throw new ApiError('PLUGIN_MIGRATION_FAILED');
+      if (deadlineExpired || await databaseNowMs() >= deadline) throw new ApiError('PLUGIN_MIGRATION_FAILED');
       await renewPluginMigrationLease(operation.slug, operation.leaseToken);
       const startedAt = Date.now();
       const attempt = await createOwnedPluginMigrationAttempt(operation, { namespaceId: namespace.id, operationId: operation.id, order: declaration.order, migrationId: declaration.id, path: declaration.path, sha256: declaration.sha256, startedAt: new Date() });
       const control = await pluginMigrationTestControl('before-file', operation.id, declaration.order);
-      const fileTimer = setTimeout(() => { void client.end().catch(() => undefined); }, Math.max(1, Math.min(PLUGIN_MIGRATION_STATEMENT_TIMEOUT_MS, deadline - Date.now())));
+      const remainingMs = deadline - await databaseNowMs();
+      const fileTimer = setTimeout(() => { void client.end().catch(() => undefined); }, Math.max(1, Math.min(PLUGIN_MIGRATION_STATEMENT_TIMEOUT_MS, remainingMs)));
       let committing = false;
       try {
         await client.query('BEGIN');
         await fence(client, operation);
         await client.query(`SET LOCAL lock_timeout = '${lockTimeout}ms'`);
-        await client.query(`SET LOCAL statement_timeout = '${Math.max(1, Math.min(control.statementTimeoutMs ?? statementTimeout, deadline - Date.now()))}ms'`);
+        await client.query(`SET LOCAL statement_timeout = '${Math.max(1, Math.min(control.statementTimeoutMs ?? statementTimeout, remainingMs))}ms'`);
         await client.query(`SET LOCAL search_path = "${namespace.schemaName}"`);
         if (!currentNamespace.provisionedAt) await client.query(`CREATE SCHEMA "${namespace.schemaName}"`);
         const file = files.find(candidate => candidate.path === declaration.path)!;

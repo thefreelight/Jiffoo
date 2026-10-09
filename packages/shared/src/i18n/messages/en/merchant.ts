@@ -812,6 +812,13 @@ export const merchant = {
 
   // Plugins
   plugins: {
+    recovery: {
+      title: 'Plugin recovery', loading: 'Loading plugin recovery status…', loadFailed: 'Could not load plugin recovery status. Refresh to try again.',
+      maintenance: 'A server stopped abnormally and left work that was never confirmed. This plugin cannot be upgraded until all services are stopped during a maintenance window and the leftover work is cleared.',
+      committed: 'Migration files already run', queued: 'Queued', working: 'Installation in progress', needsRecovery: 'Recovery required', failed: 'Installation failed', completed: 'Installation complete',
+      publicationWarning: 'The plugin was installed, but its post-install step was interrupted and was not run again. Check that the plugin works correctly.',
+      confirmRetry: 'I have reviewed the committed migrations and confirm retrying the retained package.', retry: 'Retry retained package', retryFailed: 'Recovery did not complete. Review the current status before trying again.',
+    },
     lastRecordedError: { label: 'Last recorded error', historical: 'Historical information. This is not current health and does not mean the plugin is unhealthy or disabled.' },
     lifecycle: {
       removed: 'Removed', uninstall: 'Uninstall', restore: 'Restore', purge: 'Delete plugin',
