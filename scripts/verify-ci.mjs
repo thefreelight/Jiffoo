@@ -33,7 +33,7 @@ async function run(command, args) {
 // Bootstrap from the same catalogue before the verifier imports installed libraries.
 const install = localSteps(process.env.DATABASE_URL_TEST).find(([name]) => name === 'Install dependencies')[1][0];
 let status = await run('pnpm', install);
-if (status === 0) status = await run(process.execPath, ['--test', 'scripts/verify-ci.test.mjs']);
+if (status === 0) status = await run(process.execPath, ['--test', 'scripts/verify-ci.test.mjs', 'scripts/upload-test-image-identity.test.mjs']);
 if (status === 0) status = await run(process.execPath, ['scripts/verify.mjs', `--ci-group=${group}`, ...(shard ? [`--ci-shard=${shard}`] : [])]);
 try { copyFileSync('verify-summary.txt', join(directory, 'verify-summary.txt')); } catch (error) {
   appendFileSync(rawLog, `Summary unavailable: ${error.message}\n`);

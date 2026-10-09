@@ -1,0 +1,101 @@
+[
+    {
+        "Id": "sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9",
+        "RepoTags": [
+            "pgsty/minio:RELEASE.2026-08-04T00-00-00Z"
+        ],
+        "RepoDigests": [
+            "pgsty/minio@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-08-04T23:51:54.553415482Z",
+        "Config": {
+            "ExposedPorts": {
+                "9000/tcp": {}
+            },
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "MINIO_ACCESS_KEY_FILE=access_key",
+                "MINIO_SECRET_KEY_FILE=secret_key",
+                "MINIO_ROOT_USER_FILE=access_key",
+                "MINIO_ROOT_PASSWORD_FILE=secret_key",
+                "MINIO_KMS_SECRET_KEY_FILE=kms_master_key",
+                "MINIO_UPDATE_MINISIGN_PUBKEY=RWTx5Zr1tiHQLwG9keckT0c45M3AGeHD6IvimQHpyRywVWGbP1aVSGav",
+                "MINIO_CONFIG_ENV_FILE=config.env",
+                "MC_CONFIG_DIR=/tmp/.mc"
+            ],
+            "Entrypoint": [
+                "/usr/bin/docker-entrypoint.sh"
+            ],
+            "Cmd": [
+                "minio"
+            ],
+            "Volumes": {
+                "/data": {}
+            },
+            "WorkingDir": "/",
+            "Labels": {
+                "architecture": "x86_64",
+                "build-date": "2026-07-22T06:49:45Z",
+                "com.redhat.component": "ubi9-micro-container",
+                "com.redhat.license_terms": "https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI",
+                "cpe": "cpe:/a:redhat:enterprise_linux:9::appstream",
+                "description": "MinIO community fork, build by pgsty",
+                "distribution-scope": "public",
+                "io.buildah.version": "1.44.0",
+                "io.k8s.description": "Very small image which doesn't install the package manager.",
+                "io.k8s.display-name": "Red Hat Universal Base Image 9 Micro",
+                "io.openshift.expose-services": "",
+                "maintainer": "pgsty <https://github.com/pgsty/minio>",
+                "name": "ubi9/ubi-micro",
+                "org.opencontainers.image.created": "2026-08-04T23:49:09Z",
+                "org.opencontainers.image.revision": "d88f46ccee345a9c2fabe2d221d9a9e56bc11aec",
+                "org.opencontainers.image.version": "RELEASE.2026-08-04T00-00-00Z",
+                "release": "1784702951",
+                "summary": "ubi9 micro image",
+                "url": "https://catalog.redhat.com/en/search?searchType=containers",
+                "vcs-ref": "97262785bdef2694cdc29ef7ef158812c44b97e0",
+                "vcs-type": "git",
+                "vendor": "Red Hat, Inc.",
+                "version": "9.8"
+            },
+            "ArgsEscaped": true
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 216420701,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:0e111396ebd730643a13d67c30dae48976f47edf0694c6a51368eca3773c8a4c",
+                "sha256:8135d11f1d3862a403ecd3d2ede078808b680de56ced54d7af63d8a6c730d199",
+                "sha256:89aa41be2662111677117360fb32b31c05a3c8eeb1b67bcacd941876502a4a6c",
+                "sha256:36b273b4da9c1017cde2c3bbea6de444fe3e42cf91884dd6f2ef25a0e424b281",
+                "sha256:370f07afdb717419d7dc9eb9d53fac7127c68fc96c94a8c0801661bfb723ca25",
+                "sha256:866b4b5996e9c674ccef15a0c8ccaac1ec07c112a0fef73cffac4dd69133d3cf",
+                "sha256:e4b8ab2bf1cb4874108c7029e1e51b14e312a2cf8b7732c98951662c473cb53f",
+                "sha256:a22e83123e78b7daf8fd3708efccd80aea76507498addbdf8208d469ecc16a67",
+                "sha256:a2af2f05360e284f9deee87e5c5890e17077ed2dac8426aa8398e324e4bb0ff1"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-10-07T16:20:48.489023403Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9",
+            "size": 2007,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        },
+        "Identity": {
+            "Pull": [
+                {
+                    "Repository": "docker.io/pgsty/minio"
+                }
+            ]
+        }
+    }
+]

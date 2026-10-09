@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
+import { verifyUploadImageIdentity } from './upload-test-image-identity.mjs';
 
 export const uploadTestImage = 'pgsty/minio:RELEASE.2026-08-04T00-00-00Z';
 export const uploadTestImageDigest = 'sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9';
@@ -16,9 +17,21 @@ function docker(args) {
 
 export async function startUploadTestStorage() {
   docker(['info', '--format', '{{.ServerVersion}}']);
-  const image = JSON.parse(docker(['image', 'inspect', '--platform', 'linux/amd64', uploadTestImage]))[0];
-  if (image.Os !== 'linux' || image.Architecture !== 'amd64' || image.Descriptor.digest !== uploadTestImageDigest)
-    throw new Error(`Upload storage Docker preflight failed: keep ${uploadTestImage} with linux/amd64 digest ${uploadTestImageDigest} locally present`);
+  let platformInspect;
+  let classicInspect;
+  let identity;
+  try {
+    const result = spawnSync('docker', ['image', 'inspect', '--platform', 'linux/amd64', uploadTestImage], { encoding: 'utf8', windowsHide: true, timeout: 60_000 });
+    if (result.status === 0) platformInspect = JSON.parse(result.stdout);
+    else if (!result.error && /(?:^|\n)unknown flag: --platform\s*(?:\r?\n|$)/.test(`${result.stderr ?? ''}\n${result.stdout ?? ''}`)) platformInspect = undefined;
+    else throw new Error(result.stderr || result.error?.message || result.stdout || `docker exited with ${result.status}`);
+    const missingDescriptor = Array.isArray(platformInspect) && platformInspect.length === 1 && platformInspect[0] && typeof platformInspect[0] === 'object' && !Array.isArray(platformInspect[0]) && !Object.hasOwn(platformInspect[0], 'Descriptor');
+    if (platformInspect === undefined || missingDescriptor) classicInspect = JSON.parse(docker(['image', 'inspect', uploadTestImage]));
+    identity = verifyUploadImageIdentity(platformInspect, classicInspect, uploadTestImageDigest);
+  } catch (error) {
+    throw new Error(`Upload storage Docker preflight failed: expected ${uploadTestImage} with linux/amd64 digest ${uploadTestImageDigest}. ${error.message}`);
+  }
+  console.log(`Upload storage image identity verified via ${identity}: linux/amd64 ${uploadTestImageDigest}`);
   const name = `jiffoo-upload-${randomUUID()}`;
   const volume = `${name}-data`;
   const bucket = `${name}-api`;

@@ -64,6 +64,8 @@ jobs:
         run: |
           docker pull --platform linux/amd64 pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
           docker tag pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Record upload storage image inspection
+        run: docker image inspect pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Run verification catalogue
         run: node scripts/verify-ci.mjs api ${{ matrix.shard }}/4
       - name: Upload verification artifacts
@@ -125,6 +127,8 @@ jobs:
         run: |
           docker pull --platform linux/amd64 pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
           docker tag pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Record upload storage image inspection
+        run: docker image inspect pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Run verification catalogue
         run: node scripts/verify-ci.mjs quality
       - name: Upload verification artifacts
@@ -186,6 +190,8 @@ jobs:
         run: |
           docker pull --platform linux/amd64 pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
           docker tag pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+      - name: Record upload storage image inspection
+        run: docker image inspect pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Run verification catalogue
         run: node scripts/verify-ci.mjs e2e
       - name: Upload verification artifacts
