@@ -36,10 +36,6 @@ export interface ShopOrderListItemDTO {
   paymentStatus: string;
   paymentId?: string | null;
   paymentAttemptState?: string | null;
-  paymentReviews?: Array<{
-    paymentId: string; status: string; amount: number; currency: string; failureReason: string | null;
-    reviewResolution: string | null; reviewResolvedAt: string | null; reviewResolvedBy: string | null; reviewReference: string | null;
-  }>;
   refundRequired?: boolean;
   totalAmount: number;
   currency: string;
@@ -118,6 +114,10 @@ export interface AdminOrderDetailDTO {
   refundRequired?: boolean;
   canRefundOrder?: boolean;
   paymentAttemptState?: string | null;
+  paymentReviews?: Array<{
+    paymentId: string; status: string; amount: number; currency: string; failureReason: string | null;
+    reviewResolution: string | null; reviewResolvedAt: string | null; reviewResolvedBy: string | null; reviewReference: string | null;
+  }>;
   refundResolutions?: Array<{
     paymentId: string; providerPaymentId: string; amount: number; currency: string;
     status: 'pending' | 'resolved'; reference: string | null;

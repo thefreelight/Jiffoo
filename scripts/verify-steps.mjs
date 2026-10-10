@@ -4,7 +4,7 @@ export function localSteps(databaseUrl, quick = false, selectedArgument = [], se
 return quick
   ? [
       ['Prisma generate', [['--filter', 'api', 'exec', 'prisma', 'generate']]],
-      ['Type-check API, Shop and shared', [['--filter', 'shared', 'build'], ['exec', 'turbo', 'run', 'type-check', '--filter=api', '--filter=shop', '--filter=shared']]],
+      ['Type-check API, Admin, Shop and shared', [['--filter', 'shared', 'build'], ['exec', 'turbo', 'run', 'type-check', '--filter=api', '--filter=admin', '--filter=shop', '--filter=shared']]],
       ['Lint Shop', [['--filter', 'shop', 'lint']]],
       ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
       ...(selectedArgument.length
