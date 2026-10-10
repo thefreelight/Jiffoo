@@ -73,6 +73,14 @@ export async function cleanupDatabase(): Promise<void> {
   
   try {
     // Delete in correct order to avoid foreign key constraints
+    await client.payment.updateMany({ data: { closureObservationId: null, closedAt: null } });
+    await client.paymentObservation.deleteMany({});
+    await client.refundLedger.deleteMany({});
+    await client.refund.deleteMany({});
+    await client.paymentLedger.deleteMany({});
+    await client.payment.deleteMany({});
+    await client.paymentProviderBinding.deleteMany({});
+    await client.paymentProviderAccount.deleteMany({});
     // Order: dependent tables first, then parent tables
     const tablesToClean = [
       'AdminAuditEvent',

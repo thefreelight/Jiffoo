@@ -4,7 +4,7 @@
  * Coverage:
  * - GET /api/v1/payments/available-methods
  * - POST /api/v1/payments/create-session
- * - GET /api/v1/payments/verify/:sessionId
+ * - GET /api/v1/payments/verify/:paymentId
  * - POST /api/v1/payments/webhook/:provider
  */
 
@@ -17,7 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { prisma } from '@/config/database';
-import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-plugin';
+import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin, verifiedPaymentFixtureFact } from '../helpers/fixture-plugin';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 import { env } from '@/config/env';
 import { checkoutTotal } from '../helpers/checkout-total';
@@ -72,7 +72,7 @@ describe('Payments Endpoints', () => {
 
   async function installPaymentFixture(): Promise<void> {
     if (paymentFixtureInstalled) return;
-    await installFixturePlugin({ app, adminToken, adminUserId }, paymentFixtureSlug, 'payment', [{ name: 'payment', version: 1 }], checkoutPaymentFixtureSource);
+    await installFixturePlugin({ app, adminToken, adminUserId }, paymentFixtureSlug, 'payment', [{ name: 'payment', version: 2 }], checkoutPaymentFixtureSource);
     paymentFixtureInstalled = true;
   }
 
@@ -319,10 +319,11 @@ describe('Payments Endpoints', () => {
 
       const recorded = await app.inject({ method: 'POST', url: `/api/v1/admin/orders/${manualOrderId}/record-manual-payment`, headers: { authorization: `Bearer ${adminToken}` }, payload: { reference: 'verified-transfer' } });
       expect(recorded.statusCode).toBe(200);
-      expect(await applyNormalizedPluginWebhook(paymentFixtureSlug, { received: true, handled: true, sessionId: cardSession.sessionId, providerEventId: `success:${cardOrderId}`, normalizedStatus: 'succeeded' })).toBe(true);
+      const fact = await verifiedPaymentFixtureFact(paymentFixtureSlug, cardSession.sessionId, `success:${cardOrderId}`);
+      expect(await applyNormalizedPluginWebhook(paymentFixtureSlug, fact)).toBe(true);
       expect(await prisma.notification.count({ where: { type: 'payment_received', relatedId: manualOrderId } })).toBe(1);
       expect(await prisma.notification.count({ where: { type: 'payment_received', relatedId: cardOrderId } })).toBe(1);
-      expect(await applyNormalizedPluginWebhook(paymentFixtureSlug, { received: true, handled: true, sessionId: cardSession.sessionId, providerEventId: `success:${cardOrderId}`, normalizedStatus: 'succeeded' })).toBe(false);
+      expect(await applyNormalizedPluginWebhook(paymentFixtureSlug, fact)).toBe(false);
       expect(await prisma.notification.count({ where: { type: 'payment_received', relatedId: cardOrderId } })).toBe(1);
 
       const snapshot = async (orderId: string) => {
@@ -353,7 +354,7 @@ describe('Payments Endpoints', () => {
     });
   });
 
-  describe('GET /api/v1/payments/verify/:sessionId', () => {
+  describe('GET /api/v1/payments/verify/:paymentId', () => {
     it('should return pending status for non-existent session', async () => {
       const fakeSessionId = 'cs_test_invalid_session_id';
 
@@ -362,10 +363,9 @@ describe('Payments Endpoints', () => {
         url: `/api/v1/payments/verify/${fakeSessionId}`,
       });
 
-      // API returns 200 with pending status for non-existent sessions
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(404);
       const body = response.json();
-      expect(body.data.status).toBe('pending');
+      expect(body.error.code).toBe('NOT_FOUND');
     });
 
     it('should be accessible without authentication', async () => {

@@ -290,7 +290,7 @@ export class OrderService {
     }
     let description: { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
     try {
-      description = await callContract(data.paymentMethod, 'payment', 1, 'describe', { storeCurrency: currency }) as { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
+      description = await callContract(data.paymentMethod, 'payment', 2, 'describe', { storeCurrency: currency }) as { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
     } catch (error) {
       if (error instanceof ContractCallError) {
         throw new ApiError('PAYMENT_METHOD_UNAVAILABLE');
@@ -519,7 +519,7 @@ export class OrderService {
     const payment = await prisma.payment.findFirst({
       where: { orderId },
       orderBy: { createdAt: 'desc' },
-      select: { sessionId: true, actionJson: true },
+      select: { id: true, sessionId: true, actionJson: true, status: true },
     });
     const response = this.formatOrderResponse(order, currency);
     const action = payment?.actionJson;
@@ -528,6 +528,9 @@ export class OrderService {
       !Array.isArray(action) && action.type === 'instructions' && typeof action.text === 'string'
       ? action.text : null;
     response.paymentSessionId = payment?.sessionId ?? null;
+    response.paymentId = payment?.id ?? null;
+    response.paymentAttemptState = payment?.status ?? null;
+    response.refundRequired = await prisma.paymentLedger.count({ where: { orderId, eventType: 'SUCCEEDED', refundRequired: true, refunds: { none: { status: 'COMPLETED' } } } }) > 0;
     return response;
   }
 

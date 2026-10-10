@@ -222,6 +222,7 @@ describe('Admin Orders Endpoints', () => {
       const payment = await prisma.payment.create({
         data: {
           orderId: testOrderId,
+          providerKey: (await prisma.paymentProviderAccount.upsert({ where: { namespace_merchantAccount_environment: { namespace: 'jiffoo-manual', merchantAccount: 'store', environment: 'live' } }, update: {}, create: { namespace: 'jiffoo-manual', merchantAccount: 'store', environment: 'live' } })).providerKey,
           paymentMethod: 'manual-payment',
           amount: order.totalAmount,
           currency: order.currency,

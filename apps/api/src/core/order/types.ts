@@ -142,6 +142,9 @@ export interface OrderResponse {
   paymentMethod: string | null;
   paymentInstructions?: string | null;
   paymentSessionId?: string | null;
+  paymentId?: string | null;
+  paymentAttemptState?: string | null;
+  refundRequired?: boolean;
   unpaidExpiresAt: string | null;
   currency: string;
   shippingAddress: ShippingAddressResponse | null;

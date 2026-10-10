@@ -31,13 +31,13 @@ const { createHash } = require('crypto');
 module.exports = {
   register(ctx) {
     const digest = () => createHash('sha256').update(ctx.config.token).digest('hex');
-    ctx.contracts.implement('payment', 1, {
+    ctx.contracts.implement('payment', 2, {
       describe: (input) => {
         if (ctx.config.failContract) throw new Error('contract ' + ctx.config.token);
-        return { displayName: digest(), requiresManualConfirmation: true, unpaidTimeoutMinutes: 60, supportedCurrencies: [input.storeCurrency] };
+        return { displayName: digest(), requiresManualConfirmation: true, unpaidTimeoutMinutes: 60, supportedCurrencies: [input.storeCurrency], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } };
       },
       createSession: (input) => ({ sessionId: input.orderId, action: { type: 'none' } }),
-      getSessionStatus: () => ({ status: 'pending' }),
+      queryByRequestKey: () => ({ status: 'pending' }),
     });
     ctx.events.subscribe('order.created', 1, async (event) => {
       fs.writeFileSync(path.join(ctx.config.directory, event.id + '.digest'), digest());
@@ -94,7 +94,7 @@ describe('plugin secret configuration', () => {
     slugs.push(slug);
     await installFixturePlugin(
       { app, adminToken: admin.token, adminUserId: admin.user.id },
-      slug, 'payment', [{ name: 'payment', version: 1 }], source,
+      slug, 'payment', [{ name: 'payment', version: 2 }], source,
       { configSchema: { ...schema, properties: { ...schema.properties, ...Object.fromEntries(Object.keys(extras).map((key) => [key, { type: 'boolean' }])) } },
         subscriptions: [{ type: 'order.created', version: 1 }],
         lifecycle: { onDisable: true, onEnable: true },
@@ -130,7 +130,7 @@ describe('plugin secret configuration', () => {
     const secret = `secret-${randomUUID()}`;
     const { slug } = await install(secret);
     const digest = createHash('sha256').update(secret).digest('hex');
-    const described = await callContract(slug, 'payment', 1, 'describe', { storeCurrency: 'USD' }) as { displayName: string };
+    const described = await callContract(slug, 'payment', 2, 'describe', { storeCurrency: 'USD' }) as { displayName: string };
     expect(described.displayName).toBe(digest);
     const gateway = await app.inject({ method: 'GET', url: `/api/v1/extensions/plugin/${slug}/api/headers` });
     expect(gateway.statusCode).toBe(200);
@@ -176,11 +176,11 @@ describe('plugin secret configuration', () => {
     await prisma.pluginInstallation.update({ where: { id: row.id }, data: { configJson: { ...config, token: broken } } });
     const manifest = (await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).manifestJson;
     expect(evaluatePluginConfigReadiness(manifest, { ...config, token: broken })).toMatchObject({ ready: false, missingFields: ['token'] });
-    await expect(callContract(slug, 'payment', 1, 'describe', { storeCurrency: 'USD' })).rejects.toThrow();
+    await expect(callContract(slug, 'payment', 2, 'describe', { storeCurrency: 'USD' })).rejects.toThrow();
     const failed = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: row.id } });
     expect(failed.lastFailureMessage).toContain('re-enter');
     expect(failed.lastFailureMessage).not.toContain(secret);
-    expect(await callContract(healthy.slug, 'payment', 1, 'describe', { storeCurrency: 'USD' })).toMatchObject({ requiresManualConfirmation: true });
+    expect(await callContract(healthy.slug, 'payment', 2, 'describe', { storeCurrency: 'USD' })).toMatchObject({ requiresManualConfirmation: true });
     const omitted = await update(slug, row.id, { label: 'changed', directory });
     expect(omitted.statusCode).toBe(400);
     expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: row.id } })).configJson).toMatchObject({ token: broken });
@@ -193,7 +193,7 @@ describe('plugin secret configuration', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     try {
       const { slug, row } = await install(secret, { failContract: true, failLifecycle: false, failEvent: true });
-      await expect(callContract(slug, 'payment', 1, 'describe', { storeCurrency: 'USD' })).rejects.toThrow('***');
+      await expect(callContract(slug, 'payment', 2, 'describe', { storeCurrency: 'USD' })).rejects.toThrow('***');
       const failed = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: row.id } });
       expect(failed.lastFailureMessage).toContain('***');
       expect(failed.lastFailureMessage).not.toContain(secret);

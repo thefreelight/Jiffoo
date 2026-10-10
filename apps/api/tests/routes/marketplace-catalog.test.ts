@@ -150,7 +150,7 @@ describe('Marketplace catalog API', () => {
   });
 
   it.each([
-    'payment', ['payment', 1], ['payment', 'payment'], ['Invalid Name'],
+    'payment', ['payment', 2], ['payment', 'payment'], ['Invalid Name'],
   ])('I invalid declared capabilities invalidate the whole catalog: %j', async (capabilities) => {
     configure();
     serve({ ...catalog(), plugins: [{ ...catalog().plugins[0], declaredCapabilities: capabilities }] });

@@ -39,7 +39,7 @@ import { pluginDatabaseLimit } from './plugin-database-test-control';
 import { registerPluginStateReset } from './plugin-state';
 import { recordPluginFailure, redactPluginFailure } from './plugin-failure';
 import { readStoredPluginManifest } from './stored-manifest';
-import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
+import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV2Methods, shippingV1Methods, taxV1Methods, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
@@ -729,7 +729,7 @@ function contractGatewayError(error: PluginGatewayError): ContractCallError {
   return new ContractCallError(code, error.message);
 }
 
-const contractMethods = { payment: paymentV1Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
+const contractMethods = { payment: paymentV2Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
 type ContractName = keyof typeof contractMethods;
 
 function isValidTaxResult(input: unknown, output: unknown): boolean {
@@ -745,7 +745,7 @@ function isValidTaxResult(input: unknown, output: unknown): boolean {
 export async function callContract(
   slug: string,
   contractName: ContractName,
-  version: 1,
+  version: 1 | 2,
   method: string,
   input: unknown,
   invocationLabel?: { kind: string; id: string },
@@ -759,7 +759,7 @@ export async function callContract(
     if (error instanceof PluginGatewayError) throw contractGatewayError(error);
     throw error;
   }
-  if (version !== 1 || !(contractName in contractMethods) || !(method in contractMethods[contractName])) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractName} v${version}/${method}`);
+  if (version !== (contractName === 'payment' ? 2 : 1) || !(contractName in contractMethods) || !(method in contractMethods[contractName])) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractName} v${version}/${method}`);
   const pkg = await PluginManagementService.getPluginPackage(slug);
   const instance = await PluginManagementService.getDefaultInstance(slug);
   if (!pkg || !instance) throw new ContractCallError('PLUGIN_NOT_FOUND', `Plugin ${slug} is not installed`);

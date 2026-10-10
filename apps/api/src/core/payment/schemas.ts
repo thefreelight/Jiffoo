@@ -38,6 +38,7 @@ const paymentMethodSchema = {
 const paymentSessionSchema = {
   type: 'object',
   properties: {
+    paymentId: { type: 'string' },
     sessionId: { type: 'string', description: 'Payment session ID' },
     url: { type: 'string', description: 'Redirect URL for payment' },
     action: {
@@ -58,13 +59,14 @@ const paymentSessionSchema = {
 const paymentVerificationSchema = {
   type: 'object',
   properties: {
-    sessionId: { type: 'string', description: 'Payment session ID' },
+    paymentId: { type: 'string', description: 'Core payment ID' },
+    sessionId: { type: 'string', nullable: true, description: 'PSP session ID' },
     orderId: { type: 'string', nullable: true, description: 'Associated order ID' },
     status: { type: 'string', description: 'Payment status (completed, pending, failed)' },
     paidAt: { type: 'string', format: 'date-time', nullable: true, description: 'Payment completion time' },
     paymentMethod: { type: 'string', description: 'Payment method used' },
   },
-  required: ['sessionId', 'status', 'paymentMethod'],
+  required: ['paymentId', 'sessionId', 'status', 'paymentMethod'],
 } as const;
 
 // ============================================================================
@@ -114,13 +116,13 @@ export const paymentSchemas = {
     },
   },
 
-  // GET /api/payments/verify/:sessionId
+  // GET /api/payments/verify/:paymentId
   verifyPayment: {
     params: {
       type: 'object',
-      required: ['sessionId'],
+      required: ['paymentId'],
       properties: {
-        sessionId: { type: 'string', description: 'Payment session ID to verify' },
+        paymentId: { type: 'string', description: 'Core payment ID to verify' },
       },
     },
     response: createTypedReadResponses(paymentVerificationSchema),

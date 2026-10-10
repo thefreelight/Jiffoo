@@ -42,7 +42,7 @@ jobs:
           --health-cmd "redis-cli ping"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL_TEST: postgresql://postgres@localhost:5432/jiffoo_core_test?schema=public
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/jiffoo_core_test
     steps:
       - uses: actions/checkout@v4
         with:
@@ -105,7 +105,7 @@ jobs:
           --health-cmd "redis-cli ping"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL_TEST: postgresql://postgres@localhost:5432/jiffoo_core_test?schema=public
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/jiffoo_core_test
     steps:
       - uses: actions/checkout@v4
         with:
@@ -168,7 +168,7 @@ jobs:
           --health-cmd "redis-cli ping"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL_TEST: postgresql://postgres@localhost:5432/jiffoo_core_test?schema=public
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/jiffoo_core_test
     steps:
       - uses: actions/checkout@v4
         with:

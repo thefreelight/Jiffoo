@@ -23,7 +23,7 @@ import path from 'path';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { prisma } from '@/config/database';
 import { decimalToMinor } from '@/core/payment/minor-units';
-import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-plugin';
+import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin, verifiedPaymentFixtureFact } from '../helpers/fixture-plugin';
 import { OrderService } from '@/core/order/service';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 import { checkoutTotal } from '../helpers/checkout-total';
@@ -62,7 +62,7 @@ describe('Orders Endpoints', () => {
     source: string,
   ): Promise<void> {
     fixtureSlugs.push(slug);
-    await installFixturePlugin(fixtureOptions(), slug, category, [{ name: category, version: 1 }], source);
+    await installFixturePlugin(fixtureOptions(), slug, category, [category === 'payment' ? { name: 'payment', version: 2 } : { name: category, version: 1 }], source);
   }
 
   async function resetFixtures(): Promise<void> {
@@ -301,7 +301,7 @@ describe('Orders Endpoints', () => {
         expect(response.json().data.paymentMethods).toEqual(expect.arrayContaining([
           expect.objectContaining({ providerSlug: 'manual-payment' }),
         ]));
-        expect(await callContract('manual-payment', 'payment', 1, 'describe', { storeCurrency: 'USD' }))
+        expect(await callContract('manual-payment', 'payment', 2, 'describe', { storeCurrency: 'USD' }))
           .toMatchObject({ instructions: 'Pay manually.' });
       } finally {
         await prisma.pluginInstallation.update({ where: { id: instance.id }, data: { configJson: instance.configJson ?? null } });
@@ -542,7 +542,7 @@ describe('Orders Endpoints', () => {
         const sessionId = await createCheckoutSession(orderId, 'checkout-late-payment');
         await prisma.order.update({ where: { id: orderId }, data: { unpaidExpiresAt: new Date(Date.now() - 60_000) } });
         expect(await OrderService.cancelExpiredUnpaidOrders()).toBe(1);
-        expect(await applyNormalizedPluginWebhook('checkout-late-payment', { received: true, handled: true, sessionId, normalizedStatus: 'succeeded', providerEventId: `late:${orderId}` })).toBe(true);
+        expect(await applyNormalizedPluginWebhook('checkout-late-payment', await verifiedPaymentFixtureFact('checkout-late-payment', sessionId, `late:${orderId}`))).toBe(true);
         const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
         expect(order.status).toBe('CANCELLED');
         expect(order.paymentStatus).toBe('PAID');

@@ -53,10 +53,10 @@ export class CheckoutService {
     const paymentPackages = await PluginManagementService.getAllPluginPackages();
     const paymentMethods = (await Promise.all(paymentPackages.map(async (pkg) => {
       const instance = await PluginManagementService.getDefaultInstance(pkg.slug);
-      if (!instance?.enabled || !Array.isArray((pkg.manifestJson as { contracts?: unknown[] }).contracts) || !(pkg.manifestJson as { contracts: Array<{ name: string; version: number }> }).contracts.some((contract) => contract.name === 'payment' && contract.version === 1)) return null;
+      if (!instance?.enabled || !Array.isArray((pkg.manifestJson as { contracts?: unknown[] }).contracts) || !(pkg.manifestJson as { contracts: Array<{ name: string; version: number }> }).contracts.some((contract) => contract.name === 'payment' && contract.version === 2)) return null;
       let description: { displayName: string; requiresManualConfirmation: boolean; supportedCurrencies: string[] };
       try {
-        description = await callContract(pkg.slug, 'payment', 1, 'describe', { storeCurrency: currency }) as typeof description;
+        description = await callContract(pkg.slug, 'payment', 2, 'describe', { storeCurrency: currency }) as typeof description;
       } catch (error) {
         await excludeFailedProvider(pkg.slug, error);
         return null;

@@ -11,13 +11,13 @@ import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { prisma } from '@/config/database';
 
 const paymentSource = (fail: boolean) => `module.exports = { register(ctx) {
-  ctx.contracts.implement('payment', 1, {
+  ctx.contracts.implement('payment', 2, {
     describe: (input) => { ${fail ? "throw new Error('fixture payment failure');" : ''} return {
       displayName: 'Fixture payment', requiresManualConfirmation: true,
-      unpaidTimeoutMinutes: 60, supportedCurrencies: [input.storeCurrency],
+      unpaidTimeoutMinutes: 60, supportedCurrencies: [input.storeCurrency], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' },
     }; },
     createSession: () => ({ sessionId: 'fixture', action: { type: 'none' } }),
-    getSessionStatus: () => ({ status: 'pending' }),
+    queryByRequestKey: () => ({ status: 'pending' }),
     handleWebhook: () => ({ verification: 'verified', events: [] }),
   });
 } };`;
@@ -47,7 +47,7 @@ describe('Checkout provider failure containment', () => {
 
   async function install(slug: string, category: 'payment' | 'shipping', fail = false) {
     slugs.push(slug);
-    await installFixturePlugin(options(), slug, category, [{ name: category, version: 1 }],
+    await installFixturePlugin(options(), slug, category, [category === 'payment' ? { name: 'payment', version: 2 } : { name: category, version: 1 }],
       category === 'payment' ? paymentSource(fail) : shippingSource(fail));
   }
 
@@ -200,7 +200,7 @@ describe('Checkout provider failure containment', () => {
   it('E excludes a corrupt provider while its own contract call reports PLUGIN_PACKAGE_CORRUPT', async () => {
     await install('contain-corrupt-payment', 'payment');
     await corrupt('contain-corrupt-payment');
-    await expect(callContract('contain-corrupt-payment', 'payment', 1, 'describe', { storeCurrency: 'USD' }))
+    await expect(callContract('contain-corrupt-payment', 'payment', 2, 'describe', { storeCurrency: 'USD' }))
       .rejects.toMatchObject({ code: 'PLUGIN_PACKAGE_CORRUPT' });
     const response = await quote();
     expect(response.statusCode).toBe(200);

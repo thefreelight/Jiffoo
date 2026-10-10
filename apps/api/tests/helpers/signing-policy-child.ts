@@ -21,7 +21,7 @@ async function run() {
   const instance = await prisma.pluginInstallation.findUniqueOrThrow({
     where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } },
   });
-  const describe = (name: string) => callContract(name, 'payment', 1, 'describe', { storeCurrency: 'USD' });
+  const describe = (name: string) => callContract(name, 'payment', 2, 'describe', { storeCurrency: 'USD' });
   const capture = async (operation: () => Promise<unknown>) => {
     try { return { value: await operation() }; }
     catch (error) { return { code: (error as { code?: string }).code, statusCode: (error as { statusCode?: number }).statusCode, message: String(error) }; }

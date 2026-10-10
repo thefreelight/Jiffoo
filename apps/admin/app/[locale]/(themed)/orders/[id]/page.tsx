@@ -22,7 +22,7 @@ export default function OrderDetailPage() {
   const orderId = params.id as string
   const t = useT()
   const [showRefundDialog, setShowRefundDialog] = useState(false)
-  const [refundPayment, setRefundPayment] = useState<{ paymentId: string; amount: number; currency: string } | undefined>()
+  const [refundPayment, setRefundPayment] = useState<{ paymentId: string; providerPaymentId: string; amount: number; currency: string } | undefined>()
   const [showShipDialog, setShowShipDialog] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
@@ -408,9 +408,11 @@ export default function OrderDetailPage() {
               )}
 
               {order.refundRequired && <p role="status">{getText('merchant.orders.refundRequired', 'Refund required')}</p>}
+              {order.paymentAttemptState === 'UNKNOWN' && <p role="status">{getText('common.errors.paymentOutcomeUnknown', "We're checking your payment. Please don't pay again.")}</p>}
+              {order.paymentAttemptState === 'REQUIRES_REVIEW' && <p role="status">{getText('common.errors.paymentRequiresReview', 'Payment requires review.')}</p>}
               {order.refundResolutions?.map(payment => (
-                <div key={payment.paymentId} className="space-y-2 rounded-xl border border-neutral-faint p-3">
-                  <p>{payment.paymentId}: {formatCurrency(payment.amount, payment.currency)}</p>
+                <div key={payment.paymentId + ':' + payment.providerPaymentId} className="space-y-2 rounded-xl border border-neutral-faint p-3">
+                  <p>{payment.providerPaymentId}: {formatCurrency(payment.amount, payment.currency)}</p>
                   <p role="status">{payment.status === 'resolved'
                     ? getText('merchant.orders.refundResolved', 'Refund recorded')
                     : getText('merchant.orders.refundPending', 'Refund pending')}</p>
@@ -436,7 +438,7 @@ export default function OrderDetailPage() {
                 </div>
               )}
 
-              {order.paymentStatus === 'PAID' &&
+              {order.canRefundOrder && order.paymentStatus === 'PAID' &&
                 ['PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'].includes(order.status) && (
                 <Button
                   variant="outline"
@@ -479,7 +481,7 @@ export default function OrderDetailPage() {
       </div>
 
       <RefundDialog
-        key={refundPayment?.paymentId ?? 'order-refund'}
+        key={refundPayment ? refundPayment.paymentId + ':' + refundPayment.providerPaymentId : 'order-refund'}
         payment={refundPayment}
         order={order as any}
         open={showRefundDialog}

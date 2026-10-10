@@ -7,30 +7,49 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { extensionInstaller } from '@/core/admin/extension-installer';
-import type { EventSubscription } from '@jiffoo/shared';
+import type { EventSubscription, PaymentFact, WebhookOutcome } from '@jiffoo/shared';
 import { createHash } from 'node:crypto';
 import { cleanupPluginMigrationFixture } from './plugin-migration-cleanup';
 
-export type FixtureContract = { name: 'shipping' | 'tax' | 'payment' | 'notification'; version: 1 };
+export type FixtureContract = { name: 'payment'; version: 2 } | { name: 'shipping' | 'tax' | 'notification'; version: 1 };
 
 export const checkoutPaymentFixtureSource = `module.exports = { register(ctx) {
-  ctx.contracts.implement('payment', 1, {
+  const requests = new Map();
+  const account = { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' };
+  const fact = input => ({ account, requestKey: input.idempotencyKey, sessionId: 'fixture_' + input.orderId + '_' + input.idempotencyKey,
+    amountMinor: input.amountMinor, currency: input.currency, observedAt: new Date().toISOString(), status: 'pending',
+    action: { type: 'redirect', url: 'https://example.test/pay/' + input.orderId + '?return=' + encodeURIComponent(input.returnUrl) + '&cancel=' + encodeURIComponent(input.cancelUrl) },
+    captures: [], canStillBeCharged: true, requestClosed: false });
+  ctx.contracts.implement('payment', 2, {
     describe: (input) => ({
       displayName: 'Fixture card', requiresManualConfirmation: false,
       unpaidTimeoutMinutes: 30,
       supportedCurrencies: ctx.config.supported === false ? ['EUR'] : [input.storeCurrency],
+      account,
     }),
-    createSession: (input) => ({
-      sessionId: 'fixture_' + input.orderId + '_' + input.idempotencyKey,
-      action: { type: 'redirect', url: 'https://example.test/pay/' + input.orderId + '?return=' + encodeURIComponent(input.returnUrl) + '&cancel=' + encodeURIComponent(input.cancelUrl) },
-    }),
-    getSessionStatus: () => ({ status: 'pending' }),
+    createSession: input => { const value = fact(input); requests.set(input.idempotencyKey, value); return value; },
+    queryByRequestKey: input => requests.get(input.requestKey),
     handleWebhook: (input) => {
       const event = JSON.parse(Buffer.from(input.rawBody).toString('utf8'));
-      return { verification: 'verified', events: [{ providerEventId: event.providerEventId, sessionId: event.sessionId, status: 'succeeded' }] };
+      const value = [...requests.values()].find(value => value.sessionId === event.sessionId);
+      const captures = value.captures.length ? value.captures : [{ account, requestKey: value.requestKey, sessionId: value.sessionId,
+        providerPaymentId: require('node:crypto').randomUUID(), amountMinor: value.amountMinor, currency: value.currency, observedAt: value.observedAt }];
+      const paid = { ...value, status: 'succeeded', providerEventId: event.providerEventId, captures };
+      requests.set(value.requestKey, paid);
+      return { verification: 'verified', events: [paid] };
     },
   });
 } };`;
+
+export async function verifiedPaymentFixtureFact(slug: string, sessionId: string, providerEventId: string): Promise<PaymentFact> {
+  const { callContract } = await import('@/core/admin/extension-installer/plugin-runtime');
+  const result = await callContract(slug, 'payment', 2, 'handleWebhook', {
+    rawBody: Buffer.from(JSON.stringify({ sessionId, providerEventId, status: 'succeeded' })),
+    contentType: 'application/json', headers: {}, query: {},
+  }) as WebhookOutcome;
+  if (result.verification !== 'verified' || result.events.length !== 1) throw new Error('Payment fixture did not verify one complete fact');
+  return result.events[0];
+}
 
 interface FixturePluginInstallOptions {
   app: FastifyInstance;

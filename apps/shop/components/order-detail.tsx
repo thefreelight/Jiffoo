@@ -4,6 +4,9 @@ import { useState, type FormEvent } from 'react';
 import type { Order } from '@/lib/checkout-types';
 import type { ShopLocale } from '@/lib/locale';
 import { storefrontMessages } from '@/lib/storefront-messages';
+import { common as en } from 'shared/src/i18n/messages/en/common';
+import { common as hans } from 'shared/src/i18n/messages/zh-Hans/common';
+import { common as hant } from 'shared/src/i18n/messages/zh-Hant/common';
 import { formatPrice } from '@/lib/price';
 import { buildCancelReason, orderStatusLabel, paymentStatusLabel, type CancelReason } from '@/lib/order-labels';
 import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
@@ -48,6 +51,9 @@ export function OrderDetail({ initialOrder, locale }: { initialOrder: Order; loc
       <div><dt>{t.checkout.orderStatus}</dt><dd>{orderStatusLabel(locale, order.status)}</dd></div>
       <div><dt>{t.checkout.status}</dt><dd>{paymentStatusLabel(locale, order.paymentStatus)}</dd></div>
     </dl>
+    {order.paymentAttemptState === 'UNKNOWN' && <p role="status">{({ en, 'zh-Hans': hans, 'zh-Hant': hant })[locale].errors.paymentOutcomeUnknown}</p>}
+    {order.paymentAttemptState === 'REQUIRES_REVIEW' && <p role="status">{({ en, 'zh-Hans': hans, 'zh-Hant': hant })[locale].errors.paymentRequiresReview}</p>}
+    {order.refundRequired && <p role="status">{({ en, 'zh-Hans': hans, 'zh-Hant': hant })[locale].errors.paymentRefundRequired}</p>}
     <section><h2 className="font-semibold">{t.checkout.items}</h2>
       <ul className="divide-y divide-line">{order.items.map((item) =>
         <li key={item.id} className="flex justify-between gap-4 py-3">

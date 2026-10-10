@@ -1,11 +1,21 @@
 const { createHmac, randomUUID, timingSafeEqual } = require('node:crypto');
 
 function register(ctx) {
-  ctx.contracts.implement('payment', 1, {
-    describe: input => ({ displayName: 'E2E Callback Payment', requiresManualConfirmation: false, unpaidTimeoutMinutes: 120, supportedCurrencies: [input.storeCurrency] }),
-    createSession: () => ({ sessionId: `e2e-psp-${randomUUID()}`, action: { type: 'instructions', text: 'Awaiting the local PSP callback.' } }),
-    getSessionStatus: () => ({ status: 'pending' }),
-    handleWebhook: input => {
+  const account = { namespace: 'e2e-psp', merchantAccount: 'store', environment: 'test' };
+  ctx.contracts.implement('payment', 2, {
+    describe: input => ({ displayName: 'E2E Callback Payment', requiresManualConfirmation: false, unpaidTimeoutMinutes: 120, supportedCurrencies: [input.storeCurrency], account }),
+    createSession: async input => {
+      const fact = { account, requestKey: input.idempotencyKey, sessionId: `e2e-psp-${randomUUID()}`, amountMinor: input.amountMinor, currency: input.currency,
+        observedAt: new Date().toISOString(), status: 'pending', captures: [], canStillBeCharged: true, requestClosed: false, action: { type: 'instructions', text: 'Awaiting the local PSP callback.' } };
+      await ctx.database.query('INSERT INTO callback_requests ("requestKey","sessionId",fact) VALUES($1,$2,$3) ON CONFLICT ("requestKey") DO NOTHING', [input.idempotencyKey, fact.sessionId, fact]);
+      return (await ctx.database.query('SELECT fact FROM callback_requests WHERE "requestKey"=$1', [input.idempotencyKey])).rows[0].fact;
+    },
+    queryByRequestKey: async input => {
+      const result = await ctx.database.query('SELECT fact FROM callback_requests WHERE "requestKey"=$1', [input.requestKey]);
+      if (!result.rows.length) throw new Error('Unknown callback request');
+      return result.rows[0].fact;
+    },
+    handleWebhook: async input => {
       const rawBody = Buffer.from(input.rawBody);
       let event;
       try { event = JSON.parse(rawBody.toString('utf8')); }
@@ -24,7 +34,17 @@ function register(ctx) {
       const signature = signatures.length === 1 ? signatures[0] : undefined;
       if (typeof signature !== 'string' || !/^[a-f0-9]{64}$/.test(signature)
         || !timingSafeEqual(expected, Buffer.from(signature, 'hex'))) return { verification: 'rejected', reasonCode: 'INVALID_SIGNATURE' };
-      return { verification: 'verified', events: [{ providerEventId: event.eventId, sessionId: event.sessionId, status: event.status }] };
+      const result = await ctx.database.query('SELECT fact FROM callback_requests WHERE "sessionId"=$1', [event.sessionId]);
+      const previous = result.rows[0]?.fact;
+      const observedAt = previous?.providerEventId === event.eventId ? previous.observedAt : new Date().toISOString(), requestKey = previous?.requestKey || event.sessionId;
+      const captures = previous?.captures || [];
+      if (event.status === 'succeeded' && !captures.some(value => value.providerPaymentId === event.sessionId)) captures.push({
+        account, requestKey, sessionId: event.sessionId, providerPaymentId: event.sessionId, amountMinor: event.amountMinor, currency: event.currency, observedAt,
+      });
+      const fact = { account, requestKey, sessionId: event.sessionId, amountMinor: event.amountMinor, currency: event.currency,
+        observedAt, status: event.status, captures, canStillBeCharged: true, requestClosed: false, providerEventId: event.eventId };
+      if (previous) await ctx.database.query('UPDATE callback_requests SET fact=$2 WHERE "sessionId"=$1', [event.sessionId, fact]);
+      return { verification: 'verified', events: [fact] };
     },
   });
 }

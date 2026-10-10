@@ -91,7 +91,7 @@ it('G real OpenAPI declares the statuses produced by every registered Core hook'
   }
   for (const [path, method] of [
     ['/api/v1/payments/create-session', 'post'], ['/api/v1/payments/webhook/{provider}', 'post'],
-    ['/api/v1/payments/verify/{sessionId}', 'get'], ['/api/v1/checkout/quote', 'post'],
+    ['/api/v1/payments/verify/{paymentId}', 'get'], ['/api/v1/checkout/quote', 'post'],
     ['/api/v1/orders/', 'post'], ['/api/v1/admin/orders/{id}', 'get'],
     ['/api/v1/admin/orders/{id}/record-manual-payment', 'post'],
     ['/api/v1/extensions/plugin/{slug}/health', 'get'], ['/api/v1/extensions/plugin/{slug}/manifest', 'get'],

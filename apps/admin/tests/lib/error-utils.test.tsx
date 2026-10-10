@@ -15,6 +15,14 @@ import { merchant as hansMerchant } from '../../../../packages/shared/src/i18n/m
 import { merchant as hantMerchant } from '../../../../packages/shared/src/i18n/messages/zh-Hant/merchant';
 
 describe('Typed localized client error contracts', () => {
+  it.each([en, hans, hant])('v2 payment errors preserve their approved localized messages in locale %#', common => {
+    const translate = (key: string) => key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], { common }) as string;
+    for (const [code, expected] of [
+      [ApiErrorCodes.PAYMENT_OUTCOME_UNKNOWN, common.errors.paymentOutcomeUnknown],
+      [ApiErrorCodes.PAYMENT_REQUIRES_REVIEW, common.errors.paymentRequiresReview],
+      [ApiErrorCodes.PAYMENT_SESSION_STILL_CHARGEABLE, common.errors.paymentSessionStillChargeable],
+    ]) expect(resolveApiErrorMessage(new AdminApiError('PRIVATE_PSP_DETAIL', code, undefined, 409), translate)).toBe(expected);
+  });
   it.each([
     [ApiErrorCodes.PLUGIN_DATABASE_BUSY, 503, 'Plugin database is busy. Try again shortly.'],
     [ApiErrorCodes.PLUGIN_DATABASE_OUTCOME_UNKNOWN, 502, 'Plugin database commit outcome is unknown. Do not retry automatically.'],

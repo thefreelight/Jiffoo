@@ -184,28 +184,28 @@ module.exports = {
     const slug = `invalid-output-${Date.now().toString(36)}`.slice(0, 30);
     const installationId = await createPlugin(slug, `
 module.exports = { register(ctx) {
-  ctx.contracts.implement('payment', 1, {
+  ctx.contracts.implement('payment', 2, {
     describe: () => ({ displayName: '' }),
     createSession: () => ({ sessionId: 'session', action: { type: 'instructions', text: 'Pay' } }),
-    getSessionStatus: () => ({ status: 'pending' }),
+    queryByRequestKey: () => ({ status: 'pending' }),
   });
-} };`, true, [{ name: 'payment', version: 1 }]);
+} };`, true, [{ name: 'payment', version: 2 }]);
 
-    await expect(callContract(slug, 'payment', 1, 'describe', {})).rejects.toMatchObject({ code: 'CONTRACT_RESPONSE_INVALID' });
+    await expect(callContract(slug, 'payment', 2, 'describe', {})).rejects.toMatchObject({ code: 'CONTRACT_RESPONSE_INVALID' });
     const installation = await prisma.pluginInstallation.findUnique({ where: { id: installationId } });
-    expect(installation?.lastFailureMessage).toContain('Invalid payment v1 describe response');
+    expect(installation?.lastFailureMessage).toContain('Invalid payment v2 describe response');
   });
 
   it('rejects declared-but-unimplemented and implemented-but-undeclared contracts', async () => {
     const declaredSlug = `declared-${Date.now().toString(36)}`.slice(0, 30);
     const undeclaredSlug = `undeclared-${Date.now().toString(36)}`.slice(0, 30);
-    const declaredId = await createPlugin(declaredSlug, 'module.exports = { register() {} };', true, [{ name: 'payment', version: 1 }]);
+    const declaredId = await createPlugin(declaredSlug, 'module.exports = { register() {} };', true, [{ name: 'payment', version: 2 }]);
     const undeclaredId = await createPlugin(undeclaredSlug, `
 module.exports = { register(ctx) {
-  ctx.contracts.implement('payment', 1, {
-    describe: () => ({ displayName: 'Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD'] }),
+  ctx.contracts.implement('payment', 2, {
+    describe: () => ({ displayName: 'Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } }),
     createSession: () => ({ sessionId: 'session', action: { type: 'instructions', text: 'Pay' } }),
-    getSessionStatus: () => ({ status: 'pending' }),
+    queryByRequestKey: () => ({ status: 'pending' }),
   });
 } };`);
 
@@ -215,20 +215,20 @@ module.exports = { register(ctx) {
       prisma.pluginInstallation.findUnique({ where: { id: declaredId } }),
       prisma.pluginInstallation.findUnique({ where: { id: undeclaredId } }),
     ]);
-    expect(declared?.lastFailureMessage).toContain('declared but did not implement contract payment v1');
-    expect(undeclared?.lastFailureMessage).toContain('implements undeclared contract payment v1');
+    expect(declared?.lastFailureMessage).toContain('declared but did not implement contract payment v2');
+    expect(undeclared?.lastFailureMessage).toContain('implements undeclared contract payment v2');
   });
 
-  it('requires every mandatory payment v1 method at load time', async () => {
+  it('requires every mandatory payment v2 method at load time', async () => {
     const slug = `missing-method-${Date.now().toString(36)}`.slice(0, 30);
     const installationId = await createPlugin(slug, `
 module.exports = { register(ctx) {
-  ctx.contracts.implement('payment', 1, { describe: () => ({}) });
-} };`, true, [{ name: 'payment', version: 1 }]);
+  ctx.contracts.implement('payment', 2, { describe: () => ({}) });
+} };`, true, [{ name: 'payment', version: 2 }]);
 
     await loadEnabledPluginRuntimes();
 
-    expect((await prisma.pluginInstallation.findUnique({ where: { id: installationId } }))?.lastFailureMessage).toContain('Payment v1 contract requires createSession');
+    expect((await prisma.pluginInstallation.findUnique({ where: { id: installationId } }))?.lastFailureMessage).toContain('Payment v2 contract requires createSession');
   });
 
   it('resolves the enabled tax provider and lists every enabled shipping provider', async () => {

@@ -16,8 +16,8 @@ export default async function ReturnPage({ params, searchParams }: {
   if (!(await accountProfile())) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/checkout/return?order=${id}`)}`);
   const initial = await customerOrder(id);
   if (!initial) notFound();
-  if (initial.paymentSessionId) {
-    await customerData(`/payments/verify/${encodeURIComponent(initial.paymentSessionId)}`);
+  if (initial.paymentId) {
+    await customerData(`/payments/verify/${encodeURIComponent(initial.paymentId)}`);
   }
   const order = await customerOrder(id);
   if (!order) notFound();

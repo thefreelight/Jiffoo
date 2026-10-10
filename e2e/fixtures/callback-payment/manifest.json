@@ -9,12 +9,35 @@
   "hostProtocol": "internal-fastify-v1",
   "entryModule": "index.js",
   "permissions": [],
-  "contracts": [{ "name": "payment", "version": 1 }],
+  "contracts": [
+    {
+      "name": "payment",
+      "version": 2
+    }
+  ],
   "configSchema": {
     "type": "object",
     "properties": {
-      "webhookSecret": { "type": "string", "title": "Webhook secret", "sensitive": true, "minLength": 16 }
+      "webhookSecret": {
+        "type": "string",
+        "title": "Webhook secret",
+        "sensitive": true,
+        "minLength": 16
+      }
     },
-    "required": ["webhookSecret"]
+    "required": [
+      "webhookSecret"
+    ]
+  },
+  "database": {
+    "apiVersion": 1,
+    "migrations": [
+      {
+        "id": "callback-requests",
+        "order": 1,
+        "path": "migrations/001-requests.sql",
+        "sha256": "8ebf02a09c0097289d1a83de365b3b17f199a1312f8663d6a36354a627ff4f1e"
+      }
+    ]
   }
 }

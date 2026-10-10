@@ -19,7 +19,7 @@ import { paymentSchemas } from './schemas';
 import { CacheService } from '@/core/cache/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { PaymentStatus } from '@/core/order/types';
-import { syncPaymentFromPlugin } from '@/core/payment/reconciliation';
+import { queryPaymentByRequestKey } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
 import { ApiError, sendKnownError, sendMappedError } from '@/utils/api-errors';
@@ -89,16 +89,16 @@ async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
       continue;
     }
 
-    if (!(pkg.manifestJson as any)?.contracts?.some((contract: any) => contract?.name === 'payment' && contract?.version === 1)) continue;
+    if (!(pkg.manifestJson as any)?.contracts?.some((contract: any) => contract?.name === 'payment' && contract?.version === 2)) continue;
     try {
-      const description = await callContract(pkg.slug, 'payment', 1, 'describe', { storeCurrency: await systemSettingsService.getShopCurrency() }) as any;
+      const description = await callContract(pkg.slug, 'payment', 2, 'describe', { storeCurrency: await systemSettingsService.getShopCurrency() }) as any;
     methods.push({
       pluginSlug: pkg.slug,
       name: pkg.slug,
       displayName: description.displayName,
       icon: `/icons/${pkg.slug}.svg`,
       supportedCurrencies: description.supportedCurrencies,
-      isLive: isLiveMode(parseConfigJson(defaultInstance.configJson)),
+      isLive: description.account.environment === 'live',
     });
     } catch (error) { if (error instanceof SharedProtectionUnavailable) throw error; continue; }
   }
@@ -157,7 +157,6 @@ function getShopLocale(successUrl?: string): string {
   }
 }
 
-// syncPaymentFromPlugin moved to core/payment/reconciliation
 
 export async function paymentRoutes(fastify: FastifyInstance) {
   // Get available payment methods based on installed plugins
@@ -264,36 +263,27 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Verify payment session (for webhook/callback)
-  fastify.get('/verify/:sessionId', {
+  // Core identity remains unambiguous when PSP session identifiers overlap across accounts.
+  fastify.get('/verify/:paymentId', {
     schema: {
       tags: ['payments'],
-      summary: 'Verify payment session',
-      description: 'Verify the status of a payment session',
+      summary: 'Verify a payment by its Core identity',
+      description: 'Query the provider by request key and return the current payment state',
       ...paymentSchemas.verifyPayment,
     }
   }, async (request, reply) => {
-    const { sessionId } = request.params as { sessionId: string };
-
-    await syncPaymentFromPlugin(sessionId);
-    const payment = await prisma.payment.findFirst({ where: { sessionId } });
-
-    if (payment && payment.status === 'SUCCEEDED') {
-      return sendSuccess(reply, {
-        sessionId,
-        orderId: payment.orderId,
-        status: 'paid',
-        paidAt: payment.updatedAt,
-        paymentMethod: payment.paymentMethod,
-      });
-    }
-
-    return sendSuccess(reply, {
-      sessionId,
-      orderId: payment?.orderId,
-      status: payment?.status || 'pending',
-      paymentMethod: payment?.paymentMethod || 'unknown',
-    });
+    try {
+      const { paymentId } = request.params as { paymentId: string };
+      await queryPaymentByRequestKey(paymentId);
+      const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+      if (!payment) throw new ApiError('NOT_FOUND');
+      const capture = payment.status === 'SUCCEEDED' ? await prisma.paymentLedger.findFirst({
+        where: { paymentId, eventType: 'SUCCEEDED' }, orderBy: { createdAt: 'asc' }, select: { createdAt: true },
+      }) : null;
+      return sendSuccess(reply, { paymentId, sessionId: payment.sessionId, orderId: payment.orderId,
+        status: payment.status === 'SUCCEEDED' ? 'paid' : payment.status, paidAt: capture?.createdAt ?? null,
+        paymentMethod: payment.paymentMethod });
+    } catch (error) { return sendMappedError(reply, error); }
   });
 
   await fastify.register(paymentWebhookRoutes);

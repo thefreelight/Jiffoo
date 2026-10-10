@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const shared = path.join(root, 'packages/shared/src');
 const files = [
   'extensions/plugin-contract.ts', 'events/registry.ts',
-  ...['payment', 'shipping', 'tax', 'fulfillment', 'notification'].map(name => `extensions/contracts/${name}-v1.ts`),
+  ...['payment', 'shipping', 'tax', 'fulfillment', 'notification'].map(name => `extensions/contracts/${name}-v${name === 'payment' ? 2 : 1}.ts`),
 ].map(name => path.join(shared, name));
 const lifecyclePath = path.join(root, 'apps/api/src/core/admin/plugin-management/lifecycle-hooks.ts');
 const runtimePath = path.join(root, 'apps/api/src/core/admin/extension-installer/contract-v1-runtime.ts');
@@ -61,26 +61,27 @@ export function generateSnapshot() {
   const required = variable(runtimePath, 'requiredMethods').initializer;
   if (!ts.isObjectLiteralExpression(required)) throw new Error('Invalid canonical required methods');
   for (const name of ['payment', 'shipping', 'tax', 'fulfillment', 'notification']) {
-    const filename = path.join(shared, `extensions/contracts/${name}-v1.ts`);
+    const version = name === 'payment' ? 2 : 1;
+    const filename = path.join(shared, `extensions/contracts/${name}-v${version}.ts`);
     const title = name[0].toUpperCase() + name.slice(1);
-    const methods = properties(filename, `${name}V1Methods`);
+    const methods = properties(filename, `${name}V${version}Methods`);
     for (const direction of ['input', 'output']) {
-      lines.push(`export interface ${title}V1${direction === 'input' ? 'Input' : 'Output'}Map {`);
+      lines.push(`export interface ${title}V${version}${direction === 'input' ? 'Input' : 'Output'}Map {`);
       for (const method of methods) {
         const pair = checker.getTypeOfSymbolAtLocation(method, source(filename));
         lines.push(`  ${method.name}: ${outputType(pair.getProperty(direction), source(filename))};`);
       }
       lines.push('}');
     }
-    lines.push(`export type ${title}V1Method = keyof ${title}V1InputMap;`,
-      `export type ${title}V1Input<M extends ${title}V1Method> = ${title}V1InputMap[M];`,
-      `export type ${title}V1Output<M extends ${title}V1Method> = ${title}V1OutputMap[M];`,
-      `export interface ${title}V1Contract {`);
+    lines.push(`export type ${title}V${version}Method = keyof ${title}V${version}InputMap;`,
+      `export type ${title}V${version}Input<M extends ${title}V${version}Method> = ${title}V${version}InputMap[M];`,
+      `export type ${title}V${version}Output<M extends ${title}V${version}Method> = ${title}V${version}OutputMap[M];`,
+      `export interface ${title}V${version}Contract {`);
     const requiredProperty = required.properties.find(property => property.name.getText() === name);
     if (!requiredProperty || !ts.isArrayLiteralExpression(requiredProperty.initializer)) throw new Error(`Missing required methods: ${name}`);
     const requiredNames = requiredProperty.initializer.elements.map(node => node.text);
     for (const method of methods) {
-      lines.push(`  ${method.name}${requiredNames.includes(method.name) ? '' : '?'}(input: ${title}V1Input<'${method.name}'>): ${title}V1Output<'${method.name}'> | Promise<${title}V1Output<'${method.name}'>>;`);
+      lines.push(`  ${method.name}${requiredNames.includes(method.name) ? '' : '?'}(input: ${title}V${version}Input<'${method.name}'>): ${title}V${version}Output<'${method.name}'> | Promise<${title}V${version}Output<'${method.name}'>>;`);
     }
     lines.push('}');
   }

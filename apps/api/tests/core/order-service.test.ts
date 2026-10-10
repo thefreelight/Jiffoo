@@ -191,7 +191,7 @@ describe('OrderService', () => {
       paymentMethods: [{ providerSlug: 'manual-payment' }],
     });
     (PluginManagementService.resolveSingleProvider as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-    (callContract as ReturnType<typeof vi.fn>).mockResolvedValue({ unpaidTimeoutMinutes: 4320, supportedCurrencies: ['USD'] });
+    (callContract as ReturnType<typeof vi.fn>).mockResolvedValue({ unpaidTimeoutMinutes: 4320, supportedCurrencies: ['USD'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } });
     (mockPrisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
       (fn: (tx: unknown) => unknown) => fn(mockPrisma)
     );

@@ -41,7 +41,7 @@ beforeAll(async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'b2a-plugin-'));
   try {
     await fs.mkdir(path.join(directory, 'server'));
-    await fs.writeFile(path.join(directory, 'manifest.json'), JSON.stringify({ schemaVersion: 1, slug, name: slug, version: '1.0.0', description: 'HTTP error fixture', category: 'payment', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'server/index.js', permissions: [], contracts: [{ name: 'payment', version: 1 }] }));
+    await fs.writeFile(path.join(directory, 'manifest.json'), JSON.stringify({ schemaVersion: 1, slug, name: slug, version: '1.0.0', description: 'HTTP error fixture', category: 'payment', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'server/index.js', permissions: [], contracts: [{ name: 'payment', version: 2 }] }));
     const source = `module.exports={register(ctx){
       ctx.http.route({method:'GET',path:'/payload/:kind',handler:async(req,reply)=>{
         const kind=req.params.kind;
@@ -54,7 +54,7 @@ beforeAll(async () => {
         if(kind==='timeout'){process.send?.({kind:'fixture-entered',slug:ctx.plugin.slug});await new Promise(resolve=>process.once('b2a-release-'+ctx.plugin.slug,resolve));return {ok:true};}
         return reply.code(500).send({secret:'PRIVATE_PLUGIN_BODY',sql:'PRIVATE_SQL'});
       }});
-      ctx.contracts.implement('payment',1,{describe:()=>({displayName:'Fixture',requiresManualConfirmation:false,unpaidTimeoutMinutes:30,supportedCurrencies:['USD']}),createSession:()=>({sessionId:'fixture',action:{type:'none'}}),getSessionStatus:()=>({status:'pending'}),handleWebhook:()=>({verification:'verified',events:[]})});
+      ctx.contracts.implement('payment',2,{describe:()=>({displayName:'Fixture',requiresManualConfirmation:false,unpaidTimeoutMinutes:30,supportedCurrencies:['USD']}),createSession:()=>({sessionId:'fixture',action:{type:'none'}}),queryByRequestKey:()=>({status:'pending'}),handleWebhook:()=>({verification:'verified',events:[]})});
     }};`;
     await fs.writeFile(path.join(directory, 'server/index.js'), source);
     const zip = path.join(directory, 'plugin.zip');

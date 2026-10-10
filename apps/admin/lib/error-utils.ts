@@ -4,8 +4,11 @@ import { isAdminApiError } from './api';
 type TranslateFn = ((key: string) => string) | undefined;
 
 const ERROR_CODE_TO_I18N_KEY: Partial<Record<ApiErrorCode, { key: string; fallback: string }>> = {
-  PAYMENT_ATTEMPT_OPEN: { key: 'common.errors.paymentAttemptOpen', fallback: 'A payment is already in progress. Complete it, or try again in up to 30 minutes.' },
+  PAYMENT_ATTEMPT_OPEN: { key: 'common.errors.paymentAttemptOpen', fallback: 'A payment is already in progress. Complete it before trying again.' },
   PAYMENT_REFERENCE_REQUIRED: { key: 'common.errors.paymentReferenceRequired', fallback: 'Enter a payment or refund reference.' },
+  PAYMENT_OUTCOME_UNKNOWN: { key: 'common.errors.paymentOutcomeUnknown', fallback: "We're checking your payment. Please don't pay again." },
+  PAYMENT_REQUIRES_REVIEW: { key: 'common.errors.paymentRequiresReview', fallback: 'Payment requires review.' },
+  PAYMENT_SESSION_STILL_CHARGEABLE: { key: 'common.errors.paymentSessionStillChargeable', fallback: 'This payment session may still be charged. Wait until it is confirmed closed before trying again.' },
   LOGIN_FAILED: { key: 'merchant.auth.invalidCredentials', fallback: 'Invalid email or password' },
   INVALID_PASSWORD: { key: 'merchant.profile.currentPasswordIncorrect', fallback: 'Current password is incorrect' },
   EMAIL_TAKEN: { key: 'merchant.profile.emailTaken', fallback: 'Email is already in use' },

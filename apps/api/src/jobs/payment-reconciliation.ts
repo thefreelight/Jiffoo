@@ -63,10 +63,9 @@ export class PaymentReconciliationJob {
   static async reconcileNow(): Promise<PaymentReconciliationResult | undefined> {
     const startTime = Date.now();
     try {
-      const { limit, maxAgeMinutes, minAgeMinutes } = this.options;
+      const { limit, minAgeMinutes } = this.options;
       const { scanned, updated, failed, skipped } = await reconcilePendingPayments({
         limit,
-        maxAgeMinutes,
         minAgeMinutes,
       });
       const duration = Date.now() - startTime;

@@ -158,7 +158,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      const data = request.body as { paymentId: string; reference: string; idempotencyKey: string };
+      const data = request.body as { paymentId: string; providerPaymentId: string; reference: string; idempotencyKey: string };
       return sendSuccess(reply, await AdminOrderService.resolveRefundRequiredPayment(id, { ...data, actorId: request.user!.id }));
     } catch (error) { return sendMappedError(reply, error); }
   });

@@ -52,13 +52,13 @@ describe('worker payment reconciliation shared protection', () => {
       });
       expect(ready.kind).toBe('ready'); heartbeatKey = ready.heartbeatKey;
       await command(child, { kind: 'warm', namespace });
-      const manifest = { schemaVersion: 1, slug, name: slug, description: 'Worker payment test', version: '1.0.0', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'server/index.js', permissions: [], contracts: [{ name: 'payment', version: 1 }] };
+      const manifest = { schemaVersion: 1, slug, name: slug, description: 'Worker payment test', version: '1.0.0', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'server/index.js', permissions: [], contracts: [{ name: 'payment', version: 2 }] };
       await fs.mkdir(path.join(directory, 'server'));
       await fs.writeFile(path.join(directory, 'manifest.json'), JSON.stringify(manifest));
-      await fs.writeFile(path.join(directory, 'server/index.js'), `const fs = require('node:fs/promises'); module.exports = { register(ctx) { ctx.contracts.implement('payment', 1, {
-        describe: () => ({ displayName: 'Worker payment', requiresManualConfirmation: false, unpaidTimeoutMinutes: 10080, supportedCurrencies: ['USD'] }),
+      await fs.writeFile(path.join(directory, 'server/index.js'), `const fs = require('node:fs/promises'); module.exports = { register(ctx) { ctx.contracts.implement('payment', 2, {
+        describe: () => ({ displayName: 'Worker payment', requiresManualConfirmation: false, unpaidTimeoutMinutes: 10080, supportedCurrencies: ['USD'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } }),
         createSession: () => ({ sessionId: 'unused', action: { type: 'instructions', text: 'Test payment' } }),
-        getSessionStatus: async ({ sessionId }) => { await fs.appendFile(${JSON.stringify(marker)}, 'invoked\\n'); return { status: 'succeeded', providerEventId: 'worker-success:' + sessionId }; }
+        queryByRequestKey: async ({ requestKey, account }) => { await fs.appendFile(${JSON.stringify(marker)}, 'invoked\\n'); const sessionId=requestKey,observedAt=new Date().toISOString(); return { account,requestKey,sessionId,amountMinor:1000,currency:'USD',observedAt,status:'succeeded',canStillBeCharged:true,requestClosed:false,captures:[{account,requestKey,sessionId,providerPaymentId:'worker-success:'+sessionId,amountMinor:1000,currency:'USD',observedAt}] }; }
       }); } };`);
       const zipHash = await publishTestPlugin(slug, directory);
       await prisma.pluginInstall.create({ data: { slug, name: slug, version: '1.0.0', manifestJson: manifest, zipHash, source: 'local-zip' } });
@@ -67,7 +67,10 @@ describe('worker payment reconciliation shared protection', () => {
       const user = await createTestUser(); userId = user.id;
       const order = await createTestOrder({ userId, total: 10 }); orderId = order.id;
       await prisma.order.update({ where: { id: orderId }, data: { paymentMethod: slug } });
-      const payment = await prisma.payment.create({ data: { orderId, paymentMethod: slug, amount: 10, sessionId: randomUUID(), status: 'PENDING', createdAt: new Date(Date.now() - 6 * 24 * 60 * 60000) } });
+      const account = await prisma.paymentProviderAccount.create({ data: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } });
+      await prisma.paymentProviderBinding.create({ data: { installationId: installation.id, providerKey: account.providerKey } });
+      const sessionId = randomUUID();
+      const payment = await prisma.payment.create({ data: { providerKey: account.providerKey, idempotencyKey: sessionId, orderId, paymentMethod: slug, amount: 10, sessionId, status: 'PENDING', createdAt: new Date(Date.now() - 6 * 24 * 60 * 60000) } });
       await relay.drop();
       const unavailable = await command(child, { kind: 'reconcile' });
       expect(unavailable.result).toEqual({ scanned: 1, updated: 0, failed: 0, skipped: 1 });
@@ -91,7 +94,12 @@ describe('worker payment reconciliation shared protection', () => {
       await relay.drop();
       const keys = await client.keys(`${namespace}:*`); if (scope) keys.push(...await client.keys(`${scope}:*`)); if (heartbeatKey) keys.push(heartbeatKey);
       if (keys.length) await client.del(...keys); client.disconnect();
-      if (orderId) { await prisma.notification.deleteMany({ where: { relatedId: orderId } }); await prisma.payment.deleteMany({ where: { orderId } }); await prisma.order.delete({ where: { id: orderId } }); }
+      if (orderId) {
+        const rows = await prisma.payment.findMany({ where: { orderId }, select: { id: true } });
+        await prisma.notification.deleteMany({ where: { relatedId: orderId } });
+        await prisma.paymentObservation.deleteMany({ where: { paymentId: { in: rows.map(row => row.id) } } });
+        await prisma.payment.deleteMany({ where: { orderId } }); await prisma.order.delete({ where: { id: orderId } });
+      }
       if (userId) await deleteTestUser(userId);
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } }); await prisma.pluginInstall.deleteMany({ where: { slug } });
       await clearTestPluginCache(slug); await restoreBuiltinRows(before, slugs); await fs.rm(directory, { recursive: true, force: true });

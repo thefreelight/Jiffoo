@@ -45,6 +45,9 @@ export type Order = {
   paymentStatus: string;
   paymentInstructions: string | null;
   paymentSessionId: string | null;
+  paymentId?: string | null;
+  paymentAttemptState?: string | null;
+  refundRequired?: boolean;
   items: Array<{ id: string; productId: string; variantId?: string | null; productName: string; variantName?: string; unitPrice: number | string; quantity: number; totalPrice: number }>;
   shippingAddress: Address | null;
   currency: string;

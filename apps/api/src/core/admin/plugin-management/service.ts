@@ -101,7 +101,7 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
 
 function declaresContract(manifestJson: unknown, contract: ProviderContract): boolean {
   return Array.isArray((manifestJson as { contracts?: unknown[] } | null)?.contracts)
-    && (manifestJson as { contracts: Array<{ name?: unknown; version?: unknown }> }).contracts.some((declaration) => declaration.name === contract && declaration.version === 1);
+    && (manifestJson as { contracts: Array<{ name?: unknown; version?: unknown }> }).contracts.some((declaration) => declaration.name === contract && declaration.version === (contract === 'payment' ? 2 : 1));
 }
 
 async function listProviders(contract: 'payment' | 'shipping'): Promise<PluginInstallation[]> {
@@ -697,7 +697,7 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
 
   await prisma.$transaction(async (tx) => {
     await fencePluginOperationLease(tx, slug, token);
-    const pending = await tx.payment.count({ where: { paymentMethod: slug, status: { in: ['CREATING','PENDING'] } } });
+    const pending = await tx.payment.count({ where: { paymentMethod: slug, status: { in: ['CREATING','PENDING','UNKNOWN','REQUIRES_REVIEW'] } } });
     if (pending) {
       throw new ExtensionInstallerError('Plugin has unfinished payment work', { statusCode: 409, code: 'PLUGIN_UNFINISHED_PAYMENTS' });
     }

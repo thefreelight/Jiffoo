@@ -30,10 +30,17 @@ const order = { id: 'order-1', userId: 'user-1', status: 'PROCESSING', paymentSt
   currency: 'USD', shippingAddress: null, createdAt: '2026-10-10T00:00:00Z', updatedAt: '2026-10-10T00:00:00Z', items: [],
   customer: { id: 'user-1', email: 'buyer@example.test', username: 'buyer' },
 } satisfies AdminOrderDetailDTO;
+it.each([
+  ['UNKNOWN', "We're checking your payment. Please don't pay again."],
+  ['REQUIRES_REVIEW', 'Payment requires review.'],
+])('shows the approved %s payment warning', async (paymentAttemptState, expected) => {
+  state.order = { ...order, paymentAttemptState }; const container = await render(<OrderDetailPage />);
+  expect(container.textContent).toContain(expected);
+});
 it('shows pending and resolved extra refunds and offers an action only for the pending payment', async () => {
   state.order = { ...order, refundRequired: true, refundResolutions: [
-    { paymentId: 'pending-payment', amount: 30, currency: 'USD', status: 'pending', reference: null },
-    { paymentId: 'resolved-payment', amount: 20, currency: 'USD', status: 'resolved', reference: 'offline-proof' },
+    { paymentId: 'pending-payment', providerPaymentId: 'capture-1', amount: 30, currency: 'USD', status: 'pending', reference: null },
+    { paymentId: 'resolved-payment', providerPaymentId: 'capture-2', amount: 20, currency: 'USD', status: 'resolved', reference: 'offline-proof' },
   ] };
   const container = await render(<OrderDetailPage />);
   expect(container.textContent).toContain('Refund pending'); expect(container.textContent).toContain('Refund recorded');
@@ -45,7 +52,7 @@ it('shows pending and resolved extra refunds and offers an action only for the p
 });
 it('requires a trimmed reference and sends the selected payment rather than an order refund', async () => {
   state.mutateAsync.mockResolvedValue(order);
-  await render(<RefundDialog order={order} payment={{ paymentId: 'extra-payment', amount: 30, currency: 'USD' }} open onOpenChange={vi.fn()} />);
+  await render(<RefundDialog order={order} payment={{ paymentId: 'extra-payment', providerPaymentId: 'capture-3', amount: 30, currency: 'USD' }} open onOpenChange={vi.fn()} />);
   const confirm = Array.from(document.body.querySelectorAll('button')).find(button => button.textContent?.includes('Record refund'))!;
   expect(confirm.disabled).toBe(true);
   const reference = document.getElementById('refund-reference') as HTMLInputElement;
@@ -55,7 +62,7 @@ it('requires a trimmed reference and sends the selected payment rather than an o
   });
   expect(confirm.disabled).toBe(false);
   await act(async () => confirm.click());
-  expect(state.mutateAsync).toHaveBeenCalledWith({ id: order.id, paymentId: 'extra-payment', data: {
+  expect(state.mutateAsync).toHaveBeenCalledWith({ id: order.id, paymentId: 'extra-payment', providerPaymentId: 'capture-3', data: {
     reason: '', reference: 'offline-proof', idempotencyKey: expect.any(String),
   } });
 });

@@ -19,6 +19,7 @@ vi.mock('@/config/database', () => ({
     },
     payment: {
       findFirst: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock('@/config/database', () => ({
       update: vi.fn(),
     },
     adminAuditEvent: { upsert: vi.fn().mockResolvedValue({}) },
+    paymentLedger: { findFirst: vi.fn().mockResolvedValue({ createdAt: new Date('2025-06-01T12:00:00Z') }) },
     $transaction: vi.fn(),
   },
 }));
@@ -72,6 +74,11 @@ vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
 vi.mock('@/core/notifications/service', () => ({
   createNotification: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock('@/core/payment/provider-account', () => ({
+  bindPaymentProviderAccount: vi.fn().mockResolvedValue({ account: { providerKey: 'account-1', namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } }),
+}));
+vi.mock('@/core/payment/reconciliation', () => ({ queryPaymentByRequestKey: vi.fn() }));
+vi.mock('@/core/payment/observations', () => ({ observePaymentFact: vi.fn() }));
 
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
@@ -84,6 +91,7 @@ import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { CacheService } from '@/core/cache/service';
 import { authMiddleware } from '@/core/auth/middleware';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { observePaymentFact } from '@/core/payment/observations';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -103,7 +111,7 @@ const TEST_GATEWAY_PACKAGE = {
     hostProtocol: 'internal-fastify-v1',
     entryModule: 'server/index.js',
     permissions: [],
-    contracts: [{ name: 'payment', version: 1 }],
+    contracts: [{ name: 'payment', version: 2 }],
   },
 };
 
@@ -115,6 +123,7 @@ const ENABLED_INSTANCE = {
 
 /** Configure the standard "happy-path" mocks for a single payment plugin. */
 function setupDefaultMocks() {
+  vi.mocked(prisma.order.findFirst).mockResolvedValue({ id: 'order-1', userId: 'user-1', currency: 'USD', status: 'PENDING', paymentStatus: 'PENDING', paymentMethod: 'test-gateway-payment', totalAmount: 19.99 } as any);
   (CacheService.getPluginVersion as ReturnType<typeof vi.fn>).mockResolvedValue('1');
   (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (CacheService.set as ReturnType<typeof vi.fn>).mockResolvedValue(true);
@@ -126,7 +135,7 @@ function setupDefaultMocks() {
     ENABLED_INSTANCE,
   );
   (callContract as ReturnType<typeof vi.fn>).mockResolvedValue({
-    displayName: 'Test Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD', 'EUR'],
+    displayName: 'Test Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD', 'EUR'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' },
   });
 }
 
@@ -173,7 +182,7 @@ describe('Payment Routes', () => {
       expect(method.displayName).toBe('Test Gateway');
       expect(method.supportedCurrencies).toEqual(['USD', 'EUR']);
       expect(method.isLive).toBe(false); // mode is "test"
-      expect(callContract).toHaveBeenCalledWith('test-gateway-payment', 'payment', 1, 'describe', { storeCurrency: 'USD' });
+      expect(callContract).toHaveBeenCalledWith('test-gateway-payment', 'payment', 2, 'describe', { storeCurrency: 'USD' });
     });
 
     it('should return an empty array when no payment plugins are installed', async () => {
@@ -258,7 +267,7 @@ describe('Payment Routes', () => {
       };
       (prisma.payment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       (callContract as ReturnType<typeof vi.fn>).mockImplementation(async (_slug: string, _name: string, _version: number, method: string) => method === 'describe'
-        ? { displayName: 'Test Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD', 'EUR'] }
+        ? { displayName: 'Test Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD', 'EUR'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } }
         : { sessionId: 'test-gateway-session-1', action: { type: 'redirect', url: 'https://gateway.example/session' } });
       let stored: any;
       const sequence: string[] = [];
@@ -274,10 +283,13 @@ describe('Payment Routes', () => {
         $queryRaw: vi.fn().mockResolvedValue([{ now: new Date('2026-10-10T00:00:00Z') }]),
       };
       (callContract as ReturnType<typeof vi.fn>).mockImplementation(async (_slug: string, _name: string, _version: number, method: string) => {
-        if (method === 'describe') return { displayName: 'Test Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD', 'EUR'] };
+        if (method === 'describe') return { displayName: 'Test Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD', 'EUR'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } };
         sequence.push('provider'); return { sessionId: 'test-gateway-session-1', action: { type: 'redirect', url: 'https://gateway.example/session' } };
       });
       (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
+      vi.mocked(observePaymentFact).mockImplementation(async (_slug, fact) => {
+        await tx.payment.updateMany({ data: { status: 'PENDING', sessionId: fact.sessionId, actionJson: fact.action } } as any); return true;
+      });
 
       const response = await app.inject({
         method: 'POST',
@@ -286,7 +298,7 @@ describe('Payment Routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(callContract).toHaveBeenLastCalledWith('test-gateway-payment', 'payment', 1, 'createSession', expect.objectContaining({ amountMinor: 1999 }));
+      expect(callContract).toHaveBeenLastCalledWith('test-gateway-payment', 'payment', 2, 'createSession', expect.objectContaining({ amountMinor: 1999 }));
       expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
         data: expect.objectContaining({
           paymentMethod: 'test-gateway-payment',
@@ -297,11 +309,13 @@ describe('Payment Routes', () => {
       expect(sequence).toEqual(['reserved','provider','stored']);
     });
 
-    it('accepts a payment v1 webhook event', async () => {
+    it('passes a complete verified payment v2 fact to observation storage', async () => {
       (prisma.pluginInstallation.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ enabled: true, deletedAt: null, plugin: { deletedAt: null } });
       (callContract as ReturnType<typeof vi.fn>).mockResolvedValue({
         verification: 'verified',
-        events: [{ providerEventId: 'provider-event-1', sessionId: 'plugin-session-1', status: 'succeeded' }],
+        events: [{ providerEventId: 'provider-event-1', account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' },
+          requestKey: 'request-1', sessionId: 'plugin-session-1', status: 'succeeded', amountMinor: 1999, currency: 'USD', observedAt: '2026-10-10T00:00:00Z',
+          canStillBeCharged: false, requestClosed: true, captures: [] }],
       });
       const tx = {
         paymentLedger: { findUnique: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({}) },
@@ -324,15 +338,16 @@ describe('Payment Routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().success).toBe(true);
+      expect(observePaymentFact).toHaveBeenCalledWith('test-gateway-payment', expect.objectContaining({ requestKey: 'request-1', amountMinor: 1999 }), 'webhook');
     });
   });
 
   // -----------------------------------------------------------------------
-  // GET /api/v1/payments/verify/:sessionId
+  // GET /api/v1/payments/verify/:paymentId
   // -----------------------------------------------------------------------
 
-  describe('GET /api/v1/payments/verify/:sessionId', () => {
-    it('should return payment status for a known session', async () => {
+  describe('GET /api/v1/payments/verify/:paymentId', () => {
+    it('returns payment status for the Core payment id', async () => {
       const mockPayment = {
         id: 'pay-1',
         orderId: 'order-1',
@@ -343,15 +358,11 @@ describe('Payment Routes', () => {
         paymentIntentId: 'pi_123',
       };
 
-      // syncPaymentFromPlugin will call findFirst first -- return the already
-      // succeeded payment so it short-circuits.  Then the route handler calls
-      // findFirst again for its own lookup.
-      (prisma.payment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(mockPayment);
       (prisma.payment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(mockPayment);
 
       const response = await app.inject({
         method: 'GET',
-        url: '/api/v1/payments/verify/sess-abc',
+        url: '/api/v1/payments/verify/pay-1',
       });
 
       expect(response.statusCode).toBe(200);
@@ -359,13 +370,14 @@ describe('Payment Routes', () => {
       const body = response.json();
       expect(body.success).toBe(true);
       expect(body.data.sessionId).toBe('sess-abc');
+      expect(body.data.paymentId).toBe('pay-1');
       expect(body.data.orderId).toBe('order-1');
       expect(body.data.status).toBe('paid');
       expect(body.data.paymentMethod).toBe('test-gateway-payment');
     });
 
-    it('should return pending status when session is not found', async () => {
-      (prisma.payment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    it('returns NOT_FOUND for an unknown Core payment id', async () => {
+      (prisma.payment.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
       (prisma.payment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
       const response = await app.inject({
@@ -373,13 +385,10 @@ describe('Payment Routes', () => {
         url: '/api/v1/payments/verify/sess-unknown',
       });
 
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(404);
 
       const body = response.json();
-      expect(body.success).toBe(true);
-      expect(body.data.sessionId).toBe('sess-unknown');
-      expect(body.data.status).toBe('pending');
-      expect(body.data.paymentMethod).toBe('unknown');
+      expect(body.error.code).toBe('NOT_FOUND');
     });
   });
 });

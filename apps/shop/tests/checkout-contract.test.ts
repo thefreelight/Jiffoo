@@ -9,6 +9,10 @@ import { allowedBffRoute } from '../lib/auth-contract';
 import { pageClasses } from '../lib/page-classes';
 import { countryCodes, localizedCountries } from '../lib/countries';
 import { buildCancelReason, orderStatuses, paymentStatuses, orderStatusLabel, paymentStatusLabel } from '../lib/order-labels';
+import { OrderDetail } from '../components/order-detail';
+import { common as enCommon } from '../../../packages/shared/src/i18n/messages/en/common';
+import { common as hansCommon } from '../../../packages/shared/src/i18n/messages/zh-Hans/common';
+import { common as hantCommon } from '../../../packages/shared/src/i18n/messages/zh-Hant/common';
 
 vi.mock('server-only', () => ({}));
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-shop-locale': 'en' }) }));
@@ -36,6 +40,16 @@ function normalizedPageUrl(file: string): string {
 }
 
 describe('Shop checkout boundaries', () => {
+  it.each([['en', enCommon], ['zh-Hans', hansCommon], ['zh-Hant', hantCommon]] as const)('v2 payment uncertainty and refund-required render the approved messages in %s', (locale, copy) => {
+    const order = { id: 'order-1', createdAt: '2026-10-10T00:00:00Z', status: 'PENDING', paymentStatus: 'PENDING',
+      paymentInstructions: null, paymentSessionId: null, items: [], shippingAddress: null, currency: 'USD', subtotalAmount: 20,
+      shippingAmount: 0, taxAmount: 0, taxInclusive: false, totalAmount: 20, shippingMethod: null, shipments: [], cancelReason: null, cancelledAt: null, unpaidExpiresAt: null };
+    const unknown = renderToStaticMarkup(createElement(OrderDetail, { initialOrder: { ...order, paymentAttemptState: 'UNKNOWN', refundRequired: true }, locale }));
+    expect(unknown).toContain(copy.errors.paymentOutcomeUnknown.replaceAll("'", '&#x27;'));
+    expect(unknown).toContain(copy.errors.paymentRefundRequired);
+    const review = renderToStaticMarkup(createElement(OrderDetail, { initialOrder: { ...order, paymentAttemptState: 'REQUIRES_REVIEW' }, locale }));
+    expect(review).toContain(copy.errors.paymentRequiresReview);
+  });
   it('I permits only constrained checkout BFF routes', () => {
     const valid = [
       ['GET', '/cart'], ['POST', '/cart/items'],
@@ -43,13 +57,13 @@ describe('Shop checkout boundaries', () => {
       ['DELETE', '/cart/items/cm9abcdefghijklmnopqrstuv'], ['DELETE', '/cart'],
       ['POST', '/checkout/quote'], ['POST', '/orders'], ['GET', '/orders'],
       ['GET', '/orders/cm9abcdefghijklmnopqrstuv'], ['GET', '/payments/available-methods'],
-      ['POST', '/payments/create-session'], ['GET', '/payments/verify/manual_cm9_123:shop'],
+      ['POST', '/payments/create-session'], ['GET', '/payments/verify/cm9abcdefghijklmnopqrstuv'],
     ];
     for (const [method, route] of valid) expect(allowedBffRoute(method, route), `${method} ${route}`).toBe(true);
     for (const route of [
       '/cart/items/bad.id', '/cart/items/a/more', '/orders/a/more', '/orders/%2e%2e',
       '/orders/short', '/cart/items/short',
-      '/payments/verify/../other', '/cart//items/a', '/cart/items/a%2fb',
+      '/payments/verify/../other', '/payments/verify/manual_cm9_123:shop', '/cart//items/a', '/cart/items/a%2fb',
     ]) expect(allowedBffRoute('GET', route) || allowedBffRoute('PUT', route), route).toBe(false);
     expect(allowedBffRoute('POST', '/orders/a')).toBe(false);
   });

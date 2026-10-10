@@ -1,14 +1,14 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ApiError } from '@/utils/api-errors';
-import { fulfillmentV1Methods, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods, isEventKey, type PluginContext, type PluginEntryModule, type EventSubscription, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
+import { fulfillmentV1Methods, notificationV1Methods, paymentV2Methods, shippingV1Methods, taxV1Methods, isEventKey, type PluginContext, type PluginEntryModule, type EventSubscription, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 import { redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { decodePaymentWebhook, PAYMENT_WEBHOOK_WIRE_LIMIT } from './payment-webhook-wire';
 import { createPluginDatabase, withPluginDatabaseHandler } from './plugin-database';
 
 type JsonObject = Record<string, unknown>;
 type RuntimeOptions = { slug: string; installationId: string; version: string; config: JsonObject; configSchema?: unknown; declaredContracts: Array<{ name: string; version: number }>; subscriptions: EventSubscription[] };
-const contractMethods = { payment: paymentV1Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
-const requiredMethods: Record<keyof typeof contractMethods, string[]> = { payment: ['describe', 'createSession', 'getSessionStatus'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment'], notification: ['send'] };
+const contractMethods = { payment: paymentV2Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
+const requiredMethods: Record<keyof typeof contractMethods, string[]> = { payment: ['describe', 'createSession', 'queryByRequestKey'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment'], notification: ['send'] };
 const eventHandlers = new Map<string, Map<string, PluginEventHandler>>();
 
 export async function invokeEventHandler(installationId: string, event: PluginEvent): Promise<void> {
@@ -48,18 +48,18 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
       handlers.set(key, event => withPluginDatabaseHandler(options.slug, options.installationId, () => handler(event as any)));
     } },
     contracts: { implement: (name, version, implementation) => {
-      if (!(name in contractMethods) || version !== 1) throw new Error(`Unsupported contract ${name} v${version}`);
+      if (!(name in contractMethods) || version !== (name === 'payment' ? 2 : 1)) throw new Error(`Unsupported contract ${name} v${version}`);
       if (!options.declaredContracts.some((contract) => contract.name === name && contract.version === version)) throw new Error(`Plugin implements undeclared contract ${name} v${version}`);
       const methods = contractMethods[name as keyof typeof contractMethods];
       for (const method of requiredMethods[name as keyof typeof contractMethods]) {
         const label = name === 'payment' ? 'Payment' : name;
-        if (typeof implementation[method] !== 'function') throw new Error(`${label} v1 contract requires ${method}`);
+        if (typeof implementation[method] !== 'function') throw new Error(`${label} v${version} contract requires ${method}`);
       }
       implemented.add(`${name}:v${version}`);
       for (const [method, handler] of Object.entries(implementation)) {
-        if (!(method in methods) || typeof handler !== 'function') throw new Error(`Unknown ${name} v1 method ${method}`);
+        if (!(method in methods) || typeof handler !== 'function') throw new Error(`Unknown ${name} v${version} method ${method}`);
         const webhook = name === 'payment' && method === 'handleWebhook';
-        app.post(`/__contracts/${name}/v1/${method}`, webhook ? { bodyLimit: PAYMENT_WEBHOOK_WIRE_LIMIT } : {}, async (request: FastifyRequest, reply: FastifyReply) => {
+        app.post(`/__contracts/${name}/v${version}/${method}`, webhook ? { bodyLimit: PAYMENT_WEBHOOK_WIRE_LIMIT } : {}, async (request: FastifyRequest, reply: FastifyReply) => {
           try {
             return reply.send(await withPluginDatabaseHandler(options.slug, options.installationId, () => handler(webhook ? decodePaymentWebhook(request.body) : request.body)));
           } catch (error) {

@@ -60,13 +60,13 @@ describe('Builtin plugins', () => {
     await fs.cp(path.join(builtinRoot, 'manual-payment'), source, { recursive: true });
     const manifestPath = path.join(source, 'manifest.json');
     const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as Record<string, unknown>;
-    manifest.version = '1.0.3';
+    manifest.version = '2.0.1';
     manifest.lifecycle = { onUpgrade: true };
     await fs.writeFile(manifestPath, JSON.stringify(manifest));
-    await fs.writeFile(path.join(source, 'index.js'), `const fs = require('fs'); module.exports = { register(ctx) { ctx.contracts.implement('payment', 1, { describe: (input) => ({ displayName: 'Manual payment', requiresManualConfirmation: true, unpaidTimeoutMinutes: 4320, supportedCurrencies: [input.storeCurrency], instructions: 'Pay manually.' }), createSession: () => ({ sessionId: 'manual', action: { type: 'instructions', text: 'Pay manually.' } }), getSessionStatus: () => ({ status: 'pending' }) }); }, __lifecycle_onUpgrade() { fs.writeFileSync(${JSON.stringify(marker)}, 'upgraded'); } };`);
+    await fs.writeFile(path.join(source, 'index.js'), `const fs = require('fs'); module.exports = { register(ctx) { ctx.contracts.implement('payment', 2, { describe: (input) => ({ displayName: 'Manual payment', requiresManualConfirmation: true, unpaidTimeoutMinutes: 4320, supportedCurrencies: [input.storeCurrency], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' }, instructions: 'Pay manually.' }), createSession: () => ({ sessionId: 'manual', action: { type: 'instructions', text: 'Pay manually.' } }), queryByRequestKey: () => ({ status: 'pending' }) }); }, __lifecycle_onUpgrade() { fs.writeFileSync(${JSON.stringify(marker)}, 'upgraded'); } };`);
     try {
       await syncBuiltinPlugins(root);
-      expect((await prisma.pluginInstall.findUnique({ where: { slug: 'manual-payment' } }))?.version).toBe('1.0.3');
+      expect((await prisma.pluginInstall.findUnique({ where: { slug: 'manual-payment' } }))?.version).toBe('2.0.1');
       expect(await fs.readFile(marker, 'utf8')).toBe('upgraded');
     } finally {
       await fs.rm(root, { recursive: true, force: true });
@@ -82,12 +82,12 @@ describe('Builtin plugins', () => {
     await fs.cp(path.join(builtinRoot, 'manual-payment'), source, { recursive: true });
     const manifestPath = path.join(source, 'manifest.json');
     const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8')) as Record<string, unknown>;
-    manifest.version = '1.0.4';
+    manifest.version = '2.0.2';
     await fs.writeFile(manifestPath, JSON.stringify(manifest));
     try {
       await PluginManagementService.updateInstance(instance.id, { config: { instructions: 'Merchant bank details' } });
       await syncBuiltinPlugins(root);
-      expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: 'manual-payment' } })).version).toBe('1.0.4');
+      expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: 'manual-payment' } })).version).toBe('2.0.2');
       expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: instance.id } })).configJson)
         .toMatchObject({ instructions: 'Merchant bank details' });
     } finally {
@@ -97,9 +97,9 @@ describe('Builtin plugins', () => {
   });
 
   it('dispatches each builtin contract through callContract', async () => {
-    const described = await callContract('manual-payment', 'payment', 1, 'describe', { storeCurrency: 'USD' });
-    expect(described).toMatchObject({ unpaidTimeoutMinutes: 4320, supportedCurrencies: ['USD'] });
-    expect(await callContract('manual-payment', 'payment', 1, 'createSession', { orderId: 'order-1', amountMinor: 100, currency: 'USD', customer: { id: 'customer-1', email: 'customer@example.com' }, returnUrl: 'https://example.com/return', cancelUrl: 'https://example.com/cancel', idempotencyKey: 'attempt-1' })).toMatchObject({ action: { type: 'instructions', text: 'Pay manually.' } });
+    const described = await callContract('manual-payment', 'payment', 2, 'describe', { storeCurrency: 'USD' });
+    expect(described).toMatchObject({ unpaidTimeoutMinutes: 4320, supportedCurrencies: ['USD'], account: { namespace: 'jiffoo-manual', merchantAccount: 'store', environment: 'live' } });
+    expect(await callContract('manual-payment', 'payment', 2, 'createSession', { orderId: 'order-1', amountMinor: 100, currency: 'USD', customer: { id: 'customer-1', email: 'customer@example.com' }, returnUrl: 'https://example.com/return', cancelUrl: 'https://example.com/cancel', idempotencyKey: 'attempt-1' })).toMatchObject({ action: { type: 'instructions', text: 'Pay manually.' } });
     expect(await callContract('free-shipping', 'shipping', 1, 'quote', { currency: 'USD', items: [], subtotalMinor: 0, address: { country: 'US' } })).toMatchObject({ options: [{ id: 'free', amountMinor: 0 }] });
     expect(await callContract('zero-tax', 'tax', 1, 'calculate', { currency: 'USD', lines: [{ lineId: 'line-1', productId: 'product-1', variantId: 'variant-1', quantity: 1, amountMinor: 100 }], shippingAmountMinor: 0, address: { country: 'US' } })).toMatchObject({ lines: [{ lineId: 'line-1', taxMinor: 0 }], totalTaxMinor: 0 });
     expect(await callContract('manual-fulfillment', 'fulfillment', 1, 'createFulfillment', { orderId: 'order-1', items: [], address: { country: 'US' }, idempotencyKey: 'attempt-1' })).toMatchObject({ status: 'pending' });

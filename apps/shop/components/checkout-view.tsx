@@ -120,7 +120,10 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries 
         sessionResponse = await requestSession(); sessionBody = await sessionResponse.json();
       }
       if (!sessionResponse.ok) {
-        setError(sessionBody.error?.code === 'PAYMENT_ATTEMPT_OPEN' ? feedback.errors.paymentAttemptOpen
+        setError(sessionBody.error?.code === 'PAYMENT_OUTCOME_UNKNOWN' ? feedback.errors.paymentOutcomeUnknown
+          : sessionBody.error?.code === 'PAYMENT_REQUIRES_REVIEW' ? feedback.errors.paymentRequiresReview
+          : sessionBody.error?.code === 'PAYMENT_SESSION_STILL_CHARGEABLE' ? feedback.errors.paymentSessionStillChargeable
+          : sessionBody.error?.code === 'PAYMENT_ATTEMPT_OPEN' ? feedback.errors.paymentAttemptOpen
           : sessionBody.error?.code === 'PAYMENT_REFERENCE_REQUIRED' ? feedback.errors.paymentReferenceRequired : t.genericError);
         return;
       }

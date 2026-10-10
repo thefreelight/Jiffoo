@@ -102,29 +102,42 @@ export function register(ctx: PluginContext): void {
 `,
   };
   if (category === 'payment') return {
-    contracts: [{ name: 'payment', version: 1 }],
+    contracts: [{ name: 'payment', version: 2 }],
     configSchema: { type: 'object', properties: {
       instructions: { type: 'string', title: 'Payment instructions', description: 'Shown to customers after they place an order.', minLength: 1, default: 'Pay manually.' },
       unpaidTimeoutHours: { type: 'integer', title: 'Unpaid order timeout (hours)', minimum: 1, maximum: 720, default: 72 },
     } },
-    source: `import type { PluginContext, PaymentV1Contract, PaymentV1Input } from '../types/index';
+    source: `import type { PluginContext, PaymentV2Contract, PaymentV2Input } from '../types/index';
 
 export function register(ctx: PluginContext): void {
   const instructions = typeof ctx.config.instructions === 'string' && ctx.config.instructions.trim() ? ctx.config.instructions : 'Pay manually.';
   const configuredHours = ctx.config.unpaidTimeoutHours;
   const hours = typeof configuredHours === 'number' && Number.isInteger(configuredHours) && configuredHours >= 1 && configuredHours <= 720 ? configuredHours : 72;
-  const payment: PaymentV1Contract = {
-    describe: input => ({ displayName: 'Manual payment', requiresManualConfirmation: true, unpaidTimeoutMinutes: hours * 60, supportedCurrencies: [input.storeCurrency], instructions }),
-    createSession: input => ({ sessionId: 'manual_' + input.orderId + '_' + input.idempotencyKey, action: { type: 'instructions', text: instructions } }),
-    getSessionStatus: () => ({ status: 'pending' }),
+  const payment: PaymentV2Contract = {
+    describe: input => ({ displayName: 'Manual payment', requiresManualConfirmation: true, unpaidTimeoutMinutes: hours * 60, supportedCurrencies: [input.storeCurrency], instructions, account: { namespace: ctx.plugin.slug, merchantAccount: 'store', environment: 'live' } }),
+    createSession: async input => {
+      await ctx.database.query('INSERT INTO payment_requests ("requestKey","sessionId","amountMinor",currency) VALUES($1,$2,$3,$4) ON CONFLICT ("requestKey") DO NOTHING',
+        [input.idempotencyKey, 'manual_' + input.orderId + '_' + input.idempotencyKey, input.amountMinor, input.currency]);
+      return payment.queryByRequestKey({ requestKey: input.idempotencyKey, account: input.account,
+        request: { orderId: input.orderId, amountMinor: input.amountMinor, currency: input.currency, createdAt: new Date().toISOString(), expiresAt: new Date(Date.now()+30*60_000).toISOString(), knownCaptures: [] } });
+    },
+    queryByRequestKey: async input => {
+      const result = await ctx.database.query<{ requestKey: string; sessionId: string; amountMinor: string; currency: string; createdAt: Date }>('SELECT * FROM payment_requests WHERE "requestKey"=$1', [input.requestKey]);
+      const row = result.rows[0];
+      if (!row) throw new Error('Missing durable request; closure cannot be proven');
+      const expired = Date.now() >= new Date(row.createdAt).getTime() + 30 * 60_000;
+      return { account: input.account, requestKey: row.requestKey, sessionId: row.sessionId, amountMinor: Number(row.amountMinor), currency: row.currency,
+        observedAt: new Date().toISOString(), status: input.request.knownCaptures.length ? 'succeeded' : expired ? 'expired' : 'pending', action: { type: 'instructions', text: instructions },
+        captures: input.request.knownCaptures, canStillBeCharged: !expired, requestClosed: expired };
+    },
     // Manual payment does not authenticate provider callbacks.
     handleWebhook: () => ({ verification: 'rejected', reasonCode: 'WEBHOOK_NOT_SUPPORTED' }),
   };
-  ctx.contracts.implement('payment', 1, {
-    describe: input => payment.describe(input as PaymentV1Input<'describe'>),
-    createSession: input => payment.createSession(input as PaymentV1Input<'createSession'>),
-    getSessionStatus: input => payment.getSessionStatus(input as PaymentV1Input<'getSessionStatus'>),
-    handleWebhook: input => payment.handleWebhook!(input as PaymentV1Input<'handleWebhook'>),
+  ctx.contracts.implement('payment', 2, {
+    describe: input => payment.describe(input as PaymentV2Input<'describe'>),
+    createSession: input => payment.createSession(input as PaymentV2Input<'createSession'>),
+    queryByRequestKey: input => payment.queryByRequestKey(input as PaymentV2Input<'queryByRequestKey'>),
+    handleWebhook: input => payment.handleWebhook!(input as PaymentV2Input<'handleWebhook'>),
   });
 }
 `,
@@ -158,8 +171,10 @@ export async function createPlugin(flags: Record<string, string>): Promise<void>
   const slug = flags['--slug'];
   const name = flags['--name'];
   const selected = template(category as typeof categories[number]);
-  const migration = 'CREATE TABLE integration_records (id TEXT PRIMARY KEY, value TEXT NOT NULL);\n';
-  const database = category === 'integration' ? { apiVersion: 1, migrations: [{ id: '001_records', order: 1, path: 'migrations/001_records.sql', sha256: createHash('sha256').update(migration).digest('hex') }] } : undefined;
+  const migration = category === 'payment'
+    ? 'CREATE TABLE payment_requests ("requestKey" TEXT PRIMARY KEY, "sessionId" TEXT NOT NULL UNIQUE, "amountMinor" BIGINT NOT NULL CHECK ("amountMinor" >= 0), currency TEXT NOT NULL, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp());\n'
+    : 'CREATE TABLE integration_records (id TEXT PRIMARY KEY, value TEXT NOT NULL);\n';
+  const database = category === 'integration' || category === 'payment' ? { apiVersion: 1, migrations: [{ id: '001_records', order: 1, path: 'migrations/001_records.sql', sha256: createHash('sha256').update(migration).digest('hex') }] } : undefined;
   const manifest = { ...common, slug, name, description: `${name} plugin`, category, contracts: selected.contracts, configSchema: selected.configSchema, ...(database ? { database } : {}) };
   const issue = getPluginManifestIssues(manifest)[0];
   if (issue) throw new Error(`${issue.code}: ${issue.path}`);

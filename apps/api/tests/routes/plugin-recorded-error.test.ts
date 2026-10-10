@@ -37,8 +37,8 @@ const patch = (slug: string, id: string, enabled: boolean) => app.inject({ metho
 async function stored(id: string) { const row = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id } }); expect(row.lastFailureAt).not.toBeNull(); expect(row.lastFailureMessage).toContain('***'); expect(row.lastFailureMessage).not.toContain(secret); return row; }
 describe('Last recorded plugin errors', () => {
   it('B a real runtime exception is sanitized and the five second throttle keeps the first recorded error', async () => {
-    const { slug, instance } = await fixture("module.exports={register(ctx){ctx.contracts.implement('payment',1,{describe:()=>({displayName:'Failure fixture',requiresManualConfirmation:false,unpaidTimeoutMinutes:30,supportedCurrencies:['USD']}),createSession:()=>({sessionId:'fixture',action:{type:'none'}}),getSessionStatus:()=>{throw new Error('failed '+ctx.config.credential+' twice '+ctx.config.credential+'\\n at handler (/private/file:1:1)');}});}};", { contracts: [{ name: 'payment', version: 1 }], enable: true });
-    await expect(callContract(slug, 'payment', 1, 'getSessionStatus', { sessionId: 'fixture' })).rejects.toThrow();
+    const { slug, instance } = await fixture("module.exports={register(ctx){ctx.contracts.implement('payment',2,{describe:()=>({displayName:'Failure fixture',requiresManualConfirmation:false,unpaidTimeoutMinutes:30,supportedCurrencies:['USD']}),createSession:()=>({sessionId:'fixture',action:{type:'none'}}),queryByRequestKey:()=>{throw new Error('failed '+ctx.config.credential+' twice '+ctx.config.credential+'\\n at handler (/private/file:1:1)');}});}};", { contracts: [{ name: 'payment', version: 2 }], enable: true });
+    await expect(callContract(slug, 'payment', 2, 'queryByRequestKey', { sessionId: 'fixture' })).rejects.toThrow();
     const first = await stored(instance.id); expect(first.lastFailureMessage).not.toContain('/private/file');
     await recordPluginFailure(slug, new Error('second error'), 'load', instance.id); expect(await prisma.pluginInstallation.findUnique({ where: { id: instance.id } })).toEqual(first);
   });

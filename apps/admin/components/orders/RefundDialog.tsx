@@ -22,7 +22,7 @@ interface RefundDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
-  payment?: { paymentId: string; amount: number; currency: string }
+  payment?: { paymentId: string; providerPaymentId: string; amount: number; currency: string }
 }
 
 export function RefundDialog({ order, open, onOpenChange, onSuccess, payment }: RefundDialogProps) {
@@ -37,6 +37,7 @@ export function RefundDialog({ order, open, onOpenChange, onSuccess, payment }: 
       await refundOrderMutation.mutateAsync({
         id: order.id,
         paymentId: payment?.paymentId,
+        providerPaymentId: payment?.providerPaymentId,
         data: {
           reason,
           idempotencyKey: requestKey,

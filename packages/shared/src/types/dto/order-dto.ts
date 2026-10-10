@@ -34,6 +34,9 @@ export interface ShopOrderListItemDTO {
   userId: string;
   status: string;
   paymentStatus: string;
+  paymentId?: string | null;
+  paymentAttemptState?: string | null;
+  refundRequired?: boolean;
   totalAmount: number;
   currency: string;
   shippingAddress: OrderAddressDTO | null;
@@ -109,8 +112,10 @@ export interface AdminOrderDetailDTO {
   paymentMethod?: string | null;
   canRecordManualPayment?: boolean;
   refundRequired?: boolean;
+  canRefundOrder?: boolean;
+  paymentAttemptState?: string | null;
   refundResolutions?: Array<{
-    paymentId: string; amount: number; currency: string;
+    paymentId: string; providerPaymentId: string; amount: number; currency: string;
     status: 'pending' | 'resolved'; reference: string | null;
   }>;
   paymentAttempts?: number;

@@ -29,10 +29,10 @@ const paymentIds: string[] = [];
 
 const source = `const {createHash,createHmac,timingSafeEqual}=require('node:crypto');
 module.exports={register(ctx){
-  ctx.contracts.implement('payment',1,{
-    describe:input=>({displayName:'Raw byte PSP',requiresManualConfirmation:false,unpaidTimeoutMinutes:30,supportedCurrencies:[input.storeCurrency]}),
+  ctx.contracts.implement('payment',2,{
+    describe:input=>({displayName:'Raw byte PSP',requiresManualConfirmation:false,unpaidTimeoutMinutes:30,supportedCurrencies:[input.storeCurrency],account:{namespace:'fixture',merchantAccount:'fixture',environment:'test'}}),
     createSession:input=>({sessionId:'raw-'+input.orderId,action:{type:'instructions',text:'Await callback'}}),
-    getSessionStatus:()=>({status:'pending'}),
+    queryByRequestKey:()=>({status:'pending'}),
     handleWebhook:input=>{
       const mode=input.headers['x-mode']?.[0];
       if(mode==='throw')throw new Error('PRIVATE_WEBHOOK_EXCEPTION');
@@ -50,7 +50,9 @@ module.exports={register(ctx){
       if(signatures.length!==1||!/^[a-f0-9]{64}$/.test(signatures[0])||!timingSafeEqual(expected,Buffer.from(signatures[0],'hex')))return rejection('INVALID_SIGNATURE');
       if(!raw.length)return rejection('INVALID_PAYLOAD');
       const sessionId=input.headers['x-session']?.[0];
-      const events=sessionId?[{providerEventId:input.headers['x-event'][0],sessionId,status:'succeeded'}]:[];
+      const account={namespace:'fixture',merchantAccount:'fixture',environment:'test'},observedAt='2026-10-10T00:00:00.000Z';
+      const events=sessionId?[{account,requestKey:sessionId,providerEventId:input.headers['x-event'][0],sessionId,status:'succeeded',amountMinor:1250,currency:'USD',observedAt,
+        canStillBeCharged:true,requestClosed:false,captures:[{account,requestKey:sessionId,sessionId,providerPaymentId:sessionId,amountMinor:1250,currency:'USD',observedAt}]}]:[];
       if(mode==='default')return {verification:'verified',events};
       if(mode==='text-ack')return {verification:'verified',events,response:{contentType:'text/plain',body:'success'}};
       return {verification:'verified',events,response:{contentType:'application/json',body:JSON.stringify({...metadata,hash:createHash('sha256').update(raw).digest('hex'),...(form?{form:form.filter(([key])=>key!=='sign')}:{})})}};
@@ -63,7 +65,7 @@ beforeAll(async () => {
   fixture = await errorHttpFixture(); fixture.users.add(admin.id);
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'b3-webhook-'));
   try {
-    await fs.writeFile(path.join(directory, 'manifest.json'), JSON.stringify({ schemaVersion: 1, slug, name: slug, version: '1.0.0', description: 'Raw byte webhook fixture', category: 'payment', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'index.js', permissions: [], contracts: [{ name: 'payment', version: 1 }] }));
+    await fs.writeFile(path.join(directory, 'manifest.json'), JSON.stringify({ schemaVersion: 1, slug, name: slug, version: '1.0.0', description: 'Raw byte webhook fixture', category: 'payment', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'index.js', permissions: [], contracts: [{ name: 'payment', version: 2 }] }));
     await fs.writeFile(path.join(directory, 'index.js'), source);
     const zip = path.join(directory, 'plugin.zip');
     await new Promise<void>((resolve, reject) => {
@@ -88,6 +90,7 @@ afterAll(async () => {
   await prisma.eventRecord.deleteMany({ where: { id: { in: events.map(event => event.id) } } });
   await prisma.notification.deleteMany({ where: { relatedId: { in: orderIds } } });
   await prisma.paymentLedger.deleteMany({ where: { orderId: { in: orderIds } } });
+  await prisma.paymentObservation.deleteMany({ where: { paymentId: { in: paymentIds } } });
   await prisma.payment.deleteMany({ where: { id: { in: paymentIds } } });
   await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
   await prisma.pluginInstall.deleteMany({ where: { slug } });
@@ -124,7 +127,10 @@ async function unchangedWork<T>(work: (payment: Awaited<ReturnType<typeof pendin
 }
 async function pendingPayment(provider = slug) {
   const order = await createTestOrder({ userId: admin.id, total: 12.50 }); orderIds.push(order.id);
-  const payment = await prisma.payment.create({ data: { orderId: order.id, paymentMethod: provider, sessionId: randomUUID(), amount: 12.50, currency: 'USD' } }); paymentIds.push(payment.id);
+  const account = await prisma.paymentProviderAccount.upsert({ where: { namespace_merchantAccount_environment: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } }, update: {}, create: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } });
+  await prisma.paymentProviderBinding.upsert({ where: { installationId_providerKey: { installationId, providerKey: account.providerKey } }, update: {}, create: { installationId, providerKey: account.providerKey } });
+  const sessionId = randomUUID();
+  const payment = await prisma.payment.create({ data: { providerKey: account.providerKey, idempotencyKey: sessionId, orderId: order.id, paymentMethod: provider, sessionId, amount: 12.50, currency: 'USD' } }); paymentIds.push(payment.id);
   return payment;
 }
 async function evidence(payment: Awaited<ReturnType<typeof pendingPayment>>) {

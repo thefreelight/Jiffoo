@@ -50,7 +50,14 @@ export async function confirmB10ProcessTreeExited(tree: ProcessRow[]): Promise<v
   } else {
     for (const id of ids) {
       try { process.kill(id, 0); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ESRCH') continue; throw error; }
-      const { stdout } = await execute('ps', ['-p', String(id), '-o', 'stat=']);
+      let stdout: string;
+      try { ({ stdout } = await execute('ps', ['-p', String(id), '-o', 'stat='])); }
+      catch (error) {
+        const result = error as Error & { code?: number; stdout?: string; stderr?: string };
+        // The process can exit between kill(0) and ps; an empty exit-one result proves absence.
+        if (result.code === 1 && result.stdout === '' && result.stderr === '') continue;
+        throw error;
+      }
       if (!stdout.trim().startsWith('Z')) throw new Error(`Recorded child process remains after termination: ${id}`);
     }
   }

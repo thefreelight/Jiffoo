@@ -58,7 +58,7 @@ async function main() {
   app.post('/api/v1/__fixture/install', async () => InstallService.completeInstallation({ siteName: 'Fixture', adminEmail: 'fixture@example.test', adminPassword: {} as string }));
   app.get('/api/v1/__fixture/contract/:slug/:method', async (request) => {
     const { slug, method } = request.params as { slug: string; method: string };
-    return callContract(slug, 'payment', 1, method, { storeCurrency: 'USD', sessionId: 'fixture' });
+    return callContract(slug, 'payment', 2, method, { storeCurrency: 'USD', sessionId: 'fixture' });
   });
   app.all('/api/v1/__fixture/catalog/:code', async (request) => { throw catalogError((request.params as { code: string }).code); });
   const failureBoundaries = {

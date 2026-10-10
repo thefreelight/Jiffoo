@@ -58,6 +58,8 @@ enum ShipmentStatus {
 // ENUMS: PAYMENT
 // ============================================================
 enum PaymentAttemptStatus {
+  UNKNOWN
+  REQUIRES_REVIEW
   CREATING
   PENDING
   SUCCEEDED

@@ -78,14 +78,14 @@ describe('Plugin manifest contract', () => {
 
   it('rejects multiple single-provider contracts but accepts payment with shipping', () => {
     expect(getPluginManifestIssues({ ...inProcessManifest, contracts: [{ name: 'tax', version: 1 }, { name: 'notification', version: 1 }] })).toContainEqual(expect.objectContaining({ code: 'MANIFEST_MULTIPLE_SINGLE_PROVIDER_CONTRACTS' }));
-    expect(getPluginManifestIssues({ ...inProcessManifest, contracts: [{ name: 'payment', version: 1 }, { name: 'shipping', version: 1 }] })).toEqual([]);
+    expect(getPluginManifestIssues({ ...inProcessManifest, contracts: [{ name: 'payment', version: 2 }, { name: 'shipping', version: 1 }] })).toEqual([]);
   });
 
   it('rejects unknown top-level and nested contract, API range and lifecycle fields by path', () => {
     const manifest = {
       ...inProcessManifest,
       storefrontScript: '/script.js',
-      contracts: [{ name: 'payment', version: 1, browserRoute: '/pay' }],
+      contracts: [{ name: 'payment', version: 2, browserRoute: '/pay' }],
       requiredApiVersion: { min: 'v1', unexpected: true },
       lifecycle: { onEnable: true, onLaunch: true },
     };

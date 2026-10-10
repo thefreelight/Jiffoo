@@ -54,6 +54,8 @@ describe('Plugin SDK create and generated projects', () => {
   let app: FastifyInstance;
   let base: string;
   beforeAll(async () => {
+    successful(run(repoRequire.resolve('typescript/bin/tsc'), ['-p', path.join(root, 'packages/plugin-sdk/tsconfig.json')]));
+    successful(run(generator));
     app = await createTestApp({ disableFileSystem: false });
     base = await app.listen({ port: 0, host: '127.0.0.1' });
   });
@@ -133,7 +135,7 @@ describe('Plugin SDK create and generated projects', () => {
         successful(run(repoRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--skipLibCheck', '--target', 'ES2022', '--module', 'commonjs', path.join(project, 'src/index.ts')]));
         await build(project);
         const bytes = await packed(project, path.join(directory, 'unsigned.zip'));
-        expect(readPluginZipEntries(bytes).map(entry => entry.path)).toEqual(category === 'integration' ? ['index.js', 'manifest.json', 'migrations/001_records.sql'] : ['index.js', 'manifest.json']);
+        expect(readPluginZipEntries(bytes).map(entry => entry.path)).toEqual(category !== 'shipping' ? ['index.js', 'manifest.json', 'migrations/001_records.sql'] : ['index.js', 'manifest.json']);
         const response = await uploadPluginZip(base, admin.token, bytes, true);
         expect(response.status).toBe(200);
         const installation = await prisma.pluginInstallation.findFirstOrThrow({ where: { pluginSlug: slug } });
@@ -155,10 +157,11 @@ describe('Plugin SDK create and generated projects', () => {
         } else if (category === 'shipping') {
           expect(await callContract(slug, 'shipping', 1, 'quote', { currency: 'USD', items: [], subtotalMinor: 0, address: { country: 'US' } })).toEqual({ options: [{ id: 'flat-rate', label: 'Configured flat rate', amountMinor: 725 }] });
         } else {
-          expect(await callContract(slug, 'payment', 1, 'describe', { storeCurrency: 'EUR' })).toEqual({ displayName: 'Manual payment', requiresManualConfirmation: true, unpaidTimeoutMinutes: 1440, supportedCurrencies: ['EUR'], instructions: 'Transfer to the configured account.' });
-          const input = { orderId: 'order-1', amountMinor: 1250, currency: 'EUR', customer: { id: 'customer-1', email: 'customer@example.com' }, returnUrl: 'https://shop.example/return', cancelUrl: 'https://shop.example/cancel', idempotencyKey: 'request-1' };
-          expect(await callContract(slug, 'payment', 1, 'createSession', input)).toEqual({ sessionId: 'manual_order-1_request-1', action: { type: 'instructions', text: 'Transfer to the configured account.' } });
-          expect(await callContract(slug, 'payment', 1, 'getSessionStatus', { sessionId: 'manual_order-1_request-1' })).toEqual({ status: 'pending' });
+          const account = { namespace: slug, merchantAccount: 'store', environment: 'live' };
+          expect(await callContract(slug, 'payment', 2, 'describe', { storeCurrency: 'EUR' })).toEqual({ displayName: 'Manual payment', requiresManualConfirmation: true, unpaidTimeoutMinutes: 1440, supportedCurrencies: ['EUR'], account, instructions: 'Transfer to the configured account.' });
+          const input = { account, orderId: 'order-1', amountMinor: 1250, currency: 'EUR', customer: { id: 'customer-1', email: 'customer@example.com' }, returnUrl: 'https://shop.example/return', cancelUrl: 'https://shop.example/cancel', idempotencyKey: 'request-1' };
+          expect(await callContract(slug, 'payment', 2, 'createSession', input)).toMatchObject({ account, requestKey: 'request-1', sessionId: 'manual_order-1_request-1', amountMinor: 1250, currency: 'EUR', captures: [], canStillBeCharged: true, requestClosed: false, action: { type: 'instructions', text: 'Transfer to the configured account.' } });
+          expect(await callContract(slug, 'payment', 2, 'queryByRequestKey', { account, requestKey: 'request-1', request: { orderId: input.orderId, amountMinor: input.amountMinor, currency: input.currency, createdAt: new Date().toISOString(), expiresAt: new Date(Date.now()+30*60_000).toISOString(), knownCaptures: [] } })).toMatchObject({ account, requestKey: 'request-1', status: 'pending', captures: [] });
           if (entry === 'payment-webhook') {
             const rejected = await fetch(`${base}/api/v1/payments/webhook/${slug}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
             expect(rejected.status).toBe(401);
@@ -239,7 +242,7 @@ describe('Plugin SDK create and generated projects', () => {
       const snapshot = path.join(project, 'types/index.d.ts');
       successful(run(generator, ['--check', snapshot]));
       const declarations = await fs.readFile(snapshot, 'utf8');
-      for (const name of ['PluginContext', 'PluginEntryModule', 'PluginLifecycleExports', 'LifecycleContext', 'PaymentV1Contract', 'ShippingV1Contract', 'TaxV1Contract', 'FulfillmentV1Contract', 'NotificationV1Contract']) expect(declarations).toContain(`export interface ${name}`);
+      for (const name of ['PluginContext', 'PluginEntryModule', 'PluginLifecycleExports', 'LifecycleContext', 'PaymentV2Contract', 'ShippingV1Contract', 'TaxV1Contract', 'FulfillmentV1Contract', 'NotificationV1Contract']) expect(declarations).toContain(`export interface ${name}`);
       for (const name of ['PluginDatabase', 'PluginDatabaseTransaction', 'PluginDatabaseOptions', 'PluginDatabaseResult']) expect(declarations).toContain(`export interface ${name}`);
       expect(declarations).toContain('Plugin code is trusted in-process code.');
       expect(declarations).toContain('it does not isolate a malicious plugin.');
@@ -265,11 +268,12 @@ describe('Plugin SDK create and generated projects', () => {
         'type EventKeysMatch = Assert<Equal<Local.EventKey, Events.EventKey>>;',
       ];
       for (const event of ['customer.created', 'product.created', 'product.updated', 'order.fulfilled', 'order.created', 'order.cancelled', 'order.refunded', 'order.paid', 'payment.succeeded', 'payment.failed']) assertions.push(`type Event_${event.replace('.', '_')} = Assert<Equal<Local.EventPayload<'${event}'>, Events.EventPayload<'${event}'>>>;`);
-      const methods = { payment: ['describe', 'createSession', 'getSessionStatus', 'handleWebhook', 'refund'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment', 'getStatus'], notification: ['send'] };
+      const methods = { payment: ['describe', 'createSession', 'queryByRequestKey', 'handleWebhook'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment', 'getStatus'], notification: ['send'] };
       for (const [category, names] of Object.entries(methods)) {
         const title = category[0].toUpperCase() + category.slice(1);
-        assertions.push(`import type * as ${title} from ${JSON.stringify(canonical + '/extensions/contracts/' + category + '-v1')};`);
-        for (const method of names) for (const direction of ['Input', 'Output']) assertions.push(`type ${title}${method}${direction} = Assert<Equal<Local.${title}V1${direction}<'${method}'>, ${title}.${title}V1${direction}<'${method}'>>>;`);
+        const version = category === 'payment' ? 2 : 1;
+        assertions.push(`import type * as ${title} from ${JSON.stringify(canonical + '/extensions/contracts/' + category + '-v' + version)};`);
+        for (const method of names) for (const direction of ['Input', 'Output']) assertions.push(`type ${title}${method}${direction} = Assert<Equal<Local.${title}V${version}${direction}<'${method}'>, ${title}.${title}V${version}${direction}<'${method}'>>>;`);
       }
       const assertionFile = path.join(directory, 'type-equality.ts');
       await fs.writeFile(assertionFile, assertions.join('\n'));

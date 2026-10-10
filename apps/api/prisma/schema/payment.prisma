@@ -10,6 +10,9 @@ model Payment {
   expiresAt       DateTime?
   failureReason   String?
   paymentMethod   String
+  providerKey     String               @db.Uuid
+  closureObservationId String?         @unique @db.Uuid
+  closedAt        DateTime?            @db.Timestamptz(3)
   paymentIntentId String?
   sessionId       String?
   sessionUrl      String?
@@ -32,11 +35,12 @@ model Payment {
   refunds       Refund[]
   ledger        PaymentLedger[]
   refundLedgers RefundLedger[]
+  providerAccount PaymentProviderAccount @relation(fields: [providerKey], references: [providerKey], onDelete: Restrict)
+  observations PaymentObservation[] @relation("PaymentObservations")
+  closureObservation PaymentObservation? @relation("PaymentClosure", fields: [closureObservationId], references: [id], onDelete: Restrict)
 
   @@unique([idempotencyKey])
-  @@unique([providerEventId])
-  @@unique([paymentIntentId])
-  @@unique([sessionId])
+  @@unique([providerKey, sessionId])
   @@unique([orderId, attemptNumber])
   @@index([status, nextReconcileAt])
   @@index([status, leaseUntil])
@@ -50,6 +54,7 @@ model Payment {
 model Refund {
   id               String       @id @default(cuid())
   paymentId        String
+  paymentLedgerId  String
   orderId          String
   amount           Decimal      @db.Decimal(18, 2)
   currency         String       @default("USD")
@@ -66,6 +71,7 @@ model Refund {
   payment Payment        @relation(fields: [paymentId], references: [id])
   order   Order          @relation(fields: [orderId], references: [id])
   ledger  RefundLedger[]
+  capture PaymentLedger @relation(fields: [paymentLedgerId], references: [id], onDelete: Restrict)
 
   @@index([paymentId])
   @@index([orderId])
@@ -85,6 +91,8 @@ model PaymentLedger {
   currency        String
   provider        String?
   providerEventId String?
+  providerKey     String?                @db.Uuid
+  providerPaymentId String?
   idempotencyKey  String?
   metadata        Json?
   refundRequired  Boolean                @default(false)
@@ -95,12 +103,62 @@ model PaymentLedger {
 
   payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refunds Refund[]
+  providerAccount PaymentProviderAccount? @relation(fields: [providerKey], references: [providerKey], onDelete: Restrict)
 
-  @@unique([providerEventId])
+  @@unique([providerKey, providerPaymentId])
   @@unique([idempotencyKey])
   @@index([paymentId])
   @@index([orderId])
   @@map("payment_ledger")
+  @@schema("public")
+}
+
+model PaymentProviderAccount {
+  providerKey String @id @default(uuid()) @db.Uuid
+  namespace String
+  merchantAccount String
+  environment String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  bindings PaymentProviderBinding[]
+  payments Payment[]
+  ledger PaymentLedger[]
+  observations PaymentObservation[]
+  @@unique([namespace, merchantAccount, environment])
+  @@map("payment_provider_accounts")
+  @@schema("public")
+}
+
+model PaymentProviderBinding {
+  installationId String
+  providerKey String @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  account PaymentProviderAccount @relation(fields: [providerKey], references: [providerKey], onDelete: Restrict)
+  @@id([installationId, providerKey])
+  @@map("payment_provider_bindings")
+  @@schema("public")
+}
+
+model PaymentObservation {
+  id String @id @default(uuid()) @db.Uuid
+  paymentId String?
+  providerKey String? @db.Uuid
+  source String
+  requestKey String
+  sessionId String?
+  providerEventId String?
+  evidenceHash String
+  evidence Json
+  verification String
+  mismatchReason String?
+  receivedAt DateTime @default(now()) @db.Timestamptz(3)
+  payment Payment? @relation("PaymentObservations", fields: [paymentId], references: [id], onDelete: Restrict)
+  providerAccount PaymentProviderAccount? @relation(fields: [providerKey], references: [providerKey], onDelete: Restrict)
+  closesPayment Payment? @relation("PaymentClosure")
+  @@unique([source, evidenceHash])
+  @@index([providerKey, providerEventId])
+  @@index([paymentId, receivedAt])
+  @@map("payment_observations")
   @@schema("public")
 }
 

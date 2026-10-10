@@ -305,21 +305,22 @@ export class AdminOrderService {
       country: order.shippingAddress.country
     } : null;
 
-    const canRecordManualPayment = ['PENDING','CANCELLED'].includes(order.status) && order.paymentStatus !== 'PAID' && order.paymentMethod
-      ? await callContract(order.paymentMethod, 'payment', 1, 'describe', {
+    const latestPayment = await prisma.payment.findFirst({ where: { orderId }, orderBy: { attemptNumber: 'desc' }, select: { status: true } });
+    const canRecordManualPayment = !['UNKNOWN', 'REQUIRES_REVIEW'].includes(latestPayment?.status || '') && ['PENDING','CANCELLED'].includes(order.status) && order.paymentStatus !== 'PAID' && order.paymentMethod
+      ? await callContract(order.paymentMethod, 'payment', 2, 'describe', {
         storeCurrency: await systemSettingsService.getShopCurrency(),
       }).then((description: { requiresManualConfirmation: boolean }) => description.requiresManualConfirmation).catch(() => false)
       : false;
 
     const refundRequiredPayments = await prisma.paymentLedger.findMany({
       where: { orderId, eventType: 'SUCCEEDED', refundRequired: true },
-      include: { payment: { include: { refunds: { where: { status: 'COMPLETED' }, select: { reference: true } } } } },
+      include: { refunds: { where: { status: 'COMPLETED' }, select: { reference: true } } },
       orderBy: { createdAt: 'asc' },
     });
     const refundResolutions = refundRequiredPayments.map(row => ({
-      paymentId: row.paymentId, amount: Number(row.amount), currency: row.currency,
-      status: row.payment.refunds.length ? 'resolved' as const : 'pending' as const,
-      reference: row.payment.refunds[0]?.reference ?? null,
+      paymentId: row.paymentId, providerPaymentId: row.providerPaymentId!, amount: Number(row.amount), currency: row.currency,
+      status: row.refunds.length ? 'resolved' as const : 'pending' as const,
+      reference: row.refunds[0]?.reference ?? null,
     }));
     const refundRequired = refundResolutions.some(row => row.status === 'pending');
     return {
@@ -328,6 +329,8 @@ export class AdminOrderService {
       paymentStatus: order.paymentStatus,
       refundRequired,
       refundResolutions,
+      canRefundOrder: await prisma.paymentLedger.count({ where: { orderId, eventType: 'SUCCEEDED', refundRequired: false, refunds: { none: { status: 'COMPLETED' } } } }) > 0,
+      paymentAttemptState: latestPayment?.status ?? null,
       totalAmount: Number(order.totalAmount),
       currency: await systemSettingsService.getShopCurrency(),
       notes: null,
@@ -392,7 +395,7 @@ export class AdminOrderService {
     if (installation && (!installation.enabled || installation.deletedAt || installation.plugin.deletedAt)) {
       throw codedError('PAYMENT_PROVIDER_DISABLED', 'Payment provider is disabled; manual confirmation is unavailable.');
     }
-    const description = await callContract(order.paymentMethod, 'payment', 1, 'describe', {
+    const description = await callContract(order.paymentMethod, 'payment', 2, 'describe', {
       storeCurrency: await systemSettingsService.getShopCurrency(),
     }) as { requiresManualConfirmation: boolean };
     if (!description.requiresManualConfirmation) {
@@ -416,6 +419,7 @@ export class AdminOrderService {
     await knownPrismaOperation(() => recordPaymentSucceeded({
       paymentId: payment.id,
       providerEventId: `manual:${payment.id}`,
+      providerPaymentId: `manual:${reference}`,
       reason: 'manual_payment_recorded',
       actorType: 'admin',
       actorId,
@@ -543,22 +547,26 @@ export class AdminOrderService {
     await prisma.$transaction(async (tx) => {
       await lockOrder(tx, orderId);
       const order = await tx.order.findUnique({ where: { id: orderId }, include: {
-        payments: { where: { status: 'SUCCEEDED', ledger: { some: { eventType: 'SUCCEEDED', refundRequired: false } } }, orderBy: { createdAt: 'asc' }, take: 1 }, items: true,
+        payments: { where: { ledger: { some: { eventType: 'SUCCEEDED', refundRequired: false } } }, orderBy: { createdAt: 'asc' }, take: 1 }, items: true,
       } });
       if (!order) throw new ApiError('NOT_FOUND');
       const payment = order.payments[0];
+      if (order.paymentStatus !== PaymentStatus.PAID && order.paymentStatus !== PaymentStatus.REFUNDED) throw new ApiError('INVALID_ORDER_TRANSITION');
       if (!payment) throw new ApiError('VALIDATION_ERROR');
       await lockPayment(tx, payment.id);
       const keyed = await tx.refund.findUnique({ where: { idempotencyKey: data.idempotencyKey } });
-      if (keyed && keyed.paymentId !== payment.id) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
+      const capture = await tx.paymentLedger.findFirst({ where: { paymentId: payment.id, eventType: 'SUCCEEDED', refundRequired: false } });
+      if (!capture) throw new ApiError('VALIDATION_ERROR');
+      if (keyed && keyed.paymentLedgerId !== capture.id) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
       if (keyed) return;
-      if (await tx.refund.findFirst({ where: { paymentId: payment.id, status: 'COMPLETED' } })) return;
+      if (await tx.refund.findFirst({ where: { paymentLedgerId: capture.id, status: 'COMPLETED' } })) return;
       assertOrderTransition(order.status, OrderStatus.REFUNDED, order.paymentStatus);
       if (order.paymentStatus !== PaymentStatus.PAID) throw new ApiError('INVALID_ORDER_TRANSITION');
       const refundAmount = order.totalAmount;
         const refund = await tx.refund.create({
           data: {
             paymentId: payment.id,
+            paymentLedgerId: capture.id,
             orderId,
             amount: refundAmount,
             currency: payment.currency,
@@ -646,7 +654,7 @@ export class AdminOrderService {
    * Cancel order
    */
   static async resolveRefundRequiredPayment(orderId: string, data: {
-    paymentId: string; reference: string; idempotencyKey: string; actorId: string;
+    paymentId: string; providerPaymentId: string; reference: string; idempotencyKey: string; actorId: string;
   }) {
     const reference = data.reference?.trim();
     if (!reference) throw new ApiError('PAYMENT_REFERENCE_REQUIRED');
@@ -657,13 +665,13 @@ export class AdminOrderService {
       await lockPayment(tx, data.paymentId);
       const payment = await tx.payment.findUnique({ where: { id: data.paymentId } });
       if (!payment || payment.orderId !== orderId) throw new ApiError('NOT_FOUND');
-      const success = await tx.paymentLedger.findFirst({ where: { paymentId: payment.id, eventType: 'SUCCEEDED', refundRequired: true } });
+      const success = await tx.paymentLedger.findFirst({ where: { paymentId: payment.id, providerPaymentId: data.providerPaymentId, eventType: 'SUCCEEDED', refundRequired: true } });
       if (!success) throw new ApiError('VALIDATION_ERROR');
       const keyed = await tx.refund.findUnique({ where: { idempotencyKey: data.idempotencyKey } });
-      if (keyed && keyed.paymentId !== payment.id) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
-      if (keyed || await tx.refund.findFirst({ where: { paymentId: payment.id, status: 'COMPLETED' } })) return;
+      if (keyed && keyed.paymentLedgerId !== success.id) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
+      if (keyed || await tx.refund.findFirst({ where: { paymentLedgerId: success.id, status: 'COMPLETED' } })) return;
       const refund = await tx.refund.create({ data: {
-        orderId, paymentId: payment.id, amount: success.amount, currency: success.currency, status: 'COMPLETED',
+        orderId, paymentId: payment.id, paymentLedgerId: success.id, amount: success.amount, currency: success.currency, status: 'COMPLETED',
         reference, reason: success.refundReason, provider: payment.paymentMethod, idempotencyKey: data.idempotencyKey,
         metadata: { actorId: data.actorId, actorType: 'admin', refundRequiredResolution: true },
       } });
@@ -677,6 +685,8 @@ export class AdminOrderService {
         provider: payment.paymentMethod, providerEventId: `refund:${refund.id}`, idempotencyKey: data.idempotencyKey,
         actorType: 'admin', manualReference: reference, metadata: { actorId: data.actorId, refundRequiredResolution: true },
       } });
+      await tx.adminAuditEvent.create({ data: { actorId: data.actorId, action: 'PAYMENT_REFUND_REQUIRED_RESOLVED', targetType: 'payment', targetId: payment.id,
+        summary: { refundId: refund.id, providerPaymentId: success.providerPaymentId, reference } } });
     });
     await CacheService.incrementOrderVersion();
     return this.getOrderById(orderId);

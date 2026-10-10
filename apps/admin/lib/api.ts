@@ -322,7 +322,7 @@ export const ordersApi = {
 
   refundOrder: (id: string, data: { reason?: string; idempotencyKey: string; reference: string }): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/refund`, data),
-  resolveRefundRequiredPayment: (id: string, data: { paymentId: string; idempotencyKey: string; reference: string }): Promise<ApiResponse<OrderDetail>> =>
+  resolveRefundRequiredPayment: (id: string, data: { paymentId: string; providerPaymentId: string; idempotencyKey: string; reference: string }): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/refund-required-payment`, data),
 };
 

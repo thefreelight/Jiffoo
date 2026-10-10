@@ -176,7 +176,8 @@ describe('Plugin uninstall, restore and purge', () => {
     const event = await prisma.eventRecord.create({ data: { type: 'order.created', version: 1, aggregateId: slug, data: { plugin: slug } } }); eventIds.add(event.id);
     const row = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } }); const pkg = await pluginPackageStore.get(slug, row.zipHash!);
     const order = await prisma.order.create({ data: { userId: customerId, subtotalAmount: 12, totalAmount: 12, paymentMethod: slug } }); orderIds.add(order.id);
-    const payment = await prisma.payment.create({ data: { orderId: order.id, paymentMethod: slug, amount: 12, sessionId: status === 'PENDING' ? randomUUID() : null, status, idempotencyKey: randomUUID(), expiresAt: new Date(Date.now()+30*60_000) } });
+    const account = await prisma.paymentProviderAccount.create({ data: { namespace: slug, merchantAccount: 'test', environment: 'test' } });
+    const payment = await prisma.payment.create({ data: { providerKey: account.providerKey, orderId: order.id, paymentMethod: slug, amount: 12, sessionId: status === 'PENDING' ? randomUUID() : null, status, idempotencyKey: randomUUID(), expiresAt: new Date(Date.now()+30*60_000) } });
     expect((await request(slug, 'uninstall')).status).toBe(200);
     expect(await prisma.$queryRawUnsafe(`SELECT value FROM "${table}"`)).toEqual([{ value: 'kept' }]);
     expect(await prisma.pluginMigrationSuccess.findMany({ where: { namespaceId: namespace.id }, orderBy: { order: 'asc' } })).toEqual(ledger);

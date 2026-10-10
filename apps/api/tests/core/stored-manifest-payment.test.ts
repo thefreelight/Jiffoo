@@ -30,7 +30,7 @@ describe('stored payment manifests', () => {
           hostProtocol: 'internal-fastify-v1',
           entryModule: 'server/index.js',
           permissions: [],
-          supportedCurrencies: ['USD'],
+          supportedCurrencies: ['USD'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' },
         },
       },
     });

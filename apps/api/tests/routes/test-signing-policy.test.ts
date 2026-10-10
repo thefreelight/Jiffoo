@@ -27,11 +27,11 @@ const previous = {
 };
 const paymentSource = `module.exports = { register(ctx) {
   ctx.http.route({ method: 'GET', path: '/health', handler: async () => ({ status: 'healthy' }) });
-  ctx.contracts.implement('payment', 1, {
+  ctx.contracts.implement('payment', 2, {
     describe: (input) => ({ displayName: 'Signing fixture', requiresManualConfirmation: true,
-      unpaidTimeoutMinutes: 60, supportedCurrencies: [input.storeCurrency] }),
+      unpaidTimeoutMinutes: 60, supportedCurrencies: [input.storeCurrency], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } }),
     createSession: () => ({ sessionId: 'fixture', action: { type: 'none' } }),
-    getSessionStatus: () => ({ status: 'pending' }), handleWebhook: () => ({ verification: 'verified', events: [] }),
+    queryByRequestKey: () => ({ status: 'pending' }), handleWebhook: () => ({ verification: 'verified', events: [] }),
   });
 } };`;
 const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -50,7 +50,7 @@ async function bytes(slug: string, root: 'official' | 'test' | 'unsigned') {
     { path: 'manifest.json', content: Buffer.from(JSON.stringify({
       schemaVersion: 1, slug, name: 'Signing Fixture', version: '1.0.0', description: 'Test',
       author: 'Test', category: 'payment', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1',
-      entryModule: 'dist/index.js', permissions: [], contracts: [{ name: 'payment', version: 1 }],
+      entryModule: 'dist/index.js', permissions: [], contracts: [{ name: 'payment', version: 2 }],
     })) },
     { path: 'dist/index.js', content: Buffer.from(paymentSource) },
   ];
@@ -195,7 +195,7 @@ describe('installed plugin signing policy', () => {
         signingRoot: root, declaredCapabilities: ['shipping'], declaredCapabilitiesVerified: false,
         capabilities: ['payment'], capabilitiesSource: 'package',
       });
-      expect((row.manifestJson as { contracts: unknown[] }).contracts).toEqual([{ name: 'payment', version: 1 }]);
+      expect((row.manifestJson as { contracts: unknown[] }).contracts).toEqual([{ name: 'payment', version: 2 }]);
     }
   });
 
@@ -256,7 +256,7 @@ describe('installed plugin signing policy', () => {
     expect(blocked.detailStatus).toBe(200);
     expect(blocked.listStatus).toBe(200);
     expect(blocked.detailRoot).toBeNull();
-    expect(await callContract(unsigned, 'payment', 1, 'describe', { storeCurrency: 'USD' })).toMatchObject({ displayName: 'Signing fixture' });
+    expect(await callContract(unsigned, 'payment', 2, 'describe', { storeCurrency: 'USD' })).toMatchObject({ displayName: 'Signing fixture' });
     expect(blocked.builtin).toBeDefined();
     expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } })).signingRoot).toBeNull();
     const reinstall = await install(slug, 'test');

@@ -3,6 +3,7 @@ import { coreProcessIdentity } from '../../src/infra/core-process-identity';
 import { startCoreProcess, drainCoreProcess, finishCoreProcess } from '../../src/infra/core-process';
 import { createPaymentSession } from '../../src/core/payment/session';
 import { reconcilePendingPayments } from '../../src/core/payment/reconciliation';
+import { withPluginDatabaseTestControl } from '../../src/core/admin/extension-installer/plugin-database-test-control';
 import { withPaymentTestClock } from '../../src/core/payment/clock';
 import { withPaymentSessionTestControl } from '../../src/core/payment/session-test-control';
 import { drainContractInvocations } from '../../src/core/admin/extension-installer/plugin-runtime';
@@ -24,12 +25,12 @@ process.on('message', (message: any) => {
     })();
     return;
   }
-  const work = withPaymentTestClock(true, message.offsetMs ?? 0, () => message.command === 'create'
+  const work = withPluginDatabaseTestControl({ limits: { invocationMs: message.invocationMs ?? 10_000 } }, () => withPaymentTestClock(true, message.offsetMs ?? 0, () => message.command === 'create'
     ? withPaymentSessionTestControl(true, async paymentId => {
       process.send?.({ stage: 'reserved', paymentId });
       if (message.holdReservation) await new Promise<void>(resolve => { releaseReservation = resolve; });
     }, () => createPaymentSession(message.input))
-    : reconcilePendingPayments({ minAgeMinutes: 0, maxAgeMinutes: 0 }));
+    : reconcilePendingPayments({ minAgeMinutes: 0 })));
   pending.add(work);
   void work.then(result => process.send?.({ stage: 'done', id: message.id, result }), error => process.send?.({ stage: 'failed', id: message.id, code: error.code, error: String(error) })).finally(() => pending.delete(work));
 });

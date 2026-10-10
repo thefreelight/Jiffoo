@@ -12,14 +12,16 @@ async function fixtureZip(slug: string): Promise<Buffer> {
     description: 'Local payment isolation fixture', category: 'payment',
     runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1',
     entryModule: 'server/index.js', permissions: [],
-    contracts: [{ name: 'payment', version: 1 }],
+    contracts: [{ name: 'payment', version: 2 }],
   };
   const source = `module.exports = { register(ctx) {
-    ctx.contracts.implement('payment', 1, {
-      describe: (input) => ({ displayName: 'Fixture payment', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: [input.storeCurrency] }),
-      createSession: (input) => ({ sessionId: 'fixture_' + input.orderId, action: { type: 'instructions', text: 'Fixture payment pending.' } }),
-      getSessionStatus: () => ({ status: 'pending' }),
-      handleWebhook: () => ({ events: [] }),
+    const requests = new Map(), account = { namespace: 'fixture', merchantAccount: ctx.plugin.slug, environment: 'test' };
+    ctx.contracts.implement('payment', 2, {
+      describe: input => ({ displayName: 'Fixture payment', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: [input.storeCurrency], account }),
+      createSession: input => { const value = { account, requestKey: input.idempotencyKey, sessionId: 'fixture_' + input.orderId, amountMinor: input.amountMinor, currency: input.currency,
+        observedAt: new Date().toISOString(), status: 'pending', captures: [], canStillBeCharged: true, requestClosed: false, action: { type: 'instructions', text: 'Fixture payment pending.' } }; requests.set(input.idempotencyKey, value); return value; },
+      queryByRequestKey: input => requests.get(input.requestKey),
+      handleWebhook: () => ({ verification: 'verified', events: [] }),
     });
   } };`;
   const archive = archiver('zip', { zlib: { level: 9 } });

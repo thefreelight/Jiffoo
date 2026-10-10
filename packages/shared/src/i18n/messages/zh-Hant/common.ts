@@ -116,8 +116,12 @@ export const common = {
 
   // Error messages
   errors: {
-    paymentAttemptOpen: '已有進行中的付款。請先完成該付款，或最多等待 30 分鐘後再試。',
+    paymentAttemptOpen: '已有進行中的付款。請先完成該付款後再試。',
     paymentReferenceRequired: '請輸入付款或退款憑證號。',
+    paymentOutcomeUnknown: '正在核實付款，請勿重複付款',
+    paymentRequiresReview: '付款需要人工核實',
+    paymentRefundRequired: '需要退款',
+    paymentSessionStillChargeable: '此付款工作階段仍可能扣款。請等待確認關閉後再試。',
     uploadStorageUnavailable: '上傳儲存暫時無法使用，請稍後再試。',
     uploadStorageCorrupt: '上傳的媒體已損毀，請重新上傳圖片。',
     general: '發生錯誤，請重試。',

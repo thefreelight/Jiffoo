@@ -13,6 +13,7 @@ import { installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-pl
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { warmPluginInstanceRuntime } from '@/core/admin/extension-installer/plugin-runtime';
 import { reconcilePendingPayments } from '@/core/payment/reconciliation';
+import { withPaymentTestClock } from '@/core/payment/clock';
 import { OrderService } from '@/core/order/service';
 
 describe('disabled plugin isolation', () => {
@@ -35,18 +36,27 @@ describe('disabled plugin isolation', () => {
 const fs = require('fs');
 fs.appendFileSync(${JSON.stringify(path.join(directory, 'calls.log'))}, 'load\\n');
 module.exports = { register(ctx) {
+  const account = { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' };
+  const file = key => ${JSON.stringify(directory)} + '/' + Buffer.from(key).toString('hex') + '.json';
+  const settled = (value, status = ${JSON.stringify(settle ? 'succeeded' : 'pending')}) => ({ ...value, status, captures: status === 'succeeded'
+    ? [{ account, requestKey: value.requestKey, sessionId: value.sessionId, providerPaymentId: value.sessionId + ':capture', amountMinor: value.amountMinor, currency: value.currency, observedAt: value.observedAt }] : [] });
   const record = (name) => fs.appendFileSync(${JSON.stringify(path.join(directory, 'calls.log'))}, ctx.plugin.slug + ':' + name + '\\n');
   record('register');
   ctx.http.route({ method: 'GET', path: '/health', handler: () => { record('health'); return 'healthy'; } });
   ctx.http.route({ method: 'GET', path: '/manifest', handler: () => { record('manifest'); return 'plugin manifest'; } });
-  ctx.contracts.implement('payment', 1, {
-    describe: (input) => ({ displayName: ctx.plugin.slug, requiresManualConfirmation: true, unpaidTimeoutMinutes: 30, supportedCurrencies: [input.storeCurrency] }),
-    createSession: (input) => ({ sessionId: ctx.plugin.slug + '_' + input.orderId, action: { type: 'redirect', url: 'https://example.test/pay' } }),
-    getSessionStatus: () => { record('reconcile'); return { status: ${JSON.stringify(settle ? 'succeeded' : 'pending')} }; },
+  ctx.contracts.implement('payment', 2, {
+    describe: (input) => ({ displayName: ctx.plugin.slug, requiresManualConfirmation: true, unpaidTimeoutMinutes: 30, supportedCurrencies: [input.storeCurrency], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } }),
+    createSession: input => {
+      const value = { account, requestKey: input.idempotencyKey, sessionId: ctx.plugin.slug + '_' + input.orderId, amountMinor: input.amountMinor, currency: input.currency,
+        observedAt: new Date().toISOString(), status: 'pending', captures: [], canStillBeCharged: true, requestClosed: false, action: { type: 'redirect', url: 'https://example.test/pay' } };
+      fs.writeFileSync(file(input.idempotencyKey), JSON.stringify(value)); return value;
+    },
+    queryByRequestKey: input => { record('reconcile'); return settled(JSON.parse(fs.readFileSync(file(input.requestKey), 'utf8'))); },
     handleWebhook: (input) => {
       record('webhook');
       const event = JSON.parse(Buffer.from(input.rawBody).toString('utf8'));
-      return { verification: 'verified', events: [{ providerEventId: event.providerEventId, sessionId: event.sessionId, status: 'succeeded' }] };
+      const value = fs.readdirSync(${JSON.stringify(directory)}).filter(name => name.endsWith('.json')).map(name => JSON.parse(fs.readFileSync(${JSON.stringify(directory)} + '/' + name, 'utf8'))).find(value => value.sessionId === event.sessionId);
+      return { verification: 'verified', events: [{ ...settled(value, 'succeeded'), providerEventId: event.providerEventId }] };
     },
   });
 } };`;
@@ -56,7 +66,7 @@ module.exports = { register(ctx) {
   async function install(category: 'payment' | 'integration' = 'payment', settle = false) {
     const slug = `iso-${randomUUID().slice(0, 12)}`;
     slugs.push(slug);
-    await installFixturePlugin(options(), slug, category, category === 'payment' ? [{ name: 'payment', version: 1 }] : [], category === 'payment' ? source(settle) : `module.exports = { register() {} };`);
+    await installFixturePlugin(options(), slug, category, category === 'payment' ? [{ name: 'payment', version: 2 }] : [], category === 'payment' ? source(settle) : `module.exports = { register() {} };`);
     return slug;
   }
   async function toggle(slug: string, enabled: boolean) {
@@ -165,7 +175,7 @@ module.exports = { register(ctx) {
     const second = await order(enabled);
     await toggle(disabled, false);
     const before = await trace();
-    const result = await reconcilePendingPayments({ minAgeMinutes: 0 });
+    const result = await withPaymentTestClock(true, 61_000, () => reconcilePendingPayments({ minAgeMinutes: 0 }));
     expect(result.skipped).toBeGreaterThanOrEqual(1);
     expect(result.updated).toBeGreaterThanOrEqual(1);
     expect((await prisma.payment.findUniqueOrThrow({ where: { id: first.payment.id } })).status).toBe('PENDING');

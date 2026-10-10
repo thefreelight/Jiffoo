@@ -62,12 +62,13 @@ async function archive(slug: string) {
   const zip = archiver('zip'), chunks: Buffer[] = [];
   const done = new Promise<void>((resolve, reject) => { zip.on('data', chunk => chunks.push(chunk)); zip.on('end', resolve); zip.on('error', reject); });
   zip.append(JSON.stringify({ schemaVersion: 1, slug, name: fixtureName, version: '1.0.0', description: 'Lifecycle fixture', category: 'payment',
-    runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'index.js', permissions: [], contracts: [{ name: 'payment', version: 1 }],
+    runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'index.js', permissions: [], contracts: [{ name: 'payment', version: 2 }],
     configSchema: { type: 'object', properties: { note: { type: 'string', title: 'Payment note' }, credential: { type: 'string', title: 'Payment credential', sensitive: true } }, required: ['note', 'credential'] } }), { name: 'manifest.json' });
-  zip.append(`module.exports={register(ctx){ctx.contracts.implement('payment',1,{
-    describe:input=>({displayName:'Removal payment',requiresManualConfirmation:true,unpaidTimeoutMinutes:30,supportedCurrencies:[input.storeCurrency]}),
-    createSession:input=>({sessionId:'removal_'+input.orderId,action:{type:'instructions',text:ctx.config.note}}),
-    getSessionStatus:()=>({status:'pending'}),handleWebhook:()=>({events:[]})
+  zip.append(`module.exports={register(ctx){const requests=new Map(),account={namespace:'fixture',merchantAccount:ctx.plugin.slug,environment:'test'};ctx.contracts.implement('payment',2,{
+    describe:input=>({displayName:'Removal payment',requiresManualConfirmation:true,unpaidTimeoutMinutes:30,supportedCurrencies:[input.storeCurrency],account}),
+    createSession:input=>{const value={account,requestKey:input.idempotencyKey,sessionId:'removal_'+input.orderId,amountMinor:input.amountMinor,currency:input.currency,
+      observedAt:new Date().toISOString(),status:'pending',captures:[],canStillBeCharged:true,requestClosed:false,action:{type:'instructions',text:ctx.config.note}};requests.set(input.idempotencyKey,value);return value;},
+    queryByRequestKey:input=>requests.get(input.requestKey),handleWebhook:()=>({verification:'verified',events:[]})
   });}};`, { name: 'index.js' });
   await zip.finalize(); await done; const file = path.join(directory, `${slug}.zip`); await fs.writeFile(file, Buffer.concat(chunks)); return file;
 }

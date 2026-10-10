@@ -116,7 +116,9 @@ export interface OrderDetail {
   paymentMethod?: string | null
   canRecordManualPayment?: boolean
   refundRequired?: boolean
-  refundResolutions?: Array<{ paymentId: string; amount: number; currency: string; status: 'pending' | 'resolved'; reference: string | null }>
+  canRefundOrder?: boolean
+  refundResolutions?: Array<{ paymentId: string; providerPaymentId: string; amount: number; currency: string; status: 'pending' | 'resolved'; reference: string | null }>
+  paymentAttemptState?: string | null
   paymentAttempts?: number
   lastPaymentAttemptAt?: string | null
   expiresAt?: string | null

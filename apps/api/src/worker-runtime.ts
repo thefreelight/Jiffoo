@@ -174,7 +174,6 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
       PaymentReconciliationJob.start({
         intervalMs: Number(process.env.PAYMENT_RECONCILIATION_INTERVAL_MS || 600_000) || 600_000,
         limit: Number(process.env.PAYMENT_RECONCILIATION_LIMIT || 100) || 100,
-        maxAgeMinutes: Number(process.env.PAYMENT_RECONCILIATION_MAX_AGE_MINUTES || 10080) || 10080,
         minAgeMinutes: Number(process.env.PAYMENT_RECONCILIATION_MIN_AGE_MINUTES || 2) || 2,
       });
     }

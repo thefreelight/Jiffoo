@@ -7,7 +7,6 @@ import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '.
 import { createTestProduct, deleteAllTestOrders, deleteAllTestProducts } from '../helpers/fixtures';
 import { checkoutTotal } from '../helpers/checkout-total';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
-import { recordPaymentSucceeded } from '@/core/payment/reconciliation';
 import { loadOpenApiSpec } from '../helpers/openapi';
 import { OrderService } from '@/core/order/service';
 
@@ -60,9 +59,17 @@ describe('ORD-1 order state machine routes', () => {
     expect((await adminAction(id, 'cancel', { cancelReason: 'Customer request' })).statusCode).toBe(200);
   }
   async function latePay(id: string) {
-    const payment = await session(id);
+    await session(id);
     await cancel(id);
-    expect(await recordPaymentSucceeded({ paymentId: payment.id, providerEventId: `late:${id}` })).toBe(true);
+    expect((await adminAction(id, 'record-manual-payment')).statusCode).toBe(200);
+  }
+  async function resolveExtraPayment(id: string) {
+    const capture = await prisma.paymentLedger.findFirstOrThrow({ where: { orderId: id, eventType: 'SUCCEEDED', refundRequired: true } });
+    const response = await adminAction(id, 'refund-required-payment', { paymentId: capture.paymentId, providerPaymentId: capture.providerPaymentId,
+      reference: `late-refund-reference:${id}`, idempotencyKey: `refund:${id}` });
+    expect(response.statusCode).toBe(200);
+    expect(await prisma.refund.count({ where: { paymentLedgerId: capture.id, status: 'COMPLETED' } })).toBe(1);
+    return response;
   }
 
   beforeAll(async () => {
@@ -91,7 +98,7 @@ describe('ORD-1 order state machine routes', () => {
     { from: 'SHIPPED', to: 'DELIVERED', prepare: async (id: string) => { await pay(id); await ship(id); }, action: deliver },
     { from: 'SHIPPED', to: 'REFUNDED', prepare: async (id: string) => { await pay(id); await ship(id); }, action: (id: string) => adminAction(id, 'refund', { idempotencyKey: `refund:${id}` }) },
     { from: 'DELIVERED', to: 'REFUNDED', prepare: async (id: string) => { await pay(id); await ship(id); await deliver(id); }, action: (id: string) => adminAction(id, 'refund', { idempotencyKey: `refund:${id}` }) },
-    { from: 'CANCELLED', to: 'REFUNDED', prepare: latePay, action: (id: string) => adminAction(id, 'refund', { idempotencyKey: `refund:${id}` }) },
+    { from: 'CANCELLED', to: 'CANCELLED', prepare: latePay, action: resolveExtraPayment },
   ];
   it.each(edges)('A allows $from to $to and writes history', async ({ from, to, prepare, action }) => {
     const id = await createOrder();
@@ -157,12 +164,13 @@ describe('ORD-1 order state machine routes', () => {
     expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock).toBe(4);
   });
 
-  it('F refunds late payment on cancelled order without restoring stock twice', async () => {
+  it('F resolves a late payment without changing the cancelled order, paid status or stock', async () => {
     const id = await createOrder();
     await latePay(id);
     const stock = (await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock;
-    expect((await adminAction(id, 'refund', { idempotencyKey: `refund:${id}` })).statusCode).toBe(200);
-    expect((await prisma.order.findUniqueOrThrow({ where: { id } })).status).toBe('REFUNDED');
+    await resolveExtraPayment(id);
+    expect(await prisma.order.findUniqueOrThrow({ where: { id } })).toMatchObject({ status: 'CANCELLED', paymentStatus: 'PAID' });
+    expect(await prisma.eventRecord.count({ where: { aggregateId: id, type: 'order.refunded' } })).toBe(0);
     expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock).toBe(stock);
   });
 

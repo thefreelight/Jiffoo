@@ -340,7 +340,11 @@ export async function deleteAllTestOrders() {
   // Delete dependent records first to avoid FK constraint violations
   await prisma.shipmentItem.deleteMany({});
   await prisma.shipment.deleteMany({});
+  await prisma.payment.updateMany({ data: { closureObservationId: null, closedAt: null } });
+  await prisma.paymentObservation.deleteMany({});
+  await prisma.refundLedger.deleteMany({});
   await prisma.refund.deleteMany({});
+  await prisma.paymentLedger.deleteMany({});
   await prisma.payment.deleteMany({});
   await prisma.orderItem.deleteMany({});
   await prisma.orderShippingAddress.deleteMany({});

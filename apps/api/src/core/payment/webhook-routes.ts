@@ -63,7 +63,7 @@ export async function paymentWebhookRoutes(app: FastifyInstance): Promise<void> 
         contentType: headers['content-type'][0], headers,
         query: request.query as PaymentWebhookInput['query'],
       };
-      const result = await callContract(provider, 'payment', 1, 'handleWebhook', input) as WebhookOutcome;
+      const result = await callContract(provider, 'payment', 2, 'handleWebhook', input) as WebhookOutcome;
       if (result.verification === 'rejected') {
         if (result.response) {
           return reply.code(401).header('X-Jiffoo-Error-Code', 'PAYMENT_WEBHOOK_AUTHENTICATION_FAILED')
@@ -71,9 +71,7 @@ export async function paymentWebhookRoutes(app: FastifyInstance): Promise<void> 
         }
         return sendMappedError(reply, new ApiError('PAYMENT_WEBHOOK_AUTHENTICATION_FAILED'));
       }
-      await Promise.all(result.events.map(event => applyNormalizedPluginWebhook(provider, {
-        received: true, handled: true, providerEventId: event.providerEventId, sessionId: event.sessionId, normalizedStatus: event.status,
-      })));
+      for (const event of result.events) await applyNormalizedPluginWebhook(provider, event);
       if (result.response) return reply.code(200).type(result.response.contentType).send(Buffer.from(result.response.body, 'utf8'));
       return sendSuccess(reply, { received: true });
     } catch (error) { return sendMappedError(reply, error); }

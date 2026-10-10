@@ -49,7 +49,7 @@ export function allowedBffRoute(method: string, path: string): boolean {
   if (/^\/orders\/c[a-z0-9]{24}$/.test(path)) return method === 'GET';
   if (/^\/orders\/c[a-z0-9]{24}\/cancel$/.test(path)) return method === 'POST';
   if (/^\/orders\/c[a-z0-9]{24}\/tracking-claim$/.test(path)) return method === 'POST';
-  if (/^\/payments\/verify\/[a-zA-Z0-9:_-]{1,200}$/.test(path)) return method === 'GET';
+  if (/^\/payments\/verify\/c[a-z0-9]{24}$/.test(path)) return method === 'GET';
   return new Set([
     'POST /auth/login', 'POST /auth/register', 'POST /auth/refresh',
     'POST /auth/logout', 'POST /auth/forgot-password', 'POST /auth/reset-password',

@@ -317,9 +317,9 @@ export function useRefundOrder() {
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
-    mutationFn: async ({ id, data, paymentId }: { id: string; data: { reason?: string; idempotencyKey: string; reference: string }; paymentId?: string }) => {
+    mutationFn: async ({ id, data, paymentId, providerPaymentId }: { id: string; data: { reason?: string; idempotencyKey: string; reference: string }; paymentId?: string; providerPaymentId?: string }) => {
       const response = paymentId
-        ? await ordersApi.resolveRefundRequiredPayment(id, { paymentId, reference: data.reference, idempotencyKey: data.idempotencyKey })
+        ? await ordersApi.resolveRefundRequiredPayment(id, { paymentId, providerPaymentId: providerPaymentId!, reference: data.reference, idempotencyKey: data.idempotencyKey })
         : await ordersApi.refundOrder(id, data);
       return unwrapApiResponse(response);
     },
