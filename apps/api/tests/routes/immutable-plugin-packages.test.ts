@@ -402,8 +402,13 @@ describe('immutable plugin package deployment', () => {
     expect(await prisma.pluginPackageBlob.count({ where: { pluginSlug: id } })).toBe(0);
   });
 
-  it('F builtin plugins have no blob rows', async () => {
-    expect(await prisma.pluginPackageBlob.count({ where: { pluginSlug: { in: ['manual-payment', 'free-shipping', 'zero-tax', 'manual-fulfillment', 'console-email'] } } })).toBe(0);
+  it('F builtin blobs match the installed hash and are unique per slug and hash', async () => {
+    for (const slug of ['manual-payment', 'free-shipping', 'zero-tax', 'manual-fulfillment', 'console-email']) {
+      const installed = await prisma.pluginInstall.findUnique({ where: { slug } });
+      const blobs = await prisma.pluginPackageBlob.findMany({ where: { pluginSlug: slug } });
+      for (const blob of blobs) expect(blob.zipHash).toBe(installed?.zipHash);
+      expect(new Set(blobs.map(blob => `${blob.pluginSlug}:${blob.zipHash}`)).size).toBe(blobs.length);
+    }
   });
 
   it('G concurrent uploads of one slug reject the second while the first holds its lease', async () => {

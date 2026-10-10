@@ -41,8 +41,17 @@ export async function drainCoreProcess(): Promise<void> {
   await prisma.coreProcess.updateMany({ where: { bootNonce: await registration, state: 'LIVE' }, data: { state: 'DRAINING' } });
 }
 export async function finishCoreProcess(): Promise<void> {
-  if (heartbeat) clearInterval(heartbeat); heartbeat = undefined;
+  stopCoreProcessHeartbeat();
   await pending;
   if (registration) await prisma.$executeRaw`UPDATE public.core_processes SET state = 'QUIESCENT', "drainedAt" = clock_timestamp() AT TIME ZONE 'UTC', "heartbeatAt" = clock_timestamp() AT TIME ZONE 'UTC' WHERE "bootNonce" = ${await registration}::uuid AND state IN ('LIVE','DRAINING')`;
   registration = undefined;
+}
+/** Deadline shutdown leaves DRAINING intact and must not await a stuck heartbeat. */
+export function stopCoreProcessHeartbeat(): void {
+  if (heartbeat) clearInterval(heartbeat);
+  heartbeat = undefined;
+}
+export async function drainCoreProcessHeartbeat(): Promise<void> {
+  stopCoreProcessHeartbeat();
+  await pending;
 }

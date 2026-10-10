@@ -108,6 +108,9 @@ model Notification {
   text              String
   secretJson        Json?
   status            NotificationStatus @default(PENDING)
+  claimToken        String?            @db.Uuid
+  claimedBy         String?
+  leaseUntil        DateTime?          @db.Timestamptz(3)
   attempts          Int                @default(0)
   nextAttemptAt     DateTime           @default(now())
   lastError         String?
@@ -121,6 +124,7 @@ model Notification {
   sentAt            DateTime?
 
   @@index([status, nextAttemptAt])
+  @@index([status, leaseUntil])
   @@index([createdAt])
   @@index([recipientUserId, createdAt])
   @@map("notifications")

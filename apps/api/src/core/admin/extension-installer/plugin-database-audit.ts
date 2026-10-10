@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
+import { readdir, stat } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import type { Client } from 'pg';
 import { getPluginManifestIssues, type PluginManifest, type PluginMigrationDeclaration, readPluginZipEntries, PLUGIN_MAX_ZIP_SIZE, validatePluginMigrations, pluginSchemaName } from 'shared/plugin-signing';
 
@@ -30,19 +32,22 @@ const REQUIRED_COLUMNS: Record<string, string[]> = {
   plugin_operation_leases: ['slug', 'token', 'operation', 'expiresAt', 'ownerBootNonce'],
   core_processes: ['bootNonce', 'state', 'heartbeatAt', 'deathConfirmedAt'],
 };
-const REQUIRED_MIGRATIONS = [
-  '20260922000000_baseline', '20260923000000_remove_plugin_service_token',
-  '20260923010000_checkout_contract_totals_and_payment_action', '20260923020000_notifications',
-  '20260923030000_session_version', '20260924000000_plugin_failure_record',
-  '20260924010000_category_translations', '20260925000000_plugin_trust_level',
-  '20260926000000_auth_tokens', '20260927000000_cart_current_prices',
-  '20260928000000_order_state_machine', '20260928000100_remove_admin_memberships',
-  '20260928000200_theme_package', '20260928000300_theme_runtime', '20260928061848_storefront_code',
-  '20260929064819_order_purchase_claim', '20260929153831_durable_plugin_events',
-  '20260930142521_plugin_publisher_identity', '20261001103300_plugin_package_blobs_and_leases',
-  '20261002060650_plugin_signing_root', '20261004183349_plugin_protection_generation',
-  '20261007113319_theme_package_blobs', '20261008050115_plugin_migrations', '20261009092955_core_process_recovery',
-];
+let testMigrationRoot: string | undefined;
+export function setPluginDatabaseAuditTestMigrationRoot(enabled: boolean, root?: string): void {
+  if (process.env.NODE_ENV !== 'test' || !enabled) throw new Error('Audit migration controls require an explicit test switch');
+  testMigrationRoot = root;
+}
+class MigrationInventoryUnavailable extends Error {}
+async function readMigrationInventory(): Promise<string[]> {
+  if (testMigrationRoot !== undefined && process.env.NODE_ENV !== 'test') throw new Error('Audit migration controls are not permitted outside tests');
+  try {
+    const root = testMigrationRoot ?? resolve(__dirname, '../../../../prisma/migrations');
+    const names = (await readdir(root, { withFileTypes: true })).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
+    if (!names.length) throw new MigrationInventoryUnavailable();
+    for (const name of names) if (!(await stat(resolve(root, name, 'migration.sql'))).isFile()) throw new MigrationInventoryUnavailable();
+    return names;
+  } catch { throw new MigrationInventoryUnavailable(); }
+}
 const DEFAULT_LIMITS = { rows: 10_000, bytes: 128 * 1024 * 1024, totalMs: 60_000, statementMs: 10_000, lockMs: 1_000 };
 let testLimits: Partial<typeof DEFAULT_LIMITS> | undefined;
 let testSchema: string | undefined;
@@ -111,7 +116,8 @@ export async function auditPluginDatabase(client: Pick<Client, 'query'>): Promis
     } else {
       const migrations = await bounded('SELECT migration_name, finished_at, rolled_back_at FROM public._prisma_migrations ORDER BY migration_name');
       const appliedMigrations = migrations.filter(row => row.finished_at && !row.rolled_back_at).map(row => row.migration_name);
-      if (appliedMigrations.length !== REQUIRED_MIGRATIONS.length || REQUIRED_MIGRATIONS.some(name => !appliedMigrations.includes(name)) || migrations.some(row => !row.finished_at && !row.rolled_back_at)) {
+      const expectedMigrations = await readMigrationInventory();
+      if (appliedMigrations.length !== expectedMigrations.length || expectedMigrations.some(name => !appliedMigrations.includes(name)) || migrations.some(row => !row.finished_at && !row.rolled_back_at)) {
         report.database.schemaState = 'incomplete'; finding('PLUGIN_DB_SCHEMA_INCOMPLETE', null, { reason: 'migration-state' });
       } else {
         report.database.schemaState = 'current';
@@ -214,7 +220,7 @@ export async function auditPluginDatabase(client: Pick<Client, 'query'>): Promis
     const sqlstate = error && typeof error === 'object' && 'code' in error && /^[0-9A-Z]{5}$/.test(String(error.code)) ? String(error.code) : undefined;
     const limit = error instanceof AuditLimit || ['57014', '55P03', '25P03'].includes(sqlstate ?? '');
     // Reserve one final finding even when the finding budget itself was exhausted.
-    report.findings.push({ code: limit ? 'PLUGIN_DB_AUDIT_LIMIT_REACHED' : 'PLUGIN_DB_SCHEMA_INCOMPLETE', severity: 'blocking', slug: null, evidence: { reason: limit ? 'resource-or-time-limit' : 'database-inspection-unavailable', ...(sqlstate ? { sqlstate } : {}) } });
+    report.findings.push({ code: limit ? 'PLUGIN_DB_AUDIT_LIMIT_REACHED' : 'PLUGIN_DB_SCHEMA_INCOMPLETE', severity: 'blocking', slug: null, evidence: { reason: limit ? 'resource-or-time-limit' : error instanceof MigrationInventoryUnavailable ? 'migration-inventory-unavailable' : 'database-inspection-unavailable', ...(sqlstate ? { sqlstate } : {}) } });
     if (!limit) report.database.schemaState = 'incomplete';
   } finally {
     if (begun) await client.query('ROLLBACK').catch(() => undefined);

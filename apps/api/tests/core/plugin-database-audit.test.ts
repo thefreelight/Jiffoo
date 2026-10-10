@@ -6,8 +6,10 @@ import { fork } from 'node:child_process';
 import { once } from 'node:events';
 import path from 'node:path';
 import archiver from 'archiver';
+import { mkdtemp, mkdir, writeFile, rm, readdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { PLUGIN_MAX_ENTRY_SIZE, PLUGIN_MAX_DECOMPRESSED_SIZE, PLUGIN_MAX_ZIP_ENTRIES, PLUGIN_MAX_ZIP_SIZE, pluginSchemaName, type PluginManifest } from 'shared/plugin-signing';
-import { auditPluginDatabase, pluginDatabaseAuditExitCode, PLUGIN_DATABASE_AUDIT_CODES, setPluginDatabaseAuditTestLimits } from '@/core/admin/extension-installer/plugin-database-audit';
+import { auditPluginDatabase, pluginDatabaseAuditExitCode, PLUGIN_DATABASE_AUDIT_CODES, setPluginDatabaseAuditTestLimits, setPluginDatabaseAuditTestMigrationRoot } from '@/core/admin/extension-installer/plugin-database-audit';
 
 let client: Client, schema: string, slug: string;
 const ownedSchemas = new Set<string>(), ownedRoles = new Set<string>();
@@ -71,6 +73,7 @@ beforeEach(async () => {
 });
 afterEach(async () => {
   setPluginDatabaseAuditTestLimits(true);
+  setPluginDatabaseAuditTestMigrationRoot(true);
   for (const name of ownedSchemas) await client.query(`DROP SCHEMA "${name}" CASCADE`);
   ownedSchemas.clear();
   for (const role of ownedRoles) await client.query(`DROP ROLE "${role}"`);
@@ -247,4 +250,26 @@ it('J stable findings include exactly the approved machine-readable codes', () =
   const environment = process.env.NODE_ENV; process.env.NODE_ENV = 'production';
   try { expect(() => setPluginDatabaseAuditTestLimits(true, { lockMs: 1 })).toThrow('explicit test switch'); }
   finally { process.env.NODE_ENV = environment; }
+});
+it('F runtime migration folders admit a newly recorded migration without editing the auditor', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'jiffoo-audit-inventory-'));
+  try {
+    for (const name of (await readdir(path.resolve('prisma/migrations'), { withFileTypes: true })).filter(entry => entry.isDirectory()).map(entry => entry.name)) {
+      await mkdir(path.join(root, name)); await writeFile(path.join(root, name, 'migration.sql'), '-- Inventory fixture only\n');
+    }
+    const added = '20990101000000_inventory_fixture';
+    await mkdir(path.join(root, added)); await writeFile(path.join(root, added, 'migration.sql'), '-- Inventory fixture only\n');
+    setPluginDatabaseAuditTestMigrationRoot(true, root);
+    expect(pluginDatabaseAuditExitCode(await audit())).toBe(2);
+    await client.query(`INSERT INTO ${schema}._prisma_migrations (id,checksum,migration_name,started_at,finished_at,applied_steps_count) VALUES ($1,$2,$3,now(),now(),1)`, [randomUUID(), 'a'.repeat(64), added]);
+    expect(pluginDatabaseAuditExitCode(await audit())).toBe(0);
+    await rm(path.join(root, added, 'migration.sql'));
+    expect(pluginDatabaseAuditExitCode(await audit())).toBe(2);
+    setPluginDatabaseAuditTestMigrationRoot(true, path.join(root, 'absent'));
+    expect(pluginDatabaseAuditExitCode(await audit())).toBe(2);
+    const file = path.join(root, 'not-a-directory'); await writeFile(file, 'fixture');
+    setPluginDatabaseAuditTestMigrationRoot(true, file);
+    const unavailable = await audit(); expect(pluginDatabaseAuditExitCode(unavailable)).toBe(2);
+    expect(unavailable.findings).toContainEqual(expect.objectContaining({ code: 'PLUGIN_DB_SCHEMA_INCOMPLETE', evidence: { reason: 'migration-inventory-unavailable' } }));
+  } finally { setPluginDatabaseAuditTestMigrationRoot(true); await rm(root, { recursive: true, force: true }); }
 });

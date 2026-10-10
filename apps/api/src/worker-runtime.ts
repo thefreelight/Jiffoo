@@ -1,13 +1,15 @@
 import { prisma } from './config/database';
-import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
-import { startCoreProcess, drainCoreProcess, finishCoreProcess } from '@/infra/core-process';
+import { closePluginDatabase, abandonPluginDatabase } from '@/core/admin/extension-installer/plugin-database';
+import { startCoreProcess, drainCoreProcess, finishCoreProcess, stopCoreProcessHeartbeat, drainCoreProcessHeartbeat } from '@/infra/core-process';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { startPluginRecoverySweeper } from '@/core/admin/extension-installer/plugin-recovery';
-import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
+import { drainPluginInstallOperations, unsettledPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
+import { drainContractInvocations, unsettledContractInvocations } from '@/core/admin/extension-installer/plugin-runtime';
+import { workerShutdownDeadlineMs, observeWorkerShutdownForTest } from '@/infra/worker-shutdown';
 import { sharedProtection } from './infra/shared-protection';
 import { redisCache } from './core/cache/redis';
 import { OrderService } from './core/order/service';
-import { deliverPendingNotifications } from './core/notifications/delivery';
+import { deliverPendingNotifications, unsettledNotifications } from './core/notifications/delivery';
 import { winstonLogger } from './core/logger/unified-logger';
 import Redis from 'ioredis';
 import { EventDeliveryEngine } from './infra/events/delivery';
@@ -27,6 +29,7 @@ import { uploadedObjectStore } from './core/storage/uploaded-object-store';
 import path from 'node:path';
 
 export async function startWorkerRuntime(options: { redisUrl?: string; healthPort?: number } = {}) {
+  workerShutdownDeadlineMs();
   assertThemeTestHooks();
   await uploadedObjectStore.initialize();
   assertTestRootEnvironment(env.EXTENSION_TEST_SIGNING_MODE);
@@ -54,12 +57,22 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
   let unpaidTimer: NodeJS.Timeout | null = null;
   const redisConnections: Array<{ name: string; client: { status: string } }> = [];
   const pending = new Set<Promise<void>>();
+  const pendingLabels = new Map<Promise<void>, string>();
+  let stopping = false;
+  let stopWork: Promise<0 | 1> | undefined;
+  const drainItems = new Map<Promise<unknown>, { kind: string; id: string }>();
+  const trackDrain = <T>(kind: string, work: Promise<T>): Promise<T> => {
+    drainItems.set(work, { kind, id: coreProcessIdentity.bootNonce });
+    void work.finally(() => drainItems.delete(work)).catch(() => undefined);
+    return work;
+  };
   const run = (task: () => Promise<unknown>, context: string) => {
     const operation = task().then(() => undefined).catch((error) => {
       winstonLogger.error(context, { component: 'Worker', error: error instanceof Error ? error.message : String(error) });
     });
     pending.add(operation);
-    void operation.finally(() => pending.delete(operation));
+    pendingLabels.set(operation, context);
+    void operation.finally(() => { pending.delete(operation); pendingLabels.delete(operation); });
     return operation;
   };
   const state = () => ({
@@ -75,25 +88,52 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     redisConnected: redisCache.getConnectionStatus(),
     redisConnections: redisConnections.map(({ name, client }) => ({ name, status: client.status })),
   });
-  const stop = async () => {
-    await drainCoreProcess();
-    await recovery?.stop();
+  const stop = (): Promise<0 | 1> => stopWork ??= (async () => {
+    const deadlineMs = workerShutdownDeadlineMs();
+    stopping = true;
+    eventDelivery.stopClaiming();
+    const eventStopped = trackDrain('event-drain', eventDelivery.stop());
+    const recoveryStopped = recovery ? trackDrain('plugin-recovery-sweep', recovery.stop()) : undefined;
     started = false;
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     heartbeatTimer = null;
-    if (healthServer.listening) {
-      await new Promise<void>((resolve, reject) => healthServer.close((error) => error ? reject(error) : resolve()));
-    }
+    const healthClosed = trackDrain('worker-health-close', healthServer.listening ? new Promise<void>((resolve, reject) => healthServer.close((error) => error ? reject(error) : resolve())) : Promise.resolve());
     if (notificationTimer) clearInterval(notificationTimer);
     if (unpaidTimer) clearInterval(unpaidTimer);
     notificationTimer = unpaidTimer = null;
     PaymentReconciliationJob.stop();
     if (cleanupTimer) clearInterval(cleanupTimer);
     cleanupTimer = null;
-    const eventStopped = eventDelivery.stop();
-    await closePluginDatabase();
-    await Promise.all([...pending, eventStopped, PaymentReconciliationJob.drain()]);
-    await drainPluginInstallOperations();
+    const drain = (async () => {
+      await trackDrain('core-process-draining', drainCoreProcess());
+      observeWorkerShutdownForTest('draining', { bootNonce: coreProcessIdentity.bootNonce });
+      await Promise.allSettled([recoveryStopped, healthClosed, trackDrain('plugin-database-close', closePluginDatabase()), ...pending, eventStopped, trackDrain('payment-reconciliation-drain', PaymentReconciliationJob.drain()), trackDrain('plugin-install-drain', drainPluginInstallOperations())]);
+      await trackDrain('contract-invocation-drain', drainContractInvocations());
+      await trackDrain('core-heartbeat-drain', drainCoreProcessHeartbeat());
+    })();
+    let deadlineTimer: NodeJS.Timeout | undefined;
+    const drained = await Promise.race([
+      drain.then(() => true, error => { winstonLogger.error('Worker drain failed', { error: error instanceof Error ? error.name : 'UnknownError' }); return false; }),
+      new Promise<false>(resolve => { deadlineTimer = setTimeout(() => resolve(false), deadlineMs); }),
+    ]).finally(() => clearTimeout(deadlineTimer));
+    if (!drained) {
+      const unsettled = [
+        ...eventDelivery.unsettled(), ...unsettledContractInvocations(), ...unsettledNotifications(), ...unsettledPluginInstallOperations(),
+        ...drainItems.values(),
+        ...[...pendingLabels.values()].map(kind => ({ kind, id: instanceId })),
+        ...(PaymentReconciliationJob.getStatus().inFlight ? [{ kind: 'payment-reconciliation', id: instanceId }] : []),
+      ];
+      for (const item of unsettled) console.error(JSON.stringify({ event: 'worker-shutdown-unsettled', ...item }));
+      console.error(JSON.stringify({ event: 'worker-shutdown-deadline', deadlineMs, unsettled: unsettled.length, bootNonce: coreProcessIdentity.bootNonce }));
+      stopCoreProcessHeartbeat();
+      abandonPluginDatabase();
+      healthServer.closeAllConnections();
+      heartbeatRedis.disconnect();
+      void redisCache.disconnect().catch(() => undefined);
+      void prisma.$disconnect().catch(() => undefined);
+      sharedProtection.close();
+      return 1;
+    }
     await finishCoreProcess();
     if (heartbeatRedis.status === 'ready') {
       await run(() => heartbeatRedis.del(heartbeatKey), 'Worker heartbeat deletion failed');
@@ -109,7 +149,8 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     await cacheEnded;
     await prisma.$disconnect();
     sharedProtection.close();
-  };
+    return 0;
+  })();
   try {
     await startCoreProcess('worker');
     recovery = startPluginRecoverySweeper();
@@ -126,8 +167,9 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     cleanupTimer = setInterval(() => void run(cleanupEvents, 'Event cleanup failed'), EVENT_CLEANUP_INTERVAL_MS);
     await run(() => OrderService.cancelExpiredUnpaidOrders(), 'Unpaid order timeout failed');
     unpaidTimer = setInterval(() => void run(() => OrderService.cancelExpiredUnpaidOrders(), 'Unpaid order timeout failed'), 60_000);
-    await run(deliverPendingNotifications, 'Notification delivery failed');
-    notificationTimer = setInterval(() => void run(deliverPendingNotifications, 'Notification delivery failed'), 10_000);
+    const sendNotifications = () => deliverPendingNotifications({ isStopping: () => stopping });
+    await run(sendNotifications, 'Notification delivery failed');
+    notificationTimer = setInterval(() => void run(sendNotifications, 'Notification delivery failed'), 10_000);
     if (process.env.ENABLE_PAYMENT_RECONCILIATION_JOB !== 'false') {
       PaymentReconciliationJob.start({
         intervalMs: Number(process.env.PAYMENT_RECONCILIATION_INTERVAL_MS || 600_000) || 600_000,

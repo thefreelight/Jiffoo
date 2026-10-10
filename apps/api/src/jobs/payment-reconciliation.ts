@@ -89,6 +89,7 @@ export class PaymentReconciliationJob {
   static getStatus() {
     return {
       isRunning: this.isRunning,
+      inFlight: this.pending.size,
       hasScheduledUpdates: this.updateInterval !== null,
       options: this.options,
     };

@@ -196,7 +196,7 @@ describe('Persisted notifications', () => {
     const item = await pending();
     await prisma.notification.update({
       where: { id: item.id },
-      data: { status: 'SENDING', updatedAt: new Date(Date.now() - 6 * 60_000) },
+      data: { status: 'SENDING', claimToken: randomUUID(), claimedBy: 'expired-fixture', leaseUntil: new Date(0) },
     });
     await deliverPendingNotifications();
     expect((await prisma.notification.findUniqueOrThrow({ where: { id: item.id } })).status).toBe('SENT');

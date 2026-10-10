@@ -31,6 +31,7 @@ const running = new Map<string, Promise<void>>();
 const migrationSlots = new PluginDatabaseQueue(2, 2, Number.POSITIVE_INFINITY);
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 export async function drainPluginInstallOperations(): Promise<void> { await Promise.all([...running.values()]); }
+export function unsettledPluginInstallOperations() { return [...running.keys()].map(id => ({ kind: 'plugin-install', id })); }
 
 export async function startPluginInstallOperation(bytes: Buffer, options: PluginInstallOptions, recoveryOf?: string): Promise<{ operationId: string }> {
   const inspection = await inspectPluginUpload(bytes);

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
@@ -25,6 +25,10 @@ import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-syn
 import { callContract, deliverInstallationEvent } from '@/core/admin/extension-installer/plugin-runtime';
 import { ensurePluginRegistryFresh } from '@/core/admin/extension-installer/plugin-registry-freshness';
 import { snapshotPluginRows, restoreBuiltinRows, assertPluginRowsUnchanged } from '../helpers/plugin-db-snapshot';
+import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
+import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
+import { finishCoreProcess } from '@/infra/core-process';
+import { sharedProtection } from '@/infra/shared-protection';
 
 const subscriptions: EventSubscription[] = [{ type: 'order.created', version: 1 }];
 const payload = { id: 'snapshot-order', userId: 'snapshot-user', totalAmount: 10, currency: 'USD', items: [] };
@@ -70,6 +74,13 @@ describe('durable plugin event delivery', () => {
   const products: string[] = [];
   let pluginRowsBefore: Awaited<ReturnType<typeof snapshotPluginRows>>;
   const children: Array<{ child: ChildProcess; exited: Promise<unknown[]>; output: { stdout: string; stderr: string } }> = [];
+  afterAll(async () => {
+    try {
+      await drainPluginInstallOperations();
+      await closePluginDatabase();
+      await finishCoreProcess();
+    } finally { sharedProtection.close(); await prisma.$disconnect(); }
+  });
 
   beforeEach(async () => {
     pluginRowsBefore = await snapshotPluginRows();
@@ -432,10 +443,16 @@ module.exports = { register(ctx) {
   });
 
   it('G: a short injected handler timeout counts as a failed attempt without cancelling the handler', async () => {
-    const installation = await plugin({ hang: true });
+    const installation = await plugin({ block: true });
     const event = await emit();
     const process = await child(200);
-    await command(process).done;
+    const wrapperSettled = wait(process, 'wrapper-settled', undefined, installation.id);
+    const batch = command(process);
+    try {
+      await wrapperSettled;
+      await expectDelivery(await delivery(event.id, installation.id), { status: 'PENDING', attempts: 1, lastError: 'Event handler timed out after 200ms' });
+    } finally { process.send({ command: 'release', installationId: installation.id }); }
+    await batch.done;
     await expectDelivery(await delivery(event.id, installation.id), { status: 'PENDING', attempts: 1, lastError: 'Event handler timed out after 200ms' });
   });
 

@@ -87,13 +87,17 @@ class PluginDatabaseRuntime {
   private readonly pool: Pool;
   private readonly queue: PluginDatabaseQueue;
   private readonly active = new Map<Promise<unknown>, AbortController>();
+  private readonly clients = new Set<PoolClient>();
   private closing = false;
   private closeWork: Promise<void> | undefined;
+  private poolEndWork: Promise<void> | undefined;
   constructor(databaseUrl: string, poolMax: number, private readonly lookupNamespace: NamespaceLookup = slug => prisma.pluginNamespace.findUnique({ where: { slug }, select: { schemaName: true, provisionedAt: true } })) {
     this.pool = new Pool({ connectionString: processDatabaseUrl(databaseUrl, 'runtime', undefined, true), max: poolMax * 2,
       connectionTimeoutMillis: pluginDatabaseLimit('connectMs', 5_000), idleTimeoutMillis: 30_000, allowExitOnIdle: true,
     });
     this.pool.on('error', () => undefined);
+    this.pool.on('connect', (client: PoolClient) => this.clients.add(client));
+    this.pool.on('remove', (client: PoolClient) => this.clients.delete(client));
     this.queue = new PluginDatabaseQueue(poolMax);
   }
 
@@ -241,9 +245,16 @@ class PluginDatabaseRuntime {
     if (this.closeWork) return this.closeWork;
     this.closing = true; this.queue.close();
     for (const controller of this.active.values()) controller.abort();
-    this.closeWork = Promise.allSettled([...this.active.keys()]).then(() => this.pool.end());
+    this.closeWork = Promise.allSettled([...this.active.keys()]).then(() => this.endPool());
     return this.closeWork;
   }
+  closeNow(): void {
+    this.closing = true; this.queue.close();
+    for (const controller of this.active.values()) controller.abort();
+    for (const client of this.clients) void client.end().catch(() => undefined);
+    void this.endPool().catch(() => undefined);
+  }
+  private endPool(): Promise<void> { return this.poolEndWork ??= this.pool.end(); }
 }
 
 let runtime: PluginDatabaseRuntime | undefined;
@@ -262,6 +273,11 @@ export async function closePluginDatabase(): Promise<void> {
     await Promise.all(active.map(scope => scope.settled));
   }
   runtime = undefined;
+}
+/** Used only after the worker shutdown deadline; never concludes an invocation. */
+export function abandonPluginDatabase(): void {
+  for (const scope of invocations) scope.controller.abort();
+  runtime?.closeNow();
 }
 export function createPluginDatabaseTestRuntime(databaseUrl: string, poolMax = 4, lookupNamespace?: NamespaceLookup) {
   assertPluginDatabaseTestControl();

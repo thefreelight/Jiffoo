@@ -5,6 +5,7 @@ import { parseEventPayload, type EventKey, type PluginEvent } from '@jiffoo/shar
 import { deliverInstallationEvent } from '@/core/admin/extension-installer/plugin-runtime';
 import type { EventTransaction } from './emit';
 import { redactPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
+import { observeWorkerShutdownForTest } from '../worker-shutdown';
 
 export const EVENT_HANDLER_TIMEOUT_MS = 30_000;
 export const EVENT_LEASE_SECONDS = 60;
@@ -12,6 +13,12 @@ export const EVENT_POLL_INTERVAL_MS = 1_000;
 export const EVENT_BATCH_SIZE = 16;
 export const EVENT_RETRY_SECONDS = [60, 300, 900, 3600, 10800, 21600, 43200] as const;
 export const EVENT_MAX_ATTEMPTS = 8;
+let testHandlerTimeoutMs: number | undefined;
+export function setEventDeliveryTimeoutForTest(enabled: boolean, value?: number): void {
+  if (process.env.NODE_ENV !== 'test' || !enabled) throw new Error('Event timeout controls require an explicit test switch');
+  if (value !== undefined && (!Number.isInteger(value) || value <= 0 || value >= EVENT_LEASE_SECONDS * 1000)) throw new Error('Invalid event test timeout');
+  testHandlerTimeoutMs = value;
+}
 // Limit planner tuning to the claim transaction; its ordered index needs no sort.
 export const EVENT_CLAIM_PLANNER_SQL = 'SET LOCAL enable_sort = off';
 
@@ -89,13 +96,15 @@ export class EventDeliveryEngine {
   readonly timeoutMs: number;
   private readonly installations = new Set<string>();
   private readonly pending = new Set<Promise<void>>();
+  private readonly invocations = new Map<string, { installationId: string; promise: Promise<unknown> }>();
   private timer: NodeJS.Timeout | null = null;
   private claiming = false;
   private claimOperation: Promise<number> | null = null;
   private stopped = false;
 
   constructor(readonly workerId: string, options: { timeoutMs?: number } = {}) {
-    this.timeoutMs = options.timeoutMs ?? EVENT_HANDLER_TIMEOUT_MS;
+    if (testHandlerTimeoutMs !== undefined && process.env.NODE_ENV !== 'test') throw new Error('Event timeout controls are not permitted outside tests');
+    this.timeoutMs = options.timeoutMs ?? testHandlerTimeoutMs ?? EVENT_HANDLER_TIMEOUT_MS;
     if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0 || this.timeoutMs >= EVENT_LEASE_SECONDS * 1000) {
       throw new Error('Event handler timeout must be positive and shorter than the lease');
     }
@@ -103,6 +112,12 @@ export class EventDeliveryEngine {
 
   isRunning(): boolean { return this.timer !== null; }
   inFlightInstallations(): number { return this.installations.size; }
+  unsettled() {
+    return [
+      ...(this.claimOperation ? [{ kind: 'event-claim', id: this.workerId }] : []),
+      ...[...this.invocations].map(([id, item]) => ({ kind: 'event-delivery', id, installationId: item.installationId })),
+    ];
+  }
 
   runOnce(): Promise<number> {
     if (this.claiming || this.stopped) return Promise.resolve(0);
@@ -145,13 +160,19 @@ export class EventDeliveryEngine {
     };
     const databaseAbort = new AbortController();
     const invocation = invoke();
+    this.invocations.set(delivery.id, { installationId: delivery.installationId, promise: invocation });
+    void invocation.finally(() => this.invocations.delete(delivery.id)).catch(() => undefined);
     // A timeout cannot cancel plugin code. Retain its local slot until it actually settles.
     void invocation.finally(() => this.installations.delete(delivery.installationId)).catch(() => undefined);
     try {
       const skipped = await Promise.race([
         invocation,
         new Promise<never>((_, reject) => {
-          timeout = setTimeout(() => { databaseAbort.abort(); reject(new Error(`Event handler timed out after ${this.timeoutMs}ms`)); }, this.timeoutMs);
+          timeout = setTimeout(() => {
+            databaseAbort.abort();
+            observeWorkerShutdownForTest('event-timeout', { id: delivery.id, installationId: delivery.installationId });
+            reject(new Error(`Event handler timed out after ${this.timeoutMs}ms`));
+          }, this.timeoutMs);
         }),
       ]);
       await prisma.$executeRaw`
@@ -162,7 +183,10 @@ export class EventDeliveryEngine {
       `;
     } catch (error) {
       await prisma.$transaction((tx) => finishFailure(tx, delivery, error instanceof Error ? error.message : String(error)));
-    } finally { if (timeout) clearTimeout(timeout); }
+    } finally {
+      if (timeout) clearTimeout(timeout);
+      observeWorkerShutdownForTest('event-wrapper-settled', { id: delivery.id, installationId: delivery.installationId });
+    }
   }
 
   async start(): Promise<void> {
@@ -173,13 +197,20 @@ export class EventDeliveryEngine {
   }
 
   async drain(): Promise<void> {
-    await this.claimOperation;
-    await Promise.all([...this.pending]);
+    try {
+      await this.claimOperation;
+      await Promise.all([...this.pending]);
+    } finally {
+      while (this.invocations.size) await Promise.allSettled([...this.invocations.values()].map(item => item.promise));
+    }
   }
   async stop(): Promise<void> {
+    this.stopClaiming();
+    await this.drain();
+  }
+  stopClaiming(): void {
     this.stopped = true;
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
-    await this.drain();
   }
 }

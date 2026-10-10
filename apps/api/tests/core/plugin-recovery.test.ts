@@ -52,7 +52,7 @@ async function operation(phase = 'QUEUED', expired = true) {
 async function fixture(role = 'worker', heldStage?: string, databaseUrlOverride = process.env.DATABASE_URL) {
   const child = fork(path.resolve('tests/helpers/plugin-recovery-child.ts'), [role], { execArgv: ['--import','tsx'], env: { ...process.env, DATABASE_URL: databaseUrlOverride, NODE_ENV: 'test', JIFFOO_TEST_PLUGIN_RECOVERY_CONTROL: '1', JIFFOO_TEST_PLUGIN_DATABASE_CONTROL: '1', JIFFOO_TEST_PLUGIN_MIGRATION_CONTROL:'1' }, stdio: ['ignore','pipe','pipe','ipc'] });
   const messages: any[] = []; const listeners = new Set<() => void>(); let diagnostics = '';
-  child.stdout?.on('data', () => undefined); child.stderr?.on('data', value => { diagnostics += String(value); });
+  child.stdout?.on('data', value => { diagnostics += String(value); }); child.stderr?.on('data', value => { diagnostics += String(value); });
   child.on('exit',()=>{for(const resolve of listeners)resolve();});
   child.on('message', value => { const message = value as any; if (message.kind === 'plugin-recovery-barrier' && message.stage !== heldStage) { child.send({ ...message, kind:'plugin-recovery-release' }); return; } if(message.kind==='plugin-migration-barrier'&&message.stage!==heldStage){child.send({...message,kind:'plugin-migration-release'});return;} messages.push(value); for (const resolve of listeners) resolve(); });
   const next = async (kind: string, id?: string) => {
@@ -60,11 +60,26 @@ async function fixture(role = 'worker', heldStage?: string, databaseUrlOverride 
       const index = messages.findIndex(value => value.kind === kind && (!id || value.id === id));
       if (index >= 0) return messages.splice(index, 1)[0];
       if (child.exitCode !== null || child.signalCode !== null) throw new Error(`Recovery child exited: ${diagnostics}`);
-      await new Promise<void>(resolve => { const notify = () => { listeners.delete(notify); resolve(); }; listeners.add(notify); });
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(async () => {
+          listeners.delete(notify);
+          const operations = await prisma.pluginMigrationOperation.findMany({ where: { ownerBootNonce: ready?.bootNonce }, select: { id: true, phase: true, errorCode: true, recoveryState: true } });
+          reject(new Error(`Recovery fixture timed out waiting for ${kind}: ${JSON.stringify(operations)} ${diagnostics}`));
+        }, 15_000);
+        const notify = () => { clearTimeout(timer); listeners.delete(notify); resolve(); }; listeners.add(notify);
+      });
     }
   };
-  const ready = await next('ready'); boots.add(ready.bootNonce);
-  return { child, ready, next, stop: async () => { if (child.connected) { const exited = once(child,'exit'); child.send({ kind:'stop' }); await exited; } }, kill: async () => { const exited = once(child,'exit'); child.kill(); await exited; } };
+  let ready: any;
+  ready = await next('ready'); boots.add(ready.bootNonce);
+  return { child, ready, next, stop: async () => { if (child.connected) {
+    const exited = once(child,'exit');
+    for (const message of messages) {
+      if (message.kind === 'plugin-recovery-barrier') child.send({ ...message, kind: 'plugin-recovery-release' });
+      if (message.kind === 'plugin-migration-barrier') child.send({ ...message, kind: 'plugin-migration-release' });
+    }
+    child.send({ kind:'stop' }); await exited;
+  } }, kill: async () => { const exited = once(child,'exit'); child.kill(); await exited; } };
 }
 async function archive(slug: string) {
   const sql='CREATE TABLE records (id INTEGER PRIMARY KEY); INSERT INTO records VALUES (1);';

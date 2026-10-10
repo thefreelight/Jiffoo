@@ -45,6 +45,7 @@ import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
 import { getPluginTimeoutMs, MAX_RESPONSE_SIZE_BYTES } from './gateway-protection';
 import { ApiError, sendMappedError, isDatabaseUnavailable, type ErrorCode } from '@/utils/api-errors';
+import { observeWorkerShutdownForTest } from '@/infra/worker-shutdown';
 import { sharedProtection, pluginProtectionScope, SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
 import { decryptPluginConfig, redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { pluginSigningError } from './plugin-signing-policy';
@@ -181,6 +182,13 @@ interface GatewayAuditLog {
 }
 
 const internalRuntimes = new Map<string, InternalRuntime>();
+const contractInvocations = new Map<symbol, { kind: string; id: string; installationId: string; promise: Promise<unknown> }>();
+export function unsettledContractInvocations() {
+  return [...contractInvocations.values()].map(({ kind, id, installationId }) => ({ kind, id, installationId }));
+}
+export async function drainContractInvocations(): Promise<void> {
+  while (contractInvocations.size) await Promise.allSettled([...contractInvocations.values()].map(item => item.promise));
+}
 
 function holdRuntime(runtime: InternalRuntime): InternalRuntime {
   runtime.references++;
@@ -740,6 +748,7 @@ export async function callContract(
   version: 1,
   method: string,
   input: unknown,
+  invocationLabel?: { kind: string; id: string },
 ): Promise<unknown> {
   await assertPluginNotPaused(slug);
   try {
@@ -786,12 +795,19 @@ export async function callContract(
     const webhook = contractName === 'payment' && method === 'handleWebhook';
     const databaseAbort = new AbortController();
     const invocation = withPluginMigrationGate(slug, () => withPluginDatabaseInvocation(slug, instance.id, async () => runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: webhook ? encodePaymentWebhook(input) : input as Record<string, unknown> }), databaseAbort.signal));
+    const invocationKey = Symbol();
+    contractInvocations.set(invocationKey, { ...invocationLabel ?? { kind: `contract-${contractName}`, id: instance.id }, installationId: instance.id, promise: invocation });
+    void invocation.finally(() => contractInvocations.delete(invocationKey)).catch(() => undefined);
     injected = true;
     void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
     let timeout: NodeJS.Timeout;
     const response = await Promise.race([
       invocation,
-      new Promise<never>((_, reject) => { timeout = setTimeout(() => { databaseAbort.abort(); reject(new ContractCallError('PLUGIN_TIMEOUT', 'Contract call timed out')); }, pluginDatabaseLimit('invocationMs', getPluginTimeoutMs())); }),
+      new Promise<never>((_, reject) => { timeout = setTimeout(() => {
+        databaseAbort.abort();
+        observeWorkerShutdownForTest('contract-timeout', invocationLabel ?? { kind: `contract-${contractName}`, id: instance.id });
+        reject(new ContractCallError('PLUGIN_TIMEOUT', 'Contract call timed out'));
+      }, pluginDatabaseLimit('invocationMs', getPluginTimeoutMs())); }),
     ]).finally(() => clearTimeout(timeout));
     if (response.statusCode >= 400) {
       if (webhook) throw new ContractCallError('PLUGIN_ERROR', `Contract route returned ${response.statusCode}`);
