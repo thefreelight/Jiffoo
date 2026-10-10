@@ -37,7 +37,7 @@ const cases: Array<{ family: string; route: string; method: string; body?: unkno
   { family: 'product', route: `/products/${missing}`, method: 'GET', status: 404, code: 'NOT_FOUND' },
   { family: 'admin product', route: `/admin/products/${missing}`, method: 'DELETE', admin: true, status: 404, code: 'NOT_FOUND' },
   { family: 'admin user', route: `/admin/users/${missing}`, method: 'DELETE', admin: true, status: 404, code: 'NOT_FOUND' },
-  { family: 'admin order', route: `/admin/orders/${missing}/record-manual-payment`, method: 'POST', body: {}, admin: true, status: 404, code: 'NOT_FOUND' },
+  { family: 'admin order', route: `/admin/orders/${missing}/record-manual-payment`, method: 'POST', body: { reference: 'verified-reference' }, admin: true, status: 404, code: 'NOT_FOUND' },
   { family: 'inventory', route: '/admin/inventory/adjustments', method: 'POST', body: { variantId: missing, type: 'manual', quantity: 1 }, admin: true, status: 404, code: 'NOT_FOUND' },
   { family: 'staff', route: `/admin/staff/${missing}/invite-link`, method: 'POST', admin: true, status: 409, code: 'INVITE_NOT_AVAILABLE' },
   { family: 'settings', route: '/admin/settings/batch', method: 'PUT', body: { settings: { 'localization.locale': 'invalid' } }, admin: true, status: 400, code: 'VALIDATION_ERROR' },

@@ -23,7 +23,7 @@ describe('ORD-1 order state machine routes', () => {
   };
   const auth = (token: string) => ({ authorization: `Bearer ${token}` });
   const adminAction = (id: string, action: string, payload: object = {}) => app.inject({
-    method: 'POST', url: `/api/v1/admin/orders/${id}/${action}`, headers: auth(admin), payload,
+    method: 'POST', url: `/api/v1/admin/orders/${id}/${action}`, headers: auth(admin), payload: { ...(['record-manual-payment','refund'].includes(action) ? { reference: `state-reference:${id}` } : {}), ...payload },
   });
 
   async function createOrder() {

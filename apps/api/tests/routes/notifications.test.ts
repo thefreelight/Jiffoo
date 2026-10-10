@@ -199,7 +199,8 @@ describe('Persisted notifications', () => {
       data: { status: 'SENDING', claimToken: randomUUID(), claimedBy: 'expired-fixture', leaseUntil: new Date(0) },
     });
     await deliverPendingNotifications();
-    expect((await prisma.notification.findUniqueOrThrow({ where: { id: item.id } })).status).toBe('SENT');
+    const delivered = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
+    expect(delivered.status, delivered.lastError || 'Notification was not sent').toBe('SENT');
   });
 
   it('delivers via the builtin console-email provider when it is the enabled provider', async () => {
@@ -270,6 +271,7 @@ describe('Persisted notifications', () => {
     const response = await app.inject({
       method: 'POST', url: `/api/v1/admin/notifications/${item.id}/resend`,
       headers: { authorization: `Bearer ${adminToken}` },
+      payload: { idempotencyKey: crypto.randomUUID() },
     });
     expect(response.statusCode).toBe(409);
     expect(response.json().error.code).toBe('NOT_RESENDABLE');
@@ -305,7 +307,7 @@ describe('Persisted notifications', () => {
     expect(list.json().data.items.some((row: { id: string }) => row.id === item.id)).toBe(true);
     const detail = await app.inject({ method: 'GET', url: `/api/v1/admin/notifications/${item.id}`, headers });
     expect(detail.json().data).not.toHaveProperty('secretJson');
-    const resend = await app.inject({ method: 'POST', url: `/api/v1/admin/notifications/${item.id}/resend`, headers });
+    const resend = await app.inject({ method: 'POST', url: `/api/v1/admin/notifications/${item.id}/resend`, headers, payload: { idempotencyKey: crypto.randomUUID() } });
     expect(resend.statusCode).toBe(201);
     expect(resend.json().data.resentFromId).toBe(item.id);
   });
@@ -319,7 +321,7 @@ describe('Persisted notifications', () => {
     const originalSecret = original.secretJson as { link: string; code: string };
     const oldToken = new URL(originalSecret.link).searchParams.get('token');
     const headers = { authorization: `Bearer ${adminToken}` };
-    const resend = await app.inject({ method: 'POST', url: `/api/v1/admin/notifications/${original.id}/resend`, headers });
+    const resend = await app.inject({ method: 'POST', url: `/api/v1/admin/notifications/${original.id}/resend`, headers, payload: { idempotencyKey: crypto.randomUUID() } });
     expect(resend.statusCode).toBe(201);
     const latest = await prisma.notification.findUniqueOrThrow({ where: { id: resend.json().data.id } });
     expect(latest.resentFromId).toBe(original.id);
@@ -343,6 +345,7 @@ describe('Persisted notifications', () => {
     const response = await app.inject({
       method: 'POST', url: `/api/v1/admin/notifications/${original.id}/resend`,
       headers: { authorization: `Bearer ${adminToken}` },
+      payload: { idempotencyKey: crypto.randomUUID() },
     });
     expect(response.statusCode).toBe(201);
     const latest = await prisma.notification.findUniqueOrThrow({ where: { id: response.json().data.id } });

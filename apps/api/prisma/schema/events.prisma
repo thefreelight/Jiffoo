@@ -17,6 +17,7 @@ model EventRecord {
   occurredAt  DateTime @default(now()) @db.Timestamptz(3)
   traceId     String?
   actorId     String?
+  dedupKey    String? @unique
   deliveries EventDelivery[]
 
   @@index([occurredAt, id])

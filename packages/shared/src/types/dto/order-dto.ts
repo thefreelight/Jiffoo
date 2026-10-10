@@ -108,6 +108,7 @@ export interface AdminOrderDetailDTO {
   notes?: string | null;
   paymentMethod?: string | null;
   canRecordManualPayment?: boolean;
+  refundRequired?: boolean;
   paymentAttempts?: number;
   lastPaymentAttemptAt?: string | null;
   expiresAt?: string | null;

@@ -6,7 +6,7 @@ import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 
 import { prisma } from '@/config/database';
 import { createOrderNotification } from '@/core/notifications/service';
-import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus, Prisma } from '@prisma/client';
+import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus } from '@prisma/client';
 import { systemSettingsService } from '../system-settings/service';
 import { CacheService } from '@/core/cache/service';
 import { getTodayAndYesterdayRangeUtc } from '@/utils/timezone';
@@ -16,14 +16,12 @@ import { assertOrderTransition } from '@/core/order/transition';
 import { InventoryService } from '@/core/inventory/service';
 import { emitEvent } from '@/infra/events/emit';
 import { recordPaymentSucceeded } from '@/core/payment/reconciliation';
+import { lockOrder, lockPayment } from '@/core/payment/locks';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
 function codedError(code: import('@/utils/api-errors').ErrorCode, _message: string): ApiError {
   return new ApiError(code);
 }
-
-const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
-  error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 
 function calculateTrendPercent(current: number, previous: number): number {
   if (previous === 0) {
@@ -307,16 +305,18 @@ export class AdminOrderService {
       country: order.shippingAddress.country
     } : null;
 
-    const canRecordManualPayment = order.paymentMethod
+    const canRecordManualPayment = ['PENDING','CANCELLED'].includes(order.status) && order.paymentStatus !== 'PAID' && order.paymentMethod
       ? await callContract(order.paymentMethod, 'payment', 1, 'describe', {
         storeCurrency: await systemSettingsService.getShopCurrency(),
       }).then((description: { requiresManualConfirmation: boolean }) => description.requiresManualConfirmation).catch(() => false)
       : false;
 
+    const refundRequired = await prisma.paymentLedger.count({ where: { orderId, refundRequired: true, payment: { refunds: { none: { status: 'COMPLETED' } } } } }) > 0;
     return {
       id: order.id,
       status: order.status,
       paymentStatus: order.paymentStatus,
+      refundRequired,
       totalAmount: Number(order.totalAmount),
       currency: await systemSettingsService.getShopCurrency(),
       notes: null,
@@ -358,7 +358,9 @@ export class AdminOrderService {
     };
   }
 
-  static async recordManualPayment(orderId: string, actorId: string, reference?: string) {
+  static async recordManualPayment(orderId: string, actorId: string, reference: string) {
+    reference = reference?.trim();
+    if (!reference) throw new ApiError('PAYMENT_REFERENCE_REQUIRED');
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       select: { id: true, paymentStatus: true, paymentMethod: true },
@@ -366,9 +368,8 @@ export class AdminOrderService {
     if (!order) {
       throw new ApiError('NOT_FOUND');
     }
-    if (order.paymentStatus === PaymentStatus.PAID) {
-      throw new ApiError('VALIDATION_ERROR');
-    }
+    const recorded = await prisma.paymentLedger.findFirst({ where: { orderId, eventType: 'SUCCEEDED', actorType: 'admin', manualReference: reference } });
+    if (recorded) return this.getOrderById(orderId);
 
     if (!order.paymentMethod) {
       throw codedError('MANUAL_CONFIRMATION_NOT_SUPPORTED', 'Manual confirmation is not supported for this order.');
@@ -391,12 +392,14 @@ export class AdminOrderService {
       where: {
         orderId,
         paymentMethod: order.paymentMethod,
-        status: 'PENDING',
+        status: { in: ['PENDING','CANCELLED','FAILED','EXPIRED'] },
+        sessionId: { not: null },
       },
       orderBy: { createdAt: 'desc' },
     });
     if (!payment) {
-      throw new ApiError('INTERNAL_SERVER_ERROR');
+      if (await prisma.payment.findFirst({ where: { orderId, status: 'CREATING' } })) throw new ApiError('PAYMENT_ATTEMPT_OPEN');
+      throw new ApiError('VALIDATION_ERROR');
     }
 
     await knownPrismaOperation(() => recordPaymentSucceeded({
@@ -405,7 +408,7 @@ export class AdminOrderService {
       reason: 'manual_payment_recorded',
       actorType: 'admin',
       actorId,
-      metadata: reference ? { reference } : undefined,
+      manualReference: reference,
     }), { notFound: 'NOT_FOUND' });
 
     await CacheService.incrementOrderVersion();
@@ -521,46 +524,27 @@ export class AdminOrderService {
   static async refundOrder(orderId: string, data: {
     reason?: string;
     idempotencyKey: string;
+    reference: string;
+    actorId: string;
   }) {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        payments: {
-          where: { status: 'SUCCEEDED' },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-        items: true,
-      },
-    });
-
-    if (!order) {
-      throw new ApiError('NOT_FOUND');
-    }
-
-    assertOrderTransition(order.status, OrderStatus.REFUNDED, order.paymentStatus);
-    if (order.paymentStatus !== PaymentStatus.PAID) {
-      throw codedError('INVALID_ORDER_TRANSITION', `Invalid order transition from ${order.status} to REFUNDED`);
-    }
-
-    const payment = order.payments[0];
-    if (!payment) {
-      throw new ApiError('VALIDATION_ERROR');
-    }
-
-    const refundAmount = Number(order.totalAmount);
-
-    // Check if refund already exists
-    const existingRefund = await prisma.refund.findUnique({
-      where: { idempotencyKey: data.idempotencyKey },
-    });
-
-    if (existingRefund) {
-      return this.getOrderById(orderId);
-    }
-
-    try {
-      await prisma.$transaction(async (tx) => {
+    const reference = data.reference?.trim();
+    if (!reference) throw new ApiError('PAYMENT_REFERENCE_REQUIRED');
+    await prisma.$transaction(async (tx) => {
+      await lockOrder(tx, orderId);
+      const order = await tx.order.findUnique({ where: { id: orderId }, include: {
+        payments: { where: { status: 'SUCCEEDED' }, orderBy: { createdAt: 'desc' }, take: 1 }, items: true,
+      } });
+      if (!order) throw new ApiError('NOT_FOUND');
+      const keyed = await tx.refund.findUnique({ where: { idempotencyKey: data.idempotencyKey } });
+      if (keyed && keyed.orderId !== orderId) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
+      if (keyed || await tx.refund.findFirst({ where: { orderId, status: 'COMPLETED' } })) return;
+      assertOrderTransition(order.status, OrderStatus.REFUNDED, order.paymentStatus);
+      if (order.paymentStatus !== PaymentStatus.PAID) throw new ApiError('INVALID_ORDER_TRANSITION');
+      const payment = order.payments[0];
+      if (!payment) throw new ApiError('VALIDATION_ERROR');
+      await lockPayment(tx, payment.id);
+      if (await tx.refund.findFirst({ where: { paymentId: payment.id, status: 'COMPLETED' } })) return;
+      const refundAmount = order.totalAmount;
         const refund = await tx.refund.create({
           data: {
             paymentId: payment.id,
@@ -568,7 +552,7 @@ export class AdminOrderService {
             amount: refundAmount,
             currency: payment.currency,
             status: 'COMPLETED',
-            reason: data.reason,
+            reason: data.reason, reference,
             provider: payment.paymentMethod.toUpperCase(),
             idempotencyKey: data.idempotencyKey,
           },
@@ -630,6 +614,8 @@ export class AdminOrderService {
           toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
           reason: data.reason ?? 'admin_refund',
           actorType: 'admin',
+          actorId: data.actorId,
+          metadata: { refundId: refund.id },
         });
 
         if (order.status === OrderStatus.PROCESSING) {
@@ -637,13 +623,7 @@ export class AdminOrderService {
             await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity), { notFound: 'NOT_FOUND' });
           }
         }
-      });
-    } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        return this.getOrderById(orderId);
-      }
-      throw error;
-    }
+    });
 
     // Invalidate list cache
     await CacheService.incrementOrderVersion();
@@ -657,21 +637,14 @@ export class AdminOrderService {
   static async cancelOrder(orderId: string, data: {
     cancelReason: string;
   }) {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: { items: true },
-    });
-
-    if (!order) {
-      throw new ApiError('NOT_FOUND');
-    }
-
-    assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
-
     await prisma.$transaction(async (tx) => {
+      await lockOrder(tx, orderId);
+      const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
+      if (!order) throw new ApiError('NOT_FOUND');
+      assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
       await tx.payment.updateMany({
-        where: { orderId, status: 'PENDING' },
-        data: { status: 'CANCELLED' },
+        where: { orderId, status: { in: ['CREATING','PENDING'] } },
+        data: { status: 'CANCELLED', claimToken: null, claimedBy: null, leaseUntil: null },
       });
       const updated = await knownPrismaOperation(() => tx.order.update({
         where: { id: orderId },

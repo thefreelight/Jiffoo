@@ -58,6 +58,7 @@ enum ShipmentStatus {
 // ENUMS: PAYMENT
 // ============================================================
 enum PaymentAttemptStatus {
+  CREATING
   PENDING
   SUCCEEDED
   FAILED

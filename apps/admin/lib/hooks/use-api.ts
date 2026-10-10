@@ -312,11 +312,12 @@ export function useCancelOrder() {
 }
 
 export function useRefundOrder() {
+  const t = useT();
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { reason?: string; idempotencyKey: string } }) => {
+    mutationFn: async ({ id, data }: { id: string; data: { reason?: string; idempotencyKey: string; reference: string } }) => {
       const response = await ordersApi.refundOrder(id, data);
       return unwrapApiResponse(response);
     },
@@ -325,7 +326,7 @@ export function useRefundOrder() {
       queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Order refunded successfully');
+      toast.success(t('merchant.orders.refund.recorded'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -841,12 +842,14 @@ export function usePluginConfig(slug: string) {
 }
 
 export function useRecordManualPayment() {
+  const { getErrorMessage } = useLocalizedApiFeedback();
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, reference }: { id: string; reference?: string }) => {
+    mutationFn: async ({ id, reference }: { id: string; reference: string }) => {
       const response = await ordersApi.recordManualPayment(id, reference)
       return unwrapApiResponse(response)
     },
+    onError: (error: unknown) => toast.error(getErrorMessage(error)),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.order(variables.id) })
       queryClient.invalidateQueries({ queryKey: queryKeys.orders })

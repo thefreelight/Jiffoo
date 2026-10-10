@@ -27,6 +27,7 @@ vi.mock('@/config/database', () => ({
       findFirst: vi.fn(),
       update: vi.fn(),
     },
+    adminAuditEvent: { upsert: vi.fn().mockResolvedValue({}) },
     $transaction: vi.fn(),
   },
 }));
@@ -246,23 +247,36 @@ describe('Payment Routes', () => {
 
     it('should prefer an enabled payment extension over the built-in manual payment', async () => {
       setupDefaultMocks();
-      (prisma.order.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      const order = {
         id: 'order-1',
+        userId: 'user-1', currency: 'USD',
         totalAmount: 19.99,
         paymentStatus: 'PENDING',
         status: 'PENDING',
         paymentAttempts: 0,
         paymentMethod: 'test-gateway-payment',
-      });
+      };
       (prisma.payment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       (callContract as ReturnType<typeof vi.fn>).mockImplementation(async (_slug: string, _name: string, _version: number, method: string) => method === 'describe'
         ? { displayName: 'Test Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD', 'EUR'] }
         : { sessionId: 'test-gateway-session-1', action: { type: 'redirect', url: 'https://gateway.example/session' } });
+      let stored: any;
+      const sequence: string[] = [];
       const tx = {
-        payment: { create: vi.fn().mockResolvedValue({ id: 'payment-1' }), count: vi.fn().mockResolvedValue(1) },
+        payment: {
+          create: vi.fn().mockImplementation(({ data }) => { sequence.push('reserved'); stored = { id: 'payment-1', ...data }; return stored; }),
+          findUnique: vi.fn().mockImplementation(({ where }) => where.id ? stored : null), findFirst: vi.fn().mockResolvedValue(null),
+          findUniqueOrThrow: vi.fn().mockImplementation(() => stored),
+          updateMany: vi.fn().mockImplementation(({ data }) => { sequence.push('stored'); Object.assign(stored, data); return { count: 1 }; }),
+        },
         paymentLedger: { create: vi.fn().mockResolvedValue({}) },
-        order: { update: vi.fn().mockResolvedValue({}) },
+        order: { findUnique: vi.fn().mockResolvedValue(order), findUniqueOrThrow: vi.fn().mockResolvedValue(order), update: vi.fn().mockResolvedValue(order) },
+        $queryRaw: vi.fn().mockResolvedValue([{ now: new Date('2026-10-10T00:00:00Z') }]),
       };
+      (callContract as ReturnType<typeof vi.fn>).mockImplementation(async (_slug: string, _name: string, _version: number, method: string) => {
+        if (method === 'describe') return { displayName: 'Test Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD', 'EUR'] };
+        sequence.push('provider'); return { sessionId: 'test-gateway-session-1', action: { type: 'redirect', url: 'https://gateway.example/session' } };
+      });
       (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
 
       const response = await app.inject({
@@ -276,10 +290,11 @@ describe('Payment Routes', () => {
       expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
         data: expect.objectContaining({
           paymentMethod: 'test-gateway-payment',
-          actionJson: { type: 'redirect', url: 'https://gateway.example/session' },
+          status: 'CREATING', idempotencyKey: expect.any(String),
         }),
       }));
       expect(response.json().data.action).toEqual({ type: 'redirect', url: 'https://gateway.example/session' });
+      expect(sequence).toEqual(['reserved','provider','stored']);
     });
 
     it('accepts a payment v1 webhook event', async () => {
@@ -332,6 +347,7 @@ describe('Payment Routes', () => {
       // succeeded payment so it short-circuits.  Then the route handler calls
       // findFirst again for its own lookup.
       (prisma.payment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(mockPayment);
+      (prisma.payment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(mockPayment);
 
       const response = await app.inject({
         method: 'GET',
@@ -350,6 +366,7 @@ describe('Payment Routes', () => {
 
     it('should return pending status when session is not found', async () => {
       (prisma.payment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (prisma.payment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'GET',

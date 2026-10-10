@@ -258,7 +258,7 @@ describe('Admin Orders Endpoints', () => {
       expect(audit).toMatchObject({
         actorType: 'admin',
         reason: 'manual_payment_recorded',
-        metadata: { reference: 'cash-receipt-001' },
+        metadata: { manualReference: 'cash-receipt-001', refundRequired: false },
       });
     });
   });
@@ -326,7 +326,7 @@ describe('Admin Orders Endpoints', () => {
       expect(session.statusCode).toBe(200);
       const paid = await app.inject({
         method: 'POST', url: `/api/v1/admin/orders/${id}/record-manual-payment`,
-        headers: { authorization: `Bearer ${adminToken}` }, payload: {},
+        headers: { authorization: `Bearer ${adminToken}` }, payload: { reference: 'shipping-payment-reference' },
       });
       expect(paid.statusCode).toBe(200);
       const shipped = await app.inject({
@@ -424,6 +424,7 @@ describe('Admin Orders Endpoints', () => {
         url: `/api/v1/admin/orders/${testOrderId}/refund`,
         payload: {
           idempotencyKey: uuidv4(),
+          reference: 'offline-refund-reference',
         },
       });
 
@@ -439,6 +440,7 @@ describe('Admin Orders Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           idempotencyKey: uuidv4(),
+          reference: 'offline-refund-reference',
         },
       });
 
@@ -467,6 +469,7 @@ describe('Admin Orders Endpoints', () => {
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           idempotencyKey: uuidv4(),
+          reference: 'offline-refund-reference',
           reason: 'Customer request',
         },
       });

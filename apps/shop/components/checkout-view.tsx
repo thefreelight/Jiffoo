@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import { getNamespaceMessages } from 'shared/src/i18n/messages';
+import type { common } from 'shared/src/i18n/messages/en/common';
 import type { Address, Cart, Quote } from '@/lib/checkout-types';
 import type { ShopLocale } from '@/lib/locale';
 import { formatPrice } from '@/lib/price';
@@ -16,6 +18,8 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries 
   countries: Array<{ code: string; name: string }>;
 }) {
   const t = storefrontMessages(locale).checkout;
+  const feedback = getNamespaceMessages(locale, 'common') as typeof common;
+  const paymentRequestKey = useRef('');
   const [address, setAddress] = useState<Address>(initialAddress ?? {
     firstName: '', lastName: '', phone: '', addressLine1: '', addressLine2: '',
     city: '', state: '', postalCode: '', country: '',
@@ -103,12 +107,24 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries 
       }
       const successUrl = `${window.location.origin}/${locale}/checkout/return?order=${encodeURIComponent(orderId)}`;
       const cancelUrl = `${window.location.origin}/${locale}/checkout/cancel?order=${encodeURIComponent(orderId)}`;
-      const sessionResponse = await availabilityFetch('/bff/payments/create-session', {
+      setPaymentOrderId(orderId);
+      paymentRequestKey.current ||= crypto.randomUUID();
+      const requestSession = () => availabilityFetch('/bff/payments/create-session', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, paymentMethod, idempotencyKey: `shop:${orderId}`, successUrl, cancelUrl }),
+        body: JSON.stringify({ orderId, paymentMethod, idempotencyKey: paymentRequestKey.current, successUrl, cancelUrl }),
       });
-      if (!sessionResponse.ok) { setError(t.genericError); return; }
-      const session = (await sessionResponse.json()).data as { action: { type: 'redirect' | 'instructions'; url?: string } };
+      let sessionResponse = await requestSession();
+      let sessionBody = await sessionResponse.json();
+      if (!sessionResponse.ok && sessionBody.error?.code === 'PAYMENT_IDEMPOTENCY_CONFLICT' && sessionBody.error?.details?.creationExpired === true) {
+        paymentRequestKey.current = crypto.randomUUID();
+        sessionResponse = await requestSession(); sessionBody = await sessionResponse.json();
+      }
+      if (!sessionResponse.ok) {
+        setError(sessionBody.error?.code === 'PAYMENT_ATTEMPT_OPEN' ? feedback.errors.paymentAttemptOpen
+          : sessionBody.error?.code === 'PAYMENT_REFERENCE_REQUIRED' ? feedback.errors.paymentReferenceRequired : t.genericError);
+        return;
+      }
+      const session = sessionBody.data as { action: { type: 'redirect' | 'instructions'; url?: string } };
       if (session.action.type === 'redirect' && session.action.url) window.location.assign(session.action.url);
       else window.location.assign(`/${locale}/checkout/complete?order=${encodeURIComponent(orderId)}`);
     } catch (error) {

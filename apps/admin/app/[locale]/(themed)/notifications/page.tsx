@@ -60,7 +60,7 @@ export default function NotificationsPage() {
     if (!selected) return
     setResending(true)
     try {
-      setSelected(unwrapApiResponse(await notificationsApi.resend(selected.id)))
+      setSelected(unwrapApiResponse(await notificationsApi.resend(selected.id, crypto.randomUUID())))
       toast.success(label('queued', 'Notification queued'))
       await refresh()
     } catch (error) {

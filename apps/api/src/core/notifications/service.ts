@@ -122,7 +122,7 @@ export async function createNotification(
   recipientUserId: string,
   toAddress: string,
   values: { name?: string; orderId?: string; instructions?: string; reason?: string },
-  options: { secret?: { link?: string; code?: string }; relatedType?: string; relatedId?: string; resentFromId?: string } = {},
+  options: { secret?: { link?: string; code?: string }; relatedType?: string; relatedId?: string; resentFromId?: string; dedupKey?: string } = {},
 ) {
   const [user, system] = await Promise.all([
     tx.user.findUniqueOrThrow({ where: { id: recipientUserId }, select: { locale: true } }),
@@ -136,13 +136,14 @@ export async function createNotification(
     ? settings['branding.platform_name'] : 'Jiffoo Mall';
   const logo = typeof settings['branding.logo'] === 'string' ? settings['branding.logo'] : null;
   const rendered = renderNotification(type, locale, storeName, logo, values, Boolean(options.secret?.link), Boolean(options.secret?.code));
-  return tx.notification.create({
-    data: {
+  const dedupKey = options.dedupKey || (type === 'payment_received' && options.relatedType === 'order' && options.relatedId && !options.resentFromId
+    ? `notification:payment_received:${options.relatedId}` : undefined);
+  const data = {
       type, recipientUserId, toAddress, locale, ...rendered,
       secretJson: options.secret || Prisma.JsonNull,
-      relatedType: options.relatedType, relatedId: options.relatedId, resentFromId: options.resentFromId,
-    },
-  });
+      relatedType: options.relatedType, relatedId: options.relatedId, resentFromId: options.resentFromId, dedupKey,
+  };
+  return dedupKey ? tx.notification.upsert({ where: { dedupKey }, create: data, update: {} }) : tx.notification.create({ data });
 }
 
 export async function createOrderNotification(

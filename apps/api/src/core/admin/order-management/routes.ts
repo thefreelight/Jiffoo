@@ -1,4 +1,4 @@
-import { sendMappedError } from '@/utils/api-errors';
+import { ApiError, sendMappedError } from '@/utils/api-errors';
 /**
  * Admin Order Routes
  */
@@ -65,6 +65,10 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/:id/record-manual-payment', {
+    preValidation: async request => {
+      const reference = (request.body as { reference?: string } | undefined)?.reference;
+      if (typeof reference !== 'string' || !reference.trim()) throw new ApiError('PAYMENT_REFERENCE_REQUIRED');
+    },
     schema: {
       tags: ['admin-orders'],
       summary: 'Record a manual payment',
@@ -75,7 +79,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      const { reference } = (request.body || {}) as { reference?: string };
+      const { reference } = (request.body || {}) as { reference: string };
       const order = await AdminOrderService.recordManualPayment(id, request.user!.id, reference);
       return sendSuccess(reply, order);
     } catch (error) { return sendMappedError(reply, error); }
@@ -115,10 +119,14 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
 
   // Refund order
   fastify.post('/:id/refund', {
+    preValidation: async request => {
+      const reference = (request.body as { reference?: string } | undefined)?.reference;
+      if (typeof reference !== 'string' || !reference.trim()) throw new ApiError('PAYMENT_REFERENCE_REQUIRED');
+    },
     schema: {
       tags: ['admin-orders'],
-      summary: 'Refund order (full or partial)',
-      description: 'Process refund for an order (admin only)',
+      summary: 'Record an offline full refund',
+      description: 'Record a completed offline full refund and its reference (admin only)',
       security: [{ bearerAuth: [] }],
       ...adminOrderSchemas.refundOrder,
     }
@@ -129,7 +137,9 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
       // Explicitly pick only allowed fields, ensuring amount is not passed even if present in raw body
       const refund = await AdminOrderService.refundOrder(id, {
         reason: data.reason,
-        idempotencyKey: data.idempotencyKey
+        idempotencyKey: data.idempotencyKey,
+        reference: data.reference,
+        actorId: request.user!.id,
       });
       return sendSuccess(reply, refund);
     } catch (error) { return sendMappedError(reply, error); }

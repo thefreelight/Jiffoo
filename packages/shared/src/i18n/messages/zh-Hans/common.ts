@@ -116,6 +116,8 @@ export const common = {
 
   // Error messages
   errors: {
+    paymentAttemptOpen: '已有进行中的付款。请先完成该付款，或最多等待 30 分钟后再试。',
+    paymentReferenceRequired: '请输入付款或退款凭证号。',
     uploadStorageUnavailable: '上传存储暂时不可用，请稍后重试。',
     uploadStorageCorrupt: '上传的媒体已损坏，请重新上传图片。',
     general: '发生错误，请重试。',

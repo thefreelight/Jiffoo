@@ -1,330 +1,173 @@
+import { createHash } from 'node:crypto';
 import { prisma } from '@/config/database';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 import { OrderStatus, PaymentStatus } from '@/core/order/types';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { assertOrderTransition } from '@/core/order/transition';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
-import { emitOrderPaidEvent } from '@/core/payment/order-paid-event';
+import { emitOrderPaidEvent } from './order-paid-event';
 import { emitEvent } from '@/infra/events/emit';
 import { createNotification } from '@/core/notifications/service';
-import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { ApiError } from '@/utils/api-errors';
+import { lockOrder, lockPayment } from './locks';
+import { paymentNow, PAYMENT_SESSION_LIFETIME_MS } from './clock';
+import { claimPaymentReconciliations, paymentLeaseAllowsQuery, releasePaymentReconciliation, type PaymentLeaseClient } from './lease';
+import { coreProcessIdentity } from '@/infra/core-process-identity';
 
 const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
-
-function normalizeMethodKey(value: unknown): string {
-  return String(value || '').trim().toLowerCase();
-}
-
+const clearLease = { claimToken: null, claimedBy: null, leaseUntil: null };
 export type RecordPaymentSucceededInput = {
-  paymentId: string;
-  providerEventId: string;
-  paymentIntentId?: string | null;
-  reason?: string;
-  actorType?: string;
-  actorId?: string;
-  metadata?: Record<string, unknown>;
+  paymentId: string; providerEventId: string; paymentIntentId?: string | null;
+  reason?: string; actorType?: string; actorId?: string; metadata?: Record<string, unknown>;
+  manualReference?: string; claimToken?: string;
 };
 
-export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput): Promise<boolean> {
-  const payment = await prisma.payment.findUnique({ where: { id: input.paymentId } });
-  if (!payment || payment.status === 'SUCCEEDED') {
-    return false;
-  }
-
-  const order = await prisma.order.findUnique({
-    where: { id: payment.orderId },
-    select: { status: true, paymentStatus: true },
-  });
-  if (!order) {
-    return false;
-  }
-
-  let didUpdate = false;
-  try {
-    await prisma.$transaction(async (tx) => {
-      const ledger = await tx.paymentLedger.findUnique({
-        where: { providerEventId: input.providerEventId },
-      });
-      if (ledger) {
-        return;
-      }
-
-      if (order.status !== OrderStatus.CANCELLED && order.paymentStatus !== PaymentStatus.PAID) {
-        assertOrderTransition(order.status, OrderStatus.PROCESSING, order.paymentStatus);
-      }
-      const updatedPayment = await tx.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: 'SUCCEEDED',
-          paymentIntentId: input.paymentIntentId || payment.paymentIntentId || null,
-          providerEventId: input.providerEventId,
-        },
-      });
-
-      await tx.paymentLedger.create({
-        data: {
-          paymentId: updatedPayment.id,
-          orderId: payment.orderId,
-          eventType: 'SUCCEEDED',
-          amount: updatedPayment.amount,
-          currency: updatedPayment.currency,
-          provider: updatedPayment.paymentMethod,
-          providerEventId: input.providerEventId,
-          metadata: input.metadata,
-        },
-      });
-
-      const firstPaid = await tx.order.updateMany({
-        where: { id: payment.orderId, paymentStatus: { not: PaymentStatus.PAID }, status: { not: OrderStatus.CANCELLED } },
-        data: { paymentStatus: PaymentStatus.PAID, status: OrderStatus.PROCESSING },
-      });
-      const updatedOrder = firstPaid.count
-        ? await tx.order.findUniqueOrThrow({ where: { id: payment.orderId } })
-        : await tx.order.update({ where: { id: payment.orderId }, data: { paymentStatus: PaymentStatus.PAID } });
-      const cancelledForNonPayment = updatedOrder.status === OrderStatus.CANCELLED;
-      if (firstPaid.count) {
-        const recipient = await tx.order.findUniqueOrThrow({
-          where: { id: payment.orderId },
-          select: { userId: true, customerEmail: true, user: { select: { email: true } } },
-        });
-        await createNotification(tx, 'payment_received', recipient.userId, recipient.customerEmail || recipient.user.email, {
-          orderId: payment.orderId,
-        }, { relatedType: 'order', relatedId: payment.orderId });
-      }
-
-      await recordOrderStatusHistory(tx, {
-        orderId: updatedOrder.id,
-        fromStatus: order.status as PrismaOrderStatus,
-        toStatus: updatedOrder.status as PrismaOrderStatus,
-        fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-        toPaymentStatus: updatedOrder.paymentStatus as PrismaOrderPaymentStatus,
-        reason: cancelledForNonPayment ? 'refund_required_after_cancelled_order_payment' : input.reason || 'payment_succeeded',
-        actorType: input.actorType || 'system',
-        actorId: input.actorId,
-        metadata: input.metadata,
-      });
-
-      await emitOrderPaidEvent(tx, payment.orderId, {
-        paymentId: updatedPayment.id,
-        paymentMethod: updatedPayment.paymentMethod,
-        paymentIntentId: updatedPayment.paymentIntentId,
-        sessionId: updatedPayment.sessionId,
-        providerEventId: input.providerEventId,
-        metadata: (updatedPayment.metadata || {}) as Record<string, unknown>,
-        actorId: input.actorId,
-      });
-
-      await emitEvent(tx, 'payment.succeeded', 1, updatedPayment.id, {
-        paymentId: updatedPayment.id,
-        orderId: payment.orderId,
-        userId: (updatedPayment.metadata as { userId?: string } | null)?.userId,
-        amount: Number(updatedPayment.amount),
-        currency: updatedPayment.currency,
-        metadata: updatedPayment.metadata || {},
-      }, { actorId: input.actorId });
-
-      didUpdate = true;
-    });
-  } catch (error) {
-    if (isUniqueConstraintError(error)) {
-      return false;
-    }
-    throw error;
-  }
-
-  return didUpdate;
+export async function recordUnknownPaymentSession(sessionId: string, provider = 'unknown', providerEventId = '', source = 'sync'): Promise<void> {
+  const id = 'payment-review:' + createHash('sha256').update(JSON.stringify([provider, sessionId, providerEventId, source])).digest('hex');
+  await prisma.adminAuditEvent.upsert({ where: { id }, update: {}, create: {
+    id, actorId: provider, action: 'PAYMENT_SESSION_REVIEW_REQUIRED', targetType: 'payment-session', targetId: sessionId,
+    summary: { reason: 'unknown-session', sessionId, provider, providerEventId, source },
+  } });
 }
 
-export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean> {
-  const payment = await prisma.payment.findFirst({ where: { sessionId } });
-  if (!payment || !payment.paymentMethod) {
-    return false;
-  }
+export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput): Promise<boolean> {
+  const identity = await prisma.payment.findUnique({ where: { id: input.paymentId }, select: { orderId: true } });
+  if (!identity) return false;
+  const reference = input.manualReference?.trim();
+  if (input.actorType === 'admin' && !reference) throw new ApiError('PAYMENT_REFERENCE_REQUIRED');
+  try {
+    return await prisma.$transaction(async tx => {
+      await lockOrder(tx, identity.orderId); await lockPayment(tx, input.paymentId);
+      const order = await tx.order.findUniqueOrThrow({ where: { id: identity.orderId } });
+      const payment = await tx.payment.findUniqueOrThrow({ where: { id: input.paymentId } });
+      if (payment.status === 'SUCCEEDED' || input.claimToken && payment.claimToken !== input.claimToken) return false;
+      if (await tx.paymentLedger.findUnique({ where: { providerEventId: input.providerEventId } })) return false;
+      const firstPaid = order.status === OrderStatus.PENDING && order.paymentStatus !== PaymentStatus.PAID && order.paymentStatus !== PaymentStatus.REFUNDED;
+      if (firstPaid) assertOrderTransition(order.status, OrderStatus.PROCESSING, order.paymentStatus);
+      const refundRequired = !firstPaid;
+      const refundReason = refundRequired ? order.status === OrderStatus.CANCELLED ? 'cancelled_order_payment' : 'additional_successful_payment' : null;
+      const changed = await tx.payment.updateMany({
+        where: { id: payment.id, status: { not: 'SUCCEEDED' }, ...(input.claimToken ? { claimToken: input.claimToken } : {}) },
+        data: { status: 'SUCCEEDED', paymentIntentId: input.paymentIntentId || payment.paymentIntentId, providerEventId: input.providerEventId, ...clearLease },
+      });
+      if (!changed.count) return false;
+      await tx.paymentLedger.create({ data: {
+        paymentId: payment.id, orderId: order.id, eventType: 'SUCCEEDED', amount: payment.amount, currency: payment.currency,
+        provider: payment.paymentMethod, providerEventId: input.providerEventId, metadata: input.metadata as Prisma.InputJsonValue | undefined,
+        actorType: input.actorType || 'system', manualReference: reference, refundRequired, refundReason,
+      } });
+      let updatedOrder = order;
+      if (firstPaid) updatedOrder = await tx.order.update({ where: { id: order.id }, data: { status: OrderStatus.PROCESSING, paymentStatus: PaymentStatus.PAID } });
+      else if (order.status === OrderStatus.CANCELLED && order.paymentStatus !== PaymentStatus.REFUNDED)
+        updatedOrder = await tx.order.update({ where: { id: order.id }, data: { paymentStatus: PaymentStatus.PAID } });
+      await recordOrderStatusHistory(tx, {
+        orderId: order.id, fromStatus: order.status, toStatus: updatedOrder.status,
+        fromPaymentStatus: order.paymentStatus, toPaymentStatus: updatedOrder.paymentStatus,
+        reason: refundRequired ? order.status === OrderStatus.CANCELLED ? 'refund_required_after_cancelled_order_payment' : 'refund_required_after_additional_payment'
+          : input.reason || 'payment_succeeded', actorType: input.actorType || 'system', actorId: input.actorId,
+        metadata: { ...input.metadata, ...(reference ? { manualReference: reference } : {}), refundRequired },
+      });
+      if (firstPaid) {
+        const recipient = await tx.user.findUniqueOrThrow({ where: { id: order.userId }, select: { email: true } });
+        await createNotification(tx, 'payment_received', order.userId, order.customerEmail || recipient.email, { orderId: order.id }, { relatedType: 'order', relatedId: order.id });
+        await emitOrderPaidEvent(tx, order.id, {
+          paymentId: payment.id, paymentMethod: payment.paymentMethod, paymentIntentId: input.paymentIntentId || payment.paymentIntentId,
+          sessionId: payment.sessionId, providerEventId: input.providerEventId, metadata: (payment.metadata || {}) as Record<string, unknown>, actorId: input.actorId,
+        });
+        await emitEvent(tx, 'payment.succeeded', 1, payment.id, {
+          paymentId: payment.id, orderId: order.id, userId: order.userId, amount: Number(payment.amount), currency: payment.currency, metadata: payment.metadata || {},
+        }, { actorId: input.actorId });
+      }
+      return true;
+    });
+  } catch (error) { if (isUniqueConstraintError(error)) return false; throw error; }
+}
 
-  if (payment.status === 'SUCCEEDED') return false;
+export async function recordPaymentFailed(input: { paymentId: string; providerEventId: string; actorType?: string; actorId?: string; claimToken?: string }): Promise<boolean> {
+  const identity = await prisma.payment.findUnique({ where: { id: input.paymentId }, select: { orderId: true } });
+  if (!identity) return false;
+  try {
+    return await prisma.$transaction(async tx => {
+      await lockOrder(tx, identity.orderId); await lockPayment(tx, input.paymentId);
+      const order = await tx.order.findUniqueOrThrow({ where: { id: identity.orderId } });
+      const payment = await tx.payment.findUniqueOrThrow({ where: { id: input.paymentId } });
+      if (['SUCCEEDED','FAILED','EXPIRED'].includes(payment.status) || input.claimToken && payment.claimToken !== input.claimToken) return false;
+      if (await tx.paymentLedger.findUnique({ where: { providerEventId: input.providerEventId } })) return false;
+      const changed = await tx.payment.updateMany({
+        where: { id: payment.id, status: { notIn: ['SUCCEEDED','FAILED','EXPIRED'] }, ...(input.claimToken ? { claimToken: input.claimToken } : {}) },
+        data: { status: 'FAILED', providerEventId: input.providerEventId, ...clearLease },
+      });
+      if (!changed.count) return false;
+      await tx.paymentLedger.create({ data: {
+        paymentId: payment.id, orderId: order.id, eventType: 'FAILED', amount: payment.amount, currency: payment.currency,
+        provider: payment.paymentMethod, providerEventId: input.providerEventId, actorType: input.actorType || 'system',
+      } });
+      if (order.paymentStatus !== PaymentStatus.PAID && order.paymentStatus !== PaymentStatus.REFUNDED) {
+        const updated = await tx.order.update({ where: { id: order.id }, data: { paymentStatus: PaymentStatus.FAILED } });
+        await recordOrderStatusHistory(tx, {
+          orderId: order.id, fromStatus: order.status, toStatus: updated.status, fromPaymentStatus: order.paymentStatus,
+          toPaymentStatus: updated.paymentStatus, reason: 'payment_failed', actorType: input.actorType || 'system', actorId: input.actorId,
+        });
+      }
+      await emitEvent(tx, 'payment.failed', 1, payment.id, { paymentId: payment.id, orderId: order.id, userId: order.userId, amount: Number(payment.amount), currency: payment.currency, metadata: payment.metadata || {} }, { actorId: input.actorId });
+      return true;
+    });
+  } catch (error) { if (isUniqueConstraintError(error)) return false; throw error; }
+}
 
-  if (payment.status === 'FAILED') {
-    return false;
-  }
-
+export async function syncPaymentFromPlugin(sessionId: string, claimToken?: string): Promise<boolean> {
+  const payment = await prisma.payment.findUnique({ where: { sessionId } });
+  if (!payment) { await recordUnknownPaymentSession(sessionId); return false; }
+  if (payment.status === 'SUCCEEDED' || payment.status === 'FAILED' || claimToken && payment.claimToken !== claimToken) return false;
   let data: { status: string; providerEventId?: string };
   try { data = await callContract(payment.paymentMethod, 'payment', 1, 'getSessionStatus', { sessionId }) as typeof data; }
   catch (error) { if (error instanceof SharedProtectionUnavailable) throw error; return false; }
-  const status = normalizeMethodKey(data.status);
+  const status = data.status;
   const providerEventId = data.providerEventId || sessionId;
-
-  if (payment.providerEventId && payment.providerEventId === providerEventId) {
-    return false;
-  }
-
-  const existingLedger = await prisma.paymentLedger.findUnique({
-    where: { providerEventId },
-  });
-  if (existingLedger) {
-    return false;
-  }
-
-  if (['paid', 'succeeded', 'success', 'completed'].includes(status)) {
-    return recordPaymentSucceeded({
-      paymentId: payment.id,
-      providerEventId,
-      paymentIntentId: null,
-    });
-  }
-
-  if (['failed', 'canceled', 'cancelled', 'expired'].includes(status)) {
-    const order = await prisma.order.findUnique({
-      where: { id: payment.orderId },
-      select: { status: true, paymentStatus: true },
-    });
-    let didUpdate = false;
-    try {
-      await prisma.$transaction(async (tx) => {
-        const ledger = await tx.paymentLedger.findUnique({
-          where: { providerEventId },
-        });
-        if (ledger) {
-          return;
-        }
-
-        const updatedPayment = await tx.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: 'FAILED',
-            providerEventId,
-          },
-        });
-
-        await tx.paymentLedger.create({
-          data: {
-            paymentId: updatedPayment.id,
-            orderId: payment.orderId,
-            eventType: 'FAILED',
-            amount: updatedPayment.amount,
-            currency: updatedPayment.currency,
-            provider: updatedPayment.paymentMethod,
-            providerEventId,
-          },
-        });
-
-        const updatedOrder = await tx.order.update({
-          where: { id: payment.orderId },
-          data: { paymentStatus: PaymentStatus.FAILED },
-        });
-
-        if (order) {
-          await recordOrderStatusHistory(tx, {
-            orderId: updatedOrder.id,
-            fromStatus: order.status as PrismaOrderStatus,
-            toStatus: updatedOrder.status as PrismaOrderStatus,
-            fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-            toPaymentStatus: updatedOrder.paymentStatus as PrismaOrderPaymentStatus,
-            reason: 'payment_failed',
-            actorType: 'system',
-          });
-        }
-
-
-        await emitEvent(tx, 'payment.failed', 1, updatedPayment.id, {
-          paymentId: updatedPayment.id,
-          orderId: payment.orderId,
-          userId: (updatedPayment.metadata as { userId?: string } | null)?.userId,
-          amount: Number(updatedPayment.amount),
-          currency: updatedPayment.currency,
-          metadata: updatedPayment.metadata || {},
-        });
-
-        didUpdate = true;
-      });
-    } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        return false;
-      }
-      throw error;
-    }
-    return didUpdate;
-  }
-
+  if (status === 'succeeded')
+    return recordPaymentSucceeded({ paymentId: payment.id, providerEventId, claimToken });
+  if (status === 'failed' || status === 'cancelled')
+    return recordPaymentFailed({ paymentId: payment.id, providerEventId, claimToken });
   return false;
 }
 
-export type PaymentReconciliationOptions = {
-  limit?: number;
-  maxAgeMinutes?: number;
-  minAgeMinutes?: number;
-};
-
-export type PaymentReconciliationResult = {
-  scanned: number;
-  updated: number;
-  failed: number;
-  skipped: number;
-};
-
-export async function reconcilePendingPayments(
-  options: PaymentReconciliationOptions = {}
-): Promise<PaymentReconciliationResult> {
-  const limit = options.limit ?? 100;
-  const maxAgeMinutes = options.maxAgeMinutes ?? 60 * 24 * 7;
-  const minAgeMinutes = options.minAgeMinutes ?? 2;
-
-  const now = Date.now();
-  const createdAt: Prisma.DateTimeFilter = {};
-  if (maxAgeMinutes > 0) {
-    createdAt.gte = new Date(now - maxAgeMinutes * 60 * 1000);
-  }
-  if (minAgeMinutes > 0) {
-    createdAt.lte = new Date(now - minAgeMinutes * 60 * 1000);
-  }
-
-  const where: Prisma.PaymentWhereInput = {
-    status: 'PENDING',
-    sessionId: { not: null },
-    ...(Object.keys(createdAt).length ? { createdAt } : {}),
-  };
-
-  const payments = await prisma.payment.findMany({
-    where,
-    orderBy: { createdAt: 'asc' },
-    take: limit,
-    select: { sessionId: true, paymentMethod: true },
+export type PaymentReconciliationOptions = { limit?: number; maxAgeMinutes?: number; minAgeMinutes?: number };
+export type PaymentReconciliationResult = { scanned: number; updated: number; failed: number; skipped: number };
+const client: PaymentLeaseClient = { query: async (sql, values = []) => ({ rows: await prisma.$queryRawUnsafe<any[]>(sql, ...values) }) };
+export async function expireUnreturnedPaymentSession(paymentId: string, claimToken: string): Promise<boolean> {
+  const identity = await prisma.payment.findUnique({ where: { id: paymentId }, select: { orderId: true } });
+  if (!identity) return false;
+  return prisma.$transaction(async tx => {
+    await lockOrder(tx, identity.orderId); await lockPayment(tx, paymentId);
+    const payment = await tx.payment.findUniqueOrThrow({ where: { id: paymentId } });
+    if (payment.status !== 'CREATING' || payment.sessionId || payment.claimToken !== claimToken) return false;
+    if ((await paymentNow(tx)).getTime() < payment.createdAt.getTime() + PAYMENT_SESSION_LIFETIME_MS) return false;
+    return (await tx.payment.updateMany({
+      where: { id: payment.id, status: 'CREATING', sessionId: null, claimToken },
+      data: { status: 'EXPIRED', failureReason: 'session_creation_expired', ...clearLease },
+    })).count === 1;
   });
-
-  let updated = 0;
-  let failed = 0;
-  let skipped = 0;
-  const installations = await prisma.pluginInstallation.findMany({
-    where: { pluginSlug: { in: [...new Set(payments.map((payment) => payment.paymentMethod))] }, instanceKey: 'default' },
-    select: { pluginSlug: true, enabled: true, deletedAt: true, plugin: { select: { deletedAt: true } } },
-  });
-  const disabled = new Set(installations.filter((instance) =>
-    !instance.enabled || instance.deletedAt || instance.plugin.deletedAt
-  ).map((instance) => instance.pluginSlug));
-
+}
+export async function reconcilePendingPayments(options: PaymentReconciliationOptions = {}): Promise<PaymentReconciliationResult> {
+  const payments = await prisma.$transaction(async tx => claimPaymentReconciliations({
+    query: async (sql, values = []) => ({ rows: await tx.$queryRawUnsafe<any[]>(sql, ...values) }),
+  }, coreProcessIdentity.instanceId, options));
+  const result = { scanned: payments.length, updated: 0, failed: 0, skipped: 0 };
+  let stopBatch = false;
   for (const payment of payments) {
-    if (!payment.sessionId) {
-      continue;
-    }
-    if (disabled.has(payment.paymentMethod)) {
-      skipped += 1;
-      continue;
-    }
     try {
-      const didUpdate = await syncPaymentFromPlugin(payment.sessionId);
-      if (didUpdate) {
-        updated += 1;
+      if (stopBatch || !await paymentLeaseAllowsQuery(client, payment)) { stopBatch = true; result.skipped++; continue; }
+      if (payment.status === 'CREATING') {
+        if (await expireUnreturnedPaymentSession(payment.id, payment.claimToken!)) result.updated++;
+        continue;
       }
-    } catch (error) {
-      if (error instanceof SharedProtectionUnavailable) skipped += 1;
-      else failed += 1;
-    }
+      const instance = await prisma.pluginInstallation.findUnique({ where: { pluginSlug_instanceKey: { pluginSlug: payment.paymentMethod, instanceKey: 'default' } }, include: { plugin: { select: { deletedAt: true } } } });
+      if (instance && (!instance.enabled || instance.deletedAt || instance.plugin.deletedAt)) { result.skipped++; continue; }
+      if (await syncPaymentFromPlugin(payment.sessionId!, payment.claimToken!)) result.updated++;
+    } catch (error) { if (error instanceof SharedProtectionUnavailable) result.skipped++; else result.failed++; }
+    finally { await releasePaymentReconciliation(client, payment, stopBatch ? 0 : 60_000); }
   }
-
-  return {
-    scanned: payments.length,
-    updated,
-    failed,
-    skipped,
-  };
+  return result;
 }

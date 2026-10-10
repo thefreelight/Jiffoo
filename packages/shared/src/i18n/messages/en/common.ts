@@ -116,6 +116,8 @@ export const common = {
 
   // Error messages
   errors: {
+    paymentAttemptOpen: 'A payment is already in progress. Complete it, or try again in up to 30 minutes.',
+    paymentReferenceRequired: 'Enter a payment or refund reference.',
     uploadStorageUnavailable: 'Upload storage is temporarily unavailable. Try again shortly.',
     uploadStorageCorrupt: 'Uploaded media is corrupt. Upload the image again.',
     general: 'Something went wrong. Please try again.',

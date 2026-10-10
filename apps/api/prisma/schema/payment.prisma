@@ -20,6 +20,11 @@ model Payment {
   idempotencyKey  String?
   providerEventId String?
   metadata        Json?
+  claimToken      String?              @db.Uuid
+  claimedBy       String?
+  leaseUntil      DateTime?            @db.Timestamptz(3)
+  nextReconcileAt DateTime             @default(now()) @db.Timestamptz(3)
+  attempts        Int                  @default(0)
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
@@ -33,6 +38,8 @@ model Payment {
   @@unique([paymentIntentId])
   @@unique([sessionId])
   @@unique([orderId, attemptNumber])
+  @@index([status, nextReconcileAt])
+  @@index([status, leaseUntil])
   @@map("payments")
   @@schema("public")
 }
@@ -48,6 +55,7 @@ model Refund {
   currency         String       @default("USD")
   status           RefundStatus @default(PENDING)
   reason           String?
+  reference        String?
   provider         String?
   providerRefundId String?      @unique
   idempotencyKey   String       @unique
@@ -79,6 +87,10 @@ model PaymentLedger {
   providerEventId String?
   idempotencyKey  String?
   metadata        Json?
+  refundRequired  Boolean                @default(false)
+  refundReason    String?
+  manualReference String?
+  actorType       String?
   createdAt       DateTime               @default(now())
 
   payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)

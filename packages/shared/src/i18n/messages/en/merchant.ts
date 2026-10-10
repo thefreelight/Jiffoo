@@ -344,6 +344,9 @@ export const merchant = {
 
   // Orders
   orders: {
+    paymentReference: 'Payment reference',
+    recordPayment: 'Record payment',
+    refundRequired: 'Refund required',
     title: 'Orders',
     subtitle: 'Transaction lifecycle and fulfillment tracking.',
     allOrders: 'All Orders',
@@ -432,15 +435,17 @@ export const merchant = {
     },
     // Refund Dialog
     refund: {
-      title: 'Refund Order',
-      description: 'This action will refund the full amount to the customer.',
-      alphaNotice: 'Alpha version only supports full refund.',
+      title: 'Record offline full refund',
+      description: 'Record a full refund already paid outside this system.',
+      alphaNotice: 'Only a full refund can be recorded.',
       amount: 'Refund Amount',
-      fullAmountOnly: 'Automatic full refund of order total.',
+      fullAmountOnly: 'Enter the reference for the completed offline refund.',
       reason: 'Reason (Optional)',
       reasonPlaceholder: 'Enter refund reason...',
       warning: 'This action cannot be undone.',
-      confirm: 'Refund {amount}',
+      confirm: 'Record refund {amount}',
+      reference: 'Refund reference',
+      recorded: 'Offline refund recorded.',
     },
   },
 

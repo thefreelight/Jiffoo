@@ -78,7 +78,7 @@ describe('worker payment reconciliation shared protection', () => {
       expect(await client.zcard(`${scope}:samples`)).toBe(0); expect(await client.zcard(`${scope}:failures`)).toBe(0);
       await expect(fs.readFile(marker, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
       await relay.recover(2);
-      const recovered = await command(child, { kind: 'reconcile' });
+      const recovered = await command(child, { kind: 'reconcile', offsetMs: 61_000 });
       expect(recovered.result).toEqual({ scanned: 1, updated: 1, failed: 0, skipped: 0 });
       expect(child.exitCode).toBeNull();
       expect((await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('SUCCEEDED');

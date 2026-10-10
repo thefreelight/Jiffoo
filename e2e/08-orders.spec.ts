@@ -45,7 +45,8 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
 
     await login(page);
     await page.goto(`/en/orders/${orderId}`);
-    await page.getByRole('button', { name: 'Record Payment' }).click();
+    await page.getByLabel('Payment reference').fill('e2e-payment-reference');
+    await page.getByRole('button', { name: 'Record payment' }).click();
     await expect(page.getByText('PAID', { exact: true }).first()).toBeVisible();
     await page.getByRole('button', { name: 'Initiate Dispatch' }).click();
     await page.getByRole('textbox', { name: 'Shipping Carrier' }).fill('E2E Carrier');

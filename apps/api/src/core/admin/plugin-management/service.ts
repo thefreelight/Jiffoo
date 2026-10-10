@@ -697,7 +697,7 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
 
   await prisma.$transaction(async (tx) => {
     await fencePluginOperationLease(tx, slug, token);
-    const pending = await tx.payment.count({ where: { paymentMethod: slug, status: 'PENDING' } });
+    const pending = await tx.payment.count({ where: { paymentMethod: slug, status: { in: ['CREATING','PENDING'] } } });
     if (pending) {
       throw new ExtensionInstallerError('Plugin has unfinished payment work', { statusCode: 409, code: 'PLUGIN_UNFINISHED_PAYMENTS' });
     }

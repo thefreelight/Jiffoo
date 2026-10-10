@@ -60,6 +60,7 @@ const adminOrderDetailSchema = {
     notes: { type: 'string', nullable: true },
     paymentMethod: { type: 'string', nullable: true },
     canRecordManualPayment: { type: 'boolean' },
+    refundRequired: { type: 'boolean' },
     cancelReason: { type: 'string', nullable: true, description: 'Cancellation reason' },
     cancelledAt: { type: 'string', format: 'date-time', nullable: true },
     createdAt: { type: 'string', format: 'date-time' },
@@ -232,8 +233,9 @@ export const adminOrderSchemas = {
     },
     body: {
       type: 'object',
+      required: ['reference'],
       properties: {
-        reference: { type: 'string', maxLength: 256, description: 'Optional offline payment reference' },
+        reference: { type: 'string', minLength: 1, maxLength: 256, description: 'Required offline payment reference' },
       },
     },
     response: { ...createTypedUpdateResponses(adminOrderDetailSchema), 409: errorResponseSchema },
@@ -290,8 +292,9 @@ export const adminOrderSchemas = {
     },
     body: {
       type: 'object',
-      required: ['idempotencyKey'],
+      required: ['idempotencyKey', 'reference'],
       properties: {
+        reference: { type: 'string', minLength: 1, maxLength: 256, description: 'Required offline full refund reference' },
         reason: { type: 'string', description: 'Refund reason' },
         idempotencyKey: { type: 'string', description: 'Idempotency key to prevent duplicate refunds' },
       },

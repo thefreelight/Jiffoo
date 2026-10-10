@@ -27,6 +27,8 @@ interface RefundDialogProps {
 export function RefundDialog({ order, open, onOpenChange, onSuccess }: RefundDialogProps) {
   const t = useT()
   const [reason, setReason] = useState('')
+  const [reference, setReference] = useState('')
+  const [requestKey] = useState(() => crypto.randomUUID())
   const refundOrderMutation = useRefundOrder()
 
   const handleRefund = async () => {
@@ -35,11 +37,13 @@ export function RefundDialog({ order, open, onOpenChange, onSuccess }: RefundDia
         id: order.id,
         data: {
           reason,
-          idempotencyKey: `refund-${order.id}-${Date.now()}`,
+          idempotencyKey: requestKey,
+          reference: reference.trim(),
         },
       })
       onOpenChange(false)
       setReason('')
+      setReference('')
       onSuccess?.()
     } catch (_error) {
       // Error toast is already handled by the mutation hook.
@@ -54,7 +58,7 @@ export function RefundDialog({ order, open, onOpenChange, onSuccess }: RefundDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-surface rounded-[2rem] border border-neutral-faint p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[500px] max-h-[calc(100dvh-2rem)] overflow-y-auto bg-surface rounded-[2rem] border border-neutral-faint p-0">
         <DialogHeader className="p-8 pb-6 border-b border-neutral-veil">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-danger-veil rounded-2xl flex items-center justify-center">
@@ -62,10 +66,10 @@ export function RefundDialog({ order, open, onOpenChange, onSuccess }: RefundDia
             </div>
             <div className="space-y-1">
               <DialogTitle className="text-xl font-black text-neutral-deepest uppercase tracking-tight">
-                {getText('merchant.orders.refund.title', 'Refund Order')}
+                {getText('merchant.orders.refund.title', 'Record offline full refund')}
               </DialogTitle>
               <DialogDescription className="text-xs font-medium text-neutral-light uppercase tracking-widest">
-                {getText('merchant.orders.refund.description', 'This action will refund the full amount to the customer.')}
+                {getText('merchant.orders.refund.description', 'Record a full refund already paid outside this system.')}
               </DialogDescription>
             </div>
           </div>
@@ -75,24 +79,29 @@ export function RefundDialog({ order, open, onOpenChange, onSuccess }: RefundDia
           <div className="flex items-start gap-3 p-4 bg-action-veil text-action-dark rounded-2xl text-sm border border-action-faint">
             <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p className="text-xs font-bold uppercase tracking-wide">
-              {getText('merchant.orders.refund.alphaNotice', 'Alpha version only supports full refund.')}
+              {getText('merchant.orders.refund.alphaNotice', 'Only a full refund can be recorded.')}
             </p>
           </div>
 
           <div className="space-y-3">
-            <Label className="text-[10px] font-black text-neutral-light uppercase tracking-[0.2em]">
+            <Label htmlFor="refund-amount" className="text-[10px] font-black text-neutral-light uppercase tracking-[0.2em]">
               {getText('merchant.orders.refund.amount', 'Refund Amount')}
             </Label>
             <Input
+              id="refund-amount"
               value={formatCurrency(order.totalAmount, order.currency)}
               disabled
               className="h-14 bg-neutral-veil border-neutral-faint rounded-xl font-black text-lg text-neutral-deepest px-6"
             />
             <p className="text-[10px] text-neutral-light font-bold uppercase tracking-widest px-1">
-              {getText('merchant.orders.refund.fullAmountOnly', 'Automatic full refund of order total.')}
+              {getText('merchant.orders.refund.fullAmountOnly', 'Enter the reference for the completed offline refund.')}
             </p>
           </div>
 
+          <div className="space-y-3">
+            <Label htmlFor="refund-reference">{getText('merchant.orders.refund.reference', 'Refund reference')}</Label>
+            <Input id="refund-reference" value={reference} onChange={event => setReference(event.target.value)} required maxLength={256} />
+          </div>
           <div className="space-y-3">
             <Label htmlFor="reason" className="text-[10px] font-black text-neutral-light uppercase tracking-[0.2em]">
               {getText('merchant.orders.refund.reason', 'Reason (Optional)')}
@@ -125,12 +134,12 @@ export function RefundDialog({ order, open, onOpenChange, onSuccess }: RefundDia
           </Button>
           <Button
             onClick={handleRefund}
-            disabled={refundOrderMutation.isPending}
+            disabled={refundOrderMutation.isPending || !reference.trim()}
             className="flex-1 h-12 bg-danger-strong hover:bg-danger-deep text-surface rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-danger-base/20 transition-all active:scale-95"
           >
             {refundOrderMutation.isPending
               ? getText('common.actions.processing', 'Processing...')
-              : getText('merchant.orders.refund.confirm', 'Refund {amount}').replace(
+              : getText('merchant.orders.refund.confirm', 'Record refund {amount}').replace(
                   '{amount}',
                   formatCurrency(order.totalAmount, order.currency)
                 )}

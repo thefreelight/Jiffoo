@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { ApiError } from '@/utils/api-errors';
 import { NotificationStatus } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { EmailVerificationService } from '@/services/email-verification.service';
@@ -82,42 +83,44 @@ export async function adminNotificationRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-notifications'], security: [{ bearerAuth: [] }],
       params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+      body: { type: 'object', required: ['idempotencyKey'], properties: { idempotencyKey: { type: 'string', minLength: 1, maxLength: 256 } }, additionalProperties: false },
       response: { ...createTypedCreateResponses(detailSchema), 404: errorResponseSchema },
     },
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
+    const { idempotencyKey } = request.body as { idempotencyKey: string };
     const original = await prisma.notification.findUnique({ where: { id } });
     if (!original) return sendError(reply, 404, 'NOT_FOUND', 'Notification not found');
-    if (original.type === 'password_reset') {
-      return sendError(reply, 409, 'NOT_RESENDABLE', 'Password reset notifications cannot be resent');
-    }
-    let resentId: string;
-    if (original.type === 'email_verification' || original.type === 'staff_invite') {
-      if (!original.recipientUserId) return sendError(reply, 409, 'RECIPIENT_MISSING', 'Recipient no longer exists');
-      const user = await prisma.user.findUnique({ where: { id: original.recipientUserId } });
-      if (!user) return sendError(reply, 409, 'RECIPIENT_MISSING', 'Recipient no longer exists');
-      resentId = await prisma.$transaction(async (tx) => {
-        if (original.type === 'staff_invite') {
-          await EmailVerificationService.createStaffInvitation(tx, user.id, user.email, user.username, original.id);
-        } else {
-          await EmailVerificationService.createVerification(tx, user.id, user.email, user.username, original.id);
-        }
-        const created = await tx.notification.findFirstOrThrow({
-          where: { resentFromId: original.id }, orderBy: { createdAt: 'desc' }, select: { id: true },
-        });
-        return created.id;
-      });
-    } else {
-      const created = await prisma.notification.create({
-        data: {
-          type: original.type, channel: original.channel, recipientUserId: original.recipientUserId,
-          toAddress: original.toAddress, locale: original.locale, subject: original.subject,
-          html: original.html, text: original.text, relatedType: original.relatedType,
-          relatedId: original.relatedId, resentFromId: original.id,
-        },
-      });
-      resentId = created.id;
-    }
+    if (original.type === 'password_reset') return sendError(reply, 409, 'NOT_RESENDABLE', 'Password reset notifications cannot be resent');
+    const dedupKey = `notification:resend:${id}:${idempotencyKey}`;
+    const resentId = await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM public.notifications WHERE id = ${id} FOR UPDATE`;
+      const existing = await tx.notification.findUnique({ where: { dedupKey } });
+      if (existing) return existing.id;
+      let createdId: string;
+      if (original.type === 'email_verification' || original.type === 'staff_invite') {
+        if (!original.recipientUserId) throw new ApiError('RECIPIENT_MISSING');
+        const user = await tx.user.findUnique({ where: { id: original.recipientUserId } });
+        if (!user) throw new ApiError('RECIPIENT_MISSING');
+        if (original.type === 'staff_invite') await EmailVerificationService.createStaffInvitation(tx, user.id, user.email, user.username, original.id);
+        else await EmailVerificationService.createVerification(tx, user.id, user.email, user.username, original.id);
+        const created = await tx.notification.findFirstOrThrow({ where: { resentFromId: original.id }, orderBy: { createdAt: 'desc' } });
+        await tx.notification.update({ where: { id: created.id }, data: { dedupKey } });
+        createdId = created.id;
+      } else {
+        const created = await tx.notification.create({ data: {
+          type: original.type, channel: original.channel, recipientUserId: original.recipientUserId, toAddress: original.toAddress,
+          locale: original.locale, subject: original.subject, html: original.html, text: original.text,
+          relatedType: original.relatedType, relatedId: original.relatedId, resentFromId: original.id, dedupKey,
+        } });
+        createdId = created.id;
+      }
+      await tx.adminAuditEvent.create({ data: {
+        actorId: request.user!.id, action: 'NOTIFICATION_RESENT', targetType: 'notification', targetId: original.id,
+        summary: { resentId: createdId, idempotencyKey },
+      } });
+      return createdId;
+    });
     const resent = await prisma.notification.findUniqueOrThrow({ where: { id: resentId }, select: publicFields });
     return sendSuccess(reply, resent, 'Notification queued', 201);
   });

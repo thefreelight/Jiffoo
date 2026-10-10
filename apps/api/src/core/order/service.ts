@@ -27,6 +27,7 @@ import {
 } from './types';
 import { recordOrderStatusHistory } from './status-history';
 import { assertOrderTransition } from './transition';
+import { lockOrder } from '@/core/payment/locks';
 
 import { systemSettingsService } from '../admin/system-settings/service';
 import { LoggerService } from '@/core/logger/unified-logger';
@@ -553,24 +554,17 @@ export class OrderService {
       where.userId = userId;
     }
 
-    const order = await prisma.order.findFirst({
-      where,
-      include: { items: true }
-    });
-
-    if (!order) {
-      throw Object.assign(new ApiError('NOT_FOUND'), { message: 'Order not found' });
-    }
-
-    assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
-
     const updatedOrder = await prisma.$transaction(async (tx) => {
+      await lockOrder(tx, orderId);
+      const order = await tx.order.findFirst({ where, include: { items: true } });
+      if (!order) throw new ApiError('NOT_FOUND');
+      assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
       for (const item of order.items) {
         await InventoryService.incrementStock(tx, item.variantId, item.quantity);
       }
       await tx.payment.updateMany({
-        where: { orderId, status: 'PENDING' },
-        data: { status: 'CANCELLED' },
+        where: { orderId, status: { in: ['CREATING','PENDING'] } },
+        data: { status: 'CANCELLED', claimToken: null, claimedBy: null, leaseUntil: null },
       });
 
       const updated = await tx.order.update({
@@ -612,18 +606,12 @@ export class OrderService {
 
   static async cancelExpiredUnpaidOrders(limit = 100): Promise<number> {
     return prisma.$transaction(async (tx) => {
-      const lock = await tx.$queryRaw<Array<{ locked: boolean }>>`SELECT pg_try_advisory_xact_lock(918201) AS locked`;
-      if (!lock[0]?.locked) return 0;
-      const expiredOrders = await tx.order.findMany({
-        where: {
-          status: OrderStatus.PENDING,
-          paymentStatus: PaymentStatus.PENDING,
-          unpaidExpiresAt: { lt: new Date() },
-        },
-        orderBy: { unpaidExpiresAt: 'asc' },
-        take: limit,
-        include: { items: true },
-      });
+      const locked = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM public.orders WHERE status = 'PENDING' AND "paymentStatus" = 'PENDING'
+          AND "unpaidExpiresAt" < clock_timestamp() AT TIME ZONE 'UTC'
+        ORDER BY "unpaidExpiresAt", id LIMIT ${limit} FOR UPDATE SKIP LOCKED
+      `;
+      const expiredOrders = await tx.order.findMany({ where: { id: { in: locked.map(row => row.id) } }, include: { items: true } });
       let cancelled = 0;
       for (const order of expiredOrders) {
         assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
@@ -633,7 +621,7 @@ export class OrderService {
         });
         if (result.count === 0) continue;
         for (const item of order.items) await InventoryService.incrementStock(tx, item.variantId, item.quantity);
-        await tx.payment.updateMany({ where: { orderId: order.id, status: 'PENDING' }, data: { status: 'CANCELLED' } });
+        await tx.payment.updateMany({ where: { orderId: order.id, status: { in: ['CREATING','PENDING'] } }, data: { status: 'CANCELLED', claimToken: null, claimedBy: null, leaseUntil: null } });
         await recordOrderStatusHistory(tx, {
           orderId: order.id,
           fromStatus: order.status as PrismaOrderStatus,

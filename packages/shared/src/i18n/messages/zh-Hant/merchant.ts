@@ -344,6 +344,9 @@ export const merchant = {
 
   // Orders
   orders: {
+    paymentReference: '付款憑證號',
+    recordPayment: '記錄付款',
+    refundRequired: '需要退款',
     title: '訂單',
     subtitle: '交易生命週期與履約追蹤。',
     allOrders: '所有訂單',
@@ -432,15 +435,17 @@ export const merchant = {
     },
     // Refund Dialog
     refund: {
-      title: '退款訂單',
-      description: '此操作將全額退款給顧客。',
-      alphaNotice: '測試版本僅支援全額退款。',
+      title: '記錄線下全額退款',
+      description: '記錄已在系統外完成的全額退款。',
+      alphaNotice: '僅記錄全額退款。',
       amount: '退款金額',
-      fullAmountOnly: '自動全額退款訂單總額。',
+      fullAmountOnly: '請輸入已完成的線下退款憑證號。',
       reason: '原因（選填）',
       reasonPlaceholder: '輸入退款原因...',
       warning: '此操作無法撤銷。',
-      confirm: '退款 {amount}',
+      confirm: '記錄退款 {amount}',
+      reference: '退款憑證號',
+      recorded: '已記錄線下退款。',
     },
   },
 

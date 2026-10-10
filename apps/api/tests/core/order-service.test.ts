@@ -341,7 +341,7 @@ describe('OrderService', () => {
 
       await expect(
         OrderService.cancelOrder('nonexistent', 'user-1', 'reason')
-      ).rejects.toThrow('Order not found');
+      ).rejects.toMatchObject({ code: 'NOT_FOUND', statusCode: 404 });
     });
 
     it('should reject cancellation outside the pending state', async () => {

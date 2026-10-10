@@ -304,7 +304,7 @@ export const ordersApi = {
   ): Promise<ApiResponse<AdminOrderDetailDTO>> =>
     apiClient.put(`/admin/orders/${id}/items/${itemId}/fulfillment`, data),
 
-  recordManualPayment: (id: string, reference?: string): Promise<ApiResponse<OrderDetail>> =>
+  recordManualPayment: (id: string, reference: string): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/record-manual-payment`, { reference }),
 
   shipOrder: (id: string, data: {
@@ -320,7 +320,7 @@ export const ordersApi = {
   cancelOrder: (id: string, cancelReason: string): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/cancel`, { cancelReason }),
 
-  refundOrder: (id: string, data: { reason?: string; idempotencyKey: string }): Promise<ApiResponse<OrderDetail>> =>
+  refundOrder: (id: string, data: { reason?: string; idempotencyKey: string; reference: string }): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/refund`, data),
 };
 
@@ -704,8 +704,8 @@ export const notificationsApi = {
     apiClient.get('/admin/notifications', { params: { page, limit, status } }),
   getById: (id: string): Promise<ApiResponse<AdminNotification>> =>
     apiClient.get(`/admin/notifications/${id}`),
-  resend: (id: string): Promise<ApiResponse<AdminNotification>> =>
-    apiClient.post(`/admin/notifications/${id}/resend`),
+  resend: (id: string, idempotencyKey: string): Promise<ApiResponse<AdminNotification>> =>
+    apiClient.post(`/admin/notifications/${id}/resend`, { idempotencyKey }),
 };
 
 // Upload API

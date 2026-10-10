@@ -344,6 +344,9 @@ export const merchant = {
 
   // Orders
   orders: {
+    paymentReference: '付款凭证号',
+    recordPayment: '记录付款',
+    refundRequired: '需要退款',
     title: '订单',
     subtitle: '交易生命周期与履约追踪。',
     allOrders: '所有订单',
@@ -432,15 +435,17 @@ export const merchant = {
     },
     // Refund Dialog
     refund: {
-      title: '退款订单',
-      description: '此操作将全额退款给顾客。',
-      alphaNotice: '测试版本仅支援全额退款。',
+      title: '记录线下全额退款',
+      description: '记录已在系统外完成的全额退款。',
+      alphaNotice: '仅记录全额退款。',
       amount: '退款金额',
-      fullAmountOnly: '自动全额退款订单总额。',
+      fullAmountOnly: '请输入已完成的线下退款凭证号。',
       reason: '原因（选填）',
       reasonPlaceholder: '输入退款原因...',
       warning: '此操作无法撤销。',
-      confirm: '退款 {amount}',
+      confirm: '记录退款 {amount}',
+      reference: '退款凭证号',
+      recorded: '已记录线下退款。',
     },
   },
 

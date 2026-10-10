@@ -11,8 +11,10 @@ export async function emitEvent<K extends EventKey>(
 ) {
   const tx = transaction as Prisma.TransactionClient;
   const snapshot = parseEventPayload(type, version, data) as Prisma.InputJsonValue;
+  const dedupKey = type === 'order.paid' ? `event:order.paid:${aggregateId}`
+    : type === 'payment.succeeded' ? `event:payment.succeeded:${(snapshot as { orderId: string }).orderId}` : undefined;
   const event = await tx.eventRecord.create({
-    data: { id: randomUUID(), type, version, aggregateId, data: snapshot, ...metadata },
+    data: { id: randomUUID(), type, version, aggregateId, data: snapshot, dedupKey, ...metadata },
   });
   const installations = await tx.$queryRaw<Array<{ id: string }>>`
     SELECT i.id FROM plugin_installations i

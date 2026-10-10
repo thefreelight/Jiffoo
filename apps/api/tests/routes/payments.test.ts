@@ -299,7 +299,7 @@ describe('Payments Endpoints', () => {
       expect(manualDetail.json().data.canRecordManualPayment).toBe(true);
       expect(cardDetail.json().data.canRecordManualPayment).toBe(false);
 
-      const rejected = await app.inject({ method: 'POST', url: `/api/v1/admin/orders/${cardOrderId}/record-manual-payment`, headers: { authorization: `Bearer ${adminToken}` }, payload: {} });
+      const rejected = await app.inject({ method: 'POST', url: `/api/v1/admin/orders/${cardOrderId}/record-manual-payment`, headers: { authorization: `Bearer ${adminToken}` }, payload: { reference: 'verified-reference' } });
       expect(rejected.statusCode).toBe(409);
       expect(rejected.json().error.code).toBe('MANUAL_CONFIRMATION_NOT_SUPPORTED');
       expect((await prisma.order.findUniqueOrThrow({ where: { id: cardOrderId } })).paymentStatus).toBe('PENDING');

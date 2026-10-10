@@ -165,7 +165,7 @@ describe('Plugin uninstall, restore and purge', () => {
     const absent = await fetch(`${base}/api/v1/extensions/plugin/${slug}/purge`, { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
     expect(absent.status).toBe(400); expect((await absent.json()).error.code).toBe('PLUGIN_PURGE_CONFIRMATION_REQUIRED');
   });
-  it('D pending payments block purge; terminal history, plugin data, migration ledger, directories and events survive successful purge', async () => {
+  it.each(['PENDING','CREATING'] as const)('D %s payments block purge; terminal history, plugin data, migration ledger, directories and events survive successful purge', async status => {
     const table = `plugin_removal_${randomUUID().replaceAll('-', '')}`; tables.add(table);
     const slug = await fixture(true, `CREATE TABLE public."${table}" (value TEXT)`);
     await prisma.$executeRawUnsafe(`INSERT INTO "${table}" VALUES ('kept')`);
@@ -176,7 +176,7 @@ describe('Plugin uninstall, restore and purge', () => {
     const event = await prisma.eventRecord.create({ data: { type: 'order.created', version: 1, aggregateId: slug, data: { plugin: slug } } }); eventIds.add(event.id);
     const row = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } }); const pkg = await pluginPackageStore.get(slug, row.zipHash!);
     const order = await prisma.order.create({ data: { userId: customerId, subtotalAmount: 12, totalAmount: 12, paymentMethod: slug } }); orderIds.add(order.id);
-    const payment = await prisma.payment.create({ data: { orderId: order.id, paymentMethod: slug, amount: 12, sessionId: randomUUID(), status: 'PENDING' } });
+    const payment = await prisma.payment.create({ data: { orderId: order.id, paymentMethod: slug, amount: 12, sessionId: status === 'PENDING' ? randomUUID() : null, status, idempotencyKey: randomUUID(), expiresAt: new Date(Date.now()+30*60_000) } });
     expect((await request(slug, 'uninstall')).status).toBe(200);
     expect(await prisma.$queryRawUnsafe(`SELECT value FROM "${table}"`)).toEqual([{ value: 'kept' }]);
     expect(await prisma.pluginMigrationSuccess.findMany({ where: { namespaceId: namespace.id }, orderBy: { order: 'asc' } })).toEqual(ledger);

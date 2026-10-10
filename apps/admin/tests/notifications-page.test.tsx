@@ -59,7 +59,7 @@ describe('Admin notifications page', () => {
     const resendButton = Array.from(document.body.querySelectorAll('button')).find((element) => element.textContent?.includes('Resend'))
     expect(resendButton).toBeDefined()
     await act(async () => resendButton?.click())
-    expect(resend).toHaveBeenCalledWith(item.id)
+    expect(resend).toHaveBeenCalledWith(item.id, expect.any(String))
     expect(getAll).toHaveBeenCalledTimes(2)
   })
 })

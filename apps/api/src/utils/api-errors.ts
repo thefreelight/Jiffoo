@@ -127,6 +127,8 @@ export const errorCatalog = {
   [ApiErrorCodes.PATH_TRAVERSAL]: { status: 400, message: "Path traversal." },
   [ApiErrorCodes.PAYLOAD_TOO_LARGE]: { status: 413, message: "Payload too large." },
   [ApiErrorCodes.PAYMENT_IDEMPOTENCY_CONFLICT]: { status: 409, message: "Payment idempotency conflict." },
+  [ApiErrorCodes.PAYMENT_ATTEMPT_OPEN]: { status: 409, message: 'A payment attempt is already open. Wait before trying again.' },
+  [ApiErrorCodes.PAYMENT_REFERENCE_REQUIRED]: { status: 400, message: 'Enter a payment or refund reference.' },
   [ApiErrorCodes.PAYMENT_METHOD_MISMATCH]: { status: 409, message: "Payment method mismatch." },
   [ApiErrorCodes.PAYMENT_PLUGIN_NOT_ENABLED]: { status: 409, message: "Payment plugin not enabled." },
   [ApiErrorCodes.PAYMENT_PROVIDER_DISABLED]: { status: 409, message: "Payment provider disabled." },

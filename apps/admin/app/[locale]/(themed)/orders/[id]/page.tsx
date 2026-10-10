@@ -25,6 +25,7 @@ export default function OrderDetailPage() {
   const [showShipDialog, setShowShipDialog] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
+  const [manualReference, setManualReference] = useState('')
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -405,15 +406,20 @@ export default function OrderDetailPage() {
                 </Button>
               )}
 
-              {order.status === 'PENDING' && order.canRecordManualPayment && (
+              {order.refundRequired && <p role="status">{getText('merchant.orders.refundRequired', 'Refund required')}</p>}
+              {['PENDING','CANCELLED'].includes(order.status) && order.canRecordManualPayment && (
+                <div className="space-y-3">
+                <label htmlFor="manual-payment-reference">{getText('merchant.orders.paymentReference', 'Payment reference')}</label>
+                <input id="manual-payment-reference" value={manualReference} onChange={event => setManualReference(event.target.value)} required maxLength={256} className="h-12 w-full rounded-xl border border-neutral-faint px-4" />
                 <Button
                   className="w-full h-14 rounded-2xl bg-positive-strong hover:bg-positive-deep text-surface font-black uppercase tracking-widest text-[10px] shadow-lg active:scale-95 transition-all"
-                  disabled={recordManualPayment.isPending}
-                  onClick={() => recordManualPayment.mutate({ id: order.id })}
+                  disabled={recordManualPayment.isPending || !manualReference.trim()}
+                  onClick={() => recordManualPayment.mutate({ id: order.id, reference: manualReference.trim() })}
                 >
                   <CreditCard className="w-4 h-4 mr-2" />
-                  Record Payment
+                  {getText('merchant.orders.recordPayment', 'Record payment')}
                 </Button>
+                </div>
               )}
 
               {order.paymentStatus === 'PAID' &&
@@ -424,7 +430,7 @@ export default function OrderDetailPage() {
                   onClick={() => setShowRefundDialog(true)}
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
-                  Reverse Settlement
+                  {getText('merchant.orders.refund.title', 'Record offline full refund')}
                 </Button>
               )}
 

@@ -178,7 +178,7 @@ module.exports = { register(ctx) {
     const { id, payment } = await order(slug);
     await toggle(slug, false);
     const before = await trace();
-    const response = await app.inject({ method: 'POST', url: `/api/v1/admin/orders/${id}/record-manual-payment`, headers: auth(admin), payload: {} });
+    const response = await app.inject({ method: 'POST', url: `/api/v1/admin/orders/${id}/record-manual-payment`, headers: auth(admin), payload: { reference: 'verified-reference' } });
     expect(response.statusCode).toBe(409);
     expect(response.json().error.code).toBe('PAYMENT_PROVIDER_DISABLED');
     expect((await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } })).status).toBe('PENDING');

@@ -23,9 +23,7 @@ import { syncPaymentFromPlugin } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
 import { ApiError, sendKnownError, sendMappedError } from '@/utils/api-errors';
-import { Prisma } from '@prisma/client';
-import { decimalToMinor } from './minor-units';
-import { createNotification } from '@/core/notifications/service';
+import { createPaymentSession } from './session';
 import { paymentWebhookRoutes } from './webhook-routes';
 
 function setHttpCache(reply: FastifyReply, data: unknown) {
@@ -35,9 +33,6 @@ function setHttpCache(reply: FastifyReply, data: unknown) {
   return etag;
 }
 
-function isUniqueConstraintError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
-}
 
 type PaymentMethodDescriptor = {
   pluginSlug: string;
@@ -250,157 +245,12 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         );
       }
 
-      // Verify order exists and belongs to user
-      const order = await prisma.order.findFirst({
-        where: {
-          id: orderId,
-          userId: request.user!.id
-        },
-        include: {
-          items: {
-            include: {
-              product: true
-            }
-          }
-        }
+      const result = await createPaymentSession({
+        orderId, userId: request.user!.id, email: request.user!.email, pluginSlug,
+        idempotencyKey: rawIdempotencyKey, returnUrl: successUrl || `${getShopOrigin()}/payment/return`,
+        cancelUrl: cancelUrl || `${getShopOrigin()}/payment/cancel`,
       });
-
-      if (!order) {
-        return sendError(reply, 404, 'NOT_FOUND', 'Order not found');
-      }
-
-      if (order.paymentStatus === PaymentStatus.PAID) {
-        return sendError(reply, 409, 'ORDER_ALREADY_PAID', 'Order is already paid.');
-      }
-
-      if (order.status !== 'PENDING') {
-        return sendError(reply, 409, 'ORDER_NOT_PAYABLE', 'Only pending orders can be paid.');
-      }
-
-      if (order.paymentMethod !== pluginSlug) {
-        return sendError(reply, 409, 'PAYMENT_METHOD_MISMATCH', 'Payment method does not match the order.');
-      }
-
-      const attemptNumber = (order.paymentAttempts || 0) + 1;
-      const normalizedIdempotencyKey = typeof rawIdempotencyKey === 'string' && rawIdempotencyKey.trim()
-        ? rawIdempotencyKey.trim()
-        : undefined;
-      const paymentProvider = pluginSlug;
-      const idempotencyKey = normalizedIdempotencyKey || `order:${order.id}:attempt:${attemptNumber}:${paymentProvider}`;
-
-      const existingPayment = await prisma.payment.findUnique({
-        where: { idempotencyKey },
-      });
-
-      if (existingPayment) {
-        if (existingPayment.orderId !== order.id) {
-          return sendError(reply, 409, 'PAYMENT_IDEMPOTENCY_CONFLICT', 'Idempotency key already used by another order.');
-        }
-        return sendSuccess(reply, {
-          sessionId: existingPayment.sessionId,
-          url: existingPayment.sessionUrl,
-          action: existingPayment.actionJson,
-          expiresAt: existingPayment.expiresAt?.toISOString() || new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-        });
-      }
-      const currency = await systemSettingsService.getShopCurrency();
-
-      const session = await callContract(pluginSlug!, 'payment', 1, 'createSession', {
-          orderId: order.id,
-          amountMinor: decimalToMinor(order.totalAmount as unknown as string | number, currency),
-          currency,
-          customer: { id: request.user!.id, email: request.user!.email },
-          returnUrl: successUrl || `${getShopOrigin()}/payment/return`,
-          cancelUrl: cancelUrl || `${getShopOrigin()}/payment/cancel`,
-          idempotencyKey,
-        }) as any;
-      const sessionUrl = session.action.type === 'redirect' ? session.action.url : undefined;
-
-      const expiresAt = session.expiresAt ? new Date(String(session.expiresAt)) : new Date(Date.now() + 30 * 60 * 1000);
-
-      try {
-        await prisma.$transaction(async (tx) => {
-          const payment = await tx.payment.create({
-            data: {
-              orderId: order.id,
-              paymentMethod: pluginSlug!,
-              amount: Number(order.totalAmount),
-              currency,
-              status: 'PENDING',
-              sessionId: session.sessionId as string,
-              sessionUrl: sessionUrl || null,
-              actionJson: session.action,
-              paymentIntentId: null,
-              attemptNumber,
-              idempotencyKey,
-              expiresAt,
-            }
-          });
-
-          await tx.paymentLedger.create({
-            data: {
-              paymentId: payment.id,
-              orderId: order.id,
-              eventType: 'CREATED',
-              amount: Number(order.totalAmount),
-              currency,
-              provider: pluginSlug!,
-              idempotencyKey,
-            },
-          });
-
-          await tx.order.update({
-            where: { id: orderId },
-            data: {
-              paymentAttempts: attemptNumber,
-              lastPaymentAttemptAt: new Date(),
-              lastPaymentMethod: pluginSlug!
-            }
-          });
-          if (await tx.payment.count({ where: { orderId: order.id } }) === 1) {
-            await createNotification(tx, 'order_confirmation', order.userId, order.customerEmail || request.user!.email, {
-              orderId: order.id,
-              instructions: session.action.type === 'instructions' ? session.action.text : '',
-            }, { relatedType: 'order', relatedId: order.id });
-          }
-        });
-      } catch (error: any) {
-        if (isUniqueConstraintError(error)) {
-          const existing = await prisma.payment.findUnique({ where: { idempotencyKey } });
-          if (existing) {
-            return sendSuccess(reply, {
-              sessionId: existing.sessionId,
-              url: existing.sessionUrl,
-              action: existing.actionJson,
-              expiresAt: existing.expiresAt?.toISOString() || expiresAt.toISOString(),
-            });
-          }
-
-          const existingAttempt = await prisma.payment.findFirst({
-            where: {
-              orderId: order.id,
-              attemptNumber,
-            },
-            orderBy: { createdAt: 'desc' },
-          });
-          if (existingAttempt) {
-            return sendSuccess(reply, {
-              sessionId: existingAttempt.sessionId,
-              url: existingAttempt.sessionUrl,
-              action: existingAttempt.actionJson,
-              expiresAt: existingAttempt.expiresAt?.toISOString() || expiresAt.toISOString(),
-            });
-          }
-        }
-        throw error;
-      }
-
-      return sendSuccess(reply, {
-        sessionId: session.sessionId as string,
-        url: sessionUrl,
-        action: session.action,
-        expiresAt: expiresAt.toISOString(),
-      });
+      return sendSuccess(reply, result);
     } catch (error: any) {
       LoggerService.logPayment('create-session-error', undefined, undefined, { error: error.message });
       const known = sendKnownError(reply, error); if (known) return known;
