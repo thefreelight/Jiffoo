@@ -8,7 +8,9 @@ import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
-import { claimNotifications, reclaimNotificationLeases, completeNotification, failNotification, expireNotificationLeaseForTest } from '@/core/notifications/lease';
+import { claimNotifications, reclaimNotificationLeases, completeNotification, failNotification, expireNotificationLeaseForTest, notificationClaimLimit } from '@/core/notifications/lease';
+import { deliverPendingNotifications } from '@/core/notifications/delivery';
+import { getPluginTimeoutMs } from '@/core/admin/extension-installer/gateway-protection';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteTestUser } from '../helpers/auth';
 import { installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-plugin';
@@ -275,3 +277,82 @@ it('E4 an unsettled notification send is logged by id and leaves the deadline-ex
     expect((await prisma.coreProcess.findUniqueOrThrow({ where: { bootNonce: ready.bootNonce } })).state).toBe('DRAINING');
   } finally { for (const response of responses) response.end(JSON.stringify({ accepted: true })); await stopChild(current); }
 }, 120_000);
+it('H slow successful sends across multiple lease-sized batches never reclaim or exhaust attempts', async () => {
+  const limit = notificationClaimLimit(getPluginTimeoutMs());
+  const items = await Promise.all(Array.from({ length: limit + 2 }, notification));
+  const ids = items.map(item => item.id), control = await connect();
+  let timer: NodeJS.Timeout | undefined;
+  let releaseDelay: (() => void) | undefined, stopped = false, reclaimed = 0;
+  let reclaim: Promise<void> | undefined;
+  const reclaimTimer = setInterval(() => {
+    reclaim ??= reclaimNotificationLeases(control).then(count => { reclaimed += count; }).finally(() => { reclaim = undefined; });
+  }, 250);
+  const provider = (async () => {
+    for (let index = 0; index < items.length; index++) {
+      if (stopped) return;
+      const request = await requests.take(value => value.kind === 'notification' && ids.includes(value.id) && value.pid === process.pid);
+      try { await new Promise<void>(resolve => { releaseDelay = resolve; timer = setTimeout(resolve, getPluginTimeoutMs() * 0.9); }); }
+      finally { clearTimeout(timer); }
+      request.response.end(JSON.stringify({ accepted: true, providerMessageId: `slow-${request.id}` }));
+    }
+  })();
+  void provider.catch(() => undefined);
+  try {
+    expect(await deliverPendingNotifications()).toBe(limit);
+    expect(await reclaimNotificationLeases(control)).toBe(0);
+    expect(await deliverPendingNotifications()).toBe(2);
+    await provider;
+    const rows = await prisma.notification.findMany({ where: { id: { in: ids } } });
+    expect(rows).toHaveLength(items.length);
+    for (const row of rows) expect(row).toMatchObject({ status: 'SENT', attempts: 0 });
+    for (const id of ids) expect(observed.filter(value => value.id === id)).toHaveLength(1);
+    expect(await reclaimNotificationLeases(control)).toBe(0);
+    await reclaim; expect(reclaimed).toBe(0);
+  } finally {
+    stopped = true; clearInterval(reclaimTimer);
+    clearTimeout(timer);
+    releaseDelay?.();
+    for (const response of responses) response.end(JSON.stringify({ accepted: true }));
+    try { await provider; await reclaim; } finally { await control.end(); }
+  }
+}, 120_000);
+it('I a second overlapping tick in one real worker claims nothing', async () => {
+  const first = await notification(), current = await child({ invocationMs: getPluginTimeoutMs() });
+  try {
+    const request = await requestFrom(current, value => value.kind === 'notification' && value.id === first.id && value.pid === current.process.pid);
+    const before = await prisma.notification.findUniqueOrThrow({ where: { id: first.id } });
+    const second = await notification();
+    current.process.send({ command: 'notification-tick' });
+    expect(await current.messages.take(value => value.stage === 'notification-tick')).toMatchObject({ count: 0 });
+    expect(await prisma.notification.findUniqueOrThrow({ where: { id: first.id } })).toEqual(before);
+    expect(await prisma.notification.findUniqueOrThrow({ where: { id: second.id } })).toMatchObject({ status: 'PENDING', attempts: 0, claimToken: null });
+    expect(observed.filter(value => value.id === second.id)).toHaveLength(0);
+    request.response.end(JSON.stringify({ accepted: true, providerMessageId: 'overlap-receipt' }));
+    await current.messages.take(value => value.stage === 'ready');
+    await stopChild(current);
+  } finally { for (const response of responses) response.end(JSON.stringify({ accepted: true })); await stopChild(current); }
+}, 120_000);
+it('J a short remaining lease releases the unsent tail without attempts or provider calls', async () => {
+  const items = await Promise.all([notification(), notification(), notification()]);
+  const ids = items.map(item => item.id), control = await connect();
+  const delivery = deliverPendingNotifications();
+  try {
+    const first = await requests.take(value => value.kind === 'notification' && ids.includes(value.id) && value.pid === process.pid);
+    const tail = ids.filter(id => id !== first.id);
+    for (const id of tail) {
+      const row = await prisma.notification.findUniqueOrThrow({ where: { id } });
+      await control.query(`UPDATE public.notifications SET "leaseUntil" = clock_timestamp() + interval '500 milliseconds'
+        WHERE id = $1 AND status = 'SENDING' AND "claimToken" = $2::uuid`, [id, row.claimToken]);
+    }
+    first.response.end(JSON.stringify({ accepted: true, providerMessageId: 'first-receipt' }));
+    expect(await delivery).toBe(items.length);
+    for (const id of tail) {
+      expect(await prisma.notification.findUniqueOrThrow({ where: { id } })).toMatchObject({ status: 'PENDING', attempts: 0, claimToken: null, claimedBy: null, leaseUntil: null });
+      expect(observed.filter(value => value.id === id)).toHaveLength(0);
+    }
+  } finally {
+    for (const response of responses) response.end(JSON.stringify({ accepted: true }));
+    await delivery;
+    await control.end();
+  }
+});
