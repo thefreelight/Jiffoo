@@ -22,6 +22,7 @@ export default function OrderDetailPage() {
   const orderId = params.id as string
   const t = useT()
   const [showRefundDialog, setShowRefundDialog] = useState(false)
+  const [refundPayment, setRefundPayment] = useState<{ paymentId: string; amount: number; currency: string } | undefined>()
   const [showShipDialog, setShowShipDialog] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
@@ -407,6 +408,19 @@ export default function OrderDetailPage() {
               )}
 
               {order.refundRequired && <p role="status">{getText('merchant.orders.refundRequired', 'Refund required')}</p>}
+              {order.refundResolutions?.map(payment => (
+                <div key={payment.paymentId} className="space-y-2 rounded-xl border border-neutral-faint p-3">
+                  <p>{payment.paymentId}: {formatCurrency(payment.amount, payment.currency)}</p>
+                  <p role="status">{payment.status === 'resolved'
+                    ? getText('merchant.orders.refundResolved', 'Refund recorded')
+                    : getText('merchant.orders.refundPending', 'Refund pending')}</p>
+                  {payment.status === 'resolved' ? <p>{payment.reference}</p> : (
+                    <Button variant="outline" onClick={() => { setRefundPayment(payment); setShowRefundDialog(true) }}>
+                      {getText('merchant.orders.recordRequiredRefund', 'Record offline refund for this payment')}
+                    </Button>
+                  )}
+                </div>
+              ))}
               {['PENDING','CANCELLED'].includes(order.status) && order.canRecordManualPayment && (
                 <div className="space-y-3">
                 <label htmlFor="manual-payment-reference">{getText('merchant.orders.paymentReference', 'Payment reference')}</label>
@@ -427,7 +441,7 @@ export default function OrderDetailPage() {
                 <Button
                   variant="outline"
                   className="w-full h-14 rounded-2xl border-neutral-faint text-danger-strong hover:bg-danger-veil font-black uppercase tracking-widest text-[10px] transition-all"
-                  onClick={() => setShowRefundDialog(true)}
+                  onClick={() => { setRefundPayment(undefined); setShowRefundDialog(true) }}
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
                   {getText('merchant.orders.refund.title', 'Record offline full refund')}
@@ -465,6 +479,8 @@ export default function OrderDetailPage() {
       </div>
 
       <RefundDialog
+        key={refundPayment?.paymentId ?? 'order-refund'}
+        payment={refundPayment}
         order={order as any}
         open={showRefundDialog}
         onOpenChange={setShowRefundDialog}

@@ -1,4 +1,5 @@
 import { prisma } from '@/config/database';
+import { paymentProviderEventId } from './provider-event-id';
 import { recordPaymentSucceeded, recordPaymentFailed, recordUnknownPaymentSession } from './reconciliation';
 
 type NormalizedPluginWebhook = {
@@ -9,7 +10,7 @@ export async function applyNormalizedPluginWebhook(pluginSlug: string, result: N
   const status = result.normalizedStatus;
   if (status !== 'succeeded' && status !== 'failed') return false;
   const payment = await prisma.payment.findFirst({ where: { sessionId: result.sessionId, paymentMethod: pluginSlug } });
-  const providerEventId = result.providerEventId || `${pluginSlug}:${result.sessionId}:${status}`;
+  const providerEventId = paymentProviderEventId(pluginSlug, result.sessionId, status, result.providerEventId);
   if (!payment) { await recordUnknownPaymentSession(result.sessionId, pluginSlug, providerEventId, 'webhook'); return false; }
   const input = { paymentId: payment.id, providerEventId, actorType: 'plugin', actorId: pluginSlug };
   return status === 'succeeded'

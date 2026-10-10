@@ -109,6 +109,10 @@ export interface AdminOrderDetailDTO {
   paymentMethod?: string | null;
   canRecordManualPayment?: boolean;
   refundRequired?: boolean;
+  refundResolutions?: Array<{
+    paymentId: string; amount: number; currency: string;
+    status: 'pending' | 'resolved'; reference: string | null;
+  }>;
   paymentAttempts?: number;
   lastPaymentAttemptAt?: string | null;
   expiresAt?: string | null;

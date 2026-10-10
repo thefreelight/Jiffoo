@@ -146,6 +146,23 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
   });
 
   // Cancel order
+  fastify.post('/:id/refund-required-payment', {
+    preValidation: async request => {
+      const reference = (request.body as { reference?: string } | undefined)?.reference;
+      if (typeof reference !== 'string' || !reference.trim()) throw new ApiError('PAYMENT_REFERENCE_REQUIRED');
+    },
+    schema: {
+      tags: ['admin-orders'], summary: 'Record an offline refund for a refund-required payment',
+      security: [{ bearerAuth: [] }], ...adminOrderSchemas.resolveRefundRequiredPayment,
+    },
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const data = request.body as { paymentId: string; reference: string; idempotencyKey: string };
+      return sendSuccess(reply, await AdminOrderService.resolveRefundRequiredPayment(id, { ...data, actorId: request.user!.id }));
+    } catch (error) { return sendMappedError(reply, error); }
+  });
+
   fastify.post('/:id/cancel', {
     schema: {
       tags: ['admin-orders'],

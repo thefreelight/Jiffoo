@@ -9,7 +9,7 @@ import { readFile } from 'node:fs/promises';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { createPaymentSession } from '@/core/payment/session';
-import { syncPaymentFromPlugin, recordPaymentSucceeded, reconcilePendingPayments } from '@/core/payment/reconciliation';
+import { syncPaymentFromPlugin, recordPaymentSucceeded, recordPaymentFailed, reconcilePendingPayments } from '@/core/payment/reconciliation';
 import { withPaymentTestClock, paymentNow, PAYMENT_SESSION_LIFETIME_MS } from '@/core/payment/clock';
 import { OrderService } from '@/core/order/service';
 import { AdminOrderService } from '@/core/admin/order-management/service';
@@ -44,7 +44,7 @@ class Mailbox<T> {
 }
 type ProviderRequest = { kind: string; body: any; response: ServerResponse; result: any };
 const requests = new Mailbox<ProviderRequest>(), received: ProviderRequest[] = [], responses = new Set<ServerResponse>();
-const sessions = new Map<string, { orderId: string; state: 'pending' | 'succeeded' | 'failed' }>();
+const sessions = new Map<string, { orderId: string; state: 'pending' | 'succeeded' | 'failed'; omitEventId?: boolean }>();
 const blockedCreates = new Set<string>(), blockedPids = new Set<number>();
 const orderIds = new Set<string>(), productIds = new Set<string>(), clients = new Set<Client>(), bootNonces = new Set<string>();
 const reviewSessionIds = new Set<string>();
@@ -65,8 +65,9 @@ const server = createServer(async (request, response) => {
     if (!sessions.has(sessionId)) sessions.set(sessionId, { orderId: body.orderId, state: 'pending' });
     result = { sessionId, action: { type: 'redirect', url: providerUrl + '/pay/' + encodeURIComponent(sessionId) } };
   } else if (kind === 'status') {
-    result = { status: sessions.get(body.sessionId)!.state, providerEventId: 'event:' + body.sessionId + ':' + received.length };
-  } else if (kind === 'verify') result = { verification: 'verified', events: [{ providerEventId: body.providerEventId, sessionId: body.sessionId, status: body.status }] };
+    const session = sessions.get(body.sessionId)!;
+    result = { status: session.state, ...(session.omitEventId ? {} : { providerEventId: 'event:' + body.sessionId + ':' + received.length }) };
+  } else if (kind === 'verify') result = { verification: 'verified', events: [{ providerEventId: body.providerEventId || `${slug}:${body.sessionId}:${body.status}`, sessionId: body.sessionId, status: body.status }] };
   else result = { accepted: true };
   const item = { kind, body, response, result }; received.push(item); responses.add(response);
   response.once('close', () => responses.delete(response)); requests.put(item);
@@ -208,6 +209,74 @@ it('A two real query connections converge different success events to one paid t
     await expect(prisma.paymentLedger.create({ data: { paymentId: row.id, orderId: item.id, eventType: 'SUCCEEDED', amount: 20, currency: 'USD', providerEventId: randomUUID() } })).rejects.toMatchObject({ code: 'P2002' });
     await dispatch(); expect(received.filter(value => value.kind === 'fulfillment' && value.body.orderId === item.id)).toHaveLength(1);
   } finally { await lock.query('ROLLBACK'); await Promise.allSettled([first,second]); }
+});
+it('A2 a failed sync without an event id does not hide a later capture on the same session', async () => {
+  const [, observer] = await connections(), item = await order(), row = await payment(item.id);
+  const session = sessions.get(row.sessionId!)!; session.omitEventId = true; session.state = 'failed';
+  expect(await syncPaymentFromPlugin(row.sessionId!)).toBe(true);
+  session.state = 'succeeded';
+  expect(await syncPaymentFromPlugin(row.sessionId!)).toBe(true);
+  expect((await prisma.payment.findUniqueOrThrow({ where: { id: row.id } })).status).toBe('SUCCEEDED');
+  expect((await prisma.order.findUniqueOrThrow({ where: { id: item.id } })).paymentStatus).toBe('PAID');
+  expect(await prisma.paymentLedger.findMany({ where: { paymentId: row.id, eventType: { in: ['FAILED', 'SUCCEEDED'] } }, select: { providerEventId: true }, orderBy: { createdAt: 'asc' } })).toEqual([
+    { providerEventId: `${slug}:${row.sessionId}:failed` }, { providerEventId: `${slug}:${row.sessionId}:succeeded` },
+  ]);
+  expect(await counts(observer, item.id)).toEqual({ paid: 1, success: 1, notifications: 1 });
+});
+it('A3 a webhook and a sync without provider event ids converge under the same outcome identity', async () => {
+  const [lock, observer] = await connections(), item = await order(), row = await payment(item.id);
+  const session = sessions.get(row.sessionId!)!; session.omitEventId = true; session.state = 'succeeded';
+  await lock.query('BEGIN'); await lock.query('SELECT id FROM orders WHERE id=$1 FOR UPDATE', [item.id]);
+  const sync = syncPaymentFromPlugin(row.sessionId!);
+  const hook = app.inject({ method: 'POST', url: '/api/v1/payments/webhook/' + slug, payload: { sessionId: row.sessionId, status: 'succeeded' } });
+  try {
+    await requests.take(value => value.kind === 'status' && value.body.sessionId === row.sessionId);
+    await requests.take(value => value.kind === 'verify' && value.body.sessionId === row.sessionId);
+    await waitOrderLock(observer, (await lock.query('SELECT pg_backend_pid() AS pid')).rows[0].pid);
+    await lock.query('COMMIT'); expect((await hook).statusCode).toBe(200); await sync;
+    expect(await counts(observer, item.id)).toEqual({ paid: 1, success: 1, notifications: 1 });
+    expect(await prisma.paymentLedger.count({ where: { paymentId: row.id, eventType: 'SUCCEEDED', providerEventId: `${slug}:${row.sessionId}:succeeded` } })).toBe(1);
+  } finally { await lock.query('ROLLBACK'); await Promise.allSettled([sync, hook]); }
+});
+it('A4 cancellation is terminal for both failure entry points', async () => {
+  const [, observer] = await connections(), item = await order(), row = await payment(item.id);
+  await OrderService.cancelOrder(item.id, admin.user.id, 'cancel');
+  expect(await recordPaymentFailed({ paymentId: row.id, providerEventId: randomUUID() })).toBe(false);
+  sessions.get(row.sessionId!)!.state = 'failed'; expect(await syncPaymentFromPlugin(row.sessionId!)).toBe(false);
+  expect((await prisma.payment.findUniqueOrThrow({ where: { id: row.id } })).status).toBe('CANCELLED');
+  expect(await prisma.paymentLedger.count({ where: { paymentId: row.id, eventType: 'FAILED' } })).toBe(0);
+  expect((await observer.query('SELECT stock FROM product_variants WHERE id=$1', [item.variantId])).rows[0].stock).toBe(5);
+});
+it('I2 concurrent extra-payment refunds leave the paid order intact and do not block its accepted-payment refund', async () => {
+  const [lock, observer] = await connections(), item = await order(), accepted = await payment(item.id);
+  await prisma.payment.update({ where: { id: accepted.id }, data: { status: 'FAILED' } });
+  const extra = await payment(item.id);
+  await recordPaymentSucceeded({ paymentId: accepted.id, providerEventId: randomUUID() });
+  await recordPaymentSucceeded({ paymentId: extra.id, providerEventId: randomUUID() });
+  const request = { paymentId: extra.id, reference: '  extra-refund  ', idempotencyKey: randomUUID(), actorId: admin.user.id };
+  await expect(AdminOrderService.resolveRefundRequiredPayment(item.id, { ...request, paymentId: accepted.id })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  await expect(AdminOrderService.resolveRefundRequiredPayment(item.id, { ...request, reference: ' ' })).rejects.toMatchObject({ code: 'PAYMENT_REFERENCE_REQUIRED' });
+  const calls = received.length;
+  await lock.query('BEGIN'); await lock.query('SELECT id FROM orders WHERE id=$1 FOR UPDATE', [item.id]);
+  const first = AdminOrderService.resolveRefundRequiredPayment(item.id, request);
+  const second = AdminOrderService.resolveRefundRequiredPayment(item.id, { ...request, idempotencyKey: randomUUID() });
+  try {
+    await waitOrderLock(observer, (await lock.query('SELECT pg_backend_pid() AS pid')).rows[0].pid);
+    await lock.query('COMMIT'); await Promise.all([first, second]);
+    expect(await prisma.refund.count({ where: { paymentId: extra.id, status: 'COMPLETED' } })).toBe(1);
+    expect(await prisma.refundLedger.count({ where: { paymentId: extra.id } })).toBe(1);
+    expect(await prisma.paymentLedger.count({ where: { paymentId: extra.id, eventType: 'REFUNDED' } })).toBe(1);
+    expect(await prisma.order.findUniqueOrThrow({ where: { id: item.id } })).toMatchObject({ status: 'PROCESSING', paymentStatus: 'PAID' });
+    expect((await observer.query('SELECT stock FROM product_variants WHERE id=$1', [item.variantId])).rows[0].stock).toBe(4);
+    expect(await prisma.eventRecord.count({ where: { type: 'order.refunded', aggregateId: item.id } })).toBe(0);
+    const detail = await app.inject({ method: 'GET', url: `/api/v1/admin/orders/${item.id}`, headers: { authorization: `Bearer ${admin.token}` } });
+    expect(detail.json().data.refundResolutions).toEqual([{ paymentId: extra.id, amount: 20, currency: 'USD', status: 'resolved', reference: 'extra-refund' }]);
+    const orderRefund = await app.inject({ method: 'POST', url: `/api/v1/admin/orders/${item.id}/refund`, headers: { authorization: `Bearer ${admin.token}` }, payload: { reference: 'accepted-refund', idempotencyKey: randomUUID() } });
+    expect(orderRefund.statusCode).toBe(200);
+    expect(await prisma.refund.count({ where: { paymentId: accepted.id, status: 'COMPLETED' } })).toBe(1);
+    expect(await prisma.order.findUniqueOrThrow({ where: { id: item.id } })).toMatchObject({ status: 'REFUNDED', paymentStatus: 'REFUNDED' });
+    expect(received.length).toBe(calls);
+  } finally { await lock.query('ROLLBACK'); await Promise.allSettled([first, second]); }
 });
 it.each(['payment','cancel'] as const)('B %s wins the shared order lock against the other writer', async winner => {
   const [reader, observer] = await connections(), item = await order(), row = await payment(item.id);

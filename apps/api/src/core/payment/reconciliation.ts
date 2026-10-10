@@ -14,6 +14,7 @@ import { lockOrder, lockPayment } from './locks';
 import { paymentNow, PAYMENT_SESSION_LIFETIME_MS } from './clock';
 import { claimPaymentReconciliations, paymentLeaseAllowsQuery, releasePaymentReconciliation, type PaymentLeaseClient } from './lease';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
+import { paymentProviderEventId } from './provider-event-id';
 
 const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
@@ -93,10 +94,10 @@ export async function recordPaymentFailed(input: { paymentId: string; providerEv
       await lockOrder(tx, identity.orderId); await lockPayment(tx, input.paymentId);
       const order = await tx.order.findUniqueOrThrow({ where: { id: identity.orderId } });
       const payment = await tx.payment.findUniqueOrThrow({ where: { id: input.paymentId } });
-      if (['SUCCEEDED','FAILED','EXPIRED'].includes(payment.status) || input.claimToken && payment.claimToken !== input.claimToken) return false;
+      if (['SUCCEEDED','FAILED','CANCELLED','EXPIRED'].includes(payment.status) || input.claimToken && payment.claimToken !== input.claimToken) return false;
       if (await tx.paymentLedger.findUnique({ where: { providerEventId: input.providerEventId } })) return false;
       const changed = await tx.payment.updateMany({
-        where: { id: payment.id, status: { notIn: ['SUCCEEDED','FAILED','EXPIRED'] }, ...(input.claimToken ? { claimToken: input.claimToken } : {}) },
+        where: { id: payment.id, status: { notIn: ['SUCCEEDED','FAILED','CANCELLED','EXPIRED'] }, ...(input.claimToken ? { claimToken: input.claimToken } : {}) },
         data: { status: 'FAILED', providerEventId: input.providerEventId, ...clearLease },
       });
       if (!changed.count) return false;
@@ -120,12 +121,12 @@ export async function recordPaymentFailed(input: { paymentId: string; providerEv
 export async function syncPaymentFromPlugin(sessionId: string, claimToken?: string): Promise<boolean> {
   const payment = await prisma.payment.findUnique({ where: { sessionId } });
   if (!payment) { await recordUnknownPaymentSession(sessionId); return false; }
-  if (payment.status === 'SUCCEEDED' || payment.status === 'FAILED' || claimToken && payment.claimToken !== claimToken) return false;
+  if (payment.status === 'SUCCEEDED' || claimToken && payment.claimToken !== claimToken) return false;
   let data: { status: string; providerEventId?: string };
   try { data = await callContract(payment.paymentMethod, 'payment', 1, 'getSessionStatus', { sessionId }) as typeof data; }
   catch (error) { if (error instanceof SharedProtectionUnavailable) throw error; return false; }
   const status = data.status;
-  const providerEventId = data.providerEventId || sessionId;
+  const providerEventId = paymentProviderEventId(payment.paymentMethod, sessionId, status, data.providerEventId);
   if (status === 'succeeded')
     return recordPaymentSucceeded({ paymentId: payment.id, providerEventId, claimToken });
   if (status === 'failed' || status === 'cancelled')

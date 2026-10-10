@@ -61,6 +61,14 @@ const adminOrderDetailSchema = {
     paymentMethod: { type: 'string', nullable: true },
     canRecordManualPayment: { type: 'boolean' },
     refundRequired: { type: 'boolean' },
+    refundResolutions: {
+      type: 'array', items: {
+        type: 'object', properties: {
+          paymentId: { type: 'string' }, amount: { type: 'number' }, currency: { type: 'string' },
+          status: { type: 'string', enum: ['pending', 'resolved'] }, reference: { type: 'string', nullable: true },
+        }, required: ['paymentId', 'amount', 'currency', 'status', 'reference'],
+      },
+    },
     cancelReason: { type: 'string', nullable: true, description: 'Cancellation reason' },
     cancelledAt: { type: 'string', format: 'date-time', nullable: true },
     createdAt: { type: 'string', format: 'date-time' },
@@ -303,6 +311,19 @@ export const adminOrderSchemas = {
   },
 
   // POST /api/admin/orders/:id/cancel
+  resolveRefundRequiredPayment: {
+    params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+    body: {
+      type: 'object', additionalProperties: false, required: ['paymentId', 'reference', 'idempotencyKey'],
+      properties: {
+        paymentId: { type: 'string', minLength: 1 },
+        reference: { type: 'string', minLength: 1, maxLength: 256 },
+        idempotencyKey: { type: 'string', minLength: 1 },
+      },
+    },
+    response: { ...createTypedUpdateResponses(adminOrderDetailSchema), 409: errorResponseSchema },
+  },
+
   cancelOrder: {
     params: {
       type: 'object',

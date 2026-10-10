@@ -22,9 +22,10 @@ interface RefundDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
+  payment?: { paymentId: string; amount: number; currency: string }
 }
 
-export function RefundDialog({ order, open, onOpenChange, onSuccess }: RefundDialogProps) {
+export function RefundDialog({ order, open, onOpenChange, onSuccess, payment }: RefundDialogProps) {
   const t = useT()
   const [reason, setReason] = useState('')
   const [reference, setReference] = useState('')
@@ -35,6 +36,7 @@ export function RefundDialog({ order, open, onOpenChange, onSuccess }: RefundDia
     try {
       await refundOrderMutation.mutateAsync({
         id: order.id,
+        paymentId: payment?.paymentId,
         data: {
           reason,
           idempotencyKey: requestKey,
@@ -89,7 +91,7 @@ export function RefundDialog({ order, open, onOpenChange, onSuccess }: RefundDia
             </Label>
             <Input
               id="refund-amount"
-              value={formatCurrency(order.totalAmount, order.currency)}
+              value={formatCurrency(payment?.amount ?? order.totalAmount, payment?.currency ?? order.currency)}
               disabled
               className="h-14 bg-neutral-veil border-neutral-faint rounded-xl font-black text-lg text-neutral-deepest px-6"
             />
@@ -141,7 +143,7 @@ export function RefundDialog({ order, open, onOpenChange, onSuccess }: RefundDia
               ? getText('common.actions.processing', 'Processing...')
               : getText('merchant.orders.refund.confirm', 'Record refund {amount}').replace(
                   '{amount}',
-                  formatCurrency(order.totalAmount, order.currency)
+                  formatCurrency(payment?.amount ?? order.totalAmount, payment?.currency ?? order.currency)
                 )}
           </Button>
         </DialogFooter>
