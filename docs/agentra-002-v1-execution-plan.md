@@ -11,21 +11,26 @@ when a scenario's status or remaining blocker changes.
 ## Scenario 1 — disconnected installation completes a baseline order
 
 Charter text: A disconnected installation completes a baseline order with no extension.
-Status: COMPLETE (assessed 2026-09-23)
+Status: COMPLETE (reassessed 2026-10-11)
+Commits: c06db02c7, 7a489044e, 6f9db44e0, 1d4582d60
+Evidence: builtin-plugins.test.ts and shop-checkout-contract.test.ts cover
+startup installation, all five builtin contracts and confirmed order totals;
+payment-convergence.test.ts covers payment transitions, replay and Admin
+resolution of REQUIRES_REVIEW without losing later capture facts.
 Prerequisites:
 manual payment
 free shipping
 zero tax
 manual fulfillment
 console email
-Blocked by: builtin plugin installation; builtin manual payment, free shipping, zero tax, manual fulfillment and console email; shipping and tax contracts called in checkout; unpaid-order timeout; notification contract
+Blocked by: none for the baseline order acceptance scenario.
 
 ## Scenario 2 — marketplace index is unreachable
 
 Charter text: When the marketplace index is unreachable, browsing is unavailable and
 local package upload still works.
-Status: COMPLETE (assessed 2026-10-04)
-Commits: 52d5f7f14, bc268d7e1, 1ab053b23, 2c9d0798e
+Status: COMPLETE (reassessed 2026-10-11)
+Commits: 52d5f7f14, bc268d7e1, 1ab053b23, 2c9d0798e, 2b8c98ed8
 Evidence: marketplace-catalog.test.ts covers unavailable and unconfigured
 catalogs and preserved local upload; plugin-upload-preview.test.ts and
 31-plugin-upload.spec.ts cover the normal local upload path.
@@ -38,7 +43,7 @@ Blocked by: none
 Charter text: A signed extension is downloaded from the marketplace, verified,
 configured in Admin, enabled without restarting Core, selected in checkout,
 receives its provider callback, and completes the Core order transition.
-Status: COMPLETE (assessed 2026-10-04)
+Status: COMPLETE (reassessed 2026-10-11)
 Commits: ac2307e80, c9185bf43, bc268d7e1, 1ab053b23, c79c7e2e6
 Evidence: 35-extension-center.spec.ts B-F demonstrate signed marketplace
 installation, configuration, enablement without restart, checkout, a verified
@@ -46,9 +51,11 @@ provider callback, persistent Paid state, replay idempotency, rejected
 signatures and tampering, disabled callbacks and provider-session isolation.
 Acceptance uses a test-signed fixture protocol; it does not demonstrate a
 real payment provider's raw-HTTP-byte signature verification.
-Known limitations: real payment provider launch is blocked by reconstructed
-webhook rawBody and verification failures returning 500 rather than a stable
-authentication error.
+Known limitations (reassessed 2026-10-11): the acceptance extension remains
+a test provider rather than a shipped real-provider integration. Original
+HTTP bytes and stable 401 authentication failures are implemented in
+ec73b7ff2 and 7a489044e, with payment-webhook-http.test.ts covering both;
+6f9db44e0 and 1d4582d60 add Admin review resolution and its typed UI contract.
 Prerequisites:
 Extension Center
 extension registry
@@ -58,8 +65,8 @@ compatibility policy
 trust policy
 payment
 Commerce Kernel
-Blocked by: none for the demonstrated acceptance scenario; the real payment
-provider launch blockers remain open.
+Blocked by: none for the demonstrated acceptance scenario; a real provider
+still needs its own implementation and acceptance verification.
 
 ## Scenario 4 — unsigned extension upload and identical install and enable flow
 
@@ -84,12 +91,15 @@ Blocked by: none
 
 Charter text: A tax contract participates in checkout and is reflected in the order total
 before order placement.
-Status: COMPLETE (assessed 2026-09-23)
+Status: COMPLETE (reassessed 2026-10-11)
+Evidence: builtin-plugins.test.ts verifies zero-tax through callContract;
+plugin-lifecycle-reconciliation.test.ts verifies tax totals and line identity;
+checkout/service.ts calculates tax before the confirmed order is persisted.
 Prerequisites:
 tax
 checkout
 order
-Blocked by: tax contract; checkout call site
+Blocked by: none.
 
 ## Scenario 6 — event subscription receives order.created
 
@@ -107,7 +117,11 @@ Implementation decisions:
 - Finished deliveries and their events are deleted after 30 days.
 - The outbox poller, BullMQ, external webhook delivery and the webhook tables were removed.
 - API and worker are the only supported runtime processes; the worker reports a heartbeat and exposes a health endpoint.
-Known limitations: a timed-out handler keeps running; a synchronous infinite loop blocks the worker; there is no process isolation.
+Known limitations (reassessed 2026-10-11): a timed-out handler can continue
+running and a synchronous infinite loop can block its worker. Invocation
+markers remain until actual settlement; plugins still run in-process.
+multi-instance-state.test.ts proves attributed unhandled asynchronous
+failures preserve Core serving and another plugin's capability (2b8c98ed8).
 Prerequisites:
 Event Layer
 order.created
@@ -153,7 +167,7 @@ Blocked by: none
 Charter text: An update with no migration validates release and extension compatibility,
 changes the application version, passes health checks, and the prior
 application version remains restorable.
-Status: NOT STARTED (assessed 2026-09-22)
+Status: NOT STARTED (reassessed 2026-10-11)
 Prerequisites:
 Core Updates
 compatibility policy
@@ -166,19 +180,22 @@ Charter text: An update with a migration requires merchant confirmation and back
 audits both Core and plugin ledgers before writing, blocks on mismatch,
 reports migration and health results, and does not offer application
 rollback after any migration is applied.
-Status: NOT STARTED (assessed 2026-09-22)
+Status: PARTIAL (reassessed 2026-10-11)
+Commits: 3650a285e, 1e836aa08, 0cd7d66c8, 9c2bc9aa1
+Evidence: plugin-migrations.test.ts checks declared SQL, confirmation,
+transactional migration prefixes and fenced publication; plugin-database.test.ts
+checks scoped handler database access; plugin-database-audit.test.ts checks
+installed-package manifest hashes, migration ledgers and read-only audit results.
 Prerequisites:
 Core Updates
 Plugin Database and Migrations
 Plugin migration history
-Blocked by: Core update flow; package-manifest verification of plugin
-migration identity, order and SHA-256; plugin migration audit; the SDK plugin
-database access path, delivered together with the Scenario 10 migration work.
-Known limitations (assessed 2026-10-04 at c79c7e2e6): the runtime migration
-ledger compares exported SQL checksums only with prior ledger entries.
-contract-v1-runtime.test.ts does not establish the charter's installed-package
-manifest audit. The migration audit and SDK database access path are
-pre-launch requirements for Scenario 10.
+Blocked by: the official host Core update command, stop/drain maintenance,
+backup and documented restore, Core migration audit, pre-write integration
+of the plugin auditor, and update health/recovery acceptance verification.
+Known limitations (reassessed 2026-10-11): the plugin auditor is read-only
+and explicitly does not prove process quiescence. Its caller must establish
+maintenance and enforce blocking findings before any update migration write.
 
 ## Scenario 11 — exact release commit verification
 
@@ -198,20 +215,23 @@ capability contracts are no longer missing implementation prerequisites.
 Charter text: No code outside the storage abstraction resolves a plugin package or
 uploaded file path, and no request-scoped state is held in process memory.
 This is a static audit, not a runtime test.
-Status: PARTIAL (assessed 2026-10-04)
-Commits: ea541f96c, 49274c49b, d4ff25415, 808a96cd7
+Status: COMPLETE (reassessed 2026-10-11)
+Commits: ea541f96c, 49274c49b, d4ff25415, 808a96cd7, c454dea94, 2b8c98ed8
 Evidence: storage-boundary-guard.test.ts checks package and uploaded-file path
 resolution through storage stores; immutable-plugin-packages.test.ts and
 startup-plugin-prewarm.test.ts cover package publication and materialization.
-The pattern guard is supporting evidence, not a complete static audit.
+module-state-audit.test.ts enumerates module containers and persistent class
+fields with an explicit three-category allowlist. request-state-storage.test.ts
+proves persisted log queries and fresh Vault resolution without retained
+request payloads; marketplace-catalog.test.ts proves fresh catalog reads.
+Known limitations: the static inventory covers apps/api/src; it does not
+claim to audit plugin-owned code or third-party library internals.
 Prerequisites:
 State and Storage Boundaries
 PluginPackageStore interface
 Merchant-uploaded files
 Session state
-Blocked by: request-derived in-process rate-limit state and completion of the
-static audit. Auth rate limiting retains an in-memory fallback, and the
-shared rate limiter still provides an in-memory store.
+Blocked by: none for the Core storage and state static audit.
 
 ## Scenario 13 — Extension SDK scaffolds a new extension
 
@@ -225,9 +245,10 @@ plugin running dev, building, signing, uploading, configuring, enabling and
 participating in checkout. plugin-sdk-create.test.ts and
 plugin-sdk-transfer.test.ts cover scaffold validation, CommonJS bundling,
 upload confirmation and test-signed watch behavior.
-Known limitations: the SDK and PluginContext do not yet provide the plugin
-database access path. This is a pre-launch requirement delivered together
-with the Scenario 10 plugin migration work.
+Known limitations (reassessed 2026-10-11): PluginContext.database and the SDK
+type snapshot provide the handler-scoped query/transaction path (1e836aa08).
+plugin-database.test.ts covers admission and settlement boundaries. Plugins
+remain trusted in-process code; schema scoping is not a malicious-code sandbox.
 Prerequisites:
 Extension SDK
 Extension Center
@@ -271,21 +292,34 @@ Charter text: An enumeration of every module-level container in Core that holds
 plugin-derived state is checked against the rebuild path of each extension
 lifecycle action, with every container accounted for under every action.
 This is a static audit, not a runtime test.
-Status: PARTIAL (assessed 2026-09-23)
+Status: COMPLETE (reassessed 2026-10-11)
+Commits: 808a96cd7, c454dea94, 2b8c98ed8
+Evidence: module-state-audit.test.ts accounts for every enumerated Core
+container, names each plugin-state rebuild path, and rejects new unlisted
+state. Registry-version reconciliation resets runtimes, event handlers,
+failure throttles, module loading and package corruption state;
+plugin-lifecycle-reconciliation.test.ts covers lifecycle version propagation.
 Prerequisites:
 State and Storage Boundaries
 Extension Lifecycle
-Blocked by: lifecycle rebuild of every plugin-derived container
+Blocked by: none for the Core container static audit.
 
 ## Scenario 16 — unhandled asynchronous error
 
 Charter text: An enabled extension raises an unhandled asynchronous error. The Core
 process continues serving, the failure is recorded with its originating
 extension, and no other extension's capability is affected.
-Status: PARTIAL (assessed 2026-09-23)
+Status: COMPLETE (reassessed 2026-10-11)
+Commits: 808a96cd7, 2b8c98ed8
+Evidence: multi-instance-state.test.ts raises real unhandledRejection and
+uncaughtException from enabled plugin code in API child processes, checks
+origin attribution and persisted failure records, and verifies the same
+process still serves HTTP and another plugin's shipping contract.
+Known limitations: asynchronous containment does not isolate synchronous
+infinite loops or malicious trusted plugin code.
 Prerequisites:
 Failure Containment
-Blocked by: process-level exception handlers with extension attribution
+Blocked by: none for unhandled asynchronous-error containment.
 
 ## Scenario 17 — multi-instance correctness
 
@@ -293,7 +327,18 @@ Charter text: At least two API and two worker instances run under Docker Compose
 PostgreSQL, Redis, and S3-compatible object storage. Shared rate limiting,
 task claims and fencing, extension lifecycle and runtime reload, and plugin,
 theme, and uploaded-file availability remain correct across instances.
-Status: NOT STARTED (assessed 2026-10-04)
+Status: PARTIAL (reassessed 2026-10-11)
+Commits: c454dea94, 31655e75f, 17cf2fdf2, 0cd7d66c8, 82be2b29d,
+c06db02c7, 7a489044e, 2b8c98ed8
+Evidence: shared-protection-process.test.ts checks shared Redis limits and
+breakers; multi-instance-state.test.ts proves plugin disable/re-enable and
+active-theme changes across two real API processes. theme-package-process.test.ts
+checks cold-process materialization; uploaded-storage-process.test.ts covers
+shared S3 media. event-delivery.test.ts and notification-lease-fencing.test.ts
+cover multiple worker claims and fencing; payment-convergence.test.ts covers
+payment locks, request recovery and stale claims.
+Known limitations: these are focused child-process proofs, not the required
+combined two-API/two-worker Docker Compose acceptance run.
 Prerequisites:
 State and Storage Boundaries
 shared rate limiting and circuit breaker state
@@ -302,11 +347,8 @@ cross-instance extension lifecycle and runtime reload
 plugin and theme package persistence and materialization
 S3-compatible merchant-uploaded file storage
 Docker Compose delivery
-Blocked by: shared limiter and breaker state; task claims and fencing including
-payment reconciliation; coordinated registry and runtime reload across instances;
-theme package persistence and materialization on every instance; S3-compatible
-upload backend and self-hosted Compose service; two-API and two-worker Compose
-verification.
+Blocked by: Docker Compose delivery with its self-hosted S3-compatible
+service and the combined two-API/two-worker acceptance verification.
 
 ## Development order
 
@@ -317,15 +359,17 @@ verification.
 5. Extension Center: marketplace index (2), signature verification and Extension SDK (3, 4, 13). COMPLETE (2026-10-04), closed by c79c7e2e6 with 35-extension-center.spec.ts A-F and the marketplace, upload, signing and SDK specifications recorded above. Phase completion does not close the real payment provider launch blockers, Scenario 10 migration audit gap or Scenario 12 static audit.
 6. Delivery: Docker Compose with a self-hosted S3-compatible service, shared upload storage, multi-instance correctness verified with at least two API and two worker instances (17), one official operator host update command and a documented backup-restore command, Core updates and plugin migrations (9, 10), and exact-release verification (11). Kubernetes deployment profiles, autoscaling, zero-downtime rolling Core updates, an Admin update UI, and an updater container with Docker socket access are not V1 Delivery work.
 
-Pre-launch required (assessed 2026-10-04):
+Pre-launch required (reassessed 2026-10-11):
 
-1. Rate limiting runs before the authenticated user is identified, so the global per-user key does not apply and users sharing an egress IP can be limited together; a rate-limited Shop catalog render becomes a 500. The global in-memory fallback store has no capacity bound, and the plugin gateway limiter is a per-process Map rather than shared state; these rate-limiting boundaries require correction before launch.
-2. Unknown errors that currently fall through to 400 or 404 must become explicit business codes or 500. A payment callback for a never-installed provider currently returns 500 and must return 404.
-3. Theme package bytes are stored only on one server's local disk and are unavailable to another instance without shared storage. They must follow the plugin package persistence and materialization approach before launch.
-4. Payment webhook rawBody is reconstructed from the parsed body rather than preserved as the original HTTP bytes. Original-byte delivery is required before launching real payment providers.
-5. Webhook verification failures return 500 instead of a stable, non-retryable authentication failure. Provider-independent authentication semantics are required before launching real payment providers.
-6. Plugin migrations are not verified against the installed package manifest for identity, order and SHA-256, or audited as required. This is a pre-launch requirement delivered with Scenario 10.
-7. The SDK and PluginContext provide no plugin database access path. This is a pre-launch requirement delivered together with the Scenario 10 plugin migration work.
+1. DONE — authenticated per-user limiting, fail-closed shared Redis limiting and breakers, and retryable Shop availability handling: c454dea94, e0f15d501; state audit and cross-instance proofs: 2b8c98ed8.
+2. DONE — typed business errors, sanitized unknown 500 responses and never-installed payment callback 404: 95a04b5e1, 76c1b85fc, ec73b7ff2.
+3. DONE — PostgreSQL theme package bytes and cold-instance materialization: 31655e75f; hot cross-instance activation proof: 2b8c98ed8.
+4. DONE — original HTTP webhook bytes: ec73b7ff2; payment v2 evidence and capture identity: 7a489044e.
+5. DONE — rejected webhook authentication is stable 401 PAYMENT_WEBHOOK_AUTHENTICATION_FAILED: ec73b7ff2, 7a489044e.
+6. DONE for plugin manifest/ledger verification and the read-only auditor: 3650a285e, 9c2bc9aa1. OPEN — enforce the audit before migration writes in the official Core update flow (Scenario 10).
+7. DONE — handler-scoped PluginContext.database and canonical SDK query/transaction types: 1e836aa08. OPEN — Core update maintenance, backup/restore and migration audit integration (Scenario 10).
+8. OPEN — official host update and backup/restore delivery (Scenarios 9 and 10), combined two-API/two-worker Compose verification (17), and exact release-commit verification (11).
+9. OPEN — the recorded intermittent React #418 reload issue remains unclosed; B13/B14 do not establish its resolution.
 
 ## Recorded product decisions
 
@@ -348,7 +392,7 @@ Pre-launch required (assessed 2026-10-04):
 - Admin cannot set a customer's password; it can only generate a reset link.
 - ADMIN_URL is a second required production env var, used for administrator invitation links.
 - The Admin system health page is a status summary; there is no metrics dashboard.
-- Verification runs locally with pnpm verify; GitHub CI runs only when triggered manually.
+- Verification runs locally with pnpm verify:quick on directly relevant test files; GitHub Actions runs the full verification gate on every push to codex/core-extension-boundary.
 
 ## Open decisions
 
