@@ -2,6 +2,15 @@ import { captureReview, expect, test } from './review-capture';
 import { login, ownerEmail } from './helpers';
 import { themePackage } from './theme-package';
 import { createHash } from 'node:crypto';
+import type { Page } from '@playwright/test';
+
+async function saveConfiguration(page: Page, slug: string) {
+  const saved = page.waitForResponse(response => response.request().method() === 'PUT'
+    && new URL(response.url()).pathname === `/api/v1/extensions/themes/${slug}/config`);
+  await page.getByRole('button', { name: 'Save configuration' }).click();
+  expect((await saved).ok()).toBe(true);
+  await expect(page.getByText('Configuration saved', { exact: true })).toBeVisible();
+}
 
 test('Admin theme loop updates Shop live, restores and rejects executable packages', async ({ page, context }) => {
   const bytes = await themePackage(), packageHash = createHash('sha256').update(bytes).digest('hex');
@@ -32,8 +41,7 @@ test('Admin theme loop updates Shop live, restores and rejects executable packag
   await page.getByRole('region', { name: 'Configure E2E Shop Theme' })
     .getByRole('group', { name: 'Hero heading' })
     .getByRole('textbox', { name: 'en', exact: true }).fill('Updated theme heading');
-  await page.getByRole('button', { name: 'Save configuration' }).click();
-  await expect(page.getByText('Configuration saved', { exact: true })).toBeVisible();
+  await saveConfiguration(page, 'e2e-shop-theme');
   await shop.reload();
   await expect(shop.getByRole('heading', { name: 'Updated theme heading' })).toBeVisible();
   await page.getByRole('button', { name: 'Restore previous configuration' }).click();
@@ -66,8 +74,7 @@ test('Admin theme loop updates Shop live, restores and rejects executable packag
   await grid.getByRole('button', { name: 'Move up' }).click();
   const categories = editor.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Category list · home-categories' }) });
   await categories.getByRole('button', { name: 'Delete' }).click();
-  await page.getByRole('button', { name: 'Save configuration' }).click();
-  await expect(page.getByText('Configuration saved', { exact: true })).toBeVisible();
+  await saveConfiguration(page, 'default-shop');
   await shop.reload();
   await expect(shop.getByRole('heading', { name: 'Merchant welcome' })).toBeVisible();
   await expect(shop.getByRole('heading', { name: 'Browse categories' })).toHaveCount(0);
@@ -75,8 +82,7 @@ test('Admin theme loop updates Shop live, restores and rejects executable packag
   await shop.goto('http://127.0.0.1:3003/zh-Hans');
   await expect(shop.getByRole('heading', { name: '商店欢迎' })).toBeVisible();
   await editor.getByRole('button', { name: 'Reset to theme default' }).click();
-  await page.getByRole('button', { name: 'Save configuration' }).click();
-  await expect(page.getByText('Configuration saved', { exact: true })).toBeVisible();
+  await saveConfiguration(page, 'default-shop');
   await shop.goto('http://127.0.0.1:3003/en');
   await expect(shop.getByRole('heading', { level: 2 })).toHaveText(['Browse categories', 'Featured products']);
 

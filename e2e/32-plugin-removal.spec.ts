@@ -156,7 +156,7 @@ test('M typed purge blocks unfinished payments and keeps payment order history r
     }
     await restore(page, 'zh-Hans'); await page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: 'Enable', exact: true }).click();
     await expect(page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
-    await page.goto(`/en/orders/${orderId}`); await page.getByLabel('Payment reference').fill('e2e-payment-reference'); await page.getByRole('button', { name: 'Record payment', exact: true }).click(); await expect(page.getByText('PAID', { exact: true })).toBeVisible();
+    await page.goto(`/en/orders/${orderId}`); await page.getByLabel('Payment reference').fill(`e2e-payment-${orderId}`); await page.getByRole('button', { name: 'Record payment', exact: true }).click(); await expect(page.getByText('PAID', { exact: true })).toBeVisible();
     await uninstall(page); await purge(page, slug);
     await page.goto(`/en/orders/${orderId}`); await expect(page.getByText('PAID', { exact: true })).toBeVisible(); await expect(page.getByText(slug, { exact: true }).first()).toBeVisible();
     await shop.goto(`/en/account/orders/${orderId}`); await expect(shop.getByText('Paid', { exact: true }).first()).toBeVisible();

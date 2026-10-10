@@ -47,7 +47,7 @@ test('refund before shipment restores stock and notifies the customer', async ({
     expect(id).toBeTruthy();
 
     await page.goto(`/en/orders/${id}`);
-    await page.getByLabel('Payment reference').fill('e2e-payment-reference');
+    await page.getByLabel('Payment reference').fill(`e2e-payment-${id}`);
     await page.getByRole('button', { name: 'Record payment' }).click();
     await expect(page.getByText('PROCESSING', { exact: true }).first()).toBeVisible();
     await page.getByRole('button', { name: 'Record offline full refund' }).click();
