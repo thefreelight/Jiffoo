@@ -70,7 +70,7 @@ export async function downloadPackage(entry: CatalogVersion, base: string): Prom
 }
 
 async function marketplaceArtifact(pluginId: string, version: string, identified?: (slug: string) => Promise<void>) {
-  const catalog = await fetchMarketplaceCatalog({ bypassCache: true, forInstall: true });
+  const catalog = await fetchMarketplaceCatalog({ forInstall: true });
   const plugin = catalog.plugins.find((candidate) => candidate.id === pluginId);
   const entry = plugin?.versions.find((candidate) => candidate.version === version);
   if (!plugin || !entry) throw new MarketplaceError('MARKETPLACE_PLUGIN_NOT_FOUND', 404);

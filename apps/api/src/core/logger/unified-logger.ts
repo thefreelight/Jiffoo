@@ -164,7 +164,7 @@ export class UnifiedLoggerService {
     return logAggregator.getLogStats(timeRange);
   }
 
-  // Add log to memory cache (for real-time query)
+  // Persist a structured entry without retaining request data in process memory.
   static addToAggregator(level: string, message: string, meta?: any): void {
     const entry: LogEntry = {
       id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

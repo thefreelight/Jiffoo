@@ -1,10 +1,5 @@
 import { env } from '@/config/env';
 
-type CacheEntry = {
-  expiresAt: number;
-  value: string;
-};
-
 type VaultSecretRef = {
   field: string;
   mount: string;
@@ -22,18 +17,10 @@ export class SecretManagerError extends Error {
 }
 
 export class SecretManagerService {
-  private static cache = new Map<string, CacheEntry>();
-
   static async resolve(secretRef: string): Promise<string> {
     const normalizedRef = String(secretRef || '').trim();
     if (!normalizedRef) {
       throw new SecretManagerError('Secret reference is empty', 'SECRET_REF_EMPTY');
-    }
-
-    const cached = this.cache.get(normalizedRef);
-    const now = Date.now();
-    if (cached && cached.expiresAt > now) {
-      return cached.value;
     }
 
     const parsed = this.parseSecretRef(normalizedRef);
@@ -46,11 +33,6 @@ export class SecretManagerService {
         'SECRET_REF_PROTOCOL_UNSUPPORTED'
       );
     }
-
-    this.cache.set(normalizedRef, {
-      value,
-      expiresAt: now + env.VAULT_CACHE_TTL_MS,
-    });
 
     return value;
   }

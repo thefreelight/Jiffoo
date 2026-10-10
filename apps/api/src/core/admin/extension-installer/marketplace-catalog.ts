@@ -4,7 +4,6 @@ import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 
 const MAX_CATALOG_BYTES = 1024 * 1024;
 const CATALOG_TIMEOUT_MS = 5000;
-const CACHE_TTL_MS = 60_000;
 const slugPattern = /^[a-z][a-z0-9-]{0,30}[a-z0-9]$/;
 const publisherPattern = /^[a-z][a-z0-9-]{1,63}$/;
 const versionPattern = /^\d+\.\d+\.\d+$/;
@@ -31,8 +30,6 @@ export type MarketplaceCatalog = { schemaVersion: 1; plugins: CatalogPlugin[] };
 export class MarketplaceError extends ApiError {
   constructor(code: ErrorCode, _statusCode: number) { super(code); }
 }
-
-let cache: { url: string; expires: number; catalog: MarketplaceCatalog } | undefined;
 
 export function marketplaceUrl(): string | undefined {
   if (process.env.NODE_ENV === 'test' && process.env.JIFFOO_TEST_MARKETPLACE_OVERRIDE === 'true') {
@@ -92,10 +89,9 @@ export function validateCatalog(value: unknown, base: string, forInstall = false
   return value as MarketplaceCatalog;
 }
 
-export async function fetchMarketplaceCatalog(options: { bypassCache?: boolean; forInstall?: boolean } = {}): Promise<MarketplaceCatalog> {
+export async function fetchMarketplaceCatalog(options: { forInstall?: boolean } = {}): Promise<MarketplaceCatalog> {
   const url = marketplaceUrl();
   if (!url) throw new MarketplaceError('MARKETPLACE_NOT_CONFIGURED', 503);
-  if (!options.bypassCache && cache?.url === url && cache.expires > Date.now()) return cache.catalog;
   const controller = new AbortController();
   let timer: NodeJS.Timeout;
   const deadline = new Promise<never>((_resolve, reject) => {
@@ -124,7 +120,6 @@ export async function fetchMarketplaceCatalog(options: { bypassCache?: boolean; 
     let parsed: unknown;
     try { parsed = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { invalid(); }
     const catalog = validateCatalog(parsed, url, options.forInstall);
-    if (!options.bypassCache) cache = { url, catalog, expires: Date.now() + CACHE_TTL_MS };
     return catalog;
   } catch (error) {
     if (error instanceof MarketplaceError) throw error;

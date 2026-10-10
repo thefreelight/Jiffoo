@@ -234,13 +234,16 @@ describe('Marketplace catalog API', () => {
     expect(result.json().error.code).toBe('MARKETPLACE_CATALOG_UNAVAILABLE');
   });
 
-  it('H caches two reads within sixty seconds', async () => {
+  it('H reads the current catalog on every request without retaining upstream request data', async () => {
     configure();
     serve(catalog());
     const before = requests;
     expect((await get('catalog')).statusCode).toBe(200);
-    expect((await get('catalog')).statusCode).toBe(200);
-    expect(requests - before).toBe(1);
+    serve({ ...catalog(), plugins: [{ ...catalog().plugins[0], name: 'Updated catalog entry' }] });
+    const updated = await get('catalog');
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json().data.items[0].name).toBe('Updated catalog entry');
+    expect(requests - before).toBe(2);
   });
 
   it('J requires admin authentication for both endpoints', async () => {

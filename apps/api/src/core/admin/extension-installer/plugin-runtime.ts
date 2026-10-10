@@ -545,8 +545,8 @@ async function resolveGatewayContext(
   if (requireEnabled && !instance.enabled) {
     throw new PluginGatewayError(
       `Instance "${instance.instanceKey}" of plugin "${slug}" is disabled`,
-      'INSTANCE_DISABLED',
-      404
+      'PLUGIN_DISABLED',
+      503
     );
   }
 
@@ -1009,7 +1009,7 @@ async function forwardToInternalFastify(
   if (replaceError) { sendMappedError(reply, new ApiError('PLUGIN_ERROR')); return; }
   reply.code(res.statusCode);
   for (const [k, v] of Object.entries(res.headers)) {
-    if (k.toLowerCase() === 'transfer-encoding') continue;
+    if (['connection', 'keep-alive', 'transfer-encoding'].includes(k.toLowerCase())) continue;
     if (v !== undefined) reply.header(k, v as any);
   }
 

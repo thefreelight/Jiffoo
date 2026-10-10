@@ -55,12 +55,10 @@ export interface LogStats {
 
 /**
  * LogAggregator class
- * Supports file log reading and memory cache query
+ * Persists structured entries and queries files without retaining request data.
  */
 export class LogAggregator {
   private logsDir: string;
-  private memoryLogs: LogEntry[] = [];
-  private maxMemoryLogs: number = 10000; // Maximum number of items in memory cache
 
   constructor(logsDir: string = path.join(process.cwd(), 'logs')) {
     this.logsDir = logsDir;
@@ -81,33 +79,15 @@ export class LogAggregator {
   }
 
   /**
-   * Add log to memory cache for real-time query
+   * Persist a structured log entry for subsequent queries.
    */
   addLog(log: LogEntry): void {
-    this.memoryLogs.push(log);
-
-    // Keep memory logs within the limit
-    if (this.memoryLogs.length > this.maxMemoryLogs) {
-      this.memoryLogs = this.memoryLogs.slice(-this.maxMemoryLogs);
-    }
+    const file = path.join(this.logsDir, `aggregated-${new Date().toISOString().slice(0, 10)}.log`);
+    fs.appendFileSync(file, JSON.stringify(log) + '\n', 'utf8');
   }
 
   /**
-   * Get log count in memory
-   */
-  getMemoryLogCount(): number {
-    return this.memoryLogs.length;
-  }
-
-  /**
-   * Clear memory logs
-   */
-  clearMemoryLogs(): void {
-    this.memoryLogs = [];
-  }
-
-  /**
-   * Query logs from memory and file system
+   * Query persisted logs with request-local result arrays.
    */
   async queryLogs(query: LogQuery): Promise<LogQueryResult> {
     const {
@@ -125,20 +105,13 @@ export class LogAggregator {
 
     const logs: LogEntry[] = [];
 
-    // Query from memory (recent)
-    for (const log of this.memoryLogs) {
-      if (this.matchesFilter(log, { appName, level, startTime, endTime, message, userId })) {
-        logs.push(log);
-      }
-    }
-
     // Query from file system (historical)
     const logFiles = await this.getLogFiles(startTime, endTime);
     for (const file of logFiles) {
       const fileLogs = await this.readLogFile(file);
       for (const log of fileLogs) {
         if (this.matchesFilter(log, { appName, level, startTime, endTime, message, userId })) {
-          // Prevent duplication (memory may already have it)
+          // A log may occur in more than one persisted file.
           if (!logs.some(l => l.id === log.id)) {
             logs.push(log);
           }
@@ -193,7 +166,7 @@ export class LogAggregator {
   }
 
   /**
-   * Get log stats from both cache and file
+   * Get statistics from persisted log files.
    */
   async getLogStats(timeRange: string = '24h'): Promise<LogStats> {
     const { startTime, endTime } = this.parseTimeRange(timeRange);
@@ -210,22 +183,13 @@ export class LogAggregator {
     };
 
     const processedIds = new Set<string>();
-
-    // Stats in cache
-    for (const log of this.memoryLogs) {
-      if (log.timestamp >= startTime && log.timestamp <= endTime) {
-        this.updateStats(stats, log);
-        processedIds.add(log.id);
-      }
-    }
-
-    // Stats in files
     const logFiles = await this.getLogFiles(startTime, endTime);
     for (const file of logFiles) {
       const logs = await this.readLogFile(file);
       for (const log of logs) {
         if (log.timestamp >= startTime && log.timestamp <= endTime && !processedIds.has(log.id)) {
           this.updateStats(stats, log);
+          processedIds.add(log.id);
         }
       }
     }

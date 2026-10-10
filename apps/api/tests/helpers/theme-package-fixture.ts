@@ -60,8 +60,12 @@ export async function stopThemeChild(item: ThemeChild): Promise<void> {
 export function waitThemeMessage(item: ThemeChild, predicate: (message: any) => boolean): Promise<any> {
   const existing = item.messages.find(predicate); if (existing) return Promise.resolve(existing);
   return new Promise((resolve, reject) => {
-    const receive = (message: any) => { if (predicate(message)) { item.child.off('message', receive); resolve(message); } };
-    item.child.on('message', receive); item.child.once('exit', code => reject(new Error(`Theme child exited during latch ${code}`)));
+    const cleanup = () => { clearTimeout(timer); item.child.off('message', receive); item.child.off('exit', exit); item.child.off('error', fail); };
+    const fail = (error: Error) => { cleanup(); reject(error); };
+    const exit = (code: number | null) => fail(new Error(`Theme child exited during latch ${code}`));
+    const receive = (message: any) => { if (predicate(message)) { cleanup(); resolve(message); } };
+    const timer = setTimeout(() => fail(new Error('Theme child message timed out')), 30000);
+    item.child.on('message', receive); item.child.once('exit', exit); item.child.once('error', fail);
   });
 }
 export function releaseTheme(item: ThemeChild, message: any) { item.child.send({ ...message, kind: 'theme-release' }); }
