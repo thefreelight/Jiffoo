@@ -20,6 +20,7 @@ describe('Typed localized client error contracts', () => {
     for (const [code, expected] of [
       [ApiErrorCodes.PAYMENT_OUTCOME_UNKNOWN, common.errors.paymentOutcomeUnknown],
       [ApiErrorCodes.PAYMENT_REQUIRES_REVIEW, common.errors.paymentRequiresReview],
+      [ApiErrorCodes.PAYMENT_REVIEW_ALREADY_RESOLVED, common.errors.paymentReviewAlreadyResolved],
       [ApiErrorCodes.PAYMENT_SESSION_STILL_CHARGEABLE, common.errors.paymentSessionStillChargeable],
     ]) expect(resolveApiErrorMessage(new AdminApiError('PRIVATE_PSP_DETAIL', code, undefined, 409), translate)).toBe(expected);
   });

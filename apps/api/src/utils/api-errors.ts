@@ -131,6 +131,7 @@ export const errorCatalog = {
   [ApiErrorCodes.PAYMENT_REFERENCE_REQUIRED]: { status: 400, message: 'Enter a payment or refund reference.' },
   [ApiErrorCodes.PAYMENT_OUTCOME_UNKNOWN]: { status: 409, message: "We're checking your payment. Please don't pay again." },
   [ApiErrorCodes.PAYMENT_REQUIRES_REVIEW]: { status: 409, message: 'Payment requires review.' },
+  [ApiErrorCodes.PAYMENT_REVIEW_ALREADY_RESOLVED]: { status: 409, message: 'Payment review has already been resolved. Refresh the order to see the current outcome.' },
   [ApiErrorCodes.PAYMENT_SESSION_STILL_CHARGEABLE]: { status: 409, message: 'This payment session may still be charged. Wait until it is confirmed closed before trying again.' },
   [ApiErrorCodes.PAYMENT_METHOD_MISMATCH]: { status: 409, message: "Payment method mismatch." },
   [ApiErrorCodes.PAYMENT_PLUGIN_NOT_ENABLED]: { status: 409, message: "Payment plugin not enabled." },

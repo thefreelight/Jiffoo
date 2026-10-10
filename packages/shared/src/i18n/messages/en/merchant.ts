@@ -344,6 +344,15 @@ export const merchant = {
 
   // Orders
   orders: {
+    review: {
+      confirmPaid: 'Confirm payment received',
+      closeNotCharged: 'Confirm not charged and close',
+      paidDescription: 'Enter the exact transaction or payment ID from the provider dashboard.',
+      notChargedDescription: 'Confirm the provider did not charge this payment and enter the evidence reference.',
+      providerPaymentId: 'Provider transaction or payment ID',
+      evidenceReference: 'Evidence reference',
+      closed: 'Admin confirmed not charged',
+    },
     paymentReference: 'Payment reference',
     recordPayment: 'Record payment',
     refundRequired: 'Refund required',

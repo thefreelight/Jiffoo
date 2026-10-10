@@ -63,6 +63,16 @@ const adminOrderDetailSchema = {
     refundRequired: { type: 'boolean' },
     canRefundOrder: { type: 'boolean' },
     paymentAttemptState: { type: 'string', nullable: true },
+    paymentReviews: {
+      type: 'array', items: {
+        type: 'object', properties: {
+          paymentId: { type: 'string' }, status: { type: 'string' }, amount: { type: 'number' }, currency: { type: 'string' },
+          failureReason: { type: 'string', nullable: true }, reviewResolution: { type: 'string', nullable: true },
+          reviewResolvedAt: { type: 'string', format: 'date-time', nullable: true },
+          reviewResolvedBy: { type: 'string', nullable: true }, reviewReference: { type: 'string', nullable: true },
+        }, required: ['paymentId', 'status', 'amount', 'currency', 'failureReason', 'reviewResolution', 'reviewResolvedAt', 'reviewResolvedBy', 'reviewReference'],
+      },
+    },
     refundResolutions: {
       type: 'array', items: {
         type: 'object', properties: {
@@ -202,6 +212,13 @@ const adminOrderStatsSchema = {
 // ============================================================================
 
 export const adminOrderSchemas = {
+  resolvePaymentReview: {
+    params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+    body: { type: 'object', additionalProperties: false, required: ['paymentId', 'reference'], properties: {
+      paymentId: { type: 'string', minLength: 1 }, reference: { type: 'string', minLength: 1, maxLength: 256 },
+    } },
+    response: { ...createTypedUpdateResponses(adminOrderDetailSchema), 409: errorResponseSchema },
+  },
   // GET /api/admin/orders/ (paginated)
   listOrders: {
     querystring: {

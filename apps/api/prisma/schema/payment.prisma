@@ -13,6 +13,10 @@ model Payment {
   providerKey     String               @db.Uuid
   closureObservationId String?         @unique @db.Uuid
   closedAt        DateTime?            @db.Timestamptz(3)
+  reviewResolution String?
+  reviewResolvedAt DateTime?           @db.Timestamptz(3)
+  reviewResolvedBy String?
+  reviewReference String?
   paymentIntentId String?
   sessionId       String?
   sessionUrl      String?

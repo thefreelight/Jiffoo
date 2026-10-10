@@ -55,7 +55,7 @@ export async function observePaymentFact(slug: string, fact: PaymentFact, source
       await tx.adminAuditEvent.upsert({ where: { id: `payment-observation:${observation.id}` }, update: {}, create: {
         id: `payment-observation:${observation.id}`, actorId: slug, action: 'PAYMENT_OBSERVATION_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { observationId: observation.id, reason },
       } });
-      if (source !== 'webhook' && payment.status !== 'SUCCEEDED') await tx.payment.update({ where: { id: payment.id }, data: { status: 'REQUIRES_REVIEW', failureReason: reason, ...clearLease } });
+      if (source !== 'webhook' && payment.status !== 'SUCCEEDED' && !payment.reviewResolution) await tx.payment.update({ where: { id: payment.id }, data: { status: 'REQUIRES_REVIEW', failureReason: reason, ...clearLease } });
       return false;
     }
     // Uncertain creation is resolved only by a complete query by request key.
@@ -74,7 +74,7 @@ export async function observePaymentFact(slug: string, fact: PaymentFact, source
       }, tx) || updated;
     }
     const current = await tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
-    if (!fact.canStillBeCharged && fact.requestClosed && source === 'query') {
+    if (!fact.canStillBeCharged && fact.requestClosed && source === 'query' && !current.reviewResolution) {
       await tx.payment.update({ where: { id: current.id }, data: { closureObservationId: observation.id, closedAt: new Date(fact.observedAt) } });
     }
     if (!fact.captures.length && ['CREATING', 'PENDING', 'UNKNOWN', 'REQUIRES_REVIEW'].includes(current.status)) {

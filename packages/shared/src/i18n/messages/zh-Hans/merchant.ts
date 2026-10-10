@@ -344,6 +344,15 @@ export const merchant = {
 
   // Orders
   orders: {
+    review: {
+      confirmPaid: '确认已收到付款',
+      closeNotCharged: '确认未扣款并关闭',
+      paidDescription: '请输入支付服务商后台显示的完整交易号或付款 ID。',
+      notChargedDescription: '确认支付服务商未对此付款扣款，并填写所依据的凭证号。',
+      providerPaymentId: '服务商交易号或付款 ID',
+      evidenceReference: '核查凭证号',
+      closed: '管理员已确认未扣款',
+    },
     paymentReference: '付款凭证号',
     recordPayment: '记录付款',
     refundRequired: '需要退款',

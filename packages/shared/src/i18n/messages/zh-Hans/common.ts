@@ -120,6 +120,7 @@ export const common = {
     paymentReferenceRequired: '请输入付款或退款凭证号。',
     paymentOutcomeUnknown: '正在核实付款，请勿重复付款',
     paymentRequiresReview: '付款需要人工核实',
+    paymentReviewAlreadyResolved: '付款核查已处理。请刷新订单查看当前结果。',
     paymentRefundRequired: '需要退款',
     paymentSessionStillChargeable: '此付款会话仍可能扣款。请等待确认关闭后再试。',
     uploadStorageUnavailable: '上传存储暂时不可用，请稍后重试。',

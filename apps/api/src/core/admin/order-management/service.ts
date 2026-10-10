@@ -31,6 +31,45 @@ function calculateTrendPercent(current: number, previous: number): number {
 }
 
 export class AdminOrderService {
+  static async resolvePaymentReview(orderId: string, paymentId: string, actorId: string, outcome: 'PAID' | 'NOT_CHARGED', reference: string) {
+    reference = reference?.trim();
+    if (!reference) throw new ApiError('PAYMENT_REFERENCE_REQUIRED');
+    await prisma.$transaction(async tx => {
+      await lockOrder(tx, orderId);
+      await lockPayment(tx, paymentId);
+      const payment = await tx.payment.findUnique({ where: { id: paymentId } });
+      if (!payment || payment.orderId !== orderId) throw new ApiError('NOT_FOUND');
+      const paidResolution = await tx.adminAuditEvent.findFirst({ where: {
+        targetType: 'payment', targetId: paymentId, action: 'PAYMENT_REVIEW_CONFIRMED_PAID',
+      } });
+      if (payment.reviewResolution || paidResolution || payment.status !== 'REQUIRES_REVIEW') {
+        const summary = paidResolution?.summary as { reference?: string } | undefined;
+        if ((outcome === 'NOT_CHARGED' && payment.reviewResolution === 'NOT_CHARGED' && payment.reviewReference === reference)
+          || (outcome === 'PAID' && paidResolution && summary?.reference === reference)) return;
+        throw new ApiError('PAYMENT_REVIEW_ALREADY_RESOLVED');
+      }
+      if (outcome === 'PAID') {
+        const changed = await recordPaymentSucceeded({ paymentId, providerPaymentId: reference,
+          providerEventId: `review:${paymentId}`, actorType: 'admin', actorId, manualReference: reference,
+          reason: 'admin_review_confirmed_paid', reviewConfirmation: true,
+        }, tx);
+        if (!changed) throw new ApiError('PAYMENT_REVIEW_ALREADY_RESOLVED');
+      } else {
+        await tx.payment.update({ where: { id: paymentId }, data: {
+          status: 'FAILED', failureReason: 'admin_confirmed_not_charged', reviewResolution: 'NOT_CHARGED',
+          reviewResolvedAt: new Date(), reviewResolvedBy: actorId, reviewReference: reference,
+          claimToken: null, claimedBy: null, leaseUntil: null,
+        } });
+      }
+      await tx.adminAuditEvent.create({ data: { actorId,
+        action: outcome === 'PAID' ? 'PAYMENT_REVIEW_CONFIRMED_PAID' : 'PAYMENT_REVIEW_CLOSED_NOT_CHARGED',
+        targetType: 'payment', targetId: paymentId, summary: { paymentId, orderId, reference, outcome },
+      } });
+    });
+    await CacheService.incrementOrderVersion();
+    return this.getOrderById(orderId);
+  }
+
   static async getOrderStats() {
     const [currency, timezone] = await Promise.all([
       systemSettingsService.getShopCurrency(),
@@ -331,6 +370,12 @@ export class AdminOrderService {
       refundResolutions,
       canRefundOrder: await prisma.paymentLedger.count({ where: { orderId, eventType: 'SUCCEEDED', refundRequired: false, refunds: { none: { status: 'COMPLETED' } } } }) > 0,
       paymentAttemptState: latestPayment?.status ?? null,
+      paymentReviews: (await prisma.payment.findMany({ where: { orderId }, orderBy: { attemptNumber: 'asc' } })).map(payment => ({
+        paymentId: payment.id, status: payment.status, amount: Number(payment.amount), currency: payment.currency,
+        failureReason: payment.failureReason, reviewResolution: payment.reviewResolution,
+        reviewResolvedAt: payment.reviewResolvedAt?.toISOString() ?? null,
+        reviewResolvedBy: payment.reviewResolvedBy, reviewReference: payment.reviewReference,
+      })),
       totalAmount: Number(order.totalAmount),
       currency: await systemSettingsService.getShopCurrency(),
       notes: null,

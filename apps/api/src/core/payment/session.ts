@@ -49,7 +49,8 @@ export async function createPaymentSession(input: SessionInput) {
       if (previous.status === 'UNKNOWN') throw new ApiError('PAYMENT_OUTCOME_UNKNOWN');
       if (previous.status === 'REQUIRES_REVIEW') throw new ApiError('PAYMENT_REQUIRES_REVIEW');
       if (previous.status === 'CREATING') throw new ApiError('PAYMENT_ATTEMPT_OPEN');
-      if (!previous.closureObservationId || !previous.closedAt) throw new ApiError('PAYMENT_SESSION_STILL_CHARGEABLE');
+      const adminClosed = previous.status === 'FAILED' && previous.reviewResolution === 'NOT_CHARGED';
+      if ((!previous.closureObservationId || !previous.closedAt) && !adminClosed) throw new ApiError('PAYMENT_SESSION_STILL_CHARGEABLE');
       if (previous.status === 'PENDING') throw new ApiError('PAYMENT_ATTEMPT_OPEN');
     }
     const now = await paymentNow(tx), attemptNumber = order.paymentAttempts + 1;

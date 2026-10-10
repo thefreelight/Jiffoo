@@ -36,6 +36,10 @@ export interface ShopOrderListItemDTO {
   paymentStatus: string;
   paymentId?: string | null;
   paymentAttemptState?: string | null;
+  paymentReviews?: Array<{
+    paymentId: string; status: string; amount: number; currency: string; failureReason: string | null;
+    reviewResolution: string | null; reviewResolvedAt: string | null; reviewResolvedBy: string | null; reviewReference: string | null;
+  }>;
   refundRequired?: boolean;
   totalAmount: number;
   currency: string;

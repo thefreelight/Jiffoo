@@ -14,6 +14,7 @@ import { useT } from 'shared/src/i18n/react'
 import { useState } from 'react'
 import { RefundDialog } from '@/components/orders/RefundDialog'
 import { ShipOrderDialog } from '@/components/orders/ShipOrderDialog'
+import { PaymentReviewDialog } from '@/components/orders/PaymentReviewDialog'
 import { formatCurrency, cn } from '@/lib/utils'
 
 export default function OrderDetailPage() {
@@ -27,6 +28,7 @@ export default function OrderDetailPage() {
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [manualReference, setManualReference] = useState('')
+  const [review, setReview] = useState<{ paymentId: string; outcome: 'PAID' | 'NOT_CHARGED' } | null>(null)
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -410,6 +412,17 @@ export default function OrderDetailPage() {
               {order.refundRequired && <p role="status">{getText('merchant.orders.refundRequired', 'Refund required')}</p>}
               {order.paymentAttemptState === 'UNKNOWN' && <p role="status">{getText('common.errors.paymentOutcomeUnknown', "We're checking your payment. Please don't pay again.")}</p>}
               {order.paymentAttemptState === 'REQUIRES_REVIEW' && <p role="status">{getText('common.errors.paymentRequiresReview', 'Payment requires review.')}</p>}
+              {order.paymentReviews?.filter(payment => payment.status === 'REQUIRES_REVIEW' || payment.reviewResolution).map(payment => (
+                <div key={payment.paymentId} className="space-y-2">
+                  <p>{payment.paymentId} · {formatCurrency(payment.amount, payment.currency)}</p>
+                  {payment.failureReason && <p>{payment.failureReason}</p>}
+                  {payment.reviewResolution && <p>{getText('merchant.orders.review.closed', 'Admin confirmed not charged')} · {payment.reviewReference} · {payment.reviewResolvedAt} · {payment.reviewResolvedBy}</p>}
+                  {payment.status === 'REQUIRES_REVIEW' && <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => setReview({ paymentId: payment.paymentId, outcome: 'PAID' })}>{getText('merchant.orders.review.confirmPaid', 'Confirm payment received')}</Button>
+                    <Button variant="outline" onClick={() => setReview({ paymentId: payment.paymentId, outcome: 'NOT_CHARGED' })}>{getText('merchant.orders.review.closeNotCharged', 'Confirm not charged and close')}</Button>
+                  </div>}
+                </div>
+              ))}
               {order.refundResolutions?.map(payment => (
                 <div key={payment.paymentId + ':' + payment.providerPaymentId} className="space-y-2 rounded-xl border border-neutral-faint p-3">
                   <p>{payment.providerPaymentId}: {formatCurrency(payment.amount, payment.currency)}</p>
@@ -480,6 +493,7 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
+      {review && <PaymentReviewDialog orderId={order.id} paymentId={review.paymentId} outcome={review.outcome} onClose={() => setReview(null)} />}
       <RefundDialog
         key={refundPayment ? refundPayment.paymentId + ':' + refundPayment.providerPaymentId : 'order-refund'}
         payment={refundPayment}

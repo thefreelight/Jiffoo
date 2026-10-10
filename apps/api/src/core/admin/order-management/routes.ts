@@ -9,6 +9,24 @@ import { sendSuccess, sendError } from '@/utils/response';
 import { adminOrderSchemas } from './schemas';
 
 export async function adminOrderRoutes(fastify: FastifyInstance) {
+  for (const [path, outcome] of [
+    ['confirm-review-payment', 'PAID'], ['close-review-payment', 'NOT_CHARGED'],
+  ] as const) {
+    fastify.post(`/:id/${path}`, {
+      preValidation: async request => {
+        const reference = (request.body as { reference?: string } | undefined)?.reference;
+        if (typeof reference !== 'string' || !reference.trim()) throw new ApiError('PAYMENT_REFERENCE_REQUIRED');
+      },
+      schema: { tags: ['admin-orders'], summary: outcome === 'PAID' ? 'Confirm reviewed payment received' : 'Close reviewed payment as not charged',
+        security: [{ bearerAuth: [] }], ...adminOrderSchemas.resolvePaymentReview },
+    }, async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const { paymentId, reference } = request.body as { paymentId: string; reference: string };
+        return sendSuccess(reply, await AdminOrderService.resolvePaymentReview(id, paymentId, request.user!.id, outcome, reference));
+      } catch (error) { return sendMappedError(reply, error); }
+    });
+  }
   // Apply auth middleware to all admin order routes (before schema validation)
 
   // Get orders list

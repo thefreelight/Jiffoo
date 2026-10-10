@@ -24,7 +24,7 @@ export type RecordPaymentSucceededInput = {
   paymentId: string; providerEventId: string; paymentIntentId?: string | null;
   providerPaymentId: string;
   reason?: string; actorType?: string; actorId?: string; metadata?: Record<string, unknown>;
-  manualReference?: string; claimToken?: string;
+  manualReference?: string; claimToken?: string; reviewConfirmation?: boolean;
 };
 
 
@@ -38,11 +38,18 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
       await lockOrder(tx, identity.orderId); await lockPayment(tx, input.paymentId);
       const order = await tx.order.findUniqueOrThrow({ where: { id: identity.orderId } });
       const payment = await tx.payment.findUniqueOrThrow({ where: { id: input.paymentId } });
+      if (input.reviewConfirmation && payment.status !== 'REQUIRES_REVIEW') throw new ApiError('PAYMENT_REVIEW_ALREADY_RESOLVED');
       if (input.claimToken && payment.claimToken !== input.claimToken) return false;
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${payment.providerKey + ':' + input.providerPaymentId}, 0))::text`;
       const captured = await tx.paymentLedger.findUnique({ where: { providerKey_providerPaymentId: { providerKey: payment.providerKey, providerPaymentId: input.providerPaymentId } } });
       if (captured) {
+        if (input.reviewConfirmation && captured.paymentId === payment.id) {
+          await tx.payment.update({ where: { id: payment.id }, data: { status: 'SUCCEEDED', ...clearLease } });
+          return true;
+        }
         if (captured.paymentId !== payment.id) {
+          if (input.reviewConfirmation) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
+          if (payment.reviewResolution) return false;
           await tx.payment.update({ where: { id: payment.id }, data: { status: 'REQUIRES_REVIEW', failureReason: 'capture_already_bound', ...clearLease } });
           await tx.adminAuditEvent.create({ data: { actorId: input.actorId || 'system', action: 'PAYMENT_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { reason: 'capture_already_bound', providerPaymentId: input.providerPaymentId } } });
         }
@@ -57,6 +64,13 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
         data: { status: 'SUCCEEDED', paymentIntentId: input.paymentIntentId || payment.paymentIntentId, providerEventId: input.providerEventId, ...clearLease },
       });
       if (!changed.count) return false;
+      if (payment.reviewResolution === 'NOT_CHARGED') {
+        await tx.adminAuditEvent.create({ data: { actorId: 'system', action: 'PAYMENT_REVIEW_CONTRADICTED',
+          targetType: 'payment', targetId: payment.id,
+          summary: { paymentId: payment.id, orderId: order.id, providerPaymentId: input.providerPaymentId,
+            reviewReference: payment.reviewReference, refundRequired },
+        } });
+      }
       await tx.paymentLedger.create({ data: {
         paymentId: payment.id, orderId: order.id, eventType: 'SUCCEEDED', amount: payment.amount, currency: payment.currency,
         provider: payment.paymentMethod, providerEventId: input.providerEventId, metadata: input.metadata as Prisma.InputJsonValue | undefined,

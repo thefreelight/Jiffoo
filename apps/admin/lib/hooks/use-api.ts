@@ -859,6 +859,19 @@ export function useRecordManualPayment() {
   })
 }
 
+export function useResolvePaymentReview() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, paymentId, outcome, reference }: {
+      id: string; paymentId: string; outcome: 'PAID' | 'NOT_CHARGED'; reference: string
+    }) => unwrapApiResponse(await ordersApi.resolvePaymentReview(id, paymentId, outcome, reference)),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.order(variables.id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders })
+    },
+  })
+}
+
 // Update plugin configuration mutation
 export function useUpdatePluginConfig() {
   const queryClient = useQueryClient();

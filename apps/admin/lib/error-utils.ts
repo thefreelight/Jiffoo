@@ -8,6 +8,7 @@ const ERROR_CODE_TO_I18N_KEY: Partial<Record<ApiErrorCode, { key: string; fallba
   PAYMENT_REFERENCE_REQUIRED: { key: 'common.errors.paymentReferenceRequired', fallback: 'Enter a payment or refund reference.' },
   PAYMENT_OUTCOME_UNKNOWN: { key: 'common.errors.paymentOutcomeUnknown', fallback: "We're checking your payment. Please don't pay again." },
   PAYMENT_REQUIRES_REVIEW: { key: 'common.errors.paymentRequiresReview', fallback: 'Payment requires review.' },
+  PAYMENT_REVIEW_ALREADY_RESOLVED: { key: 'common.errors.paymentReviewAlreadyResolved', fallback: 'Payment review has already been resolved. Refresh the order to see the current outcome.' },
   PAYMENT_SESSION_STILL_CHARGEABLE: { key: 'common.errors.paymentSessionStillChargeable', fallback: 'This payment session may still be charged. Wait until it is confirmed closed before trying again.' },
   LOGIN_FAILED: { key: 'merchant.auth.invalidCredentials', fallback: 'Invalid email or password' },
   INVALID_PASSWORD: { key: 'merchant.profile.currentPasswordIncorrect', fallback: 'Current password is incorrect' },

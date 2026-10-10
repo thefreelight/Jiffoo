@@ -182,6 +182,150 @@ async function payment(orderId: string) {
   const result = await createPaymentSession(input(orderId));
   return prisma.payment.findUniqueOrThrow({ where: { id: result.paymentId } });
 }
+async function reviewPayment(orderId: string) {
+  const row = await payment(orderId);
+  return prisma.payment.update({ where: { id: row.id }, data: { status: 'REQUIRES_REVIEW', failureReason: 'query_budget_exhausted' } });
+}
+const resolveReview = (orderId: string, paymentId: string, outcome: 'PAID' | 'NOT_CHARGED', reference: string) =>
+  AdminOrderService.resolvePaymentReview(orderId, paymentId, admin.user.id, outcome, reference);
+
+it.each(['PAID', 'NOT_CHARGED'] as const)('B13 %s requires a reference and resolves idempotently with one audit', async outcome => {
+  const item = await order(), row = await reviewPayment(item.id), reference = randomUUID();
+  const endpoint = '/api/v1/admin/orders/' + item.id + '/' + (outcome === 'PAID' ? 'confirm-review-payment' : 'close-review-payment');
+  const missing = await app.inject({ method: 'POST', url: endpoint, headers: admin.authHeader, payload: { paymentId: row.id, reference: '   ' } });
+  expect(missing.statusCode).toBe(400);
+  expect(missing.json().error.code).toBe('PAYMENT_REFERENCE_REQUIRED');
+  const unauthorized = await app.inject({ method: 'POST', url: endpoint, payload: { paymentId: row.id, reference } });
+  expect(unauthorized.statusCode).toBe(401);
+  const response = await app.inject({ method: 'POST', url: endpoint, headers: admin.authHeader, payload: { paymentId: row.id, reference: '  ' + reference + '  ' } });
+  expect(response.statusCode).toBe(200);
+  expect(response.json().data.paymentReviews).toEqual(expect.arrayContaining([expect.objectContaining({ paymentId: row.id, amount: 20, currency: 'USD' })]));
+  await resolveReview(item.id, row.id, outcome, reference);
+  await expect(resolveReview(item.id, row.id, outcome, 'different')).rejects.toMatchObject({ code: 'PAYMENT_REVIEW_ALREADY_RESOLVED' });
+  const conflict = await app.inject({ method: 'POST', url: endpoint, headers: admin.authHeader, payload: { paymentId: row.id, reference: 'different' } });
+  expect(conflict.statusCode).toBe(409);
+  expect(conflict.json().error.code).toBe('PAYMENT_REVIEW_ALREADY_RESOLVED');
+  await expect(resolveReview(item.id, row.id, outcome === 'PAID' ? 'NOT_CHARGED' : 'PAID', reference)).rejects.toMatchObject({ code: 'PAYMENT_REVIEW_ALREADY_RESOLVED' });
+  const action = outcome === 'PAID' ? 'PAYMENT_REVIEW_CONFIRMED_PAID' : 'PAYMENT_REVIEW_CLOSED_NOT_CHARGED';
+  const audits = await prisma.adminAuditEvent.findMany({ where: { targetId: row.id, action } });
+  expect(audits).toHaveLength(1);
+  expect(audits[0]).toMatchObject({ actorId: admin.user.id, summary: { paymentId: row.id, orderId: item.id, reference, outcome } });
+  const resolved = await prisma.payment.findUniqueOrThrow({ where: { id: row.id } });
+  expect(resolved.status).toBe(outcome === 'PAID' ? 'SUCCEEDED' : 'FAILED');
+  expect(resolved).toMatchObject({ claimToken: null, claimedBy: null, leaseUntil: null, closureObservationId: null, closedAt: null });
+  if (outcome === 'PAID') {
+    expect(await prisma.paymentLedger.findFirstOrThrow({ where: { paymentId: row.id, eventType: 'SUCCEEDED' } })).toMatchObject({ providerPaymentId: reference, manualReference: reference, actorType: 'admin', refundRequired: false });
+    sessions.get(row.sessionId!)!.captures = [reference]; sessions.get(row.sessionId!)!.state = 'succeeded';
+    await queryPaymentByRequestKey(row.id);
+    expect(await prisma.paymentLedger.count({ where: { paymentId: row.id, eventType: 'SUCCEEDED' } })).toBe(1);
+  } else expect(resolved).toMatchObject({ reviewResolution: 'NOT_CHARGED', reviewReference: reference, reviewResolvedBy: admin.user.id, failureReason: 'admin_confirmed_not_charged' });
+});
+
+it.each([['PAID', 'NOT_CHARGED'], ['NOT_CHARGED', 'PAID'], ['NOT_CHARGED', 'NOT_CHARGED']] as const)('B13 competing %s and %s resolutions use separate connections and exactly one wins', async (firstOutcome, secondOutcome) => {
+  const [blocker, observer] = await connections(), item = await order(), row = await reviewPayment(item.id);
+  const backendPids = new Set<number>();
+  const run = (outcome: 'PAID' | 'NOT_CHARGED', reference: string) => withOrderLockTestControl(true, async (_id, tx) => {
+    const result = await tx.$queryRaw<Array<{ pid: number }>>`SELECT pg_backend_pid() AS pid`;
+    backendPids.add(result[0].pid);
+  }, () => resolveReview(item.id, row.id, outcome, reference));
+  await blocker.query('BEGIN'); await blocker.query('SELECT id FROM public.orders WHERE id=$1 FOR UPDATE', [item.id]);
+  const pid = (await blocker.query('SELECT pg_backend_pid() AS pid')).rows[0].pid;
+  const operations = [run(firstOutcome, 'first-reference'), run(secondOutcome, 'second-reference')];
+  const settled = Promise.allSettled(operations);
+  try {
+    const deadline = Date.now() + 5_000;
+    for (;;) {
+      const waiting = await observer.query(`WITH RECURSIVE blocked(pid) AS (
+        SELECT pid FROM pg_stat_activity WHERE datname=current_database() AND $1::integer = ANY(pg_blocking_pids(pid))
+        UNION
+        SELECT a.pid FROM pg_stat_activity a JOIN blocked b ON b.pid = ANY(pg_blocking_pids(a.pid)) WHERE a.datname=current_database()
+      ) SELECT count(*)::integer AS count FROM blocked b JOIN pg_stat_activity a ON a.pid=b.pid
+        WHERE a.query LIKE '%public.orders%FOR UPDATE%'`, [pid]);
+      if (waiting.rows[0].count === 2) break;
+      if (Date.now() >= deadline) throw new Error('Both review writers must wait on independent connections');
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
+    await blocker.query('COMMIT');
+    const results = await settled;
+    expect(backendPids.size).toBe(2);
+    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    const loser = results.find(result => result.status === 'rejected') as PromiseRejectedResult;
+    expect(loser.reason).toMatchObject({ code: 'PAYMENT_REVIEW_ALREADY_RESOLVED' });
+    expect(await prisma.adminAuditEvent.count({ where: { targetId: row.id, action: { in: ['PAYMENT_REVIEW_CONFIRMED_PAID', 'PAYMENT_REVIEW_CLOSED_NOT_CHARGED'] } } })).toBe(1);
+  } finally {
+    await blocker.query('ROLLBACK'); await settled;
+    await Promise.allSettled([blocker.end(), observer.end()]); clients.delete(blocker); clients.delete(observer);
+  }
+});
+
+it('B13 unresolved review blocks a new attempt and NOT_CHARGED admits a new attempt', async () => {
+  const item = await order(), row = await reviewPayment(item.id);
+  await expect(createPaymentSession(input(item.id))).rejects.toMatchObject({ code: 'PAYMENT_REQUIRES_REVIEW' });
+  await resolveReview(item.id, row.id, 'NOT_CHARGED', 'dashboard-check');
+  const next = await createPaymentSession(input(item.id));
+  expect(next.paymentId).not.toBe(row.id);
+  expect(await prisma.payment.count({ where: { orderId: item.id } })).toBe(2);
+});
+
+it.each(['pending', 'newer-paid', 'cancelled'] as const)('B13 late capture after NOT_CHARGED is recorded for a %s order', async scenario => {
+  const [, observer] = await connections(), item = await order(), row = await reviewPayment(item.id);
+  await resolveReview(item.id, row.id, 'NOT_CHARGED', 'provider-ticket');
+  if (scenario === 'newer-paid') {
+    const next = await payment(item.id);
+    sessions.get(next.sessionId!)!.state = 'succeeded'; await queryPaymentByRequestKey(next.id);
+  } else if (scenario === 'cancelled') await OrderService.cancelOrder(item.id, admin.user.id, 'customer_cancelled');
+  const session = sessions.get(row.sessionId!)!;
+  session.state = 'succeeded'; session.closed = true;
+  expect(await queryPaymentByRequestKey(row.id)).toBe(true);
+  const capture = await prisma.paymentLedger.findFirstOrThrow({ where: { paymentId: row.id, eventType: 'SUCCEEDED' } });
+  expect(capture.refundRequired).toBe(scenario !== 'pending');
+  expect(await prisma.payment.findUniqueOrThrow({ where: { id: row.id } })).toMatchObject({ status: 'SUCCEEDED', reviewResolution: 'NOT_CHARGED', reviewReference: 'provider-ticket', closureObservationId: null, closedAt: null });
+  expect(await prisma.adminAuditEvent.findFirstOrThrow({ where: { targetId: row.id, action: 'PAYMENT_REVIEW_CONTRADICTED' } })).toMatchObject({ actorId: 'system', summary: { paymentId: row.id, orderId: item.id, providerPaymentId: capture.providerPaymentId, reviewReference: 'provider-ticket', refundRequired: scenario !== 'pending' } });
+  await queryPaymentByRequestKey(row.id);
+  expect(await prisma.paymentLedger.count({ where: { paymentId: row.id, eventType: 'SUCCEEDED' } })).toBe(1);
+  expect(await prisma.adminAuditEvent.count({ where: { targetId: row.id, action: 'PAYMENT_REVIEW_CONTRADICTED' } })).toBe(1);
+  expect(await counts(observer, item.id)).toEqual({ paid: scenario === 'cancelled' ? 0 : 1, success: scenario === 'cancelled' ? 0 : 1, notifications: scenario === 'cancelled' ? 0 : 1 });
+  await expect(createPaymentSession(input(item.id))).rejects.toMatchObject({ code: 'ORDER_ALREADY_PAID' });
+  await resolveReview(item.id, row.id, 'NOT_CHARGED', 'provider-ticket');
+  await expect(resolveReview(item.id, row.id, 'PAID', capture.providerPaymentId!)).rejects.toMatchObject({ code: 'PAYMENT_REVIEW_ALREADY_RESOLVED' });
+});
+
+it('B13 confirming a cancelled order records a refund-required capture without paid outputs', async () => {
+  const [, observer] = await connections(), item = await order(), row = await reviewPayment(item.id);
+  await OrderService.cancelOrder(item.id, admin.user.id, 'customer_cancelled');
+  await resolveReview(item.id, row.id, 'PAID', 'provider-cancelled-capture');
+  expect(await prisma.paymentLedger.findFirstOrThrow({ where: { paymentId: row.id, eventType: 'SUCCEEDED' } })).toMatchObject({ refundRequired: true });
+  expect(await counts(observer, item.id)).toEqual({ paid: 0, success: 0, notifications: 0 });
+});
+
+it('B13 an already bound provider capture leaves the reviewed payment unchanged', async () => {
+  const firstOrder = await order(), captured = await payment(firstOrder.id);
+  await recordPaymentSucceeded({ paymentId: captured.id, providerEventId: randomUUID(), providerPaymentId: 'bound-capture' });
+  const item = await order(), row = await reviewPayment(item.id);
+  await expect(resolveReview(item.id, row.id, 'PAID', 'bound-capture')).rejects.toMatchObject({ code: 'PAYMENT_IDEMPOTENCY_CONFLICT' });
+  expect(await prisma.payment.findUniqueOrThrow({ where: { id: row.id } })).toMatchObject({ status: 'REQUIRES_REVIEW', failureReason: 'query_budget_exhausted' });
+  expect(await prisma.adminAuditEvent.count({ where: { targetId: row.id, action: 'PAYMENT_REVIEW_CONFIRMED_PAID' } })).toBe(0);
+});
+
+it('B13 database guards reject invented, incomplete or mutated resolutions and reversed status', async () => {
+  const [writer, observer] = await connections(), item = await order(), row = await payment(item.id);
+  try {
+    const setResolution = 'UPDATE payments SET status=\'FAILED\',"reviewResolution"=\'NOT_CHARGED\',"reviewResolvedAt"=clock_timestamp(),"reviewResolvedBy"=\'admin\',"reviewReference"=$2 WHERE id=$1';
+    await expect(writer.query(setResolution, [row.id, 'proof'])).rejects.toMatchObject({ code: '23514' });
+    await writer.query('UPDATE payments SET status=\'REQUIRES_REVIEW\' WHERE id=$1', [row.id]);
+    await expect(writer.query(setResolution, [row.id, '   '])).rejects.toMatchObject({ code: '23514' });
+    await expect(writer.query(setResolution, [row.id, '\t\n'])).rejects.toMatchObject({ code: '23514' });
+    await expect(writer.query('UPDATE payments SET "reviewResolution"=\'NOT_CHARGED\' WHERE id=$1', [row.id])).rejects.toMatchObject({ code: '23514' });
+    await resolveReview(item.id, row.id, 'NOT_CHARGED', 'immutable-proof');
+    for (const status of ['PENDING', 'CREATING', 'UNKNOWN', 'REQUIRES_REVIEW', 'CANCELLED', 'EXPIRED'])
+      await expect(writer.query('UPDATE payments SET status=$2::"PaymentAttemptStatus" WHERE id=$1', [row.id, status])).rejects.toMatchObject({ code: '23514' });
+    for (const assignment of ['"reviewResolution"=NULL', '"reviewResolvedAt"=clock_timestamp()', '"reviewResolvedBy"=\'other-admin\'', '"reviewReference"=\'other-proof\''])
+      await expect(writer.query('UPDATE payments SET ' + assignment + ' WHERE id=$1', [row.id])).rejects.toMatchObject({ code: '23514' });
+    await recordPaymentSucceeded({ paymentId: row.id, providerEventId: randomUUID(), providerPaymentId: randomUUID() });
+    await expect(writer.query('UPDATE payments SET status=\'FAILED\' WHERE id=$1', [row.id])).rejects.toMatchObject({ code: '23514' });
+    expect((await observer.query('SELECT status,"reviewReference" FROM payments WHERE id=$1', [row.id])).rows[0]).toEqual({ status: 'SUCCEEDED', reviewReference: 'immutable-proof' });
+  } finally { await Promise.allSettled([writer.end(), observer.end()]); clients.delete(writer); clients.delete(observer); }
+});
 async function counts(client: Client, orderId: string) {
   return (await client.query(`SELECT
     (SELECT count(*)::integer FROM event_records WHERE type='order.paid' AND "aggregateId"=$1) AS paid,

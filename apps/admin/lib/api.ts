@@ -306,6 +306,8 @@ export const ordersApi = {
 
   recordManualPayment: (id: string, reference: string): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/record-manual-payment`, { reference }),
+  resolvePaymentReview: (id: string, paymentId: string, outcome: 'PAID' | 'NOT_CHARGED', reference: string): Promise<ApiResponse<AdminOrderDetailDTO>> =>
+    apiClient.post(`/admin/orders/${id}/${outcome === 'PAID' ? 'confirm-review-payment' : 'close-review-payment'}`, { paymentId, reference }),
 
   shipOrder: (id: string, data: {
     carrier: string;

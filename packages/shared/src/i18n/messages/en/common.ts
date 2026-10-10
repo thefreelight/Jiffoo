@@ -120,6 +120,7 @@ export const common = {
     paymentReferenceRequired: 'Enter a payment or refund reference.',
     paymentOutcomeUnknown: "We're checking your payment. Please don't pay again.",
     paymentRequiresReview: 'Payment requires review.',
+    paymentReviewAlreadyResolved: 'Payment review has already been resolved. Refresh the order to see the current outcome.',
     paymentRefundRequired: 'Refund required.',
     paymentSessionStillChargeable: 'This payment session may still be charged. Wait until it is confirmed closed before trying again.',
     uploadStorageUnavailable: 'Upload storage is temporarily unavailable. Try again shortly.',
