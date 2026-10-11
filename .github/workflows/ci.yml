@@ -62,10 +62,9 @@ jobs:
         run: microsoft-edge --version 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Prepare approved upload storage image
         run: |
-          docker pull --platform linux/amd64 pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
-          docker tag pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+          docker pull --platform linux/amd64 pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Record upload storage image inspection
-        run: docker image inspect pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+        run: docker image inspect pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Run verification catalogue
         run: node scripts/verify-ci.mjs api ${{ matrix.shard }}/4
       - name: Upload verification artifacts
@@ -125,10 +124,9 @@ jobs:
         run: microsoft-edge --version 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Prepare approved upload storage image
         run: |
-          docker pull --platform linux/amd64 pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
-          docker tag pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+          docker pull --platform linux/amd64 pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Record upload storage image inspection
-        run: docker image inspect pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+        run: docker image inspect pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Run verification catalogue
         run: node scripts/verify-ci.mjs quality
       - name: Upload verification artifacts
@@ -188,10 +186,9 @@ jobs:
         run: microsoft-edge --version 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Prepare approved upload storage image
         run: |
-          docker pull --platform linux/amd64 pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
-          docker tag pgsty/minio@sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9 pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+          docker pull --platform linux/amd64 pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Record upload storage image inspection
-        run: docker image inspect pgsty/minio:RELEASE.2026-08-04T00-00-00Z 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
+        run: docker image inspect pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46 2>&1 | tee -a "${{ runner.temp }}/verification/preflight.log"
       - name: Run verification catalogue
         run: node scripts/verify-ci.mjs e2e
       - name: Upload verification artifacts
@@ -210,9 +207,29 @@ jobs:
           path: e2e/test-results/
           retention-days: 14
           if-no-files-found: ignore
+  compose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/jiffoo_core_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.13.1
+      - name: Run isolated Docker Compose acceptance
+        run: node scripts/verify-compose.mjs
+      - name: Upload Compose verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-compose
+          path: ${{ runner.temp }}/verification/
+          retention-days: 14
+          if-no-files-found: error
   summary:
     if: always()
-    needs: [api, quality, e2e]
+    needs: [api, quality, e2e, compose]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

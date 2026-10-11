@@ -1,3 +1,4 @@
+import './core/logger/production-console';
 import 'module-alias/register';
 import 'dotenv/config';
 import { startWorkerRuntime } from './worker-runtime';

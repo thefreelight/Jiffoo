@@ -35,8 +35,9 @@ return quick
 
 export function ciSteps(databaseUrl, group, shard) {
   if (process.env.GITHUB_ACTIONS !== 'true') throw new Error('CI selection requires GITHUB_ACTIONS === true.');
-  if (!['api', 'quality', 'e2e'].includes(group)) throw new Error('Unknown CI group.');
+  if (!['api', 'quality', 'e2e', 'compose'].includes(group)) throw new Error('Unknown CI group.');
   if (group === 'api' ? !/^[1-4]\/4$/.test(shard ?? '') : shard !== undefined) throw new Error('Only API groups accept a shard, from 1/4 to 4/4.');
+  if (group === 'compose') return [['Run Docker Compose acceptance', [['verify:compose']]]];
   const common = new Set(['Install dependencies', 'Validate and generate Prisma client', 'Build shared package', 'Build plugin SDK', 'Reset test database', 'Check Prisma migration drift']);
   const tests = new Set(['Run API tests', 'Run Admin tests', 'Run Shop tests', 'Run browser E2E']);
   return localSteps(databaseUrl).filter(([name]) => common.has(name) || (group === 'api' ? ['Export OpenAPI', 'Run API tests'].includes(name) : group === 'e2e' ? name === 'Run browser E2E' : !tests.has(name) || ['Run Admin tests', 'Run Shop tests'].includes(name)))

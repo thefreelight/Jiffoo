@@ -18,6 +18,7 @@
  */
 
 // Register module aliases for production runtime (must be first import)
+import './core/logger/production-console';
 import 'module-alias/register';
 import { parseTrustedProxies } from 'shared/trusted-proxies';
 

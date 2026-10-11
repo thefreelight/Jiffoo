@@ -1,14 +1,14 @@
 [
     {
-        "Id": "sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9",
+        "Id": "sha256:39aab3c365848e32aca7b76c5b57f86d1cbca02d7b8f24e1fd1feff9fedddae5",
         "RepoTags": [
-            "pgsty/minio:RELEASE.2026-08-04T00-00-00Z"
+            "pgsty/silo@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46"
         ],
         "RepoDigests": [
-            "pgsty/minio@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372"
+            "pgsty/silo@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46"
         ],
         "Comment": "buildkit.dockerfile.v0",
-        "Created": "2026-08-04T23:51:54.553415482Z",
+        "Created": "2026-09-16T16:36:13.875855193Z",
         "Config": {
             "ExposedPorts": {
                 "9000/tcp": {}
@@ -20,15 +20,15 @@
                 "MINIO_ROOT_USER_FILE=access_key",
                 "MINIO_ROOT_PASSWORD_FILE=secret_key",
                 "MINIO_KMS_SECRET_KEY_FILE=kms_master_key",
-                "MINIO_UPDATE_MINISIGN_PUBKEY=RWTx5Zr1tiHQLwG9keckT0c45M3AGeHD6IvimQHpyRywVWGbP1aVSGav",
                 "MINIO_CONFIG_ENV_FILE=config.env",
+                "HOME=/tmp",
                 "MC_CONFIG_DIR=/tmp/.mc"
             ],
             "Entrypoint": [
                 "/usr/bin/docker-entrypoint.sh"
             ],
             "Cmd": [
-                "minio"
+                "silo"
             ],
             "Volumes": {
                 "/data": {}
@@ -36,25 +36,30 @@
             "WorkingDir": "/",
             "Labels": {
                 "architecture": "x86_64",
-                "build-date": "2026-07-22T06:49:45Z",
+                "build-date": "2026-08-26T21:13:51Z",
                 "com.redhat.component": "ubi9-micro-container",
                 "com.redhat.license_terms": "https://www.redhat.com/en/about/red-hat-end-user-license-agreements#UBI",
                 "cpe": "cpe:/a:redhat:enterprise_linux:9::appstream",
-                "description": "MinIO community fork, build by pgsty",
+                "description": "Very small image which doesn't install the package manager.",
                 "distribution-scope": "public",
                 "io.buildah.version": "1.44.0",
                 "io.k8s.description": "Very small image which doesn't install the package manager.",
                 "io.k8s.display-name": "Red Hat Universal Base Image 9 Micro",
                 "io.openshift.expose-services": "",
-                "maintainer": "pgsty <https://github.com/pgsty/minio>",
+                "maintainer": "PGSTY <https://silo.pgsty.com>",
                 "name": "ubi9/ubi-micro",
-                "org.opencontainers.image.created": "2026-08-04T23:49:09Z",
-                "org.opencontainers.image.revision": "d88f46ccee345a9c2fabe2d221d9a9e56bc11aec",
-                "org.opencontainers.image.version": "RELEASE.2026-08-04T00-00-00Z",
-                "release": "1784702951",
+                "org.opencontainers.image.created": "2026-09-16T16:34:00Z",
+                "org.opencontainers.image.description": "S3-Interface Libre Object Storage",
+                "org.opencontainers.image.licenses": "AGPL-3.0-or-later",
+                "org.opencontainers.image.revision": "2a4d51406b7ed87af5fe6fe0f801f3290f96eb3c",
+                "org.opencontainers.image.source": "https://github.com/pgsty/silo",
+                "org.opencontainers.image.title": "Silo",
+                "org.opencontainers.image.url": "https://silo.pgsty.com",
+                "org.opencontainers.image.version": "RELEASE.2026-09-16T00-00-00Z",
+                "release": "1787778798",
                 "summary": "ubi9 micro image",
                 "url": "https://catalog.redhat.com/en/search?searchType=containers",
-                "vcs-ref": "97262785bdef2694cdc29ef7ef158812c44b97e0",
+                "vcs-ref": "f4a035c7f61947bd47d6abfc6b65c983adc04b2a",
                 "vcs-type": "git",
                 "vendor": "Red Hat, Inc.",
                 "version": "9.8"
@@ -63,28 +68,30 @@
         },
         "Architecture": "amd64",
         "Os": "linux",
-        "Size": 216420701,
+        "Size": 221839309,
         "RootFS": {
             "Type": "layers",
             "Layers": [
-                "sha256:0e111396ebd730643a13d67c30dae48976f47edf0694c6a51368eca3773c8a4c",
-                "sha256:8135d11f1d3862a403ecd3d2ede078808b680de56ced54d7af63d8a6c730d199",
-                "sha256:89aa41be2662111677117360fb32b31c05a3c8eeb1b67bcacd941876502a4a6c",
-                "sha256:36b273b4da9c1017cde2c3bbea6de444fe3e42cf91884dd6f2ef25a0e424b281",
-                "sha256:370f07afdb717419d7dc9eb9d53fac7127c68fc96c94a8c0801661bfb723ca25",
-                "sha256:866b4b5996e9c674ccef15a0c8ccaac1ec07c112a0fef73cffac4dd69133d3cf",
-                "sha256:e4b8ab2bf1cb4874108c7029e1e51b14e312a2cf8b7732c98951662c473cb53f",
-                "sha256:a22e83123e78b7daf8fd3708efccd80aea76507498addbdf8208d469ecc16a67",
-                "sha256:a2af2f05360e284f9deee87e5c5890e17077ed2dac8426aa8398e324e4bb0ff1"
+                "sha256:49d88c5f8e857b7f1f820fe9d675e242502575a82be998cf9e18f6ef83f00e0d",
+                "sha256:2d4735c2a7b66ad8eff81e952ef1b377b0792963f0830b718ff9a2d1f19d9bdb",
+                "sha256:79dabd0ad8ff9af57727231f1c153a162067bea1999bf96da21bba04dc82f07b",
+                "sha256:2e48bab313e146dd4d1b178a400cd089f454e59fc20c364adece50527ccbb48f",
+                "sha256:8452ae931d6079dd842b7be902986d09a4f9e3695dbd96771a5197d49e7fb217",
+                "sha256:50966f2a4296510129d4a6b6f2207b5d979b4f0d67dbe9391d301669190fb38b",
+                "sha256:07ee3088879bbc1f8ac3492ef333d36b6c9b0ef314c1e618556343489e1de48c",
+                "sha256:ace7a0426afe4a0d86950007944f4f2bcc6f055c31250e98b4030610c5538130",
+                "sha256:d758bd99a10f17f18d331be1c9b534fedacb2873cac0bf80230715c46244a858",
+                "sha256:aa7969a9dbe95a7e6225d0a3ca1f581e1c358c4c24ae61146d934d8cd4e2e1b2",
+                "sha256:053e0ec26c65ad066e554114dcdf1934bdb6e2cc9d8c5ba16a3d0d8cf41c7b3f"
             ]
         },
         "Metadata": {
-            "LastTagTime": "2026-10-07T16:20:48.489023403Z"
+            "LastTagTime": "2026-10-11T05:31:13.363740372Z"
         },
         "Descriptor": {
             "mediaType": "application/vnd.oci.image.manifest.v1+json",
-            "digest": "sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9",
-            "size": 2007,
+            "digest": "sha256:39aab3c365848e32aca7b76c5b57f86d1cbca02d7b8f24e1fd1feff9fedddae5",
+            "size": 2384,
             "platform": {
                 "architecture": "amd64",
                 "os": "linux"
@@ -93,7 +100,7 @@
         "Identity": {
             "Pull": [
                 {
-                    "Repository": "docker.io/pgsty/minio"
+                    "Repository": "docker.io/pgsty/silo"
                 }
             ]
         }

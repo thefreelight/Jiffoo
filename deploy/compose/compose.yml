@@ -1,0 +1,229 @@
+x-backend: &backend
+  image: ${COMPOSE_PROJECT_NAME:?Set a unique project name}-backend
+  build:
+    context: ../..
+    dockerfile: deploy/compose/Dockerfile
+    target: backend
+    args: { REVISION: '${REVISION:?Set source revision}' }
+  init: true
+  user: '1000:1000'
+  read_only: true
+  tmpfs: [/tmp]
+  stop_grace_period: 45s
+  environment: &backend-env
+    NODE_ENV: production
+    DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?Set a URL-safe password}@postgres:5432/jiffoo_core
+    REDIS_URL: redis://redis:6379
+    JWT_SECRET: ${JWT_SECRET:?Generate JWT secret}
+    PLUGIN_SECRETS_KEY: ${PLUGIN_SECRETS_KEY:?Generate plugin secrets key}
+    STOREFRONT_URL: ${STOREFRONT_URL:?Set HTTPS Shop origin}
+    ADMIN_URL: ${ADMIN_URL:?Set HTTPS Admin origin}
+    CORS_ORIGIN: ${STOREFRONT_URL},${ADMIN_URL}
+    TRUSTED_PROXIES: 172.30.65.10,172.30.65.11
+    EXTENSIONS_PATH: /tmp/extensions
+    UPLOAD_STORAGE_BACKEND: s3
+    UPLOAD_S3_ENDPOINT: http://silo:9000
+    UPLOAD_S3_REGION: us-east-1
+    UPLOAD_S3_BUCKET: ${UPLOAD_S3_BUCKET:?Set S3 bucket}
+    UPLOAD_S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?Generate S3 access key}
+    UPLOAD_S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?Generate S3 secret key}
+    UPLOAD_S3_FORCE_PATH_STYLE: 'true'
+  networks: [core]
+  depends_on: &ready
+    db-init: { condition: service_completed_successfully }
+    silo-init: { condition: service_completed_successfully }
+    redis: { condition: service_healthy }
+  healthcheck:
+    test: [CMD, node, /app/deploy/compose/health.mjs, 'http://127.0.0.1:3001/health/ready', api]
+    interval: 5s
+    timeout: 5s
+    retries: 60
+    start_period: 30s
+
+x-nginx: &nginx
+  image: nginx:1.28.2-alpine@sha256:5b4900b042ccfa8b0a73df622c3a60f2322faeb2be800cbee5aa7b44d241649e
+  user: '1000:1000'
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  healthcheck:
+    test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/health']
+    interval: 5s
+    timeout: 5s
+    retries: 30
+
+services:
+  postgres:
+    image: postgres:18.2@sha256:a688ae5c99f86c1424e046ace0de890608cc0ddb5ec8ef72a6ff8305fdc8f4d2
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set database password}
+      POSTGRES_DB: jiffoo_core
+    volumes: [postgres-data:/var/lib/postgresql]
+    networks: [core]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  redis:
+    image: redis:7.2@sha256:46f15cf64fdef63e483dcda99e74e3d51c017b1175547b6bb874152ee2391aad
+    command: [redis-server, --appendonly, 'yes']
+    volumes: [redis-data:/data]
+    networks: [core]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  silo-volume-init:
+    <<: *backend
+    depends_on: {}
+    healthcheck: { disable: true }
+    volumes: [silo-data:/data]
+    command: [node, -e, "require('fs').accessSync('/data', require('fs').constants.W_OK)"]
+  silo:
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46
+    user: '1000:1000'
+    command: [server, /data]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes: [silo-data:/data]
+    networks: [core]
+    depends_on:
+      silo-volume-init: { condition: service_completed_successfully }
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, 'http://127.0.0.1:9000/minio/health/ready']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  silo-init:
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46
+    user: '1000:1000'
+    entrypoint: [/bin/sh, -ec]
+    command: ['mcli alias set local http://silo:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" >/dev/null; mcli mb --ignore-existing "local/$$UPLOAD_S3_BUCKET"; mcli stat "local/$$UPLOAD_S3_BUCKET" >/dev/null']
+    environment:
+      HOME: /tmp
+      MC_CONFIG_DIR: /tmp/.mc
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      UPLOAD_S3_BUCKET: ${UPLOAD_S3_BUCKET}
+    read_only: true
+    tmpfs: [/tmp]
+    networks: [core]
+    depends_on:
+      silo: { condition: service_healthy }
+  db-init:
+    <<: *backend
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck: { disable: true }
+    command: [node, /app/deploy/compose/db-init.mjs]
+  api-1: { <<: *backend }
+  api-2: { <<: *backend }
+  worker-1: &worker
+    <<: *backend
+    command: [node, dist/worker.js]
+    healthcheck:
+      test: [CMD, node, /app/deploy/compose/health.mjs, 'http://127.0.0.1:3004/healthz']
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+  worker-2: { <<: *worker }
+  api-lb:
+    <<: *nginx
+    volumes: [./api-lb.conf:/etc/nginx/nginx.conf:ro]
+    networks:
+      core: { ipv4_address: 172.30.65.11 }
+    depends_on:
+      api-1: { condition: service_healthy }
+      api-2: { condition: service_healthy }
+  admin:
+    image: ${COMPOSE_PROJECT_NAME}-admin
+    build:
+      context: ../..
+      dockerfile: deploy/compose/Dockerfile
+      target: admin
+      args: { REVISION: '${REVISION}' }
+    user: '1000:1000'
+    init: true
+    read_only: true
+    tmpfs: [/tmp, /app/apps/admin/.next/standalone/apps/admin/.next/cache]
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: '3002'
+      API_SERVICE_URL: http://api-lb:8080
+      NEXT_PUBLIC_API_URL: /api/v1
+      STOREFRONT_URL: ${STOREFRONT_URL}
+      ADMIN_URL: ${ADMIN_URL}
+    networks: [core]
+    depends_on:
+      api-lb: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, node, /app/deploy/compose/health.mjs, 'http://127.0.0.1:3002/en/auth/login']
+      interval: 5s
+      timeout: 5s
+      retries: 60
+  shop:
+    image: ${COMPOSE_PROJECT_NAME}-shop
+    build:
+      context: ../..
+      dockerfile: deploy/compose/Dockerfile
+      target: shop
+      args: { REVISION: '${REVISION}' }
+    user: '1000:1000'
+    init: true
+    read_only: true
+    tmpfs: [/tmp, /app/apps/shop/.next/cache]
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: '3003'
+      API_SERVICE_URL: http://api-lb:8080
+      NEXT_PUBLIC_API_URL: /api/v1
+      STOREFRONT_URL: ${STOREFRONT_URL}
+      ADMIN_URL: ${ADMIN_URL}
+      TRUSTED_PROXIES: 172.30.65.10
+    # Shop sanitizes client headers before its BFF calls Core. Sharing the proxy
+    # namespace preserves that IP without trusting any additional network address.
+    network_mode: service:api-lb
+    depends_on:
+      api-lb: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, node, /app/deploy/compose/health.mjs, 'http://127.0.0.1:3003/en']
+      interval: 5s
+      timeout: 5s
+      retries: 60
+  edge:
+    <<: *nginx
+    volumes:
+      - ./edge.conf:/etc/nginx/nginx.conf:ro
+      - ${TLS_CERT_FILE:?Supply certificate}:/etc/nginx/tls/cert.pem:ro
+      - ${TLS_KEY_FILE:?Supply private key}:/etc/nginx/tls/key.pem:ro
+    ports: ['127.0.0.1:${EDGE_PORT:?Set HTTPS port}:8443']
+    networks:
+      core: { ipv4_address: 172.30.65.10 }
+    depends_on:
+      admin: { condition: service_healthy }
+      shop: { condition: service_healthy }
+      worker-1: { condition: service_healthy }
+      worker-2: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, wget, --no-check-certificate, -q, -O, /dev/null, 'https://127.0.0.1:8443/health']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+networks:
+  core:
+    ipam:
+      # Keep dynamic services away from the trusted proxy and acceptance client IPs.
+      config: [{ subnet: 172.30.65.0/24, ip_range: 172.30.65.128/25 }]
+volumes:
+  postgres-data:
+  redis-data:
+  silo-data:

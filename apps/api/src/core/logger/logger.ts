@@ -52,6 +52,13 @@ const logsDir = path.join(process.cwd(), 'logs');
 // Log transport configuration
 const transports: winston.transport[] = [];
 
+const productionFormat = winston.format.combine(
+  injectRequestId(),
+  winston.format.errors({ stack: true }),
+  winston.format.timestamp(),
+  winston.format.json()
+);
+
 // Console output
 if (env.NODE_ENV === 'development') {
   transports.push(
@@ -62,6 +69,9 @@ if (env.NODE_ENV === 'development') {
   );
 }
 
+if (env.NODE_ENV === 'production') {
+  transports.push(new winston.transports.Console({ format: productionFormat, stderrLevels: [] }));
+} else {
 // Error log file
 transports.push(
   new DailyRotateFile({
@@ -101,9 +111,10 @@ transports.push(
 );
 
 // Create Winston logger
+}
 export const logger = winston.createLogger({
   level: env.NODE_ENV === 'production' ? 'info' : 'debug',
-  format: logFormat,
+  format: env.NODE_ENV === 'production' ? productionFormat : logFormat,
   transports,
   exitOnError: false
 });

@@ -156,6 +156,7 @@ const codeConstants = [
   'core/logger/logger.ts:consoleFormat',
   'core/logger/logger.ts:injectRequestId',
   'core/logger/logger.ts:logFormat',
+  'core/logger/logger.ts:productionFormat',
   'core/logger/unified-logger.ts:LoggerService',
   'core/notifications/delivery.ts:secretPattern',
   'core/notifications/service.ts:notificationLocales',

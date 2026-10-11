@@ -12,11 +12,11 @@ function inActions(fn) {
   }
 }
 
-const needs = { api: { result: 'success' }, quality: { result: 'success' }, e2e: { result: 'success' } };
+const needs = { api: { result: 'success' }, quality: { result: 'success' }, e2e: { result: 'success' }, compose: { result: 'success' } };
 function reports() {
   return inActions(() => [
     ...[1, 2, 3, 4].map(index => ['api', index + '/4']),
-    ['quality', undefined], ['e2e', undefined],
+    ['quality', undefined], ['e2e', undefined], ['compose', undefined],
   ].map(([group, shard]) => {
     const plan = ciSteps('postgresql://postgres@localhost/jiffoo_core_test', group, shard);
     return {
@@ -25,8 +25,8 @@ function reports() {
       fullApiFiles: group === 'api' ? ['tests/a.test.ts', 'tests/b.test.ts', 'tests/c.test.ts', 'tests/d.test.ts'] : [],
       apiFiles: group === 'api' ? ['tests/' + 'abcd'[Number(shard[0]) - 1] + '.test.ts'] : [],
       outputs: plan.filter(([name]) => name.startsWith('Run ')).map(([name]) => ({
-        name, kind: name === 'Run browser E2E' ? 'e2e' : 'vitest',
-        output: name === 'Run browser E2E'
+        name, kind: group === 'compose' ? 'compose' : name === 'Run browser E2E' ? 'e2e' : 'vitest',
+        output: group === 'compose' ? 'Compose start time: 2026-10-11T00:00:00.000Z\nCompose results: 1 passed, 0 failed, 0 skipped\nCompose duration: 1.00s\n\n| Check | Result | Duration | Error or skipped reason |\n| --- | --- | --- | --- |\n| Fixture | PASS | 1.00s | |\n' : name === 'Run browser E2E'
           ? 'Playwright start time: 2026-10-08T00:00:00.000Z\nPlaywright results: 1 passed, 0 failed, 0 skipped\n'
           : '   Start at  00:00:00\n Test Files  1 passed (1)\n      Tests  1 passed (1)\n',
       })),
@@ -89,6 +89,8 @@ test('complete successful reports reconcile exactly once and retain all suite su
 
 test('cancelled, skipped, failed and missing jobs never pass', () => inActions(() => {
   for (const result of ['cancelled', 'skipped', 'failure']) assert.equal(mergeResults(reports(), { ...needs, api: { result } }).valid, false);
+  for (const result of ['cancelled', 'skipped', 'failure']) assert.equal(mergeResults(reports(), { ...needs, compose: { result } }).valid, false);
+  assert.equal(mergeResults(reports().filter(row => row.group !== 'compose'), needs).valid, false);
   assert.equal(mergeResults(reports().slice(1), needs).valid, false);
 }));
 
@@ -111,4 +113,16 @@ test('a successful job cannot omit a catalogue step or its test summaries', () =
   const missingOutput = reports();
   missingOutput[0].outputs = [];
   assert.equal(mergeResults(missingOutput, needs).valid, false);
+}));
+
+test('merged CI summary preserves Compose checks and rejects skipped checks or inconsistent counts', () => inActions(() => {
+  assert.match(mergeResults(reports(), needs).block, /\| Fixture \| PASS \|/);
+  for (const replacement of ['| Fixture | FAIL |', '| Fixture | SKIPPED |']) {
+    const rows = reports();
+    rows.find(row => row.group === 'compose').outputs[0].output = rows.find(row => row.group === 'compose').outputs[0].output.replace('| Fixture | PASS |', replacement);
+    assert.equal(mergeResults(rows, needs).valid, false);
+  }
+  const rows = reports();
+  rows.find(row => row.group === 'compose').outputs[0].output = rows.find(row => row.group === 'compose').outputs[0].output.replace('1 passed, 0 failed', '2 passed, 0 failed');
+  assert.equal(mergeResults(rows, needs).valid, false);
 }));

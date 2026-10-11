@@ -1,0 +1,50 @@
+x-test-env: &test-env
+  DATABASE_URL: postgresql://postgres:postgres@postgres:5432/jiffoo_core_test
+
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: jiffoo_core_test
+  db-init:
+    environment: *test-env
+  silo-volume-init:
+    environment: *test-env
+  api-1:
+    environment: *test-env
+  api-2:
+    environment: *test-env
+  worker-1:
+    environment: *test-env
+  worker-2:
+    environment: *test-env
+  acceptance:
+    image: ${COMPOSE_PROJECT_NAME}-backend
+    profiles: [acceptance]
+    user: '1000:1000'
+    init: true
+    read_only: true
+    tmpfs: [/tmp]
+    network_mode: service:postgres
+    volumes: ['${TLS_CERT_FILE}:/tls/cert.pem:ro']
+    environment:
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/jiffoo_core_test
+    command: [node, /app/deploy/compose/scenario17.mjs, state]
+  client-a:
+    image: ${COMPOSE_PROJECT_NAME}-backend
+    profiles: [acceptance]
+    user: '1000:1000'
+    read_only: true
+    volumes: ['${TLS_CERT_FILE}:/tls/cert.pem:ro']
+    networks:
+      core: { ipv4_address: 172.30.65.21 }
+    command: [node, /app/deploy/compose/scenario17.mjs, rate-a]
+  client-b:
+    image: ${COMPOSE_PROJECT_NAME}-backend
+    profiles: [acceptance]
+    user: '1000:1000'
+    read_only: true
+    volumes: ['${TLS_CERT_FILE}:/tls/cert.pem:ro']
+    networks:
+      core: { ipv4_address: 172.30.65.22 }
+    command: [node, /app/deploy/compose/scenario17.mjs, rate-b]

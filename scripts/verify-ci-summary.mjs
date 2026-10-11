@@ -4,9 +4,9 @@ import { localSteps, ciSteps, apiBuildStep } from './verify-steps.mjs';
 
 export function mergeResults(reports, needs) {
   const errors = [];
-  if (Object.keys(needs).length !== 3 || ['api', 'quality', 'e2e'].some(name => needs[name]?.result !== 'success')) errors.push('Every required job must conclude success; cancelled and skipped jobs are failures.');
+  if (Object.keys(needs).length !== 4 || ['api', 'quality', 'e2e', 'compose'].some(name => needs[name]?.result !== 'success')) errors.push('Every required job must conclude success; cancelled and skipped jobs are failures.');
   const identities = reports.map(report => report.group === 'api' ? `api-${report.shard}` : report.group);
-  const expected = ['api-1/4', 'api-2/4', 'api-3/4', 'api-4/4', 'quality', 'e2e'];
+  const expected = ['api-1/4', 'api-2/4', 'api-3/4', 'api-4/4', 'quality', 'e2e', 'compose'];
   if (identities.length !== expected.length || expected.some(id => identities.filter(item => item === id).length !== 1)) errors.push('Missing or duplicate CI job reports.');
   for (const report of reports) {
     if (!report.valid || report.results.some(([, result]) => result !== 'PASS')) errors.push(`Invalid or failed report: ${report.group} ${report.shard ?? ''}`);
@@ -22,7 +22,7 @@ export function mergeResults(reports, needs) {
   if (!full.length || new Set(full).size !== full.length || api.some(report => JSON.stringify(report.fullApiFiles) !== JSON.stringify(full))) errors.push('API full file inventories disagree or are empty.');
   const actual = api.flatMap(report => report.apiFiles);
   if (new Set(actual).size !== actual.length || JSON.stringify([...actual].sort()) !== JSON.stringify([...full].sort())) errors.push('API shard union does not equal the full API file inventory exactly once.');
-  const steps = [...localSteps('DATABASE_URL_TEST').map(([name]) => name), apiBuildStep[0]];
+  const steps = [...localSteps('DATABASE_URL_TEST').map(([name]) => name), apiBuildStep[0], 'Run Docker Compose acceptance'];
   for (const name of steps) if (!reports.some(report => report.results.some(([step]) => step === name))) errors.push(`Missing full-gate step: ${name}`);
   const lines = ['=== Final test summary ==='];
   if (api.length === 4) {
@@ -48,12 +48,23 @@ export function mergeResults(reports, needs) {
   for (const report of [...api.sort((a, b) => a.shard.localeCompare(b.shard)), ...reports.filter(report => report.group !== 'api')]) {
     for (const { name, kind, output } of report.outputs) {
       lines.push(`${name}${report.shard ? ` (shard ${report.shard})` : ''}:`);
-      const labels = kind === 'vitest' ? ['Start at', 'Test Files', 'Tests'] : ['Playwright start time', 'Playwright results'];
+      const labels = kind === 'vitest' ? ['Start at', 'Test Files', 'Tests'] : kind === 'compose' ? ['Compose start time', 'Compose results', 'Compose duration'] : ['Playwright start time', 'Playwright results'];
       const clean = output.replace(/\x1b\[[0-9;]*m/g, '').split(/\r?\n/);
       for (const label of labels) {
         const line = clean.findLast(value => value.trimStart().startsWith(label + ' ') || value.trimStart().startsWith(label + ':'));
         if (!line) errors.push(`Missing ${label} in ${name}`);
         else lines.push(line);
+      }
+      if (kind === 'compose') {
+        const start = clean.findIndex(line => line.startsWith('| Check | Result | Duration |'));
+        if (start < 0) errors.push('Missing Compose per-check result table.');
+        else {
+          const table = clean.slice(start).filter(line => line.startsWith('|'));
+          const rows = table.slice(2);
+          const counts = clean.find(line => line.startsWith('Compose results: '))?.match(/^Compose results: (\d+) passed, (\d+) failed, (\d+) skipped$/);
+          if (!rows.length || rows.some(line => !line.includes(' | PASS |')) || !counts || Number(counts[1]) !== rows.length || Number(counts[2]) !== 0 || Number(counts[3]) !== 0) errors.push('Compose per-check results are failed, skipped or inconsistent.');
+          lines.push('', ...table);
+        }
       }
     }
   }

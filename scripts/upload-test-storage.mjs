@@ -4,8 +4,9 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { verifyUploadImageIdentity } from './upload-test-image-identity.mjs';
 
-export const uploadTestImage = 'pgsty/minio:RELEASE.2026-08-04T00-00-00Z';
-export const uploadTestImageDigest = 'sha256:2b36182f3479c58b5cba920f20479738ee85ce218de0596a244f9a1368268db9';
+export const uploadTestImageIndexDigest = 'sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46';
+export const uploadTestImage = `pgsty/silo:RELEASE.2026-09-16T00-00-00Z@${uploadTestImageIndexDigest}`;
+export const uploadTestImageDigest = 'sha256:39aab3c365848e32aca7b76c5b57f86d1cbca02d7b8f24e1fd1feff9fedddae5';
 const require = createRequire(resolve('apps/api/package.json'));
 const { S3Client, CreateBucketCommand, HeadBucketCommand } = require('@aws-sdk/client-s3');
 
@@ -27,7 +28,7 @@ export async function startUploadTestStorage() {
     else throw new Error(result.stderr || result.error?.message || result.stdout || `docker exited with ${result.status}`);
     const missingDescriptor = Array.isArray(platformInspect) && platformInspect.length === 1 && platformInspect[0] && typeof platformInspect[0] === 'object' && !Array.isArray(platformInspect[0]) && !Object.hasOwn(platformInspect[0], 'Descriptor');
     if (platformInspect === undefined || missingDescriptor) classicInspect = JSON.parse(docker(['image', 'inspect', uploadTestImage]));
-    identity = verifyUploadImageIdentity(platformInspect, classicInspect, uploadTestImageDigest);
+    identity = verifyUploadImageIdentity(platformInspect, classicInspect, uploadTestImageDigest, uploadTestImageIndexDigest);
   } catch (error) {
     throw new Error(`Upload storage Docker preflight failed: expected ${uploadTestImage} with linux/amd64 digest ${uploadTestImageDigest}. ${error.message}`);
   }
