@@ -1,3 +1,4 @@
 deploy/compose/*.sh text eol=lf
+deploy/release/*.sh text eol=lf
 deploy/compose/*.envsh text eol=lf
 bin/jiffoo-host text eol=lf

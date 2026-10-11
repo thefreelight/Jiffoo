@@ -1,6 +1,12 @@
 #!/bin/sh
 set -eu
 
+case "${1:-}" in
+  backup|restore)
+    exec sh "$(dirname "$0")/../deploy/release/backup-host.sh" "$@"
+    ;;
+esac
+
 if [ "${1:-}" != verify ] || [ "$#" -lt 3 ]; then
   echo 'Usage: jiffoo-host verify RELEASE_DIRECTORY SOURCE_COMMIT [--acceptance]' >&2
   exit 1
@@ -34,7 +40,7 @@ inspect() {
   chmod 644 "$temporary/$role.json"
 }
 helper() {
-  docker run --rm --label "com.docker.compose.project=${JIFFOO_VERIFY_PROJECT:-jiffoo-verify-$$}" --network none --read-only --user 1000:1000 --tmpfs /tmp --entrypoint node \
+  docker run --rm --label "com.docker.compose.project=${JIFFOO_VERIFY_PROJECT:-jiffoo-verify-$$}" --network none --read-only --user "$(id -u):$(id -g)" --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp --entrypoint node \
     --mount "type=bind,source=$directory,target=/release,readonly" \
     --mount "type=bind,source=$temporary,target=/inspection,readonly" \
     "$image" /app/deploy/release/verify.mjs "$1" /release "$commit" /inspection "$mode"

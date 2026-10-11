@@ -114,7 +114,8 @@ services:
       UPLOAD_S3_ACCESS_KEY_ID: ${SILO_APP_ACCESS_KEY_ID}
       UPLOAD_S3_SECRET_ACCESS_KEY: ${SILO_APP_SECRET_ACCESS_KEY}
     read_only: true
-    tmpfs: [/tmp]
+    # The image declares /data as a volume; initialization uses it only as scratch.
+    tmpfs: [/tmp, /data]
     networks: [core]
     depends_on:
       silo: { condition: service_healthy }

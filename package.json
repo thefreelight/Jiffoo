@@ -39,6 +39,7 @@
     "verify:e2e": "node scripts/verify-e2e.mjs",
     "verify:compose": "node scripts/verify-compose.mjs",
     "verify:release": "node scripts/verify-release.mjs",
+    "verify:backup": "node scripts/verify-backup.mjs",
     "visual:capture": "node scripts/verify-e2e.mjs --visual",
     "visual:compare": "node scripts/verify-e2e.mjs --visual --compare"
   },

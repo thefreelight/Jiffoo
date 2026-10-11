@@ -12,11 +12,11 @@ function inActions(fn) {
   }
 }
 
-const needs = { api: { result: 'success' }, quality: { result: 'success' }, e2e: { result: 'success' }, compose: { result: 'success' }, 'release-verify': { result: 'success' } };
+const needs = { api: { result: 'success' }, quality: { result: 'success' }, e2e: { result: 'success' }, compose: { result: 'success' }, 'release-verify': { result: 'success' }, backup: { result: 'success' } };
 function reports() {
   return inActions(() => [
     ...[1, 2, 3, 4].map(index => ['api', index + '/4']),
-    ['quality', undefined], ['e2e', undefined], ['compose', undefined], ['release-verify', undefined],
+    ['quality', undefined], ['e2e', undefined], ['compose', undefined], ['release-verify', undefined], ['backup', undefined],
   ].map(([group, shard]) => {
     const plan = ciSteps('postgresql://postgres@localhost/jiffoo_core_test', group, shard);
     return {
@@ -25,8 +25,8 @@ function reports() {
       fullApiFiles: group === 'api' ? ['tests/a.test.ts', 'tests/b.test.ts', 'tests/c.test.ts', 'tests/d.test.ts'] : [],
       apiFiles: group === 'api' ? ['tests/' + 'abcd'[Number(shard[0]) - 1] + '.test.ts'] : [],
       outputs: plan.filter(([name]) => name.startsWith('Run ')).map(([name]) => ({
-        name, kind: group === 'release-verify' ? 'release' : group === 'compose' ? 'compose' : name === 'Run browser E2E' ? 'e2e' : 'vitest',
-        output: group === 'compose' || group === 'release-verify' ? `${group === 'compose' ? 'Compose' : 'Release'} start time: 2026-10-11T00:00:00.000Z\n${group === 'compose' ? 'Compose' : 'Release'} results: 1 passed, 0 failed, 0 skipped\n${group === 'compose' ? 'Compose' : 'Release'} duration: 1.00s\n\n| Check | Result | Duration | Error or skipped reason |\n| --- | --- | --- | --- |\n| Fixture | PASS | 1.00s | |\n` : name === 'Run browser E2E'
+        name, kind: group === 'backup' ? 'backup' : group === 'release-verify' ? 'release' : group === 'compose' ? 'compose' : name === 'Run browser E2E' ? 'e2e' : 'vitest',
+        output: ['compose', 'release-verify', 'backup'].includes(group) ? `${group === 'compose' ? 'Compose' : group === 'backup' ? 'Backup' : 'Release'} start time: 2026-10-11T00:00:00.000Z\n${group === 'compose' ? 'Compose' : group === 'backup' ? 'Backup' : 'Release'} results: 1 passed, 0 failed, 0 skipped\n${group === 'compose' ? 'Compose' : group === 'backup' ? 'Backup' : 'Release'} duration: 1.00s\n\n| Check | Result | Duration | Error or skipped reason |\n| --- | --- | --- | --- |\n| Fixture | PASS | 1.00s | |\n` : name === 'Run browser E2E'
           ? 'Playwright start time: 2026-10-08T00:00:00.000Z\nPlaywright results: 1 passed, 0 failed, 0 skipped\n'
           : '   Start at  00:00:00\n Test Files  1 passed (1)\n      Tests  1 passed (1)\n',
       })),
@@ -91,6 +91,8 @@ test('cancelled, skipped, failed and missing jobs never pass', () => inActions((
   for (const result of ['cancelled', 'skipped', 'failure']) assert.equal(mergeResults(reports(), { ...needs, api: { result } }).valid, false);
   for (const result of ['cancelled', 'skipped', 'failure']) assert.equal(mergeResults(reports(), { ...needs, compose: { result } }).valid, false);
   for (const result of ['cancelled', 'skipped', 'failure']) assert.equal(mergeResults(reports(), { ...needs, 'release-verify': { result } }).valid, false);
+  for (const result of ['cancelled', 'skipped', 'failure']) assert.equal(mergeResults(reports(), { ...needs, backup: { result } }).valid, false);
+  assert.equal(mergeResults(reports().filter(row => row.group !== 'backup'), needs).valid, false);
   assert.equal(mergeResults(reports().filter(row => row.group !== 'compose'), needs).valid, false);
   assert.equal(mergeResults(reports().slice(1), needs).valid, false);
 }));
