@@ -40,6 +40,28 @@ test('diagnostics reject foreign containers and successful startup does not coll
   assert.equal(await withComposeStartupDiagnostics(async () => 'ready', {}), 'ready');
 });
 
+test('startup diagnostics reject malformed UUIDs and foreign prefixes before querying Docker or logs', async () => {
+  const uuid = '11111111-1111-4111-8111-111111111111';
+  for (const project of ['jiffoo-update-' + 'a'.repeat(36), 'jiffoo-update-' + '-'.repeat(36),
+    'jiffoo-update-' + uuid + '\n', 'jiffoo-update-' + uuid + '-extra', 'developer-' + uuid,
+    'jiffoo-update-11111111-1111-1111-8111-111111111111', 'jiffoo-update-11111111-1111-4111-1111-111111111111']) {
+    await assert.rejects(archiveComposeStartup({ project,
+      query: async () => { assert.fail('Invalid project must not query Docker'); },
+      logs: async () => { assert.fail('Invalid project must not read logs'); },
+      save: async () => { assert.fail('Invalid project must not save logs'); } }), /regular expression/);
+  }
+  for (const kind of ['compose', 'backup', 'update']) {
+    const project = `jiffoo-${kind}-${uuid}`, queries = [];
+    await archiveComposeStartup({ project, query: async args => { queries.push(args); return ''; }, logs: async () => '', save: async () => {} });
+    assert.deepEqual(queries, [['ps', '-aq', '--filter', `label=com.docker.compose.project=${project}`]]);
+    let readForeignLogs = false;
+    await assert.rejects(archiveComposeStartup({ project,
+      query: async args => args[0] === 'ps' ? 'foreign' : JSON.stringify({ Labels: { 'com.docker.compose.project': `jiffoo-${kind}-22222222-2222-4222-8222-222222222222` } }),
+      logs: async () => { readForeignLogs = true; return ''; }, save: async () => {} }), /foreign/);
+    assert.equal(readForeignLogs, false);
+  }
+});
+
 test('Compose cannot target a development or alternative database', () => {
   guardComposeDatabase('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
   for (const value of [undefined, 'postgresql://postgres:postgres@localhost:5432/jiffoo_core', 'postgresql://postgres:postgres@postgres:5432/jiffoo_core_test']) assert.throws(() => guardComposeDatabase(value));
