@@ -1,0 +1,24 @@
+#!/bin/sh
+set -eu
+
+edge_hostname() {
+  case "$1" in
+    https://*) authority=${1#https://} ;;
+    *) echo 'Edge origins must use HTTPS' >&2; return 1 ;;
+  esac
+  authority=${authority%%/*}
+  authority=${authority%%\?*}
+  authority=${authority%%\#*}
+  case "$authority" in
+    \[*\]*) hostname="${authority%%\]*}]" ;;
+    *) hostname=${authority%%:*} ;;
+  esac
+  case "$hostname" in ''|*[!a-zA-Z0-9.:\[\]-]*) echo 'Invalid edge hostname' >&2; return 1;; esac
+  printf '%s' "$hostname" | tr 'A-Z' 'a-z'
+}
+
+EDGE_SHOP_HOST=$(edge_hostname "$STOREFRONT_URL")
+EDGE_ADMIN_HOST=$(edge_hostname "$ADMIN_URL")
+export EDGE_SHOP_HOST EDGE_ADMIN_HOST
+# The built-in template renderer requires an existing writable output directory.
+mkdir -p /tmp/nginx

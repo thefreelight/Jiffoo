@@ -22,6 +22,30 @@ test('Compose and upload verification use the same pinned Silo index and verify 
   inspect[0].Descriptor.digest = uploadTestImageIndexDigest;
   assert.throws(() => verifyUploadImageIdentity(inspect, undefined, uploadTestImageDigest, uploadTestImageIndexDigest));
 });
+
+test('upload application policy grants only the three store actions on its configured bucket', () => {
+  const init = readFileSync(new URL('../deploy/compose/silo-init.sh', import.meta.url), 'utf8');
+  const json = init.split('<<EOF\n')[1].split('\nEOF')[0].replaceAll('$bucket', 'example-uploads');
+  const policy = JSON.parse(json);
+  assert.deepEqual(policy.Statement.flatMap(statement => statement.Action).sort(), ['s3:GetObject', 's3:ListBucket', 's3:PutObject']);
+  assert.deepEqual(policy.Statement.map(statement => statement.Resource), [['arn:aws:s3:::example-uploads'], ['arn:aws:s3:::example-uploads/*']]);
+  const compose = readFileSync(new URL('../deploy/compose/compose.yml', import.meta.url), 'utf8');
+  const backend = compose.slice(0, compose.indexOf('x-nginx:'));
+  assert.ok(!backend.includes('MINIO_ROOT_'));
+  assert.match(backend, /UPLOAD_S3_ACCESS_KEY_ID: \$\{SILO_APP_ACCESS_KEY_ID/);
+  assert.match(backend, /UPLOAD_S3_SECRET_ACCESS_KEY: \$\{SILO_APP_SECRET_ACCESS_KEY/);
+});
+
+test('edge renders only derived hostname variables and preserves nginx request variables', () => {
+  const template = readFileSync(new URL('../deploy/compose/edge.conf.template', import.meta.url), 'utf8');
+  assert.ok(!template.includes('shop.local') && !template.includes('admin.local'));
+  assert.ok(template.includes('server_name ${EDGE_SHOP_HOST};'));
+  assert.ok(template.includes('server_name ${EDGE_ADMIN_HOST};'));
+  assert.ok(template.includes('$host') && template.includes('$remote_addr'));
+  const compose = readFileSync(new URL('../deploy/compose/compose.yml', import.meta.url), 'utf8');
+  assert.match(compose, /NGINX_ENVSUBST_FILTER: 'EDGE_\(SHOP\|ADMIN\)_HOST'/);
+  assert.match(compose, /edge\.conf\.template:\/etc\/nginx\/templates\/nginx\.conf\.template:ro/);
+});
 test('worker delivery evidence rejects duplicate sends and malformed production stdout', () => {
   const proof = { orderId: 'order-one', to: 'customer@example.test' };
   const line = JSON.stringify({ timestamp: '2026-10-11T00:00:00.000Z', level: 'info', message: '[plugin:console-email] Console email customer@example.test Payment received order-one' }) + '\n';

@@ -25,8 +25,8 @@ x-backend: &backend
     UPLOAD_S3_ENDPOINT: http://silo:9000
     UPLOAD_S3_REGION: us-east-1
     UPLOAD_S3_BUCKET: ${UPLOAD_S3_BUCKET:?Set S3 bucket}
-    UPLOAD_S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?Generate S3 access key}
-    UPLOAD_S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?Generate S3 secret key}
+    UPLOAD_S3_ACCESS_KEY_ID: ${SILO_APP_ACCESS_KEY_ID:?Generate application S3 access key}
+    UPLOAD_S3_SECRET_ACCESS_KEY: ${SILO_APP_SECRET_ACCESS_KEY:?Generate application S3 secret key}
     UPLOAD_S3_FORCE_PATH_STYLE: 'true'
   networks: [core]
   depends_on: &ready
@@ -102,14 +102,17 @@ services:
   silo-init:
     image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46
     user: '1000:1000'
-    entrypoint: [/bin/sh, -ec]
-    command: ['mcli alias set local http://silo:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" >/dev/null; mcli mb --ignore-existing "local/$$UPLOAD_S3_BUCKET"; mcli stat "local/$$UPLOAD_S3_BUCKET" >/dev/null']
+    entrypoint: [/bin/sh]
+    command: ['/bootstrap/silo-init.sh']
+    volumes: [./silo-init.sh:/bootstrap/silo-init.sh:ro]
     environment:
       HOME: /tmp
       MC_CONFIG_DIR: /tmp/.mc
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       UPLOAD_S3_BUCKET: ${UPLOAD_S3_BUCKET}
+      UPLOAD_S3_ACCESS_KEY_ID: ${SILO_APP_ACCESS_KEY_ID}
+      UPLOAD_S3_SECRET_ACCESS_KEY: ${SILO_APP_SECRET_ACCESS_KEY}
     read_only: true
     tmpfs: [/tmp]
     networks: [core]
@@ -200,8 +203,15 @@ services:
       retries: 60
   edge:
     <<: *nginx
+    command: [nginx, -c, /tmp/nginx/nginx.conf, -g, 'daemon off;']
+    environment:
+      STOREFRONT_URL: ${STOREFRONT_URL}
+      ADMIN_URL: ${ADMIN_URL}
+      NGINX_ENVSUBST_OUTPUT_DIR: /tmp/nginx
+      NGINX_ENVSUBST_FILTER: 'EDGE_(SHOP|ADMIN)_HOST'
     volumes:
-      - ./edge.conf:/etc/nginx/nginx.conf:ro
+      - ./edge.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+      - ./15-edge-hosts.envsh:/docker-entrypoint.d/15-edge-hosts.envsh:ro
       - ${TLS_CERT_FILE:?Supply certificate}:/etc/nginx/tls/cert.pem:ro
       - ${TLS_KEY_FILE:?Supply private key}:/etc/nginx/tls/key.pem:ro
     ports: ['127.0.0.1:${EDGE_PORT:?Set HTTPS port}:8443']

@@ -10,7 +10,7 @@ http {
   scgi_temp_path /tmp/scgi;
   server {
     listen 8443 ssl;
-    server_name shop.local;
+    server_name ${EDGE_SHOP_HOST};
     ssl_certificate /etc/nginx/tls/cert.pem;
     ssl_certificate_key /etc/nginx/tls/key.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -28,7 +28,7 @@ http {
   }
   server {
     listen 8443 ssl;
-    server_name admin.local;
+    server_name ${EDGE_ADMIN_HOST};
     ssl_certificate /etc/nginx/tls/cert.pem;
     ssl_certificate_key /etc/nginx/tls/key.pem;
     ssl_protocols TLSv1.2 TLSv1.3;

@@ -37,7 +37,8 @@ async function verify() {
   const env = { ...process.env, COMPOSE_PROJECT_NAME: project, REVISION: revision.stdout.trim(),
     POSTGRES_PASSWORD: 'postgres', JWT_SECRET: randomBytes(48).toString('base64url'), PLUGIN_SECRETS_KEY: randomBytes(32).toString('base64'),
     MINIO_ROOT_USER: 'compose-' + randomUUID(), MINIO_ROOT_PASSWORD: randomBytes(48).toString('base64url'), UPLOAD_S3_BUCKET: 'compose-' + randomUUID(),
-    STOREFRONT_URL: 'https://shop.local', ADMIN_URL: 'https://admin.local', EDGE_PORT: '0',
+    SILO_APP_ACCESS_KEY_ID: 'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY: randomBytes(48).toString('base64url'),
+    STOREFRONT_URL: 'https://compose-shop.test', ADMIN_URL: 'https://compose-admin.test', EDGE_PORT: '0',
     TLS_CERT_FILE: join(certificateDirectory, 'cert.pem'), TLS_KEY_FILE: join(certificateDirectory, 'key.pem'),
   };
   const args = ['compose', '--project-name', project, '-f', 'deploy/compose/compose.yml', '-f', 'deploy/compose/compose.acceptance.yml'];
@@ -82,7 +83,7 @@ async function verify() {
     await checks.run('Build application images', ['Docker preflight'], () => compose(['build', 'api-1', 'admin', 'shop']));
     await checks.run('Generate disposable TLS certificate', ['Build application images'], () => docker(['run', '--rm', '--name', project + '-certificate', '--label', `com.docker.compose.project=${project}`, '--user', '1000:1000',
       '--mount', `type=bind,source=${certificateDirectory},target=/tls`, '--entrypoint', 'openssl', project + '-backend',
-      'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-keyout', '/tls/key.pem', '-out', '/tls/cert.pem', '-subj', '/CN=shop.local', '-addext', 'subjectAltName=DNS:shop.local,DNS:admin.local'], { capture: true }));
+      'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-keyout', '/tls/key.pem', '-out', '/tls/cert.pem', '-subj', `/CN=${new URL(env.STOREFRONT_URL).hostname}`, '-addext', `subjectAltName=DNS:${new URL(env.STOREFRONT_URL).hostname},DNS:${new URL(env.ADMIN_URL).hostname}`], { capture: true }));
     await checks.run('Stack creation', ['Generate disposable TLS certificate'], () => { projectCreated = true; });
     await checks.run('Stack startup', ['Stack creation'], () => compose(['up', '-d', '--wait', '--wait-timeout', '600', 'edge']));
     await checks.run('Validate existing database without updates', ['Stack startup'], () => compose(['run', '--rm', '--no-deps', 'db-init']));

@@ -6,6 +6,8 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: jiffoo_core_test
+  silo-init:
+    command: ['/bootstrap/silo-init.sh', acceptance]
   db-init:
     environment: *test-env
   silo-volume-init:
@@ -29,12 +31,22 @@ services:
     volumes: ['${TLS_CERT_FILE}:/tls/cert.pem:ro']
     environment:
       DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/jiffoo_core_test
+      STOREFRONT_URL: ${STOREFRONT_URL}
+      ADMIN_URL: ${ADMIN_URL}
+      UPLOAD_S3_ENDPOINT: http://silo:9000
+      UPLOAD_S3_REGION: us-east-1
+      UPLOAD_S3_BUCKET: ${UPLOAD_S3_BUCKET}
+      UPLOAD_S3_ACCESS_KEY_ID: ${SILO_APP_ACCESS_KEY_ID}
+      UPLOAD_S3_SECRET_ACCESS_KEY: ${SILO_APP_SECRET_ACCESS_KEY}
     command: [node, /app/deploy/compose/scenario17.mjs, state]
   client-a:
     image: ${COMPOSE_PROJECT_NAME}-backend
     profiles: [acceptance]
     user: '1000:1000'
     read_only: true
+    environment:
+      STOREFRONT_URL: ${STOREFRONT_URL}
+      ADMIN_URL: ${ADMIN_URL}
     volumes: ['${TLS_CERT_FILE}:/tls/cert.pem:ro']
     networks:
       core: { ipv4_address: 172.30.65.21 }
@@ -44,6 +56,9 @@ services:
     profiles: [acceptance]
     user: '1000:1000'
     read_only: true
+    environment:
+      STOREFRONT_URL: ${STOREFRONT_URL}
+      ADMIN_URL: ${ADMIN_URL}
     volumes: ['${TLS_CERT_FILE}:/tls/cert.pem:ro']
     networks:
       core: { ipv4_address: 172.30.65.22 }

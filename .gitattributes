@@ -1,0 +1,2 @@
+deploy/compose/*.sh text eol=lf
+deploy/compose/*.envsh text eol=lf

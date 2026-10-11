@@ -21,7 +21,7 @@ async function http(base, path, method = 'GET', body, token, expected = 200) {
   assert.equal(response.status, expected, `${method} ${path}: ${text}`);
   return text ? JSON.parse(text) : undefined;
 }
-async function edge(path, headers = {}, host = 'shop.local') {
+async function edge(path, headers = {}, host = new URL(process.env.STOREFRONT_URL).hostname) {
   const ca = await readFile('/tls/cert.pem');
   return new Promise((done, reject) => {
     const req = httpsRequest({ hostname: 'edge', port: 8443, servername: host, ca, path, headers: { host, ...headers } }, response => {
@@ -163,14 +163,40 @@ async function state() {
   } finally { await db.$disconnect(); }
 }
 
+async function s3Privileges() {
+  const { S3Client, HeadBucketCommand, PutObjectCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, CreateBucketCommand } = require('@aws-sdk/client-s3');
+  const client = new S3Client({ endpoint: process.env.UPLOAD_S3_ENDPOINT, region: process.env.UPLOAD_S3_REGION,
+    credentials: { accessKeyId: process.env.UPLOAD_S3_ACCESS_KEY_ID, secretAccessKey: process.env.UPLOAD_S3_SECRET_ACCESS_KEY },
+    forcePathStyle: true, maxAttempts: 1, requestChecksumCalculation: 'WHEN_REQUIRED', responseChecksumValidation: 'WHEN_REQUIRED',
+    requestHandler: { connectionTimeout: 3000, requestTimeout: 10000 } });
+  const Bucket = process.env.UPLOAD_S3_BUCKET;
+  const denied = command => assert.rejects(client.send(command), error => error.name === 'AccessDenied' && error.$metadata?.httpStatusCode === 403, 'Application identity must receive AccessDenied (403)');
+  try {
+    await checks.run('Configured bucket S3 operations', [], async () => {
+      const Key = 'privilege-probe.txt';
+      await client.send(new HeadBucketCommand({ Bucket }));
+      await client.send(new PutObjectCommand({ Bucket, Key, Body: 'application-scope-probe' }));
+      const object = await client.send(new GetObjectCommand({ Bucket, Key }));
+      assert.equal(await object.Body.transformToString(), 'application-scope-probe');
+      assert.equal((await client.send(new HeadObjectCommand({ Bucket, Key }))).ContentLength, 23);
+      assert.ok((await client.send(new ListObjectsV2Command({ Bucket, Prefix: Key }))).Contents.some(object => object.Key === Key));
+    });
+    await checks.run('Application S3 cannot create buckets', [], () => denied(new CreateBucketCommand({ Bucket: `${Bucket}-forbidden` })));
+    await checks.run('Application S3 cannot read outside bucket', [], () => denied(new GetObjectCommand({ Bucket: `${Bucket}-outside`, Key: 'probe.txt' })));
+    await checks.run('Application S3 cannot write outside bucket', [], () => denied(new PutObjectCommand({ Bucket: `${Bucket}-outside`, Key: 'forbidden.txt', Body: 'must-be-denied' })));
+    await checks.run('Application S3 cannot list outside bucket', [], () => denied(new ListObjectsV2Command({ Bucket: `${Bucket}-outside` })));
+  } finally { client.destroy(); }
+}
+
 if (mode === 'state') {
   await checks.run('State checker runtime', [], state);
   await checks.run('Shop HTTPS frontend', [], async () => {
     const frontend = await edge('/en'); assert.equal(frontend.status, 200);
   });
   await checks.run('Admin HTTPS frontend', [], async () => {
-    const frontend = await edge('/en/auth/login', {}, 'admin.local'); assert.equal(frontend.status, 200);
+    const frontend = await edge('/en/auth/login', {}, new URL(process.env.ADMIN_URL).hostname); assert.equal(frontend.status, 200);
   });
+  await s3Privileges();
   for (const name of scenarioPlans.acceptance) {
     if (!checks.rows.some(row => row.name === name)) await checks.run(name, ['State checker runtime'], () => { throw new Error('Expected check was not executed'); });
   }

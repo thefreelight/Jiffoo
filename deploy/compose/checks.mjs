@@ -2,7 +2,8 @@ export const scenarioPlans = {
   acceptance: ['Database identity', 'Concurrent builtin initialization', 'Owner installation and login', 'Customer registration and login',
     'Plugin disable and enable propagation', 'Warm theme switch across APIs', 'Shared S3 upload and read', 'Product cart and order creation',
     'Manual payment across APIs', 'Payment notification persisted exactly once', 'Shipping and delivery across APIs', 'State checker runtime',
-    'Shop HTTPS frontend', 'Admin HTTPS frontend'],
+    'Shop HTTPS frontend', 'Admin HTTPS frontend', 'Configured bucket S3 operations', 'Application S3 cannot create buckets',
+    'Application S3 cannot read outside bucket', 'Application S3 cannot write outside bucket', 'Application S3 cannot list outside bucket'],
   'client-a': ['Shared anonymous API budget', 'HTTPS API rejects spoofed forwarding headers', 'Shop BFF preserves IP and rejects spoofed headers'],
   'client-b': ['Second client HTTPS API budget', 'Second client Shop BFF budget'],
 };
