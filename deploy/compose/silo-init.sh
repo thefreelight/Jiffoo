@@ -8,6 +8,14 @@ if [ "$UPLOAD_S3_ACCESS_KEY_ID" = "$MINIO_ROOT_USER" ]; then
   exit 1
 fi
 mcli alias set local http://silo:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
+if ! timeout --signal=KILL 60 sh -c '
+  until mcli admin info local >/dev/null 2>&1; do
+    sleep 1
+  done
+'; then
+  echo 'Silo admin API did not become ready within 60 seconds; provisioning aborted' >&2
+  exit 1
+fi
 mcli mb --ignore-existing "local/$bucket"
 mcli stat "local/$bucket" >/dev/null
 policy="jiffoo-upload-$bucket"
