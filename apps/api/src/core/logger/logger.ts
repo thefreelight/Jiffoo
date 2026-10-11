@@ -248,17 +248,6 @@ export class LoggerService {
     });
   }
 
-  // Get log statistics
-  static async getLogStats(): Promise<any> {
-    // Implementation for log statistics goes here
-    // e.g., read log files and count errors
-    return {
-      totalLogs: 0,
-      errorLogs: 0,
-      warningLogs: 0,
-      infoLogs: 0
-    };
-  }
 }
 
 // Export default logger

@@ -6,7 +6,6 @@
 // shared package's package.json is configured with exports supporting the ./logger subpath
 import { createWinstonAdapter, ILogger, OperationType } from 'shared/logger';
 import { logger as winstonLogger } from './logger';
-import { logAggregator, LogEntry } from './log-aggregator';
 
 // Create unified logger instance
 export const unifiedLogger: ILogger = createWinstonAdapter(winstonLogger, {
@@ -155,27 +154,6 @@ export class UnifiedLoggerService {
         break;
     }
 
-    // Also add to the aggregator's memory cache
-    this.addToAggregator(level, message, enrichedMeta);
-  }
-
-  // Get log statistics
-  static async getLogStats(timeRange: string = '24h'): Promise<any> {
-    return logAggregator.getLogStats(timeRange);
-  }
-
-  // Persist a structured entry without retaining request data in process memory.
-  static addToAggregator(level: string, message: string, meta?: any): void {
-    const entry: LogEntry = {
-      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toISOString(),
-      level,
-      message,
-      appName: 'api',
-      environment: process.env.NODE_ENV || 'development',
-      meta: meta || {}
-    };
-    logAggregator.addLog(entry);
   }
 
   // New: Record API request log
