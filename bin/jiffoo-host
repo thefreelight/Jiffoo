@@ -1,0 +1,45 @@
+#!/bin/sh
+set -eu
+
+if [ "${1:-}" != verify ] || [ "$#" -lt 3 ]; then
+  echo 'Usage: jiffoo-host verify RELEASE_DIRECTORY SOURCE_COMMIT [--acceptance]' >&2
+  exit 1
+fi
+directory=$(cd "$2" && pwd)
+commit=$3
+mode=ghcr
+if [ "$#" -eq 4 ] && [ "$4" = --acceptance ]; then mode=acceptance; elif [ "$#" -ne 3 ]; then exit 1; fi
+case "$commit" in *[!a-f0-9]*|'') echo 'Expected a full source commit SHA' >&2; exit 1;; esac
+[ "${#commit}" -eq 40 ] || exit 1
+command -v docker >/dev/null
+docker compose version >/dev/null
+image=$(sed -n 's/^ *"verifierImage": *"\([^"]*\)",*$/\1/p' "$directory/release.json")
+if [ "$mode" = acceptance ]; then
+  printf '%s\n' "$image" | grep -Eq '^sha256:[a-f0-9]{64}$' || exit 1
+else
+  printf '%s\n' "$image" | grep -Eq '^ghcr.io/thefreelight/jiffoo-core-backend@sha256:[a-f0-9]{64}$' || exit 1
+fi
+temporary=$(mktemp -d)
+trap 'rm -rf "$temporary"' EXIT HUP INT TERM
+chmod 755 "$temporary"
+inspect() {
+  role=$1
+  reference=$2
+  if [ "$mode" = ghcr ]; then
+    docker pull --platform linux/amd64 "$reference" >&2
+    docker manifest inspect "$reference" > "$temporary/$role.manifest.json"
+    chmod 644 "$temporary/$role.manifest.json"
+  fi
+  docker image inspect "$reference" > "$temporary/$role.json"
+  chmod 644 "$temporary/$role.json"
+}
+helper() {
+  docker run --rm --label "com.docker.compose.project=${JIFFOO_VERIFY_PROJECT:-jiffoo-verify-$$}" --network none --read-only --user 1000:1000 --tmpfs /tmp --entrypoint node \
+    --mount "type=bind,source=$directory,target=/release,readonly" \
+    --mount "type=bind,source=$temporary,target=/inspection,readonly" \
+    "$image" /app/deploy/release/verify.mjs "$1" /release "$commit" /inspection "$mode"
+}
+inspect backend "$image"
+helper plan > "$temporary/plan.tsv"
+while IFS="$(printf '\t')" read -r role reference; do inspect "$role" "$reference"; done < "$temporary/plan.tsv"
+helper verify

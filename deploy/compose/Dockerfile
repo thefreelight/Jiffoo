@@ -19,7 +19,10 @@ RUN DATABASE_URL=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test 
 FROM base AS runtime
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
 ARG REVISION
+ARG RELEASE_VERSION
 LABEL org.opencontainers.image.revision=$REVISION
+LABEL org.opencontainers.image.version=$RELEASE_VERSION
+LABEL org.opencontainers.image.source="https://github.com/thefreelight/Jiffoo"
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY --from=dependencies /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=dependencies /app/apps/admin/node_modules ./apps/admin/node_modules
@@ -29,10 +32,13 @@ COPY packages/shared/package.json ./packages/shared/package.json
 COPY packages/shared/config ./packages/shared/config
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY deploy/compose ./deploy/compose
+COPY deploy/release ./deploy/release
+COPY bin ./bin
 RUN mkdir -p /data && chown node:node /data
 USER 1000:1000
 
 FROM runtime AS backend
+LABEL io.jiffoo.role=backend
 COPY apps/api/package.json ./apps/api/package.json
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY apps/api/prisma ./apps/api/prisma
@@ -42,6 +48,7 @@ WORKDIR /app/apps/api
 CMD ["node", "dist/server.js"]
 
 FROM runtime AS admin
+LABEL io.jiffoo.role=admin
 COPY apps/admin/package.json apps/admin/next.config.js ./apps/admin/
 COPY --from=build /app/apps/admin/.next ./apps/admin/.next
 COPY --from=build /app/apps/admin/.next/static ./apps/admin/.next/standalone/apps/admin/.next/static
@@ -51,6 +58,7 @@ WORKDIR /app/apps/admin
 CMD ["node", ".next/standalone/apps/admin/server.js"]
 
 FROM runtime AS shop
+LABEL io.jiffoo.role=shop
 COPY apps/shop/package.json apps/shop/next.config.js apps/shop/server.mjs ./apps/shop/
 COPY apps/shop/lib ./apps/shop/lib
 COPY --from=build /app/apps/shop/.next ./apps/shop/.next

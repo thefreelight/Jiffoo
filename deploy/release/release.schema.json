@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "repository", "version", "sourceCommit", "mode", "platform", "verifierImage", "ci", "images", "deployment"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "repository": { "const": "thefreelight/Jiffoo" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?$" },
+    "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "mode": { "enum": ["ghcr", "acceptance"] },
+    "platform": { "const": "linux/amd64" },
+    "verifierImage": { "type": "string" },
+    "ci": {
+      "anyOf": [
+        { "type": "null" },
+        { "type": "object", "additionalProperties": false, "required": ["runId", "sourceCommit", "conclusion"], "properties": {
+          "runId": { "type": "integer", "minimum": 1 }, "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" }, "conclusion": { "const": "success" }
+        } }
+      ]
+    },
+    "images": {
+      "type": "object", "additionalProperties": false,
+      "required": ["backend", "admin", "shop", "postgres", "redis", "silo", "nginx"],
+      "properties": {
+        "backend": { "$ref": "#/definitions/image" }, "admin": { "$ref": "#/definitions/image" }, "shop": { "$ref": "#/definitions/image" },
+        "postgres": { "$ref": "#/definitions/image" }, "redis": { "$ref": "#/definitions/image" }, "silo": { "$ref": "#/definitions/image" }, "nginx": { "$ref": "#/definitions/image" }
+      }
+    },
+    "deployment": { "type": "array", "minItems": 1, "items": {
+      "type": "object", "additionalProperties": false, "required": ["path", "sha256", "size"],
+      "properties": { "path": { "type": "string", "pattern": "^[A-Za-z0-9_./-]+$" }, "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "size": { "type": "integer", "minimum": 1 } }
+    } }
+  },
+  "definitions": { "image": {
+    "type": "object", "additionalProperties": false, "required": ["reference", "digest", "platformDigest"],
+    "properties": { "reference": { "type": "string" }, "digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }, "platformDigest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" } }
+  } }
+}

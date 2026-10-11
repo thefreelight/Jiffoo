@@ -1,0 +1,96 @@
+name: Publish Core release
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Full commit SHA with a successful full CI run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-release-${{ inputs.commit }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      actions: read
+      contents: write
+      packages: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_COMMIT: ${{ inputs.commit }}
+    steps:
+      - name: Require exact successful full CI identity
+        run: |
+          set -eu
+          printf '%s\n' "$SOURCE_COMMIT" | grep -Eq '^[a-f0-9]{40}$'
+          test "$GITHUB_REPOSITORY" = thefreelight/Jiffoo
+          mkdir -p "$RUNNER_TEMP/release-inspection"
+          run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$SOURCE_COMMIT&per_page=100" --jq '.workflow_runs | sort_by(.created_at) | reverse | .[0].id')
+          test "$run_id" != null
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$RUNNER_TEMP/release-inspection/ci-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '[.head_sha,.status,.conclusion] | join(" ")' | grep -Fx "$SOURCE_COMMIT completed success"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100" --jq '[.[].jobs[]]' > "$RUNNER_TEMP/release-inspection/ci-jobs.json"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit }}
+          persist-credentials: false
+      - name: Build release images from the selected commit
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          version=$(sed -n 's/^  "version": "\([^"]*\)",$/\1/p' package.json | sed 's/-opensource$//')
+          printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$'
+          printf '%s\n' "$version" > "$RUNNER_TEMP/release-version"
+          for role in backend admin shop; do
+            docker build --platform linux/amd64 -f deploy/compose/Dockerfile --target "$role" --build-arg "REVISION=$SOURCE_COMMIT" --build-arg "RELEASE_VERSION=$version" -t "ghcr.io/thefreelight/jiffoo-core-$role:commit-$SOURCE_COMMIT" .
+          done
+      - name: Verify all CI jobs before publishing
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/release-output"
+          chmod 777 "$RUNNER_TEMP/release-output"
+          chmod -R a+rX "$RUNNER_TEMP/release-inspection"
+          docker run --rm --network none --entrypoint node --mount "type=bind,source=$RUNNER_TEMP/release-inspection,target=/inspection,readonly" "ghcr.io/thefreelight/jiffoo-core-backend:commit-$SOURCE_COMMIT" --input-type=module -e 'import {readFileSync} from "node:fs"; import {assertSuccessfulCi} from "/app/deploy/release/identity.mjs"; const r=JSON.parse(readFileSync("/inspection/ci-run.json")); assertSuccessfulCi(r,JSON.parse(readFileSync("/inspection/ci-jobs.json")),r.head_sha);'
+      - name: Push content-addressed images and prepare manifest
+        run: |
+          set -eu
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          for role in backend admin shop; do
+            tag="ghcr.io/thefreelight/jiffoo-core-$role:commit-$SOURCE_COMMIT"
+            docker push "$tag"
+            ref=$(docker image inspect --format '{{index .RepoDigests 0}}' "$tag")
+            printf '%s\n' "$ref" > "$RUNNER_TEMP/release-inspection/$role.ref"
+            docker image inspect "$ref" > "$RUNNER_TEMP/release-inspection/$role.json"
+            docker manifest inspect "$ref" > "$RUNNER_TEMP/release-inspection/$role.manifest.json"
+          done
+          for role in postgres redis silo nginx; do
+            case "$role" in
+              postgres) prefix='postgres:';; redis) prefix='redis:';; silo) prefix='pgsty/silo:';; nginx) prefix='nginx:';;
+            esac
+            ref=$(sed -n 's/^ *image: \([^$ ]*@sha256:[a-f0-9]*\)$/\1/p' deploy/compose/compose.yml | grep -F "$prefix" | sort -u)
+            docker pull --platform linux/amd64 "$ref"
+            printf '%s\n' "$ref" > "$RUNNER_TEMP/release-inspection/$role.ref"
+            docker image inspect "$ref" > "$RUNNER_TEMP/release-inspection/$role.json"
+            docker manifest inspect "$ref" > "$RUNNER_TEMP/release-inspection/$role.manifest.json"
+          done
+          chmod -R a+rX "$RUNNER_TEMP/release-inspection"
+          backend=$(cat "$RUNNER_TEMP/release-inspection/backend.ref")
+          docker run --rm --network none --entrypoint node --mount "type=bind,source=$RUNNER_TEMP/release-inspection,target=/inspection,readonly" --mount "type=bind,source=$RUNNER_TEMP/release-output,target=/output" "$backend" /app/deploy/release/prepare.mjs /output /inspection "$SOURCE_COMMIT" "$(cat "$RUNNER_TEMP/release-version")"
+          "$RUNNER_TEMP/release-output/bin/jiffoo-host" verify "$RUNNER_TEMP/release-output" "$SOURCE_COMMIT"
+      - name: Attach immutable release bundle to GitHub Release
+        run: |
+          set -eu
+          version=$(cat "$RUNNER_TEMP/release-version")
+          tag="core-v$version-${SOURCE_COMMIT%${SOURCE_COMMIT#????????????}}"
+          if gh release view "$tag" >/dev/null 2>&1; then echo 'Release already exists; refusing to overwrite' >&2; exit 1; fi
+          tar -C "$RUNNER_TEMP/release-output" -czf "$RUNNER_TEMP/jiffoo-$tag.tar.gz" .
+          gh release create "$tag" "$RUNNER_TEMP/release-output/release.json" "$RUNNER_TEMP/jiffoo-$tag.tar.gz" --target "$SOURCE_COMMIT" --title "$tag" --notes "Source commit: $SOURCE_COMMIT. Authenticity rests on GitHub/ghcr and the repository account."
+          docker logout ghcr.io
