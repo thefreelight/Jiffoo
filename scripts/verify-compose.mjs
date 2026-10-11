@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { connect } from 'node:net';
 import { AcceptanceChecks, scenarioPlans } from '../deploy/compose/checks.mjs';
 import { ComposeVolumeLedger } from './compose-volumes.mjs';
+import { archiveComposeStartup, withComposeStartupDiagnostics } from './compose-startup.mjs';
 
 export const composeStep = 'Run Docker Compose acceptance';
 export function guardComposeDatabase(value) {
@@ -56,6 +57,12 @@ async function verify() {
     });
   });
   const compose = (arguments_, options) => docker([...args, ...arguments_], options);
+  const startupDiagnostics = {
+    project, query: arguments_ => docker(arguments_, { capture: true }),
+    logs: service => compose(['logs', '--no-color', '--no-log-prefix', ...(service ? [service] : [])], { capture: true }),
+    save: (name, output) => writeFile(join(evidence, name), output),
+    secrets: [env.JWT_SECRET, env.PLUGIN_SECRETS_KEY, env.MINIO_ROOT_USER, env.MINIO_ROOT_PASSWORD, env.SILO_APP_ACCESS_KEY_ID, env.SILO_APP_SECRET_ACCESS_KEY],
+  };
   const checks = new AcceptanceChecks();
   const volumes = new ComposeVolumeLedger(project, arguments_ => docker(arguments_, { capture: true }));
   let projectCreated = false;
@@ -88,7 +95,7 @@ async function verify() {
       '--mount', `type=bind,source=${certificateDirectory},target=/tls`, '--entrypoint', 'openssl', project + '-backend',
       'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-keyout', '/tls/key.pem', '-out', '/tls/cert.pem', '-subj', `/CN=${new URL(env.STOREFRONT_URL).hostname}`, '-addext', `subjectAltName=DNS:${new URL(env.STOREFRONT_URL).hostname},DNS:${new URL(env.ADMIN_URL).hostname}`], { capture: true }));
     await checks.run('Stack creation', ['Generate disposable TLS certificate'], () => { projectCreated = true; });
-    await checks.run('Stack startup', ['Stack creation'], () => compose(['up', '-d', '--wait', '--wait-timeout', '600', 'edge']));
+    await checks.run('Stack startup', ['Stack creation'], () => withComposeStartupDiagnostics(() => compose(['up', '-d', '--wait', '--wait-timeout', '600', 'edge']), startupDiagnostics));
     await checks.run('No anonymous volumes after startup', ['Stack startup'], async () => { await volumes.capture('after startup'); await volumes.assertNoAnonymousVolumes(); });
     await checks.run('Validate existing database without updates', ['Stack startup'], () => compose(['run', '--rm', '--no-deps', 'db-init']));
     await checks.run('State checker protocol', ['Validate existing database without updates'], () => scenario('acceptance'));
@@ -99,9 +106,9 @@ async function verify() {
         if (!checks.rows.some(row => row.name === name)) await checks.run(name, [protocol], () => { throw new Error('Expected container check was not reported'); });
       }
     }
-    await checks.run('Graceful worker stop', ['Stack creation'], () => compose(['stop', '-t', '45', 'worker-1', 'worker-2']));
+    await checks.run('Graceful worker stop', ['Stack startup'], () => compose(['stop', '-t', '45', 'worker-1', 'worker-2']));
     for (const service of ['api-1', 'api-2', 'worker-1', 'worker-2']) {
-      await checks.run(`Read ${service} logs`, ['Stack creation'], async () => {
+      await checks.run(`Read ${service} logs`, ['Stack startup'], async () => {
         const logs = await compose(['logs', '--no-color', '--no-log-prefix', service], { capture: true });
         await writeFile(join(evidence, service + '.log'), logs);
         return logs;
@@ -132,8 +139,8 @@ async function verify() {
         for (const binding of Object.values(ports).flatMap(bindings => bindings ?? [])) publishedPorts.push(Number(binding.HostPort));
       }
     });
-    await checks.run('Archive stack logs', ['Stack creation'], async () => {
-      await writeFile(join(evidence, 'stack.log'), await compose(['logs', '--no-color'], { capture: true }));
+    await checks.run('Archive stack logs', [], async () => {
+      await archiveComposeStartup(startupDiagnostics);
     });
     await checks.run('Remove UUID project', [], async () => {
       if (projectCreated) await compose(['down', '--volumes', '--remove-orphans', '--timeout', '45']);

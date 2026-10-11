@@ -10,6 +10,7 @@ import { ComposeVolumeLedger, RecordedAcceptanceChecks } from './compose-volumes
 import { makeRelease } from '../deploy/release/prepare.mjs';
 import { sha256 } from '../deploy/release/identity.mjs';
 import { BackupHostEmulator, emulatorImage } from './backup-host-emulator.mjs';
+import { archiveComposeStartup, withComposeStartupDiagnostics } from './compose-startup.mjs';
 
 export function guardBackupDatabase(url) {
   assert.equal(url, 'postgresql://postgres:postgres@localhost:5432/jiffoo_core_test', 'Backup acceptance requires the exact jiffoo_core_test DATABASE_URL_TEST');
@@ -28,6 +29,7 @@ async function main() {
   const version = JSON.parse(readFileSync('package.json')).version.replace(/-opensource$/, '');
   const commands = [], tags = [], ports = [];
   let directory, bundle, backup, restored, release, proof, expected, manifestHash, foreignBefore, hostUser, backupSize, backupTime, restoreTime;
+  let secrets = [];
   const run = async (command, args, { allowFailure = false, quiet = false } = {}) => {
     const commandStart = performance.now();
     const result = emulator ? await emulator.run(command, args) : await new Promise((done, reject) => {
@@ -60,6 +62,11 @@ async function main() {
     };
   };
   const compose = (args, file = bundle + '/deploy/compose/compose.release.yml', options) => docker(['compose', '--project-name', project, '--env-file', bundle + '/deploy/compose/.env', '-f', bundle + '/deploy/compose/compose.yml', '-f', file, ...args], options);
+  const startupDiagnostics = () => ({
+    project, query: async args => (await docker(args, { quiet: true })).stdout,
+    logs: async service => (await compose(['logs', '--no-color', '--no-log-prefix', ...(service ? [service] : [])], undefined, { quiet: true })).output,
+    save: async (name, output) => writeFileSync(join(evidence, name), output), secrets,
+  });
   const host = (args, options) => run('sh', [bundle + '/bin/jiffoo-host', ...args, '--acceptance'], options);
   const fixture = async (mode, file = bundle + '/deploy/compose/compose.release.yml') => {
     const result = await compose(['exec', '-T', '-e', 'DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test', 'api-1', 'node', '/app/deploy/compose/backup-scenario.mjs', mode, ...(proof ? [JSON.stringify(proof)] : [])], file);
@@ -110,6 +117,7 @@ async function main() {
         MINIO_ROOT_USER: 'backup-' + randomUUID(), MINIO_ROOT_PASSWORD: randomBytes(48).toString('base64url'), UPLOAD_S3_BUCKET: 'backup-' + randomUUID(),
         SILO_APP_ACCESS_KEY_ID: 'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY: randomBytes(48).toString('base64url'), STOREFRONT_URL: 'https://backup-shop.test', ADMIN_URL: 'https://backup-admin.test', EDGE_PORT: '0',
         TLS_CERT_FILE: bundle + '/cert.pem', TLS_KEY_FILE: bundle + '/key.pem' };
+      secrets = [env.JWT_SECRET, env.PLUGIN_SECRETS_KEY, env.MINIO_ROOT_USER, env.MINIO_ROOT_PASSWORD, env.SILO_APP_ACCESS_KEY_ID, env.SILO_APP_SECRET_ACCESS_KEY];
       writeFileSync(join(nativeBundle, 'deploy/compose/.env'), Object.entries(env).map(([key, value]) => `${key}=${value}`).join('\n') + '\n', { mode: 0o600 });
       await run('cp', ['-R', emulator ? '/input/bundle' : nativeBundle, bundle]);
       await run('chmod', ['-R', 'u=rwX,go=', bundle]);
@@ -123,7 +131,7 @@ async function main() {
       await run('chmod', ['755', bundle + '/deploy/compose/15-edge-hosts.envsh']);
       await compose(['config', '--quiet']);
     });
-    await checks.run('Start isolated two API two worker stack', ['Build recorded release images'], () => compose(['up', '-d', '--no-build', '--wait', '--wait-timeout', '600', 'edge']));
+    await checks.run('Start isolated two API two worker stack', ['Build recorded release images'], () => withComposeStartupDiagnostics(() => compose(['up', '-d', '--no-build', '--wait', '--wait-timeout', '600', 'edge']), startupDiagnostics()));
     await checks.run('No anonymous volumes after startup', ['Start isolated two API two worker stack'], () => volumes.assertNoAnonymousVolumes());
     await checks.run('Create owner product paid order image and plugin schema data', ['Start isolated two API two worker stack'], async () => { proof = await fixture('seed'); });
     await checks.run('Refuse backup while application containers run', ['Start isolated two API two worker stack'], async () => {
@@ -149,7 +157,7 @@ async function main() {
       writeFileSync(join(evidence, 'backup-metadata.json'), JSON.stringify(data, null, 2));
     });
     await checks.run('Capture backup point row and object hashes', ['Create consistent protected backup'], async () => {
-      await compose(['up', '-d', '--no-build', '--wait', '--wait-timeout', '600', 'edge']);
+      await withComposeStartupDiagnostics(() => compose(['up', '-d', '--no-build', '--wait', '--wait-timeout', '600', 'edge']), startupDiagnostics());
       expected = await fixture('snapshot'); writeFileSync(join(evidence, 'backup-point-hashes.json'), JSON.stringify(expected, null, 2));
     });
     await checks.run('Refuse restore while target containers run', ['Capture backup point row and object hashes'], async () => {
@@ -206,6 +214,7 @@ async function main() {
     });
   } finally {
     await checks.run('Archive isolated stack logs and published ports', [], async () => {
+      if (bundle) await archiveComposeStartup(startupDiagnostics());
       const ids = (await docker(['ps', '-aq', '--filter', `label=com.docker.compose.project=${project}`], { quiet: true })).stdout.trim().split(/\s+/).filter(Boolean);
       if (ids.length) {
         const actual = JSON.parse((await docker(['inspect', ...ids], { quiet: true })).stdout);

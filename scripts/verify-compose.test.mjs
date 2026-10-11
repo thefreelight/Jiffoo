@@ -1,10 +1,44 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { archiveComposeStartup, withComposeStartupDiagnostics } from './compose-startup.mjs';
 import { guardComposeDatabase, validateWorkerLogs } from './verify-compose.mjs';
 import { uploadTestImage, uploadTestImageDigest, uploadTestImageIndexDigest } from './upload-test-storage.mjs';
 import { verifyUploadImageIdentity } from './upload-test-image-identity.mjs';
 import { AcceptanceChecks } from '../deploy/compose/checks.mjs';
+
+test('startup failure archives all bootstrap and exited services and reports their last 50 redacted lines', async () => {
+  const project = 'jiffoo-compose-11111111-1111-4111-8111-111111111111', saved = new Map(), queried = [];
+  const containers = [
+    { Id: 'bootstrap', Name: '/bootstrap', Labels: { 'com.docker.compose.project': project, 'com.docker.compose.service': 'silo-init' }, State: { Status: 'exited', Running: false, ExitCode: 1 } },
+    { Id: 'edge', Name: '/edge', Labels: { 'com.docker.compose.project': project, 'com.docker.compose.service': 'edge' }, State: { Status: 'exited', Running: false, ExitCode: 2 } },
+  ];
+  const output = Array.from({ length: 60 }, (_, index) => `line ${index}`).join('\n') + '\nPRIVATE_BOOTSTRAP_SECRET\n';
+  const options = { project, secrets: ['PRIVATE_BOOTSTRAP_SECRET'],
+    query: async args => { queried.push(args); return args[0] === 'ps' ? 'bootstrap\nedge\n' : containers.map(container => JSON.stringify(container)).join('\n'); },
+    logs: async service => service === 'silo-init' ? output : `log ${service ?? 'all services'}`,
+    save: async (name, text) => saved.set(name, text) };
+  await assert.rejects(withComposeStartupDiagnostics(async () => { throw new Error('Stack startup failed'); }, options), error => {
+    assert.match(error.message, /silo-init: state=exited, exit=1/); assert.match(error.message, /line 11/); assert.ok(!error.message.includes('line 10\n'));
+    assert.match(error.message, /edge: state=exited, exit=2/); assert.ok(!error.message.includes('PRIVATE_BOOTSTRAP_SECRET')); return true;
+  });
+  for (const name of ['silo-init', 'db-init', 'silo-volume-init', 'silo', 'postgres', 'edge']) assert.ok(saved.has(`startup-${name}.log`));
+  assert.ok(saved.has('stack.log')); assert.ok(saved.has('startup-state.json'));
+  assert.ok([...saved.values()].every(text => !text.includes('PRIVATE_BOOTSTRAP_SECRET')));
+  assert.ok(queried[0].includes('label=com.docker.compose.project=' + project));
+  const checks = new AcceptanceChecks();
+  await checks.run('Stack startup', [], () => { throw new Error('Bootstrap exited'); });
+  await checks.run('Read api-1 logs', ['Stack startup'], () => { throw new Error('must not run'); });
+  await checks.run('api-1 stdout JSON format', ['Read api-1 logs'], () => { throw new Error('must not run'); });
+  assert.deepEqual(checks.rows.map(row => row.status), ['FAIL', 'SKIPPED', 'SKIPPED']);
+});
+test('diagnostics reject foreign containers and successful startup does not collect failure logs', async () => {
+  const project = 'jiffoo-compose-11111111-1111-4111-8111-111111111111';
+  await assert.rejects(archiveComposeStartup({ project,
+    query: async args => args[0] === 'ps' ? 'foreign' : JSON.stringify({ Labels: { 'com.docker.compose.project': 'developer' } }),
+    logs: async () => { throw new Error('must not read foreign logs'); }, save: async () => { throw new Error('must not save foreign state'); } }), /foreign/);
+  assert.equal(await withComposeStartupDiagnostics(async () => 'ready', {}), 'ready');
+});
 
 test('Compose cannot target a development or alternative database', () => {
   guardComposeDatabase('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
