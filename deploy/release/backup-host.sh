@@ -31,8 +31,8 @@ if [ "$mode" = acceptance ]; then
 else
   printf '%s\n' "$image" | grep -Eq '^ghcr.io/thefreelight/jiffoo-core-backend@sha256:[a-f0-9]{64}$' || fail 'Invalid release backend image'
 fi
-lock=/tmp/.jiffoo-host-$project.lock
-mkdir "$lock" 2>/dev/null || fail 'Another host operation holds the project lock; investigate before removing a stale lock'
+. "$(dirname "$0")/host-lock.sh"
+host_lock_acquire
 work=$(mktemp -d)
 phase=preflight
 changed=0
@@ -54,7 +54,7 @@ cleanup() {
     docker ps -a --filter "label=com.docker.compose.project=$project" --format '{{.Names}} {{.State}}' >&2
   elif [ "$success" -ne 1 ]; then printf '%s failed during: %s; existing volumes were not deleted\n' "$operation" "$phase" >&2; fi
   rm -rf "$work"
-  rmdir "$lock"
+  host_lock_release || code=1
   exit "$code"
 }
 trap cleanup EXIT

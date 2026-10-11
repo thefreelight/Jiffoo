@@ -7,7 +7,7 @@ export const emulatorImage = 'docker:29.9.0-cli@sha256:1a4c7cb63513f349bdad01fcc
 // socket. Application and release helper containers never inherit its mounts.
 export class BackupHostEmulator {
   constructor(project, workspace, input) {
-    assert.match(project, /^jiffoo-backup-[a-f0-9-]{36}$/);
+    assert.match(project, /^jiffoo-(?:backup|update)-[a-f0-9-]{36}$/);
     this.project = project; this.workspace = workspace; this.input = input;
     this.name = project + '-host'; this.volume = project + '-host-data'; this.tag = project + '-host-image';
     this.active = false;

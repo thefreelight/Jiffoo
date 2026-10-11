@@ -38,6 +38,12 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$RUNNER_TEMP/release-inspection/ci-run.json"
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '[.head_sha,.status,.conclusion] | join(" ")' | grep -Fx "$SOURCE_COMMIT completed success"
           gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/jobs?per_page=100" --jq '[.[].jobs[]]' > "$RUNNER_TEMP/release-inspection/ci-jobs.json"
+          full_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/update-full.yml/runs?head_sha=$SOURCE_COMMIT&per_page=100" --jq '.workflow_runs | map(select(.event == "workflow_dispatch" and .status == "completed" and .conclusion == "success")) | sort_by(.created_at) | reverse | .[0].id')
+          test "$full_id" != null
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$full_id" --jq '[.head_sha,.status,.conclusion] | join(" ")' | grep -Fx "$SOURCE_COMMIT completed success"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$full_id/jobs?per_page=100" --jq '.jobs | select(length == 1 and .[0].name == "update-full" and .[0].status == "completed" and .[0].conclusion == "success") | length' | grep -Fx 1
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$full_id" > "$RUNNER_TEMP/release-inspection/update-full-run.json"
+          gh run download "$full_id" --name update-full-summary --dir "$RUNNER_TEMP/update-full-inspection"
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.commit }}
@@ -59,6 +65,8 @@ jobs:
           chmod 777 "$RUNNER_TEMP/release-output"
           chmod -R a+rX "$RUNNER_TEMP/release-inspection"
           docker run --rm --network none --entrypoint node --mount "type=bind,source=$RUNNER_TEMP/release-inspection,target=/inspection,readonly" "ghcr.io/thefreelight/jiffoo-core-backend:commit-$SOURCE_COMMIT" --input-type=module -e 'import {readFileSync} from "node:fs"; import {assertSuccessfulCi} from "/app/deploy/release/identity.mjs"; const r=JSON.parse(readFileSync("/inspection/ci-run.json")); assertSuccessfulCi(r,JSON.parse(readFileSync("/inspection/ci-jobs.json")),r.head_sha);'
+          chmod -R a+rX "$RUNNER_TEMP/update-full-inspection"
+          docker run --rm --network none --entrypoint node --mount "type=bind,source=$RUNNER_TEMP/update-full-inspection,target=/inspection,readonly" "ghcr.io/thefreelight/jiffoo-core-backend:commit-$SOURCE_COMMIT" --input-type=module -e 'import {readFileSync} from "node:fs";const r=JSON.parse(readFileSync("/inspection/verify-result.json"));if(r.profile!=="full"||r.commit!==process.argv[1]||!r.valid||r.results.some(x=>x[1]!=="PASS"))throw Error("Exact commit full update acceptance required");' "$SOURCE_COMMIT"
       - name: Push content-addressed images and prepare manifest
         run: |
           set -eu

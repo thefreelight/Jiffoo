@@ -1,0 +1,41 @@
+name: Full update acceptance
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Exact commit to verify
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  update-full:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/jiffoo_core_test
+      SOURCE_COMMIT: ${{ inputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit }}
+          persist-credentials: false
+      - name: Validate exact source commit
+        run: |
+          printf '%s\n' "$SOURCE_COMMIT" | grep -Eq '^[a-f0-9]{40}$'
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.13.1
+      - name: Install acceptance dependencies
+        run: corepack enable && corepack pnpm install --frozen-lockfile
+      - name: Verify full update profile
+        run: node scripts/verify-update.mjs --profile=full
+      - name: Upload full update evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-full-summary
+          path: ${{ runner.temp }}/verification/
+          retention-days: 14
+          if-no-files-found: error

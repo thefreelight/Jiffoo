@@ -2,6 +2,9 @@
 set -eu
 
 case "${1:-}" in
+  update)
+    exec sh "$(dirname "$0")/../deploy/release/update-host.sh" "$@"
+    ;;
   backup|restore)
     exec sh "$(dirname "$0")/../deploy/release/backup-host.sh" "$@"
     ;;

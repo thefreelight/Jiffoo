@@ -32,7 +32,7 @@ export class ComposeVolumeLedger {
   latest;
 
   constructor(project, query) {
-    assert.match(project, /^jiffoo-(?:backup|compose)-[a-f0-9-]{36}$/);
+    assert.match(project, /^jiffoo-(?:backup|compose|update)-[a-f0-9-]{36}$/);
     this.project = project; this.query = query;
   }
   async capture(event) {
