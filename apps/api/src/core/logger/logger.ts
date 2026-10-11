@@ -70,7 +70,7 @@ if (env.NODE_ENV === 'development') {
 }
 
 if (env.NODE_ENV === 'production') {
-  transports.push(new winston.transports.Console({ format: productionFormat, stderrLevels: [] }));
+  transports.push(new winston.transports.Console({ format: productionFormat, stderrLevels: ['warn', 'error'] }));
 } else {
 // Error log file
 transports.push(

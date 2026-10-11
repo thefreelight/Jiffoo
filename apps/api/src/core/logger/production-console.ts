@@ -13,7 +13,8 @@ export function installProductionConsole(): void {
           if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) fields = parsed as Record<string, unknown>;
         } catch { /* Plain console messages are represented by the message field. */ }
       }
-      process.stdout.write(JSON.stringify({
+      const stream = method === 'warn' || method === 'error' ? process.stderr : process.stdout;
+      stream.write(JSON.stringify({
         ...fields,
         message: fields.message ?? formatWithOptions({ colors: false, breakLength: Infinity }, ...args),
         level: method === 'log' ? 'info' : method,
