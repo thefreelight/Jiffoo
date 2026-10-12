@@ -1,0 +1,28 @@
+// @vitest-environment node
+import { describe, expect, it } from 'vitest';
+import { NextRequest } from 'next/server';
+import { proxy } from '../proxy';
+
+describe('Admin locale proxy with the installed Next runtime', () => {
+  it.each([
+    ['/', '/en'],
+    ['/products?search=widget', '/en/products?search=widget'],
+    ['/auth/login?next=%2Fen%2Forders', '/en/auth/login?next=%2Fen%2Forders'],
+  ])('redirects %s while preserving its query', async (pathname, destination) => {
+    const response = await proxy(new NextRequest(`http://admin.local${pathname}`));
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(`http://admin.local${destination}`);
+  });
+
+  it.each(['en', 'zh-Hans', 'zh-Hant'])('keeps the %s locale and authentication path', async locale => {
+    const response = await proxy(new NextRequest(`http://admin.local/${locale}/auth/login`));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
+  it.each(['/api/v1/orders', '/plugins/example', '/extensions/plugin/example', '/uploads/image.png', '/_next/static/chunk.js'])('keeps %s outside locale routing', async pathname => {
+    const response = await proxy(new NextRequest(`http://admin.local${pathname}`));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
+});

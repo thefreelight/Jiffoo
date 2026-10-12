@@ -127,7 +127,7 @@ describe('Orders Endpoints', () => {
     await app.close();
   });
 
-  it('preserves order-time catalog values across renaming, images, translations, and deactivation', async () => {
+  it('preserves localized catalog display and base-name plugin payloads across renaming, images, translations, and deactivation', async () => {
     const product = await createTestProduct({ name: 'Snapshot Test Product', price: 9.99, stock: 10 });
     const variant = product.variants[0];
     await prisma.user.update({ where: { id: userId }, data: { locale: 'zh-Hans' } });
@@ -152,7 +152,7 @@ describe('Orders Endpoints', () => {
     expect(admin.statusCode).toBe(200);
     expect(admin.json().data.items[0]).toMatchObject(expectedItem);
     const paid = await prisma.$transaction(tx => emitOrderPaidEvent(tx, orderId));
-    expect(paid?.order.items[0]).toMatchObject({ productName: '原始商品', variantName: variant.name, skuCode: variant.skuCode ?? undefined, productTypeData: { images: ['original.png', 7] } });
+    expect(paid?.order.items[0]).toMatchObject({ productName: product.name, variantName: variant.name, skuCode: variant.skuCode ?? undefined, productTypeData: { images: ['original.png', 7] } });
     const hidden = await app.inject({ url: `/api/v1/products/${product.id}` });
     expect(hidden.statusCode).toBe(404);
     await prisma.user.update({ where: { id: userId }, data: { locale: 'en' } });

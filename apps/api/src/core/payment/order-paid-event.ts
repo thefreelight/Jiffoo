@@ -1,5 +1,5 @@
 import { emitEvent } from '@/infra/events/emit';
-import { readCatalogSnapshot, snapshotProductName } from '@/core/order/catalog-snapshot';
+import { readCatalogSnapshot } from '@/core/order/catalog-snapshot';
 
 function parseJsonRecord(value: unknown): Record<string, unknown> {
   if (!value) return {};
@@ -33,7 +33,6 @@ export async function emitOrderPaidEvent(
     where: { id: orderId },
     include: {
       items: true,
-      user: { select: { locale: true } },
     },
   });
 
@@ -54,7 +53,7 @@ export async function emitOrderPaidEvent(
         id: item.id,
         productId: item.productId,
         variantId: item.variantId,
-        productName: snapshotProductName(readCatalogSnapshot(item.catalogSnapshot), order.user?.locale),
+        productName: readCatalogSnapshot(item.catalogSnapshot).productName,
         variantName: readCatalogSnapshot(item.catalogSnapshot).variantName,
         skuCode: readCatalogSnapshot(item.catalogSnapshot).skuCode ?? undefined,
         quantity: item.quantity,
