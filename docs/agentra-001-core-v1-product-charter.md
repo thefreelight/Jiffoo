@@ -109,10 +109,10 @@ Known limitations (2026-10-04):
   Real payment-provider integration acceptance remains provider-specific.
 - RESOLVED (ec73b7ff2, 7a489044e): rejected webhook authentication returns the
   stable 401 PAYMENT_WEBHOOK_AUTHENTICATION_FAILED contract.
-- Accepted V1 limitation: two administrators concurrently removing two
-  different enabled payment providers can both pass the last-provider check
-  and leave no enabled provider. Per-slug operation leases do not serialize
-  this cross-provider decision.
+- RESOLVED (f4ee3d223): payment-provider disable and removal decisions share
+  a transaction-scoped PostgreSQL advisory lock, and recheck the last enabled
+  provider inside the write transaction. Concurrent administrators cannot
+  disable or remove the final enabled payment provider.
 
 Timezone policy (decided by Simo, 2026-10-12): one store timezone is selected
 in Admin, defaults to UTC, and applies to Shop, Admin and notification emails.
