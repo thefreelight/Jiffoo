@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import { readdir, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { Client } from 'pg';
+import { Query, type Client } from 'pg';
 import { getPluginManifestIssues, type PluginManifest, type PluginMigrationDeclaration, readPluginZipEntries, PLUGIN_MAX_ZIP_SIZE, validatePluginMigrations, pluginSchemaName } from 'shared/plugin-signing';
 
 export const PLUGIN_DATABASE_AUDIT_CODES = [
@@ -116,6 +116,25 @@ async function inspectPluginDatabase(client: Pick<Client, 'query'>, currentInven
   };
   const bounded = (sql: string) => query(`${sql} LIMIT ${limits.rows + 1}`);
   const consume = (bytes: Buffer) => { bytesRead += bytes.length; if (bytesRead > limits.bytes) throw new AuditLimit(); };
+  const unknownAttempts = async () => {
+    if (Date.now() - started >= limits.totalMs) throw new AuditLimit();
+    const rows: any[] = [];
+    let count = 0;
+    // Count every row against the same budget, but retain only actionable attempts.
+    // A row listener without a callback prevents pg from accumulating result.rows.
+    const inspection = new Query(`SELECT id, "operationId", status, "endedAt", resolution FROM ${coreSchema}.plugin_migration_attempts ORDER BY id LIMIT ${limits.rows + 1}`);
+    inspection.on('row', row => { count++; if (row.status === 'UNKNOWN') rows.push(row); });
+    await new Promise<void>((resolve, reject) => {
+      inspection.once('end', () => resolve()); inspection.once('error', reject);
+      client.query(inspection);
+    });
+    if (count > limits.rows || Date.now() - started >= limits.totalMs) throw new AuditLimit();
+    return rows;
+  };
+  const reserveBytes = (size: number) => {
+    // The repeatable-read snapshot makes the size authoritative before fetching bytes.
+    if (bytesRead + size > limits.bytes) throw new AuditLimit();
+  };
   try {
     await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY'); begun = true;
     await client.query("SELECT set_config('statement_timeout', $1, true), set_config('lock_timeout', $2, true)", [`${limits.statementMs}ms`, `${limits.lockMs}ms`]);
@@ -140,7 +159,7 @@ async function inspectPluginDatabase(client: Pick<Client, 'query'>, currentInven
         const namespaces = await bounded('SELECT id, slug, "schemaName", "provisionedAt" FROM public.plugin_namespaces ORDER BY slug');
         const ledger = await bounded('SELECT "namespaceId", "order", "migrationId", path, sha256, "manifestDigest", "operationId" FROM public.plugin_migration_successes ORDER BY "namespaceId", "order"');
         const operations = await bounded('SELECT id, slug, "packageHash", "packageVersion", "manifestDigest", manifest, declarations, phase, "committedPrefix", octet_length("artifactBytes") AS "artifactSize" FROM public.plugin_migration_operations ORDER BY slug, id');
-        const attempts = await bounded('SELECT id, "operationId", status, "endedAt", resolution FROM public.plugin_migration_attempts ORDER BY id');
+        const attempts = await unknownAttempts();
         const markers = await bounded("SELECT slug, token, operation, \"expiresAt\" FROM public.plugin_operation_leases WHERE operation LIKE 'plugin-invocation:%' ORDER BY slug");
         const schemas = await bounded("SELECT nspname FROM pg_catalog.pg_namespace WHERE left(nspname, 7) = 'plugin_' ORDER BY nspname");
         report.counts.plugins = plugins.filter(row => !row.deletedAt).length;
@@ -175,6 +194,7 @@ async function inspectPluginDatabase(client: Pick<Client, 'query'>, currentInven
           if (['SUCCESS', 'RECOVERED'].includes(phase) && artifactSize !== null) finding('PLUGIN_DB_CANDIDATE_BYTES_RETAINED', slug, { phase, sizeBytes: artifactSize }, id);
           if (artifactSize === null) continue;
           if (artifactSize > PLUGIN_MAX_ZIP_SIZE) { finding('PLUGIN_DB_PACKAGE_BLOB_INVALID', slug, { reason: 'candidate-size', sizeBytes: artifactSize }, id); continue; }
+          reserveBytes(artifactSize);
           const rows = await query('SELECT "artifactBytes" FROM public.plugin_migration_operations WHERE id = $1', [id]);
           const bytes = rows[0].artifactBytes as Buffer; consume(bytes);
           try {
@@ -204,6 +224,7 @@ async function inspectPluginDatabase(client: Pick<Client, 'query'>, currentInven
           const metadata = await query('SELECT "sizeBytes", octet_length(bytes) AS length FROM public.plugin_package_blobs WHERE "pluginSlug" = $1 AND "zipHash" = $2', [plugin.slug, plugin.zipHash]);
           if (!metadata.length) { finding('PLUGIN_DB_PACKAGE_BLOB_MISSING', plugin.slug, { packageHash: plugin.zipHash }); continue; }
           if (metadata[0].length !== metadata[0].sizeBytes || metadata[0].length > PLUGIN_MAX_ZIP_SIZE) { finding('PLUGIN_DB_PACKAGE_BLOB_INVALID', plugin.slug, { reason: 'size', sizeBytes: metadata[0].sizeBytes, actualBytes: metadata[0].length }); continue; }
+          reserveBytes(metadata[0].length);
           const rows = await query('SELECT bytes FROM public.plugin_package_blobs WHERE "pluginSlug" = $1 AND "zipHash" = $2', [plugin.slug, plugin.zipHash]);
           const bytes = rows[0].bytes as Buffer; consume(bytes);
           let inspected: ReturnType<typeof inspectPackage>;

@@ -265,6 +265,27 @@ it('J stable findings include exactly the approved machine-readable codes', () =
   try { expect(() => setPluginDatabaseAuditTestLimits(true, { lockMs: 1 })).toThrow('explicit test switch'); }
   finally { process.env.NODE_ENV = environment; }
 });
+it('M streamed successful attempts still count against the row limit', async () => {
+  await client.query(`INSERT INTO ${schema}.plugin_migration_attempts (id,"namespaceId","operationId","order","migrationId",path,sha256,status) SELECT 'stream-' || n,1,'fixture',1,'m1','m.sql',repeat('a',64),'SUCCESS' FROM generate_series(1,101) n`);
+  setPluginDatabaseAuditTestLimits(true, { rows: 100 }, schema);
+  const report = await audit();
+  expect(report.complete).toBe(false);
+  expect(report.findings).toContainEqual(expect.objectContaining({ code: 'PLUGIN_DB_AUDIT_LIMIT_REACHED' }));
+});
+it('M an exhausted byte budget stops before reading the next installed blob', async () => {
+  const fixture = await packageFixture(0); await install(fixture);
+  const metadataBytes = Number((await client.query(`SELECT sum(octet_length("manifestJson"::text)) AS bytes FROM ${schema}.plugin_installs`)).rows[0].bytes);
+  setPluginDatabaseAuditTestLimits(true, { bytes: metadataBytes + fixture.bytes.length - 1 }, schema);
+  const statements: string[] = [];
+  const observed = { query: (sql: any, ...args: any[]) => {
+    statements.push(typeof sql === 'string' ? sql : sql.text);
+    return (client.query as any)(sql, ...args);
+  } };
+  const report = await auditPluginDatabase(observed as unknown as Pick<Client, 'query'>);
+  expect(report.complete).toBe(false);
+  expect(report.findings).toContainEqual(expect.objectContaining({ code: 'PLUGIN_DB_AUDIT_LIMIT_REACHED' }));
+  expect(statements.some(sql => /^SELECT bytes FROM/.test(sql))).toBe(false);
+});
 it('F runtime migration folders admit a newly recorded migration without editing the auditor', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'jiffoo-audit-inventory-'));
   try {
