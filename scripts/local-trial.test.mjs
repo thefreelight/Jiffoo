@@ -48,7 +48,7 @@ function parseHost(tokens) {
 test('every operator guide host command is accepted by the actual CLI option parser', () => {
   const guide = readFileSync('docs/operator-guide.md', 'utf8');
   const commands = [...guide.matchAll(/```sh\n([\s\S]*?)```/g)].flatMap(match => match[1].trim().split('\n'));
-  const host = commands.filter(line => line.startsWith('sh ')); assert.equal(host.length, 5);
+  const host = commands.filter(line => line.startsWith('sh ')); assert.equal(host.length, 6);
   for (const line of host) {
     const tokens = line.split(/\s+/).slice(2), result = parseHost(tokens);
     assert.equal(result.status, 0, line + '\n' + result.stdout + result.stderr); assert.match(result.stdout, /PARSER_ACCEPTED/);

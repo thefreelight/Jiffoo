@@ -8,10 +8,11 @@ import { common as en } from 'shared/src/i18n/messages/en/common';
 import { common as hans } from 'shared/src/i18n/messages/zh-Hans/common';
 import { common as hant } from 'shared/src/i18n/messages/zh-Hant/common';
 import { formatPrice } from '@/lib/price';
+import { formatStoreDate } from 'shared';
 import { buildCancelReason, orderStatusLabel, paymentStatusLabel, type CancelReason } from '@/lib/order-labels';
 import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
 
-export function OrderDetail({ initialOrder, locale }: { initialOrder: Order; locale: ShopLocale }) {
+export function OrderDetail({ initialOrder, locale, timezone }: { initialOrder: Order; locale: ShopLocale; timezone: string }) {
   const [order, setOrder] = useState(initialOrder);
   const [confirming, setConfirming] = useState(false);
   const [reason, setReason] = useState<CancelReason>('changedMind');
@@ -20,7 +21,7 @@ export function OrderDetail({ initialOrder, locale }: { initialOrder: Order; loc
   const [busy, setBusy] = useState(false);
   const availability = useShopAvailability(locale);
   const t = storefrontMessages(locale);
-  const date = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  const date = (value: string) => formatStoreDate(value, locale, timezone);
   const cancel = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (availability.blocked) return;

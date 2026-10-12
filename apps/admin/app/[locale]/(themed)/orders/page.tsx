@@ -8,6 +8,7 @@
 
 'use client'
 
+import { useStoreDate } from '@/lib/store-time';
 import { AlertTriangle, CheckCircle, Clock, Search, Truck, XCircle, TrendingUp, Box } from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -27,6 +28,7 @@ import {
 import { useT, useLocale } from 'shared/src/i18n/react'
 
 export default function OrdersPage() {
+  const { date: storeDate } = useStoreDate();
   const t = useT()
   const locale = useLocale()
   const router = useRouter()
@@ -348,7 +350,7 @@ export default function OrdersPage() {
                     </div>
                     <div className="mt-4 flex items-center justify-between text-[11px] font-medium text-neutral-base">
                       <span>{order.itemsCount ?? 0} ITEMS</span>
-                      <span>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}</span>
+                      <span>{order.createdAt ? storeDate(order.createdAt, true) : 'N/A'}</span>
                     </div>
                   </div>
 
@@ -424,7 +426,7 @@ export default function OrdersPage() {
                       </td>
                       <td className="py-4 px-6">
                         <span className="text-xs text-neutral-base font-medium">
-                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                          {order.createdAt ? storeDate(order.createdAt, true) : 'N/A'}
                         </span>
                       </td>
                     </tr>

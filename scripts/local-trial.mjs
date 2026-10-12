@@ -197,11 +197,13 @@ export class LocalTrial {
     const built = await this.build(buildOptions), generation = 'update-' + randomUUID(), state = this.directory + '/' + generation, backup = this.directory + '/backups/' + generation;
     const args = ['update', '--project', this.project, '--current-release', this.record.release, '--target-release', built.release, '--target-commit', built.manifest.sourceCommit,
       '--state-dir', state, '--backup-dir', backup, '--actor', 'local-trial-operator'];
-    const plan = await this.hostCommand([...args, '--plan'], { quiet: false });
+    await this.hostCommand(['verify', built.release, built.manifest.sourceCommit], { quiet: false });
+    const updateHost = (arguments_, options) => this.linux('sh', [built.release + '/bin/jiffoo-host', ...arguments_, '--acceptance'], options);
+    const plan = await updateHost([...args, '--plan'], { quiet: false });
     const digest = plan.stdout.match(/Update plan: ([a-f0-9]{64})/)[1];
     if (!/Pending Core migrations: 0\nPending plugin migrations: 0\n/.test(plan.stdout)) await askExact(`PLAN_SHA256: ${digest}\nPaste PLAN_SHA256 to confirm migrations: `, digest);
     let result;
-    try { result = await this.hostCommand([...args, '--confirm', digest], { quiet: false }); }
+    try { result = await updateHost([...args, '--confirm', digest], { quiet: false }); }
     finally {
       mkdirSync(join(this.state, 'backups'), { recursive: true, mode: 0o700 });
       await this.docker(['cp', `${this.host}:${backup}`, join(this.state, 'backups', generation)], { allowFailure: true });
@@ -218,7 +220,7 @@ export class LocalTrial {
     await askExact(`Restore replaces the active trial using new volumes; old volumes are retained.\nBackup SHA-256: ${hash}\nPaste this hash to confirm: `, hash);
     await this.compose(['stop', '-t', '45'], { quiet: false });
     const destination = this.directory + '/restore-' + randomUUID();
-    await this.hostCommand(['restore', backup, this.project, destination, hash], { quiet: false });
+    await this.hostCommand(['restore', backup, this.project, destination, hash, '--actor', 'local-trial-operator'], { quiet: false });
     const manifest = JSON.parse((await this.linux('cat', [destination + '/release/release.json'])).stdout);
     this.record.release = destination + '/release'; this.record.config = destination + '/compose.restore.json'; this.record.commit = manifest.sourceCommit; this.record.version = manifest.version; this.save();
   }

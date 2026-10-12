@@ -1,7 +1,7 @@
 # AGENTRA-001: Jiffoo Core V1 Product Charter
 
 Status: active
-Updated: 2026-10-04
+Updated: 2026-10-12
 
 ## 1. Product Promise
 
@@ -105,21 +105,18 @@ Core remains the authority for its product semantics and support contract.
 
 Known limitations (2026-10-04):
 
-- Pre-launch blocker for real payment providers: webhook rawBody is derived
-  from the parsed request body and is not the original HTTP bytes. The signed
-  acceptance fixture verifies its own canonical field protocol and does not
-  validate real PSP raw-byte signature support.
-- Pre-launch blocker for real payment providers: webhook verification failures
-  return 500 rather than a stable authentication error. Rejected signatures
-  preserve payment and order state, but the current response semantics are
-  not the provider-independent authentication contract.
+- RESOLVED (ec73b7ff2): webhook verification receives the original HTTP bytes.
+  Real payment-provider integration acceptance remains provider-specific.
+- RESOLVED (ec73b7ff2, 7a489044e): rejected webhook authentication returns the
+  stable 401 PAYMENT_WEBHOOK_AUTHENTICATION_FAILED contract.
 - Accepted V1 limitation: two administrators concurrently removing two
   different enabled payment providers can both pass the last-provider check
   and leave no enabled provider. Per-slug operation leases do not serialize
   this cross-provider decision.
 
-Known open issue (2026-10-04): order-detail date formatting in Shop and Admin
-has no fixed timezone; the timezone policy is not yet decided.
+Timezone policy (decided by Simo, 2026-10-12): one store timezone is selected
+in Admin, defaults to UTC, and applies to Shop, Admin and notification emails.
+Stored timestamps remain UTC.
 
 ### Extension Center and Execution
 
@@ -152,9 +149,8 @@ The Extension SDK is required to provide the database connection and
 versioning arrangement plugins use. It does not restrict which schemas,
 tables, or SQL statements a plugin may use, per §4.
 
-Known limitation (2026-10-04): the SDK and PluginContext do not yet provide
-the plugin database access path. This is a pre-launch requirement delivered
-together with the Scenario 10 plugin migration work.
+RESOLVED (1e836aa08): the SDK and PluginContext provide the handler-scoped
+plugin database query and transaction path.
 
 When a plugin is updated, module cache invalidation covers the entry module
 and its dependency tree.
@@ -244,10 +240,8 @@ Core is required to discover and execute plain .sql migrations packaged by a
 plugin during install or update, with the package-manifest audit specified
 below.
 
-Known limitation (2026-10-04): the current runtime executes exported
-{id, sql} migrations during runtime registration, rather than discovering
-plain .sql files against a manifest declaration. It does not establish the
-package-derived default schema described below.
+RESOLVED (3650a285e, 0cd7d66c8): runtime migrations use declared, packaged
+.sql files and the package-derived default schema.
 
 There is no production data to preserve when changing the migration format.
 The packaged .sql format is a clean break: exported {id, sql} migrations are
@@ -269,11 +263,9 @@ ledger, separate from the Core migration ledger. Before execution, Core must
 verify each plugin migration file's identity, order, and SHA-256 against the
 installed package manifest, and record its result for audit.
 
-Known limitation (2026-10-04): plugin_runtime_migrations is a separate ledger,
-but the current implementation compares SQL content checksums only with prior
-ledger entries. It does not verify manifest identity, order or SHA-256, or
-record the required package audit and migration-result semantics. This is a
-pre-launch blocker for Scenario 10.
+RESOLVED (3650a285e, 9c2bc9aa1): the dedicated plugin migration ledger and
+manifest auditor verify package identity, migration order and SHA-256 and
+record migration results.
 
 A checksum computed from migration contents and compared only to a prior
 ledger entry does not satisfy this requirement: it detects modification of an
@@ -323,9 +315,8 @@ then packages, signs and uploads it; unchanged output is skipped and a build
 failure preserves the last good installation. The source manifest is not
 rewritten.
 
-Known limitation (2026-10-04): the SDK and PluginContext do not yet provide
-the plugin database access path. This is a pre-launch requirement delivered
-together with the Scenario 10 plugin migration work.
+RESOLVED (1e836aa08): the SDK and PluginContext provide the handler-scoped
+plugin database query and transaction path.
 
 ### Storefront Tracking and Custom Code
 
@@ -355,10 +346,12 @@ payment page, including analytics and chat widgets. Core's default deployment
 must not place a merchant under that obligation. Changes to either mechanism
 take effect without rebuilding or redeploying the Shop application.
 
-Known open issue (2026-10-04): intermittent React #418 hydration failure,
-not yet resolved; reproducible through the opt-in E2E_RELOAD_STRESS=1 reload
-path. Plain theme style rendering and server-derived document language do
-not establish that it is fixed.
+RESOLVED for the demonstrated cross-timezone order-detail cause (2026-10-12):
+OrderDetail previously formatted with the host/browser's implicit timezone.
+Actual hydrateRoot reproduction shows differing date text; explicit store
+zones now pass the hydration regression and E2E_RELOAD_STRESS=1 home,
+checkout and cross-timezone order-detail reload checks. The earlier intermittent
+home failure did not reproduce in the pre-change baseline.
 
 ### Themes
 

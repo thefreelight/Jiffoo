@@ -1,5 +1,6 @@
 'use client'
 
+import { useStoreDate } from '@/lib/store-time';
 import { AlertTriangle, Search, Users, Filter, Edit, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import Link from 'next/link'
@@ -30,6 +31,7 @@ import { useToast } from '@/hooks/use-toast'
 
 
 export default function CustomersPage() {
+  const { date: storeDate } = useStoreDate();
   const t = useT()
   const locale = useLocale()
   const { toast } = useToast()
@@ -318,7 +320,7 @@ export default function CustomersPage() {
                       </td>
                       <td className="py-5 px-6">
                         <div className="text-sm font-medium text-neutral-strong">
-                          {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : getText('merchant.customers.unknown', 'Unknown')}
+                          {customer.createdAt ? storeDate(customer.createdAt, true) : getText('merchant.customers.unknown', 'Unknown')}
                         </div>
                       </td>
                       <td className="py-5 px-6">

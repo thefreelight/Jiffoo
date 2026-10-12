@@ -3,16 +3,17 @@ set -eu
 umask 077
 
 fail() { printf '%s\n' "$1" >&2; exit 1; }
-[ "$#" -ge 4 ] || fail 'Usage: jiffoo-host backup RELEASE_DIRECTORY PROJECT BACKUP_DIRECTORY [--acceptance] | restore BACKUP_DIRECTORY PROJECT RESTORE_DIRECTORY CONFIRMATION_HASH [--acceptance]'
+[ "$#" -ge 4 ] || fail 'Usage: jiffoo-host backup RELEASE_DIRECTORY PROJECT BACKUP_DIRECTORY [--acceptance] | restore BACKUP_DIRECTORY PROJECT RESTORE_DIRECTORY CONFIRMATION_HASH --actor ID [--acceptance]'
 operation=$1
 source=$(cd "$2" && pwd)
 project=$3
 destination=$4
 mode=ghcr
 confirmation=
+actor=
 case "$operation" in
   backup) [ "$#" -eq 4 ] || { [ "$#" -eq 5 ] && [ "$5" = --acceptance ]; } || fail 'Invalid backup arguments'; [ "$#" -ne 5 ] || mode=acceptance; release=$source;;
-  restore) [ "$#" -ge 5 ] || fail 'Missing confirmation hash'; confirmation=$5; [ "$#" -eq 5 ] || { [ "$#" -eq 6 ] && [ "$6" = --acceptance ]; } || fail 'Invalid restore arguments'; [ "$#" -ne 6 ] || mode=acceptance; release=$source/release;;
+  restore) [ "$#" -ge 7 ] || fail 'Restore requires confirmation hash and --actor ID'; confirmation=$5; [ "$6" = --actor ] && [ -n "$7" ] || fail 'Restore actor is required'; actor=$7; [ "$#" -eq 7 ] || { [ "$#" -eq 8 ] && [ "$8" = --acceptance ]; } || fail 'Invalid restore arguments'; [ "$#" -ne 8 ] || mode=acceptance; release=$source/release;;
   *) fail 'Unknown operation';;
 esac
 case "$project" in ''|*[!a-z0-9_-]*|[-_]*) fail 'Invalid project name';; esac
@@ -179,6 +180,15 @@ else
     --mount "type=bind,source=$destination,target=/restore" "$image" -c 'chmod 644 /restore/release/deploy/compose/api-lb.conf /restore/release/deploy/compose/edge.conf.template /restore/release/deploy/compose/silo-init.sh && chmod 755 /restore/release/deploy/compose/15-edge-hosts.envsh && chown 1000:1000 /restore/tls/cert.pem /restore/tls/key.pem && chmod 600 /restore/tls/cert.pem /restore/tls/key.pem' >/dev/null 2>&1 || fail 'Cannot prepare runtime configuration permissions'
   phase=start-recorded-release-and-health-checks
   compose_restore up -d --force-recreate --no-build --wait --wait-timeout 600 postgres redis silo silo-init silo-volume-init db-init api-1 api-2 worker-1 worker-2 api-lb admin shop edge >/dev/null 2>&1 || fail 'Restored stack failed health checks'
+  phase=restore-audit
+  state
+  host_audit_program
+  postgres=$(docker ps -aq --filter "label=com.docker.compose.project=$project" --filter label=com.docker.compose.service=postgres --filter label=com.docker.compose.oneoff=False)
+  docker run --rm --label "com.docker.compose.project=$project" --label io.jiffoo.host-helper=true --network "container:$postgres" \
+    --read-only --user "$(id -u):$(id -g)" --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp --entrypoint node \
+    --mount "type=bind,source=$source,target=/backup,readonly" --mount "type=bind,source=$work,target=/work,readonly" \
+    --mount "type=bind,source=$work/host-audit.mjs,target=/host-audit.mjs,readonly" \
+    "$image" /host-audit.mjs restore "$project" "$mode" "$actor" succeeded
   success=1
   printf 'Restore completed; recorded release is healthy.\nDeployment configuration: %s/compose.restore.json\nNew volumes: %s\nPrevious volumes retained: %s\nRedis started empty. Backup contains secrets and customer data; protect it off-host.\n' "$destination" "$new_volumes" "$old_volumes"
 fi

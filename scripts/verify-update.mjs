@@ -76,6 +76,15 @@ async function main() {
   };
   const recorded = async name => JSON.parse((await run('cat', [directory + '/' + name + '/journal.json'], { quiet: true })).stdout);
   const proof = async () => {const result=await compose(['exec','-T','api-1','node','/app/deploy/compose/update-scenario.mjs','migration-proof']);return JSON.parse(result.stdout.split('\n').find(line=>line.startsWith('UPDATE_PROOF ')).slice(13));};
+  const auditRows = async () => {
+    const postgres = (await docker(['ps', '-q', '--filter', 'label=com.docker.compose.project=' + project, '--filter', 'label=com.docker.compose.service=postgres'], { quiet: true })).stdout.trim();
+    const result = await docker(['run', '--rm', '--label', 'com.docker.compose.project=' + project, '--network', 'container:' + postgres, '--read-only', '--tmpfs', '/tmp',
+      '-e', 'DATABASE_URL=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test', '-e', 'DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test',
+      '--entrypoint', 'node', manifests.old.verifierImage, '/app/deploy/compose/host-audit-check.mjs'], { quiet: true });
+    const rows = JSON.parse(result.stdout.split('\n').find(line => line.startsWith('HOST_AUDITS ')).slice(12));
+    for (const secret of secrets) assert.ok(!JSON.stringify(rows).includes(secret));
+    writeFileSync(join(evidence, 'merchant-audits.json'), JSON.stringify(rows, null, 2)); return rows;
+  };
   const migrationArgs = (name,generation='migration') => [...updateArgs(name,directory+'/'+generation),'--plugin-packages',directory+'/packages'];
   const confirmed = async (name,generation='migration') => {
     const args=migrationArgs(name,generation), result=await host([...args,'--plan'],{quiet:true});
@@ -160,7 +169,7 @@ async function main() {
       const bundle = join(native,'old'); manifests.old = makeRelease({ root: process.cwd(), output: bundle, inspections, commit, version, mode:'acceptance' }); adjust(bundle,manifests.old);
       const fixtureTime=new Date(Math.max(Date.now(),Date.UTC(2026,9,10,16,18,3)+60000));
       const fixtureNames=[0,1,2].map(index=>new Date(fixtureTime.getTime()+index*60000).toISOString().replace(/[-:T]/g,'').slice(0,14)+'_b16c2_'+(index+1));
-      const generations=[['target',version+'-update'],['failure',version+'-failure'],['migration',version+'-migration'],...(profile==='full'?[['migration-failure',version+'-migration-failure'],['migration-health',version+'-migration-health'],['migration-crash',version+'-migration-crash']]:[])];
+      const generations=[['target',version+'-update'],['failure',version+'-failure'],['migration',version+'-migration'],['migration-health',version+'-migration-health'],...(profile==='full'?[['migration-failure',version+'-migration-failure'],['migration-crash',version+'-migration-crash']]:[])];
       for (const [generation, newVersion] of generations) {
         const context = join(native,generation + '-context'); mkdirSync(context);
         const shipping = JSON.parse(readFileSync('apps/api/builtin-plugins/free-shipping/manifest.json','utf8')); shipping.version = '1.0.1';
@@ -175,7 +184,7 @@ async function main() {
         }
         for (const role of ['backend','admin','shop']) {
           const base = generation === 'failure' ? project + '-target-' + role : role==='backend'?signedTag:project + '-old-' + role;
-          const contents = 'FROM ' + base + '\nLABEL org.opencontainers.image.revision="' + commit + '" org.opencontainers.image.version="' + newVersion + '"\n' + (role === 'backend' ? migrating ? [0,1,2].map(index=>'COPY migration-'+index+'.sql /app/apps/api/prisma/migrations/'+fixtureNames[index]+'/migration.sql\n').join('')+'COPY schema.prisma /app/apps/api/prisma/schema/b16c2.prisma\n'+(generation==='migration-crash'?'COPY crash-checkpoint /app/deploy/compose/update-crash-checkpoint\n':'') : 'COPY shipping.json /app/apps/api/builtin-plugins/free-shipping/manifest.json\nCOPY theme.json /app/apps/api/builtin-themes/default-shop/theme.json\n' : ['failure','migration-health'].includes(generation) && role === 'shop' ? 'COPY failure.mjs /app/apps/shop/server.mjs\n' : '');
+          const contents = 'FROM ' + base + '\nLABEL org.opencontainers.image.revision="' + commit + '" org.opencontainers.image.version="' + newVersion + '"\n' + (role === 'backend' ? 'ENV APP_VERSION=' + newVersion + ' BUILD_SHA=' + commit + '\n' : '') + (role === 'backend' ? migrating ? [0,1,2].map(index=>'COPY migration-'+index+'.sql /app/apps/api/prisma/migrations/'+fixtureNames[index]+'/migration.sql\n').join('')+'COPY schema.prisma /app/apps/api/prisma/schema/b16c2.prisma\n'+(generation==='migration-crash'?'COPY crash-checkpoint /app/deploy/compose/update-crash-checkpoint\n':'') : 'COPY shipping.json /app/apps/api/builtin-plugins/free-shipping/manifest.json\nCOPY theme.json /app/apps/api/builtin-themes/default-shop/theme.json\n' : ['failure','migration-health'].includes(generation) && role === 'shop' ? 'COPY failure.mjs /app/apps/shop/server.mjs\n' : '');
           writeFileSync(join(context,'Dockerfile-' + role),contents);
           const tag = project + '-' + generation + '-' + role; tags.push(tag);
           await docker(['build','--platform','linux/amd64','-f',join(context,'Dockerfile-' + role),'-t',tag,context]);
@@ -218,6 +227,8 @@ async function main() {
       baseline = await managed(); writeFileSync(join(evidence,'managed-before.json'),JSON.stringify(baseline,null,2));
     });
     await checks.run('Reject unknown and missing CLI options', ['Seed merchant and theme configuration through real API'], async () => {
+      const missingActor = updateArgs('missing-actor'); missingActor.splice(missingActor.indexOf('--actor'), 2);
+      assert.notEqual((await host(missingActor, { allowFailure: true })).code, 0);
       for (const args of [['update','--unknown'],['update','--project',project]]) { const result = await host(args,{allowFailure:true}); assert.notEqual(result.code,0); assert.match(result.output,/Usage:/); }
     });
     await checks.run('Read-only plan proves zero pending migrations without stopping instances', ['Seed merchant and theme configuration through real API'], async () => {
@@ -234,6 +245,10 @@ async function main() {
       const result = await host(updateArgs('success')); process.stdout.write(result.output); activeConfig = directory + '/success/next-config.json';
       assert.match(result.output,/zero pending migrations/); assert.match(result.output,/Update completed/);
       assert.equal((await recorded('success')).result,'success');
+      const event = (await auditRows()).findLast(row => row.summary.runKind === 'update');
+      assert.equal(event.actorId, actor); assert.equal(event.summary.result, 'succeeded'); assert.equal(event.summary.migrationsRan, false);
+      assert.equal(event.summary.from.commit, commit); assert.equal(event.summary.to.commit, commit); assert.equal(event.summary.backupReference, 'success-backup');
+      assert.equal(event.summary.planHash, (await recorded('success')).planHash);
       const after = await managed(); assert.equal(after.pluginVersion,'1.0.1'); assert.equal(after.themeVersion,'1.1.1'); assert.notDeepEqual(after,baseline);
       writeFileSync(join(evidence,'successful-update-duration.json'),JSON.stringify({duration:result.duration,managed:after},null,2));
     });
@@ -241,6 +256,7 @@ async function main() {
     await checks.run('Target startup failure automatically restores images and complete managed state', ['Successful update retains a verified prior-release restore path'], async () => {
       const result = await host(updateArgs('failed',failure),{allowFailure:true}); process.stdout.write(result.output); assert.notEqual(result.code,0); assert.match(result.output,/Prior release restored and healthy/);
       activeConfig = directory + '/failed/prior-config.json'; assert.equal((await recorded('failed')).result,'rolled-back'); assert.deepEqual(await managed(),baseline);
+      assert.equal((await auditRows()).at(-1).summary.result, 'rolled_back_before_migration');
     });
     await checks.run('Concurrent second host operation is refused while the real first update runs', ['Target startup failure automatically restores images and complete managed state'], async () => {
       const first = host(updateArgs('concurrent'),{allowFailure:true});
@@ -277,6 +293,7 @@ async function main() {
         const result=await host([...args,...suffix],{allowFailure:true});assert.notEqual(result.code,0);assert.match(result.output,/Migration confirmation must equal/);
         assert.notEqual((await run('test',['-e',directory+'/missing-confirmation'],{allowFailure:true})).code,0);
         assert.deepEqual(await proof(),migrationBaseline);
+        assert.equal((await auditRows()).at(-1).summary.result, 'refused');
       }
     });
     if(profile==='full'){
@@ -326,15 +343,19 @@ async function main() {
           await backupRestore('migration-crashed',resumed.output);
         }finally{await first;}
       });
-      await checks.run('Health failure after migrations forbids application rollback and restores the backup',[priorProof],async()=>{
-        const result=await host(await confirmed('migration-unhealthy','migration-health'),{allowFailure:true});process.stdout.write(result.output);assert.notEqual(result.code,0);assert.match(result.output,/No application rollback/);assert.doesNotMatch(result.output,/Prior release restored/);
-        const journal=await archiveJournal('migration-unhealthy');assert.equal(journal.events.filter(event=>event.kind==='core'&&event.status==='committed').length,3);
-        await backupRestore('migration-unhealthy',result.output);
-      });
     }
+    await checks.run('Health failure after migrations records maintenance audit and restores the backup',[priorProof],async()=>{
+      const result=await host(await confirmed('migration-unhealthy','migration-health'),{allowFailure:true});process.stdout.write(result.output);assert.notEqual(result.code,0);assert.match(result.output,/No application rollback/);assert.doesNotMatch(result.output,/Prior release restored/);
+      const journal=await archiveJournal('migration-unhealthy');assert.equal(journal.events.filter(event=>event.kind==='core'&&event.status==='committed').length,3);
+      const event = (await auditRows()).at(-1); assert.equal(event.summary.result, 'stopped_in_maintenance_after_migration'); assert.equal(event.summary.migrationsRan, true);
+      await backupRestore('migration-unhealthy',result.output);
+    });
     await checks.run('Confirmed Core and plugin migrations succeed with durable audit before every migration intent',['Missing and wrong migration confirmation are refused without stopping applications'],async()=>{
       const result=await host(await confirmed('migrated'));process.stdout.write(result.output);activeConfig=directory+'/migrated/next-config.json';
       const journal=await archiveJournal('migrated');assert.equal(journal.result,'success');
+      const event = (await auditRows()).at(-1); assert.equal(event.action, 'CORE_UPDATE'); assert.equal(event.summary.operationId, journal.operationId);
+      assert.equal(event.summary.result, 'succeeded'); assert.equal(event.summary.migrationsRan, true); assert.equal(event.summary.migrations.filter(row => row.kind === 'core').length, 3);
+      assert.equal(event.summary.migrations.filter(row => row.kind === 'plugin').length, 1); assert.ok(event.summary.migrations.every(row => typeof row.name === 'string'));
       const audit=journal.events.findLast(event=>event.kind==='audit');assert.ok(audit.backupHash);
       const intents=journal.events.filter(event=>event.status==='intent');assert.equal(intents.filter(event=>event.kind==='core').length,3);assert.equal(intents.filter(event=>event.kind==='plugin').length,1);
       for(const event of intents){assert.ok(audit.sequence<event.sequence);assert.equal(event.auditHash,audit.auditHash);assert.equal(event.backupHash,audit.backupHash);assert.equal(event.planHash,journal.planHash);}

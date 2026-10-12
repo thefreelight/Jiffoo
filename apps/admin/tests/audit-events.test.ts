@@ -10,6 +10,7 @@ describe('Audit event presentation', () => {
   });
   it('maps known writer actions and leaves unknown actions unmapped', () => {
     expect(Object.keys(auditActionKeys).sort()).toEqual([
+      'CORE_RESTORE', 'CORE_UPDATE', 'STORE_TIMEZONE_CHANGED',
       'storefront-code.restore', 'storefront-code.save', 'storefront-code.switch',
       'theme.activate', 'theme.config.migrated', 'theme.config.restore', 'theme.config.update',
       'theme.install', 'theme.restore_previous', 'theme.uninstall',

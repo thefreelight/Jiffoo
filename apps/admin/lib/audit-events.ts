@@ -4,6 +4,7 @@ export type AuditActor = { id: string; email: string; username: string; isActive
 export type AuditEvent = {
   id: string; createdAt: string; action: string; targetType: string; targetId: string;
   summary: unknown; actor: AuditActor | null;
+  actorId: string;
 };
 export type AuditFilters = { actions: string[]; targetTypes: string[]; actors: AuditActor[] };
 export type AuditQuery = { actorId?: string; action?: string; targetType?: string; from?: string; to?: string };
@@ -22,6 +23,7 @@ export function summaryText(summary: unknown, emptyLabel: string): string {
 }
 
 export const auditActionKeys: Record<string, string> = {
+  CORE_UPDATE: 'coreUpdate', CORE_RESTORE: 'coreRestore', STORE_TIMEZONE_CHANGED: 'storeTimezoneChanged',
   'theme.install': 'themeInstall', 'theme.uninstall': 'themeUninstall',
   'theme.activate': 'themeActivate', 'theme.restore_previous': 'themeRestorePrevious',
   'theme.config.update': 'themeConfigUpdate', 'theme.config.restore': 'themeConfigRestore',

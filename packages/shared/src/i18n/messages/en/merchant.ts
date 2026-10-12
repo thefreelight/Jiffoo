@@ -7,6 +7,9 @@
 
 export const merchant = {
   auditEvents: {
+    corePlan: 'Core update plan checked',
+    invalidTime: 'This time does not exist in the store timezone.',
+    coreResults: { succeeded: 'Succeeded', rolled_back_before_migration: 'Rolled back before migration', stopped_in_maintenance_after_migration: 'Stopped in maintenance after migration', refused: 'Refused' },
     title: 'Audit log', time: 'Time', actor: 'Actor', action: 'Action', target: 'Target',
     targetType: 'Target type', from: 'From', to: 'To',
     allActors: 'All actors', allActions: 'All actions', allTargets: 'All target types',
@@ -15,6 +18,7 @@ export const merchant = {
     loading: 'Loading events...', empty: 'No audit events', total: 'Total events',
     page: 'Page', previous: 'Previous page', next: 'Next page',
     actions: {
+      coreUpdate: 'Core update', coreRestore: 'Core restored from backup', storeTimezoneChanged: 'Store timezone changed',
       themeInstall: 'Theme installed', themeUninstall: 'Theme uninstalled',
       themeActivate: 'Theme activated', themeRestorePrevious: 'Previous theme restored',
       themeConfigUpdate: 'Theme configuration updated', themeConfigRestore: 'Theme configuration restored',
@@ -699,7 +703,7 @@ export const merchant = {
       currencySettings: 'Currency Settings',
       currencySettingsDesc: 'Set default currency and formatting options',
       timezone: 'Timezone',
-      timezoneDesc: 'Set the default timezone for your store',
+      timezoneDesc: 'Store timezone for Shop, Admin and email dates. Default: UTC.',
     },
     // Security Settings
     security: {

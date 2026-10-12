@@ -67,7 +67,7 @@ async function main() {
     logs: async service => (await compose(['logs', '--no-color', '--no-log-prefix', ...(service ? [service] : [])], undefined, { quiet: true })).output,
     save: async (name, output) => writeFileSync(join(evidence, name), output), secrets,
   });
-  const host = (args, options) => run('sh', [bundle + '/bin/jiffoo-host', ...args, '--acceptance'], options);
+  const host = (args, options) => run('sh', [bundle + '/bin/jiffoo-host', ...args, ...(args[0] === 'restore' ? ['--actor', 'acceptance-operator'] : []), '--acceptance'], options);
   const fixture = async (mode, file = bundle + '/deploy/compose/compose.release.yml') => {
     const result = await compose(['exec', '-T', '-e', 'DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test', 'api-1', 'node', '/app/deploy/compose/backup-scenario.mjs', mode, ...(proof ? [JSON.stringify(proof)] : [])], file);
     const prefix = mode === 'seed' ? 'BACKUP_PROOF ' : mode === 'snapshot' ? 'BACKUP_SNAPSHOT ' : undefined;
@@ -199,6 +199,11 @@ async function main() {
     await checks.run('Restore into new volumes and pass recorded release health checks', ['Stop every target application and data container', 'Verify complete checksum inventory and 0700 0600 permissions'], async () => {
       const result = await host(['restore', backup, project, restored, manifestHash]); restoreTime = result.duration; process.stdout.write(result.output);
       assert.match(result.output, /recorded release is healthy/);
+      const inspected = await docker(['compose', '--project-name', project, '-f', restored + '/compose.restore.json', 'exec', '-T', '-e', 'DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test', 'api-1', 'node', '/app/deploy/compose/host-audit-check.mjs'], { quiet: true });
+      const rows = JSON.parse(inspected.stdout.split('\n').find(line => line.startsWith('HOST_AUDITS ')).slice(12));
+      const event = rows.at(-1); assert.equal(event.action, 'CORE_RESTORE'); assert.equal(event.actorId, 'acceptance-operator');
+      assert.equal(event.summary.backupManifestHash, manifestHash); assert.equal(event.summary.restoredRelease.commit, commit);
+      writeFileSync(join(evidence, 'restore-merchant-audit.json'), JSON.stringify(event, null, 2));
     });
     await checks.run('No anonymous volumes after restore', ['Restore into new volumes and pass recorded release health checks'], () => volumes.assertNoAnonymousVolumes());
     await checks.run('Every restored container uses the restored configuration and a second backup succeeds', ['Restore into new volumes and pass recorded release health checks'], async () => {

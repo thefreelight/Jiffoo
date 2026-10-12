@@ -6,6 +6,7 @@
 
 'use client'
 
+import { useStoreDate } from '@/lib/store-time'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
@@ -37,6 +38,7 @@ interface BlueMinimalHeaderProps {
 }
 
 export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMinimalHeaderProps) {
+  const { date: storeDate, now } = useStoreDate()
   const router = useRouter()
   const { user, logout } = useAuthStore()
   const t = useT()
@@ -57,12 +59,7 @@ export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMini
   }
 
   // Format current date
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
+  const currentDate = storeDate(now, true)
 
   return (
     <header className="h-16 bg-surface border-b border-neutral-faint flex items-center justify-between px-8 flex-shrink-0">

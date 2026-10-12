@@ -8,7 +8,7 @@ import type { AdminOrderDetailDTO } from 'shared';
 
 const state = vi.hoisted(() => ({ mutateAsync: vi.fn(), order: {} as any }));
 vi.mock('next/navigation', () => ({ useParams: () => ({ id: 'order-1' }), useRouter: () => ({ back: vi.fn() }) }));
-vi.mock('shared/src/i18n/react', () => ({ useT: () => (key: string) => key }));
+vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string) => key }));
 vi.mock('@/lib/hooks/use-api', () => ({
   useOrder: () => ({ data: state.order, refetch: vi.fn() }),
   useRecordManualPayment: () => ({}), useDeliverOrder: () => ({}), useCancelOrder: () => ({}),

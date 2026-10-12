@@ -6,6 +6,7 @@ import { ApiError } from '@/utils/api-errors';
 
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
+import { isStoreTimezone } from 'shared';
 
 // Keep types compatible with existing code
 type SettingValue = string | number | boolean | Record<string, any>;
@@ -48,6 +49,7 @@ export class SystemSettingsService {
         if (!['en', 'zh-Hans', 'zh-Hant'].includes(sanitized['localization.locale'])) {
             sanitized['localization.locale'] = 'en';
         }
+        sanitized['localization.timezone'] ??= 'UTC';
         return sanitized;
     }
 
@@ -65,7 +67,7 @@ export class SystemSettingsService {
             where: { id: SYSTEM_ID }
         });
 
-        if (!system?.settings) return { 'localization.locale': 'en' };
+        if (!system?.settings) return this.sanitizeSettings({});
         try {
             const parsed = typeof system.settings === 'string'
                 ? JSON.parse(system.settings)
@@ -180,6 +182,7 @@ export class SystemSettingsService {
      * Set a single setting
      */
     async setSetting(key: string, value: SettingValue): Promise<void> {
+        if (key === 'localization.timezone' && !isStoreTimezone(value)) throw new ApiError('VALIDATION_ERROR');
         if (key === 'branding.store_url') throw new ApiError('BAD_REQUEST');
         if (key === 'localization.locale' && !['en', 'zh-Hans', 'zh-Hant'].includes(String(value))) {
             throw new ApiError('BAD_REQUEST');
@@ -205,15 +208,26 @@ export class SystemSettingsService {
     /**
      * Batch update settings - returns full settings Map
      */
-    async batchUpdate(updates: Record<string, SettingValue>): Promise<Record<string, any>> {
+    async batchUpdate(updates: Record<string, SettingValue>, actorId?: string): Promise<Record<string, any>> {
+        if ('localization.timezone' in updates && !isStoreTimezone(updates['localization.timezone'])) throw new ApiError('VALIDATION_ERROR');
         if ('branding.store_url' in updates) throw new ApiError('BAD_REQUEST');
         if ('localization.locale' in updates && !['en', 'zh-Hans', 'zh-Hant'].includes(String(updates['localization.locale']))) {
             throw new ApiError('BAD_REQUEST');
         }
-        const settings = await this.getSettingsObject();
-        Object.assign(settings, updates);
-        await this.saveSettingsObject(settings);
-
+        const settings = await prisma.$transaction(async tx => {
+            await tx.$queryRaw`SELECT id FROM public.system_settings WHERE id = 'system' FOR UPDATE`;
+            const system = await tx.systemSettings.findUnique({ where: { id: SYSTEM_ID } });
+            const before = this.sanitizeSettings(system?.settings && typeof system.settings === 'object' ? system.settings as Record<string, any> : {});
+            const next = this.sanitizeSettings({ ...before, ...updates });
+            await tx.systemSettings.upsert({ where: { id: SYSTEM_ID }, update: { settings: next }, create: { id: SYSTEM_ID, settings: next } });
+            if (before['localization.timezone'] !== next['localization.timezone']) {
+                if (!actorId) throw new ApiError('VALIDATION_ERROR');
+                await tx.adminAuditEvent.create({ data: { actorId, action: 'STORE_TIMEZONE_CHANGED', targetType: 'settings', targetId: 'localization.timezone',
+                    summary: { from: before['localization.timezone'], to: next['localization.timezone'] } } });
+            }
+            return next;
+        });
+        await CacheService.delete(SETTINGS_CACHE_KEY); await CacheService.delete(LOCALIZATION_CACHE_KEY);
         return settings;
     }
 

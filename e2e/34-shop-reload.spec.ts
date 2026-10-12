@@ -2,12 +2,22 @@ import { expect, test } from './local-requests';
 import type { Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { customerEmail, login, ownerEmail, shopLogin } from './helpers';
+import { api, customerEmail, login, ownerEmail, shopLogin } from './helpers';
 import { themePackage } from './theme-package';
 
 const shopOrigin = 'http://127.0.0.1:3003';
 const reloadStress = process.env.E2E_RELOAD_STRESS === '1';
 const reloadMode = reloadStress ? 'stress' : 'regression';
+
+test.beforeAll(async ({ request }) => {
+  if (!reloadStress) return;
+  await api(request, '/install/complete', { method: 'POST', data: { siteName: 'E2E Updated Store', adminEmail: ownerEmail, adminPassword: 'FinalOwnerPassword123!' } });
+  const owner = await api<{ token: string }>(request, '/auth/login', { method: 'POST', data: { email: ownerEmail, password: 'FinalOwnerPassword123!' } });
+  await api(request, '/admin/products', { method: 'POST', token: owner.token, data: {
+    name: 'E2E Localized Product', requiresShipping: true, variants: [{ name: 'Standard', salePrice: 12, stock: 100, skuCode: 'RELOAD-STRESS-PRODUCT' }],
+  } });
+  await api(request, '/auth/register', { method: 'POST', data: { username: 'Reload Buyer', email: customerEmail, password: 'CustomerChanged123!', locale: 'en' } });
+});
 
 function observe(page: Page) {
   const pageErrors: string[] = [];
@@ -126,4 +136,36 @@ test('C a merchant theme change replaces the plain style without leaving an old 
   await row.getByRole('button', { name: 'Uninstall', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'E2E Shop Theme', exact: true })).toHaveCount(0);
   await shop.close();
+});
+
+test('D order detail hydrates and reloads in a browser timezone different from the store', async ({ newObservedContext, request }) => {
+  test.setTimeout(120_000);
+  const context = await newObservedContext({ timezoneId: 'America/Los_Angeles' });
+  const page = await context.newPage();
+  const errors = observe(page);
+  try {
+    const store = await api<{ timezone: string }>(request, '/store/context');
+    await page.goto(`${shopOrigin}/en/login`);
+    await shopLogin(page, { locale: 'en', email: customerEmail, password: 'CustomerChanged123!', expectedPath: '/en' });
+    await page.goto(`${shopOrigin}/en/products`);
+    await page.getByRole('searchbox', { name: 'Search products', exact: true }).fill('E2E Localized Product');
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await page.getByRole('heading', { name: 'E2E Localized Product', exact: true }).click();
+    await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+    await page.getByRole('link', { name: 'Checkout', exact: true }).click();
+    for (const [label, value] of [['First name', 'Reload'], ['Last name', 'Buyer'], ['Phone', '+1-555-0123'], ['Address line 1', '34 Reload Street'], ['City', 'San Francisco'], ['State / province', 'CA'], ['Postal code', '94105']]) await page.getByLabel(label, { exact: true }).fill(value);
+    await page.getByRole('combobox', { name: 'Country', exact: true }).selectOption('US');
+    await page.getByRole('button', { name: 'Get shipping options', exact: true }).click();
+    await page.getByRole('radio', { name: /Free shipping/ }).check();
+    await page.getByRole('radio', { name: 'Manual payment', exact: true }).check();
+    await page.getByRole('button', { name: 'Place order', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Order confirmation', exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'View order', exact: true }).click();
+    for (let index = 0; index <= (reloadStress ? 20 : 1); index++) {
+      if (index) await page.reload();
+      await expect(page.getByRole('heading', { name: 'Order details', exact: true })).toBeVisible();
+      await expect(page.getByText(new RegExp(`\\(${store.timezone}\\)`)).first()).toBeVisible();
+      await assertDocument(page, 'en', errors);
+    }
+  } finally { await context.close(); }
 });

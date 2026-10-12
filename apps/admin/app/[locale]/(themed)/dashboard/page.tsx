@@ -7,6 +7,7 @@
 
 'use client'
 
+import { useStoreDate } from '@/lib/store-time';
 import { AlertTriangle, Box, DollarSign, ShoppingBag, Users, Eye, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { StatsCard } from '@/components/dashboard/stats-card'
@@ -17,10 +18,10 @@ import { useAdminDashboard } from '@/lib/hooks/use-api'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
 import { LoadingState, ErrorState } from '@/components/ui/state-components'
 
 export default function DashboardPage() {
+  const { date: storeDate } = useStoreDate();
   const t = useT()
   const router = useRouter()
   const locale = useLocale()
@@ -173,7 +174,7 @@ export default function DashboardPage() {
                         {formatCurrency(order.totalAmount, order.currency)}
                       </td>
                       <td className="py-3 px-8 text-right text-[10px] font-bold text-neutral-light">
-                        {order.createdAt ? format(new Date(order.createdAt), 'HH:mm') : '--:--'}
+                        {order.createdAt ? storeDate(order.createdAt) : '--:--'}
                       </td>
                     </tr>
                   ))}

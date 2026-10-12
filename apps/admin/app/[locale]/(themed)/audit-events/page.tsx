@@ -1,18 +1,22 @@
 'use client';
 
+import { useStoreDate } from '@/lib/store-time';
+import { storeLocalToUtc } from 'shared';
 import { Fragment, useEffect, useState } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ScrollText } from 'lucide-react';
-import { useLocale, useT } from 'shared/src/i18n/react';
+import { useT } from 'shared/src/i18n/react';
 import { auditActionKeys, auditEventsApi, summaryText, type AuditEvent, type AuditFilters, type AuditQuery } from '@/lib/audit-events';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function AuditEventsPage() {
+  const { date: storeDate, timezone } = useStoreDate();
   const t = useT();
-  const locale = useLocale();
   const label = (key: string) => t(`merchant.auditEvents.${key}`);
   const actionLabel = (action: string) => Object.prototype.hasOwnProperty.call(auditActionKeys, action)
     ? label(`actions.${auditActionKeys[action]}`) : action;
+  const eventLabel = (item: AuditEvent) => item.action === 'CORE_UPDATE' && item.summary !== null && typeof item.summary === 'object' && 'runKind' in item.summary && item.summary.runKind === 'plan'
+    ? label('corePlan') : actionLabel(item.action);
   const [filters, setFilters] = useState<AuditFilters>({ actions: [], targetTypes: [], actors: [] });
   const [query, setQuery] = useState<AuditQuery>({});
   const [page, setPage] = useState(1);
@@ -50,6 +54,10 @@ export default function AuditEventsPage() {
     setQuery((current) => ({ ...current, [key]: value || undefined }));
     setPage(1);
   }
+  const changeTime = (key: 'from' | 'to', value: string) => {
+    try { change(key, value ? storeLocalToUtc(value, timezone) : ''); setError(''); }
+    catch { setError(label('invalidTime')); }
+  };
 
   const inputClass = 'h-10 w-full min-w-0 rounded border border-neutral-soft bg-surface px-3 text-sm';
   return (
@@ -74,13 +82,13 @@ export default function AuditEventsPage() {
             {filters.targetTypes.map((type) => <option key={type} value={type}>{type}</option>)}
           </select>
         </label>
-        <label className="min-w-0 space-y-1 text-sm">{label('from')}
-          <input className={inputClass} type="datetime-local" step="0.001"
-            onChange={(event) => change('from', event.target.value ? new Date(event.target.value).toISOString() : '')} />
+        <label className="min-w-0 space-y-1 text-sm">{label('from')} ({timezone})
+          <input aria-label={label('from')} className={inputClass} type="datetime-local" step="0.001"
+            onChange={(event) => changeTime('from', event.target.value)} />
         </label>
-        <label className="min-w-0 space-y-1 text-sm">{label('to')}
-          <input className={inputClass} type="datetime-local" step="0.001"
-            onChange={(event) => change('to', event.target.value ? new Date(event.target.value).toISOString() : '')} />
+        <label className="min-w-0 space-y-1 text-sm">{label('to')} ({timezone})
+          <input aria-label={label('to')} className={inputClass} type="datetime-local" step="0.001"
+            onChange={(event) => changeTime('to', event.target.value)} />
         </label>
       </div>
       {error && <p role="alert" className="text-sm text-danger-deep">{error}</p>}
@@ -93,12 +101,15 @@ export default function AuditEventsPage() {
         <TableBody>
           {!loading && items.map((item) => <Fragment key={item.id}>
             <TableRow>
-              <TableCell className="whitespace-nowrap">{new Date(item.createdAt).toLocaleString(locale)}</TableCell>
+              <TableCell className="whitespace-nowrap">{storeDate(item.createdAt)}</TableCell>
               <TableCell className="min-w-40 break-all">
                 {item.actor ? <>{item.actor.email}<span className="block text-xs text-neutral-base">{item.actor.username}</span>
-                  {!item.actor.isActive && <span className="block text-xs text-danger-deep">{label('deactivated')}</span>}</> : label('deletedAccount')}
+                  {!item.actor.isActive && <span className="block text-xs text-danger-deep">{label('deactivated')}</span>}</> : item.targetType === 'core' ? item.actorId : label('deletedAccount')}
               </TableCell>
-              <TableCell className="min-w-40">{actionLabel(item.action)}</TableCell>
+              <TableCell className="min-w-40">{eventLabel(item)}
+                {item.targetType === 'core' && item.summary !== null && typeof item.summary === 'object' && 'result' in item.summary &&
+                  <span className="block text-xs">{label(`coreResults.${String(item.summary.result)}`)}</span>}
+              </TableCell>
               <TableCell className="min-w-40 break-all">{item.targetType}<span className="block text-xs text-neutral-base">{item.targetId}</span></TableCell>
               <TableCell><Button variant="ghost" size="icon" title={label('details')}
                 aria-label={`${label('details')} ${item.id}`} aria-expanded={expanded === item.id}

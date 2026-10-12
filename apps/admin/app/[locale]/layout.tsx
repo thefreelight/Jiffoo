@@ -17,6 +17,8 @@ import { Toaster } from 'sonner';
 import { ToastProvider } from '@/components/ui/toast';
 import { LoggerProvider } from '@/components/logger-provider';
 import { SkipToMain } from '@/components/skip-to-main';
+import { StoreTimeProvider } from '@/lib/store-time';
+import { getStoreTimezone } from '@/lib/server-theme';
 
 interface Props {
   children: React.ReactNode;
@@ -33,9 +35,11 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   // Get messages for this locale
   const messages = getMessages(locale as Locale, 'merchant');
+  const timezone = await getStoreTimezone();
 
   return (
     <I18nProvider locale={locale as Locale} messages={messages}>
+      <StoreTimeProvider timezone={timezone} now={new Date().toISOString()}>
       <LoggerProvider>
         <ToastProvider>
           <QueryProvider>
@@ -45,6 +49,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           </QueryProvider>
         </ToastProvider>
       </LoggerProvider>
+      </StoreTimeProvider>
     </I18nProvider>
   );
 }

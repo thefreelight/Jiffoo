@@ -11,7 +11,7 @@ const { getAll, getById, resend } = vi.hoisted(() => ({
   resend: vi.fn(),
 }))
 
-vi.mock('shared/src/i18n/react', () => ({ useT: () => (key: string) => key }))
+vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string) => key }))
 vi.mock('@/lib/store', () => ({
   useAuthStore: () => ({ user: { role: 'ADMIN', permissions: ['orders.read', 'orders.write'] } }),
 }))

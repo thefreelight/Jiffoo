@@ -24,6 +24,7 @@ const product: Product = {
 };
 const context: StoreContext = {
   storeName: 'Local Store', logo: null, currency: 'USD', defaultLocale: 'en',
+  timezone: 'UTC',
   supportedLocales: ['en', 'zh-Hans', 'zh-Hant'],
 };
 const section = (type: string, settings: Record<string, unknown>): ThemeSection =>

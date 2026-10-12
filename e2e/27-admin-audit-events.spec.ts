@@ -12,6 +12,7 @@ type Event = { id: string; createdAt: string; action: string; targetType: string
   summary: unknown; actor: { id: string; email: string; username: string; isActive: boolean } | null };
 let token: string;
 let actorId: string;
+let storeTimezone = 'UTC';
 const headers = () => ({ authorization: `Bearer ${token}` });
 test.describe.configure({ mode: 'serial' });
 
@@ -45,10 +46,8 @@ async function open(page: Page) {
 const rows = (page: Page) => page.getByRole('table', { name: 'Audit log', exact: true }).getByRole('row');
 function localDate(value: string) {
   const date = new Date(value);
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 23)
-    .replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.000$/, '').replace(/:00$/, '');
-  expect(new Date(local).getTime()).toBe(date.getTime());
-  return local;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en', { timeZone: storeTimezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(date).map(part => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}.${String(date.getUTCMilliseconds()).padStart(3, '0')}`;
 }
 async function select(page: Page, label: string, value: string) {
   await page.getByRole('combobox', { name: label, exact: true }).selectOption(value);
@@ -61,6 +60,7 @@ test.beforeAll(async ({ request }) => {
   });
   token = result.token;
   actorId = result.user.id;
+  storeTimezone = (await api<{ timezone: string }>(request, '/store/context')).timezone;
 });
 test.beforeEach(async ({ page, request }) => {
   await reset(request);

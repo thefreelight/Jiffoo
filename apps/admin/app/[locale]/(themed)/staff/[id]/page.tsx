@@ -1,5 +1,6 @@
 'use client'
 
+import { useStoreDate } from '@/lib/store-time';
 import { useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -12,6 +13,7 @@ import { staffApi, unwrapApiResponse } from '@/lib/api'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 export default function StaffDetailPage() {
+  const { date: storeDate } = useStoreDate();
   const userId = useParams().id as string
   const locale = useLocale()
   const [inviteLink, setInviteLink] = useState('')
@@ -33,7 +35,7 @@ export default function StaffDetailPage() {
       <dl className="grid gap-3 border-y py-4 sm:grid-cols-3">
         <div><dt className="text-sm text-neutral-base">Status</dt>
           <dd>{admin.isInstallAdmin ? 'Install administrator' : admin.isActive ? 'Active' : admin.emailVerified ? 'Removed' : 'Invited'}</dd></div>
-        <div><dt className="text-sm text-neutral-base">Created</dt><dd>{new Date(admin.createdAt).toLocaleString()}</dd></div>
+        <div><dt className="text-sm text-neutral-base">Created</dt><dd>{storeDate(admin.createdAt)}</dd></div>
         <div><dt className="text-sm text-neutral-base">Role</dt><dd>Administrator</dd></div>
       </dl>
       {!admin.emailVerified && !admin.isActive && (
@@ -59,7 +61,7 @@ export default function StaffDetailPage() {
         <Table><TableHeader><TableRow><TableHead>Action</TableHead><TableHead>Time</TableHead></TableRow></TableHeader>
           <TableBody>{(audit?.data ?? []).map((entry) => (
             <TableRow key={entry.id}><TableCell>{entry.action}</TableCell>
-              <TableCell>{new Date(entry.createdAt).toLocaleString()}</TableCell></TableRow>
+              <TableCell>{storeDate(entry.createdAt)}</TableCell></TableRow>
           ))}</TableBody></Table>
         <div className="mt-3 flex justify-end gap-2">
           <Button variant="outline" disabled={auditPage <= 1} onClick={() => setAuditPage(auditPage - 1)}>Previous</Button>

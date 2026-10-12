@@ -7,6 +7,9 @@
 
 export const merchant = {
   auditEvents: {
+    corePlan: 'Core 更新计划已检查',
+    invalidTime: '此时间在商店时区中不存在。',
+    coreResults: { succeeded: '成功', rolled_back_before_migration: '迁移前已回滚', stopped_in_maintenance_after_migration: '迁移后停留在维护状态', refused: '已拒绝' },
     title: '审计日志', time: '时间', actor: '操作人', action: '操作', target: '目标',
     targetType: '目标类型', from: '开始时间', to: '结束时间',
     allActors: '所有操作人', allActions: '所有操作', allTargets: '所有目标类型',
@@ -15,6 +18,7 @@ export const merchant = {
     loading: '正在加载事件...', empty: '暂无审计事件', total: '事件总数',
     page: '页', previous: '上一页', next: '下一页',
     actions: {
+      coreUpdate: 'Core 更新', coreRestore: '从备份恢复 Core', storeTimezoneChanged: '商店时区已更改',
       themeInstall: '已安装主题', themeUninstall: '已卸载主题',
       themeActivate: '已启用主题', themeRestorePrevious: '已恢复上一个主题',
       themeConfigUpdate: '已更新主题配置', themeConfigRestore: '已恢复主题配置',
@@ -699,7 +703,7 @@ export const merchant = {
       currencySettings: '货币设定',
       currencySettingsDesc: '设定预设货币和格式选项',
       timezone: '时区',
-      timezoneDesc: '设定商店的预设时区',
+      timezoneDesc: '用于商店、后台和邮件中的日期时间，默认为 UTC。',
     },
     // Security Settings
     security: {

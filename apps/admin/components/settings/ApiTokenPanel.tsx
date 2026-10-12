@@ -7,6 +7,7 @@
  * Used for MCP server integration and other machine-to-machine auth.
  */
 
+import { useStoreDate } from '@/lib/store-time';
 import { useCallback, useEffect, useState } from 'react'
 import { Copy, Key, Plus, Trash2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
@@ -41,6 +42,7 @@ const SCOPE_OPTIONS = [
 ]
 
 export function ApiTokenPanel() {
+  const { date: storeDate } = useStoreDate();
   const t = useT()
   const [tokens, setTokens] = useState<ApiTokenRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -152,7 +154,7 @@ export function ApiTokenPanel() {
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'Never'
-    return new Date(dateStr).toLocaleString()
+    return storeDate(dateStr)
   }
 
   return (

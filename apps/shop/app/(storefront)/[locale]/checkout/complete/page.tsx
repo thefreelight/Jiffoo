@@ -10,11 +10,11 @@ export default async function CompletePage({ params, searchParams }: {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ order?: string }>;
 }) {
-  const { locale } = await requireLocale((await params).locale);
+  const { locale, context } = await requireLocale((await params).locale);
   const id = (await searchParams).order;
   if (!id) notFound();
   if (!(await accountProfile())) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/checkout/complete?order=${id}`)}`);
   const order = await customerOrder(id);
   if (!order) notFound();
-  return <><OrderSummary order={order} locale={locale} /><OrderPurchaseTracking order={purchaseData(order)} /></>;
+  return <><OrderSummary order={order} locale={locale} timezone={context.timezone} /><OrderPurchaseTracking order={purchaseData(order)} /></>;
 }

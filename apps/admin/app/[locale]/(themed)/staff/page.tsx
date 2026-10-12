@@ -1,5 +1,6 @@
 'use client'
 
+import { useStoreDate } from '@/lib/store-time';
 import { useState } from 'react'
 import Link from 'next/link'
 import { Plus, Search, Trash2 } from 'lucide-react'
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/table'
 
 export default function StaffPage() {
+  const { date: storeDate } = useStoreDate();
   const locale = useLocale()
   const user = useAuthStore((state) => state.user)
   const [search, setSearch] = useState('')
@@ -62,7 +64,7 @@ export default function StaffPage() {
                 <div className="text-sm text-neutral-base">{admin.email}</div>
               </TableCell>
               <TableCell>{admin.isInstallAdmin ? 'Install administrator' : admin.isActive ? 'Active' : admin.emailVerified ? 'Removed' : 'Invited'}</TableCell>
-              <TableCell>{new Date(admin.createdAt).toLocaleDateString()}</TableCell>
+              <TableCell>{storeDate(admin.createdAt, true)}</TableCell>
               <TableCell className="text-right">
                 {!admin.isInstallAdmin && admin.id !== user?.id && admin.isActive && (
                   <Button variant="ghost" size="icon" aria-label={`Remove ${admin.username}`}

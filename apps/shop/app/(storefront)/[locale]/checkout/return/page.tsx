@@ -10,7 +10,7 @@ export default async function ReturnPage({ params, searchParams }: {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ order?: string }>;
 }) {
-  const { locale } = await requireLocale((await params).locale);
+  const { locale, context } = await requireLocale((await params).locale);
   const id = (await searchParams).order;
   if (!id) notFound();
   if (!(await accountProfile())) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/checkout/return?order=${id}`)}`);
@@ -21,5 +21,5 @@ export default async function ReturnPage({ params, searchParams }: {
   }
   const order = await customerOrder(id);
   if (!order) notFound();
-  return <><OrderSummary order={order} locale={locale} /><OrderPurchaseTracking order={purchaseData(order)} /></>;
+  return <><OrderSummary order={order} locale={locale} timezone={context.timezone} /><OrderPurchaseTracking order={purchaseData(order)} /></>;
 }

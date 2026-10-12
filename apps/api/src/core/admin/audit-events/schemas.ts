@@ -16,11 +16,12 @@ export const eventSchema = {
   type: 'object',
   properties: {
     id: { type: 'string' }, createdAt: { type: 'string', format: 'date-time' },
+    actorId: { type: 'string' },
     action: { type: 'string' }, targetType: { type: 'string' }, targetId: { type: 'string' },
     summary: {},
     actor: { anyOf: [actorSchema, { type: 'null' }] },
   },
-  required: ['id', 'createdAt', 'action', 'targetType', 'targetId', 'summary', 'actor'],
+  required: ['id', 'createdAt', 'actorId', 'action', 'targetType', 'targetId', 'summary', 'actor'],
   additionalProperties: false,
 } as const;
 

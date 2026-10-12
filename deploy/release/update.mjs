@@ -90,7 +90,7 @@ function configuredClient(containers, queryTimeout = 60000) {
 
 async function database(containers, action, queryTimeout = 60000) {
   const client = configuredClient(containers,queryTimeout); client.on('error', () => undefined);
-  try { await client.connect(); return await action(client); } finally { await client.end(); }
+  try { await client.connect(); writeFileSync('/work/audit-reached', 'connected\n', { mode: 0o600 }); return await action(client); } finally { await client.end(); }
 }
 
 function configureRuntime(containers) {
@@ -357,7 +357,7 @@ async function main() {
     const applicationsRunning = containers.some(item => /^(api|worker)-[12]$/.test(item.Config?.Labels?.['com.docker.compose.service'] ?? '') && item.State.Running);
     console.error('No application rollback. ' + (applicationsRunning ? 'Stop every project container before backup restore.' : 'Stack remains in maintenance.'));
     console.error('Backup: ' + journal.paths.backup);
-    console.error('Restore command: sh ' + [journal.paths.current + '/bin/jiffoo-host', 'restore', journal.paths.backup, project, journal.paths.state + '-restore', journal.backupHash, ...(mode === 'acceptance' ? ['--acceptance'] : [])].map(shellQuote).join(' '));
+    console.error('Restore command: sh ' + [journal.paths.target + '/bin/jiffoo-host', 'restore', journal.paths.backup, project, journal.paths.state + '-restore', journal.backupHash, '--actor', journal.paths.actor, ...(mode === 'acceptance' ? ['--acceptance'] : [])].map(shellQuote).join(' '));
   } else if (command === 'core-migrations') {
     const plan = json('/state/plan.json');
     const sources = migrationInventory();

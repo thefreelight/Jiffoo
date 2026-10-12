@@ -5,6 +5,7 @@
  */
 'use client'
 
+import { useStoreDate } from '@/lib/store-time';
 import { AlertTriangle, ArrowLeft, Calendar, Mail, ShieldCheck, User, Save, X, Activity, DollarSign, Package, Clock, ExternalLink, Key } from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
 import { useParams, useRouter } from 'next/navigation'
@@ -26,6 +27,7 @@ import { UserAvatar } from '@/components/ui/user-avatar'
 
 
 export default function CustomerDetailPage() {
+  const { date: storeDate } = useStoreDate();
   const params = useParams()
   const router = useRouter()
   const userId = params.id as string
@@ -255,7 +257,7 @@ export default function CustomerDetailPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="w-3.5 h-3.5 text-action-base" />
-                      {getText('merchant.customers.detail.joined', 'Joined')} {new Date(user.createdAt).toLocaleDateString()}
+                      {getText('merchant.customers.detail.joined', 'Joined')} {storeDate(user.createdAt, true)}
                     </div>
                   </div>
                 </div>
@@ -400,8 +402,8 @@ export default function CustomerDetailPage() {
               </div>
               <div className="divide-y divide-neutral-veil">
                 {[
-                  { label: getText('merchant.customers.detail.initializationDate', 'INITIALIZATION'), value: new Date(user.createdAt).toLocaleString(), icon: Calendar },
-                  { label: getText('merchant.customers.detail.lastSpecificationUpdate', 'SPECIFICATION UPDATE'), value: new Date(user.updatedAt).toLocaleString(), icon: ShieldCheck },
+                  { label: getText('merchant.customers.detail.initializationDate', 'INITIALIZATION'), value: storeDate(user.createdAt), icon: Calendar },
+                  { label: getText('merchant.customers.detail.lastSpecificationUpdate', 'SPECIFICATION UPDATE'), value: storeDate(user.updatedAt), icon: ShieldCheck },
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between p-6 px-4 transition-colors hover:bg-action-veil/20 sm:px-10">
                     <div className="flex items-center gap-4">

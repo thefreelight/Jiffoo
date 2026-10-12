@@ -45,7 +45,7 @@ const systemSettingsRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         try {
-            const updated = await systemSettingsService.batchUpdate(settings);
+            const updated = await systemSettingsService.batchUpdate(settings, request.user!.id);
             return sendSuccess(reply, updated, `${Object.keys(updated).length} settings updated`);
         } catch (error) { return sendMappedError(reply, error); }
     });

@@ -2,6 +2,7 @@
  * Unified shared package exports
  * Provides consistent APIs and tools for all applications
  */
+export { formatStoreDate, isStoreTimezone, storeTimezones, storeLocalToUtc } from './src/store-time';
 
 // Environment configuration
 export {

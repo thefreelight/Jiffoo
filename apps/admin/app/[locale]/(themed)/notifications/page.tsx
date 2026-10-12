@@ -1,5 +1,6 @@
 'use client'
 
+import { useStoreDate } from '@/lib/store-time';
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react'
 import { toast } from 'sonner'
@@ -20,6 +21,7 @@ const statuses = ['PENDING', 'SENDING', 'SENT', 'FAILED'] as const
 type Status = typeof statuses[number]
 
 export default function NotificationsPage() {
+  const { date: storeDate } = useStoreDate();
   const t = useT()
   const label = (key: string, fallback: string) => {
     const value = t(`merchant.notifications.${key}`)
@@ -93,7 +95,7 @@ export default function NotificationsPage() {
         <TableBody>
           {items.map((item) => (
             <TableRow key={item.id} className="cursor-pointer" onClick={() => void openDetail(item.id)}>
-              <TableCell>{new Date(item.createdAt).toLocaleString()}</TableCell>
+              <TableCell>{storeDate(item.createdAt)}</TableCell>
               <TableCell>{item.type.replace(/_/g, ' ')}</TableCell>
               <TableCell>{item.toAddress}</TableCell>
               <TableCell>{item.status}</TableCell>

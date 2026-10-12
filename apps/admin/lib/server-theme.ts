@@ -1,5 +1,15 @@
 import type { ThemeFontFace } from 'shared';
 
+export async function getStoreTimezone(): Promise<string> {
+  if (!process.env.API_SERVICE_URL) return 'UTC';
+  try {
+    const response = await fetch(new URL('/api/v1/store/context', process.env.API_SERVICE_URL), { cache: 'no-store' });
+    if (!response.ok) return 'UTC';
+    const body = await response.json();
+    return body.data.timezone;
+  } catch { return 'UTC'; }
+}
+
 export type AdminTheme = {
   tokens: Record<string, unknown>;
   fonts: ThemeFontFace[];

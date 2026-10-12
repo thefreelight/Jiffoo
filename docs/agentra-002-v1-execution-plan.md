@@ -167,12 +167,18 @@ Blocked by: none
 Charter text: An update with no migration validates release and extension compatibility,
 changes the application version, passes health checks, and the prior
 application version remains restorable.
-Status: NOT STARTED (reassessed 2026-10-11)
+Status: COMPLETE (reassessed 2026-10-12)
+Commits: a839b6c3a, 80a578d32, 8a38cd3ba
+Evidence: scripts/verify-update.mjs validates release identity, compatibility,
+backup, health and restoration of the prior application after a no-migration
+failure. scripts/verify-trial.mjs verifies actual version/commit changes and
+persistent merchant data across down/up. Core host actions now write merchant
+audit events, checked through real PostgreSQL in update acceptance.
 Prerequisites:
 Core Updates
 compatibility policy
 operational health semantics
-Blocked by: Docker Compose delivery; Core update flow
+Blocked by: none for the demonstrated update flow.
 
 ## Scenario 10 — update with a migration
 
@@ -180,8 +186,8 @@ Charter text: An update with a migration requires merchant confirmation and back
 audits both Core and plugin ledgers before writing, blocks on mismatch,
 reports migration and health results, and does not offer application
 rollback after any migration is applied.
-Status: PARTIAL (reassessed 2026-10-11)
-Commits: 3650a285e, 1e836aa08, 0cd7d66c8, 9c2bc9aa1
+Status: COMPLETE (reassessed 2026-10-12)
+Commits: 3650a285e, 1e836aa08, 0cd7d66c8, 9c2bc9aa1, 80a578d32
 Evidence: plugin-migrations.test.ts checks declared SQL, confirmation,
 transactional migration prefixes and fenced publication; plugin-database.test.ts
 checks scoped handler database access; plugin-database-audit.test.ts checks
@@ -190,25 +196,27 @@ Prerequisites:
 Core Updates
 Plugin Database and Migrations
 Plugin migration history
-Blocked by: the official host Core update command, stop/drain maintenance,
-backup and documented restore, Core migration audit, pre-write integration
-of the plugin auditor, and update health/recovery acceptance verification.
-Known limitations (reassessed 2026-10-11): the plugin auditor is read-only
-and explicitly does not prove process quiescence. Its caller must establish
-maintenance and enforce blocking findings before any update migration write.
+Blocked by: none for the implemented and demonstrated Core profile.
+Evidence: scripts/verify-update.mjs replays every Core migration with schema
+parity and checks confirmed Core/plugin migrations, maintenance proofs,
+pre-write audits, rollback refusal after committed migrations and backup restore.
+The Core profile also checks merchant audit outcomes.
+Limits: the plugin auditor itself remains read-only; the host update flow proves
+maintenance before enforcing it. The additional full-profile crash and corruption
+cases are separate from the executed Core profile; no full-profile pass is claimed.
 
 ## Scenario 11 — exact release commit verification
 
 Charter text: API, Admin, Shop, shared, and extension-contract verification pass for the
 exact release commit.
-Status: NOT STARTED (assessed 2026-09-22)
+Status: DEFERRED by Simo (2026-10-12)
 Prerequisites:
 Core public API
 five capability contracts
 Extension SDK
-Blocked by: completion of all release acceptance scenarios and verification
-of the exact selected release commit. Shop, Extension SDK and the five
-capability contracts are no longer missing implementation prerequisites.
+Blocked by: Simo's decision to complete local real use and the separate
+downstream imagic rebuild before merging to the default branch or releasing.
+No exact production release is declared.
 
 ## Scenario 12 — storage abstraction and request-scoped state static audit
 
@@ -264,10 +272,12 @@ Status: COMPLETE (2026-09-29; limitations reassessed 2026-10-04)
 Evidence: bac127d1 through beee5dd0 delivered the tracking and custom-code
 flows; ef6f3df29 adds 34-shop-reload.spec.ts A-C for plain theme style and
 server-derived document language.
-Known open issue (2026-10-04): intermittent React #418 hydration failure,
-not yet resolved; reproducible through the opt-in E2E_RELOAD_STRESS=1 reload
-path. Plain theme style rendering and server-derived document language do
-not establish that it is fixed.
+RESOLVED for the demonstrated cross-timezone order-detail cause (2026-10-12):
+OrderDetail previously formatted with the host/browser's implicit timezone.
+Actual hydrateRoot reproduction shows differing date text; explicit store
+zones now pass the hydration regression and E2E_RELOAD_STRESS=1 home,
+checkout and cross-timezone order-detail reload checks. The earlier intermittent
+home failure did not reproduce in the pre-change baseline.
 Product decisions: GA4/Meta/Baidu storefront tracking emits one purchase event
 per order. Merchant free code uses head, body-start and body-end slots. Payment
 pages exclude both mechanisms with strict script CSP. Admin provides configuration,
@@ -327,9 +337,9 @@ Charter text: At least two API and two worker instances run under Docker Compose
 PostgreSQL, Redis, and S3-compatible object storage. Shared rate limiting,
 task claims and fencing, extension lifecycle and runtime reload, and plugin,
 theme, and uploaded-file availability remain correct across instances.
-Status: PARTIAL (reassessed 2026-10-11)
+Status: COMPLETE (reassessed 2026-10-12)
 Commits: c454dea94, 31655e75f, 17cf2fdf2, 0cd7d66c8, 82be2b29d,
-c06db02c7, 7a489044e, 2b8c98ed8
+c06db02c7, 7a489044e, 2b8c98ed8, 80a578d32, 8a38cd3ba
 Evidence: shared-protection-process.test.ts checks shared Redis limits and
 breakers; multi-instance-state.test.ts proves plugin disable/re-enable and
 active-theme changes across two real API processes. theme-package-process.test.ts
@@ -337,8 +347,12 @@ checks cold-process materialization; uploaded-storage-process.test.ts covers
 shared S3 media. event-delivery.test.ts and notification-lease-fencing.test.ts
 cover multiple worker claims and fencing; payment-convergence.test.ts covers
 payment locks, request recovery and stale claims.
-Known limitations: these are focused child-process proofs, not the required
-combined two-API/two-worker Docker Compose acceptance run.
+Combined evidence: scripts/verify-compose.mjs and deploy/compose/scenario17.mjs
+run two API and two worker instances with shared PostgreSQL, Redis and S3.
+They exercise shared limits, lifecycle propagation, warm theme changes, uploaded
+objects, payment/fulfillment and exactly one notification send across workers.
+Focused process tests retain the additional cold-package and fencing coverage.
+Limits: multiple application instances do not provide data-service HA.
 Prerequisites:
 State and Storage Boundaries
 shared rate limiting and circuit breaker state
@@ -347,8 +361,7 @@ cross-instance extension lifecycle and runtime reload
 plugin and theme package persistence and materialization
 S3-compatible merchant-uploaded file storage
 Docker Compose delivery
-Blocked by: Docker Compose delivery with its self-hosted S3-compatible
-service and the combined two-API/two-worker acceptance verification.
+Blocked by: none for the demonstrated multi-instance acceptance.
 
 ## Development order
 
@@ -359,17 +372,17 @@ service and the combined two-API/two-worker acceptance verification.
 5. Extension Center: marketplace index (2), signature verification and Extension SDK (3, 4, 13). COMPLETE (2026-10-04), closed by c79c7e2e6 with 35-extension-center.spec.ts A-F and the marketplace, upload, signing and SDK specifications recorded above. Phase completion does not close the real payment provider launch blockers, Scenario 10 migration audit gap or Scenario 12 static audit.
 6. Delivery: Docker Compose with a self-hosted S3-compatible service, shared upload storage, multi-instance correctness verified with at least two API and two worker instances (17), one official operator host update command and a documented backup-restore command, Core updates and plugin migrations (9, 10), and exact-release verification (11). Kubernetes deployment profiles, autoscaling, zero-downtime rolling Core updates, an Admin update UI, and an updater container with Docker socket access are not V1 Delivery work.
 
-Pre-launch required (reassessed 2026-10-11):
+Pre-launch required (reassessed 2026-10-12):
 
 1. DONE — authenticated per-user limiting, fail-closed shared Redis limiting and breakers, and retryable Shop availability handling: c454dea94, e0f15d501; state audit and cross-instance proofs: 2b8c98ed8.
 2. DONE — typed business errors, sanitized unknown 500 responses and never-installed payment callback 404: 95a04b5e1, 76c1b85fc, ec73b7ff2.
 3. DONE — PostgreSQL theme package bytes and cold-instance materialization: 31655e75f; hot cross-instance activation proof: 2b8c98ed8.
 4. DONE — original HTTP webhook bytes: ec73b7ff2; payment v2 evidence and capture identity: 7a489044e.
 5. DONE — rejected webhook authentication is stable 401 PAYMENT_WEBHOOK_AUTHENTICATION_FAILED: ec73b7ff2, 7a489044e.
-6. DONE for plugin manifest/ledger verification and the read-only auditor: 3650a285e, 9c2bc9aa1. OPEN — enforce the audit before migration writes in the official Core update flow (Scenario 10).
-7. DONE — handler-scoped PluginContext.database and canonical SDK query/transaction types: 1e836aa08. OPEN — Core update maintenance, backup/restore and migration audit integration (Scenario 10).
-8. OPEN — official host update and backup/restore delivery (Scenarios 9 and 10), combined two-API/two-worker Compose verification (17), and exact release-commit verification (11).
-9. OPEN — the recorded intermittent React #418 reload issue remains unclosed; B13/B14 do not establish its resolution.
+6. DONE — plugin manifest/ledger auditing and enforcement before update migration writes: 3650a285e, 9c2bc9aa1, 80a578d32.
+7. DONE — handler-scoped PluginContext.database, SDK types, host maintenance, backup/restore and migration audit integration: 1e836aa08, 80a578d32.
+8. DONE — host update/backup/restore and combined Compose acceptance: 80a578d32, 8a38cd3ba. Scenario 11 remains deferred by Simo; no merge or release is authorized.
+9. DONE for the demonstrated cross-timezone OrderDetail hydration defect — explicit store timezone formatting passes real hydration and reload stress. Historical home/checkout failure was not reproduced in the pre-change baseline; no warning suppression is used.
 
 ## Recorded product decisions
 
@@ -397,3 +410,20 @@ Pre-launch required (reassessed 2026-10-11):
 ## Open decisions
 
 (none recorded yet)
+
+Recorded operational decisions (Simo, 2026-10-12):
+
+- Do not merge or release yet. Local real use runs through the persistent Docker
+  Compose trial; only Simo operates jiffoo-trial and its external state directory.
+- From the start of real use, new Core migrations must preserve existing data
+  with backfills/defaults and must not contain BEGIN/COMMIT wrappers; the executor
+  owns each transaction. Existing migrations are never edited.
+- One Admin-selected store timezone defaults to UTC and governs Shop, Admin and
+  notification email displays. Timestamps remain stored in UTC.
+- Releases have no project-held signing key. Authenticity rests on GitHub/ghcr
+  and exact release identity and verification.
+- Production host update, backup and restore commands are Linux-only.
+- Backups are unencrypted, protected by 0700/0600 permissions and checksums,
+  and contain secrets/customer data. Protect them off-host. Redis is not backed up.
+- imagic is rebuilt as a separate downstream project using Core's public APIs,
+  never inside the Core repository.

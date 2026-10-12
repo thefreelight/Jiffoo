@@ -4,13 +4,14 @@ import { requireLocale, messages } from '@/lib/catalog';
 import { accountProfile } from '@/lib/server-account';
 import { customerOrders } from '@/lib/server-checkout';
 import { formatPrice } from '@/lib/price';
+import { formatStoreDate } from 'shared';
 import { orderStatusLabel, paymentStatusLabel } from '@/lib/order-labels';
 
 export default async function OrdersPage({ params, searchParams }: {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ page?: string }>;
 }) {
-  const { locale } = await requireLocale((await params).locale);
+  const { locale, context } = await requireLocale((await params).locale);
   if (!(await accountProfile())) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/account/orders`)}`);
   const raw = (await searchParams).page;
   const page = raw && /^[1-9]\d*$/.test(raw) ? Math.min(Number(raw), 100000) : 1;
@@ -21,7 +22,7 @@ export default async function OrdersPage({ params, searchParams }: {
     {!result?.items.length && <p className="mt-8">{t.orders.empty}</p>}
     <ul className="mt-6 divide-y divide-line">
       {result?.items.map((order) => <li key={order.id} className="grid gap-2 py-4 sm:grid-cols-5 sm:items-center">
-        <time dateTime={order.createdAt}>{new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(order.createdAt))}</time>
+        <time dateTime={order.createdAt}>{formatStoreDate(order.createdAt, locale, context.timezone, true)}</time>
         <span>{formatPrice(order.totalAmount, locale, order.currency)}</span>
         <span>{orderStatusLabel(locale, order.status)}</span>
         <span>{paymentStatusLabel(locale, order.paymentStatus)}</span>

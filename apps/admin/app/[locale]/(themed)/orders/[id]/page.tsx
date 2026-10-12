@@ -5,6 +5,7 @@
  * Fully utilize backend data with premium visual presentation.
  */
 
+import { useStoreDate } from '@/lib/store-time';
 import { AlertTriangle, ArrowLeft, CreditCard, ShoppingBag, Truck, Box, Clock, ShieldCheck, Printer, RotateCcw, Info, MapPin, Hash, User, Activity, AlertCircle } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,7 @@ import { PaymentReviewDialog } from '@/components/orders/PaymentReviewDialog'
 import { formatCurrency, cn } from '@/lib/utils'
 
 export default function OrderDetailPage() {
+  const { date: storeDate } = useStoreDate();
   const params = useParams()
   const router = useRouter()
   const orderId = params.id as string
@@ -141,7 +143,7 @@ export default function OrderDetailPage() {
                 {order.cancelReason || "No reason specified by terminal operator."}
               </p>
               <p className="text-danger-base text-[10px] font-bold uppercase tracking-widest mt-2 px-2 py-0.5 bg-surface/50 inline-block rounded-lg">
-                TIMESTAMP: {order.cancelledAt ? new Date(order.cancelledAt).toLocaleString() : 'UNKNOWN'}
+                TIMESTAMP: {order.cancelledAt ? storeDate(order.cancelledAt) : 'UNKNOWN'}
               </p>
             </div>
           </div>
@@ -233,7 +235,7 @@ export default function OrderDetailPage() {
                           <div className="flex items-center gap-3">
                             <span className="text-[9px] font-bold text-neutral-light uppercase tracking-widest">Status: {shipment.status}</span>
                             {shipment.shippedAt && (
-                              <span className="text-[9px] font-bold text-neutral-light uppercase tracking-widest">| Dispatched: {new Date(shipment.shippedAt).toLocaleDateString()}</span>
+                              <span className="text-[9px] font-bold text-neutral-light uppercase tracking-widest">| Dispatched: {storeDate(shipment.shippedAt, true)}</span>
                             )}
                           </div>
                         </div>
@@ -367,22 +369,22 @@ export default function OrderDetailPage() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center text-[10px]">
                   <span className="font-black text-neutral-light uppercase tracking-widest">Initialized</span>
-                  <span className="font-bold text-neutral-deepest">{new Date(order.createdAt).toLocaleString()}</span>
+                  <span className="font-bold text-neutral-deepest">{storeDate(order.createdAt)}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px]">
                   <span className="font-black text-neutral-light uppercase tracking-widest">Sync Heartbeat</span>
-                  <span className="font-bold text-neutral-deepest">{new Date(order.updatedAt || order.createdAt).toLocaleString()}</span>
+                  <span className="font-bold text-neutral-deepest">{storeDate(order.updatedAt || order.createdAt)}</span>
                 </div>
                 {order.expiresAt && (
                   <div className="flex justify-between items-center text-[10px]">
                     <span className="font-black text-neutral-light uppercase tracking-widest">Module Expiry</span>
-                    <span className="font-bold text-neutral-deepest">{new Date(order.expiresAt).toLocaleString()}</span>
+                    <span className="font-bold text-neutral-deepest">{storeDate(order.expiresAt)}</span>
                   </div>
                 )}
                 {order.lastPaymentAttemptAt && (
                   <div className="flex justify-between items-center text-[10px]">
                     <span className="font-black text-neutral-light uppercase tracking-widest">Last Auth Signal</span>
-                    <span className="font-bold text-neutral-deepest">{new Date(order.lastPaymentAttemptAt).toLocaleString()}</span>
+                    <span className="font-bold text-neutral-deepest">{storeDate(order.lastPaymentAttemptAt)}</span>
                   </div>
                 )}
               </div>

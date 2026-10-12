@@ -24,6 +24,8 @@ import {
 import { resolveApiErrorMessage } from '@/lib/error-utils'
 import { settingsApi, type SystemSettingsMap, unwrapApiResponse } from '@/lib/api'
 import { ApiTokenPanel } from '@/components/settings/ApiTokenPanel'
+import { storeTimezones } from 'shared'
+import { useStoreDate } from '@/lib/store-time'
 
 type SettingField = {
   key: string
@@ -86,16 +88,7 @@ const LOCALE_OPTIONS = [
   { value: 'zh-Hant', label: 'Traditional Chinese' },
 ]
 
-const TIMEZONE_OPTIONS = [
-  { value: 'UTC', label: 'UTC' },
-  { value: 'America/New_York', label: 'America/New York (EST/EDT)' },
-  { value: 'America/Los_Angeles', label: 'America/Los Angeles (PST/PDT)' },
-  { value: 'Europe/London', label: 'Europe/London (GMT/BST)' },
-  { value: 'Asia/Shanghai', label: 'Asia/Shanghai (CST)' },
-  { value: 'Asia/Hong_Kong', label: 'Asia/Hong Kong (HKT)' },
-  { value: 'Asia/Taipei', label: 'Asia/Taipei (CST)' },
-  { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST)' },
-]
+const TIMEZONE_OPTIONS = storeTimezones().map(value => ({ value, label: value }))
 
 function toMap(input: unknown): SystemSettingsMap {
   return input && typeof input === 'object' ? (input as SystemSettingsMap) : {}
@@ -115,7 +108,7 @@ function buildDraft(source: SystemSettingsMap, keys: string[]): SystemSettingsMa
         return
       }
     }
-    next[key] = getString(source[key])
+    next[key] = getString(source[key]) || (key === 'localization.timezone' ? 'UTC' : '')
   })
   return next
 }
@@ -134,6 +127,7 @@ export default function SettingsPage() {
 }
 
 function SettingsPageContent() {
+  const { setTimezone } = useStoreDate()
   const t = useT()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -198,6 +192,7 @@ function SettingsPageContent() {
       })
       const response = await settingsApi.batchUpdate(updates)
       const data = toMap(unwrapApiResponse(response))
+      setTimezone(getString(data['localization.timezone']))
       setSettingsMap(data)
       const nextDraft = buildDraft(data, editableKeys)
       setDraft(nextDraft)
@@ -332,8 +327,8 @@ function SettingsPageContent() {
                       value={getString(draft[field.key]) || 'UTC'}
                       onValueChange={(value) => updateField(field.key, value)}
                     >
-                      <SelectTrigger className="h-11 rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all">
-                        <SelectValue placeholder="Select timezone" />
+                      <SelectTrigger id={field.key} aria-label={getText(field.labelKey, field.labelFallback)} className="h-11 rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all">
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {TIMEZONE_OPTIONS.map((option) => (
@@ -352,6 +347,7 @@ function SettingsPageContent() {
                       className="h-11 rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all"
                     />
                   )}
+                  {isTimezoneField && <p className="text-xs text-neutral-base">{t('merchant.settings.localization.timezoneDesc')}</p>}
                 </div>
               )
             })}

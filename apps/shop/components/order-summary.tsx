@@ -4,13 +4,15 @@ import { formatPrice } from '@/lib/price';
 import { messages } from '@/lib/catalog';
 import Link from 'next/link';
 import { orderStatusLabel, paymentStatusLabel } from '@/lib/order-labels';
+import { formatStoreDate } from 'shared';
 
-export function OrderSummary({ order, locale }: { order: Order; locale: ShopLocale }) {
+export function OrderSummary({ order, locale, timezone }: { order: Order; locale: ShopLocale; timezone: string }) {
   const t = messages(locale).checkout;
   const address = order.shippingAddress;
   return <main className="mx-auto max-w-4xl px-4 py-10 md:px-8">
     <h1 className="text-2xl font-semibold">{t.confirmation}</h1>
     <p className="mt-2 text-sm text-subtle">{order.id}</p>
+    <time dateTime={order.createdAt}>{formatStoreDate(order.createdAt, locale, timezone)}</time>
     <Link className="mt-3 inline-block text-action underline" href={`/${locale}/account/orders/${order.id}`}>{t.viewOrder}</Link>
     <dl className="mt-7 grid gap-3 border-y border-line py-5 sm:grid-cols-2">
       <div><dt className="text-sm text-subtle">{t.orderStatus}</dt><dd className="font-medium">{orderStatusLabel(locale, order.status)}</dd></div>

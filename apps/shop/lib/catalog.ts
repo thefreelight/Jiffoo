@@ -9,6 +9,7 @@ export type StoreContext = {
   storeName: string;
   logo: string | null;
   currency: string;
+  timezone: string;
   defaultLocale: ShopLocale;
   supportedLocales: ShopLocale[];
 };

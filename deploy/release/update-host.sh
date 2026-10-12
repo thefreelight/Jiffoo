@@ -2,10 +2,10 @@
 set -eu
 umask 077
 fail() { printf '%s\n' "$1" >&2; exit 1; }
-usage() { fail 'Usage: jiffoo-host update --project NAME --current-release DIR --target-release DIR --target-commit SHA --state-dir DIR --backup-dir DIR [--plugin-packages DIR] [--actor ID] [--confirm PLAN_SHA256] [--plan | --resume | --restore-prior] [--acceptance]'; }
+usage() { fail 'Usage: jiffoo-host update --project NAME --current-release DIR --target-release DIR --target-commit SHA --state-dir DIR --backup-dir DIR --actor ID [--plugin-packages DIR] [--confirm PLAN_SHA256] [--plan | --resume | --restore-prior] [--acceptance]'; }
 [ "${1:-}" = update ] || usage
 shift
-project= current= target= commit= state_dir= backup_dir= packages= actor=host-operator mode=ghcr action=update confirmation=
+project= current= target= commit= state_dir= backup_dir= packages= actor= mode=ghcr action=update confirmation=
 seen=' '
 while [ "$#" -gt 0 ]; do
   option=$1; shift
@@ -25,7 +25,7 @@ while [ "$#" -gt 0 ]; do
     *) usage;;
   esac
 done
-[ -n "$project" ] && [ -n "$current" ] && [ -n "$target" ] && [ -n "$commit" ] && [ -n "$state_dir" ] && [ -n "$backup_dir" ] || usage
+[ -n "$project" ] && [ -n "$current" ] && [ -n "$target" ] && [ -n "$commit" ] && [ -n "$state_dir" ] && [ -n "$backup_dir" ] && [ -n "$actor" ] || usage
 case "$project" in ''|*[!a-z0-9_-]*|[-_]*) usage;; esac
 [ "${#project}" -le 80 ] || usage
 case "$commit" in *[!a-f0-9]*|'') usage;; esac
@@ -135,15 +135,34 @@ rollback() {
   journal rolled-back || return 1
   printf 'Prior release restored and healthy: %s\nManaged snapshot: %s/managed.json\nBackup: %s\n' "$current_commit" "$state_dir" "$backup_dir" >&2
 }
+audit_result=refused
+audit_end() {
+  [ -f "$work/audit-reached" ] || return 0
+  state || return 1
+  host_audit_program
+  set -- docker run --rm --label "com.docker.compose.project=$project" --label io.jiffoo.host-helper=true --network "container:$postgres" \
+    --read-only --user "$(id -u):$(id -g)" --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp --entrypoint node \
+    --mount "type=bind,source=$current,target=/current,readonly" --mount "type=bind,source=$target,target=/target,readonly" --mount "type=bind,source=$work,target=/work,readonly"
+  set -- "$@" --mount "type=bind,source=$work/host-audit.mjs,target=/host-audit.mjs,readonly"
+  [ "$state_ready" -eq 0 ] || set -- "$@" --mount "type=bind,source=$state_dir,target=/state,readonly"
+  [ ! -f "$backup_dir/backup.sha256" ] || set -- "$@" --mount "type=bind,source=$backup_dir,target=/backup,readonly"
+  "$@" "$image" /host-audit.mjs update "$project" "$mode" "$actor" "$audit_result" "$action"
+}
 cleanup() {
   code=$?; trap - EXIT HUP INT TERM
   if [ "$changed" -eq 1 ] && [ "$success" -ne 1 ]; then
-    if ! (set -e; rollback); then
+    if (set -e; rollback); then
+      audit_result=rolled_back_before_migration
+    else
+      audit_result=stopped_in_maintenance_after_migration
       stop_apps || true
       printf 'Update recovery requires operator action; stack remains in maintenance. Journal: %s/journal.json\nBackup: %s\n' "$state_dir" "$backup_dir" >&2
     fi
     code=1
   fi
+  [ "$success" -ne 1 ] || audit_result=succeeded
+  [ "$action" != restore-prior ] && [ "$action" != resume ] || { [ "$success" -ne 1 ] || audit_result=rolled_back_before_migration; }
+  audit_end || { printf '%s\n' 'Core host audit recording failed; preserve the host journal' >&2; code=1; }
   [ "$code" -eq 0 ] || printf 'Update failed during: %s\n' "$phase" >&2
   rm -rf "$work"
   host_lock_release || code=1

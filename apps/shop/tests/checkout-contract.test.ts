@@ -44,10 +44,10 @@ describe('Shop checkout boundaries', () => {
     const order = { id: 'order-1', createdAt: '2026-10-10T00:00:00Z', status: 'PENDING', paymentStatus: 'PENDING',
       paymentInstructions: null, paymentSessionId: null, items: [], shippingAddress: null, currency: 'USD', subtotalAmount: 20,
       shippingAmount: 0, taxAmount: 0, taxInclusive: false, totalAmount: 20, shippingMethod: null, shipments: [], cancelReason: null, cancelledAt: null, unpaidExpiresAt: null };
-    const unknown = renderToStaticMarkup(createElement(OrderDetail, { initialOrder: { ...order, paymentAttemptState: 'UNKNOWN', refundRequired: true }, locale }));
+    const unknown = renderToStaticMarkup(createElement(OrderDetail, { initialOrder: { ...order, paymentAttemptState: 'UNKNOWN', refundRequired: true }, locale, timezone: 'UTC' }));
     expect(unknown).toContain(copy.errors.paymentOutcomeUnknown.replaceAll("'", '&#x27;'));
     expect(unknown).toContain(copy.errors.paymentRefundRequired);
-    const review = renderToStaticMarkup(createElement(OrderDetail, { initialOrder: { ...order, paymentAttemptState: 'REQUIRES_REVIEW' }, locale }));
+    const review = renderToStaticMarkup(createElement(OrderDetail, { initialOrder: { ...order, paymentAttemptState: 'REQUIRES_REVIEW' }, locale, timezone: 'UTC' }));
     expect(review).toContain(copy.errors.paymentRequiresReview);
   });
   it('I permits only constrained checkout BFF routes', () => {

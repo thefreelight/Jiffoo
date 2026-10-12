@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync } from 'node:fs';
+import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { createRequire } from 'node:module';
@@ -62,6 +62,7 @@ if (visual) {
   mkdirSync(resolve(root, 'e2e/visual-results', env.VISUAL_SET), { recursive: true });
 }
 const results = [];
+let playwrightStarted;
 let uploadStorage;
 const children = [];
 const logs = [];
@@ -98,6 +99,7 @@ playwrightGroups.push(['35-extension-center']);
 playwrightGroups.push(['37-uploaded-storage']);
 // Quota exhaustion runs alone and last; project boundaries clean only protection keys in test DB 14.
 playwrightGroups.push(['36-shop-availability']);
+if (process.env.E2E_RELOAD_STRESS === '1') playwrightGroups.splice(0, playwrightGroups.length, ['34-shop-reload']);
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);
@@ -255,7 +257,7 @@ async function runPlaywrightGroups() {
     await resetE2eLoginLimit(projects.includes('35-extension-center'));
     await runPlaywrightGroup([
       'exec', 'playwright', 'test', '--config=e2e/playwright.config.ts',
-      ...(index ? ['--no-deps'] : []),
+      ...(index || env.E2E_RELOAD_STRESS === '1' ? ['--no-deps'] : []),
       ...projects.map((project) => `--project=${project}`),
     ]);
   }
@@ -296,7 +298,8 @@ try {
     });
   });
   await step('Wait for health', health);
-  console.log(`Playwright start time: ${new Date().toISOString()}`);
+  playwrightStarted = new Date().toISOString();
+  console.log(`Playwright start time: ${playwrightStarted}`);
   await step('Run Playwright', runPlaywrightGroups);
   if (compare) await step('Compare visual captures', () => command(['exec', 'node', 'scripts/visual-compare.mjs']));
 } catch (error) {
@@ -321,4 +324,7 @@ try {
   console.log('| --- | --- | --- |');
   for (const [name, result, duration] of results) console.log(`| ${name} | ${result} | ${duration} |`);
   console.log(`Total duration: ${((performance.now() - started) / 1000).toFixed(2)}s`);
+  const summary = `=== Final test summary ===\nPlaywright start time: ${playwrightStarted ?? 'not started'}\nPlaywright results: ${playwrightCounts.expected} passed, ${playwrightCounts.unexpected} failed, ${playwrightCounts.skipped} skipped\n\n| Step | Result | Duration |\n| --- | --- | --- |\n${results.map(([name, result, duration]) => `| ${name} | ${result} | ${duration} |`).join('\n')}\nTotal duration: ${((performance.now() - started) / 1000).toFixed(2)}s\n`;
+  writeFileSync(resolve(root, 'verify-summary.txt'), summary);
+  writeFileSync(resolve(resultsDir, 'verify-summary.txt'), summary);
 }

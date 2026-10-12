@@ -6,6 +6,7 @@
 
 'use client'
 
+import { useStoreDate } from '@/lib/store-time'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import { Button } from '../ui/button'
@@ -35,6 +36,7 @@ interface HeaderProps {
 }
 
 export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
+  const { date: storeDate, now } = useStoreDate()
   const router = useRouter()
   const { user, logout } = useAuthStore()
   const t = useT()
@@ -70,12 +72,7 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
           <div className="min-w-0">
             <h1 className="max-w-[10rem] truncate text-lg font-semibold text-neutral-deepest sm:max-w-[16rem] sm:text-xl md:max-w-none md:text-2xl">{title}</h1>
             <p className="text-xs md:text-sm text-neutral-base hidden sm:block">
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
+              {storeDate(now, true)}
             </p>
           </div>
         </div>

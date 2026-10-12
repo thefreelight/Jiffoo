@@ -38,6 +38,7 @@ const storeContextSchema = {
         },
         status: { type: 'string' },
         currency: { type: 'string' },
+        timezone: { type: 'string' },
         defaultLocale: { type: 'string' },
         supportedLocales: {
             type: 'array',
@@ -55,6 +56,7 @@ const storeContextSchema = {
         'platformBranding',
         'status',
         'currency',
+        'timezone',
         'defaultLocale',
         'supportedLocales',
         'settings'
@@ -74,11 +76,12 @@ export async function storeRoutes(fastify: FastifyInstance) {
         }
     }, async (request, reply) => {
         try {
-            const [platformName, currency, logo, defaultLocale] = await Promise.all([
+            const [platformName, currency, logo, defaultLocale, timezone] = await Promise.all([
                 systemSettingsService.getString('branding.platform_name', 'Jiffoo Store'),
                 systemSettingsService.getShopCurrency(),
                 systemSettingsService.getString('branding.logo', null),
                 systemSettingsService.getShopLocale(),
+                systemSettingsService.getTimezone(),
             ]);
 
             const contextData = {
@@ -93,6 +96,7 @@ export async function storeRoutes(fastify: FastifyInstance) {
                 },
                 status: 'active',
                 currency,
+                timezone,
                 defaultLocale,
                 supportedLocales: STORE_SUPPORTED_LOCALES,
                 settings: null, // Reserved for future use

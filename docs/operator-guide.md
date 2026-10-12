@@ -72,8 +72,9 @@ Supply installed plugin packages with `--plugin-packages` when their updates
 are part of the plan. The current release must match the running deployment.
 
 ```sh
-sh CURRENT_RELEASE/bin/jiffoo-host update --project PROJECT --current-release CURRENT_RELEASE --target-release TARGET_RELEASE --target-commit TARGET_COMMIT --state-dir STATE_DIRECTORY --backup-dir BACKUP_DIRECTORY --actor OPERATOR --plan
-sh CURRENT_RELEASE/bin/jiffoo-host update --project PROJECT --current-release CURRENT_RELEASE --target-release TARGET_RELEASE --target-commit TARGET_COMMIT --state-dir STATE_DIRECTORY --backup-dir BACKUP_DIRECTORY --actor OPERATOR --confirm PLAN_SHA256
+sh CURRENT_RELEASE/bin/jiffoo-host verify TARGET_RELEASE TARGET_COMMIT
+sh TARGET_RELEASE/bin/jiffoo-host update --project PROJECT --current-release CURRENT_RELEASE --target-release TARGET_RELEASE --target-commit TARGET_COMMIT --state-dir STATE_DIRECTORY --backup-dir BACKUP_DIRECTORY --actor OPERATOR --plan
+sh TARGET_RELEASE/bin/jiffoo-host update --project PROJECT --current-release CURRENT_RELEASE --target-release TARGET_RELEASE --target-commit TARGET_COMMIT --state-dir STATE_DIRECTORY --backup-dir BACKUP_DIRECTORY --actor OPERATOR --confirm PLAN_SHA256
 ```
 
 Read the plan, including Core and plugin migrations, release identities and
@@ -101,7 +102,7 @@ configuration, and the recorded release must become healthy.
 
 ```sh
 docker compose --project-name PROJECT -f ACTIVE_CONFIG stop -t 45
-sh RELEASE_DIRECTORY/bin/jiffoo-host restore BACKUP_DIRECTORY PROJECT RESTORE_DIRECTORY BACKUP_SHA256
+sh RELEASE_DIRECTORY/bin/jiffoo-host restore BACKUP_DIRECTORY PROJECT RESTORE_DIRECTORY BACKUP_SHA256 --actor OPERATOR
 docker compose --project-name PROJECT -f RESTORE_DIRECTORY/compose.restore.json ps -a
 ```
 
@@ -109,6 +110,15 @@ Use the printed restored release directory and `compose.restore.json` for future
 operations. Do not reuse the old Compose configuration: it targets old volumes.
 Redis starts empty. The restore directory contains secrets and customer data too.
 Keep old volumes until you have independently validated the restored store.
+
+Core update and successful restore operations write Admin audit events in the
+stack's own database. Update requires `--actor`; restore requires `--actor` too.
+Update entries record the operation identity, release versions and commits, plan
+digest, committed migration names, final result and backup directory name only.
+Restore entries record the actor, backup manifest digest and restored release.
+An update audit written after its backup can disappear when that backup is
+restored. The external host journal remains the update record; retain it alongside
+the backup. A plan run records its run kind separately from an applied update.
 
 ## Troubleshooting and limits
 

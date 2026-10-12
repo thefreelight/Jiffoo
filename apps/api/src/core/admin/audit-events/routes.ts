@@ -38,7 +38,7 @@ export async function adminAuditEventRoutes(fastify: FastifyInstance) {
       where: { id: { in: [...new Set(records.map((item) => item.actorId))] } }, select: actorFields,
     });
     const actors = new Map(users.map((user) => [user.id, user]));
-    const items = records.map(({ actorId: id, ...record }) => ({ ...record, actor: actors.get(id) ?? null }));
+    const items = records.map(({ actorId: id, ...record }) => ({ ...record, actorId: id, actor: actors.get(id) ?? null }));
     return sendSuccess(reply, { items, page, limit, total, totalPages: Math.ceil(total / limit) });
   });
 

@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { env } from '@/config/env';
 import { prisma } from '@/config/database';
+import { formatStoreDate } from 'shared';
 
 export type NotificationTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -99,6 +100,8 @@ export function renderNotification(
   values: { name?: string; orderId?: string; instructions?: string; reason?: string },
   hasLink = false,
   hasCode = false,
+  timezone = 'UTC',
+  occurredAt = new Date(),
 ): { subject: string; html: string; text: string } {
   const copy = translations[locale][type];
   const replacements: Record<string, string> = {
@@ -110,9 +113,10 @@ export function renderNotification(
   };
   const body = copy.body.replace(/\{(\w+)\}/g, (_, key: string) => replacements[key] || '');
   const link = hasLink ? `\n${copy.linkLabel}: {{secret.link}}` : '';
-  const text = `${storeName}\n\n${body}${link}`;
+  const eventTime = formatStoreDate(occurredAt, locale, timezone);
+  const text = `${storeName}\n\n${body}${link}\n${eventTime}`;
   const logoUrl = absoluteLogoUrl(logo);
-  const html = `<html><body>${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(storeName)}">` : ''}<h1>${escapeHtml(storeName)}</h1><p>${escapeHtml(body).replace(/\n/g, '<br>')}</p>${hasLink ? `<a href="{{secret.link}}">${escapeHtml(copy.linkLabel || '')}</a>` : ''}</body></html>`;
+  const html = `<html><body>${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(storeName)}">` : ''}<h1>${escapeHtml(storeName)}</h1><p>${escapeHtml(body).replace(/\n/g, '<br>')}</p>${hasLink ? `<a href="{{secret.link}}">${escapeHtml(copy.linkLabel || '')}</a>` : ''}<p>${escapeHtml(eventTime)}</p></body></html>`;
   return { subject: `${storeName}: ${copy.subject}`, html, text };
 }
 
@@ -135,7 +139,8 @@ export async function createNotification(
   const storeName = typeof settings['branding.platform_name'] === 'string' && settings['branding.platform_name'].trim()
     ? settings['branding.platform_name'] : 'Jiffoo Mall';
   const logo = typeof settings['branding.logo'] === 'string' ? settings['branding.logo'] : null;
-  const rendered = renderNotification(type, locale, storeName, logo, values, Boolean(options.secret?.link), Boolean(options.secret?.code));
+  const timezone = typeof settings['localization.timezone'] === 'string' ? settings['localization.timezone'] : 'UTC';
+  const rendered = renderNotification(type, locale, storeName, logo, values, Boolean(options.secret?.link), Boolean(options.secret?.code), timezone);
   const dedupKey = options.dedupKey || (type === 'payment_received' && options.relatedType === 'order' && options.relatedId && !options.resentFromId
     ? `notification:payment_received:${options.relatedId}` : undefined);
   const data = {

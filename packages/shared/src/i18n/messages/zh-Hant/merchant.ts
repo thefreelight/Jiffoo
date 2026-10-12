@@ -7,6 +7,9 @@
 
 export const merchant = {
   auditEvents: {
+    corePlan: 'Core 更新計劃已檢查',
+    invalidTime: '此時間在商店時區中不存在。',
+    coreResults: { succeeded: '成功', rolled_back_before_migration: '遷移前已回滾', stopped_in_maintenance_after_migration: '遷移後停留在維護狀態', refused: '已拒絕' },
     title: '稽核日誌', time: '時間', actor: '操作人', action: '操作', target: '目標',
     targetType: '目標類型', from: '開始時間', to: '結束時間',
     allActors: '所有操作人', allActions: '所有操作', allTargets: '所有目標類型',
@@ -15,6 +18,7 @@ export const merchant = {
     loading: '正在載入事件...', empty: '尚無稽核事件', total: '事件總數',
     page: '頁', previous: '上一頁', next: '下一頁',
     actions: {
+      coreUpdate: 'Core 更新', coreRestore: '從備份還原 Core', storeTimezoneChanged: '商店時區已變更',
       themeInstall: '已安裝主題', themeUninstall: '已解除安裝主題',
       themeActivate: '已啟用主題', themeRestorePrevious: '已還原上一個主題',
       themeConfigUpdate: '已更新主題設定', themeConfigRestore: '已還原主題設定',
@@ -699,7 +703,7 @@ export const merchant = {
       currencySettings: '貨幣設定',
       currencySettingsDesc: '設定預設貨幣和格式選項',
       timezone: '時區',
-      timezoneDesc: '設定商店的預設時區',
+      timezoneDesc: '用於商店、後台和郵件中的日期時間，預設為 UTC。',
     },
     // Security Settings
     security: {
