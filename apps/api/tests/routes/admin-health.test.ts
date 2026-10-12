@@ -37,6 +37,8 @@ describe('Admin Health Summary Routes', () => {
     expect(body.data.redis.status).toMatch(/ok|error/);
     expect(body.data.pluginRuntime).toEqual({ status: 'ok', loaded: expect.any(Number) });
     expect(body.data.version).toEqual(expect.any(String));
+    expect(body.data.version).toBe('development');
+    expect(body.data.gitSha).toBe('development');
     expect(body.data.uptime).toEqual(expect.any(Number));
   });
 

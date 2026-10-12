@@ -13,7 +13,7 @@ export function redactComposeOutput(value, secrets = []) {
 }
 export async function archiveComposeStartup({ project, query, logs, save, secrets = [] }) {
   // Acceptance projects use UUID v4; the final lookahead rejects trailing newlines.
-  assert.match(project, /^jiffoo-(?:compose|backup|update)-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}(?![\s\S])/);
+  assert.match(project, /^jiffoo-(?:compose|backup|update|trial)-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}(?![\s\S])/);
   const ids = lines(await query(['ps', '-aq', '--filter', `label=${projectLabel}=${project}`]));
   const containers = ids.length ? lines(await query(['inspect', '--format', projection, ...ids])).map(line => JSON.parse(line)) : [];
   for (const container of containers) assert.equal(container.Labels[projectLabel], project, 'Startup diagnostics include a foreign container');

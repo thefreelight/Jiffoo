@@ -38,6 +38,7 @@ RUN mkdir -p /data && chown node:node /data
 USER 1000:1000
 
 FROM runtime AS backend
+ENV APP_VERSION=$RELEASE_VERSION BUILD_SHA=$REVISION
 LABEL io.jiffoo.role=backend
 COPY apps/api/package.json ./apps/api/package.json
 COPY --from=build /app/apps/api/dist ./apps/api/dist

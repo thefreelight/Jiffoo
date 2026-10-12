@@ -33,6 +33,7 @@ export class HealthMonitoringService {
         loaded: pluginRuntime.loaded,
       },
       version: healthCheck.version,
+      gitSha: healthCheck.git_sha,
       uptime: healthCheck.uptime_seconds,
     };
   }

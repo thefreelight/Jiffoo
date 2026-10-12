@@ -334,5 +334,6 @@ export interface HealthSummaryResponse {
   }
   version: string
   uptime: number
+  gitSha: string
 }
 

@@ -6,6 +6,7 @@ import { resolve, join } from 'node:path';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { connect } from 'node:net';
+import { readFileSync } from 'node:fs';
 import { AcceptanceChecks, scenarioPlans } from '../deploy/compose/checks.mjs';
 import { ComposeVolumeLedger } from './compose-volumes.mjs';
 import { archiveComposeStartup, withComposeStartupDiagnostics } from './compose-startup.mjs';
@@ -90,12 +91,13 @@ async function verify() {
       }
       await compose(['config', '--quiet']);
     });
-    await checks.run('Build application images', ['Docker preflight'], () => compose(['build', 'api-1', 'admin', 'shop']));
+    await checks.run('Build application images', ['Docker preflight'], () => compose(['build', '--build-arg', 'RELEASE_VERSION=' + JSON.parse(readFileSync('package.json')).version.replace(/-opensource$/, ''), 'api-1', 'admin', 'shop']));
     await checks.run('Generate disposable TLS certificate', ['Build application images'], () => docker(['run', '--rm', '--name', project + '-certificate', '--label', `com.docker.compose.project=${project}`, '--user', '1000:1000',
       '--mount', `type=bind,source=${certificateDirectory},target=/tls`, '--entrypoint', 'openssl', project + '-backend',
       'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1', '-keyout', '/tls/key.pem', '-out', '/tls/cert.pem', '-subj', `/CN=${new URL(env.STOREFRONT_URL).hostname}`, '-addext', `subjectAltName=DNS:${new URL(env.STOREFRONT_URL).hostname},DNS:${new URL(env.ADMIN_URL).hostname}`], { capture: true }));
     await checks.run('Stack creation', ['Generate disposable TLS certificate'], () => { projectCreated = true; });
     await checks.run('Stack startup', ['Stack creation'], () => withComposeStartupDiagnostics(() => compose(['up', '-d', '--wait', '--wait-timeout', '600', 'edge']), startupDiagnostics));
+    await checks.run('Running API reports the built source commit and version', ['Stack startup'], () => compose(['exec', '-T', 'api-1', 'node', '--input-type=module', '-e', "const assert=(await import('node:assert/strict')).default;const r=await fetch('http://127.0.0.1:3001/health');assert.equal(r.status,200);const h=await r.json();assert.equal(h.git_sha,process.argv[1]);assert.equal(h.version,process.argv[2]);", env.REVISION, JSON.parse(readFileSync('package.json')).version.replace(/-opensource$/, '')], { capture: true }));
     await checks.run('No anonymous volumes after startup', ['Stack startup'], async () => { await volumes.capture('after startup'); await volumes.assertNoAnonymousVolumes(); });
     await checks.run('Validate existing database without updates', ['Stack startup'], () => compose(['run', '--rm', '--no-deps', 'db-init']));
     await checks.run('State checker protocol', ['Validate existing database without updates'], () => scenario('acceptance'));

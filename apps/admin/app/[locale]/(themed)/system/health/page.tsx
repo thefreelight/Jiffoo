@@ -75,7 +75,7 @@ export default function HealthMonitoringPage() {
               </span>
             </div>
             <div className="text-sm text-text-muted">
-              <p>{t('merchant.health.version')}: {summary.version}</p>
+              <p>{t('merchant.health.version')}: {summary.version}{summary.gitSha !== 'development' && ` (${summary.gitSha.slice(0, 8)})`}</p>
               <p>{t('merchant.health.uptime')}: {summary.uptime}s</p>
             </div>
           </div>

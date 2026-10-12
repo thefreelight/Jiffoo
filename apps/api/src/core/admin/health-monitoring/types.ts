@@ -17,6 +17,7 @@ export interface HealthSummaryResponse {
     loaded: number;
   };
   version: string;
+  gitSha: string;
   worker: {
     running: boolean;
     instances: number;

@@ -1,11 +1,10 @@
 import { prisma } from '@/config/database';
 import { redisCache } from '@/core/cache/redis';
 import { env } from '@/config/env';
+import { getRuntimeBuildInfo } from './runtime-build-info';
 
 // Build info injected at build time via environment variables
-const BUILD_SHA = process.env.BUILD_SHA || 'development';
 const BUILD_TIME = process.env.BUILD_TIME || new Date().toISOString();
-const APP_VERSION = process.env.APP_VERSION || '1.0.0';
 
 export interface HealthCheckResult {
   status: 'ok' | 'degraded' | 'unhealthy';
@@ -125,8 +124,8 @@ export async function performHealthCheck(fastify?: any): Promise<HealthCheckResu
 
   return {
     status,
-    version: APP_VERSION,
-    git_sha: BUILD_SHA,
+    version: getRuntimeBuildInfo().appVersion,
+    git_sha: getRuntimeBuildInfo().gitSha,
     build_time: BUILD_TIME,
     environment: env.NODE_ENV,
     timestamp: new Date().toISOString(),

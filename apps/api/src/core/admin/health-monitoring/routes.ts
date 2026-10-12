@@ -50,6 +50,7 @@ export async function healthMonitoringRoutes(fastify: FastifyInstance) {
                   required: ['status', 'loaded'],
                 },
                 version: { type: 'string' },
+                gitSha: { type: 'string' },
                 worker: {
                   type: 'object',
                   properties: {
@@ -61,7 +62,7 @@ export async function healthMonitoringRoutes(fastify: FastifyInstance) {
                 },
                 uptime: { type: 'number' },
               },
-              required: ['status', 'database', 'redis', 'pluginRuntime', 'worker', 'version', 'uptime'],
+              required: ['status', 'database', 'redis', 'pluginRuntime', 'worker', 'version', 'gitSha', 'uptime'],
             },
           },
           required: ['success', 'data'],
