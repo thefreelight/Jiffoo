@@ -44,7 +44,7 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$full_id/jobs?per_page=100" --jq '.jobs | select(length == 1 and .[0].name == "update-full" and .[0].status == "completed" and .[0].conclusion == "success") | length' | grep -Fx 1
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$full_id" > "$RUNNER_TEMP/release-inspection/update-full-run.json"
           gh run download "$full_id" --name update-full-summary --dir "$RUNNER_TEMP/update-full-inspection"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.commit }}
           persist-credentials: false
