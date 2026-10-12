@@ -12,8 +12,10 @@ const adminSchema = {
     id: { type: 'string' }, email: { type: 'string' }, username: { type: 'string' },
     role: { type: 'string' }, isActive: { type: 'boolean' }, emailVerified: { type: 'boolean' },
     isInstallAdmin: { type: 'boolean' },
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
   },
-  required: ['id', 'email', 'username', 'role', 'isActive', 'emailVerified', 'isInstallAdmin'],
+  required: ['id', 'email', 'username', 'role', 'isActive', 'emailVerified', 'isInstallAdmin', 'createdAt', 'updatedAt'],
 } as const;
 
 const pageSchema = {

@@ -23,8 +23,23 @@ describe('AUTH-1 administrator management', () => {
       payload: { email, username: `admin-${id.slice(0, 8)}` },
     });
     expect(response.statusCode).toBe(201);
+    expect(response.json().data.createdAt).toEqual(expect.any(String));
+    expect(response.json().data.updatedAt).toEqual(expect.any(String));
     return { email, id: response.json().data.id as string };
   }
+
+  it('administrator list and detail preserve the timestamps needed by the Admin date formatter', async () => {
+    const actor = await createAdminWithToken();
+    const list = await app.inject({ method: 'GET', url: '/api/v1/admin/staff', headers: auth(actor.token) });
+    expect(list.statusCode).toBe(200);
+    const row = list.json().data.items.find((item: { id: string }) => item.id === actor.user.id);
+    const detail = await app.inject({ method: 'GET', url: `/api/v1/admin/staff/${actor.user.id}`, headers: auth(actor.token) });
+    expect(detail.statusCode).toBe(200);
+    for (const value of [row, detail.json().data]) {
+      expect(value.createdAt).toEqual(expect.any(String)); expect(Number.isFinite(Date.parse(value.createdAt))).toBe(true);
+      expect(value.updatedAt).toEqual(expect.any(String)); expect(Number.isFinite(Date.parse(value.updatedAt))).toBe(true);
+    }
+  });
 
   it('F invitation accepts a password and activates an administrator', async () => {
     const actor = await createAdminWithToken();

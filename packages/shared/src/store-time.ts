@@ -21,9 +21,10 @@ export function storeLocalToUtc(value: string, timeZone: string): string {
   return new Date(instant + Number(fraction.padEnd(3, '0'))).toISOString();
 }
 
-export function formatStoreDate(value: string | Date, locale: string, timeZone: string, dateOnly = false): string {
+export function formatStoreDate(value: string | Date, locale: string, timeZone?: string | null, dateOnly = false): string {
+  const selectedZone = timeZone?.trim() || 'UTC';
   return new Intl.DateTimeFormat(locale, {
-    timeZone, year: 'numeric', month: 'short', day: 'numeric',
+    timeZone: selectedZone, year: 'numeric', month: 'short', day: 'numeric',
     ...(!dateOnly ? { hour: '2-digit' as const, minute: '2-digit' as const, hourCycle: 'h23' as const, timeZoneName: 'short' as const } : {}),
-  }).format(new Date(value)) + ` (${timeZone})`;
+  }).format(new Date(value)) + ` (${selectedZone})`;
 }

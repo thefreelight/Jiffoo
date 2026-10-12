@@ -4,8 +4,8 @@ import { useLocale } from 'shared/src/i18n/react';
 import { formatStoreDate } from 'shared';
 
 const StoreTime = createContext({ timezone: 'UTC', now: '1970-01-01T00:00:00Z', setTimezone: (_value: string) => {} });
-export function StoreTimeProvider({ timezone, now, children }: { timezone: string; now: string; children: React.ReactNode }) {
-  const [selected, setTimezone] = useState(timezone);
+export function StoreTimeProvider({ timezone, now, children }: { timezone?: string | null; now: string; children: React.ReactNode }) {
+  const [selected, setTimezone] = useState(timezone?.trim() || 'UTC');
   return <StoreTime.Provider value={{ timezone: selected, now, setTimezone }}>{children}</StoreTime.Provider>;
 }
 export function useStoreDate() {

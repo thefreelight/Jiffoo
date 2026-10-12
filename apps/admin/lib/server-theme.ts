@@ -1,4 +1,4 @@
-import type { ThemeFontFace } from 'shared';
+import { isStoreTimezone, type ThemeFontFace } from 'shared';
 
 export async function getStoreTimezone(): Promise<string> {
   if (!process.env.API_SERVICE_URL) return 'UTC';
@@ -6,7 +6,7 @@ export async function getStoreTimezone(): Promise<string> {
     const response = await fetch(new URL('/api/v1/store/context', process.env.API_SERVICE_URL), { cache: 'no-store' });
     if (!response.ok) return 'UTC';
     const body = await response.json();
-    return body.data.timezone;
+    return isStoreTimezone(body?.data?.timezone) ? body.data.timezone : 'UTC';
   } catch { return 'UTC'; }
 }
 
