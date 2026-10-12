@@ -1,4 +1,5 @@
 import { emitEvent } from '@/infra/events/emit';
+import { readCatalogSnapshot, snapshotProductName } from '@/core/order/catalog-snapshot';
 
 function parseJsonRecord(value: unknown): Record<string, unknown> {
   if (!value) return {};
@@ -31,24 +32,8 @@ export async function emitOrderPaidEvent(
   const order = await tx.order.findUnique({
     where: { id: orderId },
     include: {
-      items: {
-        include: {
-          product: {
-            select: {
-              id: true,
-              name: true,
-              typeData: true,
-            },
-          },
-          variant: {
-            select: {
-              id: true,
-              name: true,
-              skuCode: true,
-            },
-          },
-        },
-      },
+      items: true,
+      user: { select: { locale: true } },
     },
   });
 
@@ -69,13 +54,13 @@ export async function emitOrderPaidEvent(
         id: item.id,
         productId: item.productId,
         variantId: item.variantId,
-        productName: item.product?.name,
-        variantName: item.variant?.name,
-        skuCode: item.variant?.skuCode,
+        productName: snapshotProductName(readCatalogSnapshot(item.catalogSnapshot), order.user?.locale),
+        variantName: readCatalogSnapshot(item.catalogSnapshot).variantName,
+        skuCode: readCatalogSnapshot(item.catalogSnapshot).skuCode ?? undefined,
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
         fulfillmentData: parseJsonRecord(item.fulfillmentData),
-        productTypeData: parseJsonRecord(item.product?.typeData),
+        productTypeData: parseJsonRecord(readCatalogSnapshot(item.catalogSnapshot).productTypeData),
       })),
     },
     payment: {

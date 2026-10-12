@@ -207,6 +207,8 @@ model OrderItem {
   unitPrice Decimal @db.Decimal(18, 2)
   taxAmount Decimal @default(0) @db.Decimal(18, 2)
   currency  String  @default("USD")
+  catalogSnapshot Json
+  lineTotal Decimal @db.Decimal(18, 2)
 
   // Shipping address (per item)
   shippingFirstName    String?

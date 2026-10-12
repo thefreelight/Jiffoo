@@ -28,6 +28,7 @@ const ERROR_CODE_TO_I18N_KEY: Partial<Record<ApiErrorCode, { key: string; fallba
   PLUGIN_DATABASE_BUSY: { key: 'common.errors.pluginDatabaseBusy', fallback: 'Plugin database is busy. Try again shortly.' },
   PLUGIN_DATABASE_OUTCOME_UNKNOWN: { key: 'common.errors.pluginDatabaseOutcomeUnknown', fallback: 'Plugin database commit outcome is unknown. Do not retry automatically.' },
   CATEGORY_NOT_EMPTY: { key: 'merchant.contentTranslations.categoryNotEmpty', fallback: 'Remove products and child categories before deleting this category.' },
+  PRODUCT_HAS_ORDERS: { key: 'merchant.contentTranslations.productHasOrders', fallback: 'This product or variant has orders and cannot be deleted. Deactivate it instead.' },
 };
 
 

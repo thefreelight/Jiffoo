@@ -18,6 +18,7 @@ import { emitEvent } from '@/infra/events/emit';
 import { recordPaymentSucceeded } from '@/core/payment/reconciliation';
 import { lockOrder, lockPayment } from '@/core/payment/locks';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { readCatalogSnapshot, snapshotProductName } from '@/core/order/catalog-snapshot';
 
 function codedError(code: import('@/utils/api-errors').ErrorCode, _message: string): ApiError {
   return new ApiError(code);
@@ -278,7 +279,8 @@ export class AdminOrderService {
           select: {
             id: true,
             email: true,
-            username: true
+            username: true,
+            locale: true
           }
         },
         shippingAddress: {
@@ -300,20 +302,11 @@ export class AdminOrderService {
             id: true,
             quantity: true,
             unitPrice: true,
+            lineTotal: true,
+            catalogSnapshot: true,
+            productId: true,
+            variantId: true,
             fulfillmentStatus: true,
-            product: {
-              select: {
-                id: true,
-                name: true
-              }
-            },
-            variant: {
-              select: {
-                id: true,
-                skuCode: true,
-                name: true
-              }
-            }
           }
         },
         shipments: {
@@ -398,12 +391,13 @@ export class AdminOrderService {
         id: item.id,
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
-        totalPrice: Number(item.unitPrice) * item.quantity,
-        productId: item.product?.id || null,
-        productName: item.product?.name || null,
-        variantId: item.variant?.id || null,
-        skuCode: item.variant?.skuCode || null,
-        variantName: item.variant?.name || null,
+        totalPrice: Number(item.lineTotal),
+        productId: item.productId,
+        productName: snapshotProductName(readCatalogSnapshot(item.catalogSnapshot), order.user?.locale),
+        productImages: readCatalogSnapshot(item.catalogSnapshot).productImages,
+        variantId: item.variantId,
+        skuCode: readCatalogSnapshot(item.catalogSnapshot).skuCode,
+        variantName: readCatalogSnapshot(item.catalogSnapshot).variantName,
         fulfillmentStatus: item.fulfillmentStatus
       })),
       shipments: order.shipments.map(s => ({

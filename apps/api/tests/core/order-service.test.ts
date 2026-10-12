@@ -140,10 +140,13 @@ const TEST_USER = { email: 'buyer@example.com' };
 const TEST_PRODUCT = {
   id: 'prod-1',
   name: 'Widget',
+  productType: 'physical',
+  typeData: { images: ['widget.png'] },
+  translations: [],
   requiresShipping: false,
   isActive: true,
   variants: [
-    { id: 'var-1', name: 'Default', salePrice: 25, isActive: true },
+    { id: 'var-1', name: 'Default', salePrice: 25, isActive: true, skuCode: null, attributes: null },
   ],
 };
 
@@ -166,8 +169,8 @@ const makeCreatedOrder = (overrides: Record<string, unknown> = {}) => ({
       variantId: 'var-1',
       quantity: 2,
       unitPrice: 25,
-      product: { name: 'Widget' },
-      variant: { name: 'Default' },
+      lineTotal: 50,
+      catalogSnapshot: { source: 'order-time', productId: 'prod-1', variantId: 'var-1', productName: 'Widget', variantName: 'Default', skuCode: null, variantAttributes: null, productType: 'physical', productTypeData: null, productImages: [], productTranslations: {} },
     },
   ],
   ...overrides,

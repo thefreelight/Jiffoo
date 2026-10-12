@@ -11,6 +11,8 @@
 import { getTestPrisma } from './db';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestUser } from './auth';
+import { createCatalogSnapshot } from '@/core/order/catalog-snapshot';
+import { Prisma } from '@prisma/client';
 
 // ============================================
 // Product Fixtures
@@ -240,14 +242,22 @@ export async function createTestOrderItem(options: CreateOrderItemOptions) {
     }
   }
 
+  const product = await prisma.product.findUniqueOrThrow({
+    where: { id: options.productId }, include: { variants: true, translations: true },
+  });
+  const variant = product.variants.find(variant => variant.id === variantId)!;
+  const quantity = options.quantity ?? 1;
+  const price = unitPrice ?? 99.99;
   return prisma.orderItem.create({
     data: {
       id,
       orderId: options.orderId,
       productId: options.productId,
       variantId: variantId!,
-      quantity: options.quantity ?? 1,
-      unitPrice: unitPrice ?? 99.99,
+      quantity,
+      unitPrice: price,
+      lineTotal: new Prisma.Decimal(price).mul(quantity),
+      catalogSnapshot: createCatalogSnapshot(product, variant),
     },
   });
 }

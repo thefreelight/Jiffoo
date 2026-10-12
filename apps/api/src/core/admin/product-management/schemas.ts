@@ -236,6 +236,7 @@ export const adminProductSchemas = {
       type: 'object',
       required: ['variants'],
       properties: {
+        isActive: { type: 'boolean', description: 'Whether the product is active' },
         name: { type: 'string', description: 'Product name' },
         description: { type: 'string', description: 'Product description' },
         categoryId: { type: 'string', nullable: true, description: 'Category ID' },

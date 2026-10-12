@@ -13,6 +13,7 @@ export const errorCatalog = {
   [ApiErrorCodes.PLUGIN_REINSTALL_CONFLICT]: { status: 409, message: 'Plugin must be reinstalled before this operation' },
   [ApiErrorCodes.PLUGIN_TEST_SIGNING_CONFLICT]: { status: 409, message: 'Test-signed plugin cannot be used in this environment' },
   [ApiErrorCodes.CATEGORY_NOT_EMPTY]: { status: 409, message: 'Category not empty.' },
+  [ApiErrorCodes.PRODUCT_HAS_ORDERS]: { status: 409, message: 'This product or variant has orders and cannot be deleted. Deactivate it instead.' },
   [ApiErrorCodes.DEFAULT_LOCALE_TRANSLATION]: { status: 400, message: 'Default locale translation.' },
   [ApiErrorCodes.FORBIDDEN_FILE_TYPE]: { status: 400, message: 'Forbidden file type.' },
   [ApiErrorCodes.FORBIDDEN_NATIVE_MODULE]: { status: 400, message: 'Forbidden native module.' },

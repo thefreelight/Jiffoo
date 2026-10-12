@@ -15,6 +15,10 @@ import { merchant as hansMerchant } from '../../../../packages/shared/src/i18n/m
 import { merchant as hantMerchant } from '../../../../packages/shared/src/i18n/messages/zh-Hant/merchant';
 
 describe('Typed localized client error contracts', () => {
+  it.each([enMerchant, hansMerchant, hantMerchant])('ordered catalog deletion and save errors use approved localized copy in locale %#', merchant => {
+    const translate = (key: string) => key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], { merchant }) as string;
+    expect(resolveApiErrorMessage(new AdminApiError('PRIVATE_SQL', ApiErrorCodes.PRODUCT_HAS_ORDERS, undefined, 409), translate)).toBe(merchant.contentTranslations.productHasOrders);
+  });
   it.each([en, hans, hant])('v2 payment errors preserve their approved localized messages in locale %#', common => {
     const translate = (key: string) => key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], { common }) as string;
     for (const [code, expected] of [

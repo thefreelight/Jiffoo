@@ -163,6 +163,7 @@ export interface OrderItemResponse {
   id: string;
   productId: string;
   productName: string;
+  productImages: string[];
   variantId: string;
   variantName?: string;
   variantAttributes?: Record<string, unknown> | null;

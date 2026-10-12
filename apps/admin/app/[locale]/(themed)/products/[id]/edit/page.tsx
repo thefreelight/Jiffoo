@@ -25,7 +25,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useT, useLocale } from 'shared/src/i18n/react'
-import { toast } from 'sonner'
 
 import {
   useProduct,
@@ -147,7 +146,6 @@ export default function EditProductPage() {
       setTimeout(() => setSuccessMode(false), 3000)
     } catch (error) {
       console.error('Update failed:', error)
-      toast.error(getText('common.errors.general', 'Something went wrong. Please try again.'))
     }
   }
 

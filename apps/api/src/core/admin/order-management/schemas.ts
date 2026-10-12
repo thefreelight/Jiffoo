@@ -120,6 +120,7 @@ const adminOrderDetailSchema = {
           totalPrice: { type: 'number' },
           productId: { type: 'string', nullable: true },
           productName: { type: 'string', nullable: true },
+          productImages: { type: 'array', items: { type: 'string' } },
           variantId: { type: 'string', nullable: true },
           skuCode: { type: 'string', nullable: true },
           variantName: { type: 'string', nullable: true },

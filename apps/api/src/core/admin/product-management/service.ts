@@ -11,6 +11,20 @@ import { InventoryService } from '@/core/inventory/service';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { emitEvent } from '@/infra/events/emit';
 import { productSnapshot } from '@/infra/events/snapshots';
+import { Prisma } from '@prisma/client';
+import { isOrderItemCatalogRestriction } from '@/core/order/catalog-snapshot';
+
+async function protectOrderedCatalog<T>(operation: () => Promise<T>, references: () => Prisma.OrderItemWhereInput): Promise<T> {
+  try { return await operation(); }
+  catch (error) {
+    if (isOrderItemCatalogRestriction(error)) throw new ApiError('PRODUCT_HAS_ORDERS');
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      // Prisma can omit the PostgreSQL constraint name. Confirm the order reference after rollback.
+      if (await prisma.orderItem.count({ where: references() })) throw new ApiError('PRODUCT_HAS_ORDERS');
+    }
+    throw error;
+  }
+}
 
 export class CatalogConflictError extends ApiError {
   constructor(public readonly code: 'DEFAULT_LOCALE_TRANSLATION' | 'CATEGORY_NOT_EMPTY') {
@@ -128,6 +142,7 @@ export interface CreateProductData {
 }
 
 export interface UpdateProductData {
+  isActive?: boolean;
   name?: string;
   slug?: string;
   description?: string;
@@ -559,6 +574,8 @@ export class AdminProductService {
   static async updateProduct(productId: string, data: UpdateProductData) {
     await rejectDefaultLocaleTranslation(data.translations);
     const updateData: any = {};
+    let removedVariantIds: string[] = [];
+    if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
     if (data.name !== undefined) updateData.name = data.name;
     if (data.slug !== undefined) updateData.slug = data.slug;
@@ -584,7 +601,7 @@ export class AdminProductService {
     if (data.images !== undefined) updateData.typeData = { images: data.images };
 
 
-    await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
+    await knownPrismaOperation(() => protectOrderedCatalog(() => prisma.$transaction(async (tx) => {
       // Update product core fields
       await tx.product.update({
         where: { id: productId },
@@ -614,7 +631,11 @@ export class AdminProductService {
 
         // 2. Identify variants to delete (existing but not in incoming)
         const toDelete = existingIds.filter(id => !incomingIds.includes(id));
+        removedVariantIds = toDelete;
         if (toDelete.length > 0) {
+          if (await tx.orderItem.count({ where: { variantId: { in: toDelete } } })) {
+            throw new ApiError('PRODUCT_HAS_ORDERS');
+          }
           await tx.productVariant.deleteMany({
             where: { id: { in: toDelete } }
           });
@@ -658,7 +679,7 @@ export class AdminProductService {
         }
       }
       await emitEvent(tx, 'product.updated', 1, productId, await productSnapshot(tx, productId));
-    }), { notFound: 'NOT_FOUND' });
+    }), () => ({ variantId: { in: removedVariantIds } })), { notFound: 'NOT_FOUND' });
 
     await CacheService.incrementProductVersion();
     await CacheService.deleteProduct(productId);
@@ -671,9 +692,10 @@ export class AdminProductService {
    * Delete product
    */
   static async deleteProduct(productId: string) {
-    await knownPrismaOperation(() => prisma.product.delete({
-      where: { id: productId }
-    }), { notFound: 'NOT_FOUND' });
+    await knownPrismaOperation(() => protectOrderedCatalog(() => prisma.$transaction(async tx => {
+      if (await tx.orderItem.count({ where: { productId } })) throw new ApiError('PRODUCT_HAS_ORDERS');
+      await tx.product.delete({ where: { id: productId } });
+    }), () => ({ productId })), { notFound: 'NOT_FOUND' });
 
     await CacheService.incrementProductVersion();
     await CacheService.deleteProduct(productId);
@@ -683,9 +705,10 @@ export class AdminProductService {
    * Bulk delete products
    */
   static async deleteProducts(productIds: string[]) {
-    await prisma.product.deleteMany({
-      where: { id: { in: productIds } }
-    });
+    await protectOrderedCatalog(() => prisma.$transaction(async tx => {
+      if (await tx.orderItem.count({ where: { productId: { in: productIds } } })) throw new ApiError('PRODUCT_HAS_ORDERS');
+      await tx.product.deleteMany({ where: { id: { in: productIds } } });
+    }), () => ({ productId: { in: productIds } }));
 
     await CacheService.incrementProductVersion();
   }

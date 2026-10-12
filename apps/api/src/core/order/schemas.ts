@@ -44,6 +44,7 @@ const orderItemResponseSchema = {
     id: { type: 'string', description: 'Order item ID' },
     productId: { type: 'string', description: 'Product ID' },
     productName: { type: 'string', description: 'Product name snapshot' },
+    productImages: { type: 'array', items: { type: 'string' }, description: 'Product image snapshots' },
     variantId: { type: 'string', description: 'Product variant ID' },
     variantName: { type: 'string', nullable: true, description: 'Variant name snapshot' },
     variantAttributes: { type: 'object', nullable: true, additionalProperties: true, description: 'Variant attributes snapshot' },

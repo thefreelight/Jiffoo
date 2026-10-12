@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { eventRegistry, type EventKey } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
+import { createCatalogSnapshot } from '@/core/order/catalog-snapshot';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteTestUser } from '../helpers/auth';
 import { createTestProduct, deleteTestProduct } from '../helpers/fixtures';
@@ -129,7 +130,7 @@ describe('business event coverage', () => {
       data: {
         userId: buyer.id, status: 'PROCESSING', paymentStatus: 'PAID',
         subtotalAmount: 12, totalAmount: 12, currency: 'USD',
-        items: { create: { productId: product.id, variantId: product.variants[0].id, quantity: 1, unitPrice: 12, currency: 'USD' } },
+        items: { create: { productId: product.id, variantId: product.variants[0].id, quantity: 1, unitPrice: 12, currency: 'USD', lineTotal: 12, catalogSnapshot: createCatalogSnapshot({ ...product, translations: [] }, product.variants[0]) } },
       },
     });
     orders.push(order.id);

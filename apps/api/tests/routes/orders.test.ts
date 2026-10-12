@@ -29,6 +29,10 @@ import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 import { checkoutTotal } from '../helpers/checkout-total';
 import { getPluginManifestIssues } from '@jiffoo/shared';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { AdminProductService } from '@/core/admin/product-management/service';
+import { emitOrderPaidEvent } from '@/core/payment/order-paid-event';
+import { mapApiError } from '@/utils/api-errors';
+import { isOrderItemCatalogRestriction } from '@/core/order/catalog-snapshot';
 
 describe('Orders Endpoints', () => {
   let app: FastifyInstance;
@@ -121,6 +125,90 @@ describe('Orders Endpoints', () => {
     await deleteAllTestProducts();
     await deleteAllTestUsers();
     await app.close();
+  });
+
+  it('preserves order-time catalog values across renaming, images, translations, and deactivation', async () => {
+    const product = await createTestProduct({ name: 'Snapshot Test Product', price: 9.99, stock: 10 });
+    const variant = product.variants[0];
+    await prisma.user.update({ where: { id: userId }, data: { locale: 'zh-Hans' } });
+    await prisma.product.update({ where: { id: product.id }, data: { typeData: { images: ['original.png', 7] }, translations: { create: { locale: 'zh-Hans', name: '原始商品' } } } });
+    const items = [{ productId: product.id, variantId: variant.id, quantity: 3 }];
+    const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, 'free-shipping:free');
+    const created = await app.inject({ method: 'POST', url: '/api/v1/orders', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal } });
+    expect(created.statusCode).toBe(201);
+    const orderId = created.json().data.id;
+    const stored = await prisma.orderItem.findFirstOrThrow({ where: { orderId } });
+    expect(stored.catalogSnapshot).toMatchObject({ source: 'order-time', productName: 'Snapshot Test Product', variantName: variant.name, productImages: ['original.png'], productTranslations: { 'zh-Hans': '原始商品' } });
+    expect(stored.lineTotal.toString()).toBe('29.97');
+    const update = await app.inject({ method: 'PUT', url: `/api/v1/admin/products/${product.id}`, headers: { authorization: `Bearer ${adminToken}` }, payload: { name: 'Changed Test Product', images: ['changed.png'], isActive: false, translations: [{ locale: 'zh-Hans', name: '改名商品' }], variants: [{ id: variant.id, name: 'Changed variant', stock: 7, salePrice: 9.99, skuCode: 'NEW-SKU' }] } });
+    expect(update.statusCode).toBe(200);
+    const expectedItem = { productName: '原始商品', variantName: variant.name, productImages: ['original.png'], totalPrice: 29.97 };
+    const shop = await app.inject({ url: `/api/v1/orders/${orderId}`, headers: { authorization: `Bearer ${userToken}` } });
+    expect(shop.statusCode).toBe(200);
+    expect(shop.json().data.items[0]).toMatchObject(expectedItem);
+    const list = await app.inject({ url: '/api/v1/orders', headers: { authorization: `Bearer ${userToken}` } });
+    expect(list.json().data.items.find((order: any) => order.id === orderId).items[0]).toMatchObject(expectedItem);
+    const admin = await app.inject({ url: `/api/v1/admin/orders/${orderId}`, headers: { authorization: `Bearer ${adminToken}` } });
+    expect(admin.statusCode).toBe(200);
+    expect(admin.json().data.items[0]).toMatchObject(expectedItem);
+    const paid = await prisma.$transaction(tx => emitOrderPaidEvent(tx, orderId));
+    expect(paid?.order.items[0]).toMatchObject({ productName: '原始商品', variantName: variant.name, skuCode: variant.skuCode ?? undefined, productTypeData: { images: ['original.png', 7] } });
+    const hidden = await app.inject({ url: `/api/v1/products/${product.id}` });
+    expect(hidden.statusCode).toBe(404);
+    await prisma.user.update({ where: { id: userId }, data: { locale: 'en' } });
+  });
+
+  it('rejects ordered catalog deletion atomically and permits unordered deletion and variant removal', async () => {
+    const ordered = await createTestProduct({ name: 'Ordered Test Product', price: 10, stock: 10 });
+    const unordered = await createTestProduct({ name: 'Unordered Test Product', price: 10, stock: 10 });
+    const variant = ordered.variants[0];
+    const items = [{ productId: ordered.id, variantId: variant.id, quantity: 1 }];
+    const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, 'free-shipping:free');
+    expect((await app.inject({ method: 'POST', url: '/api/v1/orders', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal } })).statusCode).toBe(201);
+    const rejected = await app.inject({ method: 'DELETE', url: `/api/v1/admin/products/${ordered.id}`, headers: { authorization: `Bearer ${adminToken}` } });
+    expect(rejected.statusCode).toBe(409);
+    expect(rejected.json().error.code).toBe('PRODUCT_HAS_ORDERS');
+    const constraintError = await prisma.product.delete({ where: { id: ordered.id } }).catch(error => error);
+    expect(isOrderItemCatalogRestriction(constraintError)).toBe(true);
+    const bulk = await AdminProductService.deleteProducts([ordered.id, unordered.id]).catch(mapApiError);
+    expect(bulk).toMatchObject({ status: 409, body: { error: { code: 'PRODUCT_HAS_ORDERS' } } });
+    expect(await prisma.product.count({ where: { id: { in: [ordered.id, unordered.id] } } })).toBe(2);
+    const removed = await app.inject({ method: 'PUT', url: `/api/v1/admin/products/${ordered.id}`, headers: { authorization: `Bearer ${adminToken}` }, payload: { name: 'Must roll back', variants: [{ name: 'Replacement', stock: 1, salePrice: 10 }] } });
+    expect(removed.statusCode).toBe(409);
+    expect(removed.json().error.code).toBe('PRODUCT_HAS_ORDERS');
+    expect((await prisma.product.findUniqueOrThrow({ where: { id: ordered.id } })).name).toBe(ordered.name);
+    expect(await prisma.productVariant.count({ where: { id: variant.id } })).toBe(1);
+    const replaced = await app.inject({ method: 'PUT', url: `/api/v1/admin/products/${unordered.id}`, headers: { authorization: `Bearer ${adminToken}` }, payload: { variants: [{ name: 'Replacement', stock: 1, salePrice: 10 }] } });
+    expect(replaced.statusCode).toBe(200);
+    expect(await prisma.productVariant.count({ where: { id: unordered.variants[0].id } })).toBe(0);
+    expect((await app.inject({ method: 'DELETE', url: `/api/v1/admin/products/${unordered.id}`, headers: { authorization: `Bearer ${adminToken}` } })).statusCode).toBe(200);
+    const bulkOnly = await createTestProduct({ name: 'Bulk unordered Test Product' });
+    await AdminProductService.deleteProducts([bulkOnly.id]);
+    expect(await prisma.product.count({ where: { id: bulkOnly.id } })).toBe(0);
+  });
+
+  it('handles real concurrent order creation and catalog deletion without 500 or orphan items', async () => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const product = await createTestProduct({ name: 'Concurrent Test Product', price: 10, stock: 10 });
+      const items = [{ productId: product.id, variantId: product.variants[0].id, quantity: 1 }];
+      const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, 'free-shipping:free');
+      // The quote helper populates the cart; isolate this race to order references.
+      await prisma.cartItem.deleteMany({ where: { productId: product.id } });
+      const [created, deleted] = await Promise.all([
+        app.inject({ method: 'POST', url: '/api/v1/orders', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal } }),
+        app.inject({ method: 'DELETE', url: `/api/v1/admin/products/${product.id}`, headers: { authorization: `Bearer ${adminToken}` } }),
+      ]);
+      if (created.statusCode === 201) {
+        expect(deleted.statusCode).toBe(409);
+        expect(deleted.json().error.code).toBe('PRODUCT_HAS_ORDERS');
+        expect(await prisma.product.count({ where: { id: product.id } })).toBe(1);
+      } else {
+        expect(created.statusCode).toBeGreaterThanOrEqual(400);
+        expect(created.statusCode).toBeLessThan(500);
+        expect(deleted.statusCode).toBe(200);
+        expect(await prisma.orderItem.count({ where: { productId: product.id } })).toBe(0);
+      }
+    }
   });
 
   describe('POST /api/v1/orders/', () => {

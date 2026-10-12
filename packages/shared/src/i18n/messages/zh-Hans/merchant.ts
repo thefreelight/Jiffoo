@@ -66,6 +66,7 @@ export const merchant = {
     cancel: '取消',
     deleteConfirmation: '确定删除此分类？',
     categoryNotEmpty: '删除此分类前，请先移除其商品和子分类。',
+    productHasOrders: '该商品或规格已有订单，不能删除，请改为下架。',
   },
   health: {
     loadFailed: '加载健康状态失败',

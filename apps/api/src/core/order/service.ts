@@ -38,6 +38,7 @@ import { PluginManagementService } from '@/core/admin/plugin-management/service'
 import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
 import { decimalToMinor, minorToDecimal } from '@/core/payment/minor-units';
 import { currentLinePrice } from './current-pricing';
+import { createCatalogSnapshot, readCatalogSnapshot, snapshotProductName } from './catalog-snapshot';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -316,6 +317,11 @@ export class OrderService {
 
     // Create order + deduct stock atomically
     const order = await prisma.$transaction(async (tx) => {
+      const catalog = await tx.product.findMany({
+        where: { id: { in: productIds } },
+        include: { variants: true, translations: true },
+      });
+      const catalogMap = new Map(catalog.map(product => [product.id, product]));
       const created = await tx.order.create({
         data: {
           user: { connect: { id: userId } },
@@ -348,23 +354,26 @@ export class OrderService {
             }
             : undefined,
           items: {
-            create: orderItems.map((item, index) => ({
-              productId: item.productId,
-              variantId: item.variantId,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              taxAmount: Number(minorToDecimal(tax.lines.find((line) => line.lineId === String(index))?.taxMinor ?? 0, currency)),
-            }))
+            create: orderItems.map((item, index) => {
+              const product = catalogMap.get(item.productId);
+              const variant = product?.variants.find(variant => variant.id === item.variantId);
+              if (!product || !variant || !product.isActive || !variant.isActive) throw new ApiError('BAD_REQUEST');
+              return {
+                productId: item.productId,
+                variantId: item.variantId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                catalogSnapshot: createCatalogSnapshot(product, variant),
+                lineTotal: new Prisma.Decimal(item.unitPrice).mul(item.quantity),
+                taxAmount: Number(minorToDecimal(tax.lines.find((line) => line.lineId === String(index))?.taxMinor ?? 0, currency)),
+              };
+            })
           },
         },
         include: {
           shippingAddress: true,
-          items: {
-            include: {
-              product: true,
-              variant: true
-            }
-          }
+          user: { select: { locale: true } },
+          items: true
         }
       });
 
@@ -413,6 +422,14 @@ export class OrderService {
         });
 
       return created;
+    }).catch(async error => {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        if (/order_items_(productId|variantId)_fkey/.test(String(error.meta?.field_name)) ||
+            await prisma.productVariant.count({ where: { OR: orderItems.map(item => ({ id: item.variantId, productId: item.productId })) } }) < new Set(orderItems.map(item => item.variantId)).size) {
+          throw new ApiError('BAD_REQUEST');
+        }
+      }
+      throw error;
     });
 
     return this.formatOrderResponse(order, currency);
@@ -451,15 +468,11 @@ export class OrderService {
         orderBy: { createdAt: 'desc' },
         include: {
           shippingAddress: true,
+          user: { select: { locale: true } },
           shipments: {
             select: shipmentSelect
           },
-          items: {
-            include: {
-              product: true,
-              variant: true
-            }
-          }
+          items: true
         }
       }),
       prisma.order.count({ where })
@@ -499,15 +512,11 @@ export class OrderService {
       where,
       include: {
         shippingAddress: true,
+        user: { select: { locale: true } },
         shipments: {
           select: shipmentSelect
         },
-        items: {
-          include: {
-            product: true,
-            variant: true
-          }
-        }
+        items: true
       }
     });
 
@@ -579,12 +588,8 @@ export class OrderService {
         },
         include: {
           shippingAddress: true,
-          items: {
-            include: {
-              product: true,
-              variant: true
-            }
-          }
+          user: { select: { locale: true } },
+          items: true
         }
       });
       await createOrderNotification(tx, 'cancelled', orderId, { reason: cancelReason });
@@ -694,15 +699,15 @@ export class OrderService {
       items: order.items.map((item) => ({
         id: item.id,
         productId: item.productId,
-        productName: item.product?.name || 'Unknown',
+        productName: snapshotProductName(readCatalogSnapshot(item.catalogSnapshot), order.user?.locale),
+        productImages: readCatalogSnapshot(item.catalogSnapshot).productImages,
         variantId: item.variantId,
-        variantName: item.variant?.name,
-        variantAttributes: parseJsonRecord(item.variant?.attributes),
+        variantName: readCatalogSnapshot(item.catalogSnapshot).variantName,
+        variantAttributes: parseJsonRecord(readCatalogSnapshot(item.catalogSnapshot).variantAttributes),
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
         taxAmount: Number(item.taxAmount || 0),
-        // Calculate totalPrice from unitPrice * quantity since it's not stored in DB
-        totalPrice: Number(item.unitPrice) * item.quantity,
+        totalPrice: Number(item.lineTotal),
         fulfillmentData: parseJsonRecord(item.fulfillmentData),
         currency
       })),

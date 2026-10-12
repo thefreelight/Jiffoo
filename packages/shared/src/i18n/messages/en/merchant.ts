@@ -66,6 +66,7 @@ export const merchant = {
     cancel: 'Cancel',
     deleteConfirmation: 'Delete this category?',
     categoryNotEmpty: 'Remove products and child categories before deleting this category.',
+    productHasOrders: 'This product or variant has orders and cannot be deleted. Deactivate it instead.',
   },
   health: {
     loadFailed: 'Failed to load health status',

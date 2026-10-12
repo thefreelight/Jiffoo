@@ -276,7 +276,8 @@ module.exports = { register(ctx) {
     const order = await prisma.order.create({
       data: {
         userId, status: 'PROCESSING', paymentStatus: 'PAID', subtotalAmount: 10, totalAmount: 10,
-        items: { create: { productId, variantId: variant.id, quantity: 1, unitPrice: 10 } },
+        items: { create: { productId, variantId: variant.id, quantity: 1, unitPrice: 10, lineTotal: 10,
+          catalogSnapshot: { source: 'order-time', productId, variantId: variant.id, productName: 'Updated event product', variantName: variant.name, skuCode: variant.skuCode, variantAttributes: variant.attributes, productType: 'physical', productTypeData: null, productImages: [], productTranslations: {} } } },
       },
     });
     const shipped = await app.inject({
@@ -443,16 +444,24 @@ module.exports = { register(ctx) {
   });
 
   it('G: a short injected handler timeout counts as a failed attempt without cancelling the handler', async () => {
-    const installation = await plugin({ block: true });
+    // Retain an early release even when package loading outlives the short timeout.
+    const installation = await plugin({}, `module.exports = { register(ctx) {
+      ctx.events.subscribe('order.created', 1, async () => {
+        await globalThis.__eventWorkerRelease.wait();
+        process.send({ kind: 'completed', installationId: ctx.plugin.installationId });
+      });
+    } };`);
     const event = await emit();
     const process = await child(200);
     const wrapperSettled = wait(process, 'wrapper-settled', undefined, installation.id);
+    const handlerCompleted = wait(process, 'completed', undefined, installation.id);
     const batch = command(process);
     try {
       await wrapperSettled;
       await expectDelivery(await delivery(event.id, installation.id), { status: 'PENDING', attempts: 1, lastError: 'Event handler timed out after 200ms' });
-    } finally { process.send({ command: 'release', installationId: installation.id }); }
+    } finally { process.send({ command: 'release-all' }); }
     await batch.done;
+    await handlerCompleted;
     await expectDelivery(await delivery(event.id, installation.id), { status: 'PENDING', attempts: 1, lastError: 'Event handler timed out after 200ms' });
   });
 
