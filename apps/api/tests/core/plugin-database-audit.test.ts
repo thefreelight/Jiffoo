@@ -9,7 +9,7 @@ import archiver from 'archiver';
 import { mkdtemp, mkdir, writeFile, rm, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { PLUGIN_MAX_ENTRY_SIZE, PLUGIN_MAX_DECOMPRESSED_SIZE, PLUGIN_MAX_ZIP_ENTRIES, PLUGIN_MAX_ZIP_SIZE, pluginSchemaName, type PluginManifest } from 'shared/plugin-signing';
-import { auditPluginDatabase, pluginDatabaseAuditExitCode, PLUGIN_DATABASE_AUDIT_CODES, setPluginDatabaseAuditTestLimits, setPluginDatabaseAuditTestMigrationRoot } from '@/core/admin/extension-installer/plugin-database-audit';
+import { auditPluginDatabase, auditPluginDatabaseForUpdate, pluginDatabaseAuditExitCode, PLUGIN_DATABASE_AUDIT_CODES, setPluginDatabaseAuditTestLimits, setPluginDatabaseAuditTestMigrationRoot } from '@/core/admin/extension-installer/plugin-database-audit';
 
 let client: Client, schema: string, slug: string;
 const ownedSchemas = new Set<string>(), ownedRoles = new Set<string>();
@@ -85,6 +85,20 @@ it('J complete reports preserve version, scope, caller authority and zero exit s
   const report = await audit();
   expect(report).toMatchObject({ reportVersion: 1, scope: 'plugin-database-integrity', complete: true, database: { name: 'jiffoo_core_test', schemaState: 'current' }, processQuiescence: { proven: false, authority: 'caller' }, counts: { plugins: 1, blocking: 0 } });
   expect(Date.parse(report.finishedAt)).toBeGreaterThanOrEqual(Date.parse(report.startedAt)); expect(pluginDatabaseAuditExitCode(report)).toBe(0);
+});
+it('update audits the exact current release without relaxing the Admin target inventory check', async () => {
+  const current = (await client.query(`SELECT migration_name AS name,checksum FROM ${schema}._prisma_migrations ORDER BY migration_name`)).rows;
+  const root = await mkdtemp(path.join(tmpdir(), 'jiffoo-update-audit-'));
+  try {
+    for (const item of [...current, { name: '20990101000000_pending', checksum: 'a'.repeat(64) }]) {
+      await mkdir(path.join(root,item.name)); await writeFile(path.join(root,item.name,'migration.sql'),'SELECT 1;');
+    }
+    setPluginDatabaseAuditTestMigrationRoot(true,root);
+    expect(pluginDatabaseAuditExitCode(await auditPluginDatabase(client))).toBe(2);
+    expect(pluginDatabaseAuditExitCode(await auditPluginDatabaseForUpdate(client,current))).toBe(0);
+    await client.query(`UPDATE ${schema}._prisma_migrations SET checksum=repeat('f',64) WHERE migration_name=$1`,[current[0].name]);
+    expect(pluginDatabaseAuditExitCode(await auditPluginDatabaseForUpdate(client,current))).toBe(2);
+  } finally { setPluginDatabaseAuditTestMigrationRoot(true); await rm(root,{recursive:true,force:true}); }
 });
 it('J ledger identity and order gaps are blocking mismatches', async () => {
   const fixture = await packageFixture(2); await install(fixture); await ledger(await namespace(), fixture);

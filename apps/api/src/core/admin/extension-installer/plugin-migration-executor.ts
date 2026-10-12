@@ -69,7 +69,9 @@ async function fence(client: Client, operation: PluginMigrationOperation): Promi
 }
 
 /** A dedicated connection owns the per-plugin drain lock and is always closed before returning. */
-export async function executePluginMigrationFiles(operation: PluginMigrationOperation, namespace: PluginNamespace, files: readonly MigrationPackageFile[], declarations: PluginMigrationDeclaration[]): Promise<void> {
+export type PluginMigrationObserver = (event: { operationId: string; namespaceId: number; order: number; migrationId: string; path: string; sha256: string; attemptId: string }) => Promise<void>;
+
+export async function executePluginMigrationFiles(operation: PluginMigrationOperation, namespace: PluginNamespace, files: readonly MigrationPackageFile[], declarations: PluginMigrationDeclaration[], observe?: PluginMigrationObserver): Promise<void> {
   const prefix = await prisma.pluginMigrationSuccess.findMany({ where: { namespaceId: namespace.id }, orderBy: { order: 'asc' } });
   validatePluginMigrations({ apiVersion: 1, migrations: declarations }, files, prefix.map(row => ({ id: row.migrationId, order: row.order, path: row.path, sha256: row.sha256 })));
   if (namespace.provisionedAt && prefix.length === declarations.length) {
@@ -131,6 +133,7 @@ export async function executePluginMigrationFiles(operation: PluginMigrationOper
       await renewPluginMigrationLease(operation.slug, operation.leaseToken);
       const startedAt = Date.now();
       const attempt = await createOwnedPluginMigrationAttempt(operation, { namespaceId: namespace.id, operationId: operation.id, order: declaration.order, migrationId: declaration.id, path: declaration.path, sha256: declaration.sha256, startedAt: new Date() });
+      await observe?.({ operationId: operation.id, namespaceId: namespace.id, order: declaration.order, migrationId: declaration.id, path: declaration.path, sha256: declaration.sha256, attemptId: attempt.id });
       const control = await pluginMigrationTestControl('before-file', operation.id, declaration.order);
       const remainingMs = deadline - await databaseNowMs();
       const fileTimer = setTimeout(() => { void client.end().catch(() => undefined); }, Math.max(1, Math.min(PLUGIN_MIGRATION_STATEMENT_TIMEOUT_MS, remainingMs)));
@@ -178,6 +181,7 @@ export async function executePluginMigrationFiles(operation: PluginMigrationOper
     }
     if (!currentNamespace.provisionedAt) {
       const attempt = await createOwnedPluginMigrationAttempt(operation, { namespaceId: namespace.id, operationId: operation.id, order: 0, migrationId: '__namespace__', path: '@namespace', sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', startedAt: new Date() });
+      await observe?.({ operationId: operation.id, namespaceId: namespace.id, order: 0, migrationId: attempt.migrationId, path: attempt.path, sha256: attempt.sha256, attemptId: attempt.id });
       let committing = false;
       await client.query('BEGIN');
       try {

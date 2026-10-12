@@ -49,33 +49,7 @@ export function validatePluginMigrations(database: unknown, files: readonly Migr
 /** Strip literals and comments before inspecting top-level SQL statements. */
 export function validateTransactionalMigrationSql(sql: string): void {
   const invalid = (): never => { throw new PluginMigrationValidationError('PLUGIN_MIGRATION_MANIFEST_INVALID'); };
-  let tokens = '', index = 0;
-  while (index < sql.length) {
-    const rest = sql.slice(index);
-    if (rest.startsWith('--')) { const end = sql.indexOf('\n', index); index = end < 0 ? sql.length : end + 1; tokens += ' '; continue; }
-    if (rest.startsWith('/*')) {
-      let depth = 1; index += 2;
-      while (depth && index < sql.length) {
-        if (sql.startsWith('/*', index)) { depth++; index += 2; }
-        else if (sql.startsWith('*/', index)) { depth--; index += 2; }
-        else index++;
-      }
-      if (depth) invalid(); tokens += ' '; continue;
-    }
-    const dollar = rest.match(/^\$(?:[a-zA-Z_][a-zA-Z0-9_]*)?\$/)?.[0];
-    if (dollar) { const end = sql.indexOf(dollar, index + dollar.length); if (end < 0) invalid(); index = end + dollar.length; tokens += ' literal '; continue; }
-    if (sql[index] === "'" || sql[index] === '"') {
-      const quote = sql[index++]; let closed = false;
-      while (index < sql.length) {
-        if (sql[index] === quote) { if (sql[index + 1] === quote) { index += 2; continue; } index++; closed = true; break; }
-        // Conservatively reject escape-string literals whose token boundaries are ambiguous.
-        if (sql[index] === '\\') invalid(); index++;
-      }
-      if (!closed) invalid(); tokens += ' literal '; continue;
-    }
-    if (sql[index] === '\\') invalid();
-    tokens += sql[index++];
-  }
+  const tokens = tokenizeMigrationSql(sql, invalid);
   for (const statement of tokens.split(';').map(value => value.trim().toUpperCase()).filter(Boolean)) {
     if (/^(BEGIN|START\s+TRANSACTION|COMMIT|END|ROLLBACK|ABORT|SAVEPOINT|RELEASE|SET|RESET|DISCARD|VACUUM|CLUSTER|CHECKPOINT|REINDEX|LISTEN|UNLISTEN|PREPARE|EXECUTE|DEALLOCATE|CALL|DO)\b/.test(statement)
       || /^(CREATE|DROP|ALTER)\s+(DATABASE|TABLESPACE|SUBSCRIPTION|SYSTEM)\b/.test(statement)
@@ -83,4 +57,37 @@ export function validateTransactionalMigrationSql(sql: string): void {
       || /^COPY\b[\s\S]*\b(STDIN|STDOUT|PROGRAM)\b/.test(statement)
       || /\b(SET_CONFIG|PG_ADVISORY_LOCK|PG_ADVISORY_UNLOCK|PG_TERMINATE_BACKEND|PG_CANCEL_BACKEND)\s*\(/.test(statement)) invalid();
   }
+}
+
+/** Preserve statement boundaries while hiding quoted bodies and comments. */
+export function tokenizeMigrationSql(sql: string, invalid: () => never, preserveOffsets = false): string {
+  let tokens = '', index = 0;
+  while (index < sql.length) {
+    const rest = sql.slice(index);
+    const start = index;
+    if (rest.startsWith('--')) { const end = sql.indexOf('\n', index); index = end < 0 ? sql.length : end + 1; tokens += preserveOffsets ? ' '.repeat(index - start) : ' '; continue; }
+    if (rest.startsWith('/*')) {
+      let depth = 1; index += 2;
+      while (depth && index < sql.length) {
+        if (sql.startsWith('/*', index)) { depth++; index += 2; }
+        else if (sql.startsWith('*/', index)) { depth--; index += 2; }
+        else index++;
+      }
+      if (depth) invalid(); tokens += preserveOffsets ? ' '.repeat(index - start) : ' '; continue;
+    }
+    const dollar = rest.match(/^\$(?:[a-zA-Z_][a-zA-Z0-9_]*)?\$/)?.[0];
+    if (dollar) { const end = sql.indexOf(dollar, index + dollar.length); if (end < 0) invalid(); index = end + dollar.length; tokens += preserveOffsets ? 'x'.repeat(index - start) : ' literal '; continue; }
+    if (sql[index] === "'" || sql[index] === '"') {
+      const quote = sql[index++]; let closed = false;
+      while (index < sql.length) {
+        if (sql[index] === quote) { if (sql[index + 1] === quote) { index += 2; continue; } index++; closed = true; break; }
+        // Conservatively reject escape-string literals whose token boundaries are ambiguous.
+        if (sql[index] === '\\') invalid(); index++;
+      }
+      if (!closed) invalid(); tokens += preserveOffsets ? 'x'.repeat(index - start) : ' literal '; continue;
+    }
+    if (sql[index] === '\\') invalid();
+    tokens += sql[index++];
+  }
+  return tokens;
 }

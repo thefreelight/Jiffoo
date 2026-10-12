@@ -6,6 +6,18 @@ const anonymousLabel = 'com.docker.volume.anonymous';
 const containerProjection = '{"Id":{{json .Id}},"Name":{{json .Name}},"Image":{{json .Image}},"Labels":{{json .Config.Labels}},"Mounts":{{json .Mounts}},"HostConfig":{{json .HostConfig}}}';
 const lines = value => value.trim().split(/\r?\n/).filter(Boolean);
 
+export async function assertDeploymentConfig(query, project, config) {
+  const ids = lines(await query(['ps', '-aq', '--filter', `label=${projectLabel}=${project}`]));
+  assert.ok(ids.length, 'Deployment containers are missing');
+  const containers = JSON.parse(await query(['inspect', ...ids]));
+  const expected = ['postgres', 'redis', 'silo', 'silo-init', 'silo-volume-init', 'db-init', 'api-1', 'api-2', 'worker-1', 'worker-2', 'api-lb', 'admin', 'shop', 'edge'];
+  assert.deepEqual(containers.map(row => row.Config.Labels['com.docker.compose.service']).sort(), expected.sort());
+  for (const row of containers) {
+    assert.equal(row.Config.Labels[projectLabel], project);
+    assert.equal(row.Config.Labels['com.docker.compose.project.config_files'], config, `Stale deployment configuration: ${row.Name}`);
+  }
+}
+
 export function assertExplicitImageVolumes(containers, images, volumes, project) {
   for (const volume of volumes) {
     assert.ok(!Object.hasOwn(volume.Labels ?? {}, anonymousLabel), `Anonymous volume remains: ${volume.Name}`);

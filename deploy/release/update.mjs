@@ -5,7 +5,8 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { assertManifest, assertDeployment, sha256 } from './identity.mjs';
-import { serviceRoles, guardState } from './backup.mjs';
+import { serviceRoles, guardState, verifyBackup } from './backup.mjs';
+import { readCoreMigrations, assertCorePrefix, executeCoreMigrations, coreHistorySql } from './core-migrations.mjs';
 
 const require = createRequire('/app/apps/api/package.json');
 const limit = 128 * 1024 * 1024;
@@ -14,6 +15,34 @@ const fail = message => { throw new Error(message); };
 const need = (condition, message) => { if (!condition) fail(message); };
 const json = path => JSON.parse(readFileSync(path, 'utf8'));
 const hash = value => sha256(Buffer.from(JSON.stringify(value)));
+export function canonicalJson(value) {
+  if (Array.isArray(value)) return '[' + value.map(item => canonicalJson(item)).join(',') + ']';
+  if (value && typeof value === 'object') return '{' + Object.keys(value).filter(key => value[key] !== undefined).sort().map(key => JSON.stringify(key) + ':' + canonicalJson(value[key])).join(',') + '}';
+  return JSON.stringify(value);
+}
+export function planDigest(plan) {
+  const { digest, boots, paths, ...stable } = plan;
+  const { token, confirmation, ...stablePaths } = paths;
+  return sha256(Buffer.from(canonicalJson({ ...stable, paths: stablePaths })));
+}
+function confirmedPlan(plan) {
+  need(plan.digest===planDigest(plan),'Plan digest mismatch');
+  need(!plan.migrations.length && !plan.packages.some(item=>item.pending.length || item.provisionNamespace) || plan.paths.confirmation===plan.digest,'Migration confirmation must equal PLAN_SHA256; use --confirm');
+}
+const migrationInventory = () => readCoreMigrations('/app/apps/api/prisma/migrations');
+const identities = sources => sources.map(({ name, checksum }) => ({ name, checksum }));
+function record(event) {
+  const journal = json('/state/journal.json');
+  journal.events.push({ sequence: journal.events.length + 1, at: new Date().toISOString(), ...event });
+  durableJson('/state/journal.json', journal);
+}
+function migrationEvent(event) {
+  const journal = json('/state/journal.json');
+  const plan=json('/state/plan.json');confirmedPlan(plan);
+  need(journal.planHash===plan.digest,'Migration plan integrity mismatch');
+  need(journal.auditHash && journal.backupHash, 'Migration requires durable pre-write audit and backup evidence');
+  record({ ...event, planHash: journal.planHash, auditHash: journal.auditHash, backupHash: journal.backupHash });
+}
 
 export function durableJson(path, value) {
   const temporary = path + '.' + randomUUID() + '.tmp';
@@ -49,18 +78,18 @@ function environment(containers) {
   return Object.fromEntries(api.Config.Env.map(item => { const index = item.indexOf('='); return [item.slice(0, index), item.slice(index + 1)]; }));
 }
 
-function configuredClient(containers) {
+function configuredClient(containers, queryTimeout = 60000) {
   const env = environment(containers), url = new URL(env.DATABASE_URL);
   // The helper shares only PostgreSQL's network namespace, never the Docker socket.
   url.hostname = '127.0.0.1'; url.port = '5432';
   for (const name of ['schema', 'connection_limit', 'pool_timeout']) url.searchParams.delete(name);
   url.searchParams.set('application_name', 'jiffoo-host-update');
   const { Client } = require('pg');
-  return new Client({ connectionString: url.toString(), connectionTimeoutMillis: 5000, query_timeout: 60000 });
+  return new Client({ connectionString: url.toString(), connectionTimeoutMillis: 5000, query_timeout: queryTimeout });
 }
 
-async function database(containers, action) {
-  const client = configuredClient(containers); client.on('error', () => undefined);
+async function database(containers, action, queryTimeout = 60000) {
+  const client = configuredClient(containers,queryTimeout); client.on('error', () => undefined);
   try { await client.connect(); return await action(client); } finally { await client.end(); }
 }
 
@@ -94,8 +123,8 @@ async function pluginPlan(client, packages) {
     const applied = namespace ? (await client.query('SELECT "migrationId" AS id, "order", path, sha256 FROM public.plugin_migration_successes WHERE "namespaceId"=$1 ORDER BY "order"', [namespace.id])).rows : [];
     const { validatePluginMigrations } = require('shared/plugin-signing');
     const declarations = validatePluginMigrations(inspected.manifest.database, inspected.files, applied);
-    need(namespace?.provisionedAt && applied.length === declarations.length || current.zipHash === inspected.hash && !inspected.manifest.database, 'Target needs a migration-capable update (B16c2); pending plugin migrations or namespace provisioning are not supported');
-    targets.set(inspected.manifest.slug, { filename: entry.name, hash: inspected.hash, manifest: inspected.manifest, changed: current.zipHash !== inspected.hash });
+    const provisionNamespace = Boolean(inspected.manifest.database) && !namespace?.provisionedAt;
+    targets.set(inspected.manifest.slug, { filename: entry.name, hash: inspected.hash, manifest: inspected.manifest, manifestDigest: inspected.manifestDigest, changed: current.zipHash !== inspected.hash, applied, provisionNamespace, pending: declarations.slice(applied.length) });
   }
   const builtins = builtinManifests('/app/apps/api/builtin-plugins', 'manifest.json');
   for (const manifest of builtins) need(!manifest.database, 'Target needs a migration-capable update (B16c2); builtin database declarations are not supported');
@@ -127,25 +156,87 @@ function assertConfiguration(current, target, source, destination, containers, p
   }
 }
 
-async function maintenance(client, containers, project, expectedBoots) {
+/** Resolve logical resources to the currently installed bindings, including restored stacks. */
+export function installedBindings(config, containers, volumes, project) {
+  const bindings={volumes:{},tls:{}};
+  for(const [service,definition] of Object.entries(config.services)) {
+    const actual=containers.find(item=>item.Config?.Labels?.['com.docker.compose.service']===service && item.Config.Labels['com.docker.compose.oneoff']!=='True');
+    need(actual,'Installed resource identity is missing: '+service);
+    for(const volume of definition.volumes ?? []) {
+      if(volume.type==='volume') {
+        const mount=actual.Mounts.find(item=>item.Destination===volume.target), metadata=volumes.find(item=>item.Name===mount?.Name);
+        need(mount?.Type==='volume' && metadata?.Labels?.['com.docker.compose.project']===project && metadata.Labels['com.docker.compose.volume']===volume.source,'Unowned or mismatched installed data volume');
+        const declared=config.volumes[volume.source];
+        need(declared && metadata.Driver===(declared.driver ?? 'local') && hash(metadata.Options ?? {})===hash(declared.driver_opts ?? {}),'Installed volume driver or options mismatch');
+        need(!bindings.volumes[volume.source] || bindings.volumes[volume.source]===metadata.Name,'Conflicting installed volume bindings');
+        bindings.volumes[volume.source]=metadata.Name;
+      } else if(service==='edge' && volume.type==='bind' && ['/etc/nginx/tls/cert.pem','/etc/nginx/tls/key.pem'].includes(volume.target)) {
+        const mount=actual.Mounts.find(item=>item.Destination===volume.target);
+        need(mount?.Type==='bind' && !mount.RW && typeof mount.Source==='string','Installed TLS binding mismatch');
+        bindings.tls[volume.target]=mount.Source;
+      }
+    }
+  }
+  return bindings;
+}
+
+function preserveBindings(config,bindings) {
+  for(const [logical,name] of Object.entries(bindings.volumes))config.volumes[logical]={name,external:true};
+  for(const volume of config.services.edge.volumes ?? [])if(bindings.tls[volume.target])volume.source=bindings.tls[volume.target];
+}
+
+async function maintenance(client, containers, project, expectedBoots, owned) {
   const own = containers.filter(c => c.Config.Labels?.['io.jiffoo.host-helper'] !== 'true');
-  guardState(own, project, 'backup');
+  if (!owned) guardState(own, project, 'backup');
+  else {
+    need(own.every(c => c.Config.Labels?.['com.docker.compose.project'] === project && !c.State.Paused && !c.State.Restarting
+      && (!c.State.Running || ['postgres','redis'].includes(c.Config.Labels['com.docker.compose.service']))), 'Unexpected running container blocks plugin migration');
+    need(Object.keys(serviceRoles).every(service => own.filter(c => c.Config.Labels['com.docker.compose.service'] === service && c.Config.Labels['com.docker.compose.oneoff'] !== 'True').length === 1), 'Plugin migration requires the complete installed stack');
+  }
   const rows = (await client.query('SELECT "bootNonce", hostname, state, "databaseRole" FROM public.core_processes ORDER BY "bootNonce"')).rows;
   const prior = new Map(expectedBoots.map(row => [row.bootNonce, row]));
   for (const row of rows) {
-    need(['QUIESCENT', 'DEAD_CONFIRMED'].includes(row.state), 'Unknown or undrained Core boot blocks maintenance: ' + row.bootNonce);
-    need(prior.has(row.bootNonce) || row.state === 'QUIESCENT', 'Unrecorded Core boot blocks maintenance');
+    const executor = owned && row.bootNonce === owned.bootNonce && row.state === 'LIVE';
+    need(executor || ['QUIESCENT', 'DEAD_CONFIRMED'].includes(row.state), 'Unknown or undrained Core boot blocks maintenance: ' + row.bootNonce);
+    need(executor || prior.has(row.bootNonce) || row.state === 'QUIESCENT', 'Unrecorded Core boot blocks maintenance');
   }
   need(expectedBoots.every(row => rows.some(item => item.bootNonce === row.bootNonce)), 'Recorded Core boot disappeared during maintenance');
   const visibility = (await client.query("SELECT rolsuper OR pg_has_role(current_user,'pg_read_all_stats','MEMBER') AS visible FROM pg_roles WHERE rolname=current_user")).rows[0];
   need(visibility?.visible, 'Insufficient database session visibility');
-  const sessions = (await client.query('SELECT pid, application_name FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid()')).rows;
-  need(sessions.length === 0, 'Database sessions still hold work; maintenance is not proven');
+  const sessions = (await client.query('SELECT pid, application_name,usename FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid()')).rows;
+  const executorRole = owned && rows.find(row => row.bootNonce === owned.bootNonce && row.state === 'LIVE')?.databaseRole;
+  need(sessions.every(row => owned && executorRole && row.usename === executorRole && row.application_name.startsWith(owned.applicationPrefix)), 'Database sessions still hold unknown work; maintenance is not proven');
   need(Number((await client.query('SELECT count(*) FROM pg_prepared_xacts WHERE database=current_database()')).rows[0].count) === 0, 'Prepared database transactions block maintenance');
-  need(Number((await client.query('SELECT count(*) FROM public.plugin_operation_leases')).rows[0].count) === 0, 'In-flight plugin markers or operation leases block maintenance');
-  need(Number((await client.query("SELECT count(*) FROM public.plugin_migration_operations WHERE phase NOT IN ('SUCCESS','FAILED','RECOVERED')")).rows[0].count) === 0, 'Incomplete plugin operations block maintenance');
-  need(Number((await client.query("SELECT count(*) FROM public.plugin_migration_attempts WHERE status='UNKNOWN'")).rows[0].count) === 0, 'Unknown plugin attempts block maintenance');
+  const leases=(await client.query('SELECT slug,token,"ownerBootNonce" FROM public.plugin_operation_leases')).rows;
+  need(leases.every(row=>owned && row.slug===owned.slug && row.token===owned.leaseToken && row.ownerBootNonce===owned.bootNonce), 'In-flight plugin markers or operation leases block maintenance');
+  const operations=(await client.query("SELECT id,phase,\"ownerBootNonce\" FROM public.plugin_migration_operations WHERE phase NOT IN ('SUCCESS','FAILED','RECOVERED')")).rows;
+  need(operations.every(row=>owned && row.id===owned.operationId && row.phase==='MIGRATING' && row.ownerBootNonce===owned.bootNonce), 'Incomplete plugin operations block maintenance');
+  const attempts=(await client.query("SELECT id FROM public.plugin_migration_attempts WHERE status='UNKNOWN'")).rows;
+  need(attempts.every(row=>owned && row.id===owned.attemptId), 'Unknown plugin attempts block maintenance');
   return { proven: true, at: new Date().toISOString(), boots: rows, containers: own.map(c => ({ id: c.Id, service: c.Config.Labels['com.docker.compose.service'], state: c.State.Status })) };
+}
+
+async function proveRollback(client,containers,project,plan,journal,stopped) {
+  need(journal.planHash===planDigest(plan),'Rollback plan integrity mismatch');
+  assertCorePrefix((await client.query(coreHistorySql)).rows,plan.currentInventory,true);
+  const intents=journal.events.filter(item=>item.status==='intent');
+  if(intents.length || stopped) {
+    await maintenance(client,containers,project,plan.boots);
+    await client.query("SET lock_timeout='5s'");await client.query('SELECT pg_advisory_lock(824301550)');
+    assertCorePrefix((await client.query(coreHistorySql)).rows,plan.currentInventory,true);
+  }
+  for(const intent of intents) {
+    need(!journal.events.some(item=>item.id===intent.id && ['committed','unknown'].includes(item.status)),'Committed or unknown migration forbids application rollback');
+    if(intent.kind==='plugin') {
+      const attempt=(await client.query('SELECT status FROM public.plugin_migration_attempts WHERE id=$1',[intent.attemptId])).rows[0];
+      need(attempt?.status==='FAILED' || attempt?.status==='ABORTED','Plugin migration outcome forbids application rollback');
+      const item=plan.packages.find(item=>item.manifest.slug===intent.slug);
+      const namespace=(await client.query('SELECT id,"provisionedAt" FROM public.plugin_namespaces WHERE slug=$1',[intent.slug])).rows[0];
+      need(item && (!item.provisionNamespace || !namespace?.provisionedAt),'Committed namespace forbids application rollback');
+      const successes=namespace?(await client.query('SELECT "migrationId" AS id,"order",path,sha256 FROM public.plugin_migration_successes WHERE "namespaceId"=$1 ORDER BY "order"',[namespace.id])).rows:[];
+      need(canonicalJson(successes)===canonicalJson(item.applied),'Committed plugin migration forbids application rollback');
+    }
+  }
 }
 
 const tables = {
@@ -199,48 +290,92 @@ async function main() {
       for (const [native, alias] of [[paths.current, '/current'], [paths.target, '/target']]) if (volume.source.startsWith(native + '/')) volume.source = alias + volume.source.slice(native.length);
     }
     assertConfiguration(current, next, source, target, containers.filter(c => c.Config.Labels?.['io.jiffoo.host-helper'] !== 'true'), project);
-    const targetInventory = inventory('/app/apps/api/prisma/migrations');
+    const bindings=installedBindings(current,containers,json('/work/volumes.json'),project);
+    const targetSources = migrationInventory(), targetInventory = identities(targetSources);
+    const { validateCoreMigrationSql } = require('/app/packages/shared/dist/shared/src/core-migration-sql.js');
     const plan = await database(containers, async client => {
-      const history = (await client.query('SELECT migration_name,checksum,finished_at,rolled_back_at FROM public._prisma_migrations ORDER BY migration_name')).rows;
-      assertNoMigrations(history, json('/work/current-inventory.json'));
-      assertNoMigrations(history, targetInventory);
+      const history = (await client.query(coreHistorySql)).rows;
+      const currentInventory = json('/work/current-inventory.json');
+      assertCorePrefix(history, currentInventory, true);
+      assertCorePrefix(history, targetInventory);
+      for (const item of targetSources) validateCoreMigrationSql(item.sql);
       const plugins = await pluginPlan(client, existsSync('/plugins') ? '/plugins' : undefined);
       const boots = (await client.query('SELECT "bootNonce",hostname,state,"databaseRole" FROM public.core_processes ORDER BY "bootNonce"')).rows;
       const live = boots.filter(row => !['QUIESCENT','DEAD_CONFIRMED'].includes(row.state));
       const core = containers.filter(c => /^(api|worker)-[12]$/.test(c.Config.Labels?.['com.docker.compose.service'] ?? ''));
       need(live.every(row => core.some(c => c.State.Running && c.Config.Hostname === row.hostname)), 'Unknown Core process blocks update planning');
-      return { version: 1, project, currentCommit: source.sourceCommit, targetCommit: target.sourceCommit, images: target.images, migrations: [], history, ...plugins, boots, paths };
+      return { version: 2, project, currentCommit: source.sourceCommit, targetCommit: target.sourceCommit, currentImages: source.images, images: target.images, currentReleaseHash: hash(source), targetReleaseHash: hash(target), configurationHash: hash({ current, next }), currentInventory, targetInventory, migrations: targetInventory.slice(history.length), history: history.map(({ migration_name, checksum }) => ({ migration_name, checksum })), rollbackPolicy: 'No application rollback after any committed or unknown migration', ...plugins, boots, paths };
     });
-    plan.digest = hash({ ...plan, boots: undefined, paths: { ...plan.paths, token: undefined } });
+    plan.strippedWrappers = targetSources.filter(item => validateCoreMigrationSql(item.sql).wrapperStripped).map(item => item.name);
+    plan.currentVersion = source.version; plan.targetVersion = target.version;
+    plan.bindings=bindings;
+    plan.digest = planDigest(plan);
     durableJson('/work/plan.json', plan);
+    preserveBindings(current,bindings);preserveBindings(next,bindings);
     const clean = config => { for (const service of Object.values(config.services)) { delete service.build; for (const mount of service.volumes ?? []) if (mount.type === 'bind') {
       if (mount.source.startsWith('/current/')) mount.source = paths.current + mount.source.slice('/current'.length);
       if (mount.source.startsWith('/target/')) mount.source = paths.state + '/deployment/release' + mount.source.slice('/target'.length);
     } } return config; };
     durableJson('/work/prior-config.json', clean(current)); durableJson('/work/next-config.json', clean(next));
-    console.info(`Update plan: ${plan.digest}\nCurrent commit: ${source.sourceCommit}\nTarget commit: ${target.sourceCommit}\nPending Core migrations: 0\nPending plugin migrations: 0`);
+    const displayed={currentCommit:plan.currentCommit,currentVersion:plan.currentVersion,currentImages:plan.currentImages,targetCommit:plan.targetCommit,targetVersion:plan.targetVersion,images:plan.images,migrations:plan.migrations,strippedWrappers:plan.strippedWrappers,
+      plugins:plan.packages.map(item=>({slug:item.manifest.slug,currentVersion:plan.installed.find(row=>row.slug===item.manifest.slug).version,targetVersion:item.manifest.version,hash:item.hash,manifestDigest:item.manifestDigest,applied:item.applied,pending:item.pending,provisionNamespace:item.provisionNamespace})),backup:paths.backup,rollbackPolicy:plan.rollbackPolicy};
+    console.info(`Update plan: ${plan.digest}\nCurrent commit: ${source.sourceCommit}\nTarget commit: ${target.sourceCommit}\nPending Core migrations: ${plan.migrations.length}\nPending plugin migrations: ${plan.packages.reduce((n, item) => n + item.pending.length + Number(item.provisionNamespace), 0)}\nBackup: ${paths.backup}\n${plan.rollbackPolicy}\nPlan details: ${canonicalJson(displayed)}`);
   } else if (command === 'image-plan') {
     for (const [kind, manifest] of [['current', source], ['target', target]]) for (const [role, image] of Object.entries(manifest.images)) console.info(`${kind}\t${role}\t${image.reference}`);
   } else if (command === 'paths') {
-    const [current, target, state, backup, actor, token] = process.argv.slice(6);
-    durableJson('/work/paths.json', { current, target, state, backup, actor, token });
+    const [current, target, state, backup, actor, token, confirmation] = process.argv.slice(6);
+    durableJson('/work/paths.json', { current, target, state, backup, actor, token, confirmation });
+  } else if (command === 'confirm') {
+    const plan = json('/work/plan.json');
+    confirmedPlan(plan);
   } else if (command === 'initialize') {
     need(!existsSync('/state/journal.json'), 'Update journal already exists; use --resume or --restore-prior');
     const plan = json('/work/plan.json');
+    confirmedPlan(plan);
     for (const file of ['plan.json','prior-config.json','next-config.json']) durableJson('/state/' + file, json('/work/' + file));
     mkdirSync('/state/deployment/release', { recursive: true, mode: 0o700 }); cpSync('/target', '/state/deployment/release', { recursive: true });
     cpSync('/current/deploy/compose/.env', '/state/deployment/release/deploy/compose/.env');
-    durableJson('/state/journal.json', { version: 1, operationId: randomUUID(), project, phase: 'prepared', result: null, planHash: hash(plan), priorConfigHash: hash(json('/state/prior-config.json')), nextConfigHash: hash(json('/state/next-config.json')), token: plan.paths.token, paths: plan.paths });
+    durableJson('/state/journal.json', { version: 2, operationId: randomUUID(), project, phase: 'prepared', result: null, events: [], strippedWrappers: plan.strippedWrappers, planHash: plan.digest, priorConfigHash: hash(json('/state/prior-config.json')), nextConfigHash: hash(json('/state/next-config.json')), token: plan.paths.token, paths: plan.paths });
   } else if (command === 'journal') {
     const journal = json('/state/journal.json'); journal.phase = phase; journal.updatedAt = new Date().toISOString();
     if (['success','rolled-back','rollback-failed'].includes(phase)) journal.result = phase;
     durableJson('/state/journal.json', journal); console.info('Update phase: ' + phase);
+    record({ kind: 'phase', phase });
   } else if (command === 'resume-proof') {
     const journal = json('/state/journal.json'), plan = json('/state/plan.json'), paths = json('/work/paths.json');
-    need(journal.version === 1 && journal.project === project && journal.planHash === hash(plan), 'Update journal or plan integrity mismatch');
+    need(journal.version === 2 && journal.project === project && journal.planHash === planDigest(plan) && plan.digest === journal.planHash, 'Update journal or plan integrity mismatch');
     need(journal.priorConfigHash === hash(json('/state/prior-config.json')) && journal.nextConfigHash === hash(json('/state/next-config.json')), 'Recorded deployment configuration checksum mismatch');
     for (const key of ['current','target','state','backup']) need(paths[key] === journal.paths[key], 'Resume paths differ from the recorded update');
     console.info(journal.phase);
+  } else if (command === 'rollback-proof') {
+    const plan = json('/state/plan.json'), journal = json('/state/journal.json');
+    await database(containers,client=>proveRollback(client,containers,project,plan,journal,phase==='stopped'));
+  } else if (command === 'restore-command') {
+    const journal = json('/state/journal.json');
+    const shellQuote = value => "'" + value.replaceAll("'", "'\\''") + "'";
+    need(/^[a-f0-9]{64}$/.test(journal.backupHash ?? ''), 'Verified pre-update backup confirmation is unavailable');
+    const applicationsRunning = containers.some(item => /^(api|worker)-[12]$/.test(item.Config?.Labels?.['com.docker.compose.service'] ?? '') && item.State.Running);
+    console.error('No application rollback. ' + (applicationsRunning ? 'Stop every project container before backup restore.' : 'Stack remains in maintenance.'));
+    console.error('Backup: ' + journal.paths.backup);
+    console.error('Restore command: sh ' + [journal.paths.current + '/bin/jiffoo-host', 'restore', journal.paths.backup, project, journal.paths.state + '-restore', journal.backupHash, ...(mode === 'acceptance' ? ['--acceptance'] : [])].map(shellQuote).join(' '));
+  } else if (command === 'core-migrations') {
+    const plan = json('/state/plan.json');
+    const sources = migrationInventory();
+    need(canonicalJson(identities(sources)) === canonicalJson(plan.targetInventory), 'Target Core inventory changed after audit');
+    const { validateCoreMigrationSql } = require('/app/packages/shared/dist/shared/src/core-migration-sql.js');
+    await database(containers, async client => {
+      await client.query("SET lock_timeout='5s'");
+      await client.query('SELECT pg_advisory_lock(1246316110,1)');
+      await maintenance(client, containers, project, plan.boots);
+      await executeCoreMigrations(client, sources, plan.currentInventory, validateCoreMigrationSql, async event => {
+        if(event.status==='intent')await maintenance(client,containers,project,plan.boots);
+        migrationEvent(event);
+        if (mode === 'acceptance' && event.status === 'committed' && existsSync('/app/deploy/compose/update-crash-checkpoint')) {
+          // Only disposable acceptance images contain this deterministic crash checkpoint.
+          while (!existsSync('/state/acceptance-release')) await new Promise(done => setTimeout(done,100));
+        }
+      });
+    },610000);
   } else if (command === 'health') {
     const selected = phase === 'prior' ? source : target;
     const config = json('/state/' + (phase === 'prior' ? 'prior-config.json' : 'next-config.json'));
@@ -254,28 +389,39 @@ async function main() {
       const live = (await client.query("SELECT hostname,kind FROM public.core_processes WHERE state NOT IN ('QUIESCENT','DEAD_CONFIRMED')")).rows;
       need(live.length === 4 && live.filter(row => row.kind === 'api').length === 2 && live.filter(row => row.kind === 'worker').length === 2, 'Two API and two worker live registrations are required');
       need(live.every(row => containers.some(c => c.Config.Hostname === row.hostname && c.State.Running)), 'Live registry contains an unknown process');
-      assertNoMigrations((await client.query('SELECT migration_name,checksum,finished_at,rolled_back_at FROM public._prisma_migrations ORDER BY migration_name')).rows, inventory('/app/apps/api/prisma/migrations'));
+      assertCorePrefix((await client.query(coreHistorySql)).rows, phase === 'prior' ? json('/state/plan.json').currentInventory : identities(migrationInventory()), true);
     });
     console.info('Every release service and all two API two worker process identities are healthy');
   } else if (command === 'maintenance' || command === 'audit' || command === 'snapshot' || command === 'restore') {
+    if(command==='audit')configureRuntime(containers);
     const plan = json('/state/plan.json');
     await database(containers, async client => {
       const proof = await maintenance(client, containers, project, plan.boots); durableJson('/state/maintenance.json', proof);
       if (command === 'maintenance') { console.info('Docker registry database sessions and in-flight maintenance proof passed'); return; }
-      assertNoMigrations((await client.query('SELECT migration_name,checksum,finished_at,rolled_back_at FROM public._prisma_migrations ORDER BY migration_name')).rows, inventory('/app/apps/api/prisma/migrations'));
+      assertCorePrefix((await client.query(coreHistorySql)).rows, plan.currentInventory, true);
       if (command === 'audit') {
-        const env = environment(containers), url = new URL(env.DATABASE_URL); url.hostname = '127.0.0.1'; url.port = '5432';
-        const drift = spawnSync(process.execPath, [require.resolve('prisma/build/index.js'), 'migrate', 'diff', '--from-url', url.toString(), '--to-schema-datamodel', 'prisma/schema', '--exit-code'], { cwd: '/app/apps/api', env: { ...process.env, DATABASE_URL: url.toString() }, encoding: 'utf8', timeout: 60000 });
-        need(drift.status === 0, 'Database drift or unavailable schema inspection blocks update');
-        const { auditPluginDatabase, pluginDatabaseAuditExitCode } = require('/app/apps/api/dist/core/admin/extension-installer/plugin-database-audit.js');
-        const report = await auditPluginDatabase(client); durableJson('/state/audit.json', report);
+        need(hash(source) === plan.currentReleaseHash && hash(target) === plan.targetReleaseHash, 'Release identity changed after confirmation');
+        need(canonicalJson(installedBindings(json('/work/current-config.json'),containers,json('/work/volumes.json'),project))===canonicalJson(plan.bindings),'Installed volume or TLS bindings changed after confirmation');
+        need(canonicalJson(identities(migrationInventory())) === canonicalJson(plan.targetInventory), 'Core target inventory changed after confirmation');
+        const plugins = await pluginPlan(client, existsSync('/plugins') ? '/plugins' : undefined);
+        need(canonicalJson(plugins) === canonicalJson({ installed: plan.installed, packages: plan.packages, pluginSlugs: plan.pluginSlugs, themeSlugs: plan.themeSlugs }), 'Plugin plan changed after confirmation');
+        const { auditPluginDatabaseForUpdate, pluginDatabaseAuditExitCode } = require('/app/apps/api/dist/core/admin/extension-installer/plugin-database-audit.js');
+        const report = await auditPluginDatabaseForUpdate(client, plan.currentInventory); durableJson('/state/audit.json', report);
         need(pluginDatabaseAuditExitCode(report) === 0, 'Plugin database pre-write audit blocked update; inspect audit.json');
-        console.info('Core and plugin pre-write audit passed; zero pending migrations');
+        const journal = json('/state/journal.json'); journal.auditHash = hash(report);
+        if (existsSync('/backup/backup.sha256')) {
+          journal.backupHash = readFileSync('/backup/backup.sha256', 'utf8').trim();
+          const backup = verifyBackup('/backup',journal.backupHash,mode);
+          need(backup.sourceCommit === plan.currentCommit && backup.project === project, 'Backup identity differs from the confirmed update');
+        }
+        durableJson('/state/journal.json', journal); record({ kind: 'audit', auditHash: journal.auditHash, backupHash: journal.backupHash ?? null });
+        console.info('Core and plugin pre-write audit passed; ' + (plan.migrations.length || plan.packages.some(item => item.pending.length || item.provisionNamespace) ? 'confirmed migration plan' : 'zero pending migrations'));
       } else if (command === 'snapshot') {
         const snap = await snapshot(client, plan); durableJson('/state/managed.json', snap);
         const journal = json('/state/journal.json'); journal.managedHash = hash(snap); durableJson('/state/journal.json', journal);
       } else {
         const snap = json('/state/managed.json'); need(json('/state/journal.json').managedHash === hash(snap), 'Managed snapshot checksum mismatch');
+        await proveRollback(client,containers,project,plan,json('/state/journal.json'),true);
         await restoreSnapshot(client, snap); console.info('Managed package bytes installations subscriptions registry and theme state restored');
       }
     });
@@ -285,18 +431,30 @@ async function main() {
     configureRuntime(containers);
     const { previewPluginUpload } = require('/app/apps/api/dist/core/admin/extension-installer/plugin-upload.js');
     const { startPluginInstallOperation, getPluginInstallOperation, drainPluginInstallOperations } = require('/app/apps/api/dist/core/admin/extension-installer/plugin-migration-operation.js');
-    const { finishCoreProcess } = require('/app/apps/api/dist/infra/core-process.js');
+    const { finishCoreProcess,ensureCoreProcess } = require('/app/apps/api/dist/infra/core-process.js');
     const { prisma } = require('/app/apps/api/dist/config/database.js');
+    const { coreProcessIdentity,processApplicationPrefix } = require('/app/apps/api/dist/infra/core-process-identity.js');
+    let guard;
     try {
       for (const item of plan.packages.filter(item => item.changed)) {
         const bytes = readFileSync('/plugins/' + item.filename); need(sha256(bytes) === item.hash, 'Target plugin bytes changed after audit');
+        confirmedPlan(plan);
+        await ensureCoreProcess();
+        if(!guard){guard=configuredClient(containers);guard.on('error',()=>undefined);await guard.connect();await guard.query("SET lock_timeout='5s'");await guard.query('SELECT pg_advisory_lock(1246316110,1)');}
+        await maintenance(guard,containers,project,plan.boots,{bootNonce:coreProcessIdentity.bootNonce,applicationPrefix:processApplicationPrefix()});
         const preview = await previewPluginUpload(bytes, plan.paths.actor);
-        need(!preview.migrationPlan.changesDatabase, 'Target needs a migration-capable update (B16c2)');
-        const result = await startPluginInstallOperation(bytes, { actorUserId: plan.paths.actor, previewToken: preview.previewToken, confirmMigrations: false });
-        await drainPluginInstallOperations(); const operation = await getPluginInstallOperation(result.operationId);
+        need(canonicalJson(preview.migrationPlan.pending) === canonicalJson(item.pending) && preview.migrationPlan.provisionNamespace === item.provisionNamespace, 'Plugin migration plan changed after audit');
+        const result = await startPluginInstallOperation(bytes, { actorUserId: plan.paths.actor, previewToken: preview.previewToken, confirmMigrations: preview.migrationPlan.changesDatabase }, undefined, async event => {
+          need(event.order === 0 ? item.provisionNamespace : item.pending.some(row => row.order === event.order && row.id === event.migrationId && row.path === event.path && row.sha256 === event.sha256), 'Unplanned plugin migration intent');
+          const operation=await prisma.pluginMigrationOperation.findUniqueOrThrow({where:{id:event.operationId}});
+          need(operation.ownerBootNonce===coreProcessIdentity.bootNonce && operation.packageHash===item.hash && operation.manifestDigest===item.manifestDigest, 'Plugin executor identity changed after audit');
+          await maintenance(guard,containers,project,plan.boots,{slug:item.manifest.slug,operationId:event.operationId,attemptId:event.attemptId,leaseToken:operation.leaseToken,bootNonce:coreProcessIdentity.bootNonce,applicationPrefix:processApplicationPrefix()});
+          migrationEvent({ kind: 'plugin', status: 'intent', slug: item.manifest.slug, ...event });
+        });
+        await drainPluginInstallOperations(); const operation = await prisma.pluginMigrationOperation.findUniqueOrThrow({where:{id:result.operationId}});
         need(operation.phase === 'SUCCESS', 'Target plugin publication failed: ' + item.manifest.slug);
       }
-    } finally { await finishCoreProcess(); await prisma.$disconnect(); }
+    } finally { try { await finishCoreProcess(); } finally { await guard?.end(); await prisma.$disconnect(); } }
   } else fail('Unknown update helper command');
 }
 

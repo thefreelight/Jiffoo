@@ -19,6 +19,7 @@ import { createServer, type ServerResponse } from 'node:http';
 import { callContract, deliverInstallationEvent, validateCandidateRuntime, dropInternalRuntime } from '@/core/admin/extension-installer/plugin-runtime';
 import type { MigrationTestLimits } from '@/core/admin/extension-installer/plugin-migration-test-control';
 import { processApplicationName } from '@/infra/core-process-identity';
+import { startPluginInstallOperation, drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
 
 type File = { path: string; content: Buffer; symlink?: boolean };
 const sha = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -146,6 +147,17 @@ afterEach(async () => {
 afterAll(async () => { await app.close(); await deleteTestUser(actorId); });
 
 describe('Declared plugin migrations over real TCP', () => {
+  it('host observer runs before every SQL file while the fenced executor owns publication', async () => {
+    const slug=own(),bytes=await archive(slug,[sqlFile('CREATE TABLE records (id INTEGER PRIMARY KEY);'),sqlFile('INSERT INTO records VALUES (1);',2)]);
+    const plan=await preview(bytes),events: number[]=[];
+    const result=await startPluginInstallOperation(bytes,{actorUserId:actorId,previewToken:plan.previewToken,confirmUnsigned:true,confirmationSlug:slug,confirmMigrations:true},undefined,async event=>{
+      events.push(event.order);
+      expect(await prisma.pluginMigrationSuccess.count({where:{namespaceId:event.namespaceId}})).toBe(event.order-1);
+      expect(await prisma.pluginMigrationAttempt.findUniqueOrThrow({where:{id:event.attemptId}})).toMatchObject({status:'UNKNOWN',operationId:event.operationId});
+    });
+    await drainPluginInstallOperations();
+    expect(events).toEqual([1,2]);expect(await prisma.pluginMigrationOperation.findUniqueOrThrow({where:{id:result.operationId}})).toMatchObject({phase:'SUCCESS',committedPrefix:2});
+  });
   it('G unqualified migration CREATE targets only the plugin schema with public excluded', async () => {
     const slug = own(), table = `scope_${randomUUID().replaceAll('-', '')}`;
     await install(await archive(slug, [sqlFile(`CREATE TABLE ${table} (path TEXT); INSERT INTO ${table} VALUES (current_setting('search_path'));`)]));

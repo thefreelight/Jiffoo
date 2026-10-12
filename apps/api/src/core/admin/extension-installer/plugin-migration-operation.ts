@@ -15,7 +15,7 @@ import { checkPluginApiCompatibility } from './plugin-compatibility';
 import { extractZipToTemp, cleanupTemp, resolveExtractedPackageRoot } from './utils';
 import { loadPluginEntryModule } from './plugin-module-loader';
 import { isContractV1Runtime } from './contract-v1-runtime';
-import { claimPluginNamespace, executePluginMigrationFiles, migrationPlan, renewPluginMigrationLease, namespaceProvisioningConfirmed, PLUGIN_MIGRATION_DEADLINE_MS } from './plugin-migration-executor';
+import { claimPluginNamespace, executePluginMigrationFiles, migrationPlan, renewPluginMigrationLease, namespaceProvisioningConfirmed, PLUGIN_MIGRATION_DEADLINE_MS, type PluginMigrationObserver } from './plugin-migration-executor';
 import { INCOMPLETE_PLUGIN_OPERATION_PHASES, updateOwnedPluginMigrationOperation, updateOwnedPluginMigrationAttempt } from './plugin-migration-gate';
 import type { InstalledPlugin, PluginInstallOptions } from './types';
 import { PluginDatabaseQueue } from './plugin-database-queue';
@@ -33,7 +33,7 @@ const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.Inp
 export async function drainPluginInstallOperations(): Promise<void> { await Promise.all([...running.values()]); }
 export function unsettledPluginInstallOperations() { return [...running.keys()].map(id => ({ kind: 'plugin-install', id })); }
 
-export async function startPluginInstallOperation(bytes: Buffer, options: PluginInstallOptions, recoveryOf?: string): Promise<{ operationId: string }> {
+export async function startPluginInstallOperation(bytes: Buffer, options: PluginInstallOptions, recoveryOf?: string, observe?: PluginMigrationObserver): Promise<{ operationId: string }> {
   const inspection = await inspectPluginUpload(bytes);
   const current = await prisma.pluginInstall.findUnique({ where: { slug: inspection.manifest.slug } });
   const snapshot = uploadSnapshot(current);
@@ -82,13 +82,13 @@ export async function startPluginInstallOperation(bytes: Buffer, options: Plugin
       if (plan.changesDatabase) await tx.adminAuditEvent.create({ data: { actorId: options.actorUserId!, action: 'PLUGIN_MIGRATIONS_CONFIRMED', targetType: 'plugin', targetId: inspection.manifest.slug, summary: json({ operationId: id, plan }) } });
     });
   } catch (error) { await releasePluginOperationLease(inspection.manifest.slug, token); throw error; }
-  const work = runPluginInstallOperation(id).finally(() => running.delete(id));
+  const work = runPluginInstallOperation(id, observe).finally(() => running.delete(id));
   running.set(id, work);
   void work.catch(() => undefined);
   return { operationId: id };
 }
 
-async function runPluginInstallOperation(id: string): Promise<void> {
+async function runPluginInstallOperation(id: string, observe?: PluginMigrationObserver): Promise<void> {
   const operation = await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id } });
   let temporary: string | undefined;
   let candidate: Awaited<ReturnType<typeof pluginPackageStore.put>> | undefined;
@@ -139,7 +139,7 @@ async function runPluginInstallOperation(id: string): Promise<void> {
     await assertDeadline();
     const namespace = await claimPluginNamespace(operation, inspection.publisher);
     await reconcileUnknownAttempts(namespace.id, operation);
-    await executePluginMigrationFiles(operation, namespace, inspection.files, operation.declarations as unknown as PluginMigrationDeclaration[]);
+    await executePluginMigrationFiles(operation, namespace, inspection.files, operation.declarations as unknown as PluginMigrationDeclaration[], observe);
     if (leaseError) throw leaseError;
     await assertDeadline();
     await candidate.commit(); candidate = undefined;

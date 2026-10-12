@@ -1,6 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ComposeVolumeLedger, RecordedAcceptanceChecks, assertExplicitImageVolumes } from './compose-volumes.mjs';
+import { ComposeVolumeLedger, RecordedAcceptanceChecks, assertExplicitImageVolumes, assertDeploymentConfig } from './compose-volumes.mjs';
+
+test('deployment proof includes stopped init services and rejects one reused container', async () => {
+  const config = '/restored/compose.restore.json';
+  const services = ['postgres', 'redis', 'silo', 'silo-init', 'silo-volume-init', 'db-init', 'api-1', 'api-2', 'worker-1', 'worker-2', 'api-lb', 'admin', 'shop', 'edge'];
+  const rows = services.map(service => ({ Name: service, Config: { Labels: {
+    'com.docker.compose.project': project, 'com.docker.compose.service': service,
+    'com.docker.compose.project.config_files': config,
+  } }, State: { Running: !service.endsWith('init') } }));
+  const query = async args => args[0] === 'ps' ? rows.map(row => row.Name).join('\n') : JSON.stringify(rows);
+  await assertDeploymentConfig(query, project, config);
+  rows.find(row => row.Name === 'api-1').Config.Labels['com.docker.compose.project.config_files'] = '/prior/config.json';
+  await assert.rejects(assertDeploymentConfig(query, project, config), /Stale deployment configuration/);
+  rows.pop();
+  await assert.rejects(assertDeploymentConfig(query, project, config));
+});
 
 const project = 'jiffoo-backup-11111111-1111-4111-8111-111111111111';
 const projectLabel = 'com.docker.compose.project';

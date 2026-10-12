@@ -1,12 +1,12 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID, generateKeyPairSync } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { connect } from 'node:net';
-import { ComposeVolumeLedger, RecordedAcceptanceChecks } from './compose-volumes.mjs';
+import { ComposeVolumeLedger, RecordedAcceptanceChecks, assertDeploymentConfig } from './compose-volumes.mjs';
 import { BackupHostEmulator, emulatorImage } from './backup-host-emulator.mjs';
 import { makeRelease } from '../deploy/release/prepare.mjs';
 import { sha256 } from '../deploy/release/identity.mjs';
@@ -19,7 +19,8 @@ export function updateProfile(args) {
 export function guardUpdateDatabase(url) {
   assert.equal(url, 'postgresql://postgres:postgres@localhost:5432/jiffoo_core_test', 'Update acceptance requires the exact jiffoo_core_test DATABASE_URL_TEST');
 }
-const step = 'Run no-migration update acceptance';
+// Keep the existing full-gate catalogue identity while extending its actual checks.
+export const updateStep = 'Run no-migration update acceptance';
 async function main() {
   const profile = updateProfile(process.argv.slice(2)); guardUpdateDatabase(process.env.DATABASE_URL_TEST);
   const started = new Date().toISOString(), start = performance.now(), project = 'jiffoo-update-' + randomUUID();
@@ -31,7 +32,13 @@ async function main() {
   const commit = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8', windowsHide: true }).stdout.trim();
   const version = JSON.parse(readFileSync('package.json')).version.replace(/-opensource$/, '');
   const tags = [], commands = [], ports = [], manifests = {};
-  let directory, old, target, failure, baseline, foreignBefore, activeConfig, secrets = [];
+  let directory, old, target, failure, baseline, foreignBefore, activeConfig, migrationBaseline, actor='acceptance-operator', secrets = [];
+  const fixtureSql = {
+    first:"CREATE TABLE public.b16c2_update_probe (id integer PRIMARY KEY, value text NOT NULL);\nINSERT INTO public.b16c2_update_probe (id,value) VALUES (1,'core-first-commit');\n",
+    second:"ALTER TABLE public.b16c2_update_probe ADD COLUMN execution_count integer NOT NULL DEFAULT 0;\nUPDATE public.b16c2_update_probe SET value='core-second-commit',execution_count=execution_count+1 WHERE id=1;\n",
+    checked:"DO $$ BEGIN\n  IF NOT EXISTS (SELECT 1 FROM public.b16c2_update_probe WHERE id = 1) THEN\n    RAISE EXCEPTION 'probe row missing';\n  END IF;\nEND $$;\nUPDATE public.b16c2_update_probe SET value = value || '-checked' WHERE id = 1;\n",
+    failed:"CREATE TABLE public.b16c2_should_rollback (id integer PRIMARY KEY);\nINSERT INTO public.b16c2_update_probe (id,value) VALUES (2,'must-rollback');\nSELECT 1 / 0;\n",
+  };
   const run = async (command, args, { allowFailure = false, quiet = false } = {}) => {
     const tick = performance.now();
     const result = emulator ? await emulator.run(command, args) : await new Promise((done, reject) => {
@@ -60,7 +67,7 @@ async function main() {
   const diagnostics = () => ({ project, query: async args => (await docker(args, { quiet: true })).stdout,
     logs: async service => (await compose(['logs','--no-color','--no-log-prefix', ...(service ? [service] : [])], { quiet: true })).output,
     save: async (name, output) => writeFileSync(join(evidence, name), output), secrets });
-  const updateArgs = (name, release = target) => ['update','--project',project,'--current-release',old,'--target-release',release,'--target-commit',commit,'--state-dir',directory + '/' + name,'--backup-dir',directory + '/' + name + '-backup','--actor','acceptance-operator'];
+  const updateArgs = (name, release = target) => ['update','--project',project,'--current-release',old,'--target-release',release,'--target-commit',commit,'--state-dir',directory + '/' + name,'--backup-dir',directory + '/' + name + '-backup','--actor',actor];
   const host = (args, options) => run('sh', [old + '/bin/jiffoo-host', ...args, '--acceptance'], options);
   const managed = async () => {
     const result = await compose(['exec','-T','api-1','node','/app/deploy/compose/update-scenario.mjs','managed']);
@@ -68,12 +75,49 @@ async function main() {
     return JSON.parse(line.slice('UPDATE_MANAGED '.length));
   };
   const recorded = async name => JSON.parse((await run('cat', [directory + '/' + name + '/journal.json'], { quiet: true })).stdout);
+  const proof = async () => {const result=await compose(['exec','-T','api-1','node','/app/deploy/compose/update-scenario.mjs','migration-proof']);return JSON.parse(result.stdout.split('\n').find(line=>line.startsWith('UPDATE_PROOF ')).slice(13));};
+  const migrationArgs = (name,generation='migration') => [...updateArgs(name,directory+'/'+generation),'--plugin-packages',directory+'/packages'];
+  const confirmed = async (name,generation='migration') => {
+    const args=migrationArgs(name,generation), result=await host([...args,'--plan'],{quiet:true});
+    const hash=result.stdout.match(/Update plan: ([a-f0-9]{64})/)[1];
+    return [...args,'--confirm',hash];
+  };
+  const archiveJournal = async name => {const journal=await recorded(name);writeFileSync(join(evidence,name+'-journal.json'),JSON.stringify(journal,null,2));return journal;};
+  const migrationOutcome = async () => {
+    const postgres=(await docker(['ps','--no-trunc','-q','--filter','label=com.docker.compose.project='+project,'--filter','label=com.docker.compose.service=postgres'],{quiet:true})).stdout.trim();assert.match(postgres,/^[a-f0-9]{64}$/);
+    const code="const {createRequire}=await import('node:module');const assert=(await import('node:assert/strict')).default;const {Client}=createRequire('/app/apps/api/package.json')('pg');assert.equal(process.env.DATABASE_URL_TEST,'postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');const client=new Client({connectionString:process.env.DATABASE_URL});try{await client.connect();assert.equal((await client.query('SELECT current_database() AS name')).rows[0].name,'jiffoo_core_test');await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');const history=(await client.query('SELECT id,migration_name,checksum FROM public._prisma_migrations ORDER BY migration_name')).rows;const rows=(await client.query('SELECT * FROM public.b16c2_update_probe ORDER BY id')).rows;await client.query('COMMIT');console.log('UPDATE_OUTCOME '+JSON.stringify({history,rows}));}finally{await client.end();}";
+    const result=await docker(['run','--rm','--label','com.docker.compose.project='+project,'--label','io.jiffoo.host-helper=true','--network','container:'+postgres,'--read-only','--tmpfs','/tmp','-e','DATABASE_URL=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test','-e','DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test','--entrypoint','node',manifests.old.verifierImage,'--input-type=module','-e',code],{quiet:true});
+    return JSON.parse(result.stdout.split('\n').find(line=>line.startsWith('UPDATE_OUTCOME ')).slice(15));
+  };
+  const backupRestore = async (name,output) => {
+    const command=output.split('\n').find(line=>line.startsWith('Restore command: '));assert.ok(command,'Failure must print the exact restore command');
+    await compose(['stop','-t','45']);
+    const result=await run('sh',['-c',command.slice('Restore command: '.length)]);process.stdout.write(result.output);
+    activeConfig=directory+'/'+name+'-restore/compose.restore.json';
+    await assertDeploymentConfig(async args => (await docker(args, {quiet:true})).stdout, project, activeConfig);
+    await compose(['stop','-t','45','edge','shop','admin','api-lb','worker-1','worker-2','api-1','api-2','redis','silo']);
+    const subsequent=directory+'/'+name+'-restored-backup';
+    const backedUp=await host(['backup',directory+'/'+name+'-restore/release',project,subsequent]);process.stdout.write(backedUp.output);
+    const manifest=JSON.parse((await run('cat',[subsequent+'/backup.json'],{quiet:true})).stdout);
+    const configBytes=(await run('cat',[subsequent+'/config.json'],{quiet:true})).stdout;
+    assert.equal(manifest.files.find(row=>row.path==='config.json').sha256,sha256(Buffer.from(configBytes)));
+    const restoredConfig=JSON.parse((await run('cat',[activeConfig],{quiet:true})).stdout);
+    for(const [logical,volume] of Object.entries(restoredConfig.volumes))assert.equal(manifest.oldVolumes[logical],volume.name);
+    await compose(['up','-d','--force-recreate','--no-build','--wait','--wait-timeout','600']);
+    await assertDeploymentConfig(async args => (await docker(args, {quiet:true})).stdout, project, activeConfig);
+    assert.deepEqual(await proof(),migrationBaseline);
+  };
   const restore = async name => {
     const result = await host([...updateArgs(name), '--restore-prior']); process.stdout.write(result.output);
     activeConfig = directory + '/' + name + '/prior-config.json';
+    await assertDeploymentConfig(async args => (await docker(args, {quiet:true})).stdout, project, activeConfig);
     assert.equal((await recorded(name)).result, 'rolled-back'); assert.deepEqual(await managed(), baseline);
   };
   try {
+    await checks.run('Host plan identity and confirmation unit checks',[],async()=>{
+      const result=spawnSync(process.execPath,['--test','scripts/update.test.mjs'],{encoding:'utf8',windowsHide:true});
+      writeFileSync(join(evidence,'host-unit-tests.txt'),result.stdout+result.stderr);assert.equal(result.status,0,result.stdout+result.stderr);
+    });
     await checks.run('Docker Linux host and foreign-resource preflight', [], async () => {
       if (emulator) { await emulator.start(); console.info('Local Linux host emulator: ' + emulatorImage); }
       await docker(['version']); await docker(['compose','version']); assert.equal((await run('uname',['-s'])).stdout.trim(),'Linux');
@@ -91,6 +135,13 @@ async function main() {
         process.stdout.write(result.output.split(/\r?\n/).slice(-2).join('\n') + '\n');
         writeFileSync(join(inspections,role + '.json'), (await docker(['image','inspect',tag], { quiet: true })).stdout);
       }
+      const key=()=>{const pair=generateKeyPairSync('ed25519');return{publicKey:pair.publicKey.export({type:'spki',format:'der'}).toString('base64url'),privateKey:pair.privateKey.export({type:'pkcs8',format:'pem'})};};
+      const keys={root:key(),publisher:key()}, signingContext=join(native,'signing-context');mkdirSync(signingContext);
+      writeFileSync(join(signingContext,'keys.json'),JSON.stringify(keys));
+      const signedTag=project+'-signed-backend';tags.push(signedTag);
+      writeFileSync(join(signingContext,'Dockerfile'),'FROM '+project+'-old-backend\nENV EXTENSION_TEST_SIGNING_MODE=true JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY='+keys.root.publicKey+'\nCOPY keys.json /app/deploy/compose/update-fixture-keys.json\n');
+      await docker(['build','--platform','linux/amd64','-t',signedTag,signingContext]);
+      writeFileSync(join(inspections,'backend.json'),(await docker(['image','inspect',signedTag],{quiet:true})).stdout);
       const yaml = readFileSync('deploy/compose/compose.yml','utf8');
       for (const role of ['postgres','redis','silo','nginx']) {
         const reference = yaml.match(new RegExp('image: (' + (role === 'silo' ? 'pgsty/silo' : role) + ':[^\\s]+@sha256:[a-f0-9]{64})'))[1];
@@ -100,20 +151,31 @@ async function main() {
       const adjust = (bundle, manifest) => {
         const path = join(bundle,'deploy/compose/compose.release.yml'); let content = readFileSync(path,'utf8');
         for (const service of ['api-1','api-2','worker-1','worker-2','db-init','silo-volume-init']) content = content.replace('  ' + service + ':\n', '  ' + service + ':\n    environment:\n      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/jiffoo_core_test\n');
-        content += '\n  postgres:\n    environment:\n      POSTGRES_DB: jiffoo_core_test\n'; writeFileSync(path,content);
+        content += '\n  postgres:\n    image: '+manifest.images.postgres.reference+'\n    environment:\n      POSTGRES_DB: jiffoo_core_test\n';
+        for(const [role,services] of [['redis',['redis']],['silo',['silo','silo-init']],['nginx',['edge','api-lb']]])for(const service of services)content+='\n  '+service+':\n    image: '+manifest.images[role].reference+'\n';
+        writeFileSync(path,content);
         const member = manifest.deployment.find(row => row.path.endsWith('compose.release.yml')), bytes = readFileSync(path); member.sha256 = sha256(bytes); member.size = bytes.length;
         writeFileSync(join(bundle,'release.json'), JSON.stringify(manifest,null,2) + '\n');
       };
       const bundle = join(native,'old'); manifests.old = makeRelease({ root: process.cwd(), output: bundle, inspections, commit, version, mode:'acceptance' }); adjust(bundle,manifests.old);
-      for (const [generation, newVersion] of [['target', version + '-update'], ['failure', version + '-failure']]) {
+      const fixtureTime=new Date(Math.max(Date.now(),Date.UTC(2026,9,10,16,18,3)+60000));
+      const fixtureNames=[0,1,2].map(index=>new Date(fixtureTime.getTime()+index*60000).toISOString().replace(/[-:T]/g,'').slice(0,14)+'_b16c2_'+(index+1));
+      const generations=[['target',version+'-update'],['failure',version+'-failure'],['migration',version+'-migration'],...(profile==='full'?[['migration-failure',version+'-migration-failure'],['migration-health',version+'-migration-health'],['migration-crash',version+'-migration-crash']]:[])];
+      for (const [generation, newVersion] of generations) {
         const context = join(native,generation + '-context'); mkdirSync(context);
         const shipping = JSON.parse(readFileSync('apps/api/builtin-plugins/free-shipping/manifest.json','utf8')); shipping.version = '1.0.1';
         const theme = JSON.parse(readFileSync('apps/api/builtin-themes/default-shop/theme.json','utf8')); theme.version = '1.1.1';
         writeFileSync(join(context,'shipping.json'),JSON.stringify(shipping)); writeFileSync(join(context,'theme.json'),JSON.stringify(theme));
         writeFileSync(join(context,'failure.mjs'), "throw new Error('Intentional update acceptance startup failure');\n");
+        const migrating=generation.startsWith('migration');
+        if(migrating){
+          for(const [index,sql]of [fixtureSql.first,generation==='migration-failure'?fixtureSql.failed:fixtureSql.second,fixtureSql.checked].entries())writeFileSync(join(context,'migration-'+index+'.sql'),sql);
+          writeFileSync(join(context,'schema.prisma'),'model B16c2UpdateProbe {\n  id Int @id\n  value String\n  execution_count Int @default(0)\n  @@map("b16c2_update_probe")\n  @@schema("public")\n}\n');
+          writeFileSync(join(context,'crash-checkpoint'),'acceptance-only\n');
+        }
         for (const role of ['backend','admin','shop']) {
-          const base = generation === 'failure' ? project + '-target-' + role : project + '-old-' + role;
-          const contents = 'FROM ' + base + '\nLABEL org.opencontainers.image.revision="' + commit + '" org.opencontainers.image.version="' + newVersion + '"\n' + (role === 'backend' ? 'COPY shipping.json /app/apps/api/builtin-plugins/free-shipping/manifest.json\nCOPY theme.json /app/apps/api/builtin-themes/default-shop/theme.json\n' : generation === 'failure' && role === 'shop' ? 'COPY failure.mjs /app/apps/shop/server.mjs\n' : '');
+          const base = generation === 'failure' ? project + '-target-' + role : role==='backend'?signedTag:project + '-old-' + role;
+          const contents = 'FROM ' + base + '\nLABEL org.opencontainers.image.revision="' + commit + '" org.opencontainers.image.version="' + newVersion + '"\n' + (role === 'backend' ? migrating ? [0,1,2].map(index=>'COPY migration-'+index+'.sql /app/apps/api/prisma/migrations/'+fixtureNames[index]+'/migration.sql\n').join('')+'COPY schema.prisma /app/apps/api/prisma/schema/b16c2.prisma\n'+(generation==='migration-crash'?'COPY crash-checkpoint /app/deploy/compose/update-crash-checkpoint\n':'') : 'COPY shipping.json /app/apps/api/builtin-plugins/free-shipping/manifest.json\nCOPY theme.json /app/apps/api/builtin-themes/default-shop/theme.json\n' : ['failure','migration-health'].includes(generation) && role === 'shop' ? 'COPY failure.mjs /app/apps/shop/server.mjs\n' : '');
           writeFileSync(join(context,'Dockerfile-' + role),contents);
           const tag = project + '-' + generation + '-' + role; tags.push(tag);
           await docker(['build','--platform','linux/amd64','-f',join(context,'Dockerfile-' + role),'-t',tag,context]);
@@ -122,11 +184,11 @@ async function main() {
         const output = join(native,generation); manifests[generation] = makeRelease({ root: process.cwd(), output, inspections, commit, version:newVersion, mode:'acceptance' }); adjust(output,manifests[generation]);
       }
       const env = { COMPOSE_PROJECT_NAME:project, REVISION:commit, POSTGRES_PASSWORD:'postgres', JWT_SECRET:randomBytes(48).toString('base64url'), PLUGIN_SECRETS_KEY:randomBytes(32).toString('base64'),
-        MINIO_ROOT_USER:'update-' + randomUUID(), MINIO_ROOT_PASSWORD:randomBytes(48).toString('base64url'), UPLOAD_S3_BUCKET:'update-' + randomUUID(), SILO_APP_ACCESS_KEY_ID:'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY:randomBytes(48).toString('base64url'),
+        MINIO_ROOT_USER:'update-' + randomUUID(), MINIO_ROOT_PASSWORD:'root-' + randomBytes(48).toString('base64url'), UPLOAD_S3_BUCKET:'update-' + randomUUID(), SILO_APP_ACCESS_KEY_ID:'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY:'secret-' + randomBytes(48).toString('base64url'),
         STOREFRONT_URL:'https://update-shop.test', ADMIN_URL:'https://update-admin.test', EDGE_PORT:'0', TLS_CERT_FILE:old + '/cert.pem', TLS_KEY_FILE:old + '/key.pem' };
       secrets = [env.JWT_SECRET,env.PLUGIN_SECRETS_KEY,env.MINIO_ROOT_USER,env.MINIO_ROOT_PASSWORD,env.SILO_APP_ACCESS_KEY_ID,env.SILO_APP_SECRET_ACCESS_KEY];
       writeFileSync(join(native,'old/deploy/compose/.env'),Object.entries(env).map(([key,value]) => key + '=' + value).join('\n') + '\n',{mode:0o600});
-      for (const generation of ['old','target','failure']) {
+      for (const generation of ['old',...generations.map(([name])=>name)]) {
         const to = directory + '/' + generation; await run('cp',['-R',emulator ? '/input/' + generation : join(native,generation),to]);
         await run('chmod',['-R','u=rwX,go=',to]);
         for (const file of ['api-lb.conf','edge.conf.template','silo-init.sh']) await run('chmod',['644',to + '/deploy/compose/' + file]);
@@ -137,12 +199,22 @@ async function main() {
       await docker(['run','--rm','--label','com.docker.compose.project=' + project,'--network','none','--user','1000:1000','--mount','type=bind,source=' + old + ',target=/tls','--entrypoint','chmod',manifests.old.verifierImage,'644','/tls/cert.pem','/tls/key.pem']);
       await run('chmod',['700',old]);
     });
-    await checks.run('Start old release with two API and two worker instances', ['Build two local releases and a real failing target'], () => withComposeStartupDiagnostics(() => compose(['up','-d','--no-build','--wait','--wait-timeout','600','edge']), diagnostics()));
+    await checks.run('Replay all Core migrations from empty database with executor and schema parity', ['Build two local releases and a real failing target'], async()=>{
+      await compose(['up','-d','--no-build','--wait','--wait-timeout','180','postgres']);
+      const id=(await compose(['ps','-q','postgres'])).stdout.trim();
+      const result=await docker(['run','--rm','--label','com.docker.compose.project='+project,'--network','container:'+id,'--read-only','--tmpfs','/tmp','-e','DATABASE_URL=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test','-e','DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test','--entrypoint','node',manifests.old.verifierImage,'/app/deploy/compose/core-migration-parity.mjs']);
+      writeFileSync(join(evidence,'core-parity.txt'),result.output);assert.match(result.stdout,/"schemaDiff":"no difference"/);
+    });
+    await checks.run('Start old release with two API and two worker instances', ['Replay all Core migrations from empty database with executor and schema parity'], () => withComposeStartupDiagnostics(() => compose(['up','-d','--no-build','--wait','--wait-timeout','600','edge']), diagnostics()));
     await checks.run('Seed merchant and theme configuration through real API', ['Start old release with two API and two worker instances'], async () => {
       const password = randomUUID() + 'Aa1!'; secrets.push(password);
       const code = "const r=await fetch('http://127.0.0.1:3001/api/v1/install/complete',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({siteName:'Update acceptance',adminEmail:'update-owner@example.test',adminPassword:process.argv[1]})});if(r.status!==200)throw new Error(await r.text());";
       await compose(['exec','-T','api-1','node','--input-type=module','-e',code,password], { quiet: true });
-      await compose(['exec','-T','api-1','node','/app/deploy/compose/update-scenario.mjs','configure',password], { quiet: true });
+      const configured=await compose(['exec','-T','api-1','node','/app/deploy/compose/update-scenario.mjs','configure',password], { quiet: true });
+      const data=JSON.parse(configured.stdout.split('\n').find(line=>line.startsWith('UPDATE_FIXTURE ')).slice(15));actor=data.actor;
+      mkdirSync(join(native,'packages'));writeFileSync(join(native,'packages/probe.zip'),Buffer.from(data.package,'base64'));
+      await run('cp',['-R',emulator?'/input/packages':join(native,'packages'),directory+'/packages']);
+      migrationBaseline=await proof();writeFileSync(join(evidence,'migration-baseline.json'),JSON.stringify(migrationBaseline,null,2));
       baseline = await managed(); writeFileSync(join(evidence,'managed-before.json'),JSON.stringify(baseline,null,2));
     });
     await checks.run('Reject unknown and missing CLI options', ['Seed merchant and theme configuration through real API'], async () => {
@@ -198,6 +270,81 @@ async function main() {
         activeConfig=directory+'/recovery/prior-config.json';assert.deepEqual(await managed(),baseline);assert.equal((await recorded('recovery')).result,'rolled-back');
       }finally{await first;}
     });
+    const priorProof='Restore prior release after concurrent-operation proof';
+    await checks.run('Missing and wrong migration confirmation are refused without stopping applications',[priorProof],async()=>{
+      const args=migrationArgs('missing-confirmation');
+      for(const suffix of [[],['--confirm','0'.repeat(64)]]){
+        const result=await host([...args,...suffix],{allowFailure:true});assert.notEqual(result.code,0);assert.match(result.output,/Migration confirmation must equal/);
+        assert.notEqual((await run('test',['-e',directory+'/missing-confirmation'],{allowFailure:true})).code,0);
+        assert.deepEqual(await proof(),migrationBaseline);
+      }
+    });
+    if(profile==='full'){
+      await checks.run('Core checksum and prefix mismatch block before migration writes',[priorProof],async()=>{
+        const first=migrationBaseline.coreHistory[0],data={id:first.id,name:first.migration_name,checksum:first.checksum};
+        for(const kind of ['core-checksum','core-prefix']){
+          try{
+            await compose(['exec','-T','api-1','node','/app/deploy/compose/update-scenario.mjs','corrupt',kind,JSON.stringify(data)]);
+            const result=await host([...migrationArgs(kind),'--plan'],{allowFailure:true});assert.notEqual(result.code,0);assert.match(result.output,/Core migration history mismatch/);
+            assert.notEqual((await run('test',['-e',directory+'/'+kind],{allowFailure:true})).code,0);
+          }finally{await compose(['exec','-T','api-1','node','/app/deploy/compose/update-scenario.mjs','corrupt','core-reset',JSON.stringify(data)]);}
+        }
+        assert.deepEqual(await proof(),migrationBaseline);
+      });
+      await checks.run('Plugin ledger mismatch blocks before any migration write',[priorProof],async()=>{
+        try{
+          await compose(['exec','-T','api-1','node','/app/deploy/compose/update-scenario.mjs','corrupt','plugin-ledger']);
+          const result=await host([...migrationArgs('plugin-mismatch'),'--plan'],{allowFailure:true});assert.notEqual(result.code,0);
+        }finally{await compose(['exec','-T','api-1','node','/app/deploy/compose/update-scenario.mjs','corrupt','plugin-reset',migrationBaseline.pluginLedger[0].sha256]);}
+        assert.deepEqual(await proof(),migrationBaseline);
+      });
+      await checks.run('Failure after first committed Core migration stays in maintenance and printed restore recovers data and objects',[priorProof],async()=>{
+        const args=await confirmed('migration-failed','migration-failure');
+        const result=await host(args,{allowFailure:true});process.stdout.write(result.output);assert.notEqual(result.code,0);assert.match(result.output,/No application rollback/);assert.doesNotMatch(result.output,/Update rollback started|Prior release restored/);
+        const journal=await archiveJournal('migration-failed');assert.equal(journal.events.filter(event=>event.kind==='core'&&event.status==='committed').length,1);
+        const running=(await docker(['ps','--format','{{.Label "com.docker.compose.service"}}','--filter','label=com.docker.compose.project='+project])).stdout.trim().split('\n');assert.deepEqual(running,['postgres']);
+        await backupRestore('migration-failed',result.output);
+      });
+      await checks.run('Crash between committed migrations refuses resume and never repeats SQL',[priorProof],async()=>{
+        const args=await confirmed('migration-crashed','migration-crash');
+        const first=host(args,{allowFailure:true});let firstResult;void first.then(value=>{firstResult=value;});
+        try{
+          const deadline=Date.now()+180000;
+          for(;;){
+            if((await run('test',['-f',directory+'/migration-crashed/journal.json'],{allowFailure:true,quiet:true})).code===0){const journal=await recorded('migration-crashed');if(journal.events.some(event=>event.kind==='core'&&event.status==='committed'))break;}
+            assert.ok(!firstResult&&Date.now()<deadline,'Migration crash checkpoint not reached');await new Promise(done=>setTimeout(done,100));
+          }
+          const owner=(await run('cat',['/tmp/.jiffoo-host-'+project+'.lock/pid'],{quiet:true})).stdout.trim();assert.match(owner,/^[1-9][0-9]*$/);
+          await run('kill',['-KILL',owner]);
+          const helpers=(await docker(['ps','-q','--filter','label=com.docker.compose.project='+project,'--filter','label=io.jiffoo.host-helper=true'],{quiet:true})).stdout.trim().split(/\s+/).filter(Boolean);assert.equal(helpers.length,1);
+          await docker(['kill',...helpers]);await first;
+          const before=await archiveJournal('migration-crashed');assert.equal(before.events.filter(event=>event.kind==='core'&&event.status==='committed').length,1);
+          const committed=await migrationOutcome();assert.deepEqual(committed.rows,[{id:1,value:'core-first-commit'}]);writeFileSync(join(evidence,'crash-before-outcome.json'),JSON.stringify(committed,null,2));
+          const resumed=await host([...args,'--resume'],{allowFailure:true});process.stdout.write(resumed.output);assert.notEqual(resumed.code,0);assert.match(resumed.output,/forbids resume and application rollback/);
+          assert.deepEqual((await recorded('migration-crashed')).events,before.events);
+          const after=await migrationOutcome();assert.deepEqual(after,committed);writeFileSync(join(evidence,'crash-after-outcome.json'),JSON.stringify(after,null,2));
+          await backupRestore('migration-crashed',resumed.output);
+        }finally{await first;}
+      });
+      await checks.run('Health failure after migrations forbids application rollback and restores the backup',[priorProof],async()=>{
+        const result=await host(await confirmed('migration-unhealthy','migration-health'),{allowFailure:true});process.stdout.write(result.output);assert.notEqual(result.code,0);assert.match(result.output,/No application rollback/);assert.doesNotMatch(result.output,/Prior release restored/);
+        const journal=await archiveJournal('migration-unhealthy');assert.equal(journal.events.filter(event=>event.kind==='core'&&event.status==='committed').length,3);
+        await backupRestore('migration-unhealthy',result.output);
+      });
+    }
+    await checks.run('Confirmed Core and plugin migrations succeed with durable audit before every migration intent',['Missing and wrong migration confirmation are refused without stopping applications'],async()=>{
+      const result=await host(await confirmed('migrated'));process.stdout.write(result.output);activeConfig=directory+'/migrated/next-config.json';
+      const journal=await archiveJournal('migrated');assert.equal(journal.result,'success');
+      const audit=journal.events.findLast(event=>event.kind==='audit');assert.ok(audit.backupHash);
+      const intents=journal.events.filter(event=>event.status==='intent');assert.equal(intents.filter(event=>event.kind==='core').length,3);assert.equal(intents.filter(event=>event.kind==='plugin').length,1);
+      for(const event of intents){assert.ok(audit.sequence<event.sequence);assert.equal(event.auditHash,audit.auditHash);assert.equal(event.backupHash,audit.backupHash);assert.equal(event.planHash,journal.planHash);}
+      const actual=await proof();assert.deepEqual(actual.coreRows,[{id:1,value:'core-second-commit-checked',execution_count:1}]);assert.equal(actual.pluginLedger.length,2);assert.deepEqual(actual.pluginRows,[{id:1,value:'after-update'}]);
+      await compose(['exec','-T','api-1','node','/app/deploy/compose/update-scenario.mjs','mutate-object']);assert.notEqual((await proof()).objectHash,migrationBaseline.objectHash);
+    });
+    await checks.run('Restore-prior is refused after committed migrations and printed restore command recovers the backup',['Confirmed Core and plugin migrations succeed with durable audit before every migration intent'],async()=>{
+      const result=await host([...migrationArgs('migrated'),'--restore-prior'],{allowFailure:true});process.stdout.write(result.output);assert.notEqual(result.code,0);assert.match(result.output,/forbids resume and application rollback/);assert.doesNotMatch(result.output,/Prior release restored/);
+      await backupRestore('migrated',result.output);
+    });
   } finally {
     await checks.run('Archive stack logs journal results and published ports', [], async () => {
       let archiveError;
@@ -212,7 +359,13 @@ async function main() {
     await checks.run('Remove only UUID update project resources', [], async () => {
       assert.match(project,/^jiffoo-update-[a-f0-9-]{36}$/);
       const ids=(await docker(['ps','-aq','--filter','label=com.docker.compose.project=' + project],{quiet:true})).stdout.trim().split(/\s+/).filter(Boolean);
-      if(ids.length){await docker(['stop','-t','45',...ids],{quiet:true});await docker(['rm','--volumes',...ids],{quiet:true});}
+      if(ids.length){
+        const rows=JSON.parse((await docker(['inspect',...ids],{quiet:true})).stdout), data=['postgres','redis','silo'];
+        const applications=rows.filter(row=>!data.includes(row.Config.Labels['com.docker.compose.service'])).map(row=>row.Id), infrastructure=rows.filter(row=>data.includes(row.Config.Labels['com.docker.compose.service'])).map(row=>row.Id);
+        if(applications.length)await docker(['stop','-t','45',...applications],{quiet:true});
+        if(infrastructure.length)await docker(['stop','-t','45',...infrastructure],{quiet:true});
+        await docker(['rm','--volumes',...ids],{quiet:true});
+      }
       const networks=(await docker(['network','ls','-q','--filter','label=com.docker.compose.project=' + project],{quiet:true})).stdout.trim().split(/\s+/).filter(Boolean);if(networks.length)await docker(['network','rm',...networks],{quiet:true});
       for(const tag of tags.reverse())await docker(['image','rm',tag],{allowFailure:true,quiet:true});
       if(directory){assert.ok(directory.startsWith((emulator?.root ?? '/tmp') + '/' + project + '-'));await run('rm',['-rf',directory]);}
@@ -226,8 +379,8 @@ async function main() {
   }
   const duration=((performance.now()-start)/1000).toFixed(2)+'s',counts=checks.counts();
   const summary=`Update start time: ${started}\nUpdate results: ${counts.PASS} passed, ${counts.FAIL} failed, ${counts.SKIPPED} skipped\nUpdate profile: ${profile}\nUpdate source commit: ${commit}\nUpdate project: ${project}\nUpdate duration: ${duration}\n\n${checks.table()}`;
-  const block=`=== Final test summary ===\n${summary}\n| Step | Result | Duration |\n| --- | --- | --- |\n| ${step} | ${checks.passed?'PASS':'FAIL'} | ${duration} |\n`;
-  writeFileSync('verify-summary.txt',block);writeFileSync(join(evidence,'verify-summary.txt'),block);writeFileSync(join(evidence,'verify-result.json'),JSON.stringify({group:'update',profile,commit,valid:checks.passed,results:[[step,checks.passed?'PASS':'FAIL',duration]],outputs:[{name:step,kind:'update',output:summary}],apiFiles:[],fullApiFiles:[]},null,2));
+  const block=`=== Final test summary ===\n${summary}\n| Step | Result | Duration |\n| --- | --- | --- |\n| ${updateStep} | ${checks.passed?'PASS':'FAIL'} | ${duration} |\n`;
+  writeFileSync('verify-summary.txt',block);writeFileSync(join(evidence,'verify-summary.txt'),block);writeFileSync(join(evidence,'verify-result.json'),JSON.stringify({group:'update',profile,commit,valid:checks.passed,results:[[updateStep,checks.passed?'PASS':'FAIL',duration]],outputs:[{name:updateStep,kind:'update',output:summary}],apiFiles:[],fullApiFiles:[]},null,2));
   process.stdout.write(block);if(!checks.passed)process.exitCode=1;
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))await main();

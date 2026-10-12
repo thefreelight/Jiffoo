@@ -162,7 +162,7 @@ else
   # Existing stopped containers are replaced; their old volumes remain intact.
   phase=bootstrap-postgresql
   printf '{"services":{"postgres":{"environment":{"POSTGRES_DB":"postgres"}}}}\n' > "$work/bootstrap.json"
-  docker compose --project-name "$project" -f "$destination/compose.restore.json" -f "$work/bootstrap.json" up -d --no-deps --wait --wait-timeout 180 postgres >/dev/null 2>&1 || fail 'New PostgreSQL startup failed'
+  docker compose --project-name "$project" -f "$destination/compose.restore.json" -f "$work/bootstrap.json" up -d --force-recreate --no-deps --wait --wait-timeout 180 postgres >/dev/null 2>&1 || fail 'New PostgreSQL startup failed'
   postgres=$(docker ps -aq --filter "label=com.docker.compose.project=$project" --filter label=com.docker.compose.service=postgres --filter label=com.docker.compose.oneoff=False)
   phase=restore-postgresql
   # The bootstrap postgres role already exists. Preserve its dumped ALTER ROLE,
@@ -178,7 +178,7 @@ else
   docker run --rm --label "com.docker.compose.project=$project" --network none --read-only --user 0:0 --cap-drop ALL --cap-add CHOWN --cap-add FOWNER --cap-add DAC_OVERRIDE --security-opt no-new-privileges --entrypoint sh \
     --mount "type=bind,source=$destination,target=/restore" "$image" -c 'chmod 644 /restore/release/deploy/compose/api-lb.conf /restore/release/deploy/compose/edge.conf.template /restore/release/deploy/compose/silo-init.sh && chmod 755 /restore/release/deploy/compose/15-edge-hosts.envsh && chown 1000:1000 /restore/tls/cert.pem /restore/tls/key.pem && chmod 600 /restore/tls/cert.pem /restore/tls/key.pem' >/dev/null 2>&1 || fail 'Cannot prepare runtime configuration permissions'
   phase=start-recorded-release-and-health-checks
-  compose_restore up -d --no-build --wait --wait-timeout 600 edge >/dev/null 2>&1 || fail 'Restored stack failed health checks'
+  compose_restore up -d --force-recreate --no-build --wait --wait-timeout 600 postgres redis silo silo-init silo-volume-init db-init api-1 api-2 worker-1 worker-2 api-lb admin shop edge >/dev/null 2>&1 || fail 'Restored stack failed health checks'
   success=1
   printf 'Restore completed; recorded release is healthy.\nDeployment configuration: %s/compose.restore.json\nNew volumes: %s\nPrevious volumes retained: %s\nRedis started empty. Backup contains secrets and customer data; protect it off-host.\n' "$destination" "$new_volumes" "$old_volumes"
 fi

@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { connect } from 'node:net';
-import { ComposeVolumeLedger, RecordedAcceptanceChecks } from './compose-volumes.mjs';
+import { ComposeVolumeLedger, RecordedAcceptanceChecks, assertDeploymentConfig } from './compose-volumes.mjs';
 import { makeRelease } from '../deploy/release/prepare.mjs';
 import { sha256 } from '../deploy/release/identity.mjs';
 import { BackupHostEmulator, emulatorImage } from './backup-host-emulator.mjs';
@@ -201,6 +201,19 @@ async function main() {
       assert.match(result.output, /recorded release is healthy/);
     });
     await checks.run('No anonymous volumes after restore', ['Restore into new volumes and pass recorded release health checks'], () => volumes.assertNoAnonymousVolumes());
+    await checks.run('Every restored container uses the restored configuration and a second backup succeeds', ['Restore into new volumes and pass recorded release health checks'], async () => {
+      await assertDeploymentConfig(async args => (await docker(args, { quiet: true })).stdout, project, restored + '/compose.restore.json');
+      await docker(['compose', '--project-name', project, '-f', restored + '/compose.restore.json', 'stop', '-t', '45', 'edge', 'shop', 'admin', 'api-lb', 'worker-1', 'worker-2', 'api-1', 'api-2', 'redis', 'silo']);
+      const second = directory + '/restored-backup';
+      const result = await host(['backup', restored + '/release', project, second]); process.stdout.write(result.output);
+      const metadata = JSON.parse((await helper('inspect', second)).stdout);
+      const configBytes = (await run('cat', [second + '/config.json'], { quiet: true })).stdout;
+      assert.equal(metadata.manifest.files.find(row => row.path === 'config.json').sha256, sha256(Buffer.from(configBytes)));
+      const config = JSON.parse((await run('cat', [restored + '/compose.restore.json'], { quiet: true })).stdout);
+      for (const [logical, volume] of Object.entries(config.volumes)) assert.equal(metadata.manifest.oldVolumes[logical], volume.name);
+      await docker(['compose', '--project-name', project, '-f', restored + '/compose.restore.json', 'up', '-d', '--force-recreate', '--no-build', '--wait', '--wait-timeout', '600']);
+      await assertDeploymentConfig(async args => (await docker(args, { quiet: true })).stdout, project, restored + '/compose.restore.json');
+    });
     await checks.run('Restored rows plugin schema privileges and object bytes equal backup point', ['Restore into new volumes and pass recorded release health checks', 'Capture backup point row and object hashes'], async () => {
       const actual = await fixture('snapshot', restored + '/compose.restore.json'); assert.deepEqual(actual, expected);
     });

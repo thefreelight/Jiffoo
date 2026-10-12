@@ -84,6 +84,17 @@ function inspectPackage(bytes: Buffer, hash: string, slug: string, version: stri
 
 /** Snapshot-only inspection on a dedicated idle session owned and closed by the caller. */
 export async function auditPluginDatabase(client: Pick<Client, 'query'>): Promise<PluginDatabaseAuditReport> {
+  return inspectPluginDatabase(client);
+}
+
+/** Update-only authority: the current release inventory, never the pending target inventory. */
+export async function auditPluginDatabaseForUpdate(client: Pick<Client, 'query'>, currentInventory: readonly { name: string; checksum: string }[]): Promise<PluginDatabaseAuditReport> {
+  if (!currentInventory.length || currentInventory.some((row, index) => !/^[a-f0-9]{64}$/.test(row.checksum)
+    || !row.name || index > 0 && currentInventory[index - 1].name >= row.name)) throw new Error('Invalid current Core migration inventory');
+  return inspectPluginDatabase(client, currentInventory);
+}
+
+async function inspectPluginDatabase(client: Pick<Client, 'query'>, currentInventory?: readonly { name: string; checksum: string }[]): Promise<PluginDatabaseAuditReport> {
   const started = Date.now(), limits = { ...DEFAULT_LIMITS, ...testLimits };
   if ((testLimits || testSchema) && process.env.NODE_ENV !== 'test') throw new Error('Audit test controls are not permitted outside tests');
   const coreSchema = testSchema ?? 'public';
@@ -114,10 +125,11 @@ export async function auditPluginDatabase(client: Pick<Client, 'query'>): Promis
     if (missing.length) {
       report.database.schemaState = 'incomplete'; finding('PLUGIN_DB_SCHEMA_INCOMPLETE', null, { missing });
     } else {
-      const migrations = await bounded('SELECT migration_name, finished_at, rolled_back_at FROM public._prisma_migrations ORDER BY migration_name');
+      const migrations = await bounded(`SELECT migration_name, finished_at, rolled_back_at${currentInventory ? ', checksum' : ''} FROM public._prisma_migrations ORDER BY migration_name`);
       const appliedMigrations = migrations.filter(row => row.finished_at && !row.rolled_back_at).map(row => row.migration_name);
-      const expectedMigrations = await readMigrationInventory();
-      if (appliedMigrations.length !== expectedMigrations.length || expectedMigrations.some(name => !appliedMigrations.includes(name)) || migrations.some(row => !row.finished_at && !row.rolled_back_at)) {
+      const expectedMigrations = currentInventory ? currentInventory.map(row => row.name) : await readMigrationInventory();
+      if (appliedMigrations.length !== expectedMigrations.length || expectedMigrations.some(name => !appliedMigrations.includes(name)) || migrations.some(row => !row.finished_at && !row.rolled_back_at)
+        || currentInventory && (migrations.length !== currentInventory.length || migrations.some((row, index) => row.migration_name !== currentInventory[index]?.name || row.checksum !== currentInventory[index]?.checksum || !row.finished_at || row.rolled_back_at))) {
         report.database.schemaState = 'incomplete'; finding('PLUGIN_DB_SCHEMA_INCOMPLETE', null, { reason: 'migration-state' });
       } else {
         report.database.schemaState = 'current';
