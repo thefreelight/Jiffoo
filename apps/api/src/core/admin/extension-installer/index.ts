@@ -17,8 +17,8 @@ import {
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { createHash } from 'node:crypto';
-import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
-import { readPluginZipEntries } from 'shared/plugin-signing';
+import { pluginPackageBlobStore, type PluginPackageBlobMetadata } from '@/core/storage/plugin-package-blob-store';
+import { readPluginZipEntries, PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 import { prisma } from '@/config/database';
 import { redactPluginFailure } from './plugin-failure';
 import { InvalidStoredManifestError, readStoredPluginManifest } from './stored-manifest';
@@ -76,6 +76,19 @@ async function packageState(pkg: PluginInstall): Promise<InstalledExtensionMeta[
   } catch {
     return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
   }
+}
+
+async function listedPackageState(pkg: PluginInstall, metadata: Map<string, PluginPackageBlobMetadata>): Promise<InstalledExtensionMeta['packageState']> {
+  if ('manifestError' in getManifestResponse(pkg)) return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
+  if (!pkg.zipHash) return { status: 'unavailable', code: 'PLUGIN_PACKAGE_UNAVAILABLE' };
+  if (!/^[a-f0-9]{64}$/.test(pkg.zipHash)) return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
+  if (pkg.source === 'builtin') return packageState(pkg);
+  const blob = metadata.get(pkg.slug);
+  if (!blob) return { status: 'unavailable', code: 'PLUGIN_PACKAGE_UNAVAILABLE' };
+  if (blob.sizeBytes !== blob.actualBytes || blob.sizeBytes <= 0 || blob.sizeBytes > PLUGIN_MAX_ZIP_SIZE) {
+    return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
+  }
+  return { status: 'available', code: null };
 }
 
 async function lastRecordedError(slug: string) {
@@ -154,6 +167,9 @@ export class ExtensionInstaller implements IExtensionInstaller {
         const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
         const packages = (await PluginManagementService.getAllPluginPackages({ includeDeleted: state === 'removed' }))
           .filter((pkg) => state === 'removed' ? Boolean(pkg.deletedAt) : !pkg.deletedAt);
+        const metadata = new Map((await pluginPackageBlobStore.headMany(packages
+          .filter(pkg => pkg.source !== 'builtin' && /^[a-f0-9]{64}$/.test(pkg.zipHash ?? ''))
+          .map(pkg => ({ slug: pkg.slug, zipHash: pkg.zipHash! })))).map(blob => [blob.pluginSlug, blob]));
         return Promise.all(packages.map(async (pkg) => {
           return {
           id: pkg.id,
@@ -165,7 +181,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
           runtimeType: 'internal-fastify',
           entryModule: pkg.entryModule || undefined,
           source: pkg.source as ExtensionSource,
-          packageState: await packageState(pkg),
+          packageState: await listedPackageState(pkg, metadata),
           ...await lastRecordedError(pkg.slug),
           deletedAt: pkg.deletedAt,
           permissions: parseJsonArray(pkg.permissions),

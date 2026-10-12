@@ -1,7 +1,7 @@
 import { prisma } from '@/config/database';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
-import { resolveCurrentPluginPackage } from '@/core/storage/current-plugin-package';
+import { resolveCurrentPluginPackage, PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
 import { loadPluginEntryModule } from '@/core/admin/extension-installer/plugin-module-loader';
 import type { LifecycleHookName, PluginManifest } from '@jiffoo/shared';
 import { recordPluginFailure, redactPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
@@ -39,6 +39,7 @@ export async function executeLifecycleHook(hookName: LifecycleHookName, context:
     LoggerService.logError(new Error(errorMessage), { context: `Lifecycle hook ${hookName}`, pluginSlug: context.pluginSlug, installationId: context.installationId, durationMs });
     if (hookName === 'onEnable') {
       await recordPluginFailure(context.pluginSlug, error, hookName, context.installationId, { config: context.config, manifest });
+      if (error instanceof PluginPackageResolutionError) throw error;
       throw new ExtensionInstallerError(`Lifecycle hook onEnable failed for plugin "${context.pluginSlug}": ${errorMessage}`, { statusCode: 500, code: 'INTERNAL_SERVER_ERROR' });
     }
     try {

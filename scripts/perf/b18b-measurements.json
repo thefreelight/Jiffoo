@@ -1,0 +1,30 @@
+{
+  "database": "jiffoo_core_test",
+  "iterationsPerMeasurement": 50,
+  "memorySampling": "process.memoryUsage every 2 ms and after each operation; warmup and forced GC precede measurement; RSS includes the benchmark HTTP client when applicable",
+  "item1": {
+    "decision": "no change, bounded by design",
+    "imageBytes": 5242880,
+    "backend": "isolated real Silo",
+    "p50Ms": 59.3545,
+    "p95Ms": 66.6983,
+    "sqlRoundTrips": 0,
+    "baselineRssMiB": 368.2109375,
+    "peakRssMiB": 409.48828125,
+    "peakHeapMiB": 78.5749282836914
+  },
+  "item2": {
+    "dataset": { "attempts": 9500, "packages": 13, "packageBytes": 132232792, "packageMiB": 126.10701751708984 },
+    "before": { "p50Ms": 603.3145, "p95Ms": 656.852, "sqlRoundTrips": 40, "baselineHeapMiB": 11.412734985351562, "peakHeapMiB": 18.56995391845703, "baselineRssMiB": 145.55078125, "peakRssMiB": 273.2109375 },
+    "after": { "p50Ms": 590.563, "p95Ms": 638.7389, "sqlRoundTrips": 40, "baselineHeapMiB": 11.536407470703125, "peakHeapMiB": 16.777603149414062, "baselineRssMiB": 159.24609375, "peakRssMiB": 280.2578125 },
+    "change": "Stream attempt rows while counting every row and retaining only UNKNOWN attempts; check remaining byte budget before fetching candidate or installed archive bytes. Full archive validation remains unchanged."
+  },
+  "item3": {
+    "dataset": "10 and 30 installed unsigned local ZIP packages, each containing 2 MiB random stored payload; no pre-existing packages",
+    "before10": { "p50Ms": 74.1908, "p95Ms": 90.428, "sqlMin": 3, "sqlMax": 3, "peakHeapMiB": 110.8707046508789, "peakRssMiB": 323.57421875 },
+    "after10": { "p50Ms": 5.1826, "p95Ms": 8.1812, "sqlMin": 3, "sqlMax": 3, "peakHeapMiB": 54.32276153564453, "peakRssMiB": 187.3359375 },
+    "before30": { "p50Ms": 202.394, "p95Ms": 229.9455, "sqlMin": 3, "sqlMax": 4, "peakHeapMiB": 269.63494873046875, "peakRssMiB": 642.78125 },
+    "after30": { "p50Ms": 6.513, "p95Ms": 12.049, "sqlMin": 3, "sqlMax": 3, "peakHeapMiB": 79.61426544189453, "peakRssMiB": 217.54296875 },
+    "change": "Only listInstalled uses batched blob metadata (recorded size and octet_length). Detail and all existing full-verification callers remain unchanged."
+  }
+}

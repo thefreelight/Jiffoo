@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
@@ -8,6 +8,7 @@ import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { extensionInstallerSchemas } from '@/core/admin/extension-installer/schemas';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
@@ -80,6 +81,37 @@ afterEach(async () => {
 afterAll(async () => { await app.close(); await deleteAllTestUsers(); });
 
 describe('Plugin uninstall, restore and purge', () => {
+  it.each(['corrupt', 'missing'] as const)('A list reads no blob bytes while detail and enable reject a %s package', async fault => {
+    const slug = await fixture(true);
+    const row = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } });
+    const blob = await pluginPackageBlobStore.get(slug, row.zipHash!);
+    if (fault === 'corrupt') {
+      const bytes = Buffer.from(blob!.bytes); bytes[0] ^= 1;
+      await prisma.pluginPackageBlob.updateMany({ where: { pluginSlug: slug }, data: { bytes } });
+    } else await prisma.pluginPackageBlob.deleteMany({ where: { pluginSlug: slug } });
+    const code = fault === 'corrupt' ? 'PLUGIN_PACKAGE_CORRUPT' : 'PLUGIN_PACKAGE_UNAVAILABLE';
+    const pkg = await pluginPackageStore.get(slug, row.zipHash!);
+    await fs.rm(pkg!.getEntryPath(''), { recursive: true, force: true });
+    const read = vi.spyOn(pluginPackageBlobStore, 'get');
+    try {
+      expect((await list()).find(item => item.slug === slug)?.packageState).toEqual(fault === 'corrupt'
+        ? { status: 'available', code: null } : { status: 'unavailable', code });
+      expect(read).not.toHaveBeenCalled();
+    } finally { read.mockRestore(); }
+    const detail = await fetch(`${base}/api/v1/extensions/plugin/${slug}`, { headers: { authorization: `Bearer ${token}` } });
+    expect(detail.status).toBe(200);
+    expect((await detail.json()).data.packageState).toEqual({ status: fault === 'corrupt' ? 'corrupt' : 'unavailable', code });
+    const instance = await prisma.pluginInstallation.findFirstOrThrow({ where: { pluginSlug: slug } });
+    const enabled = await app.inject({ method: 'PATCH', url: `/api/v1/extensions/plugin/${slug}/instances/${instance.id}`,
+      headers: { authorization: `Bearer ${token}` }, payload: { enabled: true } });
+    expect(enabled.statusCode).toBe(fault === 'corrupt' ? 500 : 503);
+    expect(enabled.json().error.code).toBe(code);
+    const failed = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: instance.id } });
+    expect(failed.enabled).toBe(false);
+    expect(failed.lastFailureAt).not.toBeNull();
+    expect(failed.lastFailureMessage).toContain(code);
+    expect(failed.lastFailureMessage).not.toContain('kept-secret');
+  });
   it('A database metadata isolates missing and corrupt packages in list and detail without materializing them', async () => {
     const good = await fixture(), missing = await fixture(), corrupt = await fixture();
     for (const slug of [missing, corrupt]) {

@@ -1,13 +1,15 @@
-import type { PluginPackageBlob } from '@prisma/client';
+import { Prisma, type PluginPackageBlob } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { createHash } from 'node:crypto';
 import { ApiError } from '@/utils/api-errors';
 
 type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+export type PluginPackageBlobMetadata = { pluginSlug: string; zipHash: string; sizeBytes: number; actualBytes: number };
 
 export interface PluginPackageBlobStore {
   put(tx: Transaction, slug: string, zipHash: string, bytes: Buffer): Promise<void>;
   get(slug: string, zipHash: string): Promise<PluginPackageBlob | null>;
+  headMany(packages: readonly { slug: string; zipHash: string }[]): Promise<PluginPackageBlobMetadata[]>;
   has(slug: string, zipHash: string): Promise<boolean>;
   deleteExcept(tx: Transaction, slug: string, keepHash: string): Promise<void>;
   deleteAll(tx: Transaction, slug: string): Promise<void>;
@@ -29,6 +31,16 @@ class PostgresPluginPackageBlobStore implements PluginPackageBlobStore {
     return prisma.pluginPackageBlob.findUnique({
       where: { pluginSlug_zipHash: { pluginSlug: slug, zipHash } },
     });
+  }
+
+  async headMany(packages: readonly { slug: string; zipHash: string }[]): Promise<PluginPackageBlobMetadata[]> {
+    if (!packages.length) return [];
+    // octet_length reads the stored bytea size without transferring archive bytes.
+    const identities = packages.map(pkg => Prisma.sql`("pluginSlug" = ${pkg.slug} AND "zipHash" = ${pkg.zipHash})`);
+    return prisma.$queryRaw<PluginPackageBlobMetadata[]>(Prisma.sql`
+      SELECT "pluginSlug", "zipHash", "sizeBytes", octet_length(bytes) AS "actualBytes"
+      FROM public.plugin_package_blobs WHERE ${Prisma.join(identities, ' OR ')}
+    `);
   }
 
   async has(slug: string, zipHash: string): Promise<boolean> {

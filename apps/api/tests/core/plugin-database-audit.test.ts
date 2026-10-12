@@ -266,10 +266,11 @@ it('J stable findings include exactly the approved machine-readable codes', () =
   finally { process.env.NODE_ENV = environment; }
 });
 it('M streamed successful attempts still count against the row limit', async () => {
-  await client.query(`INSERT INTO ${schema}.plugin_migration_attempts (id,"namespaceId","operationId","order","migrationId",path,sha256,status) SELECT 'stream-' || n,1,'fixture',1,'m1','m.sql',repeat('a',64),'SUCCESS' FROM generate_series(1,101) n`);
-  setPluginDatabaseAuditTestLimits(true, { rows: 100 }, schema);
+  await client.query(`INSERT INTO ${schema}.plugin_migration_attempts (id,"namespaceId","operationId","order","migrationId",path,sha256,status) SELECT 'stream-' || n,1,'fixture',1,'m1','m.sql',repeat('a',64),'SUCCESS' FROM generate_series(1,501) n`);
+  setPluginDatabaseAuditTestLimits(true, { rows: 500 }, schema);
   const report = await audit();
   expect(report.complete).toBe(false);
+  expect(report.database.schemaState).toBe('current');
   expect(report.findings).toContainEqual(expect.objectContaining({ code: 'PLUGIN_DB_AUDIT_LIMIT_REACHED' }));
 });
 it('M an exhausted byte budget stops before reading the next installed blob', async () => {
