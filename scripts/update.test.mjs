@@ -18,6 +18,9 @@ test('no-migration gate rejects pending changed extra failed and rolled-back his
 });
 test('profiles and database guard cannot silently select a different gate or database', () => {
   assert.equal(updateProfile([]),'core'); assert.equal(updateProfile(['--profile=full']),'full');
+  assert.equal(updateProfile(['--profile=core','--partition=no-migration']),'core');
+  assert.equal(updateProfile(['--partition=migration','--profile=core']),'core');
+  for(const args of [['--partition=unknown'],['--partition=migration','--partition=no-migration'],['--profile=full','--partition=migration']])assert.throws(()=>updateProfile(args));
   for(const args of [['--profile=unknown'],['--profile=core','--extra']])assert.throws(()=>updateProfile(args));
   guardUpdateDatabase('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
   for(const url of [undefined,'postgresql://postgres:postgres@localhost:5432/jiffoo_core','postgresql://postgres:postgres@remote:5432/jiffoo_core_test'])assert.throws(()=>guardUpdateDatabase(url));
@@ -43,6 +46,9 @@ test('restored resource bindings remain authoritative and foreign or conflicting
 });
 test('the emitted update artifact agrees with the existing CI step catalogue',()=>{
   const previous=process.env.GITHUB_ACTIONS;process.env.GITHUB_ACTIONS='true';
-  try { assert.equal(updateStep,ciSteps('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test','update')[0][0]); }
+  try {
+    assert.equal(updateStep,ciSteps('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test','update-no-migration')[0][0]);
+    assert.equal('Run migration update acceptance',ciSteps('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test','update-migration')[0][0]);
+  }
   finally { if(previous===undefined)delete process.env.GITHUB_ACTIONS;else process.env.GITHUB_ACTIONS=previous; }
 });

@@ -10,7 +10,7 @@ const validate = new Ajv({ strict: true, allErrors: true }).compile(schema);
 export const deploymentFiles = ['bin/jiffoo-host', 'deploy/release/release.schema.json', 'deploy/release/backup-host.sh', 'deploy/release/backup.mjs', 'deploy/release/host-lock.sh', 'deploy/release/update-host.sh', 'deploy/release/update.mjs', 'deploy/compose/compose.yml', 'deploy/compose/compose.release.yml',
   'deploy/compose/api-lb.conf', 'deploy/compose/edge.conf.template', 'deploy/compose/15-edge-hosts.envsh', 'deploy/compose/silo-init.sh', 'deploy/compose/.env.example'];
 export const roles = ['backend', 'admin', 'shop', 'postgres', 'redis', 'silo', 'nginx'];
-export const requiredJobs = ['api (1)', 'api (2)', 'api (3)', 'api (4)', 'quality', 'e2e', 'compose', 'release-verify', 'backup', 'update', 'summary'];
+export const requiredJobs = ['api (1)', 'api (2)', 'api (3)', 'api (4)', 'quality', 'e2e', 'compose', 'release-verify', 'backup', 'update-no-migration', 'update-migration', 'summary'];
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
 export function assertSuccessfulCi(run, jobs, commit) {

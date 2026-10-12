@@ -12,11 +12,11 @@ function inActions(fn) {
   }
 }
 
-const needs = { api: { result: 'success' }, quality: { result: 'success' }, e2e: { result: 'success' }, compose: { result: 'success' }, 'release-verify': { result: 'success' }, backup: { result: 'success' }, update: { result: 'success' } };
+const needs = { api: { result: 'success' }, quality: { result: 'success' }, e2e: { result: 'success' }, compose: { result: 'success' }, 'release-verify': { result: 'success' }, backup: { result: 'success' }, 'update-no-migration': { result: 'success' }, 'update-migration': { result: 'success' } };
 function reports() {
   return inActions(() => [
     ...[1, 2, 3, 4].map(index => ['api', index + '/4']),
-    ['quality', undefined], ['e2e', undefined], ['compose', undefined], ['release-verify', undefined], ['backup', undefined], ['update', undefined],
+    ['quality', undefined], ['e2e', undefined], ['compose', undefined], ['release-verify', undefined], ['backup', undefined], ['update-no-migration', undefined], ['update-migration', undefined],
   ].map(([group, shard]) => {
     const plan = ciSteps('postgresql://postgres@localhost/jiffoo_core_test', group, shard);
     return {
@@ -25,8 +25,8 @@ function reports() {
       fullApiFiles: group === 'api' ? ['tests/a.test.ts', 'tests/b.test.ts', 'tests/c.test.ts', 'tests/d.test.ts'] : [],
       apiFiles: group === 'api' ? ['tests/' + 'abcd'[Number(shard[0]) - 1] + '.test.ts'] : [],
       outputs: plan.filter(([name]) => name.startsWith('Run ')).map(([name]) => ({
-        name, kind: group === 'update' ? 'update' : group === 'backup' ? 'backup' : group === 'release-verify' ? 'release' : group === 'compose' ? 'compose' : name === 'Run browser E2E' ? 'e2e' : 'vitest',
-        output: ['compose', 'release-verify', 'backup', 'update'].includes(group) ? `${group === 'update' ? 'Update' : group === 'compose' ? 'Compose' : group === 'backup' ? 'Backup' : 'Release'} start time: 2026-10-11T00:00:00.000Z\n${group === 'update' ? 'Update' : group === 'compose' ? 'Compose' : group === 'backup' ? 'Backup' : 'Release'} results: 1 passed, 0 failed, 0 skipped\n${group === 'update' ? 'Update' : group === 'compose' ? 'Compose' : group === 'backup' ? 'Backup' : 'Release'} duration: 1.00s\n\n| Check | Result | Duration | Error or skipped reason |\n| --- | --- | --- | --- |\n| Fixture | PASS | 1.00s | |\n` : name === 'Run browser E2E'
+        name, kind: group.startsWith('update-') ? 'update' : group === 'backup' ? 'backup' : group === 'release-verify' ? 'release' : group === 'compose' ? 'compose' : name === 'Run browser E2E' ? 'e2e' : 'vitest',
+        output: ['compose', 'release-verify', 'backup', 'update-no-migration', 'update-migration'].includes(group) ? `${group.startsWith('update-') ? 'Update' : group === 'compose' ? 'Compose' : group === 'backup' ? 'Backup' : 'Release'} start time: 2026-10-11T00:00:00.000Z\n${group.startsWith('update-') ? 'Update' : group === 'compose' ? 'Compose' : group === 'backup' ? 'Backup' : 'Release'} results: 1 passed, 0 failed, 0 skipped\n${group.startsWith('update-') ? 'Update' : group === 'compose' ? 'Compose' : group === 'backup' ? 'Backup' : 'Release'} duration: 1.00s\n\n| Check | Result | Duration | Error or skipped reason |\n| --- | --- | --- | --- |\n| Fixture | PASS | 1.00s | |\n` : name === 'Run browser E2E'
           ? 'Playwright start time: 2026-10-08T00:00:00.000Z\nPlaywright results: 1 passed, 0 failed, 0 skipped\n'
           : '   Start at  00:00:00\n Test Files  1 passed (1)\n      Tests  1 passed (1)\n',
       })),
@@ -92,8 +92,10 @@ test('cancelled, skipped, failed and missing jobs never pass', () => inActions((
   for (const result of ['cancelled', 'skipped', 'failure']) assert.equal(mergeResults(reports(), { ...needs, compose: { result } }).valid, false);
   for (const result of ['cancelled', 'skipped', 'failure']) assert.equal(mergeResults(reports(), { ...needs, 'release-verify': { result } }).valid, false);
   for (const result of ['cancelled', 'skipped', 'failure']) assert.equal(mergeResults(reports(), { ...needs, backup: { result } }).valid, false);
-  for (const result of ['cancelled', 'skipped', 'failure']) assert.equal(mergeResults(reports(), { ...needs, update: { result } }).valid, false);
-  assert.equal(mergeResults(reports().filter(row => row.group !== 'update'), needs).valid, false);
+  for (const group of ['update-no-migration', 'update-migration']) {
+    for (const result of ['cancelled', 'skipped', 'failure']) assert.equal(mergeResults(reports(), { ...needs, [group]: { result } }).valid, false);
+    assert.equal(mergeResults(reports().filter(row => row.group !== group), needs).valid, false);
+  }
   assert.equal(mergeResults(reports().filter(row => row.group !== 'backup'), needs).valid, false);
   assert.equal(mergeResults(reports().filter(row => row.group !== 'compose'), needs).valid, false);
   assert.equal(mergeResults(reports().slice(1), needs).valid, false);

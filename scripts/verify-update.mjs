@@ -13,8 +13,11 @@ import { sha256 } from '../deploy/release/identity.mjs';
 import { archiveComposeStartup, withComposeStartupDiagnostics, redactComposeOutput } from './compose-startup.mjs';
 
 export function updateProfile(args) {
-  assert.ok(args.length <= 1 && (!args.length || /^--profile=(core|full)$/.test(args[0])), 'Usage: pnpm verify:update [--profile=core|full]');
-  return args[0]?.slice('--profile='.length) ?? 'core';
+  const profiles = args.filter(value => value.startsWith('--profile='));
+  const partitions = args.filter(value => value.startsWith('--partition='));
+  assert.ok(profiles.length <= 1 && partitions.length <= 1 && args.length === profiles.length + partitions.length && profiles.every(value => /^--profile=(core|full)$/.test(value)) && partitions.every(value => /^--partition=(no-migration|migration)$/.test(value)), 'Usage: pnpm verify:update [--profile=core|full] [--partition=no-migration|migration]');
+  assert.ok(!partitions.length || profiles[0] !== '--profile=full', 'Partitions are supported only for the core profile');
+  return profiles[0]?.slice('--profile='.length) ?? 'core';
 }
 export function guardUpdateDatabase(url) {
   assert.equal(url, 'postgresql://postgres:postgres@localhost:5432/jiffoo_core_test', 'Update acceptance requires the exact jiffoo_core_test DATABASE_URL_TEST');
@@ -23,6 +26,9 @@ export function guardUpdateDatabase(url) {
 export const updateStep = 'Run no-migration update acceptance';
 async function main() {
   const profile = updateProfile(process.argv.slice(2)); guardUpdateDatabase(process.env.DATABASE_URL_TEST);
+  const partition = process.argv.slice(2).find(value => value.startsWith('--partition='))?.slice('--partition='.length);
+  const group = partition ? 'update-' + partition : 'update';
+  const step = partition === 'migration' ? 'Run migration update acceptance' : updateStep;
   const started = new Date().toISOString(), start = performance.now(), project = 'jiffoo-update-' + randomUUID();
   const native = mkdtempSync(join(tmpdir(), project + '-'));
   const evidence = resolve(process.env.GITHUB_ACTIONS === 'true' ? join(process.env.RUNNER_TEMP, 'verification') : join('e2e/test-results', project));
@@ -226,6 +232,7 @@ async function main() {
       migrationBaseline=await proof();writeFileSync(join(evidence,'migration-baseline.json'),JSON.stringify(migrationBaseline,null,2));
       baseline = await managed(); writeFileSync(join(evidence,'managed-before.json'),JSON.stringify(baseline,null,2));
     });
+    if (partition !== 'migration') {
     await checks.run('Reject unknown and missing CLI options', ['Seed merchant and theme configuration through real API'], async () => {
       const missingActor = updateArgs('missing-actor'); missingActor.splice(missingActor.indexOf('--actor'), 2);
       assert.notEqual((await host(missingActor, { allowFailure: true })).code, 0);
@@ -286,7 +293,9 @@ async function main() {
         activeConfig=directory+'/recovery/prior-config.json';assert.deepEqual(await managed(),baseline);assert.equal((await recorded('recovery')).result,'rolled-back');
       }finally{await first;}
     });
-    const priorProof='Restore prior release after concurrent-operation proof';
+    }
+    if (partition !== 'no-migration') {
+    const priorProof=partition === 'migration' ? 'Seed merchant and theme configuration through real API' : 'Restore prior release after concurrent-operation proof';
     await checks.run('Missing and wrong migration confirmation are refused without stopping applications',[priorProof],async()=>{
       const args=migrationArgs('missing-confirmation');
       for(const suffix of [[],['--confirm','0'.repeat(64)]]){
@@ -366,6 +375,7 @@ async function main() {
       const result=await host([...migrationArgs('migrated'),'--restore-prior'],{allowFailure:true});process.stdout.write(result.output);assert.notEqual(result.code,0);assert.match(result.output,/forbids resume and application rollback/);assert.doesNotMatch(result.output,/Prior release restored/);
       await backupRestore('migrated',result.output);
     });
+    }
   } finally {
     await checks.run('Archive stack logs journal results and published ports', [], async () => {
       let archiveError;
@@ -399,9 +409,9 @@ async function main() {
     writeFileSync(join(evidence,'commands.json'),JSON.stringify(commands,null,2));writeFileSync(join(evidence,'checks.json'),JSON.stringify(checks.rows,null,2));
   }
   const duration=((performance.now()-start)/1000).toFixed(2)+'s',counts=checks.counts();
-  const summary=`Update start time: ${started}\nUpdate results: ${counts.PASS} passed, ${counts.FAIL} failed, ${counts.SKIPPED} skipped\nUpdate profile: ${profile}\nUpdate source commit: ${commit}\nUpdate project: ${project}\nUpdate duration: ${duration}\n\n${checks.table()}`;
-  const block=`=== Final test summary ===\n${summary}\n| Step | Result | Duration |\n| --- | --- | --- |\n| ${updateStep} | ${checks.passed?'PASS':'FAIL'} | ${duration} |\n`;
-  writeFileSync('verify-summary.txt',block);writeFileSync(join(evidence,'verify-summary.txt'),block);writeFileSync(join(evidence,'verify-result.json'),JSON.stringify({group:'update',profile,commit,valid:checks.passed,results:[[updateStep,checks.passed?'PASS':'FAIL',duration]],outputs:[{name:updateStep,kind:'update',output:summary}],apiFiles:[],fullApiFiles:[]},null,2));
+  const summary=`Update start time: ${started}\nUpdate results: ${counts.PASS} passed, ${counts.FAIL} failed, ${counts.SKIPPED} skipped\nUpdate profile: ${profile}\nUpdate partition: ${partition ?? 'all'}\nUpdate source commit: ${commit}\nUpdate project: ${project}\nUpdate duration: ${duration}\n\n${checks.table()}`;
+  const block=`=== Final test summary ===\n${summary}\n| Step | Result | Duration |\n| --- | --- | --- |\n| ${step} | ${checks.passed?'PASS':'FAIL'} | ${duration} |\n`;
+  writeFileSync('verify-summary.txt',block);writeFileSync(join(evidence,'verify-summary.txt'),block);writeFileSync(join(evidence,'verify-result.json'),JSON.stringify({group,profile,partition,commit,valid:checks.passed,results:[[step,checks.passed?'PASS':'FAIL',duration]],outputs:[{name:step,kind:'update',output:summary}],apiFiles:[],fullApiFiles:[]},null,2));
   process.stdout.write(block);if(!checks.passed)process.exitCode=1;
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))await main();

@@ -4,9 +4,9 @@ import { localSteps, ciSteps, apiBuildStep } from './verify-steps.mjs';
 
 export function mergeResults(reports, needs) {
   const errors = [];
-  if (Object.keys(needs).length !== 7 || ['api', 'quality', 'e2e', 'compose', 'release-verify', 'backup', 'update'].some(name => needs[name]?.result !== 'success')) errors.push('Every required job must conclude success; cancelled and skipped jobs are failures.');
+  if (Object.keys(needs).length !== 8 || ['api', 'quality', 'e2e', 'compose', 'release-verify', 'backup', 'update-no-migration', 'update-migration'].some(name => needs[name]?.result !== 'success')) errors.push('Every required job must conclude success; cancelled and skipped jobs are failures.');
   const identities = reports.map(report => report.group === 'api' ? `api-${report.shard}` : report.group);
-  const expected = ['api-1/4', 'api-2/4', 'api-3/4', 'api-4/4', 'quality', 'e2e', 'compose', 'release-verify', 'backup', 'update'];
+  const expected = ['api-1/4', 'api-2/4', 'api-3/4', 'api-4/4', 'quality', 'e2e', 'compose', 'release-verify', 'backup', 'update-no-migration', 'update-migration'];
   if (identities.length !== expected.length || expected.some(id => identities.filter(item => item === id).length !== 1)) errors.push('Missing or duplicate CI job reports.');
   for (const report of reports) {
     if (!report.valid || report.results.some(([, result]) => result !== 'PASS')) errors.push(`Invalid or failed report: ${report.group} ${report.shard ?? ''}`);
@@ -22,7 +22,7 @@ export function mergeResults(reports, needs) {
   if (!full.length || new Set(full).size !== full.length || api.some(report => JSON.stringify(report.fullApiFiles) !== JSON.stringify(full))) errors.push('API full file inventories disagree or are empty.');
   const actual = api.flatMap(report => report.apiFiles);
   if (new Set(actual).size !== actual.length || JSON.stringify([...actual].sort()) !== JSON.stringify([...full].sort())) errors.push('API shard union does not equal the full API file inventory exactly once.');
-  const steps = [...localSteps('DATABASE_URL_TEST').map(([name]) => name), apiBuildStep[0], 'Run Docker Compose acceptance', 'Run release verification acceptance', 'Run backup and restore acceptance', 'Run no-migration update acceptance'];
+  const steps = [...localSteps('DATABASE_URL_TEST').map(([name]) => name), apiBuildStep[0], 'Run Docker Compose acceptance', 'Run release verification acceptance', 'Run backup and restore acceptance', 'Run no-migration update acceptance', 'Run migration update acceptance'];
   for (const name of steps) if (!reports.some(report => report.results.some(([step]) => step === name))) errors.push(`Missing full-gate step: ${name}`);
   const lines = ['=== Final test summary ==='];
   if (api.length === 4) {
