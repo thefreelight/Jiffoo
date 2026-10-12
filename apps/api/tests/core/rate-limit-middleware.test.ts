@@ -71,19 +71,20 @@ describe('shared request protection', () => {
     expect(rejected.statusCode).toBe(429); expect(rejected.json().error.code).toBe('RATE_LIMITED');
     expect((await value.inject({ method: 'POST', url: '/api/v1/auth/register' })).statusCode).toBe(200);
   });
-  it('E2: forgot-password uses the unified 100-per-minute auth policy and counts each request once', async () => {
+  it('E2: forgot-password allows five requests per fifteen minutes and counts each request once', async () => {
     const prefix = `${namespace}:forgot`;
     const value = Fastify();
     let calls = 0;
     await value.register(rateLimiter, { store: protection, global: { windowMs: 60000, maxRequests: 1000, keyPrefix: prefix } });
     value.post('/api/v1/auth/forgot-password', async () => ({ calls: ++calls }));
     try {
-      for (let i = 0; i < 100; i++) expect((await value.inject({ method: 'POST', url: '/api/v1/auth/forgot-password' })).statusCode).toBe(200);
+      for (let i = 0; i < 5; i++) expect((await value.inject({ method: 'POST', url: '/api/v1/auth/forgot-password', payload: { email: `target-${i}@example.test` } })).statusCode).toBe(200);
       const rejected = await value.inject({ method: 'POST', url: '/api/v1/auth/forgot-password' });
       expect(rejected.statusCode).toBe(429);
       expect(rejected.json().error.code).toBe('RATE_LIMITED');
-      expect(calls).toBe(100);
-      expect(await redis.zcard(`${prefix}:/api/v1/auth/forgot-password:ip:127.0.0.1`)).toBe(100);
+      expect(calls).toBe(5);
+      expect(await redis.zcard(`${prefix}:/api/v1/auth/forgot-password:ip:127.0.0.1`)).toBe(5);
+      expect(await redis.pttl(`${prefix}:/api/v1/auth/forgot-password:ip:127.0.0.1`)).toBeGreaterThan(14 * 60000);
       expect(await redis.exists(`${prefix}:anonymous:ip:127.0.0.1`)).toBe(0);
     } finally { await value.close(); }
   });

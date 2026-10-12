@@ -5,6 +5,7 @@ import { issueAuthToken, consumeAuthToken } from './auth-token';
 import { createNotification } from '@/core/notifications/service';
 import { PasswordUtils } from '@/utils/password';
 import { normalizeNotificationLocale } from '@/core/notifications/service';
+import { setTimeout as delay } from 'node:timers/promises';
 
 export function passwordResetLink(token: string, app: 'storefront' | 'admin' = 'storefront', locale?: string | null): string {
   const base = app === 'admin' ? env.ADMIN_URL : env.STOREFRONT_URL;
@@ -17,14 +18,20 @@ export function staffInviteLink(token: string, locale?: string | null): string {
 }
 
 export async function requestPasswordReset(email: string, app: 'storefront' | 'admin' = 'storefront'): Promise<void> {
-  const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
-  if (!user || !user.isActive) return;
-  await prisma.$transaction(async (tx) => {
-    const token = await issueAuthToken(tx, user.id, 'PASSWORD_RESET');
-    await createNotification(tx, 'password_reset', user.id, user.email, { name: user.username }, {
-      secret: { link: passwordResetLink(token, app, user.locale) }, relatedType: 'user', relatedId: user.id,
+  const started = performance.now();
+  try {
+    const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
+    if (!user || !user.isActive) return;
+    await prisma.$transaction(async (tx) => {
+      const token = await issueAuthToken(tx, user.id, 'PASSWORD_RESET');
+      await createNotification(tx, 'password_reset', user.id, user.email, { name: user.username }, {
+        secret: { link: passwordResetLink(token, app, user.locale) }, relatedType: 'user', relatedId: user.id,
+      });
     });
-  });
+  } finally {
+    // Keep successful known and unknown lookups in the same response timing class.
+    await delay(Math.max(0, 500 - (performance.now() - started)));
+  }
 }
 
 export async function resetPassword(token: string, newPassword: string): Promise<void> {

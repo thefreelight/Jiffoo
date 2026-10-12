@@ -1,4 +1,5 @@
 import fp from 'fastify-plugin';
+import { createHash } from 'node:crypto';
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import { RateLimitPresets } from '@shared/security';
 import { sharedProtection, SharedProtectionUnavailable, sendProtectionUnavailable, type SharedProtection } from '@/infra/shared-protection';
@@ -18,7 +19,7 @@ export function isProtectionExempt(request: FastifyRequest): boolean {
 const authPolicies: Record<string, Policy> = {
   '/api/v1/auth/login': RateLimitPresets.login,
   '/api/v1/auth/register': RateLimitPresets.register,
-  '/api/v1/auth/forgot-password': { windowMs: 60000, maxRequests: 100 },
+  '/api/v1/auth/forgot-password': { windowMs: 15 * 60000, maxRequests: 5 },
 };
 
 const plugin: FastifyPluginAsync<RateLimiterPluginOptions> = async (app, options) => {
@@ -48,7 +49,16 @@ const plugin: FastifyPluginAsync<RateLimiterPluginOptions> = async (app, options
     if (auth) await check(request, reply, auth, path(request), `ip:${request.ip}`);
   });
   app.addHook('preHandler', async (request, reply) => {
-    if (reply.sent || isProtectionExempt(request) || authPolicies[path(request)]) return;
+    if (reply.sent || isProtectionExempt(request)) return;
+    if (path(request) === '/api/v1/auth/forgot-password') {
+      const email = (request.body as { email?: unknown } | undefined)?.email;
+      if (typeof email === 'string') {
+        const target = createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
+        await check(request, reply, { windowMs: 60 * 60000, maxRequests: 3 }, 'forgot-password-email', `email:${target}`);
+      }
+      return;
+    }
+    if (authPolicies[path(request)]) return;
     const subject = request.user?.id ? `user:${request.user.id}` : `ip:${request.ip}`;
     await check(request, reply, normal, request.user?.id ? 'user' : 'anonymous', subject);
   });
