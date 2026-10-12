@@ -1,5 +1,5 @@
 /**
- * Admin request middleware for locale routing.
+ * Admin request proxy for locale routing.
  */
 import { LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
 import { createProxyHandler, type ProxyConfig } from 'shared/src/proxy';
@@ -12,7 +12,7 @@ const adminProxyConfig: ProxyConfig = {
 
 const proxyHandler = createProxyHandler(adminProxyConfig);
 
-export function middleware(request: Parameters<typeof proxyHandler>[0]) {
+export function proxy(request: Parameters<typeof proxyHandler>[0]) {
   return proxyHandler(request);
 }
 
