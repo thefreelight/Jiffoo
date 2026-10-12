@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import archiver from 'archiver';
 import { api, login, ownerEmail } from './helpers';
+import { storeLocalDate } from './store-local-date';
 
 const base = 'http://127.0.0.1:3001/api/v1';
 const empty = { ga4MeasurementId: null, metaPixelId: null, baiduSiteKey: null, headCode: '', bodyStartCode: '', bodyEndCode: '' };
@@ -45,9 +46,7 @@ async function open(page: Page) {
 }
 const rows = (page: Page) => page.getByRole('table', { name: 'Audit log', exact: true }).getByRole('row');
 function localDate(value: string) {
-  const date = new Date(value);
-  const parts = Object.fromEntries(new Intl.DateTimeFormat('en', { timeZone: storeTimezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(date).map(part => [part.type, part.value]));
-  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}.${String(date.getUTCMilliseconds()).padStart(3, '0')}`;
+  return storeLocalDate(value, storeTimezone);
 }
 async function select(page: Page, label: string, value: string) {
   await page.getByRole('combobox', { name: label, exact: true }).selectOption(value);
@@ -98,6 +97,13 @@ test('H action and time filters restrict rows and pagination moves between exact
   for (const row of await rows(page).all()) {
     if ((await row.getByRole('cell').count()) > 0)
       await expect(row.getByRole('cell').nth(2)).toHaveText('Tracking configuration saved');
+  }
+  // Exercise Chromium's actual value normalization; DOM emulators parse fractions differently.
+  for (const instant of ['2026-10-12T11:35:00.000Z', '2026-10-12T11:35:00.010Z', '2026-10-12T11:35:22.460Z']) {
+    const canonical = localDate(instant);
+    await page.getByLabel('From', { exact: true }).fill(canonical);
+    await expect(page.getByLabel('From', { exact: true })).toHaveValue(canonical);
+    await expect(page.getByRole('table', { name: 'Audit log', exact: true })).toHaveAttribute('aria-busy', 'false');
   }
   await page.getByLabel('From', { exact: true }).fill(localDate(own[20].createdAt));
   await page.getByLabel('To', { exact: true }).fill(localDate(own[0].createdAt));

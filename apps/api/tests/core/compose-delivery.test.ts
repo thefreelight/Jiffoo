@@ -4,7 +4,7 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 
 it('verifies CI reconciliation, pinned upload identity and Compose guard/evidence through the approved quick runner', () => {
-  const result = spawnSync(process.execPath, ['--test', 'scripts/verify-ci.test.mjs', 'scripts/upload-test-image-identity.test.mjs', 'scripts/verify-compose.test.mjs'], {
+  const result = spawnSync(process.execPath, ['--test', 'scripts/verify-ci.test.mjs', 'scripts/upload-test-image-identity.test.mjs', 'scripts/upload-test-storage.test.mjs', 'scripts/verify-compose.test.mjs'], {
     cwd: path.resolve('../..'), encoding: 'utf8', windowsHide: true,
   });
   expect(result.status, result.stdout + result.stderr).toBe(0);

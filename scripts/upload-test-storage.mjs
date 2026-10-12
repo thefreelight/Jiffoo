@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { verifyUploadImageIdentity } from './upload-test-image-identity.mjs';
 
 export const uploadTestImageIndexDigest = 'sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46';
@@ -9,6 +10,54 @@ export const uploadTestImage = `pgsty/silo:RELEASE.2026-09-16T00-00-00Z@${upload
 export const uploadTestImageDigest = 'sha256:39aab3c365848e32aca7b76c5b57f86d1cbca02d7b8f24e1fd1feff9fedddae5';
 const require = createRequire(resolve('apps/api/package.json'));
 const { S3Client, CreateBucketCommand, HeadBucketCommand } = require('@aws-sdk/client-s3');
+
+export async function waitForUploadBuckets(client, buckets, timeoutMs = 30_000) {
+  const controller = new AbortController();
+  let timer;
+  let lastError = 'no S3 response';
+  const code = error => {
+    const value = error?.code ?? error?.name;
+    return typeof value === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(value) ? value : 'UnknownError';
+  };
+  const transient = error => ['XMinioServerNotInitialized', 'ServiceUnavailable', 'SlowDown', 'InternalError',
+    'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'EPIPE', 'TimeoutError'].includes(code(error))
+    || [500, 502, 503, 504].includes(error?.$metadata?.httpStatusCode);
+  const provision = async () => {
+    while (!controller.signal.aborted) {
+      try {
+        for (const Bucket of buckets) {
+          controller.signal.throwIfAborted();
+          try { await client.send(new CreateBucketCommand({ Bucket }), { abortSignal: controller.signal }); }
+          catch (error) {
+            // A prior uncertain response may have created this UUID-owned bucket.
+            if (!['BucketAlreadyOwnedByYou', 'BucketAlreadyExists'].includes(code(error))) throw error;
+          }
+          controller.signal.throwIfAborted();
+          await client.send(new HeadBucketCommand({ Bucket }), { abortSignal: controller.signal });
+        }
+        controller.signal.throwIfAborted();
+        return;
+      } catch (error) {
+        if (controller.signal.aborted) throw error;
+        lastError = code(error);
+        if (!transient(error)) throw new Error(`Upload test storage S3 provisioning failed: ${lastError}`);
+        // Retry only after an actual failed S3 operation, within the shared deadline.
+        await delay(100, undefined, { signal: controller.signal });
+      }
+    }
+  };
+  try {
+    await Promise.race([
+      provision(),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`Upload test storage S3 did not become ready within ${timeoutMs}ms; last error: ${lastError}`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally { clearTimeout(timer); controller.abort(); }
+}
 
 function docker(args) {
   const result = spawnSync('docker', args, { encoding: 'utf8', windowsHide: true, timeout: 60_000 });
@@ -62,17 +111,7 @@ export async function startUploadTestStorage() {
     const client = new S3Client({ endpoint, region: 'us-east-1', credentials: { accessKeyId, secretAccessKey },
       forcePathStyle: true, maxAttempts: 1, requestChecksumCalculation: 'WHEN_REQUIRED', responseChecksumValidation: 'WHEN_REQUIRED' });
     try {
-      // HTTP readiness retries are bounded and do not substitute for test latches.
-      const deadline = Date.now() + 30_000;
-      while (true) {
-        try { if ((await fetch(`${endpoint}/minio/health/ready`)).ok) break; } catch {}
-        if (Date.now() >= deadline) throw new Error('Upload test storage did not become ready within 30 seconds');
-        await new Promise((done) => setTimeout(done, 100));
-      }
-      for (const Bucket of [bucket, `${bucket}-e2e`]) {
-        await client.send(new CreateBucketCommand({ Bucket }));
-        await client.send(new HeadBucketCommand({ Bucket }));
-      }
+      await waitForUploadBuckets(client, [bucket, `${bucket}-e2e`]);
     } finally { client.destroy(); }
     console.log(`Upload test storage ready: ${name}, image ${uploadTestImage}`);
     return { stop, env: {
