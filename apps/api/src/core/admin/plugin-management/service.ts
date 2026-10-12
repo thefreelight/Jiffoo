@@ -114,12 +114,12 @@ async function resolveSingleProvider(contract: 'tax' | 'fulfillment' | 'notifica
   return installations.find((installation) => declaresContract(installation.plugin.manifestJson, contract)) ?? null;
 }
 
-async function assertNotLastEnabledProvider(pluginSlug: string, enabled: boolean, manifestJson: unknown): Promise<void> {
+async function assertNotLastEnabledProvider(pluginSlug: string, enabled: boolean, manifestJson: unknown, database: Pick<typeof prisma, 'pluginInstallation'> = prisma): Promise<void> {
   if (!enabled || getPluginManifestIssues(manifestJson).length > 0) return;
   const contracts = (['payment', 'shipping', 'tax', 'fulfillment', 'notification'] as const)
     .filter((contract) => declaresContract(manifestJson, contract));
   for (const contract of contracts) {
-    const providers = await prisma.pluginInstallation.findMany({
+    const providers = await database.pluginInstallation.findMany({
       where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } },
       include: { plugin: true },
     });
@@ -437,6 +437,10 @@ async function updateInstance(
   }
 
   const updated = await prisma.$transaction(async (tx) => {
+    if (isDisabling && !updates.replacingProvider && declaresContract(pluginPackage.manifestJson, 'payment')) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('jiffoo:payment-provider-decision', 0))`;
+      await assertNotLastEnabledProvider(existing.pluginSlug, existing.enabled, pluginPackage.manifestJson, tx);
+    }
     if (updates.enabled !== undefined || updates.config !== undefined) updateData.protectionGeneration = { increment: 1 };
     const next = await tx.pluginInstallation.update({ where: { id: installationId }, data: updateData });
     await incrementPluginRegistryVersion(tx);
@@ -571,6 +575,10 @@ export async function uninstallPlugin(slug: string, actorId = 'system'): Promise
   // Soft delete: set deletedAt on package and disable all non-deleted instances
   await prisma.$transaction(async (tx) => {
     await fencePluginOperationLease(tx, slug, token);
+    if (defaultInstance?.enabled && declaresContract(pluginPackage.manifestJson, 'payment')) {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('jiffoo:payment-provider-decision', 0))`;
+      await assertNotLastEnabledProvider(slug, true, pluginPackage.manifestJson, tx);
+    }
     // Set deletedAt on plugin package
     await tx.pluginInstall.update({
       where: { slug },
