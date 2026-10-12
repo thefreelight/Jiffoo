@@ -70,10 +70,13 @@ describe('Plugin manifest contract', () => {
     expect(issues).toContainEqual(expect.objectContaining({ path: 'capabilities', code: 'MANIFEST_FIELD_REMOVED' }));
   });
 
-  it('requires the payment v1 contract for payment-category manifests', () => {
+  it('requires payment v2 and rejects payment v1 for payment-category manifests', () => {
     const issues = getPluginManifestIssues({ ...inProcessManifest, category: 'payment', contracts: [] });
 
     expect(issues).toContainEqual(expect.objectContaining({ path: 'contracts', code: 'MISSING_CATEGORY_CONTRACT' }));
+    expect(getPluginManifestIssues({ ...inProcessManifest, category: 'payment', contracts: [{ name: 'payment', version: 1 }] }))
+      .toContainEqual(expect.objectContaining({ code: 'INVALID_CONTRACTS' }));
+    expect(getPluginManifestIssues({ ...inProcessManifest, category: 'payment', contracts: [{ name: 'payment', version: 2 }] })).toEqual([]);
   });
 
   it('rejects multiple single-provider contracts but accepts payment with shipping', () => {

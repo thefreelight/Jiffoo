@@ -750,6 +750,7 @@ export async function callContract(
   input: unknown,
   invocationLabel?: { kind: string; id: string },
 ): Promise<unknown> {
+  if (version !== (contractName === 'payment' ? 2 : 1) || !(contractName in contractMethods) || !(method in contractMethods[contractName])) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractName} v${version}/${method}`);
   await assertPluginNotPaused(slug);
   try {
     await ensurePluginRegistryFresh(slug);
@@ -759,7 +760,6 @@ export async function callContract(
     if (error instanceof PluginGatewayError) throw contractGatewayError(error);
     throw error;
   }
-  if (version !== (contractName === 'payment' ? 2 : 1) || !(contractName in contractMethods) || !(method in contractMethods[contractName])) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractName} v${version}/${method}`);
   const pkg = await PluginManagementService.getPluginPackage(slug);
   const instance = await PluginManagementService.getDefaultInstance(slug);
   if (!pkg || !instance) throw new ContractCallError('PLUGIN_NOT_FOUND', `Plugin ${slug} is not installed`);

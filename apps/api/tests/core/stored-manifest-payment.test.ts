@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { getTestPrisma } from '../helpers/db';
 import { CacheService } from '@/core/cache/service';
+import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
 describe('stored payment manifests', () => {
   const prisma = getTestPrisma();
@@ -30,7 +31,7 @@ describe('stored payment manifests', () => {
           hostProtocol: 'internal-fastify-v1',
           entryModule: 'server/index.js',
           permissions: [],
-          supportedCurrencies: ['USD'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' },
+          category: 'payment', contracts: [{ name: 'payment', version: 1 }], subscriptions: [],
         },
       },
     });
@@ -61,11 +62,22 @@ describe('stored payment manifests', () => {
     await prisma.pluginInstall.deleteMany({ where: { slug: { in: [validSlug, invalidSlug] } } });
   });
 
-  it('excludes stored manifests that cannot provide a payment v1 contract runtime', async () => {
+  it('excludes stored payment v1 and invalid manifests from payment v2 methods', async () => {
     const response = await app.inject({ method: 'GET', url: '/api/v1/payments/available-methods' });
 
     expect(response.statusCode).toBe(200);
     expect(response.json().data.map((method: { pluginSlug: string }) => method.pluginSlug)).not.toContain(validSlug);
     expect(response.json().data.map((method: { pluginSlug: string }) => method.pluginSlug)).not.toContain(invalidSlug);
+  });
+
+  it('rejects payment v1 session creation before loading its package or reserving any payment', async () => {
+    expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+    const before = await prisma.payment.count();
+    const started = performance.now();
+    await expect(callContract(validSlug, 'payment', 1, 'createSession', {})).rejects.toMatchObject({
+      code: 'CONTRACT_CALL_FAILED', message: 'Unsupported contract payment v1/createSession',
+    });
+    expect(performance.now() - started).toBeLessThan(500);
+    expect(await prisma.payment.count()).toBe(before);
   });
 });
