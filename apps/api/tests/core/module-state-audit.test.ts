@@ -315,6 +315,7 @@ const runtimeHandles = [
   'jobs/payment-reconciliation.ts:PaymentReconciliationJob.pending',
   'jobs/payment-reconciliation.ts:PaymentReconciliationJob.updateInterval',
   'server.ts:fastify',
+  'server.ts:shutdownDeadlineExceeded',
 ] as const;
 const pluginState: Record<string, Entry> = {
   'core/admin/extension-installer/contract-v1-runtime.ts:eventHandlers': { category: 1, reason: 'Registry-version reconciliation resets and rebuilds plugin-derived state.', rebuild: { file: 'core/admin/extension-installer/plugin-runtime.ts', functions: ["dropInternalRuntime","clearContractV1EventHandlers"] } },

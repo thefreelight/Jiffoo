@@ -991,6 +991,9 @@ async function forwardToInternalFastify(
       payload,
     }), databaseAbort.signal));
   injected = true;
+  const invocationKey = Symbol();
+  contractInvocations.set(invocationKey, { kind: 'gateway-request', id: request.id, installationId: installation.id, promise: invocation });
+  void invocation.finally(() => contractInvocations.delete(invocationKey)).catch(() => undefined);
   void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), ctx.config, manifest)));
   const res = await Promise.race([
     invocation,

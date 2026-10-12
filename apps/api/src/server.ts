@@ -38,9 +38,12 @@ import { sharedProtection, SharedProtectionUnavailable, sendProtectionUnavailabl
 import { isProtectionExempt } from '@/plugins/rate-limiter';
 import { assertProductionSafety } from '@/config/production-safety';
 import { prisma } from '@/config/database';
-import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
-import { startCoreProcess, drainCoreProcess, finishCoreProcess } from '@/infra/core-process';
+import { closePluginDatabase, abandonPluginDatabase } from '@/core/admin/extension-installer/plugin-database';
+import { startCoreProcess, drainCoreProcess, finishCoreProcess, stopCoreProcessHeartbeat, drainCoreProcessHeartbeat } from '@/infra/core-process';
 import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
+import { drainContractInvocations, unsettledContractInvocations } from '@/core/admin/extension-installer/plugin-runtime';
+import { workerShutdownDeadlineMs } from '@/infra/worker-shutdown';
+import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { redisCache } from '@/core/cache/redis';
 import { LoggerService, logger, unifiedLogger } from '@/core/logger/unified-logger';
 import { accessLogMiddleware, errorLogMiddleware } from '@/core/logger/middleware';
@@ -70,6 +73,7 @@ const fastify = Fastify({
 });
 
 registerPluginProcessFailureHandlers();
+let shutdownDeadlineExceeded = false;
 
 export async function registerGlobalRateLimiter(
   app: FastifyInstance,
@@ -113,8 +117,12 @@ async function buildApp() {
     declareErrorSchemas(fastify);
     fastify.addHook('onClose', async () => {
       await drainCoreProcess();
-      await closePluginDatabase();
+      await drainContractInvocations();
       await drainPluginInstallOperations();
+      await drainCoreProcessHeartbeat();
+      if (shutdownDeadlineExceeded) return;
+      await closePluginDatabase();
+      if (shutdownDeadlineExceeded) return;
       await finishCoreProcess();
       sharedProtection.close();
       await disconnectApiRedis();
@@ -391,6 +399,7 @@ async function buildApp() {
 }
 
 export async function startApiRuntime(options: { port?: number; host?: string } = {}) {
+  workerShutdownDeadlineMs();
   try {
     assertTestRootEnvironment(env.EXTENSION_TEST_SIGNING_MODE);
     if (env.EXTENSION_TEST_SIGNING_MODE) console.warn('Test signing mode is enabled for the API');
@@ -424,13 +433,36 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
     });
 
 
+    let stopWork: Promise<void> | undefined;
     return {
       app,
-      async stop() {
-        await drainCoreProcess();
-        const closed = app.close();
-        await closePluginDatabase();
-        await closed;
+      stop(): Promise<void> {
+        return stopWork ??= (async () => {
+          const deadlineMs = workerShutdownDeadlineMs();
+          let deadlineTimer: NodeJS.Timeout | undefined;
+          // Fastify stops accepting connections and retains active requests.
+          // Its onClose hook drains actual plugin work before closing clients.
+          const closed = app.close();
+          const drain = (async () => { await drainCoreProcess(); await closed; })();
+          const drained = await Promise.race([
+            drain.then(() => true, error => {
+              LoggerService.logError(error as Error, { context: 'API drain' });
+              return false;
+            }),
+            new Promise<false>(resolve => { deadlineTimer = setTimeout(() => resolve(false), deadlineMs); }),
+          ]).finally(() => clearTimeout(deadlineTimer));
+          if (drained) return;
+          shutdownDeadlineExceeded = true;
+          for (const item of unsettledContractInvocations()) console.error(JSON.stringify({ event: 'api-shutdown-unsettled', ...item }));
+          console.error(JSON.stringify({ event: 'api-shutdown-deadline', deadlineMs, bootNonce: coreProcessIdentity.bootNonce }));
+          stopCoreProcessHeartbeat();
+          abandonPluginDatabase();
+          app.server.closeAllConnections();
+          sharedProtection.close();
+          void redisCache.disconnect().catch(() => undefined);
+          void prisma.$disconnect().catch(() => undefined);
+          throw new Error('API shutdown did not settle before its deadline');
+        })();
       },
     };
   } catch (error) {
@@ -445,33 +477,31 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
   }
 }
 
-const gracefulShutdown = async (signal: string) => {
-  LoggerService.logSystem(`Received ${signal}, shutting down gracefully`);
-
-  try {
-    await closePluginDatabase();
-    await redisCache.disconnect();
-    await prisma.$disconnect();
-
-    LoggerService.logSystem('Server shutdown completed');
-    process.exit(0);
-  } catch (error) {
-    LoggerService.logError(error as Error, { context: 'Graceful shutdown' });
-    process.exit(1);
-  }
-};
+export function registerApiShutdownHandlers(runtime: { stop(): Promise<void> }): void {
+  let stopping = false;
+  const shutdown = async (signal: string) => {
+    if (stopping) return;
+    stopping = true;
+    LoggerService.logSystem(`Received ${signal}, shutting down gracefully`);
+    try {
+      await runtime.stop();
+      LoggerService.logSystem('Server shutdown completed');
+      process.exit(0);
+    } catch (error) {
+      LoggerService.logError(error as Error, { context: 'Graceful shutdown' });
+      process.exit(1);
+    }
+  };
+  process.once('SIGTERM', () => void shutdown('SIGTERM'));
+  process.once('SIGINT', () => void shutdown('SIGINT'));
+}
 
 // Only start the server when this file is executed directly.
 // This allows importing `buildApp()` from scripts (e.g. OpenAPI export) without
 // triggering Redis/DB connections and a listen() side effect.
 if (require.main === module) {
   startApiRuntime().then((runtime) => {
-    const shutdown = async (signal: string) => {
-      await runtime.stop();
-      await gracefulShutdown(signal);
-    };
-    process.on('SIGTERM', () => void shutdown('SIGTERM'));
-    process.on('SIGINT', () => void shutdown('SIGINT'));
+    registerApiShutdownHandlers(runtime);
   }).catch(() => process.exit(1));
 }
 
