@@ -39,7 +39,7 @@ function QrPopover({ pathData, modules, label }: { pathData: string; modules: nu
     >
       <div className="h-3 w-3 rotate-45 rounded-[2px] bg-white" />
       <div className="-mt-1.5 rounded-[0.9rem] bg-white p-3 shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
-        <svg viewBox={`0 0 ${modules} ${modules}`} className="h-[7.5rem] w-[7.5rem]" shapeRendering="crispEdges" role="img" aria-label={label}>
+        <svg viewBox={`0 0 ${modules} ${modules}`} width={120} height={120} className="h-[7.5rem] w-[7.5rem]" shapeRendering="crispEdges" role="img" aria-label={label}>
           <path d={pathData} fill="#14120e" />
         </svg>
       </div>
