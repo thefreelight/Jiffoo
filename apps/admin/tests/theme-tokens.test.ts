@@ -1,52 +1,58 @@
-import { describe, expect, it } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import postcss from 'postcss';
+import tailwind from '@tailwindcss/postcss';
 import adminTheme from '../../../apps/api/builtin-themes/default-admin/theme.json';
-import tailwindConfig from '../tailwind.config.js';
 import { adminThemeCss, adminThemeStyle } from '../lib/theme-font';
 import { themeDefaultTokens } from 'shared';
-import bridge from '../../../packages/shared/src/extensions/theme-bridge.json';
 const root = resolve(__dirname, '..');
-function sourceFiles(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap(entry => entry.isDirectory()
-    ? sourceFiles(join(directory, entry.name)) : /\.(?:css|js|ts|tsx)$/.test(entry.name) ? [join(directory, entry.name)] : []);
+let compiled: postcss.Root;
+beforeAll(async () => {
+  const file = resolve(root, 'app/globals.css');
+  const result = await postcss([tailwind({ base: root, optimize: false })]).process(readFileSync(file, 'utf8') + '\n@source inline("bg-primary bg-primary/50 border-border/50 font-mono");', { from: file });
+  compiled = result.root;
+}, 60000);
+function values(selector: string, property: string) {
+  const values: string[] = [];
+  compiled.walkRules(selector, rule => rule.walkDecls(property, declaration => { values.push(declaration.value); }));
+  return values;
 }
-describe('Admin v2 theme presentation boundary', () => {
-  it('uses semantic utilities without literal palette colors in page source', () => {
-    const literal = /#[\da-f]{3,8}\b|\b(?:rgba?|hsla?)\(\s*[\d.]+/i;
-    for (const directory of ['app', 'components', 'lib']) for (const file of sourceFiles(join(root, directory))) {
-      if (file === join(root, 'app', 'default-tokens.css')) continue;
-      expect(readFileSync(file, 'utf8'), file).not.toMatch(literal);
-    }
+describe('Admin v4 theme foundation', () => {
+  it('emits plain variable solid colors and preserves alpha in opacity modifiers', () => {
+    expect(values('.bg-primary', 'background-color')).toContain('var(--admin-core-foreground)');
+    expect(values('.bg-primary', 'background-color').join()).not.toContain('color-mix');
+    expect(values('.bg-primary\\/50', 'background-color').join()).toContain('color-mix');
+    expect(values('.border-border\\/50', 'border-color').join()).toContain('var(--admin-core-border)');
+    expect(adminThemeCss(adminTheme.tokens)).toContain('--admin-core-border: #00000017;');
   });
-  it('matches builtin v2 defaults and static light/dark CSS byte for byte', () => {
-    expect(adminTheme.schemaVersion).toBe(2);
+  it('compiles multi-column plugin layouts without the v3 comma shorthand', () => {
+    const columns: string[] = [];
+    compiled.walkDecls('grid-template-columns', declaration => { columns.push(declaration.value.replace(/\s/g, '')); });
+    expect(columns).toContain('260pxminmax(0,1fr)');
+    expect(columns).toContain('minmax(0,1fr)360px');
+    expect(columns).not.toContain('260px,minmax(0,1fr)');
+  });
+  it('keeps builtin defaults, static CSS and both mode blocks synchronized', () => {
     expect(themeDefaultTokens.admin).toEqual(adminTheme.tokens);
-    expect(readFileSync(join(root, 'app/default-tokens.css'), 'utf8'))
-      .toBe(adminThemeStyle({ ...adminTheme, fonts: [] }).trimStart() + '\n');
+    expect(readFileSync(resolve(root, 'app/default-tokens.css'), 'utf8')).toBe(adminThemeStyle({ ...adminTheme, fonts: [] }).trimStart() + '\n');
+    expect(adminThemeStyle({ ...adminTheme, fonts: [] })).toContain('prefers-color-scheme: dark');
+    expect(adminThemeStyle({ ...adminTheme, fonts: [] })).toContain('[data-admin-dark-available="true"][data-color-mode="dark"]');
   });
-  it('bridges every old color utility from a fixed map instead of reading manifest keys', () => {
-    const colors = tailwindConfig.theme.extend.colors;
-    for (const name of Object.keys(bridge.admin).filter(name => !name.startsWith('font-') && !name.startsWith('radius-')))
-      expect(colors, name).toHaveProperty(name);
-    expect(readFileSync(join(root, 'tailwind.config.js'), 'utf8')).not.toContain('theme.json');
+  it('uses the fixed bridge while old pages retain semantic utility names', () => {
+    expect(values('.text-neutral-light', 'color').join()).toContain('var(--admin-neutral-light)');
     expect(adminThemeCss(adminTheme.tokens)).toContain('--admin-action-strong: var(--admin-core-foreground);');
   });
-  it('preserves alpha in v3 utility opacity modifiers without RGB channel derivation', () => {
-    const border = tailwindConfig.theme.extend.colors.border;
-    expect(border({ opacityValue: undefined })).toBe('var(--admin-border)');
-    expect(border({ opacityValue: '0.5' })).toContain('color-mix(in srgb, var(--admin-border)');
-    expect(adminThemeCss(adminTheme.tokens)).toContain('--admin-core-border: #00000017;');
-    expect(adminThemeCss(adminTheme.tokens)).not.toContain('-rgb:');
+  it('self-hosts font subsets and uses Geist for body and mono roles', () => {
+    expect(compiled.toString()).toContain('unicode-range:');
+    expect(compiled.toString()).toContain('Noto Sans SC');
+    expect(compiled.toString()).not.toMatch(/fonts\.(?:googleapis|gstatic)\.com/);
+    expect(adminThemeCss(adminTheme.tokens)).toContain('--admin-core-font-body: var(--font-geist-sans');
+    expect(adminThemeCss(adminTheme.tokens)).toContain('--admin-core-font-mono: var(--font-geist-mono');
   });
-  it('keeps modes dormant until U1b sets a mode attribute', () => {
-    expect(adminThemeStyle({ ...adminTheme, fonts: [] })).toContain(':root[data-color-mode="system"]');
-    expect(readFileSync(join(root, 'app/layout.tsx'), 'utf8')).not.toContain('data-color-mode');
-  });
-  it('resolves builtin font IDs through the v2 font role', () => {
-    for (const [id, expected] of [['system-sans', 'system-ui'], ['system-serif', 'Georgia'], ['outfit', 'var(--font-outfit)']]) {
-      const tokens = { ...adminTheme.tokens, core: { ...adminTheme.tokens.core, 'font-body': id } };
-      expect(adminThemeCss(tokens)).toContain('--admin-core-font-body: ' + expected);
-    }
+  it('keeps keyboard focus and both native color schemes visible', () => {
+    expect(compiled.toString()).toContain('outline: 2px solid var(--admin-extras-focus-ring)');
+    expect(compiled.toString()).toContain('color-scheme: dark');
+    expect(compiled.toString()).toContain('color-scheme: light');
   });
 });

@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/lib/store';
-import { useToast } from '@/components/ui/toast';
+import { toast } from 'sonner';
 import { Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react';
 import { useT } from 'shared/src/i18n/react';
 import { resolveApiErrorMessage } from '@/lib/error-utils';
@@ -30,7 +30,6 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const [error, setError] = useState('');
 
   const { login, isLoading } = useAuthStore();
-  const { addToast } = useToast();
   const t = useT();
 
   // Helper function for translations with fallback
@@ -52,11 +51,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     try {
       await login(email, password);
 
-      addToast({
-        type: 'success',
-        title: getText('merchant.auth.loginSuccess', 'Login Successful'),
-        description: getText('merchant.auth.welcomeBack', 'Welcome back to your admin workspace!')
-      });
+      toast.success(getText('merchant.auth.loginSuccess', 'Login Successful'), { description: getText('merchant.auth.welcomeBack', 'Welcome back to your admin workspace!') });
       onClose();
       onSuccess?.();
     } catch (error: unknown) {
@@ -67,11 +62,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         'Invalid email or password'
       );
       setError(errorMessage);
-      addToast({
-        type: 'error',
-        title: getText('merchant.auth.loginFailed', 'Login Failed'),
-        description: errorMessage
-      });
+      toast.error(getText('merchant.auth.loginFailed', 'Login Failed'), { description: errorMessage });
     }
   };
 

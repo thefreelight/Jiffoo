@@ -105,7 +105,7 @@ export function StatsCard({
   const previewBars = [18, 26, 20, 34, 24, 30]
 
   return (
-    <div className={cn(
+    <div data-slot="metric-card" className={cn(
       'group relative overflow-hidden rounded-[2rem] border border-neutral-faint bg-gradient-to-br p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-action-base/5 sm:p-6',
       colors.surface,
       colors.ring,
@@ -152,7 +152,7 @@ export function StatsCard({
         </div>
 
         <div className="mb-5">
-          <div className="text-3xl font-black tracking-tight text-neutral-deepest sm:text-[2rem]">
+          <div className="font-mono tabular-nums text-3xl font-semibold tracking-tight text-neutral-deepest sm:text-[2rem]">
             {value}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">

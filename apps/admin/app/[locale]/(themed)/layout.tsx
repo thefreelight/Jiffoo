@@ -1,17 +1,18 @@
-import { BlueMinimalLayout } from '@/components/layout/blue-minimal-layout';
+import { AdminShell } from '@/components/layout/admin-shell';
 import { adminThemeStyle } from '@/lib/theme-font';
-import { getAdminTheme } from '@/lib/server-theme';
+import { getAdminTheme, getAdminStoreName, getAdminStoreUrl } from '@/lib/server-theme';
 
 export default async function ThemedLayout({ children, params }: {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const theme = await getAdminTheme(locale);
+  const [theme, storeName] = await Promise.all([getAdminTheme('en'), getAdminStoreName()]);
+  const storeUrl = getAdminStoreUrl(locale);
   return <>
     {theme && <style precedence="theme" dangerouslySetInnerHTML={{ __html: adminThemeStyle(theme) }} />}
-    <BlueMinimalLayout logo={theme?.logo ?? null} loginBackground={theme?.loginBackground ?? null}>
+    <AdminShell storeName={storeName} storeUrl={storeUrl} logo={theme?.logo ?? null} loginBackground={theme?.loginBackground ?? null}>
       {children}
-    </BlueMinimalLayout>
+    </AdminShell>
   </>;
 }

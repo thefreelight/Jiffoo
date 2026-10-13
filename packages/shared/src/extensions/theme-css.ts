@@ -11,6 +11,9 @@ export const builtinFontStacks = {
   'system-serif': 'Georgia, "Times New Roman", serif',
   'system-mono': 'Menlo, Consolas, monospace',
   outfit: '"Outfit", system-ui, sans-serif',
+  geist: 'var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif',
+  'geist-mono': 'var(--font-geist-mono, monospace), "Noto Sans SC", monospace',
+  'noto-sans-sc': '"Noto Sans SC", system-ui, sans-serif',
 } as const;
 export type FontResolver = (id: string) => string | undefined;
 const colors = /^#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?$(?![\s\S])/;

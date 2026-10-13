@@ -2,7 +2,7 @@ import { inflateRawSync } from 'zlib';
 import Ajv from 'ajv';
 import {
   themeManifestSchema, type ThemeManifest, CORE_LENGTH_ROLES, SHOP_EXTRA_LENGTH_ROLES,
-  CORE_FONT_ROLES, themeTokenKind, SECTION_TYPES, themeSectionSchemas,
+  CORE_FONT_ROLES, themeTokenKind, SECTION_TYPES, themeSectionSchemas, builtinFontStacks,
 } from '@jiffoo/shared';
 import { ExtensionInstallerError } from './errors';
 
@@ -14,7 +14,7 @@ const MAX_ENTRIES = 200;
 const imagePath = /^assets\/[a-zA-Z0-9_/-]+\.(png|jpe?g|webp)$/;
 const fontPath = /^fonts\/[a-zA-Z0-9_/-]+\.woff2$/;
 const safePath = /^(?!\/)(?!.*(?:^|\/)\.{1,2}(?:\/|$))(?!.*\/\/)[a-zA-Z0-9_./-]+$/;
-const coreFonts = new Set(['system-sans', 'system-serif', 'system-mono', 'outfit']);
+const coreFonts = new Set(Object.keys(builtinFontStacks));
 const ajv = new Ajv({ allErrors: true, strict: false });
 const validateShop = ajv.compile(themeManifestSchema.oneOf[0]);
 const validateAdmin = ajv.compile(themeManifestSchema.oneOf[1]);

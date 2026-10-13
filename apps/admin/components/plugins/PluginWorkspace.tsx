@@ -190,7 +190,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
 
   return (
     <div className="min-h-screen bg-cool-veil p-5 sm:p-7 lg:p-10">
-      <div className="mx-auto grid max-w-[1600px] gap-5 lg:grid-cols-[260px,minmax(0,1fr)]">
+      <div className="mx-auto grid max-w-[1600px] gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
         <InstalledPluginsRail locale={locale} plugins={installedPluginsData?.items || []} selectedSlug={slug} getText={getText} />
         <div className="space-y-5">
           <Card className="rounded-2xl border-cool-soft/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
@@ -206,7 +206,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
             </CardContent>
           </Card>
           <LastRecordedError lastFailureAt={data.lastFailureAt} lastFailureMessage={data.lastFailureMessage} />
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),360px]">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div className="space-y-5">
               {schema && Object.keys(schema.properties).length ? <GenericConfigEditor schema={schema} draft={draft} meta={meta} saving={saving} locale={locale} errors={fieldErrors} onChange={(field, value) => setDraft((current) => ({ ...current, [field]: value }))} onSave={() => void save()} /> : <Alert><Settings2 className="h-4 w-4" /><AlertTitle>No configuration declared</AlertTitle><AlertDescription>This extension does not declare configuration fields.</AlertDescription></Alert>}
             </div>

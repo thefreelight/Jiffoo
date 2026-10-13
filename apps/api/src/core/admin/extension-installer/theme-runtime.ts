@@ -1,6 +1,6 @@
 import Ajv from 'ajv';
 import type { Prisma } from '@prisma/client';
-import { themeManifestSchema, type ThemeManifest, type ThemeTarget } from '@jiffoo/shared';
+import { themeManifestSchema, builtinFontStacks, type ThemeManifest, type ThemeTarget } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
 import { resolveThemePackage, type ThemeFiles } from '@/core/storage/current-theme-package';
 import { withThemeLeases, fenceThemeLeases, type ThemeLease } from '@/core/storage/theme-operation-lease';
@@ -47,7 +47,7 @@ export async function validateConfig(manifest: ThemeManifest, values: Record<str
       tokens[group as 'core' | 'extras'][role] = value;
       try { validateThemeManifest({ ...manifest, tokens }); }
       catch (cause) { if (!(cause instanceof ExtensionInstallerError)) throw cause; fail('THEME_CONFIG_INVALID', 400, path); }
-      if (group === 'core' && role.startsWith('font-') && !['system-sans', 'system-serif', 'system-mono', 'outfit', ...manifest.fonts.map(font => font.id)].includes(value as string))
+      if (group === 'core' && role.startsWith('font-') && ![...Object.keys(builtinFontStacks), ...manifest.fonts.map(font => font.id)].includes(value as string))
         fail('THEME_CONFIG_INVALID', 400, path);
     }
     const constraints = setting.constraints as Record<string, any>;

@@ -27,14 +27,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useT, useLocale } from 'shared/src/i18n/react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 
 export default function CustomersPage() {
   const { date: storeDate } = useStoreDate();
   const t = useT()
   const locale = useLocale()
-  const { toast } = useToast()
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
   const deleteUserMutation = useDeleteUser()
   const updateUserMutation = useUpdateUser()
@@ -125,12 +124,9 @@ export default function CustomersPage() {
         id: customerId,
         data: { isActive: newStatus === 'Active' },
       })
-      toast({
-        title: getText('merchant.customers.success', 'Success'),
-        description: newStatus === 'Active'
+      toast(getText('merchant.customers.success', 'Success'), { description: newStatus === 'Active'
           ? getText('merchant.customers.statusActivated', 'User activated')
-          : getText('merchant.customers.statusDeactivated', 'User deactivated'),
-      })
+          : getText('merchant.customers.statusDeactivated', 'User deactivated') })
     } catch (error) {
       console.error('Failed to update user status:', error)
     }

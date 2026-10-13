@@ -82,6 +82,8 @@ if (visual && !review) {
   playwrightGroups.push(['visual']);
   playwrightGroups.push(finalProjects);
 }
+// A separate group uses the runner's existing login-limit reset for the new shell flow.
+playwrightGroups.push(['38-admin-shell']);
 // Merchant code is configured only after every other storefront/visual project has finished.
 playwrightGroups.push(['23-shop-storefront-code']);
 playwrightGroups.push(['24-admin-storefront-code']);

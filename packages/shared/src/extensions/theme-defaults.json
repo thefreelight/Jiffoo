@@ -16,9 +16,9 @@
       "destructive-line": "#B91C1C38",
       "radius-control": "7px",
       "radius-panel": "10px",
-      "font-body": "system-sans",
-      "font-heading": "system-sans",
-      "font-mono": "system-mono"
+      "font-body": "geist",
+      "font-heading": "geist",
+      "font-mono": "geist-mono"
     },
     "extras": {
       "primary-foreground": "#FFFFFF",

@@ -4,4 +4,5 @@ const fontResolver = (fonts: ThemeFontFace[]) => (id: string) =>
 export const adminThemeCss = (tokens: ThemeTokens, fonts: ThemeFontFace[] = []): string =>
   themeTokensToCss('admin', tokens, fontResolver(fonts));
 export const adminThemeStyle = (theme: { tokens: ThemeTokens; darkTokens?: ThemeDarkTokens; fonts: ThemeFontFace[] }): string =>
-  `${themeFontFaces(theme.fonts)}\n${themeTokenStyle('admin', theme.tokens, theme.darkTokens, fontResolver(theme.fonts))}`;
+  `${themeFontFaces(theme.fonts)}\n${themeTokenStyle('admin', theme.tokens, theme.darkTokens, fontResolver(theme.fonts))}`
+    .replace(/:root\[data-color-mode=/g, ':root[data-admin-dark-available="true"][data-color-mode=');

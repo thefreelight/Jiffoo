@@ -13,8 +13,7 @@ import {
 } from 'shared/src/i18n';
 import { I18nProvider } from 'shared/src/i18n/react';
 import { QueryProvider } from '@/lib/providers/query-provider';
-import { Toaster } from 'sonner';
-import { ToastProvider } from '@/components/ui/toast';
+import { AdminToaster } from '@/components/ui/sonner';
 import { LoggerProvider } from '@/components/logger-provider';
 import { SkipToMain } from '@/components/skip-to-main';
 import { StoreTimeProvider } from '@/lib/store-time';
@@ -41,13 +40,11 @@ export default async function LocaleLayout({ children, params }: Props) {
     <I18nProvider locale={locale as Locale} messages={messages}>
       <StoreTimeProvider timezone={timezone} now={new Date().toISOString()}>
       <LoggerProvider>
-        <ToastProvider>
           <QueryProvider>
             <SkipToMain />
             {children}
-            <Toaster position="bottom-right" richColors />
+            <AdminToaster />
           </QueryProvider>
-        </ToastProvider>
       </LoggerProvider>
       </StoreTimeProvider>
     </I18nProvider>

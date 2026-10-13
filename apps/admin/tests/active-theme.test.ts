@@ -68,6 +68,6 @@ describe('Admin active theme', () => {
     await serve(200, { data: { ...response, tokens: null } });
     expect(await getAdminTheme('en')).toBeNull();
     expect(adminThemeStyle({ tokens: themeDefaultTokens.admin, fonts: [] })).toContain(
-      '--admin-core-font-body: system-ui, -apple-system, sans-serif;');
+      '--admin-core-font-body: var(--font-geist-sans');
   });
 });

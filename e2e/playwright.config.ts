@@ -11,6 +11,7 @@ const areas = [
   '17-shop-order-history-cancel', '18-order-refund',
   '19-themes',
   '20-admin-theme',
+  '38-admin-shell',
   '21-shop-page-boundaries',
   '22-shop-payment-csp',
   '23-shop-storefront-code',
@@ -52,7 +53,7 @@ export default defineConfig({
     dependencies: index ? [areas[index - 1]] : [],
   })), {
     name: 'visual',
-    testMatch: 'visual.spec.ts',
+    testMatch: ['visual.spec.ts', 'visual-admin-modes.spec.ts'],
     dependencies: ['19-themes'],
   }],
 });

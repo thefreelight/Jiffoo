@@ -19,7 +19,7 @@ import { Switch } from '@/components/ui/switch'
 import { useAdminDashboard, useUser, useUpdateUser } from '@/lib/hooks/use-api'
 import { useT } from 'shared/src/i18n/react'
 import { useState, useEffect } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { UserRole } from '@/lib/types'
 import { GenerateResetLinkDialog } from '@/components/customers/generate-reset-link-dialog'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
@@ -32,7 +32,6 @@ export default function CustomerDetailPage() {
   const router = useRouter()
   const userId = params.id as string
   const t = useT()
-  const { toast } = useToast()
   const { data: dashboardData } = useAdminDashboard()
   const currency = dashboardData?.metrics?.currency
 
@@ -89,19 +88,12 @@ export default function CustomerDetailPage() {
         }
       })
 
-      toast({
-        title: getText('merchant.customers.success', 'Success'),
-        description: getText('merchant.customers.edit.success', 'User information updated'),
-      })
+      toast(getText('merchant.customers.success', 'Success'), { description: getText('merchant.customers.edit.success', 'User information updated') })
 
       setIsEditing(false)
       refetch()
     } catch (err: any) {
-      toast({
-        title: getText('merchant.customers.error', 'Error'),
-        description: resolveApiErrorMessage(err, t, 'merchant.customers.edit.failed', 'Update failed'),
-        variant: 'destructive'
-      })
+      toast.error(getText('merchant.customers.error', 'Error'), { description: resolveApiErrorMessage(err, t, 'merchant.customers.edit.failed', 'Update failed') })
     } finally {
       setIsSaving(false)
     }

@@ -14,9 +14,9 @@
 --admin-core-destructive-line: #B91C1C38;
 --admin-core-radius-control: 7px;
 --admin-core-radius-panel: 10px;
---admin-core-font-body: system-ui, -apple-system, sans-serif;
---admin-core-font-heading: system-ui, -apple-system, sans-serif;
---admin-core-font-mono: Menlo, Consolas, monospace;
+--admin-core-font-body: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--admin-core-font-heading: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--admin-core-font-mono: var(--font-geist-mono, monospace), "Noto Sans SC", monospace;
 --admin-extras-primary-foreground: #FFFFFF;
 --admin-extras-focus-ring: #171717;
 --admin-extras-hover: #80808012;
@@ -134,7 +134,7 @@
 --admin-overlay-ink: var(--admin-extras-overlay);
 --admin-page-surface: var(--admin-core-ground);
 }
-@media (prefers-color-scheme: dark) { :root[data-color-mode="system"] {
+@media (prefers-color-scheme: dark) { :root[data-admin-dark-available="true"][data-color-mode="system"] {
 --admin-core-ground: #000000;
 --admin-core-raised: #0A0A0A;
 --admin-core-foreground: #EDEDED;
@@ -150,9 +150,9 @@
 --admin-core-destructive-line: #FCA5A538;
 --admin-core-radius-control: 7px;
 --admin-core-radius-panel: 10px;
---admin-core-font-body: system-ui, -apple-system, sans-serif;
---admin-core-font-heading: system-ui, -apple-system, sans-serif;
---admin-core-font-mono: Menlo, Consolas, monospace;
+--admin-core-font-body: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--admin-core-font-heading: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--admin-core-font-mono: var(--font-geist-mono, monospace), "Noto Sans SC", monospace;
 --admin-extras-primary-foreground: #000000;
 --admin-extras-focus-ring: #EDEDED;
 --admin-extras-hover: #80808012;
@@ -270,7 +270,7 @@
 --admin-overlay-ink: var(--admin-extras-overlay);
 --admin-page-surface: var(--admin-core-ground);
 } }
-:root[data-color-mode="dark"] {
+:root[data-admin-dark-available="true"][data-color-mode="dark"] {
 --admin-core-ground: #000000;
 --admin-core-raised: #0A0A0A;
 --admin-core-foreground: #EDEDED;
@@ -286,9 +286,9 @@
 --admin-core-destructive-line: #FCA5A538;
 --admin-core-radius-control: 7px;
 --admin-core-radius-panel: 10px;
---admin-core-font-body: system-ui, -apple-system, sans-serif;
---admin-core-font-heading: system-ui, -apple-system, sans-serif;
---admin-core-font-mono: Menlo, Consolas, monospace;
+--admin-core-font-body: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--admin-core-font-heading: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--admin-core-font-mono: var(--font-geist-mono, monospace), "Noto Sans SC", monospace;
 --admin-extras-primary-foreground: #000000;
 --admin-extras-focus-ring: #EDEDED;
 --admin-extras-hover: #80808012;

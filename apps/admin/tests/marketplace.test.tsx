@@ -9,7 +9,7 @@ import { merchant as hans } from '../../../packages/shared/src/i18n/messages/zh-
 import { merchant as hant } from '../../../packages/shared/src/i18n/messages/zh-Hant/merchant';
 import { PluginsManager } from '@/components/extensions/PluginsManager';
 import { PluginTrustLabel } from '@/components/extensions/PluginTrust';
-import { BlueMinimalLayout } from '@/components/layout/blue-minimal-layout';
+import { AdminShell } from '@/components/layout/admin-shell';
 import { marketplaceApi, marketplaceErrorKey } from '@/lib/marketplace';
 import { apiClient } from '@/lib/api';
 
@@ -21,7 +21,7 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => tra
 vi.mock('next/navigation', () => ({ usePathname: () => mocks.pathname }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: PropsWithChildren<{ href: string }>) => <a {...props}>{children}</a> }));
 vi.mock('@/components/auth/ProtectedRoute', () => ({ default: ({ children }: PropsWithChildren) => <>{children}</> }));
-vi.mock('@/components/layout/blue-minimal-sidebar', () => ({ BlueMinimalSidebar: () => null }));
+vi.mock('@/components/layout/admin-navigation', () => ({ AdminNavigation: () => null }));
 vi.mock('@/components/extensions/PluginUpload', () => ({ PluginUpload: () => null }));
 vi.mock('@/lib/hooks/use-api', () => ({ useInstalledPlugins: mocks.installed, useTogglePlugin: () => ({ mutate: vi.fn(), isPending: false }) }));
 vi.mock('@/lib/api', async (original) => ({ ...await original<typeof import('@/lib/api')>(), apiClient: { get: vi.fn(), post: vi.fn() } }));
@@ -164,18 +164,18 @@ describe('Admin marketplace and protected test signing banner', () => {
     if (plugin.signingRoot === 'test') expect(container.textContent).not.toContain('Verified');
   });
 
-  it('F renders a red banner inside protected main only when mode is on', async () => {
-    await render(<BlueMinimalLayout><h1>Dashboard</h1></BlueMinimalLayout>);
+  it('F renders an attention banner inside protected main only when mode is on', async () => {
+    await render(<AdminShell><h1>Dashboard</h1></AdminShell>);
     expect(container.getElementsByTagName('main')[0].textContent).toContain('Test signing mode');
-    expect(container.getElementsByTagName('strong')[0].parentElement?.className).toContain('bg-danger-strong');
+    expect(container.getElementsByTagName('strong')[0].parentElement?.className).toContain('bg-attention-soft');
     mocks.status.mockReturnValue({ data: { configured: true, testSigningMode: false } });
-    await render(<BlueMinimalLayout><h1>Dashboard</h1></BlueMinimalLayout>);
+    await render(<AdminShell><h1>Dashboard</h1></AdminShell>);
     expect(container.textContent).not.toContain('Test signing mode');
   });
 
   it.each(['/en/auth/login', '/en/auth/forgot-password', '/en/install'])('F public page %s renders no banner and makes no status call', async (pathname) => {
     mocks.pathname = pathname;
-    await render(<BlueMinimalLayout><h1>Public page</h1></BlueMinimalLayout>);
+    await render(<AdminShell><h1>Public page</h1></AdminShell>);
     expect(container.textContent).not.toContain('Test signing mode');
     expect(mocks.status).not.toHaveBeenCalled();
   });

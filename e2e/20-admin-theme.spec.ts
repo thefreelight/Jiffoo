@@ -23,11 +23,16 @@ test('P activates an Admin theme with local assets and restores the default imme
   });
   await row.getByRole('button', { name: 'Activate' }).click();
   await expect(row.getByText('Active')).toBeVisible();
-  // U1b: restore strict rgb() assertion after the Tailwind v4 token pipeline lands
-  await expect(page.getByRole('button', { name: 'Upload theme' })).toHaveCSS('background-color', /^(?:rgb\(204, 0, 51\)|color\(srgb 0\.8 0 0\.2\))$/);
+  await expect(page.getByRole('button', { name: 'Upload theme' })).toHaveCSS('background-color', 'rgb(204, 0, 51)');
   await expect(page.getByRole('img', { name: 'Store Console logo' }))
     .toHaveAttribute('src', `/api/v1/themes/e2e-admin-theme/${packageHash}/assets/logo.png`);
   await expect(page.getByRole('main').last()).toHaveCSS('font-family', /E2E Outfit/);
+  await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Appearance', exact: true }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('menuitemradio', { name: 'Dark', exact: true })).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.getByText('This theme does not provide a dark appearance.', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
   expect(fonts).toContain(`http://127.0.0.1:3002/api/v1/themes/e2e-admin-theme/${packageHash}/fonts/outfit.woff2`);
   await captureReview(page, 'theme-package-review', 'admin-active-hash-en', { width: 1440, height: 900 });
 
@@ -41,8 +46,7 @@ test('P activates an Admin theme with local assets and restores the default imme
   await page.getByRole('button', { name: 'Restore previous theme' }).click();
   await expect(page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Default Admin' }) })
     .getByText('Active')).toBeVisible();
-  // U1b: restore strict rgb() assertion after the Tailwind v4 token pipeline lands
-  await expect(page.getByRole('button', { name: 'Upload theme' })).toHaveCSS('background-color', /^(?:rgb\(23, 23, 23\)|color\(srgb 0\.0901961 0\.0901961 0\.0901961\))$/);
+  await expect(page.getByRole('button', { name: 'Upload theme' })).toHaveCSS('background-color', 'rgb(23, 23, 23)');
   await row.getByRole('button', { name: 'Uninstall' }).click();
   await expect(page.getByRole('heading', { name: 'E2E Admin Theme' })).toHaveCount(0);
 });

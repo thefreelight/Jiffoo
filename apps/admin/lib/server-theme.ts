@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { isStoreTimezone, type ThemeFontFace, type ThemeTokens, type ThemeDarkTokens } from 'shared';
 
 export async function getStoreTimezone(): Promise<string> {
@@ -44,7 +45,7 @@ function parseAdminTheme(value: unknown): AdminTheme | null {
   return theme as AdminTheme;
 }
 
-export async function getAdminTheme(locale: string): Promise<AdminTheme | null> {
+export const getAdminTheme = cache(async (locale: string): Promise<AdminTheme | null> => {
   const base = process.env.API_SERVICE_URL;
   if (!base) return null;
   try {
@@ -58,4 +59,18 @@ export async function getAdminTheme(locale: string): Promise<AdminTheme | null> 
   } catch {
     return null;
   }
+});
+
+export function getAdminStoreUrl(locale: string): string {
+  return new URL('/' + locale, process.env.STOREFRONT_URL || 'http://localhost:3003').href;
+}
+
+export async function getAdminStoreName(): Promise<string> {
+  if (!process.env.API_SERVICE_URL) return '';
+  try {
+    const response = await fetch(new URL('/api/v1/store/context', process.env.API_SERVICE_URL), { cache: 'no-store' });
+    if (!response.ok) return '';
+    const body = await response.json();
+    return typeof body?.data?.storeName === 'string' ? body.data.storeName : '';
+  } catch { return ''; }
 }

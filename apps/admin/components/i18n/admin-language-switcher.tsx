@@ -34,10 +34,10 @@ export function AdminLanguageSwitcher({ compact = false }: { compact?: boolean }
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-9 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-cool-strong transition-colors hover:bg-cool-faint hover:text-cool-ink"
+          className="inline-flex h-8 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-cool-strong transition-colors hover:bg-cool-faint hover:text-cool-ink"
           aria-label="Change language"
         >
-          <Languages className="h-[18px] w-[18px]" />
+          <Languages className="size-4" />
           {compact ? null : <span>{activeLabel}</span>}
         </button>
       </DropdownMenuTrigger>

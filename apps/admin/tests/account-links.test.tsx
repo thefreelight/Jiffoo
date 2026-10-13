@@ -31,7 +31,7 @@ vi.mock('@/lib/api', () => ({
 vi.mock('@/lib/store', () => ({
   useAuthStore: () => ({ user: { role: 'ADMIN' } }),
 }))
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
+vi.mock('sonner', () => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }))
 vi.mock('@/lib/hooks/use-api', () => ({
   useAdminDashboard: () => ({ data: null }),
   useUser: () => ({
