@@ -26,6 +26,6 @@ it('validates IANA names and atomically audits a changed store timezone', async 
 it('renders email timestamps in the store zone in all three supported languages', () => {
   for (const locale of ['en', 'zh-Hans', 'zh-Hant'] as const) {
     const mail = renderNotification('order_confirmation', locale, 'Store', null, { orderId: 'one' }, false, false, 'Asia/Shanghai', new Date('2026-10-12T00:15:00Z'));
-    expect(mail.text).toContain('08:15'); expect(mail.text).toContain('(Asia/Shanghai)'); expect(mail.html).toContain('(Asia/Shanghai)');
+    expect(mail.text).toContain('08:15'); expect(mail.text).toContain('(Asia/Shanghai +08:00)'); expect(mail.html).toContain('(Asia/Shanghai +08:00)');
   }
 });

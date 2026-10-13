@@ -84,6 +84,8 @@ export interface Order {
   currency: string
   createdAt: string
   itemsCount?: number
+  itemQuantitySum: number
+  requiresPaymentReview: boolean
 
   // Flattened customer info (for list)
   customer: {
@@ -248,7 +250,7 @@ export interface DashboardStats {
   ordersByStatus: Record<string, number>
 
   // Recent activity
-  recentOrders: Array<Order>
+  recentOrders: Array<Omit<Order, 'itemQuantitySum' | 'requiresPaymentReview'>>
 }
 
 export interface ChartData {

@@ -417,11 +417,11 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       } else if (name === 'order-detail') {
         if (width < 768) {
           await expect(page.getByText('customer@e2e.example').first()).toBeVisible();
-          await page.getByRole('link', { name: 'View', exact: true }).last().click();
+          await page.getByRole('article').filter({ hasText: 'customer@e2e.example' }).getByRole('link', { name: /^View order / }).click();
         } else {
           const row = page.getByRole('row').filter({ hasText: 'customer@e2e.example' });
           await expect(row).toBeVisible();
-          await row.click();
+          await row.getByRole('link', { name: /^View order / }).click();
         }
         await expect(page).toHaveURL(/\/en\/orders\/[^/]+$/);
         await expect(page.getByText('customer@e2e.example').first()).toBeVisible();

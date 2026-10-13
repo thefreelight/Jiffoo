@@ -20,6 +20,8 @@ import {
 } from '../helpers/auth';
 import {
   createTestProduct,
+  createTestOrder,
+  createTestOrderItem,
   deleteAllTestProducts,
   deleteAllTestOrders,
 } from '../helpers/fixtures';
@@ -28,6 +30,7 @@ import { prisma } from '@/config/database';
 import path from 'path';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { checkoutTotal } from '../helpers/checkout-total';
+import { CacheService } from '@/core/cache/service';
 
 describe('Admin Orders Endpoints', () => {
   let app: FastifyInstance;
@@ -117,6 +120,74 @@ describe('Admin Orders Endpoints', () => {
   });
 
   describe('GET /api/v1/admin/orders/', () => {
+    it('returns real status counts, distinct review orders, quantity sums and isolated payment filters', async () => {
+      const headers = { authorization: `Bearer ${adminToken}` };
+      const stats = async () => (await app.inject({ method: 'GET', url: '/api/v1/admin/orders/stats', headers })).json().data;
+      const before = await stats();
+      const userId = (await prisma.order.findUniqueOrThrow({ where: { id: testOrderId } })).userId;
+      const owned: string[] = [];
+      const { providerKey } = await prisma.paymentProviderAccount.create({ data: { namespace: 'u1c-orders', merchantAccount: uuidv4(), environment: 'test' } });
+      try {
+        for (const status of ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED']) {
+          const order = await createTestOrder({ userId, status, total: 50 }); owned.push(order.id);
+        }
+        const reviewId = owned[0];
+        for (const quantity of [2, 3]) await createTestOrderItem({ orderId: reviewId, productId: testProduct.id, quantity });
+        for (const attemptNumber of [1, 2]) await prisma.payment.create({ data: {
+          orderId: reviewId, providerKey, paymentMethod: 'manual-payment', amount: 50, status: attemptNumber === 1 ? 'FAILED' : 'REQUIRES_REVIEW', attemptNumber, idempotencyKey: uuidv4(),
+        } });
+        await prisma.payment.create({ data: { orderId: owned[1], providerKey, paymentMethod: 'manual-payment', amount: 50, status: 'PENDING', idempotencyKey: uuidv4() } });
+        const resolved = await prisma.payment.create({ data: { orderId: owned[2], providerKey, paymentMethod: 'manual-payment', amount: 50, status: 'REQUIRES_REVIEW', idempotencyKey: uuidv4() } });
+        const closeReview = async (orderId: string, paymentId: string) => {
+          const response = await app.inject({ method: 'POST', url: `/api/v1/admin/orders/${orderId}/close-review-payment`, headers, payload: { paymentId, reference: `review-proof:${paymentId}` } });
+          expect(response.statusCode).toBe(200);
+        };
+        await closeReview(owned[2], resolved.id);
+        await prisma.order.update({ where: { id: owned[3] }, data: { paymentStatus: 'PAID' } });
+        await prisma.order.update({ where: { id: owned[4] }, data: { paymentStatus: 'FAILED' } });
+        await prisma.order.update({ where: { id: owned[5] }, data: { paymentStatus: 'REFUNDED' } });
+        await CacheService.incrementOrderVersion();
+        const after = await stats();
+        for (const status of ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED']) expect(after.statusCounts[status]).toBe(before.statusCounts[status] + 1);
+        expect(after.paymentReviewCount).toBe(before.paymentReviewCount + 1);
+        const list = async (query: string) => {
+          const response = await app.inject({ method: 'GET', url: '/api/v1/admin/orders/?limit=100&' + query, headers });
+          expect(response.statusCode).toBe(200); return response.json().data;
+        };
+        // An earlier release's cached projection lacks the new required fields.
+        await CacheService.setOrderList(1, 100, { items: [], page: 1, limit: 100, total: 0, totalPages: 0 }, {});
+        const all = await list('');
+        expect(all.items.find((item: any) => item.id === reviewId)).toMatchObject({ itemsCount: 2, itemQuantitySum: 5, requiresPaymentReview: true });
+        for (const id of owned.slice(1)) expect(all.items.find((item: any) => item.id === id).requiresPaymentReview).toBe(false);
+        const review = await list('paymentReview=required');
+        expect(review.total).toBe(after.paymentReviewCount);
+        expect(review.items.every((item: any) => item.requiresPaymentReview)).toBe(true);
+        expect((await list('paymentReview=required&status=SHIPPED')).items).toEqual([]);
+        expect((await list('paymentReview=required&search=' + reviewId)).items.map((item: any) => item.id)).toEqual([reviewId]);
+        const paid = await list('paymentStatus=PAID'); expect(paid.items.every((item: any) => item.paymentStatus === 'PAID')).toBe(true);
+        expect(paid.items.some((item: any) => item.id === owned[3])).toBe(true);
+        const unpaid = await list('paymentStatus=UNPAID'); expect(unpaid.items.every((item: any) => ['PENDING', 'FAILED'].includes(item.paymentStatus))).toBe(true);
+        expect(unpaid.items.some((item: any) => item.id === owned[4])).toBe(true);
+        const refunded = await list('paymentStatus=REFUNDED'); expect(refunded.items.every((item: any) => item.paymentStatus === 'REFUNDED')).toBe(true);
+        expect(refunded.items.some((item: any) => item.id === owned[5])).toBe(true);
+        expect((await app.inject({ method: 'GET', url: '/api/v1/admin/orders/?paymentReview=pending', headers })).statusCode).toBe(400);
+        for (const token of [undefined, userToken]) {
+          const response = await app.inject({ method: 'GET', url: '/api/v1/admin/orders/stats', headers: token ? { authorization: `Bearer ${token}` } : {} });
+          expect(response.statusCode).toBe(token ? 403 : 401);
+        }
+        for (const payment of await prisma.payment.findMany({ where: { orderId: reviewId, status: 'REQUIRES_REVIEW' } })) await closeReview(reviewId, payment.id);
+        expect((await stats()).paymentReviewCount).toBe(before.paymentReviewCount);
+        expect((await list('paymentReview=required&search=' + reviewId)).items).toEqual([]);
+      } finally {
+        const payments = await prisma.payment.findMany({ where: { orderId: { in: owned } }, select: { id: true } });
+        await prisma.adminAuditEvent.deleteMany({ where: { targetType: 'payment', targetId: { in: payments.map(payment => payment.id) } } });
+        await prisma.payment.deleteMany({ where: { orderId: { in: owned } } });
+        await prisma.orderItem.deleteMany({ where: { orderId: { in: owned } } });
+        await prisma.order.deleteMany({ where: { id: { in: owned } } });
+        await prisma.paymentProviderAccount.delete({ where: { providerKey } });
+        await CacheService.incrementOrderVersion();
+      }
+    });
     it('should return orders list', async () => {
       const response = await app.inject({
         method: 'GET',

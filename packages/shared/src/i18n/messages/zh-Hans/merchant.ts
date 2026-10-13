@@ -349,6 +349,31 @@ export const merchant = {
 
   // Orders
   orders: {
+    list: {
+      "all": "全部",
+      "order": "订单",
+      "customer": "客户",
+      "status": "状态",
+      "payment": "付款",
+      "amount": "金额",
+      "placedAt": "下单时间（{timezone}）",
+      "search": "搜索订单编号或客户邮箱",
+      "unpaid": "未付款",
+      "requiresReview": "待人工审核",
+      "items": "{count} 件商品",
+      "reviewBanner": "{count} 笔订单的付款需要人工审核。付款审核通过前，这些订单不会发货。",
+      "reviewAction": "审核付款",
+      "range": "{start}–{end}，共 {total} 条",
+      "previous": "上一页",
+      "next": "下一页",
+      "detail": "查看订单 {id}",
+      "empty": "尚无订单",
+      "noMatches": "没有符合筛选条件的订单。",
+      "loading": "正在加载订单…",
+      "error": "无法加载订单。",
+      "retry": "重试",
+      "statsError": "无法加载订单数量。"
+    },
     review: {
       confirmPaid: '确认已收到付款',
       closeNotCharged: '确认未扣款并关闭',

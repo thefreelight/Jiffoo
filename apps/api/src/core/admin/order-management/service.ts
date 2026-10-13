@@ -6,7 +6,7 @@ import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 
 import { prisma } from '@/config/database';
 import { createOrderNotification } from '@/core/notifications/service';
-import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus } from '@prisma/client';
+import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus, type Prisma } from '@prisma/client';
 import { systemSettingsService } from '../system-settings/service';
 import { CacheService } from '@/core/cache/service';
 import { getTodayAndYesterdayRangeUtc } from '@/utils/timezone';
@@ -29,6 +29,11 @@ function calculateTrendPercent(current: number, previous: number): number {
     return current === 0 ? 0 : 100;
   }
   return Number((((current - previous) / previous) * 100).toFixed(2));
+}
+
+// Match unresolved attempts accepted by the existing manual payment-review operation.
+function paymentReviewWhere(): Prisma.PaymentWhereInput {
+  return { status: 'REQUIRES_REVIEW', reviewResolution: null };
 }
 
 export class AdminOrderService {
@@ -72,6 +77,12 @@ export class AdminOrderService {
   }
 
   static async getOrderStats() {
+    const [statusGroups, paymentReviewCount] = await Promise.all([
+      prisma.order.groupBy({ by: ['status'], _count: { _all: true } }),
+      prisma.order.count({ where: { payments: { some: paymentReviewWhere() } } }),
+    ]);
+    const statusCounts = Object.fromEntries(Object.values(PrismaOrderStatus).map(status => [status, 0]));
+    for (const group of statusGroups) statusCounts[group.status] = group._count._all;
     const [currency, timezone] = await Promise.all([
       systemSettingsService.getShopCurrency(),
       systemSettingsService.getTimezone(),
@@ -133,6 +144,8 @@ export class AdminOrderService {
     ]);
 
     return {
+      statusCounts,
+      paymentReviewCount,
       metrics: {
         totalOrders,
         paidOrders,
@@ -156,7 +169,7 @@ export class AdminOrderService {
    * Get orders list - flattened response for UI display
    * Returns: { items: [...], pagination: {...} }
    */
-  static async getOrders(page = 1, limit = 10, status?: string, search?: string) {
+  static async getOrders(page = 1, limit = 10, status?: string, search?: string, paymentStatus?: 'PAID' | 'UNPAID' | 'REFUNDED', paymentReview?: 'required') {
     const skip = (page - 1) * limit;
     const where: any = {};
     const searchText = search?.trim();
@@ -164,6 +177,8 @@ export class AdminOrderService {
     if (status) {
       where.status = status;
     }
+    if (paymentStatus) where.paymentStatus = paymentStatus === 'UNPAID' ? { in: ['PENDING', 'FAILED'] } : paymentStatus;
+    if (paymentReview === 'required') where.payments = { some: paymentReviewWhere() };
 
     if (searchText) {
       where.OR = [
@@ -194,7 +209,8 @@ export class AdminOrderService {
 
 
     // Try cache
-    const cached = await CacheService.getOrderList(page, limit, { status, search: searchText || undefined });
+    const filters = { status, search: searchText || undefined, paymentStatus: paymentStatus ?? null, paymentReview: paymentReview ?? null };
+    const cached = await CacheService.getOrderList(page, limit, filters);
     if (cached) return cached;
 
     // Fetch currency once for all items (same store = same currency, cached)
@@ -222,7 +238,9 @@ export class AdminOrderService {
           },
           _count: {
             select: { items: true }
-          }
+          },
+          items: { select: { quantity: true } },
+          payments: { where: paymentReviewWhere(), select: { id: true }, take: 1 },
         }
       }),
       prisma.order.count({ where })
@@ -237,6 +255,8 @@ export class AdminOrderService {
         currency,
         createdAt: order.createdAt.toISOString(),
         itemsCount: order._count.items,
+        itemQuantitySum: order.items.reduce((sum, item) => sum + item.quantity, 0),
+        requiresPaymentReview: order.payments.length > 0,
         customer: {
           id: order.user?.id || null,
           email: order.user?.email || null,
@@ -250,7 +270,7 @@ export class AdminOrderService {
     };
 
     // Save to cache (30s TTL for admin orders)
-    await CacheService.setOrderList(page, limit, result, { status, search: searchText || undefined }, 30);
+    await CacheService.setOrderList(page, limit, result, filters, 30);
 
     return result;
   }

@@ -349,6 +349,31 @@ export const merchant = {
 
   // Orders
   orders: {
+    list: {
+      "all": "全部",
+      "order": "訂單",
+      "customer": "客戶",
+      "status": "狀態",
+      "payment": "付款",
+      "amount": "金額",
+      "placedAt": "下單時間（{timezone}）",
+      "search": "搜尋訂單編號或客戶電子郵件",
+      "unpaid": "未付款",
+      "requiresReview": "待人工審核",
+      "items": "{count} 件商品",
+      "reviewBanner": "{count} 筆訂單的付款需要人工審核。付款審核通過前，這些訂單不會出貨。",
+      "reviewAction": "審核付款",
+      "range": "{start}–{end}，共 {total} 筆",
+      "previous": "上一頁",
+      "next": "下一頁",
+      "detail": "查看訂單 {id}",
+      "empty": "尚無訂單",
+      "noMatches": "沒有符合篩選條件的訂單。",
+      "loading": "正在載入訂單…",
+      "error": "無法載入訂單。",
+      "retry": "重試",
+      "statsError": "無法載入訂單數量。"
+    },
     review: {
       confirmPaid: '確認已收到付款',
       closeNotCharged: '確認未扣款並關閉',

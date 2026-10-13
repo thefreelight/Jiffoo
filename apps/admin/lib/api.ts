@@ -109,7 +109,7 @@ export interface DashboardData {
     totalUsersTrend: number;
   };
   ordersByStatus: Record<string, number>;
-  recentOrders: Order[];
+  recentOrders: Array<Omit<Order, 'itemQuantitySum' | 'requiresPaymentReview'>>;
 }
 
 export type SystemSettingsMap = Record<string, unknown>;
@@ -126,6 +126,8 @@ export interface ProductStatsData {
 }
 
 export interface OrderStatsData {
+  statusCounts: Record<string, number>;
+  paymentReviewCount: number;
   metrics: {
     totalOrders: number;
     paidOrders: number;
@@ -166,6 +168,8 @@ export interface PaginationParams {
   status?: string;
   role?: string;
   productType?: string;
+  paymentStatus?: 'PAID' | 'UNPAID' | 'REFUNDED';
+  paymentReview?: 'required';
 }
 
 export interface AccountProfile {
@@ -289,8 +293,8 @@ export const productsApi = {
 
 // Orders API
 export const ordersApi = {
-  getAll: (page = 1, limit = 10, status?: string, search?: string): Promise<ApiResponse<PageResult<AdminOrderListItemDTO>>> =>
-    apiClient.get('/admin/orders', { params: { page, limit, status, search } }),
+  getAll: (page = 1, limit = 10, status?: string, search?: string, paymentStatus?: PaginationParams['paymentStatus'], paymentReview?: PaginationParams['paymentReview']): Promise<ApiResponse<PageResult<AdminOrderListItemDTO>>> =>
+    apiClient.get('/admin/orders', { params: { page, limit, status, search, paymentStatus, paymentReview } }),
 
   getStats: (): Promise<ApiResponse<OrderStatsData>> =>
     apiClient.get('/admin/orders/stats'),

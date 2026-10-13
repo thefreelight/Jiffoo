@@ -23,8 +23,21 @@ export function storeLocalToUtc(value: string, timeZone: string): string {
 
 export function formatStoreDate(value: string | Date, locale: string, timeZone?: string | null, dateOnly = false): string {
   const selectedZone = timeZone?.trim() || 'UTC';
+  const date = new Date(value);
+  // Keep one zone label, with a numeric offset to distinguish repeated DST hours.
+  const offset = dateOnly || selectedZone === 'UTC' ? '' : new Intl.DateTimeFormat('en', { timeZone: selectedZone, timeZoneName: 'longOffset' })
+    .formatToParts(date).find(part => part.type === 'timeZoneName')!.value.replace(/^GMT/, '');
   return new Intl.DateTimeFormat(locale, {
     timeZone: selectedZone, year: 'numeric', month: 'short', day: 'numeric',
-    ...(!dateOnly ? { hour: '2-digit' as const, minute: '2-digit' as const, hourCycle: 'h23' as const, timeZoneName: 'short' as const } : {}),
-  }).format(new Date(value)) + ` (${selectedZone})`;
+    ...(!dateOnly ? { hour: '2-digit' as const, minute: '2-digit' as const, hourCycle: 'h23' as const } : {}),
+  }).format(date) + ` (${selectedZone}${offset ? ` ${offset}` : ''})`;
+}
+
+/** Absolute order-list time; the column header supplies the store timezone. */
+export function formatStoreTimestamp(value: string | Date, timeZone: string): string {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date(value)).map(part => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
 }

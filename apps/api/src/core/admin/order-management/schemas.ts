@@ -36,6 +36,8 @@ const adminOrderListItemSchema = {
     currency: { type: 'string', description: 'Currency code' },
     createdAt: { type: 'string', format: 'date-time' },
     itemsCount: { type: 'integer', description: 'Number of items in the order' },
+    itemQuantitySum: { type: 'integer', description: 'Sum of order item quantities' },
+    requiresPaymentReview: { type: 'boolean', description: 'Has an unresolved REQUIRES_REVIEW payment attempt' },
     customer: {
       type: 'object',
       properties: {
@@ -46,7 +48,7 @@ const adminOrderListItemSchema = {
       required: ['id', 'email', 'username'],
     },
   },
-  required: ['id', 'status', 'totalAmount', 'currency', 'createdAt', 'itemsCount', 'customer'],
+  required: ['id', 'status', 'totalAmount', 'currency', 'createdAt', 'itemsCount', 'itemQuantitySum', 'requiresPaymentReview', 'customer'],
 } as const;
 
 const adminOrderDetailSchema = {
@@ -175,6 +177,8 @@ const adminOrderDetailSchema = {
 const adminOrderStatsSchema = {
   type: 'object',
   properties: {
+    statusCounts: { type: 'object', properties: Object.fromEntries(orderStatusEnum.map(status => [status, { type: 'integer' }])), required: orderStatusEnum },
+    paymentReviewCount: { type: 'integer' },
     metrics: {
       type: 'object',
       properties: {
@@ -205,7 +209,7 @@ const adminOrderStatsSchema = {
       ],
     }
   },
-  required: ['metrics'],
+  required: ['metrics', 'statusCounts', 'paymentReviewCount'],
 } as const;
 
 // ============================================================================
@@ -228,6 +232,8 @@ export const adminOrderSchemas = {
         page: { type: 'integer', default: 1, minimum: 1 },
         limit: { type: 'integer', default: 10, minimum: 1, maximum: 100 },
         status: { type: 'string', enum: orderStatusEnum, description: 'Filter by order status' },
+        paymentStatus: { type: 'string', enum: ['PAID', 'UNPAID', 'REFUNDED'], description: 'Unpaid includes pending and failed payments' },
+        paymentReview: { type: 'string', enum: ['required'], description: 'Filter orders with unresolved payment reviews' },
         search: { type: 'string', description: 'Search by order id, customer email, or username' },
       },
     },

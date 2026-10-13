@@ -102,7 +102,6 @@ export function StatsCard({
 
   // Only render chart when there is real data, otherwise show "No data"
   const hasData = data && data.length > 0
-  const previewBars = [18, 26, 20, 34, 24, 30]
 
   return (
     <div data-slot="metric-card" className={cn(
@@ -140,15 +139,7 @@ export function StatsCard({
               </p>
             </div>
           </div>
-          {icon && (
-            <span className={cn(
-              'inline-flex items-center gap-2 rounded-full border border-surface/80 bg-surface/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] shadow-sm backdrop-blur',
-              colors.softText
-            )}>
-              <span className={cn('h-2 w-2 rounded-full', colors.accent)} />
-              {getText('common.status.active', 'Active')}
-            </span>
-          )}
+
         </div>
 
         <div className="mb-5">
@@ -170,13 +161,12 @@ export function StatsCard({
               </div>
             )}
             <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-light">
-              {comparisonLabel || getText('merchant.dashboard.fromLastMonth', 'vs last month')}
+              {change ? comparisonLabel : null}
             </span>
           </div>
         </div>
 
-        <div className="mt-auto rounded-[1.5rem] border border-surface/80 bg-surface/75 p-3 shadow-sm backdrop-blur">
-          {hasData ? (
+        {hasData && <div className="mt-auto rounded-[1.5rem] border border-surface/80 bg-surface/75 p-3 shadow-sm backdrop-blur">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-light">
@@ -200,34 +190,7 @@ export function StatsCard({
                 </ResponsiveContainer>
               </div>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-light">
-                  {getText('common.noData', 'No recent points')}
-                </span>
-                <span className={cn('text-[10px] font-bold uppercase tracking-[0.18em]', colors.softText)}>
-                  {getText('merchant.dashboard.stable', 'Stable')}
-                </span>
-              </div>
-              <div className="flex h-14 items-end gap-1.5">
-                {previewBars.map((height, index) => (
-                  <div
-                    key={`${title}-${index}`}
-                    className={cn(
-                      'flex-1 rounded-full',
-                      index % 2 === 0 ? colors.micro : 'bg-neutral-faint'
-                    )}
-                    style={{ height }}
-                  />
-                ))}
-              </div>
-              <p className="text-[11px] font-medium text-neutral-light">
-                {getText('merchant.dashboard.awaitingTrend', 'Awaiting enough activity to render a recent trend line.')}
-              </p>
-            </div>
-          )}
-        </div>
+        </div>}
       </div>
     </div>
   )

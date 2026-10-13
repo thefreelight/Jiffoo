@@ -18,6 +18,7 @@ import { LoggerProvider } from '@/components/logger-provider';
 import { SkipToMain } from '@/components/skip-to-main';
 import { StoreTimeProvider } from '@/lib/store-time';
 import { getStoreTimezone } from '@/lib/server-theme';
+import { DocumentLanguage } from '@/components/i18n/document-language';
 
 interface Props {
   children: React.ReactNode;
@@ -38,6 +39,7 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <I18nProvider locale={locale as Locale} messages={messages}>
+      <DocumentLanguage />
       <StoreTimeProvider timezone={timezone} now={new Date().toISOString()}>
       <LoggerProvider>
           <QueryProvider>

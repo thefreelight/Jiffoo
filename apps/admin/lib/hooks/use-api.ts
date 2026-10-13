@@ -208,7 +208,7 @@ export function useOrders(params: PaginationParams = {}) {
   return useQuery({
     queryKey: [...queryKeys.orders, params],
     queryFn: async () => {
-      const response = await ordersApi.getAll(params.page, params.limit, params.status, params.search);
+      const response = await ordersApi.getAll(params.page, params.limit, params.status, params.search, params.paymentStatus, params.paymentReview);
       const data = unwrapApiResponse(response);
       return {
         data: data.items || [],
@@ -284,6 +284,7 @@ export function useDeliverOrder() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders });
       queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
       toast.success('Order delivered successfully');
     },
     onError: (error: unknown) => toast.error(getErrorMessage(error)),
@@ -855,6 +856,7 @@ export function useRecordManualPayment() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.order(variables.id) })
       queryClient.invalidateQueries({ queryKey: queryKeys.orders })
+      queryClient.invalidateQueries({ queryKey: queryKeys.orderStats })
     },
   })
 }
@@ -868,6 +870,7 @@ export function useResolvePaymentReview() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.order(variables.id) })
       queryClient.invalidateQueries({ queryKey: queryKeys.orders })
+      queryClient.invalidateQueries({ queryKey: queryKeys.orderStats })
     },
   })
 }

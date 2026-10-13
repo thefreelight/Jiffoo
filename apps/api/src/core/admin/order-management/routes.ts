@@ -40,8 +40,8 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const { page, limit, status, search } = request.query as any;
-      const result = await AdminOrderService.getOrders(page, limit, status, search);
+      const { page, limit, status, search, paymentStatus, paymentReview } = request.query as any;
+      const result = await AdminOrderService.getOrders(page, limit, status, search, paymentStatus, paymentReview);
       return sendSuccess(reply, result);
     } catch (error) { return sendMappedError(reply, error); }
   });

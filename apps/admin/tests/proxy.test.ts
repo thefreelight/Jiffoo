@@ -18,6 +18,7 @@ describe('Admin locale proxy with the installed Next runtime', () => {
     const response = await proxy(new NextRequest(`http://admin.local/${locale}/auth/login`));
     expect(response.status).toBe(200);
     expect(response.headers.get('location')).toBeNull();
+    expect(response.headers.get('x-middleware-request-x-admin-locale')).toBe(locale);
   });
 
   it.each(['/api/v1/orders', '/plugins/example', '/extensions/plugin/example', '/uploads/image.png', '/_next/static/chunk.js'])('keeps %s outside locale routing', async pathname => {

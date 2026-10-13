@@ -3,7 +3,7 @@ import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, expect, it, vi } from 'vitest';
 import { merchant } from '../../../packages/shared/src/i18n/messages/en/merchant';
-import { PreferencesProvider } from '../lib/preferences-provider';
+import { PreferencesProvider, usePreferences } from '../lib/preferences-provider';
 import { AdminNavigation, AppearanceOptions } from '../components/layout/admin-navigation';
 import { TooltipProvider } from '../components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
@@ -24,11 +24,15 @@ it.each([false, true])('keeps accessible navigation names and focus in rail stat
   const container = await mount(<AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" collapsed={collapsed} />, collapsed);
   for (const name of ['Dashboard', 'Products', 'Orders', 'Notifications', 'Customers', 'Administrators', 'Plugins', 'Themes', 'Settings', 'System Health', 'Audit log', 'Tracking & custom code']) {
     const link = Array.from(container.querySelectorAll('a')).find(link => link.getAttribute('aria-label') === name)!;
-    expect(link, name).toBeTruthy(); link.focus(); expect(document.activeElement).toBe(link);
+    expect(link, name).toBeTruthy(); await act(async () => link.focus()); expect(document.activeElement).toBe(link);
   }
   const toggle = container.querySelector('button[aria-label="' + (collapsed ? 'Expand sidebar' : 'Collapse sidebar') + '"]')!;
   expect(toggle.getAttribute('aria-expanded')).toBe(String(!collapsed));
   expect(container.querySelector('button[aria-label="Change language"]')).toBeTruthy();
+  if (collapsed) {
+    expect(container.querySelectorAll('[role="separator"]')).toHaveLength(2);
+    for (const name of ['Store', 'Appearance & extensions', 'Management']) expect(container.querySelector('button[aria-label="' + name + '"]')).toBeNull();
+  }
 });
 it('group buttons start expanded and change aria-expanded without navigation', async () => {
   const container = await mount(<AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" />);
@@ -37,6 +41,22 @@ it('group buttons start expanded and change aria-expanded without navigation', a
     expect(button.getAttribute('aria-expanded')).toBe('true');
     await act(async () => (button as HTMLElement).click()); expect(button.getAttribute('aria-expanded')).toBe('false');
   }
+});
+it('keeps rail groups visible and restores the expanded group state without switching control modes', async () => {
+  function Navigation() { const { collapsed } = usePreferences(); return <AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" collapsed={collapsed} />; }
+  const warning = vi.spyOn(console, 'warn');
+  try {
+    const container = await mount(<Navigation />);
+    const button = (name: string) => container.querySelector<HTMLButtonElement>('button[aria-label="' + name + '"]')!;
+    await act(async () => button('Store').click());
+    expect(button('Store').getAttribute('aria-expanded')).toBe('false');
+    await act(async () => button('Collapse sidebar').click());
+    expect(container.querySelector('a[aria-label="Dashboard"]')).toBeTruthy();
+    expect(container.querySelectorAll('[role="separator"]')).toHaveLength(2);
+    await act(async () => button('Expand sidebar').click());
+    expect(button('Store').getAttribute('aria-expanded')).toBe('false');
+    expect(warning.mock.calls.flat().join(' ')).not.toMatch(/uncontrolled|controlled/);
+  } finally { warning.mockRestore(); }
 });
 it('disables dark selection and explains the active theme limitation', async () => {
   await mount(<DropdownMenu open><DropdownMenuTrigger>Account menu</DropdownMenuTrigger><DropdownMenuContent><AppearanceOptions /></DropdownMenuContent></DropdownMenu>, false, false);

@@ -1,3 +1,6 @@
+/* Admin pages display only real data and trends computed from real baselines.
+   Use plain merchant language; omit decorative status chips and placeholder trends.
+   State missing data plainly, for example, "No orders yet". */
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "@fontsource/noto-sans-sc/400.css";

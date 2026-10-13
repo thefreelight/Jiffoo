@@ -5,7 +5,8 @@
  * Language-specific content is handled by the [locale] layout.
  */
 
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { isSupportedLocale } from 'shared/src/i18n';
 import { PreferencesProvider } from '@/lib/preferences-provider';
 import { COLOR_MODE_COOKIE, SIDEBAR_COOKIE, parseColorMode, parseSidebarCollapsed, effectiveColorMode } from '@/lib/preferences';
 import { getAdminTheme } from '@/lib/server-theme';
@@ -41,12 +42,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
-  const theme = await getAdminTheme('en');
+  const requestedLocale = (await headers()).get('x-admin-locale');
+  const locale = requestedLocale && isSupportedLocale(requestedLocale) ? requestedLocale : 'en';
+  const theme = await getAdminTheme(locale);
   const darkAvailable = theme?.darkAvailable ?? true;
   const mode = effectiveColorMode(parseColorMode(cookieStore.get(COLOR_MODE_COOKIE)?.value), darkAvailable);
   const collapsed = parseSidebarCollapsed(cookieStore.get(SIDEBAR_COOKIE)?.value);
   return (
-    <html lang="en" data-color-mode={mode} data-admin-dark-available={String(darkAvailable)} className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable}`}>
+    <html lang={locale} data-color-mode={mode} data-admin-dark-available={String(darkAvailable)} className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable}`}>
       <body className="font-sans antialiased">
         <PreferencesProvider initialMode={mode} initialCollapsed={collapsed} darkAvailable={darkAvailable}>{children}</PreferencesProvider>
       </body>

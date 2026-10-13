@@ -52,6 +52,7 @@ export function AdminNavigation({ storeName, storeUrl, logo, collapsed = false, 
   const copy = shellCopy[locale], { toggleSidebar } = usePreferences();
   const { user, logout } = useAuthStore();
   const [productPages, setProductPages] = useState(true);
+  const [openGroups, setOpenGroups] = useState({ store: true, extensions: true, management: true });
   const label = (key: string, fallback: string) => { const value = t(key); return value === key ? fallback : value; };
   const active = (href: string) => pathname === '/' + locale + href || pathname.startsWith('/' + locale + href + '/');
   const languagePath = (language: string) => '/' + [language, ...pathname.split('/').filter(Boolean).slice(1)].join('/');
@@ -66,10 +67,10 @@ export function AdminNavigation({ storeName, storeUrl, logo, collapsed = false, 
       </button></RailTooltip>}
     </div>
     <nav aria-label={copy.navigation} className={cn('min-h-0 flex-1 overflow-y-auto p-3', collapsed && 'px-2')}>
-      {groups.map(group => <Collapsible key={group.name} defaultOpen className="mb-4">
-        <CollapsibleTrigger asChild><button type="button" aria-label={copy[group.name]} className={cn('group mb-1 flex h-6 w-full items-center justify-between text-xs text-muted-foreground', collapsed && 'justify-center')}>
-          <span className={collapsed ? 'sr-only' : ''}>{copy[group.name]}</span><ChevronDown aria-hidden="true" className="size-3 transition-transform group-data-[state=closed]:-rotate-90" />
-        </button></CollapsibleTrigger>
+      {groups.map((group, index) => <Collapsible key={group.name} open={collapsed || openGroups[group.name]} onOpenChange={open => setOpenGroups(value => ({ ...value, [group.name]: open }))} className="mb-4">
+        {collapsed ? index > 0 && <div role="separator" className="mb-4 border-t border-border" /> : <CollapsibleTrigger asChild><button type="button" aria-label={copy[group.name]} className="group mb-1 flex h-6 w-full items-center justify-between text-xs text-muted-foreground">
+          <span>{copy[group.name]}</span><ChevronDown aria-hidden="true" className="size-3 transition-transform group-data-[state=closed]:-rotate-90" />
+        </button></CollapsibleTrigger>}
         <CollapsibleContent className="space-y-1">
           {group.items.map(([id, key, fallback, href, Icon]) => {
             const name = id === 'administrators' ? copy.administrators : label(key, fallback);

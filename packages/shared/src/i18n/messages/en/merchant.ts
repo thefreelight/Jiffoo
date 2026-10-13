@@ -349,6 +349,31 @@ export const merchant = {
 
   // Orders
   orders: {
+    list: {
+      "all": "All",
+      "order": "Order",
+      "customer": "Customer",
+      "status": "Status",
+      "payment": "Payment",
+      "amount": "Amount",
+      "placedAt": "Placed at ({timezone})",
+      "search": "Search order number or customer email",
+      "unpaid": "Unpaid",
+      "requiresReview": "Requires review",
+      "items": "{count} items",
+      "reviewBanner": "{count} orders have payments requiring manual review. They will not ship until the payments are approved.",
+      "reviewAction": "Review payments",
+      "range": "{start}–{end} of {total}",
+      "previous": "Previous",
+      "next": "Next",
+      "detail": "View order {id}",
+      "empty": "No orders yet",
+      "noMatches": "No orders match these filters.",
+      "loading": "Loading orders…",
+      "error": "Could not load orders.",
+      "retry": "Try again",
+      "statsError": "Could not load order counts."
+    },
     review: {
       confirmPaid: 'Confirm payment received',
       closeNotCharged: 'Confirm not charged and close',

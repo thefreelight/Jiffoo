@@ -68,6 +68,8 @@ export interface AdminOrderListItemDTO {
   currency: string;
   createdAt: string;
   itemsCount?: number;
+  itemQuantitySum: number;
+  requiresPaymentReview: boolean;
   customer: {
     id: string | null;
     email: string | null;
