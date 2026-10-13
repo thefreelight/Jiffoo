@@ -1,6 +1,6 @@
 {
   "name": "@shop-themes/bokmoo",
-  "version": "1.1.14",
+  "version": "1.1.15",
   "description": "BOKMOO product-led global eSIM, eUICC, and account storefront theme",
   "private": true,
   "type": "module",
