@@ -12,6 +12,7 @@ import { CategoriesPage } from './components/CategoriesPage';
 import { CheckoutPage } from './components/CheckoutPage';
 import { BestsellersPage, DealsPage, NewArrivalsPage, SearchPage } from './components/CollectionPages';
 import { ContactPage } from './components/ContactPage';
+import { DownloadAppPage } from './components/DownloadAppPage';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { HelpPage } from './components/HelpPage';
@@ -50,6 +51,7 @@ export const theme: ThemePackage = {
     HelpPage,
     PrivacyPage,
     TermsPage,
+    DownloadAppPage,
     DealsPage,
     LoginPage,
     RegisterPage,

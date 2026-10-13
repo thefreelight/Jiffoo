@@ -98,6 +98,18 @@ const PAGE_META = {
         '了解 RemoteRadar 如何掃描來源、將職位與你的檔案匹配，並把每個機會轉為可直接寄出的申請。',
     },
   },
+  'download/app': {
+    en: {
+      title: 'Get the BOKMOO App',
+      description:
+        'Download the BOKMOO app for iOS and Android — activate your card over Bluetooth, install eSIM profiles, and track data on the go.',
+    },
+    'zh-Hant': {
+      title: '取得 BOKMOO App',
+      description:
+        '下載 BOKMOO iOS 與 Android App——藍牙啟用您的卡片、安裝 eSIM 配置檔，隨時掌握數據用量。',
+    },
+  },
 } satisfies Record<string, { en: { title: string; description: string }; 'zh-Hant': { title: string; description: string }; jsonLd?: boolean }>;
 
 type PageRoute = keyof typeof PAGE_META;
