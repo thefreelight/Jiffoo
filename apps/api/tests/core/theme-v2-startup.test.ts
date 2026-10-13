@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { themeFixture, themeHttp, zipTheme } from '../helpers/theme-package-fixture';
 let fixture: Awaited<ReturnType<typeof themeFixture>>;
 let priorConfigs: Awaited<ReturnType<Awaited<ReturnType<typeof themeFixture>>['prisma']['themeConfiguration']['findMany']>>;
@@ -70,7 +71,10 @@ it('startup reinstalls both v2 builtin versions over stored v1 builtin records w
   const node = await fixture.start('startup-api');
   for (const target of ['admin', 'shop'] as const) {
     const slug = `default-${target}`;
-    expect(await fixture.prisma.theme.findUniqueOrThrow({ where: { slug } })).toMatchObject({ version: '2.0.0', manifestJson: { schemaVersion: 2 } });
+    const manifest = JSON.parse(await readFile(new URL(`../../builtin-themes/${slug}/theme.json`, import.meta.url), 'utf8'));
+    const installed = await fixture.prisma.theme.findUniqueOrThrow({ where: { slug } });
+    expect(installed.version).toBe(manifest.version);
+    expect(installed.manifestJson).toMatchObject({ schemaVersion: 2 });
     expect((await fixture.prisma.themeConfiguration.findUniqueOrThrow({ where: { slug } })).values).toEqual({ retired: 'keep' });
     expect((await themeHttp(node, `/api/v1/store/theme?target=${target}&locale=en`)).status).toBe(200);
   }
