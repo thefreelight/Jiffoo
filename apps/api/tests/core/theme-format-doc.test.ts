@@ -1,8 +1,16 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { SECTION_TYPES, themeSectionSchemas } from '@jiffoo/shared';
+import { SECTION_TYPES, themeSectionSchemas, CORE_COLOR_ROLES, CORE_LENGTH_ROLES, CORE_FONT_ROLES } from '@jiffoo/shared';
 
 describe('theme format documentation', () => {
+  it('documents v2-only shared roles, dark mode and non-destructive startup fallback', () => {
+    const doc = readFileSync(new URL('../../../../docs/agentra-003-theme-format.md', import.meta.url), 'utf8');
+    expect(doc).toContain('integer `2` only');
+    for (const role of [...CORE_COLOR_ROLES, ...CORE_LENGTH_ROLES, ...CORE_FONT_ROLES]) expect(doc).toContain('`' + role + '`');
+    expect(doc).toContain('darkAvailable=false');
+    expect(doc).toContain('theme.startup_fallback');
+    expect(doc).toContain('configuration/revisions remain');
+  });
   it('documents every section type and setting in the shared schema table', () => {
     const doc = readFileSync(new URL('../../../../docs/agentra-003-theme-format.md', import.meta.url), 'utf8');
     const table = doc.split('| Section type | Settings (required unless marked ?) | Bounds |')[1]

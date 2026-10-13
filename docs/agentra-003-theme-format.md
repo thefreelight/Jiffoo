@@ -22,7 +22,7 @@ validator checks file signatures as well as extensions. The manifest is at most
 
 | Field | Type |
 | --- | --- |
-| `schemaVersion` | integer `1` |
+| `schemaVersion` | integer `2` only; v1 is rejected with `THEME_SCHEMA_INVALID` at `/schemaVersion` |
 | `kind` | literal `"theme"` |
 | `slug` | lowercase ASCII slug, 2-32 characters |
 | `name` | plain text, 1-100 characters |
@@ -31,7 +31,8 @@ validator checks file signatures as well as extensions. The manifest is at most
 | `author` | plain text, 1-100 characters |
 | `license` | plain text, 1-100 characters |
 | `target` | `shop` or `admin` |
-| `tokens` | target-specific role/value object below |
+| `tokens` | required `{core,extras}` object below |
+| `darkTokens` | optional bounded partial `{core?,extras?}` overrides |
 | `fonts` | array of font declarations, possibly empty |
 | `settings` | array of merchant-configurable declarations, possibly empty |
 | `copy` | map of copy IDs to localized plain text objects |
@@ -45,63 +46,60 @@ characters. `copy` is controlled copy only, never HTML.
 
 ### Tokens
 
-Unspecified roles use Core defaults. Colors are `#RRGGBB` or `#RRGGBBAA`;
-no CSS functions or arbitrary CSS are accepted. Lengths are numeric `px` or
-`rem` in `[0, 128]` (container-width may reach `1600px`). Shadows are objects
-`{x,y,blur,spread,color}`: four lengths (0-128; x/y/spread may be negative
-down to -128) and a color. Font values name a declared font ID or one of
-`system-sans`, `system-serif`, `outfit`. Outfit ships Latin 400-800 with a
-CJK system fallback. Font declarations are
-`{id,family,file,weight,style,license}`; `file` is `fonts/*.woff2`,
-weight is 100-900, style is `normal` or `italic`, and a nonempty license is
-mandatory. Font families are plain names, not CSS expressions.
-Packaged font families render as the declared family followed by `sans-serif`.
-The public resolved theme includes each font's `id`, `family`, versioned local
-`url`, `weight`, and `style`; the renderer uses `id` to select font tokens.
+Both targets require every core role: `ground`, `raised`, `foreground`,
+`muted`, `faint`, `border`, `active`, `attention`, `attention-soft`,
+`attention-line`, `destructive`, `destructive-soft`, `destructive-line`,
+`radius-control`, `radius-panel`, `font-body`, `font-heading`, `font-mono`.
+The `extras` object is required but its enumerated entries are optional.
+Colors are six/eight-digit hex only; alpha is retained in serialization.
+No CSS functions, named colors, URLs, scripts or arbitrary properties are allowed.
+Lengths use numeric px/rem in [0,128], except container-width up to 1600px.
+Shadows have exactly {x,y,blur,spread,color}, each bounded length, with signed
+x/y/spread. Font IDs reference packaged declarations or system-sans,
+system-serif, system-mono, outfit. A packaged font is
+{id,family,file,weight,style,license}, file under fonts/*.woff2,
+weight 100-900, normal/italic style, plain family and nonempty license.
+There are at most 20 font declarations, 100 settings and 200 copy entries.
 
-Shop color roles: `background`, `surface`, `surface-muted`, `text`,
-`text-muted`, `border`, `primary`, `primary-foreground`, `secondary`,
-`secondary-foreground`, `accent`, `success`, `warning`, `danger`,
-`header-bg`, `header-text`, `footer-bg`, `footer-text`, `announcement-bg`,
-`announcement-text`, `price`, `sale-price`. Shop font roles: `font-body`,
-`font-heading`. Shop length roles: `font-size-base`, `radius-sm`,
-`radius-md`, `radius-lg`, `button-radius`, `card-radius`,
-`section-spacing`, `container-width`. Shop number roles:
-`type-scale` (1-2), `heading-weight` (100-900). Shop enum:
-`button-style` (`solid` or `outline`). Shop shadow: `card-shadow`.
+Admin extras: primary-foreground, focus-ring, hover, overlay,
+sidebar-background, sidebar-foreground, sidebar-active (all colors).
+Shop extras: primary, primary-foreground, secondary, secondary-foreground,
+accent, success, warning, header-bg, header-text, footer-bg, footer-text,
+announcement-bg, announcement-text, price, sale-price (colors);
+font-size-base, radius-sm, radius-lg, button-radius, card-radius,
+section-spacing, container-width (lengths); type-scale (1-2),
+heading-weight (integer 100-900), button-style (solid/outline), card-shadow.
 
-Admin color roles: `background`, `surface`, `surface-muted`, `text`,
-`text-muted`, `border`, `primary`, `primary-foreground`, `sidebar-bg`,
-`sidebar-text`, `sidebar-active-bg`, `sidebar-active-text`, `success`,
-`warning`, `danger`, `info`, `foreground`, `action-base`, `action-dark`,
-`action-deep`, `action-faint`, `action-light`, `action-pale`, `action-soft`,
-`action-strong`, `action-veil`, `alert-dark`, `alert-faint`, `alert-strong`, `caution-base`,
-`caution-faint`, `caution-soft`, `caution-strong`, `caution-veil`,
-`chart-amber-base`, `chart-cyan-base`, `chart-teal-light`, `chart-violet-base`, `contrast-base`, `contrast-faint`,
-`contrast-strong`, `cool-base`, `cool-faint`, `cool-ink`, `cool-light`,
-`cool-pale`, `cool-soft`, `cool-strong`, `cool-veil`, `danger-base`,
-`danger-dark`, `danger-deep`, `danger-deepest`, `danger-faint`,
-`danger-light`, `danger-soft`, `danger-strong`, `danger-veil`,
-`highlight-base`, `highlight-dark`, `highlight-deep`, `highlight-faint`,
-`highlight-icon`, `highlight-soft`, `highlight-strong`, `highlight-veil`, `neutral-base`,
-`neutral-dark`, `neutral-deep`, `neutral-deepest`, `neutral-faint`,
-`neutral-light`, `neutral-pale`, `neutral-soft`, `neutral-strong`,
-`neutral-veil`, `positive-deep`, `positive-faint`, `positive-light`,
-`positive-pale`, `positive-strong`, `positive-veil`, `success-base`,
-`success-dark`, `success-deep`, `success-deepest`, `success-faint`,
-`success-light`, `success-soft`, `success-strong`, `success-veil`,
-`warning-base`, `warning-dark`, `warning-deep`, `warning-faint`,
-`warning-strong`, `warning-veil`, `highlight-faint-extra`,
-`install-background`, `install-foreground`, `install-surface`,
-`media-surface`, `overlay-ink`, `page-surface`. Admin font role: `font-body`. Admin length
-roles: `radius-sm`, `radius-md`, `radius-lg`. Admin shadow:
-`card-shadow`.
-Admin assets may supply `logo` and `login-background`, both local image paths.
+Dark overrides may use only keys explicitly defined in the corresponding
+base token group. All values use the same bounds and references as light values.
+An absent darkTokens means darkAvailable=false; Core does not invent dark colors.
+Runtime payloads contain schemaVersion=2, nested tokens, darkAvailable and optional
+darkTokens. Styles declare light roles on :root, dark roles on
+:root[data-color-mode="dark"] and, inside prefers-color-scheme:dark,
+:root[data-color-mode="system"]. No mode attribute is set by U1a.
+
+### Temporary presentation bridge
+
+packages/shared/src/extensions/theme-bridge.json is the single fixed alias map
+for unconverted Admin utilities and existing Shop CSS variables. It maps to v2
+core/extras variables, never parses a v1 manifest, and preserves color alpha.
+Admin palette aliases are neutral; warning/needs-action aliases use attention,
+danger aliases use destructive, and primary actions use foreground.
+Remove aliases page-by-page in later redesign batches. Shop aliases retain the
+current storefront colors, layout and font behavior.
+
+Builtin packages are synchronized from disk at API startup. An invalid active
+package is replaced by the target's builtin default with a theme.startup_fallback
+AdminAuditEvent. Stored packages are not deleted. Invalid stored setting values
+are ignored at resolve time, defaults apply, and configuration/revisions remain
+unchanged. No v1 parsing, serialization or migration adapter exists.
 
 ### Settings
 
 Each setting is `{id,type,label,default,constraints,bindsToken?}`. `label`
-is localized. `bindsToken` names a token role of the same compatible type.
+is localized. `bindsToken` names an explicitly defined v2 path such as
+`core.foreground` or `extras.primary`, of the same compatible type. Font
+select options must all name available fonts; number bindings obey token bounds.
 Types and constraints:
 
 | Type | Default | Constraints |

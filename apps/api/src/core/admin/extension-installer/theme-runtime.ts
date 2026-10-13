@@ -6,6 +6,7 @@ import { resolveThemePackage, type ThemeFiles } from '@/core/storage/current-the
 import { withThemeLeases, fenceThemeLeases, type ThemeLease } from '@/core/storage/theme-operation-lease';
 import { readMediaFile } from '@/core/storage/uploaded-media-set';
 import { ExtensionInstallerError } from './errors';
+import { validateThemeManifest } from './theme-validator';
 import { defaultHomeSections, validateHomeSections } from './theme-home-sections';
 
 type Setting = ThemeManifest['settings'][number];
@@ -40,6 +41,15 @@ export async function validateConfig(manifest: ThemeManifest, values: Record<str
     const validator = settingSchemas.find((candidate) =>
       (candidate.schema as { properties: { type: { const: string } } }).properties.type.const === setting.type);
     if (!validator?.({ ...setting, default: value })) fail('THEME_CONFIG_INVALID', 400, path);
+    if (setting.bindsToken) {
+      const [group, role] = setting.bindsToken.split('.');
+      const tokens = { core: { ...manifest.tokens.core }, extras: { ...manifest.tokens.extras } };
+      tokens[group as 'core' | 'extras'][role] = value;
+      try { validateThemeManifest({ ...manifest, tokens }); }
+      catch (cause) { if (!(cause instanceof ExtensionInstallerError)) throw cause; fail('THEME_CONFIG_INVALID', 400, path); }
+      if (group === 'core' && role.startsWith('font-') && !['system-sans', 'system-serif', 'system-mono', 'outfit', ...manifest.fonts.map(font => font.id)].includes(value as string))
+        fail('THEME_CONFIG_INVALID', 400, path);
+    }
     const constraints = setting.constraints as Record<string, any>;
     if (setting.type === 'text') {
       if (locales.some((locale) => typeof (value as Record<string, unknown>)[locale] !== 'string'
@@ -71,6 +81,17 @@ export async function validateConfig(manifest: ThemeManifest, values: Record<str
         fail('THEME_CONFIG_INVALID', 400, path);
     }
   }
+}
+
+// Invalid persisted values are ignored without changing configuration or revision history.
+export async function validStoredThemeValues(manifest: ThemeManifest, raw: unknown, pkg: ThemeFiles): Promise<Record<string, unknown>> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const values: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    try { await validateConfig(manifest, { [key]: value }, pkg); values[key] = value; }
+    catch (cause) { if (!(cause instanceof ExtensionInstallerError)) throw cause; }
+  }
+  return values;
 }
 
 export async function getThemeConfig(slug: string) {
@@ -164,6 +185,7 @@ async function activateWithLeases(target: ThemeTarget, slug: string, actorId: st
   const candidate = await prisma.theme.findUnique({ where: { slug } });
   if (!candidate) fail('THEME_NOT_FOUND', 404, slug);
   if (candidate.target !== target) fail('THEME_TARGET_MISMATCH', 409, slug);
+  validateThemeManifest(candidate.manifestJson);
   await resolveThemePackage(slug, candidate.packageHash);
   return prisma.$transaction(async (tx) => {
     await fenceThemeLeases(tx, leases);

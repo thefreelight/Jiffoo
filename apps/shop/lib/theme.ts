@@ -1,4 +1,5 @@
 import 'server-only';
+import type { ThemeTokens, ThemeDarkTokens } from 'shared';
 import type { ShopLocale } from './locale';
 import { serverCoreResponse } from './core-transport';
 import { withAvailability } from './availability-boundary';
@@ -15,7 +16,10 @@ export type ShopTheme = {
   slug: string;
   version: string;
   packageHash: string;
-  tokens: Record<string, unknown>;
+  schemaVersion: 2;
+  tokens: ThemeTokens;
+  darkAvailable: boolean;
+  darkTokens?: ThemeDarkTokens;
   fonts: Array<{ id: string; family: string; url: string; weight: number; style: 'normal' | 'italic' }>;
   copy: Record<string, string>;
   layout: {

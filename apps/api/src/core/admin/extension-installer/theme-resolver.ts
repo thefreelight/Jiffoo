@@ -1,4 +1,6 @@
-import { themeCoreDefaults, type ThemeManifest, type ThemeTarget } from '@jiffoo/shared';
+import { themeDefaultTokens, mergeThemeTokens, type ThemeTarget } from '@jiffoo/shared';
+import { validateThemeManifest } from './theme-validator';
+import { validStoredThemeValues } from './theme-runtime';
 import { prisma } from '@/config/database';
 import { Prisma } from '@prisma/client';
 import { resolveThemePackage, ThemePackageResolutionError } from '@/core/storage/current-theme-package';
@@ -18,15 +20,19 @@ export async function resolveTheme(target: ThemeTarget, locale: Locale) {
   }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   if (!snapshot) return null;
   const theme = snapshot;
-  await resolveThemePackage(theme.slug, theme.packageHash);
-  const manifest = theme.manifestJson as unknown as ThemeManifest;
-  const values = (theme.configuration?.values ?? {}) as Record<string, unknown>;
+  const pkg = await resolveThemePackage(theme.slug, theme.packageHash);
+  const manifest = validateThemeManifest(theme.manifestJson);
+  const values = await validStoredThemeValues(manifest, theme.configuration?.values, pkg);
   const effective = Object.fromEntries(manifest.settings.map((setting) =>
     [setting.id, values[setting.id] ?? setting.default]));
-  const tokens: Record<string, unknown> = { ...themeCoreDefaults[target], ...manifest.tokens };
+  const tokens = mergeThemeTokens(themeDefaultTokens[target], manifest.tokens);
   for (const setting of manifest.settings) {
-    if (setting.bindsToken) tokens[setting.bindsToken] = effective[setting.id];
+    if (!setting.bindsToken) continue;
+    const [group, role] = setting.bindsToken.split('.');
+    tokens[group as 'core' | 'extras'][role] = effective[setting.id];
   }
+  const mode = { schemaVersion: 2 as const, darkAvailable: manifest.darkTokens !== undefined,
+    ...(manifest.darkTokens ? { darkTokens: manifest.darkTokens } : {}) };
   const resolve = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(resolve);
     if (value && typeof value === 'object') {
@@ -45,13 +51,13 @@ export async function resolveTheme(target: ThemeTarget, locale: Locale) {
   }));
   return target === 'admin'
     ? {
-      target, slug: theme.slug, version: theme.version, packageHash: theme.packageHash, tokens, fonts,
+      ...mode, target, slug: theme.slug, version: theme.version, packageHash: theme.packageHash, tokens, fonts,
       logo: manifest.assets.logo ? assetUrl(theme.slug, theme.packageHash, manifest.assets.logo) : null,
       loginBackground: manifest.assets['login-background']
         ? assetUrl(theme.slug, theme.packageHash, manifest.assets['login-background']) : null,
     }
     : {
-      target, slug: theme.slug, version: theme.version, packageHash: theme.packageHash, tokens, fonts,
+      ...mode, target, slug: theme.slug, version: theme.version, packageHash: theme.packageHash, tokens, fonts,
       copy: resolve(manifest.copy), layout: resolve({
         ...(manifest.layout as object),
         pages: {

@@ -11,7 +11,7 @@ import { Footer } from '../components/footer';
 import { ImageCarousel } from '../components/image-carousel';
 import { sectionsForPage, themePageSlots } from '../lib/page-classes';
 import { ThemeShell } from '../components/locale-layout';
-import { SECTION_TYPES, themeFontFaces, themeTokensToCss } from 'shared';
+import { SECTION_TYPES, themeFontFaces, themeTokensToCss, themeDefaultTokens } from 'shared';
 import defaultShop from '../../api/builtin-themes/default-shop/theme.json';
 import type { Category, Product, StoreContext } from '../lib/catalog';
 
@@ -43,9 +43,9 @@ const sections: ThemeSection[] = [
   section('feature-list', { items: [{ title: 'Delivery', body: 'Local delivery', icon: 'truck' }] }),
 ];
 const fixture: ShopTheme = {
-  target: 'shop', slug: 'sample', version: '1.0.0',
+  schemaVersion: 2, darkAvailable: false, target: 'shop', slug: 'sample', version: '1.0.0',
   packageHash: 'a'.repeat(64),
-  tokens: { primary: '#123456', 'font-body': 'brand' },
+  tokens: { core: { ...themeDefaultTokens.shop.core, 'font-body': 'brand' }, extras: { ...themeDefaultTokens.shop.extras, primary: '#123456' } },
   fonts: [{ id: 'brand', family: 'Brand Sans', url: '/api/v1/themes/sample/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/fonts/brand.woff2',
     weight: 400, style: 'normal' }],
   copy: {},
@@ -171,12 +171,12 @@ describe('T2 Shop theme rendering', () => {
   });
 
   it('D emits only validated token CSS and font-face data in the layout style', () => {
-    const poisoned: ShopTheme = { ...fixture, tokens: { ...fixture.tokens, primary: '#fff;} body{', unknown: 'url(x)' } };
+    const poisoned: ShopTheme = { ...fixture, tokens: { ...fixture.tokens, extras: { ...fixture.tokens.extras, primary: '#fff;} body{', unknown: 'url(x)' } } };
     const css = themeStyle(poisoned);
     expect(css).toContain(themeTokensToCss('shop', poisoned.tokens,
       (id) => poisoned.fonts.find((font) => font.id === id)?.family));
     expect(css).toContain('@font-face{font-family:"Brand Sans"');
-    expect(css).toContain('--shop-primary: #166b52;');
+    expect(css).toContain('--shop-extras-primary: #166b52;');
     expect(css).not.toContain('#fff;} body{');
     expect(css).not.toContain('url(x)');
     expect(css).not.toContain('--shop-unknown');
@@ -195,9 +195,9 @@ describe('T2 Shop theme rendering', () => {
     expect(first).not.toContain('precedence=');
     expect(first).not.toMatch(/<style[^>]*href=/);
     expect(render(fixture)).toBe(first);
-    const changed = render({ ...fixture, tokens: { ...fixture.tokens, primary: '#654321' } });
-    expect(changed).toContain('--shop-primary: #654321;');
-    expect(changed).not.toContain('--shop-primary: #123456;');
+    const changed = render({ ...fixture, tokens: { ...fixture.tokens, extras: { ...fixture.tokens.extras, primary: '#654321' } } });
+    expect(changed).toContain('--shop-extras-primary: #654321;');
+    expect(changed).not.toContain('--shop-extras-primary: #123456;');
     expect(changed.match(/<style\b/g)).toHaveLength(1);
   });
 
@@ -207,13 +207,13 @@ describe('T2 Shop theme rendering', () => {
       'system-serif': 'Georgia, "Times New Roman", serif',
       outfit: '"Outfit", system-ui, sans-serif',
     })) {
-      expect(themeTokensToCss('shop', { 'font-body': id, 'font-heading': id }))
-        .toContain(`--shop-font-body: ${stack};\n--shop-font-heading: ${stack};`);
+      expect(themeTokensToCss('shop', { ...themeDefaultTokens.shop, core: { ...themeDefaultTokens.shop.core, 'font-body': id, 'font-heading': id } }))
+        .toContain(`--shop-core-font-body: ${stack};\n--shop-core-font-heading: ${stack};`);
     }
   });
 
   it('H uses the declared packaged font family with a sans-serif fallback', () => {
-    expect(themeStyle(fixture)).toContain('--shop-font-body: "Brand Sans", sans-serif;');
+    expect(themeStyle(fixture)).toContain('--shop-core-font-body: "Brand Sans", sans-serif;');
   });
 
   it('N preserves the byte-identical Shop font-face prefix', () => {
@@ -224,10 +224,10 @@ describe('T2 Shop theme rendering', () => {
 
   it('I records exact default Shop font output before and after serialization', () => {
     const css = themeStyle(defaultShop as unknown as ShopTheme);
-    const previous = '--shop-font-body: "system-sans";\n--shop-font-heading: "system-sans";';
+    const previous = '--shop-core-font-body: "system-sans";\n--shop-core-font-heading: "system-sans";';
     expect(css).not.toContain(previous);
-    expect(css).toContain('--shop-font-body: system-ui, -apple-system, sans-serif;');
-    expect(css).toContain('--shop-font-heading: system-ui, -apple-system, sans-serif;');
+    expect(css).toContain('--shop-core-font-body: system-ui, -apple-system, sans-serif;');
+    expect(css).toContain('--shop-core-font-heading: system-ui, -apple-system, sans-serif;');
   });
 
   it('E renders Core defaults for a legitimate absent theme', () => {

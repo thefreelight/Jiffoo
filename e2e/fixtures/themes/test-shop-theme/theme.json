@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "theme",
   "slug": "e2e-shop-theme",
   "name": "E2E Shop Theme",
@@ -9,7 +9,60 @@
   "license": "MIT",
   "target": "shop",
   "tokens": {
-    "primary": "#cc0033"
+    "core": {
+      "ground": "#f5f7f4",
+      "raised": "#ffffff",
+      "foreground": "#18312d",
+      "muted": "#64716d",
+      "faint": "#64716d",
+      "border": "#d9e2db",
+      "active": "#edf2ed",
+      "attention": "#9a5b12",
+      "attention-soft": "#edf2ed",
+      "attention-line": "#9a5b12",
+      "destructive": "#b83232",
+      "destructive-soft": "#edf2ed",
+      "destructive-line": "#b83232",
+      "radius-control": "0.375rem",
+      "radius-panel": "0.375rem",
+      "font-body": "system-sans",
+      "font-heading": "system-sans",
+      "font-mono": "system-mono"
+    },
+    "extras": {
+      "primary": "#cc0033",
+      "primary-foreground": "#ffffff",
+      "secondary": "#e4efcd",
+      "secondary-foreground": "#18312d",
+      "accent": "#e4efcd",
+      "success": "#23774d",
+      "warning": "#9a5b12",
+      "header-bg": "#ffffff",
+      "header-text": "#18312d",
+      "footer-bg": "#ffffff",
+      "footer-text": "#18312d",
+      "announcement-bg": "#166b52",
+      "announcement-text": "#ffffff",
+      "price": "#18312d",
+      "sale-price": "#b83232",
+      "font-size-base": "1rem",
+      "radius-sm": "0.25rem",
+      "radius-lg": "0.5rem",
+      "button-radius": "0.375rem",
+      "card-radius": "0.375rem",
+      "section-spacing": "3rem",
+      "container-width": "1280px",
+      "type-scale": 1,
+      "heading-weight": 600,
+      "button-style": "solid",
+      "card-shadow": {
+        "x": "0px",
+        "y": "2px",
+        "blur": "8px",
+        "spread": "0px",
+        "color": "#18312d"
+      }
+    }
   },
   "fonts": [],
   "settings": [
@@ -26,14 +79,22 @@
         "zh-Hans": "主题上线",
         "zh-Hant": "主題上線"
       },
-      "constraints": { "maxLength": 100 }
+      "constraints": {
+        "maxLength": 100
+      }
     }
   ],
   "copy": {},
   "assets": {},
   "layout": {
-    "header": { "variant": "logo-center", "menu": "drawer", "showSearch": true },
-    "footer": { "columns": [] },
+    "header": {
+      "variant": "logo-center",
+      "menu": "drawer",
+      "showSearch": true
+    },
+    "footer": {
+      "columns": []
+    },
     "pages": {
       "home": {
         "sections": [
@@ -41,7 +102,9 @@
             "id": "e2e-hero",
             "type": "hero-banner",
             "settings": {
-              "title": { "$setting": "hero-heading" },
+              "title": {
+                "$setting": "hero-heading"
+              },
               "link": "/products",
               "buttonLabel": {
                 "en": "Browse products",
@@ -52,9 +115,19 @@
           }
         ]
       },
-      "category": { "columns": 3, "showFilters": false },
-      "product": { "gallery": "left", "showRelatedProducts": false }
+      "category": {
+        "columns": 3,
+        "showFilters": false
+      },
+      "product": {
+        "gallery": "left",
+        "showRelatedProducts": false
+      }
     },
-    "slots": { "category.top": [], "category.bottom": [], "product.bottom": [] }
+    "slots": {
+      "category.top": [],
+      "category.bottom": [],
+      "product.bottom": []
+    }
   }
 }

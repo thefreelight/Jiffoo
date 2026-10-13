@@ -26,11 +26,11 @@ const root = path.join(process.cwd(), 'builtin-themes');
 const base = async (name = slug, version = '1.0.0') => ({
   ...JSON.parse(await fs.readFile(path.join(root, 'default-shop', 'theme.json'), 'utf8')),
   slug: name, version,
-  tokens: { primary: '#123456', 'font-body': 'title' },
+  tokens: { core: { ...JSON.parse(await fs.readFile(path.join(root, 'default-shop', 'theme.json'), 'utf8')).tokens.core, 'font-body': 'title' }, extras: { primary: '#123456' } },
   fonts: [{ id: 'title', family: 'Theme Title', file: 'fonts/title.woff2', weight: 400, style: 'normal', license: 'MIT' }],
   assets: {},
   settings: [
-    { id: 'color', type: 'color', label: local, default: '#123456', constraints: {}, bindsToken: 'primary' },
+    { id: 'color', type: 'color', label: local, default: '#123456', constraints: {}, bindsToken: 'extras.primary' },
     { id: 'caption', type: 'text', label: local, default: local, constraints: { maxLength: 30 } },
     { id: 'picture', type: 'image', label: local, default: 'assets/hero.png', constraints: {} },
     { id: 'category', type: 'category', label: local, default: categoryId, constraints: {} },
@@ -132,10 +132,10 @@ describe('T1b theme runtime', () => {
       const directory = path.join(temp, 'default-shop');
       await fs.mkdir(directory);
       const manifest = JSON.parse(await fs.readFile(path.join(root, 'default-shop', 'theme.json'), 'utf8'));
-      manifest.version = '1.1.1';
+      manifest.version = '2.0.1';
       await fs.writeFile(path.join(directory, 'theme.json'), JSON.stringify(manifest));
       await syncBuiltinThemes(temp);
-      expect((await prisma.theme.findUnique({ where: { slug: 'default-shop' } }))?.version).toBe('1.1.1');
+      expect((await prisma.theme.findUnique({ where: { slug: 'default-shop' } }))?.version).toBe('2.0.1');
       expect((await prisma.themeActive.findUnique({ where: { target: 'shop' } }))?.slug).toBe(slug);
     } finally {
       await fs.rm(temp, { recursive: true, force: true });
@@ -209,14 +209,14 @@ describe('T1b theme runtime', () => {
     const response = await app.inject({ url: '/api/v1/store/theme?target=shop&locale=en' });
     expect(response.headers['cache-control']).toBe('no-store');
     const data = response.json().data;
-    expect(data.tokens.primary).toBe('#abcdef');
+    expect(data.tokens.extras.primary).toBe('#abcdef');
     expect(data.layout.pages.home.sections[0].settings.title).toBe('Hello');
     expect(data.fonts[0].url).toBe(`/api/v1/themes/${slug}/${(await prisma.theme.findUniqueOrThrow({ where: { slug } })).packageHash}/fonts/title.woff2`);
     expect((await app.inject({ url: data.fonts[0].url })).statusCode).toBe(200);
     expect(data.packageHash).toBe((await prisma.theme.findUniqueOrThrow({ where: { slug } })).packageHash);
     expect(JSON.stringify(data)).not.toMatch(/manifestJson|installedAt/);
     const adminTheme = (await app.inject({ url: '/api/v1/store/theme?target=admin&locale=en' })).json().data;
-    expect(adminTheme.tokens.primary).toBeDefined();
+    expect(adminTheme.tokens.core.foreground).toBeDefined();
     expect(adminTheme.logo).toBeNull();
     const adminManifest = {
       ...JSON.parse(await fs.readFile(path.join(root, 'default-admin', 'theme.json'), 'utf8')),
@@ -232,14 +232,14 @@ describe('T1b theme runtime', () => {
 
   it('H serializes only valid declared CSS properties', () => {
     for (const injection of ['#fff;} body{', 'url(x)', 'expression(', 'x'.repeat(1000)]) {
-      const css = themeTokensToCss('shop', { primary: injection, invented: injection });
-      expect(css).toContain('--shop-primary: #166b52;');
+      const css = themeTokensToCss('shop', { core: {}, extras: { primary: injection, invented: injection } });
+      expect(css).toContain('--shop-extras-primary: #166b52;');
       expect(css).not.toContain(injection);
       expect(css).not.toContain('invented');
     }
   });
 
-  it('I migrates invalid and removed values on upgrade with audit', async () => {
+  it('I preserves invalid and removed stored values on upgrade but ignores them at resolve time', async () => {
     const next = await base(slug, '1.1.0');
     next.settings = next.settings.filter((item: { id: string }) => item.id !== 'caption');
     next.settings.find((item: { id: string }) => item.id === 'quantity').constraints.max = 5;
@@ -247,11 +247,11 @@ describe('T1b theme runtime', () => {
     const upgraded = await upload(next);
     expect(upgraded.statusCode, upgraded.body).toBe(200);
     const config = (await admin('GET', `/api/v1/extensions/themes/${slug}/config`)).json().data;
-    expect(config.values).not.toHaveProperty('caption');
-    expect(config.values).not.toHaveProperty('quantity');
+    expect(config.values).toHaveProperty('caption');
+    expect(config.values.quantity).toBe(8);
     expect(config.values.color).toBe('#abcdef');
-    expect(config.revision).toBe(5);
-    expect(await prisma.adminAuditEvent.count({ where: { action: 'theme.config.migrated', targetId: slug } })).toBe(1);
+    expect(config.revision).toBe(4);
+    expect(await prisma.adminAuditEvent.count({ where: { action: 'theme.config.migrated', targetId: slug } })).toBe(0);
   });
 
   it('J records each mutation once; K protects admin routes and publishes the resolver', async () => {
@@ -260,7 +260,7 @@ describe('T1b theme runtime', () => {
       ['theme.activate', slug, 2], ['theme.activate', second, 1],
       ['theme.restore_previous', slug, 1], ['theme.restore_previous', 'default-shop', 1],
       ['theme.config.update', slug, 3], ['theme.config.update', second, 2],
-      ['theme.config.restore', slug, 1], ['theme.config.migrated', slug, 1],
+      ['theme.config.restore', slug, 1],
       ['theme.uninstall', second, 1],
     ];
     for (const [action, targetId, count] of expected) {
@@ -269,7 +269,7 @@ describe('T1b theme runtime', () => {
       expect(events.every((event) => event.targetType === 'theme' && event.actorId === actorId)).toBe(true);
     }
     const revisions = await prisma.themeConfigRevision.findMany({ where: { slug } });
-    expect(revisions.map((item) => item.revision).sort()).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(revisions.map((item) => item.revision).sort()).toEqual([0, 1, 2, 3, 4]);
     const spec = app.swagger();
     for (const [method, route] of [
       ['post', '/api/v1/extensions/themes/{target}/activate'],
@@ -385,7 +385,7 @@ describe('T1b theme runtime', () => {
     });
   });
 
-  it('E drops only a merchant section with a removed asset on upgrade and audits the migration', async () => {
+  it('E preserves an invalid home override on upgrade and resolves the new defaults', async () => {
     await own('home-upgrade', async (url, manifest) => {
       const sections = [
         { id: 'image', type: 'hero-banner', settings: { title: local, image: 'assets/hero.png' } },
@@ -398,12 +398,11 @@ describe('T1b theme runtime', () => {
           home: { sections: [textBlock('default')] } } },
       };
       expect((await upload(upgraded, false)).statusCode).toBe(200);
-      expect((await admin('GET', url)).json().data).toMatchObject({
-        revision: 2, values: { $homeSections: [textBlock('retained')] },
-      });
-      expect((await prisma.adminAuditEvent.findFirst({ where: {
-        action: 'theme.config.migrated', targetId: manifest.slug,
-      } }))?.summary).toMatchObject({ revision: 2, droppedSections: ['image'] });
+      expect((await admin('GET', url)).json().data).toMatchObject({ revision: 1, values: { $homeSections: sections } });
+      expect(await prisma.adminAuditEvent.count({ where: { action: 'theme.config.migrated', targetId: manifest.slug } })).toBe(0);
+      expect((await admin('POST', '/api/v1/extensions/themes/shop/activate', { slug: manifest.slug })).statusCode).toBe(200);
+      const resolved = (await app.inject({ url: '/api/v1/store/theme?target=shop&locale=en' })).json().data;
+      expect(resolved.layout.pages.home.sections).toEqual([{ id: 'default', type: 'text-block', settings: { body: 'Hello' } }]);
     });
   });
 

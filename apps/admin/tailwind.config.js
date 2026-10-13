@@ -1,29 +1,23 @@
 /** @type {import('tailwindcss').Config} */
-const tokens = require('../api/builtin-themes/default-admin/theme.json').tokens;
-const tokenColor = (role) => `rgb(var(--admin-${role}-rgb) / <alpha-value>)`;
-const semanticColor = (role) => ({ opacityValue }) => opacityValue === undefined
-  ? `var(--admin-${role === 'surface' ? 'surface-gradient' : role})`
-  : `rgb(var(--admin-${role}-rgb) / ${opacityValue})`;
+const bridge = require('../../packages/shared/src/extensions/theme-bridge.json').admin;
+const tokenColor = (role) => ({ opacityValue }) => opacityValue === undefined
+  ? `var(--admin-${role})`
+  : `color-mix(in srgb, var(--admin-${role}) calc(${opacityValue} * 100%), transparent)`;
 const aliases = {
-  border: tokenColor('border'),
-  input: tokenColor('border'),
-  ring: tokenColor('info'),
-  background: tokenColor('surface'),
-  foreground: tokenColor('foreground'),
-  primary: { DEFAULT: tokenColor('info'), foreground: tokenColor('primary-foreground') },
+  border: tokenColor('border'), input: tokenColor('border'), ring: tokenColor('info'),
+  background: tokenColor('background'), foreground: tokenColor('foreground'),
+  primary: { DEFAULT: tokenColor('primary'), foreground: tokenColor('primary-foreground') },
   secondary: { DEFAULT: tokenColor('surface-muted'), foreground: tokenColor('foreground') },
-  destructive: { DEFAULT: tokenColor('danger-base'), foreground: tokenColor('primary-foreground') },
+  destructive: { DEFAULT: tokenColor('danger'), foreground: tokenColor('primary-foreground') },
   muted: { DEFAULT: tokenColor('surface-muted'), foreground: tokenColor('text-muted') },
   accent: { DEFAULT: tokenColor('surface-muted'), foreground: tokenColor('foreground') },
   popover: { DEFAULT: tokenColor('surface'), foreground: tokenColor('foreground') },
   card: { DEFAULT: tokenColor('surface'), foreground: tokenColor('foreground') },
 };
-const aliasNames = new Set(Object.entries(aliases).flatMap(([name, value]) =>
-  typeof value === 'string' ? [name]
-    : Object.keys(value).map((part) => part === 'DEFAULT' ? name : `${name}-${part}`)));
-const semanticColors = Object.fromEntries(Object.entries(tokens)
-  .filter(([name, value]) => /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(value) && !aliasNames.has(name))
-  .map(([name]) => [name, semanticColor(name)]));
+const aliasNames = new Set(Object.keys(aliases));
+const semanticColors = Object.fromEntries(Object.keys(bridge)
+  .filter((name) => !name.startsWith('font-') && !name.startsWith('radius-') && !aliasNames.has(name))
+  .map((name) => [name, tokenColor(name)]));
 module.exports = {
   presets: [require('./tailwind.preset')],
   content: [

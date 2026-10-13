@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { prisma } from '@/config/database';
@@ -8,9 +9,8 @@ import { resolveThemePackage, ThemePackageResolutionError } from '@/core/storage
 import { withThemeLeases, fenceThemeLeases } from '@/core/storage/theme-operation-lease';
 import { packBuiltinPlugin } from './builtin-package';
 import { ExtensionInstallerError } from './errors';
-import { validateThemeFiles, validateThemeZip } from './theme-validator';
-import { audit, validateConfig } from './theme-runtime';
-import { validateHomeSections, type HomeSection } from './theme-home-sections';
+import { validateThemeFiles, validateThemeZip, validateThemeManifest } from './theme-validator';
+import { audit } from './theme-runtime';
 
 function error(code: import('@/utils/api-errors').ErrorCode, message: string): never {
   throw new ExtensionInstallerError(message, { code });
@@ -32,7 +32,12 @@ export async function installTheme(archive: Buffer, options: { source: 'builtin'
     const existing = await prisma.theme.findUnique({ where: { slug: manifest.slug } });
     if (existing?.source === 'builtin' && options.source !== 'builtin') error('THEME_BUILTIN_CONFLICT', 'Builtin theme cannot be replaced');
     if (existing && existing.target !== manifest.target) error('THEME_TARGET_CONFLICT', 'Theme cannot change target');
-    if (existing) {
+    let repairBuiltin = false;
+    if (existing?.source === 'builtin' && options.source === 'builtin') {
+      try { validateThemeManifest(existing.manifestJson); }
+      catch (cause) { if (!(cause instanceof ExtensionInstallerError)) throw cause; repairBuiltin = true; }
+    }
+    if (existing && !repairBuiltin) {
       const comparison = compareVersions(manifest.version, existing.version);
       if (options.source === 'builtin' && existing.source === 'builtin' && comparison < 0) return existing;
       if (comparison < 0 || comparison === 0 && (options.source !== 'builtin' || existing.packageHash !== packageHash))
@@ -45,14 +50,13 @@ export async function installTheme(archive: Buffer, options: { source: 'builtin'
         await fs.mkdir(path.dirname(destination), { recursive: true }); await fs.writeFile(destination, data);
       }
       await themePackageStore.put(manifest.slug, packageHash, directory);
-      const candidate = { exists: async (name?: string) => name === undefined || files.has(name) };
       return await prisma.$transaction(async tx => {
         await fenceThemeLeases(tx, leases);
         const saved = await tx.theme.upsert({
           where: { slug: manifest.slug },
           create: { slug: manifest.slug, version: manifest.version, target: manifest.target, name: manifest.name,
             manifestJson: manifest as never, packageHash, source: options.source, trustLevel: options.source === 'builtin' ? 'builtin' : 'unsigned' },
-          update: existing?.packageHash === packageHash ? {} : { version: manifest.version, name: manifest.name,
+          update: existing?.packageHash === packageHash && isDeepStrictEqual(existing.manifestJson, manifest) ? {} : { version: manifest.version, name: manifest.name,
             manifestJson: manifest as never, packageHash, source: options.source, trustLevel: options.source === 'builtin' ? 'builtin' : 'unsigned' },
         });
         await themePackageBlobStore.put(tx, manifest.slug, packageHash, archive);
@@ -62,33 +66,6 @@ export async function installTheme(archive: Buffer, options: { source: 'builtin'
           actorUserId: actor.id, actorEmail: actor.email, actorUsername: actor.username,
           action: 'THEME_UNSIGNED_INSTALL_CONFIRMED', metadata: { slug: manifest.slug, version: manifest.version, packageHash },
         } });
-        const config = await tx.themeConfiguration.findUnique({ where: { slug: manifest.slug } });
-        if (config) {
-          const values: Record<string, unknown> = {};
-          for (const [key, value] of Object.entries(config.values as Record<string, unknown>)) {
-            if (key === '$homeSections') {
-              const retained: HomeSection[] = [];
-              for (const [index, section] of (value as HomeSection[]).entries()) {
-                try {
-                  await validateHomeSections(manifest, [section], candidate, `/values/$homeSections/${index}`);
-                  if (!retained.some(entry => entry.id === section.id)) retained.push(section);
-                } catch (cause) { if (!(cause instanceof ExtensionInstallerError)) throw cause; }
-              }
-              values[key] = retained;
-            } else {
-              try { await validateConfig(manifest, { [key]: value }, candidate); values[key] = value; }
-              catch (cause) { if (!(cause instanceof ExtensionInstallerError)) throw cause; }
-            }
-          }
-          const revision = config.revision + 1;
-          await tx.themeConfiguration.update({ where: { slug: manifest.slug }, data: { revision, values: values as never } });
-          await tx.themeConfigRevision.create({ data: { slug: manifest.slug, revision, values: values as never } });
-          await audit(tx, options.actorUserId ?? 'system', 'theme.config.migrated', manifest.slug, {
-            revision, packageHash, dropped: Object.keys(config.values as object).filter(key => !(key in values)),
-            droppedSections: '$homeSections' in values ? (config.values as Record<string, HomeSection[]>).$homeSections
-              .filter(section => !(values.$homeSections as HomeSection[]).some(item => item.id === section.id)).map(section => section.id) : [],
-          });
-        }
         if ((await tx.themeActive.updateMany({ where: { slug: manifest.slug }, data: { packageHash } })).count) {
           await tx.themeActivation.create({ data: { target: manifest.target, slug: manifest.slug, packageHash, actorId: options.actorUserId ?? 'system' } });
         }

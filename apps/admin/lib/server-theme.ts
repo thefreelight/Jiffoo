@@ -1,4 +1,4 @@
-import { isStoreTimezone, type ThemeFontFace } from 'shared';
+import { isStoreTimezone, type ThemeFontFace, type ThemeTokens, type ThemeDarkTokens } from 'shared';
 
 export async function getStoreTimezone(): Promise<string> {
   if (!process.env.API_SERVICE_URL) return 'UTC';
@@ -11,7 +11,10 @@ export async function getStoreTimezone(): Promise<string> {
 }
 
 export type AdminTheme = {
-  tokens: Record<string, unknown>;
+  schemaVersion: 2;
+  tokens: ThemeTokens;
+  darkAvailable: boolean;
+  darkTokens?: ThemeDarkTokens;
   fonts: ThemeFontFace[];
   logo: string | null;
   loginBackground: string | null;
@@ -23,9 +26,14 @@ const fontPath = /^\/api\/v1\/themes\/[a-z][a-z0-9-]+\/[a-f0-9]{64}\/fonts\/[a-z
 function parseAdminTheme(value: unknown): AdminTheme | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const theme = value as Record<string, unknown>;
-  if (theme.target !== 'admin' || typeof theme.slug !== 'string'
+  if (theme.schemaVersion !== 2 || typeof theme.darkAvailable !== 'boolean' || theme.target !== 'admin' || typeof theme.slug !== 'string'
     || typeof theme.version !== 'string' || typeof theme.packageHash !== 'string' || !/^[a-f0-9]{64}$/.test(theme.packageHash) || !theme.tokens || typeof theme.tokens !== 'object'
     || Array.isArray(theme.tokens) || !Array.isArray(theme.fonts)) return null;
+  const tokens = theme.tokens as Record<string, unknown>;
+  if (!tokens.core || typeof tokens.core !== 'object' || Array.isArray(tokens.core)
+    || !tokens.extras || typeof tokens.extras !== 'object' || Array.isArray(tokens.extras)) return null;
+  if (theme.darkAvailable !== (theme.darkTokens !== undefined)) return null;
+  if (theme.darkTokens !== undefined && (!theme.darkTokens || typeof theme.darkTokens !== 'object' || Array.isArray(theme.darkTokens))) return null;
   const prefix = `/api/v1/themes/${theme.slug}/${theme.packageHash}/`;
   const asset = (item: unknown) => item === null || (typeof item === 'string' && assetPath.test(item) && item.startsWith(prefix));
   if (!asset(theme.logo) || !asset(theme.loginBackground)) return null;

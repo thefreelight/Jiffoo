@@ -30,24 +30,23 @@ it('G two APIs and two read-only workers prewarm shared active themes in four se
   }
   expect(await fixture.prisma.themeActive.findMany({ orderBy: { target: 'asc' } })).toEqual(before);
 }, 120000);
-it('G missing active bytes are best-effort at startup and remain typed 503 on HTTP reads', async () => {
+it('G missing active bytes fall back to the builtin without deleting the uploaded theme', async () => {
   const installed = await fixture.install(); await activate(installed.slug);
   await fixture.prisma.themePackageBlob.deleteMany({ where: { themeSlug: installed.slug } });
   const node = await fixture.start('startup-api');
-  expect(node.output.join('')).toContain('Theme package startup prewarm failed');
   const response = await themeHttp(node, '/api/v1/store/theme?target=shop&locale=en');
-  expect(response.status).toBe(503); expect(response.json().error.code).toBe('THEME_PACKAGE_UNAVAILABLE');
-  expect((await fixture.prisma.themeActive.findUniqueOrThrow({ where: { target: 'shop' } })).slug).toBe(installed.slug);
+  expect(response.status).toBe(200); expect(response.json().data.slug).toBe('default-shop');
+  expect(await fixture.prisma.theme.findUnique({ where: { slug: installed.slug } })).not.toBeNull();
+  expect(await fixture.prisma.adminAuditEvent.count({ where: { action: 'theme.startup_fallback', targetId: 'default-shop' } })).toBeGreaterThan(0);
 });
-it('G a corrupt startup flight publishes nothing and retries after the exact persisted bytes are repaired', async () => {
+it('G corrupt active bytes fall back and publish no corrupt package', async () => {
   const installed = await fixture.install(); await activate(installed.slug);
   await fixture.prisma.themePackageBlob.updateMany({ where: { themeSlug: installed.slug }, data: { bytes: Buffer.from('corrupt') } });
   const node = await fixture.start('startup-api');
-  const failed = await themeHttp(node, '/api/v1/store/theme?target=shop&locale=en'); expect(failed.status).toBe(500); expect(failed.json().error.code).toBe('THEME_PACKAGE_CORRUPT');
+  const response = await themeHttp(node, '/api/v1/store/theme?target=shop&locale=en');
+  expect(response.status).toBe(200); expect(response.json().data.slug).toBe('default-shop');
   expect(await fs.access(path.join(node.root, 'themes', installed.slug, installed.record.packageHash)).then(() => true, () => false)).toBe(false);
-  await fixture.prisma.themePackageBlob.updateMany({ where: { themeSlug: installed.slug }, data: { bytes: installed.bytes } });
-  expect((await themeHttp(node, '/api/v1/store/theme?target=shop&locale=en')).status).toBe(200);
-  expect(await marker(node.root, installed.slug, installed.record.packageHash)).toBe(JSON.stringify({ slug: installed.slug, packageHash: installed.record.packageHash }));
+  expect(Buffer.from((await fixture.prisma.themePackageBlob.findFirstOrThrow({ where: { themeSlug: installed.slug } })).bytes).toString()).toBe('corrupt');
 });
 it('G API and worker reject the theme test barrier outside the test environment at startup', async () => {
   for (const role of ['startup-api', 'worker']) await expect(startThemeChild(role, 'publish', {

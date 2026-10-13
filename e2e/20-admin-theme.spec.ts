@@ -40,7 +40,7 @@ test('P activates an Admin theme with local assets and restores the default imme
   await page.getByRole('button', { name: 'Restore previous theme' }).click();
   await expect(page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Default Admin' }) })
     .getByText('Active')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Upload theme' })).toHaveCSS('background-color', 'rgb(37, 99, 235)');
+  await expect(page.getByRole('button', { name: 'Upload theme' })).toHaveCSS('background-color', 'rgb(23, 23, 23)');
   await row.getByRole('button', { name: 'Uninstall' }).click();
   await expect(page.getByRole('heading', { name: 'E2E Admin Theme' })).toHaveCount(0);
 });

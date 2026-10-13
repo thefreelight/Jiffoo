@@ -2,7 +2,7 @@
 module.exports = {
   theme: {
     extend: {
-      fontFamily: { sans: 'var(--admin-font-body)', mono: ['JetBrains Mono', 'Menlo', 'monospace'] },
+      fontFamily: { sans: 'var(--admin-font-body)', mono: 'var(--admin-core-font-mono)' },
       spacing: { '0': '0px', '1': '4px', '2': '8px', '3': '12px', '4': '16px', '6': '24px', '8': '32px', '12': '48px', '16': '64px', '24': '96px', sidebar: '260px', header: '70px' },
       width: { sidebar: '260px' },
       height: { header: '70px' },

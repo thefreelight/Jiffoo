@@ -1,3 +1,4 @@
+import defaultShop from '../../api/builtin-themes/default-shop/theme.json';
 import { describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToPipeableStream } from 'react-dom/server';
@@ -29,7 +30,7 @@ vi.mock('../lib/catalog', () => {
 vi.mock('../lib/server-account', () => ({ accountProfile: async () => null }));
 
 const fixture: ShopTheme = {
-  target: 'shop', slug: 'sample', version: '1.0.0', tokens: {}, fonts: [], copy: {},
+  schemaVersion: 2, darkAvailable: false, target: 'shop', slug: 'sample', version: '1.0.0', tokens: defaultShop.tokens, fonts: [], copy: {},
   packageHash: 'a'.repeat(64),
   layout: {
     header: { variant: 'logo-left', menu: 'inline', showSearch: true },

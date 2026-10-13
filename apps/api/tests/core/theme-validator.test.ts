@@ -40,31 +40,14 @@ describe('T1a declarative theme validator', () => {
     manifest.tokens.density = 'compact';
     rejected(manifest, 'THEME_SCHEMA_INVALID', '/tokens/density');
   });
-  it('I validates both builtin sources and maps the Shop CSS defaults and Admin palette', async () => {
+  it('accepts both builtin v2 manifests with a shared core and target extras', async () => {
     const shop = await validateBuiltinTheme(path.join(themeRoot, 'default-shop'));
     const admin = await validateBuiltinTheme(path.join(themeRoot, 'default-admin'));
-    const css = await fs.readFile(path.resolve(process.cwd(), '../shop/app/default-tokens.css'), 'utf8');
-    const mapping = {
-      background: 'canvas', surface: 'surface', text: 'ink', 'text-muted': 'subtle',
-      border: 'line', primary: 'action', 'primary-foreground': 'action-ink',
-      accent: 'highlight', 'radius-md': 'radius', 'card-radius': 'radius',
-    };
-    for (const [role, token] of Object.entries(mapping)) {
-      const canonical = role === 'card-radius' ? 'card-radius' : role;
-      const cssValue = new RegExp(`--shop-${canonical}:\\s*([^;]+);`).exec(css)?.[1];
-      expect(shop.manifest.tokens[role], role).toBe(cssValue);
-      if (token !== canonical) {
-        const aliasTarget = token === 'radius' ? 'radius-md' : canonical;
-        expect(new RegExp(`--shop-${token}:\\s*var\\(--shop-${aliasTarget}\\);`).test(css), token).toBe(true);
-      }
-    }
-    expect((shop.manifest.layout as { pages: { home: { sections: Array<{ type: string }> } } })
-      .pages.home.sections.map((section) => section.type)).toEqual(['category-list', 'product-grid']);
-    expect(admin.manifest.tokens).toMatchObject({
-      background: '#F8FAFC', surface: '#FFFFFF', primary: '#3B82F6',
-      text: '#0F172A', border: '#E2E8F0', 'font-body': 'system-sans',
-      'radius-md': '8px',
-    });
+    expect(shop.manifest.schemaVersion).toBe(2);
+    expect(shop.manifest.tokens.core.ground).toBe('#f5f7f4');
+    expect(shop.manifest.tokens.extras.primary).toBe('#166b52');
+    expect(admin.manifest.tokens.core.foreground).toBe('#171717');
+    expect(admin.manifest.darkTokens?.core?.foreground).toBe('#EDEDED');
   });
 
   it('T2 accepts bounded section presentation options and rejects out-of-range columns', async () => {
@@ -177,10 +160,10 @@ describe('T1a declarative theme validator', () => {
     const manifest = await base();
     rejected({ ...manifest, unexpected: true }, 'THEME_SCHEMA_INVALID', '/unexpected');
     for (const token of ['#fff;} body{', 'url(x)', 'expression(', 'red']) {
-      rejected({ ...manifest, tokens: { background: token } }, 'THEME_SCHEMA_INVALID', '/tokens/background');
+      rejected({ ...manifest, tokens: { ...manifest.tokens, core: { ...manifest.tokens.core, ground: token } } }, 'THEME_SCHEMA_INVALID', '/tokens/core/ground');
     }
-    rejected({ ...manifest, tokens: { background: `#${'f'.repeat(500)}` } },
-      'THEME_SCHEMA_INVALID', '/tokens/background');
+    rejected({ ...manifest, tokens: { ...manifest.tokens, core: { ...manifest.tokens.core, ground: `#${'f'.repeat(500)}` } } },
+      'THEME_SCHEMA_INVALID', '/tokens/core/ground');
     const missing = structuredClone(manifest);
     delete missing.layout.pages.home.sections[0].settings.title['zh-Hant'];
     rejected(missing, 'THEME_SCHEMA_INVALID', '/layout/pages/home/sections/0/settings/title');

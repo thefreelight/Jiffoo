@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "theme",
   "slug": "e2e-admin-theme",
   "name": "E2E Admin Theme",
@@ -9,9 +9,35 @@
   "license": "MIT",
   "target": "admin",
   "tokens": {
-    "primary": "#cc0033",
-    "action-strong": "#cc0033",
-    "font-body": "e2e-outfit"
+    "core": {
+      "ground": "#FFFFFF",
+      "raised": "#FAFAFA",
+      "foreground": "#cc0033",
+      "muted": "#5C5C5C",
+      "faint": "#737373",
+      "border": "#00000017",
+      "active": "#0000000D",
+      "attention": "#B4470E",
+      "attention-soft": "#FFF6F0",
+      "attention-line": "#B4470E38",
+      "destructive": "#B91C1C",
+      "destructive-soft": "#FEF2F2",
+      "destructive-line": "#B91C1C38",
+      "radius-control": "7px",
+      "radius-panel": "10px",
+      "font-body": "e2e-outfit",
+      "font-heading": "system-sans",
+      "font-mono": "system-mono"
+    },
+    "extras": {
+      "primary-foreground": "#FFFFFF",
+      "focus-ring": "#171717",
+      "hover": "#80808012",
+      "overlay": "#00000080",
+      "sidebar-background": "#FFFFFF",
+      "sidebar-foreground": "#5C5C5C",
+      "sidebar-active": "#0000000D"
+    }
   },
   "fonts": [
     {

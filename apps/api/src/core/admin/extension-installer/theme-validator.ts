@@ -1,8 +1,8 @@
 import { inflateRawSync } from 'zlib';
 import Ajv from 'ajv';
 import {
-  themeManifestSchema, type ThemeManifest, SHOP_COLOR_ROLES, ADMIN_COLOR_ROLES,
-  SHOP_LENGTH_ROLES, SECTION_TYPES, themeSectionSchemas,
+  themeManifestSchema, type ThemeManifest, CORE_LENGTH_ROLES, SHOP_EXTRA_LENGTH_ROLES,
+  CORE_FONT_ROLES, themeTokenKind, SECTION_TYPES, themeSectionSchemas,
 } from '@jiffoo/shared';
 import { ExtensionInstallerError } from './errors';
 
@@ -14,7 +14,7 @@ const MAX_ENTRIES = 200;
 const imagePath = /^assets\/[a-zA-Z0-9_/-]+\.(png|jpe?g|webp)$/;
 const fontPath = /^fonts\/[a-zA-Z0-9_/-]+\.woff2$/;
 const safePath = /^(?!\/)(?!.*(?:^|\/)\.{1,2}(?:\/|$))(?!.*\/\/)[a-zA-Z0-9_./-]+$/;
-const coreFonts = new Set(['system-sans', 'system-serif', 'outfit']);
+const coreFonts = new Set(['system-sans', 'system-serif', 'system-mono', 'outfit']);
 const ajv = new Ajv({ allErrors: true, strict: false });
 const validateShop = ajv.compile(themeManifestSchema.oneOf[0]);
 const validateAdmin = ajv.compile(themeManifestSchema.oneOf[1]);
@@ -136,17 +136,20 @@ function checkReferences(manifest: ThemeManifest, files: Map<string, Buffer>): v
     if (settings.has(setting.id)) fail('THEME_DUPLICATE_ID', `/settings/${index}/id`);
     settings.set(setting.id, setting.type);
     if (setting.bindsToken) {
-      const role = setting.bindsToken;
-      const colors: readonly string[] = manifest.target === 'shop' ? SHOP_COLOR_ROLES : ADMIN_COLOR_ROLES;
-      const number = manifest.target === 'shop' && ['type-scale', 'heading-weight'].includes(role);
-      const selectable = manifest.target === 'shop'
-        ? ['button-style', 'font-body', 'font-heading'].includes(role)
-        : ['density', 'font-body'].includes(role);
-      if (!((colors.includes(role) && setting.type === 'color')
-        || (number && setting.type === 'number')
-        || (selectable && setting.type === 'select')))
+      const kind = themeTokenKind(manifest.target, setting.bindsToken);
+      const [group, role] = setting.bindsToken.split('.');
+      if (kind !== setting.type || !(role in manifest.tokens[group as 'core' | 'extras']))
         fail('THEME_INVALID_BINDING', `/settings/${index}/bindsToken`);
+      const boundTokens = { core: { ...manifest.tokens.core }, extras: { ...manifest.tokens.extras } };
+      boundTokens[group as 'core' | 'extras'][role] = setting.default;
+      try { validateThemeManifest({ ...manifest, tokens: boundTokens }); }
+      catch (cause) { if (!(cause instanceof ExtensionInstallerError)) throw cause; fail('THEME_INVALID_BINDING', `/settings/${index}/default`); }
+      if (group === 'core' && (CORE_FONT_ROLES as readonly string[]).includes(role)) {
+        const options = (setting.constraints as { options: string[] }).options;
+        if (!options.every((id) => fontIds.has(id))) fail('THEME_UNKNOWN_FONT', `/settings/${index}/constraints/options`);
+      }
     }
+
     if (setting.type === 'image' && typeof setting.default === 'string'
       && setting.default.startsWith('assets/') && !files.has(setting.default))
       fail('THEME_MISSING_FILE', `/settings/${index}/default`);
@@ -158,22 +161,26 @@ function checkReferences(manifest: ThemeManifest, files: Map<string, Buffer>): v
         fail('THEME_INVALID_SETTING', `/settings/${index}/default`);
     }
   }
-  for (const [role, raw] of Object.entries(manifest.tokens)) {
-    if (role.startsWith('font-') && !fontIds.has(raw as string))
-      fail('THEME_UNKNOWN_FONT', `/tokens/${role}`);
-    if ((manifest.target === 'shop' && (SHOP_LENGTH_ROLES as readonly string[]).includes(role))
-      || (manifest.target === 'admin' && ['radius-sm', 'radius-md', 'radius-lg'].includes(role))) {
-      const match = /^(\d+(?:\.\d+)?)(px|rem)$/.exec(raw as string);
-      if (!match || Number(match[1]) > (role === 'container-width' && match[2] === 'px' ? 1600 : 128))
-        fail('THEME_INVALID_TOKEN', `/tokens/${role}`);
-    }
-    if (role === 'card-shadow') {
-      const shadow = raw as Record<string, string>;
-      for (const key of ['x', 'y', 'blur', 'spread']) {
-        const match = /^(-?\d+(?:\.\d+)?)(px|rem)$/.exec(shadow[key]);
-        if (!match || Math.abs(Number(match[1])) > 128 || (key === 'blur' && Number(match[1]) < 0))
-          fail('THEME_INVALID_TOKEN', `/tokens/${role}/${key}`);
+  for (const [setName, set] of [['tokens', manifest.tokens], ['darkTokens', manifest.darkTokens]] as const) {
+    if (!set) continue;
+    for (const [group, roles] of Object.entries(set)) for (const [role, raw] of Object.entries(roles)) {
+      const location = `/${setName}/${group}/${role}`;
+      if (group === 'core' && (CORE_FONT_ROLES as readonly string[]).includes(role) && !fontIds.has(raw as string))
+        fail('THEME_UNKNOWN_FONT', location);
+      const lengthRole = group === 'core' ? (CORE_LENGTH_ROLES as readonly string[]).includes(role)
+        : manifest.target === 'shop' && (SHOP_EXTRA_LENGTH_ROLES as readonly string[]).includes(role);
+      if (lengthRole) {
+        const match = /^(\d+(?:\.\d+)?)(px|rem)$/.exec(raw as string);
+        if (!match || Number(match[1]) > (role === 'container-width' && match[2] === 'px' ? 1600 : 128))
+          fail('THEME_INVALID_TOKEN', location);
       }
+      if (role === 'card-shadow') for (const key of ['x', 'y', 'blur', 'spread']) {
+        const match = /^(-?\d+(?:\.\d+)?)(px|rem)$/.exec((raw as Record<string, string>)[key]);
+        if (!match || Math.abs(Number(match[1])) > 128 || (key === 'blur' && Number(match[1]) < 0))
+          fail('THEME_INVALID_TOKEN', `${location}/${key}`);
+      }
+      if (setName === 'darkTokens' && !(role in manifest.tokens[group as 'core' | 'extras']))
+        fail('THEME_INVALID_TOKEN', location);
     }
   }
   for (const [key, asset] of Object.entries(manifest.assets))
@@ -245,6 +252,28 @@ function checkSectionSchemas(parsed: unknown): void {
   }
 }
 
+export function validateThemeManifest(parsed: unknown): ThemeManifest {
+  if ((parsed as { schemaVersion?: unknown } | null)?.schemaVersion !== 2)
+    throw new ExtensionInstallerError('Theme manifests require schemaVersion 2', {
+      code: 'THEME_SCHEMA_INVALID', details: { path: '/schemaVersion', expected: 2 },
+    });
+  const declaredSettings = (parsed as { settings?: Array<{ id?: unknown }> } | null)?.settings;
+  if (Array.isArray(declaredSettings)) for (const [index, setting] of declaredSettings.entries())
+    if (typeof setting?.id === 'string' && setting.id.startsWith('$')) fail('THEME_INVALID_SETTING', `/settings/${index}/id`);
+  checkSectionSchemas(parsed);
+  const validateSchema = (parsed as { target?: string } | null)?.target === 'admin' ? validateAdmin : validateShop;
+  if (!validateSchema(parsed)) {
+    const candidates = validateSchema.errors ?? [];
+    const error = [...candidates].filter(candidate => !['const', 'oneOf', 'anyOf'].includes(candidate.keyword))
+      .sort((left, right) => right.instancePath.length - left.instancePath.length)[0]
+      ?? candidates.find(candidate => candidate.keyword === 'const') ?? candidates[0];
+    const location = `${error?.instancePath || ''}${error?.keyword === 'additionalProperties'
+      ? `/${(error.params as { additionalProperty: string }).additionalProperty}` : ''}` || '/';
+    fail('THEME_SCHEMA_INVALID', location);
+  }
+  return parsed as ThemeManifest;
+}
+
 export function validateThemeFiles(files: Map<string, Buffer>): ValidatedTheme {
   if (files.size > MAX_ENTRIES) fail('THEME_TOO_MANY_ENTRIES', 'archive', 413);
   for (const [name, bytes] of files) {
@@ -257,31 +286,10 @@ export function validateThemeFiles(files: Map<string, Buffer>): ValidatedTheme {
   if (!bytes) fail('THEME_MISSING_MANIFEST', 'theme.json');
   let parsed: unknown;
   try { parsed = JSON.parse(bytes.toString('utf8')); } catch { fail('THEME_INVALID_JSON', 'theme.json'); }
-  const declaredSettings = (parsed as { settings?: Array<{ id?: unknown }> } | null)?.settings;
-  if (Array.isArray(declaredSettings)) {
-    for (const [index, setting] of declaredSettings.entries())
-      if (typeof setting?.id === 'string' && setting.id.startsWith('$'))
-        fail('THEME_INVALID_SETTING', `/settings/${index}/id`);
-  }
-  checkSectionSchemas(parsed);
-  const validateSchema = (parsed as { target?: string } | null)?.target === 'admin'
-    ? validateAdmin : validateShop;
-  if (!validateSchema(parsed)) {
-    const candidates = validateSchema.errors ?? [];
-    const error = [...candidates]
-      .filter((candidate) => !['const', 'oneOf', 'anyOf'].includes(candidate.keyword))
-      .sort((left, right) => right.instancePath.length - left.instancePath.length)[0]
-      ?? candidates.find((candidate) => candidate.keyword === 'const')
-      ?? candidates[0];
-    const location = `${error?.instancePath || ''}${error?.keyword === 'additionalProperties'
-      ? `/${(error.params as { additionalProperty: string }).additionalProperty}` : ''}` || '/';
-    fail('THEME_SCHEMA_INVALID', location);
-  }
-  const manifest = parsed as ThemeManifest;
+  const manifest = validateThemeManifest(parsed);
   checkReferences(manifest, files);
   return { manifest, files };
 }
-
 export function validateThemeZip(buffer: Buffer): ValidatedTheme {
   return validateThemeFiles(readZip(buffer));
 }

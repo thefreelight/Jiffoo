@@ -24,7 +24,7 @@ it('B process A installs and activates a theme that cold process B resolves with
   }
   expect(JSON.parse(await fs.readFile(path.join(second.root, 'themes', slug, record.packageHash, '.complete.json'), 'utf8'))).toEqual({ slug, packageHash: record.packageHash });
 });
-it('B same-slug upgrade commits configuration and active hash together and is seen by both API processes', async () => {
+it('B same-slug upgrade preserves configuration and publishes the active hash to both API processes', async () => {
   const { slug, record } = await fixture.install(); await activate(fixture.primary, slug);
   expect((await fixture.mutate(fixture.primary, `/api/v1/extensions/themes/${slug}/config`, 'PUT', { values: { picture: 'assets/hero.png' }, expectedRevision: 0 })).status).toBe(200);
   const bytes = await zipTheme(await themeFiles(slug, 'shop', '1.1.0'));
@@ -32,7 +32,7 @@ it('B same-slug upgrade commits configuration and active hash together and is se
   const hash = createHash('sha256').update(bytes).digest('hex'); expect(hash).not.toBe(record.packageHash);
   for (const item of [fixture.primary, second]) expect((await active(item)).json().data).toMatchObject({ slug, version: '1.1.0', packageHash: hash });
   expect(await fixture.prisma.themeActive.findUniqueOrThrow({ where: { target: 'shop' } })).toMatchObject({ slug, packageHash: hash });
-  expect(await fixture.prisma.themeConfiguration.findUniqueOrThrow({ where: { slug } })).toMatchObject({ revision: 2, values: { picture: 'assets/hero.png' } });
+  expect(await fixture.prisma.themeConfiguration.findUniqueOrThrow({ where: { slug } })).toMatchObject({ revision: 1, values: { picture: 'assets/hero.png' } });
 });
 it('B activation through either API is immediately observed by both API processes', async () => {
   const a = await fixture.install(), b = await fixture.install(second);

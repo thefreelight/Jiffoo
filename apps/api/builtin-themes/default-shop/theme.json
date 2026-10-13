@@ -1,34 +1,82 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "theme",
   "slug": "default-shop",
   "name": "Default Shop",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "The Core storefront presentation.",
   "author": "Jiffoo",
   "license": "MIT",
   "target": "shop",
   "tokens": {
-    "background": "#f5f7f4",
-    "surface": "#ffffff",
-    "text": "#18312d",
-    "text-muted": "#64716d",
-    "border": "#d9e2db",
-    "primary": "#166b52",
-    "primary-foreground": "#ffffff",
-    "accent": "#e4efcd",
-    "font-body": "system-sans",
-    "font-heading": "system-sans",
-    "radius-md": "0.375rem",
-    "card-radius": "0.375rem"
+    "core": {
+      "ground": "#f5f7f4",
+      "raised": "#ffffff",
+      "foreground": "#18312d",
+      "muted": "#64716d",
+      "faint": "#64716d",
+      "border": "#d9e2db",
+      "active": "#edf2ed",
+      "attention": "#9a5b12",
+      "attention-soft": "#edf2ed",
+      "attention-line": "#9a5b12",
+      "destructive": "#b83232",
+      "destructive-soft": "#edf2ed",
+      "destructive-line": "#b83232",
+      "radius-control": "0.375rem",
+      "radius-panel": "0.375rem",
+      "font-body": "system-sans",
+      "font-heading": "system-sans",
+      "font-mono": "system-mono"
+    },
+    "extras": {
+      "primary": "#166b52",
+      "primary-foreground": "#ffffff",
+      "secondary": "#e4efcd",
+      "secondary-foreground": "#18312d",
+      "accent": "#e4efcd",
+      "success": "#23774d",
+      "warning": "#9a5b12",
+      "header-bg": "#ffffff",
+      "header-text": "#18312d",
+      "footer-bg": "#ffffff",
+      "footer-text": "#18312d",
+      "announcement-bg": "#166b52",
+      "announcement-text": "#ffffff",
+      "price": "#18312d",
+      "sale-price": "#b83232",
+      "font-size-base": "1rem",
+      "radius-sm": "0.25rem",
+      "radius-lg": "0.5rem",
+      "button-radius": "0.375rem",
+      "card-radius": "0.375rem",
+      "section-spacing": "3rem",
+      "container-width": "1280px",
+      "type-scale": 1,
+      "heading-weight": 600,
+      "button-style": "solid",
+      "card-shadow": {
+        "x": "0px",
+        "y": "2px",
+        "blur": "8px",
+        "spread": "0px",
+        "color": "#18312d"
+      }
+    }
   },
   "fonts": [],
   "settings": [],
   "copy": {},
   "assets": {},
   "layout": {
-    "header": { "variant": "logo-left", "menu": "inline", "showSearch": true },
-    "footer": { "columns": [] },
+    "header": {
+      "variant": "logo-left",
+      "menu": "inline",
+      "showSearch": true
+    },
+    "footer": {
+      "columns": []
+    },
     "pages": {
       "home": {
         "sections": [
@@ -36,22 +84,40 @@
             "id": "home-categories",
             "type": "category-list",
             "settings": {
-              "title": { "en": "Browse categories", "zh-Hans": "浏览分类", "zh-Hant": "瀏覽分類" }
+              "title": {
+                "en": "Browse categories",
+                "zh-Hans": "浏览分类",
+                "zh-Hant": "瀏覽分類"
+              }
             }
           },
           {
             "id": "home-products",
             "type": "product-grid",
             "settings": {
-              "title": { "en": "Featured products", "zh-Hans": "精选商品", "zh-Hant": "精選商品" },
+              "title": {
+                "en": "Featured products",
+                "zh-Hans": "精选商品",
+                "zh-Hant": "精選商品"
+              },
               "source": "latest"
             }
           }
         ]
       },
-      "category": { "columns": 3, "showFilters": false },
-      "product": { "gallery": "left", "showRelatedProducts": false }
+      "category": {
+        "columns": 3,
+        "showFilters": false
+      },
+      "product": {
+        "gallery": "left",
+        "showRelatedProducts": false
+      }
     },
-    "slots": { "category.top": [], "category.bottom": [], "product.bottom": [] }
+    "slots": {
+      "category.top": [],
+      "category.bottom": [],
+      "product.bottom": []
+    }
   }
 }

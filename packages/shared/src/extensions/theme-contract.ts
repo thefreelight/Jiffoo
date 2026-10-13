@@ -1,6 +1,6 @@
 export type ThemeTarget = 'shop' | 'admin';
 export type ThemeManifest = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   kind: 'theme';
   slug: string;
   name: string;
@@ -9,7 +9,8 @@ export type ThemeManifest = {
   author: string;
   license: string;
   target: ThemeTarget;
-  tokens: Record<string, unknown>;
+  tokens: ThemeTokens;
+  darkTokens?: ThemeDarkTokens;
   fonts: Array<{ id: string; family: string; file: string; weight: number; style: 'normal' | 'italic'; license: string }>;
   settings: Array<{ id: string; type: string; label: Record<'en' | 'zh-Hans' | 'zh-Hant', string>; default: unknown; constraints: unknown; bindsToken?: string }>;
   copy: Record<string, Record<'en' | 'zh-Hans' | 'zh-Hant', string>>;
@@ -17,44 +18,27 @@ export type ThemeManifest = {
   layout?: unknown;
 };
 
-export const SHOP_COLOR_ROLES = [
-  'background', 'surface', 'surface-muted', 'text', 'text-muted', 'border',
+export type ThemeTokens = { core: Record<string, unknown>; extras: Record<string, unknown> };
+export type ThemeDarkTokens = { core?: Record<string, unknown>; extras?: Record<string, unknown> };
+export const CORE_COLOR_ROLES = [
+  'ground', 'raised', 'foreground', 'muted', 'faint', 'border', 'active',
+  'attention', 'attention-soft', 'attention-line',
+  'destructive', 'destructive-soft', 'destructive-line',
+] as const;
+export const CORE_LENGTH_ROLES = ['radius-control', 'radius-panel'] as const;
+export const CORE_FONT_ROLES = ['font-body', 'font-heading', 'font-mono'] as const;
+export const ADMIN_EXTRA_COLOR_ROLES = [
+  'primary-foreground', 'focus-ring', 'hover', 'overlay',
+  'sidebar-background', 'sidebar-foreground', 'sidebar-active',
+] as const;
+export const SHOP_EXTRA_COLOR_ROLES = [
   'primary', 'primary-foreground', 'secondary', 'secondary-foreground', 'accent',
-  'success', 'warning', 'danger', 'header-bg', 'header-text', 'footer-bg',
-  'footer-text', 'announcement-bg', 'announcement-text', 'price', 'sale-price',
+  'success', 'warning', 'header-bg', 'header-text', 'footer-bg', 'footer-text',
+  'announcement-bg', 'announcement-text', 'price', 'sale-price',
 ] as const;
-export const SHOP_LENGTH_ROLES = [
-  'font-size-base', 'radius-sm', 'radius-md', 'radius-lg', 'button-radius',
-  'card-radius', 'section-spacing', 'container-width',
-] as const;
-export const ADMIN_COLOR_ROLES = [
-  'background', 'surface', 'surface-muted', 'text', 'text-muted', 'border',
-  'primary', 'primary-foreground', 'sidebar-bg', 'sidebar-text',
-  'sidebar-active-bg', 'sidebar-active-text', 'success', 'warning', 'danger', 'info',
-  'foreground',
-  'action-base', 'action-dark', 'action-deep', 'action-faint', 'action-light',
-  'action-pale', 'action-soft', 'action-strong', 'action-veil',
-  'alert-dark', 'alert-faint', 'alert-strong',
-  'caution-base', 'caution-faint', 'caution-soft', 'caution-strong', 'caution-veil',
-  'chart-amber-base', 'chart-cyan-base', 'chart-teal-light', 'chart-violet-base',
-  'contrast-base', 'contrast-faint', 'contrast-strong',
-  'cool-base', 'cool-faint', 'cool-ink', 'cool-light', 'cool-pale', 'cool-soft',
-  'cool-strong', 'cool-veil',
-  'danger-base', 'danger-dark', 'danger-deep', 'danger-deepest', 'danger-faint',
-  'danger-light', 'danger-soft', 'danger-strong', 'danger-veil',
-  'highlight-base', 'highlight-dark', 'highlight-deep', 'highlight-faint',
-  'highlight-icon', 'highlight-soft', 'highlight-strong', 'highlight-veil',
-  'neutral-base', 'neutral-dark', 'neutral-deep', 'neutral-deepest',
-  'neutral-faint', 'neutral-light', 'neutral-pale', 'neutral-soft',
-  'neutral-strong', 'neutral-veil',
-  'positive-deep', 'positive-faint', 'positive-light', 'positive-pale',
-  'positive-strong', 'positive-veil',
-  'success-base', 'success-dark', 'success-deep', 'success-deepest',
-  'success-faint', 'success-light', 'success-soft', 'success-strong', 'success-veil',
-  'warning-base', 'warning-dark', 'warning-deep', 'warning-faint',
-  'warning-strong', 'warning-veil',
-  'highlight-faint-extra', 'install-background', 'install-foreground',
-  'install-surface', 'media-surface', 'overlay-ink', 'page-surface',
+export const SHOP_EXTRA_LENGTH_ROLES = [
+  'font-size-base', 'radius-sm', 'radius-lg', 'button-radius', 'card-radius',
+  'section-spacing', 'container-width',
 ] as const;
 export const SECTION_TYPES = [
   'announcement-bar', 'hero-banner', 'image-carousel', 'category-list',
@@ -67,7 +51,7 @@ const text = { type: 'string', minLength: 1, maxLength: 500, pattern: '^[^<>\\u0
 const shortText = { ...text, maxLength: 100 };
 const id = { type: 'string', pattern: '^[a-z][a-z0-9-]{0,63}$' };
 const family = { type: 'string', pattern: '^[A-Za-z][A-Za-z0-9 -]{0,99}$' };
-const color = { type: 'string', pattern: '^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$' };
+const color = { type: 'string', pattern: '^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$(?![\\s\\S])' };
 const length = { type: 'string', pattern: '^(?:0|[1-9][0-9]{0,3})(?:\\.[0-9]{1,4})?(?:px|rem)$' };
 const signedLength = { type: 'string', pattern: '^-?(?:0|[1-9][0-9]{0,2})(?:\\.[0-9]{1,4})?(?:px|rem)$' };
 const image = { type: 'string', pattern: '^assets/(?!.*(?:\\.\\.|//|/\\.))[a-zA-Z0-9_/-]+\\.(?:png|jpe?g|webp)$', maxLength: 250 };
@@ -154,20 +138,40 @@ const shopLayout = object({
   }, ['category.top', 'category.bottom', 'product.bottom']),
 }, ['header', 'footer', 'pages', 'slots']);
 
-const shopTokens = object({
-  ...Object.fromEntries(SHOP_COLOR_ROLES.map((role) => [role, color])),
-  ...Object.fromEntries(SHOP_LENGTH_ROLES.map((role) => [role, length])),
-  'font-body': id, 'font-heading': id,
-  'type-scale': { type: 'number', minimum: 1, maximum: 2 },
-  'heading-weight': { type: 'integer', minimum: 100, maximum: 900 },
-  'button-style': { enum: ['solid', 'outline'] },
-  'card-shadow': shadow,
-});
-const adminTokens = object({
-  ...Object.fromEntries(ADMIN_COLOR_ROLES.map((role) => [role, color])),
-  'font-body': id, 'radius-sm': length, 'radius-md': length,
-  'radius-lg': length, 'card-shadow': shadow,
-});
+const coreProperties = {
+  ...Object.fromEntries(CORE_COLOR_ROLES.map((role) => [role, color])),
+  ...Object.fromEntries(CORE_LENGTH_ROLES.map((role) => [role, length])),
+  ...Object.fromEntries(CORE_FONT_ROLES.map((role) => [role, id])),
+};
+export const themeExtraProperties = {
+  admin: Object.fromEntries(ADMIN_EXTRA_COLOR_ROLES.map((role) => [role, color])),
+  shop: {
+    ...Object.fromEntries(SHOP_EXTRA_COLOR_ROLES.map((role) => [role, color])),
+    ...Object.fromEntries(SHOP_EXTRA_LENGTH_ROLES.map((role) => [role, length])),
+    'type-scale': { type: 'number', minimum: 1, maximum: 2 },
+    'heading-weight': { type: 'integer', minimum: 100, maximum: 900 },
+    'button-style': { enum: ['solid', 'outline'] },
+    'card-shadow': shadow,
+  },
+};
+const tokenSchema = (target: ThemeTarget, dark = false) => object({
+  core: object(coreProperties, dark ? [] : Object.keys(coreProperties)),
+  extras: object(themeExtraProperties[target]),
+}, dark ? [] : ['core', 'extras']);
+export function themeTokenKind(target: ThemeTarget, tokenPath: string): 'color' | 'select' | 'number' | null {
+  const [group, role, extra] = tokenPath.split('.');
+  if (extra || !role) return null;
+  if (group === 'core') {
+    if ((CORE_COLOR_ROLES as readonly string[]).includes(role)) return 'color';
+    if ((CORE_FONT_ROLES as readonly string[]).includes(role)) return 'select';
+  }
+  if (group === 'extras') {
+    if ((target === 'admin' ? ADMIN_EXTRA_COLOR_ROLES : SHOP_EXTRA_COLOR_ROLES as readonly string[]).includes(role)) return 'color';
+    if (target === 'shop' && ['type-scale', 'heading-weight'].includes(role)) return 'number';
+    if (target === 'shop' && role === 'button-style') return 'select';
+  }
+  return null;
+}
 const settings = {
   type: 'array', maxItems: 100,
   items: {
@@ -185,12 +189,12 @@ const settings = {
       ['link', link, object({})],
     ].map(([type, defaultValue, constraints]) => object({
       id, type: { const: type }, label: localized, default: defaultValue,
-      constraints, bindsToken: id,
+      constraints, bindsToken: { type: 'string', pattern: '^(?:core|extras)\\.[a-z][a-z0-9-]{0,63}$' },
     }, ['id', 'type', 'label', 'default', 'constraints'])),
   },
 };
 const common = {
-  schemaVersion: { const: 1 }, kind: { const: 'theme' },
+  schemaVersion: { const: 2 }, kind: { const: 'theme' },
   slug: { type: 'string', pattern: '^[a-z][a-z0-9-]{0,30}[a-z0-9]$' },
   name: shortText, version: { type: 'string', pattern: '^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$' },
   description: text, author: shortText, license: shortText,
@@ -212,11 +216,11 @@ const required = [
 export const themeManifestSchema = {
   oneOf: [
     object({
-      ...common, target: { const: 'shop' }, tokens: shopTokens,
+      ...common, target: { const: 'shop' }, tokens: tokenSchema('shop'), darkTokens: tokenSchema('shop', true),
       assets: object({}), layout: shopLayout,
     }, [...required, 'layout']),
     object({
-      ...common, target: { const: 'admin' }, tokens: adminTokens,
+      ...common, target: { const: 'admin' }, tokens: tokenSchema('admin'), darkTokens: tokenSchema('admin', true),
       assets: object({ logo: image, 'login-background': image }),
     }, required),
   ],

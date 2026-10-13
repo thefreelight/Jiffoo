@@ -2,12 +2,12 @@ import { createServer, type Server } from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
 import { adminThemeStyle } from '../lib/theme-font';
 import { getAdminTheme } from '../lib/server-theme';
-import { themeTokensToCss } from 'shared';
+import { themeTokensToCss, themeDefaultTokens } from 'shared';
 
 const response = {
-  target: 'admin', slug: 'e2e-admin-theme', version: '1.0.0',
+  schemaVersion: 2, darkAvailable: false, target: 'admin', slug: 'e2e-admin-theme', version: '1.0.0',
   packageHash: 'a'.repeat(64),
-  tokens: { primary: '#cc0033', 'font-body': 'brand' },
+  tokens: { ...themeDefaultTokens.admin, core: { ...themeDefaultTokens.admin.core, foreground: '#cc0033', 'font-body': 'brand' } },
   fonts: [{
     id: 'brand', family: 'Brand Sans',
     url: '/api/v1/themes/e2e-admin-theme/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/fonts/brand.woff2',
@@ -67,7 +67,7 @@ describe('Admin active theme', () => {
     expect(await getAdminTheme('en')).toBeNull();
     await serve(200, { data: { ...response, tokens: null } });
     expect(await getAdminTheme('en')).toBeNull();
-    expect(adminThemeStyle({ tokens: {}, fonts: [] })).toContain(
-      '--admin-font-body: system-ui, -apple-system, sans-serif;');
+    expect(adminThemeStyle({ tokens: themeDefaultTokens.admin, fonts: [] })).toContain(
+      '--admin-core-font-body: system-ui, -apple-system, sans-serif;');
   });
 });
