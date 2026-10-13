@@ -23,7 +23,8 @@ test('P activates an Admin theme with local assets and restores the default imme
   });
   await row.getByRole('button', { name: 'Activate' }).click();
   await expect(row.getByText('Active')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Upload theme' })).toHaveCSS('background-color', 'rgb(204, 0, 51)');
+  // U1b: restore strict rgb() assertion after the Tailwind v4 token pipeline lands
+  await expect(page.getByRole('button', { name: 'Upload theme' })).toHaveCSS('background-color', /^(?:rgb\(204, 0, 51\)|color\(srgb 0\.8 0 0\.2\))$/);
   await expect(page.getByRole('img', { name: 'Store Console logo' }))
     .toHaveAttribute('src', `/api/v1/themes/e2e-admin-theme/${packageHash}/assets/logo.png`);
   await expect(page.getByRole('main').last()).toHaveCSS('font-family', /E2E Outfit/);
@@ -40,7 +41,8 @@ test('P activates an Admin theme with local assets and restores the default imme
   await page.getByRole('button', { name: 'Restore previous theme' }).click();
   await expect(page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Default Admin' }) })
     .getByText('Active')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Upload theme' })).toHaveCSS('background-color', 'rgb(23, 23, 23)');
+  // U1b: restore strict rgb() assertion after the Tailwind v4 token pipeline lands
+  await expect(page.getByRole('button', { name: 'Upload theme' })).toHaveCSS('background-color', /^(?:rgb\(23, 23, 23\)|color\(srgb 0\.0901961 0\.0901961 0\.0901961\))$/);
   await row.getByRole('button', { name: 'Uninstall' }).click();
   await expect(page.getByRole('heading', { name: 'E2E Admin Theme' })).toHaveCount(0);
 });

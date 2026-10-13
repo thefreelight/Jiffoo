@@ -4,8 +4,15 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { assertNoMigrations, durableJson, planDigest, installedBindings } from '../deploy/release/update.mjs';
-import { updateProfile, guardUpdateDatabase, updateStep } from './verify-update.mjs';
+import { updateProfile, guardUpdateDatabase, updateStep, bumpThemePatch } from './verify-update.mjs';
 import { ciSteps } from './verify-steps.mjs';
+
+test('theme update fixtures advance the current manifest patch across major versions', () => {
+  for (const [current, expected] of [['1.1.0', '1.1.1'], ['2.0.0', '2.0.1'], ['3.7.9', '3.7.10']])
+    assert.equal(bumpThemePatch(current), expected);
+  for (const version of ['2.0', '2.0.0-beta', '02.0.0', '2.0.9007199254740991'])
+    assert.throws(() => bumpThemePatch(version));
+});
 
 test('no-migration gate rejects pending changed extra failed and rolled-back history', () => {
   const target = [{ name: '001', checksum: 'a' }, { name: '002', checksum: 'b' }];

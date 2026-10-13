@@ -19,6 +19,13 @@ export function updateProfile(args) {
   assert.ok(!partitions.length || profiles[0] !== '--profile=full', 'Partitions are supported only for the core profile');
   return profiles[0]?.slice('--profile='.length) ?? 'core';
 }
+export function bumpThemePatch(version) {
+  assert.match(version, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
+  const [major, minor, patch] = version.split('.');
+  const nextPatch = Number(patch) + 1;
+  assert.ok(Number.isSafeInteger(nextPatch), 'Theme patch must remain a safe integer');
+  return major + '.' + minor + '.' + nextPatch;
+}
 export function guardUpdateDatabase(url) {
   assert.equal(url, 'postgresql://postgres:postgres@localhost:5432/jiffoo_core_test', 'Update acceptance requires the exact jiffoo_core_test DATABASE_URL_TEST');
 }
@@ -37,6 +44,7 @@ async function main() {
   const root = emulator ? '/workspace' : process.cwd();
   const commit = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8', windowsHide: true }).stdout.trim();
   const version = JSON.parse(readFileSync('package.json')).version.replace(/-opensource$/, '');
+  const targetThemeVersion = bumpThemePatch(JSON.parse(readFileSync('apps/api/builtin-themes/default-shop/theme.json', 'utf8')).version);
   const tags = [], commands = [], ports = [], manifests = {};
   let directory, old, target, failure, baseline, foreignBefore, activeConfig, migrationBaseline, actor='acceptance-operator', secrets = [];
   const fixtureSql = {
@@ -179,7 +187,7 @@ async function main() {
       for (const [generation, newVersion] of generations) {
         const context = join(native,generation + '-context'); mkdirSync(context);
         const shipping = JSON.parse(readFileSync('apps/api/builtin-plugins/free-shipping/manifest.json','utf8')); shipping.version = '1.0.1';
-        const theme = JSON.parse(readFileSync('apps/api/builtin-themes/default-shop/theme.json','utf8')); theme.version = '1.1.1';
+        const theme = JSON.parse(readFileSync('apps/api/builtin-themes/default-shop/theme.json','utf8')); theme.version = targetThemeVersion;
         writeFileSync(join(context,'shipping.json'),JSON.stringify(shipping)); writeFileSync(join(context,'theme.json'),JSON.stringify(theme));
         writeFileSync(join(context,'failure.mjs'), "throw new Error('Intentional update acceptance startup failure');\n");
         const migrating=generation.startsWith('migration');
@@ -256,7 +264,7 @@ async function main() {
       assert.equal(event.actorId, actor); assert.equal(event.summary.result, 'succeeded'); assert.equal(event.summary.migrationsRan, false);
       assert.equal(event.summary.from.commit, commit); assert.equal(event.summary.to.commit, commit); assert.equal(event.summary.backupReference, 'success-backup');
       assert.equal(event.summary.planHash, (await recorded('success')).planHash);
-      const after = await managed(); assert.equal(after.pluginVersion,'1.0.1'); assert.equal(after.themeVersion,'1.1.1'); assert.notDeepEqual(after,baseline);
+      const after = await managed(); assert.equal(after.pluginVersion,'1.0.1'); assert.equal(after.themeVersion,targetThemeVersion); assert.notDeepEqual(after,baseline);
       writeFileSync(join(evidence,'successful-update-duration.json'),JSON.stringify({duration:result.duration,managed:after},null,2));
     });
     await checks.run('Successful update retains a verified prior-release restore path', ['No-migration update backs up audits and starts target release'], () => restore('success'));
