@@ -21,9 +21,10 @@ describe('Admin Inventory Endpoints', () => {
     const product = await getTestPrisma().product.create({
       data: {
         name: 'Inventory route test product',
+        spuCode: `INVENTORY-${Date.now()}`,
         slug: `inventory-route-test-${Date.now()}`,
         variants: {
-          create: { name: 'Default', stock: 2 },
+          create: { name: 'Default', stock: 2, skuCode: `INVENTORY-${Date.now()}-01` },
         },
       },
       include: { variants: true },

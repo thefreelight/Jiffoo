@@ -7,6 +7,11 @@
 
 export const merchant = {
   catalog: {
+    spu: 'SPU', spuPlaceholder: 'Leave blank to generate automatically', skuPlaceholder: 'Leave blank to generate',
+    codeHint: 'Unique across the store, ignoring case. Use 1–64 letters, digits, hyphens, underscores or dots.',
+    spuCodeTaken: 'This SPU is already used by product {name}.', skuCodeTaken: 'This SKU is already used by product {name}.',
+    invalidProductCode: 'Use 1–64 letters, digits, hyphens, underscores or dots.',
+    searchCodes: 'Search name, SPU or SKU', restoreVariant: 'Restore variant',
     loadingCategories: 'Loading categories…', categoryError: 'Could not load categories.', statsError: 'Could not load product counts.',
     products: 'Products', categories: 'Categories', addProduct: 'Add product', all: 'All', active: 'Active', inactive: 'Inactive', outOfStock: 'Out of stock',
     search: 'Search products', category: 'Category', allCategories: 'All categories', uncategorized: 'Uncategorized', variants: 'Variants', variantCount: '{count} variants',

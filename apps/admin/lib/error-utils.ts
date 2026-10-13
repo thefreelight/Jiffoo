@@ -29,6 +29,9 @@ const ERROR_CODE_TO_I18N_KEY: Partial<Record<ApiErrorCode, { key: string; fallba
   PLUGIN_DATABASE_OUTCOME_UNKNOWN: { key: 'common.errors.pluginDatabaseOutcomeUnknown', fallback: 'Plugin database commit outcome is unknown. Do not retry automatically.' },
   CATEGORY_NOT_EMPTY: { key: 'merchant.contentTranslations.categoryNotEmpty', fallback: 'Remove products and child categories before deleting this category.' },
   PRODUCT_HAS_ORDERS: { key: 'merchant.contentTranslations.productHasOrders', fallback: 'This product or variant has orders and cannot be deleted. Deactivate it instead.' },
+  SPU_CODE_TAKEN: { key: 'merchant.catalog.spuCodeTaken', fallback: 'This SPU is already used by product {name}.' },
+  SKU_CODE_TAKEN: { key: 'merchant.catalog.skuCodeTaken', fallback: 'This SKU is already used by product {name}.' },
+  INVALID_PRODUCT_CODE: { key: 'merchant.catalog.invalidProductCode', fallback: 'Use 1–64 letters, digits, hyphens, underscores or dots.' },
 };
 
 
@@ -48,7 +51,14 @@ export function resolveApiErrorMessage(
   const value = error as { code?: unknown; status?: number; statusCode?: number; response?: { status?: number } } | null;
   const code = value?.code;
   const mapping = isApiErrorCode(code) ? ERROR_CODE_TO_I18N_KEY[code] : undefined;
-  if (mapping) return translated(t, mapping.key, mapping.fallback);
+  if (mapping) {
+    const message = translated(t, mapping.key, mapping.fallback);
+    if (code === 'SPU_CODE_TAKEN' || code === 'SKU_CODE_TAKEN') {
+      const details = (error as { details?: { name?: unknown } }).details;
+      return message.replace('{name}', () => typeof details?.name === 'string' ? details.name : '—');
+    }
+    return message;
+  }
   const status = value?.response?.status ?? value?.status ?? value?.statusCode;
   if (status === 503) return translated(t, 'common.errors.temporarilyUnavailable', 'Service temporarily unavailable. Please try again later.');
   if (status !== undefined && status >= 500) return translated(t, 'common.errors.serverError', 'Server error. Please try again later.');

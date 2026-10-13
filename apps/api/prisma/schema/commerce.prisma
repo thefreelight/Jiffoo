@@ -50,6 +50,7 @@ model CategoryTranslation {
 model Product {
   id          String   @id @default(cuid())
   name        String
+  spuCode     String
   slug        String   @unique
   description String?
   isActive    Boolean  @default(true)
@@ -93,7 +94,7 @@ model ProductVariant {
   salePrice  Decimal  @default(0) @db.Decimal(18, 2)
   costPrice  Decimal? @db.Decimal(18, 2)
   stock      Int      @default(0)
-  skuCode    String?
+  skuCode    String
   sortOrder  Int      @default(0)
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())

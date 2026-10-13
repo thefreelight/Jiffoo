@@ -3,6 +3,7 @@
  * Provides consistent APIs and tools for all applications
  */
 export { formatStoreDate, isStoreTimezone, storeTimezones, storeLocalToUtc } from './src/store-time';
+export { PRODUCT_CODE_GENERATION } from './src/product-codes';
 
 // Environment configuration
 export {

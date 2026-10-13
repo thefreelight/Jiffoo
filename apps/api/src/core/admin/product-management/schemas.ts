@@ -38,11 +38,11 @@ const productVariantSchema = {
     salePrice: { type: 'number', description: 'Sale price' },
     costPrice: { type: 'number', nullable: true, description: 'Source cost price' },
     stock: { type: 'number', description: 'Stock quantity' },
-    skuCode: { type: 'string', nullable: true, description: 'SKU code' },
+    skuCode: { type: 'string', description: 'SKU code' },
     isActive: { type: 'boolean', description: 'Is active' },
     attributes: { type: 'object', additionalProperties: true, description: 'Variant attributes' },
   },
-  required: ['id', 'name', 'salePrice', 'stock'],
+  required: ['id', 'name', 'skuCode', 'salePrice', 'stock'],
 } as const;
 
 // ============================================================================
@@ -54,6 +54,7 @@ const adminProductListItemSchema = {
   properties: {
     id: { type: 'string', description: 'Product ID' },
     name: { type: 'string', description: 'Product name' },
+    spuCode: { type: 'string', description: 'SPU code' },
     description: { type: 'string', nullable: true, description: 'Product description' },
     categoryId: { type: 'string', nullable: true, description: 'Category ID' },
     categoryName: { type: 'string', nullable: true, description: 'Category name' },
@@ -71,6 +72,7 @@ const adminProductListItemSchema = {
   required: [
     'id',
     'name',
+    'spuCode',
     'description',
     'categoryId',
     'categoryName',
@@ -92,6 +94,7 @@ const adminProductSchema = {
   properties: {
     id: { type: 'string', description: 'Product ID' },
     name: { type: 'string', description: 'Product name' },
+    spuCode: { type: 'string', description: 'SPU code' },
     description: { type: 'string', nullable: true, description: 'Product description' },
     images: { type: 'array', items: { type: 'string' }, description: 'Product image URLs' },
     translations: translationsSchema,
@@ -103,7 +106,7 @@ const adminProductSchema = {
     createdAt: { type: 'string', format: 'date-time', description: 'Creation time' },
     updatedAt: { type: 'string', format: 'date-time', description: 'Last update time' },
   },
-  required: ['id', 'name', 'variants', 'createdAt', 'updatedAt'],
+  required: ['id', 'name', 'spuCode', 'variants', 'createdAt', 'updatedAt'],
 } as const;
 
 const categorySchema = {
@@ -204,6 +207,7 @@ export const adminProductSchemas = {
       required: ['name', 'variants'],
       properties: {
         name: { type: 'string', description: 'Product name' },
+        spuCode: { type: 'string', description: 'SPU code; blank generates a code' },
         description: { type: 'string', description: 'Product description' },
         categoryId: { type: 'string', nullable: true, description: 'Category ID' },
         requiresShipping: { type: 'boolean', description: 'Whether this product requires shipping address' },
@@ -234,7 +238,7 @@ export const adminProductSchemas = {
         },
       },
     },
-    response: createTypedCreateResponses(adminProductSchema),
+    response: { ...createTypedCreateResponses(adminProductSchema), 409: errorResponseSchema },
   },
 
   // PUT /api/admin/products/:id
@@ -251,6 +255,7 @@ export const adminProductSchemas = {
       properties: {
         isActive: { type: 'boolean', description: 'Whether the product is active' },
         name: { type: 'string', description: 'Product name' },
+        spuCode: { type: 'string', description: 'SPU code; blank generates a code' },
         description: { type: 'string', description: 'Product description' },
         categoryId: { type: 'string', nullable: true, description: 'Category ID' },
         requiresShipping: { type: 'boolean', description: 'Whether this product requires shipping address' },
@@ -281,7 +286,7 @@ export const adminProductSchemas = {
         },
       },
     },
-    response: createTypedUpdateResponses(adminProductSchema),
+    response: { ...createTypedUpdateResponses(adminProductSchema), 409: errorResponseSchema },
   },
 
   // DELETE /api/admin/products/:id

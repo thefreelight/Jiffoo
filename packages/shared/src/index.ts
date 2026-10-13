@@ -1,6 +1,7 @@
 // API Types
 export { formatStoreTimestamp, formatStoreDate, isStoreTimezone, storeTimezones, storeLocalToUtc } from './store-time';
 export * from './error-codes';
+export { PRODUCT_CODE_GENERATION } from './product-codes';
 export * from './types/api';
 export * from './types/auth';
 export * from './types/user';

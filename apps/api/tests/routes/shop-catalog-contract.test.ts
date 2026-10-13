@@ -24,8 +24,9 @@ describe('Shop catalog contract', () => {
     db.product.create({
       data: {
         name: 'Base product', slug: `product-${randomUUID()}`,
+        spuCode: randomUUID(),
         categoryId: options.categoryId, isActive: options.isActive ?? true,
-        variants: { create: { name: 'Standard', salePrice: 12, stock: 3 } },
+        variants: { create: { name: 'Standard', salePrice: 12, stock: 3, skuCode: randomUUID() } },
       },
     })
 

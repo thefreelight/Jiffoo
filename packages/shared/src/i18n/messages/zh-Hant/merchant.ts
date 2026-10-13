@@ -7,6 +7,11 @@
 
 export const merchant = {
   catalog: {
+    spu: 'SPU', spuPlaceholder: '留空，儲存時自動產生', skuPlaceholder: '留空自動產生',
+    codeHint: '全店唯一，不區分大小寫。只能用 1–64 個字母、數字、-、_ 或 .。',
+    spuCodeTaken: '這個 SPU 已被商品「{name}」使用。', skuCodeTaken: '這個 SKU 已被商品「{name}」使用。',
+    invalidProductCode: '只能用 1–64 個字母、數字、-、_ 或 .。',
+    searchCodes: '搜尋商品名稱、SPU 或 SKU', restoreVariant: '恢復規格',
     loadingCategories: '正在載入分類…', categoryError: '無法載入分類。', statsError: '無法載入商品數量。',
     products: '商品', categories: '分類', addProduct: '新增商品', all: '全部', active: '販售中', inactive: '已下架', outOfStock: '缺貨',
     search: '搜尋商品', category: '分類', allCategories: '全部分類', uncategorized: '未分類', variants: '規格', variantCount: '{count} 個規格',

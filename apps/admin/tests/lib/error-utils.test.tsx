@@ -15,6 +15,13 @@ import { merchant as hansMerchant } from '../../../../packages/shared/src/i18n/m
 import { merchant as hantMerchant } from '../../../../packages/shared/src/i18n/messages/zh-Hant/merchant';
 
 describe('Typed localized client error contracts', () => {
+  it.each([enMerchant, hansMerchant, hantMerchant])('localizes code errors and interpolates the product name in locale %#', merchant => {
+    const translate = (key: string) => key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], { merchant }) as string;
+    for (const [code, message] of [[ApiErrorCodes.SPU_CODE_TAKEN, merchant.catalog.spuCodeTaken], [ApiErrorCodes.SKU_CODE_TAKEN, merchant.catalog.skuCodeTaken]] as const) {
+      expect(resolveApiErrorMessage(new AdminApiError('PRIVATE_SQL', code, { name: 'Other product' }, 409), translate)).toBe(message.replace('{name}', 'Other product'));
+    }
+    expect(resolveApiErrorMessage(new AdminApiError('PRIVATE_SQL', ApiErrorCodes.INVALID_PRODUCT_CODE, { field: 'skuCode' }, 400), translate)).toBe(merchant.catalog.invalidProductCode);
+  });
   it.each([enMerchant, hansMerchant, hantMerchant])('ordered catalog deletion and save errors use approved localized copy in locale %#', merchant => {
     const translate = (key: string) => key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], { merchant }) as string;
     expect(resolveApiErrorMessage(new AdminApiError('PRIVATE_SQL', ApiErrorCodes.PRODUCT_HAS_ORDERS, undefined, 409), translate)).toBe(merchant.contentTranslations.productHasOrders);

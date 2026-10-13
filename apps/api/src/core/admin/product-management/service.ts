@@ -13,6 +13,7 @@ import { emitEvent } from '@/infra/events/emit';
 import { productSnapshot } from '@/infra/events/snapshots';
 import { Prisma } from '@prisma/client';
 import { isOrderItemCatalogRestriction } from '@/core/order/catalog-snapshot';
+import { resolveProductCode, withProductCodeRetry } from './codes';
 
 async function protectOrderedCatalog<T>(operation: () => Promise<T>, references: () => Prisma.OrderItemWhereInput): Promise<T> {
   try { return await operation(); }
@@ -140,6 +141,7 @@ export interface ContentTranslation {
 
 export interface CreateProductData {
   name: string;
+  spuCode?: string;
   slug: string;
   description?: string;
   price?: number; // Compat
@@ -153,6 +155,7 @@ export interface CreateProductData {
 }
 
 export interface UpdateProductData {
+  spuCode?: string;
   isActive?: boolean;
   name?: string;
   slug?: string;
@@ -229,6 +232,8 @@ export class AdminProductService {
       where.OR = [
         { name: { contains: normalizedFilters.search, mode: 'insensitive' } },
         { description: { contains: normalizedFilters.search, mode: 'insensitive' } },
+        { spuCode: { contains: normalizedFilters.search, mode: 'insensitive' } },
+        { variants: { some: { skuCode: { contains: normalizedFilters.search, mode: 'insensitive' } } } },
       ];
     }
 
@@ -307,10 +312,10 @@ export class AdminProductService {
       orderBy.createdAt = 'desc';
     }
 
-    // Versioned Cache Key: product:list:v{ver}:{page}:{limit}:{filterHash}:flat
+    // Versioned cache key for the required product-code DTO.
     const version = await CacheService.getProductVersion();
     const filterHash = Buffer.from(JSON.stringify(normalizedFilters)).toString('base64');
-    const cacheKey = `product:list:v${version}:${safePage}:${safeLimit}:${filterHash}:flat`;
+    const cacheKey = `product:list:v${version}:${safePage}:${safeLimit}:${filterHash}:flat-v2`;
 
     const cached = await CacheService.get<any>(cacheKey);
     if (cached) {
@@ -326,6 +331,7 @@ export class AdminProductService {
         select: {
           id: true,
           name: true,
+          spuCode: true,
           description: true,
           isActive: true,
           typeData: true,
@@ -374,6 +380,7 @@ export class AdminProductService {
         return {
           id: p.id,
           name: p.name,
+          spuCode: p.spuCode,
           description: p.description,
           categoryId: p.category ? p.category.id : null,
           categoryName: p.category ? p.category.name : null,
@@ -516,6 +523,7 @@ export class AdminProductService {
     const dto = {
       id: product.id,
       name: product.name,
+      spuCode: product.spuCode,
       description: product.description,
       isActive: product.isActive,
       categoryId: product.categoryId,
@@ -553,10 +561,12 @@ export class AdminProductService {
       throw new ApiError('INTERNAL_SERVER_ERROR');
     }
 
-    const product = await prisma.$transaction(async (tx) => {
+    const product = await withProductCodeRetry(context => prisma.$transaction(async (tx) => {
+      const spuCode = await resolveProductCode(tx, context, { field: 'spuCode', input: data.spuCode, name: data.name });
       const created = await tx.product.create({
         data: {
           name: data.name,
+          spuCode,
           slug: data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now(),
           description: data.description,
           categoryId: data.categoryId,
@@ -571,6 +581,7 @@ export class AdminProductService {
       for (const [index, variant] of variantsToCreate.entries()) {
         const normalizedStock = Math.max(0, Math.trunc(Number(variant.stock ?? 0)));
         const salePrice = resolveVariantSalePrice(variant);
+        const skuCode = await resolveProductCode(tx, context, { field: 'skuCode', input: variant.skuCode, spuCode, name: data.name, variantIndex: index });
         const createdVariant = await tx.productVariant.create({
           data: {
             productId: created.id,
@@ -578,7 +589,7 @@ export class AdminProductService {
             stock: normalizedStock,
             salePrice,
             ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
-            skuCode: variant.skuCode,
+            skuCode,
             attributes: variant.attributes ?? undefined,
             isActive: variant.isActive ?? true,
             sortOrder: index,
@@ -590,7 +601,7 @@ export class AdminProductService {
 
       await emitEvent(tx, 'product.created', 1, created.id, await productSnapshot(tx, created.id));
       return created;
-    });
+    }));
 
     await CacheService.incrementProductVersion();
 
@@ -630,7 +641,11 @@ export class AdminProductService {
     if (data.images !== undefined) updateData.typeData = { images: data.images };
 
 
-    await knownPrismaOperation(() => protectOrderedCatalog(() => prisma.$transaction(async (tx) => {
+    await knownPrismaOperation(() => protectOrderedCatalog(() => withProductCodeRetry(context => prisma.$transaction(async (tx) => {
+      const existingProduct = await tx.product.findUniqueOrThrow({ where: { id: productId }, select: { spuCode: true, name: true } });
+      const spuCode = await resolveProductCode(tx, context, { field: 'spuCode', input: data.spuCode,
+        existing: existingProduct.spuCode, excludeId: productId, name: data.name ?? existingProduct.name });
+      updateData.spuCode = spuCode;
       // Update product core fields
       await tx.product.update({
         where: { id: productId },
@@ -652,7 +667,7 @@ export class AdminProductService {
         // 1. Get existing variants
         const existingVariants = await tx.productVariant.findMany({
           where: { productId },
-          select: { id: true }
+          select: { id: true, skuCode: true }
         });
         const existingIds = existingVariants.map(v => v.id);
 
@@ -671,9 +686,13 @@ export class AdminProductService {
         }
 
         // 3. Upsert variants
-        for (const variant of variantsToProcess) {
+        for (const [index, variant] of variantsToProcess.entries()) {
           const normalizedStock = Math.max(0, Math.trunc(Number(variant.stock ?? 0)));
           const salePrice = resolveVariantSalePrice(variant);
+          const existingVariant = existingVariants.find(v => v.id === variant.id);
+          const skuCode = await resolveProductCode(tx, context, { field: 'skuCode', input: variant.skuCode,
+            existing: existingVariant?.skuCode, excludeId: existingVariant?.id, spuCode,
+            name: data.name ?? existingProduct.name, variantIndex: index, variantId: existingVariant?.id });
           if (variant.id && existingIds.includes(variant.id)) {
             // Update
             await tx.productVariant.update({
@@ -683,7 +702,7 @@ export class AdminProductService {
                 stock: normalizedStock,
                 salePrice,
                 ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
-                skuCode: variant.skuCode,
+                skuCode,
                 attributes: variant.attributes ?? undefined,
                 isActive: variant.isActive
               }
@@ -698,7 +717,7 @@ export class AdminProductService {
                 stock: normalizedStock,
                 salePrice,
                 ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
-                skuCode: variant.skuCode,
+                skuCode,
                 attributes: variant.attributes ?? undefined,
                 isActive: variant.isActive ?? true
               }
@@ -708,7 +727,7 @@ export class AdminProductService {
         }
       }
       await emitEvent(tx, 'product.updated', 1, productId, await productSnapshot(tx, productId));
-    }), () => ({ variantId: { in: removedVariantIds } })), { notFound: 'NOT_FOUND' });
+    })), () => ({ variantId: { in: removedVariantIds } })), { notFound: 'NOT_FOUND' });
 
     await CacheService.incrementProductVersion();
     await CacheService.deleteProduct(productId);

@@ -249,6 +249,7 @@ async function main() {
         },
         create: {
           id: prod.id,
+          spuCode: `DEMO-${prod.id.toUpperCase()}`,
           name: prod.name,
           slug: prod.slug,
           description: prod.description,

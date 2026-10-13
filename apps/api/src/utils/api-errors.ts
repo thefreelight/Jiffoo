@@ -14,6 +14,9 @@ export const errorCatalog = {
   [ApiErrorCodes.PLUGIN_TEST_SIGNING_CONFLICT]: { status: 409, message: 'Test-signed plugin cannot be used in this environment' },
   [ApiErrorCodes.CATEGORY_NOT_EMPTY]: { status: 409, message: 'Category not empty.' },
   [ApiErrorCodes.PRODUCT_HAS_ORDERS]: { status: 409, message: 'This product or variant has orders and cannot be deleted. Deactivate it instead.' },
+  [ApiErrorCodes.SPU_CODE_TAKEN]: { status: 409, message: 'This SPU is already used by product {name}.' },
+  [ApiErrorCodes.SKU_CODE_TAKEN]: { status: 409, message: 'This SKU is already used by product {name}.' },
+  [ApiErrorCodes.INVALID_PRODUCT_CODE]: { status: 400, message: 'Use 1–64 letters, digits, hyphens, underscores or dots.' },
   [ApiErrorCodes.DEFAULT_LOCALE_TRANSLATION]: { status: 400, message: 'Default locale translation.' },
   [ApiErrorCodes.FORBIDDEN_FILE_TYPE]: { status: 400, message: 'Forbidden file type.' },
   [ApiErrorCodes.FORBIDDEN_NATIVE_MODULE]: { status: 400, message: 'Forbidden native module.' },
@@ -288,6 +291,12 @@ export function safeIssues(issues: unknown): Array<{ path: string; message: stri
 function detailsFor(error: ApiError): unknown {
   if (!error.safeDetails || typeof error.safeDetails !== 'object' || errorCatalog[error.code].status >= 500) return undefined;
   const input = error.safeDetails as Record<string, unknown>;
+  if (['SPU_CODE_TAKEN', 'SKU_CODE_TAKEN', 'INVALID_PRODUCT_CODE'].includes(error.code)) {
+    return { ...(typeof input.name === 'string' ? { name: input.name } : {}),
+      ...(input.field === 'spuCode' || input.field === 'skuCode' ? { field: input.field } : {}),
+      ...(typeof input.variantId === 'string' ? { variantId: input.variantId } : {}),
+      ...(Number.isSafeInteger(input.variantIndex) ? { variantIndex: input.variantIndex } : {}) };
+  }
   if (error.code === 'VALIDATION_ERROR' || error.code === 'UPLOAD_FAILED') {
     if (Array.isArray(input.allowedTypes) && input.allowedTypes.every(value => typeof value === 'string' && ['image/jpeg', 'image/png', 'image/webp'].includes(value))) {
       return { allowedTypes: [...input.allowedTypes] };

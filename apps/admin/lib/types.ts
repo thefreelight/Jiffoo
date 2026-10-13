@@ -277,6 +277,7 @@ export interface LoginForm {
 }
 
 export interface ProductForm {
+  spuCode?: string
   isActive?: boolean
   categoryId?: string | null
   translations?: Array<{ locale: string; name: string; description?: string | null }>

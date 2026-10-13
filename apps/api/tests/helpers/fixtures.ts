@@ -68,6 +68,7 @@ export async function createTestProduct(options: CreateProductOptions = {}) {
   const product = await prisma.product.create({
     data: {
       id,
+      spuCode: `TEST-${id}`,
       name: options.name || `Test Product ${id.substring(0, 8)}`,
       slug: `product-${id}`, // Mandatory unique slug
       description: options.description || 'A test product description',
@@ -83,7 +84,7 @@ export async function createTestProduct(options: CreateProductOptions = {}) {
             salePrice: options.price ?? 99.99,
             stock: options.stock ?? 100,
             isActive: true,
-            skuCode: options.skuCode,
+            skuCode: options.skuCode ?? `TEST-${id}-01`,
           }
         ]
       }

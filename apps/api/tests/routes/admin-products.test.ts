@@ -96,7 +96,7 @@ describe('Admin Products Endpoints', () => {
           { name: 'Stocked', isActive: true, variants: [{ name: 'Small', salePrice: 12, stock: 0, isActive: true }, { name: 'Large', salePrice: 24, stock: 4, isActive: true }, { name: 'Hidden', salePrice: 1, stock: 99, isActive: false }] },
         ];
         for (const state of states) {
-          const product = await db.product.create({ data: { ...state, name: `${suffix} ${state.name}`, slug: `${suffix}-${state.name}`, categoryId: category.id, variants: { create: state.variants } } });
+          const product = await db.product.create({ data: { ...state, spuCode: `${suffix}-${state.name}`, name: `${suffix} ${state.name}`, slug: `${suffix}-${state.name}`, categoryId: category.id, variants: { create: state.variants.map((variant, index) => ({ ...variant, skuCode: `${suffix}-${state.name}-${index}` })) } } });
           ids.push(product.id);
         }
         await CacheService.incrementProductVersion();

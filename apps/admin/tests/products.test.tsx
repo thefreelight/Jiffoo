@@ -20,7 +20,7 @@ vi.mock('../components/ui/dropdown-menu', () => ({ DropdownMenu: ({ children }: 
 vi.mock('../components/ui/dialog', () => ({ Dialog: ({ open, children }: any) => open ? children : null, DialogContent: ({ children }: any) => <div role="dialog">{children}</div>, DialogHeader: ({ children }: any) => children, DialogTitle: ({ children }: any) => <h2>{children}</h2>, DialogDescription: ({ children }: any) => <p>{children}</p>, DialogFooter: ({ children }: any) => children }));
 vi.mock('../lib/hooks/use-api', () => ({
   useProducts: (params: any) => { state.params = params; return { data: { data: [
-    { id: 'a', name: 'Available', isActive: true, stock: 3, variantsCount: 2, priceMin: 10, priceMax: 20, images: [] },
+    { id: 'a', name: 'Available', spuCode: 'K7M2Q9XA', isActive: true, stock: 3, variantsCount: 2, priceMin: 10, priceMax: 20, images: [] },
     { id: 'b', name: 'Hidden', isActive: false, stock: 0, variantsCount: 1, priceMin: 10, priceMax: 10, images: [] },
     { id: 'c', name: 'Empty', isActive: true, stock: 0, variantsCount: 1, priceMin: 10, priceMax: 10, images: [] },
   ], pagination: { total: 3, totalPages: 1 } } }; },
@@ -95,4 +95,36 @@ it.each([merchant, hans, hant])('has every catalog key and plain category/order 
   expect(Object.keys(messages.catalog).sort()).toEqual(Object.keys(merchant.catalog).sort());
   for (const value of Object.values(messages.catalog)) expect(value.trim().length).toBeGreaterThan(0);
   expect(messages.contentTranslations.categoryNotEmpty).toBeTruthy(); expect(messages.contentTranslations.productHasOrders).toBeTruthy();
+});
+
+it('shows SPU in product metadata and the code search placeholder', async () => {
+  const node = await mount();
+  expect(node.querySelector('input')?.placeholder).toBe('Search name, SPU or SKU');
+  expect(node.querySelector('tbody')?.textContent).toContain('K7M2Q9XA');
+});
+
+it.each([
+  ['SPU_CODE_TAKEN', 'spuCode', 'product-spu', 'spuCodeTaken'],
+  ['SKU_CODE_TAKEN', 'skuCode', 'variant-0-sku', 'skuCodeTaken'],
+  ['INVALID_PRODUCT_CODE', 'spuCode', 'product-spu', 'invalidProductCode'],
+  ['INVALID_PRODUCT_CODE', 'skuCode', 'variant-0-sku', 'invalidProductCode'],
+])('renders %s inline beneath its %s input', async (code, field, id, key) => {
+  state.create.mockRejectedValue({ code, details: { field, variantIndex: 0, name: 'Other product' } });
+  await mount(<ProductForm />);
+  expect((document.getElementById('product-spu') as HTMLInputElement).placeholder).toBe(merchant.catalog.spuPlaceholder);
+  expect((document.getElementById('variant-0-sku') as HTMLInputElement).placeholder).toBe(merchant.catalog.skuPlaceholder);
+  await act(async () => document.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  const input = document.getElementById(id)!;
+  expect(input.getAttribute('aria-invalid')).toBe('true');
+  expect(input.parentElement?.querySelector('[role="alert"]')?.textContent).toBe((merchant.catalog as any)[key].replace('{name}', 'Other product'));
+});
+
+it('restores removed ordered variants with a Restore variant action', async () => {
+  const product = { id: 'p', name: 'Original', spuCode: 'CUSTOM', variants: [{ id: 'v1', name: 'First', salePrice: 12, stock: 1, skuCode: 'SKU1' }, { id: 'v2', name: 'Second', salePrice: 12, stock: 1, skuCode: 'SKU2' }] } as any;
+  state.update.mockRejectedValue({ code: 'PRODUCT_HAS_ORDERS' });
+  await mount(<ProductForm product={product} />);
+  await act(async () => button('Delete').click());
+  await act(async () => document.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  await act(async () => button('Restore variant').click());
+  expect(document.getElementById('variant-v1-sku')).not.toBeNull();
 });

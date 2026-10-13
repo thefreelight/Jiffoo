@@ -37,6 +37,7 @@ export interface ShopProductDetailDTO {
 
 // Admin product list item DTO (flattened)
 export interface AdminProductListItemDTO {
+  spuCode: string;
   images: string[];
   variantsActiveCount: number;
   priceMin: number;
@@ -59,6 +60,7 @@ export interface AdminProductListItemDTO {
 
 // Admin product detail DTO
 export interface AdminProductDetailDTO {
+  spuCode: string;
   id: string;
   name: string;
   description?: string | null;
