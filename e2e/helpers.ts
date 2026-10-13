@@ -37,9 +37,9 @@ export async function login(page: Page, email = ownerEmail, password = changedPa
   await page.getByPlaceholder('Enter your email').fill(email);
   await page.getByPlaceholder('Enter your password').fill(password);
   await page.getByRole('button', { name: /sign in|authenticate/i }).click();
-  await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Overview' })).toBeVisible();
   if (!page.url().endsWith('/en/dashboard')) {
-    await page.getByRole('link', { name: 'Dashboard' }).click();
+    await page.getByRole('link', { name: 'Overview' }).click();
   }
   await expect(page).toHaveURL(/\/en\/dashboard/);
 }

@@ -17,7 +17,7 @@ import { AdminLanguageSwitcher } from '@/components/i18n/admin-language-switcher
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 const groups = [
   { name: 'store', items: [
-    ['dashboard', 'merchant.nav.dashboard', 'Dashboard', '/dashboard', LayoutDashboard],
+    ['dashboard', 'merchant.nav.dashboard', 'Overview', '/dashboard', LayoutDashboard],
     ['products', 'merchant.products.title', 'Products', '/products', Package],
     ['orders', 'merchant.orders.title', 'Orders', '/orders', FileText],
     ['notifications', 'merchant.notifications.title', 'Notifications', '/notifications', Bell],

@@ -22,7 +22,7 @@ const mount = async (children: ReactNode, collapsed = false, darkAvailable = tru
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = undefined; document.body.innerHTML = ''; vi.unstubAllGlobals(); });
 it.each([false, true])('keeps accessible navigation names and focus in rail state %s', async collapsed => {
   const container = await mount(<AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" collapsed={collapsed} />, collapsed);
-  for (const name of ['Dashboard', 'Products', 'Orders', 'Notifications', 'Customers', 'Administrators', 'Plugins', 'Themes', 'Settings', 'System Health', 'Audit log', 'Tracking & custom code']) {
+  for (const name of ['Overview', 'Products', 'Orders', 'Notifications', 'Customers', 'Administrators', 'Plugins', 'Themes', 'Settings', 'System Health', 'Audit log', 'Tracking & custom code']) {
     const link = Array.from(container.querySelectorAll('a')).find(link => link.getAttribute('aria-label') === name)!;
     expect(link, name).toBeTruthy(); await act(async () => link.focus()); expect(document.activeElement).toBe(link);
   }
@@ -51,7 +51,7 @@ it('keeps rail groups visible and restores the expanded group state without swit
     await act(async () => button('Store').click());
     expect(button('Store').getAttribute('aria-expanded')).toBe('false');
     await act(async () => button('Collapse sidebar').click());
-    expect(container.querySelector('a[aria-label="Dashboard"]')).toBeTruthy();
+    expect(container.querySelector('a[aria-label="Overview"]')).toBeTruthy();
     expect(container.querySelectorAll('[role="separator"]')).toHaveLength(2);
     await act(async () => button('Expand sidebar').click());
     expect(button('Store').getAttribute('aria-expanded')).toBe('false');

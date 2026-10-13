@@ -1,7 +1,9 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { PaymentPill, StatusShape } from '@/components/orders/order-badges';
 import { AlertTriangle, Package, Search } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
 import { formatStoreTimestamp } from 'shared';
@@ -14,26 +16,39 @@ import { Input } from '@/components/ui/input';
 const statuses = ['All', 'PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'] as const;
 type PaymentFilter = 'All' | 'PAID' | 'UNPAID' | 'REVIEW' | 'REFUNDED';
 
-function StatusShape({ status }: { status: string }) {
-  const cancelled = status === 'CANCELLED' || status === 'REFUNDED';
-  return <span aria-hidden="true" className={cn('relative inline-flex size-3 shrink-0 rounded-full border border-current',
-    (status === 'PENDING' || cancelled) && 'text-faint', status === 'PENDING' && 'border-dashed')}
-    style={{ background: status === 'DELIVERED' ? 'currentColor' : status === 'PROCESSING' ? 'conic-gradient(currentColor 50%, transparent 0)' : status === 'SHIPPED' ? 'conic-gradient(currentColor 75%, transparent 0)' : undefined }}>
-    {cancelled && <span className="absolute inset-0 flex items-center justify-center text-[10px] leading-none">×</span>}
-  </span>;
-}
-
 export default function OrdersPage() {
   const t = useT(), locale = useLocale(), { timezone } = useStoreDate();
   const copy = (key: string, values?: Record<string, string | number>) => t('merchant.orders.list.' + key, values);
   const statusLabel = (status: string) => status === 'All' ? copy('all') : t('merchant.orders.' + status.toLowerCase());
+  const router = useRouter(), pathname = usePathname(), searchParams = useSearchParams();
+  const initialStatus = searchParams.get('status');
+  const paymentParam = searchParams.get('payment');
+  const initialPayment = ['paid', 'unpaid', 'review', 'refunded'].includes(paymentParam ?? '') ? paymentParam!.toUpperCase() : undefined;
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('All');
-  const [payment, setPayment] = useState<PaymentFilter>('All');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    if (search === debouncedSearch) return;
+    const timer = setTimeout(() => { setDebouncedSearch(search); setPage(1); }, 300);
+    return () => clearTimeout(timer);
+  }, [search, debouncedSearch]);
+  const [status, setStatus] = useState(initialStatus && statuses.some(value => value === initialStatus) ? initialStatus : 'All');
+  const [payment, setPayment] = useState<PaymentFilter>(['PAID', 'UNPAID', 'REVIEW', 'REFUNDED'].includes(initialPayment ?? '') ? initialPayment as PaymentFilter : 'All');
   const [page, setPage] = useState(1);
+  useEffect(() => {
+    setStatus(initialStatus && statuses.some(value => value === initialStatus) ? initialStatus : 'All');
+    setPayment(['PAID', 'UNPAID', 'REVIEW', 'REFUNDED'].includes(initialPayment ?? '') ? initialPayment as PaymentFilter : 'All');
+    setPage(1);
+  }, [initialStatus, initialPayment]);
+  const updateFilters = (nextStatus: string, nextPayment: PaymentFilter) => {
+    setStatus(nextStatus); setPayment(nextPayment); setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextStatus === 'All') params.delete('status'); else params.set('status', nextStatus);
+    if (nextPayment === 'All') params.delete('payment'); else params.set('payment', nextPayment.toLowerCase());
+    router.replace(pathname + (params.size ? '?' + params.toString() : ''), { scroll: false });
+  };
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const limit = 20;
-  const { data, isLoading, error, refetch } = useOrders({ page, limit, search,
+  const { data, isLoading, error, refetch } = useOrders({ page, limit, search: debouncedSearch,
     status: status === 'All' ? undefined : status,
     paymentStatus: payment === 'PAID' || payment === 'UNPAID' || payment === 'REFUNDED' ? payment : undefined,
     paymentReview: payment === 'REVIEW' ? 'required' : undefined,
@@ -41,8 +56,7 @@ export default function OrdersPage() {
   const stats = useOrderStats();
   const orders = data?.data ?? [], pagination = data?.pagination;
   const reviewCount = stats.data?.paymentReviewCount;
-  const paymentLabel = (order: Order) => order.requiresPaymentReview ? copy('requiresReview') : order.paymentStatus === 'PAID' ? t('merchant.orders.paid') : order.paymentStatus === 'REFUNDED' ? t('merchant.orders.refunded') : copy('unpaid');
-  const paymentPill = (order: Order) => <span className={cn('inline-flex rounded-md border px-2 py-0.5 text-xs whitespace-nowrap', order.requiresPaymentReview ? 'border-attention-line bg-attention-soft text-attention' : order.paymentStatus === 'PAID' ? 'border-border text-foreground' : 'border-border text-faint')}>{paymentLabel(order)}</span>;
+  const paymentPill = (order: Order) => <PaymentPill {...order} />;
   const orderLink = (order: Order) => <Link href={'/' + locale + '/orders/' + order.id} aria-label={copy('detail', { id: order.id })} title={order.id} className="font-mono text-foreground hover:underline break-all min-[769px]:block min-[769px]:max-w-[150px] min-[769px]:truncate">#{order.id}</Link>;
   const statusText = (order: Order) => <span className="inline-flex items-center gap-2 whitespace-nowrap"><StatusShape status={order.status} />{statusLabel(order.status)}</span>;
   const empty = search || status !== 'All' || payment !== 'All' ? copy('noMatches') : copy('empty');
@@ -54,9 +68,9 @@ export default function OrdersPage() {
         onKeyDown={event => {
           const next = event.key === 'ArrowRight' ? (index + 1) % statuses.length : event.key === 'ArrowLeft' ? (index + statuses.length - 1) % statuses.length : event.key === 'Home' ? 0 : event.key === 'End' ? statuses.length - 1 : undefined;
           if (next === undefined) return;
-          event.preventDefault(); setStatus(statuses[next]); setPage(1); tabRefs.current[next]?.focus();
+          event.preventDefault(); updateFilters(statuses[next], payment); tabRefs.current[next]?.focus();
         }}
-        onClick={() => { setStatus(value); setPage(1); }}
+        onClick={() => { updateFilters(value, payment); }}
         className={cn('flex items-center gap-2 border-b-[1.5px] py-2.5 text-[13px]', status === value ? 'border-foreground text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground')}>
         {statusLabel(value)}<span className="font-mono text-xs tabular-nums text-faint">{stats.data ? value === 'All' ? stats.data.metrics.totalOrders : stats.data.statusCounts[value] : '—'}</span>
       </button>)}
@@ -64,16 +78,16 @@ export default function OrdersPage() {
     {stats.error && <p role="status" className="text-muted-foreground">{copy('statsError')}</p>}
     {reviewCount !== undefined && reviewCount > 0 && <div role="status" className="grid grid-cols-[16px_minmax(0,1fr)] gap-x-3 gap-y-2 rounded-lg border border-attention-line bg-attention-soft px-4 py-3 text-attention min-[769px]:flex min-[769px]:items-center">
       <AlertTriangle aria-hidden="true" className="size-4 shrink-0" /><p className="min-w-0 flex-1">{copy('reviewBanner', { count: reviewCount })}</p>
-      <button type="button" className="col-start-2 justify-self-start font-medium underline underline-offset-4" onClick={() => { setPayment('REVIEW'); setStatus('All'); setPage(1); }}>{copy('reviewAction')}</button>
+      <button type="button" className="col-start-2 justify-self-start font-medium underline underline-offset-4" onClick={() => { updateFilters('All', 'REVIEW'); }}>{copy('reviewAction')}</button>
     </div>}
     <div className="flex flex-col gap-3 min-[769px]:flex-row">
       <div className="relative min-w-0 flex-1">
         <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-2 size-4 text-faint" />
-        <Input aria-label={copy('search')} placeholder={copy('search')} value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} className="h-8 bg-raised pl-9 text-[13px]" />
+        <Input aria-label={copy('search')} placeholder={copy('search')} value={search} onChange={event => { setSearch(event.target.value); }} className="h-8 bg-raised pl-9 text-[13px]" />
       </div>
       <label className="flex h-8 items-center gap-2 rounded-md border border-border bg-raised px-3">
         <span className="text-faint">{copy('payment')}</span>
-        <select aria-label={copy('payment')} value={payment} onChange={event => { setPayment(event.target.value as PaymentFilter); setPage(1); }} className="min-w-0 flex-1 bg-transparent text-foreground outline-none">
+        <select aria-label={copy('payment')} value={payment} onChange={event => { updateFilters(status, event.target.value as PaymentFilter); }} className="min-w-0 flex-1 bg-transparent text-foreground outline-none">
           <option value="All">{copy('all')}</option><option value="PAID">{t('merchant.orders.paid')}</option><option value="UNPAID">{copy('unpaid')}</option><option value="REVIEW">{copy('requiresReview')}</option><option value="REFUNDED">{t('merchant.orders.refunded')}</option>
         </select>
       </label>

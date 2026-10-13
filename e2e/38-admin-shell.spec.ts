@@ -3,6 +3,7 @@ import { login, ownerEmail } from './helpers';
 import { PrismaClient } from '@prisma/client';
 import { mkdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
+import { captureOverview, chooseOverviewMode } from './overview-captures';
 async function chooseMode(page: import('@playwright/test').Page, mode: string) {
   await page.getByRole('button', { name: 'Account menu', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Appearance', exact: true }).focus();
@@ -24,7 +25,7 @@ test('U1b modes and rail persist through SSR reload while mobile navigation stay
   await expect(page.getByRole('button', { name: 'Expand sidebar', exact: true })).toHaveAttribute('aria-expanded', 'false');
   await page.reload();
   await expect(page.getByRole('complementary', { name: 'Store navigation', exact: true })).toHaveCSS('width', '56px');
-  for (const name of ['Dashboard', 'Products', 'Orders', 'Notifications', 'Customers', 'Administrators', 'Plugins', 'Themes', 'Settings', 'System Health', 'Audit log', 'Tracking & custom code'])
+  for (const name of ['Overview', 'Products', 'Orders', 'Notifications', 'Customers', 'Administrators', 'Plugins', 'Themes', 'Settings', 'System Health', 'Audit log', 'Tracking & custom code'])
     await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Store', exact: true })).toHaveCount(0);
   await expect(page.getByRole('separator')).toHaveCount(2);
@@ -39,6 +40,56 @@ test('U1b modes and rail persist through SSR reload while mobile navigation stay
   await expect(page.getByRole('dialog', { name: 'Store navigation', exact: true })).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await page.getByRole('button', { name: 'Close menu', exact: true }).click();
   await expect(page.getByRole('main')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+});
+
+test('U2 Overview shows real attention counts and opens the Orders review deep link', async ({ page }) => {
+  expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+  const db = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL_TEST } } });
+  const ids = ['u2-review-' + randomUUID(), 'u2-to-ship-' + randomUUID()];
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  try {
+    const user = await db.user.findUniqueOrThrow({ where: { email: 'customer@e2e.example' } });
+    const item = await db.orderItem.findFirstOrThrow();
+    const provider = await db.paymentProviderAccount.findFirstOrThrow({ where: { namespace: 'jiffoo-manual' } });
+    const amount = item.unitPrice.mul(3);
+    for (const [index, id] of ids.entries()) await db.order.create({ data: {
+      id, userId: user.id, status: index === 0 ? 'PENDING' : 'PROCESSING', paymentStatus: index === 0 ? 'PENDING' : 'PAID',
+      currency: 'USD', subtotalAmount: amount, totalAmount: amount,
+      items: { create: { productId: item.productId, variantId: item.variantId, quantity: 3, unitPrice: item.unitPrice, lineTotal: amount, catalogSnapshot: item.catalogSnapshot! } },
+      ...(index === 0 ? { payments: { create: { paymentMethod: 'manual-payment', providerKey: provider.providerKey, amount, currency: 'USD', status: 'REQUIRES_REVIEW', idempotencyKey: randomUUID() } } } : {}),
+    } });
+    const count = await db.order.count({ where: { payments: { some: { status: 'REQUIRES_REVIEW', reviewResolution: null } } } });
+    const toShip = await db.order.count({ where: { status: 'PROCESSING' } });
+    await login(page, ownerEmail, 'FinalOwnerPassword123!');
+    // The existing dashboard cache expires after 15 seconds; reload rather than mutate it.
+    await expect(async () => {
+      await page.goto('/en/dashboard');
+      await expect(page.getByText(count + ' orders have payments that need manual review', { exact: true })).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 20000 });
+    await expect(page.getByText(toShip + ' paid orders are waiting to ship', { exact: true })).toBeVisible();
+    await expect(page.getByRole('table', { name: 'Sales, last 14 days', exact: true }).getByRole('row')).toHaveCount(15);
+    await captureOverview(page);
+    await page.getByRole('link', { name: 'Review payments', exact: true }).click();
+    await expect(page).toHaveURL(/\/en\/orders\?payment=review$/);
+    await expect(page.getByRole('combobox', { name: 'Payment', exact: true })).toHaveValue('REVIEW');
+    await expect(page.getByRole('link', { name: 'View order ' + ids[0], exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View order ' + ids[1], exact: true })).toHaveCount(0);
+    if (process.env.CI !== 'true') for (const mode of ['Light', 'Dark']) {
+      await chooseOverviewMode(page, mode);
+      await page.getByRole('heading', { name: 'Orders', exact: true }).click(); await page.keyboard.press('Control+Home');
+      await page.screenshot({ path: 'C:/Users/11948/Pictures/jiffoo-u2/orders-deeplink-' + mode.toLowerCase() + '-1440.png', animations: 'disabled' });
+    }
+    await page.goto('/en/orders?status=PROCESSING');
+    await expect(page.getByRole('tab', { name: /^Processing/ })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('link', { name: 'View order ' + ids[1], exact: true })).toBeVisible();
+    expect(errors).toEqual([]);
+  } finally {
+    await db.payment.deleteMany({ where: { orderId: { in: ids } } });
+    await db.orderItem.deleteMany({ where: { orderId: { in: ids } } });
+    await db.order.deleteMany({ where: { id: { in: ids } } });
+    await db.$disconnect();
+  }
 });
 
 test('U1c Orders filters, compact cards and review banner use real data in both modes', async ({ page }) => {

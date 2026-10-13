@@ -1,5 +1,6 @@
 import { expect, test } from './local-requests';
 import { originalPassword, ownerEmail } from './helpers';
+import { captureOverview, chooseOverviewMode } from './overview-captures';
 
 test('first-run install creates the owner and opens the dashboard', async ({ page }) => {
   const pageErrors: string[] = [];
@@ -13,6 +14,10 @@ test('first-run install creates the owner and opens the dashboard', async ({ pag
   await page.getByLabel('Store name').fill('E2E Store');
   await page.getByRole('button', { name: 'Create workspace' }).click();
   await expect(page).toHaveURL(/\/en\/dashboard/);
-  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
+  await expect(page.getByText('Nothing needs your attention right now.', { exact: true })).toBeVisible();
+  await expect(page.getByText('No sales in the last 14 days.', { exact: true })).toBeVisible();
+  await captureOverview(page, true);
+  await chooseOverviewMode(page, 'System');
   expect(pageErrors).toEqual([]);
 });

@@ -25,6 +25,13 @@ const app: FastifyInstance = await createTestApp({ enableSwagger: true });
 setOpenApiSpec(app.swagger() as ReturnType<typeof loadOpenApiSpec> & {});
 
 describe('OpenAPI Contract Tests', () => {
+  it('publishes required overview calendar metrics and review state in OpenAPI', () => {
+    const response = loadOpenApiSpec().paths['/api/v1/admin/dashboard'].get!.responses['200'].content!['application/json'].schema;
+    const schema = response.properties.data;
+    expect(schema.required).toEqual(expect.arrayContaining(['today', 'yesterday', 'attention', 'dailySales', 'metrics', 'recentOrders', 'ordersByStatus']));
+    expect(schema.properties.dailySales).toMatchObject({ type: 'array', minItems: 14, maxItems: 14 });
+    expect(schema.properties.recentOrders.items.properties.requiresPaymentReview.type).toBe('boolean');
+  });
   let userToken: string;
   let adminToken: string;
 

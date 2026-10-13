@@ -111,8 +111,8 @@ async function captureDynamicBoxes(page: Page, name: string, width: number, heig
   };
   const date = /\d{1,2}\/\d{1,2}\/\d{4}/;
   if (name === 'dashboard') {
-    await add('recent order generated ID', page.getByText(/^#[A-Z0-9]{8}$/));
-    await add('recent order created time', page.getByText(/^\d{2}:\d{2}$/));
+    await add('recent order generated ID', page.getByRole('link', { name: /^View order / }));
+    await add('recent order created time', page.getByText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/));
   } else if (name === 'customers-list') {
     await add('customer generated ID', page.getByText(/^ID: [A-Z0-9]{8}\.\.\.$/i));
   } else if (name === 'customer-detail') {
@@ -499,39 +499,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
             JSON.stringify(computed, null, 2));
         }
       }
-      if (name === 'dashboard' && width === 1440 && process.env.VISUAL_INSPECT_CSS === '1') {
-        const cards = await Promise.all(
-          ['Total Revenue', 'Total Orders', 'Total Products', 'Total Users'].map(async (label) => ({
-            label,
-            elements: await page.getByText(label, { exact: true }).first().evaluate((title) => {
-              let card: Element | null = title;
-              while (card && !card.classList.contains('bg-gradient-to-br')) card = card.parentElement;
-              if (!card) throw new Error('Dashboard statistic card not found');
-              return [card, ...card.querySelectorAll('*')].map((element, index) => {
-                const css = getComputedStyle(element);
-                const rect = element.getBoundingClientRect();
-                return {
-                  index, tag: element.tagName, className: element.className,
-                  backgroundImage: css.backgroundImage, backgroundColor: css.backgroundColor,
-                  filter: css.filter, backdropFilter: css.backdropFilter, opacity: css.opacity,
-                  mixBlendMode: css.mixBlendMode, isolation: css.isolation, zIndex: css.zIndex,
-                  transform: css.transform, willChange: css.willChange,
-                  width: css.width, height: css.height, inset: css.inset, position: css.position,
-                  box: [rect.x, rect.y, rect.width, rect.height],
-                  gradientFrom: css.getPropertyValue('--tw-gradient-from'),
-                  gradientStops: css.getPropertyValue('--tw-gradient-stops'),
-                  gradientTo: css.getPropertyValue('--tw-gradient-to'),
-                };
-              }).filter((row) => row.index === 0 || row.backgroundImage !== 'none' ||
-                row.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
-                row.filter !== 'none' || row.backdropFilter !== 'none' || row.opacity !== '1' ||
-                row.mixBlendMode !== 'normal' || row.isolation !== 'auto');
-            }),
-          })),
-        );
-        await writeFile(`e2e/visual-results/${set}/computed-dashboard-1440.json`,
-          JSON.stringify(cards, null, 2));
-      }
+
       const date = new Date().toLocaleDateString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
       });

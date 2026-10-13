@@ -32,7 +32,7 @@ function calculateTrendPercent(current: number, previous: number): number {
 }
 
 // Match unresolved attempts accepted by the existing manual payment-review operation.
-function paymentReviewWhere(): Prisma.PaymentWhereInput {
+export function paymentReviewWhere(): Prisma.PaymentWhereInput {
   return { status: 'REQUIRES_REVIEW', reviewResolution: null };
 }
 

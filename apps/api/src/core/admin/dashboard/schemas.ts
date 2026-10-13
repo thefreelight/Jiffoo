@@ -22,6 +22,23 @@ const paymentStatusEnum = ['PENDING', 'PAID', 'FAILED', 'REFUNDED'] as const;
 const dashboardMetricsSchema = {
   type: 'object',
   properties: {
+    today: {
+      type: 'object', required: ['paidSales', 'orders', 'newCustomers'],
+      properties: { paidSales: { type: 'number' }, orders: { type: 'integer' }, newCustomers: { type: 'integer' } },
+    },
+    yesterday: {
+      type: 'object', required: ['paidSales', 'orders', 'newCustomers'],
+      properties: { paidSales: { type: 'number' }, orders: { type: 'integer' }, newCustomers: { type: 'integer' } },
+    },
+    attention: {
+      type: 'object', required: ['paymentReviewCount', 'toShipCount'],
+      properties: { paymentReviewCount: { type: 'integer' }, toShipCount: { type: 'integer' } },
+    },
+    dailySales: {
+      type: 'array', minItems: 14, maxItems: 14,
+      items: { type: 'object', required: ['date', 'paidSales', 'orders'],
+        properties: { date: { type: 'string', format: 'date' }, paidSales: { type: 'number' }, orders: { type: 'integer' } } },
+    },
     metrics: {
       type: 'object',
       properties: {
@@ -56,10 +73,12 @@ const dashboardMetricsSchema = {
       type: 'array',
       items: {
         type: 'object',
+        required: ['requiresPaymentReview'],
         properties: {
           id: { type: 'string', description: 'Order ID' },
           status: { type: 'string', enum: orderStatusEnum, description: 'Order status' },
           paymentStatus: { type: 'string', enum: paymentStatusEnum, nullable: true, description: 'Payment status' },
+          requiresPaymentReview: { type: 'boolean' },
           totalAmount: { type: 'number', description: 'Total amount' },
           currency: { type: 'string', description: 'Currency code' },
           createdAt: { type: 'string', format: 'date-time', description: 'Creation time' },
@@ -76,7 +95,7 @@ const dashboardMetricsSchema = {
       description: 'Recent orders list',
     },
   },
-  required: ['metrics', 'ordersByStatus', 'recentOrders'],
+  required: ['metrics', 'ordersByStatus', 'recentOrders', 'today', 'yesterday', 'attention', 'dailySales'],
 } as const;
 
 // ============================================================================

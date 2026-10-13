@@ -16,7 +16,7 @@ function getZonedParts(date: Date, timeZone: string): ZonedDateParts {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: false,
+    hourCycle: 'h23',
   });
 
   const parts = formatter.formatToParts(date);
@@ -70,6 +70,19 @@ export function normalizeTimezone(timeZone: string | null | undefined): string {
   } catch {
     return 'UTC';
   }
+}
+
+export function getStoreCalendarDays(timeZone: string, count: number, referenceDate: Date = new Date()) {
+  const safeTimezone = normalizeTimezone(timeZone);
+  const today = getZonedParts(referenceDate, safeTimezone);
+  const days = Array.from({ length: count + 1 }, (_, index) => {
+    const date = new Date(Date.UTC(today.year, today.month - 1, today.day - count + 1 + index));
+    return {
+      date: date.toISOString().slice(0, 10),
+      startUtc: utcFromLocalMidnight(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(), safeTimezone),
+    };
+  });
+  return { days: days.slice(0, count), endUtc: days[count].startUtc };
 }
 
 export function getTodayAndYesterdayRangeUtc(

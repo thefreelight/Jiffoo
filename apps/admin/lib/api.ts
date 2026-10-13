@@ -97,6 +97,10 @@ export function unwrapApiResponse<T>(response: ApiResponse<T>): T {
 }
 
 export interface DashboardData {
+  today: { paidSales: number; orders: number; newCustomers: number };
+  yesterday: { paidSales: number; orders: number; newCustomers: number };
+  attention: { paymentReviewCount: number; toShipCount: number };
+  dailySales: Array<{ date: string; paidSales: number; orders: number }>;
   metrics: {
     totalRevenue: number;
     totalOrders: number;
@@ -109,7 +113,7 @@ export interface DashboardData {
     totalUsersTrend: number;
   };
   ordersByStatus: Record<string, number>;
-  recentOrders: Array<Omit<Order, 'itemQuantitySum' | 'requiresPaymentReview'>>;
+  recentOrders: Array<Omit<Order, 'itemQuantitySum'>>;
 }
 
 export type SystemSettingsMap = Record<string, unknown>;

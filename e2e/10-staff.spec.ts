@@ -27,7 +27,7 @@ test('I invite, activate and remove a second administrator', async ({ page, newO
     await invited.getByRole('button', { name: 'Activate account' }).click();
     await expect(invited.getByText('Your account is ready.')).toBeVisible();
     await login(invited, staffEmail, 'StaffPassword123!');
-    for (const name of ['Dashboard', 'Products', 'Orders', 'Notifications', 'Customers', 'Administrators', 'Plugins', 'System Health']) {
+    for (const name of ['Overview', 'Products', 'Orders', 'Notifications', 'Customers', 'Administrators', 'Plugins', 'System Health']) {
       await expect(invited.getByRole('link', { name, exact: true })).toBeVisible();
     }
     await invited.getByRole('link', { name: 'Administrators' }).click();

@@ -15,6 +15,6 @@ test('K default Admin theme requests no Outfit font files', async ({ page }) => 
     if (/outfit.*\.woff2/i.test(request.url())) outfitRequests.push(request.url());
   });
   await login(page, ownerEmail, originalPassword);
-  await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Overview' })).toBeVisible();
   expect(outfitRequests).toEqual([]);
 });

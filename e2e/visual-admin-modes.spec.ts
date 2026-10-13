@@ -14,9 +14,9 @@ test('captures Admin shell in light and dark at desktop and mobile widths', asyn
       await page.setViewportSize({ width, height });
       for (const name of ['dashboard', 'orders']) {
         await page.goto('/en/' + name);
-        await expect(page.getByRole('heading', { name: name === 'orders' ? 'Orders' : 'Dashboard', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: name === 'orders' ? 'Orders' : 'Overview', exact: true })).toBeVisible();
         await page.waitForLoadState('networkidle');
-        await page.getByRole('heading', { name: name === 'orders' ? 'Orders' : 'Dashboard', exact: true }).click(); await page.keyboard.press('Control+Home');
+        await page.getByRole('heading', { name: name === 'orders' ? 'Orders' : 'Overview', exact: true }).click(); await page.keyboard.press('Control+Home');
         await page.screenshot({ path: directory + '/shell-' + name + '-' + mode.toLowerCase() + '-' + width + '.png', animations: 'disabled' });
       }
     }
