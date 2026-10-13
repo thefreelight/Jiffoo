@@ -100,6 +100,8 @@ export interface AdminOrderItemDTO {
 
 // Admin order detail DTO
 export interface AdminOrderDetailDTO {
+  amounts: { subtotal: number; shipping: number; tax: number; taxInclusive: boolean; total: number };
+  timeline: Array<{ at: string; fromStatus: string | null; toStatus: string; fromPaymentStatus: string | null; toPaymentStatus: string | null; actorType: string | null }>;
   id: string;
   userId: string;
   status: string;

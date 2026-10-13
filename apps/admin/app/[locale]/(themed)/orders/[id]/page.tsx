@@ -1,516 +1,92 @@
-'use client'
+'use client';
 
-/**
- * Order Detail Page - High-Impact Industrial Aesthetic
- * Fully utilize backend data with premium visual presentation.
- */
-
+import { useState } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { AlertTriangle, Copy } from 'lucide-react';
+import { useLocale, useT } from 'shared/src/i18n/react';
+import { formatStoreTimestamp } from 'shared';
 import { useStoreDate } from '@/lib/store-time';
-import { AlertTriangle, ArrowLeft, CreditCard, ShoppingBag, Truck, Box, Clock, ShieldCheck, Printer, RotateCcw, Info, MapPin, Hash, User, Activity, AlertCircle } from 'lucide-react'
-import { useParams, useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { useOrder, useRecordManualPayment, useDeliverOrder, useCancelOrder } from '@/lib/hooks/use-api'
-import { OrderDetailItem, OrderShipment } from '@/lib/types'
-import { useT } from 'shared/src/i18n/react'
-import { useState } from 'react'
-import { RefundDialog } from '@/components/orders/RefundDialog'
-import { ShipOrderDialog } from '@/components/orders/ShipOrderDialog'
-import { PaymentReviewDialog } from '@/components/orders/PaymentReviewDialog'
-import { formatCurrency, cn } from '@/lib/utils'
+import { useOrder, useDeliverOrder } from '@/lib/hooks/use-api';
+import { formatCurrency, cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { StatusShape, PaymentPill } from '@/components/orders/order-badges';
+import { ShipOrderDialog } from '@/components/orders/ShipOrderDialog';
+import { RefundDialog } from '@/components/orders/RefundDialog';
+import { PaymentReviewDialog } from '@/components/orders/PaymentReviewDialog';
+import { CancelOrderDialog } from '@/components/orders/CancelOrderDialog';
+import { RecordPaymentDialog } from '@/components/orders/RecordPaymentDialog';
 
 export default function OrderDetailPage() {
-  const { date: storeDate } = useStoreDate();
-  const params = useParams()
-  const router = useRouter()
-  const orderId = params.id as string
-  const t = useT()
-  const [showRefundDialog, setShowRefundDialog] = useState(false)
-  const [refundPayment, setRefundPayment] = useState<{ paymentId: string; providerPaymentId: string; amount: number; currency: string } | undefined>()
-  const [showShipDialog, setShowShipDialog] = useState(false)
-  const [confirmCancel, setConfirmCancel] = useState(false)
-  const [cancelReason, setCancelReason] = useState('')
-  const [manualReference, setManualReference] = useState('')
-  const [review, setReview] = useState<{ paymentId: string; outcome: 'PAID' | 'NOT_CHARGED' } | null>(null)
-
-  // Helper function for translations with fallback
-  const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback
-    const translated = t(key)
-    return translated === key ? fallback : translated
-  }
-
-  const { data: order, isLoading, error, refetch } = useOrder(orderId)
-  const recordManualPayment = useRecordManualPayment()
-  const deliverOrder = useDeliverOrder()
-  const cancelOrder = useCancelOrder()
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-page-surface">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-action-strong mx-auto"></div>
-          <p className="mt-4 text-neutral-light font-bold text-[10px] uppercase tracking-widest">
-            {getText('merchant.orders.loading', 'Loading Transaction Data...')}
-          </p>
-        </div>
+  const orderId = useParams().id as string;
+  const t = useT(), locale = useLocale(), { timezone } = useStoreDate();
+  const text = (key: string, values?: Record<string, string | number>) => t('merchant.orders.detailView.' + key, values);
+  const { data: order, isLoading, error, refetch } = useOrder(orderId);
+  const deliverOrder = useDeliverOrder();
+  const [shipOpen, setShipOpen] = useState(false), [refundOpen, setRefundOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false), [paymentOpen, setPaymentOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [review, setReview] = useState<{ paymentId: string; outcome: 'PAID' | 'NOT_CHARGED' } | null>(null);
+  const [refundPayment, setRefundPayment] = useState<{ paymentId: string; providerPaymentId: string; amount: number; currency: string } | undefined>();
+  const back = <Link href={'/' + locale + '/orders'} className="text-muted-foreground hover:text-foreground hover:underline">{text('back')}</Link>;
+  if (isLoading) return <p role="status" className="text-muted-foreground">{text('loading')}</p>;
+  if (error || !order) return <div role="alert" className="space-y-3"><p>{text('error')}</p><Button variant="outline" onClick={() => refetch()}>{text('retry')}</Button><div>{back}</div></div>;
+  const timestamp = (value: string) => formatStoreTimestamp(value, timezone);
+  const statusLabel = (status: string) => status === 'FAILED' ? text('failed') : t('merchant.orders.' + status.toLowerCase());
+  const reviews = order.paymentReviews?.filter(payment => payment.status === 'REQUIRES_REVIEW') ?? [];
+  const canShip = order.status === 'PROCESSING', canDeliver = order.status === 'SHIPPED';
+  const canRecord = ['PENDING', 'CANCELLED'].includes(order.status) && order.canRecordManualPayment;
+  const canRefund = order.canRefundOrder && order.paymentStatus === 'PAID' && ['PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'].includes(order.status);
+  const canCancel = order.status === 'PENDING';
+  const panel = 'overflow-hidden rounded-[10px] border border-border';
+  const heading = 'border-b border-border px-4 py-3 font-medium';
+  const attention = 'space-y-3 rounded-[10px] border border-attention-line bg-attention-soft p-4 text-attention';
+  const activity = [...order.timeline].reverse();
+  return <section className="min-w-0 space-y-5">
+    <header className="space-y-2">
+      {back}
+      <div className="flex items-start gap-2"><h1 className="min-w-0 text-[26px] font-semibold tracking-[-0.025em]">{text('title')} <span className="break-all font-mono text-[22px]">#{order.id}</span></h1><Button size="icon" variant="ghost" className="size-8 shrink-0" aria-label={text('copyId')} onClick={async () => { await navigator.clipboard.writeText(order.id); setCopied(true); }}><Copy aria-hidden="true" className="size-4" /></Button></div>
+      {copied && <p role="status" className="text-xs text-muted-foreground">{text('copied')}</p>}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2"><span className="inline-flex shrink-0 items-center gap-2"><StatusShape status={order.status} /><span className="shrink-0">{statusLabel(order.status)}</span></span><PaymentPill paymentStatus={order.paymentStatus} requiresPaymentReview={reviews.length > 0} /><p className="text-muted-foreground">{text('placed', { time: timestamp(order.createdAt) })}</p></div>
+      <p className="text-xs text-faint">{text('timezone', { timezone })}</p>
+    </header>
+    {reviews.length > 0 && <section aria-label={text('reviewNotice')} className={attention}>
+      <p className="flex items-start gap-2"><AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />{text('reviewNotice')}</p>
+      {reviews.map(payment => <div key={payment.paymentId} className="space-y-2 border-t border-attention-line pt-3"><p className="font-mono">{formatCurrency(payment.amount, payment.currency)}</p><div className="flex flex-wrap gap-2"><Button onClick={() => setReview({ paymentId: payment.paymentId, outcome: 'PAID' })}>{t('merchant.orders.review.confirmPaid')}</Button><Button variant="outline" onClick={() => setReview({ paymentId: payment.paymentId, outcome: 'NOT_CHARGED' })}>{t('merchant.orders.review.closeNotCharged')}</Button></div>{payment.failureReason && <p className="break-all text-xs text-faint">{text('technicalReason', { code: payment.failureReason })}</p>}</div>)}
+    </section>}
+    {order.refundRequired && <section aria-label={text('refundNotice')} className={attention}><p>{text('refundNotice')}</p>{order.refundResolutions?.filter(payment => payment.status === 'pending').map(payment => <div key={payment.paymentId + ':' + payment.providerPaymentId} className="flex flex-wrap items-center gap-3"><p className="break-all font-mono">{payment.providerPaymentId} · {formatCurrency(payment.amount, payment.currency)}</p><Button variant="outline" onClick={() => { setRefundPayment(payment); setRefundOpen(true); }}>{text('recordOfflineRefund')}</Button></div>)}</section>}
+    {order.paymentAttemptState === 'UNKNOWN' && <p role="status" className="rounded-[10px] border border-border bg-raised p-4 text-muted-foreground">{text('unknownPayment')}</p>}
+    {order.status === 'CANCELLED' && <div className="space-y-1 rounded-[10px] border border-border bg-raised p-4 text-muted-foreground"><p>{text('cancelled', { time: order.cancelledAt ? timestamp(order.cancelledAt) : '—' })}</p><p>{order.cancelReason || text('noReason')}</p></div>}
+    <div className="grid min-w-0 gap-5 min-[1024px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="min-w-0 space-y-5">
+        <section aria-labelledby="items-title" className={panel}><h2 id="items-title" className={heading}>{text('items')}</h2><div className="overflow-x-auto"><table className="w-full text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr>{['product', 'quantity', 'unitPrice', 'lineTotal'].map((key, index) => <th key={key} scope="col" className={cn('whitespace-nowrap px-4 py-3 font-normal', index > 0 && 'text-right')}>{text(key)}</th>)}</tr></thead><tbody>{order.items.length ? order.items.map(item => <tr key={item.id} className="border-t border-border"><td className="min-w-[140px] px-4 py-3"><p>{item.productName || '—'}</p><p className="mt-1 text-xs text-muted-foreground">{item.variantName || '—'}</p>{item.skuCode && <p className="mt-1 break-all font-mono text-xs text-faint">SKU: {item.skuCode}</p>}</td><td className="px-4 py-3 text-right font-mono">{item.quantity}</td><td className="whitespace-nowrap px-4 py-3 text-right font-mono">{formatCurrency(item.unitPrice, order.currency)}</td><td className="whitespace-nowrap px-4 py-3 text-right font-mono">{formatCurrency(item.totalPrice, order.currency)}</td></tr>) : <tr><td colSpan={4} className="py-10 text-center text-muted-foreground">{text('noItems')}</td></tr>}</tbody></table></div>
+          <h2 className={cn(heading, 'border-t')}>{text('summary')}</h2><dl className="space-y-3 px-4 py-4">{(['subtotal', 'shipping', 'tax', 'total'] as const).map(key => <div key={key} className={cn('flex justify-between gap-4', key === 'total' && 'border-t border-border pt-3 font-semibold')}><dt className={key === 'total' ? '' : 'text-muted-foreground'}>{text(key)}{key === 'tax' && order.amounts.taxInclusive && ' ' + text('included')}</dt><dd className="font-mono tabular-nums">{formatCurrency(order.amounts[key], order.currency)}</dd></div>)}</dl>{order.paymentMethod && <p className="border-t border-border px-4 py-3 text-xs text-muted-foreground">{text('paymentMethod')}: <span className="font-mono">{order.paymentMethod}</span></p>}
+        </section>
+        {!!order.shipments?.length && <section aria-labelledby="shipments-title" className={panel}><h2 id="shipments-title" className={heading}>{text('shipments')}</h2><div className="divide-y divide-border">{order.shipments.map(shipment => <div key={shipment.id} className="space-y-2 p-4"><p>{shipment.carrier || '—'}</p><p className="break-all font-mono">{shipment.trackingNumber || '—'}</p><p className="text-muted-foreground">{statusLabel(shipment.status)}</p>{shipment.shippedAt && <p className="text-xs text-faint">{text('shipped', { time: timestamp(shipment.shippedAt) })}</p>}{shipment.deliveredAt && <p className="text-xs text-faint">{text('delivered', { time: timestamp(shipment.deliveredAt) })}</p>}</div>)}</div></section>}
       </div>
-    )
-  }
-
-  if (error || !order) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-page-surface">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-danger-veil rounded-2xl flex items-center justify-center mx-auto">
-            <AlertTriangle className="w-8 h-8 text-danger-base" />
-          </div>
-          <p className="text-neutral-deepest font-bold">{getText('merchant.orders.detail.orderNotFound', 'Signal Interference Detected')}</p>
-          <div className="flex gap-4 justify-center mt-6">
-            <Button variant="outline" className="rounded-xl border-neutral-soft" onClick={() => router.back()}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {getText('merchant.orders.detail.goBack', 'Return')}
-            </Button>
-            <Button className="rounded-xl bg-action-strong shadow-lg shadow-action-base/20" onClick={() => refetch()}>
-              {getText('merchant.orders.retry', 'Reconnect Signal')}
-            </Button>
-          </div>
-        </div>
+      <div className="min-w-0 space-y-5">
+        <section aria-labelledby="actions-title" className={panel}><h2 id="actions-title" className={heading}>{text('actions')}</h2><div className="space-y-2 p-4">
+          {canShip && <Button className="w-full" onClick={() => setShipOpen(true)}>{text('shipOrder')}</Button>}
+          {canDeliver && <Button className="w-full" disabled={deliverOrder.isPending} onClick={() => deliverOrder.mutate(order.id)}>{text('markDelivered')}</Button>}
+          {canRecord && <Button className="w-full" onClick={() => setPaymentOpen(true)}>{text('recordPayment')}</Button>}
+          {canRefund && <Button variant="outline" className="w-full" onClick={() => { setRefundPayment(undefined); setRefundOpen(true); }}>{text('refund')}</Button>}
+          {canCancel && <Button variant="outline" className="w-full" onClick={() => setCancelOpen(true)}>{text('cancelOrder')}</Button>}
+          {!canShip && !canDeliver && !canRecord && !canRefund && !canCancel && <p className="text-muted-foreground">{text('noActions')}</p>}
+        </div></section>
+        <section aria-labelledby="customer-title" className={panel}><h2 id="customer-title" className={heading}>{text('customer')}</h2><div className="space-y-2 break-all p-4">{order.customer?.id ? <Link className="hover:underline" href={'/' + locale + '/customers/' + order.customer?.id}>{order.customer?.username || order.customer?.email || '—'}</Link> : <p>{order.customer?.username || '—'}</p>}<p className="text-muted-foreground">{order.customer?.email || '—'}</p></div></section>
+        <section aria-labelledby="address-title" className={panel}><h2 id="address-title" className={heading}>{text('shippingAddress')}</h2>{order.shippingAddress ? <address className="space-y-1 break-words p-4 not-italic"><p>{order.shippingAddress.recipientName}</p><p>{order.shippingAddress.street}</p>{order.shippingAddress.street2 && <p>{order.shippingAddress.street2}</p>}<p>{[order.shippingAddress.city, order.shippingAddress.state, order.shippingAddress.zipCode].filter(Boolean).join(', ')}</p><p>{order.shippingAddress.country}</p>{order.shippingAddress.phone && <p className="text-muted-foreground">{order.shippingAddress.phone}</p>}</address> : <p className="p-4 text-muted-foreground">{text('noAddress')}</p>}</section>
+        <section aria-labelledby="activity-title" className={panel}><h2 id="activity-title" className={heading}>{text('activity')}</h2><ol className="divide-y divide-border"><li className="space-y-1 p-4"><p>{text('orderPlaced')}</p><p className="text-xs text-faint">{text('actorCustomer')} · <time dateTime={order.createdAt}>{timestamp(order.createdAt)}</time></p></li>{activity.map((event, index) => <li key={event.at + ':' + index} className="space-y-1 p-4">
+          {event.fromStatus !== event.toStatus && <p>{text('statusChanged', { status: statusLabel(event.toStatus) })}</p>}{event.toPaymentStatus && event.fromPaymentStatus !== event.toPaymentStatus && <p>{text('paymentChanged', { status: statusLabel(event.toPaymentStatus) })}</p>}
+          <p className="text-xs text-faint">{text(event.actorType === 'admin' ? 'actorAdmin' : event.actorType === 'user' ? 'actorCustomer' : 'actorSystem')} · <time dateTime={event.at}>{timestamp(event.at)}</time></p>
+        </li>)}</ol>
+          {order.refundResolutions?.filter(payment => payment.status === 'resolved').map(payment => <p key={payment.paymentId + payment.providerPaymentId} className="border-t border-border p-4 text-muted-foreground">{t('merchant.orders.refundResolved')} · <span className="break-all font-mono">{payment.reference}</span></p>)}
+        </section>
       </div>
-    )
-  }
-
-  const getStatusStyle = (status: string) => {
-    const s = status?.toUpperCase()
-    if (s === 'DELIVERED') return "border-success-faint text-success-strong bg-success-veil/50"
-    if (s === 'CANCELLED') return "border-danger-faint text-danger-strong bg-danger-veil/50"
-    if (s === 'SHIPPED') return "border-action-faint text-action-strong bg-action-veil/50"
-    if (s === 'PROCESSING') return "border-action-faint text-action-strong bg-action-veil/50"
-    return "border-caution-faint text-caution-strong bg-caution-veil/50"
-  }
-
-  const getFulfillmentStyle = (status: string) => {
-    const s = status?.toLowerCase()
-    if (s === 'delivered') return "bg-success-faint text-success-deep"
-    if (s === 'shipped') return "bg-action-faint text-action-deep"
-    if (s === 'processing') return "bg-warning-faint text-warning-deep"
-    return "bg-neutral-faint text-neutral-light"
-  }
-
-  return (
-    <div className="w-full bg-page-surface min-h-screen pb-20">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex min-w-0 items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-xl hover:bg-neutral-faint h-10 w-10"
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="w-5 h-5 text-neutral-deepest" />
-          </Button>
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold text-neutral-deepest tracking-tight leading-none truncate uppercase">
-              {getText('merchant.orders.orderDetails', 'Order Specification')}
-            </h1>
-            <span className="break-all text-[9px] sm:text-[10px] font-bold text-action-strong uppercase tracking-widest mt-0.5 sm:mt-1">
-              Deployment Node: #{order.id.toUpperCase()}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-3">
-          <div className={cn(
-            "shrink-0 px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
-            getStatusStyle(order.status)
-          )}>
-            {order.status}
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
-
-        {/* Incident Alert for Cancelled Orders */}
-        {order.status === 'CANCELLED' && (
-          <div className="bg-danger-veil border border-danger-faint rounded-[2rem] p-8 flex items-start gap-6">
-            <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center shadow-sm text-danger-base flex-shrink-0">
-              <AlertCircle className="w-6 h-6" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-danger-deepest font-bold uppercase tracking-tight">Mission Aborted: Incident Report</h3>
-              <p className="text-danger-deep text-sm font-medium">
-                {order.cancelReason || "No reason specified by terminal operator."}
-              </p>
-              <p className="text-danger-base text-[10px] font-bold uppercase tracking-widest mt-2 px-2 py-0.5 bg-surface/50 inline-block rounded-lg">
-                TIMESTAMP: {order.cancelledAt ? storeDate(order.cancelledAt) : 'UNKNOWN'}
-              </p>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content: Items and Summary */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Matrix Content (Items) */}
-            <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
-              <div className="p-8 border-b border-neutral-veil flex items-center justify-between">
-                <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-neutral-deepest uppercase tracking-tight">{getText('merchant.orders.detail.matrixContent', 'Matrix Payload')}</h3>
-                  <p className="text-neutral-light text-xs font-medium uppercase tracking-widest">Detailed itemized unit breakdown</p>
-                </div>
-                <Box className="w-5 h-5 text-neutral-pale" />
-              </div>
-
-              <div className="divide-y divide-neutral-veil">
-                {order.items && order.items.length > 0 ? (
-                  order.items.map((item: OrderDetailItem) => (
-                    <div key={item.id} className="p-8 group hover:bg-action-veil/20 transition-colors flex items-center gap-6">
-                      <div className="w-20 h-20 relative rounded-2xl overflow-hidden bg-neutral-veil border border-neutral-faint flex-shrink-0 shadow-inner group-hover:bg-surface transition-colors flex items-center justify-center">
-                        <ShoppingBag className="w-8 h-8 text-neutral-soft" />
-                      </div>
-
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-black text-action-base uppercase tracking-widest px-2 py-0.5 bg-action-veil rounded-lg">UNIT-REF: {item.id.substring(0, 8).toUpperCase()}</span>
-                          {item.skuCode && (
-                            <span className="text-[9px] font-black text-neutral-light uppercase tracking-widest border border-neutral-faint px-2 py-0.5 rounded-lg">SKU: {item.skuCode}</span>
-                          )}
-                        </div>
-                        <h4 className="text-base font-bold text-neutral-deepest truncate uppercase tracking-tight">{item.productName || "Unknown Module"}</h4>
-                        <p className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">{item.variantName || "Standard Configuration"}</p>
-
-                        <div className="flex items-center gap-4 mt-3">
-                          <div className="flex items-center gap-1.5 bg-neutral-faint px-3 py-1 rounded-xl">
-                            <span className="text-[10px] font-black text-neutral-light uppercase">VOL</span>
-                            <span className="text-sm font-black text-neutral-deepest italic">x{item.quantity}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 bg-neutral-veil px-3 py-1 rounded-xl border border-neutral-faint">
-                            <span className="text-[10px] font-black text-neutral-light uppercase">UNIT</span>
-                            <span className="text-sm font-bold text-neutral-deep">{formatCurrency(item.unitPrice || 0, order.currency)}</span>
-                          </div>
-                          <div className={cn(
-                            "text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-xl",
-                            getFulfillmentStyle(item.fulfillmentStatus || 'pending')
-                          )}>
-                            {item.fulfillmentStatus || 'STANDBY'}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <span className="text-[9px] font-black text-neutral-pale uppercase block mb-1">TOTAL</span>
-                        <div className="text-xl font-black text-neutral-deepest tracking-tighter italic">
-                          {formatCurrency(item.totalPrice || (item.quantity * item.unitPrice), order.currency)}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-20 text-center opacity-30">
-                    <Box className="w-12 h-12 mx-auto mb-3 text-neutral-pale" />
-                    <p className="text-[10px] font-bold uppercase tracking-widest">{getText('merchant.orders.detail.noItems', 'Ledger Empty')}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Shipment Tracking Nodes */}
-            {order.shipments && order.shipments.length > 0 && (
-              <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4">
-                <div className="p-8 border-b border-neutral-veil flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-neutral-deepest uppercase tracking-tight">Logistics Manifest</h3>
-                  <Truck className="w-5 h-5 text-neutral-pale" />
-                </div>
-                <div className="p-0">
-                  {order.shipments.map((shipment: OrderShipment) => (
-                    <div key={shipment.id} className="p-8 flex items-center justify-between group hover:bg-neutral-veil/50 transition-colors">
-                      <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 bg-neutral-deepest rounded-2xl flex items-center justify-center text-action-light shadow-xl">
-                          <Hash className="w-6 h-6" />
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-black text-action-strong uppercase tracking-[0.2em]">{shipment.carrier || "Standard Carrier"}</span>
-                          <h4 className="text-xl font-black text-neutral-deepest tracking-tighter uppercase font-mono">{shipment.trackingNumber}</h4>
-                          <div className="flex items-center gap-3">
-                            <span className="text-[9px] font-bold text-neutral-light uppercase tracking-widest">Status: {shipment.status}</span>
-                            {shipment.shippedAt && (
-                              <span className="text-[9px] font-bold text-neutral-light uppercase tracking-widest">| Dispatched: {storeDate(shipment.shippedAt, true)}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <Button variant="outline" className="rounded-xl border-neutral-faint font-bold text-[10px] uppercase tracking-widest shadow-sm hover:border-action-strong hover:text-action-strong transition-all">
-                        Trace Signal
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Financial Status Section */}
-            <div className="bg-neutral-deepest rounded-[2.5rem] p-10 text-surface relative overflow-hidden group shadow-xl">
-              <div className="absolute top-0 right-0 p-12 opacity-5 scale-110 -translate-y-4 translate-x-4">
-                <CreditCard className="w-48 h-48 -rotate-12" />
-              </div>
-              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <span className="text-action-light text-[10px] font-black uppercase tracking-[0.3em]">{getText('merchant.orders.payment', 'Financial Protocol')}</span>
-                    <h2 className="text-3xl font-black tracking-tighter uppercase">{getText('merchant.orders.total', 'Net Settlement')}</h2>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-surface/5 border border-surface/10 rounded-2xl p-4">
-                      <span className="text-[9px] font-black text-neutral-light uppercase block mb-1">Method</span>
-                      <span className="text-xs font-bold uppercase tracking-widest text-surface">{order.paymentMethod || "UNKNOWN_LINK"}</span>
-                    </div>
-                    <div className="bg-surface/5 border border-surface/10 rounded-2xl p-4">
-                      <span className="text-[9px] font-black text-neutral-light uppercase block mb-1">Verification</span>
-                      <span className="text-xs font-bold uppercase tracking-widest text-surface">{order.paymentStatus || "UNVERIFIED"}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-center md:text-right">
-                  <div className="text-5xl md:text-6xl font-black tracking-tighter text-action-light italic mb-2">
-                    {formatCurrency(order.totalAmount, order.currency)}
-                  </div>
-                  <div className="flex items-center justify-center md:justify-end gap-2 text-neutral-light text-[10px] font-bold tracking-widest uppercase bg-surface/5 px-4 py-2 rounded-full border border-surface/5">
-                    <ShieldCheck className="w-4 h-4 text-success-base" />
-                    Ledger Sync Verified ({order.paymentAttempts || 1} attmpts)
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar: Metadata and Addresses */}
-          <div className="space-y-8">
-            {/* Identity Node */}
-            <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm p-8 space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-neutral-deepest uppercase tracking-widest">Identity Matrix</h3>
-                <User className="w-4 h-4 text-neutral-pale" />
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-neutral-veil flex items-center justify-center text-sm font-black text-action-strong shadow-inner border border-neutral-faint">
-                    {order.customer?.username?.charAt(0) || order.customer?.email?.charAt(0) || 'U'}
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-bold text-neutral-deepest truncate">{order.customer?.username || "Anonymous Subject"}</span>
-                    <span className="text-[10px] font-medium text-neutral-light truncate">{order.customer?.email || "No Comm Link"}</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-neutral-veil space-y-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] font-black text-neutral-light uppercase tracking-widest">Internal ID</span>
-                    <span className="text-[10px] font-mono text-neutral-strong bg-neutral-veil px-3 py-1.5 rounded-xl border border-neutral-faint truncate">{order.customer?.id || "N/A"}</span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] font-black text-neutral-light uppercase tracking-widest">Active Email Signal</span>
-                    <span className="text-[10px] font-bold text-neutral-deepest break-all">{order.customer?.email || "N/A"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Logistics Node */}
-            <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm p-8 space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-neutral-deepest uppercase tracking-widest">Logistics Node</h3>
-                <MapPin className="w-4 h-4 text-neutral-pale" />
-              </div>
-
-              {order.shippingAddress ? (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <span className="text-[9px] font-black text-action-strong uppercase tracking-[0.2em] bg-action-veil px-2 py-0.5 rounded-lg">Target Destination</span>
-                    <p className="font-black text-base text-neutral-deepest uppercase italic leading-tight">
-                      {order.shippingAddress.recipientName}
-                    </p>
-                  </div>
-
-                  <div className="space-y-3 p-4 rounded-2xl bg-neutral-veil/50 border border-neutral-faint">
-                    <div className="space-y-1">
-                      <p className="font-bold text-xs text-neutral-deep uppercase">{order.shippingAddress.street}</p>
-                      {order.shippingAddress.street2 && (
-                        <p className="font-medium text-xs text-neutral-base uppercase">{order.shippingAddress.street2}</p>
-                      )}
-                      <p className="text-[10px] font-bold text-neutral-light uppercase">
-                        {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
-                      </p>
-                      <p className="text-[10px] font-black text-neutral-deepest uppercase mt-2">{order.shippingAddress.country}</p>
-                    </div>
-
-                    <div className="pt-3 border-t border-neutral-soft/50 flex flex-col gap-1">
-                      <span className="text-[9px] font-black text-neutral-light uppercase tracking-widest">Comm Line</span>
-                      <span className="text-[10px] font-bold text-neutral-deepest">{order.shippingAddress.phone || "No signal link"}</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="py-10 text-center space-y-3 opacity-30">
-                  <Box className="w-10 h-10 mx-auto text-neutral-pale" />
-                  <p className="text-[9px] font-bold uppercase tracking-widest">Digital Stream Only</p>
-                </div>
-              )}
-            </div>
-
-            {/* Order Activity */}
-            <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm p-8 space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-neutral-deepest uppercase tracking-widest">Order Activity</h3>
-                <Activity className="w-4 h-4 text-neutral-pale" />
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-center text-[10px]">
-                  <span className="font-black text-neutral-light uppercase tracking-widest">Initialized</span>
-                  <span className="font-bold text-neutral-deepest">{storeDate(order.createdAt)}</span>
-                </div>
-                <div className="flex justify-between items-center text-[10px]">
-                  <span className="font-black text-neutral-light uppercase tracking-widest">Sync Heartbeat</span>
-                  <span className="font-bold text-neutral-deepest">{storeDate(order.updatedAt || order.createdAt)}</span>
-                </div>
-                {order.expiresAt && (
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="font-black text-neutral-light uppercase tracking-widest">Module Expiry</span>
-                    <span className="font-bold text-neutral-deepest">{storeDate(order.expiresAt)}</span>
-                  </div>
-                )}
-                {order.lastPaymentAttemptAt && (
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="font-black text-neutral-light uppercase tracking-widest">Last Auth Signal</span>
-                    <span className="font-bold text-neutral-deepest">{storeDate(order.lastPaymentAttemptAt)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Command Center Actions */}
-            <div className="space-y-3 pt-4">
-              <span className="text-[9px] font-black text-neutral-light uppercase tracking-[0.3em] block text-center mb-4">Command Center</span>
-
-              {order.status === 'PROCESSING' && (
-                <Button
-                  className="w-full h-14 rounded-2xl bg-action-strong hover:bg-action-deep text-surface font-black uppercase tracking-widest text-[10px] shadow-lg shadow-action-base/20 active:scale-95 transition-all"
-                  onClick={() => setShowShipDialog(true)}
-                >
-                  <Truck className="w-4 h-4 mr-2" />
-                  Initiate Dispatch
-                </Button>
-              )}
-
-              {order.status === 'SHIPPED' && (
-                <Button className="w-full" disabled={deliverOrder.isPending}
-                  onClick={() => deliverOrder.mutate(order.id)}>
-                  <Truck className="mr-2 h-4 w-4" />Mark delivered
-                </Button>
-              )}
-
-              {order.refundRequired && <p role="status">{getText('merchant.orders.refundRequired', 'Refund required')}</p>}
-              {order.paymentAttemptState === 'UNKNOWN' && <p role="status">{getText('common.errors.paymentOutcomeUnknown', "We're checking your payment. Please don't pay again.")}</p>}
-              {order.paymentAttemptState === 'REQUIRES_REVIEW' && <p role="status">{getText('common.errors.paymentRequiresReview', 'Payment requires review.')}</p>}
-              {order.paymentReviews?.filter(payment => payment.status === 'REQUIRES_REVIEW' || payment.reviewResolution).map(payment => (
-                <div key={payment.paymentId} className="space-y-2">
-                  <p>{payment.paymentId} · {formatCurrency(payment.amount, payment.currency)}</p>
-                  {payment.failureReason && <p>{payment.failureReason}</p>}
-                  {payment.reviewResolution && <p>{getText('merchant.orders.review.closed', 'Admin confirmed not charged')} · {payment.reviewReference} · {payment.reviewResolvedAt} · {payment.reviewResolvedBy}</p>}
-                  {payment.status === 'REQUIRES_REVIEW' && <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => setReview({ paymentId: payment.paymentId, outcome: 'PAID' })}>{getText('merchant.orders.review.confirmPaid', 'Confirm payment received')}</Button>
-                    <Button variant="outline" onClick={() => setReview({ paymentId: payment.paymentId, outcome: 'NOT_CHARGED' })}>{getText('merchant.orders.review.closeNotCharged', 'Confirm not charged and close')}</Button>
-                  </div>}
-                </div>
-              ))}
-              {order.refundResolutions?.map(payment => (
-                <div key={payment.paymentId + ':' + payment.providerPaymentId} className="space-y-2 rounded-xl border border-neutral-faint p-3">
-                  <p>{payment.providerPaymentId}: {formatCurrency(payment.amount, payment.currency)}</p>
-                  <p role="status">{payment.status === 'resolved'
-                    ? getText('merchant.orders.refundResolved', 'Refund recorded')
-                    : getText('merchant.orders.refundPending', 'Refund pending')}</p>
-                  {payment.status === 'resolved' ? <p>{payment.reference}</p> : (
-                    <Button variant="outline" onClick={() => { setRefundPayment(payment); setShowRefundDialog(true) }}>
-                      {getText('merchant.orders.recordRequiredRefund', 'Record offline refund for this payment')}
-                    </Button>
-                  )}
-                </div>
-              ))}
-              {['PENDING','CANCELLED'].includes(order.status) && order.canRecordManualPayment && (
-                <div className="space-y-3">
-                <label htmlFor="manual-payment-reference">{getText('merchant.orders.paymentReference', 'Payment reference')}</label>
-                <input id="manual-payment-reference" value={manualReference} onChange={event => setManualReference(event.target.value)} required maxLength={256} className="h-12 w-full rounded-xl border border-neutral-faint px-4" />
-                <Button
-                  className="w-full h-14 rounded-2xl bg-positive-strong hover:bg-positive-deep text-surface font-black uppercase tracking-widest text-[10px] shadow-lg active:scale-95 transition-all"
-                  disabled={recordManualPayment.isPending || !manualReference.trim()}
-                  onClick={() => recordManualPayment.mutate({ id: order.id, reference: manualReference.trim() })}
-                >
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  {getText('merchant.orders.recordPayment', 'Record payment')}
-                </Button>
-                </div>
-              )}
-
-              {order.canRefundOrder && order.paymentStatus === 'PAID' &&
-                ['PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'].includes(order.status) && (
-                <Button
-                  variant="outline"
-                  className="w-full h-14 rounded-2xl border-neutral-faint text-danger-strong hover:bg-danger-veil font-black uppercase tracking-widest text-[10px] transition-all"
-                  onClick={() => { setRefundPayment(undefined); setShowRefundDialog(true) }}
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  {getText('merchant.orders.refund.title', 'Record offline full refund')}
-                </Button>
-              )}
-
-              {order.status === 'PENDING' && (!confirmCancel ? (
-                <Button variant="outline" className="w-full" onClick={() => setConfirmCancel(true)}>
-                  Cancel order
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <label htmlFor="admin-cancel-reason">Cancellation reason</label>
-                  <input id="admin-cancel-reason" value={cancelReason}
-                    onChange={(event) => setCancelReason(event.target.value)}
-                    className="w-full rounded border p-2" />
-                  <Button disabled={!cancelReason.trim() || cancelOrder.isPending} onClick={() =>
-                    cancelOrder.mutate({ id: order.id, cancelReason: cancelReason.trim() }, {
-                      onSuccess: () => setConfirmCancel(false),
-                    })}>Confirm cancellation</Button>
-                </div>
-              ))}
-
-              <Button
-                variant="outline"
-                className="w-full h-14 rounded-2xl border-neutral-faint text-neutral-strong hover:bg-surface font-black uppercase tracking-widest text-[10px] transition-all"
-                onClick={() => window.print()}
-              >
-                <Printer className="w-4 h-4 mr-2" />
-                Print Manifest
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {review && <PaymentReviewDialog orderId={order.id} paymentId={review.paymentId} outcome={review.outcome} onClose={() => setReview(null)} />}
-      <RefundDialog
-        key={refundPayment ? refundPayment.paymentId + ':' + refundPayment.providerPaymentId : 'order-refund'}
-        payment={refundPayment}
-        order={order as any}
-        open={showRefundDialog}
-        onOpenChange={setShowRefundDialog}
-        onSuccess={() => refetch()}
-      />
-
-      <ShipOrderDialog
-        order={order as any}
-        open={showShipDialog}
-        onOpenChange={setShowShipDialog}
-        onSuccess={() => refetch()}
-      />
     </div>
-  )
+    {review && <PaymentReviewDialog orderId={order.id} paymentId={review.paymentId} outcome={review.outcome} onClose={() => setReview(null)} />}
+    <ShipOrderDialog order={order} open={shipOpen} onOpenChange={setShipOpen} onSuccess={() => refetch()} />
+    <RefundDialog key={refundPayment ? refundPayment.paymentId + ':' + refundPayment.providerPaymentId : 'order-refund'} order={order as any} payment={refundPayment} open={refundOpen} onOpenChange={setRefundOpen} onSuccess={() => refetch()} />
+    {cancelOpen && <CancelOrderDialog orderId={order.id} onClose={() => setCancelOpen(false)} />}
+    {paymentOpen && <RecordPaymentDialog orderId={order.id} onClose={() => setPaymentOpen(false)} />}
+  </section>;
 }

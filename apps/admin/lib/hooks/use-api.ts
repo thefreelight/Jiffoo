@@ -277,6 +277,7 @@ export function useUpdateOrderItemFulfillment() {
 }
 
 export function useDeliverOrder() {
+  const t = useT();
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
   return useMutation({
@@ -285,12 +286,13 @@ export function useDeliverOrder() {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders });
       queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
-      toast.success('Order delivered successfully');
+      toast.success(t('merchant.orders.detailView.deliveredToast'));
     },
     onError: (error: unknown) => toast.error(getErrorMessage(error)),
   });
 }
 export function useCancelOrder() {
+  const t = useT();
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -304,7 +306,7 @@ export function useCancelOrder() {
       queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Order cancelled successfully');
+      toast.success(t('merchant.orders.detailView.cancelledToast'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -338,6 +340,7 @@ export function useRefundOrder() {
 }
 
 export function useShipOrder() {
+  const t = useT();
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
@@ -358,7 +361,7 @@ export function useShipOrder() {
       queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Order marked as shipped');
+      toast.success(t('merchant.orders.detailView.shippedToast'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));

@@ -28,7 +28,7 @@ export function PaymentReviewDialog({ orderId, paymentId, outcome, onClose }: {
     } catch (failure) { setError(failure) }
   }
   return <Dialog open onOpenChange={open => { if (!open && !mutation.isPending) onClose() }}>
-    <DialogContent>
+    <DialogContent className="w-[calc(100vw-2rem)] max-w-[440px] max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[10px] border-border bg-background p-5 text-foreground shadow-none [&>button]:hidden">
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{outcome === 'PAID'
@@ -39,10 +39,10 @@ export function PaymentReviewDialog({ orderId, paymentId, outcome, onClose }: {
         ? text('merchant.orders.review.providerPaymentId', 'Provider transaction or payment ID')
         : text('merchant.orders.review.evidenceReference', 'Evidence reference')}</Label>
       <Input id="payment-review-reference" value={reference} onChange={event => setReference(event.target.value)} required maxLength={256} disabled={mutation.isPending} />
-      {error != null && <p role="alert">{resolveApiErrorMessage(error, t)}</p>}
-      <DialogFooter>
-        <Button variant="outline" disabled={mutation.isPending} onClick={onClose}>{text('common.actions.cancel', 'Cancel')}</Button>
-        <Button disabled={mutation.isPending || !reference.trim()} onClick={confirm}>{title}</Button>
+      {error != null && <p role="alert" className="text-destructive">{resolveApiErrorMessage(error, t)}</p>}
+      <DialogFooter className="gap-2">
+        <Button variant="outline" disabled={mutation.isPending} onClick={onClose}>{t('merchant.orders.detailView.dismiss')}</Button>
+        <Button variant={outcome === 'NOT_CHARGED' ? 'destructive' : 'default'} disabled={mutation.isPending || !reference.trim()} onClick={confirm}>{title}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

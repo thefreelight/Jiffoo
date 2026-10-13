@@ -224,6 +224,47 @@ describe('Admin Orders Endpoints', () => {
   });
 
   describe('GET /api/v1/admin/orders/:id', () => {
+    it('projects real amounts, private timeline fields and customer snapshot email after payment and shipment', async () => {
+      const headers = { authorization: `Bearer ${adminToken}` };
+      const expectedTotal = await checkoutTotal(app, userToken,
+        [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }], validShippingAddress, 'free-shipping:free');
+      const created = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: {
+        items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }], shippingAddress: validShippingAddress,
+        shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal,
+      } });
+      expect(created.statusCode).toBe(201);
+      const id = created.json().data.id;
+      const original = await prisma.order.findUniqueOrThrow({ where: { id }, include: { user: true } });
+      const provider = await prisma.paymentProviderAccount.upsert({
+        where: { namespace_merchantAccount_environment: { namespace: 'jiffoo-manual', merchantAccount: 'store', environment: 'live' } },
+        update: {}, create: { namespace: 'jiffoo-manual', merchantAccount: 'store', environment: 'live' },
+      });
+      await prisma.payment.create({ data: { orderId: id, providerKey: provider.providerKey, paymentMethod: 'manual-payment', amount: original.totalAmount,
+        currency: original.currency, status: 'PENDING', sessionId: 'u3-manual-' + id, idempotencyKey: 'u3-manual-' + id } });
+      const paid = await app.inject({ method: 'POST', url: `/api/v1/admin/orders/${id}/record-manual-payment`, headers, payload: { reference: 'u3-receipt-' + id } });
+      expect(paid.statusCode).toBe(200); expect(paid.json().data).toMatchObject({ status: 'PROCESSING', paymentStatus: 'PAID' });
+      const shipped = await app.inject({ method: 'POST', url: `/api/v1/admin/orders/${id}/ship`, headers, payload: { carrier: 'U3 Carrier', trackingNumber: 'U3-' + id } });
+      expect(shipped.statusCode).toBe(200);
+      const detail = await app.inject({ method: 'GET', url: `/api/v1/admin/orders/${id}`, headers });
+      expect(detail.statusCode).toBe(200);
+      const data = detail.json().data;
+      expect(data.amounts).toEqual({ subtotal: Number(original.subtotalAmount), shipping: Number(original.shippingAmount), tax: Number(original.taxAmount),
+        taxInclusive: original.taxInclusive, total: Number(original.totalAmount) });
+      expect(data.totalAmount).toBe(Number(original.totalAmount));
+      const history = await prisma.orderStatusHistory.findMany({ where: { orderId: id }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
+      expect(data.timeline).toEqual(history.map(row => ({ at: row.createdAt.toISOString(), fromStatus: row.fromStatus, toStatus: row.toStatus,
+        fromPaymentStatus: row.fromPaymentStatus, toPaymentStatus: row.toPaymentStatus, actorType: row.actorType })));
+      expect(data.timeline.map((row: any) => row.toStatus)).toEqual(['PENDING', 'PROCESSING', 'SHIPPED']);
+      expect(data.timeline[1]).toMatchObject({ fromStatus: 'PENDING', toStatus: 'PROCESSING', toPaymentStatus: 'PAID', actorType: 'admin' });
+      expect(data.timeline.every((row: any) => !('actorId' in row) && !('metadata' in row) && !('reason' in row))).toBe(true);
+      try {
+        await prisma.order.update({ where: { id }, data: { customerEmail: 'snapshot@u3.example' } });
+        await prisma.user.update({ where: { id: original.userId }, data: { email: '' } });
+        expect((await app.inject({ method: 'GET', url: `/api/v1/admin/orders/${id}`, headers })).json().data.customer.email).toBe('snapshot@u3.example');
+      } finally {
+        await prisma.user.update({ where: { id: original.userId }, data: { email: original.user.email } });
+      }
+    });
     it('should return 401 without token', async () => {
       if (!testOrderId) return;
 

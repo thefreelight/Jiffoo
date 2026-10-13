@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { mkdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { captureOverview, chooseOverviewMode } from './overview-captures';
+import { captureOrderDetail } from './order-detail-captures';
 async function chooseMode(page: import('@playwright/test').Page, mode: string) {
   await page.getByRole('button', { name: 'Account menu', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Appearance', exact: true }).focus();
@@ -147,8 +148,28 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
     }
     await page.getByRole('link', { name: 'View order ' + id, exact: true }).click();
     await expect(page).toHaveURL(new RegExp('/en/orders/' + id + '$'));
+    await expect(page.getByRole('heading', { name: /^Order #/ })).toBeVisible();
+    await captureOrderDetail(page, 'review');
+    await page.getByRole('button', { name: 'Confirm not charged and close', exact: true }).click();
+    const review = page.getByRole('dialog', { name: 'Confirm not charged and close', exact: true });
+    await review.getByRole('textbox', { name: 'Evidence reference', exact: true }).fill('u3-not-charged-' + id);
+    await review.getByRole('button', { name: 'Confirm not charged and close', exact: true }).click();
+    await expect(review).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Confirm payment received', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Cancel order', exact: true }).click();
+    const cancel = page.getByRole('dialog', { name: 'Cancel order', exact: true });
+    await cancel.getByRole('textbox', { name: 'Cancellation reason', exact: true }).fill('U3 confirmed not charged');
+    await cancel.getByRole('button', { name: 'Cancel order', exact: true }).click();
+    await expect(cancel).toHaveCount(0);
+    await expect(page.getByText('Cancelled', { exact: true }).first()).toBeVisible();
+    await captureOrderDetail(page, 'cancelled');
     expect(errors).toEqual([]);
   } finally {
+    const payments = await db.payment.findMany({ where: { orderId: id }, select: { id: true } });
+    await db.adminAuditEvent.deleteMany({ where: { targetId: { in: payments.map(payment => payment.id) } } });
+    await db.notification.deleteMany({ where: { relatedId: id } });
+    await db.eventDelivery.deleteMany({ where: { event: { aggregateId: id } } });
+    await db.eventRecord.deleteMany({ where: { aggregateId: id } });
     await db.payment.deleteMany({ where: { orderId: id } });
     await db.orderItem.deleteMany({ where: { orderId: id } });
     await db.order.deleteMany({ where: { id } });

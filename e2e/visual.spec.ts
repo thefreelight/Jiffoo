@@ -125,12 +125,8 @@ async function captureDynamicBoxes(page: Page, name: string, width: number, heig
       await add('ID reflows customer action row', page.getByText(/^Generate reset link\s*Edit$/));
     }
   } else if (name === 'order-detail') {
-    await add('order generated ID', page.getByText(/^Deployment Node: #[A-Z0-9]+$/i));
-    await add('order item generated reference', page.getByText(/^UNIT-REF: [A-Z0-9]+$/i));
-    await add('generated reference reflows SKU badge group', page.getByText(/^UNIT-REF:\s*[A-Z0-9]+\s*SKU:\s*E2E-001$/i));
-    await add('customer generated internal ID', page.getByText(/^cmu[a-z0-9]{15,}$/i));
-    await add('order activity dates', page.getByText(date));
-    if (width === 390) await add('ID reflows order heading', page.getByRole('heading', { name: 'Order Details', exact: true }));
+    await add('order generated ID', page.getByRole('heading', { name: /^Order #/ }));
+    await add('order exact store times', page.getByText(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/));
   } else if (name === 'notifications') {
     const rows = page.getByRole('row').filter({ hasText: date });
     const count = await rows.count();

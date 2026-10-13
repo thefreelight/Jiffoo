@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { merchant } from '../../../packages/shared/src/i18n/messages/en/merchant';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -8,7 +9,7 @@ import type { AdminOrderDetailDTO } from 'shared';
 
 const state = vi.hoisted(() => ({ mutateAsync: vi.fn(), order: {} as any }));
 vi.mock('next/navigation', () => ({ useParams: () => ({ id: 'order-1' }), useRouter: () => ({ back: vi.fn() }) }));
-vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string) => key }));
+vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string, params?: Record<string, string | number>) => { const value = key.split('.').slice(1).reduce<any>((value, part) => value?.[part], merchant); return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => String(params?.[name] ?? '{' + name + '}')) : key; } }));
 vi.mock('@/lib/hooks/use-api', () => ({
   useOrder: () => ({ data: state.order, refetch: vi.fn() }),
   useRecordManualPayment: () => ({}), useDeliverOrder: () => ({}), useCancelOrder: () => ({}),
@@ -26,15 +27,15 @@ afterEach(async () => {
   for (const { root, container } of mounted.splice(0)) { await act(async () => root.unmount()); container.remove(); }
   vi.clearAllMocks();
 });
-const order = { id: 'order-1', userId: 'user-1', status: 'PROCESSING', paymentStatus: 'PAID', totalAmount: 20,
+const order = { id: 'order-1', userId: 'user-1', status: 'PROCESSING', paymentStatus: 'PAID', totalAmount: 20, amounts: { subtotal: 20, shipping: 0, tax: 0, taxInclusive: false, total: 20 }, timeline: [],
   currency: 'USD', shippingAddress: null, createdAt: '2026-10-10T00:00:00Z', updatedAt: '2026-10-10T00:00:00Z', items: [],
   customer: { id: 'user-1', email: 'buyer@example.test', username: 'buyer' },
 } satisfies AdminOrderDetailDTO;
 it.each([
-  ['UNKNOWN', "We're checking your payment. Please don't pay again."],
-  ['REQUIRES_REVIEW', 'Payment requires review.'],
+  ['UNKNOWN', "We're still confirming this payment with the provider."],
+  ['REQUIRES_REVIEW', merchant.orders.detailView.reviewNotice],
 ])('shows the approved %s payment warning', async (paymentAttemptState, expected) => {
-  state.order = { ...order, paymentAttemptState }; const container = await render(<OrderDetailPage />);
+  state.order = { ...order, paymentAttemptState, paymentReviews: paymentAttemptState === 'REQUIRES_REVIEW' ? [{ paymentId: 'review', status: 'REQUIRES_REVIEW', amount: 20, currency: 'USD' }] : [] }; const container = await render(<OrderDetailPage />);
   expect(container.textContent).toContain(expected);
 });
 it('shows pending and resolved extra refunds and offers an action only for the pending payment', async () => {
@@ -43,9 +44,9 @@ it('shows pending and resolved extra refunds and offers an action only for the p
     { paymentId: 'resolved-payment', providerPaymentId: 'capture-2', amount: 20, currency: 'USD', status: 'resolved', reference: 'offline-proof' },
   ] };
   const container = await render(<OrderDetailPage />);
-  expect(container.textContent).toContain('Refund pending'); expect(container.textContent).toContain('Refund recorded');
+  expect(container.textContent).toContain(merchant.orders.detailView.refundNotice); expect(container.textContent).toContain('Refund recorded');
   expect(container.textContent).toContain('offline-proof');
-  const actions = Array.from(container.querySelectorAll('button')).filter(button => button.textContent === 'Record offline refund for this payment');
+  const actions = Array.from(container.querySelectorAll('button')).filter(button => button.textContent === 'Record offline refund');
   expect(actions).toHaveLength(1);
   await act(async () => actions[0].click());
   expect((document.getElementById('refund-amount') as HTMLInputElement).value).toContain('30');

@@ -255,9 +255,9 @@ for (const letter of ['B', 'C', 'D', 'E', 'F'] as const) {
       if (letter === 'B') {
         for (const browser of [page, shop]) {
           await browser.goto(browser === page ? `/en/orders/${order.id}` : `/en/account/orders/${order.id}`);
-          await expect(browser.getByText(browser === page ? 'PAID' : 'Paid', { exact: true }).first()).toBeVisible();
+          await expect(browser.getByText('Paid', { exact: true }).first()).toBeVisible();
           await browser.reload();
-          await expect(browser.getByText(browser === page ? 'PAID' : 'Paid', { exact: true }).first()).toBeVisible();
+          await expect(browser.getByText('Paid', { exact: true }).first()).toBeVisible();
         }
         expect(await paid(request, order, token)).toEqual(succeeded);
       }

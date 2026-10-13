@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { merchant } from '../../../packages/shared/src/i18n/messages/en/merchant';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -7,7 +8,7 @@ import { AdminApiError } from '@/lib/api';
 
 const state = vi.hoisted(() => ({ mutateAsync: vi.fn(), order: {} as any }));
 vi.mock('next/navigation', () => ({ useParams: () => ({ id: 'order-1' }), useRouter: () => ({ back: vi.fn() }) }));
-vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string) => key }));
+vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string, params?: Record<string, string | number>) => { const value = key.split('.').slice(1).reduce<any>((value, part) => value?.[part], merchant); return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => String(params?.[name] ?? '{' + name + '}')) : key; } }));
 vi.mock('@/lib/hooks/use-api', () => ({
   useOrder: () => ({ data: state.order, refetch: vi.fn() }),
   useRecordManualPayment: () => ({}), useDeliverOrder: () => ({}), useCancelOrder: () => ({}), useRefundOrder: () => ({}),
@@ -39,7 +40,7 @@ afterEach(async () => {
   vi.resetAllMocks();
 });
 function reviewOrder() {
-  state.order = { id: 'order-1', status: 'PENDING', paymentStatus: 'PENDING', totalAmount: 20, currency: 'USD',
+  state.order = { id: 'order-1', status: 'PENDING', paymentStatus: 'PENDING', totalAmount: 20, amounts: { subtotal: 20, shipping: 0, tax: 0, taxInclusive: false, total: 20 }, timeline: [], currency: 'USD',
     createdAt: '2026-10-10T00:00:00Z', items: [], customer: { email: 'buyer@example.test' }, paymentAttemptState: 'REQUIRES_REVIEW',
     paymentReviews: [{ paymentId: 'review-1', status: 'REQUIRES_REVIEW', amount: 20, currency: 'USD', failureReason: 'query_budget_exhausted', reviewResolution: null }],
   };

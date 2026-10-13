@@ -97,6 +97,9 @@ export interface Order {
 
 // Order detail type - Projected detail format
 export interface OrderDetail {
+  amounts: { subtotal: number; shipping: number; tax: number; taxInclusive: boolean; total: number }
+  timeline: Array<{ at: string; fromStatus: string | null; toStatus: string; fromPaymentStatus: string | null; toPaymentStatus: string | null; actorType: string | null }>
+  paymentReviews?: Array<{ paymentId: string; status: string; amount: number; currency: string; failureReason: string | null; reviewResolution: string | null; reviewReference: string | null; reviewResolvedAt: string | null; reviewResolvedBy: string | null }>
   id: string
   status: OrderStatus | string
   paymentStatus?: string

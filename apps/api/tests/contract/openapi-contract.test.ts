@@ -25,6 +25,12 @@ const app: FastifyInstance = await createTestApp({ enableSwagger: true });
 setOpenApiSpec(app.swagger() as ReturnType<typeof loadOpenApiSpec> & {});
 
 describe('OpenAPI Contract Tests', () => {
+  it('publishes additive detail amounts and a timeline without private audit fields', () => {
+    const schema = loadOpenApiSpec().paths['/api/v1/admin/orders/{id}'].get!.responses['200'].content!['application/json'].schema.properties.data;
+    expect(schema.required).toEqual(expect.arrayContaining(['amounts', 'timeline', 'totalAmount']));
+    expect(schema.properties.amounts.required).toEqual(['subtotal', 'shipping', 'tax', 'taxInclusive', 'total']);
+    expect(Object.keys(schema.properties.timeline.items.properties)).toEqual(['at', 'fromStatus', 'toStatus', 'fromPaymentStatus', 'toPaymentStatus', 'actorType']);
+  });
   it('publishes required overview calendar metrics and review state in OpenAPI', () => {
     const response = loadOpenApiSpec().paths['/api/v1/admin/dashboard'].get!.responses['200'].content!['application/json'].schema;
     const schema = response.properties.data;

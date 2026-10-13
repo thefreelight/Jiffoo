@@ -1,5 +1,6 @@
 import { expect, test } from './local-requests';
 import { customerEmail, login } from './helpers';
+import { captureOrderDetail } from './order-detail-captures';
 
 test('record payment, ship a Shop checkout order, and resend its notification', async ({ page, newObservedContext }) => {
   const shopContext = await newObservedContext({ baseURL: 'http://127.0.0.1:3003' });
@@ -45,17 +46,20 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
 
     await login(page);
     await page.goto(`/en/orders/${orderId}`);
+    await page.getByRole('button', { name: 'Record payment', exact: true }).click();
     await page.getByLabel('Payment reference').fill(`e2e-payment-${orderId}`);
     await page.getByRole('button', { name: 'Record payment' }).click();
-    await expect(page.getByText('PAID', { exact: true }).first()).toBeVisible();
-    await page.getByRole('button', { name: 'Initiate Dispatch' }).click();
-    await page.getByRole('textbox', { name: 'Shipping Carrier' }).fill('E2E Carrier');
-    await page.getByRole('textbox', { name: 'Tracking Number' }).fill('E2E-TRACK-001');
-    await page.getByRole('button', { name: 'Confirm Shipment' }).click();
-    await expect(page.getByText('SHIPPED', { exact: true }).first()).toBeVisible();
-    await page.getByRole('button', { name: 'Mark delivered' }).click();
-    await expect(page.getByText('DELIVERED', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('DELIVERED', { exact: true }).first()).toHaveCSS('flex-shrink', '0');
+    await expect(page.getByText('Paid', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('1 Test Street', { exact: true })).toBeVisible();
+    await captureOrderDetail(page, 'processing', 'ship');
+    await page.getByRole('button', { name: 'Ship order' }).click();
+    await page.getByRole('textbox', { name: 'Carrier' }).fill('E2E Carrier');
+    await page.getByRole('textbox', { name: 'Tracking number' }).fill('E2E-TRACK-001');
+    await page.getByRole('button', { name: 'Ship order' }).click();
+    await expect(page.getByText('Shipped', { exact: true }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Mark as delivered' }).click();
+    await expect(page.getByText('Delivered', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Delivered', { exact: true }).first()).toHaveCSS('flex-shrink', '0');
     await page.goto('/en/notifications');
     await expect(page.getByText('order confirmation')).toBeVisible();
     await expect(page.getByText('payment received')).toBeVisible();

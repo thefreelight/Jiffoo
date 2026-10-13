@@ -54,6 +54,15 @@ const adminOrderListItemSchema = {
 const adminOrderDetailSchema = {
   type: 'object',
   properties: {
+    amounts: {
+      type: 'object', required: ['subtotal', 'shipping', 'tax', 'taxInclusive', 'total'],
+      properties: { subtotal: { type: 'number' }, shipping: { type: 'number' }, tax: { type: 'number' }, taxInclusive: { type: 'boolean' }, total: { type: 'number' } },
+    },
+    timeline: {
+      type: 'array', items: { type: 'object', required: ['at', 'fromStatus', 'toStatus', 'fromPaymentStatus', 'toPaymentStatus', 'actorType'],
+        properties: { at: { type: 'string', format: 'date-time' }, fromStatus: { type: 'string', nullable: true }, toStatus: { type: 'string' },
+          fromPaymentStatus: { type: 'string', nullable: true }, toPaymentStatus: { type: 'string', nullable: true }, actorType: { type: 'string', nullable: true } } },
+    },
     id: { type: 'string', description: 'Order ID' },
     status: { type: 'string', enum: orderStatusEnum, description: 'Order status' },
     paymentStatus: { type: 'string', enum: paymentStatusEnum, nullable: true, description: 'Payment status' },
@@ -157,6 +166,7 @@ const adminOrderDetailSchema = {
     },
   },
   required: [
+    'amounts', 'timeline',
     'id',
     'status',
     'paymentStatus',
