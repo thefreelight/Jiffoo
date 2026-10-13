@@ -14341,6 +14341,109 @@
     ] }) }) }) });
   });
 
+  // src/components/DownloadAppPage.tsx
+  var IOS_APP_STORE_LIVE = false;
+  var ANDROID_PLAY_URL = "https://play.google.com/store/apps/details?id=com.bokmoo.app";
+  var ANDROID_APK_URL = "https://bokmoo.com/extensions/downloads/bokmoo-0.0.6-vc14.apk";
+  var ANDROID_APK_VERSION = "0.0.6 (14)";
+  var ANDROID_APK_SIZE = "79 MB";
+  function AppleIcon() {
+    return /* @__PURE__ */ jsx("svg", { viewBox: "0 0 24 24", fill: "currentColor", className: "h-5 w-5", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" }) });
+  }
+  function AndroidIcon() {
+    return /* @__PURE__ */ jsx("svg", { viewBox: "0 0 24 24", fill: "currentColor", className: "h-5 w-5", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24a11.46 11.46 0 00-8.94 0L5.65 5.67c-.19-.29-.58-.38-.87-.2-.28.18-.37.54-.22.83L6.4 9.48A10.81 10.81 0 001 18h22a10.81 10.81 0 00-5.4-8.52zM7 15.25a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5zm10 0a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5z" }) });
+  }
+  var DownloadAppPage = react_default.memo(function DownloadAppPage2({ config }) {
+    const site = resolveBokmooSiteConfig(config);
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--bokmoo-gold)_9%,transparent),transparent_34%),var(--bokmoo-bg)] px-4 pb-24 pt-8 sm:px-6 sm:pt-10 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[980px]", children: [
+      /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: "BOKMOO App" }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-4 text-[clamp(2.2rem,4vw,3.4rem)] font-semibold leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Your BOKMOO card, in your pocket." }),
+        /* @__PURE__ */ jsx("p", { className: "mx-auto mt-5 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]", children: "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone." })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "mt-10 grid gap-5 lg:grid-cols-2", children: [
+        /* @__PURE__ */ jsxs("div", { className: "overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+            /* @__PURE__ */ jsx("span", { className: "inline-flex h-11 w-11 items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(AppleIcon, {}) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("p", { className: "text-lg font-semibold tracking-[-0.03em] text-[var(--bokmoo-ink)]", children: "iOS" }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--bokmoo-copy-soft)]", children: "iPhone \xB7 iPad" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "mt-5 text-sm leading-7 text-[var(--bokmoo-copy)]", children: "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth." }),
+          IOS_APP_STORE_LIVE ? /* @__PURE__ */ jsxs(
+            "a",
+            {
+              href: "https://apps.apple.com/app/id6791455265",
+              target: "_blank",
+              rel: "noopener noreferrer",
+              className: "mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-sm font-semibold text-[var(--bokmoo-bg)]",
+              children: [
+                /* @__PURE__ */ jsx(AppleIcon, {}),
+                "Download on the App Store"
+              ]
+            }
+          ) : /* @__PURE__ */ jsxs("div", { className: "mt-6", children: [
+            /* @__PURE__ */ jsxs("span", { className: "inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] text-sm font-semibold text-[var(--bokmoo-copy-soft)]", children: [
+              /* @__PURE__ */ jsx(AppleIcon, {}),
+              "App Store"
+            ] }),
+            /* @__PURE__ */ jsx("p", { className: "mt-3 text-center text-xs text-[var(--bokmoo-copy-soft)]", children: "In App Store review \u2014 coming soon." })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+            /* @__PURE__ */ jsx("span", { className: "inline-flex h-11 w-11 items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(AndroidIcon, {}) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("p", { className: "text-lg font-semibold tracking-[-0.03em] text-[var(--bokmoo-ink)]", children: "Android" }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--bokmoo-copy-soft)]", children: "Android 9.0+" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "mt-5 text-sm leading-7 text-[var(--bokmoo-copy)]", children: "Install from Google Play, or download the APK directly if Play is unavailable on your device." }),
+          /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-3", children: [
+            /* @__PURE__ */ jsxs(
+              "a",
+              {
+                href: ANDROID_PLAY_URL,
+                target: "_blank",
+                rel: "noopener noreferrer",
+                className: "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-sm font-semibold text-[var(--bokmoo-bg)]",
+                children: [
+                  /* @__PURE__ */ jsx(AndroidIcon, {}),
+                  "Get it on Google Play"
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxs(
+              "a",
+              {
+                href: ANDROID_APK_URL,
+                className: "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] text-sm font-semibold text-[var(--bokmoo-ink)]",
+                children: [
+                  /* @__PURE__ */ jsx(AndroidIcon, {}),
+                  "Download APK directly"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs("p", { className: "mt-3 text-center text-xs text-[var(--bokmoo-copy-soft)]", children: [
+            "Version ",
+            ANDROID_APK_VERSION,
+            " \xB7 ",
+            ANDROID_APK_SIZE,
+            " \xB7 allow installs from your browser when prompted."
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs("p", { className: "mt-10 text-center text-sm text-[var(--bokmoo-copy-soft)]", children: [
+        "Questions about setup? Contact",
+        " ",
+        /* @__PURE__ */ jsx("a", { href: `mailto:${site.supportEmail}`, className: "text-[var(--bokmoo-gold)] hover:underline", children: site.supportEmail }),
+        "."
+      ] })
+    ] }) });
+  });
+
   // src/components/Footer.tsx
   var Footer = react_default.memo(function Footer2({
     locale,
@@ -16960,6 +17063,7 @@
       HelpPage,
       PrivacyPage,
       TermsPage,
+      DownloadAppPage,
       DealsPage,
       LoginPage,
       RegisterPage,
@@ -17103,7 +17207,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.12",
+      version: "1.1.13",
       target: "shop"
     }
   };

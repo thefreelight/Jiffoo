@@ -125,6 +125,7 @@ export interface ThemePackage {
     HowItWorksPage?: React.ComponentType<HowItWorksPageProps>;
     PrivacyPage: React.ComponentType<PrivacyPageProps>;
     TermsPage: React.ComponentType<TermsPageProps>;
+    DownloadAppPage?: React.ComponentType<DownloadAppPageProps>;
     // Special pages
     DealsPage?: React.ComponentType<DealsPageProps>;
     // Auth pages
@@ -523,6 +524,13 @@ export interface HelpPageProps extends ThemeI18nProps {
  * How It Works Page Component Props
  */
 export interface HowItWorksPageProps extends ThemeI18nProps {
+  config?: ThemeConfig;
+}
+
+/**
+ * Download App Page Component Props
+ */
+export interface DownloadAppPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
 }
 
