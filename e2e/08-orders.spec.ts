@@ -51,7 +51,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await page.getByRole('button', { name: 'Record payment' }).click();
     await expect(page.getByText('Paid', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('1 Test Street', { exact: true })).toBeVisible();
-    await captureOrderDetail(page, 'processing', 'ship');
+    await captureOrderDetail(page, 'processing');
     await page.getByRole('button', { name: 'Ship order' }).click();
     await page.getByRole('textbox', { name: 'Carrier' }).fill('E2E Carrier');
     await page.getByRole('textbox', { name: 'Tracking number' }).fill('E2E-TRACK-001');

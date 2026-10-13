@@ -88,6 +88,29 @@ it('labels canonical user activity as Customer and translates failed payment cha
   const row = Array.from(container.querySelectorAll('li')).find(row => row.textContent?.includes('Status changed to Cancelled'))!;
   expect(row.textContent).toContain('Customer'); expect(row.textContent).not.toContain('System'); expect(row.textContent).toContain('Payment status changed to Failed');
 });
+it('renders creation once with its own actor and time, newest first, without unchanged rows', async () => {
+  state.order.timeline = [
+    { at: '2026-10-12T16:05:00Z', fromStatus: null, toStatus: 'PENDING', fromPaymentStatus: null, toPaymentStatus: 'PENDING', actorType: 'admin' },
+    state.order.timeline[0],
+    { at: '2026-10-12T18:00:00Z', fromStatus: 'PROCESSING', toStatus: 'PROCESSING', fromPaymentStatus: 'PAID', toPaymentStatus: 'PAID', actorType: 'system' },
+  ];
+  const container = await mount(), rows = Array.from(container.querySelectorAll('[aria-labelledby="activity-title"] li'));
+  expect(rows).toHaveLength(2);
+  expect(rows[0].textContent).toContain('Status changed to Processing'); expect(rows[0].textContent).toContain('Payment status changed to Paid');
+  expect(rows[1].textContent).toBe('Order placedAdmin · 2026-10-13 00:05');
+  expect(rows.filter(row => row.querySelector('p')?.textContent === 'Order placed')).toHaveLength(1);
+  expect(container.textContent).not.toContain('Status changed to Pending'); expect(container.textContent).not.toContain('Payment status changed to Pending');
+});
+it.each([false, true])('appends one synthetic creation row when the timeline has no creation event (empty=%s)', async empty => {
+  if (empty) state.order.timeline = [];
+  const container = await mount(), rows = Array.from(container.querySelectorAll('[aria-labelledby="activity-title"] li'));
+  expect(rows.filter(row => row.querySelector('p')?.textContent === 'Order placed')).toHaveLength(1);
+  expect(rows.at(-1)?.textContent).toBe('Order placedCustomer · 2026-10-13 00:00');
+});
+it('labels the recorded cancellation reason', async () => {
+  Object.assign(state.order, { status: 'CANCELLED', cancelReason: 'Customer requested cancellation' });
+  expect((await mount()).textContent).toContain('Cancellation reason: Customer requested cancellation');
+});
 it.each([['cancel', 'Cancel order', 'cancelReason'], ['payment', 'Record payment', 'reference']])('requires trimmed %s dialog input and preserves its mutation payload', async (operation, name, id) => {
   Object.assign(state.order, { status: 'PENDING', paymentStatus: 'PENDING', canRecordManualPayment: true });
   await mount(); await act(async () => button(name).click());

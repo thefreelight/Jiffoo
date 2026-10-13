@@ -365,6 +365,7 @@ export const merchant = {
   // Orders
   orders: {
     detailView: {
+      cancelReasonLabel: "Cancellation reason: {reason}",
       failed: "Failed",
       title: "Order",
       back: "← Orders",

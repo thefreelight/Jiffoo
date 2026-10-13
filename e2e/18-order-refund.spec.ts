@@ -1,6 +1,5 @@
 import { expect, test } from './local-requests';
 import { login, ownerEmail } from './helpers';
-import { captureRefundDialog } from './order-detail-captures';
 
 test('refund before shipment restores stock and notifies the customer', async ({ page, newObservedContext }) => {
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
@@ -52,7 +51,6 @@ test('refund before shipment restores stock and notifies the customer', async ({
     await page.getByLabel('Payment reference').fill(`e2e-payment-${id}`);
     await page.getByRole('button', { name: 'Record payment' }).click();
     await expect(page.getByText('Processing', { exact: true }).first()).toBeVisible();
-    await captureRefundDialog(page);
     await page.getByRole('button', { name: 'Refund' }).click();
     await page.getByLabel('Refund reference').fill('e2e-offline-refund-reference');
     await page.getByRole('button', { name: /Record refund \$18\.00/ }).click();

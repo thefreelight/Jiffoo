@@ -365,6 +365,7 @@ export const merchant = {
   // Orders
   orders: {
     detailView: {
+      cancelReasonLabel: "取消原因：{reason}",
       failed: "失敗",
       title: "訂單",
       back: "← 訂單",
