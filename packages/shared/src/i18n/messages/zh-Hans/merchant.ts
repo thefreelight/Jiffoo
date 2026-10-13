@@ -6,6 +6,22 @@
  */
 
 export const merchant = {
+  catalog: {
+    loadingCategories: '正在加载分类…', categoryError: '无法加载分类。', statsError: '无法加载商品数量。',
+    products: '商品', categories: '分类', addProduct: '添加商品', all: '全部', active: '在售', inactive: '已下架', outOfStock: '缺货',
+    search: '搜索商品', category: '分类', allCategories: '全部分类', uncategorized: '未分类', variants: '规格', variantCount: '{count} 个规格',
+    price: '价格', fromPrice: '{price} 起', stock: '库存', status: '状态', actions: '操作', edit: '编辑', more: '{name} 的更多操作',
+    deactivate: '下架', activate: '上架', delete: '删除', cancel: '取消', save: '保存', create: '创建商品',
+    empty: '暂无商品', noMatches: '没有符合这些筛选条件的商品。', range: '{start}–{end}，共 {total} 条', previous: '上一页', next: '下一页',
+    loading: '正在加载商品…', listError: '无法加载商品。', retry: '重试', deactivateTitle: '下架 {name}？', activateTitle: '上架 {name}？',
+    deactivateHint: '商品将从店铺隐藏，已有订单不受影响。', activateHint: '至少有一个规格可销售时，商品才会在店铺显示。',
+    deleteTitle: '删除 {name}？', deleteHint: '此操作无法撤销。', deactivateInstead: '改为下架', saved: '商品已保存。', created: '商品已创建。', deleted: '商品已删除。',
+    deactivated: '商品已下架。', activated: '商品已上架。', back: '← 商品', newProduct: '新商品', unsaved: '有未保存的更改', details: '详情', name: '名称', description: '描述',
+    images: '图片', upload: '上传图片', removeImage: '移除图片 {n}', available: '可销售', removeVariant: '移除规格 {name}', addVariant: '添加规格',
+    sku: 'SKU', activeSwitch: '在售 — 在店铺显示', activeHint: '关闭可隐藏商品，无需删除。', organization: '商品设置', shipping: '需要配送', shippingHint: '数字商品请关闭。',
+    loadProduct: '正在加载商品…', productError: '无法加载此商品。', orderedVariantHint: '请恢复已移除的规格，并关闭“可销售”。',
+    addCategory: '添加分类', editCategory: '编辑分类', emptyCategories: '暂无分类', slug: '网址标识', categorySaved: '分类已保存。', categoryDeleted: '分类已删除。',
+  },
   auditEvents: {
     corePlan: 'Core 更新计划已检查',
     invalidTime: '此时间在商店时区中不存在。',

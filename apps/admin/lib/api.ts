@@ -119,6 +119,7 @@ export interface DashboardData {
 export type SystemSettingsMap = Record<string, unknown>;
 
 export interface ProductStatsData {
+  statusCounts: { all: number; active: number; inactive: number; outOfStock: number };
   metrics: {
     totalProducts: number;
     activeProducts: number;
@@ -166,6 +167,7 @@ export interface UserStatsData {
 
 // Type definitions (Admin specific)
 export interface PaginationParams {
+  categoryId?: string;
   page?: number;
   limit?: number;
   search?: string;
@@ -273,9 +275,11 @@ export const productsApi = {
     page = 1,
     limit = 10,
     search?: string,
-    productType?: string
+    productType?: string,
+    status?: string,
+    categoryId?: string
   ): Promise<ApiResponse<PageResult<AdminProductListItemDTO>>> =>
-    apiClient.get('/admin/products', { params: { page, limit, search, productType } }),
+    apiClient.get('/admin/products', { params: { page, limit, search, productType, status, categoryId } }),
 
   getStats: (params?: {
     search?: string;

@@ -60,8 +60,12 @@ const adminProductListItemSchema = {
     skuCode: { type: 'string', nullable: true, description: 'Lowest-price SKU code' },
     price: { type: 'number', description: 'Lowest active SKU price' },
     stock: { type: 'number', description: 'Total stock across active SKUs' },
-    isActive: { type: 'boolean', description: 'Whether this product has any active SKUs' },
+    isActive: { type: 'boolean', description: 'Product is enabled and has at least one active variant' },
     variantsCount: { type: 'integer', description: 'Number of variants' },
+    variantsActiveCount: { type: 'integer' },
+    priceMin: { type: 'number' },
+    priceMax: { type: 'number' },
+    images: { type: 'array', items: { type: 'string' } },
     createdAt: { type: 'string', format: 'date-time', description: 'Creation time' },
   },
   required: [
@@ -75,6 +79,10 @@ const adminProductListItemSchema = {
     'stock',
     'isActive',
     'variantsCount',
+    'variantsActiveCount',
+    'priceMin',
+    'priceMax',
+    'images',
     'createdAt',
   ],
 } as const;
@@ -123,6 +131,11 @@ const deleteProductResultSchema = {
 const productStatsSchema = {
   type: 'object',
   properties: {
+    statusCounts: {
+      type: 'object',
+      properties: { all: { type: 'integer' }, active: { type: 'integer' }, inactive: { type: 'integer' }, outOfStock: { type: 'integer' } },
+      required: ['all', 'active', 'inactive', 'outOfStock'],
+    },
     metrics: {
       type: 'object',
       properties: {
@@ -143,7 +156,7 @@ const productStatsSchema = {
       ],
     },
   },
-  required: ['metrics'],
+  required: ['metrics', 'statusCounts'],
 } as const;
 
 export const adminProductSchemas = {
@@ -156,6 +169,7 @@ export const adminProductSchemas = {
         limit: { type: 'integer', default: 10, minimum: 1, maximum: 100, description: 'Items per page' },
         search: { type: 'string', description: 'Search term' },
         categoryId: { type: 'string', description: 'Filter by category ID' },
+        status: { type: 'string', enum: ['active', 'inactive', 'outOfStock'] },
         minPrice: { type: 'number', description: 'Minimum variant price filter' },
         maxPrice: { type: 'number', description: 'Maximum variant price filter' },
         inStock: { type: 'boolean', description: 'Filter by in-stock variants' },
@@ -234,7 +248,6 @@ export const adminProductSchemas = {
     },
     body: {
       type: 'object',
-      required: ['variants'],
       properties: {
         isActive: { type: 'boolean', description: 'Whether the product is active' },
         name: { type: 'string', description: 'Product name' },

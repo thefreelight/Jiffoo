@@ -86,7 +86,7 @@ export function useProducts(params: PaginationParams = {}) {
   return useQuery({
     queryKey: [...queryKeys.products, params],
     queryFn: async () => {
-      const response = await productsApi.getAll(params.page, params.limit, params.search, (params as any).productType);
+      const response = await productsApi.getAll(params.page, params.limit, params.search, params.productType, params.status, params.categoryId);
       const data = unwrapApiResponse(response);
 
       // Adapt PageResult to frontend pagination structure
@@ -117,11 +117,11 @@ export function useProduct(id: string) {
 
 export function useCreateProduct() {
   const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
+  const { getErrorMessage, getText } = useLocalizedApiFeedback();
 
   return useMutation({
-    mutationFn: async (productData: Partial<Product>) => {
-      const response = await productsApi.create(productData as unknown as ProductForm);
+    mutationFn: async (productData: Partial<ProductForm>) => {
+      const response = await productsApi.create(productData as ProductForm);
       return unwrapApiResponse(response);
     },
     onSuccess: () => {
@@ -136,7 +136,7 @@ export function useCreateProduct() {
         queryKey: queryKeys.products,
         exact: false
       });
-      toast.success('Product created successfully');
+      toast.success(getText('merchant.catalog.created', 'Product created.'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -146,14 +146,14 @@ export function useCreateProduct() {
 
 export function useUpdateProduct() {
   const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
+  const { getErrorMessage, getText } = useLocalizedApiFeedback();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<Product> }) => {
-      const response = await productsApi.update(id, data as Record<string, unknown>);
+    mutationFn: async ({ id, data }: { id: string; data: Partial<ProductForm> }) => {
+      const response = await productsApi.update(id, data);
       return unwrapApiResponse(response);
     },
-    onSuccess: (_, { id }) => {
+    onSuccess: (_, { id, data }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.products,
         exact: false
@@ -161,7 +161,8 @@ export function useUpdateProduct() {
       queryClient.invalidateQueries({ queryKey: queryKeys.product(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.productStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Product updated successfully', { id: 'product-update' });
+      const key = Object.keys(data).length === 1 && data.isActive !== undefined ? data.isActive ? 'activated' : 'deactivated' : 'saved';
+      toast.success(getText('merchant.catalog.' + key, 'Product saved.'), { id: 'product-update' });
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -171,7 +172,7 @@ export function useUpdateProduct() {
 
 export function useDeleteProduct() {
   const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
+  const { getErrorMessage, getText } = useLocalizedApiFeedback();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -195,7 +196,7 @@ export function useDeleteProduct() {
         queryKey: queryKeys.products,
         exact: false
       });
-      toast.success('Product deleted successfully');
+      toast.success(getText('merchant.catalog.deleted', 'Product deleted.'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -665,9 +666,12 @@ export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const response = await productsApi.getCategories();
-      const data = unwrapApiResponse(response);
-      return data.items || [];
+      const first = unwrapApiResponse(await productsApi.getCategories(1, 100));
+      const items = [...first.items];
+      for (let page = 2; page <= first.totalPages; page++) {
+        items.push(...unwrapApiResponse(await productsApi.getCategories(page, 100)).items);
+      }
+      return items;
     },
   });
 }

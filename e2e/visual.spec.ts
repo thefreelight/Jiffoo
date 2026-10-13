@@ -445,12 +445,12 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       if (process.env.VISUAL_INSPECT_CSS === '1') {
         const targets = {
           administrators: [{ label: 'Invite administrator', locator: page.getByRole('button', { name: 'Invite administrator' }) }],
-          categories: [{ label: 'Create category', locator: page.getByRole('button', { name: 'Create category' }) }],
+          categories: [{ label: 'Add category', locator: page.getByRole('button', { name: 'Add category' }) }],
           'customer-detail': [
             { label: 'Edit User', locator: page.getByRole('button', { name: 'Edit User' }) },
             { label: 'USER', locator: page.getByText('USER', { exact: true }) },
           ],
-          'products-list': [{ label: 'Add Product', locator: page.getByText('Add Product', { exact: true }) }],
+          'products-list': [{ label: 'Add product', locator: page.getByRole('link', { name: 'Add product', exact: true }) }],
           settings: [{ label: 'Save Changes', locator: page.getByRole('button', { name: 'Save Changes' }) }],
         } as Record<string, { label: string; locator: ReturnType<typeof page.getByRole> }[]>;
         if (targets[name]) {

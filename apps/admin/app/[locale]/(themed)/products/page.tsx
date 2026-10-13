@@ -1,508 +1,70 @@
-/**
- * Products Page for the Admin Application
- *
- * Displays product list with search, filter, batch operations and pagination.
- * Supports i18n through the translation function.
- * Uses in-page navigation instead of sidebar submenu (Shopify style).
- */
-
-'use client'
-
-import { AlertTriangle, Box, CheckCircle, Pencil, Plus, Search, Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { Button } from '@/components/ui/button'
-import { useProducts, useDeleteProduct, useProductStats, useAdminDashboard, type Product as ApiProduct } from '@/lib/hooks/use-api'
-import { formatCurrency, cn } from '@/lib/utils'
-import { StatsCard } from '@/components/dashboard/stats-card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { useT, useLocale } from 'shared/src/i18n/react'
-
+'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Package, MoreHorizontal } from 'lucide-react';
+import { useLocale, useT } from 'shared/src/i18n/react';
+import { useProducts, useProductStats, useCategories, useDeleteProduct, useUpdateProduct } from '@/lib/hooks/use-api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { resolveApiErrorMessage } from '@/lib/error-utils';
+import { cn, formatCurrency } from '@/lib/utils';
+import type { AdminProductListItemDTO } from 'shared';
+const statuses = ['all', 'active', 'inactive', 'outOfStock'] as const;
+type Status = typeof statuses[number];
+type Action = 'delete' | 'activate' | 'deactivate';
 export default function ProductsPage() {
-  const t = useT()
-  const locale = useLocale()
-  const { data: dashboardData } = useAdminDashboard()
-  const currency = dashboardData?.metrics?.currency
-
-  // Helper function for translations with fallback
-  const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback
-    const translated = t(key)
-    return translated === key ? fallback : translated
-  }
-
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('All')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(10)
-
-  // API hooks
-  const {
-    data: productsData,
-    isLoading,
-    error,
-    refetch
-  } = useProducts({
-    page: currentPage,
-    limit: pageSize,
-    search: searchTerm
-  })
-  const { data: productStats } = useProductStats()
-
-  // useDeleteProduct hook
-  const deleteProductMutation = useDeleteProduct()
-
-  const products = productsData?.data || []
-  const pagination = productsData?.pagination
-
-  const handleDeleteProduct = async (id: string) => {
-    if (window.confirm(getText('merchant.products.deleteConfirm', 'Are you sure you want to delete this product?'))) {
-      try {
-        await deleteProductMutation.mutateAsync(id)
-        await refetch()
-      } catch (error) {
-        console.error('Failed to delete product:', error)
-      }
-    }
-  }
-
-  const filteredProducts = products.filter((product: ApiProduct) => {
-    const categoryName = product.categoryName || 'Uncategorized'
-    const matchesCategory = selectedCategory === 'All' || categoryName === selectedCategory
-    return matchesCategory
-  })
-  const visibleProductsCount = filteredProducts.length
-  const visibleUnits = filteredProducts.reduce((sum, product) => sum + (product.stock ?? 0), 0)
-  const outOfStockCount = filteredProducts.filter((product) => (product.stock ?? 0) === 0).length
-
-  const getProductImageUrl = (product: ApiProduct) => {
-    const firstImage = Array.isArray(product.images)
-      ? (product.images[0] as string | { url?: string } | null)
-      : null
-    if (typeof firstImage === 'string' && firstImage.trim()) {
-      return firstImage
-    }
-    if (
-      firstImage &&
-      typeof firstImage === 'object' &&
-      'url' in firstImage &&
-      typeof firstImage.url === 'string' &&
-      firstImage.url.trim()
-    ) {
-      return firstImage.url
-    }
-    return '/placeholder-product.svg'
-  }
-
-  const getStatusStyle = (stock: number) => {
-    if (stock === 0) {
-      return { text: getText('merchant.products.outOfStock', 'Out of Stock'), class: 'text-danger-strong bg-danger-veil border-danger-faint' }
-    } else {
-      return { text: getText('merchant.products.inStock', 'In Stock'), class: 'text-success-strong bg-success-veil border-success-faint' }
-    }
-  }
-
-  const toTrendDisplay = (value: number | undefined) => {
-    const trendValue = value ?? 0
-    return {
-      change: `${Math.abs(trendValue).toFixed(2)}%`,
-      changeType: trendValue >= 0 ? 'increase' as const : 'decrease' as const,
-    }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-action-veil border-t-action-strong rounded-full animate-spin" />
-          <p className="text-xs font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.loading', 'Syncing Assets...')}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center bg-danger-veil p-10 rounded-[3rem] border border-danger-faint max-w-md">
-          <AlertTriangle className="w-16 h-16 text-danger-base mx-auto mb-6" />
-          <h3 className="text-xl font-bold text-danger-deepest mb-2">{getText('merchant.products.loadFailed', 'System Communication Failure')}</h3>
-          <p className="text-sm text-danger-strong/70 mb-8 leading-relaxed">We encountered an issue while retrieving the asset inventory from the master synchronization node.</p>
-          <Button
-            variant="outline"
-            className="rounded-2xl border-danger-soft text-danger-strong hover:bg-danger-faint"
-            onClick={() => refetch()}
-          >
-            {getText('merchant.products.retry', 'Retry Sync')}
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="w-full bg-page-surface min-h-screen">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-neutral-deepest tracking-tight leading-none">
-            {getText('merchant.products.title', 'Products')}
-          </h1>
-          <span className="text-[10px] font-bold text-action-strong uppercase tracking-widest mt-1">
-            {getText('merchant.products.subtitle', 'Inventory Management')}
-          </span>
-        </div>
-
-        <div className="flex gap-3">
-          <Link href={`/${locale}/products/categories`}>
-            <Button variant="outline">{getText('merchant.contentTranslations.categories', 'Categories')}</Button>
-          </Link>
-          <Link href={`/${locale}/products/create`}>
-            <Button className="h-10 rounded-xl bg-action-strong px-4 text-sm font-semibold shadow-lg shadow-action-base/20 transition-all hover:bg-action-deep sm:px-6">
-              <Plus className="mr-0 h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">{getText('merchant.products.addProduct', 'Add Product')}</span>
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatsCard
-            title={getText('merchant.products.totalProducts', 'Total Products')}
-            value={(productStats?.metrics.totalProducts ?? 0).toLocaleString()}
-            change={toTrendDisplay(productStats?.metrics.totalProductsTrend).change}
-            changeType={toTrendDisplay(productStats?.metrics.totalProductsTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="blue"
-            icon={<Box className="w-5 h-5" />}
-          />
-          <StatsCard
-            title={getText('merchant.products.activeProducts', 'Active Products')}
-            value={(productStats?.metrics.activeProducts ?? 0).toLocaleString()}
-            change={toTrendDisplay(productStats?.metrics.activeProductsTrend).change}
-            changeType={toTrendDisplay(productStats?.metrics.activeProductsTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="green"
-            icon={<CheckCircle className="w-5 h-5" />}
-          />
-          <StatsCard
-            title={getText('merchant.products.outOfStock', 'Out of Stock')}
-            value={(productStats?.metrics.outOfStockProducts ?? 0).toLocaleString()}
-            change={toTrendDisplay(productStats?.metrics.outOfStockProductsTrend).change}
-            changeType={toTrendDisplay(productStats?.metrics.outOfStockProductsTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="red"
-            icon={<AlertTriangle className="w-5 h-5" />}
-          />
-        </div>
-
-
-        {/* Filters */}
-        <div className="rounded-[2rem] border border-neutral-faint bg-surface p-4 shadow-sm sm:p-6">
-          <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-neutral-faint pb-4">
-            <span className="inline-flex items-center rounded-full border border-action-faint bg-action-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-action-strong">
-              {visibleProductsCount} {getText('merchant.products.product', 'Products')}
-            </span>
-            <span className="inline-flex items-center rounded-full border border-neutral-faint bg-neutral-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-base">
-              {visibleUnits} {getText('merchant.products.stock', 'Units Tracked')}
-            </span>
-            {outOfStockCount > 0 && (
-              <span className="inline-flex items-center rounded-full border border-danger-faint bg-danger-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-danger-strong">
-                {outOfStockCount} {getText('merchant.products.outOfStock', 'Out of Stock')}
-              </span>
-            )}
-            {selectedCategory !== 'All' && (
-              <span className="inline-flex items-center rounded-full border border-positive-faint bg-positive-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-positive-strong">
-                {selectedCategory}
-              </span>
-            )}
-            {searchTerm && (
-              <span className="inline-flex items-center rounded-full border border-neutral-soft bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-base">
-                Search: {searchTerm}
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-6 sm:flex-row">
-            <div className="flex-1">
-              <div className="relative group">
-                <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-pale group-focus-within:text-action-base transition-colors" />
-                <input
-                  type="text"
-                  placeholder={getText('merchant.products.searchPlaceholder', 'Quick Search through assets...')}
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full pl-11 pr-4 h-12 bg-neutral-veil border-neutral-veil rounded-2xl focus:ring-2 focus:ring-action-base/10 focus:border-action-base focus:bg-surface transition-all text-sm font-medium"
-                />
-              </div>
-            </div>
-            <div className="flex w-full gap-4 sm:w-auto">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-12 w-full bg-neutral-veil border-neutral-veil rounded-2xl px-6 text-sm font-bold text-neutral-deep focus:border-action-base focus:ring-2 focus:ring-action-base/10 sm:w-[220px]">
-                  <SelectValue placeholder="Category Mapping" />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-neutral-faint shadow-2xl p-2">
-                  <SelectItem value="All" className="rounded-xl py-2.5 font-semibold">{getText('merchant.products.allCategories', 'All Categories')}</SelectItem>
-                  <SelectItem value="Electronics" className="rounded-xl py-2.5 font-semibold">Electronics</SelectItem>
-                  <SelectItem value="Fashion" className="rounded-xl py-2.5 font-semibold">Fashion</SelectItem>
-                  <SelectItem value="Home" className="rounded-xl py-2.5 font-semibold">Home</SelectItem>
-                  <SelectItem value="Sports" className="rounded-xl py-2.5 font-semibold">Sports</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-
-        {/* Products Table */}
-        <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
-          <div className="flex flex-col gap-3 border-b border-neutral-faint px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-light">
-                {getText('merchant.products.inventoryOverview', 'Inventory Slate')}
-              </p>
-              <p className="mt-1 text-sm font-medium text-neutral-base">
-                {getText('merchant.products.inventoryOverviewDescription', 'Review pricing, stock health, and media coverage without opening each record.')}
-              </p>
-            </div>
-            <div className="inline-flex items-center rounded-full border border-neutral-faint bg-neutral-veil px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-base">
-              {visibleProductsCount} {getText('merchant.products.rowsVisible', 'Rows Visible')}
-            </div>
-          </div>
-
-          <div className="divide-y divide-neutral-faint md:hidden">
-            {filteredProducts.length === 0 ? (
-              <div className="px-4 py-12 text-center">
-                <Box className="mx-auto mb-3 h-10 w-10 text-neutral-pale" />
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-light">
-                  {getText('merchant.products.noProducts', 'No Assets Matched')}
-                </p>
-              </div>
-            ) : (
-              filteredProducts.map((product: ApiProduct) => {
-                const status = getStatusStyle(product.stock || 0)
-                const productImage = getProductImageUrl(product)
-                const usesPlaceholder = productImage === '/placeholder-product.svg'
-                return (
-                  <div key={product.id} className="space-y-4 p-4">
-                    <div className="flex items-start gap-4">
-                      <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-neutral-faint bg-media-surface shadow-sm">
-                        <Image
-                          src={productImage}
-                          alt={product.name}
-                          fill
-                          className={cn(
-                            'transition-transform duration-300',
-                            usesPlaceholder ? 'object-contain p-3' : 'object-cover'
-                          )}
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <Link href={`/${locale}/products/${product.id}/edit`} className="block">
-                          <h3 className="line-clamp-2 text-base font-bold text-neutral-deepest transition-colors hover:text-action-strong">
-                            {product.name}
-                          </h3>
-                        </Link>
-                        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-light">
-                          {product.categoryName || 'General Mapping'}
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <span className="inline-flex rounded-full border border-neutral-faint bg-neutral-veil px-3 py-1 text-[11px] font-bold text-neutral-base">
-                            {product.skuCode || 'NO-REF'}
-                          </span>
-                          <span className={cn('inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]', status.class)}>
-                            {status.text}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 rounded-2xl bg-neutral-veil/70 p-3">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-light">
-                          {getText('merchant.products.price', 'Valuation')}
-                        </p>
-                        <p className="mt-1 text-sm font-bold text-neutral-deepest">
-                          {currency ? formatCurrency(product.price || 0, currency) : '--'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-light">
-                          {getText('merchant.products.stock', 'Node Inventory')}
-                        </p>
-                        <p className="mt-1 text-sm font-bold text-neutral-deepest">
-                          {product.stock ?? 0} <span className="text-[11px] font-medium text-neutral-light">units</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" asChild className="flex-1 rounded-xl border-neutral-soft">
-                        <Link href={`/${locale}/products/${product.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          {getText('common.actions.edit', 'Edit')}
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteProduct(product.id)}
-                        disabled={deleteProductMutation.isPending}
-                        className="rounded-xl px-4 text-danger-strong hover:bg-danger-veil hover:text-danger-deep"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
-
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-neutral-veil bg-neutral-veil/30">
-                  <th className="py-5 px-8 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.product', 'Product Identity')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.sku', 'SKU Segment')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.price', 'Valuation')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.stock', 'Node Inventory')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.status', 'Health Status')}</th>
-                  <th className="py-5 px-8 text-right text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.products.actions', 'Matrix Control')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-veil">
-                {filteredProducts.map((product: ApiProduct) => {
-                  const status = getStatusStyle(product.stock || 0)
-                  const productImage = getProductImageUrl(product)
-                  const usesPlaceholder = productImage === '/placeholder-product.svg'
-                  return (
-                    <tr key={product.id} className="group hover:bg-action-veil/30 transition-colors">
-                      <td className="py-5 px-8">
-                        <div className="flex items-center gap-4">
-                          <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-neutral-faint flex-shrink-0 shadow-sm transition-transform group-hover:scale-105">
-                            <Image
-                              src={productImage}
-                              alt={product.name}
-                              fill
-                              className={cn(usesPlaceholder ? 'object-contain bg-media-surface p-2' : 'object-cover')}
-                            />
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <Link href={`/${locale}/products/${product.id}/edit`}>
-                              <span className="font-bold text-neutral-deepest hover:text-action-strong transition-colors truncate block">
-                                {product.name}
-                              </span>
-                            </Link>
-                            <span className="text-[10px] font-bold text-neutral-light uppercase tracking-tighter truncate opacity-70">
-                              {product.categoryName || 'General Mapping'}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-5 px-6">
-                        <div className="text-xs font-mono font-bold text-neutral-base bg-neutral-veil px-2 py-1 rounded inline-block">
-                          {product.skuCode || 'NO-REF'}
-                        </div>
-                      </td>
-                      <td className="py-5 px-6">
-                        <div className="text-sm font-bold text-neutral-deepest">
-                          {currency ? formatCurrency(product.price || 0, currency) : '--'}
-                        </div>
-                      </td>
-                      <td className="py-5 px-6">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-neutral-deepest">{product.stock ?? 0}</span>
-                          <span className="text-[10px] font-medium text-neutral-light">units</span>
-                        </div>
-                      </td>
-                      <td className="py-5 px-6">
-                        <div className={cn("inline-flex px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border", status.class)}>
-                          {status.text}
-                        </div>
-                      </td>
-                      <td className="py-5 px-8 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/${locale}/products/${product.id}/edit`}>
-                            <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl hover:bg-surface hover:shadow-md transition-all text-neutral-light hover:text-action-strong">
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteProduct(product.id)}
-                            disabled={deleteProductMutation.isPending}
-                            className="w-9 h-9 rounded-xl hover:bg-surface hover:shadow-md transition-all text-neutral-light hover:text-danger-strong"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Pagination bar */}
-        {pagination && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-12">
-            <div className="text-[10px] font-bold text-neutral-light uppercase tracking-[0.2em] bg-neutral-faint/50 px-4 py-2 rounded-full border border-neutral-faint">
-              Sync: {(pagination.page - 1) * pagination.limit + 1}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} TOTAL_ASSETS
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                className="h-10 rounded-xl border-neutral-faint font-bold text-xs hover:bg-neutral-veil disabled:opacity-30"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous Scale
-              </Button>
-
-              <div className="flex gap-1.5 px-2">
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  const pageNum = Math.max(1, Math.min(pagination.totalPages - 4, currentPage - 2)) + i
-                  if (pageNum <= pagination.totalPages) {
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${pageNum === currentPage ? 'bg-neutral-deepest text-surface shadow-xl scale-110' : 'bg-surface text-neutral-light border border-neutral-veil hover:border-neutral-soft'}`}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  }
-                  return null
-                })}
-              </div>
-
-              <Button
-                variant="outline"
-                className="h-10 rounded-xl border-neutral-faint font-bold text-xs hover:bg-neutral-veil disabled:opacity-30"
-                onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
-                disabled={currentPage === pagination.totalPages}
-              >
-                Next Segment
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
+  const t = useT(), locale = useLocale(), router = useRouter(), pathname = usePathname(), params = useSearchParams();
+  const c = (key: string, values?: Record<string, string | number>) => t('merchant.catalog.' + key, values);
+  const param = params.get('status'), category = params.get('category') ?? '';
+  const status: Status = statuses.includes(param as Status) ? param as Status : 'all';
+  const urlSearch = params.get('search') ?? '';
+  const [search, setSearch] = useState(urlSearch), [query, setQuery] = useState(urlSearch), [page, setPage] = useState(1);
+  const [dialog, setDialog] = useState<{ product: AdminProductListItemDTO; action: Action } | null>(null);
+  const [failure, setFailure] = useState(''), [hasOrders, setHasOrders] = useState(false);
+  const remove = useDeleteProduct(), update = useUpdateProduct(), pending = remove.isPending || update.isPending;
+  const filters = (s: Status, cat: string, q = query) => {
+    const next = new URLSearchParams(params.toString());
+    for (const [key, value] of [['status', s === 'all' ? '' : s], ['category', cat], ['search', q]]) { if (value) next.set(key, value); else next.delete(key); }
+    setPage(1); router.replace(pathname + (next.size ? '?' + next.toString() : ''), { scroll: false });
+  };
+  useEffect(() => { setSearch(urlSearch); setQuery(urlSearch); setPage(1); }, [urlSearch, status, category]);
+  useEffect(() => {
+    if (search === query) return;
+    const timer = setTimeout(() => { setQuery(search); filters(status, category, search); }, 300);
+    return () => clearTimeout(timer);
+  }, [search, query, status, category]);
+  const limit = 20;
+  const list = useProducts({ page, limit, search: query, status: status === 'all' ? undefined : status, categoryId: category || undefined });
+  const stats = useProductStats(), categories = useCategories(), products = list.data?.data ?? [], pagination = list.data?.pagination;
+  const open = (product: AdminProductListItemDTO, action: Action) => { setFailure(''); setHasOrders(false); setDialog({ product, action }); };
+  const submit = async () => {
+    if (!dialog) return;
+    setFailure('');
+    try {
+      if (dialog.action === 'delete') await remove.mutateAsync(dialog.product.id);
+      else await update.mutateAsync({ id: dialog.product.id, data: { isActive: dialog.action === 'activate' } });
+      setDialog(null);
+    } catch (error) { setFailure(resolveApiErrorMessage(error, t)); setHasOrders((error as { code?: string }).code === 'PRODUCT_HAS_ORDERS'); }
+  };
+  const state = (p: AdminProductListItemDTO) => p.isActive ? p.stock === 0 ? 'outOfStock' : 'active' : 'inactive';
+  const statusText = (p: AdminProductListItemDTO) => <span className={cn('inline-flex items-center gap-2 whitespace-nowrap', state(p) === 'outOfStock' ? 'text-attention' : state(p) === 'inactive' ? 'text-faint' : 'text-foreground')}><span aria-hidden="true" className={cn('size-1.5 rounded-full', state(p) === 'inactive' ? 'border border-current' : 'bg-current')} />{c(state(p))}</span>;
+  const identity = (p: AdminProductListItemDTO) => <div className="flex min-w-0 items-center gap-3">{p.images?.[0] ? <img src={p.images[0]} alt="" className="size-10 shrink-0 rounded-md object-cover" /> : <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-raised"><Package aria-hidden="true" className="size-4 text-muted-foreground" /></span>}<div className="min-w-0"><Link href={'/' + locale + '/products/' + p.id + '/edit'} className="hover:underline">{p.name}</Link><p className="mt-1 text-xs text-muted-foreground">{p.categoryName || c('uncategorized')}</p></div></div>;
+  const price = (p: AdminProductListItemDTO) => p.variantsActiveCount === 0 ? '—' : p.priceMin !== p.priceMax ? c('fromPrice', { price: formatCurrency(p.priceMin) }) : formatCurrency(p.priceMin);
+  const actions = (p: AdminProductListItemDTO) => <div className="flex items-center justify-end gap-3"><Link href={'/' + locale + '/products/' + p.id + '/edit'} className="hover:underline">{c('edit')}</Link><DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label={c('more', { name: p.name })}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => open(p, p.isActive ? 'deactivate' : 'activate')}>{c(p.isActive ? 'deactivate' : 'activate')}</DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={() => open(p, 'delete')}>{c('delete')}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>;
+  const empty = <div className="space-y-3 py-12 text-center text-muted-foreground"><p>{query || category || status !== 'all' ? c('noMatches') : c('empty')}</p>{!query && !category && status === 'all' && <Button asChild><Link href={'/' + locale + '/products/create'}>{c('addProduct')}</Link></Button>}</div>;
+  return <section className="min-w-0 space-y-5">
+    <header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-[26px] font-semibold tracking-[-0.025em]">{c('products')}</h1><div className="flex gap-2"><Button variant="outline" asChild><Link href={'/' + locale + '/products/categories'}>{c('categories')}</Link></Button><Button asChild><Link href={'/' + locale + '/products/create'}>{c('addProduct')}</Link></Button></div></header>
+    <div role="tablist" aria-label={c('status')} className="flex flex-wrap gap-x-5 border-b border-border">{statuses.map((s, i) => <button key={s} role="tab" aria-selected={status === s} tabIndex={status === s ? 0 : -1} onClick={() => filters(s, category)} onKeyDown={event => { const n = event.key === 'ArrowRight' ? (i + 1) % 4 : event.key === 'ArrowLeft' ? (i + 3) % 4 : event.key === 'Home' ? 0 : event.key === 'End' ? 3 : undefined; if (n !== undefined) { event.preventDefault(); filters(statuses[n], category); (event.currentTarget.parentElement?.children[n] as HTMLElement)?.focus(); } }} className={cn('flex items-center gap-2 border-b-[1.5px] py-2.5', status === s ? 'border-foreground' : 'border-transparent text-muted-foreground')}>{c(s)}<span className="font-mono text-xs text-faint">{stats.data?.statusCounts[s] ?? '—'}</span></button>)}</div>
+    {stats.error && <p role="status" className="text-muted-foreground">{c('statsError')}</p>}
+    <div className="flex flex-col gap-3 min-[769px]:flex-row"><Input aria-label={c('search')} placeholder={c('search')} value={search} onChange={e => setSearch(e.target.value)} className="h-8 flex-1 bg-raised" /><select aria-label={c('category')} value={category} onChange={e => filters(status, e.target.value)} className="h-8 rounded-md border border-border bg-raised px-3"><option value="">{c('allCategories')}</option>{categories.data?.map((cat: { id: string; name: string }) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div>
+    {list.error ? <div role="alert"><p>{c('listError')}</p><Button variant="outline" onClick={() => list.refetch()}>{c('retry')}</Button></div> : list.isLoading ? <p role="status">{c('loading')}</p> : <>
+      <div className="hidden overflow-x-auto rounded-[10px] border border-border min-[769px]:block"><table className="w-full text-left"><thead className="bg-raised text-xs text-faint"><tr>{['products', 'variants', 'price', 'stock', 'status', 'actions'].map(k => <th key={k} className="px-4 py-3 font-normal">{c(k)}</th>)}</tr></thead><tbody>{products.length ? products.map(p => <tr key={p.id} className="border-t border-border hover:bg-accent/60"><td className="px-4 py-3">{identity(p)}</td><td className="px-4 py-3 text-muted-foreground">{c('variantCount', { count: p.variantsCount ?? 0 })}</td><td className="px-4 py-3 font-mono">{price(p)}</td><td className="px-4 py-3 font-mono">{p.stock}</td><td className="px-4 py-3">{statusText(p)}</td><td className="px-4 py-3">{actions(p)}</td></tr>) : <tr><td colSpan={6}>{empty}</td></tr>}</tbody></table></div>
+      <div className="divide-y divide-border rounded-[10px] border border-border min-[769px]:hidden">{products.length ? products.map(p => <article key={p.id} className="space-y-3 p-4">{identity(p)}<div className="flex justify-between"><span className="font-mono">{price(p)}</span>{statusText(p)}</div><div className="flex justify-between text-muted-foreground"><span>{c('variantCount', { count: p.variantsCount ?? 0 })}</span><span>{c('stock')}: <span className="font-mono">{p.stock}</span></span></div>{actions(p)}</article>) : empty}</div>
+      {pagination && <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><p>{c('range', { start: pagination.total ? (page - 1) * limit + 1 : 0, end: Math.min(page * limit, pagination.total), total: pagination.total })}</p><div className="flex gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>{c('previous')}</Button><Button size="sm" variant="outline" disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}>{c('next')}</Button></div></div>}
+    </>}
+    <Dialog open={!!dialog} onOpenChange={v => { if (!v && !pending) setDialog(null); }}><DialogContent><DialogHeader><DialogTitle>{dialog && c(dialog.action + 'Title', { name: dialog.product.name })}</DialogTitle><DialogDescription>{dialog && c(dialog.action + 'Hint')}</DialogDescription></DialogHeader>{failure && <p role="alert" className="text-destructive">{failure}</p>}<DialogFooter><Button variant="outline" disabled={pending} onClick={() => setDialog(null)}>{c('cancel')}</Button>{hasOrders && dialog?.action === 'delete' ? <Button disabled={pending} onClick={() => open(dialog.product, 'deactivate')}>{c('deactivateInstead')}</Button> : <Button variant={dialog?.action === 'delete' ? 'destructive' : 'default'} disabled={pending} onClick={submit}>{dialog && c(dialog.action)}</Button>}</DialogFooter></DialogContent></Dialog>
+  </section>;
 }

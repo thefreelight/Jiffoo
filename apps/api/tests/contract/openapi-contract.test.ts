@@ -25,6 +25,17 @@ const app: FastifyInstance = await createTestApp({ enableSwagger: true });
 setOpenApiSpec(app.swagger() as ReturnType<typeof loadOpenApiSpec> & {});
 
 describe('OpenAPI Contract Tests', () => {
+  it('publishes product availability filters, counts and price ranges and accepts partial updates', () => {
+    const paths = loadOpenApiSpec().paths;
+    const list = paths['/api/v1/admin/products/'].get!;
+    expect(list.parameters?.find((parameter: any) => parameter.name === 'status')?.schema.enum).toEqual(['active', 'inactive', 'outOfStock']);
+    const item = list.responses['200'].content!['application/json'].schema.properties.data.properties.items.items;
+    for (const key of ['variantsActiveCount', 'priceMin', 'priceMax', 'images']) expect(item.properties).toHaveProperty(key);
+    const stats = paths['/api/v1/admin/products/stats'].get!.responses['200'].content!['application/json'].schema.properties.data;
+    expect(stats.properties.statusCounts.required).toEqual(['all', 'active', 'inactive', 'outOfStock']);
+    const update = paths['/api/v1/admin/products/{id}'].put!.requestBody!.content['application/json'].schema;
+    expect(update.required ?? []).not.toContain('variants');
+  });
   it('publishes additive detail amounts and a timeline without private audit fields', () => {
     const schema = loadOpenApiSpec().paths['/api/v1/admin/orders/{id}'].get!.responses['200'].content!['application/json'].schema.properties.data;
     expect(schema.required).toEqual(expect.arrayContaining(['amounts', 'timeline', 'totalAmount']));

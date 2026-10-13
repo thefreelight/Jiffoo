@@ -277,6 +277,9 @@ export interface LoginForm {
 }
 
 export interface ProductForm {
+  isActive?: boolean
+  categoryId?: string | null
+  translations?: Array<{ locale: string; name: string; description?: string | null }>
   name: string
   description?: string
   price: number
@@ -285,6 +288,8 @@ export interface ProductForm {
   images?: string | string[]
   requiresShipping?: boolean
   variants?: Array<{
+    id?: string
+    attributes?: Record<string, unknown>
     name: string
     salePrice: number
     costPrice?: number | null

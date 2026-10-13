@@ -39,13 +39,13 @@ export function ContentTranslations({
   }
 
   return (
-    <section className="space-y-5">
-      <h2 className="text-base font-semibold">{t('merchant.contentTranslations.title')}</h2>
+    <section className="space-y-4">
+      <h3 className="text-[13px] font-medium">{t('merchant.contentTranslations.title')}</h3>
       {locales.filter((locale) => locale !== defaultLocale).map((locale) => {
         const row = translations.find((item) => item.locale === locale)
         return (
-          <div key={locale} className="space-y-3 border-t pt-4">
-            <h3 className="text-sm font-medium">{t(`merchant.contentTranslations.locales.${locale}`)}</h3>
+          <div key={locale} className="space-y-3 border-t border-border pt-3">
+            <h4 className="text-xs text-muted-foreground">{t(`merchant.contentTranslations.locales.${locale}`)}</h4>
             <div className="space-y-1">
               <Label htmlFor={`translation-${locale}-name`}>{t('merchant.contentTranslations.name')} ({t(`merchant.contentTranslations.locales.${locale}`)})</Label>
               <Input id={`translation-${locale}-name`} value={row?.name ?? ''} onChange={(event) => update(locale, 'name', event.target.value)} />

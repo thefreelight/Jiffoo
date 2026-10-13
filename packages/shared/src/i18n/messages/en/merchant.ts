@@ -6,6 +6,22 @@
  */
 
 export const merchant = {
+  catalog: {
+    loadingCategories: 'Loading categories…', categoryError: 'Could not load categories.', statsError: 'Could not load product counts.',
+    products: 'Products', categories: 'Categories', addProduct: 'Add product', all: 'All', active: 'Active', inactive: 'Inactive', outOfStock: 'Out of stock',
+    search: 'Search products', category: 'Category', allCategories: 'All categories', uncategorized: 'Uncategorized', variants: 'Variants', variantCount: '{count} variants',
+    price: 'Price', fromPrice: 'From {price}', stock: 'Stock', status: 'Status', actions: 'Actions', edit: 'Edit', more: 'More actions for {name}',
+    deactivate: 'Deactivate', activate: 'Activate', delete: 'Delete', cancel: 'Cancel', save: 'Save', create: 'Create product',
+    empty: 'No products yet', noMatches: 'No products match these filters.', range: '{start}–{end} of {total}', previous: 'Previous', next: 'Next',
+    loading: 'Loading products…', listError: 'Could not load products.', retry: 'Try again', deactivateTitle: 'Deactivate {name}?', activateTitle: 'Activate {name}?',
+    deactivateHint: 'It will be hidden from your store. Existing orders are not affected.', activateHint: 'It will be visible in your store if it has at least one variant available for sale.',
+    deleteTitle: 'Delete {name}?', deleteHint: 'This cannot be undone.', deactivateInstead: 'Deactivate instead', saved: 'Product saved.', created: 'Product created.', deleted: 'Product deleted.',
+    deactivated: 'Product deactivated.', activated: 'Product activated.', back: '← Products', newProduct: 'New product', unsaved: 'Unsaved changes', details: 'Details', name: 'Name', description: 'Description',
+    images: 'Images', upload: 'Upload images', removeImage: 'Remove image {n}', available: 'Available for sale', removeVariant: 'Remove variant {name}', addVariant: 'Add variant',
+    sku: 'SKU', activeSwitch: 'Active — visible in your store', activeHint: 'Turn off to hide this product without deleting it.', organization: 'Organization', shipping: 'Requires shipping', shippingHint: 'Turn off for digital products.',
+    loadProduct: 'Loading product…', productError: 'Could not load this product.', orderedVariantHint: 'Restore the removed variant and turn Available for sale off instead.',
+    addCategory: 'Add category', editCategory: 'Edit category', emptyCategories: 'No categories yet', slug: 'Slug', categorySaved: 'Category saved.', categoryDeleted: 'Category deleted.',
+  },
   auditEvents: {
     corePlan: 'Core update plan checked',
     invalidTime: 'This time does not exist in the store timezone.',

@@ -4,15 +4,15 @@ import { login, ownerEmail } from './helpers';
 test('stock limit and changed price require a fresh checkout confirmation', async ({ page, newObservedContext }) => {
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/products/create');
-  await page.getByPlaceholder('Enter product title...').fill('Price Change Product');
-  await page.getByPlaceholder('e.g. Red / XL').fill('Standard');
-  await page.getByPlaceholder('SKU-REF').fill('E2E-PRICE-001');
-  await page.getByPlaceholder('0.00').fill('10.00');
-  await page.getByPlaceholder('0', { exact: true }).fill('6');
-  await page.getByRole('button', { name: 'Save Product' }).click();
+  await page.getByLabel('Name', { exact: true }).first().fill('Price Change Product');
+  await page.getByLabel('Name', { exact: true }).nth(1).fill('Standard');
+  await page.getByLabel('SKU', { exact: true }).fill('E2E-PRICE-001');
+  await page.getByLabel('Price', { exact: true }).fill('10.00');
+  await page.getByLabel('Stock', { exact: true }).fill('6');
+  await page.getByRole('button', { name: 'Create product' }).click();
   await expect(page).toHaveURL(/\/en\/products$/);
   await page.getByRole('link', { name: 'Price Change Product' }).click();
-  await expect(page.getByPlaceholder('Enter product title...')).toHaveValue('Price Change Product');
+  await expect(page.getByLabel('Name', { exact: true }).first()).toHaveValue('Price Change Product');
 
   const shopContext = await newObservedContext({ baseURL: 'http://127.0.0.1:3003' });
   const shop = await shopContext.newPage();
@@ -28,10 +28,10 @@ test('stock limit and changed price require a fresh checkout confirmation', asyn
     await shop.getByRole('button', { name: 'Search', exact: true }).click();
     await shop.getByRole('link', { name: /Price Change Product/ }).click();
 
-    await page.getByPlaceholder('0', { exact: true }).fill('2');
-    await page.getByRole('button', { name: 'Save Changes' }).click();
-    await expect(page.getByRole('button', { name: 'Updated', exact: true })).toBeVisible();
-    await expect(page.getByText('Product updated successfully', { exact: true })).toHaveCount(1);
+    await page.getByLabel('Stock', { exact: true }).fill('2');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('Unsaved changes', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Product saved.', { exact: true })).toHaveCount(1);
     await shop.getByLabel('Quantity').fill('3');
     await shop.getByRole('button', { name: 'Add to cart' }).click();
     await expect(shop.getByText('Available quantity: 2', { exact: true })).toHaveText('Available quantity: 2');
@@ -53,10 +53,10 @@ test('stock limit and changed price require a fresh checkout confirmation', asyn
     await expect(shop.getByText('Tax (Tax added)')).toBeVisible();
     await shop.getByRole('radio', { name: 'Manual payment' }).check();
 
-    await page.getByPlaceholder('0.00').fill('15.00');
-    await page.getByRole('button', { name: 'Save Changes' }).click();
-    await expect(page.getByRole('button', { name: 'Updated', exact: true })).toBeVisible();
-    await expect(page.getByText('Product updated successfully', { exact: true })).toHaveCount(1);
+    await page.getByLabel('Price', { exact: true }).fill('15.00');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('Unsaved changes', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Product saved.', { exact: true })).toHaveCount(1);
     await shop.getByRole('button', { name: 'Place order' }).click();
     await expect(shop.getByText('Price changed. Review the new total and confirm again.', { exact: true })).toHaveText('Price changed. Review the new total and confirm again.');
     await expect(shop.getByRole('status', { name: 'Total $15.00' })).toBeVisible();

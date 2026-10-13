@@ -10,12 +10,12 @@ async function buyerWithCart(page: Page, label: string) {
   const productName = `Boundary ${label} ${id.slice(0, 8)}`;
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/products/create');
-  await page.getByPlaceholder('Enter product title...').fill(productName);
-  await page.getByPlaceholder('e.g. Red / XL').fill('Standard');
-  await page.getByPlaceholder('SKU-REF').fill(`BOUNDARY-${id}`);
-  await page.getByPlaceholder('0.00').fill('12.00');
-  await page.getByPlaceholder('0', { exact: true }).fill('3');
-  await page.getByRole('button', { name: 'Save Product', exact: true }).click();
+  await page.getByLabel('Name', { exact: true }).first().fill(productName);
+  await page.getByLabel('Name', { exact: true }).nth(1).fill('Standard');
+  await page.getByLabel('SKU', { exact: true }).fill(`BOUNDARY-${id}`);
+  await page.getByLabel('Price', { exact: true }).fill('12.00');
+  await page.getByLabel('Stock', { exact: true }).fill('3');
+  await page.getByRole('button', { name: 'Create product', exact: true }).click();
   await expect(page).toHaveURL('http://127.0.0.1:3002/en/products');
   await page.goto(`${shopOrigin}/en/register`);
   await page.getByLabel('Name').fill(`Boundary ${label} Buyer`);

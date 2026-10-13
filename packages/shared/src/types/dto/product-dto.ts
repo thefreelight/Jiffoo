@@ -37,6 +37,10 @@ export interface ShopProductDetailDTO {
 
 // Admin product list item DTO (flattened)
 export interface AdminProductListItemDTO {
+  images: string[];
+  variantsActiveCount: number;
+  priceMin: number;
+  priceMax: number;
   id: string;
   name: string;
   description?: string | null;

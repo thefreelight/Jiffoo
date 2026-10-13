@@ -47,6 +47,15 @@ function calculateTrendPercent(current: number, previous: number): number {
   return Number((((current - previous) / previous) * 100).toFixed(2));
 }
 
+function activeProductWhere(): Prisma.ProductWhereInput {
+  return { isActive: true, variants: { some: { isActive: true } } };
+}
+
+function productAvailability(isActive: boolean, activeVariants: number, stock: number) {
+  const active = isActive && activeVariants > 0;
+  return { active, outOfStock: active && stock === 0 };
+}
+
 function parseJsonObject(value: unknown): Record<string, unknown> | null {
   if (!value) {
     return null;
@@ -87,6 +96,7 @@ function resolveVariantSalePrice(variant: ProductVariantData): number {
 }
 
 export interface AdminProductSearchFilters {
+  status?: 'active' | 'inactive' | 'outOfStock';
   search?: string;
   categoryId?: string;
   minPrice?: number;
@@ -106,6 +116,7 @@ export interface AdminProductStatsMetrics {
 }
 
 export interface AdminProductStatsResult {
+  statusCounts: { all: number; active: number; inactive: number; outOfStock: number };
   metrics: AdminProductStatsMetrics;
 }
 
@@ -186,6 +197,7 @@ export class AdminProductService {
 
     if (filters.search?.trim()) validFilters.search = filters.search.trim();
     if (filters.categoryId) validFilters.categoryId = filters.categoryId;
+    if (filters.status) validFilters.status = filters.status;
 
     const minPrice = this.toNumber((filters as any).minPrice);
     if (minPrice !== undefined) validFilters.minPrice = minPrice;
@@ -251,6 +263,15 @@ export class AdminProductService {
 
     const where = this.buildWhere(normalizedFilters);
 
+    if (normalizedFilters.status === 'active') where.AND = [activeProductWhere()];
+    if (normalizedFilters.status === 'inactive') where.AND = [{ NOT: activeProductWhere() }];
+    if (normalizedFilters.status === 'outOfStock') {
+      const emptyProducts = await prisma.productVariant.groupBy({
+        by: ['productId'], where: { isActive: true }, having: { stock: { _sum: { equals: 0 } } },
+      });
+      where.AND = [activeProductWhere(), { id: { in: emptyProducts.map(product => product.productId) } }];
+    }
+
     if (normalizedFilters.inStock !== undefined) {
       const inStockVariantIds = await InventoryService.getVariantIdsByAvailability({
         minAvailable: 1,
@@ -307,6 +328,7 @@ export class AdminProductService {
           name: true,
           description: true,
           isActive: true,
+          typeData: true,
           requiresShipping: true,
           createdAt: true, // Needed for list DTO
           category: {
@@ -357,8 +379,12 @@ export class AdminProductService {
           categoryName: p.category ? p.category.name : null,
           skuCode: minPriceVariant?.skuCode || null,
           price: minPrice,
+          priceMin: minPrice,
+          priceMax: skuCount ? Math.max(...p.variants.map(v => Number(v.salePrice))) : 0,
+          images: parseImageList(p.typeData),
           stock,
-          isActive: p.isActive && skuCount > 0,
+          isActive: productAvailability(p.isActive, skuCount, stock).active,
+          variantsActiveCount: skuCount,
           variantsCount: p._count.variants,
           createdAt: p.createdAt.toISOString()
         };
@@ -395,6 +421,7 @@ export class AdminProductService {
       select: {
         id: true,
         createdAt: true,
+        isActive: true,
         variants: {
           select: {
             id: true,
@@ -423,8 +450,9 @@ export class AdminProductService {
 
       const activeVariants = product.variants.filter((variant) => variant.isActive);
       const activeVariantStocks = activeVariants.map((variant) => stockMap.get(variant.id) ?? 0);
-      const isActive = activeVariants.length > 0;
-      const isOutOfStock = activeVariantStocks.some((stock) => stock <= 0);
+      const availability = productAvailability(product.isActive, activeVariants.length, activeVariantStocks.reduce((sum, stock) => sum + stock, 0));
+      const isActive = availability.active;
+      const isOutOfStock = availability.outOfStock;
 
       if (isActive) activeProducts += 1;
       if (isOutOfStock) outOfStockProducts += 1;
@@ -441,6 +469,7 @@ export class AdminProductService {
     }
 
     const result: AdminProductStatsResult = {
+      statusCounts: { all: totalProducts, active: activeProducts, inactive: totalProducts - activeProducts, outOfStock: outOfStockProducts },
       metrics: {
         totalProducts,
         activeProducts,

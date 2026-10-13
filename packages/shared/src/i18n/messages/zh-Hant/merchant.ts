@@ -6,6 +6,22 @@
  */
 
 export const merchant = {
+  catalog: {
+    loadingCategories: '正在載入分類…', categoryError: '無法載入分類。', statsError: '無法載入商品數量。',
+    products: '商品', categories: '分類', addProduct: '新增商品', all: '全部', active: '販售中', inactive: '已下架', outOfStock: '缺貨',
+    search: '搜尋商品', category: '分類', allCategories: '全部分類', uncategorized: '未分類', variants: '規格', variantCount: '{count} 個規格',
+    price: '價格', fromPrice: '{price} 起', stock: '庫存', status: '狀態', actions: '操作', edit: '編輯', more: '{name} 的更多操作',
+    deactivate: '下架', activate: '上架', delete: '刪除', cancel: '取消', save: '儲存', create: '建立商品',
+    empty: '暫無商品', noMatches: '沒有符合這些篩選條件的商品。', range: '{start}–{end}，共 {total} 筆', previous: '上一頁', next: '下一頁',
+    loading: '正在載入商品…', listError: '無法載入商品。', retry: '重試', deactivateTitle: '下架 {name}？', activateTitle: '上架 {name}？',
+    deactivateHint: '商品將從商店隱藏，已有訂單不受影響。', activateHint: '至少有一個規格可販售時，商品才會在商店顯示。',
+    deleteTitle: '刪除 {name}？', deleteHint: '此操作無法復原。', deactivateInstead: '改為下架', saved: '商品已儲存。', created: '商品已建立。', deleted: '商品已刪除。',
+    deactivated: '商品已下架。', activated: '商品已上架。', back: '← 商品', newProduct: '新商品', unsaved: '有未儲存的變更', details: '詳情', name: '名稱', description: '描述',
+    images: '圖片', upload: '上傳圖片', removeImage: '移除圖片 {n}', available: '可販售', removeVariant: '移除規格 {name}', addVariant: '新增規格',
+    sku: 'SKU', activeSwitch: '販售中 — 在商店顯示', activeHint: '關閉可隱藏商品，無需刪除。', organization: '商品設定', shipping: '需要配送', shippingHint: '數位商品請關閉。',
+    loadProduct: '正在載入商品…', productError: '無法載入此商品。', orderedVariantHint: '請恢復已移除的規格，並關閉「可販售」。',
+    addCategory: '新增分類', editCategory: '編輯分類', emptyCategories: '暫無分類', slug: '網址識別', categorySaved: '分類已儲存。', categoryDeleted: '分類已刪除。',
+  },
   auditEvents: {
     corePlan: 'Core 更新計劃已檢查',
     invalidTime: '此時間在商店時區中不存在。',
