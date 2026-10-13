@@ -6,7 +6,7 @@
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
-import { getTodayAndYesterdayRangeUtc, getStoreCalendarDays } from '@/utils/timezone';
+import { getTodayAndYesterdayRangeUtc, getStoreCalendarDays, normalizeTimezone } from '@/utils/timezone';
 import { paymentReviewWhere } from '../order-management/service';
 
 function calculateTrendPercent(current: number, previous: number): number {
@@ -101,7 +101,7 @@ export class AdminDashboardService {
             prisma.order.count({ where: { status: 'PROCESSING' } }),
             // Prisma stores createdAt as a UTC timestamp without time zone.
             prisma.$queryRaw<Array<{ date: string; paidSales: unknown; orders: number }>>`
-                SELECT to_char((("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE ${timezone})::date, 'YYYY-MM-DD') AS date,
+                SELECT to_char((("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE ${normalizeTimezone(timezone)})::date, 'YYYY-MM-DD') AS date,
                     COALESCE(SUM(CASE WHEN "paymentStatus" = 'PAID' AND status NOT IN ('CANCELLED', 'REFUNDED')
                         THEN "totalAmount" ELSE 0 END), 0) AS "paidSales", COUNT(*)::integer AS orders
                 FROM public.orders

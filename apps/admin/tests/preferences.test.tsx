@@ -5,8 +5,11 @@ import { createRoot, hydrateRoot, type Root } from 'react-dom/client';
 import { afterEach, expect, it, vi } from 'vitest';
 import { COLOR_MODE_COOKIE, SIDEBAR_COOKIE, parseColorMode, preferenceCookie } from '../lib/preferences';
 import { usePreferences } from '../lib/preferences-provider';
-const fixture = vi.hoisted(() => ({ mode: 'system', sidebar: '0', dark: true }));
-vi.mock('next/headers', () => ({ cookies: async () => ({ get: (name: string) => ({ value: name === 'jiffoo_admin_color_mode' ? fixture.mode : fixture.sidebar }) }) }));
+const fixture = vi.hoisted(() => ({ mode: 'system', sidebar: '0', dark: true, locale: '' }));
+vi.mock('next/headers', () => ({
+  cookies: async () => ({ get: (name: string) => ({ value: name === 'jiffoo_admin_color_mode' ? fixture.mode : fixture.sidebar }) }),
+  headers: async () => new Headers(fixture.locale ? { 'x-admin-locale': fixture.locale } : {}),
+}));
 vi.mock('next/font/local', () => ({ default: () => ({ variable: 'test-font' }) }));
 vi.mock('../lib/server-theme', () => ({ getAdminTheme: async () => ({ darkAvailable: fixture.dark }) }));
 import RootLayout from '../app/layout';
@@ -15,7 +18,13 @@ function Probe() {
   const { mode, collapsed, setMode } = usePreferences();
   return <><output>{mode}:{String(collapsed)}</output><button onClick={() => setMode('dark')}>Dark</button></>;
 }
-afterEach(async () => { if (hydrated) await act(async () => hydrated!.unmount()); hydrated = undefined; document.body.innerHTML = ''; vi.unstubAllGlobals(); });
+afterEach(async () => { if (hydrated) await act(async () => hydrated!.unmount()); hydrated = undefined; fixture.locale = ''; document.body.innerHTML = ''; vi.unstubAllGlobals(); });
+it('uses a supported request locale and falls back to English for an unsupported locale', async () => {
+  for (const [locale, expected] of [['zh-Hans', 'zh-Hans'], ['unsupported', 'en']]) {
+    fixture.locale = locale;
+    expect(renderToString(await RootLayout({ children: <Probe /> }))).toContain('<html lang="' + expected + '"');
+  }
+});
 it.each(['system', 'light', 'dark', 'invalid'])('hydrates the server cookie state identically for %s', async value => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   fixture.mode = value; fixture.sidebar = '1'; fixture.dark = true;
