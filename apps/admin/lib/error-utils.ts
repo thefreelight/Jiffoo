@@ -29,6 +29,7 @@ const ERROR_CODE_TO_I18N_KEY: Partial<Record<ApiErrorCode, { key: string; fallba
   PLUGIN_DATABASE_OUTCOME_UNKNOWN: { key: 'common.errors.pluginDatabaseOutcomeUnknown', fallback: 'Plugin database commit outcome is unknown. Do not retry automatically.' },
   CATEGORY_NOT_EMPTY: { key: 'merchant.contentTranslations.categoryNotEmpty', fallback: 'Remove products and child categories before deleting this category.' },
   PRODUCT_HAS_ORDERS: { key: 'merchant.contentTranslations.productHasOrders', fallback: 'This product or variant has orders and cannot be deleted. Deactivate it instead.' },
+  CUSTOMER_HAS_ORDERS: { key: 'merchant.contentTranslations.customerHasOrders', fallback: 'This customer has orders and cannot be deleted. Deactivate the customer instead.' },
   SPU_CODE_TAKEN: { key: 'merchant.catalog.spuCodeTaken', fallback: 'This SPU is already used by product {name}.' },
   SKU_CODE_TAKEN: { key: 'merchant.catalog.skuCodeTaken', fallback: 'This SKU is already used by product {name}.' },
   INVALID_PRODUCT_CODE: { key: 'merchant.catalog.invalidProductCode', fallback: 'Use 1–64 letters, digits, hyphens, underscores or dots.' },

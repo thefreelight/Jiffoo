@@ -366,15 +366,16 @@ export const ordersApi = {
 
 // Users API
 export const usersApi = {
-  getAll: (params: PaginationParams = {}): Promise<ApiResponse<PageResult<UserProfile>>> => {
-    const { page = 1, limit = 10, search } = params;
-    return apiClient.get('/admin/users', { params: { page, limit, search } });
+  getAll: (params: import('./customer-list-state').CustomerQuery = {}): Promise<ApiResponse<PageResult<import('./types').Customer> & { statusCounts: { all: number; active: number; inactive: number } }>> => {
+    return apiClient.get('/admin/users', { params });
   },
+  neighbors: (id: string, params: import('./customer-list-state').CustomerQuery) => apiClient.get<{ position: number | null; total: number; previousId: string | null; nextId: string | null }>(`/admin/users/${id}/neighbors`, { params }),
+  export: (selection: { mode: 'ids'; ids: string[] } | { mode: 'filter'; filters: import('./customer-list-state').CustomerQuery; excludedIds?: string[] }, sort: Pick<import('./customer-list-state').CustomerQuery, 'sortBy' | 'sortOrder'>, locale: string) => exportCsv('/admin/users/export', { selection, ...sort }, locale),
 
   getStats: (): Promise<ApiResponse<UserStatsData>> =>
     apiClient.get('/admin/users/stats'),
 
-  getById: (id: string): Promise<ApiResponse<UserProfile>> => apiClient.get(`/admin/users/${id}`),
+  getById: (id: string): Promise<ApiResponse<import('./types').CustomerDetail>> => apiClient.get(`/admin/users/${id}`),
 
   create: (data: {
     email: string;
@@ -385,8 +386,6 @@ export const usersApi = {
 
   update: (id: string, data: {
     username?: string;
-    role?: string;
-    avatar?: string;
     isActive?: boolean;
   }): Promise<ApiResponse<UserProfile>> => apiClient.put(`/admin/users/${id}`, data),
 

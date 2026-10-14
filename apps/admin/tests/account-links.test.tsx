@@ -4,7 +4,6 @@ import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot, type Root } from 'react-dom/client'
 import ForgotPasswordPage from '@/app/[locale]/(themed)/auth/forgot-password/page'
-import { GenerateResetLinkDialog } from '@/components/customers/generate-reset-link-dialog'
 import StaffDetailPage from '@/app/[locale]/(themed)/staff/[id]/page'
 import CustomerDetailPage from '@/app/[locale]/(themed)/customers/[id]/page'
 
@@ -37,12 +36,15 @@ vi.mock('@/lib/hooks/use-api', () => ({
   useUser: () => ({
     data: {
       id: 'customer-1', username: 'buyer', email: 'buyer@example.com',
-      role: 'USER', isActive: true, avatar: null,
+      role: 'USER', isActive: true, avatar: null, locale: null, emailVerified: false,
+      orderCount: 0, paidTotal: 0, currency: 'USD', lastOrderAt: null, recentOrders: [], latestShippingAddress: null,
       createdAt: '2026-09-23T00:00:00.000Z', updatedAt: '2026-09-23T00:00:00.000Z',
     },
     isLoading: false, error: null, refetch: vi.fn(),
   }),
   useUpdateUser: () => ({ mutateAsync: vi.fn() }),
+  useDeleteUser: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useCustomerNeighbors: () => ({ data: { position: 1, total: 1, previousId: null, nextId: null }, error: null }),
   useStaffMember: () => ({
     data: {
       id: 'staff-1', username: 'invited', email: 'invited@example.com',
@@ -94,21 +96,15 @@ describe('Admin account links', () => {
     expect(container.textContent).toContain('If an account exists')
   })
 
-  it('generates and displays the customer reset link once', async () => {
-    const account = { id: 'customer-1', email: 'buyer@example.com' }
-    await act(async () => root.render(<GenerateResetLinkDialog open onOpenChange={vi.fn()} user={account as never} />))
-    const button = Array.from(document.body.querySelectorAll('button')).find((item) => item.textContent?.includes('Generate link'))
-    expect(button).toBeDefined()
-    await act(async () => button!.click())
-    expect(generateResetLink).toHaveBeenCalledTimes(1)
-    expect(generateResetLink).toHaveBeenCalledWith('customer-1')
-    expect(document.body.querySelector<HTMLInputElement>('input[aria-label="Reset link"]')?.value).toContain('token=one')
-    expect(Array.from(document.body.querySelectorAll('button')).some((item) => item.textContent?.includes('Generate link'))).toBe(false)
-  })
-
-  it('shows Generate reset link to an administrator', async () => {
+  it('generates the reset link immediately and shows an inline panel', async () => {
     await act(async () => root.render(<CustomerDetailPage />))
-    expect(container.textContent).toContain('Generate reset link')
+    const button = Array.from(container.querySelectorAll('button')).find(item => item.textContent === 'merchant.customers.workspace.generateLink')!
+    await act(async () => button.click())
+    expect(generateResetLink).toHaveBeenCalledTimes(1)
+    expect(generateResetLink).toHaveBeenCalledWith('staff-1')
+    expect(container.querySelector<HTMLInputElement>('input[aria-label="merchant.customers.workspace.resetLink"]')?.value).toContain('token=one')
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(container.textContent).toContain('merchant.customers.workspace.linkNote')
   })
 
   it('shows an Admin invite link on staff detail', async () => {

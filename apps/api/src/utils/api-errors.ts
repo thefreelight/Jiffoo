@@ -14,6 +14,7 @@ export const errorCatalog = {
   [ApiErrorCodes.PLUGIN_TEST_SIGNING_CONFLICT]: { status: 409, message: 'Test-signed plugin cannot be used in this environment' },
   [ApiErrorCodes.CATEGORY_NOT_EMPTY]: { status: 409, message: 'Category not empty.' },
   [ApiErrorCodes.PRODUCT_HAS_ORDERS]: { status: 409, message: 'This product or variant has orders and cannot be deleted. Deactivate it instead.' },
+  [ApiErrorCodes.CUSTOMER_HAS_ORDERS]: { status: 409, message: 'This customer has orders and cannot be deleted. Deactivate the customer instead.' },
   [ApiErrorCodes.SPU_CODE_TAKEN]: { status: 409, message: 'This SPU is already used by product {name}.' },
   [ApiErrorCodes.SKU_CODE_TAKEN]: { status: 409, message: 'This SKU is already used by product {name}.' },
   [ApiErrorCodes.INVALID_PRODUCT_CODE]: { status: 400, message: 'Use 1–64 letters, digits, hyphens, underscores or dots.' },

@@ -114,17 +114,8 @@ async function captureDynamicBoxes(page: Page, name: string, width: number, heig
   if (name === 'dashboard') {
     await add('recent order generated ID', page.getByRole('link', { name: /^View order / }));
     await add('recent order created time', page.getByText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/));
-  } else if (name === 'customers-list') {
-    await add('customer generated ID', page.getByText(/^ID: [A-Z0-9]{8}\.\.\.$/i));
-  } else if (name === 'customer-detail') {
-    await add('customer generated ID', page.getByText(/^ID: [A-Z0-9]{8}\.\.\.$/i));
-    await add('customer dates', page.getByText(date));
-    if (width === 390) {
-      await add('ID reflows profile heading', page.getByRole('heading', { name: 'User Profile' }));
-      await add('ID reflows reset button', page.getByRole('button', { name: 'Generate reset link' }));
-      await add('ID reflows edit button', page.getByRole('button', { name: 'Edit', exact: true }));
-      await add('ID reflows customer action row', page.getByText(/^Generate reset link\s*Edit$/));
-    }
+  } else if (name === 'customers-list' || name === 'customer-detail') {
+    await add('customer store timestamps', page.getByText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/));
   } else if (name === 'order-detail') {
     await add('order generated ID', page.getByRole('heading', { name: /^Order #/ }));
     await add('order exact store times', page.getByText(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/));
@@ -423,9 +414,9 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
         await expect(page).toHaveURL(/\/en\/orders\/[^/]+$/);
         await expect(page.getByText('customer@e2e.example').first()).toBeVisible();
       } else if (name === 'customer-detail') {
-        const row = page.getByRole('row').filter({ hasText: 'customer@e2e.example' });
-        await expect(row).toBeVisible();
-        await row.getByRole('link').click();
+        const customer = width < 1100 ? page.getByRole('article').filter({ hasText: 'customer@e2e.example' }) : page.getByRole('row').filter({ hasText: 'customer@e2e.example' });
+        await expect(customer).toBeVisible();
+        await customer.getByRole('link', { name: /customer@e2e.example/ }).click();
         await expect(page).toHaveURL(/\/en\/customers\/[^/]+$/);
       }
       await expect(page.getByRole('heading').first()).toBeVisible();
@@ -452,8 +443,8 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
           administrators: [{ label: 'Invite administrator', locator: page.getByRole('button', { name: 'Invite administrator' }) }],
           categories: [{ label: 'Add category', locator: page.getByRole('button', { name: 'Add category' }) }],
           'customer-detail': [
-            { label: 'Edit User', locator: page.getByRole('button', { name: 'Edit User' }) },
-            { label: 'USER', locator: page.getByText('USER', { exact: true }) },
+            { label: 'Edit name', locator: page.getByRole('button', { name: 'Edit', exact: true }) },
+            { label: 'Reset link', locator: page.getByRole('button', { name: 'Generate password reset link', exact: true }) },
           ],
           'products-list': [{ label: 'Add product', locator: page.getByRole('link', { name: 'Add product', exact: true }) }],
           settings: [{ label: 'Save Changes', locator: page.getByRole('button', { name: 'Save Changes' }) }],
@@ -478,48 +469,14 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
           await writeFile(`e2e/visual-results/${set}/computed-${name}-${width}.json`,
             JSON.stringify(computed, null, 2));
         }
-        if (name === 'customers-list' && width === 390) {
-          const computed = await page.getByText('Live metric', { exact: true }).nth(1).evaluate((label) => {
-            let card: Element | null = label;
-            while (card && !card.classList.contains('bg-gradient-to-br')) card = card.parentElement;
-            if (!card) throw new Error('Customer statistic card not found');
-            const css = getComputedStyle(card);
-            const rect = card.getBoundingClientRect();
-            return {
-              element: 'Active customer statistic card',
-              box: [rect.x, rect.y, rect.width, rect.height],
-              backgroundImage: css.backgroundImage,
-              backgroundColor: css.backgroundColor,
-              borderColor: css.borderColor,
-              boxShadow: css.boxShadow,
-              borderRadius: css.borderRadius,
-              fontFamily: css.fontFamily,
-            };
-          });
-          await writeFile(`e2e/visual-results/${set}/computed-customers-list-390.json`,
-            JSON.stringify(computed, null, 2));
-        }
+
       }
 
       const date = new Date().toLocaleDateString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
       });
       await captureDynamicBoxes(page, name, width, height, set);
-      if (name === 'customers-list' && width === 390) {
-        const state = await page.getByText('Live metric', { exact: true }).nth(1).evaluate((label) => {
-          let card: Element | null = label;
-          while (card && !card.classList.contains('bg-gradient-to-br')) card = card.parentElement;
-          if (!card) throw new Error('Active customer statistic card not found');
-          return {
-            hovered: card.matches(':hover'),
-            transform: getComputedStyle(card).transform,
-            runningAnimations: card.getAnimations({ subtree: true })
-              .filter((animation) => animation.playState === 'running' || animation.pending).length,
-          };
-        });
-        expect(state, 'Active statistic capture has no residual hover or running transitions')
-          .toEqual({ hovered: false, transform: 'none', runningAnimations: 0 });
-      }
+
       await screenshotWithoutOverflow(page, {
         path: `e2e/visual-results/${set}/${name}-${width}.png`,
         fullPage: true,

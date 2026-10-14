@@ -8,6 +8,9 @@ import { PasswordUtils } from '@/utils/password';
 import { CacheService } from '@/core/cache/service';
 import { emitEvent } from '@/infra/events/emit';
 import { customerSnapshot } from '@/infra/events/snapshots';
+import { Prisma } from '@prisma/client';
+import { customerList, customerNeighbors, customerBase, customerItem, type CustomerQuery, type CustomerRow } from './list-query';
+import { systemSettingsService } from '../system-settings/service';
 
 function calculateTrendPercent(current: number, previous: number): number {
   if (previous === 0) {
@@ -58,110 +61,32 @@ export class AdminUserService {
     };
   }
 
-  /**
-   * Get users list - flattened response for UI display
-   * Returns: { items: [...], pagination: {...} }
-   * Uses versioned cache (30s TTL) similar to orders
-   */
-  static async getUsers(page = 1, limit = 10, search?: string) {
-    const skip = (page - 1) * limit;
-    const where: any = {
-      role: 'USER' // Only return users with USER role
-    };
+  static async getUsers(query: CustomerQuery = {}) {
+    return customerList(query);
+  }
 
-    if (search) {
-      where.OR = [
-        { username: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } }
-      ];
-    }
-
-    // Try cache first
-    const cached = await CacheService.getUserList(page, limit, { search });
-    if (cached) return cached;
-
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        skip,
-        take: limit,
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          avatar: true,
-          role: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-        orderBy: { createdAt: 'desc' }
-      }),
-      prisma.user.count({ where })
-    ]);
-
-    const result = {
-      items: users.map(u => ({
-        ...u,
-        createdAt: u.createdAt.toISOString(),
-        updatedAt: u.updatedAt.toISOString(),
-      })),
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit)
-    };
-
-    // Save to cache (30s TTL for admin users list)
-    await CacheService.setUserList(page, limit, result, { search }, 30);
-
-    return result;
+  static async getUserNeighbors(id: string, query: CustomerQuery = {}) {
+    return customerNeighbors(id, query);
   }
 
   static async getUserById(userId: string) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId, role: 'USER' },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        avatar: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        orders: {
-          select: {
-            id: true,
-            totalAmount: true,
-            status: true,
-            paymentStatus: true
-          }
-        }
-      }
-    });
-
-    if (!user) return null;
-
-    // Calculate order statistics
-    const totalOrders = user.orders.length;
-    const completedOrders = user.orders.filter(o => o.paymentStatus === 'PAID');
-    const totalSpent = completedOrders.reduce((sum, order) => sum + Number(order.totalAmount), 0);
-
-    return {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      avatar: user.avatar,
-      role: user.role,
-      isActive: user.isActive,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
-      // Order statistics
-      totalOrders,
-      totalSpent,
-      // Note: lastLoginAt is not in the schema yet, would need migration
-      lastLoginAt: null
+    const currency = await systemSettingsService.getShopCurrency();
+    const [rows, recentOrders, addressOrder] = await prisma.$transaction([
+      prisma.$queryRaw<CustomerRow[]>(Prisma.sql`${customerBase(Prisma.sql`u.role = 'USER' AND u.id = ${userId}`)}`),
+      prisma.order.findMany({ where: { userId }, take: 10, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        select: { id: true, status: true, paymentStatus: true, totalAmount: true, currency: true, createdAt: true } }),
+      prisma.order.findFirst({ where: { userId, shippingAddress: { isNot: null } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        select: { id: true, shippingAddress: true } }),
+    ], { isolationLevel: 'RepeatableRead' });
+    if (!rows[0]) return null;
+    const address = addressOrder?.shippingAddress;
+    return { ...customerItem(rows[0], currency),
+      recentOrders: recentOrders.map(order => ({ ...order, totalAmount: Number(order.totalAmount), createdAt: order.createdAt.toISOString() })),
+      latestShippingAddress: address ? {
+        orderId: addressOrder!.id, recipientName: [address.firstName, address.lastName].filter(Boolean).join(' '),
+        phone: address.phone, street: address.addressLine1, street2: address.addressLine2,
+        city: address.city, state: address.state, zipCode: address.postalCode, country: address.country,
+      } : null,
     };
   }
 
@@ -199,6 +124,7 @@ export class AdminUserService {
         avatar: true,
         role: true,
         createdAt: true,
+        isActive: true,
         updatedAt: true,
         locale: true,
         emailVerified: true,
@@ -221,7 +147,6 @@ export class AdminUserService {
   static async updateUser(userId: string, data: {
     username?: string;
     role?: string;
-    avatar?: string;
     isActive?: boolean;
   }) {
     if (Object.prototype.hasOwnProperty.call(data, 'role')) {
@@ -229,10 +154,11 @@ export class AdminUserService {
     }
     const user = await prisma.$transaction(async (tx) => {
       const target = await tx.user.findUnique({ where: { id: userId }, select: { role: true } });
+      if (!target) throw new ApiError('NOT_FOUND');
       if (target?.role === 'ADMIN') throw new CustomerManagementError('Administrator accounts are managed separately', 'ADMIN_ACCOUNT_PROTECTED', 409);
       return tx.user.update({
         where: { id: userId, role: 'USER' },
-        data,
+        data: { ...(data.username !== undefined ? { username: data.username } : {}), ...(data.isActive !== undefined ? { isActive: data.isActive } : {}) },
         select: {
           id: true,
           email: true,
@@ -273,29 +199,9 @@ export class AdminUserService {
         throw new CustomerManagementError('Administrator accounts are managed separately', 'ADMIN_ACCOUNT_PROTECTED', 409);
       }
 
-      const userOrders = await tx.order.findMany({
-        where: { userId },
-        select: { id: true },
-      });
-      const orderIds = userOrders.map((order) => order.id);
-
-      if (orderIds.length > 0) {
-        await tx.refund.deleteMany({
-          where: { orderId: { in: orderIds } },
-        });
-
-        await tx.shipment.deleteMany({
-          where: { orderId: { in: orderIds } },
-        });
-
-        await tx.payment.deleteMany({
-          where: { orderId: { in: orderIds } },
-        });
-
-        await tx.order.deleteMany({
-          where: { id: { in: orderIds } },
-        });
-      }
+      // Lock the customer row so concurrent order inserts cannot race the deletion.
+      await tx.$queryRaw(Prisma.sql`SELECT id FROM public.users WHERE id = ${userId} FOR UPDATE`);
+      if (await tx.order.count({ where: { userId } }) > 0) throw new ApiError('CUSTOMER_HAS_ORDERS');
 
       await knownPrismaOperation(() => tx.user.delete({
         where: { id: userId, role: 'USER' },

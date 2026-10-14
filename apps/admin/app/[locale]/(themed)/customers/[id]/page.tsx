@@ -1,457 +1,69 @@
-/**
- * Customer Detail/Edit Page
- *
- * Displays and allows editing of customer information with a compact design matching admin style.
- */
-'use client'
+'use client';
 
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { useLocale, useT } from 'shared/src/i18n/react';
+import { formatStoreTimestamp } from 'shared';
 import { useStoreDate } from '@/lib/store-time';
-import { AlertTriangle, ArrowLeft, Calendar, Mail, ShieldCheck, User, Save, X, Activity, DollarSign, Package, Clock, ExternalLink, Key } from 'lucide-react'
-import { formatCurrency, cn } from '@/lib/utils'
-import { useParams, useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { useAdminDashboard, useUser, useUpdateUser } from '@/lib/hooks/use-api'
-import { useT } from 'shared/src/i18n/react'
-import { useState, useEffect } from 'react'
-import { toast } from 'sonner'
-import { UserRole } from '@/lib/types'
-import { GenerateResetLinkDialog } from '@/components/customers/generate-reset-link-dialog'
-import { resolveApiErrorMessage } from '@/lib/error-utils'
-import { UserAvatar } from '@/components/ui/user-avatar'
-
+import { useUser, useUpdateUser, useCustomerNeighbors } from '@/lib/hooks/use-api';
+import { usersApi, unwrapApiResponse } from '@/lib/api';
+import { customerListQuery, savedCustomerListUrl, customerOrdersUrl } from '@/lib/customer-list-state';
+import { shippingAddressText } from '@/lib/order-detail';
+import { formatCurrency } from '@/lib/utils';
+import { resolveApiErrorMessage } from '@/lib/error-utils';
+import { CustomerActions, CustomerStatus, DeleteCustomerDialog } from '@/components/customers/customer-actions';
+import { CopyButton } from '@/components/orders/CopyButton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function CustomerDetailPage() {
-  const { date: storeDate } = useStoreDate();
-  const params = useParams()
-  const router = useRouter()
-  const userId = params.id as string
-  const t = useT()
-  const { data: dashboardData } = useAdminDashboard()
-  const currency = dashboardData?.metrics?.currency
-
-  const [isEditing, setIsEditing] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false)
-  const [formData, setFormData] = useState({
-    username: '',
-    role: '' as UserRole,
-    avatar: '',
-    isActive: true
-  })
-
-  const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback
-    const translated = t(key)
-    return translated === key ? fallback : translated
-  }
-
-  const { data: user, isLoading, error, refetch } = useUser(userId)
-  const updateUserMutation = useUpdateUser()
-
-  // Initialize form data when user data loads
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        username: user.username || '',
-        role: user.role as UserRole || UserRole.USER,
-        avatar: user.avatar || '',
-        isActive: user.isActive ?? true
-      })
-    }
-  }, [user?.id, user?.username, user?.role, user?.avatar, user?.isActive, isEditing])
-
-  const handleEdit = () => {
-    setIsEditing(true)
-  }
-
-  const handleCancel = () => {
-    setIsEditing(false)
-  }
-
-  const handleSave = async () => {
-    if (!user) return
-
-    try {
-      setIsSaving(true)
-      await updateUserMutation.mutateAsync({
-        id: user.id,
-        data: {
-          username: formData.username,
-          role: formData.role,
-          isActive: formData.isActive
-        }
-      })
-
-      toast(getText('merchant.customers.success', 'Success'), { description: getText('merchant.customers.edit.success', 'User information updated') })
-
-      setIsEditing(false)
-      refetch()
-    } catch (err: any) {
-      toast.error(getText('merchant.customers.error', 'Error'), { description: resolveApiErrorMessage(err, t, 'merchant.customers.edit.failed', 'Update failed') })
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-page-surface">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-action-strong mx-auto"></div>
-          <p className="mt-4 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.detail.loading', 'Syncing Identity Node...')}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !user) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-page-surface">
-        <div className="text-center max-w-md p-6">
-          <AlertTriangle className="w-16 h-16 text-danger-base mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-neutral-deepest mb-2">{getText('merchant.customers.detail.customerNotFound', 'User not found')}</h2>
-          <p className="text-neutral-strong mb-6">{getText('merchant.customers.detail.customerNotFoundDesc', 'The requested user does not exist or has been deleted.')}</p>
-          <div className="flex gap-4 justify-center">
-            <Button variant="outline" className="rounded-xl" onClick={() => router.back()}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {getText('merchant.customers.detail.goBack', 'Go back')}
-            </Button>
-            <Button className="rounded-xl" onClick={() => refetch()}>
-              {getText('merchant.customers.detail.retry', 'Retry')}
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen bg-page-surface">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-xl hover:bg-neutral-faint h-10 w-10"
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="w-5 h-5 text-neutral-deepest" />
-          </Button>
-          <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-neutral-deepest tracking-tight leading-none">
-              {getText('merchant.customers.detail.title', 'User Profile')}
-            </h1>
-            <span className="text-[10px] font-bold text-action-strong uppercase tracking-widest mt-1">
-              ID: {user.id.substring(0, 8)}...
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {isEditing ? (
-            <>
-              <Button
-                variant="outline"
-                className="h-10 px-6 rounded-xl border border-neutral-soft font-semibold text-sm hover:bg-neutral-veil flex items-center gap-2"
-                onClick={handleCancel}
-                disabled={isSaving}
-              >
-                <X className="w-4 h-4 text-neutral-base" />
-                {getText('merchant.customers.cancel', 'Cancel')}
-              </Button>
-              <Button
-                className="h-10 px-6 rounded-xl font-semibold text-sm shadow-md shadow-action-faint transition-all flex items-center gap-2 bg-action-strong hover:bg-action-deep"
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                <Save className="w-4 h-4" />
-                {isSaving ? getText('merchant.customers.saving', 'Saving...') : getText('merchant.customers.saveChanges', 'Save Changes')}
-              </Button>
-            </>
-          ) : (
-            <>
-              {(
-                <Button
-                  variant="outline"
-                  className="h-10 px-6 rounded-xl border border-neutral-soft font-semibold text-sm hover:bg-neutral-veil flex items-center gap-2"
-                  onClick={() => setResetPasswordDialogOpen(true)}
-                >
-                  <Key className="w-4 h-4 text-neutral-base" />
-                  Generate reset link
-                </Button>
-              )}
-              <Button
-                className="h-10 px-6 rounded-xl font-semibold text-sm shadow-md shadow-action-faint transition-all flex items-center gap-2 bg-action-strong hover:bg-action-deep"
-                onClick={handleEdit}
-              >
-                <User className="w-4 h-4" />
-                {getText('merchant.customers.detail.edit', 'Edit User')}
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-[1600px] space-y-8 px-4 py-6 sm:px-10 sm:py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left">
-          {/* Left Column: Essential Info */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Profile Overview Card */}
-            <Card className="bg-surface rounded-3xl border-neutral-faint shadow-sm overflow-hidden p-0 border">
-              <div className="h-32 bg-neutral-veil border-b border-neutral-faint" />
-              <div className="px-8 pb-8 flex flex-col sm:flex-row items-end gap-8 -mt-16 relative z-10">
-                <div className="w-32 h-32 rounded-2xl bg-surface p-1 shadow-xl ring-1 ring-neutral-faint flex-shrink-0">
-                  <UserAvatar
-                    src={user.avatar}
-                    name={user.username}
-                    username={user.username}
-                    className="h-full w-full rounded-xl"
-                    imageClassName="h-full w-full rounded-xl object-cover"
-                    fallbackClassName="h-full w-full rounded-xl border border-dashed border-neutral-soft bg-neutral-veil text-neutral-base"
-                    textClassName="text-2xl"
-                  />
-                </div>
-
-                <div className="flex-1 pb-2 space-y-3">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <h2 className="text-3xl font-bold text-neutral-deepest tracking-tight leading-none">
-                      {isEditing ? (
-                        <Input
-                          name="username"
-                          value={formData.username}
-                          onChange={handleInputChange}
-                          className="h-10 text-2xl font-bold py-0 min-w-[240px] border-action-base focus:ring-action-base/20 rounded-xl"
-                        />
-                      ) : (
-                        user.username || 'System User'
-                      )}
-                    </h2>
-                    <Badge className="bg-neutral-deepest text-[10px] font-bold uppercase tracking-widest h-5 px-3 rounded-full">
-                      {user.role}
-                    </Badge>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-6 text-[11px] font-bold text-neutral-light uppercase tracking-widest">
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-3.5 h-3.5 text-action-base" />
-                      {user.email}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-action-base" />
-                      {getText('merchant.customers.detail.joined', 'Joined')} {storeDate(user.createdAt, true)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Account Parameters */}
-            <Card className="bg-surface rounded-3xl border-neutral-faint shadow-sm p-8 space-y-8 border">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-1 bg-action-strong rounded-full" />
-                  <h3 className="text-xs font-bold text-neutral-light uppercase tracking-widest">
-                    {getText('merchant.customers.detail.accountDetails', 'Account Parameters')}
-                  </h3>
-                </div>
-                <p className="text-[10px] font-medium text-neutral-pale uppercase tracking-wider pl-3">
-                  {getText('merchant.customers.detail.accountDetailsDesc', 'System Identity Specifications')}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pl-3">
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest leading-none block">
-                    {getText('merchant.customers.username', 'Username')}
-                  </Label>
-                  {isEditing ? (
-                    <Input
-                      name="username"
-                      value={formData.username}
-                      onChange={handleInputChange}
-                      className="rounded-xl border-neutral-faint bg-neutral-veil/50"
-                    />
-                  ) : (
-                    <p className="text-sm font-bold text-neutral-deepest h-10 flex items-center px-4 bg-neutral-veil/50 rounded-xl border border-transparent">
-                      {user.username}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest leading-none block">
-                    {getText('merchant.customers.email', 'Email Interface')}
-                  </Label>
-                  <p className="text-sm font-bold text-neutral-light h-10 flex items-center px-4 bg-neutral-veil/30 rounded-xl border border-neutral-faint border-dashed italic">
-                    {user.email}
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest leading-none block">
-                    {getText('merchant.customers.role', 'Permission level')}
-                  </Label>
-                  {isEditing ? (
-                    <Select
-                      value={formData.role}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, role: value as UserRole }))}
-                    >
-                      <SelectTrigger className="rounded-xl border-neutral-faint bg-neutral-veil/50">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl border-neutral-faint">
-                        <SelectItem value={UserRole.USER}>REGULAR USER</SelectItem>
-                        <SelectItem value={UserRole.ADMIN}>ADMINISTRATOR</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="h-10 flex items-center px-4 bg-neutral-veil/50 rounded-xl border border-transparent">
-                      <Badge variant="outline" className="text-[10px] font-bold border-neutral-soft text-neutral-strong">{user.role}</Badge>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest leading-none block">
-                    {getText('merchant.customers.detail.avatarUrl', 'Interface Skin URL')}
-                  </Label>
-                  <div className="relative group">
-                    {isEditing ? (
-                      <Input
-                        name="avatar"
-                        value={formData.avatar}
-                        onChange={handleInputChange}
-                        className="rounded-xl border-neutral-faint bg-neutral-veil/50 pr-10"
-                      />
-                    ) : (
-                      <div className="text-sm font-bold text-neutral-deepest h-10 flex items-center px-4 bg-neutral-veil/50 rounded-xl border border-transparent pr-10 truncate">
-                        {user.avatar || 'N/A'}
-                      </div>
-                    )}
-                    {user.avatar && (
-                      <a href={user.avatar} target="_blank" rel="noreferrer" className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-pale hover:text-action-base transition-colors">
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest leading-none block">
-                    {getText('merchant.customers.detail.accountStatus', 'Account Status')}
-                  </Label>
-                  {isEditing ? (
-                    <div className="h-10 flex items-center px-4 bg-neutral-veil/50 rounded-xl border border-transparent">
-                      <Switch
-                        checked={formData.isActive}
-                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
-                      />
-                      <span className={cn(
-                        "ml-3 text-xs font-bold uppercase tracking-widest",
-                        formData.isActive ? "text-success-strong" : "text-danger-strong"
-                      )}>
-                        {formData.isActive ? getText('merchant.customers.detail.active', 'ACTIVE') : getText('merchant.customers.detail.inactive', 'INACTIVE')}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="h-10 flex items-center px-4 bg-neutral-veil/50 rounded-xl border border-transparent">
-                      <div className={cn(
-                        "w-2 h-2 rounded-full",
-                        user.isActive ? "bg-success-base animate-pulse" : "bg-danger-base"
-                      )} />
-                      <span className={cn(
-                        "ml-3 text-xs font-bold uppercase tracking-widest",
-                        user.isActive ? "text-success-strong" : "text-danger-strong"
-                      )}>
-                        {user.isActive ? getText('merchant.customers.detail.active', 'ACTIVE') : getText('merchant.customers.detail.inactive', 'INACTIVE')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-
-            {/* Chronological Log */}
-            <Card className="bg-surface rounded-3xl border-neutral-faint shadow-sm border overflow-hidden">
-              <div className="p-8 border-b border-neutral-veil bg-neutral-veil/20">
-                <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-action-strong" />
-                  <h3 className="text-xs font-bold text-neutral-deepest uppercase tracking-widest">
-                    {getText('merchant.customers.detail.temporalEvents', 'CHRONOLOGICAL LOG')}
-                  </h3>
-                </div>
-              </div>
-              <div className="divide-y divide-neutral-veil">
-                {[
-                  { label: getText('merchant.customers.detail.initializationDate', 'INITIALIZATION'), value: storeDate(user.createdAt), icon: Calendar },
-                  { label: getText('merchant.customers.detail.lastSpecificationUpdate', 'SPECIFICATION UPDATE'), value: storeDate(user.updatedAt), icon: ShieldCheck },
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-6 px-4 transition-colors hover:bg-action-veil/20 sm:px-10">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-neutral-veil rounded-2xl group-hover:bg-surface transition-colors">
-                        <item.icon className="w-4 h-4 text-neutral-light" />
-                      </div>
-                      <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest pl-2">
-                        {item.label}
-                      </span>
-                    </div>
-                    <span className="text-xs font-bold text-neutral-deepest tracking-tight">
-                      {item.value}
-                    </span>
-                  </div>
-                ))}
-
-              </div>
-            </Card>
-          </div>
-
-          {/* Right Column: Analytics & Status */}
-          <div className="space-y-8 text-left">
-            {/* Order Statistics */}
-            <Card className="bg-neutral-deepest rounded-3xl p-8 text-surface space-y-6 shadow-xl shadow-neutral-soft border-none relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 w-32 h-32 bg-action-base/10 rounded-full blur-3xl" />
-              <div className="space-y-1 relative z-10">
-                <span className="text-action-light text-[10px] font-bold uppercase tracking-[0.2em]">{getText('merchant.customers.detail.economicContribution', 'LUMINAL VALUE')}</span>
-                <div className="text-4xl font-bold italic tracking-tighter">
-                  {currency ? formatCurrency(user.totalSpent || 0, currency) : '--'}
-                </div>
-                <p className="text-[10px] font-bold text-neutral-base uppercase tracking-widest pt-1">{getText('merchant.customers.totalSpent', 'NET SETTLED VALUE')}</p>
-              </div>
-              <div className="h-px bg-surface/10 w-full relative z-10" />
-              <div className="flex justify-between items-center relative z-10">
-                <div className="space-y-1">
-                  <span className="text-neutral-base text-[10px] font-bold uppercase tracking-widest">{getText('merchant.customers.orders', 'TRANS. COUNT')}</span>
-                  <div className="text-2xl font-bold italic">{user.totalOrders || 0}</div>
-                </div>
-                <DollarSign className="w-10 h-10 text-surface/5 opacity-50" />
-              </div>
-            </Card>
-
-
-
-
-          </div>
-        </div>
-      </div>
-
-      {(
-        <GenerateResetLinkDialog
-          open={resetPasswordDialogOpen}
-          onOpenChange={setResetPasswordDialogOpen}
-          user={user}
-        />
-      )}
+  const id = useParams().id as string, router = useRouter(), t = useT(), locale = useLocale(), { timezone } = useStoreDate();
+  const text = (key: string, values?: Record<string, string | number>) => t('merchant.customers.workspace.' + key, values);
+  const { data: customer, isLoading, error, refetch } = useUser(id), update = useUpdateUser();
+  const [listUrl, setListUrl] = useState('/' + locale + '/customers');
+  useEffect(() => { setListUrl(savedCustomerListUrl(locale, sessionStorage.getItem('customers-list:' + locale))); }, [locale]);
+  const neighbors = useCustomerNeighbors(id, customerListQuery(listUrl));
+  const [reset, setReset] = useState<{ id: string; link: string } | null>(null), [generating, setGenerating] = useState(false), [actionError, setActionError] = useState('');
+  const [deleting, setDeleting] = useState(false), [rename, setRename] = useState(false), [name, setName] = useState('');
+  useEffect(() => { setReset(null); setActionError(''); setRename(false); setDeleting(false); }, [id]);
+  const back = <Link href={listUrl} className="text-muted-foreground hover:underline">{text('back')}</Link>;
+  if (isLoading) return <p role="status">{t('merchant.customers.detail.loading')}</p>;
+  if (error || !customer) return <div role="alert" className="space-y-3"><p>{error ? resolveApiErrorMessage(error, t) : t('merchant.customers.detail.customerNotFound')}</p><Button variant="outline" onClick={() => refetch()}>{t('merchant.customers.detail.retry')}</Button><div>{back}</div></div>;
+  const timestamp = (value: string | null) => value ? formatStoreTimestamp(value, timezone) : text('none');
+  const resetLink = reset?.id === id ? reset.link : '';
+  const address = customer.latestShippingAddress ? shippingAddressText(customer.latestShippingAddress) : '';
+  const panel = 'overflow-hidden rounded-lg border border-border', heading = 'border-b border-border px-4 py-3 text-[13px] font-semibold';
+  const ordersUrl = customerOrdersUrl(locale, customer);
+  const toggle = async () => { try { await update.mutateAsync({ id, data: { isActive: true } }); } catch { /* The mutation reports mapped errors. */ } };
+  const language = customer.locale ? new Intl.DisplayNames([locale], { type: 'language' }).of(customer.locale) ?? customer.locale : text('none');
+  const paymentLabel = (value: string) => value === 'PAID' ? t('merchant.orders.paid') : value === 'REFUNDED' ? t('merchant.orders.refunded') : t('merchant.orders.list.unpaid');
+  return <section className="mx-auto min-w-0 max-w-[760px] [&:not(:first-child)]:mt-6">
+    <header className="sticky top-0 z-30 space-y-2.5 border-b border-border bg-ground px-4 pb-3.5 pt-4 sm:px-8">
+      <div className="flex flex-wrap items-center justify-between gap-2">{back}<nav aria-label={text('navigation')} className="flex items-center gap-1"><span className="mr-1 font-mono text-xs text-faint">{neighbors.data ? (neighbors.data.position ?? '—') + ' / ' + neighbors.data.total : '— / —'}</span>{(['previous', 'next'] as const).map(direction => { const neighbor = direction === 'previous' ? neighbors.data?.previousId : neighbors.data?.nextId, Icon = direction === 'previous' ? ChevronLeft : ChevronRight; return neighbor ? <Button key={direction} asChild variant="outline" size="icon" className="size-7"><Link aria-label={text(direction + 'Customer')} href={'/' + locale + '/customers/' + neighbor}><Icon aria-hidden="true" className="size-3" /></Link></Button> : <Button key={direction} variant="outline" size="icon" className="size-7" aria-label={text(direction + 'Customer')} disabled><Icon aria-hidden="true" className="size-3" /></Button>; })}</nav></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 flex-wrap items-center gap-2.5"><span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-raised text-xs text-muted-foreground">{customer.username.slice(0, 1).toUpperCase()}</span><h1 className="break-all text-[22px] font-semibold tracking-[-0.02em]">{customer.username}</h1><span className="rounded-md border border-border px-2 py-0.5 text-xs"><CustomerStatus active={customer.isActive} /></span></div><div className="flex gap-2"><CustomerActions customer={customer} detail onDelete={() => setDeleting(true)} /><Button variant="outline" size="sm" disabled={generating} onClick={async () => { setGenerating(true); setReset(null); setActionError(''); try { const result = unwrapApiResponse(await usersApi.generateResetLink(id)); setReset({ id, link: result.link }); } catch (caught) { setActionError(resolveApiErrorMessage(caught, t)); } finally { setGenerating(false); } }}>{text('generateLink')}</Button></div></div>
+      <div className="flex flex-wrap gap-x-3.5 gap-y-1 text-muted-foreground"><span className="break-all">{customer.email}</span><span>{text('registeredTime', { time: timestamp(customer.createdAt) })}</span><span className="text-faint">{text('timezone', { timezone })}</span></div>
+    </header>
+    <div className="space-y-5 px-4 pb-16 pt-6 sm:px-8">
+      {actionError && <p role="alert" className="text-destructive">{actionError}</p>}
+      {neighbors.error && <p role="alert">{resolveApiErrorMessage(neighbors.error, t)}</p>}
+      {!customer.isActive && <section aria-label={text('inactive')} className="flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-raised px-4 py-3"><p className="flex-[1_1_320px] leading-relaxed text-muted-foreground">{text('inactiveNotice')}</p><Button size="sm" disabled={update.isPending} onClick={toggle}>{text('enable')}</Button></section>}
+      {resetLink && <section aria-label={text('resetLink')} className="space-y-2.5 rounded-lg border border-border px-4 py-3.5"><div className="flex justify-between gap-2"><h2 className="font-medium">{text('linkGenerated')}</h2><Button variant="ghost" size="icon" className="size-6" aria-label={text('close')} onClick={() => setReset(null)}><X aria-hidden="true" className="size-3" /></Button></div><div className="flex flex-wrap items-start gap-2"><Input aria-label={text('resetLink')} readOnly value={resetLink} className="h-8 min-w-0 flex-[1_1_200px] bg-raised font-mono text-xs" /><CopyButton value={resetLink} name={text('copyLink')} label={text('copyLink')} variant="default" buttonClassName="h-8 px-3 text-[13px]" /></div><p className="text-xs leading-relaxed text-muted-foreground">{text('linkNote')}</p></section>}
+      <section aria-label={text('summary')} className="grid grid-cols-1 overflow-hidden rounded-lg border border-border divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">{[[text('orders'), customer.orderCount], [text('paidSummary'), formatCurrency(customer.paidTotal, customer.currency)], [text('lastOrder'), timestamp(customer.lastOrderAt)]].map(([label, value], index) => <div key={label} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3.5 sm:block sm:space-y-1.5"><p className="text-xs text-muted-foreground">{label}</p><p className={index === 2 ? 'text-[15px] font-medium tabular-nums' : 'break-words font-mono text-xl font-medium'}>{value}</p></div>)}</section>
+      <section aria-labelledby="customer-orders" className={panel}><div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3"><h2 id="customer-orders" className="font-semibold">{text('orderSection')}</h2><Link className="text-muted-foreground underline underline-offset-4" href={ordersUrl}>{text('allOrders', { count: customer.orderCount })}</Link></div>
+        {customer.recentOrders.length ? <><div className="hidden sm:block"><table className="w-full text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr>{['order', 'status', 'payment', 'amount', 'placed'].map(key => <th key={key} scope="col" className="px-4 py-2.5 font-medium">{t('merchant.orders.list.' + key)}</th>)}</tr></thead><tbody>{customer.recentOrders.map(order => <tr key={order.id} className="cursor-pointer border-t border-border hover:bg-active" onClick={event => { if (!(event.target as HTMLElement).closest('a,button')) router.push('/' + locale + '/orders/' + order.id); }}><td className="max-w-[150px] px-4 py-2.5"><Link href={'/' + locale + '/orders/' + order.id} className="block truncate font-mono text-xs hover:underline" title={order.id}>#{order.id}</Link></td><td className="px-4 py-2.5">{t('merchant.orders.' + order.status.toLowerCase())}</td><td className="px-4 py-2.5">{paymentLabel(order.paymentStatus)}</td><td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs">{formatCurrency(order.totalAmount, order.currency)}</td><td className="px-4 py-2.5 text-xs tabular-nums text-muted-foreground">{timestamp(order.createdAt)}</td></tr>)}</tbody></table></div><div className="divide-y divide-border sm:hidden">{customer.recentOrders.map(order => <article key={order.id} className="space-y-2 p-4"><Link href={'/' + locale + '/orders/' + order.id} className="break-all font-mono text-xs underline">#{order.id}</Link><p className="flex flex-wrap justify-between gap-2">{t('merchant.orders.' + order.status.toLowerCase())} · {paymentLabel(order.paymentStatus)}<span className="font-mono">{formatCurrency(order.totalAmount, order.currency)}</span></p><p className="text-xs text-muted-foreground">{timestamp(order.createdAt)}</p></article>)}</div></> : <p className="px-4 py-3.5 text-muted-foreground">{text('noOrders')}</p>}
+        <p className="border-t border-border px-4 py-2.5 text-xs text-faint">{text('recentNote')}</p>
+      </section>
+      <section aria-labelledby="customer-info" className={panel}><h2 id="customer-info" className={heading}>{text('info')}</h2><dl className="px-4 py-1">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border py-2.5"><dt className="w-24 text-muted-foreground">{text('name')}</dt><dd className="min-w-0 flex-[1_1_200px] break-words">{customer.username}</dd><Button variant="outline" size="sm" className="h-[26px] px-2 text-xs" onClick={() => { setName(customer.username); setRename(true); }}>{text('modify')}</Button></div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border py-2.5"><dt className="w-24 text-muted-foreground">{text('email')}</dt><dd className="min-w-0 flex-[1_1_200px] break-all">{customer.email}<span className="ml-2 text-xs text-faint">{text(customer.emailVerified ? 'verified' : 'unverified')}</span></dd><CopyButton value={customer.email} name={text('copyEmail')} label={t('merchant.orders.detailView.copy')} /></div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 border-b border-border py-2.5"><dt className="w-24 text-muted-foreground">{text('language')}</dt><dd className="flex-[1_1_200px]">{language}</dd></div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 py-2.5"><dt className="w-24 text-muted-foreground">{text('address')}</dt><dd className="min-w-0 flex-[1_1_240px]">{address ? <><address className="whitespace-pre-line break-words not-italic leading-relaxed">{address}</address><Link href={'/' + locale + '/orders/' + customer.latestShippingAddress!.orderId} className="break-all text-xs text-faint hover:underline">{text('fromOrder', { id: customer.latestShippingAddress!.orderId })}</Link></> : text('none')}</dd>{address && <CopyButton value={address} name={t('merchant.orders.detailView.copyAddressAccessible')} label={t('merchant.orders.detailView.copyAddress')} />}</div>
+      </dl></section>
     </div>
-  )
+    <DeleteCustomerDialog customer={deleting ? customer : null} onClose={() => setDeleting(false)} onDeleted={() => router.push(listUrl)} />
+    <Dialog open={rename} onOpenChange={open => { if (!update.isPending) setRename(open); }}><DialogContent showCloseButton={false} overlayClassName="bg-overlay-ink/30" className="top-[160px] max-w-[calc(100vw-32px)] translate-y-0 rounded-xl p-5 sm:max-w-[420px]"><DialogHeader><DialogTitle className="text-[15px]">{text('rename')}</DialogTitle></DialogHeader><form onSubmit={async event => { event.preventDefault(); try { await update.mutateAsync({ id, data: { username: name.trim() } }); setRename(false); } catch { /* Preserve the edited name and show the mapped mutation error. */ } }}><label className="block space-y-1.5">{text('name')}<Input value={name} onChange={event => setName(event.target.value)} required maxLength={100} /></label><DialogDescription className="mt-1.5 text-xs">{text('renameNote')}</DialogDescription><DialogFooter className="mt-4"><Button type="button" variant="outline" disabled={update.isPending} onClick={() => setRename(false)}>{t('merchant.customers.cancel')}</Button><Button type="submit" disabled={update.isPending || !name.trim() || name.trim() === customer.username}>{t('common.actions.save')}</Button></DialogFooter></form></DialogContent></Dialog>
+  </section>;
 }

@@ -4,12 +4,12 @@ import { Copy } from 'lucide-react';
 import { useT } from 'shared/src/i18n/react';
 import { Button } from '@/components/ui/button';
 
-export function CopyButton({ value, name, label }: { value: string; name: string; label?: string }) {
+export function CopyButton({ value, name, label, variant, buttonClassName = '' }: { value: string; name: string; label?: string; variant?: 'default' | 'outline' | 'ghost'; buttonClassName?: string }) {
   const t = useT(), [copied, setCopied] = useState(false), [failed, setFailed] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
   return <span className="inline-flex flex-wrap items-center gap-1.5">
-    <Button type="button" variant={label ? 'outline' : 'ghost'} size={label ? 'sm' : 'icon'} className={label ? 'h-[26px] px-2 text-xs' : 'size-7 shrink-0'} aria-label={name} onClick={async () => {
+    <Button type="button" variant={variant ?? (label ? 'outline' : 'ghost')} size={label ? 'sm' : 'icon'} className={(label ? 'h-[26px] px-2 text-xs' : 'size-7 shrink-0') + ' ' + buttonClassName} aria-label={name} onClick={async () => {
       clearTimeout(timer.current); setCopied(false); setFailed(false);
       try { await navigator.clipboard.writeText(value); setCopied(true); timer.current = setTimeout(() => setCopied(false), 2200); }
       catch { setFailed(true); }

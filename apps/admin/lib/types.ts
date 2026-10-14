@@ -1,4 +1,13 @@
 // User types
+export interface Customer {
+  id: string; username: string; email: string; avatar: string | null; locale: string | null;
+  isActive: boolean; emailVerified: boolean; createdAt: string; updatedAt: string;
+  orderCount: number; paidTotal: number; currency: string; lastOrderAt: string | null;
+}
+export interface CustomerDetail extends Customer {
+  recentOrders: { id: string; status: string; paymentStatus: string; totalAmount: number; currency: string; createdAt: string }[];
+  latestShippingAddress: (import('shared').OrderAddressDTO & { orderId: string }) | null;
+}
 export interface User {
   id: string
   email: string
@@ -9,9 +18,6 @@ export interface User {
   isActive: boolean
   createdAt: string
   updatedAt: string
-  lastLoginAt?: string | null
-  totalOrders?: number
-  totalSpent?: number
 }
 
 export enum UserRole {

@@ -1,445 +1,74 @@
-'use client'
+'use client';
 
+import { useEffect, useState, type MouseEvent } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Download, Users } from 'lucide-react';
+import { useLocale, useT } from 'shared/src/i18n/react';
+import { formatStoreTimestamp } from 'shared';
 import { useStoreDate } from '@/lib/store-time';
-import { AlertTriangle, Search, Users, Filter, Edit, Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { useUsers, useUserStats, useDeleteUser, useUpdateUser, type User } from '@/lib/hooks/use-api'
-import { Badge } from '@/components/ui/badge'
-import { PageNav } from '@/components/layout/page-nav'
-import { StatsCard } from '@/components/dashboard/stats-card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { useT, useLocale } from 'shared/src/i18n/react'
-import { toast } from 'sonner'
+import { useUsers } from '@/lib/hooks/use-api';
+import { usersApi } from '@/lib/api';
+import { customerListFields, customerListQuery, type CustomerQuery } from '@/lib/customer-list-state';
+import { useListSelection, useListState, listDateRange } from '@/lib/hooks/use-list-state';
+import { BulkBar, FilterChips, ListSearch, ListFilter, PaginationBar, SelectionBanner, SortHeader, StatusTabs } from '@/components/list';
+import { CustomerActions, CustomerStatus, DeleteCustomerDialog } from '@/components/customers/customer-actions';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { formatCurrency, cn } from '@/lib/utils';
+import { resolveApiErrorMessage } from '@/lib/error-utils';
+import type { Customer } from '@/lib/types';
 
-
+const commonKeys = new Set(['export', 'exportSelected', 'onlyPage', 'cancelSelection', 'bulkActions', 'removeFilter', 'clearAll', 'clearFilters', 'today', 'last7', 'last30', 'custom', 'startDate', 'endDate', 'invalidDates', 'pagination', 'range', 'perPage', 'perPageBefore', 'perPageAfter', 'previous', 'next', 'pageLabel', 'retry']);
 export default function CustomersPage() {
-  const { date: storeDate } = useStoreDate();
-  const t = useT()
-  const locale = useLocale()
-  const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
-  const deleteUserMutation = useDeleteUser()
-  const updateUserMutation = useUpdateUser()
-
-  // Helper function for translations with fallback
-  const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback
-    const translated = t(key)
-    return translated === key ? fallback : translated
-  }
-
-  // Page navigation items for Customers module
-  const navItems = [
-    { label: getText('merchant.customers.allCustomers', 'All Customers'), href: '/customers', exact: true },
-  ]
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState('All')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(10)
-
-  // API hooks - Call real backend API, fetch all users
-  const {
-    data: usersResponse,
-    isLoading,
-    error,
-  } = useUsers({
-    page: currentPage,
-    limit: pageSize,
-    search: searchTerm,
-  })
-  const { data: userStats } = useUserStats()
-
-  // Extract data from API response
-  const users = usersResponse?.data || []
-  const pagination = usersResponse?.pagination || {
-    page: 1,
-    limit: pageSize,
-    total: 0,
-    totalPages: 0
-  }
-
-  // Filter users locally for immediate feedback
-  const filteredCustomers = users.filter((user: User) => {
-    if (!user) return false
-
-    // Alpha Gate: Only show users with 'user' role in the Customers list
-    const isUser = (user.role || '').toLowerCase() === 'user'
-
-    const matchesSearch = searchTerm === '' ||
-      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-
-    const customerStatus = getCustomerStatus(user)
-    const matchesStatus = selectedStatus === 'All' || customerStatus === selectedStatus
-
-    return isUser && matchesSearch && matchesStatus
-  })
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'bg-success-faint text-success-dark'
-      case 'Inactive':
-        return 'bg-neutral-faint text-neutral-dark'
-      default:
-        return 'bg-neutral-faint text-neutral-dark'
-    }
-  }
-
-  function getCustomerStatus(user: User) {
-    return user.isActive ? 'Active' : 'Inactive'
-  }
-
-  const handleDeleteUser = async () => {
-    if (!deleteUserId) return
-    
+  const t = useT(), locale = useLocale(), router = useRouter(), { timezone } = useStoreDate();
+  const copy = (key: string, values?: Record<string, string | number>) => t((commonKeys.has(key) ? 'merchant.orders.list.' : 'merchant.customers.workspace.') + key, values);
+  const { state, update, url } = useListState(customerListFields);
+  const change = (patch: Record<string, string>) => update({ page: '1', ...patch });
+  useEffect(() => { sessionStorage.setItem('customers-list:' + locale, url); }, [url, locale]);
+  const query = customerListQuery(url), page = Number(state.page), pageSize = Number(state.pageSize);
+  const filter: CustomerQuery = { search: query.search, status: query.status, registered: query.registered, start: query.start, end: query.end };
+  let invalidDates = false;
+  try { listDateRange(state.registered, state.start, state.end, timezone); } catch { invalidDates = true; }
+  const { data, isLoading, error, refetch } = useUsers({ ...query, page, limit: pageSize });
+  const customers = invalidDates ? [] : data?.data ?? [], total = invalidDates ? 0 : data?.pagination.total ?? 0;
+  const selection = useListSelection(JSON.stringify(filter), filter, customers.map(customer => customer.id), total);
+  const [deleting, setDeleting] = useState<Customer | null>(null), [exporting, setExporting] = useState(false), [exportError, setExportError] = useState('');
+  useEffect(() => { if (data?.pagination.page === page && page > Math.max(1, Math.ceil(total / pageSize))) update({ page: '1' }); }, [data?.pagination.page, page, pageSize, total]);
+  const exportCustomers = async (selected: boolean) => {
+    setExporting(true); setExportError('');
     try {
-      await deleteUserMutation.mutateAsync(deleteUserId)
-      setDeleteUserId(null)
-    } catch (error) {
-      console.error('Failed to delete user:', error)
-    }
-  }
-
-  const handleStatusUpdate = async (customerId: string, newStatus: string) => {
-    try {
-      await updateUserMutation.mutateAsync({
-        id: customerId,
-        data: { isActive: newStatus === 'Active' },
-      })
-      toast(getText('merchant.customers.success', 'Success'), { description: newStatus === 'Active'
-          ? getText('merchant.customers.statusActivated', 'User activated')
-          : getText('merchant.customers.statusDeactivated', 'User deactivated') })
-    } catch (error) {
-      console.error('Failed to update user status:', error)
-    }
-  }
-
-  // Global stats from dedicated stats endpoint
-  const customerStats = {
-    total: userStats?.metrics.totalUsers ?? 0,
-    active: userStats?.metrics.activeUsers ?? 0,
-    inactive: userStats?.metrics.inactiveUsers ?? 0,
-    newThisMonth: userStats?.metrics.newThisMonth ?? 0,
-    totalTrend: userStats?.metrics.totalUsersTrend,
-    activeTrend: userStats?.metrics.activeUsersTrend,
-    inactiveTrend: userStats?.metrics.inactiveUsersTrend,
-    newUsersTrend: userStats?.metrics.newUsersTrend,
-  }
-
-  const toTrendDisplay = (value: number | undefined) => {
-    const trendValue = value ?? 0
-    return {
-      change: `${Math.abs(trendValue).toFixed(2)}%`,
-      changeType: trendValue >= 0 ? 'increase' as const : 'decrease' as const,
-    }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-page-surface">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-action-strong mx-auto"></div>
-          <p className="mt-4 text-neutral-light font-bold text-[10px] uppercase tracking-widest">{getText('merchant.customers.loading', 'Syncing Identity Nodes...')}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-page-surface">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-danger-veil rounded-2xl flex items-center justify-center mx-auto">
-            <AlertTriangle className="w-8 h-8 text-danger-base" />
-          </div>
-          <p className="text-neutral-deepest font-bold">{getText('merchant.customers.loadFailed', 'Signal Interference Detected')}</p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="w-full bg-page-surface min-h-screen">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-neutral-deepest tracking-tight leading-none">
-            {getText('merchant.customers.title', 'Customers')}
-          </h1>
-          <span className="text-[10px] font-bold text-action-strong uppercase tracking-widest mt-1">
-            {getText('merchant.customers.subtitle', 'Identity & Access Management')}
-          </span>
-        </div>
-      </div>
-
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
-        {/* In-page Navigation */}
-        <PageNav items={navItems} />
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatsCard
-            title={getText('merchant.customers.totalCustomers', 'Total Customers')}
-            value={customerStats.total.toLocaleString()}
-            change={toTrendDisplay(customerStats.totalTrend).change}
-            changeType={toTrendDisplay(customerStats.totalTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="blue"
-            icon={<Users className="w-5 h-5" />}
-          />
-          <StatsCard
-            title={getText('merchant.customers.active', 'Active')}
-            value={customerStats.active.toLocaleString()}
-            change={toTrendDisplay(customerStats.activeTrend).change}
-            changeType={toTrendDisplay(customerStats.activeTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="green"
-            icon={<Users className="w-5 h-5" />}
-          />
-          <StatsCard
-            title={getText('merchant.customers.inactive', 'Inactive')}
-            value={customerStats.inactive.toLocaleString()}
-            change={toTrendDisplay(customerStats.inactiveTrend).change}
-            changeType={toTrendDisplay(customerStats.inactiveTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="red"
-            icon={<Users className="w-5 h-5" />}
-          />
-          <StatsCard
-            title={getText('merchant.customers.newThisMonth', 'New This Month')}
-            value={customerStats.newThisMonth.toLocaleString()}
-            change={toTrendDisplay(customerStats.newUsersTrend).change}
-            changeType={toTrendDisplay(customerStats.newUsersTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="orange"
-            icon={<Users className="w-5 h-5" />}
-          />
-        </div>
-
-        {/* Filters */}
-        <div className="bg-surface rounded-3xl border border-neutral-faint p-8 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-6">
-            <div className="flex-1">
-              <div className="relative group">
-                <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-pale group-focus-within:text-action-base transition-colors" />
-                <input
-                  type="text"
-                  placeholder={getText('merchant.customers.searchPlaceholder', 'Search customers by name or email...')}
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value)
-                    setCurrentPage(1)
-                  }}
-                  className="w-full pl-11 pr-4 h-12 bg-neutral-veil border-neutral-veil rounded-2xl focus:ring-2 focus:ring-action-base/10 focus:border-action-base focus:bg-surface transition-all text-sm font-medium"
-                />
-              </div>
-            </div>
-            <div className="flex gap-4">
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="h-12 min-w-[180px] bg-neutral-veil border-neutral-veil rounded-2xl focus:ring-2 focus:ring-action-base/10 focus:border-action-base flex items-center px-6 text-sm font-bold text-neutral-deep">
-                  <SelectValue placeholder={getText('merchant.customers.allStatus', 'All Status')} />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-neutral-faint shadow-2xl p-2 bg-surface">
-                  <SelectItem value="All" className="rounded-xl py-2.5 font-semibold">{getText('merchant.customers.allStatus', 'All Status')}</SelectItem>
-                  <SelectItem value="Active" className="rounded-xl py-2.5 font-semibold">{getText('merchant.customers.active', 'Active')}</SelectItem>
-                  <SelectItem value="Inactive" className="rounded-xl py-2.5 font-semibold">{getText('merchant.customers.inactive', 'Inactive')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-
-        {/* Customers Table */}
-        <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-neutral-veil bg-neutral-veil/30">
-                  <th className="py-5 px-8 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.name', 'Customer')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.contact', 'Contact')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.joinDate', 'Join Date')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.role', 'Role')}</th>
-                  <th className="py-5 px-6 text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.status', 'Status')}</th>
-                  <th className="py-5 px-8 text-right text-[10px] font-bold text-neutral-light uppercase tracking-widest">{getText('merchant.customers.actions', 'Actions')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-veil">
-                {filteredCustomers.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center">
-                      <div className="text-neutral-light font-medium">
-                        {searchTerm ? getText('merchant.customers.noCustomersMatching', 'No customers found matching your search.') : getText('merchant.customers.noCustomersFound', 'No customers found.')}
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredCustomers.map((customer: User) => (
-                    <tr key={customer.id} className="group hover:bg-action-veil/30 transition-colors">
-                      <td className="py-5 px-8">
-                        <div className="flex items-center gap-4">
-                          <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-neutral-faint border border-neutral-faint flex-shrink-0 flex items-center justify-center font-bold text-neutral-base">
-                            {customer.username?.charAt(0)?.toUpperCase() || 'U'}
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-bold text-neutral-deepest group-hover:text-action-strong transition-colors truncate block">
-                              {customer.username || getText('merchant.customers.unknown', 'Unknown')}
-                            </span>
-                            <span className="text-[10px] font-bold text-neutral-light uppercase tracking-tighter truncate opacity-70">
-                              ID: {customer.id.substring(0, 8)}...
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-5 px-6">
-                        <div className="flex flex-col">
-                          <div className="text-sm font-bold text-neutral-deepest">{customer.email || getText('merchant.customers.noPhone', 'No email')}</div>
-                          <div className="text-[10px] font-medium text-neutral-light uppercase tracking-wider">{getText('merchant.customers.noPhone', 'No phone')}</div>
-                        </div>
-                      </td>
-                      <td className="py-5 px-6">
-                        <div className="text-sm font-medium text-neutral-strong">
-                          {customer.createdAt ? storeDate(customer.createdAt, true) : getText('merchant.customers.unknown', 'Unknown')}
-                        </div>
-                      </td>
-                      <td className="py-5 px-6">
-                        <Badge variant="secondary" className="bg-neutral-faint text-neutral-strong border-0 font-bold">
-                          {customer.role || 'user'}
-                        </Badge>
-                      </td>
-                      <td className="py-5 px-6">
-                        <Select
-                          value={getCustomerStatus(customer)}
-                          onValueChange={(newStatus) => handleStatusUpdate(customer.id, newStatus)}
-                          disabled={updateUserMutation.isPending}
-                        >
-                          <SelectTrigger
-                            className={`h-10 min-w-[130px] bg-neutral-veil border-neutral-veil rounded-2xl focus:ring-2 focus:ring-action-base/10 focus:border-action-base flex items-center px-4 text-[10px] font-bold uppercase tracking-widest transition-all ${getStatusColor(getCustomerStatus(customer))}`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-neutral-faint shadow-2xl p-2 bg-surface">
-                            <SelectItem value="Active" className="rounded-xl py-2.5 font-semibold text-[10px] uppercase tracking-widest">
-                              {getText('merchant.customers.active', 'Active')}
-                            </SelectItem>
-                            <SelectItem value="Inactive" className="rounded-xl py-2.5 font-semibold text-[10px] uppercase tracking-widest">
-                              {getText('merchant.customers.inactive', 'Inactive')}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="py-5 px-8 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/${locale}/customers/${customer.id}`}>
-                            <Button variant="ghost" size="icon" className="w-9 h-9 rounded-xl hover:bg-surface hover:shadow-md transition-all text-neutral-light hover:text-action-strong">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </Link>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="w-9 h-9 rounded-xl hover:bg-surface hover:shadow-md transition-all text-neutral-light hover:text-danger-strong"
-                            onClick={() => setDeleteUserId(customer.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Pagination */}
-        {pagination && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pb-12">
-            <div className="text-[10px] font-bold text-neutral-light uppercase tracking-[0.2em] bg-neutral-faint/50 px-4 py-2 rounded-full border border-neutral-faint">
-              {getText('merchant.customers.showingResults', 'Viewing {from}-{to} of {total} Identities')
-                .replace('{from}', String((currentPage - 1) * pageSize + 1))
-                .replace('{to}', String(Math.min(currentPage * pageSize, pagination.total)))
-                .replace('{total}', String(pagination.total))}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                className="h-10 rounded-xl border-neutral-faint font-bold text-xs hover:bg-neutral-veil disabled:opacity-30"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                {getText('merchant.customers.previous', 'Previous')}
-              </Button>
-
-              <div className="flex gap-1.5 px-2">
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  const page = i + 1
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${currentPage === page ? 'bg-neutral-deepest text-surface shadow-xl scale-110' : 'bg-surface text-neutral-light border border-neutral-veil hover:border-neutral-soft'}`}
-                    >
-                      {page}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <Button
-                variant="outline"
-                className="h-10 rounded-xl border-neutral-faint font-bold text-xs hover:bg-neutral-veil disabled:opacity-30"
-                onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
-                disabled={currentPage === pagination.totalPages}
-              >
-                {getText('merchant.customers.next', 'Next')}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteUserId} onOpenChange={(open) => !open && setDeleteUserId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{getText('merchant.customers.deleteUserTitle', 'Delete User')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {getText('merchant.customers.deleteUserConfirm', 'Are you sure you want to permanently delete this user and related records? This action cannot be undone.')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{getText('merchant.customers.cancel', 'Cancel')}</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteUser}
-              className="bg-danger-strong hover:bg-danger-deep"
-              disabled={deleteUserMutation.isPending}
-            >
-              {deleteUserMutation.isPending ? getText('merchant.customers.deleting', 'Deleting...') : getText('merchant.customers.delete', 'Delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div >
-  )
+      const rows = selection.selection;
+      const body = selected ? rows.mode === 'ids' ? rows : { mode: 'filter' as const, filters: rows.filter, excludedIds: rows.excludeIds } : { mode: 'filter' as const, filters: filter };
+      const result = await usersApi.export(body, { sortBy: query.sortBy, sortOrder: query.sortOrder }, locale);
+      const objectUrl = URL.createObjectURL(result.blob), anchor = document.createElement('a');
+      anchor.href = objectUrl; anchor.download = result.filename; document.body.append(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch (caught) { setExportError(resolveApiErrorMessage(caught, t)); } finally { setExporting(false); }
+  };
+  const clear = () => change({ search: '', status: 'all', registered: 'all', start: '', end: '' });
+  const filtered = !!state.search || state.status !== 'all' || state.registered !== 'all';
+  const dateLabel = state.registered === 'custom' ? [state.start, state.end].filter(Boolean).join(' – ') || copy('custom') : copy(state.registered);
+  const detailUrl = (customer: Customer) => '/' + locale + '/customers/' + customer.id;
+  const openRow = (event: MouseEvent, customer: Customer) => { if (!(event.target as HTMLElement).closest('a,button,input,label')) router.push(detailUrl(customer)); };
+  const checkbox = (customer: Customer) => <input type="checkbox" aria-label={copy('selectCustomer', { name: customer.username })} checked={selection.checked(customer.id)} onChange={() => selection.toggle(customer.id)} className="size-[15px] shrink-0 cursor-pointer accent-foreground focus-visible:outline-2 focus-visible:outline-ring" />;
+  const pageCheckbox = <input type="checkbox" aria-label={copy('selectPage')} checked={selection.pageChecked} disabled={!customers.length} onChange={selection.togglePage} className="size-[15px] accent-foreground focus-visible:outline-2 focus-visible:outline-ring" />;
+  const timestamp = (value: string | null) => value ? formatStoreTimestamp(value, timezone) : copy('none');
+  const customerLink = (customer: Customer) => <Link href={detailUrl(customer)} className="break-words font-medium hover:underline">{customer.username}<span className="mt-0.5 block break-all text-xs font-normal text-faint">{customer.email}</span></Link>;
+  const sorts = [['orderCount', 'orders'], ['paidTotal', 'paidTotal'], ['lastOrderAt', 'lastOrder'], ['createdAt', 'registeredAt']];
+  return <section className="mx-auto flex min-h-[calc(100dvh-72px)] min-w-0 max-w-[1120px] flex-col gap-4 [&:not(:first-child)]:mt-6">
+    <header className="flex items-center justify-between gap-3"><h1 className="text-[26px] font-semibold tracking-[-0.025em]">{t('merchant.customers.title')}</h1><Button variant="outline" size="sm" disabled={exporting || invalidDates || isLoading || !!error} onClick={() => exportCustomers(false)}><Download aria-hidden="true" className="mr-1.5 size-3.5" />{copy('export')}</Button></header>
+    <StatusTabs label={copy('status')} value={state.status} onChange={status => change({ status })} tabs={(['all', 'active', 'inactive'] as const).map(value => ({ value, label: copy(value), count: data?.statusCounts[value] }))} />
+    <div className="flex flex-wrap gap-2"><ListSearch label={copy('search')} value={state.search} onChange={search => change({ search })} /><ListFilter label={copy('registered')} value={state.registered} onChange={registered => change({ registered })} options={['all', 'today', 'last7', 'last30', 'custom'].map(value => ({ value, label: copy(value) }))}>{state.registered === 'custom' && (['start', 'end'] as const).map(key => <label key={key} className="block space-y-1 text-xs text-muted-foreground">{copy(key === 'start' ? 'startDate' : 'endDate')}<Input type="date" aria-label={copy(key === 'start' ? 'startDate' : 'endDate')} value={state[key]} onChange={event => change({ [key]: event.target.value })} /></label>)}</ListFilter></div>
+    <FilterChips chips={state.registered !== 'all' ? [{ key: 'registered', name: copy('registered'), value: dateLabel, remove: () => change({ registered: 'all', start: '', end: '' }) }] : []} copy={copy} clear={clear} />
+    {invalidDates && <p role="alert">{copy('invalidDates')}</p>}{exportError && <p role="alert" className="text-destructive">{exportError}</p>}
+    {error && !invalidDates ? <div role="alert" className="space-y-3 py-8"><p>{resolveApiErrorMessage(error, t)}</p><Button variant="outline" onClick={() => refetch()}>{copy('retry')}</Button></div> : isLoading ? <p role="status" className="py-8 text-muted-foreground">{copy('loading')}</p> : customers.length ? <div className="overflow-hidden rounded-lg border border-border">
+      {(selection.pageChecked || selection.selection.mode === 'filter') && <SelectionBanner all={selection.selection.mode === 'filter'} count={selection.selection.mode === 'filter' ? selection.count : customers.length} total={total} copy={copy} selectAll={selection.allMatching} onlyPage={selection.onlyPage} />}
+      <div className="hidden min-[1100px]:block"><table className="w-full text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr><th scope="col" className="w-10 py-2.5 pl-4">{pageCheckbox}</th><th scope="col" className="px-3 py-2.5 font-medium">{copy('customer')}</th><th scope="col" className="px-3 py-2.5 font-medium">{t('merchant.customers.status')}</th>{sorts.map(([field, label]) => <SortHeader key={field} field={field} title={field === 'paidTotal' ? copy('paidTotalHint') : undefined} label={copy(label, { timezone })} sortBy={state.sortBy} sortOrder={state.sortOrder} onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} />)}<th scope="col" className="w-11"><span className="sr-only">{copy('actions')}</span></th></tr></thead><tbody>{customers.map(customer => <tr key={customer.id} onClick={event => openRow(event, customer)} className={cn('cursor-pointer border-t border-border hover:bg-active', selection.checked(customer.id) && 'bg-active')}><td className="py-2.5 pl-4">{checkbox(customer)}</td><td className="max-w-[220px] px-3 py-2.5">{customerLink(customer)}</td><td className="px-3 py-2.5"><CustomerStatus active={customer.isActive} /></td><td className="px-3 py-2.5 text-right font-mono text-xs">{customer.orderCount}</td><td title={copy('paidTotalHint')} className={cn('whitespace-nowrap px-3 py-2.5 text-right font-mono text-xs', !customer.paidTotal && 'text-faint')}>{formatCurrency(customer.paidTotal, customer.currency)}</td><td aria-label={copy('lastOrderValue', { time: timestamp(customer.lastOrderAt) })} className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-muted-foreground">{timestamp(customer.lastOrderAt)}</td><td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-muted-foreground">{timestamp(customer.createdAt)}</td><td className="py-1.5 pr-4"><CustomerActions customer={customer} onDelete={() => setDeleting(customer)} /></td></tr>)}</tbody></table></div>
+      <div aria-label={t('merchant.customers.title')} className="divide-y divide-border min-[1100px]:hidden"><p className="px-4 py-2 text-xs text-faint">{copy('registeredAt', { timezone })}</p><label className="flex items-center gap-2 px-4 py-3 text-xs">{pageCheckbox}{copy('selectPage')}</label><div className="flex flex-wrap gap-2 px-4 pb-3">{sorts.map(([field, label]) => <Button key={field} variant="outline" size="sm" onClick={() => change({ sortBy: field, sortOrder: state.sortBy === field && state.sortOrder === 'asc' ? 'desc' : 'asc' })}>{copy(field === 'createdAt' ? 'registered' : label, { timezone })}{state.sortBy === field ? state.sortOrder === 'asc' ? ' ↑' : ' ↓' : ''}</Button>)}</div>{customers.map(customer => <article key={customer.id} aria-label={customer.username} onClick={event => openRow(event, customer)} className={cn('min-w-0 cursor-pointer space-y-3 p-4', selection.checked(customer.id) && 'bg-active')}><div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-start gap-2">{checkbox(customer)}<div>{customerLink(customer)}</div></div><CustomerActions customer={customer} onDelete={() => setDeleting(customer)} /></div><div className="flex flex-wrap justify-between gap-2"><CustomerStatus active={customer.isActive} /><span className="font-mono text-xs">{copy('orders')} {customer.orderCount} · {formatCurrency(customer.paidTotal, customer.currency)}</span></div><p className="flex flex-wrap justify-between gap-1 text-xs text-muted-foreground"><span>{copy('lastOrder')}</span>{timestamp(customer.lastOrderAt)}</p><p className="flex flex-wrap justify-between gap-1 text-xs text-muted-foreground"><span>{copy('registered')}</span>{timestamp(customer.createdAt)}</p></article>)}</div>
+    </div> : <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border px-6 py-14 text-center"><Users aria-hidden="true" className="size-[22px] text-faint" /><p className="font-medium">{copy(filtered ? 'noMatches' : 'empty')}</p><p className="max-w-[420px] text-muted-foreground">{copy(filtered ? 'noMatchesDescription' : 'emptyDescription')}</p>{filtered && <Button variant="outline" size="sm" onClick={clear}>{copy('clearFilters')}</Button>}</div>}
+    <PaginationBar page={page} pageSize={pageSize} total={total} copy={copy} onPage={value => update({ page: String(value) })} onPageSize={value => change({ pageSize: String(value) })} />
+    <BulkBar count={selection.count} copy={copy} allMatching={selection.selection.mode === 'filter'} clear={selection.clear}><Button size="sm" disabled={exporting || invalidDates} onClick={() => exportCustomers(true)}><Download aria-hidden="true" className="mr-1.5 size-3.5" />{copy('exportSelected')}</Button></BulkBar>
+    <DeleteCustomerDialog customer={deleting ? customers.find(customer => customer.id === deleting.id) ?? deleting : null} onClose={() => setDeleting(null)} onDeleted={selection.clear} />
+  </section>;
 }

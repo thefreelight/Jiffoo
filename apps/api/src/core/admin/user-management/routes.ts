@@ -8,8 +8,26 @@ import { AdminUserService, CustomerManagementError } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminUserSchemas } from './schemas';
 import { sendKnownError } from '@/utils/api-errors';
+import { createCustomerExport } from './export';
+import type { CustomerQuery, CustomerSelection } from './list-query';
+import { getLocaleFromRequest } from '@/utils/i18n';
 
 export async function adminUserRoutes(fastify: FastifyInstance) {
+  fastify.get('/:id/neighbors', {
+    schema: { tags: ['admin-users'], summary: 'Get adjacent customers in the current list', security: [{ bearerAuth: [] }], ...adminUserSchemas.neighbors },
+  }, async (request, reply) => {
+    try { return sendSuccess(reply, await AdminUserService.getUserNeighbors((request.params as { id: string }).id, request.query as CustomerQuery)); }
+    catch (error) { return sendMappedError(reply, error); }
+  });
+  fastify.post('/export', {
+    schema: { tags: ['admin-users'], summary: 'Export selected customers as CSV', security: [{ bearerAuth: [] }], ...adminUserSchemas.exportCustomers },
+  }, async (request, reply) => {
+    try {
+      const body = request.body as CustomerQuery & { selection: CustomerSelection };
+      const result = await createCustomerExport(body.selection, body, getLocaleFromRequest(undefined, request.headers['accept-language']));
+      return reply.type('text/csv; charset=utf-8').header('Content-Disposition', `attachment; filename="${result.filename}"`).send(result.stream);
+    } catch (error) { return sendMappedError(reply, error); }
+  });
   // Apply auth middleware to all admin user routes (before schema validation)
 
   // Get users list
@@ -23,8 +41,7 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const { page, limit, search } = request.query as any;
-      const result = await AdminUserService.getUsers(page, limit, search);
+      const result = await AdminUserService.getUsers(request.query as CustomerQuery);
       return sendSuccess(reply, result);
     } catch (error) { return sendMappedError(reply, error); }
   });
@@ -83,6 +100,12 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
 
   // Update user
   fastify.put('/:id', {
+    preValidation: async request => {
+      const body = request.body as Record<string, unknown> | null;
+      if (body && Object.keys(body).some(key => !['username', 'isActive', 'role'].includes(key))) {
+        throw new CustomerManagementError('Only name and active status can be changed', 'BAD_REQUEST', 400);
+      }
+    },
     schema: {
       tags: ['admin-users'],
       summary: 'Update user',

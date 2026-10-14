@@ -390,23 +390,27 @@ export function useShipOrder() {
 }
 
 // Users hooks
-export function useUsers(params: PaginationParams = {}) {
+export function useCustomerNeighbors(id: string, params: import('../customer-list-state').CustomerQuery, enabled = true) {
+  return useQuery({ queryKey: [...queryKeys.users, 'neighbors', id, params], queryFn: async () => unwrapApiResponse(await usersApi.neighbors(id, params)), enabled: !!id && enabled });
+}
+export function useUsers(params: import('../customer-list-state').CustomerQuery = {}) {
   return useQuery({
     queryKey: [...queryKeys.users, params],
     queryFn: async () => {
       const response = await usersApi.getAll(params);
       const data = unwrapApiResponse(response);
       return {
-        data: (data.items as unknown as User[]) || [],
+        data: data.items || [],
+        statusCounts: data.statusCounts,
         pagination: {
           page: data.page || 1,
-          limit: data.limit || 10,
+          limit: data.limit || 20,
           total: data.total || 0,
           totalPages: data.totalPages || 0,
         }
       };
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 }
 
@@ -426,7 +430,7 @@ export function useUser(id: string) {
     queryKey: queryKeys.user(id),
     queryFn: async () => {
       const response = await usersApi.getById(id);
-      return unwrapApiResponse(response) as unknown as User;
+      return unwrapApiResponse(response);
     },
     enabled: !!id,
   });
@@ -434,6 +438,7 @@ export function useUser(id: string) {
 
 export function useDeleteUser() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
@@ -455,9 +460,11 @@ export function useDeleteUser() {
         queryKey: queryKeys.users,
         exact: false
       });
-      toast.success('User deleted successfully');
+      toast.success(t('merchant.customers.workspace.deleted'));
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, id) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.user(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
       toast.error(getErrorMessage(error));
     },
   });
@@ -465,6 +472,7 @@ export function useDeleteUser() {
 
 export function useUpdateUser() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
@@ -475,8 +483,6 @@ export function useUpdateUser() {
       id: string;
       data: {
         username?: string;
-        role?: string;
-        avatar?: string;
         isActive?: boolean;
       };
     }) => {
@@ -491,7 +497,7 @@ export function useUpdateUser() {
       queryClient.invalidateQueries({ queryKey: queryKeys.user(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.userStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('User updated successfully');
+      toast.success(t('merchant.customers.workspace.saved'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
