@@ -26,7 +26,7 @@ test('U1b modes and rail persist through SSR reload while mobile navigation stay
   await expect(page.getByRole('button', { name: 'Expand sidebar', exact: true })).toHaveAttribute('aria-expanded', 'false');
   await page.reload();
   await expect(page.getByRole('complementary', { name: 'Store navigation', exact: true })).toHaveCSS('width', '56px');
-  for (const name of ['Overview', 'Products', 'Orders', 'Notifications', 'Customers', 'Administrators', 'Plugins', 'Themes', 'Settings', 'System Health', 'Audit log', 'Tracking & custom code'])
+  for (const name of ['Overview', 'Products', 'Orders', 'Notifications', 'Customers', 'Administrators', 'Plugins', 'Themes', 'Settings', 'System Health', 'Audit records', 'Tracking & custom code'])
     await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Store', exact: true })).toHaveCount(0);
   await expect(page.getByRole('separator')).toHaveCount(2);
@@ -61,7 +61,7 @@ test('U2 Overview shows real attention counts and opens the Orders review deep l
       ...(index === 0 ? { payments: { create: { paymentMethod: 'manual-payment', providerKey: provider.providerKey, amount, currency: 'USD', status: 'REQUIRES_REVIEW', idempotencyKey: randomUUID() } } } : {}),
     } });
     const count = await db.order.count({ where: { payments: { some: { status: 'REQUIRES_REVIEW', reviewResolution: null } } } });
-    const toShip = await db.order.count({ where: { status: 'PROCESSING' } });
+    const toShip = await db.order.count({ where: { status: 'PROCESSING', paymentStatus: 'PAID' } });
     await login(page, ownerEmail, 'FinalOwnerPassword123!');
     // The existing dashboard cache expires after 15 seconds; reload rather than mutate it.
     await expect(async () => {
@@ -69,6 +69,10 @@ test('U2 Overview shows real attention counts and opens the Orders review deep l
       await expect(page.getByText(count + ' orders have payments that need manual review', { exact: true })).toBeVisible({ timeout: 2000 });
     }).toPass({ timeout: 20000 });
     await expect(page.getByText(toShip + ' paid orders are waiting to ship', { exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Orders', exact: true }).getByLabel(count + ' payments awaiting review', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click();
+    await expect(page.getByRole('link', { name: 'Orders', exact: true }).getByRole('img', { name: count + ' payments awaiting review', exact: true })).toHaveCSS('width', '6px');
+    await page.getByRole('button', { name: 'Expand sidebar', exact: true }).click();
     await expect(page.getByRole('table', { name: 'Sales, last 14 days', exact: true }).getByRole('row')).toHaveCount(15);
     await captureOverview(page);
     await page.getByRole('link', { name: 'Review payments', exact: true }).click();
@@ -81,7 +85,10 @@ test('U2 Overview shows real attention counts and opens the Orders review deep l
       await page.getByRole('heading', { name: 'Orders', exact: true }).click(); await page.keyboard.press('Control+Home');
       await page.screenshot({ path: 'C:/Users/11948/Pictures/jiffoo-u2/orders-deeplink-' + mode.toLowerCase() + '-1440.png', animations: 'disabled' });
     }
-    await page.goto('/en/orders?status=PROCESSING');
+    await page.goto('/en/dashboard');
+    await page.getByRole('link', { name: 'View orders', exact: true }).click();
+    await expect(page).toHaveURL(/\/en\/orders\?status=PROCESSING&payment=paid$/);
+    await expect(page.getByRole('button', { name: 'Payment', exact: true })).toContainText('Paid');
     await expect(page.getByRole('tab', { name: /^Processing/ })).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('link', { name: 'View order ' + ids[1], exact: true })).toBeVisible();
     expect(errors).toEqual([]);
@@ -91,6 +98,40 @@ test('U2 Overview shows real attention counts and opens the Orders review deep l
     await db.order.deleteMany({ where: { id: { in: ids } } });
     await db.$disconnect();
   }
+});
+
+test('A4 every sidebar group navigates and the account menu opens profile and logs out', async ({ page }) => {
+  await login(page, ownerEmail, 'FinalOwnerPassword123!');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const navigation = page.getByRole('navigation', { name: 'Store navigation', exact: true });
+  expect((await navigation.boundingBox())!.width, 'Navigation fills the shared sidebar').toBeGreaterThan(215);
+  for (const group of ['Store', 'Appearance & extensions', 'Management']) {
+    const trigger = navigation.getByRole('button', { name: group, exact: true });
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await trigger.click(); await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await trigger.click();
+  }
+  for (const [name, path] of [
+    ['Orders', '/orders'], ['Products', '/products'], ['Categories', '/products/categories'], ['Customers', '/customers'], ['Notifications', '/notifications'],
+    ['Themes', '/themes'], ['Plugins', '/plugins'], ['Tracking & custom code', '/storefront-code'],
+    ['Administrators', '/staff'], ['Audit records', '/audit-events'], ['Settings', '/settings'], ['System Health', '/system/health'], ['Overview', '/dashboard'],
+  ]) {
+    await navigation.getByRole('link', { name, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp('/en' + path + '(?:\\?.*)?$'));
+  }
+  for (const name of ['Needs attention', 'Today', 'Sales, last 14 days', 'Recent orders']) await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+  const notice = (await page.getByRole('alert', { name: 'Test signing mode', exact: true }).boundingBox())!;
+  const heading = (await page.getByRole('heading', { name: 'Overview', exact: true }).boundingBox())!;
+  expect(heading.y - notice.y - notice.height, 'The notice leaves exactly 24px before page content').toBe(24);
+  await expect(page.getByRole('img', { name: 'Daily paid sales over the last 14 days', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+  for (const name of ['My account', 'Appearance', 'Interface language', 'Log out']) await expect(page.getByRole('menuitem', { name, exact: true })).toBeVisible();
+  await page.getByRole('menuitem', { name: 'My account', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/profile$/);
+  await chooseMode(page, 'System');
+  await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Log out', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/auth\/login$/);
 });
 
 test('U1c Orders filters, compact cards and review banner use real data in both modes', async ({ page }) => {

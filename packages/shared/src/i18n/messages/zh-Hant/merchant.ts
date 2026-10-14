@@ -6,6 +6,31 @@
  */
 
 export const merchant = {
+  shell: {
+    storeLogo: '店鋪標誌',
+    english: 'English',
+    simplifiedChinese: '简体中文',
+    traditionalChinese: '繁體中文',
+    administrators: '管理員',
+    collapse: '收合側邊欄',
+    expand: '展開側邊欄',
+    appearance: '外觀',
+    system: '跟隨系統',
+    light: '淺色',
+    dark: '深色',
+    noDark: '目前主題未提供暗色外觀。',
+    store: '店鋪',
+    extensions: '外觀與擴充',
+    management: '管理',
+    viewStore: '查看店鋪',
+    navigation: '後台導覽',
+    closeMenu: '關閉選單',
+    openMenu: '開啟選單',
+    expandPages: '展開商品',
+    collapsePages: '收合商品',
+    language: '介面語言',
+    paymentReviewBadge: '{count} 筆付款待審核',
+  },
   catalog: {
     defaultVariant: "預設",
     variantsTitle: "規格、價格與庫存",
@@ -129,7 +154,7 @@ export const merchant = {
     corePlan: 'Core 更新計劃已檢查',
     invalidTime: '此時間在商店時區中不存在。',
     coreResults: { succeeded: '成功', rolled_back_before_migration: '遷移前已回滾', stopped_in_maintenance_after_migration: '遷移後停留在維護狀態', refused: '已拒絕' },
-    title: '稽核日誌', time: '時間', actor: '操作人', action: '操作', target: '目標',
+    title: '審計記錄', time: '時間', actor: '操作人', action: '操作', target: '目標',
     targetType: '目標類型', from: '開始時間', to: '結束時間',
     allActors: '所有操作人', allActions: '所有操作', allTargets: '所有目標類型',
     details: '事件詳情', summary: '摘要', notRecorded: '未記錄',
@@ -195,7 +220,7 @@ export const merchant = {
     backgroundWorker: '背景工作程序',
     workerRunning: '執行中（{count}）',
     workerNotRunning: '未執行',
-    title: '系統健康狀態',
+    title: '系統健康',
     subtitle: '元件狀態概覽',
     overallStatus: '整體狀態',
     version: '版本',
@@ -208,7 +233,7 @@ export const merchant = {
     products: '商品',
     orders: '訂單',
     notifications: '通知',
-    customers: '顧客',
+    customers: '客戶',
     plugins: '外掛',
     themes: '主題',
     settings: '設定',
@@ -240,6 +265,7 @@ export const merchant = {
 
   // Dashboard
   dashboard: {
+    placedAt: '下單時間',
     title: "概覽",
     welcome: '歡迎回來！',
     welcomeSubtitle: '這是您商店今天的狀況。',
@@ -253,7 +279,7 @@ export const merchant = {
     recentOrders: "最近訂單",
     recentOrdersDesc: '來自您顧客的最新訂單',
     topProducts: '熱門商品',
-    salesChart: '銷售概覽',
+    salesChart: '近 14 天每日已付款銷售額柱狀圖',
     quickActions: '快速操作',
     quickActionsDesc: '常用任務',
     viewAllOrders: "查看全部訂單",
@@ -299,6 +325,7 @@ export const merchant = {
     noSales: "近 14 天沒有銷售。",
     noOrders: "暫無訂單",
     date: "日期",
+    noActivity: "今天暫無訂單或新客戶。",
   },
 
   // Products
@@ -754,10 +781,10 @@ export const merchant = {
 
   // Customers
   customers: {
-    title: '顧客',
+    title: '客戶',
     subtitle: '管理您的顧客關係',
     allCustomers: '所有顧客',
-    customerDetails: '顧客詳情',
+    customerDetails: '客戶詳情',
     name: '姓名',
     email: '電子郵件',
     phone: '電話',

@@ -24,7 +24,7 @@ export function AdminShell({ children, logo = null, loginBackground = null, stor
     <ProtectedRoute requireAdmin><TooltipProvider delayDuration={200}>
       <div className="flex h-dvh overflow-hidden bg-background text-foreground">
         <aside aria-label={copy.navigation} className="hidden shrink-0 border-r border-border min-[769px]:flex" style={{ width: collapsed ? 56 : 240 }}><AdminNavigation {...navigation} collapsed={collapsed} /></aside>
-        <button type="button" aria-label="Open menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)} className="fixed left-4 top-4 z-60 flex size-8 items-center justify-center rounded-md border bg-raised text-foreground min-[769px]:hidden"><Menu className="size-4" aria-hidden="true" /></button>
+        <button type="button" aria-label={copy.openMenu} aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)} className="fixed left-4 top-4 z-60 flex size-8 items-center justify-center rounded-md border bg-raised text-foreground min-[769px]:hidden"><Menu className="size-4" aria-hidden="true" /></button>
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}><SheetContent closeLabel={copy.closeMenu}>
           <SheetTitle className="sr-only">{copy.navigation}</SheetTitle><SheetDescription className="sr-only">{storeName || copy.store}</SheetDescription>
           <AdminNavigation {...navigation} mobile onNavigate={() => setMobileOpen(false)} />

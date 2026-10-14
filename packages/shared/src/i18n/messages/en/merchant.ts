@@ -6,6 +6,31 @@
  */
 
 export const merchant = {
+  shell: {
+    storeLogo: 'Store logo',
+    english: 'English',
+    simplifiedChinese: '简体中文',
+    traditionalChinese: '繁體中文',
+    administrators: 'Administrators',
+    collapse: 'Collapse sidebar',
+    expand: 'Expand sidebar',
+    appearance: 'Appearance',
+    system: 'System',
+    light: 'Light',
+    dark: 'Dark',
+    noDark: 'This theme does not provide a dark appearance.',
+    store: 'Store',
+    extensions: 'Appearance & extensions',
+    management: 'Management',
+    viewStore: 'View store',
+    navigation: 'Store navigation',
+    closeMenu: 'Close menu',
+    openMenu: 'Open menu',
+    expandPages: 'Expand products',
+    collapsePages: 'Collapse products',
+    language: 'Interface language',
+    paymentReviewBadge: '{count} payments awaiting review',
+  },
   catalog: {
     defaultVariant: "Default",
     variantsTitle: "Variants, prices and stock",
@@ -129,7 +154,7 @@ export const merchant = {
     corePlan: 'Core update plan checked',
     invalidTime: 'This time does not exist in the store timezone.',
     coreResults: { succeeded: 'Succeeded', rolled_back_before_migration: 'Rolled back before migration', stopped_in_maintenance_after_migration: 'Stopped in maintenance after migration', refused: 'Refused' },
-    title: 'Audit log', time: 'Time', actor: 'Actor', action: 'Action', target: 'Target',
+    title: 'Audit records', time: 'Time', actor: 'Actor', action: 'Action', target: 'Target',
     targetType: 'Target type', from: 'From', to: 'To',
     allActors: 'All actors', allActions: 'All actions', allTargets: 'All target types',
     details: 'Event details', summary: 'Summary', notRecorded: 'Not recorded',
@@ -240,6 +265,7 @@ export const merchant = {
 
   // Dashboard
   dashboard: {
+    placedAt: 'Placed at',
     title: "Overview",
     welcome: 'Welcome back!',
     welcomeSubtitle: "Here's what's happening with your store today.",
@@ -253,7 +279,7 @@ export const merchant = {
     recentOrders: "Recent orders",
     recentOrdersDesc: 'Latest orders from your customers',
     topProducts: 'Top Products',
-    salesChart: 'Sales Overview',
+    salesChart: 'Daily paid sales over the last 14 days',
     quickActions: 'Quick Actions',
     quickActionsDesc: 'Common tasks',
     viewAllOrders: "View all orders",
@@ -299,6 +325,7 @@ export const merchant = {
     noSales: "No sales in the last 14 days.",
     noOrders: "No orders yet",
     date: "Date",
+    noActivity: "No orders or new customers today.",
   },
 
   // Products
@@ -1086,7 +1113,7 @@ export const merchant = {
     profile: 'Profile',
     logout: 'Log out',
     help: 'Help',
-    myAccount: 'My Account',
+    myAccount: 'My account',
     settings: 'Settings',
     addView: 'Add View',
   },

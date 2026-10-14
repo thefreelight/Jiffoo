@@ -98,7 +98,7 @@ export class AdminDashboardService {
             prisma.user.count({ where: { role: 'USER', createdAt: { gte: startOfTodayUtc, lt: endUtc } } }),
             prisma.user.count({ where: { role: 'USER', createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
             prisma.order.count({ where: { payments: { some: paymentReviewWhere() } } }),
-            prisma.order.count({ where: { status: 'PROCESSING' } }),
+            prisma.order.count({ where: { status: 'PROCESSING', paymentStatus: 'PAID' } }),
             // Prisma stores createdAt as a UTC timestamp without time zone.
             prisma.$queryRaw<Array<{ date: string; paidSales: unknown; orders: number }>>`
                 SELECT to_char((("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE ${normalizeTimezone(timezone)})::date, 'YYYY-MM-DD') AS date,

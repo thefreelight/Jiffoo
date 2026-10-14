@@ -24,7 +24,7 @@ test('P activates an Admin theme with local assets and restores the default imme
   await row.getByRole('button', { name: 'Activate' }).click();
   await expect(row.getByText('Active')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Upload theme' })).toHaveCSS('background-color', 'rgb(204, 0, 51)');
-  await expect(page.getByRole('img', { name: 'Store Console logo' }))
+  await expect(page.getByRole('img', { name: 'Store logo', exact: true }))
     .toHaveAttribute('src', `/api/v1/themes/e2e-admin-theme/${packageHash}/assets/logo.png`);
   await expect(page.getByRole('main').last()).toHaveCSS('font-family', /E2E Outfit/);
   await page.getByRole('button', { name: 'Account menu', exact: true }).click();

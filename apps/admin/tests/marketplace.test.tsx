@@ -168,6 +168,7 @@ describe('Admin marketplace and protected test signing banner', () => {
     await render(<AdminShell><h1>Dashboard</h1></AdminShell>);
     expect(container.getElementsByTagName('main')[0].textContent).toContain('Test signing mode');
     expect(container.getElementsByTagName('strong')[0].parentElement?.className).toContain('bg-attention-soft');
+    expect(container.getElementsByTagName('strong')[0].parentElement?.className).toContain('mb-6');
     mocks.status.mockReturnValue({ data: { configured: true, testSigningMode: false } });
     await render(<AdminShell><h1>Dashboard</h1></AdminShell>);
     expect(container.textContent).not.toContain('Test signing mode');

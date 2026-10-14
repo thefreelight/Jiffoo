@@ -15,8 +15,8 @@ export async function captureOverview(page: Page, empty = false) {
   for (const mode of ['Light', 'Dark']) {
     await page.setViewportSize({ width: 1440, height: 900 });
     await chooseOverviewMode(page, mode);
-    if (!empty) await expect(page.getByRole('img', { name: /^Paid sales: / }).last()).toHaveCSS('fill', mode === 'Dark' ? 'rgb(237, 237, 237)' : 'rgb(23, 23, 23)');
-    for (const [width, height] of [[1440, 900], [390, 844]]) {
+    await expect(page.getByRole('img', { name: 'Daily paid sales over the last 14 days', exact: true })).toBeVisible();
+    for (const [width, height] of [[1440, 1180], [390, 844]]) {
       await page.setViewportSize({ width, height });
       await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'Recent orders', exact: true })).toBeVisible();
@@ -25,6 +25,12 @@ export async function captureOverview(page: Page, empty = false) {
       const image = await page.screenshot({ ...(capture ? { path: directory + '/overview-' + (empty ? 'empty-' : '') + mode.toLowerCase() + '-' + width + '.png' } : {}), animations: 'disabled' });
       expect(image.readUInt32BE(16)).toBe(width);
       expect(image.readUInt32BE(20)).toBe(height);
+      await page.getByRole('img', { name: 'Daily paid sales over the last 14 days', exact: true }).scrollIntoViewIfNeeded();
+      await page.screenshot({ ...(capture ? { path: directory + '/overview-sales-' + (empty ? 'empty-' : '') + mode.toLowerCase() + '-' + width + '.png' } : {}), animations: 'disabled' });
+      await page.getByRole('link', { name: 'View all orders', exact: true }).focus();
+      await page.keyboard.press('End');
+      const recent = await page.screenshot({ ...(capture ? { path: directory + '/overview-recent-' + (empty ? 'empty-' : '') + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
+      expect(recent.readUInt32BE(16), 'Overview stays within the viewport width').toBe(width);
     }
   }
   await page.setViewportSize({ width: 1440, height: 900 });

@@ -6,6 +6,31 @@
  */
 
 export const merchant = {
+  shell: {
+    storeLogo: '店铺标志',
+    english: 'English',
+    simplifiedChinese: '简体中文',
+    traditionalChinese: '繁體中文',
+    administrators: '管理员',
+    collapse: '收起侧边栏',
+    expand: '展开侧边栏',
+    appearance: '外观',
+    system: '跟随系统',
+    light: '浅色',
+    dark: '深色',
+    noDark: '当前主题不提供暗色外观。',
+    store: '店铺',
+    extensions: '外观与扩展',
+    management: '管理',
+    viewStore: '查看店铺',
+    navigation: '后台导航',
+    closeMenu: '关闭菜单',
+    openMenu: '打开菜单',
+    expandPages: '展开商品',
+    collapsePages: '收起商品',
+    language: '界面语言',
+    paymentReviewBadge: '{count} 笔付款待审核',
+  },
   catalog: {
     defaultVariant: "默认",
     variantsTitle: "规格、价格与库存",
@@ -129,7 +154,7 @@ export const merchant = {
     corePlan: 'Core 更新计划已检查',
     invalidTime: '此时间在商店时区中不存在。',
     coreResults: { succeeded: '成功', rolled_back_before_migration: '迁移前已回滚', stopped_in_maintenance_after_migration: '迁移后停留在维护状态', refused: '已拒绝' },
-    title: '审计日志', time: '时间', actor: '操作人', action: '操作', target: '目标',
+    title: '审计记录', time: '时间', actor: '操作人', action: '操作', target: '目标',
     targetType: '目标类型', from: '开始时间', to: '结束时间',
     allActors: '所有操作人', allActions: '所有操作', allTargets: '所有目标类型',
     details: '事件详情', summary: '摘要', notRecorded: '未记录',
@@ -195,7 +220,7 @@ export const merchant = {
     backgroundWorker: '后台工作进程',
     workerRunning: '运行中（{count}）',
     workerNotRunning: '未运行',
-    title: '系统健康状态',
+    title: '系统健康',
     subtitle: '组件状态概览',
     overallStatus: '总体状态',
     version: '版本',
@@ -208,10 +233,10 @@ export const merchant = {
     products: '商品',
     orders: '订单',
     notifications: '通知',
-    customers: '顾客',
+    customers: '客户',
     plugins: '插件',
     themes: '主题',
-    settings: '设定',
+    settings: '设置',
   },
   notifications: {
     title: '通知',
@@ -240,6 +265,7 @@ export const merchant = {
 
   // Dashboard
   dashboard: {
+    placedAt: '下单时间',
     title: "概览",
     welcome: '欢迎回来！',
     welcomeSubtitle: '这是您商店今天的状况。',
@@ -253,7 +279,7 @@ export const merchant = {
     recentOrders: "最近订单",
     recentOrdersDesc: '来自您顾客的最新订单',
     topProducts: '热门商品',
-    salesChart: '销售概览',
+    salesChart: '近 14 天每日已付款销售额柱状图',
     quickActions: '快速操作',
     quickActionsDesc: '常用任务',
     viewAllOrders: "查看全部订单",
@@ -299,6 +325,7 @@ export const merchant = {
     noSales: "近 14 天没有销售。",
     noOrders: "暂无订单",
     date: "日期",
+    noActivity: "今天暂无订单或新客户。",
   },
 
   // Products
@@ -754,10 +781,10 @@ export const merchant = {
 
   // Customers
   customers: {
-    title: '顾客',
+    title: '客户',
     subtitle: '管理您的顾客关系',
     allCustomers: '所有顾客',
-    customerDetails: '顾客详情',
+    customerDetails: '客户详情',
     name: '姓名',
     email: '电子邮件',
     phone: '电话',
@@ -892,7 +919,7 @@ export const merchant = {
 
   // Settings
   settings: {
-    title: '设定',
+    title: '设置',
     subtitle: '管理您的商店配置和偏好设定',
     general: '一般',
     store: '商店',
@@ -1084,9 +1111,9 @@ export const merchant = {
     searchPlaceholder: '搜寻...',
     notifications: '通知',
     profile: '个人资料',
-    logout: '登出',
+    logout: '退出登录',
     help: '说明',
-    myAccount: '我的帐户',
+    myAccount: '我的账户',
     settings: '设定',
     addView: '新增视图',
   },

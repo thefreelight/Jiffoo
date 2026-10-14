@@ -195,6 +195,11 @@ test('A5 product editor guards changes, reorders images, navigates, duplicates a
   const leave = page.getByRole('alertdialog', { name: 'Save before leaving?', exact: true }); await expect(leave).toBeVisible();
   await leave.getByRole('button', { name: 'Keep editing', exact: true }).click();
   await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('A5 unsaved name');
+  await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'My account', exact: true }).click();
+  await expect(leave).toBeVisible();
+  await leave.getByRole('button', { name: 'Keep editing', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('A5 unsaved name');
   await page.getByRole('link', { name: 'Orders', exact: true }).click();
   await leave.getByRole('button', { name: 'Leave without saving', exact: true }).click();
   await expect(page).toHaveURL(/\/en\/orders$/);

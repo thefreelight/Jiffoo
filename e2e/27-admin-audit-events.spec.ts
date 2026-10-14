@@ -41,16 +41,16 @@ async function events(request: APIRequestContext, query = ''): Promise<Event[]> 
   return (await response.json()).data.items;
 }
 async function open(page: Page) {
-  await page.getByRole('link', { name: 'Audit log', exact: true }).click();
-  await expect(page.getByRole('table', { name: 'Audit log', exact: true })).toHaveAttribute('aria-busy', 'false');
+  await page.getByRole('link', { name: 'Audit records', exact: true }).click();
+  await expect(page.getByRole('table', { name: 'Audit records', exact: true })).toHaveAttribute('aria-busy', 'false');
 }
-const rows = (page: Page) => page.getByRole('table', { name: 'Audit log', exact: true }).getByRole('row');
+const rows = (page: Page) => page.getByRole('table', { name: 'Audit records', exact: true }).getByRole('row');
 function localDate(value: string) {
   return storeLocalDate(value, storeTimezone);
 }
 async function select(page: Page, label: string, value: string) {
   await page.getByRole('combobox', { name: label, exact: true }).selectOption(value);
-  await expect(page.getByRole('table', { name: 'Audit log', exact: true })).toHaveAttribute('aria-busy', 'false');
+  await expect(page.getByRole('table', { name: 'Audit records', exact: true })).toHaveAttribute('aria-busy', 'false');
 }
 
 test.beforeAll(async ({ request }) => {
@@ -103,7 +103,7 @@ test('H action and time filters restrict rows and pagination moves between exact
     const canonical = localDate(instant);
     await page.getByLabel('From', { exact: true }).fill(canonical);
     await expect(page.getByLabel('From', { exact: true })).toHaveValue(canonical);
-    await expect(page.getByRole('table', { name: 'Audit log', exact: true })).toHaveAttribute('aria-busy', 'false');
+    await expect(page.getByRole('table', { name: 'Audit records', exact: true })).toHaveAttribute('aria-busy', 'false');
   }
   await page.getByLabel('From', { exact: true }).fill(localDate(own[20].createdAt));
   await page.getByLabel('To', { exact: true }).fill(localDate(own[0].createdAt));
@@ -165,8 +165,8 @@ test('J Chinese titles and column headers are exact and review views fit desktop
   await open(page);
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
-    await expect(page.getByRole('heading', { name: 'Audit log', exact: true })).toBeVisible();
-    const heading = await page.getByRole('heading', { name: 'Audit log', exact: true }).boundingBox();
+    await expect(page.getByRole('heading', { name: 'Audit records', exact: true })).toBeVisible();
+    const heading = await page.getByRole('heading', { name: 'Audit records', exact: true }).boundingBox();
     expect(heading).not.toBeNull();
     expect(heading!.x).toBeGreaterThanOrEqual(0);
     expect(heading!.x + heading!.width).toBeLessThanOrEqual(width);
@@ -174,8 +174,8 @@ test('J Chinese titles and column headers are exact and review views fit desktop
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const entry of [
-    { locale: 'zh-Hans', title: '审计日志', columns: ['时间', '操作人', '操作', '目标'] },
-    { locale: 'zh-Hant', title: '稽核日誌', columns: ['時間', '操作人', '操作', '目標'] },
+    { locale: 'zh-Hans', title: '审计记录', columns: ['时间', '操作人', '操作', '目标'] },
+    { locale: 'zh-Hant', title: '審計記錄', columns: ['時間', '操作人', '操作', '目標'] },
   ]) {
     await page.goto(`/${entry.locale}/audit-events`);
     await expect(page.getByRole('heading', { name: entry.title, exact: true })).toBeVisible();

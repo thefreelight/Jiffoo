@@ -3,19 +3,20 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ProductForm } from '../components/products/ProductForm';
+import { AdminNavigation } from '../components/layout/admin-navigation';
 import { duplicateDraft, productPayload } from '../lib/product-editor';
 import { productListQuery } from '../lib/product-list-state';
-import { requestAppNavigation } from '../lib/pending-navigation';
 import { merchant } from '../../../packages/shared/src/i18n/messages/en/merchant';
 
 const state = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), update: vi.fn(), create: vi.fn(), upload: vi.fn(), currency: 'EUR', query: {} as any }));
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: state.push, replace: state.replace }) }));
+vi.mock('next/navigation', () => ({ usePathname: () => '/en/products/product/edit', useRouter: () => ({ push: state.push, replace: state.replace }) }));
 vi.mock('next/link', () => ({ default: ({ children, href, ...props }: any) => <a href={href} {...props} onClick={event => { event.preventDefault(); state.push(href); }}>{children}</a> }));
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string, params?: Record<string, string | number>) => {
   const value = key.split('.').slice(1).reduce<any>((value, part) => value?.[part], merchant);
   return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => String(params?.[name] ?? '{' + name + '}')) : key;
 } }));
 vi.mock('../lib/hooks/use-api', () => ({
+  useOrderStats: () => ({ data: { paymentReviewCount: 0 } }),
   useProductEditorContext: () => ({ data: { currency: state.currency, defaultLocale: 'en' } }),
   useCategories: () => ({ data: [{ id: 'category', name: 'Clothing' }] }),
   useCreateProduct: () => ({ mutateAsync: state.create, isPending: false }),
@@ -30,7 +31,7 @@ const product = { id: 'product', slug: 'real-slug', currency: 'EUR', name: 'Shir
 let root: Root | undefined;
 async function mount(props: Partial<React.ComponentProps<typeof ProductForm>> = { product }) {
   const node = document.createElement('div'); document.body.append(node); root = createRoot(node);
-  await act(async () => root!.render(<><a href="/en/orders" onClick={event => { event.preventDefault(); state.push('/en/orders'); }}>Sidebar orders</a><ProductForm storefrontUrl="http://shop.test/en" {...props} /></>)); return node;
+  await act(async () => root!.render(<><AdminNavigation storeName="Local Store" storeUrl="http://shop.test/en" /><ProductForm storefrontUrl="http://shop.test/en" {...props} /></>)); return node;
 }
 const button = (name: string, scope: ParentNode = document) => {
   const found = Array.from(scope.querySelectorAll<HTMLButtonElement>('button')).find(control => control.textContent?.trim() === name || control.getAttribute('aria-label') === name);
@@ -65,7 +66,7 @@ it('tracks real dirty state, store-local saved time and discard, including trans
 it.each(['keep', 'leave', 'save', 'fail'])('guards sidebar navigation and handles %s without losing inputs', async decision => {
   await mount(); await fill('product-name', 'Edited');
   if (decision === 'fail') state.update.mockRejectedValue({ code: 'SKU_CODE_TAKEN', details: { field: 'skuCode', variantIndex: 1, name: 'Other' } });
-  await act(async () => Array.from(document.querySelectorAll('a')).find(link => link.textContent === 'Sidebar orders')!.click());
+  await act(async () => document.querySelector<HTMLAnchorElement>('a[aria-label="Orders"]')!.click());
   expect(document.querySelector('[role="alertdialog"]')).toBeTruthy(); expect(state.push).not.toHaveBeenCalled();
   await act(async () => button(decision === 'keep' ? 'Keep editing' : decision === 'leave' ? 'Leave without saving' : 'Save and leave').click());
   if (decision === 'leave' || decision === 'save') expect(state.push).toHaveBeenCalledWith('/en/orders');
@@ -87,11 +88,10 @@ it('guards duplicate navigation and leaves the original saved product intact', a
 });
 it('defers imperative account-menu navigation and its side effects until the leave decision', async () => {
   await mount(); await fill('product-name', 'Edited');
-  const action = vi.fn(() => state.push('/en/settings'));
-  await act(async () => requestAppNavigation(action)); expect(action).not.toHaveBeenCalled();
-  await act(async () => button('Keep editing').click()); expect(action).not.toHaveBeenCalled();
-  await act(async () => requestAppNavigation(action)); await act(async () => button('Leave without saving').click());
-  expect(action).toHaveBeenCalledOnce(); expect(state.push).toHaveBeenCalledWith('/en/settings');
+  await openMenu('Account menu'); await selectItem('My account'); expect(state.push).not.toHaveBeenCalled();
+  await act(async () => button('Keep editing').click()); expect(state.push).not.toHaveBeenCalled();
+  await openMenu('Account menu'); await selectItem('My account'); await act(async () => button('Leave without saving').click());
+  expect(state.push).toHaveBeenCalledOnce(); expect(state.push).toHaveBeenCalledWith('/en/profile');
 });
 it('supports cover and move menus, optional bulk fields and currency from settings', async () => {
   await mount(); expect(document.getElementById('variant-v1-price')?.parentElement?.textContent).toContain('€');

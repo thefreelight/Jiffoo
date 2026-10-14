@@ -133,6 +133,7 @@ describe('Admin Dashboard Endpoints', () => {
       await create(new Date(endUtc.getTime() + 1), 400, 'PENDING', 'PAID');
       await create(days[0].startUtc, 5.5, 'PROCESSING', 'PAID');
       await create(new Date(days[0].startUtc.getTime() - 1), 999, 'PENDING', 'PAID');
+      await create(new Date(days[0].startUtc.getTime() - 2), 88, 'PROCESSING', 'PENDING');
       for (const [role, date] of [['USER', startOfTodayUtc], ['USER', startOfYesterdayUtc], ['ADMIN', startOfTodayUtc]] as const) {
         const user = await createTestUser({ role }); customers.push(user.id);
         await prisma.user.update({ where: { id: user.id }, data: { createdAt: date } });
