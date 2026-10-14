@@ -4,6 +4,13 @@ import { captureCustomers } from './customer-captures';
 import { readFile } from 'node:fs/promises';
 import { getTestPrisma, disconnectDatabase } from '../apps/api/tests/helpers/db';
 import { formatStoreTimestamp } from '../packages/shared/src/store-time';
+import type { Page } from '@playwright/test';
+
+async function searchCustomers(page: Page, search: string, count: number) {
+  await page.getByPlaceholder('Search name or email').fill(search);
+  await expect(page).toHaveURL(url => url.searchParams.get('search') === (search || null));
+  await expect(page.getByRole('row', { name: /./ })).toHaveCount(count + 1);
+}
 
 test('customer filters, real order totals, navigation, rename, status, protected deletion and exports', async ({ page, newObservedContext }) => {
   test.setTimeout(180000);
@@ -20,7 +27,7 @@ test('customer filters, real order totals, navigation, rename, status, protected
     const disposable = await db.user.create({ data: { email: 'b1-empty@e2e.example', username: 'B1 Empty Customer', password: customer.password } }); disposableId = disposable.id;
     await login(page);
     await page.goto('/en/customers');
-    await page.getByPlaceholder('Search name or email').fill(customerEmail);
+    await searchCustomers(page, customerEmail, 1);
     const row = page.getByRole('row', { name: /E2E Customer.*customer@e2e.example/ });
     await expect(row.getByText(String(orders.length), { exact: true })).toBeVisible();
     await expect(row.getByText('$' + paid.toFixed(2), { exact: true })).toBeVisible();
@@ -35,7 +42,7 @@ test('customer filters, real order totals, navigation, rename, status, protected
     await expect(page.getByRole('button', { name: 'Remove filter: Registered Last 30 days', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Clear all', exact: true }).click();
     await expect(page.getByRole('button', { name: /^Remove filter/ })).toHaveCount(0);
-    await page.getByPlaceholder('Search name or email').fill(customerEmail);
+    await searchCustomers(page, customerEmail, 1);
     await expect(row).toBeVisible();
     await row.getByRole('button', { name: 'More actions: E2E Customer', exact: true }).click();
     await expect(page.getByRole('menuitem', { name: /^Delete customer/ })).toBeDisabled();
@@ -54,7 +61,7 @@ test('customer filters, real order totals, navigation, rename, status, protected
     await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
     await assertCsv(false);
     await captureCustomers(page, 'list');
-    await page.getByPlaceholder('Search name or email').fill('');
+    await searchCustomers(page, '', await db.user.count({ where: { role: 'USER' } }));
     await expect(page.getByRole('row', { name: /B1 Empty Customer/ })).toBeVisible();
     await page.getByRole('row', { name: /E2E Customer.*customer@e2e.example/ }).click();
     await expect(page.getByRole('heading', { name: 'E2E Customer', exact: true })).toBeVisible();
@@ -84,7 +91,7 @@ test('customer filters, real order totals, navigation, rename, status, protected
     await dialog.getByLabel('Name', { exact: true }).fill('E2E Customer'); await dialog.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'E2E Customer', exact: true })).toBeVisible();
     await page.getByRole('link', { name: '← Customers', exact: true }).click();
-    await page.getByPlaceholder('Search name or email').fill('b1-empty@e2e.example');
+    await searchCustomers(page, 'b1-empty@e2e.example', 1);
     const empty = page.getByRole('row', { name: /B1 Empty Customer/ }); await expect(empty).toBeVisible();
     await empty.getByRole('button', { name: 'More actions: B1 Empty Customer', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Delete customer', exact: true }).click();
@@ -102,7 +109,7 @@ test('generate a customer reset link immediately, copy it and reset and log in t
   await page.context().grantPermissions(['clipboard-write']);
   await login(page);
   await page.goto('/en/customers');
-  await page.getByPlaceholder('Search name or email').fill(customerEmail);
+  await searchCustomers(page, customerEmail, 1);
   await page.getByRole('row', { name: new RegExp(customerEmail) }).getByRole('link', { name: new RegExp(customerEmail) }).click();
   await page.getByRole('button', { name: 'Generate password reset link', exact: true }).click();
   await expect(page.getByRole('dialog', { name: /./ })).toHaveCount(0);

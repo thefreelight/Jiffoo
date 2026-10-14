@@ -34,6 +34,12 @@ it('shows real aggregates, filtered tab counts, store time and mobile cards', as
   await act(async () => button('Orders').click()); expect(state.params).toMatchObject({ sortBy: 'orderCount', sortOrder: 'asc' });
   await act(async () => button('Inactive').click()); expect(state.params).toMatchObject({ status: 'inactive', page: 1 });
 });
+it('shows the loading line on the first load when there are no previous rows', async () => {
+  state.data = { isLoading: true };
+  await mount();
+  expect(container.querySelector('[role="status"]')?.textContent).toBe('Loading customers…');
+  expect(container.querySelector('table')).toBeNull();
+});
 it('selects the current page, offers all matching customers and clears selection on filter change', async () => {
   await mount();
   const checkbox = container.querySelector<HTMLInputElement>('input[aria-label="Select all customers on this page"]')!;
