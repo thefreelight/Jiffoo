@@ -213,34 +213,52 @@ async function handleCheckout(request: Request, env: PostoryEnv, user: NativeSes
   if (paymentMethod === 'stripe') {
     const secretKey = await secretValue(env.STRIPE_SECRET_KEY);
     if (!secretKey) return fail(503, 'PAYMENT_PLUGIN_FAILED', 'Stripe is not configured');
-    const form = new URLSearchParams();
-    form.set('mode', 'subscription');
-    form.set('line_items[0][quantity]', '1');
-    form.set('line_items[0][price_data][currency]', plan.currency);
-    form.set('line_items[0][price_data][product_data][name]', plan.name);
-    form.set('line_items[0][price_data][unit_amount]', String(Math.round(plan.amount * 100)));
-    form.set('line_items[0][price_data][recurring][interval]', 'year');
-    form.set('metadata[orderId]', orderId);
-    form.set('metadata[userId]', user.id);
-    form.set('metadata[planSlug]', plan.slug);
-    if (user.email) form.set('customer_email', user.email);
-    form.set('success_url', `${typeof body.successUrl === 'string' ? body.successUrl : origin + '/?checkout=success'}?session_id={CHECKOUT_SESSION_ID}`);
-    form.set('cancel_url', typeof body.cancelUrl === 'string' ? body.cancelUrl : origin + '/?checkout=canceled');
-    // Chinese-likely customers (CN ip OR Chinese browser locale) get the CN
-    // rails explicitly — Stripe's automatic geo detection misses VPN/proxy
-    // users whose exit is overseas, and Alipay/WeChat don't appear for them.
-    if (cnCustomer) {
-      form.set('payment_method_types[0]', 'card');
-      form.set('payment_method_types[1]', 'alipay');
-      form.set('payment_method_types[2]', 'wechat_pay');
-      form.set('payment_method_options[wechat_pay][client]', 'web');
+    // One-off yearly license, not a Stripe subscription: entitlement is
+    // granted per checkout.session.completed (activateOrder), and Stripe
+    // renewals bill via invoice.paid which never re-fires that event — a
+    // subscription mode would charge year 2 while the entitlement expires.
+    // One-off also keeps the session eligible for alipay/wechat_pay, which
+    // Stripe restricts to non-recurring payments.
+    const buildForm = (cnRails: boolean): URLSearchParams => {
+      const form = new URLSearchParams();
+      form.set('mode', 'payment');
+      form.set('line_items[0][quantity]', '1');
+      form.set('line_items[0][price_data][currency]', plan.currency);
+      form.set('line_items[0][price_data][product_data][name]', plan.name);
+      form.set('line_items[0][price_data][unit_amount]', String(Math.round(plan.amount * 100)));
+      form.set('metadata[orderId]', orderId);
+      form.set('metadata[userId]', user.id);
+      form.set('metadata[planSlug]', plan.slug);
+      if (user.email) form.set('customer_email', user.email);
+      form.set('success_url', `${typeof body.successUrl === 'string' ? body.successUrl : origin + '/?checkout=success'}?session_id={CHECKOUT_SESSION_ID}`);
+      form.set('cancel_url', typeof body.cancelUrl === 'string' ? body.cancelUrl : origin + '/?checkout=canceled');
+      // Chinese-likely customers (CN ip OR Chinese browser locale) get the CN
+      // rails explicitly — Stripe's automatic geo detection misses VPN/proxy
+      // users whose exit is overseas, and Alipay/WeChat don't appear for them.
+      // If the Stripe account lacks a rail (or rejects it), fall back to the
+      // automatic set instead of failing the whole checkout.
+      if (cnRails) {
+        form.set('payment_method_types[0]', 'card');
+        form.set('payment_method_types[1]', 'alipay');
+        form.set('payment_method_types[2]', 'wechat_pay');
+        form.set('payment_method_options[wechat_pay][client]', 'web');
+      }
+      return form;
+    };
+    const createSession = async (cnRails: boolean) => {
+      const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${secretKey}`, 'content-type': 'application/x-www-form-urlencoded' },
+        body: buildForm(cnRails).toString(),
+      });
+      const payload = await response.json<{ id?: string; url?: string; error?: { message?: string } }>().catch(() => ({}) as { id?: string; url?: string; error?: { message?: string } });
+      return { response, payload };
+    };
+    let { response: stripe, payload } = await createSession(cnCustomer);
+    if (!stripe.ok && cnCustomer) {
+      console.error(JSON.stringify({ message: 'Postory CN rails checkout rejected, retrying with automatic methods', status: stripe.status, error: payload.error?.message ?? 'invalid response' }));
+      ({ response: stripe, payload } = await createSession(false));
     }
-    const stripe = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: { authorization: `Bearer ${secretKey}`, 'content-type': 'application/x-www-form-urlencoded' },
-      body: form.toString(),
-    });
-    const payload = await stripe.json<{ id?: string; url?: string; error?: { message?: string } }>().catch(() => ({}) as { id?: string; url?: string; error?: { message?: string } });
     if (!stripe.ok || !payload.id || !payload.url) {
       return fail(502, 'PAYMENT_PLUGIN_FAILED', payload.error?.message || 'Stripe could not create a checkout session');
     }
