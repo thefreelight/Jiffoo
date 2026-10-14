@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 通知</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-row:hover{background:rgba(128,128,128,0.06)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="通知" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; position: relative">
+    <div style="width: 100%; max-width: 1120px; box-sizing: border-box; margin: 0 auto; padding: 40px 32px 48px; display: flex; flex-direction: column; gap: 16px">
+
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.025em">通知</h1>
+        <p style="margin: 0; color: {{t.muted}}">系统自动发出的邮件：订单确认、付款结果、邮箱验证、管理员邀请等。</p>
+      </div>
+
+      <sc-if value="{{failedBanner}}" hint-placeholder-val="{{ true }}">
+        <div role="status" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid {{t.alertLine}}; background: {{t.alertSoft}}; color: {{t.alert}}">
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19zM12 10v4M12 17h.01"></path></svg>
+          <span style="flex: 1 1 320px">3 封邮件发送失败。点开看失败原因，确认收件地址或发信插件后可以重新发送。</span>
+          <button type="button" style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.alertLine}}; background: transparent; color: {{t.alert}}; font: inherit; font-weight: 500; cursor: pointer">只看失败</button>
+        </div>
+      </sc-if>
+
+      <div role="tablist" aria-label="发送状态" style="display: flex; flex-wrap: wrap; gap: 20px; border-bottom: 1px solid {{t.border}}">
+        <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="5">
+          <button type="button" role="tab" aria-selected="{{tab.selected}}" style="height: 36px; padding: 0; margin-bottom: -1px; border: 0; border-bottom: 1.5px solid {{tab.line}}; background: transparent; color: {{tab.color}}; font: inherit; font-weight: 500; cursor: pointer">{{tab.name}}<span style="margin-left: 6px; font-family: 'Geist Mono', monospace; font-size: 11px; color: {{tab.countColor}}">{{tab.count}}</span></button>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <div style="flex: 1 1 260px; position: relative; display: flex">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" style="position: absolute; left: 11px; top: 10px"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <label for="n-search" style="position: absolute; left: -9999px">搜索收件人</label>
+          <input id="n-search" type="search" placeholder="搜索收件人邮箱" style="flex: 1 1 auto; min-width: 0; height: 34px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 0 12px 0 32px; font: inherit">
+        </div>
+        <button type="button" aria-haspopup="menu" style="height: 34px; display: inline-flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; font: inherit; cursor: pointer"><span style="color: {{t.faint}}">类型</span>全部<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+      </div>
+
+      <div style="border-radius: 10px; border: 1px solid {{t.border}}; overflow: hidden">
+        <div style="overflow-x: auto">
+        <table style="width: 100%; min-width: 780px; border-collapse: collapse">
+          <thead>
+            <tr style="color: {{t.faint}}; text-align: left; background: {{t.raised}}">
+              <th scope="col" style="padding: 10px 16px; font-weight: 500; font-size: 12px">邮件</th>
+              <th scope="col" style="padding: 10px 12px; font-weight: 500; font-size: 12px">收件人</th>
+              <th scope="col" style="padding: 10px 12px; font-weight: 500; font-size: 12px">状态</th>
+              <th scope="col" style="padding: 10px 12px; font-weight: 500; font-size: 12px; text-align: right">尝试</th>
+              <th scope="col" style="padding: 10px 16px 10px 12px; font-weight: 500; font-size: 12px; text-align: right">创建时间（Asia/Shanghai）</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+              <tr class="jf-row" style="border-top: 1px solid {{t.border}}; cursor: pointer">
+                <td style="padding: 10px 16px">
+                  <a href="#" style="display: flex; flex-direction: column; gap: 2px">
+                    <span style="font-weight: 500">{{r.type}}</span>
+                    <span style="font-size: 12px; color: {{t.faint}}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 360px">{{r.subject}}</span>
+                  </a>
+                </td>
+                <td style="padding: 10px 12px; color: {{t.muted}}">{{r.to}}</td>
+                <td style="padding: 10px 12px; white-space: nowrap">
+                  <span style="display: inline-flex; flex-direction: column; gap: 2px">
+                    <span style="display: inline-flex; align-items: center; gap: 7px; color: {{r.stColor}}"><span aria-hidden="true" style="width: 7px; height: 7px; box-sizing: border-box; border-radius: 999px; border: 1.4px {{r.dotStyle}} currentColor; background: {{r.dotFill}}"></span>{{r.status}}</span>
+                    <sc-if value="{{r.note}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: {{t.faint}}; padding-left: 14px">{{r.note}}</span></sc-if>
+                  </span>
+                </td>
+                <td style="padding: 10px 12px; text-align: right; font-family: 'Geist Mono', monospace; font-size: 12px">{{r.attempts}}</td>
+                <td style="padding: 10px 16px 10px 12px; text-align: right; color: {{t.muted}}; white-space: nowrap; font-variant-numeric: tabular-nums">{{r.time}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <nav aria-label="翻页" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; color: {{t.muted}}">
+        <span style="font-variant-numeric: tabular-nums">1–20，共 286 条 · 每页 20 条</span>
+        <div style="display: flex; align-items: center; gap: 4px">
+          <button type="button" aria-label="上一页" disabled style="width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.faint}}">‹</button>
+          <button type="button" aria-label="第 1 页" aria-current="page" style="min-width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.fg}}; background: {{t.fg}}; color: {{t.bg}}; font-family: 'Geist Mono', monospace; font-size: 12px">1</button>
+          <button type="button" aria-label="第 2 页" style="min-width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">2</button>
+          <span style="width: 24px; text-align: center; color: {{t.faint}}">…</span>
+          <button type="button" aria-label="第 15 页" style="min-width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">15</button>
+          <button type="button" aria-label="下一页" style="width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}">›</button>
+        </div>
+      </nav>
+    </div>
+
+    <sc-if value="{{detail}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,0.32); display: flex; justify-content: flex-end">
+        <div role="dialog" aria-modal="true" aria-labelledby="nd-title" style="width: 100%; max-width: 520px; box-sizing: border-box; height: 100%; overflow-y: auto; background: {{t.bg}}; border-left: 1px solid {{t.border}}; box-shadow: -12px 0 40px rgba(0,0,0,0.16); padding: 24px; display: flex; flex-direction: column; gap: 18px">
+          <div style="display: flex; justify-content: space-between; gap: 12px">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <h2 id="nd-title" style="margin: 0; font-size: 16px; font-weight: 600">{{d.type}}</h2>
+              <span style="color: {{t.muted}}">{{d.to}}</span>
+            </div>
+            <button type="button" aria-label="关闭" style="width: 28px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: {{t.muted}}; cursor: pointer">✕</button>
+          </div>
+
+          <sc-if value="{{d.failed}}" hint-placeholder-val="{{ false }}">
+            <div role="alert" style="border-radius: 10px; border: 1px solid {{t.alertLine}}; background: {{t.alertSoft}}; color: {{t.alert}}; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; line-height: 1.6">
+              <span style="font-weight: 500">发送失败，已尝试 5 次，不再自动重试。</span>
+              <span style="font-family: 'Geist Mono', monospace; font-size: 12px; word-break: break-all">550 5.1.1 Recipient address rejected: mailbox unavailable</span>
+              <span style="font-size: 12px; color: {{t.muted}}">通常是邮箱地址写错了，或对方邮箱已停用。</span>
+            </div>
+          </sc-if>
+
+          <dl style="margin: 0; border: 1px solid {{t.border}}; border-radius: 10px; padding: 4px 14px">
+            <sc-for list="{{d.facts}}" as="f" hint-placeholder-count="5">
+              <div style="display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid {{f.line}}">
+                <dt style="width: 88px; color: {{t.muted}}">{{f.k}}</dt>
+                <dd style="margin: 0; flex: 1 1 200px; font-variant-numeric: tabular-nums">{{f.v}}</dd>
+              </div>
+            </sc-for>
+          </dl>
+
+          <section aria-labelledby="nd-content" style="display: flex; flex-direction: column; gap: 8px">
+            <h3 id="nd-content" style="margin: 0; font-size: 13px; font-weight: 600">邮件内容</h3>
+            <div style="border: 1px solid {{t.border}}; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: {{t.raised}}">
+              <span style="font-weight: 500">{{d.subject}}</span>
+              <span style="color: {{t.muted}}; line-height: 1.7; white-space: pre-line">{{d.body}}</span>
+            </div>
+          </section>
+
+          <div style="display: flex; flex-direction: column; gap: 6px; margin-top: auto">
+            <button type="button" disabled="{{d.noResend}}" style="height: 34px; border-radius: 7px; border: 0; background: {{d.btnBg}}; color: {{d.btnFg}}; font: inherit; font-weight: 500; cursor: pointer">重新发送</button>
+            <span style="font-size: 12px; color: {{t.faint}}; line-height: 1.6">{{d.resendHint}}</span>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"overlay":{"editor":"enum","options":["无","详情 · 发送失败","详情 · 已发送","详情 · 重置密码（不能重发）"],"default":"无"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const ov = this.props.overlay ?? '无';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)',
+      alert: '#F5A97F', alertSoft: 'rgba(245,169,127,0.07)', alertLine: 'rgba(245,169,127,0.22)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)',
+      alert: '#B4470E', alertSoft: '#FFF6F0', alertLine: 'rgba(180,71,14,0.22)'
+    };
+    const S = {
+      '已发送': { stColor: t.fg, dotFill: 'currentColor', dotStyle: 'solid' },
+      '待发送': { stColor: t.fg, dotFill: 'transparent', dotStyle: 'dashed' },
+      '发送中': { stColor: t.fg, dotFill: 'transparent', dotStyle: 'solid' },
+      '失败': { stColor: t.alert, dotFill: 'transparent', dotStyle: 'solid' }
+    };
+    const rows = [
+      ['订单确认', '你的订单已确认', 'mia@example.com', '已发送', '1', '2026-10-13 16:56', ''],
+      ['付款成功', '我们已收到你的付款', 'chen@example.com', '已发送', '1', '2026-10-13 16:41', ''],
+      ['管理员邀请', '你被邀请管理示例店铺', 'lucas.ops@example.com', '失败', '5', '2026-10-13 10:05', '收件地址被拒收'],
+      ['邮箱验证', '请验证你的邮箱', 'zhao@example.com', '待发送', '2', '2026-10-13 09:58', '10:10 再次尝试'],
+      ['重置密码', '重置你的密码', 'owner@example.com', '已发送', '1', '2026-10-12 22:14', ''],
+      ['需要退款提醒', '订单已取消但收到了付款', 'owner@example.com', '已发送', '1', '2026-10-12 18:30', ''],
+      ['付款失败', '你的付款没有成功', 'wang@example.com', '发送中', '1', '2026-10-12 17:02', '']
+    ];
+    const tabs = [['全部', '286', true], ['待发送', '4'], ['发送中', '1'], ['已发送', '278'], ['失败', '3']].map(([n, c, s]) => ({
+      name: n, count: c, selected: s ? 'true' : 'false', line: s ? t.fg : 'transparent', color: s ? t.fg : t.faint,
+      countColor: n === '失败' ? t.alert : t.faint
+    }));
+    const D = {
+      '详情 · 发送失败': { type: '管理员邀请', to: 'lucas.ops@example.com', failed: true, subject: '你被邀请管理示例店铺',
+        body: '你好 Lucas，\n店主邀请你成为示例店铺的管理员。点下面的链接设置密码，72 小时内有效。\n[邀请链接已隐藏]',
+        facts: [['状态', '失败'], ['尝试次数', '5'], ['创建时间', '2026-10-13 10:05'], ['最后尝试', '2026-10-13 12:41'], ['发信插件', '邮件发送（SMTP）']],
+        noResend: false, resendHint: '会生成新的邀请链接并发一封新邮件，旧链接作废。这次操作会记入审计记录。' },
+      '详情 · 已发送': { type: '订单确认', to: 'mia@example.com', failed: false, subject: '你的订单已确认',
+        body: '你好 Mia，\n我们已收到你的订单，正在准备发货。\n订单金额 ¥ 89.00',
+        facts: [['状态', '已发送'], ['尝试次数', '1'], ['创建时间', '2026-10-13 16:56'], ['发送时间', '2026-10-13 16:56'], ['相关订单', '查看订单 →']],
+        noResend: false, resendHint: '会把同样的内容再发一次给这个邮箱。这次操作会记入审计记录。' },
+      '详情 · 重置密码（不能重发）': { type: '重置密码', to: 'owner@example.com', failed: false, subject: '重置你的密码',
+        body: '你好，\n有人申请重置你的密码。点下面的链接设置新密码，1 小时内有效。\n[重置链接已隐藏]',
+        facts: [['状态', '已发送'], ['尝试次数', '1'], ['创建时间', '2026-10-12 22:14'], ['发送时间', '2026-10-12 22:14']],
+        noResend: true, resendHint: '重置密码邮件带一次性链接，不能重新发送。请让对方在登录页点“忘记密码”重新申请。' }
+    };
+    const d0 = D[ov];
+    return {
+      t, mode, tabs, failedBanner: true,
+      rows: rows.map(([type, subject, to, status, attempts, time, note]) => ({ type, subject, to, status, attempts, time, note, ...S[status] })),
+      detail: !!d0,
+      d: d0 ? { ...d0,
+        facts: d0.facts.map(([k, v], i) => ({ k, v, line: i === d0.facts.length - 1 ? 'transparent' : t.border })),
+        btnBg: d0.noResend ? t.raised : t.fg, btnFg: d0.noResend ? t.faint : t.bg } : {}
+    };
+  }
+}
+</script>
+</body>
+</html>

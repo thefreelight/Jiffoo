@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 系统健康</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="系统健康" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0">
+    <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 40px 32px 64px; display: flex; flex-direction: column; gap: 20px">
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.025em">系统健康</h1>
+          <p style="margin: 0; color: {{t.muted}}">店铺背后的几个服务是否在正常运行。每分钟自动刷新。</p>
+        </div>
+        <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">立即刷新</button>
+      </div>
+
+      <section aria-label="总体状态" style="border-radius: 10px; border: 1px solid {{v.line}}; background: {{v.soft}}; padding: 16px; display: flex; gap: 12px; align-items: flex-start">
+        <span aria-hidden="true" style="width: 10px; height: 10px; margin-top: 5px; flex: none; border-radius: 999px; background: {{v.dot}}"></span>
+        <span style="display: flex; flex-direction: column; gap: 4px; line-height: 1.6">
+          <span style="font-weight: 600; color: {{v.titleColor}}">{{v.title}}</span>
+          <span style="color: {{t.muted}}">{{v.text}}</span>
+        </span>
+      </section>
+
+      <section aria-labelledby="h-parts" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="h-parts" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">各项服务</h2>
+        <sc-for list="{{parts}}" as="p" hint-placeholder-count="4">
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 16px; padding: 12px 16px; border-bottom: 1px solid {{p.line}}">
+            <span style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-weight: 500">{{p.name}}</span>
+              <span style="font-size: 12px; color: {{t.faint}}; line-height: 1.6">{{p.what}}</span>
+            </span>
+            <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right">
+              <span style="display: inline-flex; align-items: center; gap: 7px; color: {{p.color}}"><span aria-hidden="true" style="width: 7px; height: 7px; box-sizing: border-box; border-radius: 999px; border: 1.4px solid currentColor; background: {{p.fill}}"></span>{{p.status}}</span>
+              <sc-if value="{{p.detail}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: {{t.faint}}">{{p.detail}}</span></sc-if>
+            </span>
+          </div>
+        </sc-for>
+      </section>
+
+      <section aria-labelledby="h-ver" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="h-ver" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">版本</h2>
+        <dl style="margin: 0; padding: 4px 16px">
+          <div style="display: flex; gap: 16px; padding: 9px 0; border-bottom: 1px solid {{t.border}}"><dt style="width: 96px; color: {{t.muted}}">Jiffoo 版本</dt><dd style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px">1.5.0 <span style="color: {{t.faint}}">· 3f9c2ab</span></dd></div>
+          <div style="display: flex; gap: 16px; padding: 9px 0"><dt style="width: 96px; color: {{t.muted}}">已连续运行</dt><dd style="margin: 0">3 天 4 小时</dd></div>
+        </dl>
+      </section>
+
+      <section aria-labelledby="h-scan" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="padding: 12px 16px; border-bottom: 1px solid {{t.border}}; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <h2 id="h-scan" style="margin: 0; font-size: 13px; font-weight: 600">插件数据库检查</h2>
+            <span style="font-size: 12px; color: {{t.faint}}">升级系统前建议先做一次。只读检查，不会改动任何数据。</span>
+          </div>
+          <button type="button" style="height: 30px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">开始检查</button>
+        </div>
+        <sc-if value="{{v.scanned}}" hint-placeholder-val="{{ true }}">
+          <dl style="margin: 0; padding: 4px 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr))">
+            <div style="padding: 12px 0; display: flex; flex-direction: column; gap: 4px"><dt style="font-size: 12px; color: {{t.muted}}">已安装插件</dt><dd style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 18px">4</dd></div>
+            <div style="padding: 12px 0; display: flex; flex-direction: column; gap: 4px"><dt style="font-size: 12px; color: {{t.muted}}">会阻止升级的问题</dt><dd style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 18px; color: {{v.blockColor}}">{{v.blocking}}</dd></div>
+            <div style="padding: 12px 0; display: flex; flex-direction: column; gap: 4px"><dt style="font-size: 12px; color: {{t.muted}}">提醒</dt><dd style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 18px">1</dd></div>
+          </dl>
+          <p style="margin: 0; padding: 0 16px 12px; font-size: 12px; color: {{t.faint}}; line-height: 1.6">上次检查：2026-10-13 09:30（Asia/Shanghai）。结果只保存在当前这台服务器上，服务器重启后会清空。</p>
+        </sc-if>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"state":{"editor":"enum","options":["全部正常","后台任务没在运行","缓存连不上"],"default":"全部正常"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const st = this.props.state ?? '全部正常';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)',
+      alert: '#F5A97F', alertSoft: 'rgba(245,169,127,0.07)', alertLine: 'rgba(245,169,127,0.22)', danger: '#FF8A80', dangerSoft: 'rgba(255,138,128,0.07)', dangerLine: 'rgba(255,138,128,0.25)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)',
+      alert: '#B4470E', alertSoft: '#FFF6F0', alertLine: 'rgba(180,71,14,0.22)', danger: '#B3261E', dangerSoft: '#FDF3F2', dangerLine: 'rgba(179,38,30,0.22)'
+    };
+    const ok = { status: '正常', color: t.fg, fill: 'currentColor' };
+    const workerDown = st === '后台任务没在运行', redisDown = st === '缓存连不上';
+    const V = {
+      '全部正常': { title: '一切正常', text: '所有服务都在运行。', line: t.border, soft: t.raised, dot: t.fg, titleColor: t.fg },
+      '后台任务没在运行': { title: '部分功能受影响', text: '后台任务没在运行：邮件不会发出，付款结果可能不会自动更新。店铺仍可浏览和下单。请检查服务器上的 worker 进程。', line: t.alertLine, soft: t.alertSoft, dot: t.alert, titleColor: t.alert },
+      '缓存连不上': { title: '店铺可能无法正常工作', text: 'Redis 连不上：登录、下单和后台任务都可能失败。请检查服务器上的 Redis 服务。', line: t.dangerLine, soft: t.dangerSoft, dot: t.danger, titleColor: t.danger }
+    };
+    const parts = [
+      { name: '数据库', what: '保存商品、订单、客户等全部数据。', ...ok },
+      { name: 'Redis', what: '登录状态、缓存和后台任务排队用。', ...(redisDown ? { status: '连不上', color: t.danger, fill: 'transparent' } : ok) },
+      { name: '后台任务（worker）', what: '发邮件、处理付款结果等不在页面上完成的工作。',
+        ...(workerDown ? { status: '没在运行', color: t.alert, fill: 'transparent', detail: '最后一次心跳：2026-10-13 16:12' } : { ...ok, detail: '1 个在运行 · 最后心跳 17:40:12' }) },
+      { name: '插件运行', what: '已启用插件的运行环境。', ...ok, detail: '已加载 3 个插件' }
+    ];
+    return {
+      t, mode,
+      v: { ...V[st], scanned: true, blocking: '0', blockColor: t.fg },
+      parts: parts.map((p, i) => ({ detail: '', ...p, line: i === parts.length - 1 ? 'transparent' : t.border }))
+    };
+  }
+}
+</script>
+</body>
+</html>

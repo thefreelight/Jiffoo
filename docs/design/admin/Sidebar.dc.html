@@ -117,7 +117,7 @@ class Component extends DCLogic {
         { name: '订单', icon: I.orders, href: 'Orders.dc.html', badge: '2', badgeLabel: '2 笔付款待审核' },
         { name: '商品', icon: I.products, href: 'Products.dc.html', children: [{ name: '分类', href: 'Categories.dc.html' }] },
         { name: '客户', icon: I.customers, href: 'Customers.dc.html' },
-        { name: '通知', icon: I.bell, href: '#' }
+        { name: '通知', icon: I.bell, href: 'Notifications.dc.html' }
       ] },
       { label: '外观与扩展', items: [
         { name: '主题', icon: I.themes, href: 'Themes.dc.html' },
@@ -126,9 +126,9 @@ class Component extends DCLogic {
       ] },
       { label: '管理', items: [
         { name: '管理员', icon: I.staff, href: 'Staff.dc.html' },
-        { name: '审计记录', icon: I.audit, href: '#' },
-        { name: '设置', icon: I.settings, href: '#' },
-        { name: '系统健康', icon: I.health, href: '#' }
+        { name: '审计记录', icon: I.audit, href: 'Audit.dc.html' },
+        { name: '设置', icon: I.settings, href: 'Settings.dc.html' },
+        { name: '系统健康', icon: I.health, href: 'Health.dc.html' }
       ] }
     ];
     const childActive = (i) => (i.children || []).some(c => c.name === active);

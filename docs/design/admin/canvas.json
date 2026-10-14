@@ -171,6 +171,42 @@
       "x": 1520,
       "y": 10160,
       "is_interactive": true
+    },
+    "Notifications.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "C6 · 通知（列表 + 详情侧栏）",
+      "w": 1440,
+      "x": 0,
+      "y": 11960,
+      "is_interactive": true
+    },
+    "Audit.dc.html": {
+      "expand": "fill",
+      "h": 1000,
+      "title": "C7 · 审计记录",
+      "w": 1440,
+      "x": 1520,
+      "y": 11960,
+      "is_interactive": true
+    },
+    "Settings.dc.html": {
+      "expand": "fill",
+      "h": 1700,
+      "title": "C8 · 设置（固定页头 + 保存）",
+      "w": 1440,
+      "x": 3040,
+      "y": 11960,
+      "is_interactive": true
+    },
+    "Health.dc.html": {
+      "expand": "fill",
+      "h": 1100,
+      "title": "C9 · 系统健康",
+      "w": 1440,
+      "x": 0,
+      "y": 13900,
+      "is_interactive": true
     }
   },
   "createdOnFiles": {
@@ -201,7 +237,7 @@
     "pages": {
       "fill": "blue",
       "maxH": 900,
-      "text": "后台页面清单（共 24 个）\n\nA 组 · 本画布已画：概览、订单列表、订单详情、商品列表、编辑/新建商品、分类\n\nB 组 · 本画布已画（待批准）：客户列表、客户详情、管理员列表、管理员详情/邀请、我的账户、登录、忘记密码、重置密码、接受邀请、安装向导\n\nC 组 · 再下一步：主题、插件列表、插件详情、追踪与自定义代码、通知、审计记录、设置、系统健康\n\n弹窗（随页面一起画）：发货、退款、付款审核、取消订单、记录付款、删除/下架商品、分类编辑",
+      "text": "后台页面清单\n\nA 组（已批准，A-1/A-2/A-3a 已实现）：概览、订单列表、订单详情、商品列表、编辑/新建商品、分类\n\nB 组（已批准）：客户列表、客户详情、管理员列表、管理员详情/邀请、我的账户、登录、忘记密码、重置密码、接受邀请、安装向导\n\nC 组第一批（已批准）：主题、自定义主题、插件、插件详情、追踪与自定义代码\n\nC 组第二批（待批准）：通知、审计记录、设置、系统健康",
       "w": 520,
       "x": -620,
       "y": 1240
@@ -229,6 +265,14 @@
       "w": 240,
       "x": 0,
       "y": 8440
+    },
+    "groupC2": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "C 组第二批 · 通知、审计记录、设置、系统健康",
+      "w": 240,
+      "x": 0,
+      "y": 11660
     }
   },
   "order": [
@@ -250,7 +294,11 @@
     "ThemeEdit.dc.html",
     "Plugins.dc.html",
     "PluginDetail.dc.html",
-    "StorefrontCode.dc.html"
+    "StorefrontCode.dc.html",
+    "Notifications.dc.html",
+    "Audit.dc.html",
+    "Settings.dc.html",
+    "Health.dc.html"
   ],
   "pages": [],
   "title": "Jiffoo 后台页面设计"

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 审计记录</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-row:hover{background:rgba(128,128,128,0.06)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="审计记录" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0">
+    <div style="width: 100%; max-width: 1120px; box-sizing: border-box; margin: 0 auto; padding: 40px 32px 48px; display: flex; flex-direction: column; gap: 16px">
+
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.025em">审计记录</h1>
+        <p style="margin: 0; color: {{t.muted}}">谁在什么时间做了什么重要操作。只能查看，不能修改或删除。</p>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+          <button type="button" aria-haspopup="menu" style="height: 34px; display: inline-flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; font: inherit; cursor: pointer"><span style="color: {{t.faint}}">{{f.k}}</span>{{f.v}}<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{filtered}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
+          <span style="height: 26px; display: inline-flex; align-items: center; gap: 4px; padding: 0 4px 0 10px; border-radius: 999px; border: 1px solid {{t.border}}; background: {{t.raised}}">
+            <span style="color: {{t.muted}}">类别：</span>管理员与账户
+            <button type="button" aria-label="移除筛选：类别 管理员与账户" style="width: 20px; height: 20px; border: 0; border-radius: 999px; background: transparent; color: {{t.muted}}; cursor: pointer">✕</button>
+          </span>
+          <button type="button" style="height: 26px; padding: 0 8px; border: 0; background: transparent; color: {{t.muted}}; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px">清除全部</button>
+        </div>
+      </sc-if>
+
+      <div style="border-radius: 10px; border: 1px solid {{t.border}}; overflow: hidden">
+        <div style="overflow-x: auto">
+        <table style="width: 100%; min-width: 760px; border-collapse: collapse">
+          <thead>
+            <tr style="color: {{t.faint}}; text-align: left; background: {{t.raised}}">
+              <th scope="col" style="padding: 10px 16px; font-weight: 500; font-size: 12px; width: 150px">时间（Asia/Shanghai）</th>
+              <th scope="col" style="padding: 10px 12px; font-weight: 500; font-size: 12px">操作</th>
+              <th scope="col" style="padding: 10px 12px; font-weight: 500; font-size: 12px">操作人</th>
+              <th scope="col" style="padding: 10px 16px 10px 12px; font-weight: 500; font-size: 12px; width: 40px"><span style="position: absolute; left: -9999px">展开</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+              <tr class="jf-row" style="border-top: 1px solid {{t.border}}; cursor: pointer; background: {{r.bg}}">
+                <td style="padding: 10px 16px; color: {{t.muted}}; white-space: nowrap; font-variant-numeric: tabular-nums; vertical-align: top">{{r.time}}</td>
+                <td style="padding: 10px 12px; vertical-align: top">
+                  <span style="display: flex; flex-direction: column; gap: 2px">
+                    <span>{{r.what}}</span>
+                    <span style="font-size: 12px; color: {{t.faint}}">{{r.cat}}</span>
+                  </span>
+                </td>
+                <td style="padding: 10px 12px; color: {{r.whoColor}}; vertical-align: top">{{r.who}}</td>
+                <td style="padding: 6px 16px 6px 12px; text-align: right; vertical-align: top">
+                  <button type="button" onClick="{{r.toggle}}" aria-expanded="{{r.openAttr}}" aria-label="{{r.toggleLabel}}" style="width: 28px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: {{t.muted}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transform: {{r.rot}}"><path d="M9 6l6 6-6 6"></path></svg></button>
+                </td>
+              </tr>
+              <sc-if value="{{r.open}}" hint-placeholder-val="{{ false }}">
+                <tr style="background: {{r.bg}}">
+                  <td></td>
+                  <td colspan="3" style="padding: 0 16px 14px 12px">
+                    <div style="border: 1px solid {{t.border}}; border-radius: 10px; background: {{t.bg}}; padding: 4px 14px">
+                      <sc-for list="{{r.facts}}" as="f" hint-placeholder-count="3">
+                        <div style="display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid {{t.border}}">
+                          <span style="width: 96px; color: {{t.muted}}">{{f.k}}</span>
+                          <span style="flex: 1 1 240px">{{f.v}}</span>
+                        </div>
+                      </sc-for>
+                      <button type="button" aria-expanded="false" style="height: 34px; padding: 0; border: 0; background: transparent; color: {{t.muted}}; font: inherit; cursor: pointer">技术详情（原始记录） ›</button>
+                    </div>
+                  </td>
+                </tr>
+              </sc-if>
+            </sc-for>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <nav aria-label="翻页" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; color: {{t.muted}}">
+        <span style="font-variant-numeric: tabular-nums">1–20，共 {{total}} 条 · 每页 20 条</span>
+        <div style="display: flex; align-items: center; gap: 4px">
+          <button type="button" aria-label="上一页" disabled style="width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.faint}}">‹</button>
+          <button type="button" aria-label="第 1 页" aria-current="page" style="min-width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.fg}}; background: {{t.fg}}; color: {{t.bg}}; font-family: 'Geist Mono', monospace; font-size: 12px">1</button>
+          <button type="button" aria-label="第 2 页" style="min-width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">2</button>
+          <button type="button" aria-label="下一页" style="width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}">›</button>
+        </div>
+      </nav>
+      <p style="margin: 0; font-size: 12px; color: {{t.faint}}; line-height: 1.6">记录范围：付款审核与退款、插件、主题、追踪代码、店铺设置、通知重发、系统更新与恢复、管理员邀请与移除、客户重置密码链接。商品和订单的修改不在这里，订单的变化见订单详情里的“订单经过”。</p>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"filtered":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: 1 }; }
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const filtered = this.props.filtered ?? false;
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)', active: 'rgba(255,255,255,0.04)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)', active: '#FAFAFA'
+    };
+    const all = [
+      ['2026-10-13 17:31', '确认付款已收到 · 订单 #10427', '付款', '店主', [['订单', '#10427 →'], ['金额', '¥ 459.00 · 第 2 次付款'], ['说明', '已向支付服务商核实扣款成功']]],
+      ['2026-10-13 15:02', '移除管理员 李雷', '管理员与账户', '店主', [['管理员', '李雷 · li.ops@example.com'], ['结果', '已退出所有登录']]],
+      ['2026-10-13 11:40', '启用插件 Stripe 付款', '插件', '陈晓', [['插件', 'Stripe 付款 2.3.1']]],
+      ['2026-10-13 10:05', '邀请管理员 Lucas Meyer', '管理员与账户', '店主', [['邮箱', 'lucas.ops@example.com']]],
+      ['2026-10-12 21:18', '为客户 Mia Lin 生成重置密码链接', '管理员与账户', '陈晓', [['客户', 'Mia Lin · mia@example.com →']]],
+      ['2026-10-12 18:00', '修改店铺时区：UTC → Asia/Shanghai', '店铺设置', '店主', [['之前', 'UTC'], ['之后', 'Asia/Shanghai']]],
+      ['2026-10-11 10:02', '保存追踪与自定义代码 · 版本 #6', '追踪代码', '店主', [['变化', 'Meta Pixel ID、正文末尾代码']]],
+      ['2026-10-10 02:00', '系统更新 1.4.2 → 1.5.0：成功', '系统', '系统', [['结果', '成功，数据库已升级']]]
+    ];
+    const rows = filtered ? all.filter(r => r[2] === '管理员与账户') : all;
+    return {
+      t, mode, filtered, total: filtered ? 3 : 143,
+      filters: [{ k: '类别', v: filtered ? '管理员与账户' : '全部' }, { k: '操作人', v: '全部' }, { k: '时间', v: '全部' }],
+      rows: rows.map(([time, what, cat, who, facts], i) => {
+        const open = this.state.open === i;
+        return { time, what, cat, who, whoColor: who === '系统' ? t.faint : t.fg, open, openAttr: open ? 'true' : 'false',
+          rot: open ? 'rotate(90deg)' : 'rotate(0deg)', bg: open ? t.active : 'transparent', toggleLabel: (open ? '收起：' : '展开：') + what, toggle: () => this.setState({ open: open ? -1 : i }),
+          facts: facts.map(([k, v]) => ({ k, v })) };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

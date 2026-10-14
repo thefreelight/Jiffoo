@@ -27,7 +27,7 @@ real pages must show real data.
 | A | Main (A1 overview), Orders (A2), OrderDetail (A3), Products (A4), ProductEdit (A5), Categories (A6), Sidebar | Approved |
 | B | Customers (B1), CustomerDetail (B2), Staff (B3), StaffDetail (B4), Profile (B5), Auth (B6–B9), Install (B10) | Approved |
 | C (first set) | Themes (C1), ThemeEdit (C2), Plugins (C3), PluginDetail (C4), StorefrontCode (C5) | Approved |
-| C (second set) | Notifications, audit log, settings, system health | Not drawn yet |
+| C (second set) | Notifications (C6), Audit (C7), Settings (C8), Health (C9) | Approved |
 
 ## Colour and type mapping
 

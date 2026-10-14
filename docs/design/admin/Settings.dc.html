@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 设置</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-ghost:hover{background:rgba(128,128,128,0.08)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="设置" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; position: relative">
+
+    <header style="position: sticky; top: 0; z-index: 4; background: {{t.bg}}; border-bottom: 1px solid {{t.border}}">
+      <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 20px 32px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">设置</h1>
+          <span style="color: {{t.muted}}">店铺的基本信息和全店通用的规则。</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+          <span style="font-size: 12px; color: {{s.noteColor}}">{{s.note}}</span>
+          <sc-if value="{{s.dirty}}" hint-placeholder-val="{{ false }}">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">放弃更改</button>
+          </sc-if>
+          <button type="button" disabled="{{s.saveDisabled}}" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{s.saveBg}}; color: {{s.saveFg}}; font: inherit; font-weight: 500; cursor: {{s.saveCursor}}">保存</button>
+        </div>
+      </div>
+      <nav aria-label="设置分区" style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 0 32px; display: flex; flex-wrap: wrap; gap: 18px">
+        <sc-for list="{{jumps}}" as="j" hint-placeholder-count="5">
+          <a href="#{{j.id}}" style="height: 34px; display: inline-flex; align-items: center; color: {{t.muted}}">{{j.n}}</a>
+        </sc-for>
+      </nav>
+    </header>
+
+    <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 24px 32px 64px; display: flex; flex-direction: column; gap: 20px">
+
+      <section id="store" aria-labelledby="h-store" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="h-store" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">店铺信息</h2>
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px">
+            <label for="st-name">店铺名称</label>
+            <input id="st-name" value="示例店铺" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+            <span style="font-size: 12px; color: {{t.faint}}">显示在店铺页头、浏览器标签和所有邮件里。</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="st-desc">店铺简介（选填）</label>
+            <textarea id="st-desc" rows="2" style="box-sizing: border-box; padding: 8px 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; resize: vertical">简单好穿的日常衣物与配件。</textarea>
+            <span style="font-size: 12px; color: {{t.faint}}">一两句话介绍店铺，显示在哪里由主题决定。</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span>Logo</span>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+              <span aria-hidden="true" style="width: 96px; height: 40px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; display: flex; align-items: center; justify-content: center; font-weight: 600; color: {{t.muted}}">示例店铺</span>
+              <button type="button" style="height: 30px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">更换图片</button>
+              <button type="button" style="height: 30px; padding: 0 10px; border-radius: 7px; border: 0; background: transparent; color: {{t.muted}}; font: inherit; cursor: pointer">移除</button>
+            </div>
+            <span style="font-size: 12px; color: {{t.faint}}">JPG、PNG 或 WebP。没有 Logo 时显示店铺名称。</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" aria-labelledby="h-contact" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="padding: 12px 16px; border-bottom: 1px solid {{t.border}}; display: flex; flex-direction: column; gap: 2px">
+          <h2 id="h-contact" style="margin: 0; font-size: 13px; font-weight: 600">联系方式</h2>
+          <span style="font-size: 12px; color: {{t.faint}}">方便顾客联系你，显示在哪里由主题决定。都可以留空。</span>
+        </div>
+        <div style="padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="ct-email">客服邮箱</label>
+            <input id="ct-email" type="email" value="hello@example.com" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="ct-phone">客服电话</label>
+            <input id="ct-phone" value="{{phone}}" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{phoneBorder}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+          </div>
+          <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px">
+            <label for="ct-addr">地址</label>
+            <input id="ct-addr" value="上海市徐汇区漕溪北路 88 号" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+          </div>
+        </div>
+      </section>
+
+      <section id="region" aria-labelledby="h-region" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="h-region" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">语言、货币与时区</h2>
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 18px">
+          <sc-for list="{{selects}}" as="f" hint-placeholder-count="3">
+            <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px">
+              <label for="{{f.id}}">{{f.label}}</label>
+              <button id="{{f.id}}" type="button" aria-haspopup="listbox" style="height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-radius: 7px; border: 1px solid {{f.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">{{f.value}}<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+              <span style="font-size: 12px; color: {{f.hintColor}}; line-height: 1.6">{{f.hint}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section id="checkout" aria-labelledby="h-checkout" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="padding: 12px 16px; border-bottom: 1px solid {{t.border}}; display: flex; flex-direction: column; gap: 2px">
+          <h2 id="h-checkout" style="margin: 0; font-size: 13px; font-weight: 600">结账</h2>
+          <span style="font-size: 12px; color: {{t.faint}}">收货地址在这些国家或地区时，顾客必须填写省份和邮编。</span>
+        </div>
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; flex-wrap: wrap; gap: 6px">
+            <sc-for list="{{countries}}" as="c" hint-placeholder-count="4">
+              <span style="height: 28px; display: inline-flex; align-items: center; gap: 4px; padding: 0 4px 0 10px; border-radius: 999px; border: 1px solid {{t.border}}; background: {{t.raised}}">{{c.n}} <span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: {{t.faint}}">{{c.code}}</span><button type="button" aria-label="{{c.rm}}" style="width: 20px; height: 20px; border: 0; border-radius: 999px; background: transparent; color: {{t.muted}}; cursor: pointer">✕</button></span>
+            </sc-for>
+            <button type="button" style="height: 28px; padding: 0 10px; border-radius: 999px; border: 1px dashed {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">+ 添加国家或地区</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="tokens" aria-labelledby="h-tokens" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="padding: 12px 16px; border-bottom: 1px solid {{t.border}}; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <h2 id="h-tokens" style="margin: 0; font-size: 13px; font-weight: 600">API 令牌</h2>
+            <span style="font-size: 12px; color: {{t.faint}}">给自己的小程序、App 或其他系统调用店铺接口用。不用就不必创建。</span>
+          </div>
+          <button type="button" style="height: 30px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">创建令牌</button>
+        </div>
+        <sc-if value="{{newToken}}" hint-placeholder-val="{{ false }}">
+          <div role="status" style="margin: 12px 16px 0; border-radius: 10px; border: 1px solid {{t.alertLine}}; background: {{t.alertSoft}}; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+            <span style="color: {{t.alert}}; font-weight: 500">令牌只显示这一次，请现在复制保存。</span>
+            <div style="display: flex; gap: 8px">
+              <label for="tk-new" style="position: absolute; left: -9999px">新令牌</label>
+              <input id="tk-new" readonly value="jft_7c1e9a…b03f" style="flex: 1 1 auto; min-width: 0; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">
+              <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">复制</button>
+            </div>
+          </div>
+        </sc-if>
+        <div style="overflow-x: auto">
+          <table style="width: 100%; min-width: 560px; border-collapse: collapse">
+            <thead><tr style="color: {{t.faint}}; text-align: left">
+              <th scope="col" style="padding: 10px 16px; font-weight: 500; font-size: 12px">名称</th>
+              <th scope="col" style="padding: 10px 12px; font-weight: 500; font-size: 12px">权限</th>
+              <th scope="col" style="padding: 10px 12px; font-weight: 500; font-size: 12px">最后使用</th>
+              <th scope="col" style="width: 60px"><span style="position: absolute; left: -9999px">操作</span></th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{tokens}}" as="k" hint-placeholder-count="2">
+                <tr style="border-top: 1px solid {{t.border}}">
+                  <td style="padding: 10px 16px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">{{k.n}}</span><span style="font-size: 12px; color: {{t.faint}}">创建于 {{k.created}}</span></span></td>
+                  <td style="padding: 10px 12px; color: {{t.muted}}; line-height: 1.6">{{k.scopes}}</td>
+                  <td style="padding: 10px 12px; color: {{t.muted}}; font-variant-numeric: tabular-nums">{{k.used}}</td>
+                  <td style="padding: 6px 16px 6px 0; text-align: right"><button type="button" aria-label="{{k.revoke}}" style="height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; font-size: 12px; cursor: pointer">撤销</button></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"state":{"editor":"enum","options":["已保存","有未保存的更改（改了货币）","刚创建令牌"],"default":"已保存"},"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const st = this.props.state ?? '已保存';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)',
+      alert: '#F5A97F', alertSoft: 'rgba(245,169,127,0.07)', alertLine: 'rgba(245,169,127,0.22)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)',
+      alert: '#B4470E', alertSoft: '#FFF6F0', alertLine: 'rgba(180,71,14,0.22)'
+    };
+    const dirty = st === '有未保存的更改（改了货币）';
+    return {
+      t, mode, newToken: st === '刚创建令牌', phone: '+86 21 5555 0100', phoneBorder: t.border,
+      jumps: [['store', '店铺信息'], ['contact', '联系方式'], ['region', '语言、货币与时区'], ['checkout', '结账'], ['tokens', 'API 令牌']].map(([id, n]) => ({ id, n })),
+      s: {
+        dirty, note: dirty ? '有未保存的更改' : '已保存 · 2026-10-12 18:00',
+        noteColor: dirty ? t.alert : t.faint,
+        saveDisabled: !dirty, saveBg: dirty ? t.fg : t.raised, saveFg: dirty ? t.bg : t.faint, saveCursor: dirty ? 'pointer' : 'default'
+      },
+      selects: [
+        { id: 'rg-lang', label: '店铺默认语言', value: '简体中文', border: t.border, hintColor: t.faint,
+          hint: '顾客没选语言时店铺显示的语言，也是发给顾客邮件的默认语言。商品和分类在这种语言下必须有内容。' },
+        { id: 'rg-cur', label: '货币', value: dirty ? '美元 USD（$）' : '人民币 CNY（¥）', border: dirty ? t.alertLine : t.border,
+          hintColor: dirty ? t.alert : t.faint,
+          hint: dirty ? '修改货币不会换算已有商品的价格，只是把符号和单位换掉；已有订单仍按下单时的货币显示。请确认后再保存。' : '商品价格、结账和订单都用这个货币。' },
+        { id: 'rg-tz', label: '店铺时区', value: '(UTC+08:00) 上海 · Asia/Shanghai', border: t.border, hintColor: t.faint,
+          hint: '后台、店铺和邮件里的时间都按这个时区显示，“今天”“近 7 天”也按它计算。修改会记入审计记录。' }
+      ],
+      countries: [['美国', 'US'], ['加拿大', 'CA'], ['中国', 'CN'], ['澳大利亚', 'AU']].map(([n, code]) => ({ n, code, rm: '移除 ' + n })),
+      tokens: [
+        { n: '小程序', created: '2026-09-20', scopes: '读取商品、管理购物车、下单', used: '2026-10-13 17:02', revoke: '撤销令牌：小程序' },
+        { n: '数据同步脚本', created: '2026-09-02', scopes: '全部权限（等同管理员）', used: '从未使用', revoke: '撤销令牌：数据同步脚本' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
