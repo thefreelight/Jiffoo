@@ -41,9 +41,10 @@ const productVariantSchema = {
     stock: { type: 'number', description: 'Stock quantity' },
     skuCode: { type: 'string', description: 'SKU code' },
     isActive: { type: 'boolean', description: 'Is active' },
+    hasOrders: { type: 'boolean' },
     attributes: { type: 'object', additionalProperties: true, description: 'Variant attributes' },
   },
-  required: ['id', 'name', 'skuCode', 'salePrice', 'stock'],
+  required: ['id', 'name', 'skuCode', 'salePrice', 'stock', 'hasOrders'],
 } as const;
 
 // ============================================================================
@@ -98,6 +99,8 @@ const adminProductSchema = {
   type: 'object',
   properties: {
     id: { type: 'string', description: 'Product ID' },
+    slug: { type: 'string' },
+    currency: { type: 'string' },
     name: { type: 'string', description: 'Product name' },
     spuCode: { type: 'string', description: 'SPU code' },
     description: { type: 'string', nullable: true, description: 'Product description' },
@@ -111,7 +114,7 @@ const adminProductSchema = {
     createdAt: { type: 'string', format: 'date-time', description: 'Creation time' },
     updatedAt: { type: 'string', format: 'date-time', description: 'Last update time' },
   },
-  required: ['id', 'name', 'spuCode', 'variants', 'createdAt', 'updatedAt'],
+  required: ['id', 'name', 'spuCode', 'slug', 'currency', 'variants', 'createdAt', 'updatedAt'],
 } as const;
 
 const categorySchema = {
@@ -199,6 +202,13 @@ const bulkResultSchema = { type: 'object', required: ['matched', 'processed', 's
 } } as const;
 
 export const adminProductSchemas = {
+  neighbors: {
+    params: { type: 'object', required: ['id'], properties: { id: { type: 'string', minLength: 1 } } },
+    querystring: { type: 'object', additionalProperties: false, properties: { search: productFilterProperties.search, categoryId: productFilterProperties.categoryId, status: productFilterProperties.status, ...productSortProperties } },
+    response: { ...createTypedReadResponses({ type: 'object', required: ['position', 'total', 'previousId', 'nextId'], properties: {
+      position: { type: 'integer', nullable: true }, total: { type: 'integer' }, previousId: { type: 'string', nullable: true }, nextId: { type: 'string', nullable: true },
+    } }), 400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema },
+  },
   bulkProducts: {
     body: { type: 'object', additionalProperties: false, required: ['action', 'selection'], properties: {
       action: { type: 'string', enum: ['activate', 'deactivate', 'setCategory', 'delete'] },
@@ -256,6 +266,7 @@ export const adminProductSchemas = {
       type: 'object',
       required: ['name', 'variants'],
       properties: {
+        isActive: { type: 'boolean' },
         name: { type: 'string', description: 'Product name' },
         spuCode: { type: 'string', description: 'SPU code; blank generates a code' },
         description: { type: 'string', description: 'Product description' },

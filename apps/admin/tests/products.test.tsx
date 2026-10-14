@@ -18,7 +18,7 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (ke
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: state.replace, push: vi.fn() }), usePathname: () => '/en/products', useSearchParams: () => new URLSearchParams(state.url) }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: any) => <a {...props}>{children}</a> }));
 vi.mock('../components/products/ContentTranslations', () => ({ ContentTranslations: () => null, useStoreDefaultLocale: () => ({ data: 'en' }) }));
-vi.mock('../components/ui/dropdown-menu', () => ({ DropdownMenu: ({ children }: any) => children, DropdownMenuTrigger: ({ children }: any) => children, DropdownMenuContent: ({ children }: any) => children, DropdownMenuRadioGroup: ({ children }: any) => children, DropdownMenuRadioItem: ({ children, onSelect }: any) => <button onClick={onSelect}>{children}</button>, DropdownMenuItem: ({ children, onSelect, disabled, asChild }: any) => asChild ? children : <button disabled={disabled} onClick={onSelect}>{children}</button> }));
+vi.mock('../components/ui/dropdown-menu', () => ({ DropdownMenu: ({ children }: any) => children, DropdownMenuTrigger: ({ children }: any) => children, DropdownMenuContent: ({ children }: any) => children, DropdownMenuRadioGroup: ({ children }: any) => children, DropdownMenuRadioItem: ({ children, onSelect }: any) => <button type="button" onClick={onSelect}>{children}</button>, DropdownMenuItem: ({ children, onSelect, disabled, asChild }: any) => asChild ? children : <button type="button" disabled={disabled} onClick={onSelect}>{children}</button> }));
 vi.mock('../components/ui/dialog', () => ({ Dialog: ({ open, children }: any) => open ? children : null, DialogContent: ({ children }: any) => <div role="dialog">{children}</div>, DialogHeader: ({ children }: any) => children, DialogTitle: ({ children }: any) => <h2>{children}</h2>, DialogDescription: ({ children }: any) => <p>{children}</p>, DialogFooter: ({ children }: any) => children }));
 vi.mock('../lib/hooks/use-api', () => ({
   useProducts: (params: any) => { state.params = params; return { data: { data: [
@@ -28,6 +28,8 @@ vi.mock('../lib/hooks/use-api', () => ({
   ], pagination: { total: 3, totalPages: 1 } } }; },
   useProductStats: () => ({ data: { statusCounts: { all: 3, active: 2, inactive: 1, outOfStock: 1 } } }),
   useCategories: () => ({ data: [{ id: 'real-category', name: 'Actual category' }] }),
+  useProductNeighbors: () => ({ data: { position: 1, total: 1, previousId: null, nextId: null } }),
+  useProductEditorContext: () => ({ data: { currency: 'USD', defaultLocale: 'en' } }),
   useDeleteProduct: () => ({ mutateAsync: state.remove, isPending: false }),
   useUpdateProduct: () => ({ mutateAsync: state.update, isPending: false }),
   useCreateProduct: () => ({ mutateAsync: state.create, isPending: false }),
@@ -85,7 +87,7 @@ it('tracks unsaved changes, guards unload only while dirty and sends product and
   await mount(<ProductForm product={product} />); expect(document.body.textContent).not.toContain('Unsaved changes');
   await input('product-name', 'Edited'); expect(document.body.textContent).toContain('Unsaved changes');
   const dirty = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(dirty); expect(dirty.defaultPrevented).toBe(true);
-  await act(async () => (document.getElementById('product-active') as HTMLButtonElement).click());
+  await act(async () => button('Inactive').click());
   await act(async () => (document.getElementById('variant-v-active') as HTMLButtonElement).click());
   await act(async () => document.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
   expect(state.update.mock.lastCall?.[0]).toMatchObject({ id: 'p', data: { name: 'Edited', isActive: false, categoryId: 'real-category', variants: [{ id: 'v', isActive: false }] } });
@@ -93,7 +95,7 @@ it('tracks unsaved changes, guards unload only while dirty and sends product and
   const clean = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(clean); expect(clean.defaultPrevented).toBe(false);
 });
 it('keeps at least one variant and removes unsupported marketing and fake save copy', async () => {
-  await mount(<ProductForm />); expect(button('Delete').disabled).toBe(true);
+  await mount(<ProductForm />); expect(document.querySelector<HTMLButtonElement>('button[aria-label="Remove variant Default"]')?.disabled).toBe(true);
   const files = ['../app/[locale]/(themed)/products/page.tsx', '../app/[locale]/(themed)/products/create/page.tsx', '../app/[locale]/(themed)/products/[id]/edit/page.tsx', '../components/products/VariantsEditor.tsx', '../components/products/ProductForm.tsx'];
   for (const file of files) expect(readFileSync(new URL(file, import.meta.url), 'utf8')).not.toMatch(/Inventory Slate|TOTAL_ASSETS|Industrial Power|Auto-save Enabled|Last synced|Product Identity|window.confirm|router.back/);
 });
@@ -118,20 +120,21 @@ it.each([
 ])('renders %s inline beneath its %s input', async (code, field, id, key) => {
   state.create.mockRejectedValue({ code, details: { field, variantIndex: 0, name: 'Other product' } });
   await mount(<ProductForm />);
+  await input('product-name', 'New product'); await input('variant-0-price', '10'); await input(id, 'CLASH');
   expect((document.getElementById('product-spu') as HTMLInputElement).placeholder).toBe(merchant.catalog.spuPlaceholder);
   expect((document.getElementById('variant-0-sku') as HTMLInputElement).placeholder).toBe(merchant.catalog.skuPlaceholder);
   await act(async () => document.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
-  const input = document.getElementById(id)!;
-  expect(input.getAttribute('aria-invalid')).toBe('true');
-  expect(input.parentElement?.querySelector('[role="alert"]')?.textContent).toBe((merchant.catalog as any)[key].replace('{name}', 'Other product'));
+  const fieldInput = document.getElementById(id)!;
+  expect(fieldInput.getAttribute('aria-invalid')).toBe('true');
+  const described = (fieldInput.getAttribute('aria-describedby') ?? '').split(' ').map(id => document.getElementById(id)).filter(node => node?.getAttribute('role') === 'alert');
+  expect(described.map(node => node?.textContent)).toEqual([(merchant.catalog as any)[key].replace('{name}', 'Other product')]);
 });
 
-it('restores removed ordered variants with a Restore variant action', async () => {
-  const product = { id: 'p', name: 'Original', spuCode: 'CUSTOM', variants: [{ id: 'v1', name: 'First', salePrice: 12, stock: 1, skuCode: 'SKU1' }, { id: 'v2', name: 'Second', salePrice: 12, stock: 1, skuCode: 'SKU2' }] } as any;
-  state.update.mockRejectedValue({ code: 'PRODUCT_HAS_ORDERS' });
+it('disables ordered variant removal with its reason before saving', async () => {
+  const product = { id: 'p', name: 'Original', spuCode: 'CUSTOM', variants: [{ id: 'v1', name: 'First', salePrice: 12, stock: 1, skuCode: 'SKU1', hasOrders: true }, { id: 'v2', name: 'Second', salePrice: 12, stock: 1, skuCode: 'SKU2' }] } as any;
   await mount(<ProductForm product={product} />);
-  await act(async () => button('Delete').click());
-  await act(async () => document.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
-  await act(async () => button('Restore variant').click());
+  const remove = document.querySelector<HTMLButtonElement>('button[aria-label="Remove variant First"]')!;
+  expect(remove.disabled).toBe(true); expect(remove.title).toBe(merchant.catalog.orderedVariantRemove);
+  await act(async () => remove.click()); expect(state.update).not.toHaveBeenCalled();
   expect(document.getElementById('variant-v1-sku')).not.toBeNull();
 });

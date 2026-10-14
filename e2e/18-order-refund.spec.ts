@@ -5,14 +5,15 @@ test('refund before shipment restores stock and notifies the customer', async ({
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/products/create');
   await page.getByLabel('Name', { exact: true }).first().fill('Refund Flow Product');
-  await page.getByLabel('Name', { exact: true }).nth(1).fill('Standard');
-  await page.getByLabel('SKU', { exact: true }).fill('E2E-REFUND-018');
-  await page.getByLabel('Price', { exact: true }).fill('18.00');
-  await page.getByLabel('Stock', { exact: true }).fill('3');
-  await page.getByRole('button', { name: 'Create product' }).click();
-  await expect(page).toHaveURL(/\/en\/products$/);
+  await page.getByRole('textbox', { name: /^Variant name:/ }).first().fill('Standard');
+  await page.getByRole('textbox', { name: /^SKU:/ }).first().fill('E2E-REFUND-018');
+  await page.getByRole('spinbutton', { name: /^Price:/ }).first().fill('18.00');
+  await page.getByRole('spinbutton', { name: /^Stock:/ }).first().fill('3');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/products\/[^/]+\/edit$/);
+  await page.getByRole('link', { name: '← Products', exact: true }).click();
   await page.getByRole('link', { name: 'Refund Flow Product' }).click();
-  await expect(page.getByLabel('Stock', { exact: true })).toHaveValue('3');
+  await expect(page.getByRole('spinbutton', { name: /^Stock:/ }).first()).toHaveValue('3');
   const productUrl = page.url();
 
   const shopContext = await newObservedContext({ baseURL: 'http://127.0.0.1:3003' });
@@ -58,7 +59,7 @@ test('refund before shipment restores stock and notifies the customer', async ({
     await page.getByRole('button', { name: /Record refund \$18\.00/ }).click();
     await expect(page.getByText('Refunded', { exact: true }).first()).toBeVisible();
     await page.goto(productUrl);
-    await expect(page.getByLabel('Stock', { exact: true })).toHaveValue('3');
+    await expect(page.getByRole('spinbutton', { name: /^Stock:/ }).first()).toHaveValue('3');
     await shop.goto(`/en/account/orders/${id}`);
     await expect(shop.getByText('Refunded', { exact: true })).toHaveCount(2);
     await page.goto('/en/notifications');

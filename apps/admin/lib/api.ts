@@ -286,6 +286,7 @@ async function exportCsv(path: string, data: unknown, locale: string) {
   }));
 }
 export const productsApi = {
+  neighbors: (id: string, params: ReturnType<typeof import('./product-list-state').productListQuery>) => apiClient.get<{ position: number | null; total: number; previousId: string | null; nextId: string | null }>(`/admin/products/${id}/neighbors`, { params }),
   bulk: async (action: ProductBulkAction, selection: ProductSelection, options: { dryRun?: boolean; categoryId?: string | null } = {}) => unwrapApiResponse(await apiClient.post<ProductBulkResult>('/admin/products/bulk', { action, selection, ...options })),
   export: (selection: ProductSelection, sort: Pick<PaginationParams, 'sortBy' | 'sortOrder'>, locale: string) => exportCsv('/admin/products/export', { selection, ...sort }, locale),
   getAll: (

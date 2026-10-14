@@ -142,6 +142,7 @@ export interface ContentTranslation {
 }
 
 export interface CreateProductData {
+  isActive?: boolean;
   name: string;
   spuCode?: string;
   slug: string;
@@ -425,9 +426,18 @@ export class AdminProductService {
    * Get single product
    */
   static async getProductById(productId: string) {
-    // Try cache first
-    const cached = await CacheService.getProduct(productId);
-    if (cached) return cached;
+    const key = `admin:product:editor-v1:${await CacheService.getProductVersion()}:${productId}`;
+    const decorate = async (dto: any) => {
+      const [ordered, currency, stock] = await Promise.all([
+        prisma.orderItem.findMany({ where: { variantId: { in: dto.variants.map((variant: any) => variant.id) } }, distinct: ['variantId'], select: { variantId: true } }),
+        systemSettingsService.getShopCurrency(),
+        InventoryService.getAvailableStockByVariantIds(dto.variants.map((variant: any) => variant.id)),
+      ]);
+      const sold = new Set(ordered.map(item => item.variantId));
+      return { ...dto, currency, variants: dto.variants.map((variant: any) => ({ ...variant, stock: stock.get(variant.id) ?? 0, hasOrders: sold.has(variant.id) })) };
+    };
+    const cached = await CacheService.get<any>(key);
+    if (cached) return decorate(cached);
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
@@ -451,6 +461,7 @@ export class AdminProductService {
     // Transform to ProductDetailDTO
     const dto = {
       id: product.id,
+      slug: product.slug,
       name: product.name,
       spuCode: product.spuCode,
       description: product.description,
@@ -475,8 +486,8 @@ export class AdminProductService {
     };
 
     // Set cache
-    await CacheService.setProduct(productId, dto);
-    return dto;
+    await CacheService.set(key, dto, { ttl: 60 });
+    return decorate(dto);
   }
 
   /**
@@ -495,6 +506,7 @@ export class AdminProductService {
       const created = await tx.product.create({
         data: {
           name: data.name,
+          isActive: data.isActive ?? true,
           spuCode,
           slug: data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now(),
           description: data.description,

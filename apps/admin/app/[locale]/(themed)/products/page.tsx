@@ -8,7 +8,8 @@ import { useLocale, useT } from 'shared/src/i18n/react';
 import { formatStoreTimestamp, type AdminProductListItemDTO } from 'shared';
 import { useProducts, useProductStats, useCategories } from '@/lib/hooks/use-api';
 import { productsApi, type ProductSelection, type ProductBulkAction, type ProductBulkResult } from '@/lib/api';
-import { useListState, useListSelection, listChoice, type ListFields } from '@/lib/hooks/use-list-state';
+import { useListState, useListSelection } from '@/lib/hooks/use-list-state';
+import { productListFields as fields } from '@/lib/product-list-state';
 import { BulkBar, FilterChips, ListEmpty, ListSearch, ListFilter, PaginationBar, SelectionBanner, SortHeader, StatusTabs } from '@/components/list';
 import { BulkDeleteDialog } from '@/components/products/BulkDeleteDialog';
 import { Button } from '@/components/ui/button';
@@ -18,11 +19,6 @@ import { useStoreDate } from '@/lib/store-time';
 import { cn, formatCurrency } from '@/lib/utils';
 
 const statuses = ['all', 'active', 'inactive', 'outOfStock'];
-const fields: ListFields = {
-  status: listChoice(statuses), category: { default: '', valid: value => /^[\w-]*$/.test(value) }, search: { default: '', valid: () => true },
-  sortBy: listChoice(['stock', 'name', 'price', 'updatedAt', 'createdAt']), sortOrder: listChoice(['asc', 'desc']),
-  page: { default: '1', valid: value => /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value)) }, pageSize: listChoice(['20', '50', '100']),
-};
 const sharedKeys = ['clearAll', 'clearFilters', 'removeFilter', 'pagination', 'perPage', 'perPageBefore', 'perPageAfter', 'pageLabel'];
 
 export default function ProductsPage() {

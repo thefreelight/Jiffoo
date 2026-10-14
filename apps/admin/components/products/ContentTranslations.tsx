@@ -22,16 +22,17 @@ export function useStoreDefaultLocale() {
 }
 
 export function ContentTranslations({
-  translations, onChange, defaultLocale, showHeading = true,
+  translations, onChange, defaultLocale, showHeading = true, onlyLocale,
 }: {
   translations: ContentTranslation[]
   onChange: (translations: ContentTranslation[]) => void
   defaultLocale: string
   showHeading?: boolean
+  onlyLocale?: string
 }) {
   const t = useT()
   const update = (locale: string, field: 'name' | 'description', value: string) => {
-    const next = [...translations]
+    const next = translations.map(row => ({ ...row }))
     const index = next.findIndex((row) => row.locale === locale)
     if (index === -1) next.push({ locale, name: '', description: '' })
     const row = next.find((item) => item.locale === locale)!
@@ -42,11 +43,11 @@ export function ContentTranslations({
   return (
     <section className="space-y-4">
       {showHeading && <h3 className="text-[13px] font-medium">{t('merchant.contentTranslations.title')}</h3>}
-      {locales.filter((locale) => locale !== defaultLocale).map((locale) => {
+      {locales.filter((locale) => locale !== defaultLocale && (!onlyLocale || onlyLocale === locale)).map((locale) => {
         const row = translations.find((item) => item.locale === locale)
         return (
           <div key={locale} className="space-y-3 border-t border-border pt-3">
-            <h4 className="text-xs text-muted-foreground">{t(`merchant.contentTranslations.locales.${locale}`)}</h4>
+            {!onlyLocale && <h4 className="text-xs text-muted-foreground">{t(`merchant.contentTranslations.locales.${locale}`)}</h4>}
             <div className="space-y-1">
               <Label htmlFor={`translation-${locale}-name`}>{t('merchant.contentTranslations.name')} ({t(`merchant.contentTranslations.locales.${locale}`)})</Label>
               <Input id={`translation-${locale}-name`} value={row?.name ?? ''} onChange={(event) => update(locale, 'name', event.target.value)} />

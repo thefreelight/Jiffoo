@@ -4,21 +4,26 @@ import { getTestPrisma, disconnectDatabase } from '../apps/api/tests/helpers/db'
 import { createOrderWithItems } from '../apps/api/tests/helpers/fixtures';
 import { captureU4, appearanceU4 } from './u4-captures';
 import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { captureProductEditorStates } from './product-editor-captures';
 
 test('create a stocked product and open its detail from the list', async ({ page }) => {
   await login(page);
   await page.goto('/en/products/create');
   await page.getByLabel('Name', { exact: true }).first().fill('E2E Product');
-  await page.getByLabel('Name', { exact: true }).nth(1).fill('Standard');
-  await page.getByLabel('SKU', { exact: true }).fill('E2E-001');
-  await page.getByLabel('Price', { exact: true }).fill('19.99');
-  await page.getByLabel('Stock', { exact: true }).fill('20');
-  await page.getByRole('button', { name: 'Create product' }).click();
-  await expect(page).toHaveURL(/\/products/);
+  await page.getByRole('textbox', { name: /^Variant name:/ }).first().fill('Standard');
+  await page.getByRole('textbox', { name: /^SKU:/ }).first().fill('E2E-001');
+  await page.getByRole('spinbutton', { name: /^Price:/ }).first().fill('19.99');
+  await page.getByRole('spinbutton', { name: /^Stock:/ }).first().fill('20');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/\/products\/[^/]+\/edit$/);
+  await page.getByRole('link', { name: '← Products', exact: true }).click();
   await expect(page.getByRole('link', { name: 'E2E Product' }).first()).toBeVisible();
   await page.getByRole('link', { name: 'E2E Product' }).first().click();
   await expect(page.getByLabel('Name', { exact: true }).first()).toHaveValue('E2E Product');
 });
+
+
 
 
 test('product filters, sorting, bulk visibility/category, safe deletion and CSV export', async ({ page, request, context }) => {
@@ -29,11 +34,14 @@ test('product filters, sorting, bulk visibility/category, safe deletion and CSV 
   await api(request, '/admin/products', { token, method: 'POST', data: { name: 'U4 Empty Product', variants: [{ name: 'Standard', salePrice: 10, stock: 0 }] } });
   await page.goto('/en/products/create');
   await page.getByLabel('Name', { exact: true }).first().fill('U4 Ordered Product');
-  await page.getByLabel('Category', { exact: true }).selectOption(category.id);
-  await page.getByLabel('Name', { exact: true }).nth(1).fill('Standard');
-  await page.getByLabel('Price', { exact: true }).fill('12');
-  await page.getByLabel('Stock', { exact: true }).fill('4');
-  await page.getByRole('button', { name: 'Create product', exact: true }).click();
+  await page.getByRole('button', { name: 'Category', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: 'U4 Apparel', exact: true }).click();
+  await page.getByRole('textbox', { name: /^Variant name:/ }).first().fill('Standard');
+  await page.getByRole('spinbutton', { name: /^Price:/ }).first().fill('12');
+  await page.getByRole('spinbutton', { name: /^Stock:/ }).first().fill('4');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/products\/[^/]+\/edit$/);
+  await page.getByRole('link', { name: '← Products', exact: true }).click();
   await expect(page).toHaveURL(/\/en\/products$/);
   const db = getTestPrisma();
   try {
@@ -127,4 +135,95 @@ test('product filters, sorting, bulk visibility/category, safe deletion and CSV 
     try { await shop.goto('http://127.0.0.1:3003/en/products'); await shop.getByRole('searchbox', { name: 'Search products', exact: true }).fill('U4 Ordered Product'); await shop.getByRole('button', { name: 'Search', exact: true }).click(); await expect(shop.getByRole('link', { name: /U4 Ordered Product/ })).toHaveCount(0); }
     finally { await shop.close(); }
   } finally { await disconnectDatabase(); }
+});
+
+test('A5 product editor guards changes, reorders images, navigates, duplicates and saves another', async ({ page }) => {
+  test.setTimeout(180000);
+  await login(page);
+  await page.goto('/en/products/create');
+  await page.getByRole('textbox', { name: 'Name', exact: true }).fill('A5 Editor Alpha');
+  await page.getByRole('button', { name: 'Category', exact: true }).press('Enter');
+  await page.getByRole('menuitemradio', { name: 'U4 Apparel', exact: true }).press('Enter');
+  await page.getByRole('textbox', { name: /^Variant name:/ }).first().fill('Small');
+  await page.getByRole('spinbutton', { name: /^Price:/ }).first().fill('9');
+  await page.getByRole('spinbutton', { name: /^Stock:/ }).first().fill('8');
+  await page.getByRole('button', { name: 'Add variant', exact: true }).click();
+  await page.getByRole('textbox', { name: /^Variant name:/ }).last().fill('Large');
+  await page.getByRole('spinbutton', { name: /^Price:/ }).last().fill('11');
+  await page.getByRole('switch', { name: 'Available: Large', exact: true }).click();
+  await expect(page.getByRole('switch', { name: 'Available: Large', exact: true })).toHaveAttribute('aria-checked', 'false');
+  await page.getByLabel('Upload images', { exact: true }).setInputFiles([
+    { name: 'cover.png', mimeType: 'image/png', buffer: await readFile(resolve(__dirname, 'fixtures/themes/test-admin-logo.png')) },
+    { name: 'second.png', mimeType: 'image/png', buffer: await readFile(resolve(__dirname, 'fixtures/themes/test-admin-background.png')) },
+  ]);
+  const firstImage = page.getByRole('img', { name: 'Product image 1', exact: true }), secondImage = page.getByRole('img', { name: 'Product image 2', exact: true });
+  await expect(secondImage).toBeVisible();
+  const first = await firstImage.getAttribute('src'), second = await secondImage.getAttribute('src'); expect(second).not.toBe(first);
+  await page.getByRole('button', { name: /^Image 2 actions:/ }).click(); await page.getByRole('menuitem', { name: 'Set cover', exact: true }).click();
+  await expect(firstImage).toHaveAttribute('src', second!);
+  await page.getByRole('button', { name: /^Image 1 actions:/ }).click(); await page.getByRole('menuitem', { name: 'Move later', exact: true }).click();
+  await expect(firstImage).toHaveAttribute('src', first!);
+  await page.getByRole('button', { name: /^Image 2 actions:/ }).click(); await page.getByRole('menuitem', { name: 'Set cover', exact: true }).click();
+  await page.getByRole('button', { name: 'Save and add another', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'Category', exact: true })).toContainText('U4 Apparel');
+  await page.getByRole('button', { name: 'Category', exact: true }).click();
+  await expect(page.getByRole('menuitemradio', { name: 'U4 Apparel', exact: true })).toHaveAttribute('aria-checked', 'true');
+  await page.keyboard.press('Escape');
+  await page.getByRole('textbox', { name: 'Name', exact: true }).fill('A5 Editor Beta');
+  await page.getByRole('spinbutton', { name: /^Price:/ }).first().fill('5');
+  await page.getByRole('spinbutton', { name: /^Stock:/ }).first().fill('2');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/\/products\/[^/]+\/edit$/);
+  await page.getByRole('link', { name: '← Products', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Search name, SPU or SKU', exact: true }).fill('A5 Editor');
+  await expect(page).toHaveURL(/search=A5/);
+  await page.getByRole('button', { name: 'Products', exact: true }).click();
+  await expect(page.getByRole('columnheader', { name: 'Products', exact: true })).toHaveAttribute('aria-sort', 'ascending');
+  await expect(page).toHaveURL(/sortBy=name/);
+  const filtered = page.url();
+  await page.getByRole('link', { name: 'A5 Editor Alpha', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Previous product', exact: true })).toBeDisabled();
+  const originalUrl = page.url(), originalId = new URL(originalUrl).pathname.split('/')[3];
+  const originalSpu = await page.getByRole('textbox', { name: 'SPU', exact: true }).inputValue(); expect(originalSpu).toMatch(/^[A-Z0-9]{8}$/);
+  await page.getByRole('link', { name: 'Next product', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('A5 Editor Beta');
+  await page.getByRole('link', { name: 'Previous product', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('A5 Editor Alpha');
+  await page.getByRole('textbox', { name: 'Name', exact: true }).fill('A5 unsaved name');
+  await page.getByRole('link', { name: 'Orders', exact: true }).click();
+  const leave = page.getByRole('alertdialog', { name: 'Save before leaving?', exact: true }); await expect(leave).toBeVisible();
+  await leave.getByRole('button', { name: 'Keep editing', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('A5 unsaved name');
+  await page.getByRole('link', { name: 'Orders', exact: true }).click();
+  await leave.getByRole('button', { name: 'Leave without saving', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/orders$/);
+  await page.goto(filtered); await page.getByRole('link', { name: 'A5 Editor Alpha', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('A5 Editor Alpha');
+  await page.getByRole('button', { name: 'Product status', exact: true }).click(); await page.getByRole('menuitemradio', { name: 'Inactive', exact: true }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click(); await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Bulk price / stock', exact: true }).click();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByRole('dialog', { name: 'Bulk price / stock', exact: true })).toBeVisible();
+    const screenshot = await page.screenshot({ fullPage: true, animations: 'disabled' });
+    expect(screenshot.readUInt32BE(16), 'Bulk panel has no horizontal overflow at ' + width).toBe(width);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole('dialog', { name: 'Bulk price / stock', exact: true }).getByRole('spinbutton', { name: 'Price (optional)', exact: true }).fill('6.25');
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click(); await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'More product actions', exact: true }).click();
+  await expect(page.getByRole('menuitem', { name: /^View in store/ })).toHaveAttribute('aria-disabled', 'true');
+  await page.getByRole('menuitem', { name: 'Duplicate product', exact: true }).click();
+  await expect(page).toHaveURL(/\/products\/create\?duplicate=/);
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('A5 Editor Alpha');
+  await expect(page.getByRole('textbox', { name: 'SPU', exact: true })).toHaveValue('');
+  for (const sku of await page.getByRole('textbox', { name: /^SKU:/ }).all()) await expect(sku).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'Product status', exact: true })).toContainText('Inactive');
+  await page.getByRole('button', { name: 'Save', exact: true }).click(); await expect(page).toHaveURL(/\/products\/[^/]+\/edit$/);
+  expect(new URL(page.url()).pathname.split('/')[3]).not.toBe(originalId);
+  const copiedSpu = await page.getByRole('textbox', { name: 'SPU', exact: true }).inputValue(); expect(copiedSpu).toMatch(/^[A-Z0-9]{8}$/); expect(copiedSpu).not.toBe(originalSpu);
+  await expect(page.getByRole('img', { name: 'Product image 1', exact: true })).toHaveAttribute('src', second!);
+  await captureProductEditorStates(page, originalId);
 });

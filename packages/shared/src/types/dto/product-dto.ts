@@ -62,6 +62,9 @@ export interface AdminProductListItemDTO {
 
 // Admin product detail DTO
 export interface AdminProductDetailDTO {
+  slug: string;
+  currency: string;
+  translations?: Array<{ locale: string; name: string; description?: string | null }>;
   spuCode: string;
   id: string;
   name: string;
@@ -83,6 +86,7 @@ export interface AdminProductDetailDTO {
 
 // Product variant DTO
 export interface ProductVariantDTO {
+  hasOrders?: boolean;
   id: string;
   name: string;
   skuCode: string | null;

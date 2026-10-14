@@ -115,6 +115,13 @@ export function useProduct(id: string) {
   });
 }
 
+export function useProductNeighbors(id: string, params: ReturnType<typeof import('../product-list-state').productListQuery>) {
+  return useQuery({ queryKey: [...queryKeys.products, 'neighbors', id, params], queryFn: async () => unwrapApiResponse(await productsApi.neighbors(id, params)), enabled: !!id });
+}
+export function useProductEditorContext() {
+  return useQuery({ queryKey: ['product-editor-context'], queryFn: async () => unwrapApiResponse(await apiClient.get<{ currency: string; defaultLocale: string }>('/store/context')) });
+}
+
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   const { getErrorMessage, getText } = useLocalizedApiFeedback();

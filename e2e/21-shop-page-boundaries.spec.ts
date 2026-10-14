@@ -11,12 +11,12 @@ async function buyerWithCart(page: Page, label: string) {
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/products/create');
   await page.getByLabel('Name', { exact: true }).first().fill(productName);
-  await page.getByLabel('Name', { exact: true }).nth(1).fill('Standard');
-  await page.getByLabel('SKU', { exact: true }).fill(`BOUNDARY-${id}`);
-  await page.getByLabel('Price', { exact: true }).fill('12.00');
-  await page.getByLabel('Stock', { exact: true }).fill('3');
-  await page.getByRole('button', { name: 'Create product', exact: true }).click();
-  await expect(page).toHaveURL('http://127.0.0.1:3002/en/products');
+  await page.getByRole('textbox', { name: /^Variant name:/ }).first().fill('Standard');
+  await page.getByRole('textbox', { name: /^SKU:/ }).first().fill(`BOUNDARY-${id}`);
+  await page.getByRole('spinbutton', { name: /^Price:/ }).first().fill('12.00');
+  await page.getByRole('spinbutton', { name: /^Stock:/ }).first().fill('3');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/products\/[^/]+\/edit$/);
   await page.goto(`${shopOrigin}/en/register`);
   await page.getByLabel('Name').fill(`Boundary ${label} Buyer`);
   await page.getByLabel('Email').fill(`boundary-${label.toLowerCase()}-${id}@e2e.example`);

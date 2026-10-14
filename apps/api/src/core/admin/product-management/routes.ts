@@ -10,10 +10,14 @@ import { UploadService, UploadValidationError } from '@/core/upload/service';
 import { adminProductSchemas } from './schemas';
 import { sendKnownError } from '@/utils/api-errors';
 import { bulkProducts, createProductExport, type ProductBulkRequest } from './batch';
-import type { ProductSelection, ProductSort } from './list-query';
+import { productNeighbors, type ProductSelection, type ProductSort, type ProductListFilter } from './list-query';
 import { getLocaleFromRequest } from '@/utils/i18n';
 
 export async function adminProductRoutes(fastify: FastifyInstance) {
+  fastify.get('/:id/neighbors', { schema: { tags: ['admin-products'], summary: 'Get adjacent products in list order', security: [{ bearerAuth: [] }], ...adminProductSchemas.neighbors } }, async (request, reply) => {
+    try { return sendSuccess(reply, await productNeighbors((request.params as { id: string }).id, request.query as ProductListFilter & ProductSort)); }
+    catch (error) { return sendMappedError(reply, error); }
+  });
   fastify.post('/bulk', { schema: { tags: ['admin-products'], summary: 'Apply a bounded product bulk action', security: [{ bearerAuth: [] }], ...adminProductSchemas.bulkProducts } }, async (request, reply) => {
     try { return sendSuccess(reply, await bulkProducts(request.body as ProductBulkRequest)); } catch (error) { return sendMappedError(reply, error); }
   });

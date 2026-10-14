@@ -14,6 +14,7 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { AdminLanguageSwitcher } from '@/components/i18n/admin-language-switcher';
+import { requestAppNavigation } from '@/lib/pending-navigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 const groups = [
   { name: 'store', items: [
@@ -91,14 +92,14 @@ export function AdminNavigation({ storeName, storeUrl, logo, collapsed = false, 
           <UserAvatar src={user?.avatar} name={user?.firstName} username={user?.username} className="size-8 shrink-0" fallbackClassName="flex size-8 items-center justify-center rounded-md border bg-raised text-foreground" textClassName="text-xs" />
           {!collapsed && <><span className="min-w-0 flex-1"><span className="block truncate font-medium">{user?.firstName || user?.username || label('merchant.header.profile', 'Profile')}</span><span className="block truncate text-xs text-muted-foreground">{user?.email}</span></span><ChevronUp className="size-3 shrink-0 text-muted-foreground" aria-hidden="true" /></>}
         </button></DropdownMenuTrigger><DropdownMenuContent side="top" align="start" className="w-60">
-          <DropdownMenuItem onSelect={() => { onNavigate?.(); router.push('/' + locale + '/profile'); }}><User className="mr-2 size-4" />{label('merchant.header.profile', 'Profile')}</DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => { onNavigate?.(); router.push('/' + locale + '/settings'); }}><Settings className="mr-2 size-4" />{label('merchant.header.settings', 'Settings')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => { onNavigate?.(); requestAppNavigation(() => router.push('/' + locale + '/profile')); }}><User className="mr-2 size-4" />{label('merchant.header.profile', 'Profile')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => { onNavigate?.(); requestAppNavigation(() => router.push('/' + locale + '/settings')); }}><Settings className="mr-2 size-4" />{label('merchant.header.settings', 'Settings')}</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuSub><DropdownMenuSubTrigger>{copy.appearance}</DropdownMenuSubTrigger><DropdownMenuSubContent><AppearanceOptions /></DropdownMenuSubContent></DropdownMenuSub>
           <DropdownMenuSub><DropdownMenuSubTrigger aria-label="Change language"><Languages className="mr-2 size-4" />{locale === 'en' ? 'English' : locale === 'zh-Hans' ? '简体中文' : '繁體中文'}</DropdownMenuSubTrigger><DropdownMenuSubContent>
             {[['en', 'English'], ['zh-Hans', '简体中文'], ['zh-Hant', '繁體中文']].map(([value, name]) => <DropdownMenuItem key={value} asChild><Link href={languagePath(value)}>{name}</Link></DropdownMenuItem>)}
           </DropdownMenuSubContent></DropdownMenuSub>
-          <DropdownMenuSeparator /><DropdownMenuItem onSelect={() => { logout(); router.push('/' + locale + '/auth/login'); }}><LogOut className="mr-2 size-4" />{label('merchant.header.logout', 'Log out')}</DropdownMenuItem>
+          <DropdownMenuSeparator /><DropdownMenuItem onSelect={() => requestAppNavigation(() => { logout(); router.push('/' + locale + '/auth/login'); })}><LogOut className="mr-2 size-4" />{label('merchant.header.logout', 'Log out')}</DropdownMenuItem>
         </DropdownMenuContent></DropdownMenu>
         <AdminLanguageSwitcher compact />
       </div>

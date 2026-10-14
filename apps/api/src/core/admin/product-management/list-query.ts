@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
+import { ApiError } from '@/utils/api-errors';
 
 export interface ProductListFilter {
   search?: string;
@@ -53,4 +54,23 @@ export async function productIds(filter: ProductListFilter, sort: ProductSort, l
 export async function productCount(filter: ProductListFilter, selection?: ProductSelection) {
   const [row] = await prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`SELECT COUNT(*) AS count ${productQuery(filter, selection)}`);
   return Number(row.count);
+}
+
+export async function productNeighbors(id: string, filter: ProductListFilter & ProductSort) {
+  const columns = { name: 'p.name', createdAt: 'p."createdAt"', updatedAt: 'p."updatedAt"', price: 'a.price', stock: 'a.stock' };
+  const column = Prisma.raw(columns[filter.sortBy ?? 'createdAt']);
+  const ascending = filter.sortOrder === 'asc';
+  const before = Prisma.raw(ascending ? '<' : '>'), after = Prisma.raw(ascending ? '>' : '<');
+  const forward = Prisma.raw(ascending ? 'ASC' : 'DESC'), reverse = Prisma.raw(ascending ? 'DESC' : 'ASC');
+  const [row] = await prisma.$queryRaw<{ position: bigint | null; total: bigint; previousId: string | null; nextId: string | null }[]>(Prisma.sql`
+    WITH matching AS (SELECT p.id, ${column} AS value ${productQuery(filter)}),
+    anchor AS (SELECT p.id, ${column} AS value ${productQuery({})} AND p.id = ${id})
+    SELECT CASE WHEN EXISTS (SELECT 1 FROM matching m WHERE m.id = anchor.id)
+      THEN (SELECT COUNT(*) + 1 FROM matching m WHERE (m.value, m.id) ${before} (anchor.value, anchor.id)) ELSE NULL END AS position,
+      (SELECT COUNT(*) FROM matching) AS total,
+      (SELECT m.id FROM matching m WHERE (m.value, m.id) ${before} (anchor.value, anchor.id) ORDER BY m.value ${reverse}, m.id ${reverse} LIMIT 1) AS "previousId",
+      (SELECT m.id FROM matching m WHERE (m.value, m.id) ${after} (anchor.value, anchor.id) ORDER BY m.value ${forward}, m.id ${forward} LIMIT 1) AS "nextId"
+    FROM anchor`);
+  if (!row) throw new ApiError('NOT_FOUND');
+  return { ...row, position: row.position === null ? null : Number(row.position), total: Number(row.total) };
 }
