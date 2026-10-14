@@ -80,7 +80,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{
         <div style="display: flex; flex-direction: column; gap: 6px">
           <label for="p-spu" style="color: {{t.muted}}">SPU</label>
           <input id="p-spu" value="{{spuValue}}" placeholder="留空，保存时自动生成" aria-describedby="p-spu-hint" style="height: 34px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 0 12px; font-family: 'Geist Mono', monospace; font-size: 12px">
-          <span id="p-spu-hint" style="font-size: 12px; color: {{t.faint}}">商品的款号，全店唯一，不分大小写。可用字母、数字和 - _ .，最长 64 个字符。留空时自动生成，如 P000124。</span>
+          <span id="p-spu-hint" style="font-size: 12px; color: {{t.faint}}">商品的款号，全店唯一，不分大小写。可用字母、数字和 - _ .，最长 64 个字符。留空时自动生成 8 位编码，如 K7M2Q9XA。</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 6px">
           <label for="p-desc" style="color: {{t.muted}}">描述</label>
