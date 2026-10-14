@@ -1,70 +1,101 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Package, MoreHorizontal } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { MoreHorizontal, Package, Download } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { useProducts, useProductStats, useCategories, useDeleteProduct, useUpdateProduct } from '@/lib/hooks/use-api';
+import { formatStoreTimestamp, type AdminProductListItemDTO } from 'shared';
+import { useProducts, useProductStats, useCategories } from '@/lib/hooks/use-api';
+import { productsApi, type ProductSelection, type ProductBulkAction, type ProductBulkResult } from '@/lib/api';
+import { useListState, useListSelection, listChoice, type ListFields } from '@/lib/hooks/use-list-state';
+import { BulkBar, FilterChips, ListEmpty, ListSearch, ListFilter, PaginationBar, SelectionBanner, SortHeader, StatusTabs } from '@/components/list';
+import { BulkDeleteDialog } from '@/components/products/BulkDeleteDialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { resolveApiErrorMessage } from '@/lib/error-utils';
+import { useStoreDate } from '@/lib/store-time';
 import { cn, formatCurrency } from '@/lib/utils';
-import type { AdminProductListItemDTO } from 'shared';
-const statuses = ['all', 'active', 'inactive', 'outOfStock'] as const;
-type Status = typeof statuses[number];
-type Action = 'delete' | 'activate' | 'deactivate';
+
+const statuses = ['all', 'active', 'inactive', 'outOfStock'];
+const fields: ListFields = {
+  status: listChoice(statuses), category: { default: '', valid: value => /^[\w-]*$/.test(value) }, search: { default: '', valid: () => true },
+  sortBy: listChoice(['stock', 'name', 'price', 'updatedAt', 'createdAt']), sortOrder: listChoice(['asc', 'desc']),
+  page: { default: '1', valid: value => /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value)) }, pageSize: listChoice(['20', '50', '100']),
+};
+const sharedKeys = ['clearAll', 'clearFilters', 'removeFilter', 'pagination', 'perPage', 'perPageBefore', 'perPageAfter', 'pageLabel'];
+
 export default function ProductsPage() {
-  const t = useT(), locale = useLocale(), router = useRouter(), pathname = usePathname(), params = useSearchParams();
+  const t = useT(), locale = useLocale(), router = useRouter(), client = useQueryClient(), { timezone } = useStoreDate();
   const c = (key: string, values?: Record<string, string | number>) => t('merchant.catalog.' + key, values);
-  const param = params.get('status'), category = params.get('category') ?? '';
-  const status: Status = statuses.includes(param as Status) ? param as Status : 'all';
-  const urlSearch = params.get('search') ?? '';
-  const [search, setSearch] = useState(urlSearch), [query, setQuery] = useState(urlSearch), [page, setPage] = useState(1);
-  const [dialog, setDialog] = useState<{ product: AdminProductListItemDTO; action: Action } | null>(null);
-  const [failure, setFailure] = useState(''), [hasOrders, setHasOrders] = useState(false);
-  const remove = useDeleteProduct(), update = useUpdateProduct(), pending = remove.isPending || update.isPending;
-  const filters = (s: Status, cat: string, q = query) => {
-    const next = new URLSearchParams(params.toString());
-    for (const [key, value] of [['status', s === 'all' ? '' : s], ['category', cat], ['search', q]]) { if (value) next.set(key, value); else next.delete(key); }
-    setPage(1); router.replace(pathname + (next.size ? '?' + next.toString() : ''), { scroll: false });
-  };
-  useEffect(() => { setSearch(urlSearch); setQuery(urlSearch); setPage(1); }, [urlSearch, status, category]);
+  const l = (key: string, values?: Record<string, string | number>) => sharedKeys.includes(key) ? t('merchant.orders.list.' + key, values) : c(key, values);
+  const { state, update, url } = useListState(fields), page = Number(state.page), pageSize = Number(state.pageSize);
+  const change = (patch: Record<string, string>) => update({ page: '1', ...patch });
+  useEffect(() => { sessionStorage.setItem('products-list:' + locale, url); }, [url, locale]);
+  const filter = { search: state.search, status: state.status === 'all' ? undefined : state.status, categoryId: state.category || undefined };
+  const sort = { sortBy: state.sortBy as 'name' | 'createdAt' | 'updatedAt' | 'price' | 'stock', sortOrder: state.sortOrder as 'asc' | 'desc' };
+  const list = useProducts({ ...filter, ...sort, page, limit: pageSize }), stats = useProductStats(), categories = useCategories();
+  const products = list.data?.data ?? [], total = list.data?.pagination?.total ?? 0;
   useEffect(() => {
-    if (search === query) return;
-    const timer = setTimeout(() => { setQuery(search); filters(status, category, search); }, 300);
-    return () => clearTimeout(timer);
-  }, [search, query, status, category]);
-  const limit = 20;
-  const list = useProducts({ page, limit, search: query, status: status === 'all' ? undefined : status, categoryId: category || undefined });
-  const stats = useProductStats(), categories = useCategories(), products = list.data?.data ?? [], pagination = list.data?.pagination;
-  const open = (product: AdminProductListItemDTO, action: Action) => { setFailure(''); setHasOrders(false); setDialog({ product, action }); };
-  const submit = async () => {
-    if (!dialog) return;
-    setFailure('');
+    if (categories.data && state.category && state.category !== 'none' && !categories.data.some(category => category.id === state.category)) change({ category: '' });
+  }, [categories.data, state.category]);
+  const selection = useListSelection(JSON.stringify(state), filter, products.map(product => product.id), total);
+  const [pending, setPending] = useState(false), [failure, setFailure] = useState(''), [message, setMessage] = useState('');
+  const [preview, setPreview] = useState<ProductBulkResult | null>(null), [deleteSelection, setDeleteSelection] = useState<ProductSelection | null>(null);
+  useEffect(() => { if (list.data?.pagination?.page === page && page > Math.max(1, Math.ceil(total / pageSize))) update({ page: '1' }); }, [list.data?.pagination?.page, page, pageSize, total]);
+  const refresh = async () => { await Promise.all(['products', 'product-stats', 'categories'].map(key => client.invalidateQueries({ queryKey: [key] }))); };
+  const apply = async (action: ProductBulkAction, selected: ProductSelection = selection.selection, categoryId?: string | null) => {
+    setPending(true); setFailure(''); setMessage('');
     try {
-      if (dialog.action === 'delete') await remove.mutateAsync(dialog.product.id);
-      else await update.mutateAsync({ id: dialog.product.id, data: { isActive: dialog.action === 'activate' } });
-      setDialog(null);
-    } catch (error) { setFailure(resolveApiErrorMessage(error, t)); setHasOrders((error as { code?: string }).code === 'PRODUCT_HAS_ORDERS'); }
+      const result = await productsApi.bulk(action, selected, action === 'setCategory' ? { categoryId } : {});
+      setMessage(c('bulkResult', { processed: result.processed, skipped: result.skippedCount })); setPreview(null); selection.clear(); await refresh();
+    } catch (error) { setFailure(resolveApiErrorMessage(error, t)); } finally { setPending(false); }
   };
-  const state = (p: AdminProductListItemDTO) => p.isActive ? p.stock === 0 ? 'outOfStock' : 'active' : 'inactive';
-  const statusText = (p: AdminProductListItemDTO) => <span className={cn('inline-flex items-center gap-2 whitespace-nowrap', state(p) === 'outOfStock' ? 'text-attention' : state(p) === 'inactive' ? 'text-faint' : 'text-foreground')}><span aria-hidden="true" className={cn('size-1.5 rounded-full', state(p) === 'inactive' ? 'border border-current' : 'bg-current')} />{c(state(p))}</span>;
-  const identity = (p: AdminProductListItemDTO) => <div className="flex min-w-0 items-center gap-3">{p.images?.[0] ? <img src={p.images[0]} alt="" className="size-10 shrink-0 rounded-md object-cover" /> : <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-raised"><Package aria-hidden="true" className="size-4 text-muted-foreground" /></span>}<div className="min-w-0"><Link href={'/' + locale + '/products/' + p.id + '/edit'} className="hover:underline">{p.name}</Link><p className="mt-1 text-xs text-muted-foreground"><span className="font-mono">{p.spuCode}</span>{' · '}{p.categoryName || c('uncategorized')}</p></div></div>;
-  const price = (p: AdminProductListItemDTO) => p.variantsActiveCount === 0 ? '—' : p.priceMin !== p.priceMax ? c('fromPrice', { price: formatCurrency(p.priceMin) }) : formatCurrency(p.priceMin);
-  const actions = (p: AdminProductListItemDTO) => <div className="flex items-center justify-end gap-3"><Link href={'/' + locale + '/products/' + p.id + '/edit'} className="hover:underline">{c('edit')}</Link><DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label={c('more', { name: p.name })}><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={() => open(p, p.isActive ? 'deactivate' : 'activate')}>{c(p.isActive ? 'deactivate' : 'activate')}</DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={() => open(p, 'delete')}>{c('delete')}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>;
-  const empty = <div className="space-y-3 py-12 text-center text-muted-foreground"><p>{query || category || status !== 'all' ? c('noMatches') : c('empty')}</p>{!query && !category && status === 'all' && <Button asChild><Link href={'/' + locale + '/products/create'}>{c('addProduct')}</Link></Button>}</div>;
-  return <section className="min-w-0 space-y-5">
-    <header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-[26px] font-semibold tracking-[-0.025em]">{c('products')}</h1><div className="flex gap-2"><Button variant="outline" asChild><Link href={'/' + locale + '/products/categories'}>{c('categories')}</Link></Button><Button asChild><Link href={'/' + locale + '/products/create'}>{c('addProduct')}</Link></Button></div></header>
-    <div role="tablist" aria-label={c('status')} className="flex flex-wrap gap-x-5 border-b border-border">{statuses.map((s, i) => <button key={s} role="tab" aria-selected={status === s} tabIndex={status === s ? 0 : -1} onClick={() => filters(s, category)} onKeyDown={event => { const n = event.key === 'ArrowRight' ? (i + 1) % 4 : event.key === 'ArrowLeft' ? (i + 3) % 4 : event.key === 'Home' ? 0 : event.key === 'End' ? 3 : undefined; if (n !== undefined) { event.preventDefault(); filters(statuses[n], category); (event.currentTarget.parentElement?.children[n] as HTMLElement)?.focus(); } }} className={cn('flex items-center gap-2 border-b-[1.5px] py-2.5', status === s ? 'border-foreground' : 'border-transparent text-muted-foreground')}>{c(s)}<span className="font-mono text-xs text-faint">{stats.data?.statusCounts[s] ?? '—'}</span></button>)}</div>
-    {stats.error && <p role="status" className="text-muted-foreground">{c('statsError')}</p>}
-    <div className="flex flex-col gap-3 min-[769px]:flex-row"><Input aria-label={c('search')} placeholder={c('searchCodes')} value={search} onChange={e => setSearch(e.target.value)} className="h-8 flex-1 bg-raised" /><select aria-label={c('category')} value={category} onChange={e => filters(status, e.target.value)} className="h-8 rounded-md border border-border bg-raised px-3"><option value="">{c('allCategories')}</option>{categories.data?.map((cat: { id: string; name: string }) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}</select></div>
-    {list.error ? <div role="alert"><p>{c('listError')}</p><Button variant="outline" onClick={() => list.refetch()}>{c('retry')}</Button></div> : list.isLoading ? <p role="status">{c('loading')}</p> : <>
-      <div className="hidden overflow-x-auto rounded-[10px] border border-border min-[769px]:block"><table className="w-full text-left"><thead className="bg-raised text-xs text-faint"><tr>{['products', 'variants', 'price', 'stock', 'status', 'actions'].map(k => <th key={k} className="px-4 py-3 font-normal">{c(k)}</th>)}</tr></thead><tbody>{products.length ? products.map(p => <tr key={p.id} className="border-t border-border hover:bg-accent/60"><td className="px-4 py-3">{identity(p)}</td><td className="px-4 py-3 text-muted-foreground">{c('variantCount', { count: p.variantsCount ?? 0 })}</td><td className="px-4 py-3 font-mono">{price(p)}</td><td className="px-4 py-3 font-mono">{p.stock}</td><td className="px-4 py-3">{statusText(p)}</td><td className="px-4 py-3">{actions(p)}</td></tr>) : <tr><td colSpan={6}>{empty}</td></tr>}</tbody></table></div>
-      <div className="divide-y divide-border rounded-[10px] border border-border min-[769px]:hidden">{products.length ? products.map(p => <article key={p.id} className="space-y-3 p-4">{identity(p)}<div className="flex justify-between"><span className="font-mono">{price(p)}</span>{statusText(p)}</div><div className="flex justify-between text-muted-foreground"><span>{c('variantCount', { count: p.variantsCount ?? 0 })}</span><span>{c('stock')}: <span className="font-mono">{p.stock}</span></span></div>{actions(p)}</article>) : empty}</div>
-      {pagination && <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"><p>{c('range', { start: pagination.total ? (page - 1) * limit + 1 : 0, end: Math.min(page * limit, pagination.total), total: pagination.total })}</p><div className="flex gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(page - 1)}>{c('previous')}</Button><Button size="sm" variant="outline" disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}>{c('next')}</Button></div></div>}
-    </>}
-    <Dialog open={!!dialog} onOpenChange={v => { if (!v && !pending) setDialog(null); }}><DialogContent><DialogHeader><DialogTitle>{dialog && c(dialog.action + 'Title', { name: dialog.product.name })}</DialogTitle><DialogDescription>{dialog && c(dialog.action + 'Hint')}</DialogDescription></DialogHeader>{failure && <p role="alert" className="text-destructive">{failure}</p>}<DialogFooter><Button variant="outline" disabled={pending} onClick={() => setDialog(null)}>{c('cancel')}</Button>{hasOrders && dialog?.action === 'delete' ? <Button disabled={pending} onClick={() => open(dialog.product, 'deactivate')}>{c('deactivateInstead')}</Button> : <Button variant={dialog?.action === 'delete' ? 'destructive' : 'default'} disabled={pending} onClick={submit}>{dialog && c(dialog.action)}</Button>}</DialogFooter></DialogContent></Dialog>
+  const confirmDelete = async (selected: ProductSelection) => {
+    setPending(true); setFailure('');
+    try { const result = await productsApi.bulk('delete', selected, { dryRun: true }); setDeleteSelection(selected); setPreview(result); }
+    catch (error) { setFailure(resolveApiErrorMessage(error, t)); } finally { setPending(false); }
+  };
+  const exportProducts = async (selected: boolean) => {
+    setPending(true); setFailure(''); setMessage('');
+    try {
+      const result = await productsApi.export(selected ? selection.selection : { mode: 'filter', filter }, sort, locale);
+      const objectUrl = URL.createObjectURL(result.blob), link = document.createElement('a'); link.href = objectUrl; link.download = result.filename;
+      document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      if (Number.isFinite(result.count) && Number.isFinite(result.skipped)) setMessage(c('bulkResult', { processed: result.count, skipped: result.skipped }));
+      if (selected) { selection.clear(); await refresh(); }
+    } catch { setFailure(c('exportError')); } finally { setPending(false); }
+  };
+  const categoryOptions = [{ value: '', label: c('all') }, { value: 'none', label: c('uncategorized') }, ...(categories.data ?? []).map(category => ({ value: category.id, label: category.name }))];
+  const clear = () => change({ search: '', category: '' });
+  const chips = state.category ? [{ key: 'category', name: c('category'), value: categoryOptions.find(option => option.value === state.category)?.label ?? state.category, remove: () => change({ category: '' }) }] : [];
+  const productState = (product: AdminProductListItemDTO) => product.isActive ? product.stock === 0 ? 'outOfStock' : 'active' : 'inactive';
+  const status = (product: AdminProductListItemDTO) => <span className={cn('inline-flex items-center gap-2 whitespace-nowrap', productState(product) === 'outOfStock' ? 'text-attention' : productState(product) === 'inactive' ? 'text-faint' : 'text-foreground')}><span aria-hidden="true" className={cn('size-1.5 rounded-full', productState(product) === 'inactive' ? 'border border-current' : 'bg-current')} />{c(productState(product))}</span>;
+  const href = (product: AdminProductListItemDTO) => '/' + locale + '/products/' + product.id + '/edit';
+  const open = (event: MouseEvent, product: AdminProductListItemDTO) => { if (!(event.target as Element).closest('a,button,input,label,[role^="menuitem"]')) router.push(href(product)); };
+  const identity = (product: AdminProductListItemDTO) => <div className="flex min-w-0 items-center gap-3">{product.images[0] ? <img src={product.images[0]} alt="" className="size-9 shrink-0 rounded-md object-cover" /> : <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-raised"><Package aria-hidden="true" className="size-4 text-faint" /></span>}<div className="min-w-0"><Link href={href(product)} className="font-medium hover:underline">{product.name}</Link><p className="mt-0.5 text-xs text-faint"><span className="font-mono">{product.spuCode}</span>{' · '}{product.categoryName || c('uncategorized')}{' · '}{c('variantCount', { count: product.variantsCount ?? 0 })}</p></div></div>;
+  const price = (product: AdminProductListItemDTO) => product.variantsActiveCount === 0 ? '—' : product.priceMin === product.priceMax ? formatCurrency(product.priceMin, product.currency) : c('fromPrice', { price: formatCurrency(product.priceMin, product.currency) });
+  const checkbox = (product: AdminProductListItemDTO) => <input type="checkbox" className="size-[15px] shrink-0 accent-foreground" aria-label={c('selectProduct', { name: product.name })} checked={selection.checked(product.id)} onChange={() => selection.toggle(product.id)} />;
+  const pageCheckbox = <input type="checkbox" className="size-[15px] accent-foreground" aria-label={c('selectPage')} checked={selection.pageChecked} disabled={!products.length} onChange={selection.togglePage} />;
+  const actions = (product: AdminProductListItemDTO) => <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-[30px]" aria-label={c('more', { name: product.name })}><MoreHorizontal aria-hidden="true" className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
+    <DropdownMenuItem asChild><Link href={href(product)}>{c('edit')}</Link></DropdownMenuItem>
+    <DropdownMenuItem disabled={pending} onSelect={() => apply(product.isActive ? 'deactivate' : 'activate', { mode: 'ids', ids: [product.id] })}>{c(product.isActive ? 'deactivate' : 'activate')}</DropdownMenuItem>
+    <DropdownMenuItem disabled={pending || product.hasOrders} onSelect={() => confirmDelete({ mode: 'ids', ids: [product.id] })} className="flex max-w-72 flex-col items-start"><span>{c('delete')}</span>{product.hasOrders && <span className="whitespace-normal text-xs text-faint">{c('soldReason')}</span>}</DropdownMenuItem>
+  </DropdownMenuContent></DropdownMenu>;
+  return <section className="mx-auto flex min-h-[calc(100dvh-72px)] min-w-0 max-w-[1120px] flex-col gap-4 [&:not(:first-child)]:mt-6">
+    <header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-[26px] font-semibold">{c('products')}</h1><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" asChild><Link href={'/' + locale + '/products/categories'}>{c('manageCategories')}</Link></Button><Button size="sm" variant="outline" disabled={pending} onClick={() => exportProducts(false)}><Download aria-hidden="true" className="mr-1 size-3.5" />{c('export')}</Button><Button size="sm" asChild><Link href={'/' + locale + '/products/create'}>{c('addProduct')}</Link></Button></div></header>
+    <StatusTabs label={c('status')} value={state.status} onChange={status => change({ status })} tabs={statuses.map(value => ({ value, label: c(value), attention: value === 'outOfStock', count: stats.data?.statusCounts[value as keyof typeof stats.data.statusCounts] }))} />
+    {stats.error && <p role="status">{c('statsError')}</p>}
+    <div className="flex flex-wrap gap-2"><ListSearch label={c('searchCodes')} value={state.search} onChange={search => change({ search })} /><ListFilter label={c('category')} value={state.category} options={categoryOptions} onChange={category => change({ category })} /></div>
+    <FilterChips chips={chips} copy={l} clear={clear} />{failure && <p role="alert" className="text-destructive">{failure}</p>}{message && <p role="status">{message}</p>}
+    {list.error ? <div role="alert"><p>{c('listError')}</p><Button variant="outline" onClick={() => list.refetch()}>{c('retry')}</Button></div> : list.isLoading ? <p role="status">{c('loading')}</p> : <div className="overflow-hidden rounded-lg border border-border">
+      {(selection.pageChecked || selection.selection.mode === 'filter') && <SelectionBanner all={selection.selection.mode === 'filter'} count={selection.selection.mode === 'filter' ? selection.count : products.length} total={total} copy={l} selectAll={selection.allMatching} onlyPage={selection.onlyPage} />}
+      <div className="hidden overflow-x-auto min-[769px]:block"><table className="w-full min-w-[760px] text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr><th scope="col" className="w-10 py-2.5 pl-4">{pageCheckbox}</th><SortHeader label={c('products')} field="name" {...sort} align="left" onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} /><th scope="col" className="px-3 py-2.5 font-medium">{c('status')}</th>{['price', 'stock', 'updatedAt'].map(field => <SortHeader key={field} label={c(field, { timezone })} field={field} {...sort} onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} />)}<th scope="col" className="pr-4"><span className="sr-only">{c('actions')}</span></th></tr></thead><tbody>{products.map(product => <tr key={product.id} onClick={event => open(event, product)} className={cn('cursor-pointer border-t border-border hover:bg-active', selection.checked(product.id) && 'bg-active')}><td className="py-2.5 pl-4">{checkbox(product)}</td><td className="px-3 py-2.5">{identity(product)}</td><td className="px-3 py-2.5">{status(product)}</td><td className="whitespace-nowrap px-3 py-2.5 text-right font-mono text-xs">{price(product)}</td><td className={cn('px-3 py-2.5 text-right font-mono text-xs', productState(product) === 'outOfStock' && 'text-attention')}>{product.stock}</td><td className="whitespace-nowrap px-3 py-2.5 text-right text-muted-foreground">{formatStoreTimestamp(product.updatedAt, timezone)}</td><td className="py-1.5 pl-3 pr-4 text-right">{actions(product)}</td></tr>)}</tbody></table></div>
+      <div className="divide-y divide-border min-[769px]:hidden"><p className="px-4 py-2 text-xs text-faint">{c('updatedAt', { timezone })}</p>{!!products.length && <label className="flex items-center gap-2 p-4">{pageCheckbox}{c('selectPage')}</label>}{products.map(product => <article aria-label={product.name} key={product.id} onClick={event => open(event, product)} className={cn('space-y-3 p-4', selection.checked(product.id) && 'bg-active')}><div className="flex items-start gap-2">{checkbox(product)}{identity(product)}</div><div className="flex items-center justify-between gap-2">{status(product)}<span className="font-mono">{price(product)}</span></div><p className="flex justify-between text-muted-foreground"><span>{c('stock')}</span><span className="font-mono">{product.stock}</span></p><div className="flex items-center justify-between gap-2"><time dateTime={product.updatedAt} className="text-xs text-faint">{formatStoreTimestamp(product.updatedAt, timezone)}</time>{actions(product)}</div></article>)}</div>
+      {!products.length && <ListEmpty filtered={!!state.search || !!state.category || state.status !== 'all'} copy={l} clear={() => change({ status: 'all', category: '', search: '' })} />}
+    </div>}
+    <PaginationBar copy={l} page={page} pageSize={pageSize} total={total} onPage={page => update({ page: String(page) })} onPageSize={pageSize => change({ pageSize: String(pageSize) })} />
+    <BulkBar count={selection.count} copy={l} allMatching={selection.selection.mode === 'filter'} clear={selection.clear}><Button size="sm" variant="outline" disabled={pending} onClick={() => apply('activate')}>{c('activate')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => apply('deactivate')}>{c('deactivate')}</Button><ListFilter label={c('changeCategory')} disabled={pending} showValue={false} value="" options={categoryOptions.filter(option => option.value !== '')} onChange={category => { if (!pending) apply('setCategory', selection.selection, category === 'none' ? null : category); }} /><Button size="sm" variant="outline" disabled={pending} onClick={() => exportProducts(true)}>{c('export')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => confirmDelete(selection.selection)}>{c('delete')}</Button></BulkBar>
+    <BulkDeleteDialog result={preview} pending={pending} error={failure} onCancel={() => setPreview(null)} onConfirm={() => { if (deleteSelection) apply('delete', deleteSelection); }} />
   </section>;
 }

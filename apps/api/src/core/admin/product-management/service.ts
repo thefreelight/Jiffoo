@@ -14,6 +14,7 @@ import { productSnapshot } from '@/infra/events/snapshots';
 import { Prisma } from '@prisma/client';
 import { isOrderItemCatalogRestriction } from '@/core/order/catalog-snapshot';
 import { resolveProductCode, withProductCodeRetry } from './codes';
+import { productIds, productCount } from './list-query';
 
 async function protectOrderedCatalog<T>(operation: () => Promise<T>, references: () => Prisma.OrderItemWhereInput): Promise<T> {
   try { return await operation(); }
@@ -97,13 +98,14 @@ function resolveVariantSalePrice(variant: ProductVariantData): number {
 }
 
 export interface AdminProductSearchFilters {
+  productType?: string;
   status?: 'active' | 'inactive' | 'outOfStock';
   search?: string;
   categoryId?: string;
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
-  sortBy?: 'name' | 'createdAt';
+  sortBy?: 'name' | 'createdAt' | 'updatedAt' | 'price' | 'stock';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -201,6 +203,7 @@ export class AdminProductService {
     if (filters.search?.trim()) validFilters.search = filters.search.trim();
     if (filters.categoryId) validFilters.categoryId = filters.categoryId;
     if (filters.status) validFilters.status = filters.status;
+    if (filters.productType) validFilters.productType = filters.productType;
 
     const minPrice = this.toNumber((filters as any).minPrice);
     if (minPrice !== undefined) validFilters.minPrice = minPrice;
@@ -223,111 +226,34 @@ export class AdminProductService {
       }, {} as Record<string, any>);
   }
 
-  private static buildWhere(normalizedFilters: Record<string, any>) {
-    const where: any = {};
-
-    // Filter by store if provided
-
-    if (normalizedFilters.search) {
-      where.OR = [
-        { name: { contains: normalizedFilters.search, mode: 'insensitive' } },
-        { description: { contains: normalizedFilters.search, mode: 'insensitive' } },
-        { spuCode: { contains: normalizedFilters.search, mode: 'insensitive' } },
-        { variants: { some: { skuCode: { contains: normalizedFilters.search, mode: 'insensitive' } } } },
-      ];
-    }
-
-    if (normalizedFilters.categoryId) {
-      where.categoryId = normalizedFilters.categoryId;
-    }
-
-    if (normalizedFilters.minPrice !== undefined || normalizedFilters.maxPrice !== undefined) {
-      where.variants = {
-        some: {
-          salePrice: {
-            ...(normalizedFilters.minPrice !== undefined ? { gte: normalizedFilters.minPrice } : {}),
-            ...(normalizedFilters.maxPrice !== undefined ? { lte: normalizedFilters.maxPrice } : {}),
-          },
-          isActive: true
-        }
-      };
-    }
-
-    return where;
-  }
 
   /**
    * Get product list (Optimized for Admin List View)
    */
-  static async getProducts(page = 1, limit = 10, filters: AdminProductSearchFilters = {}) {
+  static async getProducts(page = 1, limit = 20, filters: AdminProductSearchFilters = {}) {
     const safePage = Math.max(1, Number(page) || 1);
-    const safeLimit = Math.min(100, Math.max(1, Number(limit) || 10));
+    const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
     const normalizedFilters = this.normalizeFilters(filters);
 
     const skip = (safePage - 1) * safeLimit;
 
-    const where = this.buildWhere(normalizedFilters);
-
-    if (normalizedFilters.status === 'active') where.AND = [activeProductWhere()];
-    if (normalizedFilters.status === 'inactive') where.AND = [{ NOT: activeProductWhere() }];
-    if (normalizedFilters.status === 'outOfStock') {
-      const emptyProducts = await prisma.productVariant.groupBy({
-        by: ['productId'], where: { isActive: true }, having: { stock: { _sum: { equals: 0 } } },
-      });
-      where.AND = [activeProductWhere(), { id: { in: emptyProducts.map(product => product.productId) } }];
-    }
-
-    if (normalizedFilters.inStock !== undefined) {
-      const inStockVariantIds = await InventoryService.getVariantIdsByAvailability({
-        minAvailable: 1,
-        onlyActiveVariants: true,
-      });
-      if (normalizedFilters.inStock) {
-        if (inStockVariantIds.length === 0) {
-          return { items: [], page: safePage, limit: safeLimit, total: 0, totalPages: 0 };
-        }
-        where.variants = {
-          ...where.variants,
-          some: {
-            ...(where.variants?.some || {}),
-            id: { in: inStockVariantIds },
-            isActive: true,
-          },
-        };
-      } else {
-        where.variants = {
-          ...where.variants,
-          none: {
-            id: { in: inStockVariantIds },
-            isActive: true,
-          },
-        };
-      }
-    }
-
-    const orderBy: any = {};
-    if (normalizedFilters.sortBy && ['name', 'createdAt', 'updatedAt'].includes(normalizedFilters.sortBy)) {
-      orderBy[normalizedFilters.sortBy] = normalizedFilters.sortOrder || 'desc';
-    } else {
-      orderBy.createdAt = 'desc';
-    }
 
     // Versioned cache key for the required product-code DTO.
     const version = await CacheService.getProductVersion();
     const filterHash = Buffer.from(JSON.stringify(normalizedFilters)).toString('base64');
-    const cacheKey = `product:list:v${version}:${safePage}:${safeLimit}:${filterHash}:flat-v2`;
+    const cacheKey = `product:list:v${version}:${safePage}:${safeLimit}:${filterHash}:ordered-v3`;
 
     const cached = await CacheService.get<any>(cacheKey);
     if (cached) {
       return cached;
     }
 
-    const [products, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        skip,
-        take: safeLimit,
-        orderBy,
+    const currency = await systemSettingsService.getShopCurrency();
+    const [ids, total] = await Promise.all([
+      productIds(normalizedFilters, normalizedFilters, safeLimit, skip), productCount(normalizedFilters),
+    ]);
+    const products = await prisma.product.findMany({
+        where: { id: { in: ids } },
         select: {
           id: true,
           name: true,
@@ -336,7 +262,9 @@ export class AdminProductService {
           isActive: true,
           typeData: true,
           requiresShipping: true,
-          createdAt: true, // Needed for list DTO
+          createdAt: true,
+          updatedAt: true,
+          orderItems: { select: { id: true }, take: 1 },
           category: {
             select: {
               id: true,   // Needed for id
@@ -357,9 +285,8 @@ export class AdminProductService {
             select: { variants: true }
           }
         }
-      }),
-      prisma.product.count({ where })
-    ]);
+      });
+    products.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
 
     const stockMap = await InventoryService.getAvailableStockByVariantIds(
       products.flatMap((product) => product.variants.map((variant) => variant.id))
@@ -386,6 +313,7 @@ export class AdminProductService {
           categoryName: p.category ? p.category.name : null,
           skuCode: minPriceVariant?.skuCode || null,
           price: minPrice,
+          currency,
           priceMin: minPrice,
           priceMax: skuCount ? Math.max(...p.variants.map(v => Number(v.salePrice))) : 0,
           images: parseImageList(p.typeData),
@@ -393,7 +321,8 @@ export class AdminProductService {
           isActive: productAvailability(p.isActive, skuCount, stock).active,
           variantsActiveCount: skuCount,
           variantsCount: p._count.variants,
-          createdAt: p.createdAt.toISOString()
+          createdAt: p.createdAt.toISOString(),
+          updatedAt: p.updatedAt.toISOString(), hasOrders: p.orderItems.length > 0,
         };
       }),
       page: safePage,
@@ -750,18 +679,6 @@ export class AdminProductService {
   }
 
   /**
-   * Bulk delete products
-   */
-  static async deleteProducts(productIds: string[]) {
-    await protectOrderedCatalog(() => prisma.$transaction(async tx => {
-      if (await tx.orderItem.count({ where: { productId: { in: productIds } } })) throw new ApiError('PRODUCT_HAS_ORDERS');
-      await tx.product.deleteMany({ where: { id: { in: productIds } } });
-    }), () => ({ productId: { in: productIds } }));
-
-    await CacheService.incrementProductVersion();
-  }
-
-  /**
    * Get categories list
    * Uses simple cache (60s TTL) as categories rarely change
    */
@@ -774,20 +691,21 @@ export class AdminProductService {
       prisma.category.findMany({
         skip,
         take: safeLimit,
-        orderBy: { sortOrder: 'asc' },
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
         select: {
           id: true,
           name: true,
           slug: true,
           description: true,
           translations: { select: { locale: true, name: true, description: true } },
+          _count: { select: { products: true, children: true } },
         }
       }),
       prisma.category.count(),
     ]);
 
     return {
-      items,
+      items: items.map(({ _count, ...category }) => ({ ...category, productCount: _count.products, childCount: _count.children })),
       page: safePage,
       limit: safeLimit,
       total,

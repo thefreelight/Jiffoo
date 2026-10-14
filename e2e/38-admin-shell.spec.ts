@@ -73,7 +73,7 @@ test('U2 Overview shows real attention counts and opens the Orders review deep l
     await captureOverview(page);
     await page.getByRole('link', { name: 'Review payments', exact: true }).click();
     await expect(page).toHaveURL(/\/en\/orders\?payment=review$/);
-    await expect(page.getByRole('combobox', { name: 'Payment', exact: true })).toHaveValue('REVIEW');
+    await expect(page.getByRole('button', { name: 'Payment', exact: true })).toContainText('Requires review');
     await expect(page.getByRole('link', { name: 'View order ' + ids[0], exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'View order ' + ids[1], exact: true })).toHaveCount(0);
     if (process.env.CI !== 'true') for (const mode of ['Light', 'Dark']) {
@@ -133,7 +133,7 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
     await page.reload();
     await expect(page.getByRole('button', { name: 'Review payments', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Review payments', exact: true }).click();
-    await expect(page.getByRole('combobox', { name: 'Payment', exact: true })).toHaveValue('REVIEW');
+    await expect(page.getByRole('button', { name: 'Payment', exact: true })).toContainText('Requires review');
     await page.getByRole('textbox', { name: 'Search order number or customer email' }).fill(id);
     await expect(page.getByRole('link', { name: 'View order ' + id, exact: true })).toBeVisible();
     await expect(page.getByText('3 items', { exact: true }).first()).toBeVisible();

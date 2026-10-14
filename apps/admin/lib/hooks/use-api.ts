@@ -86,7 +86,7 @@ export function useProducts(params: PaginationParams = {}) {
   return useQuery({
     queryKey: [...queryKeys.products, params],
     queryFn: async () => {
-      const response = await productsApi.getAll(params.page, params.limit, params.search, params.productType, params.status, params.categoryId);
+      const response = await productsApi.getAll(params.page, params.limit, params.search, params.productType, params.status, params.categoryId, { sortBy: params.sortBy, sortOrder: params.sortOrder });
       const data = unwrapApiResponse(response);
 
       // Adapt PageResult to frontend pagination structure
@@ -131,6 +131,7 @@ export function useCreateProduct() {
         exact: false
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.productStats });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
       queryClient.refetchQueries({
         queryKey: queryKeys.products,
@@ -160,6 +161,7 @@ export function useUpdateProduct() {
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.product(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.productStats });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
       const key = Object.keys(data).length === 1 && data.isActive !== undefined ? data.isActive ? 'activated' : 'deactivated' : 'saved';
       toast.success(getText('merchant.catalog.' + key, 'Product saved.'), { id: 'product-update' });
@@ -186,6 +188,7 @@ export function useDeleteProduct() {
         exact: false // This will match all query keys starting with ['products']
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.productStats });
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
       // Remove specific product cache
       queryClient.removeQueries({

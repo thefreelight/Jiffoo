@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, afterEach, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import ProductsPage from '../app/[locale]/(themed)/products/page';
@@ -8,6 +9,7 @@ import { ProductForm } from '../components/products/ProductForm';
 import { merchant } from '../../../packages/shared/src/i18n/messages/en/merchant';
 import { merchant as hans } from '../../../packages/shared/src/i18n/messages/zh-Hans/merchant';
 import { merchant as hant } from '../../../packages/shared/src/i18n/messages/zh-Hant/merchant';
+import { productsApi } from '../lib/api';
 const state = vi.hoisted(() => ({ url: '', params: {} as any, replace: vi.fn(), update: vi.fn(), remove: vi.fn(), create: vi.fn() }));
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string, values?: Record<string, string | number>) => {
   const value = key.split('.').slice(1).reduce<any>((v, k) => v?.[k], merchant);
@@ -16,13 +18,13 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (ke
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: state.replace, push: vi.fn() }), usePathname: () => '/en/products', useSearchParams: () => new URLSearchParams(state.url) }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: any) => <a {...props}>{children}</a> }));
 vi.mock('../components/products/ContentTranslations', () => ({ ContentTranslations: () => null, useStoreDefaultLocale: () => ({ data: 'en' }) }));
-vi.mock('../components/ui/dropdown-menu', () => ({ DropdownMenu: ({ children }: any) => children, DropdownMenuTrigger: ({ children }: any) => children, DropdownMenuContent: ({ children }: any) => children, DropdownMenuItem: ({ children, onSelect }: any) => <button onClick={onSelect}>{children}</button> }));
+vi.mock('../components/ui/dropdown-menu', () => ({ DropdownMenu: ({ children }: any) => children, DropdownMenuTrigger: ({ children }: any) => children, DropdownMenuContent: ({ children }: any) => children, DropdownMenuRadioGroup: ({ children }: any) => children, DropdownMenuRadioItem: ({ children, onSelect }: any) => <button onClick={onSelect}>{children}</button>, DropdownMenuItem: ({ children, onSelect, disabled, asChild }: any) => asChild ? children : <button disabled={disabled} onClick={onSelect}>{children}</button> }));
 vi.mock('../components/ui/dialog', () => ({ Dialog: ({ open, children }: any) => open ? children : null, DialogContent: ({ children }: any) => <div role="dialog">{children}</div>, DialogHeader: ({ children }: any) => children, DialogTitle: ({ children }: any) => <h2>{children}</h2>, DialogDescription: ({ children }: any) => <p>{children}</p>, DialogFooter: ({ children }: any) => children }));
 vi.mock('../lib/hooks/use-api', () => ({
   useProducts: (params: any) => { state.params = params; return { data: { data: [
-    { id: 'a', name: 'Available', spuCode: 'K7M2Q9XA', isActive: true, stock: 3, variantsCount: 2, priceMin: 10, priceMax: 20, images: [] },
-    { id: 'b', name: 'Hidden', isActive: false, stock: 0, variantsCount: 1, priceMin: 10, priceMax: 10, images: [] },
-    { id: 'c', name: 'Empty', isActive: true, stock: 0, variantsCount: 1, priceMin: 10, priceMax: 10, images: [] },
+    { id: 'a', name: 'Available', spuCode: 'K7M2Q9XA', hasOrders: true, updatedAt: '2026-10-14T00:00:00Z', isActive: true, stock: 3, variantsCount: 2, priceMin: 10, priceMax: 20, images: [] },
+    { id: 'b', name: 'Hidden', hasOrders: false, updatedAt: '2026-10-14T00:00:00Z', isActive: false, stock: 0, variantsCount: 1, priceMin: 10, priceMax: 10, images: [] },
+    { id: 'c', name: 'Empty', hasOrders: false, updatedAt: '2026-10-14T00:00:00Z', isActive: true, stock: 0, variantsCount: 1, priceMin: 10, priceMax: 10, images: [] },
   ], pagination: { total: 3, totalPages: 1 } } }; },
   useProductStats: () => ({ data: { statusCounts: { all: 3, active: 2, inactive: 1, outOfStock: 1 } } }),
   useCategories: () => ({ data: [{ id: 'real-category', name: 'Actual category' }] }),
@@ -32,45 +34,50 @@ vi.mock('../lib/hooks/use-api', () => ({
   useUploadProductImage: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 let root: Root;
+let queryClient: QueryClient;
 async function mount(element = <ProductsPage />) {
-  const node = document.createElement('div'); document.body.append(node); root = createRoot(node); await act(async () => root.render(element)); return node;
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const node = document.createElement('div'); document.body.append(node); root = createRoot(node); await act(async () => root.render(<QueryClientProvider client={queryClient}>{element}</QueryClientProvider>)); return node;
 }
 function button(name: string, scope: ParentNode = document) { const result = Array.from(scope.querySelectorAll<HTMLButtonElement>('button')).find(b => b.textContent?.trim() === name); if (!result) throw new Error('Missing button: ' + name); return result; }
 async function input(id: string, value: string) { const node = document.getElementById(id) as HTMLInputElement; await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(node, value); node.dispatchEvent(new Event('input', { bubbles: true })); }); }
 beforeEach(() => {
+  sessionStorage.clear();
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); state.url = ''; state.update.mockReset().mockResolvedValue({}); state.remove.mockReset(); state.create.mockReset();
-  state.replace.mockReset().mockImplementation((url: string) => { state.url = url.split('?')[1] ?? ''; root.render(<ProductsPage />); });
+  state.replace.mockReset().mockImplementation((url: string) => { state.url = url.split('?')[1] ?? ''; });
 });
-afterEach(async () => { if (root) await act(async () => root.unmount()); document.body.innerHTML = ''; vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(async () => { if (root) await act(async () => root.unmount()); queryClient?.clear(); document.body.innerHTML = ''; vi.unstubAllGlobals(); vi.useRealTimers(); vi.restoreAllMocks(); });
 it.each(['active', 'inactive', 'outOfStock'])('reads server-side status, category and search from the URL: %s', async status => {
   state.url = 'status=' + status + '&category=real-category&search=hello'; await mount();
   expect(state.params).toMatchObject({ status, categoryId: 'real-category', search: 'hello', page: 1 });
 });
+it('restores product sorting, uncategorized, page size and pagination from the URL', async () => {
+  state.url = 'status=inactive&category=none&search=sku&sortBy=price&sortOrder=desc&page=2&pageSize=50';
+  await mount(); expect(state.params).toMatchObject({ status: 'inactive', categoryId: 'none', search: 'sku', sortBy: 'price', sortOrder: 'desc', page: 2, limit: 50 });
+  expect(sessionStorage.getItem('products-list:en')).toContain('pageSize=50');
+});
 it('ignores invalid status and renders real categories, price ranges and the three status labels', async () => {
   state.url = 'status=unknown'; const node = await mount(); expect(state.params.status).toBeUndefined();
-  expect(Array.from(node.querySelectorAll('option')).map(o => o.textContent)).toEqual(['All categories', 'Actual category']);
+  expect(node.textContent).toContain('Actual category'); expect(node.querySelector('select')).toBeNull();
   expect(node.querySelector('tbody')?.textContent).toContain('From $10.00');
   for (const status of ['Active', 'Inactive', 'Out of stock']) expect(node.querySelector('tbody')?.textContent).toContain(status);
 });
 it('changes tabs and categories, debounces search and preserves other URL parameters', async () => {
   vi.useFakeTimers(); state.url = 'source=overview'; await mount();
   await act(async () => button('Active2').click()); expect(state.params.status).toBe('active');
-  const select = document.querySelector('select')!; await act(async () => { select.value = 'real-category'; select.dispatchEvent(new Event('change', { bubbles: true })); });
+  await act(async () => button('Actual category').click());
   expect(state.params.categoryId).toBe('real-category');
   const search = document.querySelector('input')!; await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'boots'); search.dispatchEvent(new Event('input', { bubbles: true })); });
   expect(state.params.search).toBe(''); await act(async () => vi.advanceTimersByTime(300)); expect(state.params.search).toBe('boots');
   expect(state.replace.mock.lastCall?.[0]).toContain('source=overview');
 });
-it('keeps deletion errors inline and offers the existing partial deactivate flow', async () => {
-  state.remove.mockRejectedValue({ code: 'PRODUCT_HAS_ORDERS' }); await mount();
-  await act(async () => button('Delete').click());
-  const dialog = document.querySelector('[role="dialog"]')!;
-  await act(async () => button('Delete', dialog).click());
-  expect(dialog.textContent).toContain(merchant.contentTranslations.productHasOrders);
-  await act(async () => button('Deactivate instead', dialog).click());
-  await act(async () => button('Deactivate', document.querySelector('[role="dialog"]')!).click());
-  expect(state.update).toHaveBeenCalledWith({ id: 'a', data: { isActive: false } });
+it('disables sold-product deletion with its reason before a request can be made', async () => {
+  const bulk = vi.spyOn(productsApi, 'bulk'); const node = await mount();
+  const row = node.querySelector('tbody tr')!;
+  const disabled = Array.from(row.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent?.startsWith('Delete'))!;
+  expect(disabled.disabled).toBe(true); expect(disabled.textContent).toContain(merchant.catalog.soldReason);
+  await act(async () => disabled.click()); expect(bulk).not.toHaveBeenCalled();
 });
 it('tracks unsaved changes, guards unload only while dirty and sends product and variant visibility', async () => {
   const product = { id: 'p', name: 'Original', description: '', images: [], categoryId: 'real-category', isActive: true, variants: [{ id: 'v', name: 'Standard', salePrice: 12, stock: 2, skuCode: 'ONE', isActive: true }] } as any;

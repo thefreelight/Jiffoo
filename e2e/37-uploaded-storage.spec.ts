@@ -23,6 +23,7 @@ test('G uploaded product image survives Admin save and renders in Shop through t
   await expect(page.getByRole('button', { name: 'Remove image 1', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Create product' }).click();
   await expect(page).toHaveURL(/\/products/);
+  await page.getByRole('textbox', { name: 'Search name, SPU or SKU', exact: true }).fill('B5 Media Product');
   await expect(page.getByRole('link', { name: 'B5 Media Product', exact: true })).toBeVisible();
   const shop = await context.newPage();
   const media = shop.waitForResponse(response => new URL(response.url()).pathname === url);

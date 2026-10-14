@@ -11,6 +11,7 @@ import {
   createPageResultSchema,
   uploadResultSchema,
   errorResponseSchema,
+  createSuccessResponseSchema,
 } from '@/types/common-dto';
 
 const translationSchema = {
@@ -68,6 +69,9 @@ const adminProductListItemSchema = {
     priceMax: { type: 'number' },
     images: { type: 'array', items: { type: 'string' } },
     createdAt: { type: 'string', format: 'date-time', description: 'Creation time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+    hasOrders: { type: 'boolean' },
+    currency: { type: 'string' },
   },
   required: [
     'id',
@@ -86,6 +90,7 @@ const adminProductListItemSchema = {
     'priceMax',
     'images',
     'createdAt',
+    'updatedAt', 'hasOrders', 'currency',
   ],
 } as const;
 
@@ -118,6 +123,7 @@ const categorySchema = {
     parentId: { type: 'string', nullable: true, description: 'Parent category ID' },
     slug: { type: 'string' },
     translations: translationsSchema,
+    productCount: { type: 'integer' }, childCount: { type: 'integer' },
   },
   required: ['id', 'name'],
 } as const;
@@ -162,25 +168,69 @@ const productStatsSchema = {
   required: ['metrics', 'statusCounts'],
 } as const;
 
+export const productFilterProperties = {
+  search: { type: 'string' }, categoryId: { type: 'string', description: 'Category ID or none for uncategorized products' },
+  status: { type: 'string', enum: ['active', 'inactive', 'outOfStock'] }, productType: { type: 'string' },
+  minPrice: { type: 'number' }, maxPrice: { type: 'number' }, inStock: { type: 'boolean' },
+} as const;
+export const productSortProperties = {
+  sortBy: { type: 'string', enum: ['name', 'createdAt', 'updatedAt', 'price', 'stock'] },
+  sortOrder: { type: 'string', enum: ['asc', 'desc'] },
+} as const;
+export const productSelectionSchema = {
+  type: 'object', additionalProperties: false, required: ['mode'], properties: {
+    mode: { type: 'string', enum: ['ids', 'filter'] },
+    ids: { type: 'array', minItems: 1, maxItems: 100, items: { type: 'string', minLength: 1 } },
+    filter: { type: 'object', additionalProperties: false, properties: productFilterProperties },
+    excludeIds: { type: 'array', maxItems: 100, items: { type: 'string', minLength: 1 } },
+  }, oneOf: [
+    { properties: { mode: { const: 'ids' } }, required: ['ids'], not: { anyOf: [{ required: ['filter'] }, { required: ['excludeIds'] }] } },
+    { properties: { mode: { const: 'filter' } }, required: ['filter'], not: { required: ['ids'] } },
+  ],
+} as const;
+const bulkResultSchema = { type: 'object', required: ['matched', 'processed', 'skipped', 'skippedCount', 'processedPreview'], properties: {
+  matched: { type: 'integer' }, processed: { type: 'integer' }, skippedCount: { type: 'integer' },
+  skipped: { type: 'array', maxItems: 20, items: { type: 'object', required: ['id', 'name', 'reason'], properties: {
+    id: { type: 'string' }, name: { type: 'string' }, reason: { type: 'string', enum: ['HAS_ORDERS', 'NOT_FOUND'] },
+  } } },
+  processedPreview: { type: 'array', maxItems: 20, description: 'First processed product names for delete confirmation', items: {
+    type: 'object', required: ['id', 'name'], properties: { id: { type: 'string' }, name: { type: 'string' } },
+  } },
+} } as const;
+
 export const adminProductSchemas = {
+  bulkProducts: {
+    body: { type: 'object', additionalProperties: false, required: ['action', 'selection'], properties: {
+      action: { type: 'string', enum: ['activate', 'deactivate', 'setCategory', 'delete'] },
+      categoryId: { type: 'string', nullable: true }, selection: productSelectionSchema, dryRun: { type: 'boolean' },
+    }, allOf: [{ if: { properties: { action: { const: 'setCategory' } } }, then: { required: ['categoryId'] } }] },
+    response: { 200: createSuccessResponseSchema(bulkResultSchema), 400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 500: errorResponseSchema },
+  },
+  exportProducts: {
+    body: { type: 'object', additionalProperties: false, required: ['selection'], properties: { selection: productSelectionSchema, ...productSortProperties } },
+    response: { 200: { description: 'UTF-8 CSV with BOM', headers: {
+      'Content-Disposition': { type: 'string' }, 'X-Product-Count': { type: 'integer', description: 'Matching products at export start' }, 'X-Product-Skipped': { type: 'integer' },
+    }, content: { 'text/csv': { schema: { type: 'string' } } } },
+      400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 500: errorResponseSchema },
+  },
   // GET /api/admin/products/ (paginated)
   listProducts: {
     querystring: {
       type: 'object',
       properties: {
         page: { type: 'integer', default: 1, minimum: 1, description: 'Page number' },
-        limit: { type: 'integer', default: 10, minimum: 1, maximum: 100, description: 'Items per page' },
+        limit: { type: 'integer', default: 20, minimum: 1, maximum: 100, description: 'Items per page' },
         search: { type: 'string', description: 'Search term' },
         categoryId: { type: 'string', description: 'Filter by category ID' },
         status: { type: 'string', enum: ['active', 'inactive', 'outOfStock'] },
         minPrice: { type: 'number', description: 'Minimum variant price filter' },
         maxPrice: { type: 'number', description: 'Maximum variant price filter' },
         inStock: { type: 'boolean', description: 'Filter by in-stock variants' },
-        sortBy: { type: 'string', enum: ['name', 'createdAt', 'updatedAt'], description: 'Sort field' },
-        sortOrder: { type: 'string', enum: ['asc', 'desc'], description: 'Sort order' },
+        ...productSortProperties,
+        productType: { type: 'string' },
       },
     },
-    response: createTypedReadResponses(createPageResultSchema(adminProductListItemSchema)),
+    response: { ...createTypedReadResponses(createPageResultSchema(adminProductListItemSchema)), 400: errorResponseSchema },
   },
 
   // GET /api/admin/products/stats

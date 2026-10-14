@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+import { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
 import { listChoice, listDateRange, readListState, writeListState, useListSelection } from '../lib/hooks/use-list-state';
-import { PaginationBar, paginationPages } from '../components/list';
+import { ListFilter, PaginationBar, paginationPages } from '../components/list';
 
 const fields = { tab: listChoice(['all', 'paid']), search: { default: '', valid: () => true }, page: { default: '1', valid: (value: string) => /^[1-9]\d*$/.test(value) }, pageSize: listChoice(['20', '50', '100']), sort: listChoice(['desc', 'asc']) };
 it('round trips URL state, preserves unrelated params and falls back on invalid values', () => {
@@ -51,8 +51,34 @@ it('always renders single-page pagination, page size and disabled navigation', a
     await act(async () => root.render(<PaginationBar page={1} pageSize={20} total={1} copy={copy} onPage={vi.fn()} onPageSize={vi.fn()} />));
     expect(container.querySelector('nav')).toBeTruthy(); expect(container.querySelector('[aria-current="page"]')?.textContent).toBe('1');
     expect(container.querySelectorAll('button:disabled')).toHaveLength(2);
-    expect(Array.from(container.querySelectorAll('option')).map(option => option.value)).toEqual(['20', '50', '100']);
+    expect(container.querySelector('button[aria-label="perPage"]')?.textContent).toBe('20');
     expect(paginationPages(5, 20)).toEqual([1, 'gap-4', 4, 5, 6, 'gap-20', 20]);
     expect(paginationPages(1, 20)).toEqual([1, 2, 3, 'gap-20', 20]);
   } finally { await act(async () => root.unmount()); vi.unstubAllGlobals(); }
+});
+it('opens a named filter with the keyboard and selects a menu option without a native select', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  const container = document.createElement('div'); document.body.append(container); const root = createRoot(container);
+  function Probe() { const [value, setValue] = useState('all'); return <ListFilter label="Category" value={value} options={[{ value: 'all', label: 'All' }, { value: 'a', label: 'Apparel' }]} onChange={setValue} />; }
+  try {
+    await act(async () => root.render(<Probe />));
+    const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="Category"]')!;
+    await act(async () => trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+    const option = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')).find(node => node.textContent === 'Apparel')!;
+    expect(option).toBeTruthy(); await act(async () => option.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+    expect(trigger.textContent).toBe('CategoryApparel'); expect(container.querySelector('select')).toBeNull();
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+  } finally { await act(async () => root.unmount()); container.remove(); vi.unstubAllGlobals(); }
+});
+it('keeps custom-date fields keyboard accessible inside the filter menu', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  const container = document.createElement('div'); document.body.append(container); const root = createRoot(container);
+  function Probe() { const [value, setValue] = useState('all'); return <ListFilter label="Placed at" value={value} options={[{ value: 'all', label: 'All' }, { value: 'custom', label: 'Custom' }]} onChange={setValue}>{value === 'custom' && <><input type="date" aria-label="Start date" /><input type="date" aria-label="End date" /></>}</ListFilter>; }
+  try {
+    await act(async () => root.render(<Probe />));
+    await act(async () => container.querySelector('button')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+    const custom = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')).find(node => node.textContent === 'Custom')!;
+    await act(async () => custom.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Start date');
+  } finally { await act(async () => root.unmount()); container.remove(); vi.unstubAllGlobals(); }
 });

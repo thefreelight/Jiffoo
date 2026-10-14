@@ -28,6 +28,14 @@ function button(text: string): HTMLButtonElement {
   const button = Array.from(document.querySelectorAll('button')).find(button => button.textContent?.startsWith(text) || button.getAttribute('aria-label') === text);
   if (!button) throw new Error('Missing button: ' + text); return button;
 }
+async function chooseFilter(label: string, text: string) {
+  const trigger = document.querySelector<HTMLButtonElement>('button[aria-label="' + label + '"]')!;
+  await act(async () => trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+  const options = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitemradio"]'));
+  const names = options.map(option => option.textContent);
+  const option = options.find(option => option.textContent === text); if (!option) throw new Error('Missing option ' + text);
+  await act(async () => option.click()); return names;
+}
 beforeEach(() => {
   state.locale = 'en'; state.url = ''; state.replace.mockClear();
   state.data = { data: { data: [{ id: 'order-1', status: 'PENDING', paymentStatus: 'PENDING', requiresPaymentReview: true, itemQuantitySum: 5, itemsCount: 2, totalAmount: 50, currency: 'USD', createdAt: '2026-10-12T00:15:00Z', customer: { email: 'buyer@example.test' } }], pagination: { page: 1, limit: 20, total: 25, totalPages: 2 } } };
@@ -53,10 +61,9 @@ it('wires tabs, review banner, supported payment options, search and pagination 
   await act(async () => button('Next').click()); expect(state.params.page).toBe(2);
   await act(async () => button('Shipped').click()); expect(state.params).toMatchObject({ status: 'SHIPPED', page: 1, limit: 20 });
   await act(async () => button('Review payments').click()); expect(state.params).toMatchObject({ status: undefined, paymentReview: 'required', paymentStatus: undefined, page: 1 });
-  const select = document.querySelector('select')!;
-  expect(Array.from(select.options).map(option => option.text)).toEqual(['All', 'Paid', 'Unpaid', 'Requires review', 'Refunded']);
   for (const value of ['PAID', 'UNPAID', 'REFUNDED', 'All']) {
-    await act(async () => { select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); });
+    const names = await chooseFilter('Payment', value === 'PAID' ? 'Paid' : value === 'UNPAID' ? 'Unpaid' : value === 'REFUNDED' ? 'Refunded' : 'All');
+    expect(names).toEqual(['All', 'Paid', 'Unpaid', 'Requires review', 'Refunded']);
     expect(state.params.paymentStatus).toBe(value === 'All' ? undefined : value); expect(state.params.paymentReview).toBeUndefined();
   }
   const input = document.querySelector<HTMLInputElement>('input[placeholder]')!;

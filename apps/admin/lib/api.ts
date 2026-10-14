@@ -176,7 +176,7 @@ export interface PaginationParams {
   productType?: string;
   paymentStatus?: 'PAID' | 'UNPAID' | 'REFUNDED';
   paymentReview?: 'required';
-  sortBy?: 'createdAt' | 'totalAmount';
+  sortBy?: 'createdAt' | 'totalAmount' | 'name' | 'updatedAt' | 'price' | 'stock';
   sortOrder?: 'asc' | 'desc';
   createdFrom?: string;
   createdTo?: string;
@@ -274,16 +274,29 @@ export const accountApi = {
 };
 
 // Products API
+export type ProductSelection = { mode: 'ids'; ids: string[] } | { mode: 'filter'; filter: Pick<PaginationParams, 'search' | 'status' | 'categoryId' | 'productType'>; excludeIds?: string[] };
+export interface ProductBulkResult { matched: number; processed: number; skippedCount: number; skipped: { id: string; name: string; reason: 'HAS_ORDERS' | 'NOT_FOUND' }[]; processedPreview: { id: string; name: string }[] }
+export type ProductBulkAction = 'activate' | 'deactivate' | 'setCategory' | 'delete';
+async function exportCsv(path: string, data: unknown, locale: string) {
+  return unwrapApiResponse(await apiClient.request<{ blob: Blob; filename: string; count: number; skipped: number }>({ method: 'POST', url: path, data, headers: { 'Accept-Language': locale }, responseType: 'blob',
+    transformResponse: [(blob: Blob, headers: Record<string, string>, status?: number) => status === 200
+      ? { success: true, data: { blob, filename: /filename="([^"]+)"/.exec(headers['content-disposition'] ?? '')?.[1], count: Number(headers['x-product-count']), skipped: Number(headers['x-product-skipped']) } }
+      : { success: false, error: { code: 'REQUEST_FAILED', message: 'Request failed' } }],
+  }));
+}
 export const productsApi = {
+  bulk: async (action: ProductBulkAction, selection: ProductSelection, options: { dryRun?: boolean; categoryId?: string | null } = {}) => unwrapApiResponse(await apiClient.post<ProductBulkResult>('/admin/products/bulk', { action, selection, ...options })),
+  export: (selection: ProductSelection, sort: Pick<PaginationParams, 'sortBy' | 'sortOrder'>, locale: string) => exportCsv('/admin/products/export', { selection, ...sort }, locale),
   getAll: (
     page = 1,
-    limit = 10,
+    limit = 20,
     search?: string,
     productType?: string,
     status?: string,
-    categoryId?: string
+    categoryId?: string,
+    sort: Pick<PaginationParams, 'sortBy' | 'sortOrder'> = {}
   ): Promise<ApiResponse<PageResult<AdminProductListItemDTO>>> =>
-    apiClient.get('/admin/products', { params: { page, limit, search, productType, status, categoryId } }),
+    apiClient.get('/admin/products', { params: { page, limit, search, productType, status, categoryId, ...sort } }),
 
   getStats: (params?: {
     search?: string;
@@ -309,12 +322,7 @@ export const ordersApi = {
     apiClient.get('/admin/orders', { params: { page, limit, status, search, paymentStatus, paymentReview, ...options } }),
 
   export: async (selection: { mode: 'ids'; ids: string[] } | { mode: 'filter'; filter: PaginationParams; excludeIds?: string[] }, sort: Pick<PaginationParams, 'sortBy' | 'sortOrder'>, locale: string) => {
-    const response = await apiClient.request<{ blob: Blob; filename: string }>({ method: 'POST', url: '/admin/orders/export', data: { selection, ...sort }, headers: { 'Accept-Language': locale }, responseType: 'blob',
-      transformResponse: [(blob: Blob, headers: Record<string, string>, status?: number) => status === 200
-        ? { success: true, data: { blob, filename: /filename="([^"]+)"/.exec(headers['content-disposition'] ?? '')?.[1] ?? 'orders.csv' } }
-        : { success: false, error: { code: 'REQUEST_FAILED', message: 'Request failed' } }],
-    });
-    return unwrapApiResponse(response);
+    return exportCsv('/admin/orders/export', { selection, ...sort }, locale);
   },
 
   getStats: (): Promise<ApiResponse<OrderStatsData>> =>

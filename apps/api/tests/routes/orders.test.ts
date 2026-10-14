@@ -29,9 +29,7 @@ import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 import { checkoutTotal } from '../helpers/checkout-total';
 import { getPluginManifestIssues } from '@jiffoo/shared';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
-import { AdminProductService } from '@/core/admin/product-management/service';
 import { emitOrderPaidEvent } from '@/core/payment/order-paid-event';
-import { mapApiError } from '@/utils/api-errors';
 import { isOrderItemCatalogRestriction } from '@/core/order/catalog-snapshot';
 
 describe('Orders Endpoints', () => {
@@ -158,7 +156,7 @@ describe('Orders Endpoints', () => {
     await prisma.user.update({ where: { id: userId }, data: { locale: 'en' } });
   });
 
-  it('rejects ordered catalog deletion atomically and permits unordered deletion and variant removal', async () => {
+  it('protects ordered catalog while bulk deletion skips sold products and deletes unordered products', async () => {
     const ordered = await createTestProduct({ name: 'Ordered Test Product', price: 10, stock: 10 });
     const unordered = await createTestProduct({ name: 'Unordered Test Product', price: 10, stock: 10 });
     const variant = ordered.variants[0];
@@ -170,9 +168,12 @@ describe('Orders Endpoints', () => {
     expect(rejected.json().error.code).toBe('PRODUCT_HAS_ORDERS');
     const constraintError = await prisma.product.delete({ where: { id: ordered.id } }).catch(error => error);
     expect(isOrderItemCatalogRestriction(constraintError)).toBe(true);
-    const bulk = await AdminProductService.deleteProducts([ordered.id, unordered.id]).catch(mapApiError);
-    expect(bulk).toMatchObject({ status: 409, body: { error: { code: 'PRODUCT_HAS_ORDERS' } } });
-    expect(await prisma.product.count({ where: { id: { in: [ordered.id, unordered.id] } } })).toBe(2);
+    const bulkUnordered = await createTestProduct({ name: 'Bulk unordered Test Product' });
+    const bulk = await app.inject({ method: 'POST', url: '/api/v1/admin/products/bulk', headers: { authorization: `Bearer ${adminToken}` }, payload: { action: 'delete', selection: { mode: 'ids', ids: [ordered.id, bulkUnordered.id] } } });
+    expect(bulk.statusCode).toBe(200);
+    expect(bulk.json().data).toMatchObject({ matched: 2, processed: 1, skippedCount: 1, skipped: [{ id: ordered.id, reason: 'HAS_ORDERS' }] });
+    expect(await prisma.product.findUnique({ where: { id: bulkUnordered.id } })).toBeNull();
+    expect(await prisma.product.findUnique({ where: { id: ordered.id } })).not.toBeNull();
     const removed = await app.inject({ method: 'PUT', url: `/api/v1/admin/products/${ordered.id}`, headers: { authorization: `Bearer ${adminToken}` }, payload: { name: 'Must roll back', variants: [{ name: 'Replacement', stock: 1, salePrice: 10 }] } });
     expect(removed.statusCode).toBe(409);
     expect(removed.json().error.code).toBe('PRODUCT_HAS_ORDERS');
@@ -183,7 +184,7 @@ describe('Orders Endpoints', () => {
     expect(await prisma.productVariant.count({ where: { id: unordered.variants[0].id } })).toBe(0);
     expect((await app.inject({ method: 'DELETE', url: `/api/v1/admin/products/${unordered.id}`, headers: { authorization: `Bearer ${adminToken}` } })).statusCode).toBe(200);
     const bulkOnly = await createTestProduct({ name: 'Bulk unordered Test Product' });
-    await AdminProductService.deleteProducts([bulkOnly.id]);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/admin/products/bulk', headers: { authorization: `Bearer ${adminToken}` }, payload: { action: 'delete', selection: { mode: 'ids', ids: [bulkOnly.id] } } })).json().data.processed).toBe(1);
     expect(await prisma.product.count({ where: { id: bulkOnly.id } })).toBe(0);
   });
 

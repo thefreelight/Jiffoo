@@ -1,16 +1,9 @@
-import { Readable } from 'node:stream';
 import { prisma } from '@/config/database';
 import { systemSettingsService } from '../system-settings/service';
-import { formatStoreTimestamp } from 'shared';
+import { csvCell, csvTimestamp, csvFilename, csvStream } from '@/utils/csv';
 import { getAllMessages } from 'shared/src/i18n';
 import type { Locale } from 'shared/src/i18n/config';
 import { orderWhere, orderSort, type OrderExportSelection, type OrderSort } from './list-query';
-
-export function csvCell(value: unknown): string {
-  let cell = value == null ? '' : String(value);
-  if (/^[=+\-@\t\r]/.test(cell)) cell = "'" + cell;
-  return /[",\r\n]/.test(cell) ? '"' + cell.replace(/"/g, '""') + '"' : cell;
-}
 
 export async function createOrderExport(selection: OrderExportSelection, sort: OrderSort, locale: Locale) {
   const filter = selection.mode === 'filter' ? orderWhere(selection.filter) : {};
@@ -20,7 +13,7 @@ export async function createOrderExport(selection: OrderExportSelection, sort: O
   const messages = getAllMessages(locale).merchant!;
   const orders = messages.orders as Record<string, string | Record<string, string>>;
   const labels = orders.list as Record<string, string>;
-  const timestamp = (value: Date | null) => value ? formatStoreTimestamp(value, timezone) + ':' + String(value.getUTCSeconds()).padStart(2, '0') : '';
+  const timestamp = (value: Date | null) => csvTimestamp(value, timezone);
   const yesNo = (value: boolean) => labels[value ? 'yes' : 'no'];
   async function* rows() {
     yield '\uFEFF' + labels.csvHeaders.split('|').map(csvCell).join(',') + '\r\n';
@@ -50,5 +43,5 @@ export async function createOrderExport(selection: OrderExportSelection, sort: O
       cursor = batch[batch.length - 1].id;
     }
   }
-  return { stream: Readable.from(rows()), filename: 'orders-' + formatStoreTimestamp(new Date(), timezone).replace(/[-:]/g, '').replace(' ', '-') + '.csv' };
+  return { stream: csvStream(rows()), filename: csvFilename('orders', timezone) };
 }

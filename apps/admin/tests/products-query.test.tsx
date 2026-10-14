@@ -12,8 +12,8 @@ it('forwards product status, category and search through the hook to the transpo
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   transport.get.mockResolvedValue({ success: true, data: { items: [], page: 1, limit: 20, total: 0, totalPages: 0 } });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } }), root = createRoot(document.createElement('div'));
-  function Probe() { useProducts({ page: 1, limit: 20, status: 'inactive', categoryId: 'books', search: 'novel' }); return null; }
-  try { await act(async () => root.render(<QueryClientProvider client={client}><Probe /></QueryClientProvider>)); expect(transport.get).toHaveBeenCalledWith('/admin/products', { params: { page: 1, limit: 20, status: 'inactive', categoryId: 'books', search: 'novel', productType: undefined } }); }
+  function Probe() { useProducts({ page: 1, limit: 20, status: 'inactive', categoryId: 'books', search: 'novel', sortBy: 'price', sortOrder: 'asc' }); return null; }
+  try { await act(async () => root.render(<QueryClientProvider client={client}><Probe /></QueryClientProvider>)); expect(transport.get).toHaveBeenCalledWith('/admin/products', { params: { page: 1, limit: 20, status: 'inactive', categoryId: 'books', search: 'novel', productType: undefined, sortBy: 'price', sortOrder: 'asc' } }); }
   finally { await act(async () => root.unmount()); client.clear(); transport.get.mockReset(); vi.unstubAllGlobals(); }
 });
 it('loads real categories beyond the first page', async () => {

@@ -49,13 +49,15 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await page.goto('/en/orders');
     await page.getByRole('textbox', { name: 'Search order number or customer email' }).fill(orderId!);
     await expect(page.getByRole('link', { name: 'View order ' + orderId, exact: true })).toBeVisible();
-    await page.getByRole('combobox', { name: 'Payment', exact: true }).selectOption('UNPAID');
+    await page.getByRole('button', { name: 'Payment', exact: true }).click();
+    await page.getByRole('menuitemradio', { name: 'Unpaid', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Remove filter: Payment Unpaid', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Remove filter: Payment Unpaid', exact: true }).click();
-    await expect(page.getByRole('combobox', { name: 'Payment', exact: true })).toHaveValue('All');
+    await expect(page.getByRole('button', { name: 'Payment', exact: true })).toContainText('All');
     await page.getByRole('button', { name: 'Amount', exact: true }).click();
     await expect(page.getByRole('columnheader', { name: 'Amount', exact: true })).toHaveAttribute('aria-sort', 'ascending');
-    await page.getByRole('combobox', { name: 'Rows per page', exact: true }).selectOption('50');
+    await page.getByRole('button', { name: 'Rows per page', exact: true }).click();
+    await page.getByRole('menuitemradio', { name: '50', exact: true }).click();
     await expect(page).toHaveURL(/pageSize=50/);
     await page.getByRole('checkbox', { name: 'Select order ' + orderId, exact: true }).check();
     await expect(page.getByRole('region', { name: 'Bulk actions', exact: true })).toBeVisible();

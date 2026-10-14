@@ -9,8 +9,22 @@ import { sendSuccess, sendError } from '@/utils/response';
 import { UploadService, UploadValidationError } from '@/core/upload/service';
 import { adminProductSchemas } from './schemas';
 import { sendKnownError } from '@/utils/api-errors';
+import { bulkProducts, createProductExport, type ProductBulkRequest } from './batch';
+import type { ProductSelection, ProductSort } from './list-query';
+import { getLocaleFromRequest } from '@/utils/i18n';
 
 export async function adminProductRoutes(fastify: FastifyInstance) {
+  fastify.post('/bulk', { schema: { tags: ['admin-products'], summary: 'Apply a bounded product bulk action', security: [{ bearerAuth: [] }], ...adminProductSchemas.bulkProducts } }, async (request, reply) => {
+    try { return sendSuccess(reply, await bulkProducts(request.body as ProductBulkRequest)); } catch (error) { return sendMappedError(reply, error); }
+  });
+  fastify.post('/export', { schema: { tags: ['admin-products'], summary: 'Export product variants as CSV', security: [{ bearerAuth: [] }], ...adminProductSchemas.exportProducts } }, async (request, reply) => {
+    try {
+      const body = request.body as ProductSort & { selection: ProductSelection };
+      const result = await createProductExport(body.selection, body, getLocaleFromRequest(undefined, request.headers['accept-language']));
+      return reply.type('text/csv; charset=utf-8').header('Content-Disposition', `attachment; filename="${result.filename}"`)
+        .header('X-Product-Count', String(result.matched)).header('X-Product-Skipped', String(result.skipped)).send(result.stream);
+    } catch (error) { return sendMappedError(reply, error); }
+  });
   // Apply auth middleware to all admin product routes (before schema validation)
 
   // Get products list

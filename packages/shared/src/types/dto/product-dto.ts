@@ -37,6 +37,8 @@ export interface ShopProductDetailDTO {
 
 // Admin product list item DTO (flattened)
 export interface AdminProductListItemDTO {
+  hasOrders: boolean;
+  currency: string;
   spuCode: string;
   images: string[];
   variantsActiveCount: number;

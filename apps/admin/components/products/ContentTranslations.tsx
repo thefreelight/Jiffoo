@@ -22,11 +22,12 @@ export function useStoreDefaultLocale() {
 }
 
 export function ContentTranslations({
-  translations, onChange, defaultLocale,
+  translations, onChange, defaultLocale, showHeading = true,
 }: {
   translations: ContentTranslation[]
   onChange: (translations: ContentTranslation[]) => void
   defaultLocale: string
+  showHeading?: boolean
 }) {
   const t = useT()
   const update = (locale: string, field: 'name' | 'description', value: string) => {
@@ -40,7 +41,7 @@ export function ContentTranslations({
 
   return (
     <section className="space-y-4">
-      <h3 className="text-[13px] font-medium">{t('merchant.contentTranslations.title')}</h3>
+      {showHeading && <h3 className="text-[13px] font-medium">{t('merchant.contentTranslations.title')}</h3>}
       {locales.filter((locale) => locale !== defaultLocale).map((locale) => {
         const row = translations.find((item) => item.locale === locale)
         return (

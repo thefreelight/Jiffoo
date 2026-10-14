@@ -303,7 +303,10 @@ function detailsFor(error: ApiError): unknown {
     }
     if (typeof input.maxBytes === 'number' && Number.isSafeInteger(input.maxBytes) && input.maxBytes > 0) return { maxBytes: input.maxBytes };
   }
-  if (error.code === 'VALIDATION_ERROR') return { issues: safeIssues(input.issues) };
+  if (error.code === 'VALIDATION_ERROR') {
+    if (input.limit === 5000 && Number.isSafeInteger(input.matched) && Number(input.matched) > 5000) return { limit: 5000, matched: input.matched };
+    return { issues: safeIssues(input.issues) };
+  }
   if (error.code === 'INVALID_PLUGIN_CONFIG') return { fields: safeIssues(input.fields) };
   if (error.code === 'INSUFFICIENT_STOCK' && typeof input.availableQuantity === 'number' && Number.isSafeInteger(input.availableQuantity) && input.availableQuantity >= 0) return { availableQuantity: input.availableQuantity };
   if (error.code === 'PLUGIN_CONFIG_REQUIRED' && Array.isArray(input.missingFields)) return { missingFields: input.missingFields.slice(0, 50).map(fieldPath).filter((value) => value !== undefined) };
