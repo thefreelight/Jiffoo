@@ -5,11 +5,12 @@ import { cn } from '@/lib/utils';
 
 export function StatusShape({ status }: { status: string }) {
   const cancelled = status === 'CANCELLED' || status === 'REFUNDED';
-  return <span aria-hidden="true" className={cn('relative inline-flex size-3 shrink-0 rounded-full border border-current',
-    (status === 'PENDING' || cancelled) && 'text-faint', status === 'PENDING' && 'border-dashed')}
-    style={{ background: status === 'DELIVERED' ? 'currentColor' : status === 'PROCESSING' ? 'conic-gradient(currentColor 50%, transparent 0)' : status === 'SHIPPED' ? 'conic-gradient(currentColor 75%, transparent 0)' : undefined }}>
-    {cancelled && <span className="absolute inset-0 flex items-center justify-center text-[10px] leading-none">×</span>}
-  </span>;
+  return <svg aria-hidden="true" viewBox="0 0 14 14" fill="none" className={cn('size-3.5 shrink-0', (status === 'PENDING' || cancelled) && 'text-faint')}>
+    <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.4" strokeDasharray={status === 'PENDING' ? '2 2.2' : undefined} fill={status === 'DELIVERED' ? 'currentColor' : 'none'} />
+    {status === 'PROCESSING' && <path d="M7 3.5a3.5 3.5 0 0 1 0 7z" fill="currentColor" />}
+    {status === 'SHIPPED' && <path d="M7 3.5a3.5 3.5 0 1 1-3.5 3.5H7z" fill="currentColor" />}
+    {cancelled && <path d="M5.2 5.2l3.6 3.6M8.8 5.2l-3.6 3.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />}
+  </svg>;
 }
 
 export function PaymentPill({ paymentStatus, requiresPaymentReview }: { paymentStatus?: string | null; requiresPaymentReview: boolean }) {

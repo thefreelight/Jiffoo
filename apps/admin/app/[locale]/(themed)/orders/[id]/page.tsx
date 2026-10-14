@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AlertTriangle, Copy } from 'lucide-react';
@@ -28,7 +28,12 @@ export default function OrderDetailPage() {
   const [copied, setCopied] = useState(false);
   const [review, setReview] = useState<{ paymentId: string; outcome: 'PAID' | 'NOT_CHARGED' } | null>(null);
   const [refundPayment, setRefundPayment] = useState<{ paymentId: string; providerPaymentId: string; amount: number; currency: string } | undefined>();
-  const back = <Link href={'/' + locale + '/orders'} className="text-muted-foreground hover:text-foreground hover:underline">{text('back')}</Link>;
+  const [listUrl, setListUrl] = useState('/' + locale + '/orders');
+  useEffect(() => {
+    const url = sessionStorage.getItem('orders-list:' + locale);
+    if (url === '/' + locale + '/orders' || url?.startsWith('/' + locale + '/orders?')) setListUrl(url);
+  }, [locale]);
+  const back = <Link href={listUrl} className="text-muted-foreground hover:text-foreground hover:underline">{text('back')}</Link>;
   if (isLoading) return <p role="status" className="text-muted-foreground">{text('loading')}</p>;
   if (error || !order) return <div role="alert" className="space-y-3"><p>{text('error')}</p><Button variant="outline" onClick={() => refetch()}>{text('retry')}</Button><div>{back}</div></div>;
   const timestamp = (value: string) => formatStoreTimestamp(value, timezone);

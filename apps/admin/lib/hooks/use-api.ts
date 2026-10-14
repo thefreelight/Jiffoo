@@ -205,11 +205,12 @@ export function useDeleteProduct() {
 }
 
 // Orders hooks
-export function useOrders(params: PaginationParams = {}) {
+export function useOrders(params: PaginationParams = {}, resolveDates?: () => Pick<PaginationParams, 'createdFrom' | 'createdTo'>) {
   return useQuery({
     queryKey: [...queryKeys.orders, params],
     queryFn: async () => {
-      const response = await ordersApi.getAll(params.page, params.limit, params.status, params.search, params.paymentStatus, params.paymentReview);
+      const { sortBy, sortOrder, createdFrom, createdTo } = { ...params, ...resolveDates?.() };
+      const response = await ordersApi.getAll(params.page, params.limit, params.status, params.search, params.paymentStatus, params.paymentReview, { sortBy, sortOrder, createdFrom, createdTo });
       const data = unwrapApiResponse(response);
       return {
         data: data.items || [],

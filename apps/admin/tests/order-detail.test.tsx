@@ -39,6 +39,7 @@ async function fill(id: string, value: string) {
   await act(async () => { Object.getOwnPropertyDescriptor(input.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value')!.set!.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })); });
 }
 beforeEach(() => {
+  sessionStorage.clear();
   vi.clearAllMocks(); state.pending = false; state.error = null;
   state.order = { id: 'order-1', status: 'PROCESSING', paymentStatus: 'PAID', totalAmount: 25, currency: 'USD', createdAt: '2026-10-12T16:00:00Z',
     amounts: { subtotal: 20, shipping: 3, tax: 2, taxInclusive: true, total: 25 },
@@ -49,6 +50,17 @@ beforeEach(() => {
   };
 });
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = undefined; document.body.innerHTML = ''; vi.unstubAllGlobals(); });
+it('returns to the complete last list URL', async () => {
+  const url = '/en/orders?status=PROCESSING&search=buyer&sortBy=totalAmount&sortOrder=asc&page=3&pageSize=50';
+  sessionStorage.setItem('orders-list:en', url);
+  const container = await mount();
+  expect(container.querySelector('a')?.getAttribute('href')).toBe(url);
+});
+it('rejects an external return destination', async () => {
+  sessionStorage.setItem('orders-list:en', 'https://example.invalid/en/orders');
+  const container = await mount();
+  expect(container.querySelector('a')?.getAttribute('href')).toBe('/en/orders');
+});
 const cases = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'].flatMap(status => [false, true].flatMap(canRecord => [false, true].flatMap(canRefund => ['PAID', 'PENDING'].map(payment => ({ status, canRecord, canRefund, payment })))));
 it.each(cases)('preserves action gates: $status / $payment / manual=$canRecord / refund=$canRefund', async ({ status, canRecord, canRefund, payment }) => {
   Object.assign(state.order, { status, paymentStatus: payment, canRecordManualPayment: canRecord, canRefundOrder: canRefund });

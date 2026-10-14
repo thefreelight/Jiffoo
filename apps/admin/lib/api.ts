@@ -176,6 +176,10 @@ export interface PaginationParams {
   productType?: string;
   paymentStatus?: 'PAID' | 'UNPAID' | 'REFUNDED';
   paymentReview?: 'required';
+  sortBy?: 'createdAt' | 'totalAmount';
+  sortOrder?: 'asc' | 'desc';
+  createdFrom?: string;
+  createdTo?: string;
 }
 
 export interface AccountProfile {
@@ -301,8 +305,17 @@ export const productsApi = {
 
 // Orders API
 export const ordersApi = {
-  getAll: (page = 1, limit = 10, status?: string, search?: string, paymentStatus?: PaginationParams['paymentStatus'], paymentReview?: PaginationParams['paymentReview']): Promise<ApiResponse<PageResult<AdminOrderListItemDTO>>> =>
-    apiClient.get('/admin/orders', { params: { page, limit, status, search, paymentStatus, paymentReview } }),
+  getAll: (page = 1, limit = 20, status?: string, search?: string, paymentStatus?: PaginationParams['paymentStatus'], paymentReview?: PaginationParams['paymentReview'], options: Pick<PaginationParams, 'sortBy' | 'sortOrder' | 'createdFrom' | 'createdTo'> = {}): Promise<ApiResponse<PageResult<AdminOrderListItemDTO>>> =>
+    apiClient.get('/admin/orders', { params: { page, limit, status, search, paymentStatus, paymentReview, ...options } }),
+
+  export: async (selection: { mode: 'ids'; ids: string[] } | { mode: 'filter'; filter: PaginationParams; excludeIds?: string[] }, sort: Pick<PaginationParams, 'sortBy' | 'sortOrder'>, locale: string) => {
+    const response = await apiClient.request<{ blob: Blob; filename: string }>({ method: 'POST', url: '/admin/orders/export', data: { selection, ...sort }, headers: { 'Accept-Language': locale }, responseType: 'blob',
+      transformResponse: [(blob: Blob, headers: Record<string, string>, status?: number) => status === 200
+        ? { success: true, data: { blob, filename: /filename="([^"]+)"/.exec(headers['content-disposition'] ?? '')?.[1] ?? 'orders.csv' } }
+        : { success: false, error: { code: 'REQUEST_FAILED', message: 'Request failed' } }],
+    });
+    return unwrapApiResponse(response);
+  },
 
   getStats: (): Promise<ApiResponse<OrderStatsData>> =>
     apiClient.get('/admin/orders/stats'),

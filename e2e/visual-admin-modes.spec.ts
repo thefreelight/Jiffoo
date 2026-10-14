@@ -18,6 +18,14 @@ test('captures Admin shell in light and dark at desktop and mobile widths', asyn
         await page.waitForLoadState('networkidle');
         await page.getByRole('heading', { name: name === 'orders' ? 'Orders' : 'Overview', exact: true }).click(); await page.keyboard.press('Control+Home');
         await page.screenshot({ path: directory + '/shell-' + name + '-' + mode.toLowerCase() + '-' + width + '.png', animations: 'disabled' });
+        if (name === 'orders') {
+          await page.goto('/zh-Hans/orders');
+          await expect(page.getByRole('heading', { name: '订单', exact: true })).toBeVisible();
+          await expect(page.getByRole('link', { name: /^查看订单 / }).first()).toBeVisible();
+          await page.getByRole('heading', { name: '订单', exact: true }).click(); await page.keyboard.press('Control+Home');
+          await page.screenshot({ path: directory + '/orders-zh-Hans-' + mode.toLowerCase() + '-' + width + '.png', animations: 'disabled' });
+          await page.goto('/en/orders');
+        }
       }
     }
     await page.setViewportSize({ width: 1440, height: 900 });

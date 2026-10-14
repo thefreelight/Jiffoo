@@ -104,6 +104,7 @@ async function captureDynamicBoxes(page: Page, name: string, width: number, heig
   const add = async (reason: string, locator: Locator) => {
     const count = await locator.count();
     for (let index = 0; index < count; index++) {
+      if (!await locator.nth(index).isVisible()) continue;
       const bounds = await paintedBounds(locator.nth(index));
       if (bounds.box.y < height && bounds.box.y + bounds.box.height > 0)
         boxes.push({ name: `${reason} ${index + 1}`, ...bounds });
@@ -334,7 +335,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       computed.push({ page: name, bodyFontFamily, ...await headerMeasurements(page) });
       const boxes: Array<{ name: string } & Awaited<ReturnType<typeof paintedBounds>>> = [];
       if (name === 'shop-orders') {
-        const dates = page.getByText(/^[A-Z][a-z]{2} \d{1,2}, \d{4}$/);
+        const dates = page.getByText(/^[A-Z][a-z]{2} \d{1,2}, \d{4} \([^)]+\)$/);
         await expect(dates).toHaveCount(1);
         for (let index = 0; index < await dates.count(); index++) {
           boxes.push({ name: `order created date ${index + 1}`, ...await paintedBounds(dates.nth(index)) });
@@ -412,7 +413,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
         await expect(page).toHaveURL(/\/en\/products\/[^/]+\/edit$/);
       } else if (name === 'order-detail') {
         if (width < 768) {
-          await expect(page.getByText('customer@e2e.example').first()).toBeVisible();
+          await expect(page.getByRole('article', { name: /^View order / }).filter({ hasText: 'customer@e2e.example' }).getByText('customer@e2e.example', { exact: true })).toBeVisible();
           await page.getByRole('article').filter({ hasText: 'customer@e2e.example' }).getByRole('link', { name: /^View order / }).click();
         } else {
           const row = page.getByRole('row').filter({ hasText: 'customer@e2e.example' });
@@ -429,19 +430,23 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       }
       await expect(page.getByRole('heading').first()).toBeVisible();
       if (name === 'orders-list') {
-        await expect(page.getByText('$39.98', { exact: true }).first()).toBeVisible();
+        const amount = width < 769
+          ? page.getByRole('article', { name: /^View order / }).filter({ hasText: 'customer@e2e.example' }).getByText('$39.98', { exact: true })
+          : page.getByText('$39.98', { exact: true }).first();
+        await expect(amount).toBeVisible();
       }
       await page.evaluate(() => document.fonts.ready);
       await page.keyboard.press('Control+Home');
       await parkPointerOnHeading(page);
-      const navigationBounds = await page.getByRole('link', { name: 'Themes', exact: true }).evaluate((link) => {
-        const sidebar = link.closest('aside');
-        if (!sidebar) throw new Error('Admin sidebar not found');
-        const rect = sidebar.getBoundingClientRect();
-        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height,
-          boxShadow: getComputedStyle(sidebar).boxShadow };
-      });
-      console.log('Admin navigation bounds:', JSON.stringify({ image: `${name}-${width}.png`, ...navigationBounds }));
+      if (width >= 769) {
+        const sidebar = page.getByRole('complementary', { name: 'Store navigation', exact: true });
+        const bounds = await sidebar.boundingBox();
+        expect(bounds, 'Desktop sidebar has visible bounds').not.toBeNull();
+        const boxShadow = await sidebar.evaluate(element => getComputedStyle(element).boxShadow);
+        console.log('Admin navigation bounds:', JSON.stringify({ image: `${name}-${width}.png`, ...bounds, boxShadow }));
+      } else {
+        await expect(page.getByRole('button', { name: 'Open menu', exact: true })).toBeVisible();
+      }
       if (process.env.VISUAL_INSPECT_CSS === '1') {
         const targets = {
           administrators: [{ label: 'Invite administrator', locator: page.getByRole('button', { name: 'Invite administrator' }) }],

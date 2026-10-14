@@ -91,6 +91,8 @@ const codeConstants = [
   'core/admin/order-management/schemas.ts:adminOrderSchemas',
   'core/admin/order-management/schemas.ts:adminOrderStatsSchema',
   'core/admin/order-management/schemas.ts:orderStatusEnum',
+  'core/admin/order-management/schemas.ts:orderFilterProperties',
+  'core/admin/order-management/schemas.ts:orderSortProperties',
   'core/admin/order-management/schemas.ts:paymentStatusEnum',
   'core/admin/order-management/schemas.ts:shipmentStatusEnum',
   'core/admin/plugin-management/config-crypto.ts:DEVELOPMENT_KEY',

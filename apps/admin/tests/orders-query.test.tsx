@@ -14,10 +14,10 @@ it('forwards payment and review filters through the query hook to the API client
   const get = transport.get.mockResolvedValue({ success: true, data: { items: [], page: 1, limit: 20, total: 0, totalPages: 0 } });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const container = document.createElement('div'), root = createRoot(container);
-  function Probe() { useOrders({ page: 1, limit: 20, status: 'PENDING', search: 'buyer', paymentStatus: 'UNPAID', paymentReview: 'required' }); return null; }
+  function Probe() { useOrders({ page: 1, limit: 20, status: 'PENDING', search: 'buyer', paymentStatus: 'UNPAID', paymentReview: 'required', sortBy: 'totalAmount', sortOrder: 'asc' }, () => ({ createdFrom: '2026-10-13T16:00:00.000Z', createdTo: '2026-10-14T16:00:00.000Z' })); return null; }
   try {
     await act(async () => root.render(<QueryClientProvider client={client}><Probe /></QueryClientProvider>));
-    expect(get).toHaveBeenCalledWith('/admin/orders', { params: { page: 1, limit: 20, status: 'PENDING', search: 'buyer', paymentStatus: 'UNPAID', paymentReview: 'required' } });
+    expect(get).toHaveBeenCalledWith('/admin/orders', { params: { page: 1, limit: 20, status: 'PENDING', search: 'buyer', paymentStatus: 'UNPAID', paymentReview: 'required', sortBy: 'totalAmount', sortOrder: 'asc', createdFrom: '2026-10-13T16:00:00.000Z', createdTo: '2026-10-14T16:00:00.000Z' } });
   } finally { await act(async () => root.unmount()); client.clear(); get.mockReset(); vi.unstubAllGlobals(); }
 });
 it.each(['review', 'manual', 'deliver'])('invalidates order counts after %s changes', async operation => {

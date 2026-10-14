@@ -7,8 +7,20 @@ import { FastifyInstance } from 'fastify';
 import { AdminOrderService } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminOrderSchemas } from './schemas';
+import { createOrderExport } from './export';
+import type { OrderExportSelection, OrderSort } from './list-query';
+import { getLocaleFromRequest } from '@/utils/i18n';
 
 export async function adminOrderRoutes(fastify: FastifyInstance) {
+  fastify.post('/export', {
+    schema: { tags: ['admin-orders'], summary: 'Export selected orders as CSV', security: [{ bearerAuth: [] }], ...adminOrderSchemas.exportOrders },
+  }, async (request, reply) => {
+    try {
+      const body = request.body as OrderSort & { selection: OrderExportSelection };
+      const result = await createOrderExport(body.selection, body, getLocaleFromRequest(undefined, request.headers['accept-language']));
+      return reply.type('text/csv; charset=utf-8').header('Content-Disposition', `attachment; filename="${result.filename}"`).send(result.stream);
+    } catch (error) { return sendMappedError(reply, error); }
+  });
   for (const [path, outcome] of [
     ['confirm-review-payment', 'PAID'], ['close-review-payment', 'NOT_CHARGED'],
   ] as const) {
@@ -40,8 +52,8 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const { page, limit, status, search, paymentStatus, paymentReview } = request.query as any;
-      const result = await AdminOrderService.getOrders(page, limit, status, search, paymentStatus, paymentReview);
+      const { page, limit, status, search, paymentStatus, paymentReview, sortBy, sortOrder, createdFrom, createdTo } = request.query as any;
+      const result = await AdminOrderService.getOrders(page, limit, status, search, paymentStatus, paymentReview, { sortBy, sortOrder, createdFrom, createdTo });
       return sendSuccess(reply, result);
     } catch (error) { return sendMappedError(reply, error); }
   });

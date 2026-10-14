@@ -226,7 +226,36 @@ const adminOrderStatsSchema = {
 // Endpoint Schemas
 // ============================================================================
 
+export const orderFilterProperties = {
+  status: { type: 'string', enum: orderStatusEnum, description: 'Filter by order status' },
+  paymentStatus: { type: 'string', enum: ['PAID', 'UNPAID', 'REFUNDED'], description: 'Unpaid includes pending and failed payments' },
+  paymentReview: { type: 'string', enum: ['required'], description: 'Filter orders with unresolved payment reviews' },
+  search: { type: 'string', description: 'Search by order id, customer email, or username' },
+  createdFrom: { type: 'string', format: 'date-time', description: 'Inclusive UTC lower bound' },
+  createdTo: { type: 'string', format: 'date-time', description: 'Exclusive UTC upper bound' },
+} as const;
+const orderSortProperties = {
+  sortBy: { type: 'string', enum: ['createdAt', 'totalAmount'], default: 'createdAt' },
+  sortOrder: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+} as const;
+
 export const adminOrderSchemas = {
+  exportOrders: {
+    body: { type: 'object', additionalProperties: false, required: ['selection'], properties: {
+      ...orderSortProperties,
+      selection: { type: 'object', additionalProperties: false, required: ['mode'], properties: {
+        mode: { type: 'string', enum: ['ids', 'filter'] },
+        ids: { type: 'array', minItems: 1, maxItems: 100, items: { type: 'string', minLength: 1 } },
+        filter: { type: 'object', additionalProperties: false, properties: orderFilterProperties },
+        excludeIds: { type: 'array', maxItems: 100, items: { type: 'string', minLength: 1 } },
+      }, oneOf: [
+        { properties: { mode: { const: 'ids' } }, required: ['ids'], not: { anyOf: [{ required: ['filter'] }, { required: ['excludeIds'] }] } },
+        { properties: { mode: { const: 'filter' } }, required: ['filter'], not: { required: ['ids'] } },
+      ] },
+    } },
+    response: { 200: { description: 'UTF-8 CSV with BOM', content: { 'text/csv': { schema: { type: 'string' } } } },
+      400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 500: errorResponseSchema },
+  },
   resolvePaymentReview: {
     params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
     body: { type: 'object', additionalProperties: false, required: ['paymentId', 'reference'], properties: {
@@ -240,14 +269,12 @@ export const adminOrderSchemas = {
       type: 'object',
       properties: {
         page: { type: 'integer', default: 1, minimum: 1 },
-        limit: { type: 'integer', default: 10, minimum: 1, maximum: 100 },
-        status: { type: 'string', enum: orderStatusEnum, description: 'Filter by order status' },
-        paymentStatus: { type: 'string', enum: ['PAID', 'UNPAID', 'REFUNDED'], description: 'Unpaid includes pending and failed payments' },
-        paymentReview: { type: 'string', enum: ['required'], description: 'Filter orders with unresolved payment reviews' },
-        search: { type: 'string', description: 'Search by order id, customer email, or username' },
+        limit: { type: 'integer', default: 20, minimum: 1, maximum: 100 },
+        ...orderFilterProperties,
+        ...orderSortProperties,
       },
     },
-    response: createTypedReadResponses(createPageResultSchema(adminOrderListItemSchema)),
+    response: { ...createTypedReadResponses(createPageResultSchema(adminOrderListItemSchema)), 400: errorResponseSchema },
   },
 
   // GET /api/admin/orders/stats

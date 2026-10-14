@@ -1,6 +1,7 @@
 import { expect, test } from './local-requests';
 import { customerEmail, login } from './helpers';
 import { captureOrderDetail } from './order-detail-captures';
+import { readFile } from 'node:fs/promises';
 
 test('record payment, ship a Shop checkout order, and resend its notification', async ({ page, newObservedContext }) => {
   const shopContext = await newObservedContext({ baseURL: 'http://127.0.0.1:3003' });
@@ -45,6 +46,35 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await expect(shop.getByText('Pay manually.')).toBeVisible();
 
     await login(page);
+    await page.goto('/en/orders');
+    await page.getByRole('textbox', { name: 'Search order number or customer email' }).fill(orderId!);
+    await expect(page.getByRole('link', { name: 'View order ' + orderId, exact: true })).toBeVisible();
+    await page.getByRole('combobox', { name: 'Payment', exact: true }).selectOption('UNPAID');
+    await expect(page.getByRole('button', { name: 'Remove filter: Payment Unpaid', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Remove filter: Payment Unpaid', exact: true }).click();
+    await expect(page.getByRole('combobox', { name: 'Payment', exact: true })).toHaveValue('All');
+    await page.getByRole('button', { name: 'Amount', exact: true }).click();
+    await expect(page.getByRole('columnheader', { name: 'Amount', exact: true })).toHaveAttribute('aria-sort', 'ascending');
+    await page.getByRole('combobox', { name: 'Rows per page', exact: true }).selectOption('50');
+    await expect(page).toHaveURL(/pageSize=50/);
+    await page.getByRole('checkbox', { name: 'Select order ' + orderId, exact: true }).check();
+    await expect(page.getByRole('region', { name: 'Bulk actions', exact: true })).toBeVisible();
+    await expect(page.getByText('Selected 1 orders on this page.', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Select all 1 matching orders', exact: true }).click();
+    await expect(page.getByText('Selected all 1 matching orders.', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Only this page', exact: true }).click();
+    await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export', exact: true }).click();
+    const download = await downloadPromise, file = await download.path();
+    expect(file).toBeTruthy();
+    const exported = await readFile(file!, 'utf8');
+    expect(exported.split('\r\n')[0]).toBe('\uFEFFOrder ID,Placed at,Time zone,Status,Payment status,Payment review pending,Customer email,Customer name,Item count,Item quantity,Subtotal,Shipping,Tax,Tax inclusive,Total,Currency,Payment method,Recipient name,Phone,Address line 1,Address line 2,City,State / province,Postal code,Country,Carrier,Tracking number,Shipped at');
+    expect(exported).toContain(orderId!);
+    const listUrl = page.url();
+    await page.getByRole('link', { name: 'View order ' + orderId, exact: true }).click();
+    await page.getByRole('link', { name: '← Orders', exact: true }).click();
+    await expect(page).toHaveURL(listUrl);
     await page.goto(`/en/orders/${orderId}`);
     await page.getByRole('button', { name: 'Record payment', exact: true }).click();
     await page.getByLabel('Payment reference').fill(`e2e-payment-${orderId}`);

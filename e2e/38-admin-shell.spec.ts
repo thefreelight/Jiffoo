@@ -137,6 +137,8 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
     await page.getByRole('textbox', { name: 'Search order number or customer email' }).fill(id);
     await expect(page.getByRole('link', { name: 'View order ' + id, exact: true })).toBeVisible();
     await expect(page.getByText('3 items', { exact: true }).first()).toBeVisible();
+    await page.getByRole('checkbox', { name: 'Select all orders on this page', exact: true }).check();
+    await page.getByRole('button', { name: 'Select all 1 matching orders', exact: true }).click();
     for (const mode of ['Light', 'Dark']) {
       await page.setViewportSize({ width: 1440, height: 900 }); await chooseMode(page, mode);
       for (const [width, height] of [[1440, 900], [390, 844]]) {
@@ -146,6 +148,7 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
         expect(image.readUInt32BE(16)).toBe(width);
       }
     }
+    await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
     await page.getByRole('link', { name: 'View order ' + id, exact: true }).click();
     await expect(page).toHaveURL(new RegExp('/en/orders/' + id + '$'));
     await expect(page.getByRole('heading', { name: /^Order #/ })).toBeVisible();

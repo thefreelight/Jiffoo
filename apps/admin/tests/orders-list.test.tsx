@@ -25,7 +25,7 @@ async function mount() {
   return container;
 }
 function button(text: string): HTMLButtonElement {
-  const button = Array.from(document.querySelectorAll('button')).find(button => button.textContent?.startsWith(text));
+  const button = Array.from(document.querySelectorAll('button')).find(button => button.textContent?.startsWith(text) || button.getAttribute('aria-label') === text);
   if (!button) throw new Error('Missing button: ' + text); return button;
 }
 beforeEach(() => {
@@ -59,7 +59,7 @@ it('wires tabs, review banner, supported payment options, search and pagination 
     await act(async () => { select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); });
     expect(state.params.paymentStatus).toBe(value === 'All' ? undefined : value); expect(state.params.paymentReview).toBeUndefined();
   }
-  const input = document.querySelector('input')!;
+  const input = document.querySelector<HTMLInputElement>('input[placeholder]')!;
   await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'buyer@example.test'); input.dispatchEvent(new Event('input', { bubbles: true })); });
   expect(state.params.search).toBe('');
   await act(async () => new Promise(resolve => setTimeout(resolve, 320)));
@@ -105,7 +105,7 @@ it('replaces the URL while preserving other query parameters', async () => {
 it('keeps typing immediate and resets pagination only when the 300ms debounce completes', async () => {
   vi.useFakeTimers(); await mount();
   await act(async () => button('Next').click());
-  const input = document.querySelector('input')!;
+  const input = document.querySelector<HTMLInputElement>('input[placeholder]')!;
   const type = async (text: string) => act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, text);
     input.dispatchEvent(new Event('input', { bubbles: true }));

@@ -19,6 +19,7 @@ import { recordPaymentSucceeded } from '@/core/payment/reconciliation';
 import { lockOrder, lockPayment } from '@/core/payment/locks';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { readCatalogSnapshot, snapshotProductName } from '@/core/order/catalog-snapshot';
+import { orderWhere, orderSort, type OrderFilter, type OrderSort } from './list-query';
 
 function codedError(code: import('@/utils/api-errors').ErrorCode, _message: string): ApiError {
   return new ApiError(code);
@@ -169,47 +170,14 @@ export class AdminOrderService {
    * Get orders list - flattened response for UI display
    * Returns: { items: [...], pagination: {...} }
    */
-  static async getOrders(page = 1, limit = 10, status?: string, search?: string, paymentStatus?: 'PAID' | 'UNPAID' | 'REFUNDED', paymentReview?: 'required') {
+  static async getOrders(page = 1, limit = 20, status?: string, search?: string, paymentStatus?: 'PAID' | 'UNPAID' | 'REFUNDED', paymentReview?: 'required', options: OrderSort & Pick<OrderFilter, 'createdFrom' | 'createdTo'> = {}) {
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where = orderWhere({ status, search, paymentStatus, paymentReview, ...options });
     const searchText = search?.trim();
-
-    if (status) {
-      where.status = status;
-    }
-    if (paymentStatus) where.paymentStatus = paymentStatus === 'UNPAID' ? { in: ['PENDING', 'FAILED'] } : paymentStatus;
-    if (paymentReview === 'required') where.payments = { some: paymentReviewWhere() };
-
-    if (searchText) {
-      where.OR = [
-        {
-          id: {
-            contains: searchText,
-            mode: 'insensitive',
-          },
-        },
-        {
-          user: {
-            email: {
-              contains: searchText,
-              mode: 'insensitive',
-            },
-          },
-        },
-        {
-          user: {
-            username: {
-              contains: searchText,
-              mode: 'insensitive',
-            },
-          },
-        },
-      ];
-    }
 
 
     // Try cache
-    const filters = { status, search: searchText || undefined, paymentStatus: paymentStatus ?? null, paymentReview: paymentReview ?? null };
+    const filters = { status, search: searchText || undefined, paymentStatus: paymentStatus ?? null, paymentReview: paymentReview ?? null, ...options };
     const cached = await CacheService.getOrderList(page, limit, filters);
     if (cached) return cached;
 
@@ -221,7 +189,7 @@ export class AdminOrderService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: orderSort(options),
         select: {
           id: true,
           status: true,
