@@ -106,7 +106,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     finally { await disconnectDatabase(); }
     await page.goto(`/en/orders/${orderId}`);
     await page.getByRole('button', { name: 'Copy order ID', exact: true }).click();
-    await expect(page.getByText('Copied', { exact: true })).toBeVisible();
+    await expect(page.getByText(new RegExp('^Order\\s*#' + orderId + '\\s*Copied$')).getByText('Copied', { exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'View all orders from this customer', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Remove filter: Customer ' + customerEmail, exact: true })).toBeVisible();
     await expect(page).toHaveURL(/customerId=/);
@@ -120,7 +120,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await expect(page.getByText('Paid', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('1 Test Street', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Copy shipping address including recipient and phone', exact: true }).click();
-    await expect(page.getByText('Copied', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Customer and shipping address', { exact: true }).getByText('Copied', { exact: true })).toBeVisible();
     await captureOrderDetail(page, 'processing');
     await page.getByRole('heading', { name: 'Order history', exact: true }).scrollIntoViewIfNeeded();
     await expect(page.getByRole('button', { name: 'Copy order ID', exact: true })).toBeVisible();
@@ -131,7 +131,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await page.getByRole('button', { name: 'Ship order' }).click();
     await expect(page.getByText('Shipped', { exact: true }).first()).toBeVisible();
     await page.getByRole('button', { name: 'Copy tracking number', exact: true }).click();
-    await expect(page.getByText('Copied', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Shipping', { exact: true }).getByText('Copied', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Track shipment (opens in 17TRACK)', exact: true })).toHaveAttribute('href', 'https://t.17track.net/en#nums=E2E-TRACK-001');
     await captureOrderDetail(page, 'shipped');
     await page.getByRole('button', { name: 'Mark as delivered' }).click();
