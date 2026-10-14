@@ -109,6 +109,14 @@ it('replaces the URL while preserving other query parameters', async () => {
   await act(async () => button('Review payments').click());
   expect(state.replace).toHaveBeenLastCalledWith('/en/orders?source=overview&payment=review', { scroll: false });
 });
+it('shows the exact customer filter as a removable email chip', async () => {
+  state.url = 'customerId=customer-1&customerEmail=buyer%40example.test';
+  await mount(); expect(state.params.customerId).toBe('customer-1');
+  const remove = document.querySelector<HTMLButtonElement>('button[aria-label="Remove filter: Customer buyer@example.test"]')!;
+  expect(remove).toBeTruthy(); await act(async () => remove.click());
+  expect(state.params.customerId).toBeUndefined();
+  expect(state.replace).toHaveBeenLastCalledWith('/en/orders', { scroll: false });
+});
 it('keeps typing immediate and resets pagination only when the 300ms debounce completes', async () => {
   vi.useFakeTimers(); await mount();
   await act(async () => button('Next').click());

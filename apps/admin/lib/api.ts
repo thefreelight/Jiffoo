@@ -167,6 +167,7 @@ export interface UserStatsData {
 
 // Type definitions (Admin specific)
 export interface PaginationParams {
+  customerId?: string;
   categoryId?: string;
   page?: number;
   limit?: number;
@@ -318,7 +319,8 @@ export const productsApi = {
 
 // Orders API
 export const ordersApi = {
-  getAll: (page = 1, limit = 20, status?: string, search?: string, paymentStatus?: PaginationParams['paymentStatus'], paymentReview?: PaginationParams['paymentReview'], options: Pick<PaginationParams, 'sortBy' | 'sortOrder' | 'createdFrom' | 'createdTo'> = {}): Promise<ApiResponse<PageResult<AdminOrderListItemDTO>>> =>
+  neighbors: (id: string, params: import('./order-list-state').OrderListQuery) => apiClient.get<{ position: number | null; total: number; previousId: string | null; nextId: string | null }>(`/admin/orders/${id}/neighbors`, { params }),
+  getAll: (page = 1, limit = 20, status?: string, search?: string, paymentStatus?: PaginationParams['paymentStatus'], paymentReview?: PaginationParams['paymentReview'], options: Pick<PaginationParams, 'sortBy' | 'sortOrder' | 'createdFrom' | 'createdTo' | 'customerId'> = {}): Promise<ApiResponse<PageResult<AdminOrderListItemDTO>>> =>
     apiClient.get('/admin/orders', { params: { page, limit, status, search, paymentStatus, paymentReview, ...options } }),
 
   export: async (selection: { mode: 'ids'; ids: string[] } | { mode: 'filter'; filter: PaginationParams; excludeIds?: string[] }, sort: Pick<PaginationParams, 'sortBy' | 'sortOrder'>, locale: string) => {

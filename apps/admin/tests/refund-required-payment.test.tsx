@@ -12,6 +12,7 @@ vi.mock('next/navigation', () => ({ useParams: () => ({ id: 'order-1' }), useRou
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string, params?: Record<string, string | number>) => { const value = key.split('.').slice(1).reduce<any>((value, part) => value?.[part], merchant); return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => String(params?.[name] ?? '{' + name + '}')) : key; } }));
 vi.mock('@/lib/hooks/use-api', () => ({
   useOrder: () => ({ data: state.order, refetch: vi.fn() }),
+  useOrderNeighbors: () => ({ data: { position: 1, total: 1, previousId: null, nextId: null }, refetch: vi.fn() }),
   useRecordManualPayment: () => ({}), useDeliverOrder: () => ({}), useCancelOrder: () => ({}),
   useRefundOrder: () => ({ mutateAsync: state.mutateAsync, isPending: false }),
 }));
@@ -28,7 +29,7 @@ afterEach(async () => {
   vi.clearAllMocks();
 });
 const order = { id: 'order-1', userId: 'user-1', status: 'PROCESSING', paymentStatus: 'PAID', totalAmount: 20, amounts: { subtotal: 20, shipping: 0, tax: 0, taxInclusive: false, total: 20 }, timeline: [],
-  currency: 'USD', shippingAddress: null, createdAt: '2026-10-10T00:00:00Z', updatedAt: '2026-10-10T00:00:00Z', items: [],
+  currency: 'USD', customerOrderNumber: 1, customerOrderCount: 1, shippingAddress: null, createdAt: '2026-10-10T00:00:00Z', updatedAt: '2026-10-10T00:00:00Z', items: [],
   customer: { id: 'user-1', email: 'buyer@example.test', username: 'buyer' },
 } satisfies AdminOrderDetailDTO;
 it.each([

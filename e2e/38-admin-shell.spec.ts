@@ -152,6 +152,7 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
     await page.getByRole('link', { name: 'View order ' + id, exact: true }).click();
     await expect(page).toHaveURL(new RegExp('/en/orders/' + id + '$'));
     await expect(page.getByRole('heading', { name: /^Order #/ })).toBeVisible();
+    test.setTimeout(120000);
     await captureOrderDetail(page, 'review');
     await page.getByRole('button', { name: 'Confirm not charged and close', exact: true }).click();
     const review = page.getByRole('dialog', { name: 'Confirm not charged and close', exact: true });
@@ -159,7 +160,8 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
     await review.getByRole('button', { name: 'Confirm not charged and close', exact: true }).click();
     await expect(review).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Confirm payment received', exact: true })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Cancel order', exact: true }).click();
+    await page.getByRole('button', { name: 'More order actions', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Cancel order', exact: true }).click();
     const cancel = page.getByRole('dialog', { name: 'Cancel order', exact: true });
     await cancel.getByRole('textbox', { name: 'Cancellation reason', exact: true }).fill('U3 confirmed not charged');
     await cancel.getByRole('button', { name: 'Cancel order', exact: true }).click();

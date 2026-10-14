@@ -212,8 +212,8 @@ export function useOrders(params: PaginationParams = {}, resolveDates?: () => Pi
   return useQuery({
     queryKey: [...queryKeys.orders, params],
     queryFn: async () => {
-      const { sortBy, sortOrder, createdFrom, createdTo } = { ...params, ...resolveDates?.() };
-      const response = await ordersApi.getAll(params.page, params.limit, params.status, params.search, params.paymentStatus, params.paymentReview, { sortBy, sortOrder, createdFrom, createdTo });
+      const { sortBy, sortOrder, createdFrom, createdTo, customerId } = { ...params, ...resolveDates?.() };
+      const response = await ordersApi.getAll(params.page, params.limit, params.status, params.search, params.paymentStatus, params.paymentReview, { sortBy, sortOrder, createdFrom, createdTo, customerId });
       const data = unwrapApiResponse(response);
       return {
         data: data.items || [],
@@ -248,6 +248,14 @@ export function useOrder(id: string) {
       return unwrapApiResponse(response);
     },
     enabled: !!id,
+  });
+}
+
+export function useOrderNeighbors(id: string, params: import('../order-list-state').OrderListQuery, enabled = true) {
+  return useQuery({
+    queryKey: [...queryKeys.orders, 'neighbors', id, params],
+    queryFn: async () => unwrapApiResponse(await ordersApi.neighbors(id, params)),
+    enabled: !!id && enabled,
   });
 }
 

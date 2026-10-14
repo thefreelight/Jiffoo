@@ -54,6 +54,8 @@ const adminOrderListItemSchema = {
 const adminOrderDetailSchema = {
   type: 'object',
   properties: {
+    customerOrderNumber: { type: 'integer', minimum: 1 },
+    customerOrderCount: { type: 'integer', minimum: 1 },
     amounts: {
       type: 'object', required: ['subtotal', 'shipping', 'tax', 'taxInclusive', 'total'],
       properties: { subtotal: { type: 'number' }, shipping: { type: 'number' }, tax: { type: 'number' }, taxInclusive: { type: 'boolean' }, total: { type: 'number' } },
@@ -77,7 +79,7 @@ const adminOrderDetailSchema = {
     paymentReviews: {
       type: 'array', items: {
         type: 'object', properties: {
-          paymentId: { type: 'string' }, status: { type: 'string' }, amount: { type: 'number' }, currency: { type: 'string' },
+          paymentId: { type: 'string' }, attemptNumber: { type: 'integer' }, status: { type: 'string' }, amount: { type: 'number' }, currency: { type: 'string' },
           failureReason: { type: 'string', nullable: true }, reviewResolution: { type: 'string', nullable: true },
           reviewResolvedAt: { type: 'string', format: 'date-time', nullable: true },
           reviewResolvedBy: { type: 'string', nullable: true }, reviewReference: { type: 'string', nullable: true },
@@ -166,7 +168,7 @@ const adminOrderDetailSchema = {
     },
   },
   required: [
-    'amounts', 'timeline',
+    'amounts', 'timeline', 'customerOrderNumber', 'customerOrderCount',
     'id',
     'status',
     'paymentStatus',
@@ -227,6 +229,7 @@ const adminOrderStatsSchema = {
 // ============================================================================
 
 export const orderFilterProperties = {
+  customerId: { type: 'string', minLength: 1, description: 'Exact customer user ID' },
   status: { type: 'string', enum: orderStatusEnum, description: 'Filter by order status' },
   paymentStatus: { type: 'string', enum: ['PAID', 'UNPAID', 'REFUNDED'], description: 'Unpaid includes pending and failed payments' },
   paymentReview: { type: 'string', enum: ['required'], description: 'Filter orders with unresolved payment reviews' },
@@ -240,6 +243,14 @@ const orderSortProperties = {
 } as const;
 
 export const adminOrderSchemas = {
+  neighbors: {
+    params: { type: 'object', required: ['id'], properties: { id: { type: 'string', minLength: 1 } } },
+    querystring: { type: 'object', additionalProperties: false, properties: { ...orderFilterProperties, ...orderSortProperties } },
+    response: { ...createTypedReadResponses({ type: 'object', required: ['position', 'total', 'previousId', 'nextId'], properties: {
+      position: { type: 'integer', minimum: 1, nullable: true }, total: { type: 'integer', minimum: 0 },
+      previousId: { type: 'string', nullable: true }, nextId: { type: 'string', nullable: true },
+    } }), 400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema },
+  },
   exportOrders: {
     body: { type: 'object', additionalProperties: false, required: ['selection'], properties: {
       ...orderSortProperties,

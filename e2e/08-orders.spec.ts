@@ -2,8 +2,12 @@ import { expect, test } from './local-requests';
 import { customerEmail, login } from './helpers';
 import { captureOrderDetail } from './order-detail-captures';
 import { readFile } from 'node:fs/promises';
+import { getTestPrisma, disconnectDatabase } from '../apps/api/tests/helpers/db';
+import { createOrderWithItems } from '../apps/api/tests/helpers/fixtures';
 
 test('record payment, ship a Shop checkout order, and resend its notification', async ({ page, newObservedContext }) => {
+  test.setTimeout(120000);
+  await page.context().grantPermissions(['clipboard-write']);
   const shopContext = await newObservedContext({ baseURL: 'http://127.0.0.1:3003' });
   const shop = await shopContext.newPage();
   try {
@@ -77,18 +81,59 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await page.getByRole('link', { name: 'View order ' + orderId, exact: true }).click();
     await page.getByRole('link', { name: '← Orders', exact: true }).click();
     await expect(page).toHaveURL(listUrl);
+    const db = getTestPrisma();
+    let companionId: string;
+    try {
+      const buyer = await db.user.findUniqueOrThrow({ where: { email: customerEmail } });
+      const product = await db.product.findFirstOrThrow({ where: { name: 'E2E Product' }, include: { variants: true } });
+      const companion = await createOrderWithItems(buyer as any, [{ product }]);
+      companionId = companion.order.id;
+    } finally { await disconnectDatabase(); }
+    await page.getByRole('textbox', { name: 'Search order number or customer email', exact: true }).fill(customerEmail);
+    await expect(page.getByRole('link', { name: 'View order ' + companionId!, exact: true })).toBeVisible();
+    const filteredUrl = page.url();
+    await page.getByRole('link', { name: 'View order ' + orderId, exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Next order', exact: true })).toBeDisabled();
+    await page.getByRole('link', { name: 'Previous order', exact: true }).click();
+    await expect(page).toHaveURL(new RegExp('/en/orders/' + companionId! + '\\?'));
+    await expect(page.getByRole('button', { name: 'Previous order', exact: true })).toBeDisabled();
+    await page.getByRole('link', { name: 'Next order', exact: true }).click();
+    await expect(page).toHaveURL(new RegExp('/en/orders/' + orderId + '\\?'));
+    await page.getByRole('link', { name: '← Orders', exact: true }).click();
+    await expect(page).toHaveURL(filteredUrl);
+    const cleanup = getTestPrisma();
+    try { await cleanup.order.delete({ where: { id: companionId! } }); }
+    finally { await disconnectDatabase(); }
     await page.goto(`/en/orders/${orderId}`);
-    await page.getByRole('button', { name: 'Record payment', exact: true }).click();
+    await page.getByRole('button', { name: 'Copy order ID', exact: true }).click();
+    await expect(page.getByText('Copied', { exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'View all orders from this customer', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Remove filter: Customer ' + customerEmail, exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/customerId=/);
+    await page.getByRole('button', { name: 'Remove filter: Customer ' + customerEmail, exact: true }).click();
+    await expect(page).not.toHaveURL(/customerId=/);
+    await page.goto(`/en/orders/${orderId}`);
+    await page.getByRole('button', { name: 'More order actions', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Record payment', exact: true }).click();
     await page.getByLabel('Payment reference').fill(`e2e-payment-${orderId}`);
     await page.getByRole('button', { name: 'Record payment' }).click();
     await expect(page.getByText('Paid', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('1 Test Street', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Copy shipping address including recipient and phone', exact: true }).click();
+    await expect(page.getByText('Copied', { exact: true })).toBeVisible();
     await captureOrderDetail(page, 'processing');
+    await page.getByRole('heading', { name: 'Order history', exact: true }).scrollIntoViewIfNeeded();
+    await expect(page.getByRole('button', { name: 'Copy order ID', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ship order', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Ship order' }).click();
     await page.getByRole('textbox', { name: 'Carrier' }).fill('E2E Carrier');
     await page.getByRole('textbox', { name: 'Tracking number' }).fill('E2E-TRACK-001');
     await page.getByRole('button', { name: 'Ship order' }).click();
     await expect(page.getByText('Shipped', { exact: true }).first()).toBeVisible();
+    await page.getByRole('button', { name: 'Copy tracking number', exact: true }).click();
+    await expect(page.getByText('Copied', { exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Track shipment (opens in 17TRACK)', exact: true })).toHaveAttribute('href', 'https://t.17track.net/en#nums=E2E-TRACK-001');
+    await captureOrderDetail(page, 'shipped');
     await page.getByRole('button', { name: 'Mark as delivered' }).click();
     await expect(page.getByText('Delivered', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Delivered', { exact: true }).first()).toHaveCSS('flex-shrink', '0');

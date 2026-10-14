@@ -11,6 +11,7 @@ vi.mock('next/navigation', () => ({ useParams: () => ({ id: 'order-1' }), useRou
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string, params?: Record<string, string | number>) => { const value = key.split('.').slice(1).reduce<any>((value, part) => value?.[part], merchant); return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => String(params?.[name] ?? '{' + name + '}')) : key; } }));
 vi.mock('@/lib/hooks/use-api', () => ({
   useOrder: () => ({ data: state.order, refetch: vi.fn() }),
+  useOrderNeighbors: () => ({ data: { position: 1, total: 1, previousId: null, nextId: null }, refetch: vi.fn() }),
   useRecordManualPayment: () => ({}), useDeliverOrder: () => ({}), useCancelOrder: () => ({}), useRefundOrder: () => ({}),
   useResolvePaymentReview: () => ({ mutateAsync: state.mutateAsync, isPending: false }),
 }));

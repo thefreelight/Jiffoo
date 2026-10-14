@@ -170,7 +170,7 @@ export class AdminOrderService {
    * Get orders list - flattened response for UI display
    * Returns: { items: [...], pagination: {...} }
    */
-  static async getOrders(page = 1, limit = 20, status?: string, search?: string, paymentStatus?: 'PAID' | 'UNPAID' | 'REFUNDED', paymentReview?: 'required', options: OrderSort & Pick<OrderFilter, 'createdFrom' | 'createdTo'> = {}) {
+  static async getOrders(page = 1, limit = 20, status?: string, search?: string, paymentStatus?: 'PAID' | 'UNPAID' | 'REFUNDED', paymentReview?: 'required', options: OrderSort & Pick<OrderFilter, 'createdFrom' | 'createdTo' | 'customerId'> = {}) {
     const skip = (page - 1) * limit;
     const where = orderWhere({ status, search, paymentStatus, paymentReview, ...options });
     const searchText = search?.trim();
@@ -241,6 +241,26 @@ export class AdminOrderService {
     await CacheService.setOrderList(page, limit, result, filters, 30);
 
     return result;
+  }
+
+  static async getOrderNeighbors(orderId: string, filter: OrderFilter & OrderSort = {}) {
+    const where = orderWhere(filter);
+    const anchor = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, createdAt: true, totalAmount: true } });
+    if (!anchor) throw new ApiError('NOT_FOUND');
+    const field = filter.sortBy ?? 'createdAt', direction = filter.sortOrder ?? 'desc';
+    const side = (before: boolean): Prisma.OrderWhereInput => {
+      const comparison = before === (direction === 'asc') ? 'lt' : 'gt';
+      return { OR: [{ [field]: { [comparison]: anchor[field] } }, { [field]: anchor[field], id: { [comparison]: anchor.id } }] };
+    };
+    // Range comparisons and LIMIT 1 keep neighbour lookup in the database.
+    const [total, matched, preceding, previous, next] = await prisma.$transaction([
+      prisma.order.count({ where }),
+      prisma.order.count({ where: { AND: [where, { id: orderId }] } }),
+      prisma.order.count({ where: { AND: [where, side(true)] } }),
+      prisma.order.findFirst({ where: { AND: [where, side(true)] }, orderBy: orderSort({ sortBy: field, sortOrder: direction === 'asc' ? 'desc' : 'asc' }), select: { id: true } }),
+      prisma.order.findFirst({ where: { AND: [where, side(false)] }, orderBy: orderSort({ sortBy: field, sortOrder: direction }), select: { id: true } }),
+    ], { isolationLevel: 'RepeatableRead' });
+    return { position: matched ? preceding + 1 : null, total, previousId: previous?.id ?? null, nextId: next?.id ?? null };
   }
 
   /**
@@ -323,6 +343,12 @@ export class AdminOrderService {
       return null;
     }
 
+    const [customerOrderCount, customerOrderNumber] = await Promise.all([
+      prisma.order.count({ where: { userId: order.user!.id } }),
+      prisma.order.count({ where: { userId: order.user!.id, OR: [
+        { createdAt: { lt: order.createdAt } }, { createdAt: order.createdAt, id: { lte: order.id } },
+      ] } }),
+    ]);
     const shippingAddr = order.shippingAddress ? {
       recipientName: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`.trim(),
       phone: order.shippingAddress.phone,
@@ -354,6 +380,8 @@ export class AdminOrderService {
     const refundRequired = refundResolutions.some(row => row.status === 'pending');
     return {
       id: order.id,
+      customerOrderNumber,
+      customerOrderCount,
       status: order.status,
       paymentStatus: order.paymentStatus,
       refundRequired,
@@ -361,7 +389,7 @@ export class AdminOrderService {
       canRefundOrder: await prisma.paymentLedger.count({ where: { orderId, eventType: 'SUCCEEDED', refundRequired: false, refunds: { none: { status: 'COMPLETED' } } } }) > 0,
       paymentAttemptState: latestPayment?.status ?? null,
       paymentReviews: (await prisma.payment.findMany({ where: { orderId }, orderBy: { attemptNumber: 'asc' } })).map(payment => ({
-        paymentId: payment.id, status: payment.status, amount: Number(payment.amount), currency: payment.currency,
+        paymentId: payment.id, attemptNumber: payment.attemptNumber, status: payment.status, amount: Number(payment.amount), currency: payment.currency,
         failureReason: payment.failureReason, reviewResolution: payment.reviewResolution,
         reviewResolvedAt: payment.reviewResolvedAt?.toISOString() ?? null,
         reviewResolvedBy: payment.reviewResolvedBy, reviewReference: payment.reviewReference,

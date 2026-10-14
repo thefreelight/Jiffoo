@@ -47,11 +47,13 @@ test('refund before shipment restores stock and notifies the customer', async ({
     expect(id).toBeTruthy();
 
     await page.goto(`/en/orders/${id}`);
-    await page.getByRole('button', { name: 'Record payment', exact: true }).click();
+    await page.getByRole('button', { name: 'More order actions', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Record payment', exact: true }).click();
     await page.getByLabel('Payment reference').fill(`e2e-payment-${id}`);
     await page.getByRole('button', { name: 'Record payment' }).click();
     await expect(page.getByText('Processing', { exact: true }).first()).toBeVisible();
-    await page.getByRole('button', { name: 'Refund' }).click();
+    await page.getByRole('button', { name: 'More order actions', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Refund', exact: true }).click();
     await page.getByLabel('Refund reference').fill('e2e-offline-refund-reference');
     await page.getByRole('button', { name: /Record refund \$18\.00/ }).click();
     await expect(page.getByText('Refunded', { exact: true }).first()).toBeVisible();

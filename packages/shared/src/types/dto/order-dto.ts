@@ -79,6 +79,7 @@ export interface AdminOrderListItemDTO {
 
 // Admin order item DTO
 export interface AdminOrderItemDTO {
+  productImages?: string[];
   id: string;
   productId: string | null;
   quantity: number;
@@ -100,6 +101,8 @@ export interface AdminOrderItemDTO {
 
 // Admin order detail DTO
 export interface AdminOrderDetailDTO {
+  customerOrderNumber: number;
+  customerOrderCount: number;
   amounts: { subtotal: number; shipping: number; tax: number; taxInclusive: boolean; total: number };
   timeline: Array<{ at: string; fromStatus: string | null; toStatus: string; fromPaymentStatus: string | null; toPaymentStatus: string | null; actorType: string | null }>;
   id: string;
@@ -119,7 +122,7 @@ export interface AdminOrderDetailDTO {
   canRefundOrder?: boolean;
   paymentAttemptState?: string | null;
   paymentReviews?: Array<{
-    paymentId: string; status: string; amount: number; currency: string; failureReason: string | null;
+    paymentId: string; attemptNumber?: number; status: string; amount: number; currency: string; failureReason: string | null;
     reviewResolution: string | null; reviewResolvedAt: string | null; reviewResolvedBy: string | null; reviewReference: string | null;
   }>;
   refundResolutions?: Array<{

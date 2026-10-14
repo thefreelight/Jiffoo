@@ -9,22 +9,14 @@ import { formatStoreTimestamp } from 'shared';
 import { useStoreDate } from '@/lib/store-time';
 import { useOrders, useOrderStats, type Order } from '@/lib/hooks/use-api';
 import { ordersApi, type PaginationParams } from '@/lib/api';
-import { useListState, useListSelection, listChoice, listDateRange, validListDate, type ListFields } from '@/lib/hooks/use-list-state';
+import { useListState, useListSelection, listDateRange } from '@/lib/hooks/use-list-state';
 import { BulkBar, FilterChips, ListEmpty, ListSearch, ListFilter, PaginationBar, SelectionBanner, SortHeader, StatusTabs } from '@/components/list';
 import { PaymentPill, StatusShape } from '@/components/orders/order-badges';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatCurrency, cn } from '@/lib/utils';
+import { orderListFields as fields, orderStatuses as statuses } from '@/lib/order-list-state';
 
-const statuses = ['All', 'PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'];
-const fields: ListFields = {
-  status: listChoice(statuses), payment: listChoice(['all', 'paid', 'unpaid', 'review', 'refunded']),
-  search: { default: '', valid: () => true }, date: listChoice(['all', 'today', 'last7', 'last30', 'custom']),
-  start: { default: '', valid: validListDate }, end: { default: '', valid: validListDate },
-  sortBy: listChoice(['createdAt', 'totalAmount']), sortOrder: listChoice(['desc', 'asc']),
-  page: { default: '1', valid: value => /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value)) },
-  pageSize: listChoice(['20', '50', '100']),
-};
 
 export default function OrdersPage() {
   const t = useT(), locale = useLocale(), { timezone } = useStoreDate(), router = useRouter();
@@ -33,12 +25,12 @@ export default function OrdersPage() {
   const { state, update, url } = useListState(fields);
   const change = (patch: Record<string, string>) => update({ page: '1', ...patch });
   useEffect(() => { sessionStorage.setItem('orders-list:' + locale, url); }, [url, locale]);
-  const { status, payment, search, date, start, end } = state;
+  const { status, payment, search, date, start, end, customerId, customerEmail } = state;
   const page = Number(state.page), pageSize = Number(state.pageSize);
   const sort = { sortBy: state.sortBy as 'createdAt' | 'totalAmount', sortOrder: state.sortOrder as 'asc' | 'desc' };
   let dates: Pick<PaginationParams, 'createdFrom' | 'createdTo'> = {}, invalidDates = false;
   try { dates = listDateRange(date, start, end, timezone); } catch { invalidDates = true; }
-  const filter: PaginationParams = { status: status === 'All' ? undefined : status, search,
+  const filter: PaginationParams = { status: status === 'All' ? undefined : status, search, customerId: customerId || undefined,
     paymentStatus: ['paid', 'unpaid', 'refunded'].includes(payment) ? payment.toUpperCase() as PaginationParams['paymentStatus'] : undefined,
     paymentReview: payment === 'review' ? 'required' : undefined, ...dates };
   const { data, isLoading, error, refetch } = useOrders({ ...filter, ...sort, page, limit: pageSize }, () => invalidDates ? {} : listDateRange(date, start, end, timezone));
@@ -58,11 +50,12 @@ export default function OrdersPage() {
       setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch { setExportError(true); } finally { setExporting(false); }
   };
-  const clear = () => change({ search: '', payment: 'all', date: 'all', start: '', end: '' });
-  const filtered = !!search || status !== 'All' || payment !== 'all' || date !== 'all';
+  const clear = () => change({ search: '', payment: 'all', date: 'all', start: '', end: '', customerId: '', customerEmail: '' });
+  const filtered = !!search || !!customerId || status !== 'All' || payment !== 'all' || date !== 'all';
   const paymentLabel = payment === 'all' ? copy('all') : payment === 'review' ? copy('requiresReview') : payment === 'unpaid' ? copy('unpaid') : t('merchant.orders.' + payment);
   const dateLabel = date === 'custom' ? [start, end].filter(Boolean).join(' – ') || copy('custom') : copy(date);
   const chips = [
+    ...(customerId ? [{ key: 'customer', name: copy('customer'), value: customerEmail || orders[0]?.customer.email || customerId, remove: () => change({ customerId: '', customerEmail: '' }) }] : []),
     ...(payment !== 'all' ? [{ key: 'payment', name: copy('payment'), value: paymentLabel, remove: () => change({ payment: 'all' }) }] : []),
     ...(date !== 'all' ? [{ key: 'date', name: copy('placed'), value: dateLabel, remove: () => change({ date: 'all', start: '', end: '' }) }] : []),
   ];
@@ -95,7 +88,7 @@ export default function OrdersPage() {
         {(selection.pageChecked || selection.selection.mode === 'filter') && <SelectionBanner all={selection.selection.mode === 'filter'} count={selection.selection.mode === 'filter' ? selection.count : orders.length} total={total} copy={copy} selectAll={selection.allMatching} onlyPage={selection.onlyPage} />}
         <div className="hidden overflow-x-auto min-[769px]:block"><table className="w-full text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr><th scope="col" className="w-10 py-2.5 pl-4">{pageCheckbox}</th>{['order', 'customer', 'status', 'payment'].map(key => <th key={key} scope="col" className="whitespace-nowrap px-3 py-2.5 font-medium">{copy(key)}</th>)}{['totalAmount', 'createdAt'].map(field => <SortHeader key={field} label={copy(field === 'totalAmount' ? 'amount' : 'placedAt', { timezone })} field={field} {...sort} onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} />)}</tr></thead><tbody>{orders.map(order => <tr key={order.id} onClick={event => openRow(event, order)} className={cn('cursor-pointer border-t border-border hover:bg-active', selection.checked(order.id) && 'bg-active')}><td className="py-2.5 pl-4">{checkbox(order)}</td><td className="px-3 py-2.5">{orderLink(order)}<p className="mt-0.5 text-xs text-faint">{copy('items', { count: order.itemQuantitySum })}</p></td><td className="px-3 py-2.5 text-muted-foreground"><p title={order.customer.email || undefined} className="max-w-[260px] truncate">{order.customer.email || t('merchant.orders.noEmail')}</p></td><td className="px-3 py-2.5">{statusText(order)}</td><td className="px-3 py-2.5"><PaymentPill {...order} /></td><td className="whitespace-nowrap px-3 py-2.5 text-right font-mono text-xs">{formatCurrency(order.totalAmount, order.currency)}</td><td className="whitespace-nowrap px-3 py-2.5 pr-4 text-right tabular-nums text-muted-foreground">{formatStoreTimestamp(order.createdAt, timezone)}</td></tr>)}</tbody></table></div>
         <div aria-label={t('merchant.orders.title')} className="divide-y divide-border min-[769px]:hidden"><p className="px-4 py-2 text-xs text-faint">{copy('placedAt', { timezone })}</p>{!!orders.length && <label className="flex items-center gap-2 px-4 py-3 text-xs">{pageCheckbox}{copy('selectPage')}</label>}{orders.map(order => <article key={order.id} aria-label={copy('detail', { id: order.id })} onClick={event => openRow(event, order)} className={cn('min-w-0 cursor-pointer space-y-3 p-4', selection.checked(order.id) && 'bg-active')}><div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-start gap-2">{checkbox(order)}<div>{orderLink(order)}<p className="mt-1 text-xs text-faint">{copy('items', { count: order.itemQuantitySum })}</p></div></div><span className="shrink-0 font-mono">{formatCurrency(order.totalAmount, order.currency)}</span></div><p className="break-all text-muted-foreground">{order.customer.email || t('merchant.orders.noEmail')}</p><div className="flex flex-wrap items-center justify-between gap-2">{statusText(order)}<PaymentPill {...order} /></div><p className="flex flex-wrap justify-between gap-1 text-xs text-faint"><span>{copy('placed')}</span><time dateTime={order.createdAt}>{formatStoreTimestamp(order.createdAt, timezone)}</time></p></article>)}</div>
-        {!orders.length && <ListEmpty filtered={filtered} copy={copy} clear={() => change({ status: 'All', search: '', payment: 'all', date: 'all', start: '', end: '' })} />}
+        {!orders.length && <ListEmpty filtered={filtered} copy={copy} clear={() => change({ status: 'All', search: '', payment: 'all', date: 'all', start: '', end: '', customerId: '', customerEmail: '' })} />}
       </div>
     </>}
     <PaginationBar page={page} pageSize={pageSize} total={total} copy={copy} onPage={value => update({ page: String(value) })} onPageSize={value => change({ pageSize: String(value) })} />

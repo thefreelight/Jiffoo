@@ -8,10 +8,16 @@ import { AdminOrderService } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminOrderSchemas } from './schemas';
 import { createOrderExport } from './export';
-import type { OrderExportSelection, OrderSort } from './list-query';
+import type { OrderExportSelection, OrderSort, OrderFilter } from './list-query';
 import { getLocaleFromRequest } from '@/utils/i18n';
 
 export async function adminOrderRoutes(fastify: FastifyInstance) {
+  fastify.get('/:id/neighbors', {
+    schema: { tags: ['admin-orders'], summary: 'Get adjacent orders in the current list', security: [{ bearerAuth: [] }], ...adminOrderSchemas.neighbors },
+  }, async (request, reply) => {
+    try { return sendSuccess(reply, await AdminOrderService.getOrderNeighbors((request.params as { id: string }).id, request.query as OrderFilter & OrderSort)); }
+    catch (error) { return sendMappedError(reply, error); }
+  });
   fastify.post('/export', {
     schema: { tags: ['admin-orders'], summary: 'Export selected orders as CSV', security: [{ bearerAuth: [] }], ...adminOrderSchemas.exportOrders },
   }, async (request, reply) => {
@@ -52,8 +58,8 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const { page, limit, status, search, paymentStatus, paymentReview, sortBy, sortOrder, createdFrom, createdTo } = request.query as any;
-      const result = await AdminOrderService.getOrders(page, limit, status, search, paymentStatus, paymentReview, { sortBy, sortOrder, createdFrom, createdTo });
+      const { page, limit, status, search, paymentStatus, paymentReview, sortBy, sortOrder, createdFrom, createdTo, customerId } = request.query as any;
+      const result = await AdminOrderService.getOrders(page, limit, status, search, paymentStatus, paymentReview, { sortBy, sortOrder, createdFrom, createdTo, customerId });
       return sendSuccess(reply, result);
     } catch (error) { return sendMappedError(reply, error); }
   });
