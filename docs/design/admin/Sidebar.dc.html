@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 侧边栏</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; box-sizing: border-box; height: 100vh; min-height: 560px; padding: 12px 10px; display: flex; flex-direction: column; gap: 14px">
+  <div style="flex: none; display: flex; align-items: center; gap: 6px">
+    <div style="flex: 1 1 auto; min-width: 0; height: 36px; display: flex; align-items: center; gap: 9px; padding: 0 6px">
+      <span aria-hidden="true" style="width: 22px; height: 22px; flex: none; border-radius: 6px; background: {{t.fg}}; color: {{t.bg}}; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px">示</span>
+      <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">示例店铺</span>
+    </div>
+    <button type="button" aria-label="收起侧边栏" style="width: 32px; height: 32px; flex: none; border: 0; border-radius: 7px; background: transparent; color: {{t.muted}}; cursor: pointer; display: flex; align-items: center; justify-content: center">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="16" rx="3"></rect><path d="M9.5 4v16"></path></svg>
+    </button>
+  </div>
+
+  <nav aria-label="后台导航" style="flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+      <div style="display: flex; flex-direction: column; gap: 1px">
+        <button type="button" aria-expanded="{{g.openAttr}}" onClick="{{g.toggle}}" style="height: 26px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: {{t.faint}}; font: inherit; font-size: 12px; cursor: pointer; text-align: left">
+          <span style="flex: 1 1 auto">{{g.label}}</span>
+          <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transform: {{g.chevron}}; transition: transform 150ms"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+        <sc-if value="{{g.open}}" hint-placeholder-val="{{ true }}">
+          <sc-for list="{{g.items}}" as="i" hint-placeholder-count="4">
+            <div style="display: flex; flex-direction: column; gap: 1px">
+              <div style="display: flex; align-items: center; border-radius: 7px; background: {{i.bg}}">
+                <a href="{{i.href}}" style="flex: 1 1 auto; min-width: 0; height: 32px; display: flex; align-items: center; gap: 10px; padding: 0 8px; color: {{i.color}}; font-weight: {{i.weight}}; text-decoration: none">
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex: none"><path d="{{i.icon}}"></path></svg>
+                  <span style="flex: 1 1 auto">{{i.name}}</span>
+                  <sc-if value="{{i.badge}}" hint-placeholder-val="{{ false }}">
+                    <span aria-label="{{i.badgeLabel}}" style="font-family: 'Geist Mono', monospace; font-size: 11px; color: {{t.alert}}">{{i.badge}}</span>
+                  </sc-if>
+                </a>
+                <sc-if value="{{i.hasChildren}}" hint-placeholder-val="{{ false }}">
+                  <button type="button" aria-label="{{i.toggleLabel}}" aria-expanded="{{i.openAttr}}" onClick="{{i.toggle}}" style="width: 28px; height: 28px; flex: none; margin-right: 2px; border: 0; border-radius: 6px; background: transparent; color: {{t.faint}}; cursor: pointer; display: flex; align-items: center; justify-content: center">
+                    <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transform: {{i.chevron}}; transition: transform 150ms"><path d="M9 6l6 6-6 6"></path></svg>
+                  </button>
+                </sc-if>
+              </div>
+              <sc-if value="{{i.showChildren}}" hint-placeholder-val="{{ false }}">
+                <div style="margin: 2px 0 4px 16px; padding-left: 9px; border-left: 1px solid {{t.border}}; display: flex; flex-direction: column; gap: 1px">
+                  <sc-for list="{{i.children}}" as="c" hint-placeholder-count="1">
+                    <a href="{{c.href}}" style="height: 30px; display: flex; align-items: center; padding: 0 8px; border-radius: 7px; background: {{c.bg}}; color: {{c.color}}; font-weight: {{c.weight}}; text-decoration: none">{{c.name}}</a>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </sc-if>
+      </div>
+    </sc-for>
+  </nav>
+
+  <div style="flex: none; display: flex; flex-direction: column; gap: 1px; border-top: 1px solid {{t.border}}; padding-top: 10px">
+    <a href="#" style="height: 32px; display: flex; align-items: center; gap: 10px; padding: 0 8px; border-radius: 7px; color: {{t.muted}}; text-decoration: none">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5 5.5 4h13L20 9.5M4 9.5h16M4 9.5V20h16V9.5M9.5 20v-5h5v5"></path></svg>
+      <span style="flex: 1 1 auto">查看店铺</span>
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"></path></svg>
+    </a>
+    <button type="button" aria-haspopup="menu" aria-label="账户菜单：店主" style="height: 44px; margin-top: 4px; display: flex; align-items: center; gap: 10px; padding: 0 6px; border: 0; border-radius: 7px; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer; text-align: left">
+      <span aria-hidden="true" style="width: 26px; height: 26px; flex: none; border-radius: 999px; background: {{t.raised}}; border: 1px solid {{t.border}}; display: flex; align-items: center; justify-content: center; font-size: 11px; color: {{t.muted}}">店</span>
+      <span style="flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0">
+        <span style="font-weight: 500">店主</span>
+        <span style="font-size: 12px; color: {{t.faint}}">owner@example.com</span>
+      </span>
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"></path></svg>
+    </button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"active":{"editor":"text","default":"概览"},"$preview":{"width":240,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { closedGroups: {}, openItems: {} };
+  }
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const active = this.props.active ?? '概览';
+    const s = this.state;
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C',
+      border: 'rgba(255,255,255,0.09)', active: 'rgba(255,255,255,0.07)', alert: '#F5A97F'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373',
+      border: 'rgba(0,0,0,0.09)', active: 'rgba(0,0,0,0.05)', alert: '#B4470E'
+    };
+    const I = {
+      home: 'M3.5 10.5 12 3.5l8.5 7V20h-5.5v-5.5h-6V20H3.5z',
+      orders: 'M6 3.5h12v17l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6',
+      products: 'M3.5 7.5 12 3.5l8.5 4v9l-8.5 4-8.5-4zM3.5 7.5 12 11.5l8.5-4M12 11.5v9',
+      customers: 'M15.5 19.5c0-3-1.6-4.8-3.5-4.8s-3.5 1.8-3.5 4.8M12 11.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
+      bell: 'M6 9a6 6 0 1 1 12 0c0 6.5 2.5 7.5 2.5 7.5h-17S6 15.5 6 9M10 20a2 2 0 0 0 4 0',
+      themes: 'M12 3.5a8.5 8.5 0 1 0 0 17c1 0 1.5-.7 1.5-1.4 0-1.1-1-1.5-1-2.4s.7-1.4 1.6-1.4H17a3.5 3.5 0 0 0 3.5-3.5c0-4.5-3.8-8.3-8.5-8.3z',
+      plugins: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+      code: 'M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14',
+      staff: 'M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M5 20.5c0-3.9 3.1-6 7-6s7 2.1 7 6',
+      audit: 'M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01',
+      settings: 'M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4',
+      health: 'M3 12h4l2.5-6 5 12 2.5-6h4'
+    };
+    const defs = [
+      { label: '店铺', items: [
+        { name: '概览', icon: I.home, href: 'Main.dc.html' },
+        { name: '订单', icon: I.orders, href: 'Orders.dc.html', badge: '2', badgeLabel: '2 笔付款待审核' },
+        { name: '商品', icon: I.products, href: 'Products.dc.html', children: [{ name: '分类', href: 'Categories.dc.html' }] },
+        { name: '客户', icon: I.customers, href: 'Customers.dc.html' },
+        { name: '通知', icon: I.bell, href: '#' }
+      ] },
+      { label: '外观与扩展', items: [
+        { name: '主题', icon: I.themes, href: 'Themes.dc.html' },
+        { name: '插件', icon: I.plugins, href: 'Plugins.dc.html' },
+        { name: '追踪与自定义代码', icon: I.code, href: 'StorefrontCode.dc.html' }
+      ] },
+      { label: '管理', items: [
+        { name: '管理员', icon: I.staff, href: 'Staff.dc.html' },
+        { name: '审计记录', icon: I.audit, href: '#' },
+        { name: '设置', icon: I.settings, href: '#' },
+        { name: '系统健康', icon: I.health, href: '#' }
+      ] }
+    ];
+    const childActive = (i) => (i.children || []).some(c => c.name === active);
+    return {
+      t,
+      groups: defs.map(g => {
+        const open = !s.closedGroups[g.label];
+        return {
+          label: g.label, open,
+          openAttr: open ? 'true' : 'false',
+          chevron: open ? 'rotate(90deg)' : 'rotate(0deg)',
+          toggle: () => this.setState({ closedGroups: { ...s.closedGroups, [g.label]: open } }),
+          items: g.items.map(i => {
+            const on = i.name === active;
+            const inside = on || childActive(i);
+            const itemOpen = s.openItems[i.name] ?? inside;
+            return {
+              name: i.name, icon: i.icon, href: i.href, badge: i.badge || '', badgeLabel: i.badgeLabel || '',
+              hasChildren: !!i.children,
+              showChildren: !!i.children && itemOpen,
+              openAttr: itemOpen ? 'true' : 'false',
+              chevron: itemOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+              toggleLabel: (itemOpen ? '收起' : '展开') + i.name,
+              toggle: () => this.setState({ openItems: { ...s.openItems, [i.name]: !itemOpen } }),
+              bg: on ? t.active : 'transparent',
+              color: inside ? t.fg : t.muted,
+              weight: inside ? 500 : 400,
+              children: (i.children || []).map(c => ({
+                name: c.name, href: c.href,
+                bg: c.name === active ? t.active : 'transparent',
+                color: c.name === active ? t.fg : t.muted,
+                weight: c.name === active ? 500 : 400
+              }))
+            };
+          })
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

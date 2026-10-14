@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 插件详情</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-ghost:hover{background:rgba(128,128,128,0.08)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="插件" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; position: relative">
+
+    <header style="position: sticky; top: 0; z-index: 4; background: {{t.bg}}; border-bottom: 1px solid {{t.border}}">
+      <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 16px 32px 14px; display: flex; flex-direction: column; gap: 10px">
+        <a href="Plugins.dc.html" style="width: max-content; color: {{t.muted}}">← 插件</a>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0">
+            <span aria-hidden="true" style="width: 32px; height: 32px; flex: none; border-radius: 8px; border: 1px solid {{t.border}}; background: {{t.raised}}; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; color: {{t.muted}}">S</span>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Stripe 付款</h1>
+            <span style="font-size: 12px; height: 22px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 6px; border: 1px solid {{t.border}}; color: {{t.muted}}">已验证</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 6px; border: 1px solid {{t.border}}; color: {{v.stColor}}; font-size: 12px"><span aria-hidden="true" style="width: 7px; height: 7px; box-sizing: border-box; border-radius: 999px; border: 1.4px solid currentColor; background: {{v.dot}}"></span>{{v.status}}</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+            <span style="font-size: 12px; color: {{s.noteColor}}">{{s.note}}</span>
+            <button type="button" aria-label="更多操作：卸载插件" aria-haspopup="menu" class="jf-ghost" style="height: 32px; width: 32px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button>
+            <button type="button" disabled="{{v.toggleDisabled}}" title="{{v.toggleTitle}}" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{v.toggleColor}}; font: inherit; cursor: pointer">{{v.toggle}}</button>
+            <sc-if value="{{s.dirty}}" hint-placeholder-val="{{ false }}">
+              <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">放弃更改</button>
+            </sc-if>
+            <button type="button" disabled="{{s.saveDisabled}}" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{s.saveBg}}; color: {{s.saveFg}}; font: inherit; font-weight: 500; cursor: {{s.saveCursor}}">保存配置</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 24px 32px 64px; display: flex; flex-direction: column; gap: 20px">
+
+      <sc-if value="{{v.missing}}" hint-placeholder-val="{{ false }}">
+        <div role="status" style="display: flex; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid {{t.alertLine}}; background: {{t.alertSoft}}; color: {{t.alert}}; line-height: 1.6">
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><path d="M12 4 2.5 20h19zM12 10v4M12 17h.01"></path></svg>
+          <span>还差 2 项必填配置才能启用：秘密密钥、Webhook 签名密钥。</span>
+        </div>
+      </sc-if>
+
+      <section aria-labelledby="cfg" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="padding: 12px 16px; border-bottom: 1px solid {{t.border}}; display: flex; flex-direction: column; gap: 2px">
+          <h2 id="cfg" style="margin: 0; font-size: 13px; font-weight: 600">配置</h2>
+          <span style="font-size: 12px; color: {{t.faint}}">这些项目由插件决定。密钥保存后不会再显示，需要换时输入新值即可。</span>
+        </div>
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px">
+            <label for="c-mode">运行模式 <span style="color: {{t.danger}}" aria-hidden="true">*</span></label>
+            <button id="c-mode" type="button" aria-haspopup="listbox" style="height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">正式<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px">
+            <label for="c-pk">发布密钥 <span style="color: {{t.danger}}" aria-hidden="true">*</span></label>
+            <input id="c-pk" value="pk_live_51Nx…Q8a" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px">
+            <label for="c-sk">秘密密钥 <span style="color: {{t.danger}}" aria-hidden="true">*</span></label>
+            <input id="c-sk" type="password" placeholder="{{v.skPh}}" aria-invalid="{{v.skInvalid}}" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{v.skBorder}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+            <span style="font-size: 12px; color: {{v.skHintColor}}">{{v.skHint}}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px">
+            <label for="c-wh">Webhook 签名密钥 <span style="color: {{t.danger}}" aria-hidden="true">*</span></label>
+            <input id="c-wh" type="password" placeholder="{{v.whPh}}" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+          </div>
+          <label style="display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 460px">
+            <span style="display: flex; flex-direction: column; gap: 2px"><span>显示 Apple Pay</span><span style="font-size: 12px; color: {{t.faint}}">支持的设备上，结账页会出现 Apple Pay 按钮。</span></span>
+            <input type="checkbox" role="switch" checked style="width: 32px; height: 18px; accent-color: {{t.fg}}">
+          </label>
+        </div>
+      </section>
+
+      <sc-if value="{{v.error}}" hint-placeholder-val="{{ true }}">
+        <section aria-labelledby="err" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+          <h2 id="err" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">最近记录的错误</h2>
+          <div style="padding: 12px 16px; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-family: 'Geist Mono', monospace; font-size: 12px; line-height: 1.6; word-break: break-all">Stripe API 请求超时（timeout after 10000ms）</span>
+            <span style="font-size: 12px; color: {{t.faint}}">2026-10-12 21:03 · 这是历史记录，不代表插件现在有问题。</span>
+          </div>
+        </section>
+      </sc-if>
+
+      <section aria-labelledby="about" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="about" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">关于这个插件</h2>
+        <dl style="margin: 0; padding: 4px 16px">
+          <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 9px 0; border-bottom: 1px solid {{t.border}}"><dt style="width: 96px; color: {{t.muted}}">说明</dt><dd style="margin: 0; flex: 1 1 300px; line-height: 1.6">用 Stripe 收取信用卡和 Apple Pay 付款，支持退款。</dd></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 9px 0; border-bottom: 1px solid {{t.border}}"><dt style="width: 96px; color: {{t.muted}}">版本</dt><dd style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px">2.3.1</dd></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 9px 0; border-bottom: 1px solid {{t.border}}"><dt style="width: 96px; color: {{t.muted}}">插件标识</dt><dd style="margin: 0; font-family: 'Geist Mono', monospace; font-size: 12px">stripe</dd></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 9px 0; border-bottom: 1px solid {{t.border}}"><dt style="width: 96px; color: {{t.muted}}">签名</dt><dd style="margin: 0; flex: 1 1 300px; line-height: 1.6">已验证 · 发布者 jiffoo<br><span style="font-size: 12px; color: {{t.faint}}">由官方信任的发布者签名。</span></dd></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 9px 0; border-bottom: 1px solid {{t.border}}"><dt style="width: 96px; color: {{t.muted}}">声明的能力</dt><dd style="margin: 0; flex: 1 1 300px; line-height: 1.6">收款、退款、接收付款通知<br><span style="font-size: 12px; color: {{t.faint}}">由插件自己声明，系统无法核实。</span></dd></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 9px 0"><dt style="width: 96px; color: {{t.muted}}">类型</dt><dd style="margin: 0">付款方式</dd></div>
+        </dl>
+      </section>
+    </div>
+
+    <sc-if value="{{confirm}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,0.32); display: flex; align-items: flex-start; justify-content: center; padding: 160px 16px 16px">
+        <div role="alertdialog" aria-modal="true" aria-labelledby="dis-title" aria-describedby="dis-desc" style="width: 100%; max-width: 440px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 16px 48px rgba(0,0,0,0.2); padding: 20px; display: flex; flex-direction: column; gap: 14px">
+          <h2 id="dis-title" style="margin: 0; font-size: 15px; font-weight: 600">停用这个付款方式？</h2>
+          <p id="dis-desc" style="margin: 0; color: {{t.muted}}; line-height: 1.7">有 <span style="color: {{t.fg}}; font-weight: 500">3 笔待付款订单</span>在用 Stripe 付款。停用期间，这些订单的付款结果收不到，要等重新启用后才会更新。顾客结账时也看不到这个付款方式。</p>
+          <div style="display: flex; justify-content: flex-end; gap: 8px">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">取消</button>
+            <button type="button" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.dangerSolid}}; color: #FFFFFF; font: inherit; font-weight: 500; cursor: pointer">仍然停用</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"state":{"editor":"enum","options":["启用中","启用中 · 有未保存的更改","需要配置","停用确认（有待付款订单）"],"default":"启用中"},"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const st = this.props.state ?? '启用中';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)',
+      alert: '#F5A97F', alertSoft: 'rgba(245,169,127,0.07)', alertLine: 'rgba(245,169,127,0.22)', danger: '#FF8A80', dangerSolid: '#D93025'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)',
+      alert: '#B4470E', alertSoft: '#FFF6F0', alertLine: 'rgba(180,71,14,0.22)', danger: '#B3261E', dangerSolid: '#C62828'
+    };
+    const need = st === '需要配置';
+    const dirty = st === '启用中 · 有未保存的更改';
+    return {
+      t, mode, confirm: st === '停用确认（有待付款订单）',
+      v: {
+        missing: need, error: !need,
+        status: need ? '已停用' : '启用中', stColor: need ? t.faint : t.fg, dot: need ? 'transparent' : 'currentColor',
+        toggle: need ? '启用' : '停用', toggleDisabled: need, toggleColor: need ? t.faint : t.fg,
+        toggleTitle: need ? '先填完必填配置并保存，才能启用' : '',
+        skPh: need ? '' : '已设置。输入新值可替换', whPh: need ? '' : '已设置。输入新值可替换',
+        skInvalid: need ? 'true' : 'false', skBorder: need ? t.alert : t.border,
+        skHint: need ? '必填' : '以 sk_live_ 或 sk_test_ 开头。', skHintColor: need ? t.alert : t.faint
+      },
+      s: {
+        dirty, note: dirty ? '有未保存的更改' : '已保存 · 2026-10-08 11:30',
+        noteColor: dirty ? t.alert : t.faint,
+        saveDisabled: !dirty, saveBg: dirty ? t.fg : t.raised, saveFg: dirty ? t.bg : t.faint, saveCursor: dirty ? 'pointer' : 'default'
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

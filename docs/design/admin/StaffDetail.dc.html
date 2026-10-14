@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 管理员详情</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-ghost:hover{background:rgba(128,128,128,0.08)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="管理员" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; position: relative">
+
+    <header style="position: sticky; top: 0; z-index: 4; background: {{t.bg}}; border-bottom: 1px solid {{t.border}}">
+      <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 16px 32px 14px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: {{t.muted}}">
+          <a href="Staff.dc.html" style="width: max-content">← 管理员</a>
+          <div style="display: flex; align-items: center; gap: 4px">
+            <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: {{t.faint}}; margin-right: 4px">{{v.pos}}</span>
+            <a href="#" aria-label="上一位管理员" class="jf-ghost" style="width: 28px; height: 28px; box-sizing: border-box; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid {{t.border}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></a>
+            <a href="#" aria-label="下一位管理员" class="jf-ghost" style="width: 28px; height: 28px; box-sizing: border-box; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid {{t.border}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></a>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0">
+            <span aria-hidden="true" style="width: 32px; height: 32px; flex: none; border-radius: 999px; border: 1px solid {{t.border}}; background: {{t.raised}}; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; color: {{t.muted}}">{{v.initial}}</span>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">{{v.name}}</h1>
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 6px; border: 1px solid {{t.border}}; color: {{v.statusColor}}; font-size: 12px">
+              <span aria-hidden="true" style="width: 7px; height: 7px; box-sizing: border-box; border-radius: 999px; border: 1.4px {{v.dotStyle}} currentColor; background: {{v.dotFill}}"></span>{{v.status}}
+            </span>
+            <sc-if value="{{v.tag}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; height: 22px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 6px; border: 1px solid {{t.border}}; color: {{t.muted}}">{{v.tag}}</span></sc-if>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; position: relative">
+            <sc-if value="{{v.hasMenu}}" hint-placeholder-val="{{ true }}">
+              <button type="button" aria-label="{{v.menuLabel}}" aria-haspopup="menu" aria-expanded="{{menuAttr}}" class="jf-ghost" style="height: 32px; width: 32px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
+              </button>
+            </sc-if>
+            <sc-if value="{{v.secondary}}" hint-placeholder-val="{{ false }}">
+              <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">{{v.secondary}}</button>
+            </sc-if>
+            <sc-if value="{{v.primary}}" hint-placeholder-val="{{ false }}">
+              <button type="button" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">{{v.primary}}</button>
+            </sc-if>
+            <sc-if value="{{v.selfLink}}" hint-placeholder-val="{{ false }}">
+              <a href="Profile.dc.html" style="height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; color: {{t.fg}}">编辑我的账户</a>
+            </sc-if>
+            <sc-if value="{{menu}}" hint-placeholder-val="{{ false }}">
+              <div role="menu" aria-label="管理员操作" style="position: absolute; right: 0; top: 40px; z-index: 6; width: 260px; padding: 4px; border-radius: 10px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 8px 28px rgba(0,0,0,0.14)">
+                <button type="button" role="menuitem" aria-disabled="{{v.removeDisabled}}" class="jf-ghost" style="width: 100%; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: {{v.removeColor}}; font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 2px">
+                  <span>{{v.removeText}}</span>
+                  <span style="font-size: 12px; color: {{t.faint}}; line-height: 1.5">{{v.removeHint}}</span>
+                </button>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; color: {{t.muted}}">
+          <span>{{v.email}}</span>
+          <span>添加于 {{v.added}}</span>
+          <span style="color: {{t.faint}}">时间均为 Asia/Shanghai</span>
+        </div>
+      </div>
+    </header>
+
+    <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 24px 32px 64px; display: flex; flex-direction: column; gap: 20px">
+
+      <sc-if value="{{v.banner}}" hint-placeholder-val="{{ false }}">
+        <section aria-label="状态说明" style="border-radius: 10px; border: 1px solid {{t.border}}; background: {{t.raised}}; padding: 12px 16px; color: {{t.muted}}; line-height: 1.6">{{v.banner}}</section>
+      </sc-if>
+
+      <sc-if value="{{link}}" hint-placeholder-val="{{ false }}">
+        <section aria-label="邀请链接" style="border-radius: 10px; border: 1px solid {{t.border}}; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+          <span style="font-weight: 500">新的邀请链接已生成</span>
+          <div style="display: flex; gap: 8px">
+            <label for="invite-link" style="position: absolute; left: -9999px">邀请链接</label>
+            <input id="invite-link" readonly value="https://admin.example.com/zh-Hans/auth/accept-invite?token=4b1d…a07c" style="flex: 1 1 auto; min-width: 0; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">复制链接</button>
+          </div>
+          <span style="font-size: 12px; color: {{t.muted}}; line-height: 1.6">72 小时内有效，只能用一次。之前发出的邀请链接和邮件已失效。</span>
+        </section>
+      </sc-if>
+
+      <section aria-labelledby="s-info" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="s-info" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">资料</h2>
+        <dl style="margin: 0; padding: 4px 16px">
+          <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid {{t.border}}">
+            <dt style="width: 96px; color: {{t.muted}}">名字</dt><dd style="margin: 0; flex: 1 1 200px">{{v.name}}</dd>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid {{t.border}}">
+            <dt style="width: 96px; color: {{t.muted}}">邮箱</dt><dd style="margin: 0; flex: 1 1 200px">{{v.email}}</dd>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 10px 0; border-bottom: {{v.inviteBorder}}">
+            <dt style="width: 96px; color: {{t.muted}}">权限</dt><dd style="margin: 0; flex: 1 1 200px">全部（所有管理员权限相同）</dd>
+          </div>
+          <sc-if value="{{v.invite}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 10px 0">
+              <dt style="width: 96px; color: {{t.muted}}">邀请有效期</dt><dd style="margin: 0; flex: 1 1 200px">{{v.invite}}</dd>
+            </div>
+          </sc-if>
+        </dl>
+        <p style="margin: 0; padding: 10px 16px; border-top: 1px solid {{t.border}}; font-size: 12px; color: {{t.faint}}">名字和邮箱由管理员本人在“我的账户”里修改。</p>
+      </section>
+
+      <section aria-labelledby="s-log" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="s-log" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">记录</h2>
+        <ol style="list-style: none; margin: 0; padding: 14px 16px; display: flex; flex-direction: column">
+          <sc-for list="{{events}}" as="e" hint-placeholder-count="2">
+            <li style="display: flex; gap: 12px">
+              <span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; width: 10px">
+                <span style="width: 8px; height: 8px; margin-top: 5px; border-radius: 999px; background: {{e.dot}}"></span>
+                <span style="flex: 1 1 auto; width: 1px; background: {{e.line}}"></span>
+              </span>
+              <span style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 14px">
+                <span>{{e.text}}</span>
+                <span style="font-size: 12px; color: {{t.faint}}">{{e.who}} · {{e.time}}</span>
+              </span>
+            </li>
+          </sc-for>
+        </ol>
+      </section>
+    </div>
+
+    <sc-if value="{{confirm}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,0.32); display: flex; align-items: flex-start; justify-content: center; padding: 160px 16px 16px">
+        <div role="alertdialog" aria-modal="true" aria-labelledby="rm-title" aria-describedby="rm-desc" style="width: 100%; max-width: 440px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 16px 48px rgba(0,0,0,0.2); padding: 20px; display: flex; flex-direction: column; gap: 14px">
+          <h2 id="rm-title" style="margin: 0; font-size: 15px; font-weight: 600">移除管理员“陈晓”？</h2>
+          <p id="rm-desc" style="margin: 0; color: {{t.muted}}; line-height: 1.7">陈晓会立刻退出登录，之后不能再进入后台。过去的操作记录都会保留。以后需要时可以在这里重新邀请。</p>
+          <div style="display: flex; justify-content: flex-end; gap: 8px">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">取消</button>
+            <button type="button" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.danger}}; color: #FFFFFF; font: inherit; font-weight: 500; cursor: pointer">移除</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"state":{"editor":"enum","options":["正常","已邀请","邀请已过期","已移除","店主（你自己）"],"default":"正常"},"overlay":{"editor":"enum","options":["无","更多菜单","移除确认","邀请链接已生成"],"default":"无"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const st = this.props.state ?? '正常';
+    const overlay = this.props.overlay ?? '无';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)', danger: '#D93025'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)', danger: '#C62828'
+    };
+    const ok = { statusColor: t.fg, dotFill: 'currentColor', dotStyle: 'solid' };
+    const inv = { statusColor: t.fg, dotFill: 'transparent', dotStyle: 'dashed' };
+    const gone = { statusColor: t.faint, dotFill: 'transparent', dotStyle: 'solid' };
+    const removable = { removeDisabled: 'false', removeColor: t.danger };
+    const V = {
+      '正常': { ...ok, ...removable, name: '陈晓', email: 'chen.ops@example.com', added: '2026-09-12 14:20', status: '正常', pos: '2 / 5',
+        hasMenu: true, menuLabel: '更多操作：移除管理员', removeText: '移除管理员', removeHint: '立刻退出登录，不能再进入后台。',
+        events: [['接受邀请，设置了密码', '陈晓', '2026-09-12 15:02'], ['被邀请为管理员', '店主', '2026-09-12 14:20']] },
+      '已邀请': { ...inv, ...removable, name: 'Lucas Meyer', email: 'lucas.ops@example.com', added: '2026-10-12 10:05', status: '已邀请', pos: '3 / 5',
+        hasMenu: true, menuLabel: '更多操作：撤销邀请', removeText: '撤销邀请', removeHint: '邀请链接立即失效。',
+        secondary: '复制邀请链接', primary: '重新发送邀请邮件', invite: '2026-10-15 10:05 前有效',
+        banner: '还没有接受邀请。对方点邮件里的链接、设置密码后就能登录。',
+        events: [['被邀请为管理员', '店主', '2026-10-12 10:05']] },
+      '邀请已过期': { ...inv, ...removable, name: '王芳', email: 'wang.ops@example.com', added: '2026-10-01 18:30', status: '已邀请', pos: '4 / 5',
+        hasMenu: true, menuLabel: '更多操作：撤销邀请', removeText: '撤销邀请', removeHint: '这个人将不能再通过邀请加入。',
+        secondary: '复制新的邀请链接', primary: '重新发送邀请邮件', invite: '已于 2026-10-04 18:30 过期',
+        banner: '邀请已过期，对方还没有加入。重新发送后会有新的 72 小时有效期。',
+        events: [['被邀请为管理员', '店主', '2026-10-01 18:30']] },
+      '已移除': { ...gone, name: '李雷', email: 'li.ops@example.com', added: '2026-09-05 11:42', status: '已移除', pos: '5 / 5',
+        hasMenu: false, primary: '重新邀请',
+        banner: '已于 2026-10-10 09:12 被移除，不能登录后台。重新邀请后，对方需要通过新的邀请链接重新设置密码。',
+        events: [['被移除', '店主', '2026-10-10 09:12'], ['接受邀请，设置了密码', '李雷', '2026-09-05 12:30'], ['被邀请为管理员', '店主', '2026-09-05 11:42']] },
+      '店主（你自己）': { ...ok, name: '店主', email: 'owner@example.com', added: '2026-09-01 09:00', status: '正常', tag: '店主 · 你', pos: '1 / 5',
+        hasMenu: true, menuLabel: '更多操作', removeDisabled: 'true', removeColor: t.faint, removeText: '移除管理员',
+        removeHint: '安装时创建的店主不能被移除，你也不能移除自己。', selfLink: true,
+        events: [['安装时创建了店主账户', '系统', '2026-09-01 09:00']] }
+    };
+    const v0 = V[st] || V['正常'];
+    const v = { tag: '', secondary: '', primary: '', invite: '', banner: '', selfLink: false, ...v0,
+      initial: v0.name.slice(0, 1).toUpperCase(), inviteBorder: v0.invite ? '1px solid ' + t.border : '0' };
+    const evs = v.events;
+    return {
+      t, mode, v,
+      menu: overlay === '更多菜单' && v.hasMenu, menuAttr: overlay === '更多菜单' ? 'true' : 'false',
+      confirm: overlay === '移除确认',
+      link: overlay === '邀请链接已生成',
+      events: evs.map(([text, who, time], i) => ({ text, who, time, dot: i === 0 ? t.fg : t.faint, line: i === evs.length - 1 ? 'transparent' : t.border }))
+    };
+  }
+}
+</script>
+</body>
+</html>

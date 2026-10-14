@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 管理员列表</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-row:hover{background:rgba(128,128,128,0.06)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="管理员" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; position: relative">
+    <div style="width: 100%; max-width: 1120px; box-sizing: border-box; margin: 0 auto; padding: 40px 32px 32px; display: flex; flex-direction: column; gap: 16px">
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.025em">管理员</h1>
+          <p style="margin: 0; color: {{t.muted}}">能登录后台的人。所有管理员权限相同，可以管理店铺的全部内容。</p>
+        </div>
+        <button type="button" style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>邀请管理员
+        </button>
+      </div>
+
+      <div role="tablist" aria-label="管理员状态" style="display: flex; flex-wrap: wrap; gap: 20px; border-bottom: 1px solid {{t.border}}">
+        <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="4">
+          <button type="button" role="tab" aria-selected="{{tab.selected}}" style="height: 36px; padding: 0; margin-bottom: -1px; border: 0; border-bottom: 1.5px solid {{tab.line}}; background: transparent; color: {{tab.color}}; font: inherit; font-weight: 500; cursor: pointer">{{tab.name}}<span style="margin-left: 6px; font-family: 'Geist Mono', monospace; font-size: 11px; color: {{t.faint}}">{{tab.count}}</span></button>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <div style="flex: 1 1 260px; position: relative; display: flex">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" style="position: absolute; left: 11px; top: 10px"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <label for="staff-search" style="position: absolute; left: -9999px">搜索管理员</label>
+          <input id="staff-search" type="search" placeholder="搜索名字或邮箱" style="flex: 1 1 auto; min-width: 0; height: 34px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 0 12px 0 32px; font: inherit">
+        </div>
+      </div>
+
+      <div style="border-radius: 10px; border: 1px solid {{t.border}}; overflow: hidden">
+        <div style="overflow-x: auto">
+        <table style="width: 100%; min-width: 680px; border-collapse: collapse">
+          <thead>
+            <tr style="color: {{t.faint}}; text-align: left; background: {{t.raised}}">
+              <th scope="col" style="padding: 10px 16px; font-weight: 500; font-size: 12px">管理员</th>
+              <th scope="col" style="padding: 10px 12px; font-weight: 500; font-size: 12px">状态</th>
+              <th scope="col" style="padding: 10px 16px 10px 12px; font-weight: 500; font-size: 12px; text-align: right">添加时间（Asia/Shanghai）</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+              <tr class="jf-row" style="border-top: 1px solid {{t.border}}; cursor: pointer">
+                <td style="padding: 10px 16px">
+                  <a href="StaffDetail.dc.html" style="display: flex; align-items: center; gap: 10px">
+                    <span aria-hidden="true" style="width: 28px; height: 28px; flex: none; border-radius: 999px; border: 1px solid {{t.border}}; background: {{t.raised}}; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; color: {{t.muted}}">{{r.initial}}</span>
+                    <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                      <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 500">{{r.name}}
+                        <sc-if value="{{r.tag}}" hint-placeholder-val="{{ false }}"><span style="font-size: 11px; font-weight: 400; height: 18px; display: inline-flex; align-items: center; padding: 0 6px; border-radius: 5px; border: 1px solid {{t.border}}; color: {{t.muted}}">{{r.tag}}</span></sc-if>
+                      </span>
+                      <span style="font-size: 12px; color: {{t.faint}}">{{r.email}}</span>
+                    </span>
+                  </a>
+                </td>
+                <td style="padding: 10px 12px; white-space: nowrap">
+                  <span style="display: inline-flex; flex-direction: column; gap: 2px">
+                    <span style="display: inline-flex; align-items: center; gap: 7px; color: {{r.statusColor}}">
+                      <span aria-hidden="true" style="width: 7px; height: 7px; box-sizing: border-box; border-radius: 999px; border: 1.4px {{r.dotStyle}} currentColor; background: {{r.dotFill}}"></span>{{r.status}}
+                    </span>
+                    <sc-if value="{{r.note}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: {{t.faint}}; padding-left: 14px">{{r.note}}</span></sc-if>
+                  </span>
+                </td>
+                <td style="padding: 10px 16px 10px 12px; text-align: right; color: {{t.muted}}; white-space: nowrap; font-variant-numeric: tabular-nums">{{r.added}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <nav aria-label="翻页" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; color: {{t.muted}}">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+          <span style="font-variant-numeric: tabular-nums">1–5，共 5 条</span>
+          <label style="display: inline-flex; align-items: center; gap: 6px">每页
+            <button type="button" aria-haspopup="listbox" aria-label="每页条数" style="height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px; cursor: pointer">20<svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+          条</label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px">
+          <button type="button" aria-label="上一页" disabled style="width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.faint}}; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button>
+          <button type="button" aria-label="第 1 页" aria-current="page" style="min-width: 30px; height: 30px; padding: 0 6px; border-radius: 7px; border: 1px solid {{t.fg}}; background: {{t.fg}}; color: {{t.bg}}; font-family: 'Geist Mono', monospace; font-size: 12px">1</button>
+          <button type="button" aria-label="下一页" disabled style="width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.faint}}; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button>
+        </div>
+      </nav>
+    </div>
+
+    <sc-if value="{{dialog}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,0.32); display: flex; align-items: flex-start; justify-content: center; padding: 140px 16px 16px">
+        <div role="dialog" aria-modal="true" aria-labelledby="inv-title" style="width: 100%; max-width: 440px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 16px 48px rgba(0,0,0,0.2); padding: 20px; display: flex; flex-direction: column; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <h2 id="inv-title" style="margin: 0; font-size: 15px; font-weight: 600">邀请管理员</h2>
+            <p style="margin: 0; color: {{t.muted}}; line-height: 1.6">对方会收到一封邀请邮件，72 小时内设置密码后就能登录后台。管理员可以管理店铺的全部内容。</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="inv-email">邮箱</label>
+            <input id="inv-email" type="email" value="{{inv.email}}" placeholder="name@example.com" aria-invalid="{{inv.invalid}}" aria-describedby="inv-email-err" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{inv.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+            <sc-if value="{{inv.error}}" hint-placeholder-val="{{ false }}"><span id="inv-email-err" style="font-size: 12px; color: {{t.danger}}">{{inv.error}}</span></sc-if>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="inv-name">名字</label>
+            <input id="inv-name" value="{{inv.name}}" placeholder="后台里显示的名字" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">取消</button>
+            <button type="button" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">发送邀请</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"overlay":{"editor":"enum","options":["无","邀请弹窗","邀请弹窗 · 邮箱已被使用"],"default":"无"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const overlay = this.props.overlay ?? '无';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)', danger: '#FF8A80'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)', danger: '#C62828'
+    };
+    const st = {
+      '正常': { statusColor: t.fg, dotFill: 'currentColor', dotStyle: 'solid' },
+      '已邀请': { statusColor: t.fg, dotFill: 'transparent', dotStyle: 'dashed' },
+      '已移除': { statusColor: t.faint, dotFill: 'transparent', dotStyle: 'solid' }
+    };
+    const rows = [
+      ['店主', 'owner@example.com', '正常', '店主 · 你', '', '2026-09-01 09:00'],
+      ['陈晓', 'chen.ops@example.com', '正常', '', '', '2026-09-12 14:20'],
+      ['Lucas Meyer', 'lucas.ops@example.com', '已邀请', '', '邀请 2026-10-15 10:05 前有效', '2026-10-12 10:05'],
+      ['王芳', 'wang.ops@example.com', '已邀请', '', '邀请已过期', '2026-10-01 18:30'],
+      ['李雷', 'li.ops@example.com', '已移除', '', '', '2026-09-05 11:42']
+    ];
+    const tabs = [['全部', '5', true], ['正常', '2'], ['已邀请', '2'], ['已移除', '1']]
+      .map(([name, c, s]) => ({ name, count: c, selected: s ? 'true' : 'false', line: s ? t.fg : 'transparent', color: s ? t.fg : t.faint }));
+    const taken = overlay === '邀请弹窗 · 邮箱已被使用';
+    return {
+      t, mode, tabs,
+      dialog: overlay !== '无',
+      inv: {
+        email: taken ? 'li.ops@example.com' : '', name: taken ? '李雷' : '',
+        invalid: taken ? 'true' : 'false', border: taken ? t.danger : t.border,
+        error: taken ? '这个邮箱已经是管理员（已移除）。请到该管理员的详情页点“重新邀请”。' : ''
+      },
+      rows: rows.map(([name, email, status, tag, note, added]) => ({
+        name, email, status, tag, note, added, initial: name.slice(0, 1).toUpperCase(), ...st[status]
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

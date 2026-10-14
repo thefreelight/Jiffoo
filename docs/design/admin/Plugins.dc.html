@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 插件</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-ghost:hover{background:rgba(128,128,128,0.08)}
+.jf-row:hover{background:rgba(128,128,128,0.05)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="插件" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; position: relative">
+    <div style="width: 100%; max-width: 1120px; box-sizing: border-box; margin: 0 auto; padding: 40px 32px 48px; display: flex; flex-direction: column; gap: 16px">
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.025em">插件</h1>
+          <p style="margin: 0; color: {{t.muted}}">给店铺加功能，例如付款方式、物流、营销工具。</p>
+        </div>
+        <button type="button" style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5M7 10l5-5 5 5M5 20h14"></path></svg>上传插件
+        </button>
+      </div>
+
+      <sc-if value="{{recovery}}" hint-placeholder-val="{{ false }}">
+        <div role="alert" style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid {{t.alertLine}}; background: {{t.alertSoft}}; color: {{t.alert}}">
+          <div style="display: flex; gap: 10px">
+            <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 1px"><path d="M12 4 2.5 20h19zM12 10v4M12 17h.01"></path></svg>
+            <span style="line-height: 1.6">“顺丰物流”上次安装没有完成（已执行 1 / 2 个数据库改动），插件暂停中。建议先备份，再用保存好的插件包重试。</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; padding-left: 25px">
+            <button type="button" style="height: 30px; padding: 0 12px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">重试安装</button>
+            <a href="#" style="height: 30px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.alertLine}}; color: {{t.alert}}">查看详情</a>
+          </div>
+        </div>
+      </sc-if>
+
+      <div role="tablist" aria-label="插件视图" style="display: flex; flex-wrap: wrap; gap: 20px; border-bottom: 1px solid {{t.border}}">
+        <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="3">
+          <button type="button" role="tab" aria-selected="{{tab.selected}}" onClick="{{tab.pick}}" style="height: 36px; padding: 0; margin-bottom: -1px; border: 0; border-bottom: 1.5px solid {{tab.line}}; background: transparent; color: {{tab.color}}; font: inherit; font-weight: 500; cursor: pointer">{{tab.name}}<span style="margin-left: 6px; font-family: 'Geist Mono', monospace; font-size: 11px; color: {{t.faint}}">{{tab.count}}</span></button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{isInstalled}}" hint-placeholder-val="{{ true }}">
+        <div style="border-radius: 10px; border: 1px solid {{t.border}}; overflow: hidden">
+          <sc-for list="{{installed}}" as="p" hint-placeholder-count="4">
+            <div class="jf-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid {{t.border}}">
+              <span aria-hidden="true" style="width: 36px; height: 36px; flex: none; border-radius: 8px; border: 1px solid {{t.border}}; background: {{t.raised}}; display: flex; align-items: center; justify-content: center; font-weight: 600; color: {{t.muted}}">{{p.initial}}</span>
+              <a href="PluginDetail.dc.html" style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+                <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><span style="font-weight: 500">{{p.name}}</span><span style="font-size: 11px; height: 18px; display: inline-flex; align-items: center; padding: 0 6px; border-radius: 5px; border: 1px solid {{p.trustLine}}; color: {{p.trustColor}}">{{p.trust}}</span></span>
+                <span style="font-size: 12px; color: {{t.muted}}">{{p.desc}} · <span style="font-family: 'Geist Mono', monospace">{{p.ver}}</span></span>
+              </a>
+              <span style="display: inline-flex; align-items: center; gap: 7px; min-width: 120px; color: {{p.stColor}}">
+                <span aria-hidden="true" style="width: 7px; height: 7px; box-sizing: border-box; border-radius: 999px; border: 1.4px solid currentColor; background: {{p.dot}}"></span>{{p.status}}
+              </span>
+              <a href="PluginDetail.dc.html" style="height: 30px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}">{{p.action}}</a>
+              <button type="button" aria-label="{{p.more}}" aria-haspopup="menu" class="jf-ghost" style="height: 30px; width: 30px; border-radius: 7px; border: 0; background: transparent; color: {{t.muted}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button>
+            </div>
+          </sc-for>
+          <p style="margin: 0; padding: 10px 16px; font-size: 12px; color: {{t.faint}}">启用、停用和配置在插件详情页；“⋯”里可以卸载。内置插件不能卸载。</p>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isMarket}}" hint-placeholder-val="{{ false }}">
+        <div style="border-radius: 10px; border: 1px solid {{t.border}}; overflow: hidden">
+          <sc-for list="{{market}}" as="m" hint-placeholder-count="3">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid {{t.border}}">
+              <span aria-hidden="true" style="width: 36px; height: 36px; flex: none; border-radius: 8px; border: 1px solid {{t.border}}; background: {{t.raised}}; display: flex; align-items: center; justify-content: center; font-weight: 600; color: {{t.muted}}">{{m.initial}}</span>
+              <div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+                <span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><span style="font-weight: 500">{{m.name}}</span><span style="font-size: 11px; height: 18px; display: inline-flex; align-items: center; padding: 0 6px; border-radius: 5px; border: 1px solid {{t.border}}; color: {{t.muted}}">已验证</span></span>
+                <span style="font-size: 12px; color: {{t.muted}}; line-height: 1.6">{{m.desc}}</span>
+                <span style="font-size: 12px; color: {{t.faint}}">发布者 {{m.pub}} · 最新 <span style="font-family: 'Geist Mono', monospace">{{m.ver}}</span><sc-if value="{{m.note}}" hint-placeholder-val="{{ false }}"> · <span style="color: {{m.noteColor}}">{{m.note}}</span></sc-if></span>
+              </div>
+              <button type="button" disabled="{{m.disabled}}" style="height: 30px; padding: 0 14px; border-radius: 7px; border: {{m.btnBorder}}; background: {{m.btnBg}}; color: {{m.btnFg}}; font: inherit; font-weight: 500; cursor: pointer">{{m.btn}}</button>
+            </div>
+          </sc-for>
+          <p style="margin: 0; padding: 10px 16px; font-size: 12px; color: {{t.faint}}">安装前会先显示这个插件要做的数据库改动，确认后才安装。</p>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isRemoved}}" hint-placeholder-val="{{ false }}">
+        <div style="border-radius: 10px; border: 1px solid {{t.border}}; overflow: hidden">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid {{t.border}}">
+            <span aria-hidden="true" style="width: 36px; height: 36px; flex: none; border-radius: 8px; border: 1px solid {{t.border}}; background: {{t.raised}}; display: flex; align-items: center; justify-content: center; font-weight: 600; color: {{t.faint}}">满</span>
+            <div style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+              <span style="font-weight: 500">满减活动</span>
+              <span style="font-size: 12px; color: {{t.muted}}">2026-10-09 15:40 卸载 · 配置和数据都还在，可以恢复</span>
+            </div>
+            <button type="button" style="height: 30px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">恢复</button>
+            <button type="button" aria-label="更多操作：永久删除 满减活动" aria-haspopup="menu" class="jf-ghost" style="height: 30px; width: 30px; border-radius: 7px; border: 0; background: transparent; color: {{t.muted}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button>
+          </div>
+          <p style="margin: 0; padding: 10px 16px; font-size: 12px; color: {{t.faint}}">恢复后插件保持停用，需要再到详情页启用。“永久删除”会删掉安装记录、配置和密钥，订单记录保留。</p>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{dlg}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,0.32); display: flex; align-items: flex-start; justify-content: center; padding: 96px 16px 16px">
+        <div role="dialog" aria-modal="true" aria-labelledby="pl-title" style="width: 100%; max-width: 520px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 16px 48px rgba(0,0,0,0.2); padding: 20px; display: flex; flex-direction: column; gap: 14px">
+          <h2 id="pl-title" style="margin: 0; font-size: 15px; font-weight: 600">{{d.title}}</h2>
+
+          <sc-if value="{{d.pick}}" hint-placeholder-val="{{ false }}">
+            <label style="position: relative; border-radius: 10px; border: 1px dashed {{t.border}}; padding: 26px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; cursor: pointer">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5M7 10l5-5 5 5M5 20h14"></path></svg>
+              <span>选择插件包</span>
+              <span style="font-size: 12px; color: {{t.faint}}">拖到这里，或点击选择 .zip 文件，最大 10 MB</span>
+              <input type="file" accept=".zip" style="position: absolute; left: -9999px">
+            </label>
+            <p style="margin: 0; font-size: 12px; color: {{t.muted}}; line-height: 1.6">选好后会先检查插件包，告诉你它是谁发布的、要做哪些数据库改动，确认后才安装。</p>
+          </sc-if>
+
+          <sc-if value="{{d.preview}}" hint-placeholder-val="{{ false }}">
+            <dl style="margin: 0; border: 1px solid {{t.border}}; border-radius: 10px; padding: 4px 14px">
+              <div style="display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid {{t.border}}"><dt style="width: 88px; color: {{t.muted}}">插件</dt><dd style="margin: 0">顺丰物流 <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: {{t.muted}}">sf-express · 1.2.0</span></dd></div>
+              <div style="display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid {{t.border}}"><dt style="width: 88px; color: {{t.muted}}">签名</dt><dd style="margin: 0; color: {{t.alert}}">未签名，无法确认发布者</dd></div>
+              <div style="display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid {{t.border}}"><dt style="width: 88px; color: {{t.muted}}">声明的能力</dt><dd style="margin: 0; line-height: 1.6">读取订单、写入发货信息<br><span style="font-size: 12px; color: {{t.faint}}">由插件自己声明，系统无法核实</span></dd></div>
+              <div style="display: flex; gap: 12px; padding: 8px 0"><dt style="width: 88px; color: {{t.muted}}">数据库改动</dt><dd style="margin: 0; line-height: 1.6">新建插件专用空间 <span style="font-family: 'Geist Mono', monospace; font-size: 12px">plugin_sf_express</span>，执行 2 个改动文件<br><span style="font-size: 12px; color: {{t.faint}}">建议先备份。改动执行后不会自动撤销。</span></dd></div>
+            </dl>
+            <div role="alert" style="border-radius: 10px; border: 1px solid {{t.dangerLine}}; background: {{t.dangerSoft}}; color: {{t.danger}}; padding: 12px 14px; line-height: 1.6">这个插件没有签名，会和系统在同一个进程里运行，能读写数据库。只安装你信任的代码。</div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <label for="pl-slug">输入插件标识 <span style="font-family: 'Geist Mono', monospace">sf-express</span> 以确认</label>
+              <input id="pl-slug" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">
+            </div>
+          </sc-if>
+
+          <sc-if value="{{d.progress}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 10px">
+              <div style="height: 6px; border-radius: 999px; background: {{t.raised}}; border: 1px solid {{t.border}}; overflow: hidden"><div style="width: 50%; height: 100%; background: {{t.fg}}"></div></div>
+              <span style="color: {{t.muted}}">正在安装“顺丰物流”… 已执行 1 / 2 个数据库改动。请不要关闭页面。</span>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{d.done}}" hint-placeholder-val="{{ false }}">
+            <p style="margin: 0; color: {{t.muted}}; line-height: 1.6">“顺丰物流”已安装，目前是停用状态。先完成配置，再启用。</p>
+          </sc-if>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px">
+            <sc-if value="{{d.cancel}}" hint-placeholder-val="{{ true }}"><button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">{{d.cancel}}</button></sc-if>
+            <sc-if value="{{d.ok}}" hint-placeholder-val="{{ true }}"><button type="button" disabled="{{d.okDisabled}}" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{d.okBg}}; color: {{d.okFg}}; font: inherit; font-weight: 500; cursor: pointer">{{d.ok}}</button></sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"view":{"editor":"enum","options":["已安装","插件市场","已卸载"],"default":"已安装"},"overlay":{"editor":"enum","options":["无","上传 · 选择文件","上传 · 检查结果","上传 · 安装中","上传 · 完成","安装没完成的提示"],"default":"无"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { view: null }; }
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const view = this.state.view ?? this.props.view ?? '已安装';
+    const ov = this.props.overlay ?? '无';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)',
+      alert: '#F5A97F', alertSoft: 'rgba(245,169,127,0.07)', alertLine: 'rgba(245,169,127,0.22)',
+      danger: '#FF8A80', dangerSoft: 'rgba(255,138,128,0.07)', dangerLine: 'rgba(255,138,128,0.25)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)',
+      alert: '#B4470E', alertSoft: '#FFF6F0', alertLine: 'rgba(180,71,14,0.22)',
+      danger: '#B3261E', dangerSoft: '#FDF3F2', dangerLine: 'rgba(179,38,30,0.22)'
+    };
+    const trust = (k) => k === '未签名' ? { trustColor: t.alert, trustLine: t.alertLine } : { trustColor: t.muted, trustLine: t.border };
+    const S = {
+      '启用中': { stColor: t.fg, dot: 'currentColor', action: '管理' },
+      '已停用': { stColor: t.faint, dot: 'transparent', action: '管理' },
+      '需要配置': { stColor: t.alert, dot: 'transparent', action: '去配置' },
+      '暂停中': { stColor: t.alert, dot: 'transparent', action: '查看' }
+    };
+    const inst = [
+      ['Stripe 付款', '信用卡和 Apple Pay 收款', '2.3.1', '已验证', '启用中'],
+      ['支付宝', '支付宝扫码和网页付款', '1.4.0', '已验证', '需要配置'],
+      ['邮件发送', '用 SMTP 发送系统邮件', '1.0.0', '内置', '启用中'],
+      ['顺丰物流', '下单后自动生成运单', '1.2.0', '未签名', ov === '安装没完成的提示' ? '暂停中' : '已停用']
+    ];
+    const market = [
+      ['PayPal 付款', 'PayPal 账户和银行卡付款。', 'jiffoo', '1.1.0', '', '', '安装'],
+      ['Stripe 付款', '信用卡和 Apple Pay 收款。', 'jiffoo', '2.4.0', '已安装 2.3.1，有更新', t.fg, '更新'],
+      ['微信支付', '微信扫码和公众号付款。', 'jiffoo', '1.0.0', '需要更新的 Core 版本', t.faint, '不兼容']
+    ];
+    const D = {
+      '上传 · 选择文件': { title: '上传插件', pick: true, cancel: '取消', ok: '检查插件包', okDisabled: true },
+      '上传 · 检查结果': { title: '确认安装', preview: true, cancel: '取消', ok: '确认安装', okDisabled: false },
+      '上传 · 安装中': { title: '正在安装', progress: true, cancel: '', ok: '' },
+      '上传 · 完成': { title: '安装完成', done: true, cancel: '关闭', ok: '去配置', okDisabled: false }
+    };
+    const d0 = D[ov];
+    const d = d0 ? { pick: false, preview: false, progress: false, done: false, ...d0,
+      okBg: d0.okDisabled ? t.raised : t.fg, okFg: d0.okDisabled ? t.faint : t.bg } : {};
+    return {
+      t, mode,
+      recovery: ov === '安装没完成的提示',
+      dlg: !!d0, d,
+      tabs: [['已安装', '4'], ['插件市场', ''], ['已卸载', '1']].map(([n, c]) => ({ name: n, count: c, selected: n === view ? 'true' : 'false', line: n === view ? t.fg : 'transparent', color: n === view ? t.fg : t.faint, pick: () => this.setState({ view: n }) })),
+      isInstalled: view === '已安装', isMarket: view === '插件市场', isRemoved: view === '已卸载',
+      installed: inst.map(([name, desc, ver, tr, status]) => ({ name, desc, ver, trust: tr, status, initial: name.slice(0, 1), more: '更多操作：' + name, ...trust(tr), ...S[status] })),
+      market: market.map(([name, desc, pub, ver, note, noteColor, btn]) => ({
+        name, desc, pub, ver, note, noteColor, btn, initial: name.slice(0, 1),
+        disabled: btn === '不兼容',
+        btnBg: btn === '不兼容' ? 'transparent' : btn === '安装' ? t.fg : 'transparent',
+        btnFg: btn === '不兼容' ? t.faint : btn === '安装' ? t.bg : t.fg,
+        btnBorder: btn === '安装' ? '0' : '1px solid ' + t.border
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

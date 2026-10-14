@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 编辑商品</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-row:hover{background:rgba(128,128,128,0.06)}
+.jf-ghost:hover{background:rgba(128,128,128,0.08)}
+</style>
+</helmet>
+<div style="position: relative; font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="商品" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0">
+
+    <header style="position: sticky; top: 0; z-index: 4; background: {{t.bg}}; border-bottom: 1px solid {{t.border}}">
+      <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 16px 32px 14px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: {{t.muted}}">
+          <a href="Products.dc.html" style="width: max-content">← 商品</a>
+          <sc-if value="{{isEdit}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; align-items: center; gap: 4px">
+              <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: {{t.faint}}; margin-right: 4px">3 / 46</span>
+              <a href="#" aria-label="上一个商品" class="jf-ghost" style="width: 28px; height: 28px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid {{t.border}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></a>
+              <a href="#" aria-label="下一个商品" class="jf-ghost" style="width: 28px; height: 28px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid {{t.border}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></a>
+            </div>
+          </sc-if>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0">
+            <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">{{title}}</h1>
+            <sc-if value="{{isEdit}}" hint-placeholder-val="{{ true }}">
+              <button type="button" aria-haspopup="listbox" aria-label="商品状态：在售" style="height: 26px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 999px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; font: inherit; font-size: 12px; cursor: pointer"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 999px; background: {{t.fg}}"></span>在售<svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+            </sc-if>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+            <span style="display: inline-flex; align-items: center; gap: 6px; color: {{saveHintColor}}; font-size: 12px"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 999px; background: {{saveDot}}"></span>{{saveHint}}</span>
+            <sc-if value="{{isEdit}}" hint-placeholder-val="{{ true }}">
+              <a href="#" aria-label="在店铺中查看（新窗口）" title="在店铺中查看" class="jf-ghost" style="width: 32px; height: 32px; border-radius: 7px; border: 1px solid {{t.border}}; display: inline-flex; align-items: center; justify-content: center; color: {{t.muted}}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg></a>
+              <button type="button" aria-label="更多操作：复制商品、删除" aria-haspopup="menu" class="jf-ghost" style="width: 32px; height: 32px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.muted}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button>
+            </sc-if>
+            <sc-if value="{{dirty}}" hint-placeholder-val="{{ true }}">
+              <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">{{discardLabel}}</button>
+            </sc-if>
+            <sc-if value="{{isCreate}}" hint-placeholder-val="{{ false }}">
+              <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">保存并继续添加</button>
+            </sc-if>
+            <button type="button" aria-disabled="{{saveDisabledAttr}}" style="height: 32px; padding: 0 16px; border-radius: 7px; border: 0; background: {{saveBg}}; color: {{saveFg}}; font: inherit; font-weight: 500; cursor: {{saveCursor}}">保存</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 24px 32px 64px; display: flex; flex-direction: column; gap: 20px">
+
+      <sc-if value="{{showError}}" hint-placeholder-val="{{ false }}">
+        <div role="alert" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; border: 1px solid {{t.dangerLine}}; color: {{t.danger}}">
+          <span style="flex: 1 1 auto">保存失败：有 1 处需要修改。你填的内容都还在。</span>
+          <a href="#s-var" style="font-weight: 500; text-decoration: underline; text-underline-offset: 3px">去修改 →</a>
+        </div>
+      </sc-if>
+
+      <section aria-labelledby="s-basic" style="border: 1px solid {{t.border}}; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+        <h2 id="s-basic" style="margin: 0; font-size: 13px; font-weight: 600">基本信息</h2>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="p-name" style="color: {{t.muted}}">名称</label>
+          <input id="p-name" value="{{nameValue}}" style="height: 34px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 0 12px; font: inherit">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="p-spu" style="color: {{t.muted}}">SPU</label>
+          <input id="p-spu" value="{{spuValue}}" placeholder="留空，保存时自动生成" aria-describedby="p-spu-hint" style="height: 34px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 0 12px; font-family: 'Geist Mono', monospace; font-size: 12px">
+          <span id="p-spu-hint" style="font-size: 12px; color: {{t.faint}}">商品的款号，全店唯一，不分大小写。可用字母、数字和 - _ .，最长 64 个字符。留空时自动生成，如 P000124。</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="p-desc" style="color: {{t.muted}}">描述</label>
+          <textarea id="p-desc" rows="4" style="box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 8px 12px; font: inherit; line-height: 1.6; resize: vertical">{{descValue}}</textarea>
+        </div>
+      </section>
+
+      <section id="s-var" aria-labelledby="s-var-h" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid {{t.border}}">
+          <h2 id="s-var-h" style="margin: 0; font-size: 13px; font-weight: 600">规格、价格与库存</h2>
+          <div style="display: flex; gap: 6px">
+            <button type="button" aria-haspopup="dialog" style="height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">批量设置价格 / 库存</button>
+            <button type="button" style="height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">添加规格</button>
+          </div>
+        </div>
+        <div style="overflow-x: auto">
+          <table style="width: 100%; min-width: 620px; border-collapse: collapse">
+            <thead>
+              <tr style="color: {{t.faint}}; text-align: left; background: {{t.raised}}">
+                <th scope="col" style="padding: 9px 16px; font-weight: 500; font-size: 12px">规格名称</th>
+                <th scope="col" style="padding: 9px 8px; font-weight: 500; font-size: 12px">SKU</th>
+                <th scope="col" style="padding: 9px 8px; font-weight: 500; font-size: 12px; width: 116px">价格</th>
+                <th scope="col" style="padding: 9px 8px; font-weight: 500; font-size: 12px; width: 80px">库存</th>
+                <th scope="col" style="padding: 9px 8px; font-weight: 500; font-size: 12px; width: 52px">可售</th>
+                <th scope="col" style="width: 40px"><span style="position: absolute; left: -9999px">移除</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{variants}}" as="v" hint-placeholder-count="3">
+                <tr style="border-top: 1px solid {{t.border}}; vertical-align: top">
+                  <td style="padding: 8px 8px 8px 16px"><input aria-label="{{v.nameLabel}}" value="{{v.name}}" style="width: 100%; height: 30px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 0 10px; font: inherit"></td>
+                  <td style="padding: 8px"><input aria-label="{{v.skuLabel}}" aria-invalid="{{v.skuInvalid}}" value="{{v.sku}}" placeholder="留空自动生成" style="width: 100%; height: 30px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{v.skuBorder}}; background: {{t.raised}}; color: {{t.fg}}; padding: 0 10px; font-family: 'Geist Mono', monospace; font-size: 12px"><sc-if value="{{v.skuError}}" hint-placeholder-val="{{ false }}"><span style="display: block; margin-top: 4px; font-size: 12px; color: {{t.danger}}">{{v.skuError}}</span></sc-if></td>
+                  <td style="padding: 8px">
+                    <div style="display: flex; align-items: center; height: 30px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{v.priceBorder}}; background: {{t.raised}}; padding: 0 10px; gap: 4px">
+                      <span aria-hidden="true" style="color: {{t.faint}}">¥</span>
+                      <input aria-label="{{v.priceLabel}}" aria-invalid="{{v.priceInvalid}}" value="{{v.price}}" style="flex: 1 1 auto; min-width: 0; border: 0; background: transparent; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px; text-align: right; outline: none">
+                    </div>
+                    <sc-if value="{{v.priceError}}" hint-placeholder-val="{{ false }}"><span style="display: block; margin-top: 4px; font-size: 12px; color: {{t.danger}}">{{v.priceError}}</span></sc-if>
+                  </td>
+                  <td style="padding: 8px"><input aria-label="{{v.stockLabel}}" value="{{v.stock}}" style="width: 100%; height: 30px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{v.stockBorder}}; background: {{t.raised}}; color: {{v.stockColor}}; padding: 0 10px; font-family: 'Geist Mono', monospace; font-size: 12px; text-align: right"></td>
+                  <td style="padding: 8px"><button type="button" role="switch" aria-checked="{{v.onAttr}}" aria-label="{{v.saleLabel}}" style="width: 32px; height: 18px; margin-top: 6px; border-radius: 999px; border: 0; background: {{v.track}}; position: relative; cursor: pointer"><span aria-hidden="true" style="position: absolute; top: 2px; left: {{v.knob}}; width: 14px; height: 14px; border-radius: 999px; background: {{t.bg}}"></span></button></td>
+                  <td style="padding: 8px 12px 8px 0; text-align: right"><button type="button" aria-label="{{v.removeLabel}}" aria-disabled="{{v.removeDisabled}}" title="{{v.removeTitle}}" style="width: 28px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: {{v.removeColor}}; cursor: {{v.removeCursor}}"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin: 0; padding: 10px 16px; border-top: 1px solid {{t.border}}; font-size: 12px; color: {{t.faint}}">SKU 全店唯一，留空时按 SPU 自动生成（如 SHIRT-LINEN-04）。已有订单的规格不能移除（灰色 ×）；不想卖了就关闭“可售”。改 SKU 不影响已有订单里记下的编号。</p>
+      </section>
+
+      <section aria-labelledby="s-img" style="border: 1px solid {{t.border}}; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 id="s-img" style="margin: 0; font-size: 13px; font-weight: 600">图片</h2>
+          <span style="font-size: 12px; color: {{t.faint}}">拖动调整顺序，第一张是封面</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px">
+          <sc-for list="{{images}}" as="img" hint-placeholder-count="2">
+            <div style="position: relative; width: 96px; height: 96px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{img.bg}}; cursor: grab">
+              <sc-if value="{{img.cover}}" hint-placeholder-val="{{ false }}">
+                <span style="position: absolute; left: 4px; bottom: 4px; height: 18px; padding: 0 6px; border-radius: 5px; background: {{t.fg}}; color: {{t.bg}}; font-size: 11px; display: inline-flex; align-items: center">封面</span>
+              </sc-if>
+              <button type="button" aria-label="{{img.label}}" style="position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border: 0; border-radius: 6px; background: {{t.bg}}; color: {{t.muted}}; cursor: pointer"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg></button>
+            </div>
+          </sc-for>
+          <button type="button" style="flex: 1 1 200px; min-height: 96px; border-radius: 7px; border: 1px dashed {{t.borderStrong}}; background: transparent; color: {{t.muted}}; font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            <span>把图片拖到这里，或点击上传</span>
+            <span style="font-size: 12px; color: {{t.faint}}">JPG、PNG 或 WebP</span>
+          </button>
+        </div>
+      </section>
+
+      <section aria-labelledby="s-org" style="border: 1px solid {{t.border}}; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+        <h2 id="s-org" style="margin: 0; font-size: 13px; font-weight: 600">分类与配送</h2>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span id="cat-l" style="color: {{t.muted}}">分类</span>
+          <button type="button" aria-labelledby="cat-l" aria-haspopup="listbox" style="height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; font: inherit; cursor: pointer">{{category}}<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid {{t.border}}">
+          <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px">
+            <span id="ship-l">需要配送</span>
+            <span style="color: {{t.muted}}">实物商品打开；电子商品（如礼品卡）关闭，下单时就不要求填写收货地址。</span>
+          </div>
+          <button type="button" role="switch" aria-checked="true" aria-labelledby="ship-l" style="width: 36px; height: 20px; flex: none; border-radius: 999px; border: 0; background: {{t.fg}}; position: relative; cursor: pointer"><span aria-hidden="true" style="position: absolute; top: 2px; left: 18px; width: 16px; height: 16px; border-radius: 999px; background: {{t.bg}}"></span></button>
+        </div>
+      </section>
+
+      <section aria-labelledby="s-tr" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="s-tr" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">翻译 <span style="font-weight: 400; color: {{t.faint}}">· 选填，未填写的语言显示店铺默认语言的内容</span></h2>
+        <sc-for list="{{langs}}" as="l" hint-placeholder-count="2">
+          <button type="button" aria-expanded="false" class="jf-row" style="width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 0; border-top: 1px solid {{l.top}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer; text-align: left">
+            <span style="flex: 1 1 auto">{{l.name}}</span>
+            <span style="color: {{l.stateColor}}">{{l.state}}</span>
+            <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+          </button>
+        </sc-for>
+      </section>
+    </div>
+  </main>
+
+  <sc-if value="{{showLeave}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,0.45); display: flex; align-items: flex-start; justify-content: center; padding: 160px 16px 16px; box-sizing: border-box">
+      <div role="alertdialog" aria-modal="true" aria-labelledby="leave-t" style="width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 10px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 16px 48px rgba(0,0,0,0.2); padding: 20px; display: flex; flex-direction: column; gap: 12px">
+        <h2 id="leave-t" style="margin: 0; font-size: 16px; font-weight: 600">离开前要保存吗？</h2>
+        <p style="margin: 0; color: {{t.muted}}; line-height: 1.6">这个商品有未保存的更改。不保存就离开，这些更改会丢失。</p>
+        <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px">
+          <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.danger}}; font: inherit; cursor: pointer">不保存，离开</button>
+          <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">继续编辑</button>
+          <button type="button" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">保存并离开</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"page":{"editor":"enum","options":["编辑商品","新建商品"],"default":"编辑商品"},"dirty":{"editor":"boolean","default":true},"showError":{"editor":"boolean","default":false},"showLeave":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const isCreate = (this.props.page ?? '编辑商品') === '新建商品';
+    const dirty = this.props.dirty ?? true;
+    const showError = this.props.showError ?? false;
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', thumb: '#1A1A1A', off: '#333333',
+      border: 'rgba(255,255,255,0.09)', borderStrong: 'rgba(255,255,255,0.22)', alert: '#F5A97F', alertLine: 'rgba(245,169,127,0.45)',
+      danger: '#FCA5A5', dangerLine: 'rgba(252,165,165,0.4)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', thumb: '#EDEDED', off: '#D4D4D4',
+      border: 'rgba(0,0,0,0.09)', borderStrong: 'rgba(0,0,0,0.22)', alert: '#B4470E', alertLine: 'rgba(180,71,14,0.45)',
+      danger: '#B91C1C', dangerLine: 'rgba(185,28,28,0.35)'
+    };
+    const vs = isCreate
+      ? [['默认', '', '', '0', true, false]]
+      : [['白色 / M', 'SHIRT-W-M', '59.00', '18', true, true], ['白色 / L', showError ? 'TOTE-01' : 'SHIRT-W-L', '59.00', '24', true, true], ['燕麦色 / M', 'SHIRT-O-M', '65.00', '0', false, false]];
+    const canSave = dirty || isCreate;
+    return {
+      t, mode, dirty, showError, isCreate, isEdit: !isCreate, showLeave: this.props.showLeave ?? false,
+      title: isCreate ? '新商品' : '亚麻衬衫',
+      nameValue: isCreate ? '' : '亚麻衬衫',
+      spuValue: isCreate ? '' : 'SHIRT-LINEN',
+      descValue: isCreate ? '' : '100% 亚麻，透气轻薄，适合春夏。',
+      category: isCreate ? '未分类' : '服装',
+      discardLabel: isCreate ? '取消' : '放弃更改',
+      saveHint: isCreate ? '新商品，尚未保存' : dirty ? '有未保存的更改' : '已保存 · 2026-10-13 10:42',
+      saveHintColor: dirty || isCreate ? t.fg : t.faint,
+      saveDot: dirty || isCreate ? t.alert : 'transparent',
+      saveBg: canSave ? t.fg : t.raised, saveFg: canSave ? t.bg : t.faint,
+      saveCursor: canSave ? 'pointer' : 'not-allowed', saveDisabledAttr: canSave ? 'false' : 'true',
+      variants: vs.map(([name, sku, price, stock, on, sold]) => {
+        const err = '';
+        const skuErr = showError && sku === 'TOTE-01' ? '这个 SKU 已被商品「帆布托特包」使用' : '';
+        return {
+          name, sku, price, stock,
+          nameLabel: '规格名称：' + name, skuLabel: name + ' 的 SKU', priceLabel: name + ' 的价格（元）', stockLabel: name + ' 的库存', saleLabel: name + ' 可售',
+          priceError: err, priceInvalid: err ? 'true' : 'false', priceBorder: err ? t.danger : t.border,
+          skuError: skuErr, skuInvalid: skuErr ? 'true' : 'false', skuBorder: skuErr ? t.danger : t.border,
+          onAttr: on ? 'true' : 'false', track: on ? t.fg : t.off, knob: on ? '16px' : '2px',
+          stockColor: stock === '0' && !isCreate ? t.alert : t.fg, stockBorder: stock === '0' && !isCreate ? t.alertLine : t.border,
+          removeLabel: '移除规格 ' + name, removeTitle: sold ? '已有订单，不能移除' : '移除',
+          removeDisabled: sold ? 'true' : 'false', removeColor: sold ? t.off : t.muted, removeCursor: sold ? 'not-allowed' : 'pointer'
+        };
+      }),
+      images: isCreate ? [] : [{ bg: t.thumb, label: '第 1 张图片的操作：设为封面、移除', cover: true }, { bg: t.thumb, label: '第 2 张图片的操作：设为封面、移除', cover: false }],
+      langs: [
+        { name: '简体中文', state: isCreate ? '未填写' : '已填写', stateColor: isCreate ? t.faint : t.muted, top: 'transparent' },
+        { name: '繁體中文', state: '未填写', stateColor: t.faint, top: t.border }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 追踪与自定义代码</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-ghost:hover{background:rgba(128,128,128,0.08)}
+.jf-row:hover{background:rgba(128,128,128,0.05)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="追踪与自定义代码" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; position: relative">
+
+    <header style="position: sticky; top: 0; z-index: 4; background: {{t.bg}}; border-bottom: 1px solid {{t.border}}">
+      <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 20px 32px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">追踪与自定义代码</h1>
+          <span style="color: {{t.muted}}">给店铺加统计工具或自己的代码。</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+          <span style="font-size: 12px; color: {{s.noteColor}}">{{s.note}}</span>
+          <sc-if value="{{s.dirty}}" hint-placeholder-val="{{ false }}">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">放弃更改</button>
+          </sc-if>
+          <button type="button" disabled="{{s.saveDisabled}}" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{s.saveBg}}; color: {{s.saveFg}}; font: inherit; font-weight: 500; cursor: {{s.saveCursor}}">保存</button>
+        </div>
+      </div>
+    </header>
+
+    <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 24px 32px 64px; display: flex; flex-direction: column; gap: 20px">
+
+      <sc-if value="{{s.conflict}}" hint-placeholder-val="{{ false }}">
+        <div role="alert" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid {{t.alertLine}}; background: {{t.alertSoft}}; color: {{t.alert}}">
+          <span style="flex: 1 1 320px; line-height: 1.6">别人刚刚保存过新的版本。你的修改还在页面上，没有保存。请先载入最新版本，再把需要的修改加上去。</span>
+          <button type="button" style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.alertLine}}; background: transparent; color: {{t.alert}}; font: inherit; font-weight: 500; cursor: pointer">载入最新版本</button>
+        </div>
+      </sc-if>
+
+      <section aria-label="总开关" style="border: 1px solid {{t.border}}; border-radius: 10px; padding: 14px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+        <div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 4px">
+          <span style="font-weight: 500">{{sw.title}}</span>
+          <span style="color: {{t.muted}}; line-height: 1.6">{{sw.text}}</span>
+        </div>
+        <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer">
+          <input type="checkbox" role="switch" checked="{{sw.on}}" style="width: 34px; height: 18px; accent-color: {{t.fg}}">
+          <span>{{sw.label}}</span>
+        </label>
+      </section>
+
+      <p style="margin: 0; color: {{t.muted}}; line-height: 1.7; font-size: 12px; padding: 0 2px">只在店铺页面和订单完成页运行，<span style="color: {{t.fg}}">付款页面绝不运行</span>。代码的安全、速度和合规（例如隐私政策）由你负责。</p>
+
+      <section aria-labelledby="prov" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="padding: 12px 16px; border-bottom: 1px solid {{t.border}}; display: flex; flex-direction: column; gap: 2px">
+          <h2 id="prov" style="margin: 0; font-size: 13px; font-weight: 600">统计工具</h2>
+          <span style="font-size: 12px; color: {{t.faint}}">填 ID 就行，代码由系统自动加上。留空表示不用。</span>
+        </div>
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px">
+            <label for="ga4">Google Analytics 4 衡量 ID</label>
+            <input id="ga4" value="G-8KQ2M7XW1P" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">
+            <span style="font-size: 12px; color: {{t.faint}}">以 G- 开头，例如 G-ABC123。</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px">
+            <label for="meta">Meta Pixel ID</label>
+            <input id="meta" value="{{metaVal}}" aria-invalid="{{metaInvalid}}" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{metaBorder}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">
+            <span style="font-size: 12px; color: {{metaHintColor}}">{{metaHint}}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; max-width: 460px">
+            <label for="baidu">百度统计站点密钥</label>
+            <input id="baidu" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">
+            <span style="font-size: 12px; color: {{t.faint}}; line-height: 1.6">32 位小写字母和数字。在百度统计里打开“单页应用”设置，才能统计页面切换；打开“电商分析”才能看订单报告。</span>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="free" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="padding: 12px 16px; border-bottom: 1px solid {{t.border}}; display: flex; flex-direction: column; gap: 2px">
+          <h2 id="free" style="margin: 0; font-size: 13px; font-weight: 600">自定义代码</h2>
+          <span style="font-size: 12px; color: {{t.faint}}">页面加载后按下面的顺序运行。不支持 document.write。</span>
+        </div>
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 16px">
+          <sc-for list="{{codes}}" as="c" hint-placeholder-count="3">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <div style="display: flex; justify-content: space-between; gap: 8px"><label for="{{c.id}}">{{c.label}}</label><span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: {{t.faint}}">{{c.count}}</span></div>
+              <textarea id="{{c.id}}" rows="4" spellcheck="false" style="box-sizing: border-box; width: 100%; padding: 8px 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px; line-height: 1.6; resize: vertical">{{c.value}}</textarea>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section aria-labelledby="hist" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="padding: 12px 16px; border-bottom: 1px solid {{t.border}}; display: flex; justify-content: space-between; align-items: center; gap: 8px">
+          <h2 id="hist" style="margin: 0; font-size: 13px; font-weight: 600">历史版本</h2>
+          <span style="font-size: 12px; color: {{t.faint}}">共 6 个版本 · 时间为 Asia/Shanghai</span>
+        </div>
+        <sc-for list="{{revs}}" as="r" hint-placeholder-count="3">
+          <div class="jf-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid {{t.border}}">
+            <span style="font-family: 'Geist Mono', monospace; font-size: 12px; width: 40px">#{{r.no}}</span>
+            <span style="flex: 1 1 200px; color: {{t.muted}}">{{r.time}} · {{r.who}}</span>
+            <sc-if value="{{r.current}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: {{t.muted}}">当前版本</span></sc-if>
+            <sc-if value="{{r.old}}" hint-placeholder-val="{{ true }}"><button type="button" style="height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; font-size: 12px; cursor: pointer">查看并恢复</button></sc-if>
+          </div>
+        </sc-for>
+        <div style="padding: 8px 16px; display: flex; justify-content: flex-end; gap: 4px">
+          <button type="button" style="height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; font-size: 12px; cursor: pointer">更早的版本</button>
+        </div>
+        <p style="margin: 0; padding: 0 16px 12px; font-size: 12px; color: {{t.faint}}">恢复会把统计 ID 和代码换成那个版本的内容，并另存为一个新版本。总开关不受影响。</p>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"state":{"editor":"enum","options":["已保存 · 开启","已保存 · 关闭","有未保存的更改（ID 格式不对）","别人刚保存过"],"default":"已保存 · 开启"},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const st = this.props.state ?? '已保存 · 开启';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)',
+      alert: '#F5A97F', alertSoft: 'rgba(245,169,127,0.07)', alertLine: 'rgba(245,169,127,0.22)', danger: '#FF8A80'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)',
+      alert: '#B4470E', alertSoft: '#FFF6F0', alertLine: 'rgba(180,71,14,0.22)', danger: '#B3261E'
+    };
+    const off = st === '已保存 · 关闭';
+    const bad = st === '有未保存的更改（ID 格式不对）';
+    const dirty = bad || st === '别人刚保存过';
+    return {
+      t, mode,
+      sw: off
+        ? { on: false, label: '已关闭', title: '全部关闭', text: '下面的统计工具和自定义代码都不会运行。打开或关闭立即生效，不用点“保存”。' }
+        : { on: true, label: '已开启', title: '正在运行', text: '下面填写的统计工具和代码正在店铺里运行。打开或关闭立即生效，不用点“保存”。' },
+      metaVal: bad ? '18273x45' : '1827364509',
+      metaInvalid: bad ? 'true' : 'false', metaBorder: bad ? t.danger : t.border,
+      metaHint: bad ? '格式不对：只能是 1–32 位数字。' : '1–32 位数字。', metaHintColor: bad ? t.danger : t.faint,
+      s: {
+        dirty, conflict: st === '别人刚保存过',
+        note: dirty ? '有未保存的更改' : '已保存 · 版本 #6 · 2026-10-11 10:02',
+        noteColor: dirty ? t.alert : t.faint,
+        saveDisabled: !dirty, saveBg: dirty ? t.fg : t.raised, saveFg: dirty ? t.bg : t.faint, saveCursor: dirty ? 'pointer' : 'default'
+      },
+      codes: [
+        { id: 'head', label: '1. 头部代码', count: '182 / 65536', value: '<meta name="facebook-domain-verification" content="k2v9…" />' },
+        { id: 'bstart', label: '2. 正文开头代码', count: '0 / 65536', value: '' },
+        { id: 'bend', label: '3. 正文末尾代码', count: '96 / 65536', value: '<' + 'script>window.chatConfig = { id: "jf-4821" };<' + '/script>' }
+      ],
+      revs: [['6', '2026-10-11 10:02', '店主', true], ['5', '2026-10-02 18:40', '陈晓', false], ['4', '2026-09-28 09:15', '店主', false]]
+        .map(([no, time, who, cur]) => ({ no, time, who, current: cur, old: !cur }))
+    };
+  }
+}
+</script>
+</body>
+</html>

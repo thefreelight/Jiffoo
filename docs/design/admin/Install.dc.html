@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>安装向导</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.page}}; color: {{t.fg}}; min-height: 100vh; box-sizing: border-box; padding: 48px 16px 64px; display: flex; flex-direction: column; align-items: center; gap: 24px">
+
+  <div style="width: 100%; max-width: 520px; display: flex; justify-content: space-between; align-items: center; gap: 12px">
+    <span style="display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px">
+      <span aria-hidden="true" style="width: 26px; height: 26px; border-radius: 7px; background: {{t.fg}}; color: {{t.bg}}; display: flex; align-items: center; justify-content: center; font-size: 13px">J</span>Jiffoo
+    </span>
+    <button type="button" aria-haspopup="listbox" aria-label="界面语言" style="height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.muted}}; font: inherit; font-size: 12px; cursor: pointer">简体中文<svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+  </div>
+
+  <div style="width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 6px">
+    <h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em">{{c.title}}</h1>
+    <p style="margin: 0; color: {{t.muted}}; line-height: 1.6">{{c.sub}}</p>
+  </div>
+
+  <ol aria-label="安装步骤" style="list-style: none; margin: 0; padding: 0; width: 100%; max-width: 520px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+    <sc-for list="{{steps}}" as="s" hint-placeholder-count="3">
+      <li aria-current="{{s.current}}" style="display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 2px solid {{s.line}}">
+        <span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: {{t.faint}}">{{s.no}}</span>
+        <span style="color: {{s.color}}; font-weight: {{s.weight}}">{{s.name}}</span>
+      </li>
+    </sc-for>
+  </ol>
+
+  <div style="width: 100%; max-width: 520px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{t.border}}; background: {{t.bg}}; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+
+    <section aria-label="数据库" style="display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 8px; border: 1px solid {{c.dbLine}}; background: {{c.dbBg}}">
+      <span aria-hidden="true" style="width: 8px; height: 8px; margin-top: 5px; flex: none; border-radius: 999px; border: 1.4px solid {{c.dbColor}}; box-sizing: border-box; background: {{c.dbDot}}"></span>
+      <span style="display: flex; flex-direction: column; gap: 4px; line-height: 1.6">
+        <span style="color: {{c.dbColor}}; font-weight: 500">{{c.db}}</span>
+        <sc-if value="{{c.dbHelp}}" hint-placeholder-val="{{ false }}"><span style="color: {{t.muted}}">{{c.dbHelp}}</span></sc-if>
+      </span>
+      <sc-if value="{{c.retry}}" hint-placeholder-val="{{ false }}">
+        <button type="button" style="margin-left: auto; height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer; white-space: nowrap">重新检查</button>
+      </sc-if>
+    </section>
+
+    <sc-if value="{{c.form}}" hint-placeholder-val="{{ true }}">
+      <form style="display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="i-store">店铺名称</label>
+          <input id="i-store" value="{{c.store}}" disabled="{{c.locked}}" style="height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{c.inputBg}}; color: {{t.fg}}; font: inherit">
+          <span style="font-size: 12px; color: {{t.faint}}">显示在商城和邮件里，以后可以在“设置”中修改。</span>
+        </div>
+        <div style="height: 1px; background: {{t.border}}"></div>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <span style="font-weight: 600">店主账户</span>
+          <span style="color: {{t.muted}}; line-height: 1.6">第一个管理员。店主不能被移除，可以邀请其他管理员。</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="i-user">登录名</label>
+            <input id="i-user" value="{{c.user}}" disabled="{{c.locked}}" autocomplete="username" style="height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{c.inputBg}}; color: {{t.fg}}; font: inherit">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="i-email">邮箱</label>
+            <input id="i-email" type="email" value="{{c.email}}" disabled="{{c.locked}}" autocomplete="email" style="height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{c.inputBg}}; color: {{t.fg}}; font: inherit">
+          </div>
+        </div>
+        <span style="font-size: 12px; color: {{t.faint}}; margin-top: -8px">登录名：2–64 个字母、数字、点、横线或下划线。登录时邮箱和登录名都能用。</span>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="i-pw">密码</label>
+            <input id="i-pw" type="password" disabled="{{c.locked}}" autocomplete="new-password" style="height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{c.inputBg}}; color: {{t.fg}}; font: inherit">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="i-pw2">再输入一次</label>
+            <input id="i-pw2" type="password" disabled="{{c.locked}}" autocomplete="new-password" style="height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{c.inputBg}}; color: {{t.fg}}; font: inherit">
+          </div>
+        </div>
+        <span style="font-size: 12px; color: {{t.faint}}; margin-top: -8px">至少 8 个字符。</span>
+        <button type="button" disabled="{{c.locked}}" style="height: 38px; border-radius: 7px; border: 0; background: {{c.btnBg}}; color: {{c.btnFg}}; font: inherit; font-weight: 500; cursor: pointer">完成安装</button>
+      </form>
+    </sc-if>
+
+    <sc-if value="{{c.done}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <dl style="margin: 0; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; gap: 16px"><dt style="width: 72px; color: {{t.muted}}">店铺</dt><dd style="margin: 0">示例店铺</dd></div>
+          <div style="display: flex; gap: 16px"><dt style="width: 72px; color: {{t.muted}}">店主</dt><dd style="margin: 0">simo · owner@example.com</dd></div>
+          <div style="display: flex; gap: 16px"><dt style="width: 72px; color: {{t.muted}}">店铺时区</dt><dd style="margin: 0">UTC（可在“设置”中修改）</dd></div>
+        </dl>
+        <a href="Auth.dc.html" style="height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 7px; background: {{t.fg}}; color: {{t.bg}}; font-weight: 500">去登录</a>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{c.already}}" hint-placeholder-val="{{ false }}">
+      <a href="Auth.dc.html" style="height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 7px; background: {{t.fg}}; color: {{t.bg}}; font-weight: 500">去登录</a>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"state":{"editor":"enum","options":["检查数据库中","填写店主账户","数据库连不上","安装完成","已经安装过"],"default":"填写店主账户"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const st = this.props.state ?? '填写店主账户';
+    const t = mode === '暗色' ? {
+      page: '#000000', bg: '#0A0A0A', raised: '#111111', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.10)',
+      danger: '#FF8A80', dangerSoft: 'rgba(255,138,128,0.07)', dangerLine: 'rgba(255,138,128,0.25)'
+    } : {
+      page: '#FAFAFA', bg: '#FFFFFF', raised: '#F4F4F4', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)',
+      danger: '#B3261E', dangerSoft: '#FDF3F2', dangerLine: 'rgba(179,38,30,0.22)'
+    };
+    const okDb = { db: '数据库已连接', dbHelp: '', dbColor: t.fg, dbDot: t.fg, dbLine: t.border, dbBg: t.raised, retry: false };
+    const formOpen = { form: true, done: false, already: false, locked: false, inputBg: t.bg, btnBg: t.fg, btnFg: t.bg, store: '', user: '', email: '' };
+    const formLocked = { ...formOpen, locked: true, inputBg: t.raised, btnBg: t.raised, btnFg: t.faint };
+    const C = {
+      '检查数据库中': { title: '安装 Jiffoo', sub: '大约 1 分钟。完成后就能进入后台开始开店。', step: 1,
+        db: '正在检查数据库连接…', dbHelp: '', dbColor: t.muted, dbDot: 'transparent', dbLine: t.border, dbBg: t.raised, retry: false, ...formLocked },
+      '填写店主账户': { title: '安装 Jiffoo', sub: '大约 1 分钟。完成后就能进入后台开始开店。', step: 2, ...okDb, ...formOpen, store: '示例店铺', user: 'simo', email: 'owner@example.com' },
+      '数据库连不上': { title: '安装 Jiffoo', sub: '大约 1 分钟。完成后就能进入后台开始开店。', step: 1,
+        db: '连不上数据库', dbHelp: '请确认数据库已经启动，并检查服务器上的数据库地址设置（DATABASE_URL）。改好后点“重新检查”。', dbColor: t.danger, dbDot: 'transparent', dbLine: t.dangerLine, dbBg: t.dangerSoft, retry: true, ...formLocked },
+      '安装完成': { title: '安装完成', sub: '店铺已经建好。用刚才的邮箱或登录名登录后台。', step: 3, ...okDb, form: false, done: true, already: false },
+      '已经安装过': { title: '这家店已经安装好了', sub: '安装向导只能用一次。请直接登录后台。', step: 3, ...okDb, form: false, done: false, already: true }
+    };
+    const c = C[st] || C['填写店主账户'];
+    const names = ['检查数据库', '创建店主账户', '完成'];
+    return {
+      t, mode, c,
+      steps: names.map((name, i) => {
+        const n = i + 1, cur = n === c.step, past = n < c.step;
+        return { no: '0' + n, name, current: cur ? 'step' : 'false', line: cur || past ? t.fg : t.border, color: cur || past ? t.fg : t.faint, weight: cur ? 500 : 400 };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

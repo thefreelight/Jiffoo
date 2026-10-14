@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 客户详情</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-ghost:hover{background:rgba(128,128,128,0.08)}
+.jf-row:hover{background:rgba(128,128,128,0.06)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="客户" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; position: relative">
+
+    <header style="position: sticky; top: 0; z-index: 4; background: {{t.bg}}; border-bottom: 1px solid {{t.border}}">
+      <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 16px 32px 14px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: {{t.muted}}">
+          <a href="Customers.dc.html" style="width: max-content">← 客户</a>
+          <div style="display: flex; align-items: center; gap: 4px">
+            <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: {{t.faint}}; margin-right: 4px">1 / 312</span>
+            <a href="#" aria-label="上一位客户" aria-disabled="true" style="width: 28px; height: 28px; box-sizing: border-box; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid {{t.border}}; color: {{t.faint}}; opacity: 0.5"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></a>
+            <a href="#" aria-label="下一位客户" class="jf-ghost" style="width: 28px; height: 28px; box-sizing: border-box; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid {{t.border}}"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></a>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0">
+            <span aria-hidden="true" style="width: 32px; height: 32px; flex: none; border-radius: 999px; border: 1px solid {{t.border}}; background: {{t.raised}}; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; color: {{t.muted}}">M</span>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Mia Lin</h1>
+            <span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 6px; border: 1px solid {{t.border}}; color: {{v.statusColor}}; font-size: 12px">
+              <span aria-hidden="true" style="width: 7px; height: 7px; box-sizing: border-box; border-radius: 999px; border: 1.4px solid currentColor; background: {{v.dotFill}}"></span>{{v.status}}
+            </span>
+          </div>
+          <div style="display: flex; gap: 8px; position: relative">
+            <button type="button" aria-label="更多操作：停用客户、删除客户" aria-haspopup="menu" aria-expanded="{{menuAttr}}" class="jf-ghost" style="height: 32px; width: 32px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
+            </button>
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">生成重置密码链接</button>
+            <sc-if value="{{menu}}" hint-placeholder-val="{{ false }}">
+              <div role="menu" aria-label="客户操作" style="position: absolute; right: 0; top: 40px; z-index: 6; width: 260px; padding: 4px; border-radius: 10px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 8px 28px rgba(0,0,0,0.14)">
+                <button type="button" role="menuitem" class="jf-ghost" style="width: 100%; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.fg}}; font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 2px">
+                  <span>{{v.toggleText}}</span>
+                  <span style="font-size: 12px; color: {{t.faint}}; line-height: 1.5">{{v.toggleHint}}</span>
+                </button>
+                <div style="height: 1px; margin: 4px 0; background: {{t.border}}"></div>
+                <button type="button" role="menuitem" aria-disabled="true" style="width: 100%; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.faint}}; font: inherit; text-align: left; cursor: not-allowed; display: flex; flex-direction: column; gap: 2px">
+                  <span>删除客户</span>
+                  <span style="font-size: 12px; line-height: 1.5">已有 3 笔订单，不能删除。可以停用，订单会保留。</span>
+                </button>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; color: {{t.muted}}">
+          <span>mia@example.com</span>
+          <span>注册 2026-10-02 10:14</span>
+          <span style="color: {{t.faint}}">时间均为 Asia/Shanghai</span>
+        </div>
+      </div>
+    </header>
+
+    <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 24px 32px 64px; display: flex; flex-direction: column; gap: 20px">
+
+      <sc-if value="{{v.off}}" hint-placeholder-val="{{ false }}">
+        <section aria-label="客户已停用" style="border-radius: 10px; border: 1px solid {{t.border}}; background: {{t.raised}}; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+          <span style="flex: 1 1 320px; color: {{t.muted}}; line-height: 1.6"><span style="color: {{t.fg}}">该客户已停用</span>，不能登录店铺，也不能下单。订单和资料都保留。</span>
+          <button type="button" style="height: 30px; padding: 0 12px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">重新启用</button>
+        </section>
+      </sc-if>
+
+      <sc-if value="{{link}}" hint-placeholder-val="{{ false }}">
+        <section aria-label="重置密码链接" style="border-radius: 10px; border: 1px solid {{t.border}}; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; justify-content: space-between; gap: 8px">
+            <span style="font-weight: 500">重置密码链接已生成</span>
+            <button type="button" aria-label="关闭" class="jf-ghost" style="width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: {{t.muted}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+          </div>
+          <div style="display: flex; gap: 8px">
+            <label for="reset-link" style="position: absolute; left: -9999px">重置密码链接</label>
+            <input id="reset-link" readonly value="https://shop.example.com/zh-Hans/auth/reset-password?token=7f3c…e91a" style="flex: 1 1 auto; min-width: 0; height: 32px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">复制链接</button>
+          </div>
+          <span style="font-size: 12px; color: {{t.muted}}; line-height: 1.6">1 小时内有效，只能用一次。请通过你信任的方式发给客户本人。这次操作已记录。</span>
+        </section>
+      </sc-if>
+
+      <section aria-label="概况" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 12px; color: {{t.muted}}">订单数</span>
+          <span style="font-family: 'Geist Mono', monospace; font-size: 20px; font-weight: 500">3</span>
+        </div>
+        <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; border-left: 1px solid {{t.border}}">
+          <span style="font-size: 12px; color: {{t.muted}}">累计消费（已付款）</span>
+          <span style="font-family: 'Geist Mono', monospace; font-size: 20px; font-weight: 500">¥ 1,148.00</span>
+        </div>
+        <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; border-left: 1px solid {{t.border}}">
+          <span style="font-size: 12px; color: {{t.muted}}">最近下单</span>
+          <span style="font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; padding-top: 3px">2026-10-13 16:55</span>
+        </div>
+      </section>
+
+      <section aria-labelledby="c-orders" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid {{t.border}}">
+          <h2 id="c-orders" style="margin: 0; font-size: 13px; font-weight: 600">订单</h2>
+          <a href="Orders.dc.html" style="color: {{t.muted}}; text-decoration: underline; text-underline-offset: 3px">在订单列表中查看全部 3 笔</a>
+        </div>
+        <div style="overflow-x: auto">
+        <table style="width: 100%; min-width: 520px; border-collapse: collapse">
+          <thead>
+            <tr style="color: {{t.faint}}; text-align: left; background: {{t.raised}}">
+              <th scope="col" style="padding: 8px 16px; font-weight: 500; font-size: 12px">订单</th>
+              <th scope="col" style="padding: 8px 12px; font-weight: 500; font-size: 12px">状态</th>
+              <th scope="col" style="padding: 8px 12px; font-weight: 500; font-size: 12px">付款</th>
+              <th scope="col" style="padding: 8px 12px; font-weight: 500; font-size: 12px; text-align: right">金额</th>
+              <th scope="col" style="padding: 8px 16px 8px 12px; font-weight: 500; font-size: 12px; text-align: right">下单时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{orders}}" as="o" hint-placeholder-count="3">
+              <tr class="jf-row" style="border-top: 1px solid {{t.border}}; cursor: pointer">
+                <td style="padding: 10px 16px"><a href="OrderDetail.dc.html" style="font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 500">{{o.no}}</a></td>
+                <td style="padding: 10px 12px; color: {{o.statusColor}}">{{o.status}}</td>
+                <td style="padding: 10px 12px"><span style="display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px; border: 1px solid {{t.border}}; color: {{o.payColor}}; font-size: 12px">{{o.pay}}</span></td>
+                <td style="padding: 10px 12px; text-align: right; font-family: 'Geist Mono', monospace; font-size: 12px">{{o.amount}}</td>
+                <td style="padding: 10px 16px 10px 12px; text-align: right; color: {{t.muted}}; font-variant-numeric: tabular-nums; white-space: nowrap">{{o.time}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+        </div>
+        <p style="margin: 0; padding: 10px 16px; border-top: 1px solid {{t.border}}; font-size: 12px; color: {{t.faint}}">这里显示最近 10 笔。</p>
+      </section>
+
+      <section aria-labelledby="c-info" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="c-info" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">资料</h2>
+        <dl style="margin: 0; padding: 4px 16px">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid {{t.border}}">
+            <dt style="width: 96px; color: {{t.muted}}">名字</dt>
+            <dd style="margin: 0; flex: 1 1 200px">Mia Lin</dd>
+            <button type="button" class="jf-ghost" style="height: 26px; padding: 0 8px; border: 1px solid {{t.border}}; border-radius: 6px; background: transparent; color: {{t.muted}}; font: inherit; font-size: 12px; cursor: pointer">修改</button>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid {{t.border}}">
+            <dt style="width: 96px; color: {{t.muted}}">邮箱</dt>
+            <dd style="margin: 0; flex: 1 1 200px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px">mia@example.com<span style="font-size: 12px; color: {{v.verifiedColor}}">{{v.verified}}</span></dd>
+            <button type="button" aria-label="复制邮箱" class="jf-ghost" style="height: 26px; padding: 0 8px; border: 1px solid {{t.border}}; border-radius: 6px; background: transparent; color: {{t.muted}}; font: inherit; font-size: 12px; cursor: pointer">复制</button>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid {{t.border}}">
+            <dt style="width: 96px; color: {{t.muted}}">语言</dt>
+            <dd style="margin: 0; flex: 1 1 200px">简体中文</dd>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 10px 0">
+            <dt style="width: 96px; color: {{t.muted}}">最近收货地址</dt>
+            <dd style="margin: 0; flex: 1 1 240px; line-height: 1.6">林米娅 · +86 138 0000 0000<br>上海市徐汇区漕溪北路 88 号 12 楼<br>上海 200030 · 中国<br><span style="font-size: 12px; color: {{t.faint}}">来自订单 #10426</span></dd>
+            <button type="button" aria-label="复制收货地址（含收货人和电话）" class="jf-ghost" style="height: 26px; align-self: flex-start; padding: 0 8px; border: 1px solid {{t.border}}; border-radius: 6px; background: transparent; color: {{t.muted}}; font: inherit; font-size: 12px; cursor: pointer">复制地址</button>
+          </div>
+        </dl>
+      </section>
+    </div>
+
+    <sc-if value="{{dialog}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,0.32); display: flex; align-items: flex-start; justify-content: center; padding: 160px 16px 16px">
+        <div role="dialog" aria-modal="true" aria-labelledby="dlg-title" style="width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 16px 48px rgba(0,0,0,0.2); padding: 20px; display: flex; flex-direction: column; gap: 14px">
+          <h2 id="dlg-title" style="margin: 0; font-size: 15px; font-weight: 600">修改名字</h2>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="cust-name" style="color: {{t.muted}}">名字</label>
+            <input id="cust-name" value="Mia Lin" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.fg}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+            <span style="font-size: 12px; color: {{t.faint}}">客户在店铺“我的账户”里也能自己修改。</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">取消</button>
+            <button type="button" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">保存</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"state":{"editor":"enum","options":["正常","已停用"],"default":"正常"},"overlay":{"editor":"enum","options":["无","更多菜单","重置链接已生成","修改名字弹窗"],"default":"无"},"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const st = this.props.state ?? '正常';
+    const overlay = this.props.overlay ?? '无';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)'
+    };
+    const off = st === '已停用';
+    const v = {
+      off, status: off ? '已停用' : '正常',
+      statusColor: off ? t.faint : t.fg, dotFill: off ? 'transparent' : 'currentColor',
+      toggleText: off ? '重新启用客户' : '停用客户',
+      toggleHint: off ? '恢复登录和下单。' : '停用后不能登录和下单，订单和资料保留，可以随时重新启用。',
+      verified: '已验证', verifiedColor: t.faint
+    };
+    const orders = [
+      ['#10426', '处理中', '已付款', '¥ 89.00', '2026-10-13 16:55'],
+      ['#10391', '已送达', '已付款', '¥ 1,059.00', '2026-10-08 20:12'],
+      ['#10377', '已取消', '未付款', '¥ 129.00', '2026-10-05 09:40']
+    ];
+    return {
+      t, mode, v,
+      menu: overlay === '更多菜单', menuAttr: overlay === '更多菜单' ? 'true' : 'false',
+      link: overlay === '重置链接已生成',
+      dialog: overlay === '修改名字弹窗',
+      orders: orders.map(([no, status, pay, amount, time]) => ({
+        no, status, pay, amount, time,
+        statusColor: status === '已取消' ? t.faint : t.fg,
+        payColor: pay === '已付款' ? t.fg : t.faint
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

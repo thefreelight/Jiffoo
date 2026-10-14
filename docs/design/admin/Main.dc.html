@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 概览</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-row:hover{background:rgba(128,128,128,0.06)}
+.jf-bar:hover{opacity:1}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="概览" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0">
+    <div style="max-width: 1120px; box-sizing: border-box; margin: 0 auto; padding: 40px 32px 48px; display: flex; flex-direction: column; gap: 24px">
+
+      <header style="display: flex; flex-direction: column; gap: 4px">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.025em">概览</h1>
+        <p style="margin: 0; color: {{t.muted}}">2026年10月13日 星期二 · Asia/Shanghai</p>
+      </header>
+
+      <section aria-labelledby="need" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="need" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">需要处理</h2>
+        <div style="padding: 12px; display: flex; flex-direction: column; gap: 8px">
+          <a href="Orders.dc.html" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 7px; border: 1px solid {{t.alertLine}}; background: {{t.alertSoft}}; color: {{t.alert}}">
+            <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19zM12 10v4M12 17h.01"></path></svg>
+            <span style="flex: 1 1 240px">2 笔订单有付款需要人工审核</span>
+            <span style="font-weight: 500">审核付款 →</span>
+          </a>
+          <a href="Orders.dc.html" class="jf-row" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 7px">
+            <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{t.muted}}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5 12 3.5l8.5 4v9l-8.5 4-8.5-4zM3.5 7.5 12 11.5l8.5-4M12 11.5v9"></path></svg>
+            <span style="flex: 1 1 240px">5 笔已付款订单等待发货</span>
+            <span style="color: {{t.muted}}; font-weight: 500">查看订单 →</span>
+          </a>
+        </div>
+      </section>
+
+      <section aria-labelledby="today" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="today" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">今天</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))">
+          <sc-for list="{{figures}}" as="f" hint-placeholder-count="3">
+            <div style="padding: 18px 20px; border-left: 1px solid {{f.divider}}; display: flex; flex-direction: column; gap: 6px">
+              <span style="color: {{t.muted}}">{{f.label}}</span>
+              <span style="font-family: 'Geist Mono', monospace; font-size: 26px; letter-spacing: -0.02em">{{f.value}}</span>
+              <span style="font-size: 12px; color: {{t.faint}}">昨天：{{f.yesterday}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section aria-labelledby="sales" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 12px 16px; border-bottom: 1px solid {{t.border}}">
+          <h2 id="sales" style="margin: 0; font-size: 13px; font-weight: 600">近 14 天销售额</h2>
+          <span style="font-family: 'Geist Mono', monospace">¥ 38,460.00</span>
+        </div>
+        <div style="padding: 20px 16px 12px">
+          <div role="img" aria-label="近 14 天每日已付款销售额柱状图" style="height: 150px; display: flex; align-items: flex-end; gap: 8px; border-bottom: 1px solid {{t.border}}">
+            <sc-for list="{{bars}}" as="b" hint-placeholder-count="14">
+              <div class="jf-bar" title="{{b.tip}}" style="flex: 1 1 0; height: {{b.h}}; background: {{t.fg}}; opacity: {{b.o}}; border-radius: 2px 2px 0 0"></div>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 8px">
+            <sc-for list="{{bars}}" as="b" hint-placeholder-count="14">
+              <span style="flex: 1 1 0; text-align: center; font-family: 'Geist Mono', monospace; font-size: 11px; color: {{t.faint}}">{{b.d}}</span>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="recent" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="display: flex; justify-content: space-between; gap: 8px; padding: 12px 16px; border-bottom: 1px solid {{t.border}}">
+          <h2 id="recent" style="margin: 0; font-size: 13px; font-weight: 600">最近订单</h2>
+          <a href="Orders.dc.html" style="color: {{t.muted}}">查看全部订单 →</a>
+        </div>
+        <div style="overflow-x: auto">
+          <table style="width: 100%; min-width: 640px; border-collapse: collapse">
+            <thead>
+              <tr style="color: {{t.faint}}; text-align: left; background: {{t.raised}}">
+                <th scope="col" style="padding: 9px 16px; font-weight: 500; font-size: 12px">订单</th>
+                <th scope="col" style="padding: 9px 16px; font-weight: 500; font-size: 12px">客户</th>
+                <th scope="col" style="padding: 9px 16px; font-weight: 500; font-size: 12px">状态</th>
+                <th scope="col" style="padding: 9px 16px; font-weight: 500; font-size: 12px; text-align: right">金额</th>
+                <th scope="col" style="padding: 9px 16px; font-weight: 500; font-size: 12px; text-align: right">下单时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{recent}}" as="o" hint-placeholder-count="5">
+                <tr class="jf-row" style="border-top: 1px solid {{t.border}}">
+                  <td style="padding: 10px 16px"><a href="OrderDetail.dc.html" style="font-family: 'Geist Mono', monospace; font-size: 12px">{{o.no}}</a></td>
+                  <td style="padding: 10px 16px; color: {{t.muted}}">{{o.email}}</td>
+                  <td style="padding: 10px 16px">{{o.status}}</td>
+                  <td style="padding: 10px 16px; text-align: right; font-family: 'Geist Mono', monospace; font-size: 12px">{{o.amount}}</td>
+                  <td style="padding: 10px 16px; text-align: right; color: {{t.muted}}; font-variant-numeric: tabular-nums">{{o.time}}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C',
+      border: 'rgba(255,255,255,0.09)', alert: '#F5A97F', alertSoft: 'rgba(245,169,127,0.07)', alertLine: 'rgba(245,169,127,0.22)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373',
+      border: 'rgba(0,0,0,0.09)', alert: '#B4470E', alertSoft: '#FFF6F0', alertLine: 'rgba(180,71,14,0.22)'
+    };
+    const sales = [1820, 2410, 0, 3120, 2760, 1980, 4210, 2300, 2650, 3480, 1900, 2870, 2910, 3280];
+    const max = Math.max(...sales);
+    const days = ['09-30','10-01','10-02','10-03','10-04','10-05','10-06','10-07','10-08','10-09','10-10','10-11','10-12','10-13'];
+    return {
+      t, mode,
+      figures: [
+        { label: '已付款销售额', value: '¥ 3,280.00', yesterday: '¥ 2,910.00', divider: 'transparent' },
+        { label: '订单', value: '12', yesterday: '9', divider: t.border },
+        { label: '新客户', value: '3', yesterday: '5', divider: t.border }
+      ],
+      bars: sales.map((v, i) => ({ h: Math.max(2, Math.round(v / max * 140)) + 'px', o: i === 13 ? 1 : 0.28, d: days[i], tip: days[i] + ' · ¥ ' + v.toLocaleString('en-US') + '.00' })),
+      recent: [
+        { no: '#10428', email: 'lin@example.com', status: '待付款', amount: '¥ 1,280.00', time: '2026-10-13 17:41' },
+        { no: '#10427', email: 'chen@example.com', status: '处理中 · 待人工审核', amount: '¥ 459.00', time: '2026-10-13 17:12' },
+        { no: '#10426', email: 'mia@example.com', status: '处理中', amount: '¥ 89.00', time: '2026-10-13 16:55' },
+        { no: '#10425', email: 'zhang@example.com', status: '已发货', amount: '¥ 2,016.00', time: '2026-10-13 06:30' },
+        { no: '#10424', email: 'wang@example.com', status: '已发货', amount: '¥ 318.00', time: '2026-10-12 21:04' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

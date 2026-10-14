@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 我的账户</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-ghost:hover{background:rgba(128,128,128,0.08)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; position: relative">
+
+    <header style="position: sticky; top: 0; z-index: 4; background: {{t.bg}}; border-bottom: 1px solid {{t.border}}">
+      <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 20px 32px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">我的账户</h1>
+          <span style="color: {{t.muted}}">只影响你自己的登录和显示，不影响店铺。</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+          <span style="font-size: 12px; color: {{s.noteColor}}">{{s.note}}</span>
+          <sc-if value="{{s.dirty}}" hint-placeholder-val="{{ false }}">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">放弃更改</button>
+          </sc-if>
+          <button type="button" disabled="{{s.saveDisabled}}" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{s.saveBg}}; color: {{s.saveFg}}; font: inherit; font-weight: 500; cursor: {{s.saveCursor}}">保存</button>
+        </div>
+      </div>
+    </header>
+
+    <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 24px 32px 64px; display: flex; flex-direction: column; gap: 20px">
+
+      <section aria-labelledby="p-basic" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="p-basic" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">基本资料</h2>
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 18px">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+            <span aria-hidden="true" style="width: 56px; height: 56px; flex: none; border-radius: 999px; border: 1px solid {{t.border}}; background: {{t.raised}}; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; color: {{t.muted}}">店</span>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <div style="display: flex; gap: 8px">
+                <button type="button" style="height: 30px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">上传头像</button>
+                <button type="button" style="height: 30px; padding: 0 10px; border-radius: 7px; border: 0; background: transparent; color: {{t.muted}}; font: inherit; cursor: pointer">移除</button>
+              </div>
+              <span style="font-size: 12px; color: {{t.faint}}">JPG、PNG 或 WebP，不超过 5 MB。上传后立即生效。</span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; max-width: 400px">
+            <label for="p-name">名字</label>
+            <input id="p-name" value="{{s.name}}" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{s.nameBorder}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+            <span style="font-size: 12px; color: {{t.faint}}">显示在后台右下角和操作记录里。</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; max-width: 400px">
+            <label for="p-lang">界面语言</label>
+            <button id="p-lang" type="button" aria-haspopup="listbox" style="height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">简体中文<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+            <span style="font-size: 12px; color: {{t.faint}}">可选：简体中文、繁體中文、English。也决定发给你的邮件用哪种语言。</span>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="p-sec" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="p-sec" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">登录与安全</h2>
+        <dl style="margin: 0; padding: 4px 16px">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid {{t.border}}">
+            <dt style="width: 96px; color: {{t.muted}}">登录邮箱</dt>
+            <dd style="margin: 0; flex: 1 1 200px; display: flex; flex-direction: column; gap: 2px">owner@example.com<span style="font-size: 12px; color: {{t.faint}}">登录、找回密码和系统通知都用这个邮箱。</span></dd>
+            <button type="button" class="jf-ghost" style="height: 28px; padding: 0 10px; border: 1px solid {{t.border}}; border-radius: 7px; background: transparent; color: {{t.fg}}; font: inherit; font-size: 12px; cursor: pointer">修改邮箱</button>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 12px 0">
+            <dt style="width: 96px; color: {{t.muted}}">密码</dt>
+            <dd style="margin: 0; flex: 1 1 200px; display: flex; flex-direction: column; gap: 2px"><span style="letter-spacing: 2px">••••••••</span><span style="font-size: 12px; color: {{t.faint}}">修改后，其他设备上的登录会全部退出。</span></dd>
+            <button type="button" class="jf-ghost" style="height: 28px; padding: 0 10px; border: 1px solid {{t.border}}; border-radius: 7px; background: transparent; color: {{t.fg}}; font: inherit; font-size: 12px; cursor: pointer">修改密码</button>
+          </div>
+        </dl>
+      </section>
+    </div>
+
+    <sc-if value="{{emailDlg}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,0.32); display: flex; align-items: flex-start; justify-content: center; padding: 140px 16px 16px">
+        <div role="dialog" aria-modal="true" aria-labelledby="em-title" style="width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 16px 48px rgba(0,0,0,0.2); padding: 20px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <h2 id="em-title" style="margin: 0; font-size: 15px; font-weight: 600">修改登录邮箱</h2>
+            <p style="margin: 0; color: {{t.muted}}; line-height: 1.6">改完后会给新邮箱发一封验证邮件，请按邮件提示完成验证。</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="em-new">新邮箱</label>
+            <input id="em-new" type="email" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="em-pw">当前密码</label>
+            <input id="em-pw" type="password" aria-describedby="em-pw-hint" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+            <span id="em-pw-hint" style="font-size: 12px; color: {{t.faint}}">为了确认是你本人在操作。</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">取消</button>
+            <button type="button" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">修改邮箱</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{pwDlg}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,0.32); display: flex; align-items: flex-start; justify-content: center; padding: 140px 16px 16px">
+        <div role="dialog" aria-modal="true" aria-labelledby="pw-title" style="width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 16px 48px rgba(0,0,0,0.2); padding: 20px; display: flex; flex-direction: column; gap: 14px">
+          <h2 id="pw-title" style="margin: 0; font-size: 15px; font-weight: 600">修改密码</h2>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="pw-cur">当前密码</label>
+            <input id="pw-cur" type="password" value="••••••••" aria-invalid="{{pwErrAttr}}" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{pwBorder}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+            <sc-if value="{{pwErr}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: {{t.danger}}">当前密码不对，请重新输入。</span></sc-if>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="pw-new">新密码</label>
+            <input id="pw-new" type="password" aria-describedby="pw-new-hint" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+            <span id="pw-new-hint" style="font-size: 12px; color: {{t.faint}}">至少 8 个字符。</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="pw-again">再输入一次新密码</label>
+            <input id="pw-again" type="password" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+          </div>
+          <p style="margin: 0; font-size: 12px; color: {{t.muted}}; line-height: 1.6">修改后，这台设备保持登录，其他设备会退出登录。</p>
+          <div style="display: flex; justify-content: flex-end; gap: 8px">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">取消</button>
+            <button type="button" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">修改密码</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"state":{"editor":"enum","options":["已保存","有未保存的更改","修改邮箱弹窗","修改密码弹窗","修改密码 · 当前密码错误"],"default":"已保存"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const st = this.props.state ?? '已保存';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)', danger: '#FF8A80', alert: '#F5A97F'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)', danger: '#C62828', alert: '#B4470E'
+    };
+    const dirty = st === '有未保存的更改';
+    const pwErr = st === '修改密码 · 当前密码错误';
+    return {
+      t, mode,
+      s: {
+        dirty, name: dirty ? '店主 Simo' : '店主',
+        nameBorder: dirty ? t.fg : t.border,
+        note: dirty ? '有未保存的更改' : '已保存 · 2026-10-13 09:12',
+        noteColor: dirty ? t.alert : t.faint,
+        saveDisabled: !dirty, saveBg: dirty ? t.fg : t.raised, saveFg: dirty ? t.bg : t.faint, saveCursor: dirty ? 'pointer' : 'default'
+      },
+      emailDlg: st === '修改邮箱弹窗',
+      pwDlg: st === '修改密码弹窗' || pwErr,
+      pwErr, pwErrAttr: pwErr ? 'true' : 'false', pwBorder: pwErr ? t.danger : t.border
+    };
+  }
+}
+</script>
+</body>
+</html>

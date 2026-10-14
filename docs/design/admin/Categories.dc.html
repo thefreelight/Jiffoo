@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 分类</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-row:hover{background:rgba(128,128,128,0.06)}
+</style>
+</helmet>
+<div style="position: relative; font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="分类" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0">
+    <div style="max-width: 1120px; box-sizing: border-box; margin: 0 auto; padding: 40px 32px 48px; display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.025em">分类</h1>
+          <p style="margin: 0; color: {{t.muted}}">分类用于在店铺里归类展示商品。</p>
+        </div>
+        <button type="button" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">添加分类</button>
+      </div>
+
+      <div style="border-radius: 10px; border: 1px solid {{t.border}}; overflow-x: auto">
+        <table style="width: 100%; min-width: 600px; border-collapse: collapse">
+          <thead>
+            <tr style="color: {{t.faint}}; text-align: left; background: {{t.raised}}">
+              <th scope="col" style="padding: 10px 16px; font-weight: 500; font-size: 12px">名称</th>
+              <th scope="col" style="padding: 10px 16px; font-weight: 500; font-size: 12px">网址标识</th>
+              <th scope="col" style="padding: 10px 16px; font-weight: 500; font-size: 12px; text-align: right">商品数</th>
+              <th scope="col" style="width: 48px"><span style="position: absolute; left: -9999px">操作</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{cats}}" as="c" hint-placeholder-count="4">
+              <tr class="jf-row" style="border-top: 1px solid {{t.border}}; cursor: pointer">
+                <td style="padding: 10px 16px">
+                  <a href="#" style="display: flex; flex-direction: column; gap: 2px">
+                    <span style="font-weight: 500">{{c.name}}</span>
+                    <span style="font-size: 12px; color: {{t.faint}}">{{c.desc}}</span>
+                  </a>
+                </td>
+                <td style="padding: 10px 16px; font-family: 'Geist Mono', monospace; font-size: 12px; color: {{t.muted}}">{{c.slug}}</td>
+                <td style="padding: 10px 16px; text-align: right; font-family: 'Geist Mono', monospace; font-size: 12px">{{c.count}}</td>
+                <td style="padding: 6px 12px; text-align: right">
+                  <button type="button" aria-label="{{c.menu}}" aria-haspopup="menu" style="width: 30px; height: 30px; border: 0; border-radius: 7px; background: transparent; color: {{t.muted}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button>
+                </td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <span style="color: {{t.faint}}">共 4 个分类 · 有商品的分类不能删除，先把商品移到别的分类。</span>
+    </div>
+  </main>
+
+  <sc-if value="{{showDialog}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: flex-start; justify-content: center; padding: 120px 16px 16px; box-sizing: border-box">
+      <div role="dialog" aria-modal="true" aria-labelledby="dlg-title" style="width: 100%; max-width: 480px; box-sizing: border-box; border-radius: 10px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 16px 48px rgba(0,0,0,0.2); padding: 20px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h2 id="dlg-title" style="margin: 0; font-size: 16px; font-weight: 600">编辑分类</h2>
+          <span style="color: {{t.muted}}">这里填写店铺默认语言的内容，其他语言在下方“翻译”里填。</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="c-name" style="color: {{t.muted}}">名称</label>
+          <input id="c-name" value="服装" style="height: 34px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 0 12px; font: inherit">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="c-slug" style="color: {{t.muted}}">网址标识</label>
+          <input id="c-slug" value="apparel" style="height: 34px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 0 12px; font-family: 'Geist Mono', monospace; font-size: 12px">
+          <span style="font-size: 12px; color: {{t.faint}}">用在店铺网址里，只能用小写字母、数字和连字符。</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="c-desc" style="color: {{t.muted}}">描述（选填）</label>
+          <textarea id="c-desc" rows="3" style="box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 8px 12px; font: inherit; resize: vertical">衬衫、外套和裤装</textarea>
+        </div>
+        <button type="button" aria-expanded="false" style="display: flex; justify-content: space-between; align-items: center; height: 34px; padding: 0 2px; border: 0; border-top: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">翻译 <span style="color: {{t.faint}}">简体中文已填写 · 繁體中文未填写 ›</span></button>
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">取消</button>
+          <button type="button" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">保存</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"showDialog":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)'
+    };
+    return {
+      t, mode, showDialog: this.props.showDialog ?? false,
+      cats: [
+        ['服装', '衬衫、外套和裤装', 'apparel', '12'],
+        ['配件', '包、围巾和帽子', 'accessories', '7'],
+        ['家居', '暂无描述', 'home', '0'],
+        ['礼品卡', '电子礼品卡，无需配送', 'gift-cards', '1']
+      ].map(([name, desc, slug, count]) => ({ name, desc, slug, count, menu: name + ' 的更多操作' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 主题</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-ghost:hover{background:rgba(128,128,128,0.08)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="主题" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; position: relative">
+    <div style="width: 100%; max-width: 1120px; box-sizing: border-box; margin: 0 auto; padding: 40px 32px 48px; display: flex; flex-direction: column; gap: 16px">
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.025em">主题</h1>
+          <p style="margin: 0; color: {{t.muted}}">{{v.intro}}</p>
+        </div>
+        <button type="button" style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5M7 10l5-5 5 5M5 20h14"></path></svg>上传主题
+        </button>
+      </div>
+
+      <div role="tablist" aria-label="主题类型" style="display: flex; gap: 20px; border-bottom: 1px solid {{t.border}}">
+        <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="2">
+          <button type="button" role="tab" aria-selected="{{tab.selected}}" onClick="{{tab.pick}}" style="height: 36px; padding: 0; margin-bottom: -1px; border: 0; border-bottom: 1.5px solid {{tab.line}}; background: transparent; color: {{tab.color}}; font: inherit; font-weight: 500; cursor: pointer">{{tab.name}}</button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{v.alert}}" hint-placeholder-val="{{ false }}">
+        <div role="alert" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid {{t.alertLine}}; background: {{t.alertSoft}}; color: {{t.alert}}">
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.5 20h19zM12 10v4M12 17h.01"></path></svg>
+          <span style="flex: 1 1 320px">{{v.alert}}</span>
+        </div>
+      </sc-if>
+
+      <section aria-labelledby="current" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="display: flex; flex-wrap: wrap; gap: 20px; padding: 20px">
+          <div aria-hidden="true" style="flex: 0 0 240px; max-width: 100%; height: 150px; box-sizing: border-box; border-radius: 8px; border: 1px solid {{t.border}}; background: {{v.pvBg}}; padding: 12px; display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; gap: 6px; align-items: center"><span style="width: 14px; height: 14px; border-radius: 4px; background: {{v.pvFg}}"></span><span style="width: 60px; height: 6px; border-radius: 3px; background: {{v.pvLine}}"></span></div>
+            <div style="flex: 1 1 auto; border-radius: 6px; background: {{v.pvBlock}}"></div>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px"><span style="height: 26px; border-radius: 5px; background: {{v.pvBlock}}"></span><span style="height: 26px; border-radius: 5px; background: {{v.pvBlock}}"></span><span style="height: 26px; border-radius: 5px; background: {{v.pvBlock}}"></span></div>
+          </div>
+          <div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+            <span style="font-size: 12px; color: {{t.muted}}">正在使用</span>
+            <h2 id="current" style="margin: 0; font-size: 18px; font-weight: 600">{{v.activeName}}</h2>
+            <span style="color: {{t.muted}}"><span style="font-family: 'Geist Mono', monospace; font-size: 12px">{{v.activeVer}}</span> · {{v.activeSource}}</span>
+            <span style="color: {{t.muted}}; line-height: 1.6">{{v.activeDesc}}</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; position: relative">
+              <a href="ThemeEdit.dc.html" style="height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 7px; background: {{t.fg}}; color: {{t.bg}}; font-weight: 500">{{v.editLabel}}</a>
+              <sc-if value="{{v.shop}}" hint-placeholder-val="{{ true }}">
+                <a href="#" style="height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}">在店铺中查看<svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"></path></svg></a>
+              </sc-if>
+              <button type="button" aria-label="更多操作：恢复上一个主题" aria-haspopup="menu" class="jf-ghost" style="height: 32px; width: 32px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="others" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <h2 id="others" style="margin: 0; padding: 12px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid {{t.border}}">其他已安装的主题</h2>
+        <sc-if value="{{v.hasOthers}}" hint-placeholder-val="{{ true }}">
+          <sc-for list="{{v.others}}" as="o" hint-placeholder-count="2">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid {{t.border}}">
+              <div style="flex: 1 1 260px; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+                <span style="font-weight: 500">{{o.name}}</span>
+                <span style="font-size: 12px; color: {{t.muted}}"><span style="font-family: 'Geist Mono', monospace">{{o.ver}}</span> · {{o.source}}<sc-if value="{{o.warn}}" hint-placeholder-val="{{ false }}"> · <span style="color: {{t.alert}}">{{o.warn}}</span></sc-if></span>
+              </div>
+              <button type="button" disabled="{{o.blocked}}" style="height: 30px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{o.btnColor}}; font: inherit; cursor: pointer">启用</button>
+              <button type="button" aria-label="{{o.more}}" aria-haspopup="menu" class="jf-ghost" style="height: 30px; width: 30px; border-radius: 7px; border: 0; background: transparent; color: {{t.muted}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button>
+            </div>
+          </sc-for>
+        </sc-if>
+        <sc-if value="{{v.noOthers}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; padding: 16px; color: {{t.muted}}">暂无其他主题。可以点右上角“上传主题”安装主题包。</p>
+        </sc-if>
+        <p style="margin: 0; padding: 10px 16px; font-size: 12px; color: {{t.faint}}">内置主题不能卸载；正在使用的主题需要先换成别的主题才能卸载（在“⋯”里）。</p>
+      </section>
+    </div>
+
+    <sc-if value="{{upload}}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,0.32); display: flex; align-items: flex-start; justify-content: center; padding: 120px 16px 16px">
+        <div role="dialog" aria-modal="true" aria-labelledby="up-title" style="width: 100%; max-width: 460px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 16px 48px rgba(0,0,0,0.2); padding: 20px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <h2 id="up-title" style="margin: 0; font-size: 15px; font-weight: 600">上传主题</h2>
+            <p style="margin: 0; color: {{t.muted}}; line-height: 1.6">主题包是 .zip 文件，里面写明它是商城主题还是后台主题。主题只能改颜色、字体、图片和文字，不能包含会运行的代码。</p>
+          </div>
+          <label style="border-radius: 10px; border: 1px dashed {{t.border}}; padding: 22px 16px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; cursor: pointer">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5M7 10l5-5 5 5M5 20h14"></path></svg>
+            <span>{{upFile}}</span>
+            <span style="font-size: 12px; color: {{t.faint}}">拖到这里，或点击选择 .zip 文件</span>
+            <input type="file" accept=".zip" style="position: absolute; left: -9999px">
+          </label>
+          <label style="display: flex; gap: 8px; align-items: flex-start; line-height: 1.6">
+            <input type="checkbox" style="margin-top: 3px; accent-color: {{t.fg}}">
+            <span>我信任这个主题包。它没有经过签名，系统无法确认作者是谁。</span>
+          </label>
+          <div style="display: flex; justify-content: flex-end; gap: 8px">
+            <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">取消</button>
+            <button type="button" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">安装</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"target":{"editor":"enum","options":["商城主题","后台主题"],"default":"商城主题"},"state":{"editor":"enum","options":["正常","上传弹窗","只有内置主题","主题包损坏"],"default":"正常"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { target: null }; }
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const target = this.state.target ?? this.props.target ?? '商城主题';
+    const st = this.props.state ?? '正常';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)',
+      alert: '#F5A97F', alertSoft: 'rgba(245,169,127,0.07)', alertLine: 'rgba(245,169,127,0.22)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)',
+      alert: '#B4470E', alertSoft: '#FFF6F0', alertLine: 'rgba(180,71,14,0.22)'
+    };
+    const shop = target === '商城主题';
+    const only = st === '只有内置主题';
+    const corrupt = st === '主题包损坏';
+    const others = shop
+      ? [{ name: 'Linen 极简', ver: '1.2.0', source: '上传 · 未签名', warn: corrupt ? '主题包已损坏，请重新上传' : '' }, { name: 'Default Shop', ver: '2.0.1', source: '内置', warn: '' }]
+      : [{ name: 'Default Admin', ver: '2.0.1', source: '内置', warn: '' }];
+    const list = (only ? others.filter(o => o.source !== '内置') : others).map(o => ({
+      ...o, blocked: !!o.warn, btnColor: o.warn ? t.faint : t.fg, more: '更多操作：' + o.name
+    }));
+    return {
+      t, mode,
+      tabs: ['商城主题', '后台主题'].map(n => ({ name: n, selected: n === target ? 'true' : 'false', line: n === target ? t.fg : 'transparent', color: n === target ? t.fg : t.faint, pick: () => this.setState({ target: n }) })),
+      upload: st === '上传弹窗', upFile: '选择主题包',
+      v: {
+        shop,
+        intro: shop ? '决定顾客看到的店铺样子：颜色、字体、图片和首页内容。' : '只改后台的颜色、字体、圆角、Logo 和登录页背景，不改页面布局和功能。',
+        alert: corrupt ? '有 1 个主题包已损坏，不能启用。正在使用的主题不受影响。' : '',
+        activeName: shop ? (only ? 'Default Shop' : 'Jiffoo 经典') : (only ? 'Default Admin' : '墨灰后台'),
+        activeVer: shop ? '1.0.3' : '1.0.0',
+        activeSource: only ? '内置' : '上传 · 未签名 · 2026-10-08 启用',
+        activeDesc: shop ? '首页 5 个区块 · 跟随系统亮暗色' : '亮色和暗色各一套配色 · 自带 Logo',
+        editLabel: shop ? '自定义' : '查看设置',
+        pvBg: shop ? '#F6F3EE' : (mode === '暗色' ? '#000000' : '#FFFFFF'),
+        pvFg: shop ? '#2B2B2B' : (mode === '暗色' ? '#EDEDED' : '#171717'),
+        pvLine: shop ? '#CFC8BC' : 'rgba(128,128,128,0.35)',
+        pvBlock: shop ? '#E7E1D7' : 'rgba(128,128,128,0.14)',
+        hasOthers: list.length > 0,
+        noOthers: list.length === 0,
+        others: list
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

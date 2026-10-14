@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 客户列表</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-row:hover{background:rgba(128,128,128,0.06)}
+.jf-ghost:hover{background:rgba(128,128,128,0.08)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="客户" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <div style="flex: 1 1 auto; width: 100%; max-width: 1120px; box-sizing: border-box; margin: 0 auto; padding: 40px 32px 32px; display: flex; flex-direction: column; gap: 16px">
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+        <h1 style="margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.025em">客户</h1>
+        <button type="button" style="height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>导出
+        </button>
+      </div>
+
+      <div role="tablist" aria-label="客户状态" style="display: flex; flex-wrap: wrap; gap: 20px; border-bottom: 1px solid {{t.border}}">
+        <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="3">
+          <button type="button" role="tab" aria-selected="{{tab.selected}}" style="height: 36px; padding: 0; margin-bottom: -1px; border: 0; border-bottom: 1.5px solid {{tab.line}}; background: transparent; color: {{tab.color}}; font: inherit; font-weight: 500; cursor: pointer">{{tab.name}}<span style="margin-left: 6px; font-family: 'Geist Mono', monospace; font-size: 11px; color: {{t.faint}}">{{tab.count}}</span></button>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <div style="flex: 1 1 260px; position: relative; display: flex">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" style="position: absolute; left: 11px; top: 10px"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <label for="customer-search" style="position: absolute; left: -9999px">搜索客户</label>
+          <input id="customer-search" type="search" placeholder="搜索名字或邮箱" value="{{searchValue}}" style="flex: 1 1 auto; min-width: 0; height: 34px; box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 0 12px 0 32px; font: inherit">
+        </div>
+        <button type="button" aria-haspopup="listbox" style="height: 34px; display: inline-flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; font: inherit; cursor: pointer">
+          <span style="color: {{t.faint}}">注册时间</span>{{regValue}}
+          <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+        </button>
+      </div>
+
+      <sc-if value="{{filtered}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
+          <span style="height: 26px; display: inline-flex; align-items: center; gap: 4px; padding: 0 4px 0 10px; border-radius: 999px; border: 1px solid {{t.border}}; background: {{t.raised}}">
+            <span style="color: {{t.muted}}">注册时间：</span>近 30 天
+            <button type="button" aria-label="移除筛选：注册时间 近 30 天" style="width: 20px; height: 20px; border: 0; border-radius: 999px; background: transparent; color: {{t.muted}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+          </span>
+          <button type="button" style="height: 26px; padding: 0 8px; border: 0; background: transparent; color: {{t.muted}}; font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px">清除全部</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{hasRows}}" hint-placeholder-val="{{ true }}">
+        <div style="border-radius: 10px; border: 1px solid {{t.border}}; overflow: visible">
+          <sc-if value="{{sel.banner}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; padding: 9px 16px; background: {{t.active}}; border-bottom: 1px solid {{t.border}}; border-radius: 10px 10px 0 0">
+              <span>{{sel.bannerText}}</span>
+              <button type="button" style="border: 0; background: transparent; color: {{t.fg}}; font: inherit; font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 3px">{{sel.bannerAction}}</button>
+            </div>
+          </sc-if>
+          <div style="overflow-x: auto">
+          <table style="width: 100%; min-width: 860px; border-collapse: collapse">
+            <thead>
+              <tr style="color: {{t.faint}}; text-align: left; background: {{t.raised}}">
+                <th scope="col" style="width: 40px; padding: 10px 0 10px 16px">
+                  <input type="checkbox" aria-label="选择本页全部客户" checked="{{sel.headChecked}}" style="width: 15px; height: 15px; margin: 0; accent-color: {{t.fg}}; cursor: pointer">
+                </th>
+                <th scope="col" style="padding: 10px 12px; font-weight: 500; font-size: 12px">客户</th>
+                <th scope="col" style="padding: 10px 12px; font-weight: 500; font-size: 12px">状态</th>
+                <th scope="col" aria-sort="none" style="padding: 10px 12px; font-weight: 500; font-size: 12px; text-align: right"><button type="button" style="border: 0; padding: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px">订单数<svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.45"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"></path></svg></button></th>
+                <th scope="col" aria-sort="none" style="padding: 10px 12px; font-weight: 500; font-size: 12px; text-align: right"><button type="button" title="只计算已付款订单" style="border: 0; padding: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px">累计消费<svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.45"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"></path></svg></button></th>
+                <th scope="col" aria-sort="none" style="padding: 10px 12px; font-weight: 500; font-size: 12px; text-align: right"><button type="button" style="border: 0; padding: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px">最近下单<svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.45"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"></path></svg></button></th>
+                <th scope="col" aria-sort="descending" style="padding: 10px 12px; font-weight: 500; font-size: 12px; text-align: right"><button type="button" style="border: 0; padding: 0; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px">注册时间（Asia/Shanghai）<svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></button></th>
+                <th scope="col" style="width: 44px; padding: 10px 16px 10px 0"><span style="position: absolute; left: -9999px">更多操作</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+                <tr class="jf-row" style="border-top: 1px solid {{t.border}}; background: {{r.rowBg}}; cursor: pointer">
+                  <td style="padding: 10px 0 10px 16px"><input type="checkbox" aria-label="{{r.checkLabel}}" checked="{{r.checked}}" style="width: 15px; height: 15px; margin: 0; accent-color: {{t.fg}}; cursor: pointer"></td>
+                  <td style="padding: 10px 12px">
+                    <a href="CustomerDetail.dc.html" style="display: flex; flex-direction: column; gap: 2px">
+                      <span style="font-weight: 500">{{r.name}}</span>
+                      <span style="font-size: 12px; color: {{t.faint}}">{{r.email}}</span>
+                    </a>
+                  </td>
+                  <td style="padding: 10px 12px; white-space: nowrap">
+                    <span style="display: inline-flex; align-items: center; gap: 7px; color: {{r.statusColor}}">
+                      <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 999px; box-sizing: border-box; border: 1.4px solid currentColor; background: {{r.dotFill}}"></span>{{r.status}}
+                    </span>
+                  </td>
+                  <td style="padding: 10px 12px; text-align: right; font-family: 'Geist Mono', monospace; font-size: 12px">{{r.orders}}</td>
+                  <td style="padding: 10px 12px; text-align: right; font-family: 'Geist Mono', monospace; font-size: 12px; white-space: nowrap; color: {{r.spentColor}}">{{r.spent}}</td>
+                  <td style="padding: 10px 12px; text-align: right; color: {{r.lastColor}}; white-space: nowrap; font-variant-numeric: tabular-nums">{{r.last}}</td>
+                  <td style="padding: 10px 12px; text-align: right; color: {{t.muted}}; white-space: nowrap; font-variant-numeric: tabular-nums">{{r.joined}}</td>
+                  <td style="padding: 6px 16px 6px 0; position: relative">
+                    <button type="button" aria-label="{{r.moreLabel}}" aria-haspopup="menu" aria-expanded="{{r.menuAttr}}" class="jf-ghost" style="width: 28px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: {{t.muted}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center">
+                      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg>
+                    </button>
+                    <sc-if value="{{r.menu}}" hint-placeholder-val="{{ false }}">
+                      <div role="menu" aria-label="客户操作" style="position: absolute; right: 16px; top: 38px; z-index: 5; width: 248px; padding: 4px; border-radius: 10px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 8px 28px rgba(0,0,0,0.14); text-align: left; cursor: default">
+                        <button type="button" role="menuitem" class="jf-ghost" style="width: 100%; height: 32px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.fg}}; font: inherit; text-align: left; cursor: pointer">查看该客户的订单</button>
+                        <button type="button" role="menuitem" class="jf-ghost" style="width: 100%; height: 32px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.fg}}; font: inherit; text-align: left; cursor: pointer">停用客户</button>
+                        <div style="height: 1px; margin: 4px 0; background: {{t.border}}"></div>
+                        <button type="button" role="menuitem" aria-disabled="true" style="width: 100%; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.faint}}; font: inherit; text-align: left; cursor: not-allowed; display: flex; flex-direction: column; gap: 2px">
+                          <span>删除客户</span>
+                          <span style="font-size: 12px; line-height: 1.5">已有 3 笔订单，不能删除。可以停用，订单会保留。</span>
+                        </button>
+                      </div>
+                    </sc-if>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <nav aria-label="翻页" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; color: {{t.muted}}">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+            <span style="font-variant-numeric: tabular-nums">{{pageRange}}</span>
+            <label style="display: inline-flex; align-items: center; gap: 6px">每页
+              <button type="button" aria-haspopup="listbox" aria-label="每页条数" style="height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px; cursor: pointer">20<svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+            条</label>
+          </div>
+          <div style="display: flex; align-items: center; gap: 4px">
+            <button type="button" aria-label="上一页" disabled style="width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.faint}}; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button>
+            <sc-for list="{{pages}}" as="p" hint-placeholder-count="5">
+              <button type="button" aria-label="{{p.label}}" aria-current="{{p.current}}" style="min-width: 30px; height: 30px; padding: 0 6px; border-radius: 7px; border: 1px solid {{p.border}}; background: {{p.bg}}; color: {{p.color}}; font-family: 'Geist Mono', monospace; font-size: 12px; cursor: pointer">{{p.num}}</button>
+            </sc-for>
+            <button type="button" aria-label="下一页" disabled="{{lastPage}}" style="width: 30px; height: 30px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{nextColor}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button>
+          </div>
+        </nav>
+      </sc-if>
+
+      <sc-if value="{{noRows}}" hint-placeholder-val="{{ false }}">
+        <div style="border-radius: 10px; border: 1px dashed {{t.border}}; padding: 56px 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 19.5c0-3-1.6-4.8-3.5-4.8s-3.5 1.8-3.5 4.8M12 11.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6"></path></svg>
+          <span style="font-weight: 500">{{emptyTitle}}</span>
+          <span style="color: {{t.muted}}; max-width: 420px; line-height: 1.6">{{emptyText}}</span>
+          <sc-if value="{{emptyClear}}" hint-placeholder-val="{{ false }}">
+            <button type="button" style="margin-top: 6px; height: 30px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">清除搜索和筛选</button>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{sel.any}}" hint-placeholder-val="{{ false }}">
+      <div role="region" aria-label="批量操作" style="position: sticky; bottom: 16px; display: flex; justify-content: center; padding: 0 16px 16px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; border-radius: 10px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 8px 28px rgba(0,0,0,0.14)">
+          <span style="font-weight: 500; margin-right: 8px">{{sel.count}}</span>
+          <button type="button" style="height: 30px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">
+            <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>导出所选
+          </button>
+          <button type="button" style="height: 30px; padding: 0 10px; border-radius: 7px; border: 0; background: transparent; color: {{t.muted}}; font: inherit; cursor: pointer">取消选择</button>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"view":{"editor":"enum","options":["有客户","有筛选","筛选无结果","还没有客户"],"default":"有客户"},"selection":{"editor":"enum","options":["未选择","已选几条","本页全选","全部符合条件"],"default":"未选择"},"rowMenu":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const view = this.props.view ?? '有客户';
+    const selection = this.props.selection ?? '未选择';
+    const rowMenu = this.props.rowMenu ?? true;
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C',
+      border: 'rgba(255,255,255,0.09)', active: 'rgba(255,255,255,0.07)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373',
+      border: 'rgba(0,0,0,0.09)', active: 'rgba(0,0,0,0.04)'
+    };
+    const filtered = view === '有筛选' || view === '筛选无结果';
+    const noRows = view === '筛选无结果' || view === '还没有客户';
+    const all = [
+      ['Mia Lin', 'mia@example.com', '正常', 3, '¥ 1,148.00', '2026-10-13 16:55', '2026-10-02 10:14'],
+      ['陈晓', 'chen@example.com', '正常', 5, '¥ 2,391.00', '2026-10-13 17:12', '2026-09-28 20:31'],
+      ['林一', 'lin@example.com', '正常', 1, '¥ 0.00', '2026-10-13 17:41', '2026-09-25 17:30'],
+      ['张伟', 'zhang@example.com', '正常', 8, '¥ 6,420.00', '2026-10-13 06:30', '2026-09-20 09:02'],
+      ['王芳', 'wang@example.com', '已停用', 2, '¥ 318.00', '2026-10-12 21:04', '2026-09-18 13:45'],
+      ['Lucas Meyer', 'lucas@example.com', '正常', 1, '¥ 159.00', '2026-10-12 16:47', '2026-09-16 08:12'],
+      ['赵敏', 'zhao@example.com', '正常', 0, '¥ 0.00', '', '2026-09-15 22:40'],
+      ['周杰', 'zhou@example.com', '已停用', 0, '¥ 0.00', '', '2026-09-14 11:05']
+    ];
+    const total = filtered ? 23 : 312;
+    const some = selection === '已选几条', pageAll = selection === '本页全选', allSel = selection === '全部符合条件';
+    const isChecked = (i) => pageAll || allSel || (some && (i === 0 || i === 3));
+    const count = allSel ? '已选全部 ' + total + ' 位客户' : pageAll ? '已选 20 位客户' : some ? '已选 2 位客户' : '';
+    const tabs = [['全部', '312', true], ['正常', '297'], ['已停用', '15']]
+      .map(([name, c, s]) => ({ name, count: c, selected: s ? 'true' : 'false', line: s ? t.fg : 'transparent', color: s ? t.fg : t.faint }));
+    const pageCount = Math.ceil(total / 20);
+    const nums = filtered ? [1, 2] : [1, 2, 3, 4, 5];
+    const pages = nums.map(n => ({ num: String(n), label: '第 ' + n + ' 页', current: n === 1 ? 'page' : 'false',
+      border: n === 1 ? t.fg : t.border, bg: n === 1 ? t.fg : t.bg, color: n === 1 ? t.bg : t.fg }));
+    if (!filtered) pages.splice(4, 0, { num: '…', label: '更多页', current: 'false', border: 'transparent', bg: 'transparent', color: t.faint });
+    if (!filtered) pages[pages.length - 1] = { num: String(pageCount), label: '第 ' + pageCount + ' 页', current: 'false', border: t.border, bg: t.bg, color: t.fg };
+    return {
+      t, mode, filtered, noRows, hasRows: !noRows, tabs,
+      searchValue: view === '筛选无结果' ? 'qian@' : '',
+      regValue: filtered ? '近 30 天' : '全部',
+      emptyTitle: view === '还没有客户' ? '暂无客户' : '没有符合条件的客户',
+      emptyText: view === '还没有客户' ? '顾客在店铺注册或下单后，会出现在这里。' : '换个关键词，或清除筛选再试。',
+      emptyClear: view === '筛选无结果',
+      pageRange: '1–20，共 ' + total + ' 条',
+      lastPage: false, nextColor: t.fg,
+      pages,
+      sel: {
+        any: some || pageAll || allSel, count,
+        headChecked: pageAll || allSel,
+        banner: pageAll || allSel,
+        bannerText: allSel ? '已选全部 ' + total + ' 位符合条件的客户。' : '已选本页 20 位客户。',
+        bannerAction: allSel ? '只选本页' : '选择全部 ' + total + ' 位符合条件的客户'
+      },
+      rows: all.map(([name, email, status, orders, spent, last, joined], i) => {
+        const off = status === '已停用';
+        return {
+          name, email, status, orders: String(orders), spent, joined,
+          last: last || '暂无', lastColor: last ? t.muted : t.faint,
+          spentColor: spent === '¥ 0.00' ? t.faint : t.fg,
+          statusColor: off ? t.faint : t.fg, dotFill: off ? 'transparent' : 'currentColor',
+          checked: isChecked(i), checkLabel: '选择客户 ' + name, rowBg: isChecked(i) ? t.active : 'transparent',
+          moreLabel: '更多操作：' + name,
+          menu: rowMenu && i === 0, menuAttr: rowMenu && i === 0 ? 'true' : 'false'
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

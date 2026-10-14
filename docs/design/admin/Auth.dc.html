@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 登录与账户找回</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{pageBg}}; color: {{t.fg}}; min-height: 100vh; position: relative; box-sizing: border-box; padding: 48px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px">
+
+  <div style="display: flex; align-items: center; gap: 9px">
+    <span aria-hidden="true" style="width: 26px; height: 26px; border-radius: 7px; background: {{t.fg}}; color: {{t.bg}}; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px">示</span>
+    <span style="font-weight: 600; font-size: 15px">示例店铺</span>
+    <span style="color: {{t.faint}}">后台</span>
+  </div>
+
+  <div style="width: 100%; max-width: 380px; box-sizing: border-box; border-radius: 12px; border: 1px solid {{t.border}}; background: {{t.bg}}; padding: 28px; display: flex; flex-direction: column; gap: 18px">
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">{{c.title}}</h1>
+      <sc-if value="{{c.sub}}" hint-placeholder-val="{{ true }}"><p style="margin: 0; color: {{t.muted}}; line-height: 1.6">{{c.sub}}</p></sc-if>
+    </div>
+
+    <sc-if value="{{c.error}}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="border-radius: 8px; border: 1px solid {{t.dangerLine}}; background: {{t.dangerSoft}}; color: {{t.danger}}; padding: 10px 12px; line-height: 1.6">{{c.error}}</div>
+    </sc-if>
+    <sc-if value="{{c.info}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="border-radius: 8px; border: 1px solid {{t.border}}; background: {{t.raised}}; color: {{t.fg}}; padding: 10px 12px; line-height: 1.6">{{c.info}}</div>
+    </sc-if>
+
+    <sc-if value="{{c.login}}" hint-placeholder-val="{{ true }}">
+      <form style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="l-id">邮箱或登录名</label>
+          <input id="l-id" autocomplete="username" value="{{c.idValue}}" style="height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; justify-content: space-between; align-items: baseline">
+            <label for="l-pw">密码</label>
+            <a href="#" onClick="{{go.forgot}}" style="font-size: 12px; color: {{t.muted}}; text-decoration: underline; text-underline-offset: 3px">忘记密码？</a>
+          </div>
+          <input id="l-pw" type="password" autocomplete="current-password" style="height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+        </div>
+        <button type="button" style="height: 36px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">登录</button>
+      </form>
+    </sc-if>
+
+    <sc-if value="{{c.forgot}}" hint-placeholder-val="{{ false }}">
+      <form style="display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="f-email">登录邮箱</label>
+          <input id="f-email" type="email" autocomplete="email" style="height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+        </div>
+        <button type="button" style="height: 36px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">发送重置邮件</button>
+      </form>
+    </sc-if>
+
+    <sc-if value="{{c.setPw}}" hint-placeholder-val="{{ false }}">
+      <form style="display: flex; flex-direction: column; gap: 14px">
+        <sc-if value="{{c.inviteEmail}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="color: {{t.muted}}">登录邮箱</span>
+            <span style="height: 36px; box-sizing: border-box; display: flex; align-items: center; padding: 0 10px; border-radius: 7px; background: {{t.raised}}; border: 1px solid {{t.border}}">{{c.inviteEmail}}</span>
+          </div>
+        </sc-if>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="s-pw">{{c.pwLabel}}</label>
+          <input id="s-pw" type="password" autocomplete="new-password" aria-describedby="s-pw-hint" style="height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+          <span id="s-pw-hint" style="font-size: 12px; color: {{t.faint}}">至少 8 个字符。</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="s-pw2">再输入一次</label>
+          <input id="s-pw2" type="password" autocomplete="new-password" style="height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+        </div>
+        <button type="button" style="height: 36px; border-radius: 7px; border: 0; background: {{t.fg}}; color: {{t.bg}}; font: inherit; font-weight: 500; cursor: pointer">{{c.submit}}</button>
+      </form>
+    </sc-if>
+
+    <sc-if value="{{c.cta}}" hint-placeholder-val="{{ false }}">
+      <a href="#" onClick="{{c.ctaGo}}" style="height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 7px; background: {{t.fg}}; color: {{t.bg}}; font-weight: 500">{{c.cta}}</a>
+    </sc-if>
+
+    <sc-if value="{{c.back}}" hint-placeholder-val="{{ false }}">
+      <a href="#" onClick="{{go.login}}" style="align-self: center; color: {{t.muted}}; text-decoration: underline; text-underline-offset: 3px">← 返回登录</a>
+    </sc-if>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 14px; color: {{t.faint}}; font-size: 12px">
+    <button type="button" aria-haspopup="listbox" aria-label="界面语言" style="height: 28px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.muted}}; font: inherit; cursor: pointer">简体中文<svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+    <span>这里是店铺后台，只供管理员使用。</span>
+  </div>
+  <sc-if value="{{bgImage}}" hint-placeholder-val="{{ false }}">
+    <span style="position: absolute; left: 16px; bottom: 12px; font-size: 12px; color: #3A3A3A; background: rgba(255,255,255,0.7); padding: 2px 8px; border-radius: 6px">示意：后台主题提供的登录页背景图铺满整页，卡片保持不变</span>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"screen":{"editor":"enum","options":["登录","登录 · 密码不对","登录 · 顾客账户","登录 · 账户已移除","登录 · 尝试太多","登录 · 已退出","忘记密码","忘记密码 · 已发送","重置密码","重置密码 · 链接失效","重置密码 · 完成","接受邀请","接受邀请 · 链接失效","接受邀请 · 完成"],"default":"登录"},"bgImage":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":820}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { screen: null }; }
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const screen = this.state.screen ?? this.props.screen ?? '登录';
+    const t = mode === '暗色' ? {
+      page: '#000000', bg: '#0A0A0A', raised: '#111111', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.10)',
+      danger: '#FF8A80', dangerSoft: 'rgba(255,138,128,0.07)', dangerLine: 'rgba(255,138,128,0.25)'
+    } : {
+      page: '#FAFAFA', bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)',
+      danger: '#B3261E', dangerSoft: '#FDF3F2', dangerLine: 'rgba(179,38,30,0.22)'
+    };
+    const to = (s) => (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ screen: s }); };
+    const go = { login: to('登录'), forgot: to('忘记密码') };
+    const base = { sub: '', error: '', info: '', login: false, forgot: false, setPw: false, cta: '', ctaGo: go.login, back: false, inviteEmail: '', idValue: '', pwLabel: '新密码', submit: '' };
+    const login = { ...base, title: '登录后台', login: true };
+    const C = {
+      '登录': login,
+      '登录 · 密码不对': { ...login, idValue: 'owner@example.com', error: '邮箱或密码不对，请重新输入。' },
+      '登录 · 顾客账户': { ...login, idValue: 'mia@example.com', error: '这是商城的顾客账户，不能登录后台。如果你是店铺管理员，请用管理员邮箱登录。' },
+      '登录 · 账户已移除': { ...login, idValue: 'li.ops@example.com', error: '这个管理员账户已被移除，不能登录。如有疑问请联系店主。' },
+      '登录 · 尝试太多': { ...login, idValue: 'owner@example.com', error: '登录尝试次数太多，请稍后再试。' },
+      '登录 · 已退出': { ...login, info: '你的密码在别处被修改，或登录已过期，请重新登录。' },
+      '忘记密码': { ...base, title: '找回密码', sub: '输入你的管理员登录邮箱，我们会发一封重置密码的邮件。', forgot: true, back: true },
+      '忘记密码 · 已发送': { ...base, title: '请查收邮件', sub: '如果这个邮箱属于本店的管理员，你会收到一封重置密码的邮件。链接 1 小时内有效，只能用一次。没收到请检查垃圾邮件。', back: true },
+      '重置密码': { ...base, title: '设置新密码', sub: '设置后，其他设备上的登录会全部退出。', setPw: true, submit: '保存新密码' },
+      '重置密码 · 链接失效': { ...base, title: '链接已失效', sub: '这个重置链接已过期或已经用过。重置链接 1 小时内有效，只能用一次。', cta: '重新发送重置邮件', ctaGo: go.forgot, back: true },
+      '重置密码 · 完成': { ...base, title: '密码已更新', sub: '请用新密码登录。', cta: '去登录' },
+      '接受邀请': { ...base, title: '加入示例店铺的后台', sub: '你被邀请成为这家店的管理员。设置密码后就能登录后台。', setPw: true, inviteEmail: 'lucas.ops@example.com', pwLabel: '设置密码', submit: '设置密码并加入' },
+      '接受邀请 · 链接失效': { ...base, title: '邀请链接已失效', sub: '这个邀请已过期、已被使用或已被撤销。邀请链接 72 小时内有效。请联系邀请你的管理员重新发送。' },
+      '接受邀请 · 完成': { ...base, title: '已加入示例店铺', sub: '账户已设置好，用刚才的邮箱和密码登录即可。', cta: '去登录' }
+    };
+    const bgImage = this.props.bgImage ?? false;
+    return { t, mode, go, bgImage, pageBg: bgImage ? '#CFC7BA' : t.page, c: C[screen] || login };
+  }
+}
+</script>
+</body>
+</html>

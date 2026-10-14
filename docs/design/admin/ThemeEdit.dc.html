@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>后台 · 自定义主题</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+@media (min-width: 800px){.jf-side{position:sticky;top:0;align-self:flex-start}}
+a{text-decoration:none;color:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #7A7A7A;outline-offset:1px}
+.jf-ghost:hover{background:rgba(128,128,128,0.08)}
+</style>
+</helmet>
+<div style="font-family: 'Geist', 'Noto Sans SC', sans-serif; font-size: 13px; background: {{t.bg}}; color: {{t.fg}}; min-height: 100%; display: flex; flex-wrap: wrap; align-items: stretch">
+  <aside class="jf-side" style="flex: 0 0 240px; max-width: 100%; border-right: 1px solid {{t.border}}">
+    <dc-import name="Sidebar" mode="{{mode}}" active="主题" hint-size="240px,900px"></dc-import>
+  </aside>
+  <main style="flex: 999 1 560px; min-width: 0; position: relative">
+
+    <header style="position: sticky; top: 0; z-index: 4; background: {{t.bg}}; border-bottom: 1px solid {{t.border}}">
+      <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 16px 32px 14px; display: flex; flex-direction: column; gap: 10px">
+        <a href="Themes.dc.html" style="width: max-content; color: {{t.muted}}">← 主题</a>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px">
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px">
+            <h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">自定义 Jiffoo 经典</h1>
+            <span style="font-size: 12px; height: 22px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 6px; border: 1px solid {{t.border}}; color: {{t.muted}}; align-self: center">商城 · 正在使用</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+            <span style="font-size: 12px; color: {{s.noteColor}}">{{s.note}}</span>
+            <a href="#" style="height: 32px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}">在店铺中查看<svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"></path></svg></a>
+            <button type="button" aria-label="更多操作：恢复上一版配置、重置首页为主题默认" aria-haspopup="menu" class="jf-ghost" style="height: 32px; width: 32px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"></circle><circle cx="12" cy="12" r="1.6"></circle><circle cx="19" cy="12" r="1.6"></circle></svg></button>
+            <sc-if value="{{s.dirty}}" hint-placeholder-val="{{ false }}">
+              <button type="button" style="height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">放弃更改</button>
+            </sc-if>
+            <button type="button" disabled="{{s.saveDisabled}}" style="height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: {{s.saveBg}}; color: {{s.saveFg}}; font: inherit; font-weight: 500; cursor: {{s.saveCursor}}">保存</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div style="max-width: 760px; box-sizing: border-box; margin: 0 auto; padding: 24px 32px 64px; display: flex; flex-direction: column; gap: 20px">
+
+      <sc-if value="{{s.conflict}}" hint-placeholder-val="{{ false }}">
+        <div role="alert" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid {{t.alertLine}}; background: {{t.alertSoft}}; color: {{t.alert}}">
+          <span style="flex: 1 1 320px">别人刚刚在另一处保存过这个主题的配置。你的修改还在页面上，没有保存。请先看看最新内容，再决定怎么改。</span>
+          <button type="button" style="height: 30px; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.alertLine}}; background: transparent; color: {{t.alert}}; font: inherit; font-weight: 500; cursor: pointer">载入最新配置</button>
+        </div>
+      </sc-if>
+
+      <section aria-labelledby="th-settings" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: hidden">
+        <div style="padding: 12px 16px; border-bottom: 1px solid {{t.border}}; display: flex; flex-direction: column; gap: 2px">
+          <h2 id="th-settings" style="margin: 0; font-size: 13px; font-weight: 600">主题设置</h2>
+          <span style="font-size: 12px; color: {{t.faint}}">这些选项由主题作者提供，不同主题不一样。</span>
+        </div>
+        <sc-if value="{{hasSettings}}" hint-placeholder-val="{{ true }}">
+          <div style="padding: 16px; display: flex; flex-direction: column; gap: 16px">
+            <div style="display: flex; flex-direction: column; gap: 6px; max-width: 400px">
+              <label for="ts-accent">强调色</label>
+              <div style="display: flex; gap: 8px; align-items: center">
+                <span aria-hidden="true" style="width: 34px; height: 34px; flex: none; box-sizing: border-box; border-radius: 7px; border: 1px solid {{t.border}}; background: #2B4C3F"></span>
+                <input id="ts-accent" value="#2B4C3F" style="flex: 1 1 auto; height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font-family: 'Geist Mono', monospace; font-size: 12px">
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px; max-width: 400px">
+              <label for="ts-font">标题字体</label>
+              <button id="ts-font" type="button" aria-haspopup="listbox" style="height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit; cursor: pointer">思源宋体<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.faint}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span>店铺 Logo</span>
+              <div style="display: flex; align-items: center; gap: 10px">
+                <span aria-hidden="true" style="width: 96px; height: 40px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.raised}}; display: flex; align-items: center; justify-content: center; font-weight: 600; color: {{t.muted}}">示例店铺</span>
+                <button type="button" style="height: 30px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer">更换图片</button>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{noSettings}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; padding: 16px; color: {{t.muted}}">这个主题没有可调整的设置。</p>
+        </sc-if>
+      </section>
+
+      <section aria-labelledby="th-home" style="border: 1px solid {{t.border}}; border-radius: 10px; overflow: visible">
+        <div style="padding: 12px 16px; border-bottom: 1px solid {{t.border}}; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <h2 id="th-home" style="margin: 0; font-size: 13px; font-weight: 600">首页区块</h2>
+            <span style="font-size: 12px; color: {{t.faint}}">从上到下就是首页的顺序，最多 30 个。</span>
+          </div>
+          <div style="position: relative">
+            <button type="button" aria-haspopup="menu" aria-expanded="{{addAttr}}" style="height: 30px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; cursor: pointer"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>添加区块</button>
+            <sc-if value="{{addMenu}}" hint-placeholder-val="{{ false }}">
+              <div role="menu" aria-label="区块类型" style="position: absolute; right: 0; top: 36px; z-index: 6; width: 220px; padding: 4px; border-radius: 10px; border: 1px solid {{t.border}}; background: {{t.bg}}; box-shadow: 0 8px 28px rgba(0,0,0,0.14)">
+                <sc-for list="{{types}}" as="ty" hint-placeholder-count="8">
+                  <button type="button" role="menuitem" class="jf-ghost" style="width: 100%; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.fg}}; font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 1px"><span>{{ty.n}}</span><span style="font-size: 12px; color: {{t.faint}}">{{ty.d}}</span></button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+        <ol style="list-style: none; margin: 0; padding: 0">
+          <sc-for list="{{sections}}" as="sec" hint-placeholder-count="5">
+            <li style="border-bottom: 1px solid {{t.border}}">
+              <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 16px; background: {{sec.bg}}">
+                <span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: {{t.faint}}; width: 18px">{{sec.no}}</span>
+                <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                  <span style="font-weight: 500">{{sec.type}}</span>
+                  <span style="font-size: 12px; color: {{t.muted}}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{sec.sum}}</span>
+                </div>
+                <button type="button" aria-label="{{sec.upLabel}}" disabled="{{sec.first}}" class="jf-ghost" style="width: 28px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: {{sec.upColor}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"></path></svg></button>
+                <button type="button" aria-label="{{sec.downLabel}}" disabled="{{sec.last}}" class="jf-ghost" style="width: 28px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: {{sec.downColor}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"></path></svg></button>
+                <button type="button" aria-expanded="{{sec.openAttr}}" onClick="{{sec.toggle}}" style="height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: transparent; color: {{t.fg}}; font: inherit; font-size: 12px; cursor: pointer">{{sec.editLabel}}</button>
+                <button type="button" aria-label="{{sec.delLabel}}" class="jf-ghost" style="width: 28px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: {{t.muted}}; cursor: pointer; display: inline-flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"></path></svg></button>
+              </div>
+              <sc-if value="{{sec.open}}" hint-placeholder-val="{{ false }}">
+                <div style="padding: 4px 16px 16px 44px; display: flex; flex-direction: column; gap: 14px; background: {{sec.bg}}">
+                  <div style="display: flex; flex-direction: column; gap: 6px">
+                    <label for="pg-title">标题</label>
+                    <input id="pg-title" value="新品上架" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit">
+                  </div>
+                  <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px">
+                    <legend style="padding: 0; margin-bottom: 6px">商品来源</legend>
+                    <div style="display: flex; flex-wrap: wrap; gap: 16px">
+                      <label style="display: inline-flex; gap: 6px; align-items: center"><input type="radio" name="pg-src" checked style="accent-color: {{t.fg}}">最新上架</label>
+                      <label style="display: inline-flex; gap: 6px; align-items: center"><input type="radio" name="pg-src" style="accent-color: {{t.fg}}">某个分类</label>
+                      <label style="display: inline-flex; gap: 6px; align-items: center"><input type="radio" name="pg-src" style="accent-color: {{t.fg}}">手动选择商品</label>
+                    </div>
+                  </fieldset>
+                  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 400px">
+                    <div style="display: flex; flex-direction: column; gap: 6px"><label for="pg-count">显示数量</label><input id="pg-count" type="number" value="8" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit"></div>
+                    <div style="display: flex; flex-direction: column; gap: 6px"><label for="pg-cols">每行几个</label><input id="pg-cols" type="number" value="4" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; font: inherit"></div>
+                  </div>
+                </div>
+              </sc-if>
+            </li>
+          </sc-for>
+        </ol>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["亮色","暗色"],"default":"亮色"},"state":{"editor":"enum","options":["已保存","有未保存的更改","添加区块菜单","别人刚保存过","主题没有设置项"],"default":"有未保存的更改"},"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: 'section-3' }; }
+  renderVals() {
+    const mode = this.props.mode ?? '亮色';
+    const st = this.props.state ?? '有未保存的更改';
+    const t = mode === '暗色' ? {
+      bg: '#000000', raised: '#0A0A0A', fg: '#EDEDED', muted: '#A1A1A1', faint: '#7C7C7C', border: 'rgba(255,255,255,0.09)', active: 'rgba(255,255,255,0.04)',
+      alert: '#F5A97F', alertSoft: 'rgba(245,169,127,0.07)', alertLine: 'rgba(245,169,127,0.22)'
+    } : {
+      bg: '#FFFFFF', raised: '#FAFAFA', fg: '#171717', muted: '#5C5C5C', faint: '#737373', border: 'rgba(0,0,0,0.09)', active: '#FAFAFA',
+      alert: '#B4470E', alertSoft: '#FFF6F0', alertLine: 'rgba(180,71,14,0.22)'
+    };
+    const dirty = st === '有未保存的更改' || st === '别人刚保存过';
+    const rows = [
+      ['section-1', '公告栏', '满 199 元包邮 · 链接到 /pages/shipping'],
+      ['section-2', '主视觉横幅', '秋季新品 · 1 张图片 · 按钮“去看看”'],
+      ['section-3', '商品网格', '新品上架 · 最新上架 · 8 个 · 每行 4 个'],
+      ['section-4', '分类列表', '3 个分类：衬衫、包袋、配饰'],
+      ['section-5', '图文区块', '关于我们 · 图片在左侧']
+    ];
+    const types = [['公告栏', '页面顶部的一行通知'], ['主视觉横幅', '大图 + 标题 + 按钮'], ['图片轮播', '多张图片自动切换'], ['分类列表', '展示几个分类入口'], ['商品网格', '按规则或手动展示商品'], ['图文区块', '一张图配一段文字'], ['文字区块', '标题和正文'], ['特色列表', '几条卖点，例如包邮、退换']];
+    return {
+      t, mode,
+      hasSettings: st !== '主题没有设置项', noSettings: st === '主题没有设置项',
+      addMenu: st === '添加区块菜单', addAttr: st === '添加区块菜单' ? 'true' : 'false',
+      types: types.map(([n, d]) => ({ n, d })),
+      s: {
+        dirty, conflict: st === '别人刚保存过',
+        note: dirty ? '有未保存的更改' : '已保存 · 2026-10-13 15:20',
+        noteColor: dirty ? t.alert : t.faint,
+        saveDisabled: !dirty, saveBg: dirty ? t.fg : t.raised, saveFg: dirty ? t.bg : t.faint, saveCursor: dirty ? 'pointer' : 'default'
+      },
+      sections: rows.map(([id, type, sum], i) => {
+        const open = this.state.open === id;
+        return {
+          no: String(i + 1), type, sum, open, openAttr: open ? 'true' : 'false',
+          editLabel: open ? '收起' : '编辑', bg: open ? t.active : 'transparent',
+          toggle: () => this.setState({ open: open ? '' : id }),
+          first: i === 0, last: i === rows.length - 1,
+          upColor: i === 0 ? t.border : t.muted, downColor: i === rows.length - 1 ? t.border : t.muted,
+          upLabel: '上移：' + type, downLabel: '下移：' + type, delLabel: '删除区块：' + type
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

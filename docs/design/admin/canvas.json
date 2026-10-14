@@ -1,0 +1,257 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Categories.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "A6 · 分类",
+      "w": 1440,
+      "x": 3040,
+      "y": 2120,
+      "is_interactive": true
+    },
+    "Main.dc.html": {
+      "expand": "fill",
+      "h": 1180,
+      "title": "A1 · 概览",
+      "w": 1440,
+      "x": 0,
+      "y": 0,
+      "is_interactive": true
+    },
+    "OrderDetail.dc.html": {
+      "expand": "fill",
+      "h": 1700,
+      "title": "A3 · 订单详情（固定页头）",
+      "w": 1440,
+      "x": 3040,
+      "y": 0,
+      "is_interactive": true
+    },
+    "Orders.dc.html": {
+      "expand": "fill",
+      "h": 1080,
+      "title": "A2 · 订单列表",
+      "w": 1440,
+      "x": 1520,
+      "y": 0,
+      "is_interactive": true
+    },
+    "ProductEdit.dc.html": {
+      "expand": "fill",
+      "h": 1800,
+      "title": "A5 · 编辑/新建商品（固定页头 + 保存）",
+      "w": 1440,
+      "x": 1520,
+      "y": 2120,
+      "is_interactive": true
+    },
+    "Products.dc.html": {
+      "expand": "fill",
+      "h": 1000,
+      "title": "A4 · 商品列表",
+      "w": 1440,
+      "x": 0,
+      "y": 2120,
+      "is_interactive": true
+    },
+    "Sidebar.dc.html": {
+      "h": 900,
+      "title": "共用 · 侧边栏",
+      "w": 240,
+      "x": 4560,
+      "y": 0,
+      "is_interactive": true
+    },
+    "Customers.dc.html": {
+      "expand": "fill",
+      "h": 1080,
+      "title": "B1 · 客户列表",
+      "w": 1440,
+      "x": 0,
+      "y": 4440,
+      "is_interactive": true
+    },
+    "CustomerDetail.dc.html": {
+      "expand": "fill",
+      "h": 1400,
+      "title": "B2 · 客户详情（固定页头）",
+      "w": 1440,
+      "x": 1520,
+      "y": 4440,
+      "is_interactive": true
+    },
+    "Staff.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "B3 · 管理员列表 + 邀请弹窗",
+      "w": 1440,
+      "x": 3040,
+      "y": 4440,
+      "is_interactive": true
+    },
+    "StaffDetail.dc.html": {
+      "expand": "fill",
+      "h": 1000,
+      "title": "B4 · 管理员详情（固定页头）",
+      "w": 1440,
+      "x": 0,
+      "y": 5960,
+      "is_interactive": true
+    },
+    "Profile.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "B5 · 我的账户",
+      "w": 1440,
+      "x": 1520,
+      "y": 5960,
+      "is_interactive": true
+    },
+    "Auth.dc.html": {
+      "expand": "fill",
+      "h": 820,
+      "title": "B6–B9 · 登录 / 忘记密码 / 重置密码 / 接受邀请（右上切换页面和状态）",
+      "w": 1440,
+      "x": 3040,
+      "y": 5960,
+      "is_interactive": true
+    },
+    "Install.dc.html": {
+      "expand": "fill",
+      "h": 1000,
+      "title": "B10 · 安装向导",
+      "w": 1440,
+      "x": 0,
+      "y": 7200,
+      "is_interactive": true
+    },
+    "Themes.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "C1 · 主题（商城 / 后台）",
+      "w": 1440,
+      "x": 0,
+      "y": 8740,
+      "is_interactive": true
+    },
+    "ThemeEdit.dc.html": {
+      "expand": "fill",
+      "h": 1300,
+      "title": "C2 · 自定义主题（主题设置 + 首页区块）",
+      "w": 1440,
+      "x": 1520,
+      "y": 8740,
+      "is_interactive": true
+    },
+    "Plugins.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "C3 · 插件（已安装 / 市场 / 已卸载 + 上传安装流程）",
+      "w": 1440,
+      "x": 3040,
+      "y": 8740,
+      "is_interactive": true
+    },
+    "PluginDetail.dc.html": {
+      "expand": "fill",
+      "h": 1250,
+      "title": "C4 · 插件详情（配置 + 启用/停用）",
+      "w": 1440,
+      "x": 0,
+      "y": 10160,
+      "is_interactive": true
+    },
+    "StorefrontCode.dc.html": {
+      "expand": "fill",
+      "h": 1500,
+      "title": "C5 · 追踪与自定义代码",
+      "w": 1440,
+      "x": 1520,
+      "y": 10160,
+      "is_interactive": true
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-13T15:50:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "groupA": {
+      "kind": "title1",
+      "maxW": 4800,
+      "text": "A 组 · 概览、订单、商品（已上线页面按新规矩重画）",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "groupA2": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "A 组（续）· 商品与分类",
+      "w": 240,
+      "x": 0,
+      "y": 1820
+    },
+    "pages": {
+      "fill": "blue",
+      "maxH": 900,
+      "text": "后台页面清单（共 24 个）\n\nA 组 · 本画布已画：概览、订单列表、订单详情、商品列表、编辑/新建商品、分类\n\nB 组 · 本画布已画（待批准）：客户列表、客户详情、管理员列表、管理员详情/邀请、我的账户、登录、忘记密码、重置密码、接受邀请、安装向导\n\nC 组 · 再下一步：主题、插件列表、插件详情、追踪与自定义代码、通知、审计记录、设置、系统健康\n\n弹窗（随页面一起画）：发货、退款、付款审核、取消订单、记录付款、删除/下架商品、分类编辑",
+      "w": 520,
+      "x": -620,
+      "y": 1240
+    },
+    "rules": {
+      "fill": "gray",
+      "maxH": 1300,
+      "text": "设计规矩（所有后台页面通用）\n\n1. 单栏为主：内容从上往下排，不做左右分栏。列表页内容宽 1120，表单/详情页内容宽 760 居中。\n2. 黑白灰为底，只有需要商家拿主意的地方用橙色（attention）。不可撤销的操作在确认弹窗里用红色。\n3. 只显示真实数据；没有数据就写“暂无…”。不出现假趋势、假百分比、装腔作势的英文。\n4. 时间一律按店铺时区的精确时间，表头或页头注明一次时区。\n5. 页头统一：返回链接（可选）→ 标题 26px → 一行说明；主要操作放页头右侧。详情页和编辑页的页头固定在顶部，往下翻也能直接点操作；详情/编辑页页头右上有“上一个 / 下一个”，按列表当前的筛选顺序切换。\n6. 列表统一：下划线标签带数量 → 搜索 + 筛选（生效的筛选显示成可删除的小标签 + 清除全部）→ 表格（整行可点，表头可排序）→ 翻页条常驻（共几条 · 每页 20/50/100 · 页码），只有 1 页也显示。\n7. 行内次要操作收进“⋯”菜单；做不了的操作变灰并写明原因，不要点了才报错。\n7b. 批量操作：每行有勾选框；表头勾选=只选本页；本页选满后表格上方出现“选择全部 N 个符合条件的…”；改搜索或筛选自动清空选择；选中后底部浮出操作条“已选 N 个 · 操作 · 取消选择”；危险操作的确认框写真实数量，做不了的条目说明会跳过。\n8. 保存：编辑页的“保存”固定在页头右侧、一直可见；没改动时是灰的并写“已保存 · 时间”；有改动时写“有未保存的更改”并出现“放弃更改”。离开页面（含点侧边栏）前若有未保存的更改，弹窗问“保存并离开 / 继续编辑 / 不保存，离开”。保存失败时内容原样保留，顶部提示并能跳到第一个错误。不做自动保存，不做快捷键（暂缓）。\n9. 控件高 32–34px，圆角 7/10px，1px 边框，除浮层外无阴影；编号、金额、SKU 用等宽字体。\n10. 页面顶部提示条（如测试签名模式）与下方内容之间留 24px。",
+      "w": 520,
+      "x": -620,
+      "y": 0
+    },
+    "groupB": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "B 组 · 客户、管理员、账户与登录",
+      "w": 240,
+      "x": 0,
+      "y": 4140
+    },
+    "groupC": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "C 组第一批 · 主题、插件、追踪代码",
+      "w": 240,
+      "x": 0,
+      "y": 8440
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Orders.dc.html",
+    "OrderDetail.dc.html",
+    "Products.dc.html",
+    "ProductEdit.dc.html",
+    "Categories.dc.html",
+    "Sidebar.dc.html",
+    "Customers.dc.html",
+    "CustomerDetail.dc.html",
+    "Staff.dc.html",
+    "StaffDetail.dc.html",
+    "Profile.dc.html",
+    "Auth.dc.html",
+    "Install.dc.html",
+    "Themes.dc.html",
+    "ThemeEdit.dc.html",
+    "Plugins.dc.html",
+    "PluginDetail.dc.html",
+    "StorefrontCode.dc.html"
+  ],
+  "pages": [],
+  "title": "Jiffoo 后台页面设计"
+}
