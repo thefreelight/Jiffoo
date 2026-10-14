@@ -194,7 +194,8 @@ describe('postory store compat', () => {
       const payload = await response!.json();
       expect(payload.data.session.url).toContain('checkout.stripe.com');
       const form = new URLSearchParams(String(fetcher.mock.calls[0][1].body));
-      expect(form.get('mode')).toBe('subscription');
+      expect(form.get('mode')).toBe('payment');
+      expect(form.get('line_items[0][price_data][recurring][interval]')).toBeNull();
       expect(form.get('line_items[0][price_data][unit_amount]')).toBe('2900');
       expect(form.get('metadata[planSlug]')).toBe('local-yearly');
       expect(executed.some((e) => e.sql.includes('INSERT INTO postory_orders'))).toBe(true);
@@ -320,6 +321,60 @@ describe('CN customer payment rails', () => {
       );
       const form = new URLSearchParams(fetcher.mock.calls[0]?.[1]?.body as string);
       expect(form.get('payment_method_types[0]')).toBeNull();
+    } finally {
+      globalThis.fetch = globalFetch;
+    }
+  });
+
+  it('falls back to automatic methods when Stripe rejects the CN rails', async () => {
+    const { db } = createDb();
+    authenticateNativeUser.mockResolvedValue(USER);
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { message: 'The payment method type provided: alipay is invalid. Please ensure the provided type is activated in your dashboard (https://dashboard.stripe.com/account/payments/settings).' } }), { status: 400 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'cs_live_fallback', url: 'https://checkout.stripe.com/c/pay/cs_live_fallback' }), { status: 200 }));
+    const globalFetch = globalThis.fetch;
+    globalThis.fetch = fetcher as typeof fetch;
+    try {
+      const response = await tryPostoryCompat(
+        new Request('https://api.postory.cc/api/extensions/plugin/subscription/api/store/subscriptions/checkout', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'accept-language': 'zh-CN,zh;q=0.9', authorization: 'Bearer tok' },
+          body: JSON.stringify({ plan: 'local-yearly', paymentMethod: 'stripe' }),
+        }),
+        baseEnv(db),
+      );
+      const payload = await response!.json();
+      expect(payload.data.session.url).toContain('cs_live_fallback');
+      expect(fetcher).toHaveBeenCalledTimes(2);
+      const first = new URLSearchParams(fetcher.mock.calls[0]?.[1]?.body as string);
+      const second = new URLSearchParams(fetcher.mock.calls[1]?.[1]?.body as string);
+      expect(first.get('payment_method_types[1]')).toBe('alipay');
+      expect(second.get('payment_method_types[0]')).toBeNull();
+      expect(second.get('mode')).toBe('payment');
+    } finally {
+      globalThis.fetch = globalFetch;
+    }
+  });
+
+  it('surfaces the Stripe error when even the automatic retry fails', async () => {
+    const { db } = createDb();
+    authenticateNativeUser.mockResolvedValue(USER);
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ error: { message: 'Invalid API key provided.' } }), { status: 401 }));
+    const globalFetch = globalThis.fetch;
+    globalThis.fetch = fetcher as typeof fetch;
+    try {
+      const response = await tryPostoryCompat(
+        new Request('https://api.postory.cc/api/extensions/plugin/subscription/api/store/subscriptions/checkout', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'accept-language': 'zh-CN,zh;q=0.9', authorization: 'Bearer tok' },
+          body: JSON.stringify({ plan: 'local-yearly', paymentMethod: 'stripe' }),
+        }),
+        baseEnv(db),
+      );
+      expect(response!.status).toBe(502);
+      const payload = await response!.json();
+      expect(payload.error.message).toBe('Invalid API key provided.');
+      expect(fetcher).toHaveBeenCalledTimes(2);
     } finally {
       globalThis.fetch = globalFetch;
     }
