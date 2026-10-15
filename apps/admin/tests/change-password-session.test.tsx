@@ -8,8 +8,9 @@ import { ProfileSecurityCard } from '@/components/profile/ProfileSecurityCard'
 import { useChangePassword } from '@/lib/hooks/use-api'
 import { apiClient, authApi } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
+import { merchant } from '../../../packages/shared/src/i18n/messages/en/merchant'
 
-vi.mock('shared/src/i18n/react', () => ({ useT: () => (key: string) => key }))
+vi.mock('shared/src/i18n/react', () => ({ useT: () => (key: string) => key.startsWith('merchant.profileView.') ? merchant.profileView[key.split('.').at(-1) as keyof typeof merchant.profileView] : key }))
 
 describe('Admin password change session', () => {
   let root: Root
@@ -24,7 +25,6 @@ describe('Admin password change session', () => {
       isChangingPassword={changePassword.isPending}
       onUpdateEmail={async () => undefined}
       onChangePassword={(payload) => changePassword.mutateAsync(payload)}
-      t={(_, fallback) => fallback}
     />
   }
 
@@ -55,20 +55,21 @@ describe('Admin password change session', () => {
     })
     const queryClient = new QueryClient()
     await act(async () => root.render(<QueryClientProvider client={queryClient}><Security /></QueryClientProvider>))
-    const inputs = Array.from(container.querySelectorAll('input[type="password"]')) as HTMLInputElement[]
-    expect(inputs.length).toBeGreaterThanOrEqual(4)
+    await act(async () => Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Change password')!.click())
+    const inputs = Array.from(document.body.querySelectorAll('input[type="password"]')) as HTMLInputElement[]
+    expect(inputs.length).toBe(3)
     const setInput = (input: HTMLInputElement, value: string) => {
       const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
       setter.call(input, value)
       input.dispatchEvent(new Event('input', { bubbles: true }))
     }
     await act(async () => {
+      setInput(inputs[0], 'OldPassword123!')
       setInput(inputs[1], 'NewPassword123!')
       setInput(inputs[2], 'NewPassword123!')
-      setInput(inputs[3], 'OldPassword123!')
     })
-    const button = Array.from(container.querySelectorAll('button'))
-      .find((element) => element.textContent?.includes('Update Password'))
+    const button = Array.from(document.body.querySelectorAll<HTMLButtonElement>('[role="dialog"] button'))
+      .find((element) => element.textContent === 'Change password')
     expect(button).toBeDefined()
     await act(async () => button!.click())
     expect(authApi.changePassword).toHaveBeenCalledWith('OldPassword123!', 'NewPassword123!')

@@ -2,7 +2,7 @@ import { prisma } from '@/config/database';
 
 export const authUserSelect = {
   id: true, email: true, username: true, password: true, role: true,
-  isActive: true, avatar: true, sessionVersion: true, emailVerified: true,
+  isActive: true, removedAt: true, avatar: true, sessionVersion: true, emailVerified: true,
 } as const;
 const authIdentitySelect = { ...authUserSelect, password: false } as const;
 

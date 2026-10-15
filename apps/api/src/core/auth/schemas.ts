@@ -9,6 +9,7 @@ import {
   createTypedCreateResponses,
   createTypedReadResponses,
   createTypedUpdateResponses,
+  errorResponseSchema,
 } from '@/types/common-dto';
 
 // ============================================================================
@@ -137,6 +138,6 @@ export const authSchemas = {
         newPassword: { type: 'string', minLength: 6, description: 'New password (min 6 characters)' },
       },
     },
-    response: createTypedUpdateResponses(changePasswordResultSchema),
+    response: { ...createTypedUpdateResponses(changePasswordResultSchema), 429: errorResponseSchema, 503: errorResponseSchema },
   },
 } as const;

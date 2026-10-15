@@ -15,6 +15,8 @@ export const errorCatalog = {
   [ApiErrorCodes.CATEGORY_NOT_EMPTY]: { status: 409, message: 'Category not empty.' },
   [ApiErrorCodes.PRODUCT_HAS_ORDERS]: { status: 409, message: 'This product or variant has orders and cannot be deleted. Deactivate it instead.' },
   [ApiErrorCodes.CUSTOMER_HAS_ORDERS]: { status: 409, message: 'This customer has orders and cannot be deleted. Deactivate the customer instead.' },
+  [ApiErrorCodes.STAFF_EMAIL_IS_CUSTOMER]: { status: 409, message: 'This email belongs to a customer. Use a different email to invite an administrator.' },
+  [ApiErrorCodes.STAFF_EMAIL_REMOVED_ADMIN]: { status: 409, message: 'This email belongs to a removed administrator. Re-invite them from their detail page.' },
   [ApiErrorCodes.SPU_CODE_TAKEN]: { status: 409, message: 'This SPU is already used by product {name}.' },
   [ApiErrorCodes.SKU_CODE_TAKEN]: { status: 409, message: 'This SKU is already used by product {name}.' },
   [ApiErrorCodes.INVALID_PRODUCT_CODE]: { status: 400, message: 'Use 1–64 letters, digits, hyphens, underscores or dots.' },

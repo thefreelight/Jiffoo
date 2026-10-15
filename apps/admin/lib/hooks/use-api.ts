@@ -52,7 +52,7 @@ export const queryKeys = {
   userStats: ['user-stats'] as const,
   staff: ['staff'] as const,
   staffMember: (userId: string) => ['staff', userId] as const,
-  staffAuditLogs: (userId: string, page: number, limit: number) => ['staff', userId, 'audit', page, limit] as const,
+  staffAuditLogs: (userId: string) => ['staff', userId, 'audit'] as const,
   dashboardStats: ['dashboard-stats'] as const,
   salesStats: (period: string) => ['sales-stats', period] as const,
   productStats: ['product-stats'] as const,
@@ -510,18 +510,31 @@ export function useUpdateUser() {
 // Administrator management hooks
 // ============================================================
 
+export function useStaffNeighbors(id: string, params: import('../staff-list-state').StaffFilter) {
+  return useQuery({ queryKey: [...queryKeys.staff, 'neighbors', id, params], queryFn: async () => unwrapApiResponse(await staffApi.neighbors(id, params)), enabled: !!id });
+}
+export function useReinviteStaff() {
+  const client = useQueryClient(), t = useT();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+  return useMutation({ mutationFn: async (id: string) => unwrapApiResponse(await staffApi.reinvite(id)),
+    onSuccess: () => { client.invalidateQueries({ queryKey: queryKeys.staff }); toast.success(t('merchant.staffView.inviteSuccess')); },
+    onError: (error: unknown) => toast.error(getErrorMessage(error)) });
+}
 export function useStaff(params: {
   page?: number;
   limit?: number;
   search?: string;
+  status?: import('../staff-list-state').StaffFilter['status'];
 } = {}) {
   return useQuery({
+    placeholderData: keepPreviousData,
     queryKey: [...queryKeys.staff, params],
     queryFn: async () => {
       const response = await staffApi.getAll(params);
       const data = unwrapApiResponse(response);
       return {
         data: data.items || [],
+        statusCounts: data.statusCounts,
         pagination: {
           page: data.page || 1,
           limit: data.limit || 20,
@@ -530,7 +543,7 @@ export function useStaff(params: {
         },
       };
     },
-    staleTime: 60 * 1000,
+    staleTime: 0,
   });
 }
 
@@ -545,21 +558,14 @@ export function useStaffMember(userId: string) {
   });
 }
 
-export function useStaffAuditLogs(userId: string, page = 1, limit = 20) {
+export function useStaffAuditLogs(userId: string) {
   return useQuery({
-    queryKey: queryKeys.staffAuditLogs(userId, page, limit),
+    queryKey: queryKeys.staffAuditLogs(userId),
     queryFn: async () => {
-      const response = await staffApi.getAuditLogs(userId, page, limit);
-      const data = unwrapApiResponse(response);
-      return {
-        data: data.items || [],
-        pagination: {
-          page: data.page || 1,
-          limit: data.limit || 20,
-          total: data.total || 0,
-          totalPages: data.totalPages || 0,
-        },
-      };
+      const first = unwrapApiResponse(await staffApi.getAuditLogs(userId, 1, 100));
+      const items = [...first.items];
+      for (let page = 2; page <= first.totalPages; page++) items.push(...unwrapApiResponse(await staffApi.getAuditLogs(userId, page, 100)).items);
+      return { data: items, pagination: { page: 1, limit: 100, total: first.total, totalPages: first.totalPages } };
     },
     enabled: Boolean(userId),
   });
@@ -567,6 +573,7 @@ export function useStaffAuditLogs(userId: string, page = 1, limit = 20) {
 
 export function useCreateStaff() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
@@ -576,7 +583,7 @@ export function useCreateStaff() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
-      toast.success('Administrator invited');
+      toast.success(t('merchant.staffView.inviteSuccess'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -586,6 +593,7 @@ export function useCreateStaff() {
 
 export function useRemoveStaff() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
@@ -595,8 +603,8 @@ export function useRemoveStaff() {
     },
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
-      queryClient.removeQueries({ queryKey: queryKeys.staffMember(userId) });
-      toast.success('Administrator removed');
+      queryClient.invalidateQueries({ queryKey: queryKeys.staffMember(userId) });
+      toast.success(t('merchant.staffView.removeSuccess'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -606,6 +614,7 @@ export function useRemoveStaff() {
 
 export function useResendStaffInvite() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
@@ -615,7 +624,8 @@ export function useResendStaffInvite() {
     },
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.staffMember(userId) });
-      toast.success('Invitation email sent');
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff });
+      toast.success(t('merchant.staffView.resent'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -722,6 +732,7 @@ export function useUploadProductImage() {
 
 export function useUploadAvatar() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
@@ -738,7 +749,7 @@ export function useUploadAvatar() {
         });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.accountProfile });
-      toast.success('Avatar uploaded successfully');
+      toast.success(t('merchant.profileView.avatarUpdated'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -758,10 +769,11 @@ export function useAccountProfile() {
 
 export function useUpdateAccountProfile() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
-    mutationFn: async (data: { username?: string; avatar?: string }) => {
+    mutationFn: async (data: { username?: string; avatar?: string; locale?: string }) => {
       const response = await accountApi.updateProfile(data);
       return unwrapApiResponse(response);
     },
@@ -776,7 +788,7 @@ export function useUpdateAccountProfile() {
           updatedAt: updatedProfile.updatedAt ?? user.updatedAt,
         });
       }
-      toast.success('Profile updated successfully');
+      toast.success(t('merchant.profileView.updated'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -786,6 +798,7 @@ export function useUpdateAccountProfile() {
 
 export function useUpdateAccountEmail() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
@@ -803,7 +816,7 @@ export function useUpdateAccountEmail() {
           updatedAt: updatedProfile.updatedAt ?? user.updatedAt,
         });
       }
-      toast.success('Email updated successfully');
+      toast.success(t('merchant.profileView.emailUpdated'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -812,9 +825,11 @@ export function useUpdateAccountEmail() {
 }
 
 export function useChangePassword() {
+  const t = useT();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
+    mutationKey: ['account-password-change'],
     mutationFn: async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
       const response = await authApi.changePassword(currentPassword, newPassword);
       return unwrapApiResponse(response);
@@ -828,7 +843,7 @@ export function useChangePassword() {
           ...user,
         });
       }
-      toast.success('Password changed successfully');
+      toast.success(t('merchant.profileView.passwordUpdated'));
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));

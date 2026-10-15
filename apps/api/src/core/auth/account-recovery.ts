@@ -1,7 +1,8 @@
 import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
-import { issueAuthToken, consumeAuthToken } from './auth-token';
+import { issueAuthToken, consumeAuthToken, hashAuthToken } from './auth-token';
 import { createNotification } from '@/core/notifications/service';
 import { PasswordUtils } from '@/utils/password';
 import { normalizeNotificationLocale } from '@/core/notifications/service';
@@ -21,7 +22,7 @@ export async function requestPasswordReset(email: string, app: 'storefront' | 'a
   const started = performance.now();
   try {
     const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
-    if (!user || !user.isActive) return;
+    if (!user || !user.isActive || (user.role === 'ADMIN' && user.removedAt)) return;
     await prisma.$transaction(async (tx) => {
       const token = await issueAuthToken(tx, user.id, 'PASSWORD_RESET');
       await createNotification(tx, 'password_reset', user.id, user.email, { name: user.username }, {
@@ -38,6 +39,8 @@ export async function resetPassword(token: string, newPassword: string): Promise
   const password = await PasswordUtils.hash(newPassword);
   await prisma.$transaction(async (tx) => {
     const row = await consumeAuthToken(tx, token, 'PASSWORD_RESET');
+    const account = await tx.user.findUniqueOrThrow({ where: { id: row.userId }, select: { role: true } });
+    if (account.role === 'ADMIN' && newPassword.length < 8) throw new ApiError('VALIDATION_ERROR');
     await tx.user.update({ where: { id: row.userId }, data: { password, sessionVersion: { increment: 1 } } });
     await tx.authToken.updateMany({
       where: { userId: row.userId, purpose: 'PASSWORD_RESET', consumedAt: null },
@@ -49,8 +52,16 @@ export async function resetPassword(token: string, newPassword: string): Promise
 export async function acceptStaffInvite(token: string, passwordInput: string): Promise<void> {
   const password = await PasswordUtils.hash(passwordInput);
   await prisma.$transaction(async (tx) => {
+    const candidate = await tx.authToken.findUnique({ where: { tokenHash: hashAuthToken(token) }, select: { userId: true, purpose: true } });
+    if (!candidate || candidate.purpose !== 'STAFF_INVITE') throw new ApiError('INVALID_INVITE_TOKEN');
+    await tx.$queryRaw(Prisma.sql`SELECT id FROM public.users WHERE id = ${candidate.userId} FOR UPDATE`);
     const row = await consumeAuthToken(tx, token, 'STAFF_INVITE');
+    const user = await tx.user.findUnique({ where: { id: row.userId } });
+    if (!user || user.role !== 'ADMIN' || user.isActive || user.removedAt) throw new ApiError('INVALID_INVITE_TOKEN');
+    if (passwordInput.length < 8) throw new ApiError('VALIDATION_ERROR');
     await tx.user.update({ where: { id: row.userId, role: 'ADMIN' }, data: { password, emailVerified: true, isActive: true, sessionVersion: { increment: 1 } } });
+    await tx.adminStaffAuditLog.create({ data: { staffUserId: user.id, staffEmail: user.email, staffUsername: user.username,
+      actorUserId: user.id, actorEmail: user.email, actorUsername: user.username, action: 'ADMIN_INVITE_ACCEPTED' } });
   });
 }
 
@@ -74,8 +85,9 @@ export class AccountRecoveryService {
 
   static async generateStaffInviteLink(userId: string): Promise<string> {
     return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(Prisma.sql`SELECT id FROM public.users WHERE id = ${userId} FOR UPDATE`);
       const user = await tx.user.findUnique({ where: { id: userId } });
-      if (!user || user.role !== 'ADMIN' || user.emailVerified) throw new ApiError('INVITE_NOT_AVAILABLE');
+      if (!user || user.role !== 'ADMIN' || user.removedAt || user.isActive) throw new ApiError('INVITE_NOT_AVAILABLE');
       return staffInviteLink(await issueAuthToken(tx, userId, 'STAFF_INVITE'), user.locale);
     });
   }

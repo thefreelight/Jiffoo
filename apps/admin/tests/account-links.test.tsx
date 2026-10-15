@@ -52,13 +52,16 @@ vi.mock('@/lib/hooks/use-api', () => ({
       emailVerified: false, createdAt: '2026-09-23T00:00:00.000Z',
       updatedAt: '2026-09-23T00:00:00.000Z',
     },
-    isLoading: false, error: null,
+    isLoading: false, error: null, refetch: vi.fn(),
   }),
   useStaffAuditLogs: () => ({
     data: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 1 } },
     isLoading: false,
   }),
   useResendStaffInvite: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useRemoveStaff: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useReinviteStaff: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useStaffNeighbors: () => ({ data: { position: 1, total: 1, previousId: null, nextId: null } }),
 }))
 
 describe('Admin account links', () => {
@@ -109,10 +112,10 @@ describe('Admin account links', () => {
 
   it('shows an Admin invite link on staff detail', async () => {
     await act(async () => root.render(<StaffDetailPage />))
-    const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent?.includes('Generate invitation link'))
+    const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent === 'merchant.staffView.copyInvite')
     expect(button).toBeDefined()
     await act(async () => button!.click())
     expect(generateInviteLink).toHaveBeenCalledWith('staff-1')
-    expect(container.textContent).toContain('Copy invitation link')
+    expect(container.textContent).toContain('merchant.staffView.copyLink')
   })
 })

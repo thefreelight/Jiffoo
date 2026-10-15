@@ -14,6 +14,7 @@ model User {
   locale    String?
   role      String   @default("USER")
   isActive  Boolean  @default(true)
+  removedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

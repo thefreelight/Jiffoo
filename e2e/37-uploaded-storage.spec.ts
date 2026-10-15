@@ -45,20 +45,16 @@ test('G uploaded product image survives Admin save and renders in Shop through t
 test('G avatar upload saves its avatar URL and remains visible after reload', async ({ page }) => {
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/profile');
-  await expect(page.getByLabel('Username', { exact: true })).toHaveValue(/.+/);
-  await expect(page.getByLabel('Avatar URL', { exact: true })).toBeEnabled();
+  await expect(page.getByLabel('Name', { exact: true })).toHaveValue(/.+/);
   const uploaded = page.waitForResponse(response => response.url().endsWith('/account/avatar') && response.request().method() === 'POST');
-  await page.getByLabel('Upload Avatar', { exact: true }).setInputFiles(await fixtureImage());
+  await page.getByLabel('Upload avatar', { exact: true }).setInputFiles(await fixtureImage());
   const response = await uploaded; expect(response.status()).toBe(200);
   const url = (await response.json()).data.url;
   expect(url).toMatch(/^\/uploads\/avatars\/[a-f0-9]{64}\/original\.jpg$/);
-  await expect(page.getByLabel('Avatar URL', { exact: true })).toHaveValue(url);
-  const saved = page.waitForResponse(response => response.url().endsWith('/account/profile') && response.request().method() === 'PUT');
-  await page.getByRole('button', { name: 'Save Changes', exact: true }).click();
-  expect((await saved).status()).toBe(200);
+  const name = await page.getByLabel('Name', { exact: true }).inputValue();
+  await expect(page.getByRole('img', { name, exact: true }).first()).toHaveAttribute('src', url);
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
   await page.reload();
-  await expect(page.getByLabel('Avatar URL', { exact: true })).toHaveValue(url);
-  const name = await page.getByLabel('Username', { exact: true }).inputValue();
   await expect(page.getByRole('img', { name, exact: true }).first()).toHaveAttribute('src', url);
   await captureReview(page, 'upload-storage-review', 'avatar-admin-en', { width: 1440, height: 900 });
 });

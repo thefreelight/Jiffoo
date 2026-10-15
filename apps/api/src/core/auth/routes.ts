@@ -59,7 +59,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           newPassword: { type: 'string', minLength: 6 },
         },
       },
-      response: createTypedUpdateResponses(completionSchema),
+      response: { ...createTypedUpdateResponses(completionSchema), 429: errorResponseSchema, 503: errorResponseSchema },
     },
   }, async (request, reply) => {
     const { token, newPassword } = request.body as { token: string; newPassword: string };
@@ -78,10 +78,10 @@ export async function authRoutes(fastify: FastifyInstance) {
         type: 'object', required: ['token', 'password'], additionalProperties: false,
         properties: {
           token: { type: 'string', minLength: 1 },
-          password: { type: 'string', minLength: 6 },
+          password: { type: 'string', minLength: 8 },
         },
       },
-      response: createTypedUpdateResponses(completionSchema),
+      response: { ...createTypedUpdateResponses(completionSchema), 429: errorResponseSchema, 503: errorResponseSchema },
     },
   }, async (request, reply) => {
     const { token, password } = request.body as { token: string; password: string };
@@ -336,6 +336,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         return sendError(reply, 400, 'INVALID_PASSWORD', 'Current password is incorrect');
       }
 
+      if (user.role === 'ADMIN' && newPassword.length < 8) throw new ApiError('VALIDATION_ERROR');
       const hashedPassword = await PasswordUtils.hash(newPassword);
       const updated = await prisma.$transaction((tx) => tx.user.update({
         where: { id: user.id },

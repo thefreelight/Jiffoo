@@ -9,6 +9,10 @@ import { EmailVerificationService } from '@/services/email-verification.service'
  * Focused on personal profile management
  */
 export class AccountService {
+  static async removeAvatar(userId: string) {
+    const profile = await knownPrismaOperation(() => prisma.user.update({ where: { id: userId }, data: { avatar: null }, select: this.profileSelect }), { notFound: 'NOT_FOUND' });
+    return { ...profile, ...(await this.getOrderStats(userId)) };
+  }
   static async deleteAccount(userId: string, currentPassword: string): Promise<void> {
     await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
       const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
@@ -128,7 +132,7 @@ export class AccountService {
       });
       await EmailVerificationService.createVerification(tx, userId, updated.email, updated.username);
       return updated;
-    }), { notFound: 'NOT_FOUND', duplicateEmail: 'INTERNAL_SERVER_ERROR' });
+    }), { notFound: 'NOT_FOUND', duplicateEmail: 'EMAIL_TAKEN' });
 
     return {
       ...updatedProfile,

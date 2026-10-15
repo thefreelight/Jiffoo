@@ -68,7 +68,7 @@ export async function installRoutes(fastify: FastifyInstance) {
           siteName: { type: 'string', minLength: 1 },
           siteDescription: { type: 'string' },
           adminEmail: { type: 'string', format: 'email' },
-          adminPassword: { type: 'string', minLength: 6 },
+          adminPassword: { type: 'string', minLength: 8 },
           adminUsername: { type: 'string' }
         }
       },

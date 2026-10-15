@@ -43,7 +43,7 @@ export async function authMiddleware(
     if (payload.sv !== user.sessionVersion) {
       return sendError(reply, 401, 'SESSION_REVOKED', 'Session revoked');
     }
-    if (!user.isActive) {
+    if (!user.isActive || (user.role === 'ADMIN' && user.removedAt)) {
       return sendError(reply, 403, 'FORBIDDEN', 'Account is inactive');
     }
 

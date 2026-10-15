@@ -1,49 +1,106 @@
 import { expect, test } from './local-requests';
-import { login, staffEmail } from './helpers';
+import { customerEmail, login, ownerEmail, staffEmail } from './helpers';
+import { captureStaffPage } from './staff-captures';
+import { getTestPrisma, disconnectDatabase } from '../apps/api/tests/helpers/db';
+import type { Page } from '@playwright/test';
 
-test('I invite, activate and remove a second administrator', async ({ page, newObservedContext }) => {
-  await login(page);
+async function invite(page: Page, email: string, name: string) {
   await page.goto('/en/staff');
-  await expect(page.getByRole('heading', { name: 'Administrators' })).toBeVisible();
-  const installer = page.getByRole('row').filter({ hasText: 'Install administrator' });
-  await expect(installer).toBeVisible();
-  await expect(installer.getByRole('button', { name: /Remove/ })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Invite administrator' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Invite administrator' });
-  await dialog.getByRole('textbox', { name: 'Email' }).fill(staffEmail);
-  await dialog.getByRole('textbox', { name: 'Username' }).fill('e2e-admin');
-  await dialog.getByRole('button', { name: 'Send invitation' }).click();
-  await expect(page.getByRole('link', { name: 'e2e-admin' })).toBeVisible();
-  await page.getByRole('link', { name: 'e2e-admin' }).click();
-  await page.getByRole('button', { name: 'Generate invitation link' }).click();
-  const link = await page.getByRole('textbox', { name: 'Invitation link' }).inputValue();
+  await page.getByRole('button', { name: 'Invite administrator', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Invite administrator', exact: true });
+  await dialog.getByLabel('Email', { exact: true }).fill(email);
+  await dialog.getByLabel('Name', { exact: true }).fill(name);
+  await dialog.getByRole('button', { name: 'Send invitation', exact: true }).click();
+  return dialog;
+}
+async function copyInvite(page: Page, expired = false) {
+  await page.getByRole('button', { name: expired ? 'Copy new invitation link' : 'Copy invitation link', exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Invitation link', exact: true });
+  const link = await panel.getByRole('textbox', { name: 'Invitation link', exact: true }).inputValue();
+  await panel.getByRole('button', { name: 'Copy link', exact: true }).click();
+  await expect(panel.getByText('Copied', { exact: true })).toBeVisible();
+  return link;
+}
+async function accept(page: Page, link: string, password = 'StaffPassword123!') {
+  await page.goto(link);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByLabel('Confirm password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Activate account', exact: true }).click();
+}
 
-  const context = await newObservedContext();
+test('administrator invite, revoke, removal, re-invite, protected accounts and activity history', async ({ page, newObservedContext }) => {
+  test.setTimeout(240000);
+  await page.context().grantPermissions(['clipboard-write']);
+  const db = getTestPrisma(), context = await newObservedContext();
   try {
-    const invited = await context.newPage();
-    await invited.goto(link);
-    await invited.getByLabel('Password', { exact: true }).fill('StaffPassword123!');
-    await invited.getByLabel('Confirm password').fill('StaffPassword123!');
-    await invited.getByRole('button', { name: 'Activate account' }).click();
-    await expect(invited.getByText('Your account is ready.')).toBeVisible();
-    await login(invited, staffEmail, 'StaffPassword123!');
-    for (const name of ['Overview', 'Products', 'Orders', 'Notifications', 'Customers', 'Administrators', 'Plugins', 'System Health']) {
-      await expect(invited.getByRole('link', { name, exact: true })).toBeVisible();
-    }
-    await invited.getByRole('link', { name: 'Administrators' }).click();
-    const ownRow = invited.getByRole('row').filter({ hasText: staffEmail });
-    await expect(ownRow).toBeVisible();
-    await expect(ownRow.getByRole('button', { name: /Remove/ })).toHaveCount(0);
-
+    await login(page);
+    const owner = await db.user.findUniqueOrThrow({ where: { email: ownerEmail } });
+    await page.goto('/en/staff/' + owner.id);
+    await page.getByRole('button', { name: 'More actions: ' + owner.username, exact: true }).click();
+    await expect(page.getByRole('menuitem', { name: /^Remove administrator/ })).toBeDisabled();
+    await expect(page.getByText('The owner created during installation cannot be removed, and you cannot remove yourself.', { exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await captureStaffPage(page, 'detail', 'owner', owner.username);
+    await invite(page, staffEmail, 'e2e-admin');
+    await page.getByRole('link', { name: new RegExp('e2e-admin.*' + staffEmail) }).click();
+    await expect(page.getByRole('button', { name: 'Copy invitation link', exact: true })).toBeVisible();
+    const detail = page.url();
+    await captureStaffPage(page, 'detail', 'invited', 'e2e-admin');
     await page.goto('/en/staff');
-    const row = page.getByRole('row').filter({ hasText: staffEmail });
-    await row.getByRole('button', { name: 'Remove e2e-admin' }).click();
-    await page.getByRole('dialog', { name: 'Remove administrator?' })
-      .getByRole('button', { name: 'Remove administrator' }).click();
-    await expect(row.getByRole('button', { name: 'Remove e2e-admin' })).toHaveCount(0);
-    await invited.getByRole('link', { name: 'Products' }).click();
+    await captureStaffPage(page, 'list', 'populated', '管理员');
+    await page.getByRole('row', { name: new RegExp('e2e-admin.*' + staffEmail) }).click();
+    const account = await db.user.findUniqueOrThrow({ where: { email: staffEmail } });
+    await db.authToken.updateMany({ where: { userId: account.id, purpose: 'STAFF_INVITE', consumedAt: null }, data: { expiresAt: new Date(Date.now() - 86400000) } });
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Copy new invitation link', exact: true })).toBeVisible();
+    await captureStaffPage(page, 'detail', 'expired', 'e2e-admin');
+    const link = await copyInvite(page, true);
+    const invited = await context.newPage();
+    await accept(invited, link);
+    await expect(invited.getByText('Your account is ready.', { exact: true })).toBeVisible();
+    await login(invited, staffEmail, 'StaffPassword123!');
+    await page.goto(detail);
+    await expect(page.getByRole('region', { name: 'Activity', exact: true }).getByText('Accepted the invitation and set a password', { exact: true })).toBeVisible();
+    await captureStaffPage(page, 'detail', 'active', 'e2e-admin');
+    await invited.goto('/en/staff/' + account.id);
+    await invited.getByRole('button', { name: 'More actions: e2e-admin', exact: true }).click();
+    await expect(invited.getByRole('menuitem', { name: /^Remove administrator/ })).toBeDisabled();
+    await invited.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'More actions: e2e-admin', exact: true }).click();
+    await page.getByRole('menuitem', { name: /^Remove administrator/ }).click();
+    await page.getByRole('alertdialog', { name: 'Remove administrator “e2e-admin”?', exact: true }).getByRole('button', { name: 'Remove', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Re-invite', exact: true })).toBeVisible();
     await expect(invited).toHaveURL(/\/en\/auth\/login/);
-  } finally {
-    await context.close();
-  }
+    await captureStaffPage(page, 'detail', 'removed', 'e2e-admin');
+    const duplicate = await invite(page, staffEmail, 'e2e-admin');
+    await expect(duplicate.getByText('This email belongs to a removed administrator. Re-invite them from their detail page.', { exact: true })).toBeVisible();
+    await duplicate.getByRole('button', { name: 'Cancel', exact: true }).click();
+    const customer = await invite(page, customerEmail, 'Customer');
+    await expect(customer.getByText('This email belongs to a customer. Use a different email to invite an administrator.', { exact: true })).toBeVisible();
+    await customer.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page.goto(detail);
+    await page.getByRole('button', { name: 'Re-invite', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Copy invitation link', exact: true })).toBeVisible();
+    const newLink = await copyInvite(page);
+    await accept(invited, link);
+    await expect(invited.getByText('Invalid invite token.', { exact: true })).toBeVisible();
+    await accept(invited, newLink);
+    await expect(invited.getByText('Your account is ready.', { exact: true })).toBeVisible();
+    await page.reload();
+    const activity = page.getByRole('region', { name: 'Activity', exact: true });
+    await expect(activity.getByText('Invited as an administrator', { exact: true })).toHaveCount(1);
+    await expect(activity.getByText('Accepted the invitation and set a password', { exact: true })).toHaveCount(2);
+    await expect(activity.getByText('Removed', { exact: true })).toHaveCount(1);
+    await expect(activity.getByText('Re-invited as an administrator', { exact: true })).toHaveCount(1);
+    const revokedEmail = 'revoked@e2e.example';
+    await invite(page, revokedEmail, 'e2e-revoked');
+    await page.getByRole('link', { name: new RegExp('e2e-revoked.*' + revokedEmail) }).click();
+    const revokedLink = await copyInvite(page);
+    await page.getByRole('button', { name: 'More actions: e2e-revoked', exact: true }).click();
+    await page.getByRole('menuitem', { name: /^Revoke invitation/ }).click();
+    await page.getByRole('alertdialog', { name: 'Remove administrator “e2e-revoked”?', exact: true }).getByRole('button', { name: 'Remove', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Re-invite', exact: true })).toBeVisible();
+    await accept(invited, revokedLink);
+    await expect(invited.getByText('Invalid invite token.', { exact: true })).toBeVisible();
+  } finally { await context.close(); await disconnectDatabase(); }
 });

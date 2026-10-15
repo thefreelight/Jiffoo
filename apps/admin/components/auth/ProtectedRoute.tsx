@@ -9,6 +9,8 @@
 import { useEffect, ReactNode, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
+import { apiClient } from '@/lib/api'
+import { useQueryClient } from '@tanstack/react-query'
 import { hasAdminWorkspaceAccess } from '@/lib/admin-access'
 import { Loader2 } from 'lucide-react'
 import { useT, useLocale } from 'shared/src/i18n/react'
@@ -29,6 +31,24 @@ export default function ProtectedRoute({
   const t = useT()
   const locale = useLocale()
   const hasAdminAccess = hasAdminWorkspaceAccess(user)
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!hasInitialized || !isAuthenticated || !requireAdmin) return;
+    let stopped = false, busy = false;
+    const verifySession = async () => {
+      if (busy || queryClient.isMutating({ mutationKey: ['account-password-change'] })) return;
+      busy = true;
+      const token = apiClient.getToken();
+      try {
+        const response = await fetch('/api/v1/auth/me', { cache: 'no-store', credentials: 'same-origin', headers: token ? { Authorization: 'Bearer ' + token } : {} });
+        if (!stopped && !queryClient.isMutating({ mutationKey: ['account-password-change'] }) && token === apiClient.getToken() && (response.status === 401 || response.status === 403)) useAuthStore.getState().logout();
+      } catch { /* A transport outage does not revoke an otherwise valid session. */ }
+      finally { busy = false; }
+    };
+    const timer = setInterval(() => void verifySession(), 2000);
+    window.addEventListener('focus', verifySession);
+    return () => { stopped = true; clearInterval(timer); window.removeEventListener('focus', verifySession); };
+  }, [hasInitialized, isAuthenticated, requireAdmin, queryClient]);
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {

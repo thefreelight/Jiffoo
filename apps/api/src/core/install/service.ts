@@ -163,6 +163,7 @@ export class InstallService {
   }
 
   static async completeInstallation(data: InstallData): Promise<{ success: true }> {
+    if (data.adminPassword.length < 8) throw new ApiError('VALIDATION_ERROR');
     try {
       const runtimeVersion = resolveCurrentVersion();
       const hashedPassword = await bcrypt.hash(data.adminPassword, 10);

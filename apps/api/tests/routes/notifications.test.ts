@@ -338,6 +338,7 @@ describe('Persisted notifications', () => {
 
   it('staff invitation and Admin resend keep tokens out of stored content', async () => {
     const recipient = await createUserWithToken({ emailVerified: false });
+    await prisma.user.update({ where: { id: recipient.user.id }, data: { role: 'ADMIN', isActive: false, removedAt: null } });
     expect(await EmailVerificationService.sendStaffInvitationEmail(recipient.user.id, recipient.user.email, recipient.user.username)).toEqual({ success: true });
     const original = await prisma.notification.findFirstOrThrow({ where: { recipientUserId: recipient.user.id, type: 'staff_invite' } });
     const oldLink = (original.secretJson as { link: string }).link;

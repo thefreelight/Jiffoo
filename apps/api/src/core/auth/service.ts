@@ -43,6 +43,7 @@ const authUserSelect = {
   password: true,
   role: true,
   isActive: true,
+  removedAt: true,
   emailVerified: true,
   avatar: true,
   sessionVersion: true,
@@ -144,7 +145,7 @@ export class AuthService {
     if (!user || !isValid) {
       throw new ApiError('LOGIN_FAILED');
     }
-    if (!user.isActive) {
+    if (!user.isActive || (user.role === 'ADMIN' && user.removedAt)) {
       throw new ApiError('ACCOUNT_INACTIVE');
     }
 
@@ -198,6 +199,7 @@ export class AuthService {
         username: true,
         role: true,
         isActive: true,
+        removedAt: true,
         avatar: true,
         createdAt: true
       }
@@ -206,7 +208,7 @@ export class AuthService {
     if (!user) {
       throw new ApiError('USER_NOT_FOUND');
     }
-    if (!user.isActive) {
+    if (!user.isActive || (user.role === 'ADMIN' && user.removedAt)) {
       throw new ApiError('ACCOUNT_INACTIVE');
     }
 
@@ -232,7 +234,7 @@ export class AuthService {
     if (!user) {
       throw new ApiError('USER_NOT_FOUND');
     }
-    if (!user.isActive) {
+    if (!user.isActive || (user.role === 'ADMIN' && user.removedAt)) {
       throw new ApiError('ACCOUNT_INACTIVE');
     }
 
@@ -273,7 +275,7 @@ export class AuthService {
     if (payload.sv !== user.sessionVersion) {
       throw new ApiError('SESSION_REVOKED');
     }
-    if (!user.isActive) throw new ApiError('ACCOUNT_INACTIVE');
+    if (!user.isActive || (user.role === 'ADMIN' && user.removedAt)) throw new ApiError('ACCOUNT_INACTIVE');
 
     const accessToken = JwtUtils.sign({
       userId: user.id, email: user.email, role: user.role, sv: user.sessionVersion,

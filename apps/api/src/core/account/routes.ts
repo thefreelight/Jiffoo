@@ -124,7 +124,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
       summary: 'Get User Profile',
       description: 'Get current user profile information',
       security: [{ bearerAuth: [] }],
-      response: createTypedReadResponses(userProfileSchema),
+      response: { ...createTypedReadResponses(userProfileSchema), 429: errorResponseSchema, 503: errorResponseSchema },
     }
   }, async (request, reply) => {
     try {
@@ -151,7 +151,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
           locale: { type: 'string', enum: ['en', 'zh-Hans', 'zh-Hant'] },
         }
       },
-      response: createTypedUpdateResponses(userProfileSchema),
+      response: { ...createTypedUpdateResponses(userProfileSchema), 409: errorResponseSchema, 429: errorResponseSchema, 503: errorResponseSchema },
     }
   }, async (request, reply) => {
     try {
@@ -182,7 +182,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
           currentPassword: { type: 'string', minLength: 1 },
         },
       },
-      response: createTypedUpdateResponses(userProfileSchema),
+      response: { ...createTypedUpdateResponses(userProfileSchema), 409: errorResponseSchema, 429: errorResponseSchema, 503: errorResponseSchema },
     }
   }, async (request, reply) => {
     try {
@@ -204,7 +204,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
       description: 'Upload user avatar image, supports JPEG, PNG, WebP formats, max 5MB',
       security: [{ bearerAuth: [] }],
       consumes: ['multipart/form-data'],
-      response: createTypedCrudResponses(uploadResultSchema),
+      response: { ...createTypedCrudResponses(uploadResultSchema), 413: errorResponseSchema, 429: errorResponseSchema, 503: errorResponseSchema },
     }
   }, async (request, reply) => {
     try {
@@ -215,6 +215,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
       }
 
       const result = await UploadService.uploadAvatar(data);
+      await AccountService.updateProfile(request.user!.id, { avatar: result.url });
       return sendSuccess(reply, result);
     } catch (error) {
       if (error instanceof UploadValidationError) {
@@ -223,8 +224,10 @@ export async function accountRoutes(fastify: FastifyInstance) {
       return sendMappedError(reply, error);
     }
   });
-
-
-
-
+  fastify.delete('/avatar', {
+    schema: { tags: ['account'], summary: 'Remove the current account avatar', security: [{ bearerAuth: [] }], response: { ...createTypedUpdateResponses(userProfileSchema), 429: errorResponseSchema, 503: errorResponseSchema } },
+  }, async (request, reply) => {
+    try { return sendSuccess(reply, await AccountService.removeAvatar(request.user!.id)); }
+    catch (error) { return sendMappedError(reply, error); }
+  });
 }

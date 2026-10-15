@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { useLocale } from 'shared/src/i18n/react'
+import { useLocale, useT } from 'shared/src/i18n/react'
 import { authApi } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 function AcceptInviteForm() {
   const token = useSearchParams().get('token') || ''
   const locale = useLocale()
+  const t = useT()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState(false)
@@ -41,10 +42,11 @@ function AcceptInviteForm() {
       {done ? <p>Your account is ready.</p> : !token ? <p>Invalid invitation link.</p> : (
         <form onSubmit={submit} className="space-y-4">
           <label htmlFor="password" className="block text-sm font-medium">Password</label>
-          <Input id="password" type="password" required minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} />
+          <Input id="password" type="password" required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} />
           <label htmlFor="confirm" className="block text-sm font-medium">Confirm password</label>
-          <Input id="confirm" type="password" required minLength={6} value={confirm} onChange={(event) => setConfirm(event.target.value)} />
+          <Input id="confirm" type="password" required minLength={8} value={confirm} onChange={(event) => setConfirm(event.target.value)} />
           {error && <p role="alert" className="text-sm text-danger-strong">{error}</p>}
+          <p className="text-xs text-muted-foreground">{t('merchant.profileView.minimum')}</p>
           <Button type="submit" disabled={busy}>Activate account</Button>
         </form>
       )}

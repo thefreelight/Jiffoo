@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
-import { hashAuthToken } from '@/core/auth/auth-token';
+import { hashAuthToken, issueAuthToken } from '@/core/auth/auth-token';
 import { env } from '@/config/env';
 
 describe('AUTH-1 administrator management', () => {
@@ -149,6 +149,84 @@ describe('AUTH-1 administrator management', () => {
     })).statusCode).toBe(403);
   });
 
+
+  it('revokes an invitation on removal, refuses the old link and permits only an explicit re-invitation', async () => {
+    const actor = await createAdminWithToken(), account = await invite(actor.token);
+    const headers = auth(actor.token), path = '/api/v1/admin/staff/' + account.id;
+    const first = await app.inject({ method: 'POST', url: path + '/invite-link', headers });
+    const token = new URL(first.json().data.link).searchParams.get('token')!;
+    const before = await db.user.findUniqueOrThrow({ where: { id: account.id } });
+    expect((await app.inject({ method: 'DELETE', url: path, headers })).statusCode).toBe(200);
+    const removed = await db.user.findUniqueOrThrow({ where: { id: account.id } });
+    expect(removed.removedAt).not.toBeNull(); expect(removed.isActive).toBe(false); expect(removed.sessionVersion).toBe(before.sessionVersion + 1);
+    expect((await db.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(token) } })).consumedAt).not.toBeNull();
+    const accept = (value: string, password = 'Accepted123!') => app.inject({ method: 'POST', url: '/api/v1/auth/accept-invite', payload: { token: value, password } });
+    expect((await accept(token)).json().error.code).toBe('INVALID_INVITE_TOKEN');
+    for (const endpoint of ['/invite-link', '/invite']) expect((await app.inject({ method: 'POST', url: path + endpoint, headers })).statusCode).toBe(409);
+    expect((await app.inject({ method: 'DELETE', url: path, headers })).statusCode).toBe(409);
+    expect(await db.user.findUniqueOrThrow({ where: { id: account.id } })).toEqual(removed);
+    const reinvite = await app.inject({ method: 'POST', url: path + '/reinvite', headers });
+    expect(reinvite.statusCode).toBe(201); expect(reinvite.json().data).toMatchObject({ status: 'invited', removedAt: null, emailVerified: false });
+    const pending = await db.user.findUniqueOrThrow({ where: { id: account.id } });
+    expect(pending.password).not.toBe(removed.password); expect(pending.sessionVersion).toBe(removed.sessionVersion + 1);
+    expect((await accept(token)).json().error.code).toBe('INVALID_INVITE_TOKEN');
+    const notification = await db.notification.findFirstOrThrow({ where: { recipientUserId: account.id, type: 'staff_invite' }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
+    const fresh = new URL((notification.secretJson as { link: string }).link).searchParams.get('token')!;
+    expect((await accept(fresh, '1234567')).statusCode).toBe(400);
+    expect((await db.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(fresh) } })).consumedAt).toBeNull();
+    expect((await accept(fresh, '12345678')).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: path + '/reinvite', headers })).statusCode).toBe(409);
+    const audits = await db.adminStaffAuditLog.findMany({ where: { staffUserId: account.id } });
+    expect(audits.filter(row => row.action === 'ADMIN_INVITE_ACCEPTED')).toHaveLength(1);
+    expect(audits.find(row => row.action === 'ADMIN_INVITE_ACCEPTED')?.actorUserId).toBe(account.id);
+    expect(audits.find(row => row.action === 'ADMIN_INVITED' && (row.metadata as { reinvite?: boolean } | null)?.reinvite)).toBeDefined();
+  });
+
+  it.each(['active', 'removed', 'customer'] as const)('rejects an invite for a %s account without consuming its token or changing the user', async state => {
+    const account = state === 'customer' ? await createUserWithToken() : await createAdminWithToken();
+    if (state === 'removed') await db.user.update({ where: { id: account.user.id }, data: { removedAt: new Date(), isActive: false } });
+    const token = await db.$transaction(tx => issueAuthToken(tx, account.user.id, 'STAFF_INVITE'));
+    const before = await db.user.findUniqueOrThrow({ where: { id: account.user.id } });
+    const response = await app.inject({ method: 'POST', url: '/api/v1/auth/accept-invite', payload: { token, password: 'Accepted123!' } });
+    expect(response.statusCode).toBe(400); expect(response.json().error.code).toBe('INVALID_INVITE_TOKEN');
+    expect(await db.user.findUniqueOrThrow({ where: { id: account.user.id } })).toEqual(before);
+    expect((await db.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(token) } })).consumedAt).toBeNull();
+  });
+
+  it('returns distinct case-insensitive email conflicts for customers, removed admins and existing admins', async () => {
+    const actor = await createAdminWithToken(), customer = await createUserWithToken(), removed = await createAdminWithToken();
+    await db.user.update({ where: { id: removed.user.id }, data: { isActive: false, removedAt: new Date() } });
+    const pending = await invite(actor.token);
+    for (const [email, code] of [[customer.user.email, 'STAFF_EMAIL_IS_CUSTOMER'], [removed.user.email, 'STAFF_EMAIL_REMOVED_ADMIN'], [actor.user.email, 'EMAIL_TAKEN'], [pending.email, 'EMAIL_TAKEN']]) {
+      const result = await app.inject({ method: 'POST', url: '/api/v1/admin/staff', headers: auth(actor.token), payload: { email: email.toUpperCase(), username: 'Duplicate' } });
+      expect(result.statusCode).toBe(code === 'EMAIL_TAKEN' ? 400 : 409); expect(result.json().error.code).toBe(code);
+    }
+  });
+
+  it('derives list state independently of email verification and follows filters in neighbors', async () => {
+    const actor = await createAdminWithToken(), prefix = 'staff-filter-' + randomUUID();
+    const ids: string[] = [];
+    for (const state of ['active', 'invited', 'removed'] as const) {
+      const account = await createAdminWithToken();
+      ids.push(account.user.id);
+      await db.user.update({ where: { id: account.user.id }, data: { username: prefix + '-' + state, isActive: state !== 'invited', removedAt: state === 'removed' ? new Date() : null, emailVerified: state === 'invited', createdAt: new Date('2026-10-01T00:00:00Z') } });
+      if (state === 'invited') await db.$transaction(tx => issueAuthToken(tx, account.user.id, 'STAFF_INVITE'));
+    }
+    for (const status of ['all', 'active', 'invited', 'removed']) {
+      const result = await app.inject({ method: 'GET', url: '/api/v1/admin/staff?search=' + prefix + '&status=' + status, headers: auth(actor.token) });
+      expect(result.statusCode).toBe(200);
+      const data = result.json().data;
+      expect(data.statusCounts).toEqual({ all: 3, active: 1, invited: 1, removed: 1 });
+      expect(data.total).toBe(status === 'all' ? 3 : 1);
+      expect(data.items.map((row: { id: string }) => row.id)).toEqual(ids.filter((_, index) => status === 'all' || index === ['active', 'invited', 'removed'].indexOf(status)).sort());
+      for (let index = 0; index < data.items.length; index++) {
+        const item = data.items[index];
+        const neighbors = await app.inject({ method: 'GET', url: '/api/v1/admin/staff/' + item.id + '/neighbors?search=' + prefix + '&status=' + status, headers: auth(actor.token) });
+        expect(neighbors.json().data).toEqual({ position: index + 1, total: data.total, previousId: data.items[index - 1]?.id ?? null, nextId: data.items[index + 1]?.id ?? null });
+        if (item.status === 'invited') expect(item.inviteExpiresAt).toEqual(expect.any(String));
+      }
+    }
+  });
   it('administrator listing and invitations deny a customer', async () => {
     const customer = await createUserWithToken();
     for (const method of ['GET', 'POST'] as const) {

@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { createNotification, verificationLink, type NotificationTransaction } from '@/core/notifications/service';
 import { consumeAuthToken, hashVerificationCode, issueAuthToken } from '@/core/auth/auth-token';
@@ -99,6 +100,9 @@ export class EmailVerificationService {
   }
 
   static async createStaffInvitation(tx: NotificationTransaction, userId: string, email: string, username: string, resentFromId?: string): Promise<void> {
+    await tx.$queryRaw(Prisma.sql`SELECT id FROM public.users WHERE id = ${userId} FOR UPDATE`);
+    const account = await tx.user.findUnique({ where: { id: userId }, select: { role: true, isActive: true, removedAt: true } });
+    if (!account || account.role !== 'ADMIN' || account.removedAt || account.isActive) throw new ApiError('INVITE_NOT_AVAILABLE');
     const token = await issueAuthToken(tx, userId, 'STAFF_INVITE');
     const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { locale: true } });
     await createNotification(tx, 'staff_invite', userId, email, { name: username }, {

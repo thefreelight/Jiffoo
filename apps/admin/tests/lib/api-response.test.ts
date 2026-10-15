@@ -1,12 +1,32 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+const transport = vi.hoisted(() => ({ post: vi.fn() }));
+vi.mock('shared', async importOriginal => ({
+  ...await importOriginal<typeof import('shared')>(),
+  createAdminClient: () => transport,
+}));
 
 import {
   AdminApiError,
   isAdminApiError,
   unwrapApiResponse,
+  authApi,
 } from '../../lib/api';
 
 describe('Admin API response unwrap', () => {
+  it('rejects failed invitation acceptance instead of reporting completion', async () => {
+    transport.post.mockResolvedValue({
+      success: false,
+      error: { code: 'INVALID_INVITE_TOKEN', message: 'Invalid invite token.' },
+    });
+    try {
+      await expect(authApi.acceptInvite('consumed-token', 'StaffPassword123!')).rejects.toMatchObject({
+        code: 'INVALID_INVITE_TOKEN', message: 'Invalid invite token.',
+      });
+    } finally {
+      transport.post.mockReset();
+    }
+  });
   it('returns successful response data', () => {
     expect(unwrapApiResponse({
       success: true,

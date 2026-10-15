@@ -187,6 +187,7 @@ export interface AccountProfile {
   id: string;
   email: string;
   username: string;
+  locale: 'en' | 'zh-Hans' | 'zh-Hant' | null;
   avatar: string | null;
   createdAt: string;
   updatedAt: string;
@@ -225,8 +226,11 @@ export const authApi = {
   resetPassword: (data: { token: string; newPassword: string }): Promise<ApiResponse<void>> =>
     apiClient.resetPassword(data),
 
-  acceptInvite: (token: string, password: string): Promise<ApiResponse<{ completed: boolean }>> =>
-    apiClient.post('/auth/accept-invite', { token, password }),
+  acceptInvite: async (token: string, password: string): Promise<ApiResponse<{ completed: boolean }>> => {
+    const response = await apiClient.post<{ completed: boolean }>('/auth/accept-invite', { token, password });
+    unwrapApiResponse(response);
+    return response;
+  },
 
   login: async (identifier: string, password: string) => {
     const response = await apiClient.post<{
@@ -267,8 +271,9 @@ export const accountApi = {
   getProfile: (): Promise<ApiResponse<AccountProfile>> =>
     apiClient.get('/account/profile'),
 
-  updateProfile: (data: { username?: string; avatar?: string }): Promise<ApiResponse<AccountProfile>> =>
+  updateProfile: (data: { username?: string; avatar?: string; locale?: string }): Promise<ApiResponse<AccountProfile>> =>
     apiClient.put('/account/profile', data),
+  removeAvatar: (): Promise<ApiResponse<AccountProfile>> => apiClient.delete('/account/avatar'),
 
   updateEmail: (newEmail: string, currentPassword: string): Promise<ApiResponse<AccountProfile>> =>
     apiClient.put('/account/email', { newEmail, currentPassword }),
@@ -784,7 +789,9 @@ export interface StaffMembership {
   email: string;
   username: string;
   avatar?: string | null;
-  role: 'ADMIN';
+  status: 'active' | 'invited' | 'removed';
+  removedAt: string | null;
+  inviteExpiresAt: string | null;
   isActive: boolean;
   emailVerified: boolean;
   isInstallAdmin: boolean;
@@ -811,11 +818,14 @@ export interface StaffCreatePayload {
 }
 
 export const staffApi = {
+  neighbors: (id: string, params: import('./staff-list-state').StaffFilter) => apiClient.get<{ position: number | null; total: number; previousId: string | null; nextId: string | null }>(`/admin/staff/${id}/neighbors`, { params }),
+  reinvite: (id: string): Promise<ApiResponse<StaffMembership>> => apiClient.post(`/admin/staff/${id}/reinvite`, {}),
   getAll: (params: {
     page?: number;
     limit?: number;
     search?: string;
-  } = {}): Promise<ApiResponse<PageResult<StaffMembership>>> => {
+    status?: import('./staff-list-state').StaffFilter['status'];
+  } = {}): Promise<ApiResponse<PageResult<StaffMembership> & { statusCounts: Record<'all' | 'active' | 'invited' | 'removed', number> }>> => {
     const { page = 1, limit = 20, ...filters } = params;
     return apiClient.get('/admin/staff', { params: { page, limit, ...filters } });
   },
@@ -832,7 +842,7 @@ export const staffApi = {
   remove: (userId: string): Promise<ApiResponse<void>> =>
     apiClient.delete(`/admin/staff/${userId}`),
 
-  resendInvite: (userId: string): Promise<ApiResponse<{ success: boolean }>> =>
+  resendInvite: (userId: string): Promise<ApiResponse<{ userId: string; queued: boolean }>> =>
     apiClient.post(`/admin/staff/${userId}/invite`, {}),
 
   generateInviteLink: (userId: string): Promise<ApiResponse<{ link: string }>> =>
