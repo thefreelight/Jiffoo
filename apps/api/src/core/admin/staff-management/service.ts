@@ -131,9 +131,14 @@ export class StaffManagementService {
   }
   static async resendStaffInvite(userId: string) {
     await prisma.$transaction(async tx => {
-      const user = await tx.user.findUnique({ where: { id: userId }, select: { email: true, username: true } });
-      if (!user) throw new ApiError('INVITE_NOT_AVAILABLE');
-      await EmailVerificationService.createStaffInvitation(tx, userId, user.email, user.username);
+      await tx.$queryRaw(Prisma.sql`SELECT id FROM public.users WHERE id = ${userId} FOR UPDATE`);
+      const user = await tx.user.findUnique({ where: { id: userId }, select: { email: true, username: true, role: true, removedAt: true, isActive: true } });
+      if (!user || user.role !== 'ADMIN' || user.removedAt || user.isActive) throw new ApiError('INVITE_NOT_AVAILABLE');
+      try {
+        await EmailVerificationService.createStaffInvitation(tx, userId, user.email, user.username);
+      } catch {
+        throw new ApiError('INVITE_QUEUE_FAILED');
+      }
     });
     return { userId, queued: true };
   }

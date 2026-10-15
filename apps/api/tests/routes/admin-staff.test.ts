@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { createTestApp } from '../helpers/create-test-app';
@@ -6,6 +6,7 @@ import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '.
 import { getTestPrisma } from '../helpers/db';
 import { hashAuthToken, issueAuthToken } from '@/core/auth/auth-token';
 import { env } from '@/config/env';
+import { EmailVerificationService } from '@/services/email-verification.service';
 
 describe('AUTH-1 administrator management', () => {
   let app: FastifyInstance;
@@ -70,6 +71,60 @@ describe('AUTH-1 administrator management', () => {
       method: 'GET', url: '/api/v1/admin/staff', headers: auth(login.json().data.access_token),
     });
     expect(adminRequest.statusCode).toBe(200);
+  });
+
+  it('resends exactly one invitation to a pending administrator and invalidates older tokens', async () => {
+    const actor = await createAdminWithToken(), account = await invite(actor.token);
+    await db.user.update({ where: { id: account.id }, data: { emailVerified: true } });
+    const oldTokens = await db.authToken.findMany({ where: { userId: account.id, purpose: 'STAFF_INVITE' } });
+    const notificationsBefore = await db.notification.count({ where: { recipientUserId: account.id, type: 'staff_invite' } });
+    expect(oldTokens).toHaveLength(1);
+    expect(oldTokens[0].consumedAt).toBeNull();
+    const response = await app.inject({ method: 'POST', url: `/api/v1/admin/staff/${account.id}/invite`, headers: auth(actor.token) });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data).toEqual({ userId: account.id, queued: true });
+    const tokens = await db.authToken.findMany({ where: { userId: account.id, purpose: 'STAFF_INVITE' } });
+    expect(tokens).toHaveLength(oldTokens.length + 1);
+    for (const old of oldTokens) expect(tokens.find(token => token.id === old.id)?.consumedAt).toBeInstanceOf(Date);
+    const fresh = tokens.filter(token => token.consumedAt === null);
+    expect(fresh).toHaveLength(1);
+    const notifications = await db.notification.findMany({ where: { recipientUserId: account.id, type: 'staff_invite' }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
+    expect(notifications).toHaveLength(notificationsBefore + 1);
+    const link = new URL((notifications[0].secretJson as { link: string }).link);
+    expect(hashAuthToken(link.searchParams.get('token')!)).toBe(fresh[0].tokenHash);
+  });
+
+  it.each(['removed', 'active', 'customer', 'unknown'] as const)('rejects resending to a %s account without changing tokens or notifications', async state => {
+    const actor = await createAdminWithToken();
+    const account = state === 'unknown' ? null : state === 'customer' ? await createUserWithToken() : await createAdminWithToken();
+    const userId = account?.user.id ?? randomUUID();
+    if (state === 'removed') await db.user.update({ where: { id: userId }, data: { removedAt: new Date(), isActive: false } });
+    if (account) await db.$transaction(tx => issueAuthToken(tx, userId, 'STAFF_INVITE'));
+    const tokensBefore = await db.authToken.findMany({ where: { userId }, orderBy: { id: 'asc' } });
+    const notificationsBefore = await db.notification.findMany({ where: { recipientUserId: userId }, orderBy: { id: 'asc' } });
+    const response = await app.inject({ method: 'POST', url: `/api/v1/admin/staff/${userId}/invite`, headers: auth(actor.token) });
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error.code).toBe('INVITE_NOT_AVAILABLE');
+    expect(await db.authToken.findMany({ where: { userId }, orderBy: { id: 'asc' } })).toEqual(tokensBefore);
+    expect(await db.notification.findMany({ where: { recipientUserId: userId }, orderBy: { id: 'asc' } })).toEqual(notificationsBefore);
+  });
+
+  it('returns INVITE_QUEUE_FAILED and rolls back invitation changes when queueing fails', async () => {
+    const actor = await createAdminWithToken(), account = await invite(actor.token);
+    const tokensBefore = await db.authToken.findMany({ where: { userId: account.id }, orderBy: { id: 'asc' } });
+    const notificationsBefore = await db.notification.findMany({ where: { recipientUserId: account.id }, orderBy: { id: 'asc' } });
+    const original = EmailVerificationService.createStaffInvitation;
+    const queue = vi.spyOn(EmailVerificationService, 'createStaffInvitation').mockImplementationOnce(async (...args) => {
+      await original(...args);
+      throw new Error('Invitation queue unavailable');
+    });
+    try {
+      const response = await app.inject({ method: 'POST', url: `/api/v1/admin/staff/${account.id}/invite`, headers: auth(actor.token) });
+      expect(response.statusCode).toBe(500);
+      expect(response.json().error.code).toBe('INVITE_QUEUE_FAILED');
+      expect(await db.authToken.findMany({ where: { userId: account.id }, orderBy: { id: 'asc' } })).toEqual(tokensBefore);
+      expect(await db.notification.findMany({ where: { recipientUserId: account.id }, orderBy: { id: 'asc' } })).toEqual(notificationsBefore);
+    } finally { queue.mockRestore(); }
   });
 
   it('F invitation rejects role selection and does not create an account', async () => {
