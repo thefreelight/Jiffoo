@@ -60,6 +60,29 @@ describe('Install re-submission', () => {
     expect(response.statusCode).toBe(400); expect(response.json().error.code).toBe('VALIDATION_ERROR');
   });
 
+  it.each([
+    ['ordinary@x.io', 'ordinary'],
+    ['a+b@x.io', 'a-b'],
+    ['x@y.io', 'owner'],
+  ])('derives a valid owner login name when omitted for %s', async (adminEmail, username) => {
+    try {
+      const response = await app.inject({ method: 'POST', url: '/api/v1/install/complete', payload: {
+        siteName: 'Optional Username', adminEmail, adminPassword: 'Password123!',
+      } });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ success: true, siteName: 'Optional Username', adminUsername: username, adminEmail, timezone: 'UTC' });
+      const owner = await prisma.user.findUniqueOrThrow({ where: { email: adminEmail } });
+      expect(owner.username).toBe(username);
+      expect(owner.role).toBe('ADMIN');
+    } finally {
+      const owner = await prisma.user.findUnique({ where: { email: adminEmail } });
+      if (owner) {
+        await prisma.systemSettings.deleteMany({ where: { id: 'system', installedBy: owner.id } });
+        await prisma.user.delete({ where: { id: owner.id } });
+      }
+    }
+  });
+
   it('rejects a second completion without creating another administrator', async () => {
     const first = await app.inject({
       method: 'POST',

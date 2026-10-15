@@ -21,7 +21,7 @@ export interface InstallData {
   siteDescription?: string;
   adminEmail: string;
   adminPassword: string;
-  adminUsername: string;
+  adminUsername?: string;
 }
 
 const CURRENT_VERSION = '1.0.0';
@@ -164,7 +164,12 @@ export class InstallService {
 
   static async completeInstallation(data: InstallData): Promise<{ success: true; siteName: string; adminUsername: string; adminEmail: string; timezone: string }> {
     if (data.adminPassword.length < 8) throw new ApiError('VALIDATION_ERROR');
-    if (!/^[A-Za-z0-9._-]{2,64}$/.test(data.adminUsername)) throw new ApiError('VALIDATION_ERROR');
+    const email = data.adminEmail.trim().toLowerCase();
+    const derivedUsername = email.split('@')[0].replace(/[^A-Za-z0-9._-]/g, '-').slice(0, 64);
+    const username = data.adminUsername === undefined
+      ? (derivedUsername.length < 2 ? 'owner' : derivedUsername)
+      : data.adminUsername;
+    if (!/^[A-Za-z0-9._-]{2,64}$/.test(username)) throw new ApiError('VALIDATION_ERROR');
     try {
       const runtimeVersion = resolveCurrentVersion();
       const hashedPassword = await bcrypt.hash(data.adminPassword, 10);
@@ -173,7 +178,6 @@ export class InstallService {
         const settings = await tx.systemSettings.findUnique({ where: { id: 'system' } });
         if (settings?.isInstalled) throw new ApiError('INSTALL_ALREADY_COMPLETED');
 
-        const email = data.adminEmail.trim().toLowerCase();
         const existingAdmin = await tx.user.findUnique({ where: { email } });
         if (existingAdmin) {
           throw new ApiError('INSTALL_EMAIL_IN_USE');
@@ -181,7 +185,7 @@ export class InstallService {
         const adminUser = await tx.user.create({
           data: {
             email,
-            username: data.adminUsername,
+            username,
             password: hashedPassword,
             role: 'ADMIN',
             isActive: true,
