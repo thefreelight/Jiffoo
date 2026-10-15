@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeSettingsForm } from '@/components/themes/ThemeSettingsForm';
 import { HomeSectionsEditor, addHomeSection, moveHomeSection, sectionFieldLabel } from '@/components/themes/HomeSectionsEditor';
 import { SECTION_TYPES, merchantSectionSchemas } from '../../../packages/shared/src/extensions/theme-contract';
-import { themeError, themeErrorKeys } from '@/lib/theme-messages';
+import { themeError, themeErrorKeys } from 'shared/src/i18n/messages/admin-themes';
 import type { HomeSection, ThemeConfig, ThemeSetting } from '@/lib/themes';
 
 vi.mock('@/lib/api', () => ({
@@ -18,7 +18,7 @@ const label = { en: 'Field', 'zh-Hans': '字段', 'zh-Hant': '欄位' };
 const setting = (id: string, type: ThemeSetting['type'], value: unknown, constraints: ThemeSetting['constraints'] = {}):
   ThemeSetting => ({ id, type, label: { ...label, en: id }, default: value, constraints });
 const config: ThemeConfig = {
-  revision: 4, values: {},
+  revision: 4, values: {}, configurationSavedAt: null,
   settings: [
     setting('color', 'color', '#123456'),
     setting('text', 'text', { en: 'Hello', 'zh-Hans': '你好', 'zh-Hant': '你好' }, { maxLength: 60 }),
@@ -116,17 +116,18 @@ describe('Admin theme settings and validation', () => {
     const final = moved.filter((section) => section.id !== 'categories');
     const save = vi.fn().mockResolvedValue(undefined);
     await act(async () => root.render(<ThemeSettingsForm
-      config={{ settings: [], values: {}, revision: 7, homeSections: final }}
+      config={{ settings: [], values: {}, revision: 7, configurationSavedAt: null, homeSections: final }}
       locale="en" assets={[]} onSave={save} onRestore={vi.fn()} />));
+    await act(async () => Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Edit')!.click());
     expect(container.querySelector<HTMLInputElement>('input[value="Welcome"]')?.value).toBe('Welcome');
     await act(async () => {
       const down = Array.from(container.querySelectorAll('button')).find(
-        (button) => button.textContent === 'Move down' && !button.disabled)!;
+        (button) => button.getAttribute('aria-label')?.startsWith('Move down:') && !button.disabled)!;
       down.click();
     });
     await act(async () => {
       const up = Array.from(container.querySelectorAll('button')).find(
-        (button) => button.textContent === 'Move up' && !button.disabled)!;
+        (button) => button.getAttribute('aria-label')?.startsWith('Move up:') && !button.disabled)!;
       up.click();
     });
     await act(async () => container.querySelector('form')!.dispatchEvent(
@@ -139,12 +140,30 @@ describe('Admin theme settings and validation', () => {
     for (const type of SECTION_TYPES) {
       const sections = addHomeSection([], type);
       await act(async () => root.render(<HomeSectionsEditor sections={sections}
-        locale="en" onChange={vi.fn()} onReset={vi.fn()} />));
+        locale="en" onChange={vi.fn()} />));
+      const expand = Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Edit');
+      if (expand) await act(async () => expand.click());
       const schema = merchantSectionSchemas[type] as { properties: {
         settings: { properties: Record<string, unknown> };
       } };
-      for (const name of Object.keys(schema.properties.settings.properties))
+      for (const name of Object.keys(schema.properties.settings.properties).filter(name => type !== 'product-grid' || !['categoryId', 'productIds'].includes(name)))
         expect(container.textContent, `${type}.${name}`).toContain(sectionFieldLabel(name, 'en'));
     }
+  });
+
+  it('shows effective grid defaults and only the fields for the selected product source', async () => {
+    const renderGrid = async (source: string) => act(async () => root.render(<HomeSectionsEditor
+      sections={[{ id: 'grid', type: 'product-grid', settings: { title: { ...label }, source } }]}
+      locale="en" onChange={vi.fn()} />));
+    await renderGrid('latest');
+    expect(Array.from(container.querySelectorAll('input[type="number"]')).map(input => (input as HTMLInputElement).value)).toEqual(['12', '4']);
+    expect(container.textContent).not.toContain('Add Category');
+    expect(container.textContent).not.toContain('Add Products');
+    await renderGrid('category');
+    expect(container.textContent).toContain('Category');
+    expect(container.querySelectorAll('input[type="text"]')).toHaveLength(4);
+    await renderGrid('manual');
+    expect(container.textContent).toContain('Products');
+    expect(container.textContent).not.toContain('Add Category');
   });
 });

@@ -8,6 +8,7 @@ import { readMediaFile } from '@/core/storage/uploaded-media-set';
 import { ExtensionInstallerError } from './errors';
 import { validateThemeManifest } from './theme-validator';
 import { defaultHomeSections, validateHomeSections } from './theme-home-sections';
+import { themePackageState } from './theme-package-state';
 
 type Setting = ThemeManifest['settings'][number];
 const ajv = new Ajv({ strict: false, allErrors: true });
@@ -101,6 +102,7 @@ export async function getThemeConfig(slug: string) {
     settings: (theme.manifestJson as unknown as ThemeManifest).settings,
     values: (theme.configuration?.values ?? {}) as Record<string, unknown>,
     revision: theme.configuration?.revision ?? 0,
+    configurationSavedAt: theme.configuration?.updatedAt.toISOString() ?? null,
     homeSections: defaultHomeSections(theme.manifestJson as unknown as ThemeManifest,
       (theme.configuration?.values ?? {}) as Record<string, unknown>),
   };
@@ -148,7 +150,8 @@ export async function saveThemeConfig(
     }
     await tx.themeConfigRevision.create({ data: { slug, revision, values: next as Prisma.InputJsonObject } });
     await audit(tx, actorId, 'theme.config.update', slug, { revision });
-    return { settings: manifest.settings, values: next, revision,
+    const saved = await tx.themeConfiguration.findUniqueOrThrow({ where: { slug } });
+    return { settings: manifest.settings, values: next, revision, configurationSavedAt: saved.updatedAt.toISOString(),
       homeSections: defaultHomeSections(manifest, next) };
   });
   });
@@ -169,10 +172,10 @@ export async function restoreThemeConfig(slug: string, actorId: string) {
     if (!prior) fail('THEME_CONFIG_NO_PREVIOUS', 409, slug);
     await validateConfig(theme.manifestJson as unknown as ThemeManifest, prior.values as Record<string, unknown>, pkg);
     const revision = current.revision + 1;
-    await tx.themeConfiguration.update({ where: { slug }, data: { revision, values: prior.values as Prisma.InputJsonValue } });
+    const saved = await tx.themeConfiguration.update({ where: { slug }, data: { revision, values: prior.values as Prisma.InputJsonValue } });
     await tx.themeConfigRevision.create({ data: { slug, revision, values: prior.values as Prisma.InputJsonValue } });
     await audit(tx, actorId, 'theme.config.restore', slug, { revision, fromRevision: prior.revision });
-    return { values: prior.values, revision };
+    return { values: prior.values, revision, configurationSavedAt: saved.updatedAt.toISOString() };
   });
   });
 }
@@ -185,6 +188,8 @@ async function activateWithLeases(target: ThemeTarget, slug: string, actorId: st
   const candidate = await prisma.theme.findUnique({ where: { slug } });
   if (!candidate) fail('THEME_NOT_FOUND', 404, slug);
   if (candidate.target !== target) fail('THEME_TARGET_MISMATCH', 409, slug);
+  const state = await themePackageState(candidate, undefined, true);
+  if (state.code) fail(state.code, 409, slug);
   validateThemeManifest(candidate.manifestJson);
   await resolveThemePackage(slug, candidate.packageHash);
   return prisma.$transaction(async (tx) => {

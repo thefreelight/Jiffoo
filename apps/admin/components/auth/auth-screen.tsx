@@ -28,10 +28,10 @@ export function AuthLanguage() {
 }
 
 export function AuthFrame({ title, description, children }: { title: string; description?: string; children?: ReactNode }) {
-  const { storeName = '' } = useThemeAssets(), text = useAuthCopy();
-  return <main id="main" className="admin-auth-page flex min-h-dvh flex-col items-center justify-center gap-5 px-4 py-12 text-[13px] text-foreground">
+  const { storeName = '', logo, loginBackground } = useThemeAssets(), text = useAuthCopy();
+  return <main id="main" style={loginBackground ? { backgroundImage: `url(${JSON.stringify(loginBackground)})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined} className="admin-auth-page flex min-h-dvh flex-col items-center justify-center gap-5 px-4 py-12 text-[13px] text-foreground">
     <div className="flex max-w-full items-center gap-[9px]">
-      {storeName && <span aria-hidden="true" className="flex size-[26px] shrink-0 items-center justify-center rounded-[7px] bg-foreground font-semibold text-ground">{Array.from(storeName)[0]}</span>}
+      {logo ? <img src={logo} alt={storeName} className="size-[26px] shrink-0 rounded-[7px] object-contain" /> : storeName && <span aria-hidden="true" className="flex size-[26px] shrink-0 items-center justify-center rounded-[7px] bg-foreground font-semibold text-ground">{Array.from(storeName)[0]}</span>}
       <span className="min-w-0 break-words text-[15px] font-semibold">{storeName}</span><span className="shrink-0 text-faint">{text('admin')}</span>
     </div>
     <section className="admin-auth-panel flex w-full max-w-[380px] flex-col gap-[18px] rounded-xl border border-border p-7" aria-labelledby="auth-title">

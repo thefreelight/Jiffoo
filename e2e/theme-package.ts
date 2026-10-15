@@ -50,7 +50,7 @@ export async function headerThemePackage(header: {
   return { name: slug, buffer: Buffer.concat(chunks) };
 }
 
-export async function adminThemePackage(): Promise<Buffer> {
+export async function adminThemePackage(withDark = false): Promise<Buffer> {
   const archive = archiver('zip', { zlib: { level: 9 } });
   const chunks: Buffer[] = [];
   archive.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -59,7 +59,9 @@ export async function adminThemePackage(): Promise<Buffer> {
     archive.on('error', fail);
   });
   const fixture = (name: string) => resolve(__dirname, 'fixtures/themes', name);
-  archive.append(await readFile(fixture('test-admin-theme/theme.json')), { name: 'theme.json' });
+  const manifest = JSON.parse(await readFile(fixture('test-admin-theme/theme.json'), 'utf8'));
+  if (withDark) manifest.darkTokens = JSON.parse(await readFile(resolve(__dirname, '../apps/api/builtin-themes/default-admin/theme.json'), 'utf8')).darkTokens;
+  archive.append(JSON.stringify(manifest), { name: 'theme.json' });
   archive.append(await readFile(fixture('test-admin-logo.png')), { name: 'assets/logo.png' });
   archive.append(await readFile(fixture('test-admin-background.png')), { name: 'assets/login.png' });
   archive.append(await readFile(resolve(__dirname, '../apps/admin/app/fonts/outfit-latin-400-normal.woff2')),

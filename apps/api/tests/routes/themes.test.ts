@@ -8,6 +8,7 @@ import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '.
 import { getTestPrisma } from '../helpers/db';
 import { themePackageStore } from '@/core/storage/plugin-package-store';
 import { clearTestThemeCache } from '../helpers/theme-cache';
+import { installTheme } from '@/core/admin/extension-installer/theme-service';
 
 const prisma = getTestPrisma();
 const suffix = Date.now().toString(36);
@@ -126,6 +127,76 @@ describe('T1a theme management HTTP', () => {
       const conflict = await upload(app, adminToken, await archive(await manifest('shop', shopSlug, version)));
       expect(conflict.statusCode).toBe(409);
       expect(conflict.json().error.code).toBe('THEME_VERSION_CONFLICT');
+    }
+  });
+
+  it('reports real integrity and activation metadata and refuses missing or mismatched archives without mutations', async () => {
+    const headers = { authorization: `Bearer ${adminToken}` };
+    const record = await prisma.theme.findUniqueOrThrow({ where: { slug: adminSlug } });
+    const identity = { themeSlug_packageHash: { themeSlug: adminSlug, packageHash: record.packageHash } };
+    const blob = await prisma.themePackageBlob.findUniqueOrThrow({ where: identity });
+    const detail = () => app.inject({ url: `/api/v1/extensions/theme/${adminSlug}`, headers });
+    const listed = async () => (await app.inject({ url: '/api/v1/extensions/theme', headers })).json().data.find((item: { slug: string }) => item.slug === adminSlug);
+    const priorActive = await prisma.themeActive.findUnique({ where: { target: 'admin' } });
+    const historyBefore = await prisma.themeActivation.count();
+    const auditBefore = await prisma.adminAuditEvent.count();
+    expect((await detail()).json().data).toMatchObject({ activatedAt: null, packageState: { status: 'available', code: null } });
+    expect(await listed()).toMatchObject({ activatedAt: null, packageState: { status: 'available', code: null } });
+    try {
+      for (const missing of [false, true]) {
+        if (missing) await prisma.themePackageBlob.delete({ where: identity });
+        else await prisma.themePackageBlob.update({ where: identity, data: { sizeBytes: blob.sizeBytes + 1 } });
+        const code = missing ? 'THEME_PACKAGE_UNAVAILABLE' : 'THEME_PACKAGE_CORRUPT';
+        const state = { status: missing ? 'unavailable' : 'corrupt', code };
+        expect((await detail()).json().data.packageState).toEqual(state);
+        expect((await listed()).packageState).toEqual(state);
+        const response = await app.inject({ method: 'POST', url: '/api/v1/extensions/themes/admin/activate', headers, payload: { slug: adminSlug } });
+        expect(response.json().error.code).toBe(code);
+        expect(await prisma.themeActive.findUnique({ where: { target: 'admin' } })).toEqual(priorActive);
+        expect(await prisma.themeActivation.count()).toBe(historyBefore);
+        expect(await prisma.adminAuditEvent.count()).toBe(auditBefore);
+      }
+    } finally { await prisma.themePackageBlob.upsert({ where: identity, create: blob, update: { bytes: blob.bytes, sizeBytes: blob.sizeBytes } }); }
+    const activated = await app.inject({ method: 'POST', url: '/api/v1/extensions/themes/admin/activate', headers, payload: { slug: adminSlug } });
+    expect(activated.statusCode).toBe(200);
+    const active = await prisma.themeActive.findUniqueOrThrow({ where: { target: 'admin' } });
+    expect((await detail()).json().data.activatedAt).toBe(active.updatedAt.toISOString());
+    expect((await listed()).activatedAt).toBe(active.updatedAt.toISOString());
+    await prisma.themeActive.delete({ where: { target: 'admin' } });
+    if (priorActive) await prisma.themeActive.create({ data: priorActive });
+    await prisma.themeActivation.deleteMany({ where: { slug: adminSlug } });
+    await prisma.adminAuditEvent.deleteMany({ where: { targetId: adminSlug, action: 'theme.activate' } });
+  });
+
+  it('reports intact built-in packages using their local package marker', async () => {
+    await installTheme(await archive(await manifest('shop', builtinSlug)), { source: 'builtin' });
+    const headers = { authorization: `Bearer ${adminToken}` };
+    const detail = await app.inject({ url: `/api/v1/extensions/theme/${builtinSlug}`, headers });
+    expect(detail.json().data.packageState).toEqual({ status: 'available', code: null });
+    const list = await app.inject({ url: '/api/v1/extensions/theme', headers });
+    expect(list.json().data.find((item: { slug: string }) => item.slug === builtinSlug).packageState).toEqual({ status: 'available', code: null });
+    await prisma.theme.delete({ where: { slug: builtinSlug } });
+    await clearTestThemeCache(builtinSlug);
+  });
+
+  it('refuses restoring a theme with corrupt metadata without changing active state or history', async () => {
+    const record = await prisma.theme.findUniqueOrThrow({ where: { slug: adminSlug } });
+    const where = { themeSlug_packageHash: { themeSlug: adminSlug, packageHash: record.packageHash } };
+    const blob = await prisma.themePackageBlob.findUniqueOrThrow({ where });
+    const prior = await prisma.themeActive.findUnique({ where: { target: 'admin' } });
+    const entry = await prisma.themeActivation.create({ data: { target: 'admin', slug: adminSlug, packageHash: record.packageHash, actorId: adminId } });
+    try {
+      await prisma.themePackageBlob.update({ where, data: { sizeBytes: blob.sizeBytes + 1 } });
+      const before = await prisma.themeActivation.count();
+      const audits = await prisma.adminAuditEvent.count();
+      const response = await app.inject({ method: 'POST', url: '/api/v1/extensions/themes/admin/restore-previous', headers: { authorization: `Bearer ${adminToken}` } });
+      expect(response.json().error.code).toBe('THEME_PACKAGE_CORRUPT');
+      expect(await prisma.themeActive.findUnique({ where: { target: 'admin' } })).toEqual(prior);
+      expect(await prisma.themeActivation.count()).toBe(before);
+      expect(await prisma.adminAuditEvent.count()).toBe(audits);
+    } finally {
+      await prisma.themePackageBlob.update({ where, data: { sizeBytes: blob.sizeBytes } });
+      await prisma.themeActivation.delete({ where: { id: entry.id } });
     }
   });
 

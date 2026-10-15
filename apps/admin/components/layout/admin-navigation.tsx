@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useT, useLocale } from 'shared/src/i18n/react';
 import { ArrowUpRight, ChevronDown, ChevronsUpDown, Languages, LogOut, PanelLeft, PanelLeftOpen, Store, User } from 'lucide-react';
@@ -76,6 +76,11 @@ export function AdminNavigation({ storeName, storeUrl, logo, collapsed = false, 
   const active = (href: string) => pathname === '/' + locale + href || pathname.startsWith('/' + locale + href + '/');
   const languagePath = (language: string) => '/' + [language, ...pathname.split('/').filter(Boolean).slice(1)].join('/');
   const identity = storeName || copy.store;
+  const navigate = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    requestAppNavigation(() => { onNavigate?.(); router.push(href); });
+  };
   return <div className="flex h-full w-full min-h-0 flex-col gap-3.5 bg-background px-2.5 py-3 text-[13px] text-foreground">
     <div className={cn('flex h-9 shrink-0 items-center gap-1.5 px-1.5', collapsed && 'justify-center px-0')}>
       {!collapsed && <><div className={cn('flex size-[22px] shrink-0 items-center justify-center rounded-[calc(var(--admin-core-radius-control)*6/7)] text-xs font-semibold', logo ? 'bg-transparent' : 'bg-foreground text-background')}>
@@ -94,13 +99,13 @@ export function AdminNavigation({ storeName, storeUrl, logo, collapsed = false, 
           {group.items.map(([id, key, fallback, href, icon]) => {
             const name = label(key, fallback);
             const selected = active(href) && !(id === 'products' && active('/products/categories'));
-            const navLink = <Link href={'/' + locale + href} aria-label={name} aria-current={selected ? 'page' : undefined} onClick={onNavigate} className={cn('relative flex h-8 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-muted-foreground hover:bg-accent hover:text-foreground', active(href) && 'font-medium text-foreground', collapsed && 'justify-center px-0')}>
+            const navLink = <Link data-app-navigation href={'/' + locale + href} aria-label={name} aria-current={selected ? 'page' : undefined} onClick={event => navigate(event, '/' + locale + href)} className={cn('relative flex h-8 min-w-0 flex-1 items-center gap-2.5 rounded-md px-2 text-muted-foreground hover:bg-accent hover:text-foreground', active(href) && 'font-medium text-foreground', collapsed && 'justify-center px-0')}>
               <svg aria-hidden="true" className="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><path d={icon} /></svg><span className={collapsed ? 'sr-only' : 'truncate'}>{name}</span>
               {id === 'orders' && reviewCount > 0 && <span role="img" aria-label={t('merchant.shell.paymentReviewBadge', { count: reviewCount })} className={cn('ml-auto font-mono text-[11px] text-attention', collapsed && 'absolute right-1 top-1 size-1.5 rounded-full bg-attention')}><span className={collapsed ? 'sr-only' : undefined}>{reviewCount}</span></span>}
             </Link>;
             return <div key={id}><div className={cn('flex items-center rounded-md', selected && 'bg-accent')}><RailTooltip name={name} enabled={collapsed}>{navLink}</RailTooltip>
               {id === 'products' && !collapsed && <button type="button" aria-label={productPages ? copy.collapsePages : copy.expandPages} aria-expanded={productPages} onClick={() => setProductPages(!productPages)} className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"><ChevronDown aria-hidden="true" className={cn('size-3 transition-transform', !productPages && '-rotate-90')} /></button>}
-            </div>{id === 'products' && !collapsed && productPages && <div className="mt-0.5 mb-1 ml-4 border-l border-border pl-[9px]"><Link href={'/' + locale + '/products/categories'} aria-current={active('/products/categories') ? 'page' : undefined} onClick={onNavigate} className={cn('flex h-[30px] items-center rounded-md px-2 text-muted-foreground hover:bg-accent hover:text-foreground', active('/products/categories') && 'bg-accent font-medium text-foreground')}>{label('merchant.contentTranslations.categories', 'Categories')}</Link></div>}</div>;
+            </div>{id === 'products' && !collapsed && productPages && <div className="mt-0.5 mb-1 ml-4 border-l border-border pl-[9px]"><Link data-app-navigation href={'/' + locale + '/products/categories'} aria-current={active('/products/categories') ? 'page' : undefined} onClick={event => navigate(event, '/' + locale + '/products/categories')} className={cn('flex h-[30px] items-center rounded-md px-2 text-muted-foreground hover:bg-accent hover:text-foreground', active('/products/categories') && 'bg-accent font-medium text-foreground')}>{label('merchant.contentTranslations.categories', 'Categories')}</Link></div>}</div>;
           })}
         </CollapsibleContent>
       </Collapsible>)}

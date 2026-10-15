@@ -1,98 +1,88 @@
-import { captureReview, expect, test } from './review-capture';
+import { expect, test } from './review-capture';
 import { login, ownerEmail } from './helpers';
 import { themePackage } from './theme-package';
-import { createHash } from 'node:crypto';
+import { captureThemeCodeState } from './theme-code-captures';
 import type { Page } from '@playwright/test';
 
-async function saveConfiguration(page: Page, slug: string) {
-  const saved = page.waitForResponse(response => response.request().method() === 'PUT'
-    && new URL(response.url()).pathname === `/api/v1/extensions/themes/${slug}/config`);
-  await page.getByRole('button', { name: 'Save configuration' }).click();
-  expect((await saved).ok()).toBe(true);
-  await expect(page.getByText('Configuration saved', { exact: true })).toBeVisible();
+async function save(page: Page) {
+  const response = page.waitForResponse(reply => reply.request().method() === 'PUT' && /\/themes\/[^/]+\/config$/.test(new URL(reply.url()).pathname));
+  await page.getByRole('button', { name: 'Save', exact: true }).click(); expect((await response).ok()).toBe(true);
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 }
+async function more(page: Page, item: string) {
+  await page.getByRole('button', { name: 'More actions', exact: true }).click();
+  await page.getByRole('menuitem', { name: item, exact: true }).click();
+}
+async function back(page: Page) { await page.getByRole('link', { name: '← Themes', exact: true }).click(); }
 
-test('Admin theme loop updates Shop live, restores and rejects executable packages', async ({ page, context }) => {
-  const bytes = await themePackage(), packageHash = createHash('sha256').update(bytes).digest('hex');
+test('C1a customises shop themes, edits home sections, preserves stale drafts and restores defaults', async ({ page, context }) => {
+  test.setTimeout(180000);
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
-  await page.getByRole('link', { name: 'Themes' }).click();
-  await expect(page.getByRole('heading', { name: 'Default Shop' })).toBeVisible();
-  await page.getByLabel('Theme package', { exact: true }).setInputFiles({
-    name: 'e2e-shop-theme.zip', mimeType: 'application/zip', buffer: bytes,
-  });
-  await page.getByLabel('I trust this unsigned theme package').check();
-  await page.getByRole('button', { name: 'Upload theme' }).click();
-  const row = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'E2E Shop Theme' }) });
-  await expect(row.getByRole('button', { name: 'Activate' })).toBeVisible();
-  await row.getByRole('button', { name: 'Activate' }).click();
-  await expect(row.getByText('Active')).toBeVisible();
-  await expect(row.getByRole('button', { name: 'Uninstall' })).toHaveCount(0);
-
+  await page.getByRole('link', { name: 'Themes', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Default Shop', exact: true })).toBeVisible();
+  await captureThemeCodeState(page, 'themes-builtin');
+  await captureThemeCodeState(page, 'themes-upload', { open: () => page.getByRole('button', { name: 'Upload theme', exact: true }).click(), close: () => page.getByRole('button', { name: 'Cancel', exact: true }).click() });
+  await page.getByRole('button', { name: 'Upload theme', exact: true }).click();
+  await page.getByLabel('Theme package', { exact: true }).setInputFiles({ name: 'shop.zip', mimeType: 'application/zip', buffer: await themePackage() });
+  await page.getByLabel('I trust this theme package. It is unsigned, so the system cannot verify its author.', { exact: true }).check();
+  await page.getByRole('button', { name: 'Install', exact: true }).click();
+  await page.getByRole('article', { name: 'E2E Shop Theme', exact: true }).getByRole('button', { name: 'Activate', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Active', exact: true }).getByRole('heading', { name: 'E2E Shop Theme' })).toBeVisible();
+  await captureThemeCodeState(page, 'themes-normal');
+  await page.getByRole('link', { name: 'Customise', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Customise E2E Shop Theme', exact: true })).toBeVisible();
+  await captureThemeCodeState(page, 'theme-edit-saved');
+  const other = await context.newPage();
+  await other.goto('/en/themes/shop/e2e-shop-theme');
+  await expect(other.getByRole('group', { name: 'Hero heading', exact: true })).toBeVisible();
+  await page.getByRole('group', { name: 'Hero heading', exact: true }).getByRole('textbox', { name: 'en', exact: true }).fill('Updated theme heading');
+  await captureThemeCodeState(page, 'theme-edit-dirty');
+  await page.getByRole('link', { name: 'Orders', exact: true }).click();
+  await expect(page.getByRole('alertdialog', { name: 'Unsaved changes', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Keep editing', exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Open menu', exact: true }).click();
+  await page.getByRole('link', { name: 'Orders', exact: true }).click();
+  await expect(page.getByRole('alertdialog', { name: 'Unsaved changes', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Keep editing', exact: true }).click();
+  await page.getByRole('button', { name: 'Close menu', exact: true }).click();
+  await expect(page.getByRole('group', { name: 'Hero heading', exact: true }).getByRole('textbox', { name: 'en', exact: true })).toHaveValue('Updated theme heading');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await save(page);
   const shop = await context.newPage();
-  await shop.goto('http://127.0.0.1:3003/en');
-  await expect(shop.getByRole('button', { name: 'Categories' })).toBeVisible();
-  await expect(shop.getByRole('heading', { name: 'Theme launch' })).toBeVisible();
-  await expect(shop.getByRole('img', { name: 'Theme hero', exact: true }))
-    .toHaveAttribute('src', `/api/v1/themes/e2e-shop-theme/${packageHash}/assets/hero.png`);
-  await expect(shop.getByRole('link', { name: 'Browse products' })).toHaveCSS('background-color', 'rgb(204, 0, 51)');
-  await captureReview(shop, 'theme-package-review', 'shop-active-hash-en', { width: 1440, height: 900 });
-
-  await row.getByRole('button', { name: 'Configure' }).click();
-  await page.getByRole('region', { name: 'Configure E2E Shop Theme' })
-    .getByRole('group', { name: 'Hero heading' })
-    .getByRole('textbox', { name: 'en', exact: true }).fill('Updated theme heading');
-  await saveConfiguration(page, 'e2e-shop-theme');
-  await shop.reload();
-  await expect(shop.getByRole('heading', { name: 'Updated theme heading' })).toBeVisible();
-  await page.getByRole('button', { name: 'Restore previous configuration' }).click();
-  await expect(page.getByText('Configuration restored', { exact: true })).toBeVisible();
-  await shop.reload();
-  await expect(shop.getByRole('heading', { name: 'Theme launch' })).toBeVisible();
-  await page.getByRole('button', { name: 'Restore previous theme' }).click();
-  await expect(page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Default Shop' }) })
-    .getByText('Active')).toBeVisible();
-  await shop.reload();
-  await expect(shop.getByRole('heading', { name: 'Browse categories' })).toBeVisible();
-  await expect(shop.getByRole('heading', { name: 'Theme launch' })).toHaveCount(0);
-
-  const defaultRow = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Default Shop' }) });
-  await defaultRow.getByRole('button', { name: 'Configure' }).click();
-  const editor = page.getByRole('region', { name: 'Configure Default Shop' })
-    .getByRole('region', { name: 'Home page' });
-  await editor.getByLabel('Add section').selectOption('text-block');
-  const text = editor.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Text block · section-1' }) });
-  await text.getByRole('button', { name: 'Add Title' }).click();
-  await text.getByRole('group', { name: 'Title' }).getByLabel('en', { exact: true }).fill('Merchant welcome');
-  await text.getByRole('group', { name: 'Title' }).getByLabel('zh-Hans', { exact: true }).fill('商店欢迎');
-  await text.getByRole('group', { name: 'Title' }).getByLabel('zh-Hant', { exact: true }).fill('商店歡迎');
-  await text.getByRole('group', { name: 'Body' }).getByLabel('en', { exact: true }).fill('Welcome to our store');
-  await text.getByRole('group', { name: 'Body' }).getByLabel('zh-Hans', { exact: true }).fill('欢迎来到商店');
-  await text.getByRole('group', { name: 'Body' }).getByLabel('zh-Hant', { exact: true }).fill('歡迎來到商店');
-  await text.getByRole('button', { name: 'Move up' }).click();
-  await text.getByRole('button', { name: 'Move up' }).click();
-  const grid = editor.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Product grid · home-products' }) });
-  await grid.getByRole('button', { name: 'Move up' }).click();
-  const categories = editor.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Category list · home-categories' }) });
-  await categories.getByRole('button', { name: 'Delete' }).click();
-  await saveConfiguration(page, 'default-shop');
-  await shop.reload();
-  await expect(shop.getByRole('heading', { name: 'Merchant welcome' })).toBeVisible();
-  await expect(shop.getByRole('heading', { name: 'Browse categories' })).toHaveCount(0);
-  await expect(shop.getByRole('heading', { level: 2 })).toHaveText(['Merchant welcome', 'Featured products']);
-  await shop.goto('http://127.0.0.1:3003/zh-Hans');
-  await expect(shop.getByRole('heading', { name: '商店欢迎' })).toBeVisible();
-  await editor.getByRole('button', { name: 'Reset to theme default' }).click();
-  await saveConfiguration(page, 'default-shop');
-  await shop.goto('http://127.0.0.1:3003/en');
-  await expect(shop.getByRole('heading', { level: 2 })).toHaveText(['Browse categories', 'Featured products']);
-
-  await page.getByLabel('Theme package', { exact: true }).setInputFiles({
-    name: 'invalid-theme.zip', mimeType: 'application/zip', buffer: await themePackage(true),
-  });
-  await page.getByRole('button', { name: 'Upload theme' }).click();
-  await expect(page.getByText('Executable or unsupported package entry: scripts/run.js', { exact: true })).toBeVisible();
-  await page.getByRole('region', { name: 'Configure Default Shop' }).getByRole('button', { name: 'Close' }).click();
-  await row.getByRole('button', { name: 'Uninstall' }).click();
-  await expect(page.getByRole('heading', { name: 'E2E Shop Theme' })).toHaveCount(0);
-  await shop.close();
+  await shop.goto('http://127.0.0.1:3003/en'); await expect(shop.getByRole('heading', { name: 'Updated theme heading', exact: true })).toBeVisible();
+  await other.getByRole('group', { name: 'Hero heading', exact: true }).getByRole('textbox', { name: 'en', exact: true }).fill('Stale heading');
+  await other.getByRole('button', { name: 'Save', exact: true }).click();
+  const conflict = other.getByRole('alert').filter({ hasText: 'Someone saved this theme configuration elsewhere.' });
+  await expect(conflict).toBeVisible();
+  await expect(other.getByRole('group', { name: 'Hero heading', exact: true }).getByRole('textbox', { name: 'en', exact: true })).toHaveValue('Stale heading');
+  await captureThemeCodeState(other, 'theme-edit-conflict');
+  await conflict.getByRole('button', { name: 'Load latest configuration', exact: true }).click();
+  await expect(other.getByRole('group', { name: 'Hero heading', exact: true }).getByRole('textbox', { name: 'en', exact: true })).toHaveValue('Updated theme heading'); await other.close();
+  await more(page, 'Restore previous configuration');
+  await page.getByRole('alertdialog', { name: 'Restore previous configuration', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click();
+  await expect(page.getByRole('group', { name: 'Hero heading', exact: true }).getByRole('textbox', { name: 'en', exact: true })).toHaveValue('Theme launch');
+  await back(page);
+  await page.getByRole('button', { name: 'More actions: E2E Shop Theme', exact: true }).click(); await page.getByRole('menuitem', { name: 'Restore previous theme', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Active', exact: true }).getByRole('heading', { name: 'Default Shop', exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'Customise', exact: true }).click();
+  await expect(page.getByText('This theme has no adjustable settings.', { exact: true })).toBeVisible();
+  await captureThemeCodeState(page, 'theme-edit-no-settings');
+  await captureThemeCodeState(page, 'theme-edit-add-menu', { open: () => page.getByRole('button', { name: 'Add section', exact: true }).click(), close: () => page.keyboard.press('Escape') });
+  await page.getByRole('button', { name: 'Add section', exact: true }).click(); await page.getByRole('menuitem', { name: 'Text block', exact: true }).click();
+  const block = page.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Text block', exact: true }) });
+  await block.getByRole('group', { name: 'Body', exact: true }).getByLabel('en', { exact: true }).fill('Merchant welcome');
+  await block.getByRole('group', { name: 'Body', exact: true }).getByLabel('zh-Hans', { exact: true }).fill('欢迎');
+  await block.getByRole('group', { name: 'Body', exact: true }).getByLabel('zh-Hant', { exact: true }).fill('歡迎');
+  await block.getByRole('button', { name: 'Move up: Text block', exact: true }).click();
+  await block.getByRole('button', { name: 'Move up: Text block', exact: true }).click();
+  const categories = page.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Category list', exact: true }) });
+  await categories.getByRole('button', { name: 'Delete: Category list', exact: true }).click();
+  await save(page); await shop.reload(); await expect(shop.getByText('Merchant welcome', { exact: true })).toBeVisible(); await expect(shop.getByRole('heading', { name: 'Browse categories', exact: true })).toHaveCount(0);
+  expect((await shop.getByText('Merchant welcome', { exact: true }).boundingBox())!.y).toBeLessThan((await shop.getByRole('heading', { name: 'Featured products', exact: true }).boundingBox())!.y);
+  await more(page, 'Reset home to theme defaults'); await page.getByRole('alertdialog', { name: 'Reset home to theme defaults', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click(); await save(page);
+  await shop.reload(); await expect(shop.getByRole('heading', { name: 'Browse categories', exact: true })).toBeVisible(); await shop.close(); await back(page);
+  await page.getByRole('button', { name: 'Upload theme', exact: true }).click(); await page.getByLabel('Theme package', { exact: true }).setInputFiles({ name: 'invalid.zip', mimeType: 'application/zip', buffer: await themePackage(true) }); await page.getByLabel('I trust this theme package. It is unsigned, so the system cannot verify its author.', { exact: true }).check(); await page.getByRole('button', { name: 'Install', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Upload theme', exact: true }).getByRole('alert')).toContainText('Executable or unsupported package entry: scripts/run.js'); await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.getByRole('button', { name: 'More actions: E2E Shop Theme', exact: true }).click(); await page.getByRole('menuitem', { name: 'Uninstall', exact: true }).click(); await expect(page.getByRole('article', { name: 'E2E Shop Theme', exact: true })).toHaveCount(0);
 });

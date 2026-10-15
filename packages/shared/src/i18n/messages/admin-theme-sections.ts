@@ -1,0 +1,37 @@
+export const sectionNames: Record<string, [string, string, string]> = {
+  'announcement-bar': ['Announcement bar', '公告栏', '公告欄'],
+  'hero-banner': ['Hero banner', '主视觉横幅', '主視覺橫幅'],
+  'image-carousel': ['Image carousel', '图片轮播', '圖片輪播'],
+  'category-list': ['Category list', '分类列表', '分類列表'],
+  'product-grid': ['Product grid', '商品网格', '商品網格'],
+  'image-with-text': ['Image with text', '图文区块', '圖文區塊'],
+  'text-block': ['Text block', '文字区块', '文字區塊'],
+  'feature-list': ['Feature list', '特色列表', '特色列表'],
+};
+export const sectionDescriptions: Record<string, [string, string, string]> = {
+  'announcement-bar': ['A one-line notice at the top of the page', '页面顶部的一行通知', '頁面頂部的一行通知'],
+  'hero-banner': ['Large image, heading and button', '大图 + 标题 + 按钮', '大圖 + 標題 + 按鈕'],
+  'image-carousel': ['Multiple images that rotate automatically', '多张图片自动切换', '多張圖片自動切換'],
+  'category-list': ['Show category links', '展示几个分类入口', '展示幾個分類入口'],
+  'product-grid': ['Show products by rule or manual selection', '按规则或手动展示商品', '按規則或手動展示商品'],
+  'image-with-text': ['An image with text', '一张图配一段文字', '一張圖配一段文字'],
+  'text-block': ['Heading and body', '标题和正文', '標題和正文'],
+  'feature-list': ['Selling points such as shipping and returns', '几条卖点，例如包邮、退换', '幾條賣點，例如包郵、退換'],
+};
+export const fieldNames: Record<string, [string, string, string]> = {
+  text: ['Text', '文字', '文字'], title: ['Title', '标题', '標題'],
+  body: ['Body', '正文', '內文'], image: ['Image', '图片', '圖片'],
+  alt: ['Image description', '图片描述', '圖片描述'],
+  link: ['Link', '链接', '連結'], buttonLabel: ['Button label', '按钮文字', '按鈕文字'],
+  slides: ['Slides', '轮播图片', '輪播圖片'],
+  categoryIds: ['Categories', '分类', '分類'], categoryId: ['Category', '分类', '分類'],
+  productIds: ['Products', '商品', '商品'], count: ['Display count', '显示数量', '顯示數量'],
+  columns: ['Items per row', '每行几个', '每行幾個'], source: ['Product source', '商品来源', '商品來源'],
+  position: ['Image position', '图片位置', '圖片位置'],
+  items: ['Items', '项目', '項目'], icon: ['Icon', '图标', '圖示'],
+  latest: ['Latest products', '最新上架', '最新上架'], category: ['A category', '某个分类', '某個分類'],
+  manual: ['Choose products manually', '手动选择商品', '手動選擇商品'],
+  left: ['Left', '左侧', '左側'], right: ['Right', '右侧', '右側'],
+  check: ['Check', '勾选', '勾選'], star: ['Star', '星形', '星形'],
+  truck: ['Truck', '配送车', '配送車'],
+};

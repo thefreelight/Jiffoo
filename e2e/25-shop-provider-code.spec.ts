@@ -272,11 +272,16 @@ test('G provider IDs without any merchant slots still initialize all three libra
 test('H exact Baidu SPA and commerce hints render in all three Admin languages', async ({ page }) => {
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   const hints = {
-    en: ['Enable Single-page application settings in Baidu Tongji to count client-side page changes.',
-      'Enable E-commerce analytics in Baidu Tongji Application Center to view order reports.'],
-    'zh-Hans': ['在百度统计中启用单页应用设置，以统计客户端页面切换。', '在百度统计的应用中心启用电商分析，以查看订单报告。'],
-    'zh-Hant': ['在百度統計中啟用單頁應用設定，以統計用戶端頁面切換。', '在百度統計的應用中心啟用電商分析，以查看訂單報告。'],
-  };
+    "en": [
+        "32 lowercase letters and digits. Enable “Single-page application” in Baidu Tongji to track page changes and “E-commerce analytics” for order reports."
+    ],
+    "zh-Hans": [
+        "32 位小写字母和数字。在百度统计里打开“单页应用”设置，才能统计页面切换；打开“电商分析”才能看订单报告。"
+    ],
+    "zh-Hant": [
+        "32 位小寫字母和數字。在百度統計裡開啟「單頁應用」設定，才能統計頁面切換；開啟「電商分析」才能看訂單報告。"
+    ]
+};
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const [locale, texts] of Object.entries(hints)) {
     await page.goto(`/${locale}/storefront-code`);

@@ -1,7 +1,13 @@
 'use client';
 
+import { useId, useState } from 'react';
+import { sectionNames, sectionDescriptions, fieldNames } from 'shared/src/i18n/messages/admin-theme-sections';
+import { ArrowUp, ArrowDown, Trash2, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+
 import { merchantSectionSchemas, SECTION_TYPES } from '../../../../packages/shared/src/extensions/theme-contract';
-import { themeMessage } from '@/lib/theme-messages';
+import { themeMessage } from 'shared/src/i18n/messages/admin-themes';
 import type { HomeSection, Locale } from '@/lib/themes';
 
 type Schema = {
@@ -9,34 +15,7 @@ type Schema = {
   items?: Schema; enum?: string[]; minimum?: number; maximum?: number; maxItems?: number;
 };
 const names = SECTION_TYPES as readonly string[];
-const sectionNames: Record<string, [string, string, string]> = {
-  'announcement-bar': ['Announcement bar', '公告栏', '公告欄'],
-  'hero-banner': ['Hero banner', '主视觉横幅', '主視覺橫幅'],
-  'image-carousel': ['Image carousel', '图片轮播', '圖片輪播'],
-  'category-list': ['Category list', '分类列表', '分類列表'],
-  'product-grid': ['Product grid', '商品网格', '商品網格'],
-  'image-with-text': ['Image with text', '图文区块', '圖文區塊'],
-  'text-block': ['Text block', '文字区块', '文字區塊'],
-  'feature-list': ['Feature list', '特色列表', '特色列表'],
-};
 const localeIndex = (locale: Locale) => ['en', 'zh-Hans', 'zh-Hant'].indexOf(locale);
-const fieldNames: Record<string, [string, string, string]> = {
-  text: ['Text', '文字', '文字'], title: ['Title', '标题', '標題'],
-  body: ['Body', '正文', '內文'], image: ['Image', '图片', '圖片'],
-  alt: ['Image description', '图片描述', '圖片描述'],
-  link: ['Link', '链接', '連結'], buttonLabel: ['Button label', '按钮文字', '按鈕文字'],
-  slides: ['Slides', '轮播图片', '輪播圖片'],
-  categoryIds: ['Categories', '分类', '分類'], categoryId: ['Category', '分类', '分類'],
-  productIds: ['Products', '商品', '商品'], count: ['Count', '数量', '數量'],
-  columns: ['Columns', '列数', '欄數'], source: ['Product source', '商品来源', '商品來源'],
-  position: ['Image position', '图片位置', '圖片位置'],
-  items: ['Items', '项目', '項目'], icon: ['Icon', '图标', '圖示'],
-  latest: ['Latest', '最新', '最新'], category: ['Category', '分类', '分類'],
-  manual: ['Manual', '手动选择', '手動選擇'],
-  left: ['Left', '左侧', '左側'], right: ['Right', '右侧', '右側'],
-  check: ['Check', '勾选', '勾選'], star: ['Star', '星形', '星形'],
-  truck: ['Truck', '配送车', '配送車'],
-};
 export const sectionFieldLabel = (key: string, locale: Locale) =>
   fieldNames[key]?.[localeIndex(locale)] ?? key;
 
@@ -72,6 +51,7 @@ export function moveHomeSection(sections: HomeSection[], index: number, delta: n
 function ValueField({ label, schema, value, change, locale }: {
   label: string; schema: Schema; value: unknown; change: (value: unknown) => void; locale: Locale;
 }) {
+  const fieldId = useId();
   if (schema.type === 'object') {
     const record = (value ?? {}) as Record<string, unknown>;
     return <fieldset className="space-y-2 border-l pl-3"><legend className="font-medium">{label}</legend>
@@ -83,7 +63,7 @@ function ValueField({ label, schema, value, change, locale }: {
             {!schema.required?.includes(key) && <button type="button"
               onClick={() => { const copy = { ...record }; delete copy[key]; change(copy); }}>
               {themeMessage(locale, 'removeField')} {sectionFieldLabel(key, locale)}</button>}</div>
-          : <button key={key} type="button" onClick={() => change({ ...record, [key]: initial(child) })}>
+          : <button key={key} type="button" className="mr-2 inline-flex min-h-8 items-center rounded-md border border-border bg-ground px-2.5" onClick={() => change({ ...record, [key]: initial(child) })}>
             {themeMessage(locale, 'addField')} {sectionFieldLabel(key, locale)}</button>)}
     </fieldset>;
   }
@@ -101,6 +81,7 @@ function ValueField({ label, schema, value, change, locale }: {
         {themeMessage(locale, 'addField')} {label}</button>
     </fieldset>;
   }
+  if (schema.enum?.includes('latest')) return <fieldset className="space-y-1.5"><legend>{label}</legend><div className="flex flex-wrap gap-4">{schema.enum.map(option => <label key={option} className="inline-flex items-center gap-1.5"><input type="radio" className="accent-foreground" name={fieldId} value={option} checked={value === option} onChange={() => change(option)} />{sectionFieldLabel(option, locale)}</label>)}</div></fieldset>;
   if (schema.enum) return <label className="block text-sm">{label}
     <select className="block w-full rounded border p-2" value={String(value)}
       onChange={(event) => change(event.target.value)}>
@@ -111,7 +92,7 @@ function ValueField({ label, schema, value, change, locale }: {
     <input type="checkbox" checked={value === true} onChange={(event) => change(event.target.checked)} />
     {label}</label>;
   return <label className="block text-sm">{label}
-    <input className="block w-full rounded border p-2" required
+    <input className="block h-[34px] w-full rounded-md border border-border bg-ground px-2.5" required
       type={schema.type === 'integer' || schema.type === 'number' ? 'number' : 'text'}
       min={schema.minimum} max={schema.maximum} value={String(value ?? '')}
       onChange={(event) => change(schema.type === 'integer' || schema.type === 'number'
@@ -119,36 +100,44 @@ function ValueField({ label, schema, value, change, locale }: {
   </label>;
 }
 
-export function HomeSectionsEditor({ sections, locale, onChange, onReset }: {
-  sections: HomeSection[]; locale: Locale; onChange: (sections: HomeSection[]) => void;
-  onReset: () => void;
+function ProductGridFields({ settings, schema, locale, change }: {
+  settings: Record<string, unknown>; schema: Schema; locale: Locale;
+  change: (settings: Record<string, unknown>) => void;
 }) {
+  const field = (key: string, value = settings[key]) => <ValueField
+    label={sectionFieldLabel(key, locale)} schema={schema.properties![key]} value={value} locale={locale}
+    change={next => change({ ...settings, [key]: next })} />;
+  return <div className="space-y-3.5">
+    {field('title')}
+    {field('source')}
+    {settings.source === 'category' && field('categoryId', settings.categoryId ?? '')}
+    {settings.source === 'manual' && field('productIds', settings.productIds ?? [])}
+    <div className="grid max-w-[400px] grid-cols-2 gap-3">
+      {field('count', settings.count ?? 12)}
+      {field('columns', settings.columns ?? 4)}
+    </div>
+  </div>;
+}
+
+export function HomeSectionsEditor({ sections, locale, onChange }: {
+  sections: HomeSection[]; locale: Locale; onChange: (sections: HomeSection[]) => void;
+}) {
+  const [expanded, setExpanded] = useState<string | null>(() => sections.find(section => section.type === 'product-grid')?.id ?? null);
   const update = (index: number, settings: Record<string, unknown>) =>
     onChange(sections.map((section, position) => position === index ? { ...section, settings } : section));
-  return <section aria-label={themeMessage(locale, 'homePage')} className="space-y-4 border-t pt-4">
-    <h3 className="font-semibold">{themeMessage(locale, 'homePage')}</h3>
-    <label className="block">{themeMessage(locale, 'addSection')}
-      <select className="ml-2 rounded border p-2" value="" disabled={sections.length >= 30}
-        onChange={(event) => { onChange(addHomeSection(sections, event.target.value)); event.target.value = ''; }}>
-        <option value="">{themeMessage(locale, 'choose')}</option>
-        {names.map((type) => <option key={type} value={type}>{sectionNames[type][localeIndex(locale)]}</option>)}
-      </select></label>
+  return <section aria-label={themeMessage(locale, 'homePage')} className="rounded-lg border border-border">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3"><div><h2 className="font-semibold">{themeMessage(locale, 'homePage')}</h2><p className="text-xs text-faint">{themeMessage(locale, 'homeNote')}</p></div>
+      <DropdownMenu><DropdownMenuTrigger asChild><Button size="sm" variant="outline" className="h-[30px] gap-1.5 bg-ground" disabled={sections.length >= 30}><Plus size={13} />{themeMessage(locale, 'addSection')}</Button></DropdownMenuTrigger><DropdownMenuContent align="end">{names.map(type => <DropdownMenuItem key={type} aria-label={sectionNames[type][localeIndex(locale)]} onSelect={() => { const next = addHomeSection(sections, type); onChange(next); setExpanded(next[next.length - 1].id); }}><span className="flex flex-col"><span>{sectionNames[type][localeIndex(locale)]}</span><span className="text-xs text-faint">{sectionDescriptions[type][localeIndex(locale)]}</span></span></DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu>
+    </div><ol>
     {sections.map((section, index) => {
       const schema = merchantSectionSchemas[section.type] as Schema;
-      return <article key={section.id} className="space-y-3 border-b pb-4">
-        <h4 className="font-medium">{sectionNames[section.type][localeIndex(locale)]} · {section.id}</h4>
-        <div className="flex gap-3">
-          <button type="button" disabled={index === 0}
-            onClick={() => onChange(moveHomeSection(sections, index, -1))}>{themeMessage(locale, 'moveUp')}</button>
-          <button type="button" disabled={index === sections.length - 1}
-            onClick={() => onChange(moveHomeSection(sections, index, 1))}>{themeMessage(locale, 'moveDown')}</button>
-          <button type="button" onClick={() => onChange(sections.filter((_, position) => position !== index))}>
-            {themeMessage(locale, 'deleteSection')}</button>
-        </div>
-        <ValueField label={themeMessage(locale, 'editSection')} schema={schema.properties!.settings} locale={locale}
-          value={section.settings} change={(value) => update(index, value as Record<string, unknown>)} />
-      </article>;
+      const name = sectionNames[section.type][localeIndex(locale)], open = expanded === section.id;
+      return <li key={section.id} className={`border-b border-border last:border-b-0 ${open ? 'bg-raised' : ''}`}><div className="flex flex-wrap items-center gap-2.5 px-3 py-2.5 sm:pl-4"><span className="w-[18px] font-mono text-[11px] text-faint">{index + 1}</span><div className="min-w-0 flex-1"><h3 className="break-words font-medium">{name}</h3><p className="truncate text-xs text-muted-foreground">{String(((section.settings.title ?? section.settings.text ?? section.settings.body) as Record<string, unknown> | undefined)?.[locale] ?? '')}</p></div><div className="flex items-center gap-1"><Button type="button" variant="ghost" size="icon" className="size-7" aria-label={`${themeMessage(locale, 'moveUp')}: ${name}`} disabled={index === 0} onClick={() => onChange(moveHomeSection(sections, index, -1))}><ArrowUp size={13} /></Button><Button type="button" variant="ghost" size="icon" className="size-7" aria-label={`${themeMessage(locale, 'moveDown')}: ${name}`} disabled={index === sections.length - 1} onClick={() => onChange(moveHomeSection(sections, index, 1))}><ArrowDown size={13} /></Button><Button type="button" variant="outline" size="sm" className="h-7 px-2.5 text-xs" aria-expanded={open} onClick={() => setExpanded(open ? null : section.id)}>{themeMessage(locale, open ? 'collapse' : 'edit')}</Button><Button type="button" variant="ghost" size="icon" className="size-7 text-muted-foreground" aria-label={`${themeMessage(locale, 'deleteSection')}: ${name}`} onClick={() => onChange(sections.filter((_, position) => position !== index))}><Trash2 size={14} /></Button></div></div>
+        {open && <div className="space-y-3.5 px-4 pb-4 sm:pl-11">{section.type === 'product-grid'
+          ? <ProductGridFields settings={section.settings} schema={schema.properties!.settings} locale={locale} change={value => update(index, value)} />
+          : <ValueField label={themeMessage(locale, 'editSection')} schema={schema.properties!.settings} locale={locale} value={section.settings} change={value => update(index, value as Record<string, unknown>)} />}</div>}
+      </li>;
     })}
-    <button type="button" onClick={onReset}>{themeMessage(locale, 'resetHome')}</button>
+    </ol>
   </section>;
 }

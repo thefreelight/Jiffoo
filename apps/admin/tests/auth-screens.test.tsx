@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthScreen } from '@/components/auth/auth-screen';
+import { ThemeAssets } from '@/lib/theme-assets';
 import InstallPage from '@/app/[locale]/install/page';
 import { selectInstallState } from '@/lib/install-state';
 import { adminAuthMessages } from 'shared/src/i18n/messages/admin-auth';
@@ -39,6 +40,17 @@ describe('Admin public account screens', () => {
     });
   }
   async function submit() { await act(async () => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); }); }
+
+  it.each(['login', 'forgot', 'reset', 'invite'] as const)('uses the active theme background and logo on %s without changing the card', async mode => {
+    mocks.inspectReset.mockResolvedValue({ valid: true }); mocks.invite.mockResolvedValue({ email: 'invited@example.com', storeName: 'Store' });
+    await act(async () => root.render(<ThemeAssets.Provider value={{ logo: '/logo.png', loginBackground: '/background.png', storeName: 'Store' }}><AuthScreen mode={mode} /></ThemeAssets.Provider>));
+    expect(container.querySelector('main')?.style.backgroundImage).toContain('/background.png');
+    expect(container.querySelector('main')?.style.backgroundSize).toBe('cover');
+    expect(container.querySelector('img')?.getAttribute('src')).toBe('/logo.png');
+    expect(container.querySelector('.admin-auth-panel')).not.toBeNull();
+    await act(async () => root.render(<ThemeAssets.Provider value={{ logo: null, loginBackground: null, storeName: 'Store' }}><AuthScreen mode={mode} /></ThemeAssets.Provider>));
+    expect(container.querySelector('main')?.style.backgroundImage).toBe(''); expect(container.querySelector('img')).toBeNull();
+  });
 
   it.each([['LOGIN_FAILED', 'invalidLogin'], ['CUSTOMER_ACCOUNT_NOT_ADMIN', 'customer'], ['ADMIN_ACCOUNT_REMOVED', 'removed'], ['RATE_LIMITED', 'rateLimited']] as const)('shows %s above the preserved login form', async (code, key) => {
     mocks.login.mockRejectedValueOnce({ code }); await render('login');

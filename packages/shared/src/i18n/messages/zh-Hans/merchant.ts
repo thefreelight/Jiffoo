@@ -292,9 +292,9 @@ export const merchant = {
     },
   },
   storefrontCode: {
-    title: '跟踪与自定义代码', providers: '服务商 ID', freeCode: '自定义代码',
+    title: '追踪与自定义代码', providers: '服务商 ID', freeCode: '自定义代码',
     enabled: '总开关', headCode: '头部代码', bodyStartCode: '正文开头代码', bodyEndCode: '正文末尾代码',
-    ga4MeasurementId: 'GA4 衡量 ID', metaPixelId: 'Meta Pixel ID', baiduSiteKey: '百度统计站点密钥',
+    ga4MeasurementId: 'Google Analytics 4 衡量 ID', metaPixelId: 'Meta Pixel ID', baiduSiteKey: '百度统计站点密钥',
     ga4Hint: 'G- 后接 1–32 个大写字母或数字。留空表示清除。',
     metaHint: '1–32 位数字。留空表示清除。',
     baiduHint: '32 个小写十六进制字符。留空表示清除。',

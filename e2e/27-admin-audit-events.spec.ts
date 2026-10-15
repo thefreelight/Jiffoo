@@ -69,9 +69,10 @@ test.afterEach(async ({ request }) => { await reset(request); });
 
 test('G UI save and master switch changes appear newest first with exact action labels and actor email', async ({ page, request }) => {
   await page.getByRole('link', { name: 'Tracking & custom code', exact: true }).click();
-  await expect(page.getByLabel('GA4 measurement ID', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Google Analytics 4 measurement ID', { exact: true })).toBeVisible();
   const before = await current(request);
-  await page.getByRole('button', { name: 'Save configuration', exact: true }).click();
+  await page.getByLabel('Head code', { exact: true }).fill('audit save');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Configuration saved.' })).toHaveText('Configuration saved.');
   await page.getByRole('switch', { name: 'Master switch', exact: true }).uncheck();
   await expect(page.getByLabel('Current revision', { exact: true })).toHaveText(String(before.revision + 2));

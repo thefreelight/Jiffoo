@@ -110,11 +110,12 @@ test('B checkout with a real cart item retains one theme style after a reload', 
 test('C a merchant theme change replaces the plain style without leaving an old theme style', async ({ page, context }) => {
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.getByRole('link', { name: 'Themes', exact: true }).click();
+  await page.getByRole('button', { name: 'Upload theme', exact: true }).click();
   await page.getByLabel('Theme package', { exact: true }).setInputFiles({
     name: 'reload-theme.zip', mimeType: 'application/zip', buffer: await themePackage(),
   });
-  await page.getByLabel('I trust this unsigned theme package').check();
-  await page.getByRole('button', { name: 'Upload theme', exact: true }).click();
+  await page.getByLabel('I trust this theme package. It is unsigned, so the system cannot verify its author.', { exact: true }).check();
+  await page.getByRole('button', { name: 'Install', exact: true }).click();
   const row = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'E2E Shop Theme', exact: true }) });
   const shop = await context.newPage();
   const errors = observe(shop);
@@ -122,18 +123,20 @@ test('C a merchant theme change replaces the plain style without leaving an old 
   await expect(shop.getByRole('heading', { name: 'Featured products', exact: true })).toBeVisible();
   await assertDocument(shop, 'en', errors);
   await row.getByRole('button', { name: 'Activate', exact: true }).click();
-  await expect(row.getByText('Active', { exact: true })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Active', exact: true }).getByRole('heading', { name: 'E2E Shop Theme', exact: true })).toBeVisible();
   await shop.reload();
   await expect(shop.getByRole('heading', { name: 'Theme launch', exact: true })).toBeVisible();
   await expect(shop.getByRole('link', { name: 'Browse products', exact: true })).toHaveCSS('background-color', 'rgb(204, 0, 51)');
   await assertDocument(shop, 'en', errors);
-  await page.getByRole('button', { name: 'Restore previous theme', exact: true }).click();
+  await page.getByRole('button', { name: 'More actions: E2E Shop Theme', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Restore previous theme', exact: true }).click();
   await expect(page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Default Shop', exact: true }) })
     .getByText('Active', { exact: true })).toBeVisible();
   await shop.reload();
   await expect(shop.getByRole('heading', { name: 'Featured products', exact: true })).toBeVisible();
   await assertDocument(shop, 'en', errors);
-  await row.getByRole('button', { name: 'Uninstall', exact: true }).click();
+  await page.getByRole('button', { name: 'More actions: E2E Shop Theme', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Uninstall', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'E2E Shop Theme', exact: true })).toHaveCount(0);
   await shop.close();
 });

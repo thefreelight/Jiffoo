@@ -1,0 +1,26 @@
+const labels = {
+  title: ['Tracking & custom code', '追踪与自定义代码', '追蹤與自訂程式碼'],
+  intro: ['Add analytics tools or your own code to the store.', '给店铺加统计工具或自己的代码。', '為店鋪加入統計工具或自己的程式碼。'],
+  on: ['Running', '正在运行', '正在執行'], off: ['All disabled', '全部关闭', '全部關閉'],
+  onLabel: ['Enabled', '已开启', '已開啟'], offLabel: ['Disabled', '已关闭', '已關閉'],
+  switchOn: ['The analytics tools and code below are running in your store. Switching takes effect immediately, without saving.', '下面填写的统计工具和代码正在店铺里运行。打开或关闭立即生效，不用点“保存”。', '下面填寫的統計工具和程式碼正在店鋪裡執行。開啟或關閉立即生效，不用按「儲存」。'],
+  switchOff: ['The analytics tools and custom code below will not run. Switching takes effect immediately, without saving.', '下面的统计工具和自定义代码都不会运行。打开或关闭立即生效，不用点“保存”。', '下面的統計工具和自訂程式碼都不會執行。開啟或關閉立即生效，不用按「儲存」。'],
+  paymentNote: ['Runs only on store and order completion pages. Never runs on payment pages. You are responsible for code security, speed and compliance (such as your privacy policy).', '只在店铺页面和订单完成页运行，付款页面绝不运行。代码的安全、速度和合规（例如隐私政策）由你负责。', '只在店鋪頁面和訂單完成頁執行，付款頁面絕不執行。程式碼的安全、速度和合規（例如隱私政策）由你負責。'],
+  paymentNever: ["Never runs on payment pages.", "付款页面绝不运行", "付款頁面絕不執行"],
+  providers: ['Analytics tools', '统计工具', '統計工具'],
+  providerNote: ['Enter the ID and the system adds the code. Leave empty to disable.', '填 ID 就行，代码由系统自动加上。留空表示不用。', '填 ID 即可，程式碼由系統自動加入。留空表示不用。'],
+  ga4Hint: ['Starts with G-, for example G-ABC123.', '以 G- 开头，例如 G-ABC123。', '以 G- 開頭，例如 G-ABC123。'],
+  metaHint: ['1–32 digits.', '1–32 位数字。', '1–32 位數字。'],
+  metaError: ['Incorrect format: use 1–32 digits only.', '格式不对：只能是 1–32 位数字。', '格式不對：只能是 1–32 位數字。'],
+  baiduHint: ['32 lowercase letters and digits. Enable “Single-page application” in Baidu Tongji to track page changes and “E-commerce analytics” for order reports.', '32 位小写字母和数字。在百度统计里打开“单页应用”设置，才能统计页面切换；打开“电商分析”才能看订单报告。', '32 位小寫字母和數字。在百度統計裡開啟「單頁應用」設定，才能統計頁面切換；開啟「電商分析」才能看訂單報告。'],
+  codeNote: ['Runs in the order below after the page loads. document.write is not supported.', '页面加载后按下面的顺序运行。不支持 document.write。', '頁面載入後按下面的順序執行。不支援 document.write。'],
+  history: ['Revision history', '历史版本', '歷史版本'],
+  historyNote: ['{count} revisions · Times: {timezone}', '共 {count} 个版本 · 时间为 {timezone}', '共 {count} 個版本 · 時間為 {timezone}'],
+  older: ['Earlier revisions', '更早的版本', '更早的版本'],
+  viewRestore: ['View and restore', '查看并恢复', '查看並還原'],
+  restoreNote: ['Restoring replaces the analytics IDs and code with that revision and saves a new revision. The master switch is unaffected.', '恢复会把统计 ID 和代码换成那个版本的内容，并另存为一个新版本。总开关不受影响。', '還原會把統計 ID 和程式碼換成該版本的內容，並另存為一個新版本。總開關不受影響。'],
+  conflict: ['Someone just saved a newer revision. Your edits remain on this page and have not been saved. Load the latest revision, then reapply the changes you need.', '别人刚刚保存过新的版本。你的修改还在页面上，没有保存。请先载入最新版本，再把需要的修改加上去。', '別人剛剛儲存過新的版本。你的修改還在頁面上，尚未儲存。請先載入最新版本，再把需要的修改加上去。'],
+  loadLatest: ['Load latest revision', '载入最新版本', '載入最新版本'],
+} as const;
+export type CodeViewLabel = keyof typeof labels;
+export const codeViewMessage = (locale: 'en' | 'zh-Hans' | 'zh-Hant', key: CodeViewLabel) => labels[key][['en', 'zh-Hans', 'zh-Hant'].indexOf(locale)];

@@ -52,6 +52,19 @@ it('group buttons start expanded and change aria-expanded without navigation', a
     await act(async () => (button as HTMLElement).click()); expect(button.getAttribute('aria-expanded')).toBe('false');
   }
 });
+
+it('defers sidebar routing and mobile dismissal until the pending navigation resumes', async () => {
+  const dismissed = vi.fn();
+  const container = await mount(<AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" mobile onNavigate={dismissed} />);
+  let resume!: () => void;
+  const unregister = registerNavigationGuard(action => { resume = action; return true; });
+  try {
+    await act(async () => container.querySelector<HTMLAnchorElement>('a[aria-label="Orders"]')!.click());
+    expect(state.push).not.toHaveBeenCalled(); expect(dismissed).not.toHaveBeenCalled();
+    await act(async () => resume());
+    expect(state.push).toHaveBeenCalledWith('/en/orders'); expect(dismissed).toHaveBeenCalledTimes(1);
+  } finally { unregister(); }
+});
 it('keeps rail groups visible and restores the expanded group state without switching control modes', async () => {
   function Navigation() { const { collapsed } = usePreferences(); return <AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" collapsed={collapsed} />; }
   const warning = vi.spyOn(console, 'warn');

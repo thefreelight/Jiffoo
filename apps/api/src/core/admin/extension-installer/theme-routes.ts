@@ -7,6 +7,8 @@ import { ExtensionInstallerError } from './errors';
 import { installTheme, readThemeAsset, uninstallTheme } from './theme-service';
 import { activateTheme, getThemeConfig, restorePreviousTheme, restoreThemeConfig, saveThemeConfig } from './theme-runtime';
 import { resolveTheme } from './theme-resolver';
+import { themePackageState } from './theme-package-state';
+import { themePackageBlobStore } from '@/core/storage/theme-package-blob-store';
 
 const params = {
   type: 'object', properties: { slug: { type: 'string' } }, required: ['slug'],
@@ -19,8 +21,15 @@ const theme = {
     name: { type: 'string' }, manifestJson: { type: 'object', additionalProperties: true },
     packageHash: { type: 'string' }, source: { type: 'string' }, trustLevel: { type: 'string' },
     installedAt: { type: 'string' }, updatedAt: { type: 'string' },
+    activatedAt: { type: ['string', 'null'], format: 'date-time' },
+    packageState: {
+      type: 'object', properties: {
+        status: { type: 'string', enum: ['available', 'unavailable', 'corrupt'] },
+        code: { enum: ['THEME_PACKAGE_UNAVAILABLE', 'THEME_PACKAGE_CORRUPT', null] },
+      }, required: ['status', 'code'], additionalProperties: false,
+    },
   },
-  required: ['slug', 'version', 'target', 'name', 'manifestJson', 'packageHash', 'source', 'trustLevel', 'installedAt', 'updatedAt'],
+  required: ['slug', 'version', 'target', 'name', 'manifestJson', 'packageHash', 'source', 'trustLevel', 'installedAt', 'updatedAt', 'activatedAt', 'packageState'],
   additionalProperties: false,
 } as const;
 const success = (data: unknown) => ({
@@ -32,6 +41,7 @@ const success = (data: unknown) => ({
 const errors = {
   400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema,
   404: errorResponseSchema, 409: errorResponseSchema, 413: errorResponseSchema,
+  415: errorResponseSchema, 429: errorResponseSchema,
   500: errorResponseSchema, 503: errorResponseSchema,
 };
 const summary = (record: {
@@ -57,10 +67,21 @@ function sendPublicThemeError(reply: Parameters<typeof sendError>[0], cause: unk
   return sendMappedError(reply, cause);
 }
 export async function themeManagementRoutes(fastify: FastifyInstance) {
+  const describe = async (record: Awaited<ReturnType<typeof prisma.theme.findUniqueOrThrow>>) => {
+    const active = await prisma.themeActive.findUnique({ where: { target: record.target } });
+    return { ...summary(record), packageState: await themePackageState(record),
+      activatedAt: active?.slug === record.slug ? active.updatedAt.toISOString() : null };
+  };
   fastify.post('/theme/install', {
+    validatorCompiler: () => (value: unknown) => ({ value }),
     schema: {
       tags: ['admin-themes'], summary: 'Install a declarative theme',
       security: [{ bearerAuth: [] }], consumes: ['multipart/form-data'],
+      body: {
+        type: 'object', properties: {
+          file: { type: 'string', format: 'binary' }, confirmUnsigned: { type: 'string', enum: ['true', 'false'] },
+        }, required: ['file', 'confirmUnsigned'], additionalProperties: false,
+      },
       response: { 200: success(theme), ...errors },
     },
   }, async (request, reply) => {
@@ -82,7 +103,7 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
       const installed = await installTheme(Buffer.concat(chunks), {
         source: 'uploaded', confirmUnsigned, actorUserId: request.user?.id,
       });
-      return sendSuccess(reply, summary(installed));
+      return sendSuccess(reply, await describe(installed));
     } catch (cause) { return sendThemeError(reply, cause); }
   });
 
@@ -93,7 +114,16 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
     },
   }, async (_request, reply) => {
     const records = await prisma.theme.findMany({ orderBy: { installedAt: 'desc' } });
-    return sendSuccess(reply, records.map(summary));
+    const [metadata, active] = await Promise.all([
+      themePackageBlobStore.headMany(records.filter(record => record.source !== 'builtin'
+        && /^[a-f0-9]{64}$/.test(record.packageHash))),
+      prisma.themeActive.findMany(),
+    ]);
+    const blobs = new Map(metadata.map(blob => [blob.themeSlug, blob]));
+    return sendSuccess(reply, await Promise.all(records.map(async record => ({
+      ...summary(record), packageState: await themePackageState(record, blobs),
+      activatedAt: active.find(item => item.target === record.target && item.slug === record.slug)?.updatedAt.toISOString() ?? null,
+    }))));
   });
 
   fastify.get<{ Params: { slug: string } }>('/theme/:slug', {
@@ -103,7 +133,7 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const record = await prisma.theme.findUnique({ where: { slug: request.params.slug } });
-    return record ? sendSuccess(reply, summary(record))
+    return record ? sendSuccess(reply, await describe(record))
       : sendError(reply, 404, 'THEME_NOT_FOUND', 'Theme not found');
   });
 
@@ -153,8 +183,9 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
       settings: { type: 'array', items: { type: 'object', additionalProperties: true } },
       values: { type: 'object', additionalProperties: true },
       revision: { type: 'integer' },
+      configurationSavedAt: { type: ['string', 'null'], format: 'date-time' },
       homeSections: { type: 'array', items: { type: 'object', additionalProperties: true } },
-    }, required: ['settings', 'values', 'revision', 'homeSections'], additionalProperties: false,
+    }, required: ['settings', 'values', 'revision', 'homeSections', 'configurationSavedAt'], additionalProperties: false,
   } as const;
   fastify.get<{ Params: { slug: string } }>('/themes/:slug/config', {
     schema: { tags: ['admin-themes'], security: [{ bearerAuth: [] }], params, response: { 200: success(config), ...errors } },
@@ -191,7 +222,8 @@ export async function themeManagementRoutes(fastify: FastifyInstance) {
       response: { 200: success({
         type: 'object', properties: {
           values: { type: 'object', additionalProperties: true }, revision: { type: 'integer' },
-        }, required: ['values', 'revision'], additionalProperties: false,
+          configurationSavedAt: { type: 'string', format: 'date-time' },
+        }, required: ['values', 'revision', 'configurationSavedAt'], additionalProperties: false,
       }), ...errors },
     },
   }, async (request, reply) => {

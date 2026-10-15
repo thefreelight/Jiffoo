@@ -294,7 +294,7 @@ export const merchant = {
   storefrontCode: {
     title: 'Tracking & custom code', providers: 'Provider IDs', freeCode: 'Custom code',
     enabled: 'Master switch', headCode: 'Head code', bodyStartCode: 'Body start code', bodyEndCode: 'Body end code',
-    ga4MeasurementId: 'GA4 measurement ID', metaPixelId: 'Meta Pixel ID', baiduSiteKey: 'Baidu Tongji site key',
+    ga4MeasurementId: 'Google Analytics 4 measurement ID', metaPixelId: 'Meta Pixel ID', baiduSiteKey: 'Baidu Tongji site key',
     ga4Hint: 'G- followed by 1–32 uppercase letters or digits. Leave empty to unset.',
     metaHint: '1–32 digits. Leave empty to unset.',
     baiduHint: '32 lowercase hexadecimal characters. Leave empty to unset.',

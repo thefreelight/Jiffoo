@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { productsApi, uploadApi, unwrapApiResponse } from '@/lib/api';
-import { themeError, themeMessage } from '@/lib/theme-messages';
+import { themeError, themeMessage } from 'shared/src/i18n/messages/admin-themes';
 import type { Locale, ThemeConfig, ThemeSetting } from '@/lib/themes';
 import { HomeSectionsEditor } from './HomeSectionsEditor';
 import type { HomeSection } from '@/lib/themes';
@@ -13,8 +13,9 @@ export function buildThemePayload(config: ThemeConfig, draft: Record<string, unk
     ...(homeSections === undefined ? {} : { homeSections }) };
 }
 
-function Field({ setting, locale, value, onChange }: {
+export function ThemeSettingField({ setting, locale, value, onChange, imageSrc }: {
   setting: ThemeSetting; locale: Locale; value: unknown; onChange: (value: unknown) => void;
+  imageSrc?: string;
 }) {
   const label = setting.label[locale];
   const id = `theme-${setting.id}`;
@@ -22,6 +23,7 @@ function Field({ setting, locale, value, onChange }: {
   const [products, setProducts] = useState<Array<{ id: string; name: string }>>([]);
   const [query, setQuery] = useState('');
   const [uploadError, setUploadError] = useState('');
+  const imagePreview = imageSrc && /^\/(?:api\/v1\/themes\/|uploads\/products\/)/.test(imageSrc) ? imageSrc : null;
   if (setting.type === 'text') {
     const translated = value as Record<Locale, string>;
     return <fieldset className="space-y-2"><legend className="font-medium">{label}</legend>
@@ -35,21 +37,21 @@ function Field({ setting, locale, value, onChange }: {
   if (setting.type === 'boolean') return <label className="flex items-center gap-2"><input type="checkbox"
     checked={value === true} onChange={(event) => onChange(event.target.checked)} />{label}</label>;
   if (setting.type === 'color') return <div><label htmlFor={id}>{label}</label><div className="flex gap-2">
-    <input id={id} aria-label={`${label} color`} type="color" value={String(value).slice(0, 7)}
+    <input id={id} aria-label={`${label} ${themeMessage(locale, 'colorValue')}`} type="color" value={String(value).slice(0, 7)}
       onChange={(event) => onChange(event.target.value)} />
-    <input aria-label={`${label} hex`} className="rounded border p-2" required pattern="^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$"
+    <input aria-label={`${label} ${themeMessage(locale, 'hexValue')}`} className="min-w-0 flex-1 rounded-md border border-border bg-ground px-2.5 py-2 font-mono text-xs" required pattern="^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$"
       value={String(value)} onChange={(event) => onChange(event.target.value)} /></div></div>;
-  if (setting.type === 'image') return <div><label htmlFor={id}>{label}</label>
-    <input id={id} className="block w-full rounded border p-2" readOnly value={String(value)} />
-    <label className="block text-sm">{themeMessage(locale, 'image')}
-      <input type="file" accept="image/png,image/jpeg,image/webp" onChange={async (event) => {
+  if (setting.type === 'image') return <div className="space-y-1.5"><span>{label}</span><div className="flex flex-wrap items-center gap-2.5">
+    {imagePreview && <img src={imagePreview} alt={label} className="h-10 w-24 rounded-md border border-border bg-raised object-contain" />}
+    <label className="inline-flex h-[30px] cursor-pointer items-center rounded-md border border-border px-3">{themeMessage(locale, 'image')}
+      <input aria-label={`${label}: ${themeMessage(locale, 'image')}`} className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={async (event) => {
         const file = event.target.files?.[0];
         if (!file) return;
         setUploadError('');
         try { onChange(unwrapApiResponse(await uploadApi.uploadProductImage(file)).url); }
         catch (error) { setUploadError(themeError(locale, (error as { code?: string }).code ?? 'UNKNOWN_ERROR')); }
       }} />
-    </label>{uploadError && <p role="alert">{uploadError}</p>}</div>;
+    </label></div>{uploadError && <p role="alert" className="text-destructive">{uploadError}</p>}</div>;
   if (setting.type === 'category') return <div><label htmlFor={id}>{label}</label>
     <select id={id} className="block w-full rounded border p-2" value={String(value)}
       onFocus={async () => {
@@ -110,7 +112,7 @@ export function ThemeSettingsForm({ config, locale, assets, onSave, onRestore }:
     finally { setBusy(false); }
   }}>
     {config.settings.map((setting) => setting.type === 'image'
-      ? <div key={setting.id}><Field setting={setting} locale={locale} value={draft[setting.id]}
+      ? <div key={setting.id}><ThemeSettingField setting={setting} locale={locale} value={draft[setting.id]}
         onChange={(value) => setDraft((current) => ({ ...current, [setting.id]: value }))} />
         <label>{themeMessage(locale, 'asset')}
           <select className="block w-full rounded border p-2" value=""
@@ -119,12 +121,11 @@ export function ThemeSettingsForm({ config, locale, assets, onSave, onRestore }:
             {assets.map((asset) => <option key={asset} value={asset}>{asset}</option>)}
           </select>
         </label></div>
-      : <Field key={setting.id} setting={setting} locale={locale} value={draft[setting.id]}
+      : <ThemeSettingField key={setting.id} setting={setting} locale={locale} value={draft[setting.id]}
         onChange={(value) => setDraft((current) => ({ ...current, [setting.id]: value }))} />)}
     {homeSections !== undefined && <HomeSectionsEditor locale={locale}
       sections={homeSections ?? config.homeSections ?? []}
-      onChange={(sections) => { setHomeSections(sections); setHomeTouched(true); }}
-      onReset={() => { setHomeSections(null); setHomeTouched(true); }} />}
+      onChange={(sections) => { setHomeSections(sections); setHomeTouched(true); }} />}
     <div className="flex gap-3"><button disabled={busy} type="submit" className="rounded bg-action-strong px-4 py-2 text-surface">
       {themeMessage(locale, 'save')}</button>
       <button disabled={busy} type="button" className="rounded border px-4 py-2" onClick={() => void onRestore()}>

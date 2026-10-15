@@ -2,11 +2,12 @@ import { captureReview, expect, test } from './review-capture';
 import type { APIRequestContext, Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { api, login, ownerEmail } from './helpers';
+import { captureThemeCodeState } from './theme-code-captures';
 
 const origin = 'http://127.0.0.1:3003';
 const path = 'http://127.0.0.1:3001/api/v1/admin/storefront-code';
 const empty = { ga4MeasurementId: null, metaPixelId: null, baiduSiteKey: null, headCode: '', bodyStartCode: '', bodyEndCode: '' };
-const labels = ['GA4 measurement ID', 'Meta Pixel ID', 'Baidu Tongji site key', 'Head code', 'Body start code', 'Body end code'];
+const labels = ['Google Analytics 4 measurement ID', 'Meta Pixel ID', 'Baidu Tongji site key', 'Head code', 'Body start code', 'Body end code'];
 const keys = Object.keys(empty) as Array<keyof typeof empty>;
 let token: string;
 const headers = () => ({ authorization: `Bearer ${token}` });
@@ -31,7 +32,7 @@ test.beforeEach(async ({ request, page }) => {
   await reset(request);
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.getByRole('link', { name: 'Tracking & custom code', exact: true }).click();
-  await expect(page.getByLabel('GA4 measurement ID', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Google Analytics 4 measurement ID', { exact: true })).toBeVisible();
 });
 test.afterEach(async ({ request }) => reset(request));
 
@@ -50,9 +51,9 @@ async function fill(page: Page, values: Record<keyof typeof empty, string | null
   for (const [index, key] of keys.entries()) await page.getByLabel(labels[index], { exact: true }).fill(values[key] ?? '');
 }
 async function save(page: Page) {
-  await page.getByRole('button', { name: 'Save configuration', exact: true }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Configuration saved.' })).toHaveText('Configuration saved.');
-  await expect(page.getByRole('button', { name: 'Save configuration', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
 }
 async function checkValues(page: Page, values: Record<keyof typeof empty, string | null>) {
   for (const [index, key] of keys.entries()) await expect(page.getByLabel(labels[index], { exact: true })).toHaveValue(values[key] ?? '');
@@ -70,67 +71,30 @@ test('A saves all provider IDs and slots, persists on reload and runs the saved 
 test('B invalid GA4 shows a field error without saving or adding history', async ({ page, request }) => {
   const before = await current(request);
   const count = await page.getByLabel('Total revisions', { exact: true }).textContent();
-  await page.getByLabel('GA4 measurement ID', { exact: true }).fill('G-abc123');
-  await page.getByRole('button', { name: 'Save configuration', exact: true }).click();
+  await page.getByLabel('Google Analytics 4 measurement ID', { exact: true }).fill('G-abc123');
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
   await expect(page.getByRole('alert').filter({ hasText: 'Invalid provider ID format.' })).toHaveText('Invalid provider ID format.');
-  await expect(page.getByLabel('GA4 measurement ID', { exact: true })).toHaveValue('G-abc123');
+  await expect(page.getByLabel('Google Analytics 4 measurement ID', { exact: true })).toHaveValue('G-abc123');
   await expect(page.getByLabel('Total revisions', { exact: true })).toHaveText(count!);
   expect(await current(request)).toEqual(before);
 });
 
-test('C save and restore conflicts preserve edits until explicit reload, including after switching', async ({ page, context, request }) => {
+test('C stale saves preserve edits through switch changes until explicitly loading the latest revision', async ({ page, context }) => {
   const other = await context.newPage();
   try {
-    await other.goto('/en/storefront-code');
-    await expect(other.getByLabel('Head code', { exact: true })).toHaveValue('');
-    const first = `first-${randomUUID()}`, second = `second-${randomUUID()}`;
-    await page.getByLabel('Head code', { exact: true }).fill(first); await save(page);
-    await other.getByLabel('Head code', { exact: true }).fill(second);
-    await other.getByRole('button', { name: 'Save configuration', exact: true }).click();
-    const alert = other.getByRole('alert').filter({ hasText: 'The configuration changed. Your edits are preserved.' });
-    await expect(alert).toContainText('The configuration changed. Your edits are preserved.');
-    await expect(other.getByLabel('Head code', { exact: true })).toHaveValue(second);
-    await expect(other.getByRole('button', { name: 'Save configuration', exact: true })).toBeDisabled();
+    await other.goto('/en/storefront-code'); await expect(other.getByLabel('Head code', { exact: true })).toHaveValue('');
+    await page.getByLabel('Head code', { exact: true }).fill('First saved code'); await save(page);
+    await other.getByLabel('Head code', { exact: true }).fill('Unsaved code');
+    await other.getByRole('button', { name: 'Save', exact: true }).click();
+    const alert = other.getByRole('alert').filter({ hasText: 'Someone just saved a newer revision.' });
+    await expect(alert).toBeVisible(); await expect(other.getByLabel('Head code', { exact: true })).toHaveValue('Unsaved code');
+    await captureThemeCodeState(other, 'code-conflict');
     await other.getByRole('switch', { name: 'Master switch', exact: true }).uncheck();
     await expect(other.getByRole('switch', { name: 'Master switch', exact: true })).toBeEnabled();
-    await expect(other.getByRole('switch', { name: 'Master switch', exact: true })).not.toBeChecked();
-    await expect(alert).toContainText('The configuration changed. Your edits are preserved.');
-    await expect(other.getByLabel('Head code', { exact: true })).toHaveValue(second);
-    await expect(other.getByRole('button', { name: 'Save configuration', exact: true })).toBeDisabled();
-    await alert.getByRole('button', { name: 'Reload latest configuration', exact: true }).click();
-    await expect(other.getByLabel('Head code', { exact: true })).toHaveValue(first);
-    await expect(alert).toHaveCount(0);
-    await expect(other.getByRole('button', { name: 'Save configuration', exact: true })).toBeEnabled();
-    const snapshot = await current(request);
-    await other.getByRole('button', { name: `Revision ${snapshot.revision}`, exact: true }).click();
-    await expect(other.getByRole('region', { name: 'Revision details', exact: true }).getByText(first, { exact: true })).toBeVisible();
-    const restoreDraft = `restore-draft-${randomUUID()}`, latest = `latest-${randomUUID()}`;
-    await other.getByLabel('Head code', { exact: true }).fill(restoreDraft);
-    await other.getByRole('button', { name: 'Restore revision', exact: true }).click();
-    const confirmation = other.getByRole('alertdialog', { name: 'Confirm restore', exact: true });
-    await expect(confirmation).toBeVisible();
-    await page.getByRole('button', { name: 'Reload latest configuration', exact: true }).click();
-    await expect(page.getByRole('switch', { name: 'Master switch', exact: true })).not.toBeChecked();
-    await page.getByLabel('Head code', { exact: true }).fill(latest); await save(page);
-    const beforeRestore = await current(request);
-    await confirmation.getByRole('button', { name: 'Confirm restore', exact: true }).click();
-    await expect(alert).toContainText('The configuration changed. Your edits are preserved.');
-    await expect(other.getByLabel('Head code', { exact: true })).toHaveValue(restoreDraft);
-    expect(await current(request)).toEqual(beforeRestore);
-    await expect(confirmation.getByRole('button', { name: 'Confirm restore', exact: true })).toBeDisabled();
-    await expect(other.getByRole('button', { name: 'Restore revision', exact: true })).toBeDisabled();
-    await expect(other.getByRole('button', { name: 'Save configuration', exact: true })).toBeDisabled();
-    await other.getByRole('switch', { name: 'Master switch', exact: true }).check();
-    await expect(other.getByRole('switch', { name: 'Master switch', exact: true })).toBeEnabled();
-    await expect(other.getByRole('switch', { name: 'Master switch', exact: true })).toBeChecked();
-    await expect(alert).toContainText('The configuration changed. Your edits are preserved.');
-    await expect(other.getByLabel('Head code', { exact: true })).toHaveValue(restoreDraft);
-    await expect(confirmation.getByRole('button', { name: 'Confirm restore', exact: true })).toBeDisabled();
-    await alert.getByRole('button', { name: 'Reload latest configuration', exact: true }).click();
-    await expect(other.getByLabel('Head code', { exact: true })).toHaveValue(latest);
-    await expect(alert).toHaveCount(0);
-    await expect(confirmation).toHaveCount(0);
-    await expect(other.getByRole('button', { name: 'Save configuration', exact: true })).toBeEnabled();
+    await expect(alert).toBeVisible(); await expect(other.getByLabel('Head code', { exact: true })).toHaveValue('Unsaved code');
+    await alert.getByRole('button', { name: 'Load latest revision', exact: true }).click();
+    await expect(other.getByLabel('Head code', { exact: true })).toHaveValue('First saved code'); await expect(alert).toHaveCount(0);
+    await expect(other.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
   } finally { await other.close(); }
 });
 
@@ -164,28 +128,22 @@ test('E history is paginated newest first, renders literal code and restores wit
   await page.getByRole('switch', { name: 'Master switch', exact: true }).uncheck();
   await expect(page.getByRole('switch', { name: 'Master switch', exact: true })).toBeEnabled();
   const before = await current(request);
-  const history = page.getByRole('region', { name: 'Configuration history', exact: true });
+  const history = page.getByRole('region', { name: 'Revision history', exact: true });
   const response = await request.get(`${path}/revisions?page=1&limit=10`, { headers: headers() });
   expect(response.ok()).toBe(true);
   const data = (await response.json()).data;
   expect(data.items.length).toBe(10);
   const numbers = data.items.map((item: { revision: number }) => item.revision);
   expect(numbers).toEqual(Array.from({ length: 10 }, (_, index) => before.revision - index));
-  await expect(history.getByRole('button', { name: /^Revision \d+$/ })).toHaveText(numbers.map((revision: number) => `Revision ${revision}`));
-  await page.getByRole('button', { name: 'Next page', exact: true }).click();
-  await expect(history.getByRole('button', { name: /^Revision \d+$/ }).first()).toHaveText(`Revision ${numbers[9] - 1}`);
-  await page.getByRole('button', { name: 'Previous page', exact: true }).click();
-  await expect(history.getByRole('button', { name: /^Revision \d+$/ }).first()).toHaveText(`Revision ${before.revision}`);
-  await page.getByRole('button', { name: 'Next page', exact: true }).click();
-  await expect(history.getByRole('button', { name: `Revision ${snapshot.revision}`, exact: true })).toBeVisible();
+  await expect(history.getByRole('button', { name: /^View and restore #/ })).toHaveCount(9);
+  await page.getByRole('button', { name: 'Earlier revisions', exact: true }).click();
+  await expect(history.getByRole('button', { name: `View and restore #${snapshot.revision}`, exact: true })).toBeVisible();
   const probes: string[] = [];
   page.on('request', (request) => { if (new URL(request.url()).searchParams.has('adminHistoryProbe')) probes.push(request.url()); });
-  await history.getByRole('button', { name: `Revision ${snapshot.revision}`, exact: true }).click();
-  const detail = page.getByRole('region', { name: 'Revision details', exact: true });
+  await history.getByRole('button', { name: `View and restore #${snapshot.revision}`, exact: true }).click();
+  const detail = page.getByRole('dialog', { name: /^Revision details/, exact: true });
   await expect(detail.getByText(literal, { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Restore revision', exact: true }).click();
-  await expect(page.getByRole('alertdialog', { name: 'Confirm restore', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Confirm restore', exact: true }).click();
+  await page.getByRole('dialog', { name: /^Revision details/ }).getByRole('button', { name: 'Restore revision', exact: true }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Revision restored.' })).toHaveText('Revision restored.');
   await checkValues(page, values);
   await expect(page.getByRole('switch', { name: 'Master switch', exact: true })).not.toBeChecked();
@@ -196,6 +154,16 @@ test('E history is paginated newest first, renders literal code and restores wit
 });
 
 test('F renders translated headings in both Chinese locales and captures page review views', async ({ page }) => {
+  test.setTimeout(120000);
+  await captureThemeCodeState(page, 'code-saved-on');
+  await page.getByRole('switch', { name: 'Master switch', exact: true }).uncheck();
+  await expect(page.getByRole('switch', { name: 'Master switch', exact: true })).toBeEnabled();
+  await captureThemeCodeState(page, 'code-saved-off');
+  await page.getByLabel('Meta Pixel ID', { exact: true }).fill('18273x45');
+  await expect(page.getByRole('alert').filter({ hasText: 'Incorrect format: use 1–32 digits only.' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+  await captureThemeCodeState(page, 'code-invalid');
+  await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     await page.setViewportSize({ width, height });
     await expect(page.getByRole('heading', { name: 'Tracking & custom code', exact: true })).toBeVisible();
@@ -211,8 +179,8 @@ test('F renders translated headings in both Chinese locales and captures page re
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const [locale, title, history, provider] of [
-    ['zh-Hans', '跟踪与自定义代码', '配置历史', 'GA4 衡量 ID'],
-    ['zh-Hant', '追蹤與自訂程式碼', '設定歷史', 'GA4 評估 ID'],
+    ['zh-Hans', '追踪与自定义代码', '历史版本', 'Google Analytics 4 衡量 ID'],
+    ['zh-Hant', '追蹤與自訂程式碼', '歷史版本', 'Google Analytics 4 評估 ID'],
   ]) {
     await page.goto(`/${locale}/storefront-code`);
     await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();

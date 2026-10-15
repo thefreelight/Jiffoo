@@ -294,7 +294,7 @@ export const merchant = {
   storefrontCode: {
     title: '追蹤與自訂程式碼', providers: '服務商 ID', freeCode: '自訂程式碼',
     enabled: '總開關', headCode: '頁首程式碼', bodyStartCode: '本文開頭程式碼', bodyEndCode: '本文結尾程式碼',
-    ga4MeasurementId: 'GA4 評估 ID', metaPixelId: 'Meta Pixel ID', baiduSiteKey: '百度統計網站金鑰',
+    ga4MeasurementId: 'Google Analytics 4 評估 ID', metaPixelId: 'Meta Pixel ID', baiduSiteKey: '百度統計網站金鑰',
     ga4Hint: 'G- 後接 1–32 個大寫字母或數字。留空表示清除。',
     metaHint: '1–32 位數字。留空表示清除。',
     baiduHint: '32 個小寫十六進位字元。留空表示清除。',

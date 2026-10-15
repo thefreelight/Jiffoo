@@ -81,11 +81,15 @@ const playwrightGroups = [
   ['03-password', '04-language', '05-settings', '06-health-plugins', '07-products'],
   ['08-orders', '09-customers'],
   ['10-staff', '11-forgot-password', '12-translations', '13-shop', '14-shop-registration', '15-shop-account'],
-  ['16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund', '19-themes', '20-admin-theme', '21-shop-page-boundaries', '22-shop-payment-csp'],
+  ['16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund'],
+  ['19-themes'],
+  ['20-admin-theme'],
+  ['21-shop-page-boundaries', '22-shop-payment-csp'],
 ];
 if (visual && !review) {
   const themeGroup = playwrightGroups.find(group => group.includes('20-admin-theme'));
   const finalProjects = themeGroup.splice(themeGroup.indexOf('20-admin-theme'));
+  if (!themeGroup.length) playwrightGroups.splice(playwrightGroups.indexOf(themeGroup), 1);
   playwrightGroups.push(['visual']);
   playwrightGroups.push(finalProjects);
 }

@@ -18,9 +18,10 @@ export function AdminShell({ children, logo = null, loginBackground = null, stor
   const pathname = usePathname(), locale = useLocale();
   const { collapsed } = usePreferences();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const editorLayout = /\/(?:themes\/(?:shop|admin)\/[^/]+|storefront-code)\/?$/.test(pathname);
   const copy = shellCopy[locale];
   const navigation = { storeName, storeUrl, logo };
-  return <ThemeAssets.Provider value={{ logo, loginBackground, storeName }}>{isPublicAdminRoute(pathname) ? children :
+  return <ThemeAssets.Provider value={{ logo, loginBackground, storeName, storeUrl }}>{isPublicAdminRoute(pathname) ? children :
     <ProtectedRoute requireAdmin><TooltipProvider delayDuration={200}>
       <div className="flex h-dvh overflow-hidden bg-background text-foreground">
         <aside aria-label={copy.navigation} className="hidden shrink-0 border-r border-border min-[769px]:flex" style={{ width: collapsed ? 56 : 240 }}><AdminNavigation {...navigation} collapsed={collapsed} /></aside>
@@ -29,7 +30,7 @@ export function AdminShell({ children, logo = null, loginBackground = null, stor
           <SheetTitle className="sr-only">{copy.navigation}</SheetTitle><SheetDescription className="sr-only">{storeName || copy.store}</SheetDescription>
           <AdminNavigation {...navigation} mobile onNavigate={() => setMobileOpen(false)} />
         </SheetContent></Sheet>
-        <main id="main" tabIndex={-1} className="admin-main min-w-0 flex-1 overflow-y-auto bg-background"><div className="mx-auto min-h-full max-w-[1120px] px-8 pt-10 pb-8"><TestSigningBanner />{children}</div></main>
+        <main id="main" tabIndex={-1} className="admin-main min-w-0 flex-1 overflow-y-auto bg-background"><div className={editorLayout ? 'min-h-full' : 'mx-auto min-h-full max-w-[1120px] px-8 pt-10 pb-8'}>{editorLayout ? <div className="mx-auto max-w-[1120px] px-8 pt-10"><TestSigningBanner /></div> : <TestSigningBanner />}{children}</div></main>
       </div>
     </TooltipProvider></ProtectedRoute>}
   </ThemeAssets.Provider>;

@@ -11,10 +11,12 @@ export type ThemeRecord = {
   slug: string; name: string; version: string; target: 'shop' | 'admin';
   packageHash: string;
   source: 'builtin' | 'uploaded'; trustLevel: string;
-  manifestJson: { assets: Record<string, string>; settings: ThemeSetting[] };
+  activatedAt: string | null;
+  packageState: { status: 'available' | 'unavailable' | 'corrupt'; code: 'THEME_PACKAGE_UNAVAILABLE' | 'THEME_PACKAGE_CORRUPT' | null };
+  manifestJson: { tokens?: { core: Record<string, string> }; description: string; assets: Record<string, string>; settings: ThemeSetting[] };
 };
 export type HomeSection = { id: string; type: string; settings: Record<string, unknown> };
-export type ThemeConfig = { settings: ThemeSetting[]; values: Record<string, unknown>; revision: number; homeSections?: HomeSection[] };
+export type ThemeConfig = { settings: ThemeSetting[]; values: Record<string, unknown>; revision: number; configurationSavedAt: string | null; homeSections?: HomeSection[] };
 export type ThemeTarget = ThemeRecord['target'];
 
 export const themesApi = {

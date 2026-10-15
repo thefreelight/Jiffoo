@@ -195,10 +195,13 @@ describe('T1b theme runtime', () => {
       expect(response.statusCode, location).toBe(400);
       expect(response.json().error.details.path).toBe(location);
     }
-    expect((await admin('GET', url)).json().data.revision).toBe(0);
+    expect((await admin('GET', url)).json().data).toMatchObject({ revision: 0, configurationSavedAt: null });
     const saved = await admin('PUT', url, { values: { color: '#abcdef', caption: local }, expectedRevision: 0 });
     expect(saved.statusCode).toBe(200);
     expect(saved.json().data.revision).toBe(1);
+    const configuration = await prisma.themeConfiguration.findUniqueOrThrow({ where: { slug } });
+    expect(saved.json().data.configurationSavedAt).toBe(configuration.updatedAt.toISOString());
+    expect((await admin('GET', url)).json().data.configurationSavedAt).toBe(configuration.updatedAt.toISOString());
     expect((await admin('PUT', url, { values: {}, expectedRevision: 0 })).json().error.code).toBe('THEME_CONFIG_CONFLICT');
     expect((await admin('PUT', url, { values: { color: '#654321' }, expectedRevision: 1 })).statusCode).toBe(200);
     const restored = await admin('POST', `${url}/restore-previous`);
@@ -362,6 +365,11 @@ describe('T1b theme runtime', () => {
   it('C resets merchant home sections to the theme defaults with null', async () => {
     await own('home-reset', async (url, manifest) => {
       expect((await saveHome(url, [textBlock('welcome')])).statusCode).toBe(200);
+      const before = await prisma.themeConfiguration.findUniqueOrThrow({ where: { slug: manifest.slug } });
+      const stale = await saveHome(url, null, 0);
+      expect(stale.statusCode).toBe(409);
+      expect(stale.json().error.code).toBe('THEME_CONFIG_CONFLICT');
+      expect(await prisma.themeConfiguration.findUniqueOrThrow({ where: { slug: manifest.slug } })).toEqual(before);
       const reset = await saveHome(url, null, 1);
       expect(reset.statusCode).toBe(200);
       expect(reset.json().data.values).not.toHaveProperty('$homeSections');

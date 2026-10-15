@@ -223,15 +223,16 @@ test(`observe Shop header ${variant}/${menu}/search=${showSearch} at 390x844`, a
   };
   try {
           const fixture = await headerThemePackage({ variant, menu, showSearch });
+          await page.getByRole('button', { name: 'Upload theme', exact: true }).click();
           await page.getByLabel('Theme package', { exact: true }).setInputFiles({
             name: `${fixture.name}.zip`, mimeType: 'application/zip', buffer: fixture.buffer,
           });
-          await page.getByLabel('I trust this unsigned theme package').check();
-          await page.getByRole('button', { name: 'Upload theme' }).click();
-          const article = page.getByRole('article').filter({ hasText: fixture.name });
+          await page.getByLabel('I trust this theme package. It is unsigned, so the system cannot verify its author.', { exact: true }).check();
+          await page.getByRole('button', { name: 'Install', exact: true }).click();
+          const article = page.getByRole('article', { name: fixture.name, exact: true });
           await expect(article).toBeVisible();
           await article.getByRole('button', { name: 'Activate', exact: true }).click();
-          await expect(article.getByText('Active', { exact: true })).toBeVisible();
+          await expect(page.getByRole('article', { name: 'Active', exact: true }).getByRole('heading', { name: fixture.name, exact: true })).toBeVisible();
           for (const [name, path] of [
             ['home', '/en'], ['category', '/en/categories/e2e-translated-category'],
             ['login', '/en/login'], ['register', '/en/register'],
@@ -282,10 +283,12 @@ test(`observe Shop header ${variant}/${menu}/search=${showSearch} at 390x844`, a
           await buyer.goto('/en/cart');
           await buyer.getByRole('button', { name: 'Remove E2E Product', exact: true }).click();
           await expect(buyer.getByText('Your cart is empty.', { exact: true })).toBeVisible();
-          await page.getByRole('button', { name: 'Restore previous theme' }).click();
+          await page.getByRole('button', { name: 'More actions: ' + fixture.name, exact: true }).click();
+          await page.getByRole('menuitem', { name: 'Restore previous theme', exact: true }).click();
           await expect(page.getByRole('article').filter({ hasText: 'Default Shop' })
             .getByText('Active', { exact: true })).toBeVisible();
-          await article.getByRole('button', { name: 'Uninstall', exact: true }).click();
+          await page.getByRole('button', { name: 'More actions: ' + fixture.name, exact: true }).click();
+          await page.getByRole('menuitem', { name: 'Uninstall', exact: true }).click();
           await expect(article).toHaveCount(0);
     expect(external).toEqual([]);
   } finally {
