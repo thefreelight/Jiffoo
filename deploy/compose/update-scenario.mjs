@@ -46,7 +46,7 @@ try {
     console.info('UPDATE_MANAGED ' + JSON.stringify(result));
   } else if (mode === 'configure') {
     const password = process.argv[3];
-    const login = await fetch('http://api-1:3001/api/v1/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'update-owner@example.test', password }) });
+    const login = await fetch('http://api-1:3001/api/v1/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'update-owner@example.test', password, surface: 'admin' }) });
     assert.equal(login.status, 200);
     const token = (await login.json()).data.access_token;
     const response = await fetch('http://api-1:3001/api/v1/extensions/themes/default-shop/config', { method: 'PUT', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token }, body: JSON.stringify({ expectedRevision: 0, values: {} }) });

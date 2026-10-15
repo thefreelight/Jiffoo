@@ -36,7 +36,7 @@ async function health() {
   }
 }
 async function merchant() {
-  const output = await trial.compose(['exec', '-T', 'api-1', 'node', '--input-type=module', '-e', "const r=await fetch('http://127.0.0.1:3001/api/v1/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:'trial-owner@example.test',password:process.argv[1]})});if(r.status!==200)throw Error('Persisted merchant login failed');const token=(await r.json()).data.access_token;const h=await fetch('http://127.0.0.1:3001/api/v1/admin/health/summary',{headers:{authorization:'Bearer '+token}});if(h.status!==200)throw Error('Admin summary failed');console.log(JSON.stringify((await h.json()).data));", password]);
+  const output = await trial.compose(['exec', '-T', 'api-1', 'node', '--input-type=module', '-e', "const r=await fetch('http://127.0.0.1:3001/api/v1/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:'trial-owner@example.test',password:process.argv[1],surface:'admin'})});if(r.status!==200)throw Error('Persisted merchant login failed');const token=(await r.json()).data.access_token;const h=await fetch('http://127.0.0.1:3001/api/v1/admin/health/summary',{headers:{authorization:'Bearer '+token}});if(h.status!==200)throw Error('Admin summary failed');console.log(JSON.stringify((await h.json()).data));", password]);
   const summary = JSON.parse(output.stdout); assert.equal(summary.gitSha, trial.record.commit); assert.equal(summary.version, trial.record.version);
 }
 try {

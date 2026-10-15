@@ -43,7 +43,11 @@ it('keeps the table, customer row and open menu mounted while a new search query
   const render = () => root.render(<QueryClientProvider client={client}><CustomersPage /></QueryClientProvider>);
   try {
     await act(async () => render());
-    await act(async () => { await vi.waitFor(() => expect(client.getQueryCache().find({ queryKey: ['users'], exact: false })?.state.status).toBe('success')); });
+    await vi.waitFor(async () => {
+      await act(async () => {});
+      expect(container.querySelector('tbody')?.children).toHaveLength(2);
+      expect(container.querySelector('button[aria-label="More actions: Empty Customer"]')).not.toBeNull();
+    });
     const table = container.querySelector('table')!, row = container.querySelector('tbody')!.lastElementChild;
     expect(table).not.toBeNull();
     const trigger = row!.querySelector<HTMLButtonElement>('button[aria-label="More actions: Empty Customer"]')!;

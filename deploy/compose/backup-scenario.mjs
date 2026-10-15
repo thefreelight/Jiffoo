@@ -35,7 +35,7 @@ async function archive(entries) {
 async function seed() {
   const password = randomUUID() + 'Aa1!';
   await http('/api/v1/install/complete', 'POST', { siteName: 'Backup acceptance', adminEmail: 'backup-owner@example.test', adminPassword: password });
-  const owner = (await http('/api/v1/auth/login', 'POST', { email: 'backup-owner@example.test', password })).data.access_token;
+  const owner = (await http('/api/v1/auth/login', 'POST', { email: 'backup-owner@example.test', password, surface: 'admin' })).data.access_token;
   await http('/api/v1/auth/register', 'POST', { email: 'backup-customer@example.test', username: 'backup-customer', password }, undefined, 201);
   const customer = (await http('/api/v1/auth/login', 'POST', { email: 'backup-customer@example.test', password })).data.access_token;
   const sql = 'CREATE TABLE records (id TEXT PRIMARY KEY, value TEXT NOT NULL);';

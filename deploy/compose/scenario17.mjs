@@ -65,7 +65,7 @@ async function state() {
     const customerEmail = 'compose-customer@example.test';
     await checks.run('Owner installation and login', ['Database identity'], async () => {
       await http(bases[0], '/api/v1/install/complete', 'POST', { siteName: 'Compose acceptance', adminEmail: ownerEmail, adminPassword: password });
-      const token = (await http(bases[1], '/api/v1/auth/login', 'POST', { email: ownerEmail, password })).data.access_token;
+      const token = (await http(bases[1], '/api/v1/auth/login', 'POST', { email: ownerEmail, password, surface: 'admin' })).data.access_token;
       assert.equal(typeof token, 'string'); return token;
     });
     await checks.run('Customer registration and login', ['Database identity'], async () => {
