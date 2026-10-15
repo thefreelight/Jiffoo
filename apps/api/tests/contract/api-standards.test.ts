@@ -228,6 +228,8 @@ describe('API Standards Contract', () => {
         ? ['package', 'current', 'operation', 'compatibility', 'migrationPlan', 'requiresUnsignedConfirmation', 'expiresAt', 'previewToken']
         : path === '/api/v1/extensions/plugin/install' && method === 'POST'
           ? ['operationId']
+        : path === '/api/v1/extensions/theme/install' && method === 'POST'
+          ? ['slug', 'version', 'target', 'name', 'manifestJson', 'packageHash', 'source', 'trustLevel', 'installedAt', 'updatedAt', 'packageState', 'activatedAt']
         : requiredUploadFields;
       const missing = expectedFields.filter((field) => !required.has(field));
       if (missing.length > 0) {

@@ -11,12 +11,13 @@ export interface NotificationLeaseClient { query(text: string, values?: unknown[
 const stale = (id: string, write: string) => console.warn(JSON.stringify({ event: 'notification-stale-claim', kind: 'notification', id, write }));
 
 export async function reclaimNotificationLeases(client: NotificationLeaseClient): Promise<number> {
+  // TIMESTAMP(3) can round upward; floor retry time so recovered rows are immediately claimable.
   const result = await client.query(`WITH expired AS (
     SELECT id FROM public.notifications WHERE status = 'SENDING' AND "leaseUntil" <= clock_timestamp()
     ORDER BY "leaseUntil", id LIMIT 100 FOR UPDATE SKIP LOCKED
   ) UPDATE public.notifications n SET
     status = CASE WHEN n.attempts + 1 >= $1 THEN 'FAILED' ELSE 'PENDING' END::public."NotificationStatus",
-    attempts = n.attempts + 1, "nextAttemptAt" = clock_timestamp() AT TIME ZONE 'UTC',
+    attempts = n.attempts + 1, "nextAttemptAt" = date_trunc('milliseconds', clock_timestamp() AT TIME ZONE 'UTC'),
     "lastError" = 'Notification delivery lease expired', "updatedAt" = clock_timestamp() AT TIME ZONE 'UTC',
     "secretJson" = CASE WHEN n.attempts + 1 >= $1 THEN NULL ELSE n."secretJson" END,
     "claimToken" = NULL, "claimedBy" = NULL, "leaseUntil" = NULL
