@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl, validateRedisUrl } from '../../src/config/test-lane';
 import { afterEach, describe, expect, it } from 'vitest';
 import { fork } from 'node:child_process';
 import { once } from 'node:events';
@@ -31,8 +32,8 @@ describe('backend process isolation', () => {
   });
 
   async function createOwnEvent() {
-    expect(new URL(env.REDIS_URL).pathname).toBe('/15');
-    expect(new URL(process.env.DATABASE_URL_TEST!).pathname).toBe('/jiffoo_core_test');
+    expect(validateRedisUrl(env.REDIS_URL).pathname).toBe('/' + laneConfig().apiRedisDb);
+    expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
     const event = await prisma.eventRecord.create({
       data: { type: 'order.cancelled', version: 1, aggregateId: 'process-runtime', data: { id: 'process-runtime', orderId: 'process-runtime', userId: 'test', reason: 'test' } },
     });
@@ -78,7 +79,7 @@ describe('backend process isolation', () => {
 
   it('C: rejects unavailable Redis at worker startup and leaves every task and connection stopped', async () => {
     await createOwnEvent();
-    await expect(startWorkerRuntime({ redisUrl: 'redis://127.0.0.1:1/15' })).rejects.toMatchObject({
+    await expect(startWorkerRuntime({ redisUrl: `redis://127.0.0.1:1/${laneConfig().apiRedisDb}` })).rejects.toMatchObject({
       message: 'Redis unavailable at worker startup',
       runtimeState: { tasks: stoppedTasks, eventHandlerTimeoutMs: 30000, redisConnected: false },
     });

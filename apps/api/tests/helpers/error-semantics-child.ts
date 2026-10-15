@@ -1,3 +1,4 @@
+import { validateDatabaseUrl } from '../../src/config/test-lane';
 import { buildApp } from '@/server';
 import { ApiError, catalogError } from '@/utils/api-errors';
 import { authMiddleware } from '@/core/auth/middleware';
@@ -23,7 +24,7 @@ import { PasswordUtils } from '@/utils/password';
 
 async function main() {
   if (process.env.NODE_ENV !== 'test') throw new Error('Error fixture requires the test environment');
-  if (new URL(process.env.DATABASE_URL!).pathname !== '/jiffoo_core_test') throw new Error('Wrong fixture database');
+  validateDatabaseUrl(process.env.DATABASE_URL!);
   const app = await buildApp();
   const refresh = AuthService.refreshSession;
   AuthService.refreshSession = async (...args) => {

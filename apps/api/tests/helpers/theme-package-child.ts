@@ -1,3 +1,4 @@
+import { validateDatabaseUrl } from '../../src/config/test-lane';
 import { buildApp, startApiRuntime, registerApiShutdownHandlers } from '@/server';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { setWorkerShutdownDeadlineForTest } from '@/infra/worker-shutdown';
@@ -10,7 +11,7 @@ import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
 async function main() {
   if (process.env.NODE_ENV !== 'test' && process.env.JIFFOO_TEST_THEME_BARRIER === undefined) throw new Error('Theme fixture requires the test environment');
-  if (new URL(process.env.DATABASE_URL!).pathname !== '/jiffoo_core_test') throw new Error('Wrong theme fixture database');
+  validateDatabaseUrl(process.env.DATABASE_URL!);
   const role = process.argv[2];
   const runtime = role === 'worker' ? await startWorkerRuntime({ healthPort: 0 })
     : role === 'startup-api' || role.startsWith('shutdown-api') ? await startApiRuntime({ port: 0, host: '127.0.0.1' })

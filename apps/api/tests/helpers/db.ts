@@ -8,6 +8,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { validateDatabaseUrl, assertCurrentDatabase } from '../../src/config/test-lane';
 
 // Create a dedicated Prisma client for tests
 let prisma: PrismaClient | null = null;
@@ -18,9 +19,7 @@ function resolveTestDatabaseUrl(): string {
     throw new Error('DATABASE_URL_TEST is required for tests.');
   }
 
-  if (!/(^|[_-])test([^a-zA-Z0-9]|$)/i.test(databaseUrl)) {
-    throw new Error(`Unsafe DATABASE_URL for tests: ${databaseUrl}`);
-  }
+  validateDatabaseUrl(databaseUrl);
 
   return databaseUrl;
 }
@@ -70,6 +69,7 @@ export async function setupTestDatabase(): Promise<void> {
  */
 export async function cleanupDatabase(): Promise<void> {
   const client = getTestPrisma();
+  assertCurrentDatabase((await client.$queryRaw<Array<{ name: string }>>`SELECT current_database() AS name`)[0]?.name);
   
   try {
     // Delete in correct order to avoid foreign key constraints
@@ -117,6 +117,7 @@ export async function cleanupDatabase(): Promise<void> {
  */
 export async function cleanTables(...tables: string[]): Promise<void> {
   const client = getTestPrisma();
+  assertCurrentDatabase((await client.$queryRaw<Array<{ name: string }>>`SELECT current_database() AS name`)[0]?.name);
   
   for (const table of tables) {
     try {
@@ -179,6 +180,7 @@ export async function withTransaction<T>(
  */
 export async function resetDatabase(): Promise<void> {
   const client = getTestPrisma();
+  assertCurrentDatabase((await client.$queryRaw<Array<{ name: string }>>`SELECT current_database() AS name`)[0]?.name);
   
   try {
     // Use raw SQL for faster truncation (PostgreSQL)

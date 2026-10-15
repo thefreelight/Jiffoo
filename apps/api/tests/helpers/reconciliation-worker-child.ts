@@ -1,10 +1,12 @@
+import { validateDatabaseUrl, validateRedisUrl } from '../../src/config/test-lane';
 import { startWorkerRuntime } from '../../src/worker-runtime';
 import { PaymentReconciliationJob } from '../../src/jobs/payment-reconciliation';
 import { sharedProtection } from '../../src/infra/shared-protection';
 import { withPaymentTestClock } from '../../src/core/payment/clock';
 
 async function main() {
-  if (new URL(process.env.DATABASE_URL!).pathname !== '/jiffoo_core_test' || new URL(process.env.REDIS_URL!).pathname !== '/15') throw new Error('Unsafe worker test environment');
+  validateDatabaseUrl(process.env.DATABASE_URL!);
+  validateRedisUrl(process.env.REDIS_URL!);
   const runtime = await startWorkerRuntime({ healthPort: 0 });
   await PaymentReconciliationJob.drain();
   process.on('message', async (message: any) => {

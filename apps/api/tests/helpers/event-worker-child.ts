@@ -1,10 +1,11 @@
+import { validateDatabaseUrl, validateRedisUrl } from '../../src/config/test-lane';
 import { EventDeliveryEngine } from '../../src/infra/events/delivery';
 import { prisma } from '../../src/config/database';
 import { seedBuiltinCache } from './seed-builtin-cache';
 import { setWorkerShutdownObserverForTest } from '../../src/infra/worker-shutdown';
 
-if (new URL(process.env.DATABASE_URL!).pathname !== '/jiffoo_core_test'
-  || new URL(process.env.REDIS_URL!).pathname !== '/15') throw new Error('Event child requires isolated test services');
+validateDatabaseUrl(process.env.DATABASE_URL!);
+validateRedisUrl(process.env.REDIS_URL!);
 
 const engine = new EventDeliveryEngine(`child-${process.pid}`, { timeoutMs: Number(process.env.EVENT_TEST_TIMEOUT_MS || 30000) });
 setWorkerShutdownObserverForTest(true, (stage, details) => {

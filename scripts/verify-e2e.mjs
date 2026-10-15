@@ -7,21 +7,19 @@ import { testRoot } from '../apps/api/tests/fixtures/plugin-signing-keys.ts';
 import { startUploadTestStorage } from './upload-test-storage.mjs';
 import { resetTestPluginSchemas } from './reset-test-plugin-schemas.mjs';
 import { apiBuildStep } from './verify-steps.mjs';
+import { laneConfig, assertIntegrationE2e, validateDatabaseUrl, validateRedisUrl } from './lane-config.mjs';
 
 const started = performance.now();
 const visual = process.argv.includes('--visual');
 const compare = process.argv.includes('--compare');
 const review = visual && process.env.VISUAL_CAPTURE_SET === 'review';
 const databaseUrl = process.env.DATABASE_URL_TEST;
-let databaseName;
+assertIntegrationE2e();
+const config = laneConfig();
 try {
-  databaseName = decodeURIComponent(new URL(databaseUrl).pathname.slice(1));
-} catch {
-  console.error('DATABASE_URL_TEST must be a valid PostgreSQL URL targeting jiffoo_core_test.');
-  process.exit(1);
-}
-if (databaseName !== 'jiffoo_core_test') {
-  console.error('DATABASE_URL_TEST must target exactly jiffoo_core_test.');
+  validateDatabaseUrl(databaseUrl, config);
+} catch (error) {
+  console.error(`DATABASE_URL_TEST guard failed: ${error.message}`);
   process.exit(1);
 }
 
@@ -38,7 +36,7 @@ const env = {
   EXTENSION_MARKETPLACE_URL: 'http://127.0.0.1:3010/catalog',
   EXTENSION_TEST_SIGNING_MODE: 'true',
   JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY: testRoot.publicKey,
-  REDIS_URL: 'redis://localhost:6379/14',
+  REDIS_URL: `redis://localhost:6379/${config.e2eRedisDb}`,
   DISABLE_RATE_LIMITER: 'false',
   RATE_LIMITER_FAIL_CLOSED: 'true',
   JWT_SECRET: 'e2e-local-secret-at-least-32-characters',
@@ -214,8 +212,7 @@ async function stop() {
 }
 
 async function resetE2eLoginLimit(resetRegistration = false) {
-  if (new URL(env.REDIS_URL).pathname !== '/14')
-    throw new Error('Refusing to clear limits outside the dedicated E2E Redis DB 14');
+  validateRedisUrl(env.REDIS_URL, undefined, true);
   const apiRequire = createRequire(resolve(root, 'apps/api/package.json'));
   const { createClient } = apiRequire('redis');
   const client = createClient({ url: env.REDIS_URL });
@@ -237,8 +234,7 @@ async function resetE2eLoginLimit(resetRegistration = false) {
 }
 
 async function resetE2eRedis() {
-  if (new URL(env.REDIS_URL).pathname !== '/14')
-    throw new Error('Refusing to clear a Redis database other than the dedicated E2E DB 14');
+  validateRedisUrl(env.REDIS_URL, undefined, true);
   const apiRequire = createRequire(resolve(root, 'apps/api/package.json'));
   const { createClient } = apiRequire('redis');
   const client = createClient({ url: env.REDIS_URL });

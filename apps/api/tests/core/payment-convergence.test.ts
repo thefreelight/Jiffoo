@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { afterAll, afterEach, beforeAll, expect, it } from 'vitest';
 import { Client } from 'pg';
 import { randomUUID } from 'node:crypto';
@@ -96,7 +97,7 @@ const server = createServer(async (request, response) => {
   if (!(kind === 'create' && blockedCreates.has(body.orderId)) && !(kind === 'status' && blockedPids.has(body.pid))) respond(item);
 });
 beforeAll(async () => {
-  expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+  expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
   before = await snapshotPluginRows();
   hadManualNamespace = !!await prisma.pluginNamespace.findUnique({ where: { slug: 'manual-payment' } });
   builtinAuditIds = (await prisma.adminStaffAuditLog.findMany({ where: { action: 'BUILTIN_PLUGIN_INSTALLED' }, select: { id: true } })).map(row => row.id);

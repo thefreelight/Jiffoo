@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { expect, it } from 'vitest';
 import { Client } from 'pg';
 import { createHash, randomUUID } from 'node:crypto';
@@ -7,7 +8,7 @@ import { validateCoreMigrationSql } from '../../../../packages/shared/src/core-m
 import { executeCoreMigrations, historyTableSql } from '../../../../deploy/release/core-migrations.mjs';
 
 it('closes a historically removed administrator, revokes invites once and leaves other accounts untouched', async () => {
-  expect(process.env.DATABASE_URL).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+  expect(validateDatabaseUrl(process.env.DATABASE_URL!).pathname).toBe('/' + laneConfig().databaseName);
   expect(process.env.DATABASE_URL_TEST).toBe(process.env.DATABASE_URL);
   const client = new Client({ connectionString: process.env.DATABASE_URL_TEST });
   const schema = 'admin_removal_' + randomUUID().replaceAll('-', '');

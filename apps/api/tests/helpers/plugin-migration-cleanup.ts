@@ -1,12 +1,11 @@
 import { prisma } from '@/config/database';
+import { validateDatabaseUrl, assertCurrentDatabase } from '../../src/config/test-lane';
 
 export async function cleanupPluginMigrationFixture(slug: string): Promise<void> {
-  const url = new URL(process.env.DATABASE_URL_TEST ?? '');
-  if (process.env.NODE_ENV !== 'test' || decodeURIComponent(url.pathname.slice(1)) !== 'jiffoo_core_test') {
-    throw new Error('Plugin fixture cleanup requires jiffoo_core_test in test mode.');
-  }
+  validateDatabaseUrl(process.env.DATABASE_URL_TEST!);
+  if (process.env.NODE_ENV !== 'test') throw new Error('Plugin fixture cleanup requires test mode.');
   const database = await prisma.$queryRaw<Array<{ name: string }>>`SELECT current_database() AS name`;
-  if (database[0]?.name !== 'jiffoo_core_test') throw new Error('Plugin fixture cleanup connected to a non-test database.');
+  assertCurrentDatabase(database[0]?.name);
   const namespace = await prisma.pluginNamespace.findUnique({ where: { slug } });
   if (namespace) {
     if (!namespace.schemaName.startsWith('plugin_')) throw new Error('Fixture cleanup requires a plugin schema.');

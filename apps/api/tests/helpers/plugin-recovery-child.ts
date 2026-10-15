@@ -1,3 +1,4 @@
+import { validateDatabaseUrl } from '../../src/config/test-lane';
 import { prisma } from '@/config/database';
 import { startCoreProcess, drainCoreProcess, finishCoreProcess } from '@/infra/core-process';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
@@ -11,7 +12,8 @@ import { localUploadOptions } from './plugin-upload';
 
 async function main() {
   assertRecoveryTestControl();
-  if (!process.send || new URL(process.env.DATABASE_URL!).pathname !== '/jiffoo_core_test') throw new Error('Unsafe recovery fixture');
+  validateDatabaseUrl(process.env.DATABASE_URL!);
+  if (!process.send) throw new Error('Unsafe recovery fixture');
   const role = process.argv[2] === 'worker' ? 'worker' : 'api';
   await withRecoveryTestControl({ heartbeatMs: 20 }, () => startCoreProcess(role));
   const sweeper = withRecoveryTestControl({ sweepMs: 20 }, () => startPluginRecoverySweeper());

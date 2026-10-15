@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { afterAll, afterEach, beforeAll, expect, it } from 'vitest';
 import { Client } from 'pg';
 import { randomUUID } from 'node:crypto';
@@ -59,7 +60,7 @@ const server = createServer(async (request, response) => {
   response.once('close', () => responses.delete(response)); requests.put(value);
 });
 beforeAll(async () => {
-  expect(new URL(process.env.DATABASE_URL_TEST!).pathname).toBe('/jiffoo_core_test');
+  expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   providerUrl = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   builtinSnapshot = await snapshotPluginRows(builtinSlugs);

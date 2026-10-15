@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { expect, it } from 'vitest';
 import { Client } from 'pg';
 import { createHash, randomUUID } from 'node:crypto';
@@ -7,7 +8,7 @@ import { validateCoreMigrationSql } from '../../../../packages/shared/src/core-m
 import { executeCoreMigrations, historyTableSql } from '../../../../deploy/release/core-migrations.mjs';
 
 it('backfills random SPUs and globally unique SKUs without changing historical order snapshots', async () => {
-  expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+  expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
   const client = new Client({ connectionString: process.env.DATABASE_URL_TEST });
   const schema = 'product_code_' + randomUUID().replaceAll('-', '');
   const query = (sql: string, values?: unknown[]) => client.query(sql.replaceAll('public.', `${schema}.`), values);

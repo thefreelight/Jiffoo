@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { Client } from 'pg';
 import { createHash, randomUUID } from 'node:crypto';
@@ -12,7 +13,7 @@ const query = (sql: string, values?: unknown[]) => client.query(sql.replaceAll('
 const migrationName = '20261012124027_order_item_catalog_snapshot';
 
 beforeEach(async () => {
-  expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+  expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
   client = new Client({ connectionString: process.env.DATABASE_URL_TEST });
   await client.connect();
   schema = `snapshot_migration_${randomUUID().replaceAll('-', '')}`;

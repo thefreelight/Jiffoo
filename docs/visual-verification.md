@@ -1,6 +1,6 @@
 # Visual verification
 
-Set `DATABASE_URL_TEST` to the dedicated `jiffoo_core_test` database and check for leftover services on ports 3001-3003 before each run. The baseline visual project follows the normal E2E flows, so its captures use seeded state. It is opt-in and does not run as part of standard `pnpm verify`.
+Visual runs are integration-only: unset `LANE_ID`, set `DATABASE_URL_TEST` to the dedicated `jiffoo_core_test` database, and check for leftover services on ports 3001-3003 before each run. Do not run two integration visual or E2E runs concurrently. Registered lanes may run scoped quick verification concurrently with their own validated database and registry-assigned API Redis DB; local visual and E2E runners refuse lane mode. The baseline visual project follows the normal E2E flows, so its captures use seeded state. It is opt-in and does not run as part of standard `pnpm verify`.
 
 Functional review screenshots are separately opt-in: set
 `VISUAL_CAPTURE_SET=review` when running `pnpm visual:capture`. Participating

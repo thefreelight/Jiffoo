@@ -1,10 +1,9 @@
+import { validateDatabaseUrl, validateRedisUrl } from '../../src/config/test-lane';
 import { startWorkerRuntime } from '../../src/worker-runtime';
 
 async function main() {
-  if (new URL(process.env.REDIS_URL!).pathname !== '/15' ||
-      new URL(process.env.DATABASE_URL!).pathname !== '/jiffoo_core_test') {
-    throw new Error('Worker test child requires Redis DB 15 and jiffoo_core_test');
-  }
+  validateRedisUrl(process.env.REDIS_URL!);
+  validateDatabaseUrl(process.env.DATABASE_URL!);
   const runtime = await startWorkerRuntime({ healthPort: 0 });
   process.once('message', async (message) => {
     if (message !== 'stop') throw new Error('Unexpected worker test command');

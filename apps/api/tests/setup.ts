@@ -6,14 +6,14 @@
  */
 
 import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { validateDatabaseUrl, validateRedisUrl } from '../src/config/test-lane';
 const dbUrl = process.env.DATABASE_URL_TEST;
 if (!dbUrl) {
   throw new Error('DATABASE_URL_TEST must be set.');
 }
 
-if (!/(^|[_-])test([^a-zA-Z0-9]|$)/i.test(dbUrl)) {
-  throw new Error(`Unsafe test database URL detected: ${dbUrl}. Continuing in fallback mode.`);
-}
+validateDatabaseUrl(dbUrl);
+validateRedisUrl(process.env.REDIS_URL!);
 
 process.env.DATABASE_URL_TEST = dbUrl;
 process.env.DATABASE_URL = dbUrl;

@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
@@ -71,7 +72,7 @@ describe('stored payment manifests', () => {
   });
 
   it('rejects payment v1 session creation before loading its package or reserving any payment', async () => {
-    expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+    expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
     const before = await prisma.payment.count();
     const started = performance.now();
     await expect(callContract(validSlug, 'payment', 1, 'createSession', {})).rejects.toMatchObject({

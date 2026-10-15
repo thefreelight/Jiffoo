@@ -1,12 +1,12 @@
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createRequire } from 'node:module';
+import { assertIntegrationE2e, validateDatabaseUrl, validateRedisUrl } from './lane-config.mjs';
 
 const databaseUrl = process.env.DATABASE_URL_TEST;
-if (!databaseUrl || new URL(databaseUrl).pathname !== '/jiffoo_core_test' ||
-    new URL(process.env.REDIS_URL).pathname !== '/14') {
-  throw new Error('Evidence capture requires the dedicated E2E PostgreSQL and Redis databases');
-}
+assertIntegrationE2e();
+validateDatabaseUrl(databaseUrl);
+validateRedisUrl(process.env.REDIS_URL, undefined, true);
 
 const requireApi = createRequire(resolve('apps/api/package.json'));
 const { PrismaClient } = requireApi('@prisma/client');

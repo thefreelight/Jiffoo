@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [codex/core-extension-boundary]
+    branches: [codex/core-extension-boundary, codex/lane-*]
   workflow_dispatch:
 
 permissions:

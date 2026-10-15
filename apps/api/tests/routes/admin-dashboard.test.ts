@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 /**
  * Admin Dashboard Endpoints Tests
  *
@@ -98,7 +99,7 @@ describe('Admin Dashboard Endpoints', () => {
     expect(body.data).toHaveProperty('ordersByStatus');
   });
   it('uses real PostgreSQL calendar boundaries, paid-sales exclusions and the shared review predicate', async () => {
-    expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+    expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
     const originalTimezone = await systemSettingsService.getTimezone();
     const owned: string[] = [], customers: string[] = [];
     let providerKey: string | undefined;

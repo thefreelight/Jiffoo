@@ -6,6 +6,8 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { startUploadTestStorage } from './upload-test-storage.mjs';
 import { resetTestPluginSchemas } from './reset-test-plugin-schemas.mjs';
 import { localSteps, ciSteps } from './verify-steps.mjs';
+import { laneConfig, validateDatabaseUrl, validateRedisUrl } from './lane-config.mjs';
+import { parseSelection, mandatorySuites, quickRequirements } from './verify-selection.mjs';
 
 const databaseUrl = process.env.DATABASE_URL_TEST;
 const quick = process.argv.includes('--quick');
@@ -24,18 +26,38 @@ if (selectedArgument.length > 1 || selectedArgument.length && !quick) {
   console.error('--test-files is supported exactly once and only with --quick; full verification always runs every step.');
   process.exit(1);
 }
-const selectedFiles = { api: [], admin: [], shop: [] };
-if (selectedArgument.length) {
-  const files = selectedArgument[0].slice('--test-files='.length).split(',');
-  for (const file of files) {
-    const match = file.match(/^apps\/(api|admin|shop)\/(tests\/[A-Za-z0-9_./-]+\.(?:test|spec)\.[cm]?[jt]sx?)$/);
-    if (!match || file.split('/').some(part => part === '.' || part === '..') || !existsSync(resolve(file))) {
-      console.error(`Invalid explicit test file: ${file}`);
-      process.exit(1);
-    }
-    selectedFiles[match[1]].push(match[2]);
-  }
+const selection = parseSelection(process.argv.slice(2), file => existsSync(resolve(file)));
+if (group && selection.scopes.length) throw new Error('CI cannot use local scope selection.');
+const selectedFiles = selection.files;
+const config = laneConfig();
+function gitFiles(args) {
+  const result = spawnSync('git', args, { encoding: 'utf8' });
+  if (result.status !== 0) throw new Error('Cannot inspect changed files for mandatory suites.');
+  return result.stdout.split('\0').filter(Boolean).map(file => file.replaceAll('\\', '/'));
 }
+const changed = quick ? [...new Set([...gitFiles(['diff', '--name-only', '-z', 'HEAD']), ...gitFiles(['ls-files', '--others', '--exclude-standard', '-z'])])] : [];
+const catalogue = quick ? [...new Set(gitFiles(['ls-files', '--cached', '--others', '--exclude-standard', '-z', 'apps/api/tests', 'apps/admin/tests', 'apps/shop/tests']))].filter(file => /\.(test|spec)\.[cm]?[jt]sx?$/.test(file)) : [];
+function sharedConsumers() {
+  if (!changed.some(file => file.startsWith('packages/shared/'))) return [];
+  const consumers = new Set();
+  for (const file of gitFiles(['ls-files', '--cached', '--others', '--exclude-standard', '-z', 'apps/api', 'apps/admin', 'apps/shop'])) {
+    if (!/\.[cm]?[jt]sx?$/.test(file) || !existsSync(resolve(file))) continue;
+    if (/(?:@jiffoo\/shared|@shared\/|['"]shared(?:\/|['"]))/m.test(readFileSync(file, 'utf8'))) consumers.add(file.split('/')[1]);
+  }
+  return [...consumers];
+}
+const added = mandatorySuites(changed, selection.scopes, catalogue, sharedConsumers()).filter(({ file }) => {
+  const [, app, ...parts] = file.split('/');
+  return !selectedFiles[app].includes(parts.join('/'));
+});
+for (const { file, reason } of added) {
+  const [, app, ...parts] = file.split('/');
+  selectedFiles[app].push(parts.join('/'));
+  console.log(`Mandatory suite added: ${file} (${reason})`);
+}
+const requirements = quickRequirements(selection);
+const scoped = quick && (selection.scopes.length || selectedFiles.scripts.length || added.length);
+const needsDatabase = !scoped || requirements.database;
 const pnpmExecPath = process.env.npm_execpath;
 const pnpm = process.platform === 'win32' && pnpmExecPath ? process.execPath : process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const pnpmPrefix = process.platform === 'win32' && pnpmExecPath ? [pnpmExecPath] : [];
@@ -49,27 +71,26 @@ const prismaFingerprintPath = join(prismaClientDirectory, '.jiffoo-prisma-finger
 const testDefaults = {
   CI: 'true',
   NODE_ENV: 'test',
-  REDIS_URL: 'redis://localhost:6379/15',
+  REDIS_URL: `redis://localhost:6379/${config.apiRedisDb}`,
   JWT_SECRET: 'ci-test-secret',
   PLUGIN_SECRETS_KEY: Buffer.alloc(32, 17).toString('base64'),
 };
 
-if (!databaseUrl) {
-  console.error('DATABASE_URL_TEST is required. Set it to the jiffoo_core_test database before verifying.');
+if (needsDatabase && !databaseUrl) {
+  console.error(`DATABASE_URL_TEST is required. Set it to ${config.databaseName} before verifying.`);
   process.exit(1);
 }
 
-let databaseName;
+let databaseName = config.databaseName;
 try {
-  const url = new URL(databaseUrl);
-  databaseName = decodeURIComponent(url.pathname.replace(/^\//, ''));
-} catch {
-  console.error('DATABASE_URL_TEST must be a valid PostgreSQL connection URL.');
+  if (needsDatabase) validateDatabaseUrl(databaseUrl, config);
+} catch (error) {
+  console.error(`DATABASE_URL_TEST guard failed: ${error.message}`);
   process.exit(1);
 }
 
 console.log(`DATABASE_URL_TEST database: ${databaseName}`);
-if (databaseName !== 'jiffoo_core_test') {
+if (group && databaseName !== 'jiffoo_core_test') {
   console.error('GUARD failed: DATABASE_URL_TEST must target exactly jiffoo_core_test.');
   process.exit(1);
 }
@@ -78,10 +99,13 @@ const childEnv = { ...process.env, DATABASE_URL: databaseUrl, DATABASE_URL_TEST:
 for (const [name, value] of Object.entries(testDefaults)) {
   childEnv[name] ??= value;
 }
+if (needsDatabase && !group) validateRedisUrl(childEnv.REDIS_URL, config);
 let uploadStorage;
 try {
-  uploadStorage = await startUploadTestStorage();
-  Object.assign(childEnv, uploadStorage.env);
+  if (needsDatabase) {
+    uploadStorage = await startUploadTestStorage();
+    Object.assign(childEnv, uploadStorage.env);
+  }
 } catch (error) {
   console.error(error);
   process.exit(1);
@@ -160,7 +184,16 @@ function runPrismaGenerate() {
   return false;
 }
 
-const steps = plannedSteps ?? localSteps(databaseUrl, quick, selectedArgument, selectedFiles);
+const stepOptions = scoped ? { ...requirements, drift: changed.some(file => file.startsWith('apps/api/prisma/')) } : undefined;
+let steps = plannedSteps ?? localSteps(databaseUrl, quick, added.length ? ['mandatory'] : selectedArgument, selectedFiles, stepOptions);
+if (quick && !selection.explicit && added.length) {
+  // Mandatory suites augment the existing default changed-API and full-Shop invocation.
+  steps = selection.scopes.length
+    ? localSteps(databaseUrl, true, [], { api: [], admin: [], shop: [], scripts: [] }, stepOptions)
+    : localSteps(databaseUrl, true);
+  if (stepOptions.drift && !steps.some(([name]) => name === 'Check Prisma migration drift')) steps.splice(4, 0, ...localSteps(databaseUrl, true, ['mandatory'], selectedFiles, stepOptions).filter(([name]) => name === 'Check Prisma migration drift'));
+  steps.push(...localSteps(databaseUrl, true, ['mandatory'], selectedFiles, stepOptions).filter(([name]) => name.startsWith('Run ')));
+}
 
 const results = [];
 const testOutputs = [];
@@ -180,12 +213,21 @@ for (const [name, commands] of steps) {
       console.error(error);
       results.push([name, 'FAIL', `${((performance.now() - startedAt) / 1000).toFixed(2)}s`]);
       printSummary(results, testOutputs);
-      uploadStorage.stop();
+      uploadStorage?.stop();
       process.exit(1);
     }
   }
 
   for (const args of commands) {
+    if (args[0] === '__node_test__') {
+      const started = new Date().toISOString();
+      const result = spawnSync(process.execPath, ['--test', ...args.slice(1)], { cwd: process.cwd(), env: childEnv, encoding: 'utf8', maxBuffer: 128 * 1024 * 1024 });
+      const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+      process.stdout.write(output);
+      testOutputs.push({ name, kind: 'node', output: `Node test start time: ${started}\n${output}` });
+      if (result.status !== 0) { succeeded = false; break; }
+      continue;
+    }
     if (group === 'api' && name === 'Run API tests') {
       const listPath = join(ciDirectory, 'api-files.json');
       const list = spawnSync(pnpm, [...pnpmPrefix, '--filter', 'api', 'exec', 'vitest', 'list', '--filesOnly', `--json=${listPath}`], {
@@ -240,22 +282,27 @@ for (const [name, commands] of steps) {
   results.push([name, succeeded ? 'PASS' : 'FAIL', `${((performance.now() - startedAt) / 1000).toFixed(2)}s`]);
   if (!succeeded) {
     printSummary(results, testOutputs);
-    uploadStorage.stop();
+    uploadStorage?.stop();
     process.exit(1);
   }
 }
 
 if (!printSummary(results, testOutputs)) process.exitCode = 1;
-uploadStorage.stop();
+uploadStorage?.stop();
 
 function printSummary(summary, outputs) {
   const lines = ['=== Final test summary ==='];
+  if (!group) lines.push(`Scope: ${selection.scopes.join(',') || (requirements.scriptOnly ? 'scripts' : 'default')}`, `Lane: ${config.laneId || 'integration'}`, `Database: ${needsDatabase ? databaseName : 'not used'}`, `Planner added suites: ${added.map(item => `${item.file} (${item.reason})`).join('; ') || 'none'}`);
   let valid = true;
   for (const { name, kind, output } of outputs) {
     lines.push(`${name}:`);
     const outputLines = output.replace(/\x1b\[[0-9;]*m/g, '').split(/\r?\n/);
     if (name === 'Run changed API tests' && outputLines.some((line) => line.includes('No test files found'))) {
       lines.push('No changed API test files');
+      continue;
+    }
+    if (kind === 'node') {
+      lines.push(...outputLines.filter(line => /^(Node test start time:|# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) |\u2139 (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) )/.test(line)));
       continue;
     }
     const expected = kind === 'vitest'

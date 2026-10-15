@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { validateDatabaseUrl } from '@/config/test-lane';
 import { Pool, type PoolClient } from 'pg';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
@@ -281,6 +282,6 @@ export function abandonPluginDatabase(): void {
 }
 export function createPluginDatabaseTestRuntime(databaseUrl: string, poolMax = 4, lookupNamespace?: NamespaceLookup) {
   assertPluginDatabaseTestControl();
-  if (new URL(databaseUrl).pathname !== '/jiffoo_core_test') throw new Error('Unsafe plugin database test database');
+  validateDatabaseUrl(databaseUrl);
   return new PluginDatabaseRuntime(databaseUrl, poolMax, lookupNamespace);
 }

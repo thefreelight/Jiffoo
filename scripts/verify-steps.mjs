@@ -1,6 +1,21 @@
 export const apiBuildStep = ['Build API', [['--filter', 'api', 'build']]];
 
-export function localSteps(databaseUrl, quick = false, selectedArgument = [], selectedFiles = { api: [], admin: [], shop: [] }) {
+export function localSteps(databaseUrl, quick = false, selectedArgument = [], selectedFiles = { api: [], admin: [], shop: [] }, options) {
+if (quick && options) {
+  const { apps, database } = options;
+  return [
+    ...(selectedFiles.scripts?.length ? [['Run script tests', [['__node_test__', ...selectedFiles.scripts]]]] : []),
+    ...(database ? [['Prisma generate', [['--filter', 'api', 'exec', 'prisma', 'generate']]]] : []),
+    ...(apps.length ? [['Type-check selected scope and shared', [['--filter', 'shared', 'build'], ['exec', 'turbo', 'run', 'type-check', ...apps.map(app => `--filter=${app}`), '--filter=shared']]]] : []),
+    ...(apps.includes('shop') ? [['Lint Shop', [['--filter', 'shop', 'lint']]]] : []),
+    ...(database ? [['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]]] : []),
+    ...(database && options.drift ? [['Check Prisma migration drift', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'diff', '--from-url', databaseUrl, '--to-schema-datamodel', 'prisma/schema', '--exit-code']]]] : []),
+    ...apps.filter(app => selectedFiles[app].length || !selectedArgument.length).map(app => [
+      `Run ${app === 'api' ? 'API' : app === 'admin' ? 'Admin' : 'Shop'} tests`,
+      [['--filter', app, 'exec', 'vitest', 'run', ...selectedFiles[app], ...(!selectedArgument.length && app === 'api' ? ['--changed', '--passWithNoTests'] : [])]],
+    ]),
+  ];
+}
 return quick
   ? [
       ['Prisma generate', [['--filter', 'api', 'exec', 'prisma', 'generate']]],

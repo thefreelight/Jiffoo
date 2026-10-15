@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { afterAll, expect, it } from 'vitest';
 import { once } from 'node:events';
 import { createServer, type ServerResponse } from 'node:http';
@@ -17,7 +18,7 @@ afterAll(async () => {
 });
 
 it.each([false, true])('real API SIGTERM drains an in-flight plugin request or keeps an exceeded deadline DRAINING: %s', async exceedsDeadline => {
-  expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+  expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
   const slug = 'api-drain-' + randomUUID().slice(0, 12);
   let providerResponse: ServerResponse | undefined;
   let admitted!: () => void;

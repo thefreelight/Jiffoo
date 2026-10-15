@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { afterAll, expect, it } from 'vitest';
 import { Client } from 'pg';
 import { randomUUID } from 'node:crypto';
@@ -25,7 +26,7 @@ afterAll(async () => {
 
 it.each([['disable', 'disable'], ['uninstall', 'uninstall'], ['disable', 'uninstall']] as const)(
   'two administrators concurrently %s and %s different payment providers and retain exactly one', async (first, second) => {
-    expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+    expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
     const snapshot = await snapshotPluginRows(['manual-payment']);
     const app = await createTestApp();
     const administrators: Awaited<ReturnType<typeof createAdminWithToken>>[] = [];
@@ -35,7 +36,7 @@ it.each([['disable', 'disable'], ['uninstall', 'uninstall'], ['disable', 'uninst
     let requests: Array<ReturnType<typeof app.inject>> = [];
     try {
       await control.connect();
-      expect((await control.query('SELECT current_database() AS name')).rows[0].name).toBe('jiffoo_core_test');
+      expect((await control.query('SELECT current_database() AS name')).rows[0].name).toBe(laneConfig().databaseName);
       await syncBuiltinPlugins(path.resolve('builtin-plugins'));
       for (const slug of slugs) {
         const admin = await createAdminWithToken(); administrators.push(admin);

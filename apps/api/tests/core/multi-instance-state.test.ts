@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { afterAll, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import Redis from 'ioredis';
@@ -60,7 +61,7 @@ it('Scenario 17: two real API processes immediately observe disable, re-enable a
   let fixture: Fixture | undefined;
   const plugins: Array<{ slug: string; id: string }> = [];
   try {
-    expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+    expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
     fixture = await themeFixture();
     const second = await fixture.start();
     expect(fixture.primary.child.pid).not.toBe(second.child.pid);

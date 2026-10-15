@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { Client } from 'pg';
 import { createHash, randomUUID } from 'node:crypto';
@@ -12,7 +13,7 @@ let client: Client, schema: string;
 const source = (name: string, sql: string) => ({ name, sql, checksum: createHash('sha256').update(sql).digest('hex') });
 const query = (sql: string, values?: unknown[]) => client.query(sql.replaceAll('public.', `${schema}.`), values);
 beforeEach(async () => {
-  expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+  expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
   client = new Client({ connectionString: process.env.DATABASE_URL_TEST }); await client.connect();
   schema = 'core_executor_' + randomUUID().replaceAll('-', '');
   await client.query(`CREATE SCHEMA ${schema}`); await query(historyTableSql);

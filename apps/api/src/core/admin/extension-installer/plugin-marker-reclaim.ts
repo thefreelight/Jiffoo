@@ -1,4 +1,5 @@
 import type { Client } from 'pg';
+import { validateDatabaseUrl, assertCurrentDatabase } from '@/config/test-lane';
 import { createHash, randomUUID } from 'node:crypto';
 import { PROCESS_REGISTRATION_LOCK_CLASS, PROCESS_REGISTRATION_LOCK_KEY } from '@/infra/core-process-identity';
 import { assertRecoveryTestControl } from './plugin-recovery-test-control';
@@ -10,7 +11,9 @@ export async function reclaimInvocationMarkers(client: Client, evidence: Complet
   let schema = 'public';
   if (testSchema !== undefined) {
     assertRecoveryTestControl();
-    if (!/^test_reclaim_[a-z0-9_]+$/.test(testSchema) || (await client.query('SELECT current_database() AS name')).rows[0].name !== 'jiffoo_core_test') throw new MarkerReclaimError('Unsafe recovery fixture schema');
+    validateDatabaseUrl(process.env.DATABASE_URL!);
+    if (!/^test_reclaim_[a-z0-9_]+$/.test(testSchema)) throw new MarkerReclaimError('Unsafe recovery fixture schema');
+    assertCurrentDatabase((await client.query('SELECT current_database() AS name')).rows[0].name);
     schema = testSchema;
   }
   const validUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);

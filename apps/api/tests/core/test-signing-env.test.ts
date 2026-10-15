@@ -3,6 +3,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { OFFICIAL_ROOT_PUBLIC_KEY } from 'shared/plugin-signing';
 import { testRoot, untrustedRoot } from '../fixtures/plugin-signing-keys';
+import { validateRedisUrl } from '../../src/config/test-lane';
 
 const cwd = path.resolve(__dirname, '../..');
 function start(target: 'api' | 'worker', mode: string | undefined, root: string | undefined, extra: NodeJS.ProcessEnv = {}) {
@@ -17,7 +18,7 @@ function start(target: 'api' | 'worker', mode: string | undefined, root: string 
     ADMIN_URL: 'https://admin.example.com',
     API_PORT: '0',
     WORKER_HEALTH_PORT: '0',
-    REDIS_URL: 'redis://localhost:6379/15',
+    REDIS_URL: validateRedisUrl(process.env.REDIS_URL!).toString(),
     DISABLE_RATE_LIMITER: 'false',
     EXTENSION_MARKETPLACE_URL: undefined,
     EXTENSION_TEST_SIGNING_MODE: mode,

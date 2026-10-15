@@ -1,3 +1,4 @@
+import { validateRedisUrl } from '../../src/config/test-lane';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash, randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
@@ -138,7 +139,7 @@ describe('plugin secret configuration', () => {
     const event = await emit();
     const child = fork(path.resolve('tests/helpers/event-worker-child.ts'), [], {
       execArgv: ['--import', 'tsx'],
-      env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL_TEST!, REDIS_URL: 'redis://localhost:6379/15' },
+      env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL_TEST!, REDIS_URL: validateRedisUrl(process.env.REDIS_URL!).toString() },
     });
     const exited = once(child, 'exit');
     children.push({ child, exited });

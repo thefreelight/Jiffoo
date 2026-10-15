@@ -1,3 +1,4 @@
+import { validateDatabaseUrl, validateRedisUrl } from '../../src/config/test-lane';
 import { createTestApp } from './create-test-app';
 import { startWorkerRuntime } from '@/worker-runtime';
 import { prisma } from '@/config/database';
@@ -12,7 +13,9 @@ import { coreProcessIdentity } from '@/infra/core-process-identity';
 
 async function main() {
   assertPluginDatabaseTestControl();
-  if (!process.send || new URL(process.env.DATABASE_URL!).pathname !== '/jiffoo_core_test' || new URL(process.env.REDIS_URL!).pathname !== '/15') throw new Error('Unsafe plugin database process fixture');
+  validateDatabaseUrl(process.env.DATABASE_URL!);
+  validateRedisUrl(process.env.REDIS_URL!);
+  if (!process.send) throw new Error('Unsafe plugin database process fixture');
   const role = process.argv[2];
   const worker = role === 'worker' ? await startWorkerRuntime({ healthPort: 0 }) : undefined;
   const app = role === 'api' ? await createTestApp({ disableFileSystem: false, disableRedis: false, disableDynamicPlugins: false }) : undefined;

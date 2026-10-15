@@ -1,3 +1,4 @@
+import { validateDatabaseUrl } from '../../src/config/test-lane';
 import { prisma } from '../../src/config/database';
 import { coreProcessIdentity } from '../../src/infra/core-process-identity';
 import { startCoreProcess, drainCoreProcess, finishCoreProcess } from '../../src/infra/core-process';
@@ -11,7 +12,8 @@ import { closePluginDatabase } from '../../src/core/admin/extension-installer/pl
 import { sharedProtection } from '../../src/infra/shared-protection';
 import { redisCache } from '../../src/core/cache/redis';
 
-if (process.env.NODE_ENV !== 'test' || !process.send || new URL(process.env.DATABASE_URL!).pathname !== '/jiffoo_core_test') throw new Error('Payment child requires isolated test IPC');
+validateDatabaseUrl(process.env.DATABASE_URL!);
+if (process.env.NODE_ENV !== 'test' || !process.send) throw new Error('Payment child requires isolated test IPC');
 const pending = new Set<Promise<unknown>>();
 let releaseReservation: (() => void) | undefined;
 process.on('message', (message: any) => {

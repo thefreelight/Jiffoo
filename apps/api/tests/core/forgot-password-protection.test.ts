@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { expect, it } from 'vitest';
 import Fastify from 'fastify';
 import Redis from 'ioredis';
@@ -11,7 +12,7 @@ import { prisma } from '@/config/database';
 import { createTestUser } from '../helpers/auth';
 
 it('two independent Redis clients share IP and normalized email budgets without disclosing account existence', async () => {
-  expect(process.env.DATABASE_URL_TEST).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
+  expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
   const namespace = `test:forgot:${randomUUID()}`;
   const redis = new Redis(process.env.REDIS_URL!);
   const clients = [new SharedProtection(process.env.REDIS_URL!), new SharedProtection(process.env.REDIS_URL!)];

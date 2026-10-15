@@ -1,3 +1,4 @@
+import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { Client } from 'pg';
 import { createHash, randomUUID } from 'node:crypto';
@@ -62,7 +63,7 @@ async function cli(limits?: Parameters<typeof setPluginDatabaseAuditTestLimits>[
   return { code, stdout, stderr, report: stdout ? JSON.parse(stdout) : undefined };
 }
 beforeEach(async () => {
-  const url = new URL(process.env.DATABASE_URL_TEST!); expect(url.pathname).toBe('/jiffoo_core_test');
+  const url = new URL(process.env.DATABASE_URL_TEST!); expect(validateDatabaseUrl(url.toString()).pathname).toBe('/' + laneConfig().databaseName);
   client = new Client({ connectionString: url.toString() }); await client.connect();
   schema = `audit_test_${randomUUID().replaceAll('-', '')}`; slug = `audit-${randomUUID().slice(0, 12)}`;
   await client.query(`CREATE SCHEMA ${schema}`); ownedSchemas.add(schema);
@@ -83,7 +84,7 @@ afterEach(async () => {
 it('J complete reports preserve version, scope, caller authority and zero exit status', async () => {
   const fixture = await packageFixture(); await install(fixture); await ledger(await namespace(), fixture);
   const report = await audit();
-  expect(report).toMatchObject({ reportVersion: 1, scope: 'plugin-database-integrity', complete: true, database: { name: 'jiffoo_core_test', schemaState: 'current' }, processQuiescence: { proven: false, authority: 'caller' }, counts: { plugins: 1, blocking: 0 } });
+  expect(report).toMatchObject({ reportVersion: 1, scope: 'plugin-database-integrity', complete: true, database: { name: laneConfig().databaseName, schemaState: 'current' }, processQuiescence: { proven: false, authority: 'caller' }, counts: { plugins: 1, blocking: 0 } });
   expect(Date.parse(report.finishedAt)).toBeGreaterThanOrEqual(Date.parse(report.startedAt)); expect(pluginDatabaseAuditExitCode(report)).toBe(0);
 });
 it('update audits the exact current release without relaxing the Admin target inventory check', async () => {
