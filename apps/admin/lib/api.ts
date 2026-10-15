@@ -220,6 +220,8 @@ export { getAdminClient };
 
 // Auth API
 export const authApi = {
+  invite: async (token: string) => unwrapApiResponse(await apiClient.get<{ email: string; storeName: string }>('/auth/invite?token=' + encodeURIComponent(token))),
+  inspectReset: async (token: string) => unwrapApiResponse(await apiClient.get<{ valid: boolean }>('/auth/reset-password?token=' + encodeURIComponent(token))),
   forgotPassword: (email: string): Promise<ApiResponse<void>> =>
     apiClient.forgotPassword(email, 'admin'),
 
@@ -238,7 +240,7 @@ export const authApi = {
       token_type: string;
       expires_in: number;
       refresh_token?: string;
-    }>('/auth/login', { identifier, password }, { withCredentials: true });
+    }>('/auth/login', { identifier, password, surface: 'admin' }, { withCredentials: true });
     if (response.success && response.data?.access_token) {
       apiClient.setToken(response.data.access_token);
       if (response.data.refresh_token) {

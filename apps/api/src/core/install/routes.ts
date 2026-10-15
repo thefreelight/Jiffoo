@@ -63,23 +63,28 @@ export async function installRoutes(fastify: FastifyInstance) {
       summary: 'Complete installation',
       body: {
         type: 'object',
-        required: ['siteName', 'adminEmail', 'adminPassword'],
+        required: ['siteName', 'adminEmail', 'adminPassword', 'adminUsername'],
         properties: {
           siteName: { type: 'string', minLength: 1 },
           siteDescription: { type: 'string' },
           adminEmail: { type: 'string', format: 'email' },
           adminPassword: { type: 'string', minLength: 8 },
-          adminUsername: { type: 'string' }
+          adminUsername: { type: 'string', minLength: 2, maxLength: 64, pattern: '^[A-Za-z0-9._-]+$' }
         }
       },
       response: {
         200: {
           type: 'object',
           properties: {
-            success: { type: 'boolean' },
+            success: { type: 'boolean', const: true },
+            siteName: { type: 'string' },
+            adminUsername: { type: 'string' },
+            adminEmail: { type: 'string', format: 'email' },
+            timezone: { type: 'string' },
             error: { type: 'string' },
             code: { type: 'string' }
-          }
+          },
+          required: ['success', 'siteName', 'adminUsername', 'adminEmail', 'timezone']
         },
         400: errorResponseSchema,
         409: errorResponseSchema,

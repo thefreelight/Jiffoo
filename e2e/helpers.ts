@@ -34,8 +34,8 @@ export async function shopLogout(page: Page, { locale }: { locale: ShopLocale })
 
 export async function login(page: Page, email = ownerEmail, password = changedPassword) {
   await page.goto('/en/auth/login');
-  await page.getByPlaceholder('Enter your email').fill(email);
-  await page.getByPlaceholder('Enter your password').fill(password);
+  await page.getByLabel('Email or login name', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: /sign in|authenticate/i }).click();
   await expect(page.getByRole('link', { name: 'Overview' })).toBeVisible();
   if (!page.url().endsWith('/en/dashboard')) {
@@ -57,7 +57,7 @@ export async function api<T>(request: APIRequestContext, path: string, options: 
 } = {}): Promise<T> {
   const response = await request.fetch(`http://127.0.0.1:3001/api/v1${path}`, {
     method: options.method || 'GET',
-    data: options.data,
+    data: path === '/auth/login' ? { surface: 'admin', ...(options.data as Record<string, unknown>) } : options.data,
     headers: options.token ? { authorization: `Bearer ${options.token}` } : {},
   });
   const body = await response.json();
@@ -67,7 +67,7 @@ export async function api<T>(request: APIRequestContext, path: string, options: 
 
 export async function customerToken(request: APIRequestContext) {
   const result = await api<{ token: string }>(request, '/auth/login', {
-    method: 'POST', data: { email: customerEmail, password: 'CustomerPassword123!' },
+    method: 'POST', data: { email: customerEmail, password: 'CustomerPassword123!', surface: 'storefront' },
   });
   return result.token;
 }

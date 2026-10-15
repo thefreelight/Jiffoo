@@ -11,7 +11,7 @@ const reloadMode = reloadStress ? 'stress' : 'regression';
 
 test.beforeAll(async ({ request }) => {
   if (!reloadStress) return;
-  await api(request, '/install/complete', { method: 'POST', data: { siteName: 'E2E Updated Store', adminEmail: ownerEmail, adminPassword: 'FinalOwnerPassword123!' } });
+  await api(request, '/install/complete', { method: 'POST', data: { siteName: 'E2E Updated Store', adminUsername: 'e2e-owner', adminEmail: ownerEmail, adminPassword: 'FinalOwnerPassword123!' } });
   const owner = await api<{ token: string }>(request, '/auth/login', { method: 'POST', data: { email: ownerEmail, password: 'FinalOwnerPassword123!' } });
   await api(request, '/admin/products', { method: 'POST', token: owner.token, data: {
     name: 'E2E Localized Product', requiresShipping: true, variants: [{ name: 'Standard', salePrice: 12, stock: 100, skuCode: 'RELOAD-STRESS-PRODUCT' }],

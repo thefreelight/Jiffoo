@@ -39,8 +39,8 @@ test('P activates an Admin theme with local assets and restores the default imme
   const fresh = await newObservedContext();
   const loginPage = await fresh.newPage();
   await loginPage.goto('http://127.0.0.1:3002/en/auth/login');
-  await expect(loginPage.getByRole('main')).toHaveCSS('background-image',
-    `url("http://127.0.0.1:3002/api/v1/themes/e2e-admin-theme/${packageHash}/assets/login.png")`);
+  await expect(loginPage.getByRole('main')).toHaveCSS('background-image', 'none');
+  await expect(loginPage.getByRole('button', { name: 'Sign in', exact: true })).toHaveCSS('background-color', 'rgb(204, 0, 51)');
   await fresh.close();
 
   await page.getByRole('button', { name: 'Restore previous theme' }).click();

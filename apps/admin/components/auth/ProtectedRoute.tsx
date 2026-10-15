@@ -41,7 +41,7 @@ export default function ProtectedRoute({
       const token = apiClient.getToken();
       try {
         const response = await fetch('/api/v1/auth/me', { cache: 'no-store', credentials: 'same-origin', headers: token ? { Authorization: 'Bearer ' + token } : {} });
-        if (!stopped && !queryClient.isMutating({ mutationKey: ['account-password-change'] }) && token === apiClient.getToken() && (response.status === 401 || response.status === 403)) useAuthStore.getState().logout();
+        if (!stopped && !queryClient.isMutating({ mutationKey: ['account-password-change'] }) && token === apiClient.getToken() && (response.status === 401 || response.status === 403)) useAuthStore.getState().logout('expired');
       } catch { /* A transport outage does not revoke an otherwise valid session. */ }
       finally { busy = false; }
     };

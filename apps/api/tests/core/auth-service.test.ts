@@ -358,7 +358,7 @@ describe('AuthService', () => {
       const result = await AuthService.login({ identifier: TEST_USER.username, password: loginData.password });
 
       expect(mockPrismaUser.findMany).toHaveBeenCalledWith({
-        where: { username: TEST_USER.username },
+        where: { username: TEST_USER.username, role: 'USER' },
         take: 2,
         select: {
           id: true,

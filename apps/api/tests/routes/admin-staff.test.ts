@@ -64,7 +64,7 @@ describe('AUTH-1 administrator management', () => {
       .toMatchObject({ role: 'ADMIN', isActive: true, emailVerified: true });
     const login = await app.inject({
       method: 'POST', url: '/api/v1/auth/login',
-      payload: { email: invited.email, password: 'NewPassword123!' },
+      payload: { email: invited.email, password: 'NewPassword123!', surface: 'admin' },
     });
     expect(login.statusCode).toBe(200);
     const adminRequest = await app.inject({
@@ -200,7 +200,7 @@ describe('AUTH-1 administrator management', () => {
     })).statusCode).toBe(401);
     expect((await app.inject({
       method: 'POST', url: '/api/v1/auth/login',
-      payload: { email: removed.user.email, password: removed.user.password },
+      payload: { email: removed.user.email, password: removed.user.password, surface: 'admin' },
     })).statusCode).toBe(403);
   });
 

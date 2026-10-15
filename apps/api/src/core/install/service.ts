@@ -21,7 +21,7 @@ export interface InstallData {
   siteDescription?: string;
   adminEmail: string;
   adminPassword: string;
-  adminUsername?: string;
+  adminUsername: string;
 }
 
 const CURRENT_VERSION = '1.0.0';
@@ -162,8 +162,9 @@ export class InstallService {
     }
   }
 
-  static async completeInstallation(data: InstallData): Promise<{ success: true }> {
+  static async completeInstallation(data: InstallData): Promise<{ success: true; siteName: string; adminUsername: string; adminEmail: string; timezone: string }> {
     if (data.adminPassword.length < 8) throw new ApiError('VALIDATION_ERROR');
+    if (!/^[A-Za-z0-9._-]{2,64}$/.test(data.adminUsername)) throw new ApiError('VALIDATION_ERROR');
     try {
       const runtimeVersion = resolveCurrentVersion();
       const hashedPassword = await bcrypt.hash(data.adminPassword, 10);
@@ -180,7 +181,7 @@ export class InstallService {
         const adminUser = await tx.user.create({
           data: {
             email,
-            username: data.adminUsername || email.split('@')[0],
+            username: data.adminUsername,
             password: hashedPassword,
             role: 'ADMIN',
             isActive: true,
@@ -203,7 +204,7 @@ export class InstallService {
             settings: installedSettings, version: runtimeVersion,
           },
         });
-        return { success: true };
+        return { success: true, siteName: data.siteName, adminUsername: adminUser.username, adminEmail: adminUser.email, timezone: 'UTC' };
       });
     } catch (error: any) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002' && String(error.meta?.target).includes('email')) {

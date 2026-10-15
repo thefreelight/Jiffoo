@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const LoginSchema = z.object({
+  surface: z.enum(['admin', 'storefront']).optional(),
   identifier: z.string().trim().min(1, 'Email or username is required').optional(),
   email: z.string().email('Invalid email format').optional(),
   password: z.string().min(6, 'Password must be at least 6 characters'),

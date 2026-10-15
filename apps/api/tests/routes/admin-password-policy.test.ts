@@ -19,7 +19,7 @@ it.each(['ADMIN', 'USER'] as const)('enforces the %s minimum on reset and authen
   }
   const newPassword = role === 'ADMIN' ? '12345678' : '123456';
   expect((await app.inject({ method: 'POST', url: '/api/v1/auth/reset-password', payload: { token, newPassword } })).statusCode).toBe(200);
-  const login = await app.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { email: account.user.email, password: newPassword } });
+  const login = await app.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { email: account.user.email, password: newPassword, surface: role === 'ADMIN' ? 'admin' : 'storefront' } });
   expect(login.statusCode).toBe(200);
   const headers = { authorization: 'Bearer ' + login.json().data.access_token };
   const wrong = await app.inject({ method: 'POST', url: '/api/v1/auth/change-password', headers, payload: { currentPassword: 'wrong', newPassword: 'NextPassword123!' } });
@@ -31,7 +31,7 @@ it.each(['ADMIN', 'USER'] as const)('enforces the %s minimum on reset and authen
   expect((await app.inject({ method: 'GET', url: '/api/v1/auth/me', headers })).statusCode).toBe(401);
 });
 it('rejects a seven-character install password at both HTTP and service boundaries', async () => {
-  const payload = { siteName: 'Policy test', adminEmail: 'policy-install@example.com', adminPassword: '1234567' };
+  const payload = { siteName: 'Policy test', adminUsername: 'policy-owner', adminEmail: 'policy-install@example.com', adminPassword: '1234567' };
   const result = await app.inject({ method: 'POST', url: '/api/v1/install/complete', payload });
   expect(result.statusCode).toBe(400); expect(result.json().error.code).toBe('VALIDATION_ERROR');
   await expect(InstallService.completeInstallation(payload)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });

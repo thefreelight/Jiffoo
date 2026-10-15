@@ -22,7 +22,9 @@ it.each([401, 403, 503])('checks idle administrator sessions without unmounting 
     const content = container.querySelector('p');
     await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
     expect(fetch).toHaveBeenCalledWith('/api/v1/auth/me', expect.objectContaining({ cache: 'no-store' }));
-    expect(state.logout).toHaveBeenCalledTimes(status === 503 ? 0 : 1); expect(container.querySelector('p')).toBe(content);
+    expect(state.logout).toHaveBeenCalledTimes(status === 503 ? 0 : 1);
+    if (status !== 503) expect(state.logout).toHaveBeenCalledWith('expired');
+    expect(container.querySelector('p')).toBe(content);
   } finally { await act(async () => root.unmount()); client.clear(); vi.useRealTimers(); vi.unstubAllGlobals(); }
 });
 it('ignores an obsolete session response after this device receives new password-change tokens', async () => {

@@ -19,6 +19,8 @@ export function isProtectionExempt(request: FastifyRequest): boolean {
 const authPolicies: Record<string, Policy> = {
   '/api/v1/auth/login': RateLimitPresets.login,
   '/api/v1/auth/register': RateLimitPresets.register,
+  '/api/v1/auth/invite': RateLimitPresets.login,
+  '/api/v1/auth/reset-password': RateLimitPresets.login,
   '/api/v1/auth/forgot-password': { windowMs: 15 * 60000, maxRequests: 5 },
 };
 

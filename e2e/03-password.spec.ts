@@ -42,8 +42,8 @@ test('profile save guard and password change preserve this session and revoke th
   await expect(page.getByRole('heading', { name: 'My account', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Overview', exact: true })).toBeVisible();
   await logout(page);
-  await page.getByPlaceholder('Enter your email').fill(ownerEmail);
-  await page.getByPlaceholder('Enter your password').fill(originalPassword);
+  await page.getByLabel('Email or login name', { exact: true }).fill(ownerEmail);
+  await page.getByLabel('Password', { exact: true }).fill(originalPassword);
   await page.getByRole('button', { name: /sign in|authenticate/i }).click();
   await expect(page).toHaveURL(/\/en\/auth\/login/);
   await login(page);

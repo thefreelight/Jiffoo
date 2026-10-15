@@ -11,6 +11,7 @@ describe('Shop registration rate limit', () => {
       expect(authErrorMessage(429, 'RATE_LIMITED', labels, 'register')).toBe(labels.tooManyAttempts);
       expect(authErrorMessage(401, 'LOGIN_FAILED', labels, 'login')).toBe(labels.invalidLogin);
       expect(authErrorMessage(403, 'ACCOUNT_INACTIVE', labels, 'login')).toBe(labels.accountInactive);
+      expect(authErrorMessage(403, 'ADMIN_ACCOUNT_NOT_FOR_SHOP', labels, 'login')).toBe(labels.adminAccountNotForShop);
       expect(labels.tooManyAttempts).not.toBe(labels.verificationFailed);
       expect(labels.tooManyAttempts.length).toBeGreaterThan(10);
     }

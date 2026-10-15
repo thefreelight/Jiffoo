@@ -77,6 +77,7 @@ export const storefront = {
     back: 'Back to home',
   },
   account: {
+    adminAccountNotForShop: 'This is a store administrator account. It cannot sign in to or place orders in the storefront.',
     login: 'Login', register: 'Create account', forgot: 'Forgot password', reset: 'Reset password',
     verify: 'Verify email', verifyAction: 'Verify my email', profile: 'Account', unverified: 'Your email address is not verified.',
     resend: 'Resend verification', requestReceived: 'Request received. Please check your inbox.',

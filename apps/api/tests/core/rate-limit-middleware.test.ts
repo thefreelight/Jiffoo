@@ -66,7 +66,7 @@ describe('shared request protection', () => {
   });
   it('E: login and registration policies count once and remain isolated', async () => {
     const value = await app();
-    for (let i = 0; i < 20; i++) expect((await value.inject({ method: 'POST', url: '/api/v1/auth/login' })).statusCode).toBe(200);
+    for (let i = 0; i < 20; i++) expect((await value.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { surface: i % 2 ? 'admin' : 'storefront' } })).statusCode).toBe(200);
     const rejected = await value.inject({ method: 'POST', url: '/api/v1/auth/login' });
     expect(rejected.statusCode).toBe(429); expect(rejected.json().error.code).toBe('RATE_LIMITED');
     expect((await value.inject({ method: 'POST', url: '/api/v1/auth/register' })).statusCode).toBe(200);

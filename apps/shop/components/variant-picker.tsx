@@ -6,6 +6,7 @@ import type { Product } from '@/lib/catalog';
 import { formatPrice } from '@/lib/price';
 import type { ShopLocale } from '@/lib/locale';
 import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
+import { storefrontMessages } from '@/lib/storefront-messages';
 
 export function VariantPicker({ variants, locale, currency, labels, productId, slug, loggedIn }: {
   variants: NonNullable<Product['variants']>;
@@ -40,6 +41,7 @@ export function VariantPicker({ variants, locale, currency, labels, productId, s
       });
       const body = await response.json();
       if (response.ok) router.push(`/${locale}/cart`);
+      else if (body.error?.code === 'ADMIN_ACCOUNT_NOT_FOR_SHOP') setError(storefrontMessages(locale).account.adminAccountNotForShop);
       else if (body.error?.code === 'INSUFFICIENT_STOCK') setError(`${labels.stockAvailable} ${body.error.details?.availableQuantity}`);
       else setError(body.error?.message || labels.outOfStock);
     } catch (error) {

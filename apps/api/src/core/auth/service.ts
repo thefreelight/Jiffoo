@@ -139,14 +139,20 @@ export class AuthService {
    */
   static async login(data: LoginRequest): Promise<AuthResponse> {
     const identifier = data.identifier ?? data.email;
-    const user = await findAuthUserByIdentifier(identifier);
+    const surface = data.surface ?? 'storefront';
+    const user = await findAuthUserByIdentifier(identifier, surface === 'admin' ? 'ADMIN' : 'USER');
 
     const isValid = await PasswordUtils.verify(data.password, user?.password ?? missingUserPasswordHash);
     if (!user || !isValid) {
       throw new ApiError('LOGIN_FAILED');
     }
-    if (!user.isActive || (user.role === 'ADMIN' && user.removedAt)) {
-      throw new ApiError('ACCOUNT_INACTIVE');
+    if (surface === 'admin') {
+      if (user.role !== 'ADMIN') throw new ApiError('CUSTOMER_ACCOUNT_NOT_ADMIN');
+      if (user.removedAt) throw new ApiError('ADMIN_ACCOUNT_REMOVED');
+      if (!user.isActive) throw new ApiError('LOGIN_FAILED');
+    } else {
+      if (user.role === 'ADMIN') throw new ApiError('ADMIN_ACCOUNT_NOT_FOR_SHOP');
+      if (!user.isActive) throw new ApiError('ACCOUNT_INACTIVE');
     }
 
     const token = JwtUtils.sign({

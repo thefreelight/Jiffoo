@@ -13,11 +13,26 @@ import { sendSuccess, sendError } from '@/utils/response';
 import { ApiError, sendMappedError } from '@/utils/api-errors';
 import { authSchemas } from './schemas';
 import { EmailVerificationService } from '@/services/email-verification.service';
-import { acceptStaffInvite, requestPasswordReset, resetPassword } from './account-recovery';
+import { acceptStaffInvite, requestPasswordReset, resetPassword, lookupRecoveryToken } from './account-recovery';
 import { JwtUtils } from '@/utils/jwt';
 import { createSuccessResponseSchema, createTypedUpdateResponses, errorResponseSchema } from '@/types/common-dto';
 
 export async function authRoutes(fastify: FastifyInstance) {
+  for (const [path, purpose, resultSchema] of [
+    ['/invite', 'STAFF_INVITE', { type: 'object', properties: { email: { type: 'string', format: 'email' }, storeName: { type: 'string' } }, required: ['email', 'storeName'], additionalProperties: false }],
+    ['/reset-password', 'PASSWORD_RESET', { type: 'object', properties: { valid: { type: 'boolean' } }, required: ['valid'], additionalProperties: false }],
+  ] as const) {
+    fastify.get(path, {
+      schema: {
+        tags: ['auth'], summary: 'Inspect a recovery link without consuming it',
+        querystring: { type: 'object', required: ['token'], additionalProperties: false, properties: { token: { type: 'string', minLength: 1 } } },
+        response: { 200: createSuccessResponseSchema(resultSchema), 400: errorResponseSchema, 429: errorResponseSchema, 500: errorResponseSchema, 503: errorResponseSchema },
+      },
+    }, async (request, reply) => {
+      reply.header('Cache-Control', 'no-store');
+      return sendSuccess(reply, await lookupRecoveryToken((request.query as { token: string }).token, purpose));
+    });
+  }
   const acknowledgementSchema = {
     type: 'object', properties: { requested: { type: 'boolean' } }, required: ['requested'],
   } as const;
@@ -121,8 +136,8 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const { identifier, email, password } = request.body as any;
-      const result = await AuthService.login(identifier ? { identifier, password } : { email, password });
+      const { identifier, email, password, surface } = request.body as any;
+      const result = await AuthService.login(identifier ? { identifier, password, surface } : { email, password, surface });
       return sendSuccess(reply, result);
     } catch (error) {
       return sendMappedError(reply, error);

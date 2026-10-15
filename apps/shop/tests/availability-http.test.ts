@@ -40,6 +40,7 @@ beforeAll(async () => {
       if (path === '/api/v1/auth/login') {
         let raw = ''; for await (const chunk of req) raw += chunk;
         const credentials = JSON.parse(raw);
+        expect(credentials.surface).toBe('storefront');
         const found = users.get(credentials.identifier);
         if (!found || credentials.password !== 'FixturePassword123!') { send(null, 401); return; }
         send({ access_token: found.token, refresh_token: 'FIXTURE_REFRESH', expires_in: 3600 }); return;

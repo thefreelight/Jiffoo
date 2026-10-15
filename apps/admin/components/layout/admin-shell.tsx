@@ -20,7 +20,7 @@ export function AdminShell({ children, logo = null, loginBackground = null, stor
   const [mobileOpen, setMobileOpen] = useState(false);
   const copy = shellCopy[locale];
   const navigation = { storeName, storeUrl, logo };
-  return <ThemeAssets.Provider value={{ logo, loginBackground }}>{isPublicAdminRoute(pathname) ? children :
+  return <ThemeAssets.Provider value={{ logo, loginBackground, storeName }}>{isPublicAdminRoute(pathname) ? children :
     <ProtectedRoute requireAdmin><TooltipProvider delayDuration={200}>
       <div className="flex h-dvh overflow-hidden bg-background text-foreground">
         <aside aria-label={copy.navigation} className="hidden shrink-0 border-r border-border min-[769px]:flex" style={{ width: collapsed ? 56 : 240 }}><AdminNavigation {...navigation} collapsed={collapsed} /></aside>

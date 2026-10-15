@@ -40,6 +40,10 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
   const upstreamPath = `${path}${request.nextUrl.search}`;
   const payload = request.method === 'GET' ? undefined : await request.text();
   const init: RequestInit = { method: request.method, ...(payload ? { body: payload, headers: { 'Content-Type': 'application/json' } } : {}) };
+  if (path === '/auth/login' && payload) {
+    try { init.body = JSON.stringify({ ...JSON.parse(payload), surface: 'storefront' }); }
+    catch { return NextResponse.json({ success: false, error: { code: 'VALIDATION_ERROR' } }, { status: 400 }); }
+  }
   let access = request.cookies.get(ACCESS_COOKIE)?.value;
   const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
   if (path === '/auth/refresh') {

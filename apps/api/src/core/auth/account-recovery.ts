@@ -22,7 +22,7 @@ export async function requestPasswordReset(email: string, app: 'storefront' | 'a
   const started = performance.now();
   try {
     const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
-    if (!user || !user.isActive || (user.role === 'ADMIN' && user.removedAt)) return;
+    if (!user || !user.isActive || user.role !== (app === 'admin' ? 'ADMIN' : 'USER') || user.removedAt) return;
     await prisma.$transaction(async (tx) => {
       const token = await issueAuthToken(tx, user.id, 'PASSWORD_RESET');
       await createNotification(tx, 'password_reset', user.id, user.email, { name: user.username }, {
@@ -47,6 +47,22 @@ export async function resetPassword(token: string, newPassword: string): Promise
       data: { consumedAt: new Date() },
     });
   });
+}
+
+export async function lookupRecoveryToken(token: string, purpose: 'STAFF_INVITE' | 'PASSWORD_RESET') {
+  const reject = () => new ApiError(purpose === 'STAFF_INVITE' ? 'INVALID_INVITE_TOKEN' : 'INVALID_RESET_TOKEN');
+  const row = await prisma.authToken.findUnique({
+    where: { tokenHash: hashAuthToken(token) },
+    include: { user: { select: { email: true, role: true, isActive: true, removedAt: true } } },
+  });
+  if (!row || row.purpose !== purpose || row.consumedAt || row.expiresAt <= new Date() || row.attempts >= 5) throw reject();
+  if (purpose === 'STAFF_INVITE') {
+    if (row.user.role !== 'ADMIN' || row.user.isActive || row.user.removedAt) throw reject();
+    const system = await prisma.systemSettings.findUnique({ where: { id: 'system' }, select: { settings: true } });
+    const settings = system?.settings as Record<string, unknown> | null;
+    return { email: row.user.email, storeName: typeof settings?.['branding.platform_name'] === 'string' ? settings['branding.platform_name'] : '' };
+  }
+  return { valid: true };
 }
 
 export async function acceptStaffInvite(token: string, passwordInput: string): Promise<void> {

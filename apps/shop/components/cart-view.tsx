@@ -31,7 +31,7 @@ export function CartView({ initial, locale, currency }: { initial: Cart; locale:
       });
       const body = await response.json();
       if (!response.ok) {
-        setError(body.error?.code === 'INSUFFICIENT_STOCK'
+        setError(body.error?.code === 'ADMIN_ACCOUNT_NOT_FOR_SHOP' ? storefrontMessages(locale).account.adminAccountNotForShop : body.error?.code === 'INSUFFICIENT_STOCK'
           ? `${t.stockAvailable} ${body.error.details?.availableQuantity}` : t.genericError);
       } else {
         setCart(body.data as Cart);

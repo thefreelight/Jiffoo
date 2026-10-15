@@ -24,7 +24,7 @@ export function AuthForm({ mode, locale, labels, next, token }: {
     const data = Object.fromEntries(new FormData(event.currentTarget).entries());
     const path = mode === 'verify-email' ? '/auth/verify-email/code' : `/auth/${mode}`;
     const payload = mode === 'login'
-      ? { identifier: data.email, password: data.password }
+      ? { identifier: data.email, password: data.password, surface: 'storefront' }
       : mode === 'register' ? { ...data, locale }
         : mode === 'reset-password' ? { token, newPassword: data.newPassword }
           : data;

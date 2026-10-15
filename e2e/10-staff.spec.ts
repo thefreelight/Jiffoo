@@ -3,6 +3,7 @@ import { customerEmail, login, ownerEmail, staffEmail } from './helpers';
 import { captureStaffPage } from './staff-captures';
 import { getTestPrisma, disconnectDatabase } from '../apps/api/tests/helpers/db';
 import type { Page } from '@playwright/test';
+import { captureAuthState } from './auth-captures';
 
 async function invite(page: Page, email: string, name: string) {
   await page.goto('/en/staff');
@@ -23,9 +24,11 @@ async function copyInvite(page: Page, expired = false) {
 }
 async function accept(page: Page, link: string, password = 'StaffPassword123!') {
   await page.goto(link);
-  await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByLabel('Confirm password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Activate account', exact: true }).click();
+  await expect(page.getByText(staffEmail, { exact: true })).toBeVisible();
+  await captureAuthState(page, 'invite-form', 'Join E2E Updated Store Admin');
+  await page.getByLabel('Set password', { exact: true }).fill(password);
+  await page.getByLabel('Enter again', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Set password and join', exact: true }).click();
 }
 
 test('administrator invite, revoke, removal, re-invite, protected accounts and activity history', async ({ page, newObservedContext }) => {
@@ -49,6 +52,8 @@ test('administrator invite, revoke, removal, re-invite, protected accounts and a
     await page.goto('/en/staff');
     await captureStaffPage(page, 'list', 'populated', '管理员');
     await page.getByRole('row', { name: new RegExp('e2e-admin.*' + staffEmail) }).click();
+    await expect(page).toHaveURL(detail);
+    await expect(page.getByRole('heading', { name: 'e2e-admin', exact: true })).toBeVisible();
     const account = await db.user.findUniqueOrThrow({ where: { email: staffEmail } });
     await db.authToken.updateMany({ where: { userId: account.id, purpose: 'STAFF_INVITE', consumedAt: null }, data: { expiresAt: new Date(Date.now() - 86400000) } });
     await page.reload();
@@ -57,7 +62,8 @@ test('administrator invite, revoke, removal, re-invite, protected accounts and a
     const link = await copyInvite(page, true);
     const invited = await context.newPage();
     await accept(invited, link);
-    await expect(invited.getByText('Your account is ready.', { exact: true })).toBeVisible();
+    await expect(invited.getByRole('heading', { name: 'Joined E2E Updated Store', exact: true })).toBeVisible();
+    await captureAuthState(invited, 'invite-complete', 'Joined E2E Updated Store');
     await login(invited, staffEmail, 'StaffPassword123!');
     await page.goto(detail);
     await expect(page.getByRole('region', { name: 'Activity', exact: true }).getByText('Accepted the invitation and set a password', { exact: true })).toBeVisible();
@@ -71,6 +77,13 @@ test('administrator invite, revoke, removal, re-invite, protected accounts and a
     await page.getByRole('alertdialog', { name: 'Remove administrator “e2e-admin”?', exact: true }).getByRole('button', { name: 'Remove', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Re-invite', exact: true })).toBeVisible();
     await expect(invited).toHaveURL(/\/en\/auth\/login/);
+    await expect(invited.getByRole('region', { name: 'Sign in to Admin', exact: true }).getByRole('status')).toHaveText('Your password changed elsewhere or your session expired. Please sign in again.');
+    await captureAuthState(invited, 'login-signed-out', 'Sign in to Admin');
+    await invited.getByLabel('Email or login name', { exact: true }).fill(staffEmail);
+    await invited.getByLabel('Password', { exact: true }).fill('StaffPassword123!');
+    await invited.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(invited.getByRole('region', { name: 'Sign in to Admin', exact: true }).getByRole('alert')).toHaveText('This administrator account has been removed and cannot sign in. Contact the store owner with any questions.');
+    await captureAuthState(invited, 'login-removed', 'Sign in to Admin');
     await captureStaffPage(page, 'detail', 'removed', 'e2e-admin');
     const duplicate = await invite(page, staffEmail, 'e2e-admin');
     await expect(duplicate.getByText('This email belongs to a removed administrator. Re-invite them from their detail page.', { exact: true })).toBeVisible();
@@ -82,10 +95,12 @@ test('administrator invite, revoke, removal, re-invite, protected accounts and a
     await page.getByRole('button', { name: 'Re-invite', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Copy invitation link', exact: true })).toBeVisible();
     const newLink = await copyInvite(page);
-    await accept(invited, link);
-    await expect(invited.getByText('Invalid invite token.', { exact: true })).toBeVisible();
+    await invited.goto(link);
+    await expect(invited.getByRole('heading', { name: 'Invitation link expired', exact: true })).toBeVisible();
+    await expect(invited.getByLabel('Set password', { exact: true })).toHaveCount(0);
+    await captureAuthState(invited, 'invite-invalid', 'Invitation link expired');
     await accept(invited, newLink);
-    await expect(invited.getByText('Your account is ready.', { exact: true })).toBeVisible();
+    await expect(invited.getByRole('heading', { name: 'Joined E2E Updated Store', exact: true })).toBeVisible();
     await page.reload();
     const activity = page.getByRole('region', { name: 'Activity', exact: true });
     await expect(activity.getByText('Invited as an administrator', { exact: true })).toHaveCount(1);
@@ -100,7 +115,8 @@ test('administrator invite, revoke, removal, re-invite, protected accounts and a
     await page.getByRole('menuitem', { name: /^Revoke invitation/ }).click();
     await page.getByRole('alertdialog', { name: 'Remove administrator “e2e-revoked”?', exact: true }).getByRole('button', { name: 'Remove', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Re-invite', exact: true })).toBeVisible();
-    await accept(invited, revokedLink);
-    await expect(invited.getByText('Invalid invite token.', { exact: true })).toBeVisible();
+    await invited.goto(revokedLink);
+    await expect(invited.getByRole('heading', { name: 'Invitation link expired', exact: true })).toBeVisible();
+    await expect(invited.getByLabel('Set password', { exact: true })).toHaveCount(0);
   } finally { await context.close(); await disconnectDatabase(); }
 });

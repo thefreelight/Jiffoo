@@ -36,5 +36,7 @@ test('register and verify in zh-Hans, then log in from the product page', async 
   await shopLogout(page, { locale: 'zh-Hans' });
   await page.goto('/zh-Hans/products/e2e-localized-product');
   await page.getByRole('link', { name: '登录', exact: true }).click();
+  const loginRequest = page.waitForRequest(request => request.url().endsWith('/bff/auth/login') && request.method() === 'POST');
   await shopLogin(page, { locale: 'zh-Hans', email, password, expectedPath: '/zh-Hans/products/e2e-localized-product' });
+  expect((await loginRequest).postDataJSON().surface).toBe('storefront');
 });

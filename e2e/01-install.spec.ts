@@ -1,8 +1,10 @@
 import { expect, test } from './local-requests';
 import { originalPassword, ownerEmail } from './helpers';
 import { captureOverview, chooseOverviewMode } from './overview-captures';
+import { captureAuthState } from './auth-captures';
 
-test('first-run install creates the owner and opens the dashboard', async ({ page }) => {
+test('first-run install shows completion and already-installed states before sign-in', async ({ page }) => {
+  test.setTimeout(120000);
   const pageErrors: string[] = [];
   page.on('pageerror', error => { pageErrors.push(error.message); console.error(`[Admin browser error] ${error.message}`); });
   page.on('console', message => { if (message.type() === 'error') console.error(`[Admin browser console] ${message.text()}`); });
@@ -10,9 +12,24 @@ test('first-run install creates the owner and opens the dashboard', async ({ pag
   await page.getByLabel('Login name').fill('e2e-owner');
   await page.getByLabel('Email').fill(ownerEmail);
   await page.getByLabel(/^Password/).fill(originalPassword);
-  await page.getByLabel('Confirm password').fill(originalPassword);
+  await page.getByLabel('Enter again', { exact: true }).fill(originalPassword);
   await page.getByLabel('Store name').fill('E2E Store');
-  await page.getByRole('button', { name: 'Create workspace' }).click();
+  await captureAuthState(page, 'install-form', 'Install Jiffoo');
+  await page.getByRole('button', { name: 'Complete installation', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Installation complete', exact: true })).toBeVisible();
+  await expect(page.getByText('e2e-owner · ' + ownerEmail, { exact: true })).toBeVisible();
+  await expect(page.getByText('UTC (change in Settings)', { exact: true })).toBeVisible();
+  await captureAuthState(page, 'install-complete', 'Installation complete');
+  await page.getByRole('link', { name: 'Go to sign in', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/auth\/login$/);
+  await page.goto('/en/install');
+  await expect(page.getByRole('heading', { name: 'This store is already installed', exact: true })).toBeVisible();
+  await captureAuthState(page, 'install-already', 'This store is already installed');
+  await page.getByRole('link', { name: 'Go to sign in', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/auth\/login$/);
+  await page.getByLabel('Email or login name', { exact: true }).fill('e2e-owner');
+  await page.getByLabel('Password', { exact: true }).fill(originalPassword);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page).toHaveURL(/\/en\/dashboard/);
   await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
   await expect(page.getByText('Nothing needs your attention right now.', { exact: true })).toBeVisible();

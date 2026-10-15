@@ -55,7 +55,7 @@ async function main() {
     const { userId, email } = request.body as { userId: string; email: string };
     return EmailVerificationService.sendVerificationEmail(userId, email, 'Fixture');
   });
-  app.post('/api/v1/__fixture/install', async () => InstallService.completeInstallation({ siteName: 'Fixture', adminEmail: 'fixture@example.test', adminPassword: {} as string }));
+  app.post('/api/v1/__fixture/install', async () => InstallService.completeInstallation({ siteName: 'Fixture', adminUsername: 'fixture-owner', adminEmail: 'fixture@example.test', adminPassword: {} as string }));
   app.get('/api/v1/__fixture/contract/:slug/:method', async (request) => {
     const { slug, method } = request.params as { slug: string; method: string };
     return callContract(slug, 'payment', 2, method, { storeCurrency: 'USD', sessionId: 'fixture' });

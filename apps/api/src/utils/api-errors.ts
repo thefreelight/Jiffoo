@@ -6,6 +6,9 @@ import { errorCodes, type FastifyReply } from 'fastify';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 
 export const errorCatalog = {
+  [ApiErrorCodes.CUSTOMER_ACCOUNT_NOT_ADMIN]: { status: 403, message: 'This customer account cannot access the administration.' },
+  [ApiErrorCodes.ADMIN_ACCOUNT_REMOVED]: { status: 403, message: 'This administrator account has been removed.' },
+  [ApiErrorCodes.ADMIN_ACCOUNT_NOT_FOR_SHOP]: { status: 403, message: 'Administrator accounts cannot sign in to or purchase from the storefront.' },
   [ApiErrorCodes.VERSION_CHECK_FAILED]: { status: 500, message: 'Internal server error' },
   [ApiErrorCodes.THEME_MANIFEST_TOO_LARGE]: { status: 413, message: 'Theme manifest is too large' },
   [ApiErrorCodes.THEME_FONT_TOO_LARGE]: { status: 413, message: 'Theme font is too large' },

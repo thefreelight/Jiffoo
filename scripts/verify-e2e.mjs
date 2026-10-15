@@ -73,12 +73,19 @@ const providerLibraryOverrides = JSON.stringify(Object.fromEntries(['ga4', 'meta
   )}`,
 ])));
 const playwrightCounts = { expected: 0, unexpected: 0, skipped: 0 };
+// Login-heavy projects are split so each group stays within the login rate limit.
 const playwrightGroups = [
-  ['01-install', '02-login', '03-password', '04-language', '05-settings', '06-health-plugins', '07-products', '08-orders', '09-customers'],
-  ['10-staff', '11-forgot-password', '12-translations', '13-shop', '14-shop-registration', '15-shop-account', '16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund', '19-themes', '20-admin-theme', '21-shop-page-boundaries', '22-shop-payment-csp'],
+  ['01-install'],
+  // This project intentionally exhausts its isolated login budget.
+  ['02-login'],
+  ['03-password', '04-language', '05-settings', '06-health-plugins', '07-products'],
+  ['08-orders', '09-customers'],
+  ['10-staff', '11-forgot-password', '12-translations', '13-shop', '14-shop-registration', '15-shop-account'],
+  ['16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund', '19-themes', '20-admin-theme', '21-shop-page-boundaries', '22-shop-payment-csp'],
 ];
 if (visual && !review) {
-  const finalProjects = playwrightGroups[1].splice(playwrightGroups[1].indexOf('20-admin-theme'));
+  const themeGroup = playwrightGroups.find(group => group.includes('20-admin-theme'));
+  const finalProjects = themeGroup.splice(themeGroup.indexOf('20-admin-theme'));
   playwrightGroups.push(['visual']);
   playwrightGroups.push(finalProjects);
 }
@@ -256,12 +263,17 @@ async function runPlaywrightGroup(args) {
 
 async function runPlaywrightGroups() {
   for (const [index, projects] of playwrightGroups.entries()) {
-    await resetE2eLoginLimit(projects.includes('35-extension-center'));
-    await runPlaywrightGroup([
-      'exec', 'playwright', 'test', '--config=e2e/playwright.config.ts',
-      ...(index || env.E2E_RELOAD_STRESS === '1' ? ['--no-deps'] : []),
-      ...projects.map((project) => `--project=${project}`),
-    ]);
+    // Partition the six extension-center cases into ordered login budgets.
+    const partitions = projects.includes('35-extension-center') ? ['/\\b[A-C] /', '/\\b[D-F] /'] : [null];
+    for (const grep of partitions) {
+      await resetE2eLoginLimit(projects.includes('35-extension-center'));
+      await runPlaywrightGroup([
+        'exec', 'playwright', 'test', '--config=e2e/playwright.config.ts',
+        ...(index || env.E2E_RELOAD_STRESS === '1' ? ['--no-deps'] : []),
+        ...projects.map((project) => `--project=${project}`),
+        ...(grep ? ['--grep', grep] : []),
+      ]);
+    }
   }
 }
 

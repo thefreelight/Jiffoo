@@ -12,8 +12,9 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   isChecking: boolean
+  sessionNotice: boolean
   login: (identifier: string, password: string) => Promise<void>
-  logout: () => void
+  logout: (reason?: 'expired') => void
   checkAuth: () => Promise<void>
   updateUser: (user: AppUser) => void
   getAuthToken: () => string | null
@@ -24,6 +25,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
   isChecking: false,
+  sessionNotice: false,
 
   login: async (identifier: string, password: string) => {
     set({ isLoading: true })
@@ -73,19 +75,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         lastLoginAt: userData.lastLoginAt || new Date().toISOString()
       }
 
-      set({ user: userProfile, isAuthenticated: true, isLoading: false })
+      set({ user: userProfile, isAuthenticated: true, isLoading: false, sessionNotice: false })
     } catch (error) {
       set({ isLoading: false })
       throw error
     }
   },
 
-  logout: () => {
+  logout: (reason) => {
     void authApi.logout()
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_status');
     }
-    set({ user: null, isAuthenticated: false })
+    set({ user: null, isAuthenticated: false, sessionNotice: reason === 'expired' })
   },
 
   checkAuth: async () => {
@@ -120,7 +122,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error) {
       console.warn('Auth check failed:', error)
       apiClient.clearAuth()
-      set({ user: null, isAuthenticated: false, isLoading: false, isChecking: false })
+      set({ user: null, isAuthenticated: false, isLoading: false, isChecking: false,
+        sessionNotice: ['SESSION_REVOKED', 'UNAUTHORIZED', 'INVALID_TOKEN', 'REFRESH_FAILED'].includes((error as { code?: string })?.code ?? '') })
     }
   },
 

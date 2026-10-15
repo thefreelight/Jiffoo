@@ -101,9 +101,10 @@ export const authSchemas = {
         identifier: { type: 'string', minLength: 1, description: 'User email address or username' },
         email: { type: 'string', format: 'email', description: 'Legacy user email address' },
         password: { type: 'string', description: 'User password' },
+        surface: { type: 'string', enum: ['admin', 'storefront'], default: 'storefront' },
       },
     },
-    response: createTypedCrudResponses(authResponseSchema),
+    response: { ...createTypedCrudResponses(authResponseSchema), 403: errorResponseSchema, 429: errorResponseSchema, 503: errorResponseSchema },
   },
 
   // GET /api/auth/me

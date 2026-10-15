@@ -385,12 +385,12 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
     }
 
     await page.goto('/en/auth/login');
-    await expect(page.getByPlaceholder('Enter your email')).toBeVisible();
+    await expect(page.getByLabel('Email or login name', { exact: true })).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     await captureDynamicBoxes(page, 'login', width, height, set);
     await screenshotWithoutOverflow(page, { path: `e2e/visual-results/${set}/login-${width}.png`, fullPage: true, animations: 'disabled' });
-    await page.getByPlaceholder('Enter your email').fill(ownerEmail);
-    await page.getByPlaceholder('Enter your password').fill('FinalOwnerPassword123!');
+    await page.getByLabel('Email or login name', { exact: true }).fill(ownerEmail);
+    await page.getByLabel('Password', { exact: true }).fill('FinalOwnerPassword123!');
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/\/en\/dashboard$/);
 

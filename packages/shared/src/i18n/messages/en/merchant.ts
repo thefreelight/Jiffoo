@@ -5,7 +5,10 @@
  * products, orders, customers, and settings.
  */
 
+import { adminAuthMessages } from '../admin-auth';
+
 export const merchant = {
+  authFlow: adminAuthMessages.en,
   staffView: {
     emailPlaceholder: "name@example.com",
     title: "Administrators",

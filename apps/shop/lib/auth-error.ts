@@ -6,6 +6,7 @@ export function authErrorMessage(
   if (status === 429 || code === 'RATE_LIMITED') return labels.tooManyAttempts;
   if (mode === 'login' && code === 'LOGIN_FAILED') return labels.invalidLogin;
   if (code === 'ACCOUNT_INACTIVE') return labels.accountInactive;
+  if (code === 'ADMIN_ACCOUNT_NOT_FOR_SHOP') return labels.adminAccountNotForShop;
   if (code === 'EMAIL_NOT_VERIFIED' || code === 'INVALID_VERIFICATION_CODE') return labels.verificationFailed;
   return labels.genericError;
 }

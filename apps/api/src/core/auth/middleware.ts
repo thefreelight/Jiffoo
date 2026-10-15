@@ -235,6 +235,11 @@ export function dualAuthMiddleware(...requiredScopes: ApiTokenScope[]) {
 
     // JWT path — delegate to standard authMiddleware
     await authMiddleware(request, reply);
+    if (!reply.sent && request.user?.role === 'ADMIN' &&
+      ((requiredScopes.includes('checkout:create') && request.method === 'POST' && /\/(?:checkout\/(?:quote|confirm)|orders\/?)$/.test(request.routeOptions.url)) ||
+        (requiredScopes.includes('cart:write') && !['GET', 'HEAD'].includes(request.method)))) {
+      sendError(reply, 403, 'ADMIN_ACCOUNT_NOT_FOR_SHOP', 'Administrator accounts cannot purchase from the storefront.');
+    }
   };
 }
 

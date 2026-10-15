@@ -14,6 +14,8 @@ const { forgotPassword, generateResetLink, generateInviteLink } = vi.hoisted(() 
 }))
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/en/auth/forgot-password',
+  useSearchParams: () => new URLSearchParams(),
   useParams: () => ({ id: 'staff-1' }),
   useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
 }))
@@ -96,7 +98,7 @@ describe('Admin account links', () => {
       new Event('submit', { bubbles: true, cancelable: true }),
     ))
     expect(forgotPassword).toHaveBeenCalledWith('buyer@example.com')
-    expect(container.textContent).toContain('If an account exists')
+    expect(container.textContent).toContain('merchant.authFlow.sentDescription')
   })
 
   it('generates the reset link immediately and shows an inline panel', async () => {

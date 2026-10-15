@@ -34,6 +34,7 @@ describe('Install re-submission', () => {
       url: '/api/v1/install/complete',
       payload: {
         siteName: 'Installation Test',
+        adminUsername: 'existing-install',
         adminEmail: existing.email,
         adminPassword: 'SubmittedPassword123!',
       },
@@ -52,6 +53,13 @@ describe('Install re-submission', () => {
     check.mockRestore();
   });
 
+  it.each(['a', 'a'.repeat(65), 'has space', 'owner@store', '店主'])('rejects invalid owner login name %s', async adminUsername => {
+    const response = await app.inject({ method: 'POST', url: '/api/v1/install/complete', payload: {
+      siteName: 'Validation', adminUsername, adminEmail: 'validation@example.com', adminPassword: 'Password123!',
+    } });
+    expect(response.statusCode).toBe(400); expect(response.json().error.code).toBe('VALIDATION_ERROR');
+  });
+
   it('rejects a second completion without creating another administrator', async () => {
     const first = await app.inject({
       method: 'POST',
@@ -65,10 +73,11 @@ describe('Install re-submission', () => {
     });
     expect(first.statusCode).toBe(200);
     expect(first.json().success).toBe(true);
+    expect(first.json()).toMatchObject({ siteName: 'Installation Test', adminUsername: 'install-resubmission', adminEmail: 'install-resubmission@example.com', timezone: 'UTC' });
     const login = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      payload: { email: 'install-resubmission@example.com', password: 'InstallationPassword123!' },
+      payload: { email: 'install-resubmission@example.com', password: 'InstallationPassword123!', surface: 'admin' },
     });
     expect(login.statusCode).toBe(200);
     expect(login.json().data.user.role).toBe('ADMIN');

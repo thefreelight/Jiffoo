@@ -12,6 +12,15 @@
 @source "../hooks";
 @custom-variant dark (&:where([data-color-mode="dark"], [data-color-mode="dark"] *));
 
+.admin-auth-page { background: var(--admin-core-raised); }
+.admin-auth-panel { background: var(--admin-core-ground); }
+html[data-color-mode="dark"][data-admin-dark-available="true"] .admin-auth-page { background: var(--admin-core-ground); }
+html[data-color-mode="dark"][data-admin-dark-available="true"] .admin-auth-panel { background: var(--admin-core-raised); }
+@media (prefers-color-scheme: dark) {
+  html[data-color-mode="system"][data-admin-dark-available="true"] .admin-auth-page { background: var(--admin-core-ground); }
+  html[data-color-mode="system"][data-admin-dark-available="true"] .admin-auth-panel { background: var(--admin-core-raised); }
+}
+
 /* Temporary fixed utility bridge; remove aliases as pages migrate to v2 roles. */
 @theme inline {
   --color-surface: var(--admin-surface);

@@ -77,7 +77,7 @@ async function buyer(page: Page, request: APIRequestContext) {
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   await expect(page).toHaveURL(/\/en\/account$/);
-  const token = (await api<{ token: string }>(request, '/auth/login', { method: 'POST', data: { email, password } })).token;
+  const token = (await api<{ token: string }>(request, '/auth/login', { method: 'POST', data: { email, password, surface: 'storefront' } })).token;
   return token;
 }
 

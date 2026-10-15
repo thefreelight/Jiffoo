@@ -49,6 +49,7 @@ describe('Account recovery', () => {
     expect(JSON.stringify(row)).not.toContain(token);
     expect(await prisma.notification.count({ where: { type: 'password_reset' } })).toBe(1);
 
+    await prisma.user.update({ where: { id: account.id }, data: { role: 'ADMIN' } });
     const admin = await app.inject({
       method: 'POST', url: '/api/v1/auth/forgot-password',
       payload: { email: account.email, app: 'admin' },

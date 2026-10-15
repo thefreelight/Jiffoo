@@ -39,7 +39,8 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries 
       body: JSON.stringify({ shippingAddress: address, ...(optionId ? { shippingOptionId: optionId } : {}) }),
     });
     if (!response.ok) {
-      setError(errorOnFailure);
+      const failure = await response.json();
+      setError(failure.error?.code === 'ADMIN_ACCOUNT_NOT_FOR_SHOP' ? storefrontMessages(locale).account.adminAccountNotForShop : errorOnFailure);
       return null;
     }
     const result = (await response.json()).data as Quote;
@@ -100,7 +101,7 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries 
           setPaymentMethod(''); setPriceChanged(false);
           await requestQuote(shippingOptionId, t.paymentUnavailable);
           setError(t.paymentUnavailable);
-        } else setError(t.genericError);
+        } else setError(body.error?.code === 'ADMIN_ACCOUNT_NOT_FOR_SHOP' ? storefrontMessages(locale).account.adminAccountNotForShop : t.genericError);
         return;
       }
       orderId = body.data.id as string;

@@ -76,6 +76,7 @@ export const storefront = {
     back: '返回首页',
   },
   account: {
+    adminAccountNotForShop: '这是店铺后台的管理员账户，不能在商城登录或下单。',
     login: '登录', register: '创建账户', forgot: '忘记密码', reset: '重置密码',
     verify: '验证邮箱', verifyAction: '验证我的邮箱', profile: '账户', unverified: '您的邮箱尚未验证。',
     resend: '重新发送验证邮件', requestReceived: '请求已收到，请检查收件箱。',
