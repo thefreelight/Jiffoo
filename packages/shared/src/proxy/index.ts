@@ -165,7 +165,7 @@ export function matchLocaleFromAcceptLanguage(
     // Multiple variants of the same language: let the visitor's region pick
     // (zh-CN → zh-Hans, zh-TW → zh-Hant); bare tags take the store's order.
     const preferred = REGION_LOCALE_PREFERENCE[lower];
-    const preferredMatch = baseMatches.find((locale) => locale.toLowerCase() === preferred);
+    const preferredMatch = baseMatches.find((locale) => locale.toLowerCase() === preferred?.toLowerCase());
     return preferredMatch ?? baseMatches[0];
   }
 
