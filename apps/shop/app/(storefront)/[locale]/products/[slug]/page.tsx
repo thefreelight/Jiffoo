@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import { ShopImage as Image } from '@/components/shop-image';
 import Link from 'next/link';
 import { ImageOff } from 'lucide-react';
 import { notFound } from 'next/navigation';

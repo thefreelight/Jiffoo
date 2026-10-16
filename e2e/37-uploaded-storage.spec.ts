@@ -3,10 +3,21 @@ import { resolve } from 'node:path';
 import { captureReview, expect, test } from './review-capture';
 import { login, ownerEmail } from './helpers';
 import { themePackage } from './theme-package';
+import type { Locator, Response } from '@playwright/test';
 
 const fixtureImage = async () => ({ name: 'merchant-image.png', mimeType: 'image/png',
   buffer: await readFile(resolve(__dirname, 'fixtures/themes/test-admin-logo.png')) });
 const canonical = /^\/uploads\/products\/[a-f0-9]{64}\/original\.jpg$/;
+
+function isOptimizedMedia(response: Response, source: string) {
+  const url = new URL(response.url());
+  return url.pathname === '/_next/image' && url.searchParams.get('url') === source;
+}
+
+async function expectOptimizedSource(image: Locator, source: string) {
+  await expect(image).toHaveAttribute('src', /^\/_next\/image\?/);
+  expect(new URL((await image.getAttribute('src'))!, 'http://127.0.0.1:3003').searchParams.get('url')).toBe(source);
+}
 
 test('G uploaded product image survives Admin save and renders in Shop through the API', async ({ page, context }) => {
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
@@ -27,11 +38,13 @@ test('G uploaded product image survives Admin save and renders in Shop through t
   await page.getByRole('textbox', { name: 'Search name, SPU or SKU', exact: true }).fill('B5 Media Product');
   await expect(page.getByRole('link', { name: 'B5 Media Product', exact: true })).toBeVisible();
   const shop = await context.newPage();
-  const media = shop.waitForResponse(response => new URL(response.url()).pathname === url);
+  const media = shop.waitForResponse(response => isOptimizedMedia(response, url));
   await shop.goto('http://127.0.0.1:3003/en/products');
-  await expect(shop.getByRole('img', { name: 'B5 Media Product', exact: true })).toHaveAttribute('src', url);
+  await expectOptimizedSource(shop.getByRole('img', { name: 'B5 Media Product', exact: true }), url);
   const served = await media; expect(served.status()).toBe(200);
-  expect(served.headers()['cache-control']).toContain('immutable');
+  expect(served.headers()['cache-control']).toContain('max-age=');
+  expect(served.headers()['content-type']).toMatch(/^image\//);
+  expect((await served.body()).length).toBeGreaterThan(0);
   await captureReview(shop, 'upload-storage-review', 'product-shop-en', { width: 1440, height: 900 });
   for (const [locale, title] of [['en', 'Upload storage is temporarily unavailable. Try again shortly.'],
     ['zh-Hans', '上传存储暂时不可用，请稍后重试。'], ['zh-Hant', '上傳儲存暫時無法使用，請稍後再試。']]) {
@@ -80,12 +93,12 @@ test('G theme media upload saves a canonical URL and renders in Shop after reloa
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
   const shop = await context.newPage();
-  const served = shop.waitForResponse(response => new URL(response.url()).pathname === url);
+  const served = shop.waitForResponse(response => isOptimizedMedia(response, url));
   await shop.goto('http://127.0.0.1:3003/en');
-  await expect(shop.getByRole('img', { name: 'Theme hero', exact: true })).toHaveAttribute('src', url);
+  await expectOptimizedSource(shop.getByRole('img', { name: 'Theme hero', exact: true }), url);
   expect((await served).status()).toBe(200);
   await shop.reload();
-  await expect(shop.getByRole('img', { name: 'Theme hero', exact: true })).toHaveAttribute('src', url);
+  await expectOptimizedSource(shop.getByRole('img', { name: 'Theme hero', exact: true }), url);
   await captureReview(shop, 'upload-storage-review', 'theme-shop-en', { width: 1440, height: 900 });
   await page.getByRole('link', { name: '← Themes', exact: true }).click();
   await page.getByRole('button', { name: 'More actions: E2E Upload Theme', exact: true }).click();

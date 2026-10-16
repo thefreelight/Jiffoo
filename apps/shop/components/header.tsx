@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import { ShopImage as Image } from './shop-image';
 import Link from 'next/link';
 import { ShoppingCart } from 'lucide-react';
 import type { Category, StoreContext } from '@/lib/catalog';

@@ -12,6 +12,9 @@ import { locales } from '../lib/locale';
 
 const requestHeaders = vi.hoisted(() => ({ value: new Headers() }));
 vi.mock('server-only', () => ({}));
+vi.mock('../lib/fonts', () => ({ shopFontClassName: 'geist-sans geist-mono' }));
+vi.mock('nuqs/adapters/next/app', () => ({ NuqsAdapter: ({ children }: { children: React.ReactNode }) => children }));
+vi.mock('../components/ui/sonner', () => ({ Toaster: () => null }));
 vi.mock('next/headers', () => ({ headers: async () => requestHeaders.value }));
 vi.mock('../lib/server-bootstrap', () => ({ shopBootstrap: async () => ({ context: { defaultLocale: 'zh-Hant' }, slots: null }) }));
 afterEach(() => vi.restoreAllMocks());
@@ -26,7 +29,7 @@ it('A document roots render the route language for storefront and payment in eve
       requestHeaders.value = new Headers({ 'x-shop-locale': locale });
       const root = suffix ? PaymentRoot : StorefrontRoot;
       expect(renderToStaticMarkup(await root({ children: 'Document content' })))
-        .toBe(`<html lang="${locale}"><head></head><body>Document content</body></html>`);
+        .toBe(`<html lang="${locale}" class="geist-sans geist-mono" data-shop-dark-available="true"><head></head><body>Document content</body></html>`);
     }
   }
 });
@@ -36,7 +39,7 @@ it('B nonlocalized documents use the store language and discard a spoofed route 
   expect(response.headers.get('x-middleware-request-x-shop-locale')).toBeNull();
   requestHeaders.value = new Headers();
   expect(renderToStaticMarkup(await DocumentRoot({ children: 'Not found' })))
-    .toBe('<html lang="zh-Hant"><head></head><body>Not found</body></html>');
+    .toBe('<html lang="zh-Hant" class="geist-sans geist-mono" data-shop-dark-available="true"><head></head><body>Not found</body></html>');
 });
 
 it('C the initial document language is the server value despite a different pathname or a nonlocale store-default route', async () => {
@@ -48,5 +51,5 @@ it('C the initial document language is the server value despite a different path
   requestHeaders.value = new Headers();
   expect(renderToStaticMarkup(createElement(PathnameContext.Provider, { value: '/en' },
     await DocumentRoot({ children: 'Store default content' }))))
-    .toBe('<html lang="zh-Hant"><head></head><body>Store default content</body></html>');
+    .toBe('<html lang="zh-Hant" class="geist-sans geist-mono" data-shop-dark-available="true"><head></head><body>Store default content</body></html>');
 });

@@ -14,9 +14,9 @@
 --shop-core-destructive-line: #F5C7C2;
 --shop-core-radius-control: 8px;
 --shop-core-radius-panel: 12px;
---shop-core-font-body: system-ui, -apple-system, sans-serif;
---shop-core-font-heading: system-ui, -apple-system, sans-serif;
---shop-core-font-mono: Menlo, Consolas, monospace;
+--shop-core-font-body: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--shop-core-font-heading: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--shop-core-font-mono: var(--font-geist-mono, monospace), "Noto Sans SC", monospace;
 --shop-extras-primary: #171717;
 --shop-extras-primary-foreground: #FFFFFF;
 --shop-extras-secondary: #F4F4F5;
@@ -80,7 +80,7 @@
 --shop-button-style: var(--shop-extras-button-style);
 --shop-card-shadow: var(--shop-extras-card-shadow);
 }
-@media (prefers-color-scheme: dark) { :root[data-color-mode="system"] {
+@media (prefers-color-scheme: dark) { :root[data-shop-dark-available="true"][data-color-mode="system"] {
 --shop-core-ground: #0A0A0A;
 --shop-core-raised: #111111;
 --shop-core-foreground: #EDEDED;
@@ -96,9 +96,9 @@
 --shop-core-destructive-line: #5C1D17;
 --shop-core-radius-control: 8px;
 --shop-core-radius-panel: 12px;
---shop-core-font-body: system-ui, -apple-system, sans-serif;
---shop-core-font-heading: system-ui, -apple-system, sans-serif;
---shop-core-font-mono: Menlo, Consolas, monospace;
+--shop-core-font-body: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--shop-core-font-heading: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--shop-core-font-mono: var(--font-geist-mono, monospace), "Noto Sans SC", monospace;
 --shop-extras-primary: #EDEDED;
 --shop-extras-primary-foreground: #0A0A0A;
 --shop-extras-secondary: #1C1C1C;
@@ -162,7 +162,7 @@
 --shop-button-style: var(--shop-extras-button-style);
 --shop-card-shadow: var(--shop-extras-card-shadow);
 } }
-:root[data-color-mode="dark"] {
+:root[data-shop-dark-available="true"][data-color-mode="dark"] {
 --shop-core-ground: #0A0A0A;
 --shop-core-raised: #111111;
 --shop-core-foreground: #EDEDED;
@@ -178,9 +178,9 @@
 --shop-core-destructive-line: #5C1D17;
 --shop-core-radius-control: 8px;
 --shop-core-radius-panel: 12px;
---shop-core-font-body: system-ui, -apple-system, sans-serif;
---shop-core-font-heading: system-ui, -apple-system, sans-serif;
---shop-core-font-mono: Menlo, Consolas, monospace;
+--shop-core-font-body: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--shop-core-font-heading: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
+--shop-core-font-mono: var(--font-geist-mono, monospace), "Noto Sans SC", monospace;
 --shop-extras-primary: #EDEDED;
 --shop-extras-primary-foreground: #0A0A0A;
 --shop-extras-secondary: #1C1C1C;

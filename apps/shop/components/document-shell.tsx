@@ -4,7 +4,9 @@ import { usePathname } from 'next/navigation';
 import { startTransition, useEffect, useRef, useState } from 'react';
 import { isShopLocale, type ShopLocale } from '@/lib/locale';
 
-export function DocumentShell({ locale, children }: { locale: ShopLocale; children?: React.ReactNode }) {
+export function DocumentShell({ locale, children, fontClassName, darkAvailable }: {
+  locale: ShopLocale; children?: React.ReactNode; fontClassName?: string; darkAvailable?: boolean;
+}) {
   const pathname = usePathname();
   const previousPathname = useRef(pathname);
   const [language, setLanguage] = useState(locale);
@@ -14,5 +16,7 @@ export function DocumentShell({ locale, children }: { locale: ShopLocale; childr
     const segment = pathname?.split('/')[1];
     startTransition(() => setLanguage(segment && isShopLocale(segment) ? segment : locale));
   }, [pathname, locale]);
-  return <html lang={language}><body>{children}</body></html>;
+  return <html lang={language} className={fontClassName} data-shop-dark-available={darkAvailable === undefined ? undefined : String(darkAvailable)}>
+    <body>{children}</body>
+  </html>;
 }

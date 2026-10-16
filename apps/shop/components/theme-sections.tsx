@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import { ShopImage as Image } from './shop-image';
 import Link from 'next/link';
 import { Check, Star, Truck } from 'lucide-react';
 import { SECTION_TYPES } from 'shared';
@@ -24,7 +24,7 @@ export const sectionRegistry: Record<(typeof SECTION_TYPES)[number], (props: Ren
     {settings.link ? <Link href={href(data.locale, settings.link)}>{text(settings.text)}</Link> : text(settings.text)}
   </aside>,
   'hero-banner': ({ settings, data }) => <section className="relative min-h-64 overflow-hidden bg-highlight">
-    {!!settings.image && <Image src={text(settings.image)} alt={text(settings.alt)} fill unoptimized className="object-cover" />}
+    {!!settings.image && <Image src={text(settings.image)} alt={text(settings.alt)} fill className="object-cover" />}
     <div className="relative mx-auto max-w-7xl px-4 py-16 md:px-8">
       <h2 className="text-3xl font-semibold">{text(settings.title)}</h2>
       {!!settings.body && <p className="mt-3 max-w-xl">{text(settings.body)}</p>}
@@ -56,7 +56,7 @@ export const sectionRegistry: Record<(typeof SECTION_TYPES)[number], (props: Ren
   </section>,
   'image-with-text': ({ settings, data }) => <section className="grid gap-6 md:grid-cols-2">
     <div className={`relative aspect-[4/3] bg-highlight ${settings.position === 'right' ? 'md:order-2' : ''}`}>
-      <Image src={text(settings.image)} alt={text(settings.alt)} fill unoptimized className="object-cover" />
+      <Image src={text(settings.image)} alt={text(settings.alt)} fill className="object-cover" />
     </div>
     <div className="self-center"><h2 className="text-2xl font-semibold">{text(settings.title)}</h2>
       <p className="mt-3 whitespace-pre-wrap text-subtle">{text(settings.body)}</p>

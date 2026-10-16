@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import { ShopImage as Image } from './shop-image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -13,7 +13,7 @@ export function ImageCarousel({ slides }: {
   const slide = slides[index];
   return <section aria-label={slide.title} className="relative overflow-hidden rounded-shop bg-highlight">
     <div className="relative aspect-[2/1]">
-      <Image src={slide.image} alt={slide.alt ?? ''} fill unoptimized className="object-cover" />
+      <Image src={slide.image} alt={slide.alt ?? ''} fill className="object-cover" />
     </div>
     <div className="absolute inset-x-0 bottom-0 bg-surface p-4">
       {slide.link ? <Link href={slide.link} className="font-semibold text-action">{slide.title}</Link>

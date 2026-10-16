@@ -1,7 +1,114 @@
+@import 'tailwindcss' source(none);
+@import 'tw-animate-css';
+@import '@fontsource/noto-sans-sc/400.css';
+@import '@fontsource/noto-sans-sc/500.css';
+@import '@fontsource/noto-sans-sc/600.css';
+@import '@fontsource/noto-sans-sc/700.css';
 @import './default-tokens.css';
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@source '../app';
+@source '../components';
+
+@custom-variant dark {
+  &:where([data-shop-dark-available="true"][data-color-mode="dark"], [data-shop-dark-available="true"][data-color-mode="dark"] *) { @slot; }
+  @media (prefers-color-scheme: dark) {
+    &:where([data-shop-dark-available="true"][data-color-mode="system"], [data-shop-dark-available="true"][data-color-mode="system"] *) { @slot; }
+  }
+}
+
+:root {
+  --background: var(--shop-background);
+  --foreground: var(--shop-text);
+  --card: var(--shop-surface);
+  --card-foreground: var(--shop-text);
+  --popover: var(--shop-surface);
+  --popover-foreground: var(--shop-text);
+  --primary: var(--shop-primary);
+  --primary-foreground: var(--shop-primary-foreground);
+  --secondary: var(--shop-secondary);
+  --secondary-foreground: var(--shop-secondary-foreground);
+  --muted: var(--shop-surface-muted);
+  --muted-foreground: var(--shop-text-muted);
+  --accent: var(--shop-accent);
+  --accent-foreground: var(--shop-text);
+  --destructive: var(--shop-core-destructive);
+  --destructive-foreground: var(--shop-primary-foreground);
+  --border: var(--shop-border);
+  --input: var(--shop-border);
+  --ring: var(--shop-action);
+  --radius: var(--shop-core-radius-control);
+}
+
+@theme inline {
+  --color-canvas: var(--shop-canvas);
+  --color-surface: var(--shop-surface);
+  --color-ink: var(--shop-ink);
+  --color-subtle: var(--shop-subtle);
+  --color-line: var(--shop-line);
+  --color-action: var(--shop-action);
+  --color-action-ink: var(--shop-action-ink);
+  --color-highlight: var(--shop-highlight);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-surface-muted: var(--shop-surface-muted);
+  --color-text-muted: var(--shop-text-muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--shop-success);
+  --color-warning: var(--shop-warning);
+  --color-danger: var(--shop-danger);
+  --color-header-bg: var(--shop-header-bg);
+  --color-header-text: var(--shop-header-text);
+  --color-footer-bg: var(--shop-footer-bg);
+  --color-footer-text: var(--shop-footer-text);
+  --color-announcement-bg: var(--shop-announcement-bg);
+  --color-announcement-text: var(--shop-announcement-text);
+  --color-price: var(--shop-price);
+  --color-sale-price: var(--shop-sale-price);
+  --font-sans: var(--shop-font-body);
+  --font-heading: var(--shop-font-heading);
+  --font-mono: var(--shop-core-font-mono);
+  --text-shop-base: var(--shop-font-size-base);
+  --radius-shop: var(--shop-radius-md);
+  --radius-shop-sm: var(--shop-radius-sm);
+  --radius-shop-lg: var(--shop-radius-lg);
+  --radius-button: var(--shop-button-radius);
+  --radius-card: var(--shop-card-radius);
+  --radius-sm: var(--shop-core-radius-control);
+  --radius-md: var(--shop-core-radius-control);
+  --radius-lg: var(--shop-core-radius-panel);
+  --spacing-section: var(--shop-section-spacing);
+  --container-container: var(--shop-container-width);
+  --font-weight-heading: var(--shop-heading-weight);
+  --shadow-card: var(--shop-card-shadow);
+  --shadow-overlay: 0 12px 32px #00000026;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+@utility scale-shop { transform: scale(var(--shop-type-scale)); }
+
+/* Retain the existing page values across the Tailwind major upgrade. */
+@layer base {
+  *, ::before, ::after { border-color: #e5e7eb; }
+  input::placeholder, textarea::placeholder { color: #9ca3af; }
+  button, input, optgroup, select, textarea { font-feature-settings: inherit; font-variation-settings: inherit; }
+  button, [role="button"] { cursor: pointer; }
+}
+@utility outline-none { outline: 2px solid transparent; outline-offset: 2px; }
 
 body { background: var(--shop-canvas); color: var(--shop-ink); font-family: var(--shop-font); }
 *:focus-visible { outline: 2px solid var(--shop-action); outline-offset: 2px; }

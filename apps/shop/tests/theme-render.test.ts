@@ -7,6 +7,7 @@ import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared
 import { PathnameContext, SearchParamsContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 import type { ShopTheme, ThemeSection } from '../lib/theme';
 import { themeStyle } from '../lib/theme-style';
+import { shopFontTokens } from '../lib/theme-fonts';
 import { SectionRenderer, sectionRegistry } from '../components/theme-sections';
 import { Header } from '../components/header';
 import { Footer } from '../components/footer';
@@ -89,8 +90,8 @@ describe('T2 Shop theme rendering', () => {
     const css = readFileSync(resolve(__dirname, '../app/default-tokens.css'), 'utf8');
     expect(css.slice(0, css.indexOf(':root {\n')))
       .toBe(themeStyle(defaultShop as unknown as ShopTheme).trimStart() + '\n');
-    expect(css).toContain(':root[data-color-mode="dark"]');
-    expect(css).toContain(':root[data-color-mode="system"]');
+    expect(css).toContain(':root[data-shop-dark-available="true"][data-color-mode="dark"]');
+    expect(css).toContain(':root[data-shop-dark-available="true"][data-color-mode="system"]');
     expect(css).toContain('--shop-canvas: var(--shop-background);');
   });
   it('B4 font-face accepts hash URLs and rejects semver aliases', () => {
@@ -184,7 +185,7 @@ describe('T2 Shop theme rendering', () => {
   it('D emits only validated token CSS and font-face data in the layout style', () => {
     const poisoned: ShopTheme = { ...fixture, tokens: { ...fixture.tokens, extras: { ...fixture.tokens.extras, primary: '#fff;} body{', unknown: 'url(x)' } } };
     const css = themeStyle(poisoned);
-    expect(css).toContain(themeTokensToCss('shop', poisoned.tokens,
+    expect(css).toContain(themeTokensToCss('shop', shopFontTokens(poisoned.tokens),
       (id) => poisoned.fonts.find((font) => font.id === id)?.family));
     expect(css).toContain('@font-face{font-family:"Brand Sans"');
     expect(css).toContain('--shop-extras-primary: #171717;');
@@ -237,8 +238,8 @@ describe('T2 Shop theme rendering', () => {
     const css = themeStyle(defaultShop as unknown as ShopTheme);
     const previous = '--shop-core-font-body: "system-sans";\n--shop-core-font-heading: "system-sans";';
     expect(css).not.toContain(previous);
-    expect(css).toContain('--shop-core-font-body: system-ui, -apple-system, sans-serif;');
-    expect(css).toContain('--shop-core-font-heading: system-ui, -apple-system, sans-serif;');
+    expect(css).toContain('--shop-core-font-body: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;');
+    expect(css).toContain('--shop-core-font-heading: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;');
   });
 
   it('E renders Core defaults for a legitimate absent theme', () => {

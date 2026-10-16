@@ -3,7 +3,7 @@ import { login, ownerEmail, shopLogin } from './helpers';
 import { headerThemePackage } from './theme-package';
 import { pluginMessage } from '../packages/shared/src/i18n/messages/admin-plugins';
 import { uploadPackages } from './upload-packages';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import type { BrowserContext, Locator, Page } from '@playwright/test';
 
 async function parkPointerOnHeading(page: Page) {
@@ -326,8 +326,10 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       await page.keyboard.press('Control+Home');
       const bodyFontFamily = await page.getByRole('main').evaluate((element) =>
         getComputedStyle(element.ownerDocument.body).fontFamily);
-      expect(bodyFontFamily, `${name} uses the default Shop system font`)
-        .toBe('system-ui, -apple-system, sans-serif');
+      expect(bodyFontFamily, `${name} uses the default Shop Geist and subset Chinese font stack`)
+        .toContain('Noto Sans SC');
+      expect(bodyFontFamily).toMatch(/Geist/i);
+      await page.evaluate(() => document.fonts.ready);
       computed.push({ page: name, bodyFontFamily, ...await headerMeasurements(page) });
       const boxes: Array<{ name: string } & Awaited<ReturnType<typeof paintedBounds>>> = [];
       if (name === 'shop-orders') {
@@ -338,6 +340,17 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
         }
       }
       await writeFile(`e2e/visual-results/${set}/${name}-${width}.boxes.json`, JSON.stringify(boxes, null, 2));
+      if (set === 'current') {
+        // Capture unchanged pages twice so font rasterization noise is measured first.
+        for (const noise of ['noise-1', 'noise-2']) {
+          await mkdir(`e2e/visual-results/${noise}`, { recursive: true });
+          await writeFile(`e2e/visual-results/${noise}/${name}-${width}.boxes.json`, JSON.stringify(boxes, null, 2));
+          await screenshotWithoutOverflow(page, {
+            path: `e2e/visual-results/${noise}/${name}-${width}.png`,
+            fullPage: true, animations: 'disabled',
+          });
+        }
+      }
       await screenshotWithoutOverflow(page, {
         path: `e2e/visual-results/${set}/${name}-${width}.png`,
         fullPage: true, animations: 'disabled',
@@ -494,6 +507,23 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       JSON.stringify(fontRequests, null, 2));
   });
 }
+
+test('measure font bytes for a cold Chinese Shop product listing', async ({ page }) => {
+  const fonts: Array<{ url: string; bytes: number }> = [];
+  const downloads: Array<Promise<void>> = [];
+  page.on('response', (response) => {
+    if (response.request().resourceType() !== 'font') return;
+    downloads.push(response.body().then((body) => { fonts.push({ url: response.url(), bytes: body.length }); }));
+  });
+  await page.goto('http://127.0.0.1:3003/zh-Hans/products');
+  await expect(page.getByRole('main')).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await Promise.all(downloads);
+  expect(fonts.length).toBeGreaterThan(0);
+  const evidence = { page: '/zh-Hans/products', fonts, totalBytes: fonts.reduce((total, font) => total + font.bytes, 0) };
+  await writeFile(`e2e/visual-results/${process.env.VISUAL_SET}/shop-chinese-font-bytes.json`, JSON.stringify(evidence, null, 2));
+  console.log('Shop Chinese font bytes:', JSON.stringify(evidence));
+});
 
 test('capture plugin boards in light and dark at desktop and phone widths', async ({ page }) => {
   test.setTimeout(120_000);
