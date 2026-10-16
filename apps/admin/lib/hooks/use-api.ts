@@ -874,7 +874,13 @@ export function useInstalledPlugins(state: 'active' | 'removed' = 'active') {
     queryKey: pluginQueryKeys.installed(state),
     queryFn: async () => {
       const response = await pluginsApi.getInstalled(1, 100, state);
-      return unwrapApiResponse(response);
+      const first = unwrapApiResponse(response);
+      const items = [...first.items];
+      for (let page = 2; page <= first.totalPages; page++) {
+        const next = unwrapApiResponse(await pluginsApi.getInstalled(page, 100, state));
+        items.push(...next.items);
+      }
+      return { ...first, items };
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
@@ -921,58 +927,6 @@ export function useResolvePaymentReview() {
       queryClient.invalidateQueries({ queryKey: queryKeys.orderStats })
     },
   })
-}
-
-// Update plugin configuration mutation
-export function useUpdatePluginConfig() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ slug, config }: {
-      slug: string;
-      config: Record<string, any>;
-    }) => {
-      const response = await pluginsApi.updateConfig(slug, config);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.config(variables.slug) });
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Plugin configuration updated successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-// Toggle plugin enabled/disabled mutation
-export function useTogglePlugin() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ slug, enabled }: {
-      slug: string;
-      enabled: boolean;
-    }) => {
-      const response = enabled
-        ? await pluginsApi.enable(slug)
-        : await pluginsApi.disable(slug);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success(`Plugin ${variables.enabled ? 'enabled' : 'disabled'} successfully`);
-    },
-    onError: (error: unknown) => {
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
-      toast.error(getErrorMessage(error));
-    },
-  });
 }
 
 // Uninstall plugin mutation
@@ -1056,6 +1010,7 @@ export function usePluginInstances(slug: string) {
 // Update plugin instance mutation
 export function useUpdatePluginInstance() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({
@@ -1082,7 +1037,7 @@ export function useUpdatePluginInstance() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Instance updated successfully');
+      toast.success(t('merchant.plugins.saved'));
     },
     onError: (error: unknown) => {
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });

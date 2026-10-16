@@ -480,18 +480,21 @@ function parseManifestJson(value: any): Record<string, any> | null {
 function toPluginState(slug: string, detail: any, instance: PluginInstance | null): PluginState {
   const parsedManifest = parseManifestJson(detail?.manifestJson);
 
-  const configSchema = (parsedManifest?.configSchema || detail?.configSchema || undefined) as Record<string, any> | undefined;
+  const configSchema = parsedManifest?.configSchema as Record<string, any> | undefined;
   const config = (instance?.config || {}) as Record<string, any>;
   const readiness = evaluateConfigReadiness(configSchema, config, instance?.configMeta);
 
   return {
     slug,
+    publisherId: detail?.publisherId ?? null,
+    packageState: detail?.packageState,
+    uninstalled: Boolean(detail?.deletedAt),
+    declaredCapabilities: parsedManifest?.contracts?.map((contract: { name: string }) => contract.name) ?? [],
     lastFailureAt: detail?.lastFailureAt ?? null,
     lastFailureMessage: detail?.lastFailureMessage ?? null,
     enabled: instance?.enabled ?? false,
     config,
     configMeta: instance?.configMeta,
-    adminUi: parsedManifest?.adminUi || detail?.adminUi || undefined,
     configSchema,
     configRequired: readiness.configRequired,
     configReady: readiness.configReady,
@@ -529,7 +532,7 @@ async function fetchPluginInstances(slug: string): Promise<PluginInstance[]> {
 
 async function getDefaultInstance(slug: string): Promise<PluginInstance | null> {
   const instances = await fetchPluginInstances(slug);
-  return instances.find((item) => item.instanceKey === DEFAULT_PLUGIN_INSTANCE_KEY) || instances[0] || null;
+  return instances.find((item) => item.instanceKey === DEFAULT_PLUGIN_INSTANCE_KEY) || null;
 }
 
 function toApiErrorPayload(
@@ -573,7 +576,7 @@ export const pluginsApi = {
       (response.data.items || []).map(async (plugin: any) => {
         const defaultInstance = plugin.deletedAt ? null : await getDefaultInstance(plugin.slug);
         const parsedManifest = parseManifestJson(plugin?.manifestJson);
-        const configSchema = (parsedManifest?.configSchema || plugin?.configSchema || undefined) as Record<string, any> | undefined;
+        const configSchema = parsedManifest?.configSchema as Record<string, any> | undefined;
         const config = (defaultInstance?.config || {}) as Record<string, any>;
         const readiness = evaluateConfigReadiness(configSchema, config, defaultInstance?.configMeta);
 
@@ -612,104 +615,6 @@ export const pluginsApi = {
       };
     } catch (error: any) {
       const normalized = toApiErrorPayload(error, 'ERROR', 'Request failed');
-      return {
-        success: false,
-        httpStatus: isAdminApiError(error) ? error.status : undefined,
-        error: normalized,
-      };
-    }
-  },
-
-  updateConfig: async (slug: string, config: Record<string, any>): Promise<ApiResponse<PluginState>> => {
-    try {
-      const detail = await fetchPluginDetail(slug);
-      const existing = await getDefaultInstance(slug);
-
-      if (existing) {
-        const response = await apiClient.patch(`/extensions/plugin/${slug}/instances/${existing.installationId}`, {
-          config,
-          enabled: existing.enabled,
-        });
-        unwrapApiResponse(response);
-      } else {
-        const response = await apiClient.post(`/extensions/plugin/${slug}/instances`, {
-          instanceKey: DEFAULT_PLUGIN_INSTANCE_KEY,
-          enabled: true,
-          config,
-        });
-        unwrapApiResponse(response);
-      }
-
-      const latest = await getDefaultInstance(slug);
-      return {
-        success: true,
-        data: toPluginState(slug, detail, latest),
-      };
-    } catch (error: any) {
-      const normalized = toApiErrorPayload(error, 'UPDATE_ERROR', 'Failed to update plugin config');
-      return {
-        success: false,
-        httpStatus: isAdminApiError(error) ? error.status : undefined,
-        error: normalized,
-      };
-    }
-  },
-
-  enable: async (slug: string): Promise<ApiResponse<PluginState>> => {
-    try {
-      const detail = await fetchPluginDetail(slug);
-      const existing = await getDefaultInstance(slug);
-
-      if (existing) {
-        const response = await apiClient.patch(`/extensions/plugin/${slug}/instances/${existing.installationId}`, {
-          enabled: true,
-          config: existing.config,
-        });
-        unwrapApiResponse(response);
-      } else {
-        const response = await apiClient.post(`/extensions/plugin/${slug}/instances`, {
-          instanceKey: DEFAULT_PLUGIN_INSTANCE_KEY,
-          enabled: true,
-          config: {},
-        });
-        unwrapApiResponse(response);
-      }
-
-      const latest = await getDefaultInstance(slug);
-      return {
-        success: true,
-        data: toPluginState(slug, detail, latest),
-      };
-    } catch (error: any) {
-      const normalized = toApiErrorPayload(error, 'UPDATE_ERROR', 'Failed to enable plugin');
-      return {
-        success: false,
-        httpStatus: isAdminApiError(error) ? error.status : undefined,
-        error: normalized,
-      };
-    }
-  },
-
-  disable: async (slug: string): Promise<ApiResponse<PluginState>> => {
-    try {
-      const detail = await fetchPluginDetail(slug);
-      const existing = await getDefaultInstance(slug);
-
-      if (existing) {
-        const response = await apiClient.patch(`/extensions/plugin/${slug}/instances/${existing.installationId}`, {
-          enabled: false,
-          config: existing.config,
-        });
-        unwrapApiResponse(response);
-      }
-
-      const latest = await getDefaultInstance(slug);
-      return {
-        success: true,
-        data: toPluginState(slug, detail, latest ? { ...latest, enabled: false } : null),
-      };
-    } catch (error: any) {
-      const normalized = toApiErrorPayload(error, 'UPDATE_ERROR', 'Failed to disable plugin');
       return {
         success: false,
         httpStatus: isAdminApiError(error) ? error.status : undefined,

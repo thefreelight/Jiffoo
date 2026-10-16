@@ -101,8 +101,8 @@ async function setupFixture(
     expect(outcome.phase).toBe('SUCCESS'); expect(outcome.result).toMatchObject({ slug, version: '1.0.0', warnings: [] });
     fixture.installed = true;
     await page.goto(`/en/plugins/${slug}`);
-    await page.getByRole('button', { name: 'Enable plugin' }).click();
-    await expect(page.getByRole('button', { name: 'Disable plugin' })).toBeVisible();
+    await page.getByRole('button', { name: 'Enable' }).click();
+    await expect(page.getByRole('button', { name: 'Disable' })).toBeVisible();
     return fixture;
   } catch (error) {
     await removeFixture(fixture);
@@ -169,15 +169,15 @@ test('B warns for a pending payment, Cancel preserves enablement and Disable any
     await expect(fixture.shop).toHaveURL(/\/en\/checkout\/complete\?order=/);
     fixture.orderId = new URL(fixture.shop.url()).searchParams.get('order');
     expect(fixture.orderId).toBeTruthy();
-    await page.getByRole('button', { name: 'Disable plugin' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Disable payment method?' });
-    await expect(dialog).toContainText('1 orders awaiting payment use this payment method.');
+    await page.getByRole('button', { name: 'Disable' }).click();
+    const dialog = page.getByRole('alertdialog', { name: 'Disable payment method?' });
+    await expect(dialog).toContainText('1 orders awaiting payment use Fixture payment.');
     await captureReview(page, 'disabled-plugin-review', 'disabled-plugin-dialog');
     await dialog.getByRole('button', { name: 'Cancel' }).click();
-    await expect(page.getByRole('button', { name: 'Disable plugin' })).toBeVisible();
-    await page.getByRole('button', { name: 'Disable plugin' }).click();
+    await expect(page.getByRole('button', { name: 'Disable' })).toBeVisible();
+    await page.getByRole('button', { name: 'Disable' }).click();
     await dialog.getByRole('button', { name: 'Disable anyway' }).click();
-    await expect(page.getByRole('button', { name: 'Enable plugin' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Enable' })).toBeVisible();
     await fixture.shop.goto('/en/products');
     await fixture.shop.getByRole('searchbox', { name: 'Search products' }).fill('E2E Product');
     await fixture.shop.getByRole('button', { name: 'Search', exact: true }).click();
@@ -203,9 +203,9 @@ test('C stale checkout shows the unavailable payment message, refreshes methods 
   const fixture = await setupFixture(page, request, newObservedContext);
   try {
     await register(fixture);
-    await page.getByRole('button', { name: 'Disable plugin' }).click();
-    await expect(page.getByRole('dialog', { name: 'Disable payment method?' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Enable plugin' })).toBeVisible();
+    await page.getByRole('button', { name: 'Disable' }).click();
+    await expect(page.getByRole('alertdialog', { name: 'Disable payment method?' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Enable' })).toBeVisible();
     await fixture.shop.getByRole('button', { name: 'Place order' }).click();
     await expect(fixture.shop.getByText('This payment method is no longer available. Please choose another.', { exact: true })).toBeVisible();
     await expect(fixture.shop.getByRole('radio', { name: 'Fixture payment' })).toHaveCount(0);
@@ -221,9 +221,9 @@ test('D disabling a payment plugin with zero pending orders shows no dialog', as
   test.setTimeout(120_000);
   const fixture = await setupFixture(page, request, newObservedContext);
   try {
-    await page.getByRole('button', { name: 'Disable plugin' }).click();
-    await expect(page.getByRole('dialog', { name: 'Disable payment method?' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Enable plugin' })).toBeVisible();
+    await page.getByRole('button', { name: 'Disable' }).click();
+    await expect(page.getByRole('alertdialog', { name: 'Disable payment method?' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Enable' })).toBeVisible();
   } finally {
     await cleanup(fixture);
   }

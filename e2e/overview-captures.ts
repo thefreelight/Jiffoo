@@ -9,8 +9,8 @@ export async function chooseOverviewMode(page: Page, mode: string) {
 }
 
 export async function captureOverview(page: Page, empty = false) {
-  const capture = process.env.CI !== 'true';
-  const directory = 'C:/Users/11948/Pictures/jiffoo-u2';
+  const capture = Boolean(process.env.VISUAL_SET);
+  const directory = 'e2e/visual-results/' + process.env.VISUAL_SET + '/overview';
   if (capture) await mkdir(directory, { recursive: true });
   for (const mode of ['Light', 'Dark']) {
     await page.setViewportSize({ width: 1440, height: 900 });

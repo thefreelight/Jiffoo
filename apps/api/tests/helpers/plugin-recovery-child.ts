@@ -19,7 +19,7 @@ async function main() {
   const sweeper = withRecoveryTestControl({ sweepMs: 20 }, () => startPluginRecoverySweeper());
   const held = new Map<string, () => void>();
   const pending = new Set<Promise<unknown>>();
-  process.on('message', (message: { kind: string; id: string; slug: string; bytes: string; actorId: string; sql?: boolean; hold?: boolean }) => {
+  process.on('message', (message: { kind: string; id: string; slug: string; bytes: string; actorId: string; sql?: boolean; hold?: boolean; useDefaultLease?: boolean }) => {
     if (message.kind === 'release') { held.get(message.id)?.(); held.delete(message.id); return; }
     if (message.kind === 'freeze') { process.send?.({ kind: 'frozen' }); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0); return; }
     if (message.kind === 'stop') {
@@ -37,7 +37,7 @@ async function main() {
         })));
       } else if (message.kind === 'install') {
         const bytes = Buffer.from(message.bytes, 'base64');
-        const limits = { leaseMs: 200, renewalMs: 30, ipcBarriers: true };
+        const limits = { ...(message.useDefaultLease ? {} : { leaseMs: 200 }), renewalMs: 30, ipcBarriers: true };
         const result = await withRecoveryTestControl(limits, () => withPluginDatabaseTestControl({ beforeMigrationRun: message.hold ? async () => { process.send?.({ kind: 'held', id: message.id }); await new Promise<void>(resolve => held.set(message.id, resolve)); } : undefined }, async () => startPluginInstallOperation(bytes, await localUploadOptions(bytes, message.actorId))));
         process.send?.({ kind: 'accepted', id: message.id, ...result });
       }

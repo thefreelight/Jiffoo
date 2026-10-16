@@ -158,6 +158,10 @@ export interface PluginMetaWithState {
 }
 
 export interface PluginState {
+  uninstalled?: boolean
+  packageState?: PluginMetaWithState['packageState']
+  publisherId?: string | null
+  declaredCapabilities?: string[]
   lastFailureAt?: string | null
   lastFailureMessage?: string | null
   trustLevel?: 'builtin' | 'signed' | 'unsigned' | null

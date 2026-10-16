@@ -6,17 +6,20 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { pluginsApi } from '@/lib/api';
+import { usePluginDialogLayout } from '@/lib/plugin-dialog';
 
 export function DisablePluginControl({
-  slug, category, label, disabled, onDisable,
+  slug, pluginName, payment, label, disabled, onDisable,
 }: {
   slug: string;
-  category?: string;
+  pluginName: string;
+  payment: boolean;
   label: string;
   disabled?: boolean;
   onDisable: () => Promise<unknown>;
 }) {
   const t = useT();
+  const dialogLayout = usePluginDialogLayout('confirm');
   const [count, setCount] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -31,7 +34,7 @@ export function DisablePluginControl({
   }
 
   async function checkImpact() {
-    if (category !== 'payment') {
+    if (!payment) {
       await disable();
       return;
     }
@@ -48,15 +51,15 @@ export function DisablePluginControl({
   }
 
   return <>
-    <Button type="button" onClick={() => void checkImpact()} disabled={disabled || busy}>{label}</Button>
+    <Button type="button" size="sm" variant="outline" className="bg-ground" onClick={() => void checkImpact()} disabled={disabled || busy}>{label}</Button>
     <Dialog open={count !== null} onOpenChange={(open) => { if (!open && !busy) setCount(null); }}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('merchant.plugins.disableWarningTitle')}</DialogTitle>
-          <DialogDescription>{t('merchant.plugins.disableWarning').replace('{count}', String(count ?? 0))}</DialogDescription>
+      <DialogContent {...dialogLayout} role="alertdialog" showCloseButton={false}>
+        <DialogHeader className="text-left">
+          <DialogTitle className="text-[15px]">{t('merchant.plugins.disableWarningTitle')}</DialogTitle>
+          <DialogDescription>{t('merchant.plugins.disableWarning').replace('{count}', String(count ?? 0)).replace('{name}', pluginName)}</DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <Button type="button" variant="outline" disabled={busy} onClick={() => setCount(null)}>{t('merchant.plugins.disableCancel')}</Button>
+        <DialogFooter className="flex-row justify-end gap-2 sm:space-x-0">
+          <Button type="button" variant="outline" className="bg-ground" disabled={busy} onClick={() => setCount(null)}>{t('merchant.plugins.disableCancel')}</Button>
           <Button type="button" variant="destructive" disabled={busy} onClick={() => void disable()}>{t('merchant.plugins.disableAnyway')}</Button>
         </DialogFooter>
       </DialogContent>

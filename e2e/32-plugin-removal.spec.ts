@@ -1,5 +1,6 @@
 import { captureReview, prepareReviewDialog, expect, test } from './review-capture';
 import { login, ownerEmail } from './helpers';
+import { pluginMessage } from '../packages/shared/src/i18n/messages/admin-plugins';
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
@@ -14,11 +15,11 @@ let fixtureName: string;
 let directory: string;
 let before: { installs: unknown[]; blobs: unknown[]; instances: unknown[] };
 const labels = {
-  en: { removed: 'Removed', uninstall: 'Uninstall', uninstallTitle: 'Uninstall plugin', restore: 'Restore', restoreTitle: 'Restore plugin', purge: 'Delete plugin', purgeTitle: 'Delete plugin permanently', confirm: 'Confirm', cancel: 'Cancel', slug: 'Plugin slug confirmation',
+  en: { removed: 'Removed', uninstall: 'Uninstall', uninstallTitle: 'Uninstall plugin', restore: 'Restore', restoreTitle: 'Restore plugin', purge: 'Delete permanently', purgeTitle: 'Delete plugin permanently', confirm: 'Confirm', cancel: 'Cancel', slug: 'Plugin slug confirmation',
     uninstallDescription: 'New work stops. The package, configuration, credentials and plugin data are kept and can be restored.',
     purgeDescription: 'The installation record and configuration/credentials stored by Core are permanently deleted. Order history is kept. The plugin’s own data is NOT deleted.',
     unfinished: 'This plugin has unfinished payment work. Resolve it before deleting the installation.', corrupt: 'Plugin package is corrupt. Reinstall the package.' },
-  'zh-Hans': { removed: '已卸载', uninstall: '卸载', uninstallTitle: '卸载插件', restore: '恢复', restoreTitle: '恢复插件', purge: '删除插件', purgeTitle: '永久删除插件', confirm: '确认', cancel: '取消', slug: '确认插件标识',
+  'zh-Hans': { removed: '已卸载', uninstall: '卸载', uninstallTitle: '卸载插件', restore: '恢复', restoreTitle: '恢复插件', purge: '永久删除', purgeTitle: '永久删除插件', confirm: '确认', cancel: '取消', slug: '确认插件标识',
     uninstallDescription: '停止新的工作。插件包、配置、凭据和插件数据均保留，可以恢复。',
     purgeDescription: '永久删除安装记录以及 Core 存储的配置和凭据。订单历史保留。不会删除插件自身的数据。',
     unfinished: '此插件存在未完成的支付工作。请处理完成后再删除安装记录。', corrupt: '插件包已损坏。请重新安装插件包。' },
@@ -75,26 +76,29 @@ async function archive(slug: string) {
 async function install(page: Page) {
   const slug = `e2e-removal-${randomUUID().slice(0, 10)}`; owned.add(slug);
   fixtureName = `Removal payment ${slug}`;
-  await page.goto('/en/plugins'); await page.getByLabel('Plugin ZIP', { exact: true }).setInputFiles(await archive(slug));
-  await page.getByRole('button', { name: 'Preview package', exact: true }).click(); await page.getByRole('button', { name: 'Continue', exact: true }).click();
-  const dialog = page.getByRole('dialog', { name: 'Confirm unsigned plugin installation', exact: true });
+  await page.goto('/en/plugins'); await page.getByRole('button', { name: 'Upload plugin', exact: true }).click(); await page.getByLabel('Choose plugin package', { exact: true }).setInputFiles(await archive(slug));
+  await page.getByRole('button', { name: 'Check package', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Confirm installation', exact: true });
   await dialog.getByLabel('Plugin slug confirmation', { exact: true }).fill(slug); await dialog.getByRole('button', { name: 'Confirm installation', exact: true }).click();
-  const article = page.getByRole('article', { name: fixtureName, exact: true }); await expect(article.getByRole('button', { name: 'Enable', exact: true })).toBeVisible();
-  await article.getByRole('link', { name: 'Manage', exact: true }).click();
-  await page.getByLabel('Payment note *', { exact: true }).fill('Kept payment instructions'); await page.getByLabel('Payment credential *', { exact: true }).fill('removal-fixture-secret');
-  await page.getByRole('button', { name: 'Save configuration', exact: true }).click(); await expect(page.getByLabel('Payment credential *', { exact: true })).toHaveValue('');
+  await expect(page.getByRole('heading', { name: 'Installation complete', exact: true })).toBeVisible(); await page.getByRole('button', { name: 'Close', exact: true }).click();
+  const article = page.getByRole('article', { name: fixtureName, exact: true }); await expect(article.getByText('Needs configuration', { exact: true })).toBeVisible();
+  await article.getByRole('link', { name: /Manage|Configure/, exact: true }).click();
+  await page.getByLabel('Payment note', { exact: true }).fill('Kept payment instructions'); await page.getByLabel('Payment credential', { exact: true }).fill('removal-fixture-secret');
+  await page.getByRole('button', { name: 'Save configuration', exact: true }).click(); await expect(page.getByLabel('Payment credential', { exact: true })).toHaveValue('');
   return slug;
 }
 async function uninstall(page: Page, locale: keyof typeof labels = 'en', capture = false) {
   const text = labels[locale]; await page.goto(`/${locale}/plugins`);
-  const trigger = page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: text.uninstall, exact: true });
-  if (capture) await prepareReviewDialog(page, trigger, { width: 1440, height: 900 });
+  const more = page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: pluginMessage(locale, 'more', { name: fixtureName }), exact: true });
+  if (capture) await prepareReviewDialog(page, more, { width: 1440, height: 900 });
+  await more.click();
+  const trigger = page.getByRole('menuitem', { name: text.uninstall, exact: true });
   await trigger.click();
   const dialog = page.getByRole('dialog', { name: text.uninstallTitle, exact: true }); await expect(dialog).toContainText(text.uninstallDescription);
   if (capture) await captureReview(page, 'plugin-removal-review', `uninstall-dialog-${locale}`, { width: 1440, height: 900 });
   await dialog.getByRole('button', { name: text.confirm, exact: true }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole('article', { name: fixtureName, exact: true })).toHaveCount(0); await page.getByRole('button', { name: text.removed, exact: true }).click();
+  await expect(page.getByRole('article', { name: fixtureName, exact: true })).toHaveCount(0); await page.getByRole('tab', { name: text.removed, exact: true }).click();
   await expect(page.getByRole('article', { name: fixtureName, exact: true })).toBeVisible();
   if (capture) await captureReview(page, 'plugin-removal-review', `removed-view-${locale}`, { width: 1440, height: 900 });
 }
@@ -104,11 +108,14 @@ async function restore(page: Page, locale: keyof typeof labels = 'en') {
   await expect(dialog).toBeHidden();
   await expect(page.getByRole('article', { name: fixtureName, exact: true })).toHaveCount(0);
   await page.goto('/en/plugins'); const article = page.getByRole('article', { name: fixtureName, exact: true });
-  await expect(article.getByRole('button', { name: 'Enable', exact: true })).toBeVisible(); await expect(article.getByRole('button', { name: 'Disable', exact: true })).toHaveCount(0);
+  await expect(article.getByText('Disabled', { exact: true })).toBeVisible(); await expect(article.getByRole('button', { name: 'Enable', exact: true })).toHaveCount(0);
 }
 async function purge(page: Page, slug: string, locale: keyof typeof labels = 'en', capture = false, blocked = false) {
-  const text = labels[locale], trigger = page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: text.purge, exact: true });
-  if (capture) await prepareReviewDialog(page, trigger, { width: 1440, height: 900 });
+  const text = labels[locale];
+  const more = page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: pluginMessage(locale, 'more', { name: fixtureName }), exact: true });
+  if (capture) await prepareReviewDialog(page, more, { width: 1440, height: 900 });
+  await more.click();
+  const trigger = page.getByRole('menuitem', { name: text.purge, exact: true });
   await trigger.click();
   const dialog = page.getByRole('dialog', { name: text.purgeTitle, exact: true }); await expect(dialog).toContainText(text.purgeDescription);
   await expect(dialog.getByRole('button', { name: text.confirm, exact: true })).toBeDisabled(); await dialog.getByLabel(text.slug, { exact: true }).fill(slug);
@@ -125,20 +132,19 @@ test('L real upload, configuration, uninstall and disabled restore retain creden
   await login(page, ownerEmail, 'FinalOwnerPassword123!'); const slug = await install(page);
   const before = await db.pluginInstallation.findFirstOrThrow({ where: { pluginSlug: slug } });
   await uninstall(page, 'en', true); expect((await db.pluginInstallation.findFirstOrThrow({ where: { pluginSlug: slug } })).configJson).toEqual(before.configJson);
-  await restore(page); await page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: 'Enable', exact: true }).click();
-  await expect(page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
+  await restore(page); await page.getByRole('article', { name: fixtureName, exact: true }).getByRole('link', { name: 'Manage', exact: true }).click(); await page.getByRole('button', { name: 'Enable', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
   const methods = await page.request.get('http://127.0.0.1:3001/api/v1/payments/available-methods');
   expect(methods.ok()).toBe(true); expect((await methods.json()).data).toEqual(expect.arrayContaining([expect.objectContaining({ name: slug })]));
-  await page.getByRole('article', { name: fixtureName, exact: true }).getByRole('link', { name: 'Manage', exact: true }).click();
-  await expect(page.getByLabel('Payment note *', { exact: true })).toHaveValue('Kept payment instructions');
-  await expect(page.getByLabel('Payment credential *', { exact: true })).toHaveAttribute('placeholder', 'Configured. Enter a new value to replace it.');
+  await expect(page.getByLabel('Payment note', { exact: true })).toHaveValue('Kept payment instructions');
+  await expect(page.getByLabel('Payment credential', { exact: true })).toHaveAttribute('placeholder', 'Already set. Enter a new value to replace it');
   await uninstall(page, 'zh-Hans', true); await restore(page, 'zh-Hans'); await uninstall(page); await purge(page, slug);
 });
 
 test('M typed purge blocks unfinished payments and keeps payment order history readable in Admin and Shop', async ({ page, newObservedContext }) => {
   test.setTimeout(120_000); await login(page, ownerEmail, 'FinalOwnerPassword123!'); const slug = await install(page);
-  await page.goto('/en/plugins'); await page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: 'Enable', exact: true }).click();
-  await expect(page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
+  await page.goto('/en/plugins'); await page.getByRole('article', { name: fixtureName, exact: true }).getByRole('link', { name: 'Manage', exact: true }).click(); await page.getByRole('button', { name: 'Enable', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
   const context = await newObservedContext({ baseURL: 'http://127.0.0.1:3003', viewport: { width: 1440, height: 900 } }), shop = await context.newPage();
   try {
     await shop.goto('/en/register'); await shop.getByLabel('Name').fill('Removal Buyer'); await shop.getByLabel('Email').fill(`${slug}@e2e.example`);
@@ -151,11 +157,11 @@ test('M typed purge blocks unfinished payments and keeps payment order history r
     await shop.getByRole('radio', { name: /Free shipping/i }).check(); await shop.getByRole('radio', { name: 'Removal payment', exact: true }).check(); await shop.getByRole('button', { name: 'Place order' }).click();
     await expect(shop).toHaveURL(/\/en\/checkout\/complete\?order=/); const orderId = new URL(shop.url()).searchParams.get('order')!;
     for (const locale of ['en', 'zh-Hans'] as const) {
-      if (locale === 'en') await uninstall(page); else { await page.goto(`/${locale}/plugins`); await page.getByRole('button', { name: labels[locale].removed, exact: true }).click(); }
+      if (locale === 'en') await uninstall(page); else { await page.goto(`/${locale}/plugins`); await page.getByRole('tab', { name: labels[locale].removed, exact: true }).click(); }
       await purge(page, slug, locale, true, true);
     }
-    await restore(page, 'zh-Hans'); await page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: 'Enable', exact: true }).click();
-    await expect(page.getByRole('article', { name: fixtureName, exact: true }).getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
+    await restore(page, 'zh-Hans'); await page.getByRole('article', { name: fixtureName, exact: true }).getByRole('link', { name: 'Manage', exact: true }).click(); await page.getByRole('button', { name: 'Enable', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
     await page.goto(`/en/orders/${orderId}`); await page.getByRole('button', { name: 'More order actions', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Record payment', exact: true }).click();
     await page.getByLabel('Payment reference').fill(`e2e-payment-${orderId}`); await page.getByRole('button', { name: 'Record payment', exact: true }).click(); await expect(page.getByText('Paid', { exact: true })).toBeVisible();

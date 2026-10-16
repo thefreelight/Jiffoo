@@ -4,14 +4,15 @@ import { appearanceU4 } from './u4-captures';
 
 export async function captureProductEditorStates(page: Page, productId: string) {
   if (process.env.CI === 'true') return;
-  const directory = 'C:/Users/11948/Pictures/jiffoo-a3b/product-editor';
-  await mkdir(directory, { recursive: true });
+  const writeCapture = Boolean(process.env.VISUAL_SET);
+  const directory = 'e2e/visual-results/' + process.env.VISUAL_SET + '/product-editor';
+  if (writeCapture) await mkdir(directory, { recursive: true });
   const capture = async (name: string, mode: string) => {
     for (const [width, height] of [[1440, 1800], [390, 3000]]) {
       await page.setViewportSize({ width, height });
       if (!name.includes('leave')) { await page.getByRole('heading', { level: 1, name: /.+/ }).click(); await page.keyboard.press('Control+Home'); }
       await expect(page.getByRole('region', { name: 'Notifications alt+T', exact: true }).getByRole('listitem', { name: /.*/ })).toHaveCount(0);
-      const screenshot = await page.screenshot({ path: directory + '/' + name + '-' + mode.toLowerCase() + '-' + width + '.png', fullPage: true, animations: 'disabled' });
+      const screenshot = await page.screenshot({ ...(writeCapture ? { path: directory + '/' + name + '-' + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
       expect(screenshot.readUInt32BE(16), name + ' has no horizontal overflow at ' + width).toBe(width);
     }
     await page.setViewportSize({ width: 1440, height: 900 });

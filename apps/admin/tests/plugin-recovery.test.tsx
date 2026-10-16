@@ -10,7 +10,7 @@ import { PluginRecovery } from '@/components/extensions/PluginRecovery';
 import type { PluginRecoveryList } from '@/lib/plugin-upload';
 
 let dictionary: typeof en | typeof hans | typeof hant = en;
-vi.mock('shared/src/i18n/react', () => ({ useT: () => (key: string) => key.split('.').slice(1).reduce<any>((value, part) => value?.[part], dictionary) ?? key }));
+vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string) => key.split('.').slice(1).reduce<any>((value, part) => value?.[part], dictionary) ?? key }));
 function render(data?: PluginRecoveryList) {
   const client=new QueryClient({defaultOptions:{queries:{retry:false}}}); if(data)client.setQueryData(['plugin-recovery'],data);
   const html=renderToStaticMarkup(createElement(QueryClientProvider,{client},createElement(PluginRecovery)));client.clear();return html;
@@ -18,7 +18,7 @@ function render(data?: PluginRecoveryList) {
 const operation={operationId:'persisted',slug:'example',version:'2.0.0',phase:'NEEDS_RECOVERY',committedPrefix:1,retryAvailable:true,publicationWarning:false};
 it('N persistent recovery data renders on a fresh page without upload component state',()=>{
   dictionary=en;const data={items:[{slug:'example',markerCount:0,maintenanceRequired:false,operations:[operation]}]};
-  for(let page=0;page<2;page++){const html=render(data);expect(html).toContain(en.plugins.recovery.needsRecovery);expect(html).toContain('2.0.0');expect(html).toContain(en.plugins.recovery.confirmRetry);expect(html).toContain('disabled');}
+  for(let page=0;page<2;page++){const html=render(data);expect(html).toContain(en.plugins.recovery.needsRecovery);expect(html).toContain('2.0.0');expect(html).toContain('Retry installation');expect(html).not.toContain(en.plugins.recovery.confirmRetry);}
 });
 it.each([en,hans,hant])('N unconfirmed process work plainly requires a maintenance window in locale %#',locale=>{
   dictionary=locale;const html=render({items:[{slug:'example',markerCount:1,maintenanceRequired:true,operations:[operation]}]});
@@ -29,4 +29,4 @@ it('N confirmed publication displays its lifecycle warning without offering repl
   dictionary=en;const html=render({items:[{slug:'example',markerCount:0,maintenanceRequired:false,operations:[{...operation,phase:'SUCCESS',retryAvailable:false,publicationWarning:true}]}]});
   expect(html).toContain(en.plugins.recovery.completed);expect(html).toContain(en.plugins.recovery.publicationWarning);expect(html).not.toContain(en.plugins.recovery.retry);
 });
-it('N loading status uses visible translated copy',()=>{dictionary=en;expect(render()).toContain(en.plugins.recovery.loading);});
+it('hides recovery UI while loading and when no recovery is required',()=>{dictionary=en;expect(render()).toBe('');expect(render({items:[]})).toBe('');});

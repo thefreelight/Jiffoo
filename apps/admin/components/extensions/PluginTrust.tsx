@@ -1,9 +1,10 @@
 'use client';
 
 import { useT } from 'shared/src/i18n/react';
-import { useMarketplaceStatus } from '@/lib/marketplace';
+import { cn } from '@/lib/utils';
 
 export interface PluginTrustData {
+  publisherId?: string | null;
   source?: string; trustLevel?: string | null; signingRoot?: 'official' | 'test' | null;
 }
 export function pluginTrustKey(plugin: PluginTrustData, testSigningMode: boolean): string {
@@ -13,14 +14,10 @@ export function pluginTrustKey(plugin: PluginTrustData, testSigningMode: boolean
   if (plugin.signingRoot === 'test') return testSigningMode ? 'testSigned' : 'testSigningDisabled';
   return 'verified';
 }
-export function PluginTrustLabel({ plugin, testSigningMode }: { plugin: PluginTrustData; testSigningMode: boolean }) {
+export function PluginTrustLabel({ plugin, testSigningMode, compact = false, className }: { plugin: PluginTrustData; testSigningMode: boolean; compact?: boolean; className?: string }) {
   const t = useT();
   const key = pluginTrustKey(plugin, testSigningMode);
-  return <div className="text-sm"><span className="font-medium">{t(`merchant.plugins.marketplace.trust.${key}`)}</span>
-    <p className="text-cool-base">{t(`merchant.plugins.marketplace.trust.${key}Explanation`)}</p></div>;
-}
-export function PluginTrust({ plugin }: { plugin: PluginTrustData }) {
-  const status = useMarketplaceStatus();
-  if (!status.data) return null;
-  return <PluginTrustLabel plugin={plugin} testSigningMode={status.data.testSigningMode} />;
+  if (compact) return <span className={cn(`inline-flex h-[18px] items-center rounded-md border px-1.5 text-[11px] leading-none ${key === 'unsigned' || key === 'testSigningDisabled' || key === 'reinstallRequired' ? 'border-attention-line text-attention' : 'border-border text-muted-foreground'}`, className)}>{t(`merchant.plugins.marketplace.trust.${key}`)}</span>;
+  return <div className="text-[13px]"><span className="font-medium">{t(`merchant.plugins.marketplace.trust.${key}`)}</span>{plugin.publisherId && <span> · {t('merchant.plugins.marketplace.publisher')} {plugin.publisherId}</span>}
+    <p className="text-xs text-faint">{t(`merchant.plugins.marketplace.trust.${key}Explanation`)}</p></div>;
 }

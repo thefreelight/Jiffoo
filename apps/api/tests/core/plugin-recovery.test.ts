@@ -126,7 +126,8 @@ it('B a killed installer strands its queued third operation until a real worker 
 it('C a killed process after real publication completes from proof without replaying its lifecycle hook',async()=>{
   const slug=own(),child=await fixture('api','publication-committed'),id=randomUUID();
   try{
-    child.child.send({kind:'install',id,slug,actorId:'fixture',bytes:(await archive(slug)).toString('base64')});const accepted=await child.next('accepted',id);await child.next('plugin-recovery-barrier');
+    // Reach committed publication before the explicit SQL expiry below.
+    child.child.send({kind:'install',id,slug,actorId:'fixture',bytes:(await archive(slug)).toString('base64'),useDefaultLease:true});const accepted=await child.next('accepted',id);await child.next('plugin-recovery-barrier');
     expect((await prisma.pluginMigrationOperation.findUniqueOrThrow({where:{id:accepted.operationId}})).phase).toBe('PUBLISHED');
     await child.kill();
     await prisma.$executeRaw`UPDATE public.plugin_operation_leases SET "expiresAt"=(clock_timestamp() AT TIME ZONE 'UTC')-interval '1 millisecond' WHERE slug=${slug}`;

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-const transport = vi.hoisted(() => ({ post: vi.fn() }));
+const transport = vi.hoisted(() => ({ post: vi.fn(), get: vi.fn() }));
 vi.mock('shared', async importOriginal => ({
   ...await importOriginal<typeof import('shared')>(),
   createAdminClient: () => transport,
@@ -11,9 +11,22 @@ import {
   isAdminApiError,
   unwrapApiResponse,
   authApi,
+  pluginsApi,
 } from '../../lib/api';
 
 describe('Admin API response unwrap', () => {
+  it('keeps real publisher and manifest contract declarations in plugin details', async () => {
+    transport.get.mockImplementation(async (url: string) => ({ success: true, data: url.endsWith('/instances') ? { items: [{ installationId: 'default-installation', instanceKey: 'default', config: {}, enabled: false }] } : { slug: 'shipping-fixture', publisherId: 'signed-publisher', manifestJson: { contracts: [{ name: 'shipping', version: 1 }] } } }));
+    const result = unwrapApiResponse(await pluginsApi.getConfig('shipping-fixture'));
+    expect(result.publisherId).toBe('signed-publisher');
+    expect(result.declaredCapabilities).toEqual(['shipping']);
+    transport.get.mockReset();
+  });
+  it('never substitutes another instance for the canonical default configuration', async () => {
+    transport.get.mockImplementation(async (url: string) => ({ success: true, data: url.endsWith('/instances') ? { items: [{ installationId: 'other', instanceKey: 'other', config: { note: 'Other instance' }, enabled: true }] } : { slug: 'fixture', manifestJson: { contracts: [] } } }));
+    const result = unwrapApiResponse(await pluginsApi.getConfig('fixture'));
+    expect(result.config).toEqual({}); expect(result.enabled).toBe(false); transport.get.mockReset();
+  });
   it('rejects failed invitation acceptance instead of reporting completion', async () => {
     transport.post.mockResolvedValue({
       success: false,

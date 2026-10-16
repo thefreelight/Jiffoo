@@ -4,8 +4,9 @@ import { chooseOverviewMode } from './overview-captures';
 
 export async function captureStaffPage(page: Page, kind: 'list' | 'detail' | 'profile', state: string, heading: string) {
   if (process.env.CI === 'true') return;
-  const directory = 'C:/Users/11948/Pictures/jiffoo-b2';
-  await mkdir(directory, { recursive: true });
+  const writeCapture = Boolean(process.env.VISUAL_SET);
+  const directory = 'e2e/visual-results/' + process.env.VISUAL_SET + '/staff';
+  if (writeCapture) await mkdir(directory, { recursive: true });
   const original = page.url();
   for (const mode of ['Light', 'Dark']) {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -23,7 +24,7 @@ export async function captureStaffPage(page: Page, kind: 'list' | 'detail' | 'pr
       if (kind === 'list') await expect(page.getByRole('link', { name: /e2e-admin/ })).toBeVisible();
       if (kind === 'profile') await expect(page.getByLabel('名字', { exact: true })).not.toHaveValue('');
       await title.click(); await page.keyboard.press('Control+Home');
-      const image = await page.screenshot({ path: directory + '/' + kind + '-' + state + '-' + mode.toLowerCase() + '-' + width + '.png', fullPage: true, animations: 'disabled' });
+      const image = await page.screenshot({ ...(writeCapture ? { path: directory + '/' + kind + '-' + state + '-' + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
       expect(image.readUInt32BE(16), 'Staff and profile pages stay within the viewport').toBe(width);
     }
   }

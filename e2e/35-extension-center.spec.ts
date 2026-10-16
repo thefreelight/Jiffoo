@@ -49,23 +49,23 @@ async function installPayment(page: Page) {
   ownedSlugs.add(provider);
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/plugins');
-  await page.getByRole('button', { name: 'Marketplace', exact: true }).click();
+  await page.getByRole('tab', { name: 'Marketplace', exact: true }).click();
   const entry = page.getByRole('article', { name: providerName, exact: true });
-  await entry.getByRole('button', { name: 'Details', exact: true }).click();
   await entry.getByRole('button', { name: 'Install', exact: true }).click();
-  await expect(page.getByText('Plugin installed successfully.', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Installed plugins', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Confirm installation', exact: true }).getByRole('button', { name: 'Confirm installation', exact: true }).click();
+  await expect(entry.getByRole('button', { name: 'Installed', exact: true })).toBeDisabled();
+  await page.getByRole('tab', { name: 'Installed', exact: true }).click();
   const installed = page.getByRole('article', { name: providerName, exact: true });
   await expect(installed.getByText('Test-signed', { exact: true })).toBeVisible();
-  await expect(installed.getByRole('button', { name: 'Enable', exact: true })).toBeVisible();
-  await installed.getByRole('link', { name: 'Manage', exact: true }).click();
-  await page.getByLabel('Webhook secret *', { exact: true }).fill(secret);
+  await expect(installed.getByText('Needs configuration', { exact: true })).toBeVisible();
+  await installed.getByRole('link', { name: 'Configure', exact: true }).click();
+  await page.getByLabel('Webhook secret', { exact: true }).fill(secret);
   const saved = page.waitForResponse(response => response.request().method() === 'PATCH' && response.url().includes('/instances/'));
   await page.getByRole('button', { name: 'Save configuration', exact: true }).click();
   expect((await saved).ok()).toBe(true);
-  await expect(page.getByLabel('Webhook secret *', { exact: true })).toHaveValue('');
-  await page.getByRole('button', { name: 'Enable plugin', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Disable plugin', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Webhook secret', { exact: true })).toHaveValue('');
+  await page.getByRole('button', { name: 'Enable', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
 }
 
 async function buyer(page: Page, request: APIRequestContext) {
@@ -167,13 +167,16 @@ test('A SDK shipping scaffold runs dev, builds, signs, uploads, configures and w
     expect((await request.get(`${apiOrigin}/extensions/plugin/${slug}-dev`, { headers })).status()).toBe(404);
     await login(page, ownerEmail, 'FinalOwnerPassword123!');
     await page.goto('/en/plugins');
-    await page.getByLabel('Plugin ZIP', { exact: true }).setInputFiles(await project.signedZip());
-    await page.getByRole('button', { name: 'Preview package', exact: true }).click();
-    await expect(page.getByLabel('Upload a local plugin', { exact: true }).getByRole('heading', { name: project.name, exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Install package', exact: true }).click();
+    await page.getByRole('button', { name: 'Upload plugin', exact: true }).click();
+    await page.getByLabel('Choose plugin package', { exact: true }).setInputFiles(await project.signedZip());
+    await page.getByRole('button', { name: 'Check package', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Confirm installation', exact: true }).getByText(project.name, { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Confirm installation', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Installation complete', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
     const entry = page.getByRole('article', { name: project.name, exact: true });
     await expect(entry.getByText('Test-signed', { exact: true })).toBeVisible();
-    await expect(entry.getByRole('button', { name: 'Enable', exact: true })).toBeVisible();
+    await expect(entry.getByText('Disabled', { exact: true })).toBeVisible();
     await entry.getByRole('link', { name: 'Manage', exact: true }).click();
     const label = `SDK rate ${slug}`;
     await page.getByLabel('Shipping label', { exact: true }).fill(label);
@@ -182,8 +185,8 @@ test('A SDK shipping scaffold runs dev, builds, signs, uploads, configures and w
     await page.getByRole('button', { name: 'Save configuration', exact: true }).click();
     expect((await saved).ok()).toBe(true);
     await expect(page.getByLabel('Shipping label', { exact: true })).toHaveValue(label);
-    await page.getByRole('button', { name: 'Enable plugin', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Disable plugin', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Enable', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
     const token = await buyer(shop, request);
     const order = await placeOrder(shop, request, token, 'Manual payment', label);
     expect(order).toMatchObject({ shippingAmount: 7.25, shippingMethod: { providerSlug: slug, label, amountMinor: 725 } });
@@ -237,14 +240,14 @@ for (const letter of ['B', 'C', 'D', 'E', 'F'] as const) {
         return;
       }
       if (letter === 'E') {
-        await page.getByRole('button', { name: 'Disable plugin', exact: true }).click();
-        const dialog = page.getByRole('dialog', { name: 'Disable payment method?', exact: true });
+        await page.getByRole('button', { name: 'Disable', exact: true }).click();
+        const dialog = page.getByRole('alertdialog', { name: 'Disable payment method?', exact: true });
         await dialog.getByRole('button', { name: 'Disable anyway', exact: true }).click();
-        await expect(page.getByRole('button', { name: 'Enable plugin', exact: true })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Enable', exact: true })).toBeVisible();
         expect((await send(request, event)).status()).toBe(503);
         expect(await pending(request, order, token)).toEqual(before);
-        await page.getByRole('button', { name: 'Enable plugin', exact: true }).click();
-        await expect(page.getByRole('button', { name: 'Disable plugin', exact: true })).toBeVisible();
+        await page.getByRole('button', { name: 'Enable', exact: true }).click();
+        await expect(page.getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
       }
       expect((await send(request, event)).ok()).toBe(true);
       const succeeded = await paid(request, order, token);

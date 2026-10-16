@@ -1,5 +1,5 @@
 import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
-import { afterAll, afterEach, beforeAll, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from 'vitest';
 import { Client } from 'pg';
 import { randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
@@ -52,6 +52,8 @@ const builtinSlugs = ['manual-payment', 'free-shipping', 'zero-tax', 'manual-ful
 let builtinSnapshot: Awaited<ReturnType<typeof snapshotPluginRows>> | undefined;
 const children = new Set<Awaited<ReturnType<typeof child>>>();
 const clients = new Set<Client>();
+let queueIsolation: Client | null = null;
+let queueSnapshot: Array<Record<string, unknown> & { id: string }> = [];
 const server = createServer(async (request, response) => {
   const chunks: Buffer[] = []; for await (const chunk of request) chunks.push(Buffer.from(chunk));
   const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
@@ -73,9 +75,24 @@ beforeAll(async () => {
   const builtin = await prisma.pluginInstallation.findUniqueOrThrow({ where: { pluginSlug_instanceKey: { pluginSlug: 'console-email', instanceKey: 'default' } } });
   expect((await app.inject({ method: 'PATCH', url: `/api/v1/extensions/plugin/console-email/instances/${builtin.id}`, headers: admin.authHeader, payload: { enabled: false } })).statusCode).toBe(200);
 });
+beforeEach(async () => {
+  const isolation = await connect(); queueIsolation = isolation;
+  expect((await isolation.query('SELECT current_database() AS name')).rows[0].name).toBe(laneConfig().databaseName);
+  await isolation.query('BEGIN');
+  // Real claim and reclaim queries skip the unrelated rows held by this connection.
+  queueSnapshot = (await isolation.query<Record<string, unknown> & { id: string }>('SELECT * FROM public.notifications ORDER BY id FOR UPDATE')).rows;
+});
+
 afterEach(async () => {
   for (const response of responses) response.end(JSON.stringify({ accepted: true, providerMessageId: 'released' }));
   const cleanup = await Promise.allSettled([...children].map(value => stopChild(value)));
+  if (queueIsolation) cleanup.push(...await Promise.allSettled([(async () => {
+    const isolation = queueIsolation!;
+    try {
+      const preserved = await isolation.query('SELECT * FROM public.notifications WHERE id = ANY($1::text[]) ORDER BY id', [queueSnapshot.map(row => row.id)]);
+      expect(preserved.rows).toEqual(queueSnapshot);
+    } finally { await isolation.query('ROLLBACK'); queueIsolation = null; queueSnapshot = []; }
+  })()]));
   cleanup.push(...await Promise.allSettled([...clients].map(client => client.end()))); clients.clear();
   const failures = cleanup.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
   if (failures.length) throw new AggregateError(failures.map(result => result.reason), 'B10 per-test cleanup failed');

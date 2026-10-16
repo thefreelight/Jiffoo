@@ -80,10 +80,10 @@ test('U2 Overview shows real attention counts and opens the Orders review deep l
     await expect(page.getByRole('button', { name: 'Payment', exact: true })).toContainText('Requires review');
     await expect(page.getByRole('link', { name: 'View order ' + ids[0], exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'View order ' + ids[1], exact: true })).toHaveCount(0);
-    if (process.env.CI !== 'true') for (const mode of ['Light', 'Dark']) {
+    if (process.env.VISUAL_SET) for (const mode of ['Light', 'Dark']) {
       await chooseOverviewMode(page, mode);
       await page.getByRole('heading', { name: 'Orders', exact: true }).click(); await page.keyboard.press('Control+Home');
-      await page.screenshot({ path: 'C:/Users/11948/Pictures/jiffoo-u2/orders-deeplink-' + mode.toLowerCase() + '-1440.png', animations: 'disabled' });
+      await page.screenshot({ path: 'e2e/visual-results/' + process.env.VISUAL_SET + '/admin-shell/orders-deeplink-' + mode.toLowerCase() + '-1440.png', animations: 'disabled' });
     }
     await page.goto('/en/dashboard');
     await page.getByRole('link', { name: 'View orders', exact: true }).click();
@@ -139,8 +139,8 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
   expect(databaseUrl).toBe('postgresql://postgres:postgres@localhost:5432/jiffoo_core_test');
   const db = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
   const id = 'u1c-review-' + randomUUID();
-  const directory = 'C:/Users/11948/Pictures/jiffoo-u1c';
-  const capture = process.env.CI !== 'true';
+  const directory = 'e2e/visual-results/' + process.env.VISUAL_SET + '/admin-shell';
+  const capture = Boolean(process.env.VISUAL_SET);
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error' && /hydrat/i.test(message.text())) errors.push(message.text()); });

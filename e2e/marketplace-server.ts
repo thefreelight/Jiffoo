@@ -50,7 +50,15 @@ try {
     versions: [
       await packageVersion('e2e-market-shipping', 'E2E Marketplace Shipping', '1.0.0'),
       await packageVersion('e2e-market-shipping', 'E2E Marketplace Shipping', '2.0.0'),
-      await packageVersion('e2e-market-shipping', 'E2E Marketplace Shipping', '3.0.0', 'v99'),
+    ],
+  };
+  const update = {
+    id: 'e2e-market-update', slug: 'e2e-market-update', name: 'E2E Marketplace Update',
+    description: 'Isolated signed shipping fixture for version upgrades.', publisherId,
+    declaredCapabilities: ['shipping'],
+    versions: [
+      await packageVersion('e2e-market-update', 'E2E Marketplace Update', '1.0.0'),
+      await packageVersion('e2e-market-update', 'E2E Marketplace Update', '2.0.0'),
     ],
   };
   const brokenVersion = await packageVersion('e2e-market-broken', 'E2E Broken Package', '1.0.0');
@@ -64,7 +72,12 @@ try {
     declaredCapabilities: ['payment'],
     versions: [await packageVersion('e2e-callback-payment', 'E2E Callback Payment', '1.0.0', 'v1', 'e2e/fixtures/callback-payment')],
   };
-  const catalog = JSON.stringify({ schemaVersion: 1, plugins: [compatible, payment, {
+  const incompatible = {
+    id: 'e2e-market-incompatible', slug: 'e2e-market-incompatible', name: 'E2E Incompatible Plugin',
+    description: 'Requires a newer plugin API.', publisherId,
+    versions: [await packageVersion('e2e-market-incompatible', 'E2E Incompatible Plugin', '3.0.0', 'v99')],
+  };
+  const catalog = JSON.stringify({ schemaVersion: 1, plugins: [compatible, update, incompatible, payment, {
     id: 'e2e-market-broken', slug: 'e2e-market-broken', name: 'E2E Broken Package',
     description: 'The served bytes deliberately fail the catalog digest check.', publisherId,
     declaredCapabilities: ['shipping'], versions: [brokenVersion],

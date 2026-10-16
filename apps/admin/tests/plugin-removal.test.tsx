@@ -8,6 +8,7 @@ import { merchant as en } from '../../../packages/shared/src/i18n/messages/en/me
 import { merchant as hans } from '../../../packages/shared/src/i18n/messages/zh-Hans/merchant';
 import { merchant as hant } from '../../../packages/shared/src/i18n/messages/zh-Hant/merchant';
 import { PluginsManager } from '@/components/extensions/PluginsManager';
+import { PluginLifecycle } from '@/components/extensions/PluginLifecycle';
 import { pluginsApi } from '@/lib/api';
 import { pluginLifecycleErrorKey } from '@/lib/plugin-lifecycle';
 
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({ installed: vi.fn(), uninstall: vi.fn(), restor
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string) => key.split('.').slice(1).reduce<any>((value, part) => value?.[part], en) ?? key }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: PropsWithChildren<{ href: string }>) => <a {...props}>{children}</a> }));
 vi.mock('@/components/extensions/PluginUpload', () => ({ PluginUpload: () => null }));
+vi.mock('@/lib/plugin-upload', () => ({ pluginUploadApi: { recovery: async () => ({ items: [] }) } }));
 vi.mock('@/lib/marketplace', () => ({ useMarketplaceStatus: () => ({ data: { configured: false, testSigningMode: true } }), useMarketplaceCatalog: () => ({}), useMarketplaceInstall: () => ({}), marketplaceErrorKey: () => 'failed' }));
 vi.mock('@/lib/api', async original => ({ ...await original<typeof import('@/lib/api')>(), pluginsApi: { getInstalled: mocks.installed, uninstall: mocks.uninstall, restore: mocks.restore, purge: mocks.purge } }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -26,6 +28,7 @@ describe('Admin plugin removal', () => {
   let root: Root, container: HTMLDivElement, client: QueryClient;
   let rows: ReturnType<typeof plugin>[];
   beforeEach(() => {
+    window.history.replaceState(null, '', '/en/plugins');
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
     client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } }); rows = [plugin()];
@@ -58,19 +61,38 @@ describe('Admin plugin removal', () => {
     await act(async () => root.render(<QueryClientProvider client={client}><PluginsManager /></QueryClientProvider>));
     await waitForState('active', { present: [initialFixture] });
   };
-  const buttons = (name: string) => Array.from(document.getElementsByTagName('button')).filter(button => button.textContent === name);
+  const buttons = (name: string) => Array.from(document.getElementsByTagName('button')).filter(button => (button.getAttribute('aria-label') ?? button.textContent) === name);
   const button = (name: string) => { const matches = buttons(name); expect(matches).toHaveLength(1); return matches[0]; };
-  const click = async (name: string) => { await act(async () => button(name).click()); };
+  const openActions = async () => {
+    const row = Array.from(container.getElementsByTagName('article')).find(row => row.getAttribute('aria-label') === 'removal-fixture')!;
+    await act(async () => row.querySelector<HTMLButtonElement>('button[aria-haspopup=menu]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
+  };
+  const click = async (name: string) => {
+    if (name === 'Installed plugins') name = 'Installed';
+    if (name === 'Uninstall' || name === 'Delete permanently') {
+      await openActions();
+      await act(async () => Array.from(document.querySelectorAll<HTMLElement>('[role=menuitem]')).find(item => item.textContent === name)!.click());
+    } else await act(async () => button(name).click());
+  };
   const dialog = () => document.querySelector('[role="dialog"]')!;
   const type = async (value: string) => { const input = document.querySelector('input')!; await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })); }); };
+
+  it('lets detail pages guard unsaved changes before uninstall and return after success', async () => {
+    let resume!: () => void; const onUninstalled = vi.fn();
+    await act(async () => root.render(<QueryClientProvider client={client}><PluginLifecycle plugin={plugin() as any} beforeAction={action => { resume = action; }} onUninstalled={onUninstalled} /></QueryClientProvider>));
+    await act(async () => container.querySelector('button[aria-haspopup=menu]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
+    await act(async () => document.querySelector<HTMLElement>('[role=menuitem]')!.click());
+    expect(document.querySelector('[role=dialog]')).toBeNull(); expect(mocks.uninstall).not.toHaveBeenCalled();
+    await act(async () => resume()); await click('Confirm'); expect(onUninstalled).toHaveBeenCalledTimes(1);
+  });
 
   it('H Removed view shows database metadata and only restore and delete actions while package errors isolate their plugin', async () => {
     rows = [plugin('healthy'), plugin('missing', false, 'unavailable'), plugin('broken', false, 'corrupt'), plugin('removed-fixture', true)];
     await render('healthy'); expect(container.textContent).toContain(en.plugins.lifecycle.packageUnavailable); expect(container.textContent).toContain(en.plugins.lifecycle.packageCorrupt);
     const articles = Array.from(container.getElementsByTagName('article'));
-    expect(articles.find(article => article.getAttribute('aria-label') === 'healthy')?.textContent).toContain('Enable');
-    for (const slug of ['missing', 'broken']) expect(Array.from(articles.find(article => article.getAttribute('aria-label') === slug)!.getElementsByTagName('button')).find(button => button.textContent === 'Enable')?.disabled).toBe(true);
-    await click('Removed'); await waitForState('removed', { present: ['removed-fixture'], absent: ['healthy', 'missing', 'broken'] }); expect(container.textContent).toContain('removed-fixture'); expect(button('Restore')).toBeDefined(); expect(button('Delete plugin')).toBeDefined(); expect(buttons('Enable')).toHaveLength(0); expect(buttons('Uninstall')).toHaveLength(0);
+    expect(articles.find(article => article.getAttribute('aria-label') === 'healthy')?.textContent).toContain('Disabled');
+    expect(buttons('Enable')).toHaveLength(0);
+    await click('Removed'); await waitForState('removed', { present: ['removed-fixture'], absent: ['healthy', 'missing', 'broken'] }); expect(container.textContent).toContain('removed-fixture'); expect(button('Restore')).toBeDefined(); expect(container.querySelector('button[aria-haspopup=menu]')).not.toBeNull(); expect(buttons('Enable')).toHaveLength(0); expect(buttons('Uninstall')).toHaveLength(0);
   });
   it('I uninstall dialog states retention, cancel sends nothing and confirmation refreshes active and removed queries', async () => {
     await render(); await click('Uninstall'); expect(dialog().textContent).toContain(en.plugins.lifecycle.uninstallDescription);
@@ -85,13 +107,13 @@ describe('Admin plugin removal', () => {
     expect(dialog().textContent).toContain(en.plugins.lifecycle.restoreDescription); await click('Cancel'); expect(mocks.restore).not.toHaveBeenCalled();
     await click('Restore'); await click('Confirm'); await waitForState('removed', { absent: ['removal-fixture'] }, true);
     expect(mocks.restore).toHaveBeenCalledTimes(1);
-    await click('Installed plugins'); await waitForState('active', { present: ['active-fixture', 'removal-fixture'] }); expect(container.textContent).toContain('removal-fixture'); expect(buttons('Enable')).toHaveLength(2);
+    await click('Installed plugins'); await waitForState('active', { present: ['active-fixture', 'removal-fixture'] }); expect(container.textContent).toContain('removal-fixture'); expect(buttons('Enable')).toHaveLength(0); expect(container.textContent).toContain('Disabled');
   });
   it('I purge dialog honestly describes retained data, requires the exact slug and cancel sends nothing', async () => {
-    rows = [plugin('active-fixture'), plugin('removal-fixture', true)]; await render('active-fixture'); await click('Removed'); await waitForState('removed', { present: ['removal-fixture'], absent: ['active-fixture'] }); await click('Delete plugin');
+    rows = [plugin('active-fixture'), plugin('removal-fixture', true)]; await render('active-fixture'); await click('Removed'); await waitForState('removed', { present: ['removal-fixture'], absent: ['active-fixture'] }); await click('Delete permanently');
     expect(dialog().textContent).toContain(en.plugins.lifecycle.purgeDescription); expect(button('Confirm').disabled).toBe(true);
     await type('wrong'); expect(button('Confirm').disabled).toBe(true); await click('Cancel'); expect(mocks.purge).not.toHaveBeenCalled();
-    await click('Delete plugin'); await type('removal-fixture'); expect(button('Confirm').disabled).toBe(false); await click('Confirm');
+    await click('Delete permanently'); await type('removal-fixture'); expect(button('Confirm').disabled).toBe(false); await click('Confirm');
     await waitForState('removed', { absent: ['removal-fixture'] }, true); expect(mocks.purge).toHaveBeenCalledTimes(1); expect(mocks.purge).toHaveBeenCalledWith('removal-fixture', 'removal-fixture');
     expect(mocks.installed.mock.calls.filter(call => call[2] === 'removed').length).toBeGreaterThan(1);
   });
@@ -100,15 +122,15 @@ describe('Admin plugin removal', () => {
     let release!: (value: unknown) => void; const pending = new Promise(resolve => { release = resolve; }); mocks[operation].mockReturnValue(pending);
     await render('active-fixture'); if (operation !== 'uninstall') { await click('Removed'); await waitForState('removed', { present: ['removal-fixture'], absent: ['active-fixture'] }); }
     if (operation === 'uninstall') rows = [plugin('removal-fixture')];
-    const label = { uninstall: 'Uninstall', restore: 'Restore', purge: 'Delete plugin' }[operation];
-    const target = buttons(label).at(-1)!; await act(async () => target.click()); if (operation === 'purge') await type('removal-fixture');
+    const label = { uninstall: 'Uninstall', restore: 'Restore', purge: 'Delete permanently' }[operation];
+    await click(label); if (operation === 'purge') await type('removal-fixture');
     await act(async () => { const confirm = button('Confirm'); confirm.click(); confirm.click(); }); expect(mocks[operation]).toHaveBeenCalledTimes(1);
     expect(button('Working…').disabled).toBe(true); await act(async () => release(success({ slug: 'removal-fixture' })));
     await waitForState(operation === 'uninstall' ? 'active' : 'removed', { present: ['removal-fixture'] }, true);
   });
   it('J unfinished-payment refusal remains visible in the dialog without deleting the installation', async () => {
     rows = [plugin('active-fixture'), plugin('removal-fixture', true)]; mocks.purge.mockRejectedValue({ code: ApiErrorCodes.PLUGIN_UNFINISHED_PAYMENTS });
-    await render('active-fixture'); await click('Removed'); await waitForState('removed', { present: ['removal-fixture'], absent: ['active-fixture'] }); await click('Delete plugin'); await type('removal-fixture'); await click('Confirm');
+    await render('active-fixture'); await click('Removed'); await waitForState('removed', { present: ['removal-fixture'], absent: ['active-fixture'] }); await click('Delete permanently'); await type('removal-fixture'); await click('Confirm');
     await vi.waitFor(async () => { await act(async () => {}); expect(dialog().textContent).toContain(en.plugins.lifecycle.unfinishedPayments); }); expect(rows.some(row => row.slug === 'removal-fixture')).toBe(true);
   });
   it.each([

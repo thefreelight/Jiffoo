@@ -1,6 +1,8 @@
 import { expect, test } from './local-requests';
 import { login, ownerEmail, shopLogin } from './helpers';
 import { headerThemePackage } from './theme-package';
+import { pluginMessage } from '../packages/shared/src/i18n/messages/admin-plugins';
+import { uploadPackages } from './upload-packages';
 import { writeFile } from 'node:fs/promises';
 import type { BrowserContext, Locator, Page } from '@playwright/test';
 
@@ -492,3 +494,50 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       JSON.stringify(fontRequests, null, 2));
   });
 }
+
+test('capture plugin boards in light and dark at desktop and phone widths', async ({ page }) => {
+  test.setTimeout(120_000);
+  const packages = await uploadPackages();
+  const set = process.env.VISUAL_SET;
+  if (!['baseline', 'current', 'noise-1', 'noise-2'].includes(set ?? '')) throw new Error('Invalid plugin capture set');
+  await login(page, ownerEmail, 'FinalOwnerPassword123!');
+  try {
+    for (const mode of ['Light', 'Dark']) {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto('/en/plugins');
+      await page.getByRole('button', { name: 'Account menu', exact: true }).click();
+      await page.getByRole('menuitem', { name: 'Appearance', exact: true }).focus(); await page.keyboard.press('ArrowRight');
+      await page.getByRole('menuitemradio', { name: mode, exact: true }).click();
+      for (const [width, height] of [[1440, 900], [390, 844]]) {
+        await page.setViewportSize({ width, height });
+        let mainBounds: { x: number; y: number; width: number; height: number } | null = null;
+        const capture = async (name: string) => {
+          await page.evaluate(() => document.fonts.ready);
+          const dialog = page.getByRole('dialog', { name: /.+/ });
+          if (await dialog.count()) {
+            const left = await dialog.evaluate(element => Number.parseFloat(getComputedStyle(element).left));
+            expect(left, 'Plugin dialogs are centered over the main content area').toBeCloseTo(mainBounds!.x + mainBounds!.width / 2, 0);
+          }
+          const png = await page.screenshot({ path: `e2e/visual-results/${set}/plugins-${name}-${mode.toLowerCase()}-${width}.png`, fullPage: true, animations: 'disabled' });
+          expect(png.readUInt32BE(16), 'Plugin pages fit the viewport without horizontal overflow').toBe(width);
+        };
+        await page.goto('/zh-Hans/plugins');
+        await expect(page.getByRole('article', { name: 'Manual payment', exact: true })).toBeVisible();
+        mainBounds = await page.getByRole('main', { name: '' }).boundingBox(); expect(mainBounds).not.toBeNull(); await capture('installed');
+        await page.getByRole('tab', { name: pluginMessage('zh-Hans', 'market'), exact: true }).click();
+        await expect(page.getByRole('article', { name: 'E2E Marketplace Shipping', exact: true })).toBeVisible(); await capture('market');
+        await page.getByRole('tab', { name: pluginMessage('zh-Hans', 'removed'), exact: true }).click(); await capture('removed');
+        await page.getByRole('button', { name: pluginMessage('zh-Hans', 'upload'), exact: true }).click(); await capture('upload-choose');
+        await page.getByLabel(pluginMessage('zh-Hans', 'choose'), { exact: true }).setInputFiles(packages.unsigned);
+        await page.getByRole('button', { name: pluginMessage('zh-Hans', 'check'), exact: true }).click();
+        await expect(page.getByText(pluginMessage('zh-Hans', 'unsignedWarning'), { exact: true })).toBeVisible(); await capture('upload-preview');
+        await page.getByRole('button', { name: '取消', exact: true }).click();
+        await page.goto('/zh-Hans/plugins/manual-payment');
+        await expect(page.getByRole('heading', { name: 'Manual payment', exact: true })).toBeVisible(); await capture('detail');
+        const instructions = page.getByRole('textbox', { name: 'Payment instructions' });
+        await instructions.fill((await instructions.inputValue()) + ' Updated'); await capture('detail-dirty');
+        await page.getByRole('button', { name: pluginMessage('zh-Hans', 'discard'), exact: true }).click();
+      }
+    }
+  } finally { await packages.cleanup(); }
+});

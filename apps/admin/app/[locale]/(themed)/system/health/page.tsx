@@ -4,6 +4,7 @@ import { AlertTriangle, Database, Plug, RefreshCw, Server, Activity } from 'luci
 import { Button } from '@/components/ui/button'
 import { useT } from 'shared/src/i18n/react'
 import { useHealthSummary } from '@/lib/hooks/use-api'
+import { PluginDatabaseAudit } from '@/components/extensions/PluginDatabaseAudit'
 
 export default function HealthMonitoringPage() {
   const t = useT()
@@ -97,6 +98,7 @@ export default function HealthMonitoringPage() {
           </p>
         </div>
       )}
+      <PluginDatabaseAudit />
     </div>
   )
 }

@@ -26,12 +26,22 @@ describe('Admin v4 theme foundation', () => {
     expect(values('.border-border\\/50', 'border-color').join()).toContain('var(--admin-core-border)');
     expect(adminThemeCss(adminTheme.tokens)).toContain('--admin-core-border: #00000017;');
   });
-  it('compiles multi-column plugin layouts without the v3 comma shorthand', () => {
-    const columns: string[] = [];
-    compiled.walkDecls('grid-template-columns', declaration => { columns.push(declaration.value.replace(/\s/g, '')); });
-    expect(columns).toContain('260pxminmax(0,1fr)');
-    expect(columns).toContain('minmax(0,1fr)360px');
-    expect(columns).not.toContain('260px,minmax(0,1fr)');
+  it('compiles the approved single-column plugin list and detail widths', () => {
+    const widths: string[] = [];
+    compiled.walkDecls('max-width', declaration => { widths.push(declaration.value); });
+    expect(widths).toContain('760px');
+    expect(widths).toContain('1120px');
+    for (const file of ['components/plugins/PluginWorkspace.tsx', 'components/extensions/PluginsManager.tsx']) {
+      expect(readFileSync(resolve(root, file), 'utf8')).not.toMatch(/grid-cols-\[/);
+    }
+  });
+  it('compiles theme-derived plugin overlays and centering over the main content area', () => {
+    const backgrounds: string[] = [], offsets: string[] = [];
+    compiled.walkDecls('background-color', declaration => { backgrounds.push(declaration.value.replace(/\s/g, '')); });
+    compiled.walkDecls('left', declaration => { offsets.push(declaration.value.replace(/\s/g, '')); });
+    expect(backgrounds.some(value => value.includes('fromvar(--admin-extras-overlay)') && /\/0?\.32\)/.test(value))).toBe(true);
+    expect(offsets).toContain('calc(50%+120px)');
+    expect(offsets).toContain('calc(50%+28px)');
   });
   it('keeps builtin defaults, static CSS and both mode blocks synchronized', () => {
     expect(themeDefaultTokens.admin).toEqual(adminTheme.tokens);

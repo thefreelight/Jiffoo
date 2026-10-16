@@ -1,224 +1,128 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Loader2, Settings2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { parsePluginConfigSchema, validatePluginConfig, type PluginConfigSchema } from 'shared';
+import { parsePluginConfigSchema, validatePluginConfig, formatStoreTimestamp, type PluginCategory } from 'shared';
+import { pluginMessage, pluginCategoryMessage, type PluginLabel } from 'shared/src/i18n/messages/admin-plugins';
 import { isAdminApiError } from '@/lib/api';
-import type { PluginConfigMeta } from '@/lib/types';
-import {
-  useInstalledPlugins,
-  usePluginConfig,
-  usePluginInstances,
-  useUpdatePluginInstance,
-} from '@/lib/hooks/use-api';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { usePluginConfig, usePluginInstances, useUpdatePluginInstance } from '@/lib/hooks/use-api';
+import { useMarketplaceStatus } from '@/lib/marketplace';
+import { useStoreDate } from '@/lib/store-time';
+import { usePluginDialogLayout } from '@/lib/plugin-dialog';
+import { registerNavigationGuard, requestAppNavigation } from '@/lib/pending-navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
-import { PluginTrust } from '@/components/extensions/PluginTrust';
-import { DisablePluginControl } from '@/components/plugins/DisablePluginControl';
-import { toast } from 'sonner';
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { PluginTrustLabel } from '@/components/extensions/PluginTrust';
+import { PluginLifecycle } from '@/components/extensions/PluginLifecycle';
+import { DisablePluginControl } from './DisablePluginControl';
 import { LastRecordedError } from './LastRecordedError';
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-const formText = {
-  en: { title: 'Configuration', description: 'Configuration fields are declared by this extension.', save: 'Save configuration', saving: 'Saving...', configured: 'Configured. Enter a new value to replace it.', select: 'Select', invalid: 'Invalid value' },
-  'zh-Hans': { title: '配置', description: '配置字段由扩展声明。', save: '保存配置', saving: '保存中...', configured: '已配置。输入新值以替换。', select: '选择', invalid: '无效的值' },
-  'zh-Hant': { title: '設定', description: '設定欄位由擴充功能宣告。', save: '儲存設定', saving: '儲存中...', configured: '已設定。輸入新值以取代。', select: '選擇', invalid: '無效的值' },
-} as const;
-
-function GenericConfigEditor({
-  schema,
-  draft,
-  meta,
-  saving,
-  locale,
-  errors,
-  onChange,
-  onSave,
-}: {
-  schema: PluginConfigSchema;
-  draft: Record<string, unknown>;
-  meta?: PluginConfigMeta;
-  saving: boolean;
-  locale: string;
-  errors: Record<string, string>;
-  onChange: (field: string, value: unknown) => void;
-  onSave: () => void;
-}) {
-  const text = formText[locale as keyof typeof formText] ?? formText.en;
-  return (
-    <Card className="rounded-2xl border-cool-soft/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-      <CardHeader>
-        <CardTitle className="text-lg tracking-tight">{text.title}</CardTitle>
-        <CardDescription>{text.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {Object.entries(schema.properties).map(([field, descriptor]) => {
-          const type = descriptor.type;
-          const configured = Boolean(meta?.secretFields?.[field]?.configured);
-          const label = descriptor.title || field;
-          const value = draft[field];
-          const required = schema.required?.includes(field) ?? false;
-          return (
-            <div key={field} className="space-y-2">
-              <Label htmlFor={`plugin-config-${field}`}>
-                {label}{required ? ' *' : ''}
-              </Label>
-              {descriptor.description ? <p className="text-sm text-muted-foreground">{descriptor.description}</p> : null}
-              {type === 'boolean' ? (
-                <Switch id={`plugin-config-${field}`} aria-label={label} checked={Boolean(value ?? descriptor.default)} onCheckedChange={(checked) => onChange(field, checked)} />
-              ) : type === 'string' && descriptor.enum ? (
-                <Select value={typeof value === 'string' ? value : ''} onValueChange={(next) => onChange(field, next)}>
-                  <SelectTrigger id={`plugin-config-${field}`} aria-label={label}><SelectValue placeholder={`${text.select} ${label}`} /></SelectTrigger>
-                  <SelectContent>{descriptor.enum.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  id={`plugin-config-${field}`}
-                  type={descriptor.sensitive ? 'password' : type === 'number' || type === 'integer' ? 'number' : 'text'}
-                  step={type === 'integer' ? 1 : type === 'number' ? 'any' : undefined}
-                  min={descriptor.minimum}
-                  max={descriptor.maximum}
-                  minLength={descriptor.minLength}
-                  maxLength={descriptor.maxLength}
-                  value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
-                  placeholder={descriptor.sensitive && configured ? text.configured : undefined}
-                  onChange={(event) => onChange(field, type === 'number' || type === 'integer'
-                    ? event.target.value === '' ? undefined : Number(event.target.value)
-                    : event.target.value)}
-                />
-              )}
-              {errors[field] ? <p role="alert" className="text-sm text-destructive">{errors[field] || text.invalid}</p> : null}
-            </div>
-          );
-        })}
-        <Button onClick={onSave} disabled={saving} className="rounded-lg">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {saving ? text.saving : text.save}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
+function record(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 
 export function PluginWorkspace({ slug }: { slug: string }) {
-  const locale = useLocale();
-  const t = useT();
-  const { data, isLoading, error } = usePluginConfig(slug);
-  const { data: instancesData } = usePluginInstances(slug);
-  const { data: installedPluginsData } = useInstalledPlugins();
-  const { mutateAsync: updateInstance, isPending: updating } = useUpdatePluginInstance();
-  const [draft, setDraft] = useState<Record<string, unknown>>({});
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  const getText = (key: string, fallback: string) => {
-    const translated = t?.(key);
-    return translated && translated !== key ? translated : fallback;
-  };
-  const instances = useMemo(() => instancesData?.items || [], [instancesData?.items]);
-  const selected = instances[0] || null;
-  const schema = data?.configSchema ? parsePluginConfigSchema(data.configSchema).schema : null;
-  const config = isPlainObject(selected?.config) ? selected.config : {};
-  const meta = selected?.configMeta || data?.configMeta;
-  const readinessConfig = { ...config };
-  if (schema) for (const [name, field] of Object.entries(schema.properties)) {
-    if (field.sensitive && meta?.secretFields?.[name]?.configured && !readinessConfig[name]) readinessConfig[name] = 'configured';
-  }
-  const missing = schema ? validatePluginConfig(schema, readinessConfig)
-    .filter((issue) => issue.message === 'Required field is missing')
-    .map((issue) => issue.path.slice('config.'.length)) : [];
-  const readiness = { ready: missing.length === 0, missing };
-  const saving = updating;
-
+  const locale = useLocale(), t = useT(), router = useRouter(), { timezone } = useStoreDate();
+  const c = (key: PluginLabel, values?: Record<string, string | number>) => pluginMessage(locale, key, values);
+  const dialogLayout = usePluginDialogLayout('leave');
+  const leave = (key: string) => t('merchant.profileView.' + key);
+  const query = usePluginConfig(slug), instances = usePluginInstances(slug), status = useMarketplaceStatus();
+  const mutation = useUpdatePluginInstance(), data = query.data;
+  const selected = instances.data?.items.find(item => item.instanceKey === 'default');
+  const schema = useMemo(() => data?.configSchema ? parsePluginConfigSchema(data.configSchema).schema : null, [data?.configSchema]);
+  const [draft, setDraft] = useState<Record<string, unknown>>({}), [baseline, setBaseline] = useState<Record<string, unknown>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({}), [failed, setFailed] = useState(false), [busy, setBusy] = useState(false);
+  const [savedAt, setSavedAt] = useState<string | null>(null), [destination, setDestination] = useState<(() => void) | null>(null);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(baseline);
+  const dirtyRef = useRef(false), submitting = useRef(false), identity = useRef(''), firstError = useRef<string | null>(null);
+  const errorFromDialog = useRef(false);
+  dirtyRef.current = dirty;
   useEffect(() => {
-    const initial = { ...config };
-    if (schema) for (const [name, field] of Object.entries(schema.properties)) {
-      if (field.sensitive) delete initial[name];
-      else if (!Object.prototype.hasOwnProperty.call(initial, name) && field.default !== undefined) initial[name] = field.default;
+    if (!selected || identity.current === selected.installationId && dirtyRef.current) return;
+    identity.current = selected.installationId;
+    const values = { ...(record(selected.config) ? selected.config : {}) };
+    if (schema) for (const [field, descriptor] of Object.entries(schema.properties)) {
+      if (descriptor.sensitive) delete values[field];
+      else if (values[field] === undefined && descriptor.default !== undefined) values[field] = descriptor.default;
     }
-    setDraft(initial);
-    setFieldErrors({});
-  }, [selected?.installationId, selected?.updatedAt, data?.configSchema]);
-
-  const save = async () => {
+    const saved = { ...values };
+    if (schema) for (const field of schema.required ?? []) if (selected.config?.[field] === undefined) delete saved[field];
+    setDraft(values); setBaseline(saved); setSavedAt(selected.updatedAt ?? null);
+  }, [selected?.installationId, selected?.updatedAt, schema]);
+  useEffect(() => {
+    if (busy || !firstError.current || errorFromDialog.current) return;
+    const field = document.getElementById('plugin-config-' + firstError.current);
+    field?.focus(); field?.scrollIntoView?.({ block: 'center' }); firstError.current = null;
+  }, [busy, errors]);
+  useEffect(() => {
+    const unregister = registerNavigationGuard(resume => { if (!dirtyRef.current) return false; setDestination(() => resume); return true; });
+    const unload = (event: BeforeUnloadEvent) => { if (dirtyRef.current) { event.preventDefault(); event.returnValue = ''; } };
+    const click = (event: MouseEvent) => {
+      if (!dirtyRef.current || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      const link = (event.target as Element).closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!link || link.hasAttribute('data-app-navigation') || link.target === '_blank' || link.hasAttribute('download')) return;
+      const url = new URL(link.href, window.location.href);
+      if (url.origin !== window.location.origin || url.pathname === window.location.pathname && url.search === window.location.search) return;
+      event.preventDefault(); event.stopPropagation(); setDestination(() => () => router.push(url.pathname + url.search + url.hash));
+    };
+    document.addEventListener('click', click, true); window.addEventListener('beforeunload', unload);
+    return () => { unregister(); document.removeEventListener('click', click, true); window.removeEventListener('beforeunload', unload); };
+  }, [router]);
+  const meta = selected?.configMeta ?? data?.configMeta;
+  const persisted = { ...(selected?.config ?? {}) };
+  if (schema) for (const [field, descriptor] of Object.entries(schema.properties)) if (descriptor.sensitive && meta?.secretFields?.[field]?.configured) persisted[field] = 'configured';
+  const missing = schema ? validatePluginConfig(schema, persisted).filter(issue => issue.message === 'Required field is missing').map(issue => issue.path.slice(7)) : [];
+  async function save() {
+    if (!selected || submitting.current) return false;
+    submitting.current = true; setBusy(true); setFailed(false); setErrors({});
     try {
-      if (!selected) throw new Error('Default plugin instance is unavailable');
-      setFieldErrors({});
-      await updateInstance({ slug, installationId: selected.installationId, enabled: selected.enabled, config: draft });
-    } catch (error) {
-      if (isAdminApiError(error) && isPlainObject(error.details) && Array.isArray(error.details.fields)) {
-        const fields: Record<string, string> = {};
-        for (const issue of error.details.fields) {
-          if (isPlainObject(issue) && typeof issue.path === 'string' && issue.path.startsWith('config.')) {
-            fields[issue.path.slice('config.'.length)] = typeof issue.message === 'string' ? issue.message : '';
-          }
-        }
-        setFieldErrors(fields);
+      const result = await mutation.mutateAsync({ slug, installationId: selected.installationId, config: draft });
+      const next = { ...draft };
+      if (schema) for (const [field, descriptor] of Object.entries(schema.properties)) if (descriptor.sensitive) delete next[field];
+      setDraft(next); setBaseline(next); setSavedAt(result?.updatedAt ?? null); dirtyRef.current = false;
+      return true;
+    } catch (cause) {
+      setFailed(true);
+      errorFromDialog.current = destination !== null;
+      setDestination(null);
+      const fields: Record<string, string> = {};
+      if (isAdminApiError(cause) && record(cause.details) && Array.isArray(cause.details.fields)) for (const issue of cause.details.fields) {
+        if (record(issue) && typeof issue.path === 'string' && issue.path.startsWith('config.')) fields[issue.path.slice(7)] = c(issue.message === 'Required field is missing' ? 'required' : 'invalid');
       }
+      firstError.current = Object.keys(fields)[0] ?? null; setErrors(fields); return false;
+    } finally { submitting.current = false; setBusy(false); }
+  }
+  async function toggle() {
+    if (!selected || submitting.current) return;
+    submitting.current = true; setBusy(true);
+    try { await mutation.mutateAsync({ slug, installationId: selected.installationId, enabled: !selected.enabled }); }
+    catch {
+      // The mutation hook presents the localized transition error.
     }
-  };
-
-  const toggle = async () => {
-    if (!selected) {
-      toast.error('Default plugin instance is unavailable.');
-      return;
-    }
-    if (!selected.enabled && !readiness.ready) {
-      toast.error(`This plugin requires configuration before enabling: ${readiness.missing.join(', ')}`);
-      return;
-    }
-    try {
-      await updateInstance({ slug, installationId: selected.installationId, enabled: !selected.enabled, config });
-    } catch {
-      // Mutation hooks present save errors.
-    }
-  };
-
-  if (isLoading) return <div className="flex min-h-screen items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading plugin workspace...</div>;
-  if (error || !data) return <div className="flex min-h-screen items-center justify-center p-6"><Alert className="max-w-md"><AlertTriangle className="h-4 w-4" /><AlertTitle>Plugin unavailable</AlertTitle><AlertDescription>The plugin details could not be loaded.</AlertDescription></Alert></div>;
-
-  return (
-    <div className="min-h-screen bg-cool-veil p-5 sm:p-7 lg:p-10">
-      <div className="mx-auto grid max-w-[1600px] gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <InstalledPluginsRail locale={locale} plugins={installedPluginsData?.items || []} selectedSlug={slug} getText={getText} />
-        <div className="space-y-5">
-          <Card className="rounded-2xl border-cool-soft/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-            <CardHeader>
-              <div className="flex items-center gap-2 text-sm text-cool-base"><Link href={`/${locale}/plugins`} className="hover:text-action-strong">Plugins</Link><span>/</span><span>{data.name || slug}</span></div>
-              <CardTitle className="flex items-center gap-2 text-2xl">{data.name || slug}</CardTitle>
-              <CardDescription>{data.description || 'Manage the extension configuration.'}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap items-center gap-3">
-              <PluginTrust plugin={data} />
-              <Badge variant={selected?.enabled ? 'default' : 'outline'}>{selected?.enabled ? 'Enabled' : 'Disabled'}</Badge>
-              <Badge variant={readiness.ready ? 'default' : 'outline'}>{readiness.ready ? 'Configuration ready' : 'Configuration required'}</Badge>
-            </CardContent>
-          </Card>
-          <LastRecordedError lastFailureAt={data.lastFailureAt} lastFailureMessage={data.lastFailureMessage} />
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="space-y-5">
-              {schema && Object.keys(schema.properties).length ? <GenericConfigEditor schema={schema} draft={draft} meta={meta} saving={saving} locale={locale} errors={fieldErrors} onChange={(field, value) => setDraft((current) => ({ ...current, [field]: value }))} onSave={() => void save()} /> : <Alert><Settings2 className="h-4 w-4" /><AlertTitle>No configuration declared</AlertTitle><AlertDescription>This extension does not declare configuration fields.</AlertDescription></Alert>}
-            </div>
-            <div className="space-y-5">
-              <Card><CardHeader><CardTitle>Plugin status</CardTitle><CardDescription>Core manages the default plugin configuration.</CardDescription></CardHeader><CardContent className="space-y-4">{selected?.enabled
-                ? <DisablePluginControl slug={slug} category={data.category} label="Disable plugin" disabled={saving} onDisable={toggle} />
-                : <Button onClick={() => void toggle()} disabled={saving || !selected}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Enable plugin</Button>}
-                </CardContent></Card>
-            </div>
-          </div>
-        </div>
-      </div>
+    finally { submitting.current = false; setBusy(false); }
+  }
+  if (query.isLoading || instances.isLoading) return <p role="status" className="p-8">{t('merchant.plugins.loadingPluginDetails')}</p>;
+  if (!data || data.uninstalled) return <div className="space-y-3 p-8"><Link href={`/${locale}/plugins${data?.uninstalled ? '?tab=removed' : ''}`}>{c('back')}</Link><p role="alert">{t(data?.uninstalled ? 'merchant.plugins.lifecycle.alreadyRemoved' : 'merchant.plugins.failedToLoadDetails')}</p></div>;
+  const plugin = { ...data, slug, name: data.name || slug, version: data.version || '', source: data.source as 'builtin' | 'installed', enabled: selected?.enabled ?? false };
+  return <section className="min-w-0 text-[13px]">
+    <header className="sticky top-0 z-30 border-b border-border bg-ground"><div className="mx-auto max-w-[760px] space-y-2.5 px-4 pb-3.5 pt-16 min-[769px]:pt-4 sm:px-8"><Link href={`/${locale}/plugins`} className="text-muted-foreground">{c('back')}</Link><div className="flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 flex-wrap items-center gap-2.5"><span aria-hidden="true" className="flex size-8 items-center justify-center rounded-lg border border-border bg-raised font-semibold text-muted-foreground">{plugin.name.slice(0, 1)}</span><h1 style={{ fontSize: 22 }} className="min-w-0 max-w-full break-words text-[22px] font-semibold tracking-[-0.02em]">{plugin.name}</h1>{status.data && <PluginTrustLabel compact className="h-[22px] px-2 text-xs" plugin={data} testSigningMode={status.data.testSigningMode} />}<span className={`inline-flex h-[22px] items-center gap-1.5 rounded-md border border-border px-2 text-xs leading-none ${selected?.enabled ? 'text-foreground' : 'text-faint'}`}><span aria-hidden="true" className={`size-[7px] rounded-full border border-current ${selected?.enabled ? 'bg-current' : ''}`} />{c(selected?.enabled ? 'enabled' : 'disabled')}</span></div><div className="flex flex-wrap items-center gap-2"><span className={`text-xs ${dirty ? 'text-attention' : 'text-faint'}`}>{dirty ? c('dirty') : `${c('saved')}${savedAt ? ' · ' + formatStoreTimestamp(savedAt, timezone) : ''}`}</span><PluginLifecycle plugin={plugin} triggerVariant="outline" beforeAction={requestAppNavigation} onUninstalled={() => router.push(`/${locale}/plugins`)} />{selected?.enabled ? <DisablePluginControl slug={slug} pluginName={plugin.name} payment={Boolean(data.declaredCapabilities?.includes('payment'))} label={t('merchant.plugins.marketplace.disable')} disabled={busy} onDisable={toggle} /> : <Button variant="outline" size="sm" className="bg-ground disabled:text-faint disabled:opacity-100" disabled={busy || !selected || missing.length > 0 || Boolean(data.packageState?.code)} title={missing.length ? c('enableTitle') : undefined} onClick={() => void toggle()}>{t('merchant.plugins.marketplace.enable')}</Button>}{dirty && <Button variant="outline" size="sm" className="bg-ground disabled:text-faint disabled:opacity-100" disabled={busy} onClick={() => { setDraft(baseline); setErrors({}); setFailed(false); }}>{c('discard')}</Button>}<Button size="sm" className={!dirty ? 'bg-raised text-faint disabled:opacity-100' : undefined} form="plugin-config" type="submit" disabled={busy || !dirty || !selected}>{c('save')}</Button></div></div><p className="text-xs text-faint">{timezone}</p></div></header>
+    <div className="mx-auto max-w-[760px] space-y-5 px-4 pb-16 pt-6 sm:px-8">
+      {data.packageState?.code && <p role="alert" className="text-attention">{t(`merchant.plugins.lifecycle.${data.packageState.status === 'corrupt' ? 'packageCorrupt' : 'packageUnavailable'}`)}</p>}
+      {missing.length > 0 && <p role="status" className="rounded-lg border border-attention-line bg-attention-soft px-3.5 py-3 text-attention">{c('missing', { count: missing.length, fields: missing.map(field => schema?.properties[field]?.title ?? field).join(c('listSeparator')) })}</p>}
+      {(query.error || instances.error) && <p role="alert">{t('merchant.plugins.failedToLoadDetails')}</p>}
+      {failed && <p role="alert" className="text-destructive">{c('saveFailed')}</p>}
+      <form id="plugin-config" noValidate onSubmit={event => { event.preventDefault(); void save(); }} className="overflow-hidden rounded-lg border border-border"><div className="space-y-0.5 border-b border-border px-4 py-3"><h2 className="font-semibold">{c('config')}</h2><p className="text-xs text-faint">{c('configNote')}</p></div><fieldset disabled={busy} className="min-w-0 space-y-4 p-4">{schema && Object.keys(schema.properties).length ? Object.entries(schema.properties).map(([field, descriptor]) => {
+        const label = descriptor.title || field, id = 'plugin-config-' + field, value = draft[field], required = schema.required?.includes(field), error = errors[field];
+        const change = (next: unknown) => setDraft(current => ({ ...current, [field]: next }));
+        return <div key={field} className="max-w-[460px] space-y-1.5"><Label htmlFor={id}>{label}{required && <span aria-hidden="true" className="text-destructive"> *</span>}</Label>{descriptor.description && <p className="text-xs text-faint">{descriptor.description}</p>}{descriptor.type === 'boolean' ? <Switch id={id} aria-label={label} checked={Boolean(value)} onCheckedChange={change} /> : descriptor.type === 'string' && descriptor.enum ? <Select value={typeof value === 'string' ? value : ''} onValueChange={change}><SelectTrigger className="bg-ground" id={id} aria-label={label} aria-invalid={Boolean(error)}><SelectValue /></SelectTrigger><SelectContent>{descriptor.enum.map(option => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent></Select> : <Input className="bg-ground" id={id} aria-label={label} aria-required={required} min={descriptor.minimum} max={descriptor.maximum} minLength={descriptor.minLength} maxLength={descriptor.maxLength} aria-invalid={Boolean(error)} aria-describedby={error ? id + '-error' : undefined} type={descriptor.sensitive ? 'password' : descriptor.type === 'integer' || descriptor.type === 'number' ? 'number' : 'text'} autoComplete={descriptor.sensitive ? 'new-password' : undefined} step={descriptor.type === 'integer' ? 1 : descriptor.type === 'number' ? 'any' : undefined} value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''} placeholder={descriptor.sensitive && meta?.secretFields?.[field]?.configured ? c('secret') : undefined} onChange={event => change(descriptor.type === 'integer' || descriptor.type === 'number' ? event.target.value === '' ? undefined : Number(event.target.value) : event.target.value)} />}{error && <p id={id + '-error'} role="alert" className="text-xs text-destructive">{error}</p>}</div>;
+      }) : <p className="text-muted-foreground">{c('noConfig')}</p>}</fieldset></form>
+      <LastRecordedError lastFailureAt={data.lastFailureAt} lastFailureMessage={data.lastFailureMessage} />
+      <section aria-labelledby="plugin-about" className="overflow-hidden rounded-lg border border-border"><h2 id="plugin-about" className="border-b border-border px-4 py-3 font-semibold">{c('about')}</h2><dl className="divide-y divide-border px-4 py-1">{(['description', 'version', 'slug', 'signature', 'capabilities', 'category'] as const).map(key => <div key={key} className="flex flex-wrap gap-x-4 gap-y-1 py-2"><dt className="w-24 text-muted-foreground">{c(key)}</dt><dd className="min-w-0 flex-1 basis-[280px] break-words">{key === 'signature' ? <>{status.data && <PluginTrustLabel plugin={data} testSigningMode={status.data.testSigningMode} />}</> : key === 'capabilities' ? <>{data.declaredCapabilities?.map(name => pluginCategoryMessage(locale, name as PluginCategory)).join(', ') || c('none')}<p className="text-xs text-faint">{c('capabilityNote')}</p></> : <span className={key === 'slug' || key === 'version' ? 'font-mono text-xs' : undefined}>{key === 'slug' ? slug : key === 'category' && data.category ? pluginCategoryMessage(locale, data.category as PluginCategory) : data[key] || c('none')}</span>}</dd></div>)}</dl></section>
     </div>
-  );
+    <AlertDialog open={destination !== null} onOpenChange={value => { if (!value && !busy) setDestination(null); }}><AlertDialogContent {...dialogLayout} onCloseAutoFocus={event => { if (!errorFromDialog.current) return; event.preventDefault(); errorFromDialog.current = false; const field = firstError.current ? document.getElementById('plugin-config-' + firstError.current) : null; field?.focus(); field?.scrollIntoView?.({ block: 'center' }); firstError.current = null; }}><AlertDialogHeader className="text-left"><AlertDialogTitle className="text-[15px]">{leave('leaveTitle')}</AlertDialogTitle><AlertDialogDescription>{leave('leaveNote')}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><Button variant="outline" size="sm" className="bg-ground disabled:text-faint disabled:opacity-100" disabled={busy} onClick={() => setDestination(null)}>{leave('keepEditing')}</Button><Button variant="outline" size="sm" className="bg-ground disabled:text-faint disabled:opacity-100" disabled={busy} onClick={() => { setDraft(baseline); dirtyRef.current = false; destination?.(); setDestination(null); }}>{leave('leaveWithout')}</Button><Button disabled={busy} onClick={async () => { if (await save()) { destination?.(); setDestination(null); } }}>{leave('saveLeave')}</Button></AlertDialogFooter></AlertDialogContent></AlertDialog>
+  </section>;
 }
