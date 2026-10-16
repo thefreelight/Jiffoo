@@ -50,8 +50,11 @@ describe('Plugin detail configuration', () => {
   it('keeps input after failed save and focuses the first invalid field', async () => {
     mocks.update.mockRejectedValue(new AdminApiError('Invalid', 'BAD_REQUEST', { fields: [{ path: 'config.instructions', message: 'Invalid value' }] }, 400));
     await mount(); await fill('instructions', 'Retain my input'); await click('Save configuration');
-    expect(input('instructions').value).toBe('Retain my input'); expect(document.activeElement).toBe(input('instructions'));
-    expect(input('instructions').getAttribute('aria-invalid')).toBe('true'); expect(container.textContent).toContain('Could not save');
+    await vi.waitFor(async () => {
+      await act(async () => {});
+      expect(input('instructions').value).toBe('Retain my input'); expect(document.activeElement).toBe(input('instructions'));
+      expect(input('instructions').getAttribute('aria-invalid')).toBe('true'); expect(container.textContent).toContain('Could not save');
+    });
   });
   it('keeps dirty input if invalidation refreshes the same instance while editing', async () => {
     await mount(); await fill('instructions', 'Do not reset');
@@ -67,6 +70,7 @@ describe('Plugin detail configuration', () => {
   it('saves before leaving and submits configuration separately from enable transitions', async () => {
     await mount(); await fill('instructions', 'Save me'); const destination = vi.fn();
     await act(async () => requestAppNavigation(destination)); await click('Save and leave');
+    await vi.waitFor(async () => { await act(async () => {}); expect(destination).toHaveBeenCalledTimes(1); });
     expect(mocks.update).toHaveBeenCalledWith({ slug: 'fixture', installationId: 'one', config: { instructions: 'Save me' } }); expect(destination).toHaveBeenCalledTimes(1);
   });
   it('keeps a failed save-and-leave on the page and returns focus to the invalid input', async () => {
@@ -89,7 +93,9 @@ describe('Plugin detail configuration', () => {
     const current = mocks.config().data; mocks.config.mockReturnValue({ data: { ...current, configSchema: { type: 'object', properties: { instructions: { type: 'string', title: 'Instructions', default: 'Default instruction' } }, required: ['instructions'] } } });
     mocks.instances.mockReturnValue({ data: { items: [{ installationId: 'one', instanceKey: 'default', enabled: false, config: {} }] } });
     await mount(); expect(input('instructions').value).toBe('Default instruction'); expect(button('Save configuration').disabled).toBe(false); expect(button('Enable').disabled).toBe(true);
-    await click('Save configuration'); expect(mocks.update).toHaveBeenCalledWith({ slug: 'fixture', installationId: 'one', config: { instructions: 'Default instruction' } });
+    await click('Save configuration');
+    await vi.waitFor(async () => { await act(async () => {}); expect(button('Save configuration').disabled).toBe(true); });
+    expect(mocks.update).toHaveBeenCalledWith({ slug: 'fixture', installationId: 'one', config: { instructions: 'Default instruction' } });
   });
   it('returns removed-plugin bookmarks to the removed tab without offering invalid lifecycle actions', async () => {
     mocks.config.mockReturnValue({ data: { name: 'Removed fixture', uninstalled: true } }); await mount();

@@ -42,7 +42,12 @@ it.each(['FAILED', 'NEEDS_RECOVERY'])('uses the real %s operation state without 
   mocks.active.mockReturnValue({ data: { items: [{ slug: 'running-fixture', name: 'Running fixture', version: '1.0.0', source: 'local-zip', enabled: true }], total: 1 } });
   mocks.recovery.mockResolvedValue({ items: [{ slug: 'running-fixture', markerCount: 0, maintenanceRequired: false, operations: [{ operationId: 'operation', slug: 'running-fixture', version: '2.0.0', phase, committedPrefix: 0, retryAvailable: true, publicationWarning: false }] }] });
   await mount(); const row = Array.from(container.getElementsByTagName('article')).find(row => row.getAttribute('aria-label') === 'Running fixture')!;
-  expect(row.textContent).toContain(phase === 'FAILED' ? 'Enabled' : 'Paused');
+  await vi.waitFor(async () => {
+    await act(async () => {});
+    expect(container.querySelector('[role=alert]')?.textContent).toContain('running-fixture');
+    expect(container.querySelector('[role=alert]')?.textContent).toContain(phase === 'FAILED' ? en.plugins.recovery.failed : en.plugins.recovery.needsRecovery);
+    expect(row.textContent).toContain(phase === 'FAILED' ? 'Enabled' : 'Paused');
+  });
 });
 it.each(['loading', 'error', 'empty'] as const)('renders an installed %s state', async state => {
   mocks.active.mockReturnValue(state === 'loading' ? { isLoading: true } : state === 'error' ? { error: new Error('Failed'), refetch: vi.fn() } : { data: { items: [], total: 0 } });

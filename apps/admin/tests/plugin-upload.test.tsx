@@ -30,11 +30,13 @@ describe('Plugin upload dialog', () => {
   afterEach(async () => { await act(async () => root.unmount()); client.clear(); container.remove(); });
   const button = (name: string) => Array.from(document.getElementsByTagName('button')).find(button => button.textContent === name)!;
   const click = async (name: string) => { await act(async () => button(name).click()); };
+  const waitForUI = async (assertion: () => void) => { await vi.waitFor(async () => { await act(async () => {}); assertion(); }); };
   async function preview() {
     await click('Upload plugin');
     const input = document.querySelector<HTMLInputElement>('input[type=file]')!;
     await act(async () => { Object.defineProperty(input, 'files', { value: [new File(['zip'], 'fixture.zip')], configurable: true }); input.dispatchEvent(new Event('change', { bubbles: true })); });
     await click('Check package');
+    await waitForUI(() => expect(button('Cancel')?.disabled).toBe(false));
   }
   it('starts with no dialog, then shows the package chooser and disables checking without a file', async () => {
     expect(document.querySelector('[role=dialog]')).toBeNull();
@@ -61,6 +63,7 @@ describe('Plugin upload dialog', () => {
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
     for (const text of ['wrong', 'upload-fixture']) await act(async () => { setter.call(input, text); input.dispatchEvent(new Event('input', { bubbles: true })); });
     expect(button('Confirm installation').disabled).toBe(false); await click('Confirm installation');
+    await waitForUI(() => expect(document.body.textContent).toContain('installed and disabled'));
     expect(installApi).toHaveBeenCalledWith(expect.any(File), value, 'upload-fixture', expect.any(Function));
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['plugins'] }); expect(document.body.textContent).toContain('installed and disabled');
   });
@@ -74,7 +77,8 @@ describe('Plugin upload dialog', () => {
     await preview(); const confirm = button('Confirm installation');
     await act(async () => { confirm.click(); confirm.click(); }); expect(installApi).toHaveBeenCalledTimes(1);
     expect(document.body.textContent).toContain('1 / 1 database changes executed');
-    await act(async () => release({ slug: 'upload-fixture', warnings: [] })); expect(document.body.textContent).toContain('Installation complete');
+    await act(async () => release({ slug: 'upload-fixture', warnings: [] }));
+    await waitForUI(() => expect(document.body.textContent).toContain('Installation complete'));
   });
   it('shows a durable recovery requirement and retries the saved package without uploading again', async () => {
     installApi.mockImplementation(async (_file, _preview, _slug, progress) => {
@@ -82,9 +86,12 @@ describe('Plugin upload dialog', () => {
       throw { code: 'PLUGIN_MIGRATION_FAILED', phase: 'NEEDS_RECOVERY' };
     });
     await preview(); await click('Confirm installation');
+    await waitForUI(() => expect(document.body.textContent).toContain(en.plugins.upload.needsRecovery));
     expect(document.body.textContent).toContain(en.plugins.upload.needsRecovery);
     expect(document.body.textContent).toContain(en.plugins.upload.migrationApplied + ': 1');
     expect(document.body.textContent).not.toContain('Database changes');
-    await click(en.plugins.upload.migrationRetry); expect(retryApi).toHaveBeenCalledWith('saved-operation', expect.any(Function)); expect(installApi).toHaveBeenCalledTimes(1);
+    await click(en.plugins.upload.migrationRetry);
+    await waitForUI(() => expect(document.body.textContent).toContain('Installation complete'));
+    expect(retryApi).toHaveBeenCalledWith('saved-operation', expect.any(Function)); expect(installApi).toHaveBeenCalledTimes(1);
   });
 });

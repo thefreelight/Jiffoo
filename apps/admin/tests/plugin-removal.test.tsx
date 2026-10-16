@@ -83,7 +83,8 @@ describe('Admin plugin removal', () => {
     await act(async () => container.querySelector('button[aria-haspopup=menu]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
     await act(async () => document.querySelector<HTMLElement>('[role=menuitem]')!.click());
     expect(document.querySelector('[role=dialog]')).toBeNull(); expect(mocks.uninstall).not.toHaveBeenCalled();
-    await act(async () => resume()); await click('Confirm'); expect(onUninstalled).toHaveBeenCalledTimes(1);
+    await act(async () => resume()); await click('Confirm');
+    await vi.waitFor(async () => { await act(async () => {}); expect(onUninstalled).toHaveBeenCalledTimes(1); });
   });
 
   it('H Removed view shows database metadata and only restore and delete actions while package errors isolate their plugin', async () => {

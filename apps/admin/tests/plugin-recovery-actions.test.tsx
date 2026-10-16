@@ -26,4 +26,9 @@ it('keeps recovery compact and requires consent in the retry dialog before submi
   await act(async () => { button('Retry retained package').click(); button('Retry retained package').click(); });
   expect(mocks.retry).toHaveBeenCalledExactlyOnceWith('saved-operation'); expect(button('Cancel').disabled).toBe(true);
   await act(async () => release());
+  await vi.waitFor(async () => {
+    await act(async () => {});
+    expect(document.querySelector('[role=dialog]')).toBeNull();
+    expect(client.isFetching({ queryKey: ['plugin-recovery'] })).toBe(0);
+  });
 });

@@ -58,7 +58,11 @@ describe('Admin marketplace and protected test signing banner', () => {
   afterEach(async () => { await act(async () => root.unmount()); queryClient.clear(); container.remove(); vi.restoreAllMocks(); });
   const render = async (node = <PluginsManager />) => { await act(async () => root.render(<QueryClientProvider client={queryClient}>{node}</QueryClientProvider>)); };
   const button = (name: string) => Array.from(document.getElementsByTagName('button')).find((button) => (button.getAttribute('aria-label') ?? button.textContent) === name)!;
-  const click = async (name: string) => { await act(async () => button(name).click()); };
+  const waitForUI = async (assertion: () => void) => { await vi.waitFor(async () => { await act(async () => {}); assertion(); }); };
+  const click = async (name: string) => {
+    await act(async () => button(name).click());
+    if (name === 'Install' || name === 'Update') await waitForUI(() => expect(button('Confirm installation')?.disabled).toBe(false));
+  };
   const open = async () => { await render(); await click('Marketplace'); };
 
   it.each(['not configured', 'empty', 'load error'] as const)('B renders the %s marketplace state', async (state) => {
@@ -84,6 +88,7 @@ describe('Admin marketplace and protected test signing banner', () => {
 
   it('previews the latest version before submitting identity and migration confirmation', async () => {
     await open(); await click('Install'); expect(mutateAsync).not.toHaveBeenCalled(); await click('Confirm installation');
+    await waitForUI(() => expect(document.querySelector('[role=dialog]')).toBeNull());
     expect(mutateAsync.mock.calls).toEqual([[{ pluginId: 'market-plugin', version: '2.0.0', previewToken: 'preview-token', confirmMigrations: true, progress: expect.any(Function) }]]);
   });
   it('renders marketplace loading without inventing entries', async () => {
@@ -96,11 +101,13 @@ describe('Admin marketplace and protected test signing banner', () => {
     await act(async () => { confirm.click(); confirm.click(); }); expect(mutateAsync).toHaveBeenCalledTimes(1);
     expect(button('Confirm installation').disabled).toBe(true); expect(button('Cancel').disabled).toBe(true);
     await act(async () => release());
+    await waitForUI(() => expect(document.querySelector('[role=dialog]')).toBeNull());
   });
 
   it('previews an update and sends its bound token', async () => {
     mocks.catalog.mockReturnValue({ data: { items: [fixture('1.0.0')] } });
     await open(); await click('Update'); await click('Confirm installation');
+    await waitForUI(() => expect(document.querySelector('[role=dialog]')).toBeNull());
     expect(mutateAsync.mock.calls).toEqual([[{ pluginId: 'market-plugin', version: '2.0.0', previewToken: 'preview-token', confirmMigrations: true, progress: expect.any(Function) }]]);
   });
 
@@ -122,8 +129,10 @@ describe('Admin marketplace and protected test signing banner', () => {
     }
     await render(<QueryClientProvider client={client}><Mutation /></QueryClientProvider>);
     await click('Run');
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['extensions', 'marketplace', 'catalog'] });
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['plugins', 'installed'] });
+    await waitForUI(() => {
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['extensions', 'marketplace', 'catalog'] });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['plugins', 'installed'] });
+    });
     client.clear();
   });
 
@@ -133,7 +142,7 @@ describe('Admin marketplace and protected test signing banner', () => {
   ] as const)('D maps HTTP %s to a visible localized error', async (status, key) => {
     mutateAsync.mockRejectedValue({ status });
     await open(); await click('Install'); await click('Confirm installation');
-    expect(document.body.textContent).toContain(en.plugins.marketplace[key]);
+    await waitForUI(() => expect(document.body.textContent).toContain(en.plugins.marketplace[key]));
   });
 
   it.each([
@@ -144,7 +153,7 @@ describe('Admin marketplace and protected test signing banner', () => {
     expect(marketplaceErrorKey({ code })).toBe(key);
     mutateAsync.mockRejectedValue({ code });
     await open(); await click('Install'); await click('Confirm installation');
-    expect(document.body.textContent).toContain(en.plugins.marketplace[key as keyof typeof en.plugins.marketplace]);
+    await waitForUI(() => expect(document.body.textContent).toContain(en.plugins.marketplace[key as keyof typeof en.plugins.marketplace]));
   });
 
   it.each([
