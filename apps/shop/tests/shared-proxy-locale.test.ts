@@ -62,6 +62,35 @@ describe('matchLocaleFromAcceptLanguage', () => {
   });
 });
 
+describe('matchLocaleFromAcceptLanguage with multi-variant stores', () => {
+  const TRILINGUAL: ProxyConfig = {
+    target: 'shop',
+    defaultLocale: 'en',
+    locales: ['en', 'zh-Hans', 'zh-Hant'],
+  };
+
+  it('routes Simplified-Chinese browsers to zh-Hans', () => {
+    expect(matchLocaleFromAcceptLanguage('zh-CN,zh;q=0.9', TRILINGUAL.locales)).toBe('zh-Hans');
+  });
+
+  it('routes Traditional-Chinese regions to zh-Hant', () => {
+    expect(matchLocaleFromAcceptLanguage('zh-TW,zh;q=0.9', TRILINGUAL.locales)).toBe('zh-Hant');
+    expect(matchLocaleFromAcceptLanguage('zh-HK', TRILINGUAL.locales)).toBe('zh-Hant');
+  });
+
+  it('routes bare zh to the store-first zh variant', () => {
+    expect(matchLocaleFromAcceptLanguage('zh', TRILINGUAL.locales)).toBe('zh-Hans');
+  });
+
+  it('redirects to the region-picked locale path', () => {
+    const response = handleLocaleRedirect(
+      makeRequest('/', { acceptLanguage: 'zh-TW,zh;q=0.9' }),
+      TRILINGUAL,
+    );
+    expect(response?.headers.get('location')).toBe('https://shop.example.com/zh-Hant');
+  });
+});
+
 describe('handleLocaleRedirect', () => {
   it('redirects first-time visitors to their browser language without persisting it', () => {
     const response = handleLocaleRedirect(
