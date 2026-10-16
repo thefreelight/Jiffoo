@@ -75,7 +75,9 @@ export function CartView({ initial, locale, currency }: { initial: Cart; locale:
         <span>{t.subtotal}</span><strong>{formatPrice(cart.subtotal, locale, currency)}</strong>
       </div>
       <div className="mt-6 flex justify-end">
-        <Link href={`/${locale}/checkout`} className="rounded-shop bg-action px-5 py-3 text-action-ink">{t.checkout}</Link>
+        {busy || availability.blocked
+          ? <button type="button" disabled className="rounded-shop bg-action px-5 py-3 text-action-ink opacity-45">{t.checkout}</button>
+          : <Link href={`/${locale}/checkout`} className="rounded-shop bg-action px-5 py-3 text-action-ink">{t.checkout}</Link>}
       </div>
     </>}
   </main>;
