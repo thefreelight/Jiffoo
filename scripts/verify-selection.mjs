@@ -5,6 +5,7 @@ export const localScriptTests = new Set([
   'scripts/upload-test-storage.test.mjs', 'scripts/upload-test-image-identity.test.mjs',
   'scripts/release-identity.test.mjs', 'scripts/lane-config.test.mjs',
   'scripts/lane-provision.test.mjs', 'scripts/verify-selection.test.mjs',
+  'scripts/storage-secret.test.mjs',
 ]);
 export const ciOnlyScriptTests = new Set(['scripts/verify-ci.test.mjs', 'scripts/update.test.mjs', 'scripts/local-trial.test.mjs']);
 

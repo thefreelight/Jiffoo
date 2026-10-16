@@ -11,6 +11,7 @@ import { BackupHostEmulator, emulatorImage } from './backup-host-emulator.mjs';
 import { makeRelease } from '../deploy/release/prepare.mjs';
 import { sha256 } from '../deploy/release/identity.mjs';
 import { archiveComposeStartup, withComposeStartupDiagnostics, redactComposeOutput } from './compose-startup.mjs';
+import { generateStorageSecret } from './storage-secret.mjs';
 
 export function updateProfile(args) {
   const profiles = args.filter(value => value.startsWith('--profile='));
@@ -207,7 +208,7 @@ async function main() {
         const output = join(native,generation); manifests[generation] = makeRelease({ root: process.cwd(), output, inspections, commit, version:newVersion, mode:'acceptance' }); adjust(output,manifests[generation]);
       }
       const env = { COMPOSE_PROJECT_NAME:project, REVISION:commit, POSTGRES_PASSWORD:'postgres', JWT_SECRET:randomBytes(48).toString('base64url'), PLUGIN_SECRETS_KEY:randomBytes(32).toString('base64'),
-        MINIO_ROOT_USER:'update-' + randomUUID(), MINIO_ROOT_PASSWORD:'root-' + randomBytes(48).toString('base64url'), UPLOAD_S3_BUCKET:'update-' + randomUUID(), SILO_APP_ACCESS_KEY_ID:'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY:'secret-' + randomBytes(48).toString('base64url'),
+        MINIO_ROOT_USER:'update-' + randomUUID(), MINIO_ROOT_PASSWORD:generateStorageSecret(), UPLOAD_S3_BUCKET:'update-' + randomUUID(), SILO_APP_ACCESS_KEY_ID:'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY:generateStorageSecret(),
         STOREFRONT_URL:'https://update-shop.test', ADMIN_URL:'https://update-admin.test', EDGE_PORT:'0', TLS_CERT_FILE:old + '/cert.pem', TLS_KEY_FILE:old + '/key.pem' };
       secrets = [env.JWT_SECRET,env.PLUGIN_SECRETS_KEY,env.MINIO_ROOT_USER,env.MINIO_ROOT_PASSWORD,env.SILO_APP_ACCESS_KEY_ID,env.SILO_APP_SECRET_ACCESS_KEY];
       writeFileSync(join(native,'old/deploy/compose/.env'),Object.entries(env).map(([key,value]) => key + '=' + value).join('\n') + '\n',{mode:0o600});

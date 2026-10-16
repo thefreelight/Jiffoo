@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { emulatorImage } from './backup-host-emulator.mjs';
 import { makeRelease } from '../deploy/release/prepare.mjs';
 import { redactComposeOutput } from './compose-startup.mjs';
+import { generateStorageSecret } from './storage-secret.mjs';
 
 export const trialProject = 'jiffoo-trial';
 export const trialActions = ['up', 'status', 'logs', 'down', 'backup', 'update', 'restore', 'destroy'];
@@ -97,7 +98,7 @@ export class LocalTrial {
   }
   async initialize(manifest) {
     if (existsSync(join(this.state, '.env'))) return;
-    const secret = () => randomBytes(48).toString('base64url');
+    const secret = generateStorageSecret;
     const values = { COMPOSE_PROJECT_NAME: this.project, REVISION: manifest.sourceCommit, POSTGRES_PASSWORD: secret(), JWT_SECRET: secret(),
       PLUGIN_SECRETS_KEY: randomBytes(32).toString('base64'), MINIO_ROOT_USER: secret(), MINIO_ROOT_PASSWORD: secret(),
       SILO_APP_ACCESS_KEY_ID: secret(), SILO_APP_SECRET_ACCESS_KEY: secret(), UPLOAD_S3_BUCKET: 'jiffoo-uploads',

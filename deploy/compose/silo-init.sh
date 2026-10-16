@@ -7,7 +7,8 @@ if [ "$UPLOAD_S3_ACCESS_KEY_ID" = "$MINIO_ROOT_USER" ]; then
   echo 'Application S3 identity must differ from the root identity' >&2
   exit 1
 fi
-mcli alias set local http://silo:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
+# End option parsing before credentials, including values beginning with a hyphen.
+mcli alias set -- local http://silo:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
 if ! timeout --signal=KILL 60 sh -c '
   until mcli admin info local >/dev/null 2>&1; do
     sleep 1
@@ -26,8 +27,8 @@ cat > /tmp/upload-policy.json <<EOF
 ]}
 EOF
 mcli admin policy create local "$policy" /tmp/upload-policy.json >/dev/null
-mcli admin user add local "$UPLOAD_S3_ACCESS_KEY_ID" "$UPLOAD_S3_SECRET_ACCESS_KEY" >/dev/null
-mcli admin policy attach local "$policy" --user "$UPLOAD_S3_ACCESS_KEY_ID" >/dev/null
+mcli admin user add -- local "$UPLOAD_S3_ACCESS_KEY_ID" "$UPLOAD_S3_SECRET_ACCESS_KEY" >/dev/null
+mcli admin policy attach --user="$UPLOAD_S3_ACCESS_KEY_ID" -- local "$policy" >/dev/null
 
 # Seed an existing out-of-scope object only in the isolated acceptance stack.
 case "${1:-}" in

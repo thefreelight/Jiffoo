@@ -11,6 +11,7 @@ import { makeRelease } from '../deploy/release/prepare.mjs';
 import { sha256 } from '../deploy/release/identity.mjs';
 import { BackupHostEmulator, emulatorImage } from './backup-host-emulator.mjs';
 import { archiveComposeStartup, withComposeStartupDiagnostics } from './compose-startup.mjs';
+import { generateStorageSecret } from './storage-secret.mjs';
 
 export function guardBackupDatabase(url) {
   assert.equal(url, 'postgresql://postgres:postgres@localhost:5432/jiffoo_core_test', 'Backup acceptance requires the exact jiffoo_core_test DATABASE_URL_TEST');
@@ -114,8 +115,8 @@ async function main() {
       const bytes = readFileSync(override), member = release.deployment.find(file => file.path.endsWith('compose.release.yml')); member.sha256 = sha256(bytes); member.size = bytes.length;
       writeFileSync(join(nativeBundle, 'release.json'), JSON.stringify(release, null, 2) + '\n');
       const env = { COMPOSE_PROJECT_NAME: project, REVISION: commit, POSTGRES_PASSWORD: 'postgres', JWT_SECRET: randomBytes(48).toString('base64url'), PLUGIN_SECRETS_KEY: randomBytes(32).toString('base64'),
-        MINIO_ROOT_USER: 'backup-' + randomUUID(), MINIO_ROOT_PASSWORD: randomBytes(48).toString('base64url'), UPLOAD_S3_BUCKET: 'backup-' + randomUUID(),
-        SILO_APP_ACCESS_KEY_ID: 'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY: randomBytes(48).toString('base64url'), STOREFRONT_URL: 'https://backup-shop.test', ADMIN_URL: 'https://backup-admin.test', EDGE_PORT: '0',
+        MINIO_ROOT_USER: 'backup-' + randomUUID(), MINIO_ROOT_PASSWORD: generateStorageSecret(), UPLOAD_S3_BUCKET: 'backup-' + randomUUID(),
+        SILO_APP_ACCESS_KEY_ID: 'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY: generateStorageSecret(), STOREFRONT_URL: 'https://backup-shop.test', ADMIN_URL: 'https://backup-admin.test', EDGE_PORT: '0',
         TLS_CERT_FILE: bundle + '/cert.pem', TLS_KEY_FILE: bundle + '/key.pem' };
       secrets = [env.JWT_SECRET, env.PLUGIN_SECRETS_KEY, env.MINIO_ROOT_USER, env.MINIO_ROOT_PASSWORD, env.SILO_APP_ACCESS_KEY_ID, env.SILO_APP_SECRET_ACCESS_KEY];
       writeFileSync(join(nativeBundle, 'deploy/compose/.env'), Object.entries(env).map(([key, value]) => `${key}=${value}`).join('\n') + '\n', { mode: 0o600 });

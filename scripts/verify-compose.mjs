@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { AcceptanceChecks, scenarioPlans } from '../deploy/compose/checks.mjs';
 import { ComposeVolumeLedger } from './compose-volumes.mjs';
 import { archiveComposeStartup, withComposeStartupDiagnostics } from './compose-startup.mjs';
+import { generateStorageSecret } from './storage-secret.mjs';
 
 export const composeStep = 'Run Docker Compose acceptance';
 export function guardComposeDatabase(value) {
@@ -39,8 +40,8 @@ async function verify() {
   if (revision.status !== 0) throw new Error('Cannot determine source revision');
   const env = { ...process.env, COMPOSE_PROJECT_NAME: project, REVISION: revision.stdout.trim(),
     POSTGRES_PASSWORD: 'postgres', JWT_SECRET: randomBytes(48).toString('base64url'), PLUGIN_SECRETS_KEY: randomBytes(32).toString('base64'),
-    MINIO_ROOT_USER: 'compose-' + randomUUID(), MINIO_ROOT_PASSWORD: 'root-' + randomBytes(48).toString('base64url'), UPLOAD_S3_BUCKET: 'compose-' + randomUUID(),
-    SILO_APP_ACCESS_KEY_ID: 'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY: randomBytes(48).toString('base64url'),
+    MINIO_ROOT_USER: 'compose-' + randomUUID(), MINIO_ROOT_PASSWORD: generateStorageSecret(), UPLOAD_S3_BUCKET: 'compose-' + randomUUID(),
+    SILO_APP_ACCESS_KEY_ID: 'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY: generateStorageSecret(),
     STOREFRONT_URL: 'https://compose-shop.test', ADMIN_URL: 'https://compose-admin.test', EDGE_PORT: '0',
     TLS_CERT_FILE: join(certificateDirectory, 'cert.pem'), TLS_KEY_FILE: join(certificateDirectory, 'key.pem'),
   };
