@@ -2,37 +2,45 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ClipboardList, LogIn, LogOut, UserRound, UserRoundPlus } from 'lucide-react';
+import { useState } from 'react';
+import { UserRound } from 'lucide-react';
 import type { ShopLocale } from '@/lib/locale';
 import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
+import { storefrontMessages } from '@/lib/storefront-messages';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
-export function AuthLinks({ locale, loggedIn, labels }: {
-  locale: ShopLocale;
-  loggedIn: boolean;
+export function AuthLinks({ locale, loggedIn, labels, presentation, onNavigate }: {
+  locale: ShopLocale; loggedIn: boolean; presentation: 'menu' | 'links';
   labels: { login: string; register: string; account: string; logout: string; orders: string };
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const availability = useShopAvailability(locale);
-  const mobileEntry = 'flex shrink-0 items-center p-[calc(var(--shop-section-spacing)/6)] md:block md:shrink md:p-0';
-  if (loggedIn) return <>
-    <Link href={`/${locale}/account/orders`} aria-label={labels.orders} title={labels.orders} className={`${mobileEntry} text-sm text-action`}>
-      <ClipboardList size={18} className="md:hidden" aria-hidden="true" /><span className="sr-only md:not-sr-only">{labels.orders}</span></Link>
-    <Link href={`/${locale}/account`} aria-label={labels.account} title={labels.account} className={`${mobileEntry} text-sm text-action`}>
-      <UserRound size={18} className="md:hidden" aria-hidden="true" /><span className="sr-only md:not-sr-only">{labels.account}</span></Link>
-    <button type="button" disabled={availability.blocked} aria-label={labels.logout} title={labels.logout} className={`${mobileEntry} text-sm text-ink`} onClick={async () => {
-      availability.clear();
-      try {
-        await availabilityFetch('/bff/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-        window.location.assign(`/${locale}`);
-      } catch (error) { if (!availability.capture(error)) throw error; }
-    }}><LogOut size={18} className="md:hidden" aria-hidden="true" /><span className="sr-only md:not-sr-only">{labels.logout}</span></button>
-    {availability.message && <p role="status" className="text-sm text-action">{availability.message}</p>}
-  </>;
+  const [error, setError] = useState('');
   const next = encodeURIComponent(pathname || `/${locale}`);
-  return <>
-    <Link href={`/${locale}/login?next=${next}`} aria-label={labels.login} title={labels.login} className={`${mobileEntry} text-sm text-action`}>
-      <LogIn size={18} className="md:hidden" aria-hidden="true" /><span className="sr-only md:not-sr-only">{labels.login}</span></Link>
-    <Link href={`/${locale}/register?next=${next}`} aria-label={labels.register} title={labels.register} className={`${mobileEntry} text-sm text-ink`}>
-      <UserRoundPlus size={18} className="md:hidden" aria-hidden="true" /><span className="sr-only md:not-sr-only">{labels.register}</span></Link>
+  const links = loggedIn ? [{ href: `/${locale}/account`, label: labels.account }, { href: `/${locale}/account/orders`, label: labels.orders }]
+    : [{ href: `/${locale}/login?next=${next}`, label: labels.login }, { href: `/${locale}/register?next=${next}`, label: labels.register }];
+  async function logout() {
+    availability.clear(); setError('');
+    try {
+      const response = await availabilityFetch('/bff/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      if (!response.ok) { setError(storefrontMessages(locale).account.genericError); return; }
+      window.location.assign(`/${locale}`);
+    } catch (error) { if (!availability.capture(error)) setError(storefrontMessages(locale).account.genericError); }
+  }
+  const message = availability.message || error;
+  if (presentation === 'links') return <>
+    {links.map((link, index) => <Link key={link.href} href={link.href} aria-label={link.label} onClick={onNavigate}
+      className={index === 0 ? 'flex h-10 w-full items-center justify-center gap-2 rounded-md border border-line text-sm' : 'text-sm'}>
+      {index === 0 && <UserRound size={16} aria-hidden="true" />}{index === 0 ? storefrontMessages(locale).shop.accountEntry : link.label}</Link>)}
+    {loggedIn && <button type="button" aria-label={labels.logout} disabled={availability.blocked} onClick={() => void logout()} className="text-sm">{labels.logout}</button>}
+    {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
+  </>;
+  return <><DropdownMenu><DropdownMenuTrigger aria-label={labels.account} className="flex size-9 items-center justify-center rounded-md hover:bg-highlight"><UserRound size={18} aria-hidden="true" /></DropdownMenuTrigger>
+    <DropdownMenuContent align="end" aria-label={labels.account}>
+      {links.map((link) => <DropdownMenuItem key={link.href} asChild><Link href={link.href}>{link.label}</Link></DropdownMenuItem>)}
+      {loggedIn && <DropdownMenuItem disabled={availability.blocked} onSelect={() => void logout()}>{labels.logout}</DropdownMenuItem>}
+    </DropdownMenuContent></DropdownMenu>
+    {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
   </>;
 }

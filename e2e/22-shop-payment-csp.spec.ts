@@ -30,6 +30,7 @@ async function buyerWithCart(page: Page, label: string) {
   await page.getByRole('link', { name: new RegExp(productName) }).click();
   await expect(page.getByRole('heading', { level: 1, name: productName, exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+  await page.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
   await expect(page).toHaveURL(`${shopOrigin}/en/cart`);
   await expect(page.getByRole('link', { name: productName, exact: true })).toBeVisible();
 }
@@ -157,6 +158,7 @@ test('B checkout country options hydrate without errors in every supported local
   await page.getByRole('heading', { name: 'E2E Localized Product', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'E2E Localized Product', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+  await page.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
   await expect(page).toHaveURL(`${shopOrigin}/en/cart`);
   for (const [locale, label] of [['en', 'Country'], ['zh-Hans', '国家或地区'], ['zh-Hant', '國家或地區']] as const) {
     const observation = observeErrors(page);

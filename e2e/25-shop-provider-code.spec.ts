@@ -131,6 +131,7 @@ async function buyerWithCart(page: Page, request: APIRequestContext) {
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await page.getByRole('heading', { name, exact: true }).click();
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+  await page.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
   await expect(page).toHaveURL(`${shop}/en/cart`);
   return name;
 }
@@ -205,6 +206,7 @@ test('E direct and storefront arrivals at checkout and cancel have no provider m
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await page.getByRole('heading', { name: productName, exact: true }).click();
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+  await page.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
   await expect(page).toHaveURL(`${shop}/en/cart`);
   await configure(request, { ...config, bodyEndCode: `<a href="/en/checkout/cancel?order=${id}">Provider cancel destination</a>` });
   const afterPayment: string[] = [];

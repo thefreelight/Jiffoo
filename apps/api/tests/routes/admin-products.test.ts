@@ -53,6 +53,30 @@ describe('Admin Products Endpoints', () => {
   });
 
   describe('Authentication & Authorization', () => {
+    it('returns a conflict without deleting cart references, then deletes after removal', async () => {
+      const db = getTestPrisma();
+      const { user, token } = await createUserWithToken();
+      const product = await createTestProduct({ name: 'Cart referenced Test Product' });
+      const cart = await db.cart.create({ data: { userId: user.id, items: { create: {
+        productId: product.id, variantId: product.variants[0].id, quantity: 1,
+      } } } });
+      try {
+        const headers = { authorization: `Bearer ${adminToken}` };
+        const url = `/api/v1/admin/products/${product.id}`;
+        const rejected = await app.inject({ method: 'DELETE', url, headers });
+        expect(rejected.statusCode).toBe(409);
+        expect(rejected.json().error.code).toBe('CONFLICT');
+        expect(await db.product.findUnique({ where: { id: product.id } })).not.toBeNull();
+        expect(await db.cartItem.count({ where: { cartId: cart.id } })).toBe(1);
+        const removed = await app.inject({ method: 'DELETE', url: '/api/v1/cart', headers: { authorization: `Bearer ${token}` } });
+        expect(removed.statusCode).toBe(200);
+        expect((await app.inject({ method: 'DELETE', url, headers })).statusCode).toBe(200);
+        expect((await app.inject({ method: 'DELETE', url, headers })).statusCode).toBe(404);
+      } finally {
+        await db.cart.delete({ where: { id: cart.id } });
+      }
+    });
+
     it('GET /api/v1/admin/products/ should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',

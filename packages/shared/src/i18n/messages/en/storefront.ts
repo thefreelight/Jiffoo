@@ -1,4 +1,20 @@
 export const storefront = {
+  shop: {
+    openMenu: 'Open menu', closeMenu: 'Close menu', close: 'Close', all: 'All products',
+    filters: 'Filters', sort: 'Sort', newest: 'Newest', oldest: 'Oldest', nameAsc: 'Name A–Z', nameDesc: 'Name Z–A',
+    inStockOnly: 'In stock only', clearFilters: 'Clear filters', apply: 'Show {count} products', count: '{count} products',
+    categoryEmpty: 'No products in this category yet', categoryEmptyBody: 'Products will appear here when the merchant lists them.',
+    viewAll: 'View all products', newProducts: 'New arrivals', noResults: 'No products related to “{query}”',
+    searchCount: 'Results related to “{query}”: {count}', clearSearch: 'Clear',
+    searchHint: 'Try another keyword, or browse the categories below.',
+    lowStock: 'Only {count} left', soldOut: 'Sold out', decrease: 'Decrease', increase: 'Increase',
+    variantSoldOut: 'This option is sold out. Choose another colour or size.',
+    added: 'Added to cart', viewCart: 'View cart', shippingAtCheckout: 'Shipping is calculated at checkout based on your delivery address',
+    cartTitle: 'Cart ({count})', cartLabel: 'Cart ({count})',
+    viewAllShort: 'View all', accountEntry: 'Login / My account',
+    previousSlide: 'Previous slide', nextSlide: 'Next slide', image: 'Image {count}',
+    related: 'Related products', loading: 'Loading', retry: 'Try again', error: 'Something went wrong. Please try again.',
+  },
   navigation: {
     products: 'All products',
     categories: 'Categories',
@@ -11,7 +27,7 @@ export const storefront = {
   },
   home: {
     categories: 'Browse categories',
-    products: 'Featured products',
+    products: 'New arrivals',
   },
   catalog: {
     title: 'All products',

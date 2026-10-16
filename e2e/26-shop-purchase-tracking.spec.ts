@@ -119,6 +119,7 @@ async function addToCart(page: Page, name: string) {
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await page.getByRole('heading', { name, exact: true }).click();
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+  await page.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
   await expect(page).toHaveURL(`${shop}/en/cart`);
 }
 const address = {

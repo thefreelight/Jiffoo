@@ -14,9 +14,9 @@
 --shop-core-destructive-line: #F5C7C2;
 --shop-core-radius-control: 8px;
 --shop-core-radius-panel: 12px;
---shop-core-font-body: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
---shop-core-font-heading: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
---shop-core-font-mono: var(--font-geist-mono, monospace), "Noto Sans SC", monospace;
+--shop-core-font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+--shop-core-font-heading: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+--shop-core-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 --shop-extras-primary: #171717;
 --shop-extras-primary-foreground: #FFFFFF;
 --shop-extras-secondary: #F4F4F5;
@@ -96,9 +96,9 @@
 --shop-core-destructive-line: #5C1D17;
 --shop-core-radius-control: 8px;
 --shop-core-radius-panel: 12px;
---shop-core-font-body: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
---shop-core-font-heading: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
---shop-core-font-mono: var(--font-geist-mono, monospace), "Noto Sans SC", monospace;
+--shop-core-font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+--shop-core-font-heading: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+--shop-core-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 --shop-extras-primary: #EDEDED;
 --shop-extras-primary-foreground: #0A0A0A;
 --shop-extras-secondary: #1C1C1C;
@@ -178,9 +178,9 @@
 --shop-core-destructive-line: #5C1D17;
 --shop-core-radius-control: 8px;
 --shop-core-radius-panel: 12px;
---shop-core-font-body: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
---shop-core-font-heading: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;
---shop-core-font-mono: var(--font-geist-mono, monospace), "Noto Sans SC", monospace;
+--shop-core-font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+--shop-core-font-heading: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+--shop-core-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 --shop-extras-primary: #EDEDED;
 --shop-extras-primary-foreground: #0A0A0A;
 --shop-extras-secondary: #1C1C1C;

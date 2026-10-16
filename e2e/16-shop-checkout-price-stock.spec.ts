@@ -28,19 +28,20 @@ test('stock limit and changed price require a fresh checkout confirmation', asyn
     await shop.getByRole('searchbox', { name: 'Search products' }).fill('Price Change Product');
     await shop.getByRole('button', { name: 'Search', exact: true }).click();
     await shop.getByRole('link', { name: /Price Change Product/ }).click();
-    await expect(shop.getByLabel('Quantity')).toHaveAttribute('max', '6');
-    await shop.getByLabel('Quantity').fill('3');
-    await expect(shop.getByLabel('Quantity')).toHaveValue('3');
+    await expect(shop.getByLabel('Quantity', { exact: true })).toHaveAttribute('max', '6');
+    await shop.getByLabel('Quantity', { exact: true }).fill('3');
+    await expect(shop.getByLabel('Quantity', { exact: true })).toHaveValue('3');
 
     await page.getByRole('spinbutton', { name: /^Stock:/ }).first().fill('2');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('Unsaved changes', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Product saved.', { exact: true })).toHaveCount(1);
-    await expect(shop.getByLabel('Quantity')).toHaveValue('3');
+    await expect(shop.getByLabel('Quantity', { exact: true })).toHaveValue('3');
     await shop.getByRole('button', { name: 'Add to cart' }).click();
     await expect(shop.getByText('Available quantity: 2', { exact: true })).toHaveText('Available quantity: 2');
-    await shop.getByLabel('Quantity').fill('1');
+    await shop.getByLabel('Quantity', { exact: true }).fill('1');
     await shop.getByRole('button', { name: 'Add to cart' }).click();
+    await shop.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
     await expect(shop).toHaveURL(/\/en\/cart$/);
     await shop.getByRole('link', { name: 'Checkout', exact: true }).click();
     await shop.getByLabel('First name').fill('Price');

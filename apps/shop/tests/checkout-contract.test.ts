@@ -15,7 +15,6 @@ import { common as hansCommon } from '../../../packages/shared/src/i18n/messages
 import { common as hantCommon } from '../../../packages/shared/src/i18n/messages/zh-Hant/common';
 
 vi.mock('server-only', () => ({}));
-vi.mock('../lib/fonts', () => ({ shopFontClassName: 'geist-sans geist-mono' }));
 vi.mock('nuqs/adapters/next/app', () => ({ NuqsAdapter: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock('../components/ui/sonner', () => ({ Toaster: () => null }));
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-shop-locale': 'en' }) }));
@@ -105,7 +104,7 @@ describe('Shop checkout boundaries', () => {
     expect(StorefrontRoot).not.toBe(PaymentRoot);
     expect(readFileSync(path.join(app, '(payment)/layout.tsx'), 'utf8'))
       .toBe("export { default } from '@/components/document-root';\n");
-    const expected = renderToStaticMarkup(createElement('html', { lang: 'en', className: 'geist-sans geist-mono', 'data-shop-dark-available': 'true' }, createElement('body', null, 'root-boundary')));
+    const expected = renderToStaticMarkup(createElement('html', { lang: 'en', 'data-color-mode': 'system', 'data-shop-dark-available': 'false' }, createElement('body', null, 'root-boundary')));
     expect(renderToStaticMarkup(await StorefrontRoot({ children: 'root-boundary' }))).toBe(expected);
     expect(renderToStaticMarkup(await PaymentRoot({ children: 'root-boundary' }))).toBe(expected);
     for (const group of ['(payment)', '(storefront)']) {

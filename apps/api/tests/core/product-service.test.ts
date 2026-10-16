@@ -146,6 +146,34 @@ describe('ProductService', () => {
   // -----------------------------------------------------------------------
 
   describe('getPublicProducts', () => {
+    it('hashes full stable filters beyond the old 48-byte prefix', async () => {
+      mockPrisma.product.findMany.mockResolvedValue([]);
+      mockPrisma.product.count.mockResolvedValue(0);
+      const category = 'cm00000000000000000000000';
+      const created = { category, sortBy: 'createdAt', sortOrder: 'asc' as const };
+      const named = { category, sortBy: 'name', sortOrder: 'asc' as const };
+      const oldKey = (filters: object) => Buffer.from(JSON.stringify(filters)).toString('base64').slice(0, 64);
+      expect(oldKey(created)).toBe(oldKey(named));
+      await ProductService.getPublicProducts(2, 12, created, 'en');
+      await ProductService.getPublicProducts(2, 12, named, 'en');
+      await ProductService.getPublicProducts(2, 12, { sortOrder: 'asc', sortBy: 'name', category }, 'en');
+      const keys = mockCache.get.mock.calls.map(([key]) => key);
+      expect(keys[0]).not.toBe(keys[1]);
+      expect(keys[1]).toBe(keys[2]);
+      expect(keys[0]).toMatch(/^pub:products:list:v1:en:2:12:[a-f0-9]{64}$/);
+    });
+
+    it('separates search queries sharing the old encoded prefix', async () => {
+      mockPrisma.product.findMany.mockResolvedValue([]);
+      mockPrisma.product.count.mockResolvedValue(0);
+      const prefix = 'a'.repeat(48);
+      await ProductService.searchProducts(`${prefix} first`, 2, 12, 'en');
+      await ProductService.searchProducts(`${prefix} second`, 2, 12, 'en');
+      const keys = mockCache.get.mock.calls.map(([key]) => key);
+      expect(keys[0]).not.toBe(keys[1]);
+      expect(keys[0]).toMatch(/^pub:products:search:v1:en:2:12:[a-f0-9]{64}$/);
+    });
+
     it('should return paginated products with correct page/limit metadata', async () => {
       mockPrisma.product.findMany.mockResolvedValue([MOCK_PRODUCT, MOCK_PRODUCT_2]);
       mockPrisma.product.count.mockResolvedValue(2);

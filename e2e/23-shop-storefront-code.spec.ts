@@ -191,6 +191,7 @@ async function buyerWithCart(page: Page, request: APIRequestContext, label: stri
   await page.getByRole('heading', { name: productName, exact: true }).click();
   await expect(page.getByRole('heading', { name: productName, exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+  await page.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
   await expect(page).toHaveURL(`${shopOrigin}/en/cart`);
   return productName;
 }
@@ -290,6 +291,7 @@ test('E payment documents exclude code and stop prior probes on direct and store
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await page.getByRole('heading', { name: productName, exact: true }).click();
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+  await page.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
   await expect(page).toHaveURL(`${shopOrigin}/en/cart`);
   const probe = randomUUID();
   const code = slots(probe);

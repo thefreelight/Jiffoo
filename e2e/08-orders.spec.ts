@@ -1,5 +1,5 @@
 import { expect, test } from './local-requests';
-import { customerEmail, login } from './helpers';
+import { customerEmail, login, shopAccountAction } from './helpers';
 import { captureOrderDetail } from './order-detail-captures';
 import { readFile } from 'node:fs/promises';
 import { getTestPrisma, disconnectDatabase } from '../apps/api/tests/helpers/db';
@@ -13,7 +13,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
   try {
     await shop.goto('/en/products');
     await shop.getByRole('link', { name: /E2E Product/ }).click();
-    await shop.getByRole('link', { name: 'Register', exact: true }).click();
+    await shopAccountAction(shop, 'en', 'register');
     await shop.getByLabel('Name').fill('E2E Customer');
     await shop.getByLabel('Email').fill(customerEmail);
     await shop.getByLabel('Password', { exact: true }).fill('CustomerPassword123!');
@@ -22,9 +22,10 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await shop.goto('/en/products');
     await shop.getByRole('link', { name: /E2E Product/ }).click();
     await shop.getByRole('button', { name: 'Add to cart' }).click();
+    await shop.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
     await expect(shop).toHaveURL(/\/en\/cart$/);
-    await shop.getByLabel('Quantity').fill('2');
-    await expect(shop.getByLabel('Quantity')).toHaveValue('2');
+    await shop.getByLabel('Quantity', { exact: true }).fill('2');
+    await expect(shop.getByLabel('Quantity', { exact: true })).toHaveValue('2');
     await shop.getByRole('link', { name: 'Checkout', exact: true }).click();
     await expect(shop).toHaveURL(/\/en\/checkout$/);
     await shop.getByLabel('First name').fill('E2E');

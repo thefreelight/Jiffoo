@@ -29,6 +29,7 @@ async function buyerWithCart(page: Page, label: string) {
   await page.getByRole('link', { name: new RegExp(productName) }).click();
   await expect(page.getByRole('heading', { level: 1, name: productName, exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+  await page.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
   await expect(page).toHaveURL(`${shopOrigin}/en/cart`);
   await expect(page.getByRole('link', { name: productName, exact: true })).toBeVisible();
 }

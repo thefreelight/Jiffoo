@@ -141,6 +141,20 @@ import { createTestProduct, deleteAllTestProducts } from '../helpers/fixtures';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 
 describe('Cache Behavior Tests', () => {
+  it('keeps consecutive category sort orders separate in the enabled read-through cache', async () => {
+    const first = await createTestProduct({ name: 'Alpha cache ordering', category: 's3-cache-ordering' });
+    await createTestProduct({ name: 'Zeta cache ordering', category: first.categoryId! });
+    const read = async (sortOrder: string) => {
+      const response = await app.inject({ method: 'GET', url: `/api/v1/products/?category=${first.categoryId}&sortBy=name&sortOrder=${sortOrder}&locale=en&limit=12` });
+      expect(response.statusCode).toBe(200);
+      return response.json().data.items.map((item: { name: string }) => item.name);
+    };
+    expect(await read('asc')).toEqual(['Alpha cache ordering', 'Zeta cache ordering']);
+    expect(await read('desc')).toEqual(['Zeta cache ordering', 'Alpha cache ordering']);
+    expect(await read('asc')).toEqual(['Alpha cache ordering', 'Zeta cache ordering']);
+    const keys = [...store.keys()].filter((key) => /^pub:products:list:v\d+:en:1:12:[a-f0-9]{64}$/.test(key));
+    expect(keys.length).toBeGreaterThanOrEqual(2);
+  });
   let app: FastifyInstance;
   let testProduct: Awaited<ReturnType<typeof createTestProduct>>;
 

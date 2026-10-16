@@ -3,6 +3,7 @@ import { login, ownerEmail, shopLogin } from './helpers';
 import { headerThemePackage } from './theme-package';
 import { pluginMessage } from '../packages/shared/src/i18n/messages/admin-plugins';
 import { uploadPackages } from './upload-packages';
+import { shopBoardReference } from './shop-board-reference';
 import { mkdir, writeFile } from 'node:fs/promises';
 import type { BrowserContext, Locator, Page } from '@playwright/test';
 
@@ -326,9 +327,9 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       await page.keyboard.press('Control+Home');
       const bodyFontFamily = await page.getByRole('main').evaluate((element) =>
         getComputedStyle(element.ownerDocument.body).fontFamily);
-      expect(bodyFontFamily, `${name} uses the default Shop Geist and subset Chinese font stack`)
-        .toContain('Noto Sans SC');
-      expect(bodyFontFamily).toMatch(/Geist/i);
+      expect(bodyFontFamily, `${name} uses the approved system font stack`).toContain('system-ui');
+      expect(bodyFontFamily).toContain('PingFang SC');
+      expect(bodyFontFamily).not.toMatch(/Geist/i);
       await page.evaluate(() => document.fonts.ready);
       computed.push({ page: name, bodyFontFamily, ...await headerMeasurements(page) });
       const boxes: Array<{ name: string } & Awaited<ReturnType<typeof paintedBounds>>> = [];
@@ -365,8 +366,10 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
     await expect(page.getByRole('heading', { level: 1, name: 'E2E Translated Category', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'E2E Localized Product', exact: true })).toBeVisible();
     await capture('shop-category');
+    const productTarget = await page.getByRole('link', { name: /E2E Localized Product/ }).getAttribute('href');
+    expect(productTarget).toBeTruthy();
     await page.getByRole('heading', { name: 'E2E Localized Product', exact: true }).click();
-    await expect(page).toHaveURL(/\/en\/products\/e2e-localized-product-\d+$/);
+    await expect(page).toHaveURL(new URL(productTarget!, page.url()).href);
     await expect(page.getByRole('heading', { level: 1, name: 'E2E Localized Product', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add to cart' })).toBeVisible();
     await capture('shop-product');
@@ -519,10 +522,71 @@ test('measure font bytes for a cold Chinese Shop product listing', async ({ page
   await expect(page.getByRole('main')).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   await Promise.all(downloads);
-  expect(fonts.length).toBeGreaterThan(0);
+  expect(fonts).toEqual([]);
   const evidence = { page: '/zh-Hans/products', fonts, totalBytes: fonts.reduce((total, font) => total + font.bytes, 0) };
   await writeFile(`e2e/visual-results/${process.env.VISUAL_SET}/shop-chinese-font-bytes.json`, JSON.stringify(evidence, null, 2));
   console.log('Shop Chinese font bytes:', JSON.stringify(evidence));
+});
+
+test('S3 capture Shop boards in system light and dark at 1440 and 390 pixels', async ({ page }) => {
+  test.setTimeout(180_000);
+  const set = process.env.VISUAL_SET;
+  if (!['baseline', 'current', 'noise-1', 'noise-2'].includes(set ?? '')) throw new Error('Invalid S3 capture set');
+  const origin = 'http://127.0.0.1:3003';
+  await page.goto(`${origin}/en/login`);
+  await shopLogin(page, { locale: 'en', email: 'history-buyer@e2e.example', password: 'HistoryBuyerPassword123!', expectedPath: '/en' });
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    for (const [width, height] of [[1440, 900], [390, 844]]) {
+      await page.setViewportSize({ width, height });
+      const capture = async (name: string) => {
+        await page.evaluate(() => document.fonts.ready);
+        const dialog = page.getByRole('dialog', { name: /.+/ });
+        if (await dialog.count()) await dialog.hover({ position: { x: 1, y: 1 } });
+        else await page.getByRole('banner', { name: '' }).hover({ position: { x: 1, y: 1 } });
+        for (const captureSet of set === 'current' ? ['noise-1', 'noise-2', 'current'] : [set!]) {
+          await mkdir(`e2e/visual-results/${captureSet}`, { recursive: true });
+          await screenshotWithoutOverflow(page, { path: `e2e/visual-results/${captureSet}/s3-${name}-${colorScheme}-${width}.png`, fullPage: !(await dialog.count()), animations: 'disabled' });
+        }
+      };
+      await page.goto(`${origin}/zh-Hans`);
+      await expect(page.getByRole('heading', { name: '浏览分类', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: '新品', exact: true })).toBeVisible(); await capture('home');
+      if (width === 390) {
+        await page.getByRole('button', { name: '打开菜单', exact: true }).click();
+        await expect(page.getByRole('dialog', { name: /.+/ })).toBeVisible(); await capture('menu');
+        await page.getByRole('button', { name: '关闭菜单', exact: true }).click();
+      }
+      await page.goto(`${origin}/zh-Hans/categories/e2e-translated-category?sort=nameAsc`);
+      await expect(page.getByRole('heading', { level: 1, name: '测试分类', exact: true })).toBeVisible(); await capture('category');
+      await page.goto(`${origin}/zh-Hans/search?q=E2E+Localized+Product`);
+      await expect(page.getByRole('heading', { name: '测试商品', exact: true })).toBeVisible(); await capture('search-results');
+      await page.getByRole('heading', { name: '测试商品', exact: true }).click();
+      await expect(page.getByRole('button', { name: '加入购物车', exact: true })).toBeEnabled(); await capture('product');
+      await page.getByRole('button', { name: '加入购物车', exact: true }).click();
+      const cart = page.getByRole('dialog', { name: /^购物车/ });
+      await expect(cart.getByRole('button', { name: /^移除 / }).first()).toBeVisible(); await capture('cart-sheet');
+      await cart.getByRole('button', { name: /^移除 / }).click();
+      await expect(cart.getByText('购物车是空的。', { exact: true })).toBeVisible();
+      await cart.getByRole('button', { name: '关闭', exact: true }).click();
+      await page.goto(`${origin}/zh-Hans/search?q=s3-no-match`);
+      await expect(page.getByText('没有找到与“s3-no-match”相关的商品', { exact: true }).first()).toBeVisible(); await capture('search-empty');
+    }
+  }
+});
+
+test('S3 capture the approved reference board states with the superseding system fonts', async ({ page }) => {
+  test.setTimeout(180_000);
+  const set = process.env.VISUAL_SET;
+  if (!['baseline', 'current', 'noise-1', 'noise-2'].includes(set ?? '')) throw new Error('Invalid reference capture set');
+  const boards = { Header: ['default'], Footer: ['default'], MobileMenu: ['default'], Home: ['default', 'menu'], Category: ['list', 'empty', 'filters'], Search: ['results', 'none'], Product: ['ok', 'low', 'oos', 'added'] };
+  for (const mode of ['light', 'dark']) for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
+    for (const [name, states] of Object.entries(boards)) for (const state of states) {
+      await page.goto(await shopBoardReference(name, state, mode, width));
+      await screenshotWithoutOverflow(page, { path: `e2e/visual-results/${set}/board-${name}-${state}-${mode}-${width}.png`, fullPage: true, animations: 'disabled' });
+    }
+  }
 });
 
 test('capture plugin boards in light and dark at desktop and phone widths', async ({ page }) => {

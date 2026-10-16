@@ -1,6 +1,4 @@
-import { ShopImage as Image } from '@/components/shop-image';
 import Link from 'next/link';
-import { ImageOff } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { messages, productBySlug, requireLocale } from '@/lib/catalog';
 import { localePath } from '@/lib/locale';
@@ -12,6 +10,7 @@ import { getShopTheme } from '@/lib/theme';
 import { sectionsForPage } from '@/lib/page-classes';
 import { ThemeSections } from '@/components/theme-sections';
 import { ProductGrid } from '@/components/product-grid';
+import { ProductGallery } from '@/components/product-gallery';
 
 export default async function ProductPage({ params }: { params: Promise<{ locale: string; slug: string }> }) {
   const { locale: segment, slug } = await params;
@@ -29,38 +28,30 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
       ?.items.filter((item) => item.id !== product.id).slice(0, 4) ?? []
     : [];
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10 md:px-8">
-    <div className="grid gap-10 md:grid-cols-2">
-      <section aria-label={product.name} className={galleryRight ? 'md:order-2' : ''}>
-        <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-shop bg-highlight">
-          {product.images[0]
-            ? <Image src={product.images[0]} alt={product.name} fill className="object-contain" priority />
-            : <ImageOff aria-hidden="true" size={50} className="text-subtle" />}
-        </div>
-        {product.images.length > 1 && <div className="mt-3 grid grid-cols-4 gap-3">
-          {product.images.slice(1).map((image, index) =>
-            <div key={`${image}-${index}`} className="relative aspect-square overflow-hidden rounded-shop bg-highlight">
-              <Image src={image} alt={product.name} fill className="object-cover" />
-            </div>)}
-        </div>}
-      </section>
+    <main className="mx-auto max-w-7xl px-4 pb-10 pt-7 md:px-8">
+    <div className="mb-5 flex flex-wrap items-center gap-2 text-sm text-subtle">
+      <Link href={localePath(locale)}>{t.navigation.home}</Link><span aria-hidden="true">/</span>
+      {product.categoryName && product.categorySlug && <><Link href={localePath(locale, `/categories/${product.categorySlug}`)}>{product.categoryName}</Link><span aria-hidden="true">/</span></>}
+      <span>{product.name}</span>
+    </div>
+    <div className="grid gap-7 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-14">
+      <div className={galleryRight ? 'md:order-2' : ''}><ProductGallery key={product.id} images={product.images} name={product.name} locale={locale} /></div>
       <div>
-        {product.categoryName && product.categorySlug &&
-          <Link href={localePath(locale, `/categories/${product.categorySlug}`)} className="text-sm text-action underline">{product.categoryName}</Link>}
-        <h1 className="mt-3 text-3xl font-semibold">{product.name}</h1>
+        {product.categoryName && <p className="mb-2 text-[13px] text-subtle">{product.categoryName}</p>}
+        <h1 className="text-[26px] font-semibold tracking-tight md:text-[32px]">{product.name}</h1>
         <div className="mt-7">
           {product.variants?.length
-            ? <VariantPicker variants={product.variants} locale={locale} currency={context.currency} labels={t.product}
+            ? <VariantPicker key={product.id} variants={product.variants} locale={locale} currency={context.currency} labels={t.product}
                 productId={product.id} slug={slug} loggedIn={loggedIn} />
-            : <><p className="text-2xl font-semibold">{formatPrice(product.price, locale, context.currency)}</p><p>{product.stock > 0 ? t.product.stock : t.product.outOfStock}</p></>}
+            : <><p className="text-2xl font-semibold">{formatPrice(product.price, locale, context.currency)}</p><p>{product.stock > 5 ? t.product.stock : product.stock > 0 ? t.shop.lowStock.replace('{count}', String(product.stock)) : t.shop.soldOut}</p><button disabled className="mt-4 h-12 w-full rounded-md bg-action text-action-ink opacity-45">{t.shop.soldOut}</button></>}
         </div>
-        {product.description && <section className="mt-12 border-t border-line pt-6">
-          <h2 className="font-semibold">{t.product.description}</h2>
+        {product.description && <details open className="mt-8 border-y border-line py-4">
+          <summary className="cursor-pointer font-medium">{t.product.description}</summary>
           <p className="mt-3 whitespace-pre-wrap text-subtle">{product.description}</p>
-        </section>}
+        </details>}
       </div>
     </div>
-    {related.length > 0 && <section className="mt-12"><h2 className="mb-5 text-2xl font-semibold">{t.home.products}</h2>
+    {related.length > 0 && <section className="mt-14"><h2 className="mb-6 text-[22px] font-semibold">{t.shop.related}</h2>
       <ProductGrid items={related} locale={locale} currency={context.currency} /></section>}
     <ThemeSections sections={theme ? sectionsForPage('product', theme.layout) : []}
       locale={locale} currency={context.currency} />

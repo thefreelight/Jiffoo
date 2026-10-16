@@ -240,7 +240,8 @@ it.each(['account-management', 'auth-form', 'auth-links', 'cart-view', 'checkout
         await browserExpect(page.getByLabel('Email', { exact: true })).toHaveValue('retained@example.test');
       } else if (component === 'auth-links') {
         deniedPath = '/api/v1/auth/logout';
-        await page.getByRole('button', { name: 'Logout', exact: true }).click();
+        await page.getByRole('button', { name: 'Account', exact: true }).click();
+        await page.getByRole('menuitem', { name: 'Logout', exact: true }).click();
         await browserExpect(page).toHaveURL(`${shop}/en/account`);
       } else if (component === 'cart-view') {
         await page.goto(`${shop}/en/cart`); deniedPath = '/api/v1/cart/items/cm6abcdefghijklmnopqrstuv';
@@ -276,7 +277,12 @@ it.each(['account-management', 'auth-form', 'auth-links', 'cart-view', 'checkout
       }
       await browserExpect(page.getByText(new RegExp(`${failure === 429 ? 'Too many requests' : 'Shop temporarily unavailable'}.*seconds`))).toBeVisible();
       const count = calls.filter((call) => call.path === deniedPath).length;
-      await browserExpect(page.getByRole('button', { name: component === 'account-management' ? 'Save' : component === 'auth-form' ? 'Request reset link' : component === 'auth-links' ? 'Logout' : component === 'checkout-view' ? 'Get shipping options' : component === 'order-detail' ? 'Confirm cancellation' : component === 'variant-picker' ? 'Add to cart' : component === 'verify-email-action' ? 'Verify my email' : /Remove/ }).first()).toBeDisabled();
+      if (component === 'auth-links') {
+        await page.getByRole('button', { name: 'Account', exact: true }).click();
+        await browserExpect(page.getByRole('menuitem', { name: 'Logout', exact: true })).toBeDisabled();
+      } else {
+        await browserExpect(page.getByRole('button', { name: component === 'account-management' ? 'Save' : component === 'auth-form' ? 'Request reset link' : component === 'checkout-view' ? 'Get shipping options' : component === 'order-detail' ? 'Confirm cancellation' : component === 'variant-picker' ? 'Add to cart' : component === 'verify-email-action' ? 'Verify my email' : /Remove/ }).first()).toBeDisabled();
+      }
       expect(calls.filter((call) => call.path === deniedPath)).toHaveLength(count);
     } finally { deniedPath = ''; await page.close(); }
   }

@@ -1,13 +1,26 @@
 import defaultShop from '../../api/builtin-themes/default-shop/theme.json';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { renderToPipeableStream } from 'react-dom/server';
 import { Writable } from 'node:stream';
 import CategoryPage from '../app/(storefront)/[locale]/categories/[slug]/page';
 import ProductPage from '../app/(storefront)/[locale]/products/[slug]/page';
 import type { ShopTheme } from '../lib/theme';
+import { storefrontMessages } from '../lib/storefront-messages';
+import SearchPage from '../app/(storefront)/[locale]/search/page';
+import ProductsPage from '../app/(storefront)/[locale]/products/page';
+import { products as readProducts } from '../lib/catalog';
+
+const state = vi.hoisted(() => ({ catalogEmpty: false, searchEmpty: false }));
+afterEach(() => { state.catalogEmpty = false; state.searchEmpty = false; vi.clearAllMocks(); });
 
 vi.mock('server-only', () => ({}));
+vi.mock('next/navigation', async (importOriginal) => ({ ...await importOriginal<typeof import('next/navigation')>(), useRouter: () => ({ push: vi.fn() }) }));
+vi.mock('nuqs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('nuqs')>();
+  return { ...actual, useQueryStates: () => [{ sort: 'newest', category: '', inStock: false, page: 1 }, () => Promise.resolve(new URLSearchParams())] };
+});
+
 vi.mock('../lib/catalog', () => {
   const group = { id: 'c1', slug: 'books', name: 'Books', description: null, productCount: 2 };
   const primary = {
@@ -17,14 +30,11 @@ vi.mock('../lib/catalog', () => {
   const related = { ...primary, id: 'p2', slug: 'sequel', name: 'Sequel' };
   return {
     requireLocale: async () => ({ locale: 'en', context: { currency: 'USD' } }),
-    categories: async () => [group],
-    products: async () => ({ items: [primary, related], page: 1, totalPages: 1, total: 2 }),
+    categories: async () => [{ ...group, productCount: state.catalogEmpty ? 0 : 2 }],
+    products: vi.fn(async () => ({ items: state.catalogEmpty ? [] : [primary, related], page: 1, totalPages: 1, total: state.catalogEmpty ? 0 : 2 })),
+    search: async () => ({ items: state.searchEmpty ? [] : [primary], page: 1, totalPages: 1, total: state.searchEmpty ? 0 : 1 }),
     productBySlug: async () => primary,
-    messages: () => ({
-      home: { products: 'Featured products' },
-      product: { stock: 'In stock', outOfStock: 'Out of stock', description: 'Description' },
-      catalog: { empty: 'No products' },
-    }),
+    messages: () => storefrontMessages('en'),
   };
 });
 vi.mock('../lib/server-account', () => ({ accountProfile: async () => null }));
@@ -64,6 +74,33 @@ function render(node: React.ReactNode): Promise<string> {
 }
 
 describe('T2 themed catalog pages', () => {
+  it('S3 renders a real category empty state with a link to all products', async () => {
+    state.catalogEmpty = true;
+    const html = await render(await CategoryPage({ params: Promise.resolve({ locale: 'en', slug: 'books' }), searchParams: Promise.resolve({}) }));
+    expect(html).toContain('No products in this category yet');
+    expect(html).toContain('0 products'); expect(html).toContain('href="/en/products"');
+    expect(html).not.toContain('Novel');
+  });
+
+  it('S3 forwards URL sorting, stock and page state to the actual catalog query', async () => {
+    const html = await render(await ProductsPage({ params: Promise.resolve({ locale: 'en' }), searchParams: Promise.resolve({ sort: 'nameDesc', inStock: 'true', page: '2', category: 'c1' }) }));
+    expect(readProducts).toHaveBeenCalledWith('en', 2, undefined, 12, { category: 'c1', inStock: 'true', sortBy: 'name', sortOrder: 'desc' });
+    expect(html).toContain('2 products'); expect(html).toContain('Novel');
+  });
+
+  it('S3 renders search results and their real count', async () => {
+    const html = await render(await SearchPage({ params: Promise.resolve({ locale: 'en' }), searchParams: Promise.resolve({ q: 'Novel' }) }));
+    expect(html).toContain('Results related to “Novel”: 1'); expect(html).toContain('Novel');
+    expect(html).not.toContain('New arrivals');
+  });
+
+  it('S3 renders no-results category entry points and actual new products', async () => {
+    state.searchEmpty = true;
+    const html = await render(await SearchPage({ params: Promise.resolve({ locale: 'en' }), searchParams: Promise.resolve({ q: 'missing' }) }));
+    expect(html).toContain('No products related to “missing”');
+    expect(html).toContain('href="/en/categories/books"'); expect(html).toContain('New arrivals'); expect(html).toContain('Sequel');
+  });
+
   it('G renders category slots around a three-column product grid', async () => {
     const node = await CategoryPage({
       params: Promise.resolve({ locale: 'en', slug: 'books' }),

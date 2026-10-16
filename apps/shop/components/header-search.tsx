@@ -1,5 +1,3 @@
-'use client';
-
 import { Search, X } from 'lucide-react';
 import { localePath, type ShopLocale } from '@/lib/locale';
 
@@ -11,8 +9,8 @@ export function HeaderSearch({ locale, label, actionLabel }: {
     return <form id={mobile ? 'shop-header-search' : 'shop-header-search-desktop'}
       action={localePath(locale, '/search')} method="get" role="search" aria-label={label}
       className={mobile
-        ? 'hidden absolute left-0 right-0 top-full z-20 mt-[calc(var(--shop-section-spacing)/6)] items-center rounded-shop border border-line bg-canvas group-open:flex'
-        : 'hidden items-center rounded-shop border border-line bg-canvas md:flex'}>
+        ? 'hidden absolute left-4 right-4 top-full z-20 mt-2 items-center rounded-md border border-line bg-canvas group-open:flex'
+        : 'hidden h-9 items-center rounded-md border border-line bg-surface md:flex'}>
       <label htmlFor={inputId} className="sr-only">{label}</label>
       <input id={inputId} name="q" type="search" placeholder={label}
         className="min-w-0 flex-1 bg-transparent px-[calc(var(--shop-section-spacing)/4)] py-[calc(var(--shop-section-spacing)/6)] text-sm outline-none md:w-44 md:flex-none md:px-3 md:py-2" />

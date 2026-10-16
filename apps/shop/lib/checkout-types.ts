@@ -3,7 +3,9 @@ export type CartLine = {
   productId: string;
   variantId: string;
   productName: string;
+  productImage: string;
   variantName?: string;
+  variantAttributes?: Record<string, unknown> | null;
   price: number;
   quantity: number;
   maxQuantity: number;

@@ -5,6 +5,7 @@
  */
 
 import { Prisma } from '@prisma/client';
+import { createHash } from 'node:crypto';
 import { prisma } from '@/config/database';
 import { Locale, DEFAULT_LOCALE } from '@/utils/i18n';
 import { CacheService } from '@/core/cache/service';
@@ -143,7 +144,7 @@ export class ProductService {
       }
     }
     const filterKey = JSON.stringify(sortedFilter);
-    const filterHash = Buffer.from(filterKey).toString('base64').slice(0, 64);
+    const filterHash = createHash('sha256').update(filterKey).digest('hex');
     const cacheKey = `pub:products:list:v${version}:${locale}:${page}:${limit}:${filterHash}`;
     const cached = await CacheService.get<Record<string, unknown>>(cacheKey);
     if (cached) return cached;
@@ -471,7 +472,7 @@ export class ProductService {
 
     // Read-through cache
     const version = await CacheService.getProductVersion();
-    const qHash = Buffer.from(query || '').toString('base64').slice(0, 64);
+    const qHash = createHash('sha256').update(query || '').digest('hex');
     const searchCacheKey = `pub:products:search:v${version}:${locale}:${safePage}:${safeLimit}:${qHash}`;
     const cached = await CacheService.get<Record<string, unknown>>(searchCacheKey);
     if (cached) return cached;

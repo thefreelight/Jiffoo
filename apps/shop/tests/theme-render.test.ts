@@ -7,7 +7,6 @@ import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared
 import { PathnameContext, SearchParamsContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 import type { ShopTheme, ThemeSection } from '../lib/theme';
 import { themeStyle } from '../lib/theme-style';
-import { shopFontTokens } from '../lib/theme-fonts';
 import { SectionRenderer, sectionRegistry } from '../components/theme-sections';
 import { Header } from '../components/header';
 import { Footer } from '../components/footer';
@@ -19,6 +18,11 @@ import defaultShop from '../../api/builtin-themes/default-shop/theme.json';
 import type { Category, Product, StoreContext } from '../lib/catalog';
 
 vi.mock('server-only', () => ({}));
+vi.mock('nuqs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('nuqs')>();
+  return { ...actual, useQueryStates: () => [{ sort: 'newest', category: '', inStock: false, page: 1 }, () => Promise.resolve(new URLSearchParams())] };
+});
+
 
 const group: Category = { id: 'c1', slug: 'books', name: 'Books', description: null, productCount: 1 };
 const product: Product = {
@@ -142,52 +146,34 @@ describe('T2 Shop theme rendering', () => {
     expect(footer).toContain('rel="noopener noreferrer"');
   });
 
-  it('S preserves named mobile controls and desktop labels in every header configuration', () => {
-    for (const variant of ['logo-left', 'logo-center'] as const) {
-      for (const menu of ['inline', 'drawer'] as const) {
-        for (const showSearch of [true, false]) {
-          for (const loggedIn of [true, false]) {
-            const html = markup(createElement(Header, { context, locale: 'en', categories: [group],
-              loggedIn, cartCount: 3, options: { variant, menu, showSearch } }));
-            const labels = loggedIn ? ['Cart (3)', 'My orders', 'Account', 'Logout'] : ['Login', 'Register'];
-            for (const label of [...labels, 'Categories', 'Language'])
-              expect(html).toContain(`aria-label="${label}"`);
-            expect(html).toContain('sr-only md:not-sr-only');
-            expect(html).toContain('var(--shop-section-spacing)');
-            expect(html.includes('role="search"')).toBe(showSearch);
-            expect(html.includes('aria-controls="shop-header-search"')).toBe(showSearch);
-            expect(html).toContain('aria-controls="shop-header-language"');
-            expect(html).toContain('value="en"');
-            expect(html).toContain('value="zh-Hans"');
-            expect(html).toContain('value="zh-Hant"');
-          }
-        }
-      }
-    }
+  it('S renders the phone Sheet trigger, real cart button and locale options', () => {
+    const html = markup(createElement(Header, { context, locale: 'en', categories: [group], loggedIn: true, cartCount: 3 }));
+    for (const label of ['Open menu', 'Cart (3)', 'Language', 'Account']) expect(html).toContain(`aria-label="${label}"`);
+    expect(html).toContain('action="/en/search"');
+    expect(html).toContain('method="get"');
+    expect(html).toContain('value="zh-Hans"');
   });
 
-  it('T retains real authentication destinations, cart count and search submission', () => {
-    const guest = markup(createElement(Header, { context, locale: 'en', categories: [group], loggedIn: false, cartCount: 0 }));
-    expect(guest).toContain('href="/en/login?next=%2Fen"');
-    expect(guest).toContain('href="/en/register?next=%2Fen"');
-    expect(guest).toContain('action="/en/search"');
-    expect(guest.match(/method="get"/g)).toHaveLength(2);
-    expect(guest).toContain('name="q"');
-    expect(guest).toContain('<details');
-    expect(guest).toContain('<summary role="button" aria-label="Search products"');
-    const buyer = markup(createElement(Header, { context, locale: 'en', categories: [group], loggedIn: true, cartCount: 3 }));
-    for (const path of ['/en/cart', '/en/account/orders', '/en/account']) expect(buyer).toContain(`href="${path}"`);
-    expect(buyer).toContain('aria-label="Cart (3)"');
-    expect(buyer).toContain('aria-label="Logout"');
-    expect(buyer).not.toContain('aria-label="Login"');
+  it('S1 honors every header variant, menu, search and authentication combination', () => {
+    for (const variant of ['logo-left', 'logo-center'] as const) for (const menu of ['inline', 'drawer'] as const) {
+      for (const showSearch of [true, false]) for (const loggedIn of [true, false]) {
+        const html = markup(createElement(Header, { context, locale: 'en', categories: [group], loggedIn, cartCount: 3, options: { variant, menu, showSearch } }));
+        expect(html).toContain('aria-label="Open menu"');
+        expect(html).toContain('aria-label="Account"');
+        expect(html).toContain(`aria-label="Cart (${loggedIn ? 3 : 0})"`);
+        expect(html.includes('role="search"')).toBe(showSearch);
+        expect(html.includes('md:order-first md:w-full')).toBe(variant === 'logo-center');
+        expect(html.includes('<nav aria-label="Categories"')).toBe(menu === 'inline');
+        for (const locale of context.supportedLocales) expect(html).toContain(`value="${locale}"`);
+      }
+    }
   });
 
   it('D emits only validated token CSS and font-face data in the layout style', () => {
     const poisoned: ShopTheme = { ...fixture, tokens: { ...fixture.tokens, extras: { ...fixture.tokens.extras, primary: '#fff;} body{', unknown: 'url(x)' } } };
     const css = themeStyle(poisoned);
-    expect(css).toContain(themeTokensToCss('shop', shopFontTokens(poisoned.tokens),
-      (id) => poisoned.fonts.find((font) => font.id === id)?.family));
-    expect(css).toContain('@font-face{font-family:"Brand Sans"');
+    expect(css).not.toContain('@font-face');
+    expect(css).toContain('PingFang SC');
     expect(css).toContain('--shop-extras-primary: #171717;');
     expect(css).not.toContain('#fff;} body{');
     expect(css).not.toContain('url(x)');
@@ -224,22 +210,15 @@ describe('T2 Shop theme rendering', () => {
     }
   });
 
-  it('H uses the declared packaged font family with a sans-serif fallback', () => {
-    expect(themeStyle(fixture)).toContain('--shop-core-font-body: "Brand Sans", sans-serif;');
-  });
-
-  it('N preserves the byte-identical Shop font-face prefix', () => {
-    const before = '@font-face{font-family:"Brand Sans";src:url("/api/v1/themes/sample/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/fonts/brand.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}';
-    expect(themeFontFaces(fixture.fonts)).toBe(before);
-    expect(themeStyle(fixture).slice(0, before.length + 1)).toBe(`${before}\n`);
-  });
-
-  it('I records exact default Shop font output before and after serialization', () => {
-    const css = themeStyle(defaultShop as unknown as ShopTheme);
-    const previous = '--shop-core-font-body: "system-sans";\n--shop-core-font-heading: "system-sans";';
-    expect(css).not.toContain(previous);
-    expect(css).toContain('--shop-core-font-body: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;');
-    expect(css).toContain('--shop-core-font-heading: var(--font-geist-sans, system-ui), "Noto Sans SC", system-ui, sans-serif;');
+  it('H uses system fonts for both default and merchant theme declarations', () => {
+    for (const theme of [fixture, defaultShop as unknown as ShopTheme]) {
+      const css = themeStyle(theme);
+      expect(css).toContain('system-ui, -apple-system, BlinkMacSystemFont');
+      expect(css).toContain('"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif');
+      expect(css).toContain('ui-monospace, SFMono-Regular');
+      expect(css).not.toContain('@font-face');
+      expect(css).not.toContain('font-geist');
+    }
   });
 
   it('E renders Core defaults for a legitimate absent theme', () => {

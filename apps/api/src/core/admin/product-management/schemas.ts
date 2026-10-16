@@ -359,7 +359,7 @@ export const adminProductSchemas = {
         id: { type: 'string', description: 'Product ID' },
       },
     },
-    response: createTypedDeleteResponses(deleteProductResultSchema),
+    response: { ...createTypedDeleteResponses(deleteProductResultSchema), 409: errorResponseSchema },
   },
 
   // POST /api/admin/products/upload-image

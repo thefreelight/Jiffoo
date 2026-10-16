@@ -87,8 +87,8 @@ export async function categories(locale: ShopLocale): Promise<Category[]> {
   }
 }
 
-export async function products(locale: ShopLocale, page = 1, category?: string, limit = 12) {
-  return api<PageResult<Product>>('/products', { locale, page, limit, ...(category ? { category } : {}) });
+export async function products(locale: ShopLocale, page = 1, category?: string, limit = 12, filters: Record<string, string | number> = {}) {
+  return api<PageResult<Product>>('/products', { locale, page, limit, ...filters, ...(category ? { category } : {}) });
 }
 
 export async function productById(locale: ShopLocale, id: string) {

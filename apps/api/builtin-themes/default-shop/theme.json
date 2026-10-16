@@ -129,9 +129,9 @@
             "type": "product-grid",
             "settings": {
               "title": {
-                "en": "Featured products",
-                "zh-Hans": "精选商品",
-                "zh-Hant": "精選商品"
+                "en": "New arrivals",
+                "zh-Hans": "新品",
+                "zh-Hant": "新品"
               },
               "source": "latest"
             }
@@ -139,7 +139,7 @@
         ]
       },
       "category": {
-        "columns": 3,
+        "columns": 4,
         "showFilters": false
       },
       "product": {

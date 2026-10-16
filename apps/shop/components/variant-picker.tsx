@@ -7,6 +7,8 @@ import { formatPrice } from '@/lib/price';
 import type { ShopLocale } from '@/lib/locale';
 import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
 import { storefrontMessages } from '@/lib/storefront-messages';
+import { useCartUI } from '@/lib/cart-ui';
+import { QuantityStepper } from './quantity-stepper';
 
 export function VariantPicker({ variants, locale, currency, labels, productId, slug, loggedIn }: {
   variants: NonNullable<Product['variants']>;
@@ -18,11 +20,13 @@ export function VariantPicker({ variants, locale, currency, labels, productId, s
   loggedIn: boolean;
 }) {
   const router = useRouter();
-  const [selected, setSelected] = useState(variants[0]?.id);
+  const [selected, setSelected] = useState(variants.find((variant) => variant.stock > 0)?.id ?? variants[0]?.id);
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const availability = useShopAvailability(locale);
+  const t = storefrontMessages(locale);
+  const added = useCartUI((state) => state.added);
   const current = variants.find((variant) => variant.id === selected) ?? variants[0];
   if (!current) return null;
   async function add() {
@@ -40,19 +44,26 @@ export function VariantPicker({ variants, locale, currency, labels, productId, s
         body: JSON.stringify({ productId, variantId: current.id, quantity }),
       });
       const body = await response.json();
-      if (response.ok) router.push(`/${locale}/cart`);
+      if (response.ok) {
+        const refreshed = await availabilityFetch('/bff/cart', { cache: 'no-store' });
+        if (!refreshed.ok) { setError(t.shop.error); return; }
+        const cart = (await refreshed.json()).data;
+        added(current.name, cart.itemCount);
+      }
       else if (body.error?.code === 'ADMIN_ACCOUNT_NOT_FOR_SHOP') setError(storefrontMessages(locale).account.adminAccountNotForShop);
       else if (body.error?.code === 'INSUFFICIENT_STOCK') setError(`${labels.stockAvailable} ${body.error.details?.availableQuantity}`);
-      else setError(body.error?.message || labels.outOfStock);
+      else setError(t.shop.error);
     } catch (error) {
       if (availability.capture(error)) return;
-      setError(labels.outOfStock);
+      setError(t.shop.error);
     } finally {
       setBusy(false);
     }
   }
   return (
     <section className="space-y-4">
+      <p className="text-2xl font-semibold">{formatPrice(current.salePrice, locale, currency)}</p>
+      {current.skuCode && <p className="text-xs text-subtle">{labels.sku}: <code className="font-mono">{current.skuCode}</code></p>}
       <fieldset>
         <legend className="mb-2 text-sm font-semibold">{labels.variants}</legend>
         <div className="flex flex-wrap gap-2">
@@ -63,29 +74,27 @@ export function VariantPicker({ variants, locale, currency, labels, productId, s
                 name="variant"
                 value={variant.id}
                 checked={current.id === variant.id}
+                disabled={variant.stock < 1 || busy}
                 onChange={() => { setSelected(variant.id); setQuantity(1); setError(''); }}
                 className="peer sr-only"
               />
-              <span className="inline-block rounded-shop border border-line px-3 py-2 text-sm peer-checked:border-action peer-checked:bg-highlight">
-                {variant.name}
-                {variant.attributes && Object.entries(variant.attributes).length > 0 &&
-                  ` · ${Object.entries(variant.attributes).map(([key, value]) => `${key}: ${String(value)}`).join(', ')}`}
+              <span className="inline-block rounded-md border border-line px-3 py-2 text-sm peer-checked:border-action peer-checked:ring-1 peer-checked:ring-action peer-disabled:cursor-not-allowed peer-disabled:text-subtle peer-disabled:line-through">
+                {variant.attributes && Object.keys(variant.attributes).length
+                  ? Object.entries(variant.attributes).map(([key, value]) => `${key}: ${String(value)}`).join(' / ')
+                  : variant.name}
               </span>
             </label>
           ))}
         </div>
       </fieldset>
-      <p className="text-2xl font-semibold">{formatPrice(current.salePrice, locale, currency)}</p>
-      <p className="text-sm text-subtle">{current.stock > 0 ? labels.stock : labels.outOfStock}</p>
-      <label className="block text-sm">{labels.quantity}
-        <input type="number" min={1} max={current.stock} value={quantity}
-          onChange={(event) => setQuantity(Math.min(current.stock, Math.max(1, Number(event.target.value) || 1)))}
-          className="ml-2 w-20 rounded-shop border border-line bg-surface px-2 py-2" />
-      </label>
-      <button type="button" onClick={() => void add()} disabled={busy || availability.blocked || current.stock < 1}
-        className="rounded-shop bg-action px-5 py-3 text-action-ink disabled:opacity-50">{labels.addToCart}</button>
-      {(availability.message || error) && <p role="alert" className="text-sm text-action">{availability.message || error}</p>}
-      {current.skuCode && <p className="text-xs text-subtle">{labels.sku}: {current.skuCode}</p>}
+      <p className={`text-sm ${current.stock > 5 ? 'text-success' : current.stock > 0 ? 'text-[var(--shop-core-attention)]' : 'text-subtle'}`}>{current.stock > 5 ? labels.stock : current.stock > 0 ? t.shop.lowStock.replace('{count}', String(current.stock)) : t.shop.soldOut}</p>
+      {current.stock < 1 && <p role="alert" className="rounded-md border border-[var(--shop-core-destructive-line)] bg-[var(--shop-core-destructive-soft)] p-3 text-sm">{t.shop.variantSoldOut}</p>}
+      <div className="flex items-center gap-2.5">
+      <QuantityStepper value={quantity} max={current.stock} disabled={busy || availability.blocked} locale={locale} onChange={setQuantity} />
+      <button type="button" onClick={() => void add()} aria-busy={busy} disabled={busy || availability.blocked || current.stock < 1}
+        className="flex h-12 min-w-0 flex-1 items-center justify-center rounded-md bg-action px-5 text-action-ink disabled:opacity-45">{current.stock < 1 ? t.shop.soldOut : labels.addToCart}</button>
+      </div>
+      {(availability.message || error) && <p role="alert" className="text-sm text-destructive">{availability.message || error}</p>}
     </section>
   );
 }

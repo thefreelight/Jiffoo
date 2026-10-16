@@ -56,13 +56,13 @@ test('A home retains one theme style after a reload and across locale and page n
   test.setTimeout(120_000);
   const errors = observe(page);
   await page.goto(`${shopOrigin}/en`);
-  await expect(page.getByRole('heading', { name: 'Featured products', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'New arrivals', exact: true })).toBeVisible();
   await assertDocument(page, 'en', errors);
   console.log(`Reload ${reloadMode} home load: pageerror=${errors.pageErrors.length}, hydrationConsole=${errors.hydrationErrors.length}, themeStyles=1, lang=en`);
   const reloads = reloadStress ? 20 : 1;
   for (let reload = 1; reload <= reloads; reload++) {
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Featured products', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'New arrivals', exact: true })).toBeVisible();
     await assertDocument(page, 'en', errors);
     console.log(`Reload ${reloadMode} home ${reload}/${reloads}: pageerror=${errors.pageErrors.length}, hydrationConsole=${errors.hydrationErrors.length}, themeStyles=1, lang=en`);
   }
@@ -90,6 +90,7 @@ test('B checkout with a real cart item retains one theme style after a reload', 
   await page.getByRole('heading', { name: 'E2E Localized Product', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'E2E Localized Product', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add to cart', exact: true }).click();
+  await page.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
   await expect(page).toHaveURL(`${shopOrigin}/en/cart`);
   await expect(page.getByRole('link', { name: 'E2E Localized Product', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Checkout', exact: true }).click();
@@ -120,20 +121,23 @@ test('C a merchant theme change replaces the plain style without leaving an old 
   const shop = await context.newPage();
   const errors = observe(shop);
   await shop.goto(`${shopOrigin}/en`);
-  await expect(shop.getByRole('heading', { name: 'Featured products', exact: true })).toBeVisible();
+  await expect(shop.getByRole('heading', { name: 'New arrivals', exact: true })).toBeVisible();
   await assertDocument(shop, 'en', errors);
   await row.getByRole('button', { name: 'Activate', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Active', exact: true }).getByRole('heading', { name: 'E2E Shop Theme', exact: true })).toBeVisible();
   await shop.reload();
   await expect(shop.getByRole('heading', { name: 'Theme launch', exact: true })).toBeVisible();
-  await expect(shop.getByRole('link', { name: 'Browse products', exact: true })).toHaveCSS('background-color', 'rgb(204, 0, 51)');
+  await expect(shop.getByRole('main', { name: '' })).toHaveCSS('--shop-primary', '#cc0033');
+  // The approved image hero uses a white action for contrast over its photograph.
+  await expect(shop.getByRole('link', { name: 'Browse products', exact: true })).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(shop.getByRole('link', { name: 'Browse products', exact: true })).toHaveCSS('color', 'rgb(0, 0, 0)');
   await assertDocument(shop, 'en', errors);
   await page.getByRole('button', { name: 'More actions: E2E Shop Theme', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Restore previous theme', exact: true }).click();
   await expect(page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Default Shop', exact: true }) })
     .getByText('Active', { exact: true })).toBeVisible();
   await shop.reload();
-  await expect(shop.getByRole('heading', { name: 'Featured products', exact: true })).toBeVisible();
+  await expect(shop.getByRole('heading', { name: 'New arrivals', exact: true })).toBeVisible();
   await assertDocument(shop, 'en', errors);
   await page.getByRole('button', { name: 'More actions: E2E Shop Theme', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Uninstall', exact: true }).click();

@@ -1,5 +1,5 @@
 import { expect, test } from './local-requests';
-import { shopLogin, shopLogout } from './helpers';
+import { shopLogin, shopLogout, shopAccountAction } from './helpers';
 
 const email = 'shop-register@e2e.example';
 const password = 'ShopRegister123!';
@@ -8,7 +8,7 @@ const newPassword = 'ShopChanged123!';
 test('manage profile and language, change password and delete account with confirmation', async ({ page }) => {
   await page.goto('/en/login');
   await shopLogin(page, { locale: 'en', email, password, expectedPath: '/en' });
-  await page.getByRole('link', { name: 'Account', exact: true }).click();
+  await shopAccountAction(page, 'en', 'account');
   await expect(page).toHaveURL(/\/en\/account$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
   const profile = page.getByRole('region', { name: 'Account' });
@@ -27,7 +27,7 @@ test('manage profile and language, change password and delete account with confi
   await shopLogout(page, { locale: 'en' });
   await page.goto('/en/login');
   await shopLogin(page, { locale: 'en', email, password: newPassword, expectedPath: '/en' });
-  await page.getByRole('link', { name: 'Account', exact: true }).click();
+  await shopAccountAction(page, 'en', 'account');
   await expect(page).toHaveURL(/\/en\/account$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
   const deletion = page.getByRole('region', { name: 'Delete account' });
@@ -38,7 +38,7 @@ test('manage profile and language, change password and delete account with confi
   await deletion.getByLabel('Current password').fill(newPassword);
   await deletion.getByRole('button', { name: 'Delete account' }).click();
   await expect(page).toHaveURL(/\/en\/login$/);
-  await expect(page.getByRole('link', { name: 'Login', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Login', exact: true })).toBeVisible();
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(newPassword);
   await page.getByRole('button', { name: 'Login' }).click();

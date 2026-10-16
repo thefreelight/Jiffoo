@@ -50,8 +50,10 @@ These values come directly from the approved draft, not the current default-shop
 | #ffffff / #0a0a0a | announcement-text |
 | 8px | radius-control |
 | 12px | radius-panel |
-| Geist + Noto Sans SC | font-body / font-heading |
-| Geist Mono | font-mono |
+| System UI fonts, then PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, sans-serif | font-body / font-heading |
+| System monospace fonts | font-mono |
+
+The Shop uses system fonts only. This owner decision supersedes the boards' Geist, Geist Mono and Noto Sans SC declarations; the theme contract is unchanged.
 
 Body text is 14px with 1.5 line height; page titles are 32px (26px on phone), section titles 22px, small headings 16px. The hero uses 44px (28px on phone). Controls are 40px, large actions 48px, small actions 32px. Content width is 1280px with 32px desktop / 16px phone gutters. Product grids use four desktop / two phone columns. Shadows are reserved for floating sheets; the review toolbar, notes panel, stage frame radius and stage shadow are excluded.
 

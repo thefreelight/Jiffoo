@@ -681,10 +681,22 @@ export class AdminProductService {
    * Delete product
    */
   static async deleteProduct(productId: string) {
-    await knownPrismaOperation(() => protectOrderedCatalog(() => prisma.$transaction(async tx => {
-      if (await tx.orderItem.count({ where: { productId } })) throw new ApiError('PRODUCT_HAS_ORDERS');
-      await tx.product.delete({ where: { id: productId } });
-    }), () => ({ productId })), { notFound: 'NOT_FOUND' });
+    await knownPrismaOperation(() => protectOrderedCatalog(async () => {
+      try {
+        await prisma.$transaction(async tx => {
+          if (await tx.orderItem.count({ where: { productId } })) throw new ApiError('PRODUCT_HAS_ORDERS');
+          if (await tx.cartItem.count({ where: { productId } })) throw new ApiError('CONFLICT');
+          await tx.product.delete({ where: { id: productId } });
+        });
+      } catch (error) {
+        // Preserve the cart reference if a line was added after the transaction's check.
+        const cartRestriction = error instanceof Prisma.PrismaClientUnknownRequestError &&
+          /code: "23001"/.test(error.message) && /cart_items_(productId|variantId)_fkey/.test(error.message);
+        if (cartRestriction || (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003' &&
+          await prisma.cartItem.count({ where: { productId } }))) throw new ApiError('CONFLICT');
+        throw error;
+      }
+    }, () => ({ productId })), { notFound: 'NOT_FOUND' });
 
     await CacheService.incrementProductVersion();
     await CacheService.deleteProduct(productId);

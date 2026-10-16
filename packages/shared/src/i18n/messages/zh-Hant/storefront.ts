@@ -1,4 +1,20 @@
 export const storefront = {
+  shop: {
+    openMenu: '開啟選單', closeMenu: '關閉選單', close: '關閉', all: '全部商品',
+    filters: '篩選', sort: '排序', newest: '最新', oldest: '最早', nameAsc: '名稱升序', nameDesc: '名稱降序',
+    inStockOnly: '只看有貨', clearFilters: '清除篩選', apply: '顯示 {count} 件商品', count: '{count} 件商品',
+    categoryEmpty: '這個分類暫無商品', categoryEmptyBody: '商家上架商品後會顯示在這裡。',
+    viewAll: '查看全部商品', newProducts: '新品', noResults: '沒有找到與「{query}」相關的商品',
+    searchCount: '找到 {count} 件與「{query}」相關的商品', clearSearch: '清除',
+    searchHint: '試試其他關鍵字，或從下方的分類開始瀏覽。',
+    lowStock: '僅剩 {count} 件', soldOut: '已售罄', decrease: '減少', increase: '增加',
+    variantSoldOut: '這個規格已售罄。可以選擇其他顏色或尺寸。',
+    added: '已加入購物車', viewCart: '查看購物車', shippingAtCheckout: '運費在結帳時按收貨地址計算',
+    cartTitle: '購物車（{count}）', cartLabel: '購物車，{count} 件',
+    viewAllShort: '查看全部', accountEntry: '登入 / 我的帳戶',
+    previousSlide: '上一張', nextSlide: '下一張', image: '圖片 {count}',
+    related: '同分類商品', loading: '載入中', retry: '重試', error: '操作失敗，請重試。',
+  },
   navigation: {
     products: '所有商品',
     categories: '分類',
@@ -11,7 +27,7 @@ export const storefront = {
   },
   home: {
     categories: '瀏覽分類',
-    products: '精選商品',
+    products: '新品',
   },
   catalog: {
     title: '所有商品',

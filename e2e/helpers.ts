@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
+import { getNamespaceMessages } from '../packages/shared/src/i18n/messages';
 
 export const ownerEmail = 'owner@e2e.example';
 export const originalPassword = 'OwnerPassword123!';
@@ -14,6 +15,17 @@ const shopLabels = {
   'zh-Hant': { email: '電子郵件', password: '密碼', login: '登入', logout: '登出', account: '帳戶' },
 } as const;
 
+function shopCopy(locale: ShopLocale) {
+  return getNamespaceMessages(locale, 'storefront') as { shop: { openMenu: string; closeMenu: string }; navigation: Record<string, string> };
+}
+
+export async function shopAccountAction(page: Page, locale: ShopLocale, action: 'login' | 'register' | 'account' | 'orders' | 'logout') {
+  const t = shopCopy(locale);
+  const phone = (page.viewportSize()?.width ?? 1440) < 768;
+  await page.getByRole('button', { name: phone ? t.shop.openMenu : t.navigation.account, exact: true }).click();
+  await page.getByRole(phone ? action === 'logout' ? 'button' : 'link' : 'menuitem', { name: t.navigation[action], exact: true }).click();
+}
+
 export async function shopLogin(page: Page, { locale, email, password, expectedPath }: {
   locale: ShopLocale; email: string; password: string; expectedPath: string;
 }) {
@@ -22,14 +34,21 @@ export async function shopLogin(page: Page, { locale, email, password, expectedP
   await page.getByLabel(labels.password, { exact: true }).fill(password);
   await page.getByRole('button', { name: labels.login, exact: true }).click();
   await expect(page).toHaveURL(new URL(expectedPath, page.url()).href);
-  await expect(page.getByRole('link', { name: labels.account, exact: true })).toBeVisible();
+  const phone = (page.viewportSize()?.width ?? 1440) < 768;
+  const t = shopCopy(locale);
+  await page.getByRole('button', { name: phone ? t.shop.openMenu : labels.account, exact: true }).click();
+  await expect(page.getByRole(phone ? 'link' : 'menuitem', { name: labels.account, exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
 }
 
 export async function shopLogout(page: Page, { locale }: { locale: ShopLocale }) {
   const labels = shopLabels[locale];
-  await page.getByRole('button', { name: labels.logout, exact: true }).click();
+  await shopAccountAction(page, locale, 'logout');
   await expect(page).toHaveURL(new URL(`/${locale}`, page.url()).href);
-  await expect(page.getByRole('link', { name: labels.login, exact: true })).toBeVisible();
+  const phone = (page.viewportSize()?.width ?? 1440) < 768;
+  await page.getByRole('button', { name: phone ? shopCopy(locale).shop.openMenu : labels.account, exact: true }).click();
+  await expect(page.getByRole(phone ? 'link' : 'menuitem', { name: labels.login, exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
 }
 
 export async function login(page: Page, email = ownerEmail, password = changedPassword) {

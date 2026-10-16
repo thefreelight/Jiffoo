@@ -1,9 +1,5 @@
 @import 'tailwindcss' source(none);
 @import 'tw-animate-css';
-@import '@fontsource/noto-sans-sc/400.css';
-@import '@fontsource/noto-sans-sc/500.css';
-@import '@fontsource/noto-sans-sc/600.css';
-@import '@fontsource/noto-sans-sc/700.css';
 @import './default-tokens.css';
 @source '../app';
 @source '../components';
@@ -103,12 +99,15 @@
 
 /* Retain the existing page values across the Tailwind major upgrade. */
 @layer base {
-  *, ::before, ::after { border-color: #e5e7eb; }
-  input::placeholder, textarea::placeholder { color: #9ca3af; }
+  *, ::before, ::after { border-color: var(--shop-core-border); }
+  input::placeholder, textarea::placeholder { color: var(--shop-core-faint); }
   button, input, optgroup, select, textarea { font-feature-settings: inherit; font-variation-settings: inherit; }
   button, [role="button"] { cursor: pointer; }
 }
 @utility outline-none { outline: 2px solid transparent; outline-offset: 2px; }
 
 body { background: var(--shop-canvas); color: var(--shop-ink); font-family: var(--shop-font); }
+body { font-size: 14px; line-height: 1.5; }
+html { color-scheme: light; }
+@media (prefers-color-scheme: dark) { html[data-shop-dark-available="true"] { color-scheme: dark; } }
 *:focus-visible { outline: 2px solid var(--shop-action); outline-offset: 2px; }

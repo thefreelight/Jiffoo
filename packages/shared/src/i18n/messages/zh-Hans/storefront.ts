@@ -1,4 +1,20 @@
 export const storefront = {
+  shop: {
+    openMenu: '打开菜单', closeMenu: '关闭菜单', close: '关闭', all: '全部商品',
+    filters: '筛选', sort: '排序', newest: '最新', oldest: '最早', nameAsc: '名称升序', nameDesc: '名称降序',
+    inStockOnly: '只看有货', clearFilters: '清除筛选', apply: '显示 {count} 件商品', count: '{count} 件商品',
+    categoryEmpty: '这个分类暂无商品', categoryEmptyBody: '商家上架商品后会显示在这里。',
+    viewAll: '查看全部商品', newProducts: '新品', noResults: '没有找到与“{query}”相关的商品',
+    searchCount: '找到 {count} 件与“{query}”相关的商品', clearSearch: '清除',
+    searchHint: '换个关键词试试，或者看看这些分类：',
+    lowStock: '仅剩 {count} 件', soldOut: '已售罄', decrease: '减少', increase: '增加',
+    variantSoldOut: '这个规格已售罄。可以选择其他颜色或尺码。',
+    added: '已加入购物车', viewCart: '查看购物车', shippingAtCheckout: '运费在结账时按收货地址计算',
+    cartTitle: '购物车（{count}）', cartLabel: '购物车，{count} 件',
+    viewAllShort: '查看全部', accountEntry: '登录 / 我的账户',
+    previousSlide: '上一张', nextSlide: '下一张', image: '图片 {count}',
+    related: '同分类商品', loading: '加载中', retry: '重试', error: '操作失败，请重试。',
+  },
   navigation: {
     products: '全部商品',
     categories: '分类',
@@ -11,7 +27,7 @@ export const storefront = {
   },
   home: {
     categories: '浏览分类',
-    products: '精选商品',
+    products: '新品',
   },
   catalog: {
     title: '全部商品',

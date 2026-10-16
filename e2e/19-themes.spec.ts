@@ -79,7 +79,7 @@ test('C1a customises shop themes, edits home sections, preserves stale drafts an
   const categories = page.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Category list', exact: true }) });
   await categories.getByRole('button', { name: 'Delete: Category list', exact: true }).click();
   await save(page); await shop.reload(); await expect(shop.getByText('Merchant welcome', { exact: true })).toBeVisible(); await expect(shop.getByRole('heading', { name: 'Browse categories', exact: true })).toHaveCount(0);
-  expect((await shop.getByText('Merchant welcome', { exact: true }).boundingBox())!.y).toBeLessThan((await shop.getByRole('heading', { name: 'Featured products', exact: true }).boundingBox())!.y);
+  expect((await shop.getByText('Merchant welcome', { exact: true }).boundingBox())!.y).toBeLessThan((await shop.getByRole('heading', { name: 'New arrivals', exact: true }).boundingBox())!.y);
   await more(page, 'Reset home to theme defaults'); await page.getByRole('alertdialog', { name: 'Reset home to theme defaults', exact: true }).getByRole('button', { name: 'Confirm', exact: true }).click(); await save(page);
   await shop.reload(); await expect(shop.getByRole('heading', { name: 'Browse categories', exact: true })).toBeVisible(); await shop.close(); await back(page);
   await page.getByRole('button', { name: 'Upload theme', exact: true }).click(); await page.getByLabel('Theme package', { exact: true }).setInputFiles({ name: 'invalid.zip', mimeType: 'application/zip', buffer: await themePackage(true) }); await page.getByLabel('I trust this theme package. It is unsigned, so the system cannot verify its author.', { exact: true }).check(); await page.getByRole('button', { name: 'Install', exact: true }).click();
