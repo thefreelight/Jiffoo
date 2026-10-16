@@ -8,9 +8,29 @@
  * Priority: Theme App forwarding > Locale redirect > Pass through
  */
 
-import { LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
+import { LOCALES, DEFAULT_LOCALE, isSupportedLocale } from 'shared/src/i18n';
 import { createProxyHandler, type ProxyConfig } from 'shared/src/proxy';
 import { NextResponse } from 'next/server';
+
+/**
+ * Store-scoped locale list for redirect detection.
+ *
+ * Locale detection must match against the locales THIS store actually
+ * supports (store context `supportedLocales`, mirrored in the deployment's
+ * NEXT_PUBLIC_FALLBACK_SUPPORTED_LOCALES var) — not the framework-wide
+ * list. Otherwise a zh-Hant-only store sends Simplified-Chinese visitors
+ * to /zh-Hans, where the theme's zh-Hant copy never renders. Stores that
+ * do not set the var keep the framework-wide behavior.
+ */
+function storeLocales(): readonly string[] {
+  const raw = process.env.NEXT_PUBLIC_FALLBACK_SUPPORTED_LOCALES;
+  if (!raw) return LOCALES;
+  const parsed = raw
+    .split(',')
+    .map((locale) => locale.trim())
+    .filter((locale) => isSupportedLocale(locale));
+  return parsed.length > 0 ? parsed : LOCALES;
+}
 
 /**
  * Shop proxy configuration
@@ -18,7 +38,7 @@ import { NextResponse } from 'next/server';
 const shopProxyConfig: ProxyConfig = {
   target: 'shop',
   defaultLocale: DEFAULT_LOCALE,
-  locales: LOCALES,
+  locales: storeLocales(),
 };
 
 /**
