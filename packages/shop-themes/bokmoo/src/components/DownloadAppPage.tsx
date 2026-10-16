@@ -1,6 +1,6 @@
 import React from 'react';
 import type { DownloadAppPageProps } from 'shared/src/types/theme';
-import { resolveBokmooSiteConfig } from '../site';
+import { pickCopy, resolveBokmooSiteConfig } from '../site';
 
 // Store targets for the BOKMOO companion app. The App Store listing is
 // live (https://apps.apple.com/app/id6791455265 — verified via the iTunes
@@ -48,8 +48,8 @@ function QrPopover({ pathData, modules, label }: { pathData: string; modules: nu
   );
 }
 
-export const DownloadAppPage = React.memo(function DownloadAppPage({ config }: DownloadAppPageProps) {
-  const site = resolveBokmooSiteConfig(config);
+export const DownloadAppPage = React.memo(function DownloadAppPage({ config, locale }: DownloadAppPageProps) {
+  const site = resolveBokmooSiteConfig(config, locale);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--bokmoo-gold)_9%,transparent),transparent_34%),var(--bokmoo-bg)] px-4 pb-24 pt-8 sm:px-6 sm:pt-10 lg:px-8">
@@ -59,11 +59,14 @@ export const DownloadAppPage = React.memo(function DownloadAppPage({ config }: D
             BOKMOO App
           </p>
           <h1 className="mt-4 text-[clamp(2.2rem,4vw,3.4rem)] font-semibold leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-            Your BOKMOO card, in your pocket.
+            {pickCopy(locale, { en: 'Your BOKMOO card, in your pocket.', hans: '您的 BOKMOO 卡，尽在掌中。', hant: '您的 BOKMOO 卡，盡在掌中。' })}
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]">
-            Activate your BOKMOO card over Bluetooth, install and switch eSIM
-            profiles, and track your data — right from your phone.
+            {pickCopy(locale, {
+              en: 'Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data — right from your phone.',
+              hans: '通过蓝牙激活您的 BOKMOO 卡，安装和切换 eSIM 配置文件，随时掌握数据——就在您的手机上。',
+              hant: '透過藍牙啟用您的 BOKMOO 卡，安裝和切換 eSIM 設定檔，隨時掌握數據——就在您的手機上。',
+            })}
           </p>
           <p className="mt-3 hidden text-xs text-[var(--bokmoo-copy-soft)] lg:block">
             Hover a store button (or scan the card QR) to download.
@@ -82,7 +85,7 @@ export const DownloadAppPage = React.memo(function DownloadAppPage({ config }: D
               </div>
             </div>
             <p className="mt-5 text-sm leading-7 text-[var(--bokmoo-copy)]">
-              Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.
+              {pickCopy(locale, { en: 'Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.', hans: '需要 iOS 15 或更高版本。通过蓝牙激活 BOKMOO 卡。', hant: '需要 iOS 15 或更新版本。透過藍牙啟用 BOKMOO 卡。' })}
             </p>
             <div className="group relative mt-6">
               <a
@@ -92,9 +95,9 @@ export const DownloadAppPage = React.memo(function DownloadAppPage({ config }: D
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-sm font-semibold text-[var(--bokmoo-bg)]"
               >
                 <AppleIcon />
-                Download on the App Store
+                {pickCopy(locale, { en: 'Download on the App Store', hans: '在 App Store 下载', hant: '在 App Store 下載' })}
               </a>
-              <QrPopover pathData={IOS_APP_STORE_QR_PATH} modules={29} label="Scan with iPhone" />
+              <QrPopover pathData={IOS_APP_STORE_QR_PATH} modules={29} label={pickCopy(locale, { en: 'Scan with iPhone', hans: '扫码下载 iOS 版', hant: '掃碼下載 iOS 版' })} />
             </div>
           </div>
 
@@ -109,8 +112,11 @@ export const DownloadAppPage = React.memo(function DownloadAppPage({ config }: D
               </div>
             </div>
             <p className="mt-5 text-sm leading-7 text-[var(--bokmoo-copy)]">
-              Install from Google Play, or download the APK directly if Play is
-              unavailable on your device.
+              {pickCopy(locale, {
+                en: 'Install from Google Play, or download the APK directly if Play is unavailable on your device.',
+                hans: '从 Google Play 安装；如果设备上没有 Play 商店，也可以直接下载 APK。',
+                hant: '從 Google Play 安裝；如果裝置上沒有 Play 商店，也可以直接下載 APK。',
+              })}
             </p>
             <div className="mt-6 grid gap-3">
               <div className="group relative">
@@ -121,20 +127,20 @@ export const DownloadAppPage = React.memo(function DownloadAppPage({ config }: D
                   className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-sm font-semibold text-[var(--bokmoo-bg)]"
                 >
                   <AndroidIcon />
-                  Get it on Google Play
+                  {pickCopy(locale, { en: 'Get it on Google Play', hans: '通过 Google Play 获取', hant: '透過 Google Play 獲取' })}
                 </a>
-                <QrPopover pathData={ANDROID_PLAY_QR_PATH} modules={33} label="Scan with Android" />
+                <QrPopover pathData={ANDROID_PLAY_QR_PATH} modules={33} label={pickCopy(locale, { en: 'Scan with Android', hans: '扫码下载 Android 版', hant: '掃碼下載 Android 版' })} />
               </div>
               <a
                 href={ANDROID_APK_URL}
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] text-sm font-semibold text-[var(--bokmoo-ink)]"
               >
                 <AndroidIcon />
-                Download APK directly
+                {pickCopy(locale, { en: 'Download APK directly', hans: '直接下载 APK', hant: '直接下載 APK' })}
               </a>
             </div>
             <p className="mt-3 text-center text-xs text-[var(--bokmoo-copy-soft)]">
-              Version {ANDROID_APK_VERSION} · {ANDROID_APK_SIZE} · allow installs from your browser when prompted.
+              {pickCopy(locale, { en: `Version ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · allow installs from your browser when prompted.`, hans: `版本 ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · 出现提示时允许浏览器安装应用。`, hant: `版本 ${ANDROID_APK_VERSION} · ${ANDROID_APK_SIZE} · 出現提示時允許瀏覽器安裝應用。` })}
             </p>
           </div>
         </div>

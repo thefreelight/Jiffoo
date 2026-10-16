@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronDown, Globe2, Menu, ShoppingBag, X } from 'lucide-react';
 import type { HeaderProps } from 'shared/src/types/theme';
-import { isExternalHref, resolveBokmooSiteConfig } from '../site';
+import { isExternalHref,pickCopy, resolveBokmooSiteConfig } from '../site';
 
 const FOCUS_VISIBLE_RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]';
@@ -57,9 +57,27 @@ export const Header = React.memo(function Header({
   onNavigateToProducts,
 }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+
+  const LOCALE_OPTIONS: Array<{ value: 'en' | 'zh-Hans' | 'zh-Hant'; label: string }> = [
+    { value: 'en', label: 'English' },
+    { value: 'zh-Hans', label: '简体中文' },
+    { value: 'zh-Hant', label: '繁體中文' },
+  ];
+  const [isLocaleOpen, setIsLocaleOpen] = React.useState(false);
+  const currentLocaleLabel = LOCALE_OPTIONS.find((option) => option.value === locale)?.label ?? 'English';
+  const switchLocale = (next: 'en' | 'zh-Hans' | 'zh-Hant') => {
+    if (next === locale) {
+      setIsLocaleOpen(false);
+      return;
+    }
+    document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=31536000; samesite=lax`;
+    const path = window.location.pathname;
+    const rest = path.replace(/^\/(en|zh-Hans|zh-Hant)(?=\/|$)/, '');
+    setIsLocaleOpen(false);
+    window.location.href = `/${next}${rest === '/' ? '' : rest}`;
+  };
   const site = resolveBokmooSiteConfig(config);
   const mobileMenuId = 'bokmoo-mobile-menu';
-  const isZhHant = locale === 'zh-Hant';
   const accountInitial = ((user?.firstName || user?.email || 'B').trim().charAt(0) || 'B').toUpperCase();
 
   const openHref = React.useCallback(
@@ -74,12 +92,12 @@ export const Header = React.memo(function Header({
   );
 
   const navItems = [
-    { label: isZhHant ? '商店' : 'Store', onClick: onNavigateToProducts },
-    { label: isZhHant ? '服務範圍' : 'Coverage', onClick: onNavigateToProducts },
-    { label: isZhHant ? '使用方式' : 'How It Works', onClick: () => openHref('/#how-it-works') },
-    { label: isZhHant ? '關於我們' : 'About Us', onClick: () => openHref('/contact') },
-    { label: isZhHant ? '支援' : 'Support', onClick: () => openHref('/help') },
-    { label: isZhHant ? '推廣' : 'Affiliate', onClick: () => openHref('/affiliate') },
+    { label: pickCopy(locale, { en: 'Store', hans: '商店', hant: '商店' }), onClick: onNavigateToProducts },
+    { label: pickCopy(locale, { en: 'Coverage', hans: '服务范围', hant: '服務範圍' }), onClick: onNavigateToProducts },
+    { label: pickCopy(locale, { en: 'How It Works', hans: '使用方式', hant: '使用方式' }), onClick: () => openHref('/#how-it-works') },
+    { label: pickCopy(locale, { en: 'About Us', hans: '关于我们', hant: '關於我們' }), onClick: () => openHref('/contact') },
+    { label: pickCopy(locale, { en: 'Support', hans: '支援', hant: '支援' }), onClick: () => openHref('/help') },
+    { label: pickCopy(locale, { en: 'Affiliate', hans: '推广', hant: '推廣' }), onClick: () => openHref('/affiliate') },
   ];
 
   return (
@@ -115,14 +133,32 @@ export const Header = React.memo(function Header({
         </nav>
 
         <div className="ml-auto hidden items-center gap-3 xl:flex">
-          <button
-            className={`inline-flex min-h-[2.75rem] items-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.012))] px-4 text-sm text-[var(--bokmoo-copy)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_48%,transparent)] hover:text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
-            type="button"
-          >
-            <Globe2 className="h-4 w-4 text-[var(--bokmoo-gold)]" />
-            {isZhHant ? '繁體中文' : 'English'}
-            <ChevronDown className="h-4 w-4" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setIsLocaleOpen((open) => !open)}
+              className={`inline-flex min-h-[2.75rem] items-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.012))] px-4 text-sm text-[var(--bokmoo-copy)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_48%,transparent)] hover:text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
+              type="button"
+            >
+              <Globe2 className="h-4 w-4 text-[var(--bokmoo-gold)]" />
+              {currentLocaleLabel}
+              <ChevronDown className="h-4 w-4" />
+            </button>
+            {isLocaleOpen && (
+              <div className="absolute right-0 top-full z-30 mt-2 w-44 overflow-hidden rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,black)] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
+                {LOCALE_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => switchLocale(option.value)}
+                    className={`flex w-full items-center justify-between rounded-[0.6rem] px-3 py-2.5 text-left text-sm transition-colors hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] ${option.value === locale ? 'font-semibold text-[var(--bokmoo-gold)]' : 'text-[var(--bokmoo-copy)]'}`}
+                    type="button"
+                  >
+                    {option.label}
+                    {option.value === locale && <span className="text-xs">✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {isAuthenticated ? (
             <button
@@ -133,7 +169,7 @@ export const Header = React.memo(function Header({
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_86%,white),color-mix(in_oklab,var(--bokmoo-gold)_66%,black))] text-[0.8rem] font-bold text-[var(--bokmoo-bg)]">
                 {accountInitial}
               </span>
-              {isZhHant ? '我的帳戶' : 'My Account'}
+              {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶' })}
               <ChevronDown className="h-4 w-4 text-[var(--bokmoo-copy-soft)]" />
             </button>
           ) : (
@@ -143,14 +179,14 @@ export const Header = React.memo(function Header({
                 className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] px-5 text-sm font-medium text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
                 type="button"
               >
-                {isZhHant ? '登入' : 'Log In'}
+                {pickCopy(locale, { en: 'Log In', hans: '登入', hant: '登入' })}
               </button>
               <button
                 onClick={onNavigateToRegister}
                 className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,white)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-bold tracking-[0.01em] text-[var(--bokmoo-bg)] shadow-[0_14px_30px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.34)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING}`}
                 type="button"
               >
-                {isZhHant ? '立即開始' : 'Get Started'}
+                {pickCopy(locale, { en: 'Get Started', hans: '立即开始', hant: '立即開始' })}
               </button>
             </>
           )}
@@ -158,7 +194,7 @@ export const Header = React.memo(function Header({
           <button
             onClick={onNavigateToCart}
             className={`relative inline-flex h-[2.75rem] w-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(0,0,0,0.18))] text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
-            aria-label={isZhHant ? '開啟購物車' : 'Open cart'}
+            aria-label={pickCopy(locale, { en: 'Open cart', hans: '开启购物车', hant: '開啟購物車' })}
             type="button"
           >
             <ShoppingBag className="h-4 w-4" />
@@ -175,7 +211,7 @@ export const Header = React.memo(function Header({
           className={`ml-auto flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-[var(--bokmoo-line)] text-[var(--bokmoo-ink)] xl:hidden ${FOCUS_VISIBLE_RING}`}
           aria-controls={mobileMenuId}
           aria-expanded={isMenuOpen}
-          aria-label={isMenuOpen ? (isZhHant ? '關閉選單' : 'Close menu') : isZhHant ? '開啟選單' : 'Open menu'}
+          aria-label={isMenuOpen ? (pickCopy(locale, { en: 'Close menu', hans: '关闭选单', hant: '關閉選單' })) : pickCopy(locale, { en: 'Open menu', hans: '开启选单', hant: '開啟選單' })}
           type="button"
         >
           {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -207,7 +243,7 @@ export const Header = React.memo(function Header({
               className={`rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
               type="button"
             >
-              {isZhHant ? '購物車' : 'Cart'}
+              {pickCopy(locale, { en: 'Cart', hans: '购物车', hant: '購物車' })}
             </button>
 
             {isAuthenticated ? (
@@ -220,7 +256,7 @@ export const Header = React.memo(function Header({
                   className={`rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                    {isZhHant ? '我的帳戶' : 'My Account'}
+                    {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶' })}
                   </button>
                   <button
                     onClick={() => {
@@ -230,7 +266,7 @@ export const Header = React.memo(function Header({
                   className={`rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-copy)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                  {isZhHant ? '登出' : 'Log Out'}
+                  {pickCopy(locale, { en: 'Log Out', hans: '登出', hant: '登出' })}
                 </button>
               </>
             ) : (
@@ -243,7 +279,7 @@ export const Header = React.memo(function Header({
                   className={`rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                  {isZhHant ? '登入' : 'Log In'}
+                  {pickCopy(locale, { en: 'Log In', hans: '登入', hant: '登入' })}
                 </button>
                 <button
                   onClick={() => {
@@ -253,7 +289,7 @@ export const Header = React.memo(function Header({
                   className={`rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-4 py-3 text-left text-sm font-semibold text-[var(--bokmoo-bg)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                  {isZhHant ? '立即開始' : 'Get Started'}
+                  {pickCopy(locale, { en: 'Get Started', hans: '立即开始', hant: '立即開始' })}
                 </button>
               </>
             )}

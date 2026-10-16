@@ -143,12 +143,30 @@ export function matchLocaleFromAcceptLanguage(
     .filter((candidate) => candidate.tag.length > 0)
     .sort((a, b) => b.q - a.q);
 
+  // Region-subtag preferences for languages the store may carry in more
+  // than one variant (Simplified vs Traditional Chinese).
+  const REGION_LOCALE_PREFERENCE: Record<string, string> = {
+    'zh-cn': 'zh-Hans',
+    'zh-sg': 'zh-Hans',
+    'zh-my': 'zh-Hans',
+    'zh-tw': 'zh-Hant',
+    'zh-hk': 'zh-Hant',
+    'zh-mo': 'zh-Hant',
+  };
+
   for (const { tag } of candidates) {
-    const exact = locales.find((locale) => locale.toLowerCase() === tag);
+    const lower = tag.toLowerCase();
+    const exact = locales.find((locale) => locale.toLowerCase() === lower);
     if (exact) return exact;
-    const base = tag.split('-')[0];
-    const baseMatch = locales.find((locale) => locale.toLowerCase().split('-')[0] === base);
-    if (baseMatch) return baseMatch;
+    const base = lower.split('-')[0];
+    const baseMatches = locales.filter((locale) => locale.toLowerCase().split('-')[0] === base);
+    if (baseMatches.length === 0) continue;
+    if (baseMatches.length === 1) return baseMatches[0];
+    // Multiple variants of the same language: let the visitor's region pick
+    // (zh-CN → zh-Hans, zh-TW → zh-Hant); bare tags take the store's order.
+    const preferred = REGION_LOCALE_PREFERENCE[lower];
+    const preferredMatch = baseMatches.find((locale) => locale.toLowerCase() === preferred);
+    return preferredMatch ?? baseMatches[0];
   }
 
   return undefined;
