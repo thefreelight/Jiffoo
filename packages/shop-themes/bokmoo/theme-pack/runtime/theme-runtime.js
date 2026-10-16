@@ -39,13 +39,13 @@
   var useState = React.useState;
   var useTransition = React.useTransition;
 
-  // node_modules/lucide-react/dist/esm/shared/src/utils.js
+  // ../../../node_modules/lucide-react/dist/esm/shared/src/utils.js
   var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
   var mergeClasses = (...classes) => classes.filter((className, index, array) => {
     return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
   }).join(" ").trim();
 
-  // node_modules/lucide-react/dist/esm/defaultAttributes.js
+  // ../../../node_modules/lucide-react/dist/esm/defaultAttributes.js
   var defaultAttributes = {
     xmlns: "http://www.w3.org/2000/svg",
     width: 24,
@@ -58,7 +58,7 @@
     strokeLinejoin: "round"
   };
 
-  // node_modules/lucide-react/dist/esm/Icon.js
+  // ../../../node_modules/lucide-react/dist/esm/Icon.js
   var Icon = forwardRef(
     ({
       color: color2 = "currentColor",
@@ -90,7 +90,7 @@
     }
   );
 
-  // node_modules/lucide-react/dist/esm/createLucideIcon.js
+  // ../../../node_modules/lucide-react/dist/esm/createLucideIcon.js
   var createLucideIcon = (iconName, iconNode) => {
     const Component2 = forwardRef(
       ({ className, ...props }, ref) => createElement(Icon, {
@@ -104,7 +104,7 @@
     return Component2;
   };
 
-  // node_modules/lucide-react/dist/esm/icons/apple.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/apple.js
   var Apple = createLucideIcon("Apple", [
     [
       "path",
@@ -116,19 +116,19 @@
     ["path", { d: "M10 2c1 .5 2 2 2 5", key: "fcco2y" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/arrow-left.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/arrow-left.js
   var ArrowLeft = createLucideIcon("ArrowLeft", [
     ["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
     ["path", { d: "M19 12H5", key: "x3x0zl" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/arrow-right.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/arrow-right.js
   var ArrowRight = createLucideIcon("ArrowRight", [
     ["path", { d: "M5 12h14", key: "1ays0h" }],
     ["path", { d: "m12 5 7 7-7 7", key: "xquz4c" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/book-open.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/book-open.js
   var BookOpen = createLucideIcon("BookOpen", [
     ["path", { d: "M12 7v14", key: "1akyts" }],
     [
@@ -140,7 +140,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/calendar-days.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/calendar-days.js
   var CalendarDays = createLucideIcon("CalendarDays", [
     ["path", { d: "M8 2v4", key: "1cmpym" }],
     ["path", { d: "M16 2v4", key: "4m81vk" }],
@@ -154,25 +154,25 @@
     ["path", { d: "M16 18h.01", key: "kzsmim" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/check.js
   var Check = createLucideIcon("Check", [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]]);
 
-  // node_modules/lucide-react/dist/esm/icons/chevron-down.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chevron-down.js
   var ChevronDown = createLucideIcon("ChevronDown", [
     ["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/chevron-left.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chevron-left.js
   var ChevronLeft = createLucideIcon("ChevronLeft", [
     ["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/chevron-right.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chevron-right.js
   var ChevronRight = createLucideIcon("ChevronRight", [
     ["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/chrome.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chrome.js
   var Chrome = createLucideIcon("Chrome", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["circle", { cx: "12", cy: "12", r: "4", key: "4exip2" }],
@@ -181,45 +181,45 @@
     ["line", { x1: "10.88", x2: "15.46", y1: "21.94", y2: "14", key: "1ymyh8" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/circle-check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/circle-check.js
   var CircleCheck = createLucideIcon("CircleCheck", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/circle-help.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/circle-help.js
   var CircleHelp = createLucideIcon("CircleHelp", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3", key: "1u773s" }],
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/circle-x.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/circle-x.js
   var CircleX = createLucideIcon("CircleX", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m15 9-6 6", key: "1uzhvr" }],
     ["path", { d: "m9 9 6 6", key: "z0biqf" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/clock-3.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/clock-3.js
   var Clock3 = createLucideIcon("Clock3", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["polyline", { points: "12 6 12 12 16.5 12", key: "1aq6pp" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/copy.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/copy.js
   var Copy = createLucideIcon("Copy", [
     ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2", key: "17jyea" }],
     ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2", key: "zix9uf" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/credit-card.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/credit-card.js
   var CreditCard = createLucideIcon("CreditCard", [
     ["rect", { width: "20", height: "14", x: "2", y: "5", rx: "2", key: "ynyp8z" }],
     ["line", { x1: "2", x2: "22", y1: "10", y2: "10", key: "1b3vmo" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/crown.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/crown.js
   var Crown = createLucideIcon("Crown", [
     [
       "path",
@@ -231,7 +231,7 @@
     ["path", { d: "M5 21h14", key: "11awu3" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/earth.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/earth.js
   var Earth = createLucideIcon("Earth", [
     ["path", { d: "M21.54 15H17a2 2 0 0 0-2 2v4.54", key: "1djwo0" }],
     [
@@ -245,14 +245,14 @@
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/external-link.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/external-link.js
   var ExternalLink = createLucideIcon("ExternalLink", [
     ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
     ["path", { d: "M10 14 21 3", key: "gplh6r" }],
     ["path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6", key: "a6xqqp" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/eye-off.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/eye-off.js
   var EyeOff = createLucideIcon("EyeOff", [
     [
       "path",
@@ -272,7 +272,7 @@
     ["path", { d: "m2 2 20 20", key: "1ooewy" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/eye.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/eye.js
   var Eye = createLucideIcon("Eye", [
     [
       "path",
@@ -284,7 +284,7 @@
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/grid-3x3.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/grid-3x3.js
   var Grid3x3 = createLucideIcon("Grid3x3", [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M3 9h18", key: "1pudct" }],
@@ -293,7 +293,7 @@
     ["path", { d: "M15 3v18", key: "14nvp0" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/headphones.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/headphones.js
   var Headphones = createLucideIcon("Headphones", [
     [
       "path",
@@ -304,7 +304,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/house.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/house.js
   var House = createLucideIcon("House", [
     ["path", { d: "M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8", key: "5wwlr5" }],
     [
@@ -316,7 +316,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/layout-grid.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/layout-grid.js
   var LayoutGrid = createLucideIcon("LayoutGrid", [
     ["rect", { width: "7", height: "7", x: "3", y: "3", rx: "1", key: "1g98yp" }],
     ["rect", { width: "7", height: "7", x: "14", y: "3", rx: "1", key: "6d4xhi" }],
@@ -324,7 +324,7 @@
     ["rect", { width: "7", height: "7", x: "3", y: "14", rx: "1", key: "1bb6yr" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/life-buoy.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/life-buoy.js
   var LifeBuoy = createLucideIcon("LifeBuoy", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m4.93 4.93 4.24 4.24", key: "1ymg45" }],
@@ -334,14 +334,14 @@
     ["circle", { cx: "12", cy: "12", r: "4", key: "4exip2" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/link-2.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/link-2.js
   var Link2 = createLucideIcon("Link2", [
     ["path", { d: "M9 17H7A5 5 0 0 1 7 7h2", key: "8i5ue5" }],
     ["path", { d: "M15 7h2a5 5 0 1 1 0 10h-2", key: "1b9ql8" }],
     ["line", { x1: "8", x2: "16", y1: "12", y2: "12", key: "1jonct" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/list.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/list.js
   var List = createLucideIcon("List", [
     ["path", { d: "M3 12h.01", key: "nlz23k" }],
     ["path", { d: "M3 18h.01", key: "1tta3j" }],
@@ -351,42 +351,42 @@
     ["path", { d: "M8 6h13", key: "ik3vkj" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/loader-circle.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/loader-circle.js
   var LoaderCircle = createLucideIcon("LoaderCircle", [
     ["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/lock-keyhole.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/lock-keyhole.js
   var LockKeyhole = createLucideIcon("LockKeyhole", [
     ["circle", { cx: "12", cy: "16", r: "1", key: "1au0dj" }],
     ["rect", { x: "3", y: "10", width: "18", height: "12", rx: "2", key: "6s8ecr" }],
     ["path", { d: "M7 10V7a5 5 0 0 1 10 0v3", key: "1pqi11" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/mail.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/mail.js
   var Mail = createLucideIcon("Mail", [
     ["rect", { width: "20", height: "16", x: "2", y: "4", rx: "2", key: "18n3k1" }],
     ["path", { d: "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7", key: "1ocrg3" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/menu.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/menu.js
   var Menu = createLucideIcon("Menu", [
     ["line", { x1: "4", x2: "20", y1: "12", y2: "12", key: "1e0a9i" }],
     ["line", { x1: "4", x2: "20", y1: "6", y2: "6", key: "1owob3" }],
     ["line", { x1: "4", x2: "20", y1: "18", y2: "18", key: "yk5zj1" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/minus.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/minus.js
   var Minus = createLucideIcon("Minus", [["path", { d: "M5 12h14", key: "1ays0h" }]]);
 
-  // node_modules/lucide-react/dist/esm/icons/package-2.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/package-2.js
   var Package2 = createLucideIcon("Package2", [
     ["path", { d: "M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z", key: "1ront0" }],
     ["path", { d: "m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9", key: "19h2x1" }],
     ["path", { d: "M12 3v6", key: "1holv5" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/package-check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/package-check.js
   var PackageCheck = createLucideIcon("PackageCheck", [
     ["path", { d: "m16 16 2 2 4-4", key: "gfu2re" }],
     [
@@ -401,7 +401,7 @@
     ["line", { x1: "12", x2: "12", y1: "22", y2: "12", key: "a4e8g8" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/package.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/package.js
   var Package = createLucideIcon("Package", [
     [
       "path",
@@ -415,7 +415,7 @@
     ["path", { d: "m7.5 4.27 9 5.15", key: "1c824w" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/pencil-line.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/pencil-line.js
   var PencilLine = createLucideIcon("PencilLine", [
     ["path", { d: "M12 20h9", key: "t2du7b" }],
     [
@@ -428,7 +428,7 @@
     ["path", { d: "m15 5 3 3", key: "1w25hb" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/phone.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/phone.js
   var Phone = createLucideIcon("Phone", [
     [
       "path",
@@ -439,7 +439,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/plane.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/plane.js
   var Plane = createLucideIcon("Plane", [
     [
       "path",
@@ -450,13 +450,13 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/plus.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/plus.js
   var Plus = createLucideIcon("Plus", [
     ["path", { d: "M5 12h14", key: "1ays0h" }],
     ["path", { d: "M12 5v14", key: "s699le" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/qr-code.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/qr-code.js
   var QrCode = createLucideIcon("QrCode", [
     ["rect", { width: "5", height: "5", x: "3", y: "3", rx: "1", key: "1tu5fj" }],
     ["rect", { width: "5", height: "5", x: "16", y: "3", rx: "1", key: "1v8r4q" }],
@@ -472,7 +472,7 @@
     ["path", { d: "M12 21v-1", key: "1880an" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/receipt-text.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/receipt-text.js
   var ReceiptText = createLucideIcon("ReceiptText", [
     [
       "path",
@@ -483,7 +483,7 @@
     ["path", { d: "M13 16H8", key: "wsln4y" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/refresh-cw.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/refresh-cw.js
   var RefreshCw = createLucideIcon("RefreshCw", [
     ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
     ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
@@ -491,7 +491,7 @@
     ["path", { d: "M8 16H3v5", key: "1cv678" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/save.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/save.js
   var Save = createLucideIcon("Save", [
     [
       "path",
@@ -504,13 +504,13 @@
     ["path", { d: "M7 3v4a1 1 0 0 0 1 1h7", key: "t51u73" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/search.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/search.js
   var Search = createLucideIcon("Search", [
     ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }],
     ["path", { d: "m21 21-4.3-4.3", key: "1qie3q" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/settings.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/settings.js
   var Settings = createLucideIcon("Settings", [
     [
       "path",
@@ -522,7 +522,7 @@
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/shield-check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/shield-check.js
   var ShieldCheck = createLucideIcon("ShieldCheck", [
     [
       "path",
@@ -534,14 +534,14 @@
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/shopping-bag.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/shopping-bag.js
   var ShoppingBag = createLucideIcon("ShoppingBag", [
     ["path", { d: "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z", key: "hou9p0" }],
     ["path", { d: "M3 6h18", key: "d0wm0j" }],
     ["path", { d: "M16 10a4 4 0 0 1-8 0", key: "1ltviw" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/shopping-cart.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/shopping-cart.js
   var ShoppingCart = createLucideIcon("ShoppingCart", [
     ["circle", { cx: "8", cy: "21", r: "1", key: "jimo8o" }],
     ["circle", { cx: "19", cy: "21", r: "1", key: "13723u" }],
@@ -554,7 +554,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/signal.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/signal.js
   var Signal = createLucideIcon("Signal", [
     ["path", { d: "M2 20h.01", key: "4haj6o" }],
     ["path", { d: "M7 20v-4", key: "j294jx" }],
@@ -563,13 +563,13 @@
     ["path", { d: "M22 4v16", key: "sih9yq" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/smartphone.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/smartphone.js
   var Smartphone = createLucideIcon("Smartphone", [
     ["rect", { width: "14", height: "20", x: "5", y: "2", rx: "2", ry: "2", key: "1yt0o3" }],
     ["path", { d: "M12 18h.01", key: "mhygvu" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/sparkles.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/sparkles.js
   var Sparkles = createLucideIcon("Sparkles", [
     [
       "path",
@@ -584,7 +584,7 @@
     ["path", { d: "M5 18H3", key: "zchphs" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/star.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/star.js
   var Star = createLucideIcon("Star", [
     [
       "path",
@@ -595,7 +595,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/trash-2.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/trash-2.js
   var Trash2 = createLucideIcon("Trash2", [
     ["path", { d: "M3 6h18", key: "d0wm0j" }],
     ["path", { d: "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6", key: "4alrt4" }],
@@ -604,7 +604,7 @@
     ["line", { x1: "14", x2: "14", y1: "11", y2: "17", key: "xtxkd" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/triangle-alert.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/triangle-alert.js
   var TriangleAlert = createLucideIcon("TriangleAlert", [
     [
       "path",
@@ -617,7 +617,7 @@
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/user-plus.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/user-plus.js
   var UserPlus = createLucideIcon("UserPlus", [
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }],
@@ -625,20 +625,20 @@
     ["line", { x1: "22", x2: "16", y1: "11", y2: "11", key: "1shjgl" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/user-round.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/user-round.js
   var UserRound = createLucideIcon("UserRound", [
     ["circle", { cx: "12", cy: "8", r: "5", key: "1hypcn" }],
     ["path", { d: "M20 21a8 8 0 0 0-16 0", key: "rfgkzh" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/users-round.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/users-round.js
   var UsersRound = createLucideIcon("UsersRound", [
     ["path", { d: "M18 21a8 8 0 0 0-16 0", key: "3ypg7q" }],
     ["circle", { cx: "10", cy: "8", r: "5", key: "o932ke" }],
     ["path", { d: "M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3", key: "10s06x" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/users.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/users.js
   var Users = createLucideIcon("Users", [
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }],
@@ -646,7 +646,7 @@
     ["path", { d: "M16 3.13a4 4 0 0 1 0 7.75", key: "1da9ce" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/wallet-cards.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/wallet-cards.js
   var WalletCards = createLucideIcon("WalletCards", [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2", key: "4125el" }],
@@ -659,7 +659,7 @@
     ]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/wallet.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/wallet.js
   var Wallet = createLucideIcon("Wallet", [
     [
       "path",
@@ -671,13 +671,13 @@
     ["path", { d: "M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4", key: "xoc0q4" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/x.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/x.js
   var X = createLucideIcon("X", [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
     ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
   ]);
 
-  // node_modules/lucide-react/dist/esm/icons/zap.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/zap.js
   var Zap = createLucideIcon("Zap", [
     [
       "path",
@@ -698,10 +698,10 @@
   var jsxs = runtime.jsxs;
   var jsxDEV = runtime.jsxDEV;
 
-  // node_modules/framer-motion/dist/es/context/LayoutGroupContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/LayoutGroupContext.mjs
   var LayoutGroupContext = createContext({});
 
-  // node_modules/framer-motion/dist/es/utils/use-constant.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/use-constant.mjs
   function useConstant(init) {
     const ref = useRef(null);
     if (ref.current === null) {
@@ -710,17 +710,17 @@
     return ref.current;
   }
 
-  // node_modules/framer-motion/dist/es/context/PresenceContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/PresenceContext.mjs
   var PresenceContext = createContext(null);
 
-  // node_modules/framer-motion/dist/es/context/MotionConfigContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionConfigContext.mjs
   var MotionConfigContext = createContext({
     transformPagePoint: (p) => p,
     isStatic: false,
     reducedMotion: "never"
   });
 
-  // node_modules/framer-motion/dist/es/components/AnimatePresence/PopChild.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/PopChild.mjs
   var PopChildMeasure = class extends Component {
     getSnapshotBeforeUpdate(prevProps) {
       const element = this.props.childRef.current;
@@ -779,7 +779,7 @@
     return jsx(PopChildMeasure, { isPresent, childRef: ref, sizeRef: size, children: cloneElement(children, { ref }) });
   }
 
-  // node_modules/framer-motion/dist/es/components/AnimatePresence/PresenceChild.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/PresenceChild.mjs
   var PresenceChild = ({ children, initial, isPresent, onExitComplete, custom, presenceAffectsLayout, mode }) => {
     const presenceChildren = useConstant(newChildrenMap);
     const id3 = useId();
@@ -825,7 +825,7 @@
     return /* @__PURE__ */ new Map();
   }
 
-  // node_modules/framer-motion/dist/es/components/AnimatePresence/use-presence.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/use-presence.mjs
   function usePresence(subscribe = true) {
     const context = useContext(PresenceContext);
     if (context === null)
@@ -840,7 +840,7 @@
     return !isPresent && onExitComplete ? [false, safeToRemove] : [true];
   }
 
-  // node_modules/framer-motion/dist/es/components/AnimatePresence/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/utils.mjs
   var getChildKey = (child) => child.key || "";
   function onlyElements(children) {
     const filtered = [];
@@ -851,13 +851,13 @@
     return filtered;
   }
 
-  // node_modules/framer-motion/dist/es/utils/is-browser.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-browser.mjs
   var isBrowser = typeof window !== "undefined";
 
-  // node_modules/framer-motion/dist/es/utils/use-isomorphic-effect.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/use-isomorphic-effect.mjs
   var useIsomorphicLayoutEffect = isBrowser ? useLayoutEffect : useEffect;
 
-  // node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs
   var AnimatePresence = ({ children, custom, initial = true, onExitComplete, presenceAffectsLayout = true, mode = "sync", propagate = false }) => {
     const [isParentPresent, safeToRemove] = usePresence(propagate);
     const presentChildren = useMemo(() => onlyElements(children), [children]);
@@ -928,10 +928,10 @@
     }) });
   };
 
-  // node_modules/motion-utils/dist/es/noop.mjs
+  // ../../../node_modules/motion-utils/dist/es/noop.mjs
   var noop = /* @__NO_SIDE_EFFECTS__ */ (any) => any;
 
-  // node_modules/motion-utils/dist/es/errors.mjs
+  // ../../../node_modules/motion-utils/dist/es/errors.mjs
   var warning = noop;
   var invariant = noop;
   if (true) {
@@ -947,7 +947,7 @@
     };
   }
 
-  // node_modules/motion-utils/dist/es/memo.mjs
+  // ../../../node_modules/motion-utils/dist/es/memo.mjs
   // @__NO_SIDE_EFFECTS__
   function memo2(callback) {
     let result;
@@ -958,23 +958,23 @@
     };
   }
 
-  // node_modules/motion-utils/dist/es/progress.mjs
+  // ../../../node_modules/motion-utils/dist/es/progress.mjs
   var progress = /* @__NO_SIDE_EFFECTS__ */ (from, to, value) => {
     const toFromDifference = to - from;
     return toFromDifference === 0 ? 1 : (value - from) / toFromDifference;
   };
 
-  // node_modules/motion-utils/dist/es/time-conversion.mjs
+  // ../../../node_modules/motion-utils/dist/es/time-conversion.mjs
   var secondsToMilliseconds = /* @__NO_SIDE_EFFECTS__ */ (seconds) => seconds * 1e3;
   var millisecondsToSeconds = /* @__NO_SIDE_EFFECTS__ */ (milliseconds) => milliseconds / 1e3;
 
-  // node_modules/framer-motion/dist/es/utils/GlobalConfig.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/GlobalConfig.mjs
   var MotionGlobalConfig = {
     skipAnimations: false,
     useManualTiming: false
   };
 
-  // node_modules/framer-motion/dist/es/frameloop/render-step.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/render-step.mjs
   function createRenderStep(runNextFrame) {
     let thisFrame = /* @__PURE__ */ new Set();
     let nextFrame = /* @__PURE__ */ new Set();
@@ -1036,7 +1036,7 @@
     return step;
   }
 
-  // node_modules/framer-motion/dist/es/frameloop/batcher.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/batcher.mjs
   var stepsOrder = [
     "read",
     // Read
@@ -1108,13 +1108,13 @@
     return { schedule, cancel, state, steps };
   }
 
-  // node_modules/framer-motion/dist/es/frameloop/frame.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/frame.mjs
   var { schedule: frame, cancel: cancelFrame, state: frameData, steps: frameSteps } = createRenderBatcher(typeof requestAnimationFrame !== "undefined" ? requestAnimationFrame : noop, true);
 
-  // node_modules/framer-motion/dist/es/context/LazyContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/LazyContext.mjs
   var LazyContext = createContext({ strict: false });
 
-  // node_modules/framer-motion/dist/es/motion/features/definitions.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/definitions.mjs
   var featureProps = {
     animation: [
       "animate",
@@ -1142,7 +1142,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/motion/features/load-features.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/load-features.mjs
   function loadFeatures(features) {
     for (const key in features) {
       featureDefinitions[key] = {
@@ -1152,7 +1152,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/motion/utils/valid-prop.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/valid-prop.mjs
   var validMotionProps = /* @__PURE__ */ new Set([
     "animate",
     "exit",
@@ -1189,7 +1189,7 @@
     return key.startsWith("while") || key.startsWith("drag") && key !== "draggable" || key.startsWith("layout") || key.startsWith("onTap") || key.startsWith("onPan") || key.startsWith("onLayout") || validMotionProps.has(key);
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs
   var shouldForward = (key) => !isValidMotionProp(key);
   function loadExternalIsValidProp(isValidProp) {
     if (!isValidProp)
@@ -1213,7 +1213,7 @@
     return filteredProps;
   }
 
-  // node_modules/framer-motion/dist/es/utils/warn-once.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/warn-once.mjs
   var warned = /* @__PURE__ */ new Set();
   function warnOnce(condition, message, element) {
     if (condition || warned.has(message))
@@ -1224,7 +1224,7 @@
     warned.add(message);
   }
 
-  // node_modules/framer-motion/dist/es/render/components/create-proxy.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/create-proxy.mjs
   function createDOMMotionComponentProxy(componentFactory) {
     if (typeof Proxy === "undefined") {
       return componentFactory;
@@ -1253,20 +1253,20 @@
     });
   }
 
-  // node_modules/framer-motion/dist/es/context/MotionContext/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionContext/index.mjs
   var MotionContext = createContext({});
 
-  // node_modules/framer-motion/dist/es/render/utils/is-variant-label.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/is-variant-label.mjs
   function isVariantLabel(v) {
     return typeof v === "string" || Array.isArray(v);
   }
 
-  // node_modules/framer-motion/dist/es/animation/utils/is-animation-controls.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-animation-controls.mjs
   function isAnimationControls(v) {
     return v !== null && typeof v === "object" && typeof v.start === "function";
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/variant-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/variant-props.mjs
   var variantPriorityOrder = [
     "animate",
     "whileInView",
@@ -1278,7 +1278,7 @@
   ];
   var variantProps = ["initial", ...variantPriorityOrder];
 
-  // node_modules/framer-motion/dist/es/render/utils/is-controlling-variants.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/is-controlling-variants.mjs
   function isControllingVariants(props) {
     return isAnimationControls(props.animate) || variantProps.some((name) => isVariantLabel(props[name]));
   }
@@ -1286,7 +1286,7 @@
     return Boolean(isControllingVariants(props) || props.variants);
   }
 
-  // node_modules/framer-motion/dist/es/context/MotionContext/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionContext/utils.mjs
   function getCurrentTreeVariants(props, context) {
     if (isControllingVariants(props)) {
       const { initial, animate } = props;
@@ -1298,7 +1298,7 @@
     return props.inherit !== false ? context : {};
   }
 
-  // node_modules/framer-motion/dist/es/context/MotionContext/create.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionContext/create.mjs
   function useCreateMotionContext(props) {
     const { initial, animate } = getCurrentTreeVariants(props, useContext(MotionContext));
     return useMemo(() => ({ initial, animate }), [variantLabelsAsDependency(initial), variantLabelsAsDependency(animate)]);
@@ -1307,15 +1307,15 @@
     return Array.isArray(prop) ? prop.join(" ") : prop;
   }
 
-  // node_modules/framer-motion/dist/es/motion/utils/symbol.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/symbol.mjs
   var motionComponentSymbol = /* @__PURE__ */ Symbol.for("motionComponentSymbol");
 
-  // node_modules/framer-motion/dist/es/utils/is-ref-object.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-ref-object.mjs
   function isRefObject(ref) {
     return ref && typeof ref === "object" && Object.prototype.hasOwnProperty.call(ref, "current");
   }
 
-  // node_modules/framer-motion/dist/es/motion/utils/use-motion-ref.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/use-motion-ref.mjs
   function useMotionRef(visualState, visualElement, externalRef) {
     return useCallback(
       (instance) => {
@@ -1346,20 +1346,20 @@
     );
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/camel-to-dash.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/camel-to-dash.mjs
   var camelToDash = (str) => str.replace(/([a-z])([A-Z])/gu, "$1-$2").toLowerCase();
 
-  // node_modules/framer-motion/dist/es/animation/optimized-appear/data-id.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/optimized-appear/data-id.mjs
   var optimizedAppearDataId = "framerAppearId";
   var optimizedAppearDataAttribute = "data-" + camelToDash(optimizedAppearDataId);
 
-  // node_modules/framer-motion/dist/es/frameloop/microtask.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/microtask.mjs
   var { schedule: microtask, cancel: cancelMicrotask } = createRenderBatcher(queueMicrotask, false);
 
-  // node_modules/framer-motion/dist/es/context/SwitchLayoutGroupContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/SwitchLayoutGroupContext.mjs
   var SwitchLayoutGroupContext = createContext({});
 
-  // node_modules/framer-motion/dist/es/motion/utils/use-visual-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/use-visual-element.mjs
   function useVisualElement(Component2, visualState, props, createVisualElement, ProjectionNodeConstructor) {
     var _a, _b;
     const { visualElement: parent } = useContext(MotionContext);
@@ -1445,7 +1445,7 @@
     return visualElement.options.allowProjection !== false ? visualElement.projection : getClosestProjectingNode(visualElement.parent);
   }
 
-  // node_modules/framer-motion/dist/es/motion/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/index.mjs
   function createRendererMotionComponent({ preloadedFeatures, createVisualElement, useRender, useVisualState, Component: Component2 }) {
     var _a, _b;
     preloadedFeatures && loadFeatures(preloadedFeatures);
@@ -1494,7 +1494,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/lowercase-elements.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/lowercase-elements.mjs
   var lowercaseSVGElements = [
     "animate",
     "circle",
@@ -1523,7 +1523,7 @@
     "view"
   ];
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/is-svg-component.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/is-svg-component.mjs
   function isSVGComponent(Component2) {
     if (
       /**
@@ -1550,7 +1550,7 @@
     return false;
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/resolve-variants.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/resolve-variants.mjs
   function getValueState(visualElement) {
     const state = [{}, {}];
     visualElement === null || visualElement === void 0 ? void 0 : visualElement.values.forEach((value, key) => {
@@ -1574,12 +1574,12 @@
     return definition;
   }
 
-  // node_modules/framer-motion/dist/es/animation/utils/is-keyframes-target.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-keyframes-target.mjs
   var isKeyframesTarget = (v) => {
     return Array.isArray(v);
   };
 
-  // node_modules/framer-motion/dist/es/utils/resolve-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/resolve-value.mjs
   var isCustomValue = (v) => {
     return Boolean(v && typeof v === "object" && v.mix && v.toValue);
   };
@@ -1587,16 +1587,16 @@
     return isKeyframesTarget(v) ? v[v.length - 1] || 0 : v;
   };
 
-  // node_modules/framer-motion/dist/es/value/utils/is-motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/utils/is-motion-value.mjs
   var isMotionValue = (value) => Boolean(value && value.getVelocity);
 
-  // node_modules/framer-motion/dist/es/value/utils/resolve-motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/utils/resolve-motion-value.mjs
   function resolveMotionValue(value) {
     const unwrappedValue = isMotionValue(value) ? value.get() : value;
     return isCustomValue(unwrappedValue) ? unwrappedValue.toValue() : unwrappedValue;
   }
 
-  // node_modules/framer-motion/dist/es/motion/utils/use-visual-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/use-visual-state.mjs
   function makeState({ scrapeMotionValuesFromProps: scrapeMotionValuesFromProps3, createRenderState, onUpdate }, props, context, presenceContext) {
     const state = {
       latestValues: makeLatestValues(props, context, presenceContext, scrapeMotionValuesFromProps3),
@@ -1657,7 +1657,7 @@
     return values;
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/keys-transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/keys-transform.mjs
   var transformPropOrder = [
     "transformPerspective",
     "x",
@@ -1679,7 +1679,7 @@
   ];
   var transformProps = new Set(transformPropOrder);
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/is-css-variable.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/is-css-variable.mjs
   var checkStringStartsWith = (token) => (key) => typeof key === "string" && key.startsWith(token);
   var isCSSVariableName = /* @__PURE__ */ checkStringStartsWith("--");
   var startsAsVariableToken = /* @__PURE__ */ checkStringStartsWith("var(--");
@@ -1691,12 +1691,12 @@
   };
   var singleCssVariableRegex = /var\(--(?:[\w-]+\s*|[\w-]+\s*,(?:\s*[^)(\s]|\s*\((?:[^)(]|\([^)(]*\))*\))+\s*)\)$/iu;
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/get-as-type.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/get-as-type.mjs
   var getValueAsType = (value, type) => {
     return type && typeof value === "number" ? type.transform(value) : value;
   };
 
-  // node_modules/framer-motion/dist/es/utils/clamp.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/clamp.mjs
   var clamp = (min, max, v) => {
     if (v > max)
       return max;
@@ -1705,7 +1705,7 @@
     return v;
   };
 
-  // node_modules/framer-motion/dist/es/value/types/numbers/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/numbers/index.mjs
   var number = {
     test: (v) => typeof v === "number",
     parse: parseFloat,
@@ -1720,7 +1720,7 @@
     default: 1
   };
 
-  // node_modules/framer-motion/dist/es/value/types/numbers/units.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/numbers/units.mjs
   var createUnitType = (unit) => ({
     test: (v) => typeof v === "string" && v.endsWith(unit) && v.split(" ").length === 1,
     parse: parseFloat,
@@ -1737,7 +1737,7 @@
     transform: (v) => percent.transform(v * 100)
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/number-browser.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/number-browser.mjs
   var browserNumberValueTypes = {
     // Border props
     borderWidth: px,
@@ -1776,7 +1776,7 @@
     backgroundPositionY: px
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/transform.mjs
   var transformValueTypes = {
     rotate: degrees,
     rotateX: degrees,
@@ -1804,13 +1804,13 @@
     originZ: px
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/type-int.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/type-int.mjs
   var int = {
     ...number,
     transform: Math.round
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/number.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/number.mjs
   var numberValueTypes = {
     ...browserNumberValueTypes,
     ...transformValueTypes,
@@ -1822,7 +1822,7 @@
     numOctaves: int
   };
 
-  // node_modules/framer-motion/dist/es/render/html/utils/build-transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/build-transform.mjs
   var translateAlias = {
     x: "translateX",
     y: "translateY",
@@ -1865,7 +1865,7 @@
     return transformString;
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/build-styles.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/build-styles.mjs
   function buildHTMLStyles(state, latestValues, transformTemplate) {
     const { style, vars, transformOrigin } = state;
     let hasTransform2 = false;
@@ -1901,7 +1901,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/path.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/path.mjs
   var dashKeys = {
     offset: "stroke-dashoffset",
     array: "stroke-dasharray"
@@ -1919,7 +1919,7 @@
     attrs[keys.array] = `${pathLength} ${pathSpacing}`;
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/transform-origin.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/transform-origin.mjs
   function calcOrigin(origin, offset, size) {
     return typeof origin === "string" ? origin : px.transform(offset + size * origin);
   }
@@ -1929,7 +1929,7 @@
     return `${pxOriginX} ${pxOriginY}`;
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/build-attrs.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/build-attrs.mjs
   function buildSVGAttrs(state, {
     attrX,
     attrY,
@@ -1971,7 +1971,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/create-render-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/create-render-state.mjs
   var createHtmlRenderState = () => ({
     style: {},
     transform: {},
@@ -1979,16 +1979,16 @@
     vars: {}
   });
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/create-render-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/create-render-state.mjs
   var createSvgRenderState = () => ({
     ...createHtmlRenderState(),
     attrs: {}
   });
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/is-svg-tag.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/is-svg-tag.mjs
   var isSVGTag = (tag) => typeof tag === "string" && tag.toLowerCase() === "svg";
 
-  // node_modules/framer-motion/dist/es/render/html/utils/render.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/render.mjs
   function renderHTML(element, { style, vars }, styleProp, projection) {
     Object.assign(element.style, style, projection && projection.getProjectionStyles(styleProp));
     for (const key in vars) {
@@ -1996,7 +1996,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/camel-case-attrs.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/camel-case-attrs.mjs
   var camelCaseAttributes = /* @__PURE__ */ new Set([
     "baseFrequency",
     "diffuseConstant",
@@ -2023,7 +2023,7 @@
     "lengthAdjust"
   ]);
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/render.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/render.mjs
   function renderSVG(element, renderState, _styleProp, projection) {
     renderHTML(element, renderState, void 0, projection);
     for (const key in renderState.attrs) {
@@ -2031,18 +2031,18 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/projection/styles/scale-correction.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/scale-correction.mjs
   var scaleCorrectors = {};
   function addScaleCorrector(correctors) {
     Object.assign(scaleCorrectors, correctors);
   }
 
-  // node_modules/framer-motion/dist/es/motion/utils/is-forced-motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/is-forced-motion-value.mjs
   function isForcedMotionValue(key, { layout: layout2, layoutId }) {
     return transformProps.has(key) || key.startsWith("origin") || (layout2 || layoutId !== void 0) && (!!scaleCorrectors[key] || key === "opacity");
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/scrape-motion-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/scrape-motion-values.mjs
   function scrapeMotionValuesFromProps(props, prevProps, visualElement) {
     var _a;
     const { style } = props;
@@ -2055,7 +2055,7 @@
     return newValues;
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/utils/scrape-motion-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/scrape-motion-values.mjs
   function scrapeMotionValuesFromProps2(props, prevProps, visualElement) {
     const newValues = scrapeMotionValuesFromProps(props, prevProps, visualElement);
     for (const key in props) {
@@ -2067,7 +2067,7 @@
     return newValues;
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/config-motion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/config-motion.mjs
   function updateSVGDimensions(instance, renderState) {
     try {
       renderState.dimensions = typeof instance.getBBox === "function" ? instance.getBBox() : instance.getBoundingClientRect();
@@ -2121,7 +2121,7 @@
     })
   };
 
-  // node_modules/framer-motion/dist/es/render/html/config-motion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/config-motion.mjs
   var htmlMotionConfig = {
     useVisualState: makeUseVisualState({
       scrapeMotionValuesFromProps,
@@ -2129,7 +2129,7 @@
     })
   };
 
-  // node_modules/framer-motion/dist/es/render/html/use-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/use-props.mjs
   function copyRawValuesOnly(target, source, props) {
     for (const key in source) {
       if (!isMotionValue(source[key]) && !isForcedMotionValue(key, props)) {
@@ -2166,7 +2166,7 @@
     return htmlProps;
   }
 
-  // node_modules/framer-motion/dist/es/render/svg/use-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/use-props.mjs
   function useSVGProps(props, visualState, _isStatic, Component2) {
     const visualProps = useMemo(() => {
       const state = createSvgRenderState();
@@ -2184,7 +2184,7 @@
     return visualProps;
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/use-render.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/use-render.mjs
   function createUseRender(forwardMotionProps = false) {
     const useRender = (Component2, props, ref, { latestValues }, isStatic) => {
       const useVisualProps = isSVGComponent(Component2) ? useSVGProps : useHTMLProps;
@@ -2201,7 +2201,7 @@
     return useRender;
   }
 
-  // node_modules/framer-motion/dist/es/render/components/create-factory.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/create-factory.mjs
   function createMotionComponentFactory(preloadedFeatures, createVisualElement) {
     return function createMotionComponent2(Component2, { forwardMotionProps } = { forwardMotionProps: false }) {
       const baseConfig = isSVGComponent(Component2) ? svgMotionConfig : htmlMotionConfig;
@@ -2216,7 +2216,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/utils/shallow-compare.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/shallow-compare.mjs
   function shallowCompare(next, prev) {
     if (!Array.isArray(prev))
       return false;
@@ -2230,16 +2230,16 @@
     return true;
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/resolve-dynamic-variants.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/resolve-dynamic-variants.mjs
   function resolveVariant(visualElement, definition, custom) {
     const props = visualElement.getProps();
     return resolveVariantFromProps(props, definition, custom !== void 0 ? custom : props.custom, visualElement);
   }
 
-  // node_modules/motion-dom/dist/es/utils/supports/scroll-timeline.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/scroll-timeline.mjs
   var supportsScrollTimeline = memo2(() => window.ScrollTimeline !== void 0);
 
-  // node_modules/motion-dom/dist/es/animation/controls/BaseGroup.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/controls/BaseGroup.mjs
   var BaseGroupPlaybackControls = class {
     constructor(animations2) {
       this.stop = () => this.runAll("stop");
@@ -2316,19 +2316,19 @@
     }
   };
 
-  // node_modules/motion-dom/dist/es/animation/controls/Group.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/controls/Group.mjs
   var GroupPlaybackControls = class extends BaseGroupPlaybackControls {
     then(onResolve, onReject) {
       return Promise.all(this.animations).then(onResolve).catch(onReject);
     }
   };
 
-  // node_modules/motion-dom/dist/es/animation/utils/get-value-transition.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/utils/get-value-transition.mjs
   function getValueTransition(transition, key) {
     return transition ? transition[key] || transition["default"] || transition : void 0;
   }
 
-  // node_modules/motion-dom/dist/es/animation/generators/utils/calc-duration.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/generators/utils/calc-duration.mjs
   var maxGeneratorDuration = 2e4;
   function calcGeneratorDuration(generator) {
     let duration = 0;
@@ -2341,26 +2341,26 @@
     return duration >= maxGeneratorDuration ? Infinity : duration;
   }
 
-  // node_modules/motion-dom/dist/es/animation/generators/utils/is-generator.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/generators/utils/is-generator.mjs
   function isGenerator(type) {
     return typeof type === "function";
   }
 
-  // node_modules/motion-dom/dist/es/animation/waapi/utils/attach-timeline.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/waapi/utils/attach-timeline.mjs
   function attachTimeline(animation3, timeline) {
     animation3.timeline = timeline;
     animation3.onfinish = null;
   }
 
-  // node_modules/motion-dom/dist/es/utils/is-bezier-definition.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/is-bezier-definition.mjs
   var isBezierDefinition = (easing) => Array.isArray(easing) && typeof easing[0] === "number";
 
-  // node_modules/motion-dom/dist/es/utils/supports/flags.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/flags.mjs
   var supportsFlags = {
     linearEasing: void 0
   };
 
-  // node_modules/motion-dom/dist/es/utils/supports/memo.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/memo.mjs
   function memoSupports(callback, supportsFlag) {
     const memoized = memo2(callback);
     return () => {
@@ -2369,7 +2369,7 @@
     };
   }
 
-  // node_modules/motion-dom/dist/es/utils/supports/linear-easing.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/linear-easing.mjs
   var supportsLinearEasing = /* @__PURE__ */ memoSupports(() => {
     try {
       document.createElement("div").animate({ opacity: 0 }, { easing: "linear(0, 1)" });
@@ -2379,7 +2379,7 @@
     return true;
   }, "linearEasing");
 
-  // node_modules/motion-dom/dist/es/animation/waapi/utils/linear.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/waapi/utils/linear.mjs
   var generateLinearEasing = (easing, duration, resolution = 10) => {
     let points = "";
     const numPoints = Math.max(Math.round(duration / resolution), 2);
@@ -2389,7 +2389,7 @@
     return `linear(${points.substring(0, points.length - 2)})`;
   };
 
-  // node_modules/motion-dom/dist/es/animation/waapi/utils/easing.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/waapi/utils/easing.mjs
   function isWaapiSupportedEasing(easing) {
     return Boolean(typeof easing === "function" && supportsLinearEasing() || !easing || typeof easing === "string" && (easing in supportedWaapiEasing || supportsLinearEasing()) || isBezierDefinition(easing) || Array.isArray(easing) && easing.every(isWaapiSupportedEasing));
   }
@@ -2419,7 +2419,7 @@
     }
   }
 
-  // node_modules/motion-dom/dist/es/gestures/drag/state/is-active.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/drag/state/is-active.mjs
   var isDragging = {
     x: false,
     y: false
@@ -2428,7 +2428,7 @@
     return isDragging.x || isDragging.y;
   }
 
-  // node_modules/motion-dom/dist/es/utils/resolve-elements.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/resolve-elements.mjs
   function resolveElements(elementOrSelector, scope, selectorCache) {
     var _a;
     if (elementOrSelector instanceof Element) {
@@ -2444,7 +2444,7 @@
     return Array.from(elementOrSelector);
   }
 
-  // node_modules/motion-dom/dist/es/gestures/utils/setup.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/utils/setup.mjs
   function setupGesture(elementOrSelector, options) {
     const elements = resolveElements(elementOrSelector);
     const gestureAbortController = new AbortController();
@@ -2457,7 +2457,7 @@
     return [elements, eventOptions, cancel];
   }
 
-  // node_modules/motion-dom/dist/es/gestures/hover.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/hover.mjs
   function filterEvents(callback) {
     return (event) => {
       if (event.pointerType === "touch" || isDragActive())
@@ -2484,7 +2484,7 @@
     return cancel;
   }
 
-  // node_modules/motion-dom/dist/es/gestures/utils/is-node-or-child.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/utils/is-node-or-child.mjs
   var isNodeOrChild = (parent, child) => {
     if (!child) {
       return false;
@@ -2495,7 +2495,7 @@
     }
   };
 
-  // node_modules/motion-dom/dist/es/gestures/utils/is-primary-pointer.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/utils/is-primary-pointer.mjs
   var isPrimaryPointer = (event) => {
     if (event.pointerType === "mouse") {
       return typeof event.button !== "number" || event.button <= 0;
@@ -2504,7 +2504,7 @@
     }
   };
 
-  // node_modules/motion-dom/dist/es/gestures/press/utils/is-keyboard-accessible.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/utils/is-keyboard-accessible.mjs
   var focusableElements = /* @__PURE__ */ new Set([
     "BUTTON",
     "INPUT",
@@ -2516,10 +2516,10 @@
     return focusableElements.has(element.tagName) || element.tabIndex !== -1;
   }
 
-  // node_modules/motion-dom/dist/es/gestures/press/utils/state.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/utils/state.mjs
   var isPressing = /* @__PURE__ */ new WeakSet();
 
-  // node_modules/motion-dom/dist/es/gestures/press/utils/keyboard.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/utils/keyboard.mjs
   function filterEvents2(callback) {
     return (event) => {
       if (event.key !== "Enter")
@@ -2549,7 +2549,7 @@
     element.addEventListener("blur", () => element.removeEventListener("keydown", handleKeydown), eventOptions);
   };
 
-  // node_modules/motion-dom/dist/es/gestures/press/index.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/index.mjs
   function isValidPressEvent(event) {
     return isPrimaryPointer(event) && !isDragActive();
   }
@@ -2592,7 +2592,7 @@
     return cancelEvents;
   }
 
-  // node_modules/motion-dom/dist/es/gestures/drag/state/set-active.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/drag/state/set-active.mjs
   function setDragLock(axis) {
     if (axis === "x" || axis === "y") {
       if (isDragging[axis]) {
@@ -2615,7 +2615,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/keys-position.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/keys-position.mjs
   var positionalKeys = /* @__PURE__ */ new Set([
     "width",
     "height",
@@ -2626,7 +2626,7 @@
     ...transformPropOrder
   ]);
 
-  // node_modules/framer-motion/dist/es/frameloop/sync-time.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/sync-time.mjs
   var now;
   function clearTime() {
     now = void 0;
@@ -2644,7 +2644,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/array.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/array.mjs
   function addUniqueItem(arr, item) {
     if (arr.indexOf(item) === -1)
       arr.push(item);
@@ -2655,7 +2655,7 @@
       arr.splice(index, 1);
   }
 
-  // node_modules/framer-motion/dist/es/utils/subscription-manager.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/subscription-manager.mjs
   var SubscriptionManager = class {
     constructor() {
       this.subscriptions = [];
@@ -2685,12 +2685,12 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/velocity-per-second.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/velocity-per-second.mjs
   function velocityPerSecond(velocity, frameDuration) {
     return frameDuration ? velocity * (1e3 / frameDuration) : 0;
   }
 
-  // node_modules/framer-motion/dist/es/value/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/index.mjs
   var MAX_VELOCITY_DELTA = 30;
   var isFloat = (value) => {
     return !isNaN(parseFloat(value));
@@ -2964,7 +2964,7 @@
     return new MotionValue(init, options);
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/setters.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/setters.mjs
   function setMotionValue(visualElement, key, value) {
     if (visualElement.hasValue(key)) {
       visualElement.getValue(key).set(value);
@@ -2982,12 +2982,12 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/value/use-will-change/is.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/use-will-change/is.mjs
   function isWillChangeMotionValue(value) {
     return Boolean(isMotionValue(value) && value.add);
   }
 
-  // node_modules/framer-motion/dist/es/value/use-will-change/add-will-change.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/use-will-change/add-will-change.mjs
   function addValueToWillChange(visualElement, key) {
     const willChange = visualElement.getValue("willChange");
     if (isWillChangeMotionValue(willChange)) {
@@ -2995,17 +2995,17 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/animation/optimized-appear/get-appear-id.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/optimized-appear/get-appear-id.mjs
   function getOptimisedAppearId(visualElement) {
     return visualElement.props[optimizedAppearDataAttribute];
   }
 
-  // node_modules/framer-motion/dist/es/utils/use-instant-transition-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/use-instant-transition-state.mjs
   var instantAnimationState = {
     current: false
   };
 
-  // node_modules/framer-motion/dist/es/easing/cubic-bezier.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/cubic-bezier.mjs
   var calcBezier = (t, a1, a2) => (((1 - 3 * a2 + 3 * a1) * t + (3 * a2 - 6 * a1)) * t + 3 * a1) * t;
   var subdivisionPrecision = 1e-7;
   var subdivisionMaxIterations = 12;
@@ -3031,29 +3031,29 @@
     return (t) => t === 0 || t === 1 ? t : calcBezier(getTForX(t), mY1, mY2);
   }
 
-  // node_modules/framer-motion/dist/es/easing/modifiers/mirror.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/modifiers/mirror.mjs
   var mirrorEasing = (easing) => (p) => p <= 0.5 ? easing(2 * p) / 2 : (2 - easing(2 * (1 - p))) / 2;
 
-  // node_modules/framer-motion/dist/es/easing/modifiers/reverse.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/modifiers/reverse.mjs
   var reverseEasing = (easing) => (p) => 1 - easing(1 - p);
 
-  // node_modules/framer-motion/dist/es/easing/back.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/back.mjs
   var backOut = /* @__PURE__ */ cubicBezier(0.33, 1.53, 0.69, 0.99);
   var backIn = /* @__PURE__ */ reverseEasing(backOut);
   var backInOut = /* @__PURE__ */ mirrorEasing(backIn);
 
-  // node_modules/framer-motion/dist/es/easing/anticipate.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/anticipate.mjs
   var anticipate = (p) => (p *= 2) < 1 ? 0.5 * backIn(p) : 0.5 * (2 - Math.pow(2, -10 * (p - 1)));
 
-  // node_modules/framer-motion/dist/es/easing/circ.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/circ.mjs
   var circIn = (p) => 1 - Math.sin(Math.acos(p));
   var circOut = reverseEasing(circIn);
   var circInOut = mirrorEasing(circIn);
 
-  // node_modules/framer-motion/dist/es/utils/is-zero-value-string.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-zero-value-string.mjs
   var isZeroValueString = (v) => /^0[^.\s]+$/u.test(v);
 
-  // node_modules/framer-motion/dist/es/animation/utils/is-none.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-none.mjs
   function isNone(value) {
     if (typeof value === "number") {
       return value === 0;
@@ -3064,21 +3064,21 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/value/types/utils/sanitize.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/sanitize.mjs
   var sanitize = (v) => Math.round(v * 1e5) / 1e5;
 
-  // node_modules/framer-motion/dist/es/value/types/utils/float-regex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/float-regex.mjs
   var floatRegex = /-?(?:\d+(?:\.\d+)?|\.\d+)/gu;
 
-  // node_modules/framer-motion/dist/es/value/types/utils/is-nullish.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/is-nullish.mjs
   function isNullish(v) {
     return v == null;
   }
 
-  // node_modules/framer-motion/dist/es/value/types/utils/single-color-regex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/single-color-regex.mjs
   var singleColorRegex = /^(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\((?:-?[\d.]+%?[,\s]+){2}-?[\d.]+%?\s*(?:[,/]\s*)?(?:\b\d+(?:\.\d+)?|\.\d+)?%?\))$/iu;
 
-  // node_modules/framer-motion/dist/es/value/types/color/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/utils.mjs
   var isColorString = (type, testProp) => (v) => {
     return Boolean(typeof v === "string" && singleColorRegex.test(v) && v.startsWith(type) || testProp && !isNullish(v) && Object.prototype.hasOwnProperty.call(v, testProp));
   };
@@ -3094,7 +3094,7 @@
     };
   };
 
-  // node_modules/framer-motion/dist/es/value/types/color/rgba.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/rgba.mjs
   var clampRgbUnit = (v) => clamp(0, 255, v);
   var rgbUnit = {
     ...number,
@@ -3106,7 +3106,7 @@
     transform: ({ red, green, blue, alpha: alpha$1 = 1 }) => "rgba(" + rgbUnit.transform(red) + ", " + rgbUnit.transform(green) + ", " + rgbUnit.transform(blue) + ", " + sanitize(alpha.transform(alpha$1)) + ")"
   };
 
-  // node_modules/framer-motion/dist/es/value/types/color/hex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/hex.mjs
   function parseHex(v) {
     let r2 = "";
     let g = "";
@@ -3140,7 +3140,7 @@
     transform: rgba.transform
   };
 
-  // node_modules/framer-motion/dist/es/value/types/color/hsla.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/hsla.mjs
   var hsla = {
     test: /* @__PURE__ */ isColorString("hsl", "hue"),
     parse: /* @__PURE__ */ splitColor("hue", "saturation", "lightness"),
@@ -3149,7 +3149,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/value/types/color/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/index.mjs
   var color = {
     test: (v) => rgba.test(v) || hex.test(v) || hsla.test(v),
     parse: (v) => {
@@ -3166,10 +3166,10 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/value/types/utils/color-regex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/color-regex.mjs
   var colorRegex = /(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\((?:-?[\d.]+%?[,\s]+){2}-?[\d.]+%?\s*(?:[,/]\s*)?(?:\b\d+(?:\.\d+)?|\.\d+)?%?\))/giu;
 
-  // node_modules/framer-motion/dist/es/value/types/complex/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/complex/index.mjs
   function test(v) {
     var _a, _b;
     return isNaN(v) && typeof v === "string" && (((_a = v.match(floatRegex)) === null || _a === void 0 ? void 0 : _a.length) || 0) + (((_b = v.match(colorRegex)) === null || _b === void 0 ? void 0 : _b.length) || 0) > 0;
@@ -3247,7 +3247,7 @@
     getAnimatableNone
   };
 
-  // node_modules/framer-motion/dist/es/value/types/complex/filter.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/complex/filter.mjs
   var maxDefaults = /* @__PURE__ */ new Set(["brightness", "contrast", "saturate", "opacity"]);
   function applyDefaultFilter(v) {
     const [name, value] = v.slice(0, -1).split("(");
@@ -3271,7 +3271,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/defaults.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/defaults.mjs
   var defaultValueTypes = {
     ...numberValueTypes,
     // Color props
@@ -3291,7 +3291,7 @@
   };
   var getDefaultValueType = (key) => defaultValueTypes[key];
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/animatable-none.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/animatable-none.mjs
   function getAnimatableNone2(key, value) {
     let defaultValueType = getDefaultValueType(key);
     if (defaultValueType !== filter)
@@ -3299,7 +3299,7 @@
     return defaultValueType.getAnimatableNone ? defaultValueType.getAnimatableNone(value) : void 0;
   }
 
-  // node_modules/framer-motion/dist/es/render/html/utils/make-none-animatable.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/make-none-animatable.mjs
   var invalidTemplates = /* @__PURE__ */ new Set(["auto", "none", "0"]);
   function makeNoneKeyframesAnimatable(unresolvedKeyframes, noneKeyframeIndexes, name) {
     let i = 0;
@@ -3318,7 +3318,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/unit-conversion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/unit-conversion.mjs
   var isNumOrPxType = (v) => v === number || v === px;
   var getPosFromMatrix = (matrix, pos) => parseFloat(matrix.split(", ")[pos]);
   var getTranslateFromMatrix = (pos2, pos3) => (_bbox, { transform }) => {
@@ -3364,7 +3364,7 @@
   positionalValues.translateX = positionalValues.x;
   positionalValues.translateY = positionalValues.y;
 
-  // node_modules/framer-motion/dist/es/render/utils/KeyframesResolver.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/KeyframesResolver.mjs
   var toResolve = /* @__PURE__ */ new Set();
   var isScheduled = false;
   var anyNeedsMeasurement = false;
@@ -3494,10 +3494,10 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/is-numerical-string.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-numerical-string.mjs
   var isNumericalString = (v) => /^-?(?:\d+(?:\.\d+)?|\.\d+)$/u.test(v);
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/css-variables-conversion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/css-variables-conversion.mjs
   var splitCSSVariableRegex = (
     // eslint-disable-next-line redos-detector/no-unsafe-regex -- false positive, as it can match a lot of words
     /^var\(--(?:([\w-]+)|([\w-]+), ?([a-zA-Z\d ()%#.,-]+))\)/u
@@ -3523,20 +3523,20 @@
     return isCSSVariableToken(fallback) ? getVariableValue(fallback, element, depth + 1) : fallback;
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/test.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/test.mjs
   var testValueType = (v) => (type) => type.test(v);
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/type-auto.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/type-auto.mjs
   var auto = {
     test: (v) => v === "auto",
     parse: (v) => v
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/dimensions.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/dimensions.mjs
   var dimensionValueTypes = [number, px, percent, degrees, vw, vh, auto];
   var findDimensionValueType = (v) => dimensionValueTypes.find(testValueType(v));
 
-  // node_modules/framer-motion/dist/es/render/dom/DOMKeyframesResolver.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/DOMKeyframesResolver.mjs
   var DOMKeyframesResolver = class extends KeyframeResolver {
     constructor(unresolvedKeyframes, onComplete, name, motionValue2, element) {
       super(unresolvedKeyframes, onComplete, name, motionValue2, element, true);
@@ -3629,7 +3629,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/animation/utils/is-animatable.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-animatable.mjs
   var isAnimatable = (value, name) => {
     if (name === "zIndex")
       return false;
@@ -3643,7 +3643,7 @@
     return false;
   };
 
-  // node_modules/framer-motion/dist/es/animation/animators/utils/can-animate.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/utils/can-animate.mjs
   function hasKeyframesChanged(keyframes2) {
     const current = keyframes2[0];
     if (keyframes2.length === 1)
@@ -3669,7 +3669,7 @@
     return hasKeyframesChanged(keyframes2) || (type === "spring" || isGenerator(type)) && velocity;
   }
 
-  // node_modules/framer-motion/dist/es/animation/animators/waapi/utils/get-final-keyframe.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/waapi/utils/get-final-keyframe.mjs
   var isNotNull = (value) => value !== null;
   function getFinalKeyframe(keyframes2, { repeat, repeatType = "loop" }, finalKeyframe) {
     const resolvedKeyframes = keyframes2.filter(isNotNull);
@@ -3677,7 +3677,7 @@
     return !index || finalKeyframe === void 0 ? resolvedKeyframes[index] : finalKeyframe;
   }
 
-  // node_modules/framer-motion/dist/es/animation/animators/BaseAnimation.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/BaseAnimation.mjs
   var MAX_RESOLVE_DELAY = 40;
   var BaseAnimation = class {
     constructor({ autoplay = true, delay: delay2 = 0, type = "keyframes", repeat = 0, repeatDelay = 0, repeatType = "loop", ...options }) {
@@ -3771,12 +3771,12 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/mix/number.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/number.mjs
   var mixNumber = (from, to, progress2) => {
     return from + (to - from) * progress2;
   };
 
-  // node_modules/framer-motion/dist/es/utils/hsla-to-rgba.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/hsla-to-rgba.mjs
   function hueToRgb(p, q, t) {
     if (t < 0)
       t += 1;
@@ -3814,12 +3814,12 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/utils/mix/immediate.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/immediate.mjs
   function mixImmediate(a, b) {
     return (p) => p > 0 ? b : a;
   }
 
-  // node_modules/framer-motion/dist/es/utils/mix/color.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/color.mjs
   var mixLinearColor = (from, to, v) => {
     const fromExpo = from * from;
     const expo = v * (to * to - fromExpo) + fromExpo;
@@ -3854,11 +3854,11 @@
     };
   };
 
-  // node_modules/framer-motion/dist/es/utils/pipe.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/pipe.mjs
   var combineFunctions = (a, b) => (v) => b(a(v));
   var pipe = (...transformers) => transformers.reduce(combineFunctions);
 
-  // node_modules/framer-motion/dist/es/utils/mix/visibility.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/visibility.mjs
   var invisibleValues = /* @__PURE__ */ new Set(["none", "hidden"]);
   function mixVisibility(origin, target) {
     if (invisibleValues.has(origin)) {
@@ -3868,7 +3868,7 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/utils/mix/complex.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/complex.mjs
   function mixNumber2(a, b) {
     return (p) => mixNumber(a, b, p);
   }
@@ -3939,7 +3939,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/mix/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/index.mjs
   function mix(from, to, p) {
     if (typeof from === "number" && typeof to === "number" && typeof p === "number") {
       return mixNumber(from, to, p);
@@ -3948,14 +3948,14 @@
     return mixer(from, to);
   }
 
-  // node_modules/framer-motion/dist/es/animation/generators/utils/velocity.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/utils/velocity.mjs
   var velocitySampleDuration = 5;
   function calcGeneratorVelocity(resolveValue, t, current) {
     const prevT = Math.max(t - velocitySampleDuration, 0);
     return velocityPerSecond(current - resolveValue(prevT), t - prevT);
   }
 
-  // node_modules/framer-motion/dist/es/animation/generators/spring/defaults.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/spring/defaults.mjs
   var springDefaults = {
     // Default spring physics
     stiffness: 100,
@@ -3986,7 +3986,7 @@
     maxDamping: 1
   };
 
-  // node_modules/framer-motion/dist/es/animation/generators/spring/find.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/spring/find.mjs
   var safeMin = 1e-3;
   function findSpring({ duration = springDefaults.duration, bounce = springDefaults.bounce, velocity = springDefaults.velocity, mass = springDefaults.mass }) {
     let envelope;
@@ -4056,7 +4056,7 @@
     return undampedFreq * Math.sqrt(1 - dampingRatio * dampingRatio);
   }
 
-  // node_modules/framer-motion/dist/es/animation/generators/spring/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/spring/index.mjs
   var durationKeys = ["duration", "bounce"];
   var physicsKeys = ["stiffness", "damping", "mass"];
   function isSpringType(options, keys) {
@@ -4160,7 +4160,7 @@
     return generator;
   }
 
-  // node_modules/framer-motion/dist/es/animation/generators/inertia.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/inertia.mjs
   function inertia({ keyframes: keyframes2, velocity = 0, power = 0.8, timeConstant = 325, bounceDamping = 10, bounceStiffness = 500, modifyTarget, min, max, restDelta = 0.5, restSpeed }) {
     const origin = keyframes2[0];
     const state = {
@@ -4224,17 +4224,17 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/easing/ease.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/ease.mjs
   var easeIn = /* @__PURE__ */ cubicBezier(0.42, 0, 1, 1);
   var easeOut = /* @__PURE__ */ cubicBezier(0, 0, 0.58, 1);
   var easeInOut = /* @__PURE__ */ cubicBezier(0.42, 0, 0.58, 1);
 
-  // node_modules/framer-motion/dist/es/easing/utils/is-easing-array.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/utils/is-easing-array.mjs
   var isEasingArray = (ease2) => {
     return Array.isArray(ease2) && typeof ease2[0] !== "number";
   };
 
-  // node_modules/framer-motion/dist/es/easing/utils/map.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/utils/map.mjs
   var easingLookup = {
     linear: noop,
     easeIn,
@@ -4260,7 +4260,7 @@
     return definition;
   };
 
-  // node_modules/framer-motion/dist/es/utils/interpolate.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/interpolate.mjs
   function createMixers(output, ease2, customMixer) {
     const mixers = [];
     const mixerFactory = customMixer || mix;
@@ -4305,7 +4305,7 @@
     return isClamp ? (v) => interpolator(clamp(input[0], input[inputLength - 1], v)) : interpolator;
   }
 
-  // node_modules/framer-motion/dist/es/utils/offsets/fill.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/offsets/fill.mjs
   function fillOffset(offset, remaining) {
     const min = offset[offset.length - 1];
     for (let i = 1; i <= remaining; i++) {
@@ -4314,19 +4314,19 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/utils/offsets/default.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/offsets/default.mjs
   function defaultOffset(arr) {
     const offset = [0];
     fillOffset(offset, arr.length - 1);
     return offset;
   }
 
-  // node_modules/framer-motion/dist/es/utils/offsets/time.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/offsets/time.mjs
   function convertOffsetToTimes(offset, duration) {
     return offset.map((o) => o * duration);
   }
 
-  // node_modules/framer-motion/dist/es/animation/generators/keyframes.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/keyframes.mjs
   function defaultEasing(values, easing) {
     return values.map(() => easing || easeInOut).splice(0, values.length - 1);
   }
@@ -4355,7 +4355,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/animation/animators/drivers/driver-frameloop.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/drivers/driver-frameloop.mjs
   var frameloopDriver = (update) => {
     const passTimestamp = ({ timestamp }) => update(timestamp);
     return {
@@ -4369,7 +4369,7 @@
     };
   };
 
-  // node_modules/framer-motion/dist/es/animation/animators/MainThreadAnimation.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/MainThreadAnimation.mjs
   var generators = {
     decay: inertia,
     inertia,
@@ -4631,7 +4631,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/animation/animators/utils/accelerated-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/utils/accelerated-values.mjs
   var acceleratedValues = /* @__PURE__ */ new Set([
     "opacity",
     "clipPath",
@@ -4642,7 +4642,7 @@
     // "background-color"
   ]);
 
-  // node_modules/framer-motion/dist/es/animation/animators/waapi/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/waapi/index.mjs
   function startWaapiAnimation(element, valueName, keyframes2, { delay: delay2 = 0, duration = 300, repeat = 0, repeatType = "loop", ease: ease2 = "easeInOut", times } = {}) {
     const keyframeOptions = { [valueName]: keyframes2 };
     if (times)
@@ -4660,10 +4660,10 @@
     });
   }
 
-  // node_modules/framer-motion/dist/es/animation/animators/waapi/utils/supports-waapi.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/waapi/utils/supports-waapi.mjs
   var supportsWaapi = /* @__PURE__ */ memo2(() => Object.hasOwnProperty.call(Element.prototype, "animate"));
 
-  // node_modules/framer-motion/dist/es/animation/animators/AcceleratedAnimation.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/AcceleratedAnimation.mjs
   var sampleDelta = 10;
   var maxDuration = 2e4;
   function requiresPregeneratedKeyframes(options) {
@@ -4892,7 +4892,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/animation/utils/default-transitions.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/default-transitions.mjs
   var underDampedSpring = {
     type: "spring",
     stiffness: 500,
@@ -4923,12 +4923,12 @@
     return ease;
   };
 
-  // node_modules/framer-motion/dist/es/animation/utils/is-transition-defined.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-transition-defined.mjs
   function isTransitionDefined({ when, delay: _delay, delayChildren, staggerChildren, staggerDirection, repeat, repeatType, repeatDelay, from, elapsed, ...transition }) {
     return !!Object.keys(transition).length;
   }
 
-  // node_modules/framer-motion/dist/es/animation/interfaces/motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/motion-value.mjs
   var animateMotionValue = (name, value, target, transition = {}, element, isHandoff) => (onComplete) => {
     const valueTransition = getValueTransition(transition, name) || {};
     const delay2 = valueTransition.delay || transition.delay || 0;
@@ -4996,7 +4996,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/animation/interfaces/visual-element-target.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/visual-element-target.mjs
   function shouldBlockAnimation({ protectedKeys, needsAnimating }, key) {
     const shouldBlock = protectedKeys.hasOwnProperty(key) && needsAnimating[key] !== true;
     needsAnimating[key] = false;
@@ -5047,7 +5047,7 @@
     return animations2;
   }
 
-  // node_modules/framer-motion/dist/es/animation/interfaces/visual-element-variant.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/visual-element-variant.mjs
   function animateVariant(visualElement, variant, options = {}) {
     var _a;
     const resolved = resolveVariant(visualElement, variant, options.type === "exit" ? (_a = visualElement.presenceContext) === null || _a === void 0 ? void 0 : _a.custom : void 0);
@@ -5085,7 +5085,7 @@
     return a.sortNodePosition(b);
   }
 
-  // node_modules/framer-motion/dist/es/animation/interfaces/visual-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/visual-element.mjs
   function animateVisualElement(visualElement, definition, options = {}) {
     visualElement.notify("AnimationStart", definition);
     let animation3;
@@ -5103,7 +5103,7 @@
     });
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/get-variant-context.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/get-variant-context.mjs
   var numVariantProps = variantProps.length;
   function getVariantContext(visualElement) {
     if (!visualElement)
@@ -5126,7 +5126,7 @@
     return context;
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/animation-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/animation-state.mjs
   var reversePriorityOrder = [...variantPriorityOrder].reverse();
   var numAnimationTypes = variantPriorityOrder.length;
   function animateList(visualElement) {
@@ -5313,7 +5313,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/motion/features/Feature.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/Feature.mjs
   var Feature = class {
     constructor(node) {
       this.isMounted = false;
@@ -5323,7 +5323,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/animation/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/animation/index.mjs
   var AnimationFeature = class extends Feature {
     /**
      * We dynamically generate the AnimationState manager as it contains a reference
@@ -5360,7 +5360,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/animation/exit.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/animation/exit.mjs
   var id = 0;
   var ExitAnimationFeature = class extends Feature {
     constructor() {
@@ -5390,7 +5390,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/animations.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/animations.mjs
   var animations = {
     animation: {
       Feature: AnimationFeature
@@ -5400,13 +5400,13 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/events/add-dom-event.mjs
+  // ../../../node_modules/framer-motion/dist/es/events/add-dom-event.mjs
   function addDomEvent(target, eventName, handler, options = { passive: true }) {
     target.addEventListener(eventName, handler, options);
     return () => target.removeEventListener(eventName, handler);
   }
 
-  // node_modules/framer-motion/dist/es/events/event-info.mjs
+  // ../../../node_modules/framer-motion/dist/es/events/event-info.mjs
   function extractEventInfo(event) {
     return {
       point: {
@@ -5419,12 +5419,12 @@
     return (event) => isPrimaryPointer(event) && handler(event, extractEventInfo(event));
   };
 
-  // node_modules/framer-motion/dist/es/events/add-pointer-event.mjs
+  // ../../../node_modules/framer-motion/dist/es/events/add-pointer-event.mjs
   function addPointerEvent(target, eventName, handler, options) {
     return addDomEvent(target, eventName, addPointerInfo(handler), options);
   }
 
-  // node_modules/framer-motion/dist/es/utils/distance.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/distance.mjs
   var distance = (a, b) => Math.abs(a - b);
   function distance2D(a, b) {
     const xDelta = distance(a.x, b.x);
@@ -5432,7 +5432,7 @@
     return Math.sqrt(xDelta ** 2 + yDelta ** 2);
   }
 
-  // node_modules/framer-motion/dist/es/gestures/pan/PanSession.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/pan/PanSession.mjs
   var PanSession = class {
     constructor(event, handlers, { transformPagePoint, contextWindow, dragSnapToOrigin = false } = {}) {
       this.startEvent = null;
@@ -5553,7 +5553,7 @@
     return currentVelocity;
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/delta-calc.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/delta-calc.mjs
   var SCALE_PRECISION = 1e-4;
   var SCALE_MIN = 1 - SCALE_PRECISION;
   var SCALE_MAX = 1 + SCALE_PRECISION;
@@ -5599,7 +5599,7 @@
     calcRelativeAxisPosition(target.y, layout2.y, parent.y);
   }
 
-  // node_modules/framer-motion/dist/es/gestures/drag/utils/constraints.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/drag/utils/constraints.mjs
   function applyConstraints(point, { min, max }, elastic) {
     if (min !== void 0 && point < min) {
       point = elastic ? mixNumber(min, point, elastic.min) : Math.max(point, min);
@@ -5677,7 +5677,7 @@
     return typeof dragElastic === "number" ? dragElastic : dragElastic[label] || 0;
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/models.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/models.mjs
   var createAxisDelta = () => ({
     translate: 0,
     scale: 1,
@@ -5694,12 +5694,12 @@
     y: createAxis()
   });
 
-  // node_modules/framer-motion/dist/es/projection/utils/each-axis.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/utils/each-axis.mjs
   function eachAxis(callback) {
     return [callback("x"), callback("y")];
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/conversion.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/conversion.mjs
   function convertBoundingBoxToBox({ top, left, right, bottom }) {
     return {
       x: { min: left, max: right },
@@ -5722,7 +5722,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/projection/utils/has-transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/utils/has-transform.mjs
   function isIdentityScale(scale2) {
     return scale2 === void 0 || scale2 === 1;
   }
@@ -5739,7 +5739,7 @@
     return value && value !== "0%";
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/delta-apply.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/delta-apply.mjs
   function scalePoint(point, scale2, originPoint) {
     const distanceFromOrigin = point - originPoint;
     const scaled = scale2 * distanceFromOrigin;
@@ -5810,7 +5810,7 @@
     transformAxis(box.y, transform.y, transform.scaleY, transform.scale, transform.originY);
   }
 
-  // node_modules/framer-motion/dist/es/projection/utils/measure.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/utils/measure.mjs
   function measureViewportBox(instance, transformPoint2) {
     return convertBoundingBoxToBox(transformBoxPoints(instance.getBoundingClientRect(), transformPoint2));
   }
@@ -5824,12 +5824,12 @@
     return viewportBox;
   }
 
-  // node_modules/framer-motion/dist/es/utils/get-context-window.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/get-context-window.mjs
   var getContextWindow = ({ current }) => {
     return current ? current.ownerDocument.defaultView : null;
   };
 
-  // node_modules/framer-motion/dist/es/gestures/drag/VisualElementDragControls.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/drag/VisualElementDragControls.mjs
   var elementDragControls = /* @__PURE__ */ new WeakMap();
   var VisualElementDragControls = class {
     constructor(visualElement) {
@@ -6181,7 +6181,7 @@
     return direction;
   }
 
-  // node_modules/framer-motion/dist/es/gestures/drag/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/drag/index.mjs
   var DragGesture = class extends Feature {
     constructor(node) {
       super(node);
@@ -6202,7 +6202,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/gestures/pan/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/pan/index.mjs
   var asyncHandler = (handler) => (event, info) => {
     if (handler) {
       frame.postRender(() => handler(event, info));
@@ -6245,7 +6245,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/projection/node/state.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/state.mjs
   var globalProjectionState = {
     /**
      * Global flag as to whether the tree has animated since the last time
@@ -6259,7 +6259,7 @@
     hasEverUpdated: false
   };
 
-  // node_modules/framer-motion/dist/es/projection/styles/scale-border-radius.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/scale-border-radius.mjs
   function pixelsToPercent(pixels, axis) {
     if (axis.max === axis.min)
       return 0;
@@ -6282,7 +6282,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/projection/styles/scale-box-shadow.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/scale-box-shadow.mjs
   var correctBoxShadow = {
     correct: (latest, { treeScale, projectionDelta }) => {
       const original = latest;
@@ -6304,7 +6304,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/layout/MeasureLayout.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/layout/MeasureLayout.mjs
   var MeasureLayoutWithContext = class extends Component {
     /**
      * This only mounts projection nodes for components that
@@ -6409,22 +6409,22 @@
     boxShadow: correctBoxShadow
   };
 
-  // node_modules/framer-motion/dist/es/animation/animate/single-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animate/single-value.mjs
   function animateSingleValue(value, keyframes2, options) {
     const motionValue$1 = isMotionValue(value) ? value : motionValue(value);
     motionValue$1.start(animateMotionValue("", motionValue$1, keyframes2, options));
     return motionValue$1.animation;
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/utils/is-svg-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/is-svg-element.mjs
   function isSVGElement(element) {
     return element instanceof SVGElement && element.tagName !== "svg";
   }
 
-  // node_modules/framer-motion/dist/es/render/utils/compare-by-depth.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/compare-by-depth.mjs
   var compareByDepth = (a, b) => a.depth - b.depth;
 
-  // node_modules/framer-motion/dist/es/render/utils/flat-tree.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/flat-tree.mjs
   var FlatTree = class {
     constructor() {
       this.children = [];
@@ -6445,7 +6445,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/delay.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/delay.mjs
   function delay(callback, timeout) {
     const start = time.now();
     const checkElapsed = ({ timestamp }) => {
@@ -6459,7 +6459,7 @@
     return () => cancelFrame(checkElapsed);
   }
 
-  // node_modules/framer-motion/dist/es/projection/animation/mix-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/animation/mix-values.mjs
   var borders = ["TopLeft", "TopRight", "BottomLeft", "BottomRight"];
   var numBorders = borders.length;
   var asNumber = (value) => typeof value === "string" ? parseFloat(value) : value;
@@ -6513,7 +6513,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/copy.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/copy.mjs
   function copyAxisInto(axis, originAxis) {
     axis.min = originAxis.min;
     axis.max = originAxis.max;
@@ -6529,7 +6529,7 @@
     delta.origin = originDelta.origin;
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/delta-remove.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/delta-remove.mjs
   function removePointDelta(point, translate, scale2, originPoint, boxScale) {
     point -= translate;
     point = scalePoint(point, 1 / scale2, originPoint);
@@ -6562,7 +6562,7 @@
     removeAxisTransforms(box.y, transforms, yKeys, originBox ? originBox.y : void 0, sourceBox ? sourceBox.y : void 0);
   }
 
-  // node_modules/framer-motion/dist/es/projection/geometry/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/utils.mjs
   function isAxisDeltaZero(delta) {
     return delta.translate === 0 && delta.scale === 1;
   }
@@ -6588,7 +6588,7 @@
     return a.translate === b.translate && a.scale === b.scale && a.originPoint === b.originPoint;
   }
 
-  // node_modules/framer-motion/dist/es/projection/shared/stack.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/shared/stack.mjs
   var NodeStack = class {
     constructor() {
       this.members = [];
@@ -6680,7 +6680,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/projection/styles/transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/transform.mjs
   function buildProjectionTransform(delta, treeScale, latestTransform) {
     let transform = "";
     const xTranslate = delta.x.translate / treeScale.x;
@@ -6715,7 +6715,7 @@
     return transform || "none";
   }
 
-  // node_modules/framer-motion/dist/es/projection/node/create-projection-node.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/create-projection-node.mjs
   var metrics = {
     type: "projectionFrame",
     totalNodes: 0,
@@ -7768,7 +7768,7 @@
     return node !== node.root && ((_a = node.scroll) === null || _a === void 0 ? void 0 : _a.wasRoot);
   }
 
-  // node_modules/framer-motion/dist/es/projection/node/DocumentProjectionNode.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/DocumentProjectionNode.mjs
   var DocumentProjectionNode = createProjectionNode2({
     attachResizeListener: (ref, notify) => addDomEvent(ref, "resize", notify),
     measureScroll: () => ({
@@ -7778,7 +7778,7 @@
     checkIsScrollRoot: () => true
   });
 
-  // node_modules/framer-motion/dist/es/projection/node/HTMLProjectionNode.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/HTMLProjectionNode.mjs
   var rootProjectionNode = {
     current: void 0
   };
@@ -7802,7 +7802,7 @@
     checkIsScrollRoot: (instance) => Boolean(window.getComputedStyle(instance).position === "fixed")
   });
 
-  // node_modules/framer-motion/dist/es/motion/features/drag.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/drag.mjs
   var drag = {
     pan: {
       Feature: PanGesture
@@ -7814,7 +7814,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/gestures/hover.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/hover.mjs
   function handleHoverEvent(node, event, lifecycle) {
     const { props } = node;
     if (node.animationState && props.whileHover) {
@@ -7840,7 +7840,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/gestures/focus.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/focus.mjs
   var FocusGesture = class extends Feature {
     constructor() {
       super(...arguments);
@@ -7871,7 +7871,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/gestures/press.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/press.mjs
   function handlePressEvent(node, event, lifecycle) {
     const { props } = node;
     if (node.animationState && props.whileTap) {
@@ -7897,7 +7897,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/viewport/observers.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/viewport/observers.mjs
   var observerCallbacks = /* @__PURE__ */ new WeakMap();
   var observers = /* @__PURE__ */ new WeakMap();
   var fireObserverCallback = (entry) => {
@@ -7929,7 +7929,7 @@
     };
   }
 
-  // node_modules/framer-motion/dist/es/motion/features/viewport/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/viewport/index.mjs
   var thresholdNames = {
     some: 0,
     all: 1
@@ -7987,7 +7987,7 @@
     return (name) => viewport[name] !== prevViewport[name];
   }
 
-  // node_modules/framer-motion/dist/es/motion/features/gestures.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/gestures.mjs
   var gestureAnimations = {
     inView: {
       Feature: InViewFeature
@@ -8003,7 +8003,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/motion/features/layout.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/layout.mjs
   var layout = {
     layout: {
       ProjectionNode: HTMLProjectionNode,
@@ -8011,11 +8011,11 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/utils/reduced-motion/state.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/reduced-motion/state.mjs
   var prefersReducedMotion = { current: null };
   var hasReducedMotionListener = { current: false };
 
-  // node_modules/framer-motion/dist/es/utils/reduced-motion/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/reduced-motion/index.mjs
   function initPrefersReducedMotion() {
     hasReducedMotionListener.current = true;
     if (!isBrowser)
@@ -8030,14 +8030,14 @@
     }
   }
 
-  // node_modules/framer-motion/dist/es/render/dom/value-types/find.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/find.mjs
   var valueTypes = [...dimensionValueTypes, color, complex];
   var findValueType = (v) => valueTypes.find(testValueType(v));
 
-  // node_modules/framer-motion/dist/es/render/store.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/store.mjs
   var visualElementStore = /* @__PURE__ */ new WeakMap();
 
-  // node_modules/framer-motion/dist/es/render/utils/motion-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/motion-values.mjs
   function updateMotionValuesFromProps(element, next, prev) {
     for (const key in next) {
       const nextValue = next[key];
@@ -8070,7 +8070,7 @@
     return next;
   }
 
-  // node_modules/framer-motion/dist/es/render/VisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/VisualElement.mjs
   var propEventHandlers = [
     "AnimationStart",
     "AnimationComplete",
@@ -8422,7 +8422,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/DOMVisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/DOMVisualElement.mjs
   var DOMVisualElement = class extends VisualElement {
     constructor() {
       super(...arguments);
@@ -8454,7 +8454,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/render/html/HTMLVisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/HTMLVisualElement.mjs
   function getComputedStyle(element) {
     return window.getComputedStyle(element);
   }
@@ -8485,7 +8485,7 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/render/svg/SVGVisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/SVGVisualElement.mjs
   var SVGVisualElement = class extends DOMVisualElement {
     constructor() {
       super(...arguments);
@@ -8519,14 +8519,14 @@
     }
   };
 
-  // node_modules/framer-motion/dist/es/render/dom/create-visual-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/create-visual-element.mjs
   var createDomVisualElement = (Component2, options) => {
     return isSVGComponent(Component2) ? new SVGVisualElement(options) : new HTMLVisualElement(options, {
       allowProjection: Component2 !== Fragment
     });
   };
 
-  // node_modules/framer-motion/dist/es/render/components/motion/create.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/motion/create.mjs
   var createMotionComponent = /* @__PURE__ */ createMotionComponentFactory({
     ...animations,
     ...gestureAnimations,
@@ -8534,10 +8534,10 @@
     ...layout
   }, createDomVisualElement);
 
-  // node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs
   var motion = /* @__PURE__ */ createDOMMotionComponentProxy(createMotionComponent);
 
-  // node_modules/clsx/dist/clsx.mjs
+  // ../../../node_modules/clsx/dist/clsx.mjs
   function r(e) {
     var t, f, n = "";
     if ("string" == typeof e || "number" == typeof e) n += e;
@@ -8552,7 +8552,7 @@
     return n;
   }
 
-  // node_modules/tailwind-merge/dist/bundle-mjs.mjs
+  // ../../../node_modules/tailwind-merge/dist/bundle-mjs.mjs
   var CLASS_PART_SEPARATOR = "-";
   var createClassGroupUtils = (config) => {
     const classMap = createClassMap(config);
@@ -11012,7 +11012,7 @@
   };
   var twMerge = /* @__PURE__ */ createTailwindMerge(getDefaultConfig);
 
-  // packages/ui/dist/index.js
+  // ../../ui/dist/index.js
   function cn(...inputs) {
     return twMerge(clsx(inputs));
   }
@@ -11421,7 +11421,7 @@
   }
   ProductGrid.displayName = "ProductGrid";
 
-  // packages/shop-themes/default/src/components/NotFound.tsx
+  // ../default/src/components/NotFound.tsx
   function NotFound({ route, message, onGoHome }) {
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 px-4", children: /* @__PURE__ */ jsxs("div", { className: "text-center max-w-md w-full", children: [
       /* @__PURE__ */ jsx("div", { className: "mb-8", children: /* @__PURE__ */ jsx("h1", { className: "text-7xl sm:text-9xl font-bold text-gray-200 dark:text-slate-700", children: "404" }) }),
@@ -11435,7 +11435,7 @@
     ] }) });
   }
 
-  // packages/shop-themes/default/src/components/OrderCancelledPage.tsx
+  // ../default/src/components/OrderCancelledPage.tsx
   function OrderCancelledPage({
     config,
     onReturnToCart,
@@ -11532,31 +11532,45 @@
     ] }) }) });
   }
 
-  // packages/shop-themes/bokmoo/src/site.ts
-  function pickLocalized(configured, englishDefault, zhDefault, zhHant) {
+  // src/site.ts
+  function zhModeOf(locale) {
+    if (locale === "zh-Hant") return "zh-Hant";
+    if (locale === "zh-Hans") return "zh-Hans";
+    return null;
+  }
+  function pickCopy(locale, copy) {
+    const mode = zhModeOf(locale);
+    if (mode === "zh-Hant") return copy.hant ?? copy.en;
+    if (mode === "zh-Hans") return copy.hans ?? copy.hant ?? copy.en;
+    return copy.en;
+  }
+  function pickLocalized(configured, englishDefault, zhHans, zhHant, mode) {
     const value = configured?.trim();
     if (value && value !== englishDefault) return value;
-    return zhHant ? zhDefault : englishDefault;
+    if (mode === "zh-Hant") return zhHant;
+    if (mode === "zh-Hans") return zhHans;
+    return englishDefault;
   }
   function resolveBokmooSiteConfig(config, locale) {
     const brandName = config?.brand?.name?.trim() || "BOKMOO";
     const siteConfig = config?.site || {};
-    const zhHant = locale === "zh-Hant";
+    const mode = zhModeOf(locale);
     const englishSubheadline = `Use multiple eSIM profiles on your ${brandName} card. Stay connected in 200+ countries.`;
     return {
       brandName,
-      eyebrow: pickLocalized(siteConfig.eyebrow, "BOKMOO eSIM Card", "BOKMOO eSIM \u5361", zhHant),
-      headline: pickLocalized(siteConfig.headline, "One Card.\nGlobal Connection.", "\u4E00\u5F35\u5361\u3002\n\u5168\u7403\u9023\u7DDA\u3002", zhHant),
+      eyebrow: pickLocalized(siteConfig.eyebrow, "BOKMOO eSIM Card", "BOKMOO eSIM \u5361", "BOKMOO eSIM \u5361", mode),
+      headline: pickLocalized(siteConfig.headline, "One Card.\nGlobal Connection.", "\u4E00\u5F20\u5361\u3002\n\u5168\u7403\u8FDE\u63A5\u3002", "\u4E00\u5F35\u5361\u3002\n\u5168\u7403\u9023\u7DDA\u3002", mode),
       subheadline: pickLocalized(
         siteConfig.subheadline,
         englishSubheadline,
+        `\u5728\u60A8\u7684 ${brandName} \u5361\u4E0A\u4F7F\u7528\u591A\u4E2A eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C200+ \u4E2A\u56FD\u5BB6/\u5730\u533A\u4FDD\u6301\u8FDE\u63A5\u3002`,
         `\u5728\u60A8\u7684 ${brandName} \u5361\u4E0A\u4F7F\u7528\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\uFF0C200+ \u500B\u570B\u5BB6/\u5730\u5340\u4FDD\u6301\u9023\u7DDA\u3002`,
-        zhHant
+        mode
       ),
       supportEmail: siteConfig.supportEmail?.trim() || "support@bokmoo.com",
-      primaryCtaLabel: pickLocalized(siteConfig.primaryCtaLabel, "Shop eSIM Plans", "\u9078\u8CFC eSIM \u65B9\u6848", zhHant),
+      primaryCtaLabel: pickLocalized(siteConfig.primaryCtaLabel, "Shop eSIM Plans", "\u9009\u8D2D eSIM \u65B9\u6848", "\u9078\u8CFC eSIM \u65B9\u6848", mode),
       primaryCtaHref: siteConfig.primaryCtaHref?.trim() || "/products",
-      secondaryCtaLabel: pickLocalized(siteConfig.secondaryCtaLabel, "How it works", "\u4E86\u89E3\u4F7F\u7528\u65B9\u5F0F", zhHant),
+      secondaryCtaLabel: pickLocalized(siteConfig.secondaryCtaLabel, "How it works", "\u4E86\u89E3\u4F7F\u7528\u65B9\u5F0F", "\u77AD\u89E3\u4F7F\u7528\u65B9\u5F0F", mode),
       secondaryCtaHref: siteConfig.secondaryCtaHref?.trim() || "/#how-it-works",
       apiBaseUrl: siteConfig.apiBaseUrl?.trim() || "https://api.bokmoo.com"
     };
@@ -11566,7 +11580,7 @@
     return /^(https?:)?\/\//.test(href);
   }
 
-  // packages/shop-themes/bokmoo/src/components/ProfilePage.tsx
+  // src/components/ProfilePage.tsx
   var SCRIPT_FONT = '"Snell Roundhand", "Savoye LET", "Segoe Script", "Brush Script MT", cursive';
   function svgBackgroundUri(svg) {
     return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
@@ -11619,7 +11633,7 @@
           onNavigate(path);
           return;
         }
-        const prefix = isZhHant ? "/zh-Hant" : "/en";
+        const prefix = locale === "zh-Hant" ? "/zh-Hant" : locale === "zh-Hans" ? "/zh-Hans" : "/en";
         window.location.assign(`${prefix}${path}`);
       },
       [onNavigate, isZhHant]
@@ -11637,15 +11651,15 @@
     if (!isAuthenticated || !user) {
       return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--bokmoo-bg)] px-4", children: /* @__PURE__ */ jsx("div", { className: "w-full max-w-md", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-10 text-center shadow-[var(--bokmoo-shadow)]", children: [
         /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(UserRound, { className: "h-8 w-8" }) }),
-        /* @__PURE__ */ jsx("h2", { className: "mt-6 text-3xl leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: isZhHant ? "\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684\u500B\u4EBA\u6A94\u6848" : "Sign in to view your profile" }),
-        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: isZhHant ? "\u8ACB\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684 BOKMOO \u5E33\u6236" : "Please log in to check your BOKMOO account" }),
+        /* @__PURE__ */ jsx("h2", { className: "mt-6 text-3xl leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Sign in to view your profile", hans: "\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684\u4E2A\u4EBA\u6863\u6848", hant: "\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684\u500B\u4EBA\u6A94\u6848" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Please log in to check your BOKMOO account", hans: "\u8BF7\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684 BOKMOO \u5E10\u6237", hant: "\u8ACB\u767B\u5165\u4EE5\u67E5\u770B\u60A8\u7684 BOKMOO \u5E33\u6236" }) }),
         /* @__PURE__ */ jsx(
           "button",
           {
             onClick: onNavigateToLogin,
             className: `mt-8 h-12 w-full rounded-full px-6 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)] ${GOLD_GRADIENT_BG}`,
             type: "button",
-            children: isZhHant ? "\u767B\u5165" : "Log In"
+            children: pickCopy(locale, { en: "Log In", hans: "\u767B\u5165", hant: "\u767B\u5165" })
           }
         )
       ] }) }) });
@@ -11653,26 +11667,26 @@
     if (isLoading) {
       return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--bokmoo-bg)]", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
         /* @__PURE__ */ jsx("div", { className: "mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[var(--bokmoo-line)] border-t-[var(--bokmoo-gold)]" }),
-        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: isZhHant ? "\u6B63\u5728\u8F09\u5165\u500B\u4EBA\u8CC7\u6599\u2026" : "Loading profile..." })
+        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Loading profile...", hans: "\u6B63\u5728\u8F7D\u5165\u4E2A\u4EBA\u8D44\u6599\u2026", hant: "\u6B63\u5728\u8F09\u5165\u500B\u4EBA\u8CC7\u6599\u2026" }) })
       ] }) });
     }
     const displayName = (user.name || "").trim();
     const firstName = displayName ? displayName.split(/\s+/)[0] : "";
-    const greeting = firstName ? isZhHant ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : `Hi ${firstName}!` : isZhHant ? "\u4F60\u597D\uFF01" : "Hi there!";
+    const greeting = firstName ? locale === "zh-Hant" ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : locale === "zh-Hans" ? `\u4F60\u597D\uFF0C${firstName}\uFF01` : `Hi ${firstName}!` : locale === "zh-Hant" ? "\u4F60\u597D\uFF01" : locale === "zh-Hans" ? "\u4F60\u597D\uFF01" : "Hi there!";
     const accountInitial = (displayName || user.email).trim().charAt(0).toUpperCase();
     const memberSince = user.createdAt ? formatDate(user.createdAt, locale) : "\u2014";
     const navItems = [
       {
-        label: isZhHant ? "\u6211\u7684\u5E33\u6236" : "My Account",
+        label: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" }),
         icon: UserRound,
         active: true,
         onClick: () => window.scrollTo({ top: 0, behavior: "smooth" })
       },
-      { label: isZhHant ? "\u8A02\u55AE\u7D00\u9304" : "Order History", icon: ShoppingBag, onClick: onNavigateToOrders },
-      { label: isZhHant ? "\u6211\u7684\u884C\u7A0B" : "My Trips", icon: Plane, onClick: onNavigateToOrders },
-      { label: isZhHant ? "\u65C5\u904A\u9EDE\u6578" : "Travel Credits", icon: Mail, onClick: () => go("/affiliate") },
-      { label: isZhHant ? "\u63A8\u5EE3\u8A08\u5283" : "Affiliate Program", icon: Users, onClick: () => go("/affiliate") },
-      { label: isZhHant ? "\u8A2D\u5B9A" : "Settings", icon: Settings, onClick: onNavigateToSettings }
+      { label: pickCopy(locale, { en: "Order History", hans: "\u8BA2\u5355\u7EAA\u5F55", hant: "\u8A02\u55AE\u7D00\u9304" }), icon: ShoppingBag, onClick: onNavigateToOrders },
+      { label: pickCopy(locale, { en: "My Trips", hans: "\u6211\u7684\u884C\u7A0B", hant: "\u6211\u7684\u884C\u7A0B" }), icon: Plane, onClick: onNavigateToOrders },
+      { label: pickCopy(locale, { en: "Travel Credits", hans: "\u65C5\u6E38\u70B9\u6570", hant: "\u65C5\u904A\u9EDE\u6578" }), icon: Mail, onClick: () => go("/affiliate") },
+      { label: pickCopy(locale, { en: "Affiliate Program", hans: "\u63A8\u5E7F\u8BA1\u5212", hant: "\u63A8\u5EE3\u8A08\u5283" }), icon: Users, onClick: () => go("/affiliate") },
+      { label: pickCopy(locale, { en: "Settings", hans: "\u8BBE\u5B9A", hant: "\u8A2D\u5B9A" }), icon: Settings, onClick: onNavigateToSettings }
     ];
     const renderNavButton = (item, layout2) => {
       const Icon2 = item.icon;
@@ -11702,10 +11716,10 @@
             children: [
               /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,rgba(9,7,14,0.1),rgba(9,7,14,0.78))]" }),
               /* @__PURE__ */ jsxs("div", { className: "relative flex min-h-[13.5rem] flex-col p-5", children: [
-                /* @__PURE__ */ jsx("h3", { className: "max-w-[9.5rem] text-xl font-bold leading-snug text-white", children: isZhHant ? "\u63A2\u7D22\u66F4\u7F8E\u597D\u7684\u591C\u665A" : "Explore a Better Night" }),
-                /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-relaxed text-white/70", children: isZhHant ? "\u5168\u7403\u9AD8\u7D1A\u6703\u6240\u9AD4\u9A57\uFF0C\u76E1\u5728\u638C\u63E1\u3002" : "Premium club experiences around the world." }),
+                /* @__PURE__ */ jsx("h3", { className: "max-w-[9.5rem] text-xl font-bold leading-snug text-white", children: pickCopy(locale, { en: "Explore a Better Night", hans: "\u63A2\u7D22\u66F4\u7F8E\u597D\u7684\u591C\u665A", hant: "\u63A2\u7D22\u66F4\u7F8E\u597D\u7684\u591C\u665A" }) }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-relaxed text-white/70", children: pickCopy(locale, { en: "Premium club experiences around the world.", hans: "\u5168\u7403\u9AD8\u7EA7\u4F1A\u6240\u4F53\u9A8C\uFF0C\u5C3D\u5728\u638C\u63E1\u3002", hant: "\u5168\u7403\u9AD8\u7D1A\u6703\u6240\u9AD4\u9A57\uFF0C\u76E1\u5728\u638C\u63E1\u3002" }) }),
                 /* @__PURE__ */ jsxs("span", { className: "mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_86%,white),color-mix(in_oklab,var(--bokmoo-gold)_70%,black))] px-4 py-2 text-xs font-bold text-[var(--bokmoo-bg)] transition-transform duration-300 group-hover:-translate-y-0.5", children: [
-                  isZhHant ? "\u700F\u89BD\u76EE\u7684\u5730" : "Browse Destinations",
+                  pickCopy(locale, { en: "Browse Destinations", hans: "\u6D4F\u89C8\u76EE\u7684\u5730", hant: "\u700F\u89BD\u76EE\u7684\u5730" }),
                   /* @__PURE__ */ jsx(ArrowRight, { className: "h-3.5 w-3.5" })
                 ] })
               ] })
@@ -11757,7 +11771,7 @@
                     children: user.avatar ? /* @__PURE__ */ jsx("img", { src: user.avatar, alt: user.name, className: "h-full w-full object-cover" }) : accountInitial
                   }
                 ),
-                /* @__PURE__ */ jsx("span", { className: "absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,transparent)] bg-[color:oklch(0.09_0.01_75_/_0.96)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-gold)]", children: isZhHant ? "\u6703\u54E1" : "Member" })
+                /* @__PURE__ */ jsx("span", { className: "absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,transparent)] bg-[color:oklch(0.09_0.01_75_/_0.96)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-gold)]", children: pickCopy(locale, { en: "Member", hans: "\u4F1A\u5458", hant: "\u6703\u54E1" }) })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "min-w-0 text-center sm:text-left", children: [
                 /* @__PURE__ */ jsx("h1", { className: "text-[1.9rem] font-bold leading-tight tracking-[-0.02em] text-[var(--bokmoo-ink)]", children: greeting }),
@@ -11769,13 +11783,13 @@
                       onClick: copyEmail,
                       className: "flex h-7 w-7 shrink-0 items-center justify-center rounded-[0.5rem] text-[var(--bokmoo-copy-soft)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] hover:text-[var(--bokmoo-gold)]",
                       type: "button",
-                      "aria-label": isZhHant ? "\u8907\u88FD\u96FB\u5B50\u90F5\u4EF6" : "Copy email",
+                      "aria-label": pickCopy(locale, { en: "Copy email", hans: "\u590D\u5236\u7535\u5B50\u90AE\u4EF6", hant: "\u8907\u88FD\u96FB\u5B50\u90F5\u4EF6" }),
                       children: copied ? /* @__PURE__ */ jsx(Check, { className: "h-4 w-4 text-[var(--bokmoo-success)]" }) : /* @__PURE__ */ jsx(Copy, { className: "h-4 w-4" })
                     }
                   )
                 ] }),
                 /* @__PURE__ */ jsxs("p", { className: "mt-1.5 text-[0.82rem] text-[var(--bokmoo-copy-soft)]", children: [
-                  isZhHant ? "\u8A3B\u518A\u65BC" : "Member since",
+                  pickCopy(locale, { en: "Member since", hans: "\u6CE8\u518C\u4E8E", hant: "\u8A3B\u518A\u65BC" }),
                   " ",
                   memberSince
                 ] })
@@ -11802,17 +11816,17 @@
               /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
                 /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
                   /* @__PURE__ */ jsx(UserRound, { className: "h-[1.1rem] w-[1.1rem] text-[var(--bokmoo-gold)]" }),
-                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]", children: isZhHant ? "\u5E33\u6236\u8CC7\u6599" : "Account Information" })
+                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Account Information", hans: "\u5E10\u6237\u8D44\u6599", hant: "\u5E33\u6236\u8CC7\u6599" }) })
                 ] }),
                 /* @__PURE__ */ jsxs("button", { onClick: onNavigateToSettings, className: editButtonClass, type: "button", children: [
                   /* @__PURE__ */ jsx(PencilLine, { className: "h-3.5 w-3.5" }),
-                  isZhHant ? "\u7DE8\u8F2F" : "Edit"
+                  pickCopy(locale, { en: "Edit", hans: "\u7F16\u8F91", hant: "\u7DE8\u8F2F" })
                 ] })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "mt-3 divide-y divide-[color:color-mix(in_oklab,var(--bokmoo-line)_55%,transparent)]", children: [
                 /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
                   /* @__PURE__ */ jsx(Mail, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: isZhHant ? "\u96FB\u5B50\u90F5\u4EF6" : "Email Address" }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Email Address", hans: "\u7535\u5B50\u90AE\u4EF6", hant: "\u96FB\u5B50\u90F5\u4EF6" }) }),
                   /* @__PURE__ */ jsx(
                     "span",
                     {
@@ -11824,13 +11838,13 @@
                 ] }),
                 /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
                   /* @__PURE__ */ jsx(CalendarDays, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: isZhHant ? "\u8A3B\u518A\u65E5\u671F" : "Member Since" }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Member Since", hans: "\u6CE8\u518C\u65E5\u671F", hant: "\u8A3B\u518A\u65E5\u671F" }) }),
                   /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--bokmoo-ink)]", children: memberSince })
                 ] }),
                 /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
                   /* @__PURE__ */ jsx(UserRound, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: isZhHant ? "\u5E33\u6236\u72C0\u614B" : "Account Status" }),
-                  /* @__PURE__ */ jsx("span", { className: "inline-flex items-center rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-success)_28%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-success)_14%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--bokmoo-success)]", children: isZhHant ? "\u6709\u6548\u6703\u54E1" : "Active Member" })
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Account Status", hans: "\u5E10\u6237\u72B6\u6001", hant: "\u5E33\u6236\u72C0\u614B" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "inline-flex items-center rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-success)_28%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-success)_14%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--bokmoo-success)]", children: pickCopy(locale, { en: "Active Member", hans: "\u6709\u6548\u4F1A\u5458", hant: "\u6709\u6548\u6703\u54E1" }) })
                 ] })
               ] })
             ] }),
@@ -11838,33 +11852,33 @@
               /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
                 /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
                   /* @__PURE__ */ jsx(Settings, { className: "h-[1.1rem] w-[1.1rem] text-[var(--bokmoo-gold)]" }),
-                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]", children: isZhHant ? "\u504F\u597D\u8A2D\u5B9A" : "Account Preferences" })
+                  /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Account Preferences", hans: "\u504F\u597D\u8BBE\u5B9A", hant: "\u504F\u597D\u8A2D\u5B9A" }) })
                 ] }),
                 /* @__PURE__ */ jsxs("button", { onClick: onNavigateToSettings, className: editButtonClass, type: "button", children: [
                   /* @__PURE__ */ jsx(PencilLine, { className: "h-3.5 w-3.5" }),
-                  isZhHant ? "\u7DE8\u8F2F" : "Edit"
+                  pickCopy(locale, { en: "Edit", hans: "\u7F16\u8F91", hant: "\u7DE8\u8F2F" })
                 ] })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "mt-3 divide-y divide-[color:color-mix(in_oklab,var(--bokmoo-line)_55%,transparent)]", children: [
                 /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
                   /* @__PURE__ */ jsx(Earth, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: isZhHant ? "\u8A9E\u8A00" : "Language" }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--bokmoo-ink)]", children: isZhHant ? "\u7E41\u9AD4\u4E2D\u6587" : "English" })
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Language", hans: "\u8BED\u8A00", hant: "\u8A9E\u8A00" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "English", hans: "\u7E41\u4F53\u4E2D\u6587", hant: "\u7E41\u9AD4\u4E2D\u6587" }) })
                 ] }),
                 /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
                   /* @__PURE__ */ jsx(Clock3, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: isZhHant ? "\u6642\u5340" : "Timezone" }),
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Timezone", hans: "\u65F6\u533A", hant: "\u6642\u5340" }) }),
                   /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm font-semibold text-[var(--bokmoo-ink)]", children: timezoneLabel() })
                 ] }),
                 /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
                   /* @__PURE__ */ jsx(CalendarDays, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: isZhHant ? "\u51FA\u751F\u65E5\u671F" : "Date of Birth" }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--bokmoo-copy-soft)]", children: isZhHant ? "\u672A\u8A2D\u5B9A" : "Not set" })
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Date of Birth", hans: "\u51FA\u751F\u65E5\u671F", hant: "\u51FA\u751F\u65E5\u671F" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Not set", hans: "\u672A\u8BBE\u5B9A", hant: "\u672A\u8A2D\u5B9A" }) })
                 ] }),
                 /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 py-3.5", children: [
                   /* @__PURE__ */ jsx(Phone, { className: infoRowIcon }),
-                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: isZhHant ? "\u96FB\u8A71\u865F\u78BC" : "Phone Number" }),
-                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--bokmoo-copy-soft)]", children: isZhHant ? "\u672A\u8A2D\u5B9A" : "Not set" })
+                  /* @__PURE__ */ jsx("span", { className: "w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32", children: pickCopy(locale, { en: "Phone Number", hans: "\u7535\u8BDD\u53F7\u7801", hant: "\u96FB\u8A71\u865F\u78BC" }) }),
+                  /* @__PURE__ */ jsx("span", { className: "flex-1 text-sm text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Not set", hans: "\u672A\u8BBE\u5B9A", hant: "\u672A\u8A2D\u5B9A" }) })
                 ] })
               ] })
             ] })
@@ -11879,8 +11893,8 @@
                   /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
                     /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_15%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(ShoppingBag, { className: "h-6 w-6" }) }),
                     /* @__PURE__ */ jsxs("div", { children: [
-                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--bokmoo-ink)]", children: isZhHant ? "\u8A02\u55AE\u7D00\u9304" : "Order History" }),
-                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--bokmoo-copy-soft)]", children: isZhHant ? "\u67E5\u770B\u53CA\u7BA1\u7406\u60A8\u7684\u8A02\u55AE" : "View and manage your orders" })
+                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Order History", hans: "\u8BA2\u5355\u7EAA\u5F55", hant: "\u8A02\u55AE\u7D00\u9304" }) }),
+                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "View and manage your orders", hans: "\u67E5\u770B\u53CA\u7BA1\u7406\u60A8\u7684\u8BA2\u5355", hant: "\u67E5\u770B\u53CA\u7BA1\u7406\u60A8\u7684\u8A02\u55AE" }) })
                     ] })
                   ] }),
                   /* @__PURE__ */ jsx("span", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--bokmoo-line-strong)] text-[var(--bokmoo-copy)] transition-colors group-hover:border-[var(--bokmoo-gold)] group-hover:text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-[1.1rem] w-[1.1rem]" }) })
@@ -11896,8 +11910,8 @@
                   /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
                     /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_15%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Plane, { className: "h-6 w-6" }) }),
                     /* @__PURE__ */ jsxs("div", { children: [
-                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--bokmoo-ink)]", children: isZhHant ? "\u5373\u5C07\u5230\u4F86\u7684\u884C\u7A0B" : "Upcoming Trips" }),
-                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--bokmoo-copy-soft)]", children: isZhHant ? "\u60A8\u5DF2\u9810\u8A02\u7684\u9AD4\u9A57" : "Your booked experiences" })
+                      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Upcoming Trips", hans: "\u5373\u5C06\u5230\u6765\u7684\u884C\u7A0B", hant: "\u5373\u5C07\u5230\u4F86\u7684\u884C\u7A0B" }) }),
+                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Your booked experiences", hans: "\u60A8\u5DF2\u9884\u8BA2\u7684\u4F53\u9A8C", hant: "\u60A8\u5DF2\u9810\u8A02\u7684\u9AD4\u9A57" }) })
                     ] })
                   ] }),
                   /* @__PURE__ */ jsx("span", { className: "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--bokmoo-line-strong)] text-[var(--bokmoo-copy)] transition-colors group-hover:border-[var(--bokmoo-gold)] group-hover:text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(ChevronRight, { className: "h-[1.1rem] w-[1.1rem]" }) })
@@ -11915,14 +11929,14 @@
                 children: [
                   /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(92deg,rgba(8,6,4,0.86)_8%,rgba(8,6,4,0.42)_58%,rgba(8,6,4,0.12))]" }),
                   /* @__PURE__ */ jsxs("div", { className: "relative flex h-full flex-col p-6", children: [
-                    /* @__PURE__ */ jsx("h3", { className: "text-[1.55rem] font-bold leading-tight text-white", children: isZhHant ? "\u63A2\u7D22\u5C0A\u8CB4\u6703\u6240" : /* @__PURE__ */ jsxs(Fragment2, { children: [
+                    /* @__PURE__ */ jsx("h3", { className: "text-[1.55rem] font-bold leading-tight text-white", children: locale === "zh-Hant" ? "\u63A2\u7D22\u5C0A\u8CB4\u6703\u6240" : locale === "zh-Hans" ? "\u63A2\u7D22\u5C0A\u8D35\u4F1A\u6240" : /* @__PURE__ */ jsxs(Fragment2, { children: [
                       "Discover",
                       /* @__PURE__ */ jsx("br", {}),
                       "Exclusive Clubs"
                     ] }) }),
-                    /* @__PURE__ */ jsx("p", { className: "mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/75", children: isZhHant ? "\u8207 BOKMOO \u901A\u884C\u5168\u7403\u9802\u7D1A\u5834\u6240\u3002" : "Access the world's best venues with BOKMOO." }),
+                    /* @__PURE__ */ jsx("p", { className: "mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/75", children: pickCopy(locale, { en: "Access the world's best venues with BOKMOO.", hans: "\u4E0E BOKMOO \u901A\u884C\u5168\u7403\u9876\u7EA7\u573A\u6240\u3002", hant: "\u8207 BOKMOO \u901A\u884C\u5168\u7403\u9802\u7D1A\u5834\u6240\u3002" }) }),
                     /* @__PURE__ */ jsxs("span", { className: "mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_86%,white),color-mix(in_oklab,var(--bokmoo-gold)_70%,black))] px-5 py-2.5 text-[0.8rem] font-bold text-[var(--bokmoo-bg)] transition-transform duration-300 group-hover:-translate-y-0.5", children: [
-                      isZhHant ? "\u7ACB\u5373\u63A2\u7D22" : "Explore Now",
+                      pickCopy(locale, { en: "Explore Now", hans: "\u7ACB\u5373\u63A2\u7D22", hant: "\u7ACB\u5373\u63A2\u7D22" }),
                       /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
                     ] })
                   ] })
@@ -11932,9 +11946,9 @@
             /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)]", children: [
               /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
                 /* @__PURE__ */ jsx(Crown, { className: "h-5 w-5 text-[var(--bokmoo-gold)]" }),
-                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]", children: isZhHant ? "BOKMOO \u6703\u54E1\u6B0A\u76CA" : "BOKMOO Member Benefits" })
+                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "BOKMOO Member Benefits", hans: "BOKMOO \u4F1A\u5458\u6743\u76CA", hant: "BOKMOO \u6703\u54E1\u6B0A\u76CA" }) })
               ] }),
-              /* @__PURE__ */ jsx("ul", { className: "mt-5 space-y-3.5", children: (isZhHant ? ["\u5168\u7403\u9802\u7D1A\u6703\u6240\u901A\u884C", "\u6703\u54E1\u5C08\u5C6C\u512A\u60E0", "\u8F15\u9B06\u9810\u8A02\uFF0C\u5373\u6642\u78BA\u8A8D", "\u5C08\u5C6C\u652F\u63F4"] : [
+              /* @__PURE__ */ jsx("ul", { className: "mt-5 space-y-3.5", children: (locale === "zh-Hant" ? ["\u5168\u7403\u9802\u7D1A\u6703\u6240\u901A\u884C", "\u6703\u54E1\u5C08\u5C6C\u512A\u60E0", "\u8F15\u9B06\u9810\u8A02\uFF0C\u5373\u6642\u78BA\u8A8D", "\u5C08\u5C6C\u652F\u63F4"] : locale === "zh-Hans" ? ["\u5168\u7403\u9876\u7EA7\u4F1A\u6240\u901A\u884C", "\u4F1A\u5458\u4E13\u5C5E\u4F18\u60E0", "\u8F7B\u677E\u9884\u8BA2\uFF0C\u5373\u65F6\u786E\u8BA4", "\u4E13\u5C5E\u652F\u63F4"] : [
                 "Access to premier clubs worldwide",
                 "Exclusive member-only offers",
                 "Easy booking and instant confirmation",
@@ -11947,9 +11961,9 @@
             /* @__PURE__ */ jsxs("div", { className: "flex flex-col rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)]", children: [
               /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2.5", children: [
                 /* @__PURE__ */ jsx(Headphones, { className: "h-5 w-5 text-[var(--bokmoo-gold)]" }),
-                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]", children: isZhHant ? "\u9700\u8981\u5354\u52A9\uFF1F" : "Need Help?" })
+                /* @__PURE__ */ jsx("h3", { className: "text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Need Help?", hans: "\u9700\u8981\u534F\u52A9\uFF1F", hant: "\u9700\u8981\u5354\u52A9\uFF1F" }) })
               ] }),
-              /* @__PURE__ */ jsx("p", { className: "mt-2.5 text-sm leading-relaxed text-[var(--bokmoo-copy-soft)]", children: isZhHant ? "\u6211\u5011\u7684\u652F\u63F4\u5718\u968A\u96A8\u6642\u70BA\u60A8\u670D\u52D9\u3002" : "Our support team is here for you." }),
+              /* @__PURE__ */ jsx("p", { className: "mt-2.5 text-sm leading-relaxed text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Our support team is here for you.", hans: "\u6211\u4EEC\u7684\u652F\u63F4\u56E2\u961F\u968F\u65F6\u4E3A\u60A8\u670D\u52A1\u3002", hant: "\u6211\u5011\u7684\u652F\u63F4\u5718\u968A\u96A8\u6642\u70BA\u60A8\u670D\u52D9\u3002" }) }),
               /* @__PURE__ */ jsxs(
                 "button",
                 {
@@ -11957,7 +11971,7 @@
                   className: "mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-sm font-semibold text-[var(--bokmoo-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)]",
                   type: "button",
                   children: [
-                    isZhHant ? "\u806F\u7D61\u5BA2\u670D" : "Contact Support",
+                    pickCopy(locale, { en: "Contact Support", hans: "\u8054\u7EDC\u5BA2\u670D", hant: "\u806F\u7D61\u5BA2\u670D" }),
                     /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
                   ]
                 }
@@ -11970,7 +11984,7 @@
                   type: "button",
                   children: [
                     /* @__PURE__ */ jsx(BookOpen, { className: "h-4 w-4" }),
-                    isZhHant ? "\u524D\u5F80\u5E6B\u52A9\u4E2D\u5FC3" : "Visit Help Center"
+                    pickCopy(locale, { en: "Visit Help Center", hans: "\u524D\u5F80\u5E2E\u52A9\u4E2D\u5FC3", hant: "\u524D\u5F80\u5E6B\u52A9\u4E2D\u5FC3" })
                   ]
                 }
               )
@@ -11981,7 +11995,7 @@
     ] });
   });
 
-  // packages/shop-themes/bokmoo/src/components/AuthCallbackPage.tsx
+  // src/components/AuthCallbackPage.tsx
   var FOCUS_VISIBLE_RING = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function AuthCallbackPage({
     isLoading,
@@ -12028,7 +12042,7 @@
     ] });
   }
 
-  // packages/shop-themes/bokmoo/src/lib/api.ts
+  // src/lib/api.ts
   var BokmooApiError = class extends Error {
     constructor(status, code, message, requestId) {
       super(message);
@@ -12413,7 +12427,7 @@
     return result.items || [];
   }
 
-  // packages/shop-themes/bokmoo/src/components/AffiliatePage.tsx
+  // src/components/AffiliatePage.tsx
   function money(items) {
     const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     return `${items[0]?.currency || "USD"} ${total.toFixed(2)}`;
@@ -12653,18 +12667,18 @@
     ] });
   }
 
-  // packages/ui/src/utils/cn.ts
+  // ../../ui/src/utils/cn.ts
   function cn2(...inputs) {
     return twMerge(clsx(inputs));
   }
 
-  // packages/ui/src/utils/a11y.ts
+  // ../../ui/src/utils/a11y.ts
   function prefersReducedMotion3() {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
-  // packages/ui/src/components/Button/Button.tsx
+  // ../../ui/src/components/Button/Button.tsx
   var variantStyles2 = {
     primary: "bg-blue-600 text-white hover:bg-blue-700 shadow-brand-sm hover:shadow-brand-md",
     secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
@@ -12752,7 +12766,7 @@
   );
   Button2.displayName = "Button";
 
-  // packages/ui/src/components/Card/ProductCard.tsx
+  // ../../ui/src/components/Card/ProductCard.tsx
   var aspectRatioStyles2 = {
     square: "aspect-square",
     portrait: "aspect-[4/5]",
@@ -12864,7 +12878,7 @@
   );
   ProductCard2.displayName = "ProductCard";
 
-  // packages/ui/src/components/Input/Input.tsx
+  // ../../ui/src/components/Input/Input.tsx
   var Input2 = forwardRef(
     ({
       label,
@@ -12947,7 +12961,7 @@
   );
   Input2.displayName = "Input";
 
-  // packages/ui/src/components/Navigation/Navigation.tsx
+  // ../../ui/src/components/Navigation/Navigation.tsx
   function Navigation2({ logo, items, actions, className }) {
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -13040,7 +13054,7 @@
   }
   Navigation2.displayName = "Navigation";
 
-  // packages/ui/src/components/Grid/ProductGrid.tsx
+  // ../../ui/src/components/Grid/ProductGrid.tsx
   var gapStyles2 = {
     sm: "gap-4",
     md: "gap-6",
@@ -13074,7 +13088,7 @@
   }
   ProductGrid2.displayName = "ProductGrid";
 
-  // packages/shop-themes/bokmoo/src/components/CartPage.tsx
+  // src/components/CartPage.tsx
   var CartPage = react_default.memo(function CartPage2({
     cart,
     isLoading,
@@ -13305,7 +13319,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/CategoriesPage.tsx
+  // src/components/CategoriesPage.tsx
   var CategoriesPage = react_default.memo(function CategoriesPage2({
     categories,
     isLoading,
@@ -13359,7 +13373,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/CheckoutPage.tsx
+  // src/components/CheckoutPage.tsx
   var CheckoutPage = react_default.memo(function CheckoutPage2({
     cart,
     isLoading,
@@ -13695,7 +13709,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/bokmoo/src/lib/digital-fulfillment.ts
+  // src/lib/digital-fulfillment.ts
   function toRecord(input) {
     if (!input) return {};
     if (typeof input === "string") {
@@ -13897,7 +13911,7 @@
     return sections3.codes.length + sections3.credentials.length + sections3.links.length;
   }
 
-  // packages/shop-themes/bokmoo/src/components/ProductsPage.tsx
+  // src/components/ProductsPage.tsx
   var CATALOG_FILTERS = ["All", "Popular", "Local", "Regional", "Global"];
   function getProductImage(product) {
     if (!product?.images?.length) return null;
@@ -14245,7 +14259,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/CollectionPages.tsx
+  // src/components/CollectionPages.tsx
   var BestsellersPage = (props) => /* @__PURE__ */ jsx(
     ProductsPage,
     {
@@ -14313,7 +14327,7 @@
     }
   );
 
-  // packages/shop-themes/bokmoo/src/components/ContactPage.tsx
+  // src/components/ContactPage.tsx
   var ContactPage = react_default.memo(function ContactPage2({ config }) {
     const site = resolveBokmooSiteConfig(config);
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--bokmoo-gold)_9%,transparent),transparent_34%),var(--bokmoo-bg)] px-4 pb-24 pt-8 sm:px-6 sm:pt-10 lg:px-8", children: /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-[980px]", children: /* @__PURE__ */ jsx("div", { className: "overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] shadow-[var(--bokmoo-shadow)] sm:rounded-[1.6rem]", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-7 p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_20rem]", children: [
@@ -14353,7 +14367,7 @@
     ] }) }) }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/DownloadAppPage.tsx
+  // src/components/DownloadAppPage.tsx
   var ANDROID_PLAY_URL = "https://play.google.com/store/apps/details?id=com.bokmoo.app";
   var ANDROID_APK_URL = "https://bokmoo.com/extensions/downloads/bokmoo-0.0.6-vc14.apk";
   var ANDROID_APK_VERSION = "0.0.6 (14)";
@@ -14380,13 +14394,17 @@
       }
     );
   }
-  var DownloadAppPage = react_default.memo(function DownloadAppPage2({ config }) {
-    const site = resolveBokmooSiteConfig(config);
+  var DownloadAppPage = react_default.memo(function DownloadAppPage2({ config, locale }) {
+    const site = resolveBokmooSiteConfig(config, locale);
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--bokmoo-gold)_9%,transparent),transparent_34%),var(--bokmoo-bg)] px-4 pb-24 pt-8 sm:px-6 sm:pt-10 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[980px]", children: [
       /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
         /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: "BOKMOO App" }),
-        /* @__PURE__ */ jsx("h1", { className: "mt-4 text-[clamp(2.2rem,4vw,3.4rem)] font-semibold leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Your BOKMOO card, in your pocket." }),
-        /* @__PURE__ */ jsx("p", { className: "mx-auto mt-5 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]", children: "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone." }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-4 text-[clamp(2.2rem,4vw,3.4rem)] font-semibold leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Your BOKMOO card, in your pocket.", hans: "\u60A8\u7684 BOKMOO \u5361\uFF0C\u5C3D\u5728\u638C\u4E2D\u3002", hant: "\u60A8\u7684 BOKMOO \u5361\uFF0C\u76E1\u5728\u638C\u4E2D\u3002" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mx-auto mt-5 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]", children: pickCopy(locale, {
+          en: "Activate your BOKMOO card over Bluetooth, install and switch eSIM profiles, and track your data \u2014 right from your phone.",
+          hans: "\u901A\u8FC7\u84DD\u7259\u6FC0\u6D3B\u60A8\u7684 BOKMOO \u5361\uFF0C\u5B89\u88C5\u548C\u5207\u6362 eSIM \u914D\u7F6E\u6587\u4EF6\uFF0C\u968F\u65F6\u638C\u63E1\u6570\u636E\u2014\u2014\u5C31\u5728\u60A8\u7684\u624B\u673A\u4E0A\u3002",
+          hant: "\u900F\u904E\u85CD\u7259\u555F\u7528\u60A8\u7684 BOKMOO \u5361\uFF0C\u5B89\u88DD\u548C\u5207\u63DB eSIM \u8A2D\u5B9A\u6A94\uFF0C\u96A8\u6642\u638C\u63E1\u6578\u64DA\u2014\u2014\u5C31\u5728\u60A8\u7684\u624B\u6A5F\u4E0A\u3002"
+        }) }),
         /* @__PURE__ */ jsx("p", { className: "mt-3 hidden text-xs text-[var(--bokmoo-copy-soft)] lg:block", children: "Hover a store button (or scan the card QR) to download." })
       ] }),
       /* @__PURE__ */ jsxs("div", { className: "mt-10 grid gap-5 lg:grid-cols-2", children: [
@@ -14398,7 +14416,7 @@
               /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--bokmoo-copy-soft)]", children: "iPhone \xB7 iPad" })
             ] })
           ] }),
-          /* @__PURE__ */ jsx("p", { className: "mt-5 text-sm leading-7 text-[var(--bokmoo-copy)]", children: "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth." }),
+          /* @__PURE__ */ jsx("p", { className: "mt-5 text-sm leading-7 text-[var(--bokmoo-copy)]", children: pickCopy(locale, { en: "Requires iOS 15 or later. Activates BOKMOO cards over Bluetooth.", hans: "\u9700\u8981 iOS 15 \u6216\u66F4\u9AD8\u7248\u672C\u3002\u901A\u8FC7\u84DD\u7259\u6FC0\u6D3B BOKMOO \u5361\u3002", hant: "\u9700\u8981 iOS 15 \u6216\u66F4\u65B0\u7248\u672C\u3002\u900F\u904E\u85CD\u7259\u555F\u7528 BOKMOO \u5361\u3002" }) }),
           /* @__PURE__ */ jsxs("div", { className: "group relative mt-6", children: [
             /* @__PURE__ */ jsxs(
               "a",
@@ -14409,11 +14427,11 @@
                 className: "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-sm font-semibold text-[var(--bokmoo-bg)]",
                 children: [
                   /* @__PURE__ */ jsx(AppleIcon, {}),
-                  "Download on the App Store"
+                  pickCopy(locale, { en: "Download on the App Store", hans: "\u5728 App Store \u4E0B\u8F7D", hant: "\u5728 App Store \u4E0B\u8F09" })
                 ]
               }
             ),
-            /* @__PURE__ */ jsx(QrPopover, { pathData: IOS_APP_STORE_QR_PATH, modules: 29, label: "Scan with iPhone" })
+            /* @__PURE__ */ jsx(QrPopover, { pathData: IOS_APP_STORE_QR_PATH, modules: 29, label: pickCopy(locale, { en: "Scan with iPhone", hans: "\u626B\u7801\u4E0B\u8F7D iOS \u7248", hant: "\u6383\u78BC\u4E0B\u8F09 iOS \u7248" }) })
           ] })
         ] }),
         /* @__PURE__ */ jsxs("div", { className: "rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
@@ -14424,7 +14442,11 @@
               /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--bokmoo-copy-soft)]", children: "Android 9.0+" })
             ] })
           ] }),
-          /* @__PURE__ */ jsx("p", { className: "mt-5 text-sm leading-7 text-[var(--bokmoo-copy)]", children: "Install from Google Play, or download the APK directly if Play is unavailable on your device." }),
+          /* @__PURE__ */ jsx("p", { className: "mt-5 text-sm leading-7 text-[var(--bokmoo-copy)]", children: pickCopy(locale, {
+            en: "Install from Google Play, or download the APK directly if Play is unavailable on your device.",
+            hans: "\u4ECE Google Play \u5B89\u88C5\uFF1B\u5982\u679C\u8BBE\u5907\u4E0A\u6CA1\u6709 Play \u5546\u5E97\uFF0C\u4E5F\u53EF\u4EE5\u76F4\u63A5\u4E0B\u8F7D APK\u3002",
+            hant: "\u5F9E Google Play \u5B89\u88DD\uFF1B\u5982\u679C\u88DD\u7F6E\u4E0A\u6C92\u6709 Play \u5546\u5E97\uFF0C\u4E5F\u53EF\u4EE5\u76F4\u63A5\u4E0B\u8F09 APK\u3002"
+          }) }),
           /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-3", children: [
             /* @__PURE__ */ jsxs("div", { className: "group relative", children: [
               /* @__PURE__ */ jsxs(
@@ -14436,11 +14458,11 @@
                   className: "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-sm font-semibold text-[var(--bokmoo-bg)]",
                   children: [
                     /* @__PURE__ */ jsx(AndroidIcon, {}),
-                    "Get it on Google Play"
+                    pickCopy(locale, { en: "Get it on Google Play", hans: "\u901A\u8FC7 Google Play \u83B7\u53D6", hant: "\u900F\u904E Google Play \u7372\u53D6" })
                   ]
                 }
               ),
-              /* @__PURE__ */ jsx(QrPopover, { pathData: ANDROID_PLAY_QR_PATH, modules: 33, label: "Scan with Android" })
+              /* @__PURE__ */ jsx(QrPopover, { pathData: ANDROID_PLAY_QR_PATH, modules: 33, label: pickCopy(locale, { en: "Scan with Android", hans: "\u626B\u7801\u4E0B\u8F7D Android \u7248", hant: "\u6383\u78BC\u4E0B\u8F09 Android \u7248" }) })
             ] }),
             /* @__PURE__ */ jsxs(
               "a",
@@ -14449,18 +14471,12 @@
                 className: "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] text-sm font-semibold text-[var(--bokmoo-ink)]",
                 children: [
                   /* @__PURE__ */ jsx(AndroidIcon, {}),
-                  "Download APK directly"
+                  pickCopy(locale, { en: "Download APK directly", hans: "\u76F4\u63A5\u4E0B\u8F7D APK", hant: "\u76F4\u63A5\u4E0B\u8F09 APK" })
                 ]
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs("p", { className: "mt-3 text-center text-xs text-[var(--bokmoo-copy-soft)]", children: [
-            "Version ",
-            ANDROID_APK_VERSION,
-            " \xB7 ",
-            ANDROID_APK_SIZE,
-            " \xB7 allow installs from your browser when prompted."
-          ] })
+          /* @__PURE__ */ jsx("p", { className: "mt-3 text-center text-xs text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: `Version ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 allow installs from your browser when prompted.`, hans: `\u7248\u672C ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 \u51FA\u73B0\u63D0\u793A\u65F6\u5141\u8BB8\u6D4F\u89C8\u5668\u5B89\u88C5\u5E94\u7528\u3002`, hant: `\u7248\u672C ${ANDROID_APK_VERSION} \xB7 ${ANDROID_APK_SIZE} \xB7 \u51FA\u73FE\u63D0\u793A\u6642\u5141\u8A31\u700F\u89BD\u5668\u5B89\u88DD\u61C9\u7528\u3002` }) })
         ] })
       ] }),
       /* @__PURE__ */ jsxs("p", { className: "mt-10 text-center text-sm text-[var(--bokmoo-copy-soft)]", children: [
@@ -14472,7 +14488,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/Footer.tsx
+  // src/components/Footer.tsx
   var Footer = react_default.memo(function Footer2({
     locale,
     config,
@@ -14487,7 +14503,6 @@
   }) {
     const site = resolveBokmooSiteConfig(config);
     const year = (/* @__PURE__ */ new Date()).getFullYear();
-    const isZhHant = locale === "zh-Hant";
     const showPoweredByJiffoo = platformBranding?.showPoweredByJiffoo !== false;
     const poweredByHref = platformBranding?.poweredByHref || "https://jiffoo.com";
     const poweredByLabel = platformBranding?.poweredByLabel || "Jiffoo";
@@ -14507,10 +14522,10 @@
           /* @__PURE__ */ jsxs("div", { children: [
             /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,var(--bokmoo-line))] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: [
               /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4" }),
-              isZhHant ? "\u5168\u7403 eSIM \u57FA\u790E\u8A2D\u65BD" : "Global eSIM Infrastructure"
+              pickCopy(locale, { en: "Global eSIM Infrastructure", hans: "\u5168\u7403 eSIM \u57FA\u7840\u8BBE\u65BD", hant: "\u5168\u7403 eSIM \u57FA\u790E\u8A2D\u65BD" })
             ] }),
-            /* @__PURE__ */ jsx("h2", { className: "mt-6 text-[clamp(2.4rem,4vw,4.4rem)] font-semibold leading-[0.95] tracking-[-0.06em] text-[var(--bokmoo-ink)]", children: isZhHant ? "\u51FA\u767C\u524D\u5B8C\u6210\u65C5\u904A\u9023\u7DDA\u8A2D\u5B9A\uFF0C\u843D\u5730\u5373\u53EF\u4F7F\u7528\u3002" : "Build your travel setup before departure, not after landing." }),
-            /* @__PURE__ */ jsx("p", { className: "mt-4 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]", children: isZhHant ? "\u63A2\u7D22\u9069\u7528\u65BC\u5404\u76EE\u7684\u5730\u7684 eSIM \u65B9\u6848\u3001\u5373\u6642\u555F\u7528\u8A2D\u5B9A\u6A94\uFF0C\u4E26\u96C6\u4E2D\u7BA1\u7406\u4E0B\u4E00\u8D9F\u65C5\u7A0B\u3002" : "Explore destination-ready eSIM plans, activate profiles instantly, and manage your next trip from one premium control surface." }),
+            /* @__PURE__ */ jsx("h2", { className: "mt-6 text-[clamp(2.4rem,4vw,4.4rem)] font-semibold leading-[0.95] tracking-[-0.06em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Build your travel setup before departure, not after landing.", hans: "\u51FA\u53D1\u524D\u5B8C\u6210\u65C5\u6E38\u8FDE\u7EBF\u8BBE\u5B9A\uFF0C\u843D\u5730\u5373\u53EF\u4F7F\u7528\u3002", hant: "\u51FA\u767C\u524D\u5B8C\u6210\u65C5\u904A\u9023\u7DDA\u8A2D\u5B9A\uFF0C\u843D\u5730\u5373\u53EF\u4F7F\u7528\u3002" }) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-4 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]", children: pickCopy(locale, { en: "Explore destination-ready eSIM plans, activate profiles instantly, and manage your next trip from one premium control surface.", hans: "\u63A2\u7D22\u9002\u7528\u4E8E\u5404\u76EE\u7684\u5730\u7684 eSIM \u65B9\u6848\u3001\u5373\u65F6\u542F\u7528\u8BBE\u5B9A\u6863\uFF0C\u5E76\u96C6\u4E2D\u7BA1\u7406\u4E0B\u4E00\u8D9F\u65C5\u7A0B\u3002", hant: "\u63A2\u7D22\u9069\u7528\u65BC\u5404\u76EE\u7684\u5730\u7684 eSIM \u65B9\u6848\u3001\u5373\u6642\u555F\u7528\u8A2D\u5B9A\u6A94\uFF0C\u4E26\u96C6\u4E2D\u7BA1\u7406\u4E0B\u4E00\u8D9F\u65C5\u7A0B\u3002" }) }),
             /* @__PURE__ */ jsxs("div", { className: "mt-8 flex flex-col gap-3 sm:flex-row", children: [
               /* @__PURE__ */ jsxs(
                 "button",
@@ -14539,27 +14554,27 @@
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsxs("div", { className: "mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: [
                 /* @__PURE__ */ jsx(Earth, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-                isZhHant ? "\u7522\u54C1" : "Product"
+                pickCopy(locale, { en: "Product", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1" })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "grid gap-2 text-sm", children: [
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToProducts, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: isZhHant ? "eSIM \u65B9\u6848" : "eSIM Plans" }),
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToCategories, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: isZhHant ? "eUICC \u5361" : "eUICC Cards" }),
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToHelp, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: isZhHant ? "\u4F7F\u7528\u65B9\u5F0F" : "How It Works" })
+                /* @__PURE__ */ jsx("button", { onClick: onNavigateToProducts, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "eSIM Plans", hans: "eSIM \u65B9\u6848", hant: "eSIM \u65B9\u6848" }) }),
+                /* @__PURE__ */ jsx("button", { onClick: onNavigateToCategories, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "eUICC Cards", hans: "eUICC \u5361", hant: "eUICC \u5361" }) }),
+                /* @__PURE__ */ jsx("button", { onClick: onNavigateToHelp, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "How It Works", hans: "\u4F7F\u7528\u65B9\u5F0F", hant: "\u4F7F\u7528\u65B9\u5F0F" }) })
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsxs("div", { className: "mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: [
                 /* @__PURE__ */ jsx(Smartphone, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-                isZhHant ? "\u516C\u53F8" : "Company"
+                pickCopy(locale, { en: "Company", hans: "\u516C\u53F8", hant: "\u516C\u53F8" })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "grid gap-2 text-sm", children: [
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToContact, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: isZhHant ? "\u652F\u63F4" : "Support" }),
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToPrivacy, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: isZhHant ? "\u96B1\u79C1\u6B0A" : "Privacy" }),
-                /* @__PURE__ */ jsx("button", { onClick: onNavigateToTerms, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: isZhHant ? "\u670D\u52D9\u689D\u6B3E" : "Terms" })
+                /* @__PURE__ */ jsx("button", { onClick: onNavigateToContact, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "Support", hans: "\u652F\u63F4", hant: "\u652F\u63F4" }) }),
+                /* @__PURE__ */ jsx("button", { onClick: onNavigateToPrivacy, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "Privacy", hans: "\u9690\u79C1\u6743", hant: "\u96B1\u79C1\u6B0A" }) }),
+                /* @__PURE__ */ jsx("button", { onClick: onNavigateToTerms, className: "rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]", type: "button", children: pickCopy(locale, { en: "Terms", hans: "\u670D\u52A1\u6761\u6B3E", hant: "\u670D\u52D9\u689D\u6B3E" }) })
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("p", { className: "mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: isZhHant ? "\u806F\u7D61\u6211\u5011" : "Contact" }),
+              /* @__PURE__ */ jsx("p", { className: "mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Contact", hans: "\u8054\u7EDC\u6211\u4EEC", hant: "\u806F\u7D61\u6211\u5011" }) }),
               /* @__PURE__ */ jsx(
                 "a",
                 {
@@ -14568,7 +14583,7 @@
                   children: site.supportEmail
                 }
               ),
-              /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-7 text-[var(--bokmoo-copy)]", children: isZhHant ? "\u5168\u5929\u5019\u63D0\u4F9B\u555F\u7528\u3001\u76F8\u5BB9\u6027\u8207\u65C5\u904A\u8A2D\u5B9A\u6A94\u7BA1\u7406\u652F\u63F4\u3002" : "24/7 global support for activation, compatibility, and travel profile management." })
+              /* @__PURE__ */ jsx("p", { className: "mt-4 text-sm leading-7 text-[var(--bokmoo-copy)]", children: pickCopy(locale, { en: "24/7 global support for activation, compatibility, and travel profile management.", hans: "\u5168\u5929\u5019\u63D0\u4F9B\u542F\u7528\u3001\u76F8\u5BB9\u6027\u4E0E\u65C5\u6E38\u8BBE\u5B9A\u6863\u7BA1\u7406\u652F\u63F4\u3002", hant: "\u5168\u5929\u5019\u63D0\u4F9B\u555F\u7528\u3001\u76F8\u5BB9\u6027\u8207\u65C5\u904A\u8A2D\u5B9A\u6A94\u7BA1\u7406\u652F\u63F4\u3002" }) })
             ] })
           ] })
         ] }),
@@ -14579,10 +14594,10 @@
             " ",
             site.brandName.toUpperCase(),
             ". ",
-            isZhHant ? "\u5B98\u65B9\u5168\u7403 eSIM \u5546\u5E97\u3002" : "Official global eSIM storefront."
+            pickCopy(locale, { en: "Official global eSIM storefront.", hans: "\u5B98\u65B9\u5168\u7403 eSIM \u5546\u5E97\u3002", hant: "\u5B98\u65B9\u5168\u7403 eSIM \u5546\u5E97\u3002" })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4", children: [
-            /* @__PURE__ */ jsx("p", { children: isZhHant ? "\u7121\u754C\u9023\u7DDA\u3001\u5B89\u5168\u555F\u7528\u8207\u512A\u8CEA\u65C5\u904A\u6578\u64DA\u7BA1\u7406\u3002" : "Boundless connectivity, secure activation, and premium travel data management." }),
+            /* @__PURE__ */ jsx("p", { children: pickCopy(locale, { en: "Boundless connectivity, secure activation, and premium travel data management.", hans: "\u65E0\u754C\u8FDE\u7EBF\u3001\u5B89\u5168\u542F\u7528\u4E0E\u4F18\u8D28\u65C5\u6E38\u6570\u636E\u7BA1\u7406\u3002", hant: "\u7121\u754C\u9023\u7DDA\u3001\u5B89\u5168\u555F\u7528\u8207\u512A\u8CEA\u65C5\u904A\u6578\u64DA\u7BA1\u7406\u3002" }) }),
             showPoweredByJiffoo ? /* @__PURE__ */ jsxs(
               "a",
               {
@@ -14601,11 +14616,11 @@
         ] })
       ] }),
       /* @__PURE__ */ jsx("div", { className: "fixed inset-x-0 bottom-0 z-40 border-t border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,var(--bokmoo-line))] bg-[color:oklch(0.07_0.01_75_/_0.96)] px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_50px_rgba(0,0,0,0.36)] backdrop-blur-xl sm:hidden", children: /* @__PURE__ */ jsx("div", { className: "mx-auto grid max-w-[420px] grid-cols-5 gap-1", children: [
-        { label: isZhHant ? "\u9996\u9801" : "Home", icon: House, onClick: () => onNavigate?.("/") },
-        { label: isZhHant ? "\u5546\u5E97" : "Store", icon: LayoutGrid, onClick: onNavigateToProducts },
-        { label: isZhHant ? "\u8A02\u55AE" : "Orders", icon: ReceiptText, onClick: () => onNavigate?.("/orders") },
-        { label: isZhHant ? "\u652F\u63F4" : "Support", icon: LifeBuoy, onClick: onNavigateToHelp },
-        { label: isZhHant ? "\u9078\u55AE" : "Menu", icon: Smartphone, onClick: onNavigateToCategories }
+        { label: pickCopy(locale, { en: "Home", hans: "\u9996\u9875", hant: "\u9996\u9801" }), icon: House, onClick: () => onNavigate?.("/") },
+        { label: pickCopy(locale, { en: "Store", hans: "\u5546\u5E97", hant: "\u5546\u5E97" }), icon: LayoutGrid, onClick: onNavigateToProducts },
+        { label: pickCopy(locale, { en: "Orders", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }), icon: ReceiptText, onClick: () => onNavigate?.("/orders") },
+        { label: pickCopy(locale, { en: "Support", hans: "\u652F\u63F4", hant: "\u652F\u63F4" }), icon: LifeBuoy, onClick: onNavigateToHelp },
+        { label: pickCopy(locale, { en: "Menu", hans: "\u9009\u5355", hant: "\u9078\u55AE" }), icon: Smartphone, onClick: onNavigateToCategories }
       ].map(({ label, icon: Icon2, onClick }) => /* @__PURE__ */ jsxs(
         "button",
         {
@@ -14622,7 +14637,7 @@
     ] });
   });
 
-  // packages/shop-themes/bokmoo/src/components/Header.tsx
+  // src/components/Header.tsx
   var FOCUS_VISIBLE_RING2 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function BokmooLogoMark() {
     return /* @__PURE__ */ jsxs(
@@ -14686,9 +14701,26 @@
     onNavigateToProducts
   }) {
     const [isMenuOpen, setIsMenuOpen] = react_default.useState(false);
+    const LOCALE_OPTIONS = [
+      { value: "en", label: "English" },
+      { value: "zh-Hans", label: "\u7B80\u4F53\u4E2D\u6587" },
+      { value: "zh-Hant", label: "\u7E41\u9AD4\u4E2D\u6587" }
+    ];
+    const [isLocaleOpen, setIsLocaleOpen] = react_default.useState(false);
+    const currentLocaleLabel = LOCALE_OPTIONS.find((option) => option.value === locale)?.label ?? "English";
+    const switchLocale = (next) => {
+      if (next === locale) {
+        setIsLocaleOpen(false);
+        return;
+      }
+      document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=31536000; samesite=lax`;
+      const path = window.location.pathname;
+      const rest = path.replace(/^\/(en|zh-Hans|zh-Hant)(?=\/|$)/, "");
+      setIsLocaleOpen(false);
+      window.location.href = `/${next}${rest === "/" ? "" : rest}`;
+    };
     const site = resolveBokmooSiteConfig(config);
     const mobileMenuId = "bokmoo-mobile-menu";
-    const isZhHant = locale === "zh-Hant";
     const accountInitial = ((user?.firstName || user?.email || "B").trim().charAt(0) || "B").toUpperCase();
     const openHref = react_default.useCallback(
       (href) => {
@@ -14701,12 +14733,12 @@
       [onNavigate]
     );
     const navItems = [
-      { label: isZhHant ? "\u5546\u5E97" : "Store", onClick: onNavigateToProducts },
-      { label: isZhHant ? "\u670D\u52D9\u7BC4\u570D" : "Coverage", onClick: onNavigateToProducts },
-      { label: isZhHant ? "\u4F7F\u7528\u65B9\u5F0F" : "How It Works", onClick: () => openHref("/#how-it-works") },
-      { label: isZhHant ? "\u95DC\u65BC\u6211\u5011" : "About Us", onClick: () => openHref("/contact") },
-      { label: isZhHant ? "\u652F\u63F4" : "Support", onClick: () => openHref("/help") },
-      { label: isZhHant ? "\u63A8\u5EE3" : "Affiliate", onClick: () => openHref("/affiliate") }
+      { label: pickCopy(locale, { en: "Store", hans: "\u5546\u5E97", hant: "\u5546\u5E97" }), onClick: onNavigateToProducts },
+      { label: pickCopy(locale, { en: "Coverage", hans: "\u670D\u52A1\u8303\u56F4", hant: "\u670D\u52D9\u7BC4\u570D" }), onClick: onNavigateToProducts },
+      { label: pickCopy(locale, { en: "How It Works", hans: "\u4F7F\u7528\u65B9\u5F0F", hant: "\u4F7F\u7528\u65B9\u5F0F" }), onClick: () => openHref("/#how-it-works") },
+      { label: pickCopy(locale, { en: "About Us", hans: "\u5173\u4E8E\u6211\u4EEC", hant: "\u95DC\u65BC\u6211\u5011" }), onClick: () => openHref("/contact") },
+      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u63F4", hant: "\u652F\u63F4" }), onClick: () => openHref("/help") },
+      { label: pickCopy(locale, { en: "Affiliate", hans: "\u63A8\u5E7F", hant: "\u63A8\u5EE3" }), onClick: () => openHref("/affiliate") }
     ];
     return /* @__PURE__ */ jsxs("header", { className: "sticky top-0 z-50 border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[radial-gradient(circle_at_8%_-24%,color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent),transparent_34%),linear-gradient(180deg,oklch(0.055_0.007_75_/_0.98),oklch(0.028_0.004_75_/_0.96))] shadow-[0_18px_52px_rgba(0,0,0,0.3)] backdrop-blur-2xl", children: [
       /* @__PURE__ */ jsxs("div", { className: "mx-auto flex max-w-[107rem] items-center gap-3 px-4 py-2.5 sm:px-6 xl:min-h-[4.35rem] xl:gap-5 xl:px-0", children: [
@@ -14740,18 +14772,34 @@
           item.label
         )) }),
         /* @__PURE__ */ jsxs("div", { className: "ml-auto hidden items-center gap-3 xl:flex", children: [
-          /* @__PURE__ */ jsxs(
-            "button",
-            {
-              className: `inline-flex min-h-[2.75rem] items-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.012))] px-4 text-sm text-[var(--bokmoo-copy)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_48%,transparent)] hover:text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
-              type: "button",
-              children: [
-                /* @__PURE__ */ jsx(Earth, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-                isZhHant ? "\u7E41\u9AD4\u4E2D\u6587" : "English",
-                /* @__PURE__ */ jsx(ChevronDown, { className: "h-4 w-4" })
-              ]
-            }
-          ),
+          /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+            /* @__PURE__ */ jsxs(
+              "button",
+              {
+                onClick: () => setIsLocaleOpen((open) => !open),
+                className: `inline-flex min-h-[2.75rem] items-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.012))] px-4 text-sm text-[var(--bokmoo-copy)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_48%,transparent)] hover:text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
+                type: "button",
+                children: [
+                  /* @__PURE__ */ jsx(Earth, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
+                  currentLocaleLabel,
+                  /* @__PURE__ */ jsx(ChevronDown, { className: "h-4 w-4" })
+                ]
+              }
+            ),
+            isLocaleOpen && /* @__PURE__ */ jsx("div", { className: "absolute right-0 top-full z-30 mt-2 w-44 overflow-hidden rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,black)] p-1.5 shadow-[0_16px_48px_rgba(0,0,0,0.5)]", children: LOCALE_OPTIONS.map((option) => /* @__PURE__ */ jsxs(
+              "button",
+              {
+                onClick: () => switchLocale(option.value),
+                className: `flex w-full items-center justify-between rounded-[0.6rem] px-3 py-2.5 text-left text-sm transition-colors hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] ${option.value === locale ? "font-semibold text-[var(--bokmoo-gold)]" : "text-[var(--bokmoo-copy)]"}`,
+                type: "button",
+                children: [
+                  option.label,
+                  option.value === locale && /* @__PURE__ */ jsx("span", { className: "text-xs", children: "\u2713" })
+                ]
+              },
+              option.value
+            )) })
+          ] }),
           isAuthenticated ? /* @__PURE__ */ jsxs(
             "button",
             {
@@ -14760,7 +14808,7 @@
               type: "button",
               children: [
                 /* @__PURE__ */ jsx("span", { className: "flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_86%,white),color-mix(in_oklab,var(--bokmoo-gold)_66%,black))] text-[0.8rem] font-bold text-[var(--bokmoo-bg)]", children: accountInitial }),
-                isZhHant ? "\u6211\u7684\u5E33\u6236" : "My Account",
+                pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" }),
                 /* @__PURE__ */ jsx(ChevronDown, { className: "h-4 w-4 text-[var(--bokmoo-copy-soft)]" })
               ]
             }
@@ -14771,7 +14819,7 @@
                 onClick: onNavigateToLogin,
                 className: `inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] px-5 text-sm font-medium text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING2}`,
                 type: "button",
-                children: isZhHant ? "\u767B\u5165" : "Log In"
+                children: pickCopy(locale, { en: "Log In", hans: "\u767B\u5165", hant: "\u767B\u5165" })
               }
             ),
             /* @__PURE__ */ jsx(
@@ -14780,7 +14828,7 @@
                 onClick: onNavigateToRegister,
                 className: `inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,white)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-bold tracking-[0.01em] text-[var(--bokmoo-bg)] shadow-[0_14px_30px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.34)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING2}`,
                 type: "button",
-                children: isZhHant ? "\u7ACB\u5373\u958B\u59CB" : "Get Started"
+                children: pickCopy(locale, { en: "Get Started", hans: "\u7ACB\u5373\u5F00\u59CB", hant: "\u7ACB\u5373\u958B\u59CB" })
               }
             )
           ] }),
@@ -14789,7 +14837,7 @@
             {
               onClick: onNavigateToCart,
               className: `relative inline-flex h-[2.75rem] w-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(0,0,0,0.18))] text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING2}`,
-              "aria-label": isZhHant ? "\u958B\u555F\u8CFC\u7269\u8ECA" : "Open cart",
+              "aria-label": pickCopy(locale, { en: "Open cart", hans: "\u5F00\u542F\u8D2D\u7269\u8F66", hant: "\u958B\u555F\u8CFC\u7269\u8ECA" }),
               type: "button",
               children: [
                 /* @__PURE__ */ jsx(ShoppingBag, { className: "h-4 w-4" }),
@@ -14805,7 +14853,7 @@
             className: `ml-auto flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-[var(--bokmoo-line)] text-[var(--bokmoo-ink)] xl:hidden ${FOCUS_VISIBLE_RING2}`,
             "aria-controls": mobileMenuId,
             "aria-expanded": isMenuOpen,
-            "aria-label": isMenuOpen ? isZhHant ? "\u95DC\u9589\u9078\u55AE" : "Close menu" : isZhHant ? "\u958B\u555F\u9078\u55AE" : "Open menu",
+            "aria-label": isMenuOpen ? pickCopy(locale, { en: "Close menu", hans: "\u5173\u95ED\u9009\u5355", hant: "\u95DC\u9589\u9078\u55AE" }) : pickCopy(locale, { en: "Open menu", hans: "\u5F00\u542F\u9009\u5355", hant: "\u958B\u555F\u9078\u55AE" }),
             type: "button",
             children: isMenuOpen ? /* @__PURE__ */ jsx(X, { className: "h-5 w-5" }) : /* @__PURE__ */ jsx(Menu, { className: "h-5 w-5" })
           }
@@ -14834,7 +14882,7 @@
             },
             className: `rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
             type: "button",
-            children: isZhHant ? "\u8CFC\u7269\u8ECA" : "Cart"
+            children: pickCopy(locale, { en: "Cart", hans: "\u8D2D\u7269\u8F66", hant: "\u8CFC\u7269\u8ECA" })
           }
         ),
         isAuthenticated ? /* @__PURE__ */ jsxs(Fragment2, { children: [
@@ -14847,7 +14895,7 @@
               },
               className: `rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: isZhHant ? "\u6211\u7684\u5E33\u6236" : "My Account"
+              children: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" })
             }
           ),
           /* @__PURE__ */ jsx(
@@ -14859,7 +14907,7 @@
               },
               className: `rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-copy)] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: isZhHant ? "\u767B\u51FA" : "Log Out"
+              children: pickCopy(locale, { en: "Log Out", hans: "\u767B\u51FA", hant: "\u767B\u51FA" })
             }
           )
         ] }) : /* @__PURE__ */ jsxs(Fragment2, { children: [
@@ -14872,7 +14920,7 @@
               },
               className: `rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: isZhHant ? "\u767B\u5165" : "Log In"
+              children: pickCopy(locale, { en: "Log In", hans: "\u767B\u5165", hant: "\u767B\u5165" })
             }
           ),
           /* @__PURE__ */ jsx(
@@ -14884,7 +14932,7 @@
               },
               className: `rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-4 py-3 text-left text-sm font-semibold text-[var(--bokmoo-bg)] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: isZhHant ? "\u7ACB\u5373\u958B\u59CB" : "Get Started"
+              children: pickCopy(locale, { en: "Get Started", hans: "\u7ACB\u5373\u5F00\u59CB", hant: "\u7ACB\u5373\u958B\u59CB" })
             }
           )
         ] })
@@ -14892,7 +14940,7 @@
     ] });
   });
 
-  // packages/shop-themes/bokmoo/src/components/HelpPage.tsx
+  // src/components/HelpPage.tsx
   var topics = [
     {
       title: "How to install eSIM",
@@ -14967,7 +15015,7 @@
     ] }) }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/HomePage.tsx
+  // src/components/HomePage.tsx
   var BOKMOO_HERO_CARD_SRC = "/theme-assets/bokmoo/bokmoo-hero-card-product.png?v=20260716";
   var FOCUS_VISIBLE_RING3 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function HeroPillar({ className }) {
@@ -15033,7 +15081,6 @@
     const site = resolveBokmooSiteConfig(config, locale);
     const [homeProducts, setHomeProducts] = react_default.useState([]);
     const [homeProductsLoading, setHomeProductsLoading] = react_default.useState(true);
-    const isZhHant = locale === "zh-Hant";
     const openHref = react_default.useCallback(
       (href) => {
         if (isExternalHref(href)) {
@@ -15233,8 +15280,8 @@
           ] }),
           /* @__PURE__ */ jsx("div", { className: "mt-10 overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] bg-[linear-gradient(90deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] px-5 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.018),0_22px_70px_rgba(0,0,0,0.36)] sm:rounded-full sm:px-7 sm:py-3.5 lg:mt-auto", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 text-sm sm:items-center sm:text-base", children: [
-              /* @__PURE__ */ jsx("span", { className: "shrink-0 rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: isZhHant ? "\u516C\u544A" : "Notice" }),
-              /* @__PURE__ */ jsx("span", { className: "text-[color:color-mix(in_oklab,var(--bokmoo-copy)_92%,white)]", children: isZhHant ? "BOKMOO Pro eUICC \u5361\u73FE\u5DF2\u63A8\u51FA\uFF0C\u8F15\u9B06\u7BA1\u7406\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\u3002" : "BOKMOO Pro eUICC Card is now available! Manage multiple eSIM profiles with ease." })
+              /* @__PURE__ */ jsx("span", { className: "shrink-0 rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: pickCopy(locale, { en: "Notice", hans: "\u516C\u544A", hant: "\u516C\u544A" }) }),
+              /* @__PURE__ */ jsx("span", { className: "text-[color:color-mix(in_oklab,var(--bokmoo-copy)_92%,white)]", children: pickCopy(locale, { en: "BOKMOO Pro eUICC Card is now available! Manage multiple eSIM profiles with ease.", hans: "BOKMOO Pro eUICC \u5361\u73B0\u5DF2\u63A8\u51FA\uFF0C\u8F7B\u677E\u7BA1\u7406\u591A\u4E2A eSIM \u8BBE\u5B9A\u6863\u3002", hant: "BOKMOO Pro eUICC \u5361\u73FE\u5DF2\u63A8\u51FA\uFF0C\u8F15\u9B06\u7BA1\u7406\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\u3002" }) })
             ] }),
             /* @__PURE__ */ jsxs(
               "button",
@@ -15243,7 +15290,7 @@
                 className: `inline-flex shrink-0 items-center gap-3 rounded-full px-2 py-1 text-sm font-semibold text-[var(--bokmoo-gold)] sm:text-base ${FOCUS_VISIBLE_RING3}`,
                 type: "button",
                 children: [
-                  isZhHant ? "\u77AD\u89E3\u66F4\u591A" : "Learn more",
+                  pickCopy(locale, { en: "Learn more", hans: "\u4E86\u89E3\u66F4\u591A", hant: "\u77AD\u89E3\u66F4\u591A" }),
                   /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
                 ]
               }
@@ -15254,8 +15301,8 @@
       /* @__PURE__ */ jsx("section", { className: "px-4 py-6 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1280px] space-y-6", children: [
         /* @__PURE__ */ jsxs("div", { id: "how-it-works", className: "scroll-mt-24 rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8 lg:scroll-mt-32", children: [
           /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
-            /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2.2rem,4vw,3.4rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: isZhHant ? "\u70BA\u4EC0\u9EBC\u9078\u64C7 BOKMOO\uFF1F" : "Why Choose BOKMOO?" }),
-            /* @__PURE__ */ jsx("p", { className: "mt-3 text-base text-[var(--bokmoo-copy)]", children: isZhHant ? "\u7531\u60A8\u5168\u9762\u638C\u63A7\u7684\u65B0\u4E16\u4EE3 eSIM \u5E73\u53F0\u3002" : "The next generation eSIM platform that puts you in control." })
+            /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2.2rem,4vw,3.4rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Why Choose BOKMOO?", hans: "\u4E3A\u4EC0\u4E48\u9009\u62E9 BOKMOO\uFF1F", hant: "\u70BA\u4EC0\u9EBC\u9078\u64C7 BOKMOO\uFF1F" }) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-3 text-base text-[var(--bokmoo-copy)]", children: pickCopy(locale, { en: "The next generation eSIM platform that puts you in control.", hans: "\u7531\u60A8\u5168\u9762\u638C\u63A7\u7684\u65B0\u4E16\u4EE3 eSIM \u5E73\u53F0\u3002", hant: "\u7531\u60A8\u5168\u9762\u638C\u63A7\u7684\u65B0\u4E16\u4EE3 eSIM \u5E73\u53F0\u3002" }) })
           ] }),
           /* @__PURE__ */ jsx("div", { className: "mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4", children: reasonCards.map(({ title, body, icon: Icon2 }) => /* @__PURE__ */ jsxs(
             "article",
@@ -15273,8 +15320,8 @@
         homeProductsLoading || homeProducts.length > 0 ? /* @__PURE__ */ jsxs("div", { className: "rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
           /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-4 border-b border-[var(--bokmoo-line)] pb-5 sm:flex-row sm:items-end sm:justify-between", children: [
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2rem,3.4vw,3rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: isZhHant ? "BOKMOO \u5BE6\u9AD4\u5361" : "The BOKMOO Card" }),
-              /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-[var(--bokmoo-copy)]", children: isZhHant ? "\u8207\u5546\u54C1\u76EE\u9304\u5373\u6642\u540C\u6B65\u7684\u771F\u5BE6\u8CC7\u8A0A\u2014\u2014\u8CFC\u8CB7\u5BE6\u9AD4\u5361\uFF0C\u843D\u5730\u5373\u53EF\u555F\u7528 eSIM \u670D\u52D9\u3002" : "Live data straight from our product catalog. Buy the physical card and activate eSIM service on arrival." })
+              /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2rem,3.4vw,3rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "The BOKMOO Card", hans: "BOKMOO \u5B9E\u4F53\u5361", hant: "BOKMOO \u5BE6\u9AD4\u5361" }) }),
+              /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-[var(--bokmoo-copy)]", children: pickCopy(locale, { en: "Live data straight from our product catalog. Buy the physical card and activate eSIM service on arrival.", hans: "\u4E0E\u5546\u54C1\u76EE\u5F55\u5373\u65F6\u540C\u6B65\u7684\u771F\u5B9E\u8D44\u8BAF\u2014\u2014\u8D2D\u4E70\u5B9E\u4F53\u5361\uFF0C\u843D\u5730\u5373\u53EF\u542F\u7528 eSIM \u670D\u52A1\u3002", hant: "\u8207\u5546\u54C1\u76EE\u9304\u5373\u6642\u540C\u6B65\u7684\u771F\u5BE6\u8CC7\u8A0A\u2014\u2014\u8CFC\u8CB7\u5BE6\u9AD4\u5361\uFF0C\u843D\u5730\u5373\u53EF\u555F\u7528 eSIM \u670D\u52D9\u3002" }) })
             ] }),
             /* @__PURE__ */ jsxs(
               "button",
@@ -15283,7 +15330,7 @@
                 className: `inline-flex items-center gap-2 rounded-full px-2 py-1 text-sm font-medium text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
                 type: "button",
                 children: [
-                  isZhHant ? "\u67E5\u770B\u5361\u7247\u8207\u65B9\u6848" : "View card & plans",
+                  pickCopy(locale, { en: "View card & plans", hans: "\u67E5\u770B\u5361\u7247\u4E0E\u65B9\u6848", hant: "\u67E5\u770B\u5361\u7247\u8207\u65B9\u6848" }),
                   /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
                 ]
               }
@@ -15311,7 +15358,7 @@
                 ) : /* @__PURE__ */ jsx("div", { className: "flex h-full items-center justify-center text-[var(--bokmoo-copy-soft)]", children: /* @__PURE__ */ jsx(CreditCard, { className: "h-10 w-10" }) }) }),
                 /* @__PURE__ */ jsxs("div", { className: "p-5", children: [
                   /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
-                    /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]", children: isZhHant ? "\u5BE6\u9AD4\u5361" : "Physical card" }),
+                    /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]", children: pickCopy(locale, { en: "Physical card", hans: "\u5B9E\u4F53\u5361", hant: "\u5BE6\u9AD4\u5361" }) }),
                     /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy)]", children: "eUICC" })
                   ] }),
                   /* @__PURE__ */ jsx("h3", { className: "mt-4 text-2xl font-semibold tracking-[-0.03em] text-[var(--bokmoo-ink)]", children: product.name }),
@@ -15327,7 +15374,7 @@
                         onClick: () => openHref("/products"),
                         className: `inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_84%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-semibold text-[var(--bokmoo-bg)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING3}`,
                         type: "button",
-                        children: isZhHant ? "\u7ACB\u5373\u8CFC\u8CB7" : "Buy Now"
+                        children: pickCopy(locale, { en: "Buy Now", hans: "\u7ACB\u5373\u8D2D\u4E70", hant: "\u7ACB\u5373\u8CFC\u8CB7" })
                       }
                     )
                   ] })
@@ -15339,7 +15386,7 @@
         ] }) : null,
         /* @__PURE__ */ jsx("div", { className: "rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]", children: [
           /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2rem,3.2vw,2.8rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: isZhHant ? "\u4F7F\u7528\u65B9\u5F0F" : "How It Works" }),
+            /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2rem,3.2vw,2.8rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "How It Works", hans: "\u4F7F\u7528\u65B9\u5F0F", hant: "\u4F7F\u7528\u65B9\u5F0F" }) }),
             /* @__PURE__ */ jsx("div", { className: "mt-6 grid gap-5 md:grid-cols-3", children: steps.map(({ title, body, icon: Icon2 }) => /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
               /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--bokmoo-line-strong)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Icon2, { className: "h-7 w-7" }) }),
               /* @__PURE__ */ jsx("h3", { className: "mt-5 text-lg font-medium text-[var(--bokmoo-ink)]", children: title }),
@@ -15362,16 +15409,16 @@
                   ] }),
                   /* @__PURE__ */ jsx("span", { className: "text-xs font-semibold text-[var(--bokmoo-ink)]", children: "BOKMOO Pro" })
                 ] }),
-                /* @__PURE__ */ jsx("span", { className: "text-[10px] font-semibold text-emerald-300", children: isZhHant ? "\u4F7F\u7528\u4E2D" : "Active" })
+                /* @__PURE__ */ jsx("span", { className: "text-[10px] font-semibold text-emerald-300", children: pickCopy(locale, { en: "Active", hans: "\u4F7F\u7528\u4E2D", hant: "\u4F7F\u7528\u4E2D" }) })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "mt-4", children: [
-                /* @__PURE__ */ jsx("p", { className: "text-[11px] text-[var(--bokmoo-copy-soft)]", children: isZhHant ? "\u6578\u64DA\u7528\u91CF" : "Data Usage" }),
+                /* @__PURE__ */ jsx("p", { className: "text-[11px] text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Data Usage", hans: "\u6570\u636E\u7528\u91CF", hant: "\u6578\u64DA\u7528\u91CF" }) }),
                 /* @__PURE__ */ jsxs("p", { className: "mt-1 text-2xl font-semibold text-[var(--bokmoo-ink)]", children: [
                   "12.45 ",
                   /* @__PURE__ */ jsx("span", { className: "text-sm font-medium text-[var(--bokmoo-copy)]", children: "GB / 20 GB" })
                 ] }),
                 /* @__PURE__ */ jsx("div", { className: "mt-3 h-2 rounded-full bg-[rgba(255,255,255,0.08)]", children: /* @__PURE__ */ jsx("div", { className: "h-full w-[62%] rounded-full bg-[linear-gradient(90deg,var(--bokmoo-gold),color-mix(in_oklab,var(--bokmoo-gold)_72%,white))]" }) }),
-                /* @__PURE__ */ jsx("p", { className: "mt-4 text-[11px] text-[var(--bokmoo-copy-soft)]", children: isZhHant ? "\u6709\u6548\u671F\u9650" : "Valid Until" }),
+                /* @__PURE__ */ jsx("p", { className: "mt-4 text-[11px] text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Valid Until", hans: "\u6709\u6548\u671F\u9650", hant: "\u6709\u6548\u671F\u9650" }) }),
                 /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm font-medium text-[var(--bokmoo-ink)]", children: "2025-06-30" })
               ] })
             ] })
@@ -15382,11 +15429,11 @@
             /* @__PURE__ */ jsx("div", { className: "absolute -bottom-28 left-[28%] h-72 w-72 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] opacity-60" }),
             /* @__PURE__ */ jsx("div", { className: "absolute -bottom-36 left-[24%] h-96 w-96 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] opacity-50" }),
             /* @__PURE__ */ jsx("p", { className: "text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: "BOKMOO eUICC Card" }),
-            /* @__PURE__ */ jsx("h2", { className: "mt-3 text-[clamp(2.2rem,4vw,3.8rem)] font-semibold leading-[0.95] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: isZhHant ? "\u4E00\u5361\u5728\u624B\uFF0C\u7121\u9650\u53EF\u80FD\u3002" : "One Card. Unlimited Possibilities." }),
+            /* @__PURE__ */ jsx("h2", { className: "mt-3 text-[clamp(2.2rem,4vw,3.8rem)] font-semibold leading-[0.95] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "One Card. Unlimited Possibilities.", hans: "\u4E00\u5361\u5728\u624B\uFF0C\u65E0\u9650\u53EF\u80FD\u3002", hant: "\u4E00\u5361\u5728\u624B\uFF0C\u7121\u9650\u53EF\u80FD\u3002" }) }),
             /* @__PURE__ */ jsxs("ul", { className: "mt-6 space-y-3 text-base text-[var(--bokmoo-copy)]", children: [
-              /* @__PURE__ */ jsx("li", { children: isZhHant ? "\u5132\u5B58\u591A\u500B eSIM \u8A2D\u5B9A\u6A94" : "Store multiple eSIM profiles" }),
-              /* @__PURE__ */ jsx("li", { children: isZhHant ? "\u900F\u904E BOKMOO App \u8F15\u9B06\u7BA1\u7406" : "Easy management via BOKMOO App" }),
-              /* @__PURE__ */ jsx("li", { children: isZhHant ? "\u76F8\u5BB9 iOS \u8207 Android" : "Compatible with iOS & Android" })
+              /* @__PURE__ */ jsx("li", { children: pickCopy(locale, { en: "Store multiple eSIM profiles", hans: "\u50A8\u5B58\u591A\u4E2A eSIM \u8BBE\u5B9A\u6863", hant: "\u5132\u5B58\u591A\u500B eSIM \u8A2D\u5B9A\u6A94" }) }),
+              /* @__PURE__ */ jsx("li", { children: pickCopy(locale, { en: "Easy management via BOKMOO App", hans: "\u900F\u8FC7 BOKMOO App \u8F7B\u677E\u7BA1\u7406", hant: "\u900F\u904E BOKMOO App \u8F15\u9B06\u7BA1\u7406" }) }),
+              /* @__PURE__ */ jsx("li", { children: pickCopy(locale, { en: "Compatible with iOS & Android", hans: "\u76F8\u5BB9 iOS \u4E0E Android", hant: "\u76F8\u5BB9 iOS \u8207 Android" }) })
             ] }),
             /* @__PURE__ */ jsx(
               "button",
@@ -15394,7 +15441,7 @@
                 onClick: () => openHref(site.secondaryCtaHref),
                 className: `mt-8 inline-flex min-h-12 items-center justify-center rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_84%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-7 text-sm font-semibold text-[var(--bokmoo-bg)] ${FOCUS_VISIBLE_RING3}`,
                 type: "button",
-                children: isZhHant ? "\u7ACB\u5373\u9078\u8CFC" : "Shop Now"
+                children: pickCopy(locale, { en: "Shop Now", hans: "\u7ACB\u5373\u9009\u8D2D", hant: "\u7ACB\u5373\u9078\u8CFC" })
               }
             )
           ] }),
@@ -15421,7 +15468,7 @@
     ] });
   });
 
-  // packages/shop-themes/bokmoo/src/components/LoginPage.tsx
+  // src/components/LoginPage.tsx
   var FOCUS_VISIBLE_RING4 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function LoginPage({
     isLoading,
@@ -15620,7 +15667,7 @@
     ] });
   }
 
-  // packages/shop-themes/bokmoo/src/components/InstallSessionPanel.tsx
+  // src/components/InstallSessionPanel.tsx
   function copyToClipboard(value) {
     if (!value || typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
     navigator.clipboard.writeText(value).catch(() => void 0);
@@ -15738,7 +15785,7 @@
     );
   });
 
-  // packages/shop-themes/bokmoo/src/components/OrderDetailPage.tsx
+  // src/components/OrderDetailPage.tsx
   function copyToClipboard2(value) {
     if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
     navigator.clipboard.writeText(value).catch(() => void 0);
@@ -16081,7 +16128,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/OrdersPage.tsx
+  // src/components/OrdersPage.tsx
   function getStatusTone(status) {
     const normalized = status.toUpperCase();
     if (normalized === "DELIVERED" || normalized === "COMPLETED") return "bg-[color:color-mix(in_oklab,var(--bokmoo-success)_18%,white)] text-[var(--bokmoo-ink)]";
@@ -16254,7 +16301,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/OrderSuccessPage.tsx
+  // src/components/OrderSuccessPage.tsx
   function copyToClipboard3(value) {
     if (!value || typeof navigator === "undefined" || !navigator.clipboard?.writeText) return;
     navigator.clipboard.writeText(value).catch(() => void 0);
@@ -16406,7 +16453,7 @@
     ] }) }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/PrivacyPage.tsx
+  // src/components/PrivacyPage.tsx
   var sections = [
     ["Information We Collect", "We collect information you provide directly to us, such as when you create an account or make a purchase."],
     ["How We Use Information", "We use the information to provide, maintain, and improve our services."],
@@ -16435,7 +16482,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/ProfileSettingsPage.tsx
+  // src/components/ProfileSettingsPage.tsx
   var ProfileSettingsPage = react_default.memo(function ProfileSettingsPage2({
     user,
     isLoading,
@@ -16599,7 +16646,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/RegisterPage.tsx
+  // src/components/RegisterPage.tsx
   var FOCUS_VISIBLE_RING5 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function RegisterPage({
     isLoading,
@@ -16813,7 +16860,7 @@
     ] });
   }
 
-  // packages/shop-themes/bokmoo/src/components/ProductDetailPage.tsx
+  // src/components/ProductDetailPage.tsx
   function getProductImage2(product) {
     if (!product?.images?.length) return null;
     const primary = product.images.find((image) => image.isMain) || product.images[0];
@@ -17038,7 +17085,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/bokmoo/src/components/TermsPage.tsx
+  // src/components/TermsPage.tsx
   var sections2 = [
     ["Acceptance of Terms", "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service."],
     ["Use of Services", "You agree to use our services only for lawful purposes and in accordance with these Terms."],
@@ -17067,7 +17114,7 @@
     ] }) });
   });
 
-  // packages/shop-themes/bokmoo/src/runtime.ts
+  // src/runtime.ts
   var theme = {
     components: {
       HomePage,
@@ -17133,7 +17180,7 @@
   };
   var runtime_default = theme;
 
-  // packages/shop-themes/bokmoo/bokmoo-theme-runtime-entry.ts
+  // bokmoo-theme-runtime-entry.ts
   var tokenStyleId = "bokmoo-runtime-tokens";
   var tokenStyle = document.getElementById(tokenStyleId);
   if (!tokenStyle) {
@@ -17235,7 +17282,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.18",
+      version: "1.1.19",
       target: "shop"
     }
   };

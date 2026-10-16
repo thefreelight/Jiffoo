@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import type { HomePageProps } from 'shared/src/types/theme';
 import { displayProductTitle, getBokmooProducts, resolveBokmooMediaUrl } from '../lib/api';
-import { isExternalHref, resolveBokmooSiteConfig } from '../site';
+import { isExternalHref,pickCopy, resolveBokmooSiteConfig } from '../site';
 
 type HeroPillarProps = {
   className: string;
@@ -98,7 +98,6 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
   const site = resolveBokmooSiteConfig(config, locale);
   const [homeProducts, setHomeProducts] = React.useState<HomeProduct[]>([]);
   const [homeProductsLoading, setHomeProductsLoading] = React.useState(true);
-  const isZhHant = locale === 'zh-Hant';
 
   const openHref = React.useCallback(
     (href: string) => {
@@ -336,10 +335,10 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-4 text-sm sm:items-center sm:text-base">
                 <span className="shrink-0 rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
-                  {isZhHant ? '公告' : 'Notice'}
+                  {pickCopy(locale, { en: 'Notice', hans: '公告', hant: '公告' })}
                 </span>
                 <span className="text-[color:color-mix(in_oklab,var(--bokmoo-copy)_92%,white)]">
-                  {isZhHant ? 'BOKMOO Pro eUICC 卡現已推出，輕鬆管理多個 eSIM 設定檔。' : 'BOKMOO Pro eUICC Card is now available! Manage multiple eSIM profiles with ease.'}
+                  {pickCopy(locale, { en: 'BOKMOO Pro eUICC Card is now available! Manage multiple eSIM profiles with ease.', hans: 'BOKMOO Pro eUICC 卡现已推出，轻松管理多个 eSIM 设定档。', hant: 'BOKMOO Pro eUICC 卡現已推出，輕鬆管理多個 eSIM 設定檔。' })}
                 </span>
               </div>
               <button
@@ -347,7 +346,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                 className={`inline-flex shrink-0 items-center gap-3 rounded-full px-2 py-1 text-sm font-semibold text-[var(--bokmoo-gold)] sm:text-base ${FOCUS_VISIBLE_RING}`}
                 type="button"
               >
-                {isZhHant ? '瞭解更多' : 'Learn more'}
+                {pickCopy(locale, { en: 'Learn more', hans: '了解更多', hant: '瞭解更多' })}
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
@@ -360,10 +359,10 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
           <div id="how-it-works" className="scroll-mt-24 rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8 lg:scroll-mt-32">
             <div className="text-center">
               <h2 className="text-[clamp(2.2rem,4vw,3.4rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-                {isZhHant ? '為什麼選擇 BOKMOO？' : 'Why Choose BOKMOO?'}
+                {pickCopy(locale, { en: 'Why Choose BOKMOO?', hans: '为什么选择 BOKMOO？', hant: '為什麼選擇 BOKMOO？' })}
               </h2>
               <p className="mt-3 text-base text-[var(--bokmoo-copy)]">
-                {isZhHant ? '由您全面掌控的新世代 eSIM 平台。' : 'The next generation eSIM platform that puts you in control.'}
+                {pickCopy(locale, { en: 'The next generation eSIM platform that puts you in control.', hans: '由您全面掌控的新世代 eSIM 平台。', hant: '由您全面掌控的新世代 eSIM 平台。' })}
               </p>
             </div>
 
@@ -388,12 +387,10 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
               <div className="flex flex-col gap-4 border-b border-[var(--bokmoo-line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-[clamp(2rem,3.4vw,3rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-                    {isZhHant ? 'BOKMOO 實體卡' : 'The BOKMOO Card'}
+                    {pickCopy(locale, { en: 'The BOKMOO Card', hans: 'BOKMOO 实体卡', hant: 'BOKMOO 實體卡' })}
                   </h2>
                   <p className="mt-2 text-sm text-[var(--bokmoo-copy)]">
-                    {isZhHant
-                      ? '與商品目錄即時同步的真實資訊——購買實體卡，落地即可啟用 eSIM 服務。'
-                      : 'Live data straight from our product catalog. Buy the physical card and activate eSIM service on arrival.'}
+                    {pickCopy(locale, { en: 'Live data straight from our product catalog. Buy the physical card and activate eSIM service on arrival.', hans: '与商品目录即时同步的真实资讯——购买实体卡，落地即可启用 eSIM 服务。', hant: '與商品目錄即時同步的真實資訊——購買實體卡，落地即可啟用 eSIM 服務。' })}
                   </p>
                 </div>
 
@@ -402,7 +399,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                   className={`inline-flex items-center gap-2 rounded-full px-2 py-1 text-sm font-medium text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                  {isZhHant ? '查看卡片與方案' : 'View card & plans'}
+                  {pickCopy(locale, { en: 'View card & plans', hans: '查看卡片与方案', hant: '查看卡片與方案' })}
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
@@ -437,7 +434,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                         <div className="p-5">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]">
-                              {isZhHant ? '實體卡' : 'Physical card'}
+                              {pickCopy(locale, { en: 'Physical card', hans: '实体卡', hant: '實體卡' })}
                             </span>
                             <span className="rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy)]">eUICC</span>
                           </div>
@@ -452,7 +449,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                               className={`inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_84%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-semibold text-[var(--bokmoo-bg)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING}`}
                               type="button"
                             >
-                              {isZhHant ? '立即購買' : 'Buy Now'}
+                              {pickCopy(locale, { en: 'Buy Now', hans: '立即购买', hant: '立即購買' })}
                             </button>
                           </div>
                         </div>
@@ -466,7 +463,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
               <div>
                 <h2 className="text-[clamp(2rem,3.2vw,2.8rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-                  {isZhHant ? '使用方式' : 'How It Works'}
+                  {pickCopy(locale, { en: 'How It Works', hans: '使用方式', hant: '使用方式' })}
                 </h2>
                 <div className="mt-6 grid gap-5 md:grid-cols-3">
                   {steps.map(({ title, body, icon: Icon }) => (
@@ -498,16 +495,16 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                       </div>
                       <span className="text-xs font-semibold text-[var(--bokmoo-ink)]">BOKMOO Pro</span>
                     </div>
-                    <span className="text-[10px] font-semibold text-emerald-300">{isZhHant ? '使用中' : 'Active'}</span>
+                    <span className="text-[10px] font-semibold text-emerald-300">{pickCopy(locale, { en: 'Active', hans: '使用中', hant: '使用中' })}</span>
                   </div>
 
                   <div className="mt-4">
-                    <p className="text-[11px] text-[var(--bokmoo-copy-soft)]">{isZhHant ? '數據用量' : 'Data Usage'}</p>
+                    <p className="text-[11px] text-[var(--bokmoo-copy-soft)]">{pickCopy(locale, { en: 'Data Usage', hans: '数据用量', hant: '數據用量' })}</p>
                     <p className="mt-1 text-2xl font-semibold text-[var(--bokmoo-ink)]">12.45 <span className="text-sm font-medium text-[var(--bokmoo-copy)]">GB / 20 GB</span></p>
                     <div className="mt-3 h-2 rounded-full bg-[rgba(255,255,255,0.08)]">
                       <div className="h-full w-[62%] rounded-full bg-[linear-gradient(90deg,var(--bokmoo-gold),color-mix(in_oklab,var(--bokmoo-gold)_72%,white))]" />
                     </div>
-                    <p className="mt-4 text-[11px] text-[var(--bokmoo-copy-soft)]">{isZhHant ? '有效期限' : 'Valid Until'}</p>
+                    <p className="mt-4 text-[11px] text-[var(--bokmoo-copy-soft)]">{pickCopy(locale, { en: 'Valid Until', hans: '有效期限', hant: '有效期限' })}</p>
                     <p className="mt-1 text-sm font-medium text-[var(--bokmoo-ink)]">2025-06-30</p>
                   </div>
                 </div>
@@ -525,19 +522,19 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                   BOKMOO eUICC Card
                 </p>
                 <h2 className="mt-3 text-[clamp(2.2rem,4vw,3.8rem)] font-semibold leading-[0.95] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-                  {isZhHant ? '一卡在手，無限可能。' : 'One Card. Unlimited Possibilities.'}
+                  {pickCopy(locale, { en: 'One Card. Unlimited Possibilities.', hans: '一卡在手，无限可能。', hant: '一卡在手，無限可能。' })}
                 </h2>
                 <ul className="mt-6 space-y-3 text-base text-[var(--bokmoo-copy)]">
-                  <li>{isZhHant ? '儲存多個 eSIM 設定檔' : 'Store multiple eSIM profiles'}</li>
-                  <li>{isZhHant ? '透過 BOKMOO App 輕鬆管理' : 'Easy management via BOKMOO App'}</li>
-                  <li>{isZhHant ? '相容 iOS 與 Android' : 'Compatible with iOS & Android'}</li>
+                  <li>{pickCopy(locale, { en: 'Store multiple eSIM profiles', hans: '储存多个 eSIM 设定档', hant: '儲存多個 eSIM 設定檔' })}</li>
+                  <li>{pickCopy(locale, { en: 'Easy management via BOKMOO App', hans: '透过 BOKMOO App 轻松管理', hant: '透過 BOKMOO App 輕鬆管理' })}</li>
+                  <li>{pickCopy(locale, { en: 'Compatible with iOS & Android', hans: '相容 iOS 与 Android', hant: '相容 iOS 與 Android' })}</li>
                 </ul>
                 <button
                   onClick={() => openHref(site.secondaryCtaHref)}
                   className={`mt-8 inline-flex min-h-12 items-center justify-center rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_84%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-7 text-sm font-semibold text-[var(--bokmoo-bg)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                  {isZhHant ? '立即選購' : 'Shop Now'}
+                  {pickCopy(locale, { en: 'Shop Now', hans: '立即选购', hant: '立即選購' })}
                 </button>
               </div>
 

@@ -25,7 +25,7 @@ import {
   Users,
 } from 'lucide-react';
 import type { ProfilePageProps } from 'shared/src/types/theme';
-import { resolveBokmooSiteConfig } from '../site';
+import { pickCopy, resolveBokmooSiteConfig } from '../site';
 
 const SCRIPT_FONT =
   '"Snell Roundhand", "Savoye LET", "Segoe Script", "Brush Script MT", cursive';
@@ -133,7 +133,7 @@ export const ProfilePage = React.memo(function ProfilePage({
         onNavigate(path);
         return;
       }
-      const prefix = isZhHant ? '/zh-Hant' : '/en';
+      const prefix = locale === 'zh-Hant' ? '/zh-Hant' : locale === 'zh-Hans' ? '/zh-Hans' : '/en';
       window.location.assign(`${prefix}${path}`);
     },
     [onNavigate, isZhHant]
@@ -160,17 +160,17 @@ export const ProfilePage = React.memo(function ProfilePage({
               <UserRound className="h-8 w-8" />
             </div>
             <h2 className="mt-6 text-3xl leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-              {isZhHant ? '登入以查看您的個人檔案' : 'Sign in to view your profile'}
+              {pickCopy(locale, { en: 'Sign in to view your profile', hans: '登入以查看您的个人档案', hant: '登入以查看您的個人檔案' })}
             </h2>
             <p className="mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-              {isZhHant ? '請登入以查看您的 BOKMOO 帳戶' : 'Please log in to check your BOKMOO account'}
+              {pickCopy(locale, { en: 'Please log in to check your BOKMOO account', hans: '请登入以查看您的 BOKMOO 帐户', hant: '請登入以查看您的 BOKMOO 帳戶' })}
             </p>
             <button
               onClick={onNavigateToLogin}
               className={`mt-8 h-12 w-full rounded-full px-6 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)] ${GOLD_GRADIENT_BG}`}
               type="button"
             >
-              {isZhHant ? '登入' : 'Log In'}
+              {pickCopy(locale, { en: 'Log In', hans: '登入', hant: '登入' })}
             </button>
           </div>
         </div>
@@ -184,7 +184,7 @@ export const ProfilePage = React.memo(function ProfilePage({
         <div className="text-center">
           <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[var(--bokmoo-line)] border-t-[var(--bokmoo-gold)]" />
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]">
-            {isZhHant ? '正在載入個人資料…' : 'Loading profile...'}
+            {pickCopy(locale, { en: 'Loading profile...', hans: '正在载入个人资料…', hant: '正在載入個人資料…' })}
           </p>
         </div>
       </div>
@@ -196,27 +196,31 @@ export const ProfilePage = React.memo(function ProfilePage({
   // practice), so do not trim name-like values to a first word.
   const firstName = displayName ? displayName.split(/\s+/)[0] : '';
   const greeting = firstName
-    ? isZhHant
+    ? locale === 'zh-Hant'
       ? `你好，${firstName}！`
-      : `Hi ${firstName}!`
-    : isZhHant
+      : locale === 'zh-Hans'
+        ? `你好，${firstName}！`
+        : `Hi ${firstName}!`
+    : locale === 'zh-Hant'
       ? '你好！'
-      : 'Hi there!';
+      : locale === 'zh-Hans'
+        ? '你好！'
+        : 'Hi there!';
   const accountInitial = (displayName || user.email).trim().charAt(0).toUpperCase();
   const memberSince = user.createdAt ? formatDate(user.createdAt, locale) : '—';
 
   const navItems = [
     {
-      label: isZhHant ? '我的帳戶' : 'My Account',
+      label: pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶' }),
       icon: UserRound,
       active: true,
       onClick: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
     },
-    { label: isZhHant ? '訂單紀錄' : 'Order History', icon: ShoppingBag, onClick: onNavigateToOrders },
-    { label: isZhHant ? '我的行程' : 'My Trips', icon: Plane, onClick: onNavigateToOrders },
-    { label: isZhHant ? '旅遊點數' : 'Travel Credits', icon: Mail, onClick: () => go('/affiliate') },
-    { label: isZhHant ? '推廣計劃' : 'Affiliate Program', icon: Users, onClick: () => go('/affiliate') },
-    { label: isZhHant ? '設定' : 'Settings', icon: Settings, onClick: onNavigateToSettings },
+    { label: pickCopy(locale, { en: 'Order History', hans: '订单纪录', hant: '訂單紀錄' }), icon: ShoppingBag, onClick: onNavigateToOrders },
+    { label: pickCopy(locale, { en: 'My Trips', hans: '我的行程', hant: '我的行程' }), icon: Plane, onClick: onNavigateToOrders },
+    { label: pickCopy(locale, { en: 'Travel Credits', hans: '旅游点数', hant: '旅遊點數' }), icon: Mail, onClick: () => go('/affiliate') },
+    { label: pickCopy(locale, { en: 'Affiliate Program', hans: '推广计划', hant: '推廣計劃' }), icon: Users, onClick: () => go('/affiliate') },
+    { label: pickCopy(locale, { en: 'Settings', hans: '设定', hant: '設定' }), icon: Settings, onClick: onNavigateToSettings },
   ];
 
   const renderNavButton = (
@@ -264,13 +268,13 @@ export const ProfilePage = React.memo(function ProfilePage({
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,7,14,0.1),rgba(9,7,14,0.78))]" />
             <div className="relative flex min-h-[13.5rem] flex-col p-5">
               <h3 className="max-w-[9.5rem] text-xl font-bold leading-snug text-white">
-                {isZhHant ? '探索更美好的夜晚' : 'Explore a Better Night'}
+                {pickCopy(locale, { en: 'Explore a Better Night', hans: '探索更美好的夜晚', hant: '探索更美好的夜晚' })}
               </h3>
               <p className="mt-2 text-xs leading-relaxed text-white/70">
-                {isZhHant ? '全球高級會所體驗，盡在掌握。' : 'Premium club experiences around the world.'}
+                {pickCopy(locale, { en: 'Premium club experiences around the world.', hans: '全球高级会所体验，尽在掌握。', hant: '全球高級會所體驗，盡在掌握。' })}
               </p>
               <span className="mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_86%,white),color-mix(in_oklab,var(--bokmoo-gold)_70%,black))] px-4 py-2 text-xs font-bold text-[var(--bokmoo-bg)] transition-transform duration-300 group-hover:-translate-y-0.5">
-                {isZhHant ? '瀏覽目的地' : 'Browse Destinations'}
+                {pickCopy(locale, { en: 'Browse Destinations', hans: '浏览目的地', hant: '瀏覽目的地' })}
                 <ArrowRight className="h-3.5 w-3.5" />
               </span>
             </div>
@@ -330,7 +334,7 @@ export const ProfilePage = React.memo(function ProfilePage({
                   )}
                 </div>
                 <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,transparent)] bg-[color:oklch(0.09_0.01_75_/_0.96)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-gold)]">
-                  {isZhHant ? '會員' : 'Member'}
+                  {pickCopy(locale, { en: 'Member', hans: '会员', hant: '會員' })}
                 </span>
               </div>
 
@@ -344,7 +348,7 @@ export const ProfilePage = React.memo(function ProfilePage({
                     onClick={copyEmail}
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[0.5rem] text-[var(--bokmoo-copy-soft)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] hover:text-[var(--bokmoo-gold)]"
                     type="button"
-                    aria-label={isZhHant ? '複製電子郵件' : 'Copy email'}
+                    aria-label={pickCopy(locale, { en: 'Copy email', hans: '复制电子邮件', hant: '複製電子郵件' })}
                   >
                     {copied ? (
                       <Check className="h-4 w-4 text-[var(--bokmoo-success)]" />
@@ -354,7 +358,7 @@ export const ProfilePage = React.memo(function ProfilePage({
                   </button>
                 </div>
                 <p className="mt-1.5 text-[0.82rem] text-[var(--bokmoo-copy-soft)]">
-                  {isZhHant ? '註冊於' : 'Member since'} {memberSince}
+                  {pickCopy(locale, { en: 'Member since', hans: '注册于', hant: '註冊於' })} {memberSince}
                 </p>
               </div>
 
@@ -379,19 +383,19 @@ export const ProfilePage = React.memo(function ProfilePage({
                 <div className="flex items-center gap-2.5">
                   <UserRound className="h-[1.1rem] w-[1.1rem] text-[var(--bokmoo-gold)]" />
                   <h3 className="text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]">
-                    {isZhHant ? '帳戶資料' : 'Account Information'}
+                    {pickCopy(locale, { en: 'Account Information', hans: '帐户资料', hant: '帳戶資料' })}
                   </h3>
                 </div>
                 <button onClick={onNavigateToSettings} className={editButtonClass} type="button">
                   <PencilLine className="h-3.5 w-3.5" />
-                  {isZhHant ? '編輯' : 'Edit'}
+                  {pickCopy(locale, { en: 'Edit', hans: '编辑', hant: '編輯' })}
                 </button>
               </div>
               <div className="mt-3 divide-y divide-[color:color-mix(in_oklab,var(--bokmoo-line)_55%,transparent)]">
                 <div className="flex items-center gap-3 py-3.5">
                   <Mail className={infoRowIcon} />
                   <span className="w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32">
-                    {isZhHant ? '電子郵件' : 'Email Address'}
+                    {pickCopy(locale, { en: 'Email Address', hans: '电子邮件', hant: '電子郵件' })}
                   </span>
                   <span
                     className="min-w-0 flex-1 truncate text-right text-sm font-semibold text-[var(--bokmoo-ink)] sm:text-left"
@@ -403,17 +407,17 @@ export const ProfilePage = React.memo(function ProfilePage({
                 <div className="flex items-center gap-3 py-3.5">
                   <CalendarDays className={infoRowIcon} />
                   <span className="w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32">
-                    {isZhHant ? '註冊日期' : 'Member Since'}
+                    {pickCopy(locale, { en: 'Member Since', hans: '注册日期', hant: '註冊日期' })}
                   </span>
                   <span className="flex-1 text-sm font-semibold text-[var(--bokmoo-ink)]">{memberSince}</span>
                 </div>
                 <div className="flex items-center gap-3 py-3.5">
                   <UserRound className={infoRowIcon} />
                   <span className="w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32">
-                    {isZhHant ? '帳戶狀態' : 'Account Status'}
+                    {pickCopy(locale, { en: 'Account Status', hans: '帐户状态', hant: '帳戶狀態' })}
                   </span>
                   <span className="inline-flex items-center rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-success)_28%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-success)_14%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--bokmoo-success)]">
-                    {isZhHant ? '有效會員' : 'Active Member'}
+                    {pickCopy(locale, { en: 'Active Member', hans: '有效会员', hant: '有效會員' })}
                   </span>
                 </div>
               </div>
@@ -424,47 +428,47 @@ export const ProfilePage = React.memo(function ProfilePage({
                 <div className="flex items-center gap-2.5">
                   <Settings className="h-[1.1rem] w-[1.1rem] text-[var(--bokmoo-gold)]" />
                   <h3 className="text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]">
-                    {isZhHant ? '偏好設定' : 'Account Preferences'}
+                    {pickCopy(locale, { en: 'Account Preferences', hans: '偏好设定', hant: '偏好設定' })}
                   </h3>
                 </div>
                 <button onClick={onNavigateToSettings} className={editButtonClass} type="button">
                   <PencilLine className="h-3.5 w-3.5" />
-                  {isZhHant ? '編輯' : 'Edit'}
+                  {pickCopy(locale, { en: 'Edit', hans: '编辑', hant: '編輯' })}
                 </button>
               </div>
               <div className="mt-3 divide-y divide-[color:color-mix(in_oklab,var(--bokmoo-line)_55%,transparent)]">
                 <div className="flex items-center gap-3 py-3.5">
                   <Globe2 className={infoRowIcon} />
                   <span className="w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32">
-                    {isZhHant ? '語言' : 'Language'}
+                    {pickCopy(locale, { en: 'Language', hans: '语言', hant: '語言' })}
                   </span>
                   <span className="flex-1 text-sm font-semibold text-[var(--bokmoo-ink)]">
-                    {isZhHant ? '繁體中文' : 'English'}
+                    {pickCopy(locale, { en: 'English', hans: '繁体中文', hant: '繁體中文' })}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 py-3.5">
                   <Clock3 className={infoRowIcon} />
                   <span className="w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32">
-                    {isZhHant ? '時區' : 'Timezone'}
+                    {pickCopy(locale, { en: 'Timezone', hans: '时区', hant: '時區' })}
                   </span>
                   <span className="flex-1 text-sm font-semibold text-[var(--bokmoo-ink)]">{timezoneLabel()}</span>
                 </div>
                 <div className="flex items-center gap-3 py-3.5">
                   <CalendarDays className={infoRowIcon} />
                   <span className="w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32">
-                    {isZhHant ? '出生日期' : 'Date of Birth'}
+                    {pickCopy(locale, { en: 'Date of Birth', hans: '出生日期', hant: '出生日期' })}
                   </span>
                   <span className="flex-1 text-sm text-[var(--bokmoo-copy-soft)]">
-                    {isZhHant ? '未設定' : 'Not set'}
+                    {pickCopy(locale, { en: 'Not set', hans: '未设定', hant: '未設定' })}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 py-3.5">
                   <Phone className={infoRowIcon} />
                   <span className="w-28 shrink-0 text-sm text-[var(--bokmoo-copy-soft)] sm:w-32">
-                    {isZhHant ? '電話號碼' : 'Phone Number'}
+                    {pickCopy(locale, { en: 'Phone Number', hans: '电话号码', hant: '電話號碼' })}
                   </span>
                   <span className="flex-1 text-sm text-[var(--bokmoo-copy-soft)]">
-                    {isZhHant ? '未設定' : 'Not set'}
+                    {pickCopy(locale, { en: 'Not set', hans: '未设定', hant: '未設定' })}
                   </span>
                 </div>
               </div>
@@ -483,10 +487,10 @@ export const ProfilePage = React.memo(function ProfilePage({
                 </div>
                 <div>
                   <h3 className="text-lg font-bold tracking-tight text-[var(--bokmoo-ink)]">
-                    {isZhHant ? '訂單紀錄' : 'Order History'}
+                    {pickCopy(locale, { en: 'Order History', hans: '订单纪录', hant: '訂單紀錄' })}
                   </h3>
                   <p className="mt-1 text-sm text-[var(--bokmoo-copy-soft)]">
-                    {isZhHant ? '查看及管理您的訂單' : 'View and manage your orders'}
+                    {pickCopy(locale, { en: 'View and manage your orders', hans: '查看及管理您的订单', hant: '查看及管理您的訂單' })}
                   </p>
                 </div>
               </div>
@@ -505,10 +509,10 @@ export const ProfilePage = React.memo(function ProfilePage({
                 </div>
                 <div>
                   <h3 className="text-lg font-bold tracking-tight text-[var(--bokmoo-ink)]">
-                    {isZhHant ? '即將到來的行程' : 'Upcoming Trips'}
+                    {pickCopy(locale, { en: 'Upcoming Trips', hans: '即将到来的行程', hant: '即將到來的行程' })}
                   </h3>
                   <p className="mt-1 text-sm text-[var(--bokmoo-copy-soft)]">
-                    {isZhHant ? '您已預訂的體驗' : 'Your booked experiences'}
+                    {pickCopy(locale, { en: 'Your booked experiences', hans: '您已预订的体验', hant: '您已預訂的體驗' })}
                   </p>
                 </div>
               </div>
@@ -528,7 +532,7 @@ export const ProfilePage = React.memo(function ProfilePage({
               <div className="absolute inset-0 bg-[linear-gradient(92deg,rgba(8,6,4,0.86)_8%,rgba(8,6,4,0.42)_58%,rgba(8,6,4,0.12))]" />
               <div className="relative flex h-full flex-col p-6">
                 <h3 className="text-[1.55rem] font-bold leading-tight text-white">
-                  {isZhHant ? '探索尊貴會所' : (
+                  {locale === 'zh-Hant' ? '探索尊貴會所' : locale === 'zh-Hans' ? '探索尊贵会所' : (
                     <>
                       Discover
                       <br />
@@ -537,10 +541,10 @@ export const ProfilePage = React.memo(function ProfilePage({
                   )}
                 </h3>
                 <p className="mt-2.5 max-w-[15rem] text-sm leading-relaxed text-white/75">
-                  {isZhHant ? '與 BOKMOO 通行全球頂級場所。' : "Access the world's best venues with BOKMOO."}
+                  {pickCopy(locale, { en: "Access the world's best venues with BOKMOO.", hans: '与 BOKMOO 通行全球顶级场所。', hant: '與 BOKMOO 通行全球頂級場所。' })}
                 </p>
                 <span className="mt-auto inline-flex items-center gap-1.5 self-start rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_86%,white),color-mix(in_oklab,var(--bokmoo-gold)_70%,black))] px-5 py-2.5 text-[0.8rem] font-bold text-[var(--bokmoo-bg)] transition-transform duration-300 group-hover:-translate-y-0.5">
-                  {isZhHant ? '立即探索' : 'Explore Now'}
+                  {pickCopy(locale, { en: 'Explore Now', hans: '立即探索', hant: '立即探索' })}
                   <ArrowRight className="h-4 w-4" />
                 </span>
               </div>
@@ -550,13 +554,15 @@ export const ProfilePage = React.memo(function ProfilePage({
               <div className="flex items-center gap-2.5">
                 <Crown className="h-5 w-5 text-[var(--bokmoo-gold)]" />
                 <h3 className="text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]">
-                  {isZhHant ? 'BOKMOO 會員權益' : 'BOKMOO Member Benefits'}
+                  {pickCopy(locale, { en: 'BOKMOO Member Benefits', hans: 'BOKMOO 会员权益', hant: 'BOKMOO 會員權益' })}
                 </h3>
               </div>
               <ul className="mt-5 space-y-3.5">
                 {(
-                  isZhHant
+                  locale === 'zh-Hant'
                     ? ['全球頂級會所通行', '會員專屬優惠', '輕鬆預訂，即時確認', '專屬支援']
+                    : locale === 'zh-Hans'
+                    ? ['全球顶级会所通行', '会员专属优惠', '轻松预订，即时确认', '专属支援']
                     : [
                         'Access to premier clubs worldwide',
                         'Exclusive member-only offers',
@@ -576,18 +582,18 @@ export const ProfilePage = React.memo(function ProfilePage({
               <div className="flex items-center gap-2.5">
                 <Headphones className="h-5 w-5 text-[var(--bokmoo-gold)]" />
                 <h3 className="text-[1.05rem] font-bold tracking-tight text-[var(--bokmoo-ink)]">
-                  {isZhHant ? '需要協助？' : 'Need Help?'}
+                  {pickCopy(locale, { en: 'Need Help?', hans: '需要协助？', hant: '需要協助？' })}
                 </h3>
               </div>
               <p className="mt-2.5 text-sm leading-relaxed text-[var(--bokmoo-copy-soft)]">
-                {isZhHant ? '我們的支援團隊隨時為您服務。' : 'Our support team is here for you.'}
+                {pickCopy(locale, { en: 'Our support team is here for you.', hans: '我们的支援团队随时为您服务。', hant: '我們的支援團隊隨時為您服務。' })}
               </p>
               <button
                 onClick={() => go('/contact')}
                 className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-sm font-semibold text-[var(--bokmoo-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)]"
                 type="button"
               >
-                {isZhHant ? '聯絡客服' : 'Contact Support'}
+                {pickCopy(locale, { en: 'Contact Support', hans: '联络客服', hant: '聯絡客服' })}
                 <ArrowRight className="h-4 w-4" />
               </button>
               <button
@@ -596,7 +602,7 @@ export const ProfilePage = React.memo(function ProfilePage({
                 type="button"
               >
                 <BookOpen className="h-4 w-4" />
-                {isZhHant ? '前往幫助中心' : 'Visit Help Center'}
+                {pickCopy(locale, { en: 'Visit Help Center', hans: '前往帮助中心', hant: '前往幫助中心' })}
               </button>
             </div>
           </section>
