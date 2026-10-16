@@ -95,7 +95,7 @@ function WorldGlobe() {
 }
 
 export const HomePage = React.memo(function HomePage({ locale, config, onNavigate }: HomePageProps) {
-  const site = resolveBokmooSiteConfig(config);
+  const site = resolveBokmooSiteConfig(config, locale);
   const [homeProducts, setHomeProducts] = React.useState<HomeProduct[]>([]);
   const [homeProductsLoading, setHomeProductsLoading] = React.useState(true);
   const isZhHant = locale === 'zh-Hant';

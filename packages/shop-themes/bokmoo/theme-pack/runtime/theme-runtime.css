@@ -1,4 +1,4 @@
-/* packages/shop-themes/bokmoo/src/tokens.css */
+/* src/tokens.css */
 :root {
   --bokmoo-bg: oklch(0.055 0.006 75);
   --bokmoo-bg-elevated: oklch(0.082 0.008 75);
