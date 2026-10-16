@@ -36,7 +36,7 @@ it('a real API replaces uploaded v1 active packages for both targets, audits and
   for (const item of owned) {
     const response = await themeHttp(node, `/api/v1/store/theme?target=${item.target}&locale=en`);
     expect(response.status).toBe(200);
-    expect(response.json().data).toMatchObject({ schemaVersion: 2, slug: `default-${item.target}`, darkAvailable: item.target === 'admin' });
+    expect(response.json().data).toMatchObject({ schemaVersion: 2, slug: `default-${item.target}`, darkAvailable: true });
     expect((await fixture.prisma.theme.findUniqueOrThrow({ where: { slug: item.slug } })).manifestJson).toMatchObject({ schemaVersion: 1 });
     expect(Buffer.from((await fixture.prisma.themePackageBlob.findUniqueOrThrow({ where: { themeSlug_packageHash: { themeSlug: item.slug, packageHash: item.packageHash } } })).bytes).equals(item.bytes)).toBe(true);
     expect(await fixture.prisma.adminAuditEvent.count({ where: { action: 'theme.startup_fallback', targetId: `default-${item.target}` } })).toBeGreaterThan(0);
@@ -56,7 +56,7 @@ it('a real API ignores invalid persisted setting values without deleting configu
   const node = await fixture.start('startup-api');
   const response = await themeHttp(node, '/api/v1/store/theme?target=shop&locale=en');
   expect(response.status).toBe(200);
-  expect(response.json().data).toMatchObject({ slug: item.slug, tokens: { extras: { primary: '#abcdef' } }, darkAvailable: false });
+  expect(response.json().data).toMatchObject({ slug: item.slug, tokens: { extras: { primary: '#abcdef' } }, darkAvailable: true });
   expect(await fixture.prisma.themeConfiguration.findUniqueOrThrow({ where: { slug: item.slug } })).toEqual(before);
   expect((await fixture.prisma.themeConfigRevision.findUniqueOrThrow({ where: { slug_revision: { slug: item.slug, revision: 7 } } })).values).toEqual(values);
 }, 120000);

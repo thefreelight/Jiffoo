@@ -44,10 +44,48 @@ describe('T1a declarative theme validator', () => {
     const shop = await validateBuiltinTheme(path.join(themeRoot, 'default-shop'));
     const admin = await validateBuiltinTheme(path.join(themeRoot, 'default-admin'));
     expect(shop.manifest.schemaVersion).toBe(2);
-    expect(shop.manifest.tokens.core.ground).toBe('#f5f7f4');
-    expect(shop.manifest.tokens.extras.primary).toBe('#166b52');
+    expect(shop.manifest.tokens.core.ground).toBe('#FFFFFF');
+    expect(shop.manifest.tokens.extras.primary).toBe('#171717');
     expect(admin.manifest.tokens.core.foreground).toBe('#171717');
     expect(admin.manifest.darkTokens?.core?.foreground).toBe('#EDEDED');
+  });
+
+  it('matches the approved Shop README mapping in both validated color modes', async () => {
+    const { manifest } = await validateBuiltinTheme(path.join(themeRoot, 'default-shop'));
+    const readme = await fs.readFile(path.resolve('../../docs/design/shop/README.md'), 'utf8');
+    const mapping = readme.split('## Colour and type mapping')[1].split('## Design rules')[0];
+    const normalize = (value: string) => {
+      const rgba = /^rgba\((\d+),(\d+),(\d+),([.\d]+)\)$/.exec(value);
+      return rgba
+        ? `#${rgba.slice(1, 4).map(channel => Number(channel).toString(16).padStart(2, '0')).join('')}${Math.round(Number(rgba[4]) * 255).toString(16).padStart(2, '0')}`.toUpperCase()
+        : value.toUpperCase();
+    };
+    const extras = new Set(['primary', 'primary-foreground', 'success', 'announcement-bg', 'announcement-text']);
+    let colors = 0;
+    for (const row of mapping.split('\n')) {
+      const match = /^\| (#[\da-f]+|rgba\([^)]*\)) \/ (#[\da-f]+|rgba\([^)]*\)) \| ([a-z-]+) \|$/i.exec(row.trim());
+      if (!match) continue;
+      const [, light, dark, role] = match;
+      const group = extras.has(role) ? 'extras' : 'core';
+      expect(manifest.tokens[group][role], `light ${role}`).toBe(normalize(light));
+      expect(manifest.darkTokens?.[group]?.[role], `dark ${role}`).toBe(normalize(dark));
+      colors++;
+    }
+    expect(colors).toBe(18);
+    expect(manifest.tokens.core).toMatchObject({ 'radius-control': '8px', 'radius-panel': '12px',
+      'font-body': 'system-sans', 'font-heading': 'system-sans', 'font-mono': 'system-mono' });
+    expect(manifest.tokens.extras).toMatchObject({
+      secondary: '#F4F4F5', 'secondary-foreground': '#171717', accent: '#F4F4F5', warning: '#A15C07',
+      'header-bg': '#FFFFFF', 'header-text': '#171717', 'footer-bg': '#FFFFFF', 'footer-text': '#171717',
+      price: '#171717', 'sale-price': '#C4281C', 'radius-sm': '6px', 'radius-lg': '12px',
+      'button-radius': '8px', 'card-radius': '12px',
+      'card-shadow': { x: '0px', y: '8px', blur: '24px', spread: '0px', color: '#0000000F' },
+    });
+    expect(manifest.darkTokens?.extras).toMatchObject({
+      secondary: '#1C1C1C', 'secondary-foreground': '#EDEDED', accent: '#1C1C1C',
+      'header-bg': '#0A0A0A', 'header-text': '#EDEDED', 'footer-bg': '#0A0A0A', 'footer-text': '#EDEDED',
+      price: '#EDEDED', 'sale-price': '#FF6B5E',
+    });
   });
 
   it('T2 accepts bounded section presentation options and rejects out-of-range columns', async () => {

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { PathnameContext, SearchParamsContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 import type { ShopTheme, ThemeSection } from '../lib/theme';
@@ -82,6 +84,15 @@ const markup = (node: React.ReactNode) => renderToStaticMarkup(
 afterEach(() => vi.restoreAllMocks());
 
 describe('T2 Shop theme rendering', () => {
+  it('keeps shared defaults and generated Shop CSS synchronized with both builtin modes', () => {
+    expect(themeDefaultTokens.shop).toEqual(defaultShop.tokens);
+    const css = readFileSync(resolve(__dirname, '../app/default-tokens.css'), 'utf8');
+    expect(css.slice(0, css.indexOf(':root {\n')))
+      .toBe(themeStyle(defaultShop as unknown as ShopTheme).trimStart() + '\n');
+    expect(css).toContain(':root[data-color-mode="dark"]');
+    expect(css).toContain(':root[data-color-mode="system"]');
+    expect(css).toContain('--shop-canvas: var(--shop-background);');
+  });
   it('B4 font-face accepts hash URLs and rejects semver aliases', () => {
     expect(themeFontFaces(fixture.fonts)).toContain('a'.repeat(64));
     expect(themeFontFaces([{ ...fixture.fonts[0], url: '/api/v1/themes/sample/1.0.0/fonts/brand.woff2' }])).toBe('');
@@ -176,7 +187,7 @@ describe('T2 Shop theme rendering', () => {
     expect(css).toContain(themeTokensToCss('shop', poisoned.tokens,
       (id) => poisoned.fonts.find((font) => font.id === id)?.family));
     expect(css).toContain('@font-face{font-family:"Brand Sans"');
-    expect(css).toContain('--shop-extras-primary: #166b52;');
+    expect(css).toContain('--shop-extras-primary: #171717;');
     expect(css).not.toContain('#fff;} body{');
     expect(css).not.toContain('url(x)');
     expect(css).not.toContain('--shop-unknown');

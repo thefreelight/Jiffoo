@@ -26,6 +26,7 @@ const root = path.join(process.cwd(), 'builtin-themes');
 const base = async (name = slug, version = '1.0.0') => ({
   ...JSON.parse(await fs.readFile(path.join(root, 'default-shop', 'theme.json'), 'utf8')),
   slug: name, version,
+  darkTokens: undefined,
   tokens: { core: { ...JSON.parse(await fs.readFile(path.join(root, 'default-shop', 'theme.json'), 'utf8')).tokens.core, 'font-body': 'title' }, extras: { primary: '#123456' } },
   fonts: [{ id: 'title', family: 'Theme Title', file: 'fonts/title.woff2', weight: 400, style: 'normal', license: 'MIT' }],
   assets: {},
@@ -238,7 +239,7 @@ describe('T1b theme runtime', () => {
   it('H serializes only valid declared CSS properties', () => {
     for (const injection of ['#fff;} body{', 'url(x)', 'expression(', 'x'.repeat(1000)]) {
       const css = themeTokensToCss('shop', { core: {}, extras: { primary: injection, invented: injection } });
-      expect(css).toContain('--shop-extras-primary: #166b52;');
+      expect(css).toContain('--shop-extras-primary: #171717;');
       expect(css).not.toContain(injection);
       expect(css).not.toContain('invented');
     }
