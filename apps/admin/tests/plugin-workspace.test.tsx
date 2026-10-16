@@ -72,9 +72,18 @@ describe('Plugin detail configuration', () => {
   it('keeps a failed save-and-leave on the page and returns focus to the invalid input', async () => {
     mocks.update.mockRejectedValue(new AdminApiError('Invalid', 'BAD_REQUEST', { fields: [{ path: 'config.instructions', message: 'Invalid value' }] }, 400));
     await mount(); await fill('instructions', 'Retain me'); const destination = vi.fn();
-    await act(async () => requestAppNavigation(destination)); await click('Save and leave');
-    expect(destination).not.toHaveBeenCalled(); expect(input('instructions').value).toBe('Retain me');
-    expect(document.activeElement).toBe(input('instructions'));
+    await act(async () => requestAppNavigation(destination));
+    vi.useFakeTimers();
+    try {
+      await click('Save and leave');
+      expect(destination).not.toHaveBeenCalled(); expect(input('instructions').value).toBe('Retain me');
+      // Radix dispatches close auto-focus in a deferred FocusScope unmount callback.
+      await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+      expect(document.activeElement).toBe(input('instructions'));
+    } finally {
+      await act(async () => { await vi.runOnlyPendingTimersAsync(); });
+      vi.useRealTimers();
+    }
   });
   it('lets required manifest defaults be saved before they can enable the plugin', async () => {
     const current = mocks.config().data; mocks.config.mockReturnValue({ data: { ...current, configSchema: { type: 'object', properties: { instructions: { type: 'string', title: 'Instructions', default: 'Default instruction' } }, required: ['instructions'] } } });
