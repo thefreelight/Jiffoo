@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { ApiError } from '@/utils/api-errors';
-import { NotificationStatus } from '@prisma/client';
+import { NotificationStatus, type Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { sendError, sendSuccess } from '@/utils/response';
@@ -30,6 +30,8 @@ const listSchema = {
     items: { type: 'array', items: detailSchema },
     page: { type: 'integer' }, limit: { type: 'integer' },
     total: { type: 'integer' }, totalPages: { type: 'integer' },
+    counts: { type: 'object', properties: Object.fromEntries(['all', ...statusValues].map(status => [status, { type: 'integer', minimum: 0 }])), required: ['all', ...statusValues], additionalProperties: false },
+    types: { type: 'array', items: { type: 'string' } },
   },
   required: ['items', 'page', 'limit', 'total', 'totalPages'],
   additionalProperties: false,
@@ -53,18 +55,29 @@ export async function adminNotificationRoutes(fastify: FastifyInstance) {
           page: { type: 'integer', minimum: 1, default: 1 },
           limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
           status: { type: 'string', enum: statusValues },
+          search: { type: 'string', maxLength: 320 },
+          type: { type: 'string', maxLength: 100 },
+          sort: { type: 'string', enum: ['newest', 'oldest'], default: 'newest' },
         },
       },
       response: createTypedReadResponses(listSchema),
     },
   }, async (request, reply) => {
-    const { page = 1, limit = 20, status } = request.query as { page?: number; limit?: number; status?: NotificationStatus };
-    const where = status ? { status } : {};
-    const [items, total] = await Promise.all([
-      prisma.notification.findMany({ where, select: publicFields, orderBy: { createdAt: 'desc' }, skip: (page - 1) * limit, take: limit }),
+    const { page = 1, limit = 20, status, search, type, sort } = request.query as { page?: number; limit?: number; status?: NotificationStatus; search?: string; type?: string; sort?: string };
+    const filters: Prisma.NotificationWhereInput = {
+      ...(search ? { toAddress: { contains: search, mode: 'insensitive' } } : {}),
+      ...(type ? { type } : {}),
+    };
+    const where = { ...filters, ...(status ? { status } : {}) };
+    const [items, total, grouped, types] = await Promise.all([
+      prisma.notification.findMany({ where, select: publicFields, orderBy: [{ createdAt: sort === 'oldest' ? 'asc' : 'desc' }, { id: sort === 'oldest' ? 'asc' : 'desc' }], skip: (page - 1) * limit, take: limit }),
       prisma.notification.count({ where }),
+      prisma.notification.groupBy({ by: ['status'], where: filters, _count: { _all: true } }),
+      prisma.notification.findMany({ distinct: ['type'], select: { type: true }, orderBy: { type: 'asc' } }),
     ]);
-    return sendSuccess(reply, { items, page, limit, total, totalPages: Math.ceil(total / limit) });
+    const counts = { all: 0, PENDING: 0, SENDING: 0, SENT: 0, FAILED: 0 };
+    for (const group of grouped) { counts[group.status] = group._count._all; counts.all += group._count._all; }
+    return sendSuccess(reply, { items, page, limit, total, totalPages: Math.ceil(total / limit), counts, types: types.map(item => item.type) });
   });
 
   fastify.get('/:id', {

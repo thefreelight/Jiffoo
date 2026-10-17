@@ -1,65 +1,26 @@
 // @vitest-environment jsdom
-
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act } from 'react'
-import { createRoot, type Root } from 'react-dom/client'
-import NotificationsPage from '@/app/[locale]/(themed)/notifications/page'
-
-const { getAll, getById, resend } = vi.hoisted(() => ({
-  getAll: vi.fn(),
-  getById: vi.fn(),
-  resend: vi.fn(),
-}))
-
-vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string) => key }))
-vi.mock('@/lib/store', () => ({
-  useAuthStore: () => ({ user: { role: 'ADMIN', permissions: ['orders.read', 'orders.write'] } }),
-}))
-vi.mock('@/lib/api', () => ({
-  notificationsApi: { getAll, getById, resend },
-  unwrapApiResponse: <T,>(response: { data: T }) => response.data,
-}))
-
-describe('Admin notifications page', () => {
-  let root: Root
-  let container: HTMLDivElement
-  const item = {
-    id: 'notification-1', type: 'payment_received', channel: 'email', recipientUserId: 'user-1',
-    toAddress: 'buyer@example.com', locale: 'en', subject: 'Test Store: Payment received',
-    html: '<p>Payment received</p>', text: 'Payment received', status: 'SENT',
-    attempts: 1, nextAttemptAt: '2026-09-23T00:00:00.000Z', lastError: null,
-    providerSlug: 'console-email', providerMessageId: 'message-1',
-    relatedType: 'order', relatedId: 'order-1', resentFromId: null,
-    createdAt: '2026-09-23T00:00:00.000Z', updatedAt: '2026-09-23T00:00:00.000Z', sentAt: '2026-09-23T00:00:00.000Z',
-  }
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-    ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-    container = document.createElement('div')
-    document.body.appendChild(container)
-    root = createRoot(container)
-    getAll.mockResolvedValue({ data: { items: [item], page: 1, limit: 20, total: 1, totalPages: 1 } })
-    getById.mockResolvedValue({ data: item })
-    resend.mockResolvedValue({ data: { ...item, id: 'notification-2', status: 'PENDING', resentFromId: item.id } })
-  })
-
-  afterEach(async () => {
-    await act(async () => root.unmount())
-    container.remove()
-  })
-
-  it('lists persisted notifications and queues a resend from detail', async () => {
-    await act(async () => root.render(<NotificationsPage />))
-    expect(container.textContent).toContain('buyer@example.com')
-    expect(getAll).toHaveBeenCalledWith(1, 20, undefined)
-    const row = Array.from(container.querySelectorAll('tr')).find((element) => element.textContent?.includes('buyer@example.com'))
-    expect(row).toBeDefined()
-    await act(async () => row?.click())
-    const resendButton = Array.from(document.body.querySelectorAll('button')).find((element) => element.textContent?.includes('Resend'))
-    expect(resendButton).toBeDefined()
-    await act(async () => resendButton?.click())
-    expect(resend).toHaveBeenCalledWith(item.id, expect.any(String))
-    expect(getAll).toHaveBeenCalledTimes(2)
-  })
-})
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import NotificationsPage from '@/app/[locale]/(themed)/notifications/page';
+import { completedAttempts } from '@/lib/notification-attempts';
+const mock = vi.hoisted(() => ({ getAll: vi.fn(), getById: vi.fn(), resend: vi.fn(), replace: vi.fn(), query: '' }));
+it.each([['SENT', 0, 1], ['SENT', 2, 3], ['PENDING', 0, 0], ['PENDING', 2, 2], ['SENDING', 2, 2], ['FAILED', 5, 5]] as const)('counts completed outcomes for %s with %s recorded failures', (status, attempts, expected) => {
+  expect(completedAttempts({ status, attempts })).toBe(expected);
+});
+vi.mock('shared/src/i18n/react', async () => { const { translate } = await import('./helpers/operations'); return { useLocale: () => 'en', useT: () => translate }; });
+vi.mock('next/navigation', () => ({ usePathname: () => '/en/notifications', useSearchParams: () => new URLSearchParams(mock.query), useRouter: () => ({ replace: mock.replace }) }));
+vi.mock('@/lib/api', () => ({ notificationsApi: mock, unwrapApiResponse: <T,>(response: { data: T }) => response.data }));
+const item = { id: 'one', type: 'order_confirmation', toAddress: 'buyer@example.com', subject: 'Your order', text: 'Hello {{secret.link}}', status: 'SENT', attempts: 1, createdAt: '2026-10-13T00:00:00Z', sentAt: '2026-10-13T00:01:00Z', nextAttemptAt: '2026-10-13T00:02:00Z', providerSlug: 'console-email', recipientUserId: 'buyer' };
+let container: HTMLDivElement, root: Root;
+beforeEach(() => { vi.clearAllMocks(); mock.query = ''; (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; mock.getAll.mockResolvedValue({ data: { items: [item], total: 1, totalPages: 1, counts: { all: 1, SENT: 1, FAILED: 0 }, types: ['order_confirmation'] } }); mock.getById.mockResolvedValue({ data: item }); mock.resend.mockResolvedValue({ data: { ...item, id: 'two', status: 'PENDING' } }); container = document.createElement('div'); document.body.append(container); root = createRoot(container); });
+afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
+async function render() { await act(async () => root.render(<NotificationsPage />)); }
+async function click(name: string) { const button = [...document.querySelectorAll('button')].find(element => element.textContent === name || element.getAttribute('aria-label') === name); expect(button).toBeDefined(); await act(async () => button!.click()); }
+async function open() { await act(async () => container.querySelector('tbody tr')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))); }
+it('loads real counts, desktop rows and phone cards and resends from the detail drawer', async () => { await render(); expect(container.textContent).toContain('buyer@example.com'); expect(container.querySelector('.md\\:hidden')).not.toBeNull(); await open(); expect(document.body.textContent).toContain('[One-time link hidden]'); await click('Resend'); expect(mock.resend).toHaveBeenCalledWith('one', expect.any(String)); expect(document.body.textContent).toContain('Email queued'); expect(mock.getAll).toHaveBeenCalledTimes(2); });
+it.each(['PENDING', 'SENDING', 'SENT', 'FAILED'])('restores the %s tab, filters, sort and pagination from the URL', async status => { mock.query = `status=${status}&search=buyer&type=order_confirmation&sort=oldest&page=2&pageSize=50`; await render(); expect(mock.getAll).toHaveBeenCalledWith(2, 50, status, { search: 'buyer', type: 'order_confirmation', sort: 'oldest' }); await click('Remove filter: buyer'); expect(mock.replace).toHaveBeenLastCalledWith(expect.stringContaining('pageSize=50'), { scroll: false }); expect(mock.replace.mock.calls.at(-1)![0]).not.toContain('search='); });
+it('shows empty and failed load states without fake counts', async () => { mock.getAll.mockRejectedValueOnce(new Error()); await render(); expect(container.textContent).toContain('Unable to load notifications'); await click('Retry'); expect(container.textContent).toContain('buyer@example.com'); mock.getAll.mockResolvedValueOnce({ data: { items: [], total: 0, counts: { all: 0 }, types: [] } }); await click('Pending—'); expect(container.textContent).toContain('No notifications yet'); });
+it('retains detail after resend failure and reuses its idempotency key', async () => { mock.resend.mockRejectedValueOnce(new Error()); await render(); await open(); await click('Resend'); expect(document.body.textContent).toContain('Unable to queue email'); await click('Resend'); expect(mock.resend.mock.calls[0][1]).toBe(mock.resend.mock.calls[1][1]); });
+it.each([['password_reset', 'SENT'], ['order_confirmation', 'PENDING'], ['order_confirmation', 'SENDING']])('disables resend for %s in %s', async (type, status) => { mock.getById.mockResolvedValue({ data: { ...item, type, status } }); await render(); await open(); const button = [...document.querySelectorAll('button')].find(value => value.textContent === 'Resend')!; expect(button.disabled).toBe(true); expect(mock.resend).not.toHaveBeenCalled(); });
+it('shows failed delivery evidence and handles detail request failure', async () => { mock.getById.mockRejectedValueOnce(new Error()); await render(); await open(); expect(document.body.textContent).toContain('Unable to load notification details'); await click('Close'); mock.getById.mockResolvedValue({ data: { ...item, status: 'FAILED', attempts: 5, lastError: '550 mailbox rejected' } }); await open(); expect(document.body.textContent).toContain('550 mailbox rejected'); expect(document.body.textContent).toContain('Automatic retries have stopped.'); });

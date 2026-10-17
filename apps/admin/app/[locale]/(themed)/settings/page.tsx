@@ -1,387 +1,91 @@
-/**
- * Settings page for Admin.
- *
- * This page only exposes settings backed by existing backend APIs.
- */
+'use client';
 
-'use client'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { useLocale, useT } from 'shared/src/i18n/react';
+import { formatStoreTimestamp, storeTimezones } from 'shared';
+import { settingsApi, uploadApi, unwrapApiResponse, type SystemSettingsMap } from '@/lib/api';
+import { useStoreDate } from '@/lib/store-time';
+import { registerNavigationGuard } from '@/lib/pending-navigation';
+import { Choice } from '@/components/operations/Choice';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { ApiTokenPanel } from '@/components/settings/ApiTokenPanel';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from '@/components/ui/alert-dialog';
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Save, Settings2 } from 'lucide-react'
-import { toast } from 'sonner'
-import { useT } from 'shared/src/i18n/react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { resolveApiErrorMessage } from '@/lib/error-utils'
-import { settingsApi, type SystemSettingsMap, unwrapApiResponse } from '@/lib/api'
-import { ApiTokenPanel } from '@/components/settings/ApiTokenPanel'
-import { storeTimezones } from 'shared'
-import { useStoreDate } from '@/lib/store-time'
-
-type SettingField = {
-  key: string
-  labelKey: string
-  labelFallback: string
-  placeholder?: string
-}
-
-const CHECKOUT_COUNTRIES_KEY = 'checkout.address.countries_require_state_postal'
-
-const BRANDING_FIELDS: SettingField[] = [
-  {
-    key: 'branding.platform_name',
-    labelKey: 'merchant.settings.general.storeName',
-    labelFallback: 'Store Name',
-    placeholder: 'Your store name',
-  },
-  {
-    key: 'branding.logo',
-    labelKey: 'merchant.settings.general.storeAvatar',
-    labelFallback: 'Logo URL',
-    placeholder: 'Logo image URL',
-  },
-  {
-    key: 'branding.store_description',
-    labelKey: 'merchant.settings.general.storeDescription',
-    labelFallback: 'Store Description',
-    placeholder: 'Brief description about your store',
-  },
-]
-
-const LOCALIZATION_FIELDS: SettingField[] = [
-  {
-    key: 'localization.locale',
-    labelKey: 'merchant.settings.localization.languageSettings',
-    labelFallback: 'Language Settings',
-    placeholder: 'en-US',
-  },
-  {
-    key: 'localization.timezone',
-    labelKey: 'merchant.settings.localization.timezone',
-    labelFallback: 'Timezone',
-    placeholder: 'UTC',
-  },
-]
-
-// Localization options
-const CURRENCY_OPTIONS = [
-  { value: 'USD', label: 'USD - US Dollar ($)' },
-  { value: 'EUR', label: 'EUR - Euro (€)' },
-  { value: 'GBP', label: 'GBP - British Pound (£)' },
-  { value: 'CNY', label: 'CNY - Chinese Yuan (¥)' },
-  { value: 'HKD', label: 'HKD - Hong Kong Dollar (HK$)' },
-  { value: 'TWD', label: 'TWD - Taiwan Dollar (NT$)' },
-]
-
-const LOCALE_OPTIONS = [
-  { value: 'en', label: 'English' },
-  { value: 'zh-Hans', label: '简体中文' },
-  { value: 'zh-Hant', label: 'Traditional Chinese' },
-]
-
-const TIMEZONE_OPTIONS = storeTimezones().map(value => ({ value, label: value }))
-
-function toMap(input: unknown): SystemSettingsMap {
-  return input && typeof input === 'object' ? (input as SystemSettingsMap) : {}
-}
-
-function getString(input: unknown): string {
-  return typeof input === 'string' ? input : ''
-}
-
-function buildDraft(source: SystemSettingsMap, keys: string[]): SystemSettingsMap {
-  const next: SystemSettingsMap = {}
-  keys.forEach((key) => {
-    if (key === CHECKOUT_COUNTRIES_KEY) {
-      const val = source[key]
-      if (Array.isArray(val)) {
-        next[key] = val.filter((item): item is string => typeof item === 'string').join(', ')
-        return
-      }
-    }
-    next[key] = getString(source[key]) || (key === 'localization.timezone' ? 'UTC' : '')
-  })
-  return next
-}
-
-function parseCountryCodes(input: string): string[] {
-  const normalized = input
-    .split(/[,\n]/)
-    .map((item) => item.trim().toUpperCase())
-    .map((item) => (item === 'UK' ? 'GB' : item))
-    .filter((item) => item.length > 0)
-  return Array.from(new Set(normalized))
-}
+const countriesKey = 'checkout.address.countries_require_state_postal';
+const defaults = ['US', 'CA', 'AU', 'CN', 'GB'];
+const keys = ['branding.platform_name', 'branding.store_description', 'branding.logo', 'contact.email', 'contact.phone', 'contact.address', 'localization.locale', 'localization.currency', 'localization.timezone'];
+const currencies = ['USD', 'EUR', 'GBP', 'CNY', 'HKD', 'TWD'];
+const zones = storeTimezones();
+const text = (value: unknown) => typeof value === 'string' ? value : '';
+const draftOf = (map: SystemSettingsMap) => ({ ...Object.fromEntries(keys.map(key => [key, text(map[key]) || (key === 'localization.locale' ? 'en' : key === 'localization.currency' ? 'USD' : key === 'localization.timezone' ? 'UTC' : '')])), [countriesKey]: Array.isArray(map[countriesKey]) ? map[countriesKey] : defaults });
+type Draft = Record<string, unknown>;
 
 export default function SettingsPage() {
-  return <SettingsPageContent />
-}
-
-function SettingsPageContent() {
-  const { setTimezone } = useStoreDate()
-  const t = useT()
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [settingsMap, setSettingsMap] = useState<SystemSettingsMap>({})
-  const [draft, setDraft] = useState<SystemSettingsMap>({})
-  const [initialDraft, setInitialDraft] = useState<SystemSettingsMap>({})
-
-  const editableKeys = useMemo(
-    () => [...BRANDING_FIELDS, ...LOCALIZATION_FIELDS, { key: CHECKOUT_COUNTRIES_KEY }].map((field) => field.key),
-    []
-  )
-
-  const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback
-    const translated = t(key)
-    return translated === key ? fallback : translated
-  }
-
-  const hasChanges = JSON.stringify(draft) !== JSON.stringify(initialDraft)
-
-  const updateField = (key: string, value: string) => {
-    setDraft((prev) => ({ ...prev, [key]: value }))
-  }
-
-  const loadSettings = useCallback(async () => {
-    const response = await settingsApi.getAll()
-    const data = toMap(unwrapApiResponse(response))
-    setSettingsMap(data)
-    const nextDraft = buildDraft(data, editableKeys)
-    setDraft(nextDraft)
-    setInitialDraft(nextDraft)
-  }, [editableKeys])
-
+  const t = useT(), locale = useLocale(), router = useRouter(), { timezone, setTimezone } = useStoreDate();
+  const c = (key: string, values?: Record<string, string | number>) => t(`merchant.settingsView.${key}`, values);
+  const leave = (key: string) => t(`merchant.profileView.${key}`);
+  const [initial, setInitial] = useState<Draft | null>(null), [draft, setDraft] = useState<Draft | null>(null), [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({}), [busy, setBusy] = useState(false), [uploading, setUploading] = useState(false), [savedAt, setSavedAt] = useState<string | null>(null);
+  const [destination, setDestination] = useState<null | (() => void)>(null), [countryOpen, setCountryOpen] = useState(false), [countrySearch, setCountrySearch] = useState('');
+  const dirty = !!initial && JSON.stringify(initial) !== JSON.stringify(draft), dirtyRef = useRef(false), bypass = useRef(false), saving = useRef(false), form = useRef<HTMLFormElement>(null);
+  dirtyRef.current = dirty;
+  const accept = useCallback((map: SystemSettingsMap) => { const next = draftOf(map); setInitial(next); setDraft(next); setError(''); setFieldErrors({}); dirtyRef.current = false; }, []);
+  const load = useCallback(async () => { try { accept(unwrapApiResponse(await settingsApi.getAll())); } catch { setError('failed'); } }, [accept]);
+  useEffect(() => { void load(); }, [load]);
   useEffect(() => {
-    async function bootstrap() {
-      try {
-        await loadSettings()
-      } catch (error: unknown) {
-        toast.error(resolveApiErrorMessage(error, t))
-      } finally {
-        setLoading(false)
-      }
-    }
-    bootstrap()
-  }, [loadSettings, t])
-
-  const handleSave = async () => {
-    if (!hasChanges) {
-      toast.info(getText('merchant.settings.noChanges', 'No changes to save'))
-      return
-    }
-
-    setSaving(true)
-    try {
-      const updates: SystemSettingsMap = {}
-      editableKeys.forEach((key) => {
-        if (key === CHECKOUT_COUNTRIES_KEY) {
-          updates[key] = parseCountryCodes(getString(draft[key]))
-        } else {
-          updates[key] = getString(draft[key]).trim()
-        }
-      })
-      const response = await settingsApi.batchUpdate(updates)
-      const data = toMap(unwrapApiResponse(response))
-      setTimezone(getString(data['localization.timezone']))
-      setSettingsMap(data)
-      const nextDraft = buildDraft(data, editableKeys)
-      setDraft(nextDraft)
-      setInitialDraft(nextDraft)
-      toast.success(getText('common.messages.saveSuccess', 'Settings saved successfully!'))
-    } catch (error: unknown) {
-      toast.error(resolveApiErrorMessage(error, t))
-    } finally {
-      setSaving(false)
-    }
+    const unregister = registerNavigationGuard(resume => { if (!dirtyRef.current || bypass.current) return false; setDestination(() => resume); return true; });
+    const unload = (event: BeforeUnloadEvent) => { if (dirtyRef.current && !bypass.current) { event.preventDefault(); event.returnValue = ''; } };
+    const click = (event: MouseEvent) => {
+      if (!dirtyRef.current || bypass.current || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = (event.target as Element).closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!link || link.hasAttribute('data-app-navigation') || link.target === '_blank' || link.hasAttribute('download')) return;
+      const url = new URL(link.href, window.location.href);
+      if (url.origin !== window.location.origin || url.pathname === window.location.pathname && url.search === window.location.search) return;
+      event.preventDefault(); event.stopPropagation(); setDestination(() => () => router.push(url.pathname + url.search + url.hash));
+    };
+    document.addEventListener('click', click, true); window.addEventListener('beforeunload', unload);
+    return () => { unregister(); document.removeEventListener('click', click, true); window.removeEventListener('beforeunload', unload); };
+  }, [router]);
+  const change = (key: string, value: unknown) => setDraft(current => current ? { ...current, [key]: value } as Draft : current);
+  const focusError = (key: string) => { const field = document.getElementById(key); field?.focus(); field?.scrollIntoView?.({ block: 'center' }); };
+  const invalidField = useRef<string | null>(null);
+  useEffect(() => { if (!busy && invalidField.current) { focusError(invalidField.current); invalidField.current = null; } }, [busy, error]);
+  async function save() {
+    if (!draft || !initial || saving.current || uploading) return false;
+    const errors: Record<string, string> = {};
+    if (!text(draft['branding.platform_name']).trim()) errors['branding.platform_name'] = 'required';
+    const email = text(draft['contact.email']).trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors['contact.email'] = 'invalidEmail';
+    if (!currencies.includes(text(draft['localization.currency']))) errors['localization.currency'] = 'invalidCurrency';
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) { setError('saveFailed'); focusError(Object.keys(errors)[0]); return false; }
+    saving.current = true; setBusy(true); setError('');
+    const updates = Object.fromEntries(Object.entries(draft).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(initial[key as keyof Draft])).map(([key, value]) => [key, typeof value === 'string' ? value.trim() : value]));
+    try { const next = unwrapApiResponse(await settingsApi.batchUpdate(updates)); accept(next); setTimezone(text(next['localization.timezone'])); setSavedAt(new Date().toISOString()); return true; }
+    catch { invalidField.current = Object.keys(updates)[0] ?? 'branding.platform_name'; setError('saveFailed'); return false; }
+    finally { saving.current = false; setBusy(false); }
   }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-action-veil border-t-action-strong rounded-full animate-spin" />
-          <p className="text-xs font-bold text-neutral-light uppercase tracking-widest">
-            {getText('common.actions.loading', 'Loading...')}
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="w-full bg-page-surface min-h-screen">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-neutral-faint bg-surface/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-neutral-deepest tracking-tight leading-none">
-            {getText('merchant.settings.title', 'Settings')}
-          </h1>
-          <span className="text-[10px] font-bold text-action-strong uppercase tracking-widest mt-1">
-            System Configuration
-          </span>
-        </div>
-        <Button
-          onClick={handleSave}
-          disabled={saving || !hasChanges}
-          className="h-10 px-6 rounded-xl bg-action-strong hover:bg-action-deep font-semibold text-sm shadow-lg shadow-action-base/20 transition-all disabled:opacity-50"
-        >
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? getText('common.actions.saving', 'Saving...') : getText('common.actions.saveChanges', 'Save Changes')}
-        </Button>
-      </div>
-
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
-        {/* Store Branding Card */}
-        <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
-          <div className="px-8 py-6 border-b border-neutral-veil flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-action-veil flex items-center justify-center">
-                <Settings2 className="h-6 w-6 text-action-strong" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-neutral-deepest">
-                  {getText('merchant.settings.general.storeBranding', 'Store Branding')}
-                </h3>
-                <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
-                  {getText('merchant.settings.sections.generalDesc', 'Basic store configuration and preferences')}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="p-8 grid gap-6 md:grid-cols-2">
-            {BRANDING_FIELDS.map((field) => (
-              <div key={field.key} className={field.key === 'branding.store_description' ? 'md:col-span-2 space-y-2' : 'space-y-2'}>
-                <Label htmlFor={field.key} className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
-                  {getText(field.labelKey, field.labelFallback)}
-                </Label>
-                {field.key === 'branding.store_description' ? (
-                  <Textarea
-                    id={field.key}
-                    value={getString(draft[field.key])}
-                    onChange={(event) => updateField(field.key, event.target.value)}
-                    placeholder={field.placeholder}
-                    className="rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all"
-                  />
-                ) : (
-                  <Input
-                    id={field.key}
-                    value={getString(draft[field.key])}
-                    onChange={(event) => updateField(field.key, event.target.value)}
-                    placeholder={field.placeholder}
-                    className="h-11 rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Localization Card */}
-        <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
-          <div className="px-8 py-6 border-b border-neutral-veil">
-            <h3 className="text-lg font-bold text-neutral-deepest">
-              {getText('merchant.settings.sections.localization', 'Localization')}
-            </h3>
-            <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
-              {getText('merchant.settings.sections.localizationDesc', 'Language, currency, and regional settings')}
-            </span>
-          </div>
-          <div className="p-8 grid gap-6 md:grid-cols-2">
-            {LOCALIZATION_FIELDS.map((field) => {
-              const isLocaleField = field.key === 'localization.locale'
-              const isTimezoneField = field.key === 'localization.timezone'
-
-              return (
-                <div key={field.key} className="space-y-2">
-                  <Label htmlFor={field.key} className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
-                    {getText(field.labelKey, field.labelFallback)}
-                  </Label>
-                  {isLocaleField ? (
-                    <Select
-                      value={getString(draft[field.key]) || 'en'}
-                      onValueChange={(value) => updateField(field.key, value)}
-                    >
-                      <SelectTrigger className="h-11 rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all">
-                        <SelectValue placeholder="Select language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LOCALE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : isTimezoneField ? (
-                    <Select
-                      value={getString(draft[field.key]) || 'UTC'}
-                      onValueChange={(value) => updateField(field.key, value)}
-                    >
-                      <SelectTrigger id={field.key} aria-label={getText(field.labelKey, field.labelFallback)} className="h-11 rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TIMEZONE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      id={field.key}
-                      value={getString(draft[field.key])}
-                      onChange={(event) => updateField(field.key, event.target.value)}
-                      placeholder={field.placeholder}
-                      className="h-11 rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all"
-                    />
-                  )}
-                  {isTimezoneField && <p className="text-xs text-neutral-base">{t('merchant.settings.localization.timezoneDesc')}</p>}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Checkout Address Rules Card */}
-        <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
-          <div className="px-8 py-6 border-b border-neutral-veil">
-            <h3 className="text-lg font-bold text-neutral-deepest">Checkout Address Rules</h3>
-            <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
-              Countries that require state and postal code when shipping address is provided
-            </span>
-          </div>
-          <div className="p-8 space-y-2">
-            <Label htmlFor={CHECKOUT_COUNTRIES_KEY} className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
-              Country Codes (ISO-2)
-            </Label>
-            <Textarea
-              id={CHECKOUT_COUNTRIES_KEY}
-              value={getString(draft[CHECKOUT_COUNTRIES_KEY])}
-              onChange={(event) => updateField(CHECKOUT_COUNTRIES_KEY, event.target.value)}
-              placeholder="US, CA, AU, CN, GB"
-              className="rounded-xl border-neutral-faint focus:border-action-base focus:ring-2 focus:ring-action-base/10 transition-all min-h-[96px]"
-            />
-            <p className="text-xs text-neutral-base">
-              Use comma or newline separated country codes. Example: <code>US, CA, AU, CN, GB</code>
-            </p>
-          </div>
-        </div>
-
-        {/* API Tokens */}
-        <ApiTokenPanel />
-      </div>
+  const regionNames = new Intl.DisplayNames([locale], { type: 'region' });
+  const selectedCountries = (draft?.[countriesKey] ?? []) as string[];
+  const allCountries = Array.from({ length: 26 * 26 }, (_, index) => String.fromCharCode(65 + Math.floor(index / 26), 65 + index % 26)).filter(code => { try { return regionNames.of(code) !== code && !['EU', 'UN', 'QO', 'EZ', 'XA', 'XB', 'ZZ'].includes(code); } catch { return false; } });
+  const panel = (id: string, children: ReactNode, hint?: string) => <section id={id} aria-labelledby={`heading-${id}`} className="scroll-mt-40 overflow-hidden rounded-[10px] border border-border"><div className="space-y-0.5 border-b border-border px-4 py-3"><h2 id={`heading-${id}`} className="font-semibold">{c(id)}</h2>{hint && <p className="text-xs leading-relaxed text-faint">{c(hint)}</p>}</div><div className="space-y-4 p-4">{children}</div></section>;
+  const field = (key: string, label: string, hint?: string, multiline = false, type = 'text') => <div className={key === "branding.platform_name" ? "max-w-[460px] space-y-1.5" : "space-y-1.5"}><label htmlFor={key}>{c(label)}</label>{multiline ? <Textarea id={key} rows={2} className="min-h-0 bg-ground" value={text(draft?.[key as keyof Draft])} aria-invalid={!!fieldErrors[key]} aria-describedby={hint ? `${key}-hint` : undefined} onChange={event => change(key, event.target.value)} /> : <Input id={key} type={type} className="h-[34px] bg-ground" value={text(draft?.[key as keyof Draft])} aria-invalid={!!fieldErrors[key]} aria-describedby={fieldErrors[key] ? `${key}-error` : hint ? `${key}-hint` : undefined} onChange={event => change(key, event.target.value)} />}{hint && <p id={`${key}-hint`} className="text-xs leading-relaxed text-faint">{c(hint)}</p>}{fieldErrors[key] && <p id={`${key}-error`} className="text-xs text-destructive">{c(fieldErrors[key])}</p>}</div>;
+  return <section className="min-w-0 text-[13px] text-foreground">
+    <header className="sticky top-0 z-30 border-b border-border bg-ground"><div className="mx-auto flex max-w-[760px] flex-wrap items-center justify-between gap-3 px-4 pb-4 pt-16 group-has-[[data-settings-banner]]/admin-content:pt-5 min-[769px]:pt-5 sm:px-8"><div className="space-y-1"><h1 style={{ fontSize: 22, letterSpacing: "-0.02em" }} className="text-[22px] font-semibold tracking-tight">{c('title')}</h1><p className="text-muted-foreground">{c('description')}</p></div><div className="flex flex-wrap items-center gap-2"><span className={`text-xs ${dirty ? 'text-attention' : 'text-faint'}`}>{draft && (dirty ? c('dirty') : c('saved') + (savedAt ? ` · ${formatStoreTimestamp(savedAt, timezone)}` : ''))}</span>{dirty && <Button size="sm" variant="outline" disabled={busy || uploading} onClick={() => { setDraft(initial); setError(''); setFieldErrors({}); }}>{c('discard')}</Button>}<Button className={!dirty ? "bg-raised text-faint disabled:opacity-100" : undefined} size="sm" form="settings-editor" type="submit" disabled={!dirty || busy || uploading}>{c(busy ? 'saving' : 'save')}</Button></div></div><nav aria-label={c('sections')} className="mx-auto flex max-w-[760px] flex-wrap gap-x-[18px] px-4 text-muted-foreground sm:px-8">{['store', 'contact', 'region', 'checkout', 'tokens'].map(id => <a key={id} href={`#${id}`} className="inline-flex min-h-[34px] items-center">{c(id)}</a>)}</nav></header>
+    <div className="mx-auto max-w-[760px] space-y-5 px-4 pb-16 pt-6 sm:px-8">
+      {error && <div role="alert" className="space-y-2 text-destructive"><p>{c(error)}</p>{!draft && <Button variant="outline" onClick={() => void load()}>{c('retry')}</Button>}</div>}
+      {!draft && !error && <p role="status">{c('loading')}</p>}
+      {draft && <><p className="text-xs text-faint">{c('timeZone', { timezone })}</p><form id="settings-editor" ref={form} noValidate onSubmit={event => { event.preventDefault(); void save(); }}><fieldset className="min-w-0 space-y-5" disabled={busy || uploading}>
+        {panel('store', <>{field('branding.platform_name', 'name', 'nameHint')}{field('branding.store_description', 'summary', 'summaryHint', true)}<div className="space-y-1.5"><span>{c('logo')}</span><div className="flex flex-wrap items-center gap-2.5">{text(draft['branding.logo']) ? <img src={text(draft['branding.logo'])} alt={c('logo')} className="h-10 w-24 rounded-[7px] border border-border bg-raised object-contain" /> : <span title={text(draft['branding.platform_name'])} className="block h-10 w-24 truncate rounded-[7px] border border-border bg-raised px-2 leading-10 font-semibold text-muted-foreground">{text(draft['branding.platform_name'])}</span>}<label className="relative inline-flex h-[30px] cursor-pointer items-center rounded-[7px] border border-border px-3">{c('changeImage')}<input aria-label={c('changeImage')} type="file" accept="image/jpeg,image/png,image/webp" className="absolute inset-0 w-full cursor-pointer opacity-0" onChange={async event => { const file = event.target.files?.[0]; event.target.value = ''; if (!file) return; setUploading(true); setError(''); try { change('branding.logo', unwrapApiResponse(await uploadApi.uploadProductImage(file)).url); } catch { setError('imageFailed'); } finally { setUploading(false); } }} /></label><Button size="sm" variant="ghost" disabled={!text(draft['branding.logo'])} onClick={() => change('branding.logo', '')}>{c('remove')}</Button></div><p className="text-xs text-faint">{c('logoHint')}</p></div></>)}
+        {panel('contact', <><div className="grid gap-4 sm:grid-cols-2">{field('contact.email', 'email', undefined, false, 'email')}{field('contact.phone', 'phone', undefined, false, 'tel')}</div>{field('contact.address', 'address')}</>, 'contactHint')}
+        {panel('region', <>{(['locale', 'currency', 'timezone'] as const).map((key, index) => { const setting = `localization.${key}`, label = ['language', 'currency', 'timezone'][index]; return <div key={key} className="max-w-[460px] space-y-1.5"><label htmlFor={setting}>{c(label)}</label><Choice id={setting} label={c(label)} className={`w-full bg-ground ${key === 'currency' && draft[setting] !== initial?.[setting] ? 'border-attention-line' : 'border-border'}`} value={text(draft[setting])} onChange={value => change(setting, value)} options={(key === 'locale' ? ['en', 'zh-Hans', 'zh-Hant'] : key === 'currency' ? currencies : zones).map(value => ({ value, label: key === 'locale' ? new Intl.DisplayNames([locale], { type: 'language' }).of(value) ?? value : key === 'currency' ? c('currencyFormat', { name: new Intl.DisplayNames([locale], { type: 'currency' }).of(value) ?? value, code: value, symbol: new Intl.NumberFormat(locale, { style: 'currency', currency: value, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find(part => part.type === 'currency')?.value ?? value }) : value }))} /><p className={`text-xs leading-relaxed ${key === 'currency' && draft[setting] !== initial?.[setting] ? 'text-attention' : 'text-faint'}`}>{c(key === 'currency' && draft[setting] !== initial?.[setting] ? 'currencyWarning' : `${label}Hint`)}</p></div>; })}</>)}
+        {panel('checkout', <><div className="flex flex-wrap gap-1.5">{selectedCountries.map(code => <span key={code} className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-raised pl-2.5 pr-1">{regionNames.of(code)}<span className="font-mono text-[11px] text-faint">{code}</span><button type="button" aria-label={c('removeCountry', { country: regionNames.of(code) ?? code })} className="size-5 rounded-full text-muted-foreground" onClick={() => change(countriesKey, selectedCountries.filter(value => value !== code))}>×</button></span>)}<Button variant="outline" size="sm" className="h-7 rounded-full border-dashed" onClick={() => setCountryOpen(true)}>{c('addCountry')}</Button></div>{!selectedCountries.length && <p className="text-xs text-faint">{c('noCountries')}</p>}</>, 'checkoutHint')}
+      </fieldset></form><ApiTokenPanel /></>}
     </div>
-  )
+    <AlertDialog open={countryOpen} onOpenChange={setCountryOpen}><AlertDialogContent className="w-[calc(100%-32px)]"><AlertDialogHeader><AlertDialogTitle>{c('country')}</AlertDialogTitle><AlertDialogDescription>{c('checkoutHint')}</AlertDialogDescription></AlertDialogHeader><Input aria-label={c('country')} value={countrySearch} onChange={event => setCountrySearch(event.target.value)} /><div className="max-h-64 overflow-y-auto">{allCountries.filter(code => !selectedCountries.includes(code) && `${code} ${regionNames.of(code)}`.toLowerCase().includes(countrySearch.toLowerCase())).map(code => <Button variant="ghost" key={code} className="block w-full text-left" onClick={() => { change(countriesKey, [...selectedCountries, code]); setCountryOpen(false); setCountrySearch(''); }}>{regionNames.of(code)} {code}</Button>)}</div><Button variant="outline" onClick={() => setCountryOpen(false)}>{c('cancel')}</Button></AlertDialogContent></AlertDialog>
+    <AlertDialog open={destination !== null} onOpenChange={open => { if (!open && !busy) setDestination(null); }}><AlertDialogContent className="z-[100] w-[calc(100%-32px)]" overlayClassName="z-[90]"><AlertDialogHeader><AlertDialogTitle>{leave('leaveTitle')}</AlertDialogTitle><AlertDialogDescription>{leave('leaveNote')}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="gap-2"><Button variant="outline" disabled={busy} onClick={() => setDestination(null)}>{leave('keepEditing')}</Button><Button variant="outline" disabled={busy} onClick={() => { bypass.current = true; dirtyRef.current = false; destination?.(); setDestination(null); }}>{leave('leaveWithout')}</Button><Button disabled={busy} onClick={async () => { if (await save()) { bypass.current = true; destination?.(); setDestination(null); } }}>{leave('saveLeave')}</Button></AlertDialogFooter></AlertDialogContent></AlertDialog>
+  </section>;
 }

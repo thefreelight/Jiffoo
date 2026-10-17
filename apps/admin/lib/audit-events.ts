@@ -3,16 +3,18 @@ import { apiClient, unwrapApiResponse } from './api';
 export type AuditActor = { id: string; email: string; username: string; isActive: boolean };
 export type AuditEvent = {
   id: string; createdAt: string; action: string; targetType: string; targetId: string;
+  context?: { path: string; label: string };
+  paymentContext?: { amount: string; currency: string; attemptNumber: number };
   summary: unknown; actor: AuditActor | null;
   actorId: string;
 };
 export type AuditFilters = { actions: string[]; targetTypes: string[]; actors: AuditActor[] };
-export type AuditQuery = { actorId?: string; action?: string; targetType?: string; from?: string; to?: string };
+export type AuditQuery = { actorId?: string; action?: string; targetType?: string; from?: string; to?: string; category?: string; sort?: string };
 export type AuditPage = { items: AuditEvent[]; page: number; limit: number; total: number; totalPages: number };
 
 export const auditEventsApi = {
-  list: async (page: number, query: AuditQuery) =>
-    unwrapApiResponse(await apiClient.get<AuditPage>('/admin/audit-events', { params: { ...query, page, limit: 20 } })),
+  list: async (page: number, query: AuditQuery, limit = 20) =>
+    unwrapApiResponse(await apiClient.get<AuditPage>('/admin/audit-events', { params: { ...query, page, limit } })),
   filters: async () => unwrapApiResponse(await apiClient.get<AuditFilters>('/admin/audit-events/filters')),
 };
 

@@ -92,6 +92,19 @@ describe('Persisted notifications', () => {
       { secret },
     ));
   }
+  it('filters recipients and types, returns status counts before the status filter, and sorts stably', async () => {
+    const first = await pending('order_confirmation');
+    const second = await pending('order_confirmation');
+    await prisma.notification.update({ where: { id: second.id }, data: { status: 'FAILED' } });
+    await pending('payment_received');
+    const response = await app.inject({ method: 'GET', url: '/api/v1/admin/notifications?search=NOTIFICATION-TEST&type=order_confirmation&status=FAILED&sort=oldest', headers: { authorization: `Bearer ${adminToken}` } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data).toMatchObject({ total: 1, counts: { all: 2, PENDING: 1, SENDING: 0, SENT: 0, FAILED: 1 }, types: ['order_confirmation', 'payment_received'] });
+    expect(response.json().data.items.map((row: { id: string }) => row.id)).toEqual([second.id]);
+    const empty = await app.inject({ method: 'GET', url: '/api/v1/admin/notifications?search=no-match', headers: { authorization: `Bearer ${adminToken}` } });
+    expect(empty.json().data).toMatchObject({ items: [], total: 0, counts: { all: 0, PENDING: 0, SENDING: 0, SENT: 0, FAILED: 0 } });
+    expect(first.id).not.toBe(second.id);
+  });
 
   it('registers a session and persists a localized verification without calling a provider', async () => {
     const email = `notification-test-${randomUUID()}@test.com`;

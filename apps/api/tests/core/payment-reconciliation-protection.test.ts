@@ -92,7 +92,7 @@ describe('worker payment reconciliation shared protection', () => {
       if (child.connected) child.send({ kind: 'stop' });
       const [code] = await exited; expect(code).toBe(0);
       await relay.drop();
-      const keys = await client.keys(`${namespace}:*`); if (scope) keys.push(...await client.keys(`${scope}:*`)); if (heartbeatKey) keys.push(heartbeatKey);
+      const keys = await client.keys(`${namespace}:*`); if (scope) keys.push(...await client.keys(`${scope}:*`)); if (heartbeatKey) keys.push(heartbeatKey, heartbeatKey.replace('worker:heartbeat:', 'worker:last-beat:'));
       if (keys.length) await client.del(...keys); client.disconnect();
       if (orderId) {
         const rows = await prisma.payment.findMany({ where: { orderId }, select: { id: true } });

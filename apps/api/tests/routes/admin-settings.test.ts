@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
+import { systemSettingsService } from '@/core/admin/system-settings/service';
 import {
   createUserWithToken,
   createAdminWithToken,
@@ -32,6 +33,29 @@ describe('Admin Settings Endpoints', () => {
   afterAll(async () => {
     await deleteAllTestUsers();
     await app.close();
+  });
+  it('persists absent, configured and explicitly empty checkout country requirements through the admin and store APIs', async () => {
+    const key = 'checkout.address.countries_require_state_postal';
+    const original = await systemSettingsService.getSetting(key);
+    const headers = { authorization: `Bearer ${adminToken}` };
+    try {
+      await systemSettingsService.resetSetting(key);
+      const context = () => app.inject({ method: 'GET', url: '/api/v1/store/context' });
+      expect((await context()).json().data.checkoutCountriesRequireStatePostal).toEqual(['US', 'CA', 'AU', 'CN', 'GB']);
+      for (const countries of [['DE'], []]) {
+        const saved = await app.inject({ method: 'PUT', url: '/api/v1/admin/settings/batch', headers, payload: { settings: { [key]: countries } } });
+        expect(saved.statusCode).toBe(200);
+        expect(saved.json().data[key]).toEqual(countries);
+        const read = await app.inject({ method: 'GET', url: '/api/v1/admin/settings', headers });
+        expect(read.json().data[key]).toEqual(countries);
+        const publicContext = await context();
+        expect(publicContext.statusCode).toBe(200);
+        expect(publicContext.json().data.checkoutCountriesRequireStatePostal).toEqual(countries);
+      }
+    } finally {
+      if (original === null) await systemSettingsService.resetSetting(key);
+      else await systemSettingsService.setSetting(key, original);
+    }
   });
 
   it('GET /api/v1/admin/settings should return 401 without token', async () => {

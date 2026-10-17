@@ -18,7 +18,7 @@ import { PaymentReconciliationJob } from './jobs/payment-reconciliation';
 import { hostname } from 'node:os';
 import { createServer } from 'node:http';
 import { env } from './config/env';
-import { WORKER_HEARTBEAT_PREFIX, WORKER_HEARTBEAT_TTL_SECONDS, WORKER_HEARTBEAT_INTERVAL_MS, WORKER_TASKS } from './infra/worker-health';
+import { WORKER_HEARTBEAT_PREFIX, WORKER_HEARTBEAT_TTL_SECONDS, WORKER_HEARTBEAT_INTERVAL_MS, WORKER_LAST_BEAT_PREFIX, WORKER_LAST_BEAT_TTL_SECONDS, WORKER_TASKS } from './infra/worker-health';
 import { pluginSecretsKey } from './core/admin/plugin-management/config-crypto';
 import { assertTestRootEnvironment } from 'shared/plugin-signing';
 import { syncBuiltinPlugins } from './core/admin/extension-installer/builtin-sync';
@@ -177,11 +177,11 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
         minAgeMinutes: Number(process.env.PAYMENT_RECONCILIATION_MIN_AGE_MINUTES || 2) || 2,
       });
     }
-    const beat = () => run(() => heartbeatRedis.set(
-      heartbeatKey,
-      JSON.stringify({ instanceId, hostname: hostname(), pid: process.pid, startedAt, lastBeatAt: new Date().toISOString() }),
-      'EX', WORKER_HEARTBEAT_TTL_SECONDS,
-    ), 'Worker heartbeat write failed');
+    const beat = () => run(async () => {
+      const value = JSON.stringify({ instanceId, hostname: hostname(), pid: process.pid, startedAt, lastBeatAt: new Date().toISOString() });
+      await heartbeatRedis.set(heartbeatKey, value, 'EX', WORKER_HEARTBEAT_TTL_SECONDS);
+      await heartbeatRedis.set(`${WORKER_LAST_BEAT_PREFIX}${instanceId}`, value, 'EX', WORKER_LAST_BEAT_TTL_SECONDS);
+    }, 'Worker heartbeat write failed');
     await beat();
     heartbeatTimer = setInterval(() => void beat(), WORKER_HEARTBEAT_INTERVAL_MS);
     await new Promise<void>((resolve, reject) => {

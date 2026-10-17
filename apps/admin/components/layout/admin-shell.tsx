@@ -19,19 +19,20 @@ export function AdminShell({ children, logo = null, loginBackground = null, stor
   const { collapsed } = usePreferences();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pluginLayout = /\/plugins(?:\/[^/]+)?\/?$/.test(pathname);
-  const editorLayout = pluginLayout || /\/(?:themes\/(?:shop|admin)\/[^/]+|storefront-code)\/?$/.test(pathname);
+  const operationLayout = /\/(?:notifications|audit-events|settings|system\/health)\/?$/.test(pathname);
+  const editorLayout = pluginLayout || operationLayout || /\/(?:themes\/(?:shop|admin)\/[^/]+|storefront-code)\/?$/.test(pathname);
   const copy = shellCopy[locale];
   const navigation = { storeName, storeUrl, logo };
   return <ThemeAssets.Provider value={{ logo, loginBackground, storeName, storeUrl }}>{isPublicAdminRoute(pathname) ? children :
     <ProtectedRoute requireAdmin><TooltipProvider delayDuration={200}>
-      <div className="flex h-dvh overflow-hidden bg-background text-foreground">
+      <div className="flex h-dvh overflow-hidden bg-ground text-foreground">
         <aside aria-label={copy.navigation} className="hidden shrink-0 border-r border-border min-[769px]:flex" style={{ width: collapsed ? 56 : 240 }}><AdminNavigation {...navigation} collapsed={collapsed} /></aside>
         <button type="button" aria-label={copy.openMenu} aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)} className="fixed left-4 top-4 z-60 flex size-8 items-center justify-center rounded-md border bg-raised text-foreground min-[769px]:hidden"><Menu className="size-4" aria-hidden="true" /></button>
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}><SheetContent closeLabel={copy.closeMenu}>
           <SheetTitle className="sr-only">{copy.navigation}</SheetTitle><SheetDescription className="sr-only">{storeName || copy.store}</SheetDescription>
           <AdminNavigation {...navigation} mobile onNavigate={() => setMobileOpen(false)} />
         </SheetContent></Sheet>
-        <main id="main" tabIndex={-1} className="admin-main min-w-0 flex-1 overflow-y-auto bg-background"><div className={editorLayout ? 'min-h-full' : 'mx-auto min-h-full max-w-[1120px] px-8 pt-10 pb-8'}>{pluginLayout ? <TestSigningBanner framed /> : editorLayout ? <div className="mx-auto max-w-[1120px] px-8 pt-10"><TestSigningBanner /></div> : <TestSigningBanner />}{children}</div></main>
+        <main id="main" tabIndex={-1} className="admin-main min-w-0 flex-1 overflow-y-auto bg-ground"><div className={editorLayout ? 'group/admin-content min-h-full' : 'mx-auto min-h-full max-w-[1120px] px-8 pt-10 pb-8'}>{operationLayout ? pathname.endsWith("/settings") ? <TestSigningBanner framed /> : <div className="mx-auto max-w-[1120px] px-4 pt-16 min-[769px]:pt-10 sm:px-8"><TestSigningBanner /></div> : pluginLayout ? <TestSigningBanner framed /> : editorLayout ? <div className="mx-auto max-w-[1120px] px-8 pt-10"><TestSigningBanner /></div> : <TestSigningBanner />}{children}</div></main>
       </div>
     </TooltipProvider></ProtectedRoute>}
   </ThemeAssets.Provider>;

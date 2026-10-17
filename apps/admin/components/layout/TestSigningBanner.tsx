@@ -11,5 +11,5 @@ export function TestSigningBanner({ framed = false }: { framed?: boolean }) {
     <strong>{t('merchant.plugins.marketplace.testSigningMode')}</strong>
     <span className="ml-3">{t('merchant.plugins.marketplace.testSigningWarning')}</span>
   </div>;
-  return framed ? <div className="mx-auto max-w-[1120px] px-4 pt-16 min-[769px]:pt-10 sm:px-8">{banner}</div> : banner;
+  return framed ? <div data-settings-banner className="mx-auto max-w-[1120px] px-4 pt-16 min-[769px]:pt-10 sm:px-8">{banner}</div> : banner;
 }

@@ -76,7 +76,8 @@ const playwrightGroups = [
   ['01-install'],
   // This project intentionally exhausts its isolated login budget.
   ['02-login'],
-  ['03-password', '04-language', '05-settings', '06-health-plugins', '07-products'],
+  ['03-password', '04-language'],
+  ['05-settings', '06-health-plugins', '07-products'],
   ['08-orders', '09-customers'],
   ['10-staff', '11-forgot-password', '12-translations', '13-shop', '14-shop-registration', '15-shop-account'],
   ['16-shop-checkout-price-stock', '17-shop-order-history-cancel', '18-order-refund'],

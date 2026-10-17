@@ -11,7 +11,7 @@ import { pluginUploadApi, type PluginDatabaseAuditSummary } from '@/lib/plugin-u
 import { apiClient } from '@/lib/api';
 
 let dictionary: typeof en | typeof hans | typeof hant = en;
-vi.mock('shared/src/i18n/react', () => ({ useT: () => (key: string) => key.split('.').slice(1).reduce<any>((value, part) => value?.[part], dictionary) ?? key }));
+vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string, values?: Record<string, string | number>) => { const copy = key.split('.').slice(1).reduce<any>((value, part) => value?.[part], dictionary) ?? key; return typeof copy === 'string' ? copy.replace(/\{(\w+)\}/g, (_: string, name: string) => String(values?.[name] ?? `{${name}}`)) : key; } }));
 vi.mock('@/lib/api', async original => ({ ...await original<typeof import('@/lib/api')>(), apiClient: { get: vi.fn(), post: vi.fn() } }));
 afterEach(() => vi.restoreAllMocks());
 function render(data?: PluginDatabaseAuditSummary) {
@@ -25,17 +25,18 @@ it.each([en, hans, hant])('J latest audit shows scan time and stopped-system lim
   dictionary = locale;
   const html = render({ latest });
   expect(html).toContain(locale.plugins.databaseAudit.notice);
-  expect(html).toContain(`<time dateTime="${latest.finishedAt}">${latest.finishedAt}</time>`);
-  for (const [key, count] of [['plugins', 4], ['blocking', 2], ['warnings', 1]] as const) expect(html).toContain(`${locale.plugins.databaseAudit[key]}: ${count}`);
-  expect(html).toContain(locale.plugins.databaseAudit.complete);
+  expect(html).toContain(`<time dateTime="${latest.finishedAt}">`);
+  expect(html).toContain('2026-10-10 00:00');
+  for (const [key, count] of [['installed', 4], ['blocking', 2], ['warnings', 1]] as const) { expect(html).toContain(locale.healthView[key]); expect(html).toContain(`>${count}</dd>`); }
+  expect(html).not.toContain(locale.healthView.incomplete);
   expect(Object.keys(locale.plugins.databaseAudit).sort()).toEqual(Object.keys(en.plugins.databaseAudit).sort());
   for (const copy of Object.values(locale.plugins.databaseAudit)) expect(copy.trim()).not.toBe('');
 });
 it('J missing and incomplete audit summaries never imply upgrade clearance', () => {
   dictionary = en;
-  expect(render({ latest: null })).toContain(en.plugins.databaseAudit.notScanned);
-  expect(render({ latest: { ...latest, complete: false } })).toContain(en.plugins.databaseAudit.incomplete);
-  expect(render()).toContain(en.plugins.databaseAudit.loading);
+  expect(render({ latest: null })).toContain(en.healthView.notScanned);
+  expect(render({ latest: { ...latest, complete: false } })).toContain(en.healthView.incomplete);
+  expect(render()).toContain(en.healthView.scanning);
 });
 it('J summary reads are separate from explicit scan requests', async () => {
   const get = vi.spyOn(apiClient, 'get').mockResolvedValue({ success: true, data: { latest } });

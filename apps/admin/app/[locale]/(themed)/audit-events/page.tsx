@@ -1,140 +1,80 @@
 'use client';
 
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useLocale, useT } from 'shared/src/i18n/react';
+import { formatStoreTimestamp, storeLocalToUtc } from 'shared';
 import { useStoreDate } from '@/lib/store-time';
-import { storeLocalToUtc } from 'shared';
-import { Fragment, useEffect, useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ScrollText } from 'lucide-react';
-import { useT } from 'shared/src/i18n/react';
 import { auditActionKeys, auditEventsApi, summaryText, type AuditEvent, type AuditFilters, type AuditQuery } from '@/lib/audit-events';
+import { listChoice, useListState, type ListFields } from '@/lib/hooks/use-list-state';
+import { Choice } from '@/components/operations/Choice';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pagination } from '@/components/operations/Pagination';
+
+const categories = ['payment', 'plugin', 'theme', 'code', 'settings', 'notification', 'system', 'accounts'];
+const operationKeys: Record<string, string> = {
+  NOTIFICATION_RESENT: 'notificationResent', CUSTOMER_PASSWORD_RESET_LINK_GENERATED: 'customerReset', ADMIN_INVITED: 'administratorInvited', ADMIN_REMOVED: 'administratorRemoved',
+  PAYMENT_REVIEW_CONFIRMED_PAID: 'paymentConfirmed', PAYMENT_REVIEW_CLOSED_NOT_CHARGED: 'paymentNotCharged', PAYMENT_REVIEW_REQUIRED: 'paymentReview', PAYMENT_OBSERVATION_REVIEW_REQUIRED: 'paymentReview', PAYMENT_REVIEW_CONTRADICTED: 'paymentContradicted', PAYMENT_REFUND_REQUIRED_RESOLVED: 'refundResolved',
+};
+const fields: ListFields = {
+  category: listChoice(['', ...categories]), actorId: { default: '', valid: () => true },
+  from: { default: '', valid: value => !value || /^\d{4}-\d{2}-\d{2}T/.test(value) }, to: { default: '', valid: value => !value || /^\d{4}-\d{2}-\d{2}T/.test(value) },
+  sort: listChoice(['newest', 'oldest']), page: { default: '1', valid: value => /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value)) }, pageSize: listChoice(['20', '50', '100']),
+};
+const categoryOf = (item: AuditEvent) => item.action.startsWith('CORE_') ? 'system' : item.action.startsWith('storefront-code.') ? 'code' : /^(STAFF_|CUSTOMER_|api_token)/.test(item.action) || ['staff', 'user', 'customer', 'api_token'].includes(item.targetType) ? 'accounts' : categories.includes(item.targetType) ? item.targetType : 'other';
 
 export default function AuditEventsPage() {
-  const { date: storeDate, timezone } = useStoreDate();
-  const t = useT();
-  const label = (key: string) => t(`merchant.auditEvents.${key}`);
-  const actionLabel = (action: string) => Object.prototype.hasOwnProperty.call(auditActionKeys, action)
-    ? label(`actions.${auditActionKeys[action]}`) : action;
-  const eventLabel = (item: AuditEvent) => item.action === 'CORE_UPDATE' && item.summary !== null && typeof item.summary === 'object' && 'runKind' in item.summary && item.summary.runKind === 'plan'
-    ? label('corePlan') : actionLabel(item.action);
+  const t = useT(), locale = useLocale(), { timezone } = useStoreDate();
+  const c = (key: string, values?: Record<string, string | number>) => t(`merchant.auditView.${key}`, values);
+  const { state, update } = useListState(fields), page = Number(state.page), size = Number(state.pageSize);
   const [filters, setFilters] = useState<AuditFilters>({ actions: [], targetTypes: [], actors: [] });
-  const [query, setQuery] = useState<AuditQuery>({});
-  const [page, setPage] = useState(1);
-  const [items, setItems] = useState<AuditEvent[]>([]);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [expanded, setExpanded] = useState<string | null>(null);
-
+  const [items, setItems] = useState<AuditEvent[]>([]), [total, setTotal] = useState(0), [loading, setLoading] = useState(true), [error, setError] = useState('');
+  const [expanded, setExpanded] = useState<string | null>(null), [technical, setTechnical] = useState<string | null>(null), [exporting, setExporting] = useState(false), [revision, setRevision] = useState(0);
+  const query = useMemo(() => {
+    try {
+      const from = state.from ? storeLocalToUtc(state.from, timezone) : undefined, to = state.to ? storeLocalToUtc(state.to, timezone) : undefined;
+      if (from && to && from > to) return null;
+      return { category: state.category || undefined, actorId: state.actorId || undefined, from, to, sort: state.sort } satisfies AuditQuery;
+    } catch { return null; }
+  }, [state.category, state.actorId, state.from, state.to, state.sort, timezone]);
+  useEffect(() => { let active = true; auditEventsApi.filters().then(value => { if (active) setFilters(value); }).catch(() => { if (active) setError('failed'); }); return () => { active = false; }; }, [revision]);
   useEffect(() => {
-    let active = true;
-    auditEventsApi.filters().then((data) => { if (active) setFilters(data); })
-      .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : String(reason)); });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
+    let active = true; setError(''); setExpanded(null); setTechnical(null);
+    if (!query) { setError('invalidTime'); setLoading(false); setItems([]); setTotal(0); return; }
     setLoading(true);
-    setError('');
-    setExpanded(null);
-    auditEventsApi.list(page, query).then((data) => {
-      if (active) { setItems(data.items); setTotal(data.total); setTotalPages(data.totalPages); }
-    }).catch((reason: unknown) => {
-      if (active) {
-        setError(reason instanceof Error ? reason.message : String(reason));
-        setItems([]); setTotal(0); setTotalPages(0);
-      }
-    }).finally(() => { if (active) setLoading(false); });
+    auditEventsApi.list(page, query, size).then(data => { if (active) { setItems(data.items); setTotal(data.total); } }).catch(() => { if (active) { setError('failed'); setItems([]); setTotal(0); } }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [page, query]);
-
-  function change(key: keyof AuditQuery, value: string) {
-    setQuery((current) => ({ ...current, [key]: value || undefined }));
-    setPage(1);
+  }, [page, size, query, revision]);
+  const filter = (patch: Record<string, string>) => update({ ...patch, page: '1' });
+  const actionLabel = (item: AuditEvent) => Object.prototype.hasOwnProperty.call(operationKeys, item.action) ? c(operationKeys[item.action]) : Object.prototype.hasOwnProperty.call(auditActionKeys, item.action) ? t(`merchant.auditEvents.actions.${auditActionKeys[item.action]}`) : item.action;
+  const actorLabel = (item: AuditEvent) => item.actor?.username || item.actor?.email || (item.actorId === 'system' ? c('systemActor') : c('missingActor'));
+  const toggle = (id: string) => { setExpanded(current => current === id ? null : id); setTechnical(null); };
+  async function exportRecords() {
+    if (!query || exporting) return;
+    setExporting(true); setError('');
+    try {
+      const first = await auditEventsApi.list(1, query, 100), records = [...first.items];
+      for (let index = 2; index <= first.totalPages; index++) records.push(...(await auditEventsApi.list(index, query, 100)).items);
+      const url = URL.createObjectURL(new Blob([JSON.stringify({ timezone, filters: query, records }, null, 2)], { type: 'application/json' }));
+      const link = document.createElement('a'); link.href = url; link.download = 'audit-events.json'; link.click(); URL.revokeObjectURL(url);
+    } catch { setError('exportFailed'); } finally { setExporting(false); }
   }
-  const changeTime = (key: 'from' | 'to', value: string) => {
-    try { change(key, value ? storeLocalToUtc(value, timezone) : ''); setError(''); }
-    catch { setError(label('invalidTime')); }
+  const details = (item: AuditEvent) => {
+    const summary = item.summary && typeof item.summary === 'object' && !Array.isArray(item.summary) ? item.summary as Record<string, unknown> : {};
+    const labels: Record<string, string> = { from: 'before', to: 'after', result: 'result', reason: 'note', note: 'note', email: 'email', amount: 'amount', currency: 'amount', orderId: 'target', paymentId: 'target', refundId: 'target', reference: 'note', outcome: 'result', version: 'after', previousVersion: 'before', revision: 'after', fromRevision: 'before', slug: 'target', operation: 'operation', target: 'target', toRevision: 'after' };
+    const facts = Object.entries({ ...summary, ...(Array.isArray(summary.changedFields) ? { note: summary.changedFields.filter(value => typeof value === 'string').join(', ') } : {}), ...(item.paymentContext ? { amount: `${item.paymentContext.currency} ${item.paymentContext.amount} · ${c('paymentAttempt', { count: item.paymentContext.attemptNumber })}` } : {}) }).filter(([key, value]) => key in labels && ['string', 'number', 'boolean'].includes(typeof value));
+    return <div className="space-y-2 rounded-[10px] border border-border bg-ground px-3.5 py-1"><dl><div className="flex flex-wrap gap-x-3 gap-y-1 border-b border-border py-2"><dt className="w-24 text-muted-foreground">{c('target')}</dt><dd className="min-w-0 flex-1 basis-48 break-all">{item.context?.path ? <Link className="underline" href={`/${locale}${item.context.path}`}>{item.context.label} →</Link> : item.targetId}</dd></div>{facts.map(([key, value]) => <div className="flex flex-wrap gap-x-3 gap-y-1 border-b border-border py-2" key={key}><dt className="w-24 text-muted-foreground">{c(labels[key])}</dt><dd className="min-w-0 flex-1 basis-48 break-words">{String(value)}</dd></div>)}</dl>{!facts.length && <p className="py-2 text-xs text-faint">{c('noFacts')}</p>}<button className="min-h-[34px] text-muted-foreground" aria-expanded={technical === item.id} onClick={() => setTechnical(current => current === item.id ? null : item.id)}>{c('technical')} ›</button>{technical === item.id && <pre className="max-w-full whitespace-pre-wrap break-all pb-3 font-mono text-xs">{summaryText(item, c('noFacts'))}</pre>}</div>;
   };
-
-  const inputClass = 'h-10 w-full min-w-0 rounded border border-neutral-soft bg-surface px-3 text-sm';
-  return (
-    <main className="mx-auto w-full max-w-7xl space-y-5 px-4 pb-6 pt-20 md:px-6 lg:pt-6">
-      <h1 className="flex items-center gap-2 text-2xl font-semibold"><ScrollText className="h-5 w-5" />{label('title')}</h1>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <label className="min-w-0 space-y-1 text-sm">{label('actor')}
-          <select className={inputClass} value={query.actorId ?? ''} onChange={(event) => change('actorId', event.target.value)}>
-            <option value="">{label('allActors')}</option>
-            {filters.actors.map((actor) => <option key={actor.id} value={actor.id}>{actor.email} ({actor.username})</option>)}
-          </select>
-        </label>
-        <label className="min-w-0 space-y-1 text-sm">{label('action')}
-          <select className={inputClass} value={query.action ?? ''} onChange={(event) => change('action', event.target.value)}>
-            <option value="">{label('allActions')}</option>
-            {filters.actions.map((action) => <option key={action} value={action}>{actionLabel(action)}</option>)}
-          </select>
-        </label>
-        <label className="min-w-0 space-y-1 text-sm">{label('targetType')}
-          <select className={inputClass} value={query.targetType ?? ''} onChange={(event) => change('targetType', event.target.value)}>
-            <option value="">{label('allTargets')}</option>
-            {filters.targetTypes.map((type) => <option key={type} value={type}>{type}</option>)}
-          </select>
-        </label>
-        <label className="min-w-0 space-y-1 text-sm">{label('from')} ({timezone})
-          <input aria-label={label('from')} className={inputClass} type="datetime-local" step="0.001"
-            onChange={(event) => changeTime('from', event.target.value)} />
-        </label>
-        <label className="min-w-0 space-y-1 text-sm">{label('to')} ({timezone})
-          <input aria-label={label('to')} className={inputClass} type="datetime-local" step="0.001"
-            onChange={(event) => changeTime('to', event.target.value)} />
-        </label>
-      </div>
-      {error && <p role="alert" className="text-sm text-danger-deep">{error}</p>}
-      <Table aria-label={label('title')} aria-busy={loading}>
-        <TableHeader><TableRow>
-          <TableHead>{label('time')}</TableHead><TableHead>{label('actor')}</TableHead>
-          <TableHead>{label('action')}</TableHead><TableHead>{label('target')}</TableHead>
-          <TableHead><span className="sr-only">{label('details')}</span></TableHead>
-        </TableRow></TableHeader>
-        <TableBody>
-          {!loading && items.map((item) => <Fragment key={item.id}>
-            <TableRow>
-              <TableCell className="whitespace-nowrap">{storeDate(item.createdAt)}</TableCell>
-              <TableCell className="min-w-40 break-all">
-                {item.actor ? <>{item.actor.email}<span className="block text-xs text-neutral-base">{item.actor.username}</span>
-                  {!item.actor.isActive && <span className="block text-xs text-danger-deep">{label('deactivated')}</span>}</> : item.targetType === 'core' ? item.actorId : label('deletedAccount')}
-              </TableCell>
-              <TableCell className="min-w-40">{eventLabel(item)}
-                {item.targetType === 'core' && item.summary !== null && typeof item.summary === 'object' && 'result' in item.summary &&
-                  <span className="block text-xs">{label(`coreResults.${String(item.summary.result)}`)}</span>}
-              </TableCell>
-              <TableCell className="min-w-40 break-all">{item.targetType}<span className="block text-xs text-neutral-base">{item.targetId}</span></TableCell>
-              <TableCell><Button variant="ghost" size="icon" title={label('details')}
-                aria-label={`${label('details')} ${item.id}`} aria-expanded={expanded === item.id}
-                onClick={() => setExpanded((current) => current === item.id ? null : item.id)}>
-                {expanded === item.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button></TableCell>
-            </TableRow>
-            {expanded === item.id && <TableRow><TableCell colSpan={5}>
-              <pre aria-label={label('summary')} className="max-w-full whitespace-pre-wrap break-all rounded bg-neutral-faint p-3 text-xs">
-                {summaryText(item.summary, label('notRecorded'))}
-              </pre>
-            </TableCell></TableRow>}
-          </Fragment>)}
-          {loading && <TableRow><TableCell colSpan={5} className="py-10 text-center">{label('loading')}</TableCell></TableRow>}
-          {!loading && !error && items.length === 0 && <TableRow><TableCell colSpan={5} className="py-10 text-center">{label('empty')}</TableCell></TableRow>}
-        </TableBody>
-      </Table>
-      <div className="flex flex-wrap items-center justify-end gap-3 text-sm">
-        <span aria-label={label('total')}>{total}</span>
-        <Button variant="outline" size="icon" title={label('previous')} aria-label={label('previous')}
-          disabled={loading || page <= 1} onClick={() => setPage((value) => value - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-        <span aria-label={label('page')}>{page} / {Math.max(totalPages, 1)}</span>
-        <Button variant="outline" size="icon" title={label('next')} aria-label={label('next')}
-          disabled={loading || page >= totalPages} onClick={() => setPage((value) => value + 1)}><ChevronRight className="h-4 w-4" /></Button>
-      </div>
-    </main>
-  );
+  const control = 'h-[34px] min-w-0 rounded-[7px] border border-border bg-raised px-3 text-foreground';
+  return <section className="mx-auto w-full max-w-[1120px] space-y-4 px-4 pb-10 text-[13px] text-foreground sm:px-8">
+    <header className="flex flex-wrap items-start justify-between gap-3"><div className="space-y-1.5"><h1 className="text-[26px] font-semibold tracking-tight">{c('title')}</h1><p className="text-muted-foreground">{c('description')}</p></div><Button size="sm" variant="outline" disabled={exporting || !query || loading || total === 0} onClick={() => void exportRecords()}>{c(exporting ? 'exporting' : 'export')}</Button></header>
+    <div className="flex flex-wrap gap-2"><Choice label={c('category')} prefix value={state.category} onChange={category => filter({ category })} options={[{ value: '', label: c('all') }, ...categories.map(value => ({ value, label: c(value) }))]} /><Choice label={c('actor')} prefix value={state.actorId} onChange={actorId => filter({ actorId })} options={[{ value: '', label: c('all') }, ...filters.actors.map(actor => ({ value: actor.id, label: `${actor.username} · ${actor.email}` }))]} className="max-w-60" /><details className="rounded-[7px] border border-border bg-raised"><summary className="cursor-pointer px-3 py-2 text-muted-foreground">{c('time')}</summary><div className="flex flex-wrap gap-2 p-3">{(['from', 'to'] as const).map(key => <label key={key} className="flex min-w-0 flex-col gap-1 text-faint">{c(key)} ({timezone})<input className={control + ' max-w-full'} type="datetime-local" step="0.001" value={state[key]} onChange={event => filter({ [key]: event.target.value })} /></label>)}</div></details></div>
+    {['category', 'actorId', 'from', 'to'].some(key => state[key]) && <div className="flex flex-wrap items-center gap-1.5">{['category', 'actorId', 'from', 'to'].filter(key => state[key]).map(key => { const label = key === 'category' ? c(state[key]) : key === 'actorId' ? filters.actors.find(actor => actor.id === state[key])?.username ?? state[key] : state[key]; return <Button key={key} size="sm" variant="outline" className="h-[26px] rounded-full bg-raised" aria-label={c('remove', { value: label })} onClick={() => filter({ [key]: '' })}>{label} ×</Button>; })}<Button size="sm" variant="ghost" className="underline underline-offset-4" onClick={() => filter({ category: '', actorId: '', from: '', to: '' })}>{c('clear')}</Button></div>}
+    {error && <div role="alert" className="flex flex-wrap items-center gap-3 text-destructive">{c(error)}<Button size="sm" variant="outline" onClick={() => setRevision(value => value + 1)}>{c('retry')}</Button></div>}
+    {loading ? <p role="status" className="py-10 text-center text-muted-foreground">{c('loading')}</p> : ['failed', 'invalidTime'].includes(error) ? null : !items.length ? <p className="rounded-[10px] border border-border py-10 text-center text-muted-foreground">{c('empty')}</p> : <>
+      <div className="hidden overflow-hidden rounded-[10px] border border-border md:block"><table aria-label={c('title')} aria-busy={loading} className="w-full border-collapse text-left"><thead className="bg-raised text-xs text-faint"><tr><th className="w-44 px-4 py-2.5 font-medium" aria-sort={state.sort === 'newest' ? 'descending' : 'ascending'}><button onClick={() => filter({ sort: state.sort === 'newest' ? 'oldest' : 'newest' })}>{c('timeHeader', { timezone })} {state.sort === 'newest' ? '↓' : '↑'}</button></th><th className="px-3 py-2.5 font-medium">{c('operation')}</th><th className="px-3 py-2.5 font-medium">{c('actor')}</th><th><span className="sr-only">{c('technical')}</span></th></tr></thead><tbody>{items.map(item => <Fragment key={item.id}><tr className={`cursor-pointer border-t border-border hover:bg-raised ${expanded === item.id ? 'bg-active' : ''}`} onClick={() => toggle(item.id)}><td className="whitespace-nowrap px-4 py-2.5 align-top text-muted-foreground">{formatStoreTimestamp(item.createdAt, timezone)}</td><td className="px-3 py-2.5 align-top"><p>{actionLabel(item)}{item.context && <span> · {item.context.label}</span>}</p><p className="text-xs text-faint">{c(categoryOf(item))}</p></td><td className="max-w-48 break-words px-3 py-2.5 align-top">{actorLabel(item)}</td><td className="px-4 py-1.5 align-top"><Button size="sm" variant="ghost" aria-expanded={expanded === item.id} aria-label={c(expanded === item.id ? 'collapse' : 'expand', { action: actionLabel(item) })} onClick={event => { event.stopPropagation(); toggle(item.id); }}>{expanded === item.id ? '⌄' : '›'}</Button></td></tr>{expanded === item.id && <tr className="bg-active"><td /><td colSpan={3} className="px-3 pb-3.5">{details(item)}</td></tr>}</Fragment>)}</tbody></table></div>
+      <div className="space-y-2 md:hidden"><button className="min-h-[34px] text-xs text-faint" onClick={() => filter({ sort: state.sort === 'newest' ? 'oldest' : 'newest' })}>{c('timeHeader', { timezone })} {state.sort === 'newest' ? '↓' : '↑'}</button>{items.map(item => <article key={item.id} className="overflow-hidden rounded-[10px] border border-border"><button className="block w-full space-y-2 p-4 text-left" aria-expanded={expanded === item.id} aria-label={c(expanded === item.id ? 'collapse' : 'expand', { action: actionLabel(item) })} onClick={() => toggle(item.id)}><span className="block break-words font-medium">{actionLabel(item)}{item.context && <span> · {item.context.label}</span>}</span><span className="block text-xs text-faint">{c(categoryOf(item))}</span><span className="flex flex-wrap justify-between gap-2 text-muted-foreground"><span>{formatStoreTimestamp(item.createdAt, timezone)}</span><span className="break-all">{actorLabel(item)}</span></span></button>{expanded === item.id && <div className="px-4 pb-4">{details(item)}</div>}</article>)}</div>
+    </>}
+    <Pagination page={page} size={size} total={loading || ['failed', 'invalidTime'].includes(error) ? null : total} busy={loading} onChange={(next, pageSize) => update({ page: String(next), pageSize: String(pageSize) })} /><p className="text-xs leading-relaxed text-faint">{c('footnote')}</p>
+  </section>;
 }

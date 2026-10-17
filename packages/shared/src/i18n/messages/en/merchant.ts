@@ -1,3 +1,7 @@
+import { notificationPageMessages } from '../admin-notifications';
+import { auditPageMessages } from '../admin-audit';
+import { settingsPageMessages } from '../admin-settings';
+import { healthPageMessages } from '../admin-health';
 /**
  * English Merchant Messages
  * 
@@ -7,8 +11,16 @@
 
 import { adminAuthMessages } from '../admin-auth';
 import { pluginMessages } from '../admin-plugins';
+import { adminHealthMessages } from '../admin-health';
+import { adminNotificationMessages } from '../admin-notifications';
+import { adminSettingsMessages } from '../admin-settings';
+import { adminAuditMessages } from '../admin-audit';
 
 export const merchant = {
+  healthView: adminHealthMessages.en,
+  notificationView: adminNotificationMessages.en,
+  settingsView: adminSettingsMessages.en,
+  auditView: adminAuditMessages.en,
   authFlow: adminAuthMessages.en,
   staffView: {
     emailPlaceholder: "name@example.com",
@@ -271,27 +283,7 @@ export const merchant = {
     loadProduct: 'Loading product…', productError: 'Could not load this product.', orderedVariantHint: 'Restore the removed variant and turn Available for sale off instead.',
     addCategory: 'Add category', editCategory: 'Edit category', emptyCategories: 'No categories yet', slug: 'Slug', categorySaved: 'Category saved.', categoryDeleted: 'Category deleted.',
   },
-  auditEvents: {
-    corePlan: 'Core update plan checked',
-    invalidTime: 'This time does not exist in the store timezone.',
-    coreResults: { succeeded: 'Succeeded', rolled_back_before_migration: 'Rolled back before migration', stopped_in_maintenance_after_migration: 'Stopped in maintenance after migration', refused: 'Refused' },
-    title: 'Audit records', time: 'Time', actor: 'Actor', action: 'Action', target: 'Target',
-    targetType: 'Target type', from: 'From', to: 'To',
-    allActors: 'All actors', allActions: 'All actions', allTargets: 'All target types',
-    details: 'Event details', summary: 'Summary', notRecorded: 'Not recorded',
-    deletedAccount: 'Deleted account', deactivated: 'Deactivated',
-    loading: 'Loading events...', empty: 'No audit events', total: 'Total events',
-    page: 'Page', previous: 'Previous page', next: 'Next page',
-    actions: {
-      coreUpdate: 'Core update', coreRestore: 'Core restored from backup', storeTimezoneChanged: 'Store timezone changed',
-      themeInstall: 'Theme installed', themeUninstall: 'Theme uninstalled',
-      themeActivate: 'Theme activated', themeRestorePrevious: 'Previous theme restored',
-      themeConfigUpdate: 'Theme configuration updated', themeConfigRestore: 'Theme configuration restored',
-      themeConfigMigrated: 'Theme configuration migrated',
-      storefrontCodeSave: 'Tracking configuration saved', storefrontCodeSwitch: 'Tracking master switch changed',
-      storefrontCodeRestore: 'Tracking configuration restored',
-    },
-  },
+  auditEvents: auditPageMessages["en"],
   storefrontCode: {
     title: 'Tracking & custom code', providers: 'Provider IDs', freeCode: 'Custom code',
     enabled: 'Master switch', headCode: 'Head code', bodyStartCode: 'Body start code', bodyEndCode: 'Body end code',
@@ -334,21 +326,7 @@ export const merchant = {
     productHasOrders: 'This product or variant has orders and cannot be deleted. Deactivate it instead.',
     customerHasOrders: "This customer has orders and cannot be deleted. Deactivate the customer instead.",
   },
-  health: {
-    loadFailed: 'Failed to load health status',
-    database: 'Database',
-    redis: 'Redis',
-    pluginRuntime: 'Plugin runtime',
-    backgroundWorker: 'Background worker',
-    workerRunning: 'Running ({count})',
-    workerNotRunning: 'Not running',
-    title: 'System Health',
-    subtitle: 'Component status summary',
-    overallStatus: 'Overall status',
-    version: 'Version',
-    uptime: 'Uptime',
-    loadedPlugins: 'Loaded plugin runtimes',
-  },
+  health: healthPageMessages["en"],
   // Navigation
   nav: {
     dashboard: "Overview",
@@ -360,21 +338,7 @@ export const merchant = {
     themes: 'Themes',
     settings: 'Settings',
   },
-  notifications: {
-    title: 'Notifications',
-    all: 'All statuses',
-    recipient: 'Recipient',
-    type: 'Type',
-    status: 'Status',
-    created: 'Created',
-    attempts: 'Attempts',
-    error: 'Last error',
-    content: 'Content',
-    resend: 'Resend',
-    queued: 'Notification queued',
-    empty: 'No notifications',
-    detail: 'Notification detail',
-  },
+  notifications: notificationPageMessages["en"],
 
   // Extensions
   extensions: {
@@ -1115,164 +1079,7 @@ export const merchant = {
   },
 
   // Settings
-  settings: {
-    title: 'Settings',
-    subtitle: 'Manage your store configuration and preferences',
-    general: 'General',
-    store: 'Store',
-    domain: 'Domain',
-    payments: 'Payments',
-    shipping: 'Shipping',
-    taxes: 'Taxes',
-    notifications: 'Notifications',
-    users: 'Users',
-    storeName: 'Store Name',
-    storeDescription: 'Store Description',
-    currency: 'Currency',
-    timezone: 'Timezone',
-    language: 'Language',
-    // Sections
-    sections: {
-      title: 'Settings Section',
-      underDevelopment: 'This section is under development.',
-      general: 'General Settings',
-      generalDesc: 'Basic store configuration and preferences',
-      payments: 'Payment Methods',
-      paymentsDesc: 'Configure payment gateways and options',
-      shipping: 'Shipping & Delivery',
-      shippingDesc: 'Shipping zones, rates, and delivery options',
-      taxes: 'Taxes',
-      taxesDesc: 'Tax rates and calculation settings',
-      localization: 'Localization',
-      localizationDesc: 'Language, currency, and regional settings',
-      security: 'Security',
-      securityDesc: 'Security policies and access controls',
-      notifications: 'Notifications',
-      notificationsDesc: 'Email and SMS notification settings',
-      users: 'User Management',
-      usersDesc: 'Admin users and role permissions',
-    },
-    // General Settings
-    generalSettings: {
-      storeInfo: 'Store Information',
-      storeName: 'Store Name',
-      storeUrl: 'Store URL',
-      storeDescription: 'Store Description',
-      contactInfo: 'Contact Information',
-      email: 'Email',
-      phone: 'Phone',
-      address: 'Address',
-      businessHours: 'Business Hours',
-      to: 'to',
-      closed: 'Closed',
-    },
-    // Days
-    days: {
-      monday: 'Monday',
-      tuesday: 'Tuesday',
-      wednesday: 'Wednesday',
-      thursday: 'Thursday',
-      friday: 'Friday',
-      saturday: 'Saturday',
-      sunday: 'Sunday',
-    },
-    // Payment Settings
-    paymentSettings: {
-      gateways: 'Payment Gateways',
-      alipayDesc: 'Accept payments via Alipay',
-      wechatDesc: 'Accept payments via WeChat Pay',
-      unionpayDesc: 'Accept payments via UnionPay cards',
-      paypalDesc: 'Accept international payments via PayPal',
-      enabled: 'Enabled',
-      currencySettings: 'Currency Settings',
-      defaultCurrency: 'Default Currency',
-      cny: 'Chinese Yuan ($)',
-      usd: 'US Dollar ($)',
-      eur: 'Euro (€)',
-      gbp: 'British Pound (£)',
-      currencyPosition: 'Currency Position',
-      beforeAmount: 'Before amount ($100)',
-      afterAmount: 'After amount (100$)',
-    },
-    // Shipping Settings
-    shippingSettings: {
-      zones: 'Shipping Zones',
-      domestic: 'Domestic (China)',
-      hkMacau: 'Hong Kong & Macau',
-      international: 'International',
-      addZone: 'Add Shipping Zone',
-      deliveryOptions: 'Delivery Options',
-      standard: 'Standard Delivery',
-      express: 'Express Delivery',
-      sameDay: 'Same Day Delivery',
-    },
-    // Localization Settings
-    localization: {
-      languageRegion: 'Language & Region',
-      languageSettings: 'Language Settings',
-      languageSettingsDesc: 'Configure language preferences for the admin interface',
-      currencySettings: 'Currency Settings',
-      currencySettingsDesc: 'Set default currency and formatting options',
-      timezone: 'Timezone',
-      timezoneDesc: 'Store timezone for Shop, Admin and email dates. Default: UTC.',
-    },
-    // Security Settings
-    security: {
-      authentication: 'Authentication',
-      twoFactor: 'Two-Factor Authentication',
-      twoFactorDesc: 'Add an extra layer of security to admin accounts',
-      sessionTimeout: 'Session Timeout',
-      sessionTimeoutDesc: 'Automatically log out inactive users',
-      '15minutes': '15 minutes',
-      '30minutes': '30 minutes',
-      '1hour': '1 hour',
-      '2hours': '2 hours',
-      loginAttempts: 'Login Attempts',
-      loginAttemptsDesc: 'Maximum failed login attempts before account lockout',
-      dataProtection: 'Data Protection',
-      sslCertificate: 'SSL Certificate',
-      sslCertificateDesc: 'Secure data transmission with HTTPS',
-      active: 'Active',
-      dataBackup: 'Data Backup',
-      dataBackupDesc: 'Automatic daily backups of store data',
-      dailyAt2am: 'Daily at 2:00 AM',
-      activityLogging: 'Activity Logging',
-      activityLoggingDesc: 'Track admin actions and system events',
-    },
-    // Domain Settings Page
-    domainSettings: {
-      title: 'Domain Settings',
-      subtitle: 'Configure your custom domain and subdomain for your online store',
-      currentConfig: 'Current Configuration',
-      currentConfigDesc: 'Your store can be accessed through the following URLs',
-      statusActive: 'Active',
-      statusPendingDns: 'Pending DNS',
-      statusNotConfigured: 'Not Configured',
-      frontend: 'Frontend (Store)',
-      adminDashboard: 'Admin Dashboard',
-      apiEndpoint: 'API Endpoint',
-      customDomain: 'Custom Domain',
-      subdomain: 'Subdomain',
-      platformUrl: 'Platform URL',
-      customAdminDomain: 'Custom Admin Domain',
-      platformAdminUrl: 'Platform Admin URL',
-      customApiDomain: 'Custom API Domain',
-      platformApiUrl: 'Platform API URL',
-      customDomainTitle: 'Custom Domain',
-      customDomainDesc: 'Use your own domain name (e.g., shop.yourcompany.com or yourcompany.com)',
-      domainName: 'Domain Name',
-      domainPlaceholder: 'example.com',
-      checkingAvailability: 'Checking availability...',
-      dnsConfigRequired: 'DNS Configuration Required:',
-      dnsContactIt: 'Please contact your IT team or submit a support ticket to configure DNS records. DNS propagation may take up to 48 hours.',
-      subdomainTitle: 'Subdomain',
-      subdomainDesc: 'Choose a subdomain on our platform (e.g., yourstore.jiffoo.com)',
-      subdomainPlaceholder: 'yourstore',
-      cancel: 'Cancel',
-      saving: 'Saving...',
-      saveChanges: 'Save Changes',
-    },
-  },
+  settings: settingsPageMessages["en"],
 
   // Auth
   auth: {

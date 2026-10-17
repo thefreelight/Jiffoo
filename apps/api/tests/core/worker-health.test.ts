@@ -1,23 +1,34 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fork } from 'node:child_process';
 import { hostname } from 'node:os';
 import { resolve } from 'node:path';
 import { once } from 'node:events';
+import Redis from 'ioredis';
 import { startWorkerRuntime } from '@/worker-runtime';
 import { redisCache } from '@/core/cache/redis';
-import { WORKER_TASKS } from '@/infra/worker-health';
+import { WORKER_TASKS, WORKER_LAST_BEAT_PREFIX, WORKER_LAST_BEAT_TTL_SECONDS } from '@/infra/worker-health';
 import { createAdminWithToken, deleteTestUser } from '../helpers/auth';
 import { createTestApp } from '../helpers/create-test-app';
 
 describe('worker heartbeat and health', () => {
   const stops: Array<() => Promise<void>> = [];
   const userIds: string[] = [];
+  async function clearHistory() {
+    const client = new Redis(process.env.REDIS_URL!, { lazyConnect: true, maxRetriesPerRequest: 1 });
+    await client.connect();
+    try {
+      const keys = await client.keys(`${WORKER_LAST_BEAT_PREFIX}*`);
+      if (keys.length) await client.del(...keys);
+    } finally { await client.quit(); }
+  }
+  beforeEach(clearHistory);
 
   afterEach(async () => {
     for (const stop of stops.reverse()) await stop();
     stops.length = 0;
     for (const id of userIds) await deleteTestUser(id);
     userIds.length = 0;
+    await clearHistory();
   });
 
   async function startChild() {
@@ -87,11 +98,15 @@ describe('worker heartbeat and health', () => {
     const ttl = await client.ttl(runtime.heartbeatKey);
     expect(ttl).toBeGreaterThan(0);
     expect(ttl).toBeLessThanOrEqual(30);
+    const historyKey = `${WORKER_LAST_BEAT_PREFIX}${runtime.instanceId}`;
+    expect(await client.get(historyKey)).toBe(JSON.stringify(value));
+    expect(await client.ttl(historyKey)).toBeGreaterThan(WORKER_LAST_BEAT_TTL_SECONDS - 60);
     await stop();
     stops.pop();
     await redisCache.connect();
     try {
       expect(await client.exists(runtime.heartbeatKey)).toBe(0);
+      expect(JSON.parse((await client.get(historyKey))!).lastBeatAt).toBe(value.lastBeatAt);
     } finally {
       await redisCache.disconnect();
     }
@@ -109,8 +124,20 @@ describe('worker heartbeat and health', () => {
     const latest = values.map((value) => JSON.parse(value!).lastBeatAt).sort().at(-1);
     expect(await admin.summary()).toEqual({ running: true, instances: 2, lastBeatAt: latest });
     await Promise.all([first.stop(), second.stop()]);
-    expect(await admin.summary()).toEqual({ running: false, instances: 0, lastBeatAt: null });
+    expect(await admin.summary()).toEqual({ running: false, instances: 0, lastBeatAt: latest });
   });
+  it('refreshes the 30-day record on the next heartbeat without changing the live-key TTL', async () => {
+    const runtime = await startWorkerRuntime({ healthPort: 0 });
+    stops.push(runtime.stop);
+    const client = redisCache.getRawClient(), key = `${WORKER_LAST_BEAT_PREFIX}${runtime.instanceId}`;
+    const first = JSON.parse((await client.get(key))!);
+    await client.expire(key, 1);
+    await vi.waitFor(async () => {
+      expect(await client.ttl(key)).toBeGreaterThan(WORKER_LAST_BEAT_TTL_SECONDS - 60);
+      expect(JSON.parse((await client.get(key))!).lastBeatAt).not.toBe(first.lastBeatAt);
+    }, { timeout: 15_000, interval: 100 });
+    expect(await client.ttl(runtime.heartbeatKey)).toBeLessThanOrEqual(30);
+  }, 20_000);
 
   it('C: authenticated Admin HTTP reports no worker and remains available without Redis', async () => {
     const admin = await startAdmin();

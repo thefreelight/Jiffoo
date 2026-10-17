@@ -94,6 +94,7 @@ vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
 // ---------------------------------------------------------------------------
 
 import { OrderService } from '@/core/order/service';
+import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { prisma } from '@/config/database';
 import { getOrderHooks } from '@/core/order/hooks';
 import { InventoryService } from '@/core/inventory/service';
@@ -212,6 +213,20 @@ describe('OrderService', () => {
       paymentMethod: 'manual-payment',
       expectedTotal: '50.00',
     };
+    it.each([[[]], [['DE']]])('allows omitted state and postal code when the configured list %j excludes the destination', async countries => {
+      vi.mocked(systemSettingsService.getCheckoutCountriesRequireStatePostal).mockResolvedValueOnce(countries);
+      mockPrisma.user.findUnique.mockResolvedValue(TEST_USER);
+      mockPrisma.product.findMany.mockResolvedValue([TEST_PRODUCT]);
+      mockPrisma.order.create.mockResolvedValue(makeCreatedOrder());
+      await expect(OrderService.createOrder('user-1', { ...orderData, shippingAddress: { ...orderData.shippingAddress, state: '', postalCode: '' } })).resolves.toMatchObject({ id: 'order-1' });
+    });
+    it('requires both state and postal code for a configured destination', async () => {
+      vi.mocked(systemSettingsService.getCheckoutCountriesRequireStatePostal).mockResolvedValueOnce(['US']);
+      mockPrisma.user.findUnique.mockResolvedValue(TEST_USER);
+      mockPrisma.product.findMany.mockResolvedValue([TEST_PRODUCT]);
+      await expect(OrderService.createOrder('user-1', { ...orderData, shippingAddress: { ...orderData.shippingAddress, state: '', postalCode: '' } })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+      expect(mockPrisma.order.create).not.toHaveBeenCalled();
+    });
 
     it('should validate products, calculate total, create order, emit event, and deduct stock', async () => {
       const createdOrder = makeCreatedOrder();

@@ -4,6 +4,8 @@ import { winstonLogger } from '@/core/logger/unified-logger';
 
 export const WORKER_HEARTBEAT_PREFIX = 'worker:heartbeat:';
 export const WORKER_HEARTBEAT_TTL_SECONDS = 30;
+export const WORKER_LAST_BEAT_PREFIX = 'worker:last-beat:';
+export const WORKER_LAST_BEAT_TTL_SECONDS = 30 * 24 * 60 * 60;
 export const WORKER_HEARTBEAT_INTERVAL_MS = 10_000;
 export const WORKER_TASKS = ['eventDelivery', 'eventCleanup', 'notifications', 'unpaidOrders', 'paymentReconciliation', 'pluginRecovery'] as const;
 
@@ -45,10 +47,30 @@ export async function getWorkerHealthSummary(): Promise<WorkerHealthSummary> {
         }
       });
     } while (cursor !== '0');
+    let lastBeatAt = [...instances.values()].map((instance) => instance.lastBeatAt).sort().at(-1) ?? null;
+    if (!lastBeatAt) {
+      const recorded: string[] = [];
+      do {
+        const [next, keys] = await client.scan(cursor, 'MATCH', `${WORKER_LAST_BEAT_PREFIX}*`, 'COUNT', 200);
+        cursor = next;
+        if (!keys.length) continue;
+        const values = await client.mget(...keys);
+        values.forEach((value, index) => {
+          if (!value) return;
+          try {
+            const parsed = workerHeartbeatSchema.safeParse(JSON.parse(value));
+            if (parsed.success && keys[index] === `${WORKER_LAST_BEAT_PREFIX}${parsed.data.instanceId}`) recorded.push(parsed.data.lastBeatAt);
+          } catch {
+            // Ignore malformed historical records.
+          }
+        });
+      } while (cursor !== '0');
+      lastBeatAt = recorded.sort().at(-1) ?? null;
+    }
     return {
       running: instances.size > 0,
       instances: instances.size,
-      lastBeatAt: [...instances.values()].map((instance) => instance.lastBeatAt).sort().at(-1) ?? null,
+      lastBeatAt,
     };
   } catch (error) {
     winstonLogger.error('Worker heartbeat scan failed', {

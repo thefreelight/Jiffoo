@@ -1,104 +1,36 @@
-'use client'
+'use client';
 
-import { AlertTriangle, Database, Plug, RefreshCw, Server, Activity } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useT } from 'shared/src/i18n/react'
-import { useHealthSummary } from '@/lib/hooks/use-api'
-import { PluginDatabaseAudit } from '@/components/extensions/PluginDatabaseAudit'
+import { Button } from '@/components/ui/button';
+import { useT } from 'shared/src/i18n/react';
+import { formatStoreTimestamp } from 'shared';
+import { useStoreDate } from '@/lib/store-time';
+import { useHealthSummary } from '@/lib/hooks/use-api';
+import { PluginDatabaseAudit } from '@/components/extensions/PluginDatabaseAudit';
 
 export default function HealthMonitoringPage() {
-  const t = useT()
-  const { data: summary, isLoading, error, refetch } = useHealthSummary()
-
-  if (error) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-danger-base" />
-          <p className="text-neutral-strong">{t('merchant.health.loadFailed')}</p>
-          <Button className="mt-4" onClick={() => refetch()} variant="outline">
-            {t('common.actions.retry')}
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  const components = summary ? [
-    { label: t('merchant.health.database'), icon: Database, status: summary.database.status },
-    { label: t('merchant.health.redis'), icon: Server, status: summary.redis.status },
-    { label: t('merchant.health.pluginRuntime'), icon: Plug, status: summary.pluginRuntime.status },
-    {
-      label: t('merchant.health.backgroundWorker'), icon: Activity,
-      status: summary.worker.running ? 'ok' : 'error',
-      text: summary.worker.running
-        ? t('merchant.health.workerRunning', { count: summary.worker.instances })
-        : t('merchant.health.workerNotRunning'),
-    },
-  ] : []
-
-  const statusClass = summary?.status === 'healthy'
-    ? 'bg-success-faint text-success-dark'
-    : summary?.status === 'degraded'
-      ? 'bg-warning-faint text-warning-dark'
-      : 'bg-danger-faint text-danger-dark'
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-text">
-            {t('merchant.health.title')}
-          </h1>
-          <p className="text-text-muted">
-            {t('merchant.health.subtitle')}
-          </p>
-        </div>
-        <Button
-          className="border-border text-text hover:border-action-base hover:text-action-base"
-          disabled={isLoading}
-          onClick={() => refetch()}
-          size="sm"
-          variant="outline"
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          {t('common.actions.refresh')}
-        </Button>
-      </div>
-
-      {summary && (
-        <div className="border border-border bg-surface p-6" role="group" aria-label={t('merchant.health.subtitle')}>
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-text-muted">{t('merchant.health.overallStatus')}</p>
-              <span className={`mt-2 inline-flex rounded px-3 py-1 text-sm font-medium ${statusClass}`}>
-                {summary.status}
-              </span>
-            </div>
-            <div className="text-sm text-text-muted">
-              <p>{t('merchant.health.version')}: {summary.version}{summary.gitSha !== 'development' && ` (${summary.gitSha.slice(0, 8)})`}</p>
-              <p>{t('merchant.health.uptime')}: {summary.uptime}s</p>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            {components.map(({ label, icon: Icon, status, text }) => (
-              <div className={`flex items-center justify-between border border-border p-4${text ? ' md:col-span-3' : ''}`} key={label} role="group" aria-label={label}>
-                <span className="flex items-center gap-2 text-sm font-medium text-text">
-                  <Icon className="h-4 w-4 text-action-base" />
-                  {label}
-                </span>
-                <span className={status === 'ok' ? 'text-sm text-success-deep' : 'text-sm text-danger-deep'}>{text ?? status}</span>
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-4 text-sm text-text-muted">
-            {t('merchant.health.loadedPlugins')}: {summary.pluginRuntime.loaded}
-          </p>
-        </div>
-      )}
-      <PluginDatabaseAudit />
-    </div>
-  )
+  const t = useT(), c = (key: string, values?: Record<string, string | number>) => t(`merchant.healthView.${key}`, values);
+  const { timezone } = useStoreDate();
+  const { data: summary, isLoading, error, refetch } = useHealthSummary();
+  const down = summary?.database.status === 'error' || summary?.redis.status === 'error';
+  const stopped = summary && !summary.worker.running;
+  const state = down ? 'redisDown' : stopped ? 'workerDown' : 'healthy';
+  const parts = summary ? [
+    { key: 'database', ok: summary.database.status === 'ok', detail: '' },
+    { key: 'redis', ok: summary.redis.status === 'ok', detail: '' },
+    { key: 'worker', ok: summary.worker.running, detail: [summary.worker.running ? c('running', { count: summary.worker.instances }) : '', summary.worker.lastBeatAt ? c('lastBeat', { time: formatStoreTimestamp(summary.worker.lastBeatAt, timezone) }) : c('noBeat')].filter(Boolean).join(' · ') },
+    { key: 'plugins', ok: summary.pluginRuntime.status === 'ok', detail: c('loaded', { count: summary.pluginRuntime.loaded }) },
+  ] : [];
+  return <section className="mx-auto w-full max-w-[760px] space-y-5 px-4 pb-10 text-[13px] text-foreground sm:px-8">
+    <header className="flex flex-wrap items-start justify-between gap-3"><div className="space-y-1.5"><h1 className="text-[26px] font-semibold tracking-tight">{c('title')}</h1><p className="text-muted-foreground">{c('description')}</p><p className="text-xs text-faint">{c('timeZone', { timezone })}</p></div><Button size="sm" variant="outline" disabled={isLoading} onClick={() => void refetch()}>{c('refresh')}</Button></header>
+    {isLoading && <p role="status">{c('loading')}</p>}
+    {error && <p role="alert" className="text-destructive">{c('failed')}</p>}
+    {summary && <>
+      <section aria-label={c('overall')} className={`flex gap-3 rounded-[10px] border p-4 ${down ? 'border-destructive-line bg-destructive-soft' : stopped ? 'border-attention-line bg-attention-soft' : 'border-border bg-raised'}`}>
+        <span aria-hidden="true" className={`mt-1.5 size-2.5 shrink-0 rounded-full ${down ? 'bg-destructive' : stopped ? 'bg-attention' : 'bg-foreground'}`} /><div className="space-y-1 leading-relaxed"><h2 className={`font-semibold ${down ? 'text-destructive' : stopped ? 'text-attention' : ''}`}>{c(state)}</h2><p className="text-muted-foreground">{summary.database.status === 'error' ? c('databaseDown') : c(`${state}Note`)}</p></div>
+      </section>
+      <section aria-label={c('services')} className="overflow-hidden rounded-[10px] border border-border"><h2 className="border-b border-border px-4 py-3 font-semibold">{c('services')}</h2>{parts.map(part => <div key={part.key} role="group" aria-label={c(part.key)} className="flex flex-wrap justify-between gap-x-4 gap-y-2 border-b border-border px-4 py-3 last:border-0"><div className="flex-1 basis-60 space-y-0.5"><h3 className="font-medium">{c(part.key)}</h3><p className="text-xs leading-relaxed text-faint">{c(`${part.key}Note`)}</p></div><div className="max-w-full space-y-0.5 text-right"><p className={`flex items-center justify-end gap-2 ${part.ok ? '' : part.key === 'worker' ? 'text-attention' : 'text-destructive'}`}><span aria-hidden="true" className={`size-[7px] rounded-full border border-current ${part.ok ? 'bg-current' : ''}`} />{c(part.ok ? 'ok' : part.key === 'worker' ? 'stopped' : 'unavailable')}</p>{part.detail && <p className="break-words text-xs text-faint">{part.detail}</p>}</div></div>)}</section>
+      <section className="overflow-hidden rounded-[10px] border border-border"><h2 className="border-b border-border px-4 py-3 font-semibold">{c('version')}</h2><dl className="px-4 py-1"><div className="flex gap-4 border-b border-border py-2"><dt className="w-24 shrink-0 text-muted-foreground">{c('jiffooVersion')}</dt><dd className="break-all font-mono text-xs">{summary.version}{summary.gitSha !== 'development' && <span className="text-faint"> · {summary.gitSha.slice(0, 7)}</span>}</dd></div><div className="flex gap-4 py-2"><dt className="w-24 shrink-0 text-muted-foreground">{c('uptime')}</dt><dd>{c('duration', { days: Math.floor(summary.uptime / 86400), hours: Math.floor(summary.uptime / 3600) % 24, minutes: Math.floor(summary.uptime / 60) % 60 })}</dd></div></dl></section>
+    </>}
+    <PluginDatabaseAudit />
+  </section>;
 }

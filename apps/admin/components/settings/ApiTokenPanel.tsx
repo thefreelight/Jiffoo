@@ -1,334 +1,50 @@
-'use client'
+'use client';
 
-/**
- * API Token Management Panel
- *
- * Admin UI for creating, listing, and revoking scoped API tokens.
- * Used for MCP server integration and other machine-to-machine auth.
- */
-
+import { useCallback, useEffect, useState } from 'react';
+import { useT } from 'shared/src/i18n/react';
+import { formatStoreTimestamp } from 'shared';
+import { apiClient, unwrapApiResponse } from '@/lib/api';
 import { useStoreDate } from '@/lib/store-time';
-import { useCallback, useEffect, useState } from 'react'
-import { Copy, Key, Plus, Trash2, CheckCircle2, AlertCircle } from 'lucide-react'
-import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
-import { resolveApiErrorMessage } from '@/lib/error-utils'
-import { useT } from 'shared/src/i18n/react'
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from '@/components/ui/alert-dialog';
 
-interface ApiTokenRecord {
-  id: string
-  label: string
-  scopes: string[]
-  createdAt: string
-  lastUsedAt: string | null
-}
-
-interface CreateTokenResponse {
-  token: string
-  id: string
-  label: string
-  scopes: string[]
-}
-
-const SCOPE_OPTIONS = [
-  { value: 'catalog:read', label: 'Catalog: Read (search products, get details)' },
-  { value: 'cart:write', label: 'Cart: Write (add items, manage cart)' },
-  { value: 'checkout:create', label: 'Checkout: Create (create orders, payment sessions)' },
-  { value: 'orders:read', label: 'Orders: Read (view order history)' },
-  { value: '*', label: 'All Access (admin-level)' },
-]
+interface Token { id: string; label: string; scopes: string[]; createdAt: string; lastUsedAt: string | null }
+const scopes = { 'catalog:read': 'catalog', 'cart:write': 'cart', 'checkout:create': 'order', 'orders:read': 'orders', '*': 'allAccess' };
 
 export function ApiTokenPanel() {
-  const { date: storeDate } = useStoreDate();
-  const t = useT()
-  const [tokens, setTokens] = useState<ApiTokenRecord[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [newLabel, setNewLabel] = useState('')
-  const [newScopes, setNewScopes] = useState<string[]>(['catalog:read'])
-  const [creating, setCreating] = useState(false)
-  const [newlyCreatedToken, setNewlyCreatedToken] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
-
-  const loadTokens = useCallback(async () => {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/v1/admin/api-tokens', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('auth_token') || ''}`,
-        },
-      })
-      if (!response.ok) throw new Error('Failed to load tokens')
-      const data = await response.json()
-      setTokens(data.data || [])
-    } catch (error: unknown) {
-      toast.error(resolveApiErrorMessage(error, t))
-    } finally {
-      setLoading(false)
-    }
-  }, [t])
-
-  useEffect(() => {
-    loadTokens()
-  }, [loadTokens])
-
-  const handleCreate = async () => {
-    if (!newLabel.trim()) {
-      toast.error('Label is required')
-      return
-    }
-    if (newScopes.length === 0) {
-      toast.error('Select at least one scope')
-      return
-    }
-
-    setCreating(true)
-    try {
-      const response = await fetch('/api/v1/admin/api-tokens', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth_token') || ''}`,
-        },
-        body: JSON.stringify({ label: newLabel, scopes: newScopes }),
-      })
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}))
-        throw new Error(err?.error?.message || 'Failed to create token')
-      }
-
-      const data = await response.json()
-      const result = data.data as CreateTokenResponse
-      setNewlyCreatedToken(result.token)
-      setNewLabel('')
-      setNewScopes(['catalog:read'])
-      setShowCreateForm(false)
-      await loadTokens()
-      toast.success('Token created successfully')
-    } catch (error: unknown) {
-      toast.error(resolveApiErrorMessage(error, t))
-    } finally {
-      setCreating(false)
-    }
+  const t = useT(), c = (key: string, values?: Record<string, string | number>) => t(`merchant.settingsView.${key}`, values), { timezone } = useStoreDate();
+  const [tokens, setTokens] = useState<Token[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState(false), [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false), [label, setLabel] = useState(''), [selectedScopes, setSelectedScopes] = useState(['catalog:read']), [validation, setValidation] = useState(false);
+  const [newToken, setNewToken] = useState<string | null>(null), [copied, setCopied] = useState(false), [revoking, setRevoking] = useState<Token | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const load = useCallback(async () => { setLoading(true); try { setTokens(unwrapApiResponse(await apiClient.get<Token[]>('/admin/api-tokens'))); setLoaded(true); setError(false); } catch { setError(true); } finally { setLoading(false); } }, []);
+  useEffect(() => { void load(); }, [load]);
+  const date = (value: string) => formatStoreTimestamp(value, timezone);
+  async function create() {
+    if (busy) return;
+    if (!label.trim() || !selectedScopes.length) { setValidation(true); return; }
+    setBusy(true); setError(false); setValidation(false);
+    try { const result = unwrapApiResponse(await apiClient.post<{ token: string }>('/admin/api-tokens', { label: label.trim(), scopes: selectedScopes })); setNewToken(result.token); setCopied(false); setOpen(false); setLabel(''); setSelectedScopes(['catalog:read']); await load(); }
+    catch { setError(true); } finally { setBusy(false); }
   }
-
-  const handleRevoke = async (tokenId: string) => {
-    if (!confirm('Are you sure? This action cannot be undone.')) return
-
-    try {
-      const response = await fetch(`/api/v1/admin/api-tokens/${tokenId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('auth_token') || ''}`,
-        },
-      })
-
-      if (!response.ok) throw new Error('Failed to revoke token')
-
-      toast.success('Token revoked')
-      await loadTokens()
-    } catch (error: unknown) {
-      toast.error(resolveApiErrorMessage(error, t))
-    }
+  async function revoke() {
+    if (!revoking || busy) return;
+    setBusy(true); setError(false);
+    try { await apiClient.delete(`/admin/api-tokens/${encodeURIComponent(revoking.id)}`); setRevoking(null); await load(); }
+    catch { setError(true); } finally { setBusy(false); }
   }
-
-  const handleCopyToken = () => {
-    if (newlyCreatedToken) {
-      navigator.clipboard.writeText(newlyCreatedToken)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  const toggleScope = (scope: string) => {
-    setNewScopes((prev) =>
-      prev.includes(scope)
-        ? prev.filter((s) => s !== scope)
-        : [...prev, scope],
-    )
-  }
-
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Never'
-    return storeDate(dateStr)
-  }
-
-  return (
-    <div className="bg-surface rounded-[2rem] border border-neutral-faint shadow-sm overflow-hidden">
-      <div className="px-8 py-6 border-b border-neutral-veil">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-neutral-deepest">API Tokens</h3>
-            <span className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
-              For MCP Server & Integrations
-            </span>
-          </div>
-          <Button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="h-9 px-4 rounded-xl bg-action-strong hover:bg-action-deep font-semibold text-sm"
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            New Token
-          </Button>
-        </div>
-      </div>
-
-      <div className="p-8 space-y-4">
-        {/* Newly created token display */}
-        {newlyCreatedToken && (
-          <div className="rounded-2xl border-2 border-success-soft bg-success-veil/50 p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-success-strong" />
-              <p className="text-sm font-bold text-success-dark">
-                Token created — save it now, it won&apos;t be shown again
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 px-3 py-2 rounded-lg bg-surface border border-success-soft text-sm font-mono text-neutral-dark break-all">
-                {newlyCreatedToken}
-              </code>
-              <Button
-                onClick={handleCopyToken}
-                size="sm"
-                variant="outline"
-                className="shrink-0"
-              >
-                {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </Button>
-            </div>
-            <Button
-              onClick={() => setNewlyCreatedToken(null)}
-              size="sm"
-              variant="ghost"
-              className="text-xs"
-            >
-              Dismiss
-            </Button>
-          </div>
-        )}
-
-        {/* Create form */}
-        {showCreateForm && (
-          <div className="rounded-2xl border border-neutral-faint bg-neutral-veil/30 p-5 space-y-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
-                Label
-              </Label>
-              <Input
-                value={newLabel}
-                onChange={(e) => setNewLabel(e.target.value)}
-                placeholder="e.g. Claude Desktop - Personal"
-                className="h-11 rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold text-neutral-light uppercase tracking-widest">
-                Scopes
-              </Label>
-              <div className="space-y-2">
-                {SCOPE_OPTIONS.map((opt) => (
-                  <label
-                    key={opt.value}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={newScopes.includes(opt.value)}
-                      onChange={() => toggleScope(opt.value)}
-                      className="h-4 w-4 rounded border-neutral-pale"
-                    />
-                    <span className="text-sm text-neutral-deep">{opt.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleCreate}
-                disabled={creating}
-                className="h-9 px-4 rounded-xl bg-action-strong hover:bg-action-deep"
-              >
-                {creating ? 'Creating...' : 'Create Token'}
-              </Button>
-              <Button
-                onClick={() => setShowCreateForm(false)}
-                variant="outline"
-                className="h-9 px-4 rounded-xl"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Token list */}
-        {loading ? (
-          <p className="text-sm text-neutral-base">Loading tokens...</p>
-        ) : tokens.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Key className="h-8 w-8 text-neutral-pale mb-2" />
-            <p className="text-sm text-neutral-base">No API tokens yet</p>
-            <p className="text-xs text-neutral-light mt-1">
-              Create a token to enable MCP server or other integrations
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {tokens.map((token) => (
-              <div
-                key={token.id}
-                className="flex items-center justify-between rounded-xl border border-neutral-faint p-4 hover:bg-neutral-veil/30"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-neutral-deepest truncate">
-                    {token.label}
-                  </p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {token.scopes.map((scope) => (
-                      <span
-                        key={scope}
-                        className={cn(
-                          'inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide',
-                          scope === '*'
-                            ? 'bg-highlight-faint text-highlight-deep'
-                            : 'bg-action-faint text-action-deep',
-                        )}
-                      >
-                        {scope}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="text-xs text-neutral-light mt-1">
-                    Created: {formatDate(token.createdAt)}
-                    {token.lastUsedAt && ` · Last used: ${formatDate(token.lastUsedAt)}`}
-                  </p>
-                </div>
-                <Button
-                  onClick={() => handleRevoke(token.id)}
-                  variant="ghost"
-                  size="sm"
-                  className="text-danger-strong hover:text-danger-deep hover:bg-danger-veil"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Info banner */}
-        <div className="flex items-start gap-2 rounded-xl bg-action-veil/50 border border-action-faint p-3">
-          <AlertCircle className="h-4 w-4 text-action-base shrink-0 mt-0.5" />
-          <p className="text-xs text-action-deep">
-            API tokens enable AI agents (Claude Desktop, Claude Code) to interact with your store.
-            Use the MCP server with <code className="font-mono text-action-dark">JIFFOO_API_TOKEN</code> env var.
-          </p>
-        </div>
-      </div>
-    </div>
-  )
+  const permissionLabel = (value: string) => Object.prototype.hasOwnProperty.call(scopes, value) ? c(scopes[value as keyof typeof scopes]) : value;
+  return <section id="tokens" aria-labelledby="token-title" className="scroll-mt-40 overflow-hidden rounded-[10px] border border-border text-[13px] text-foreground">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3"><div className="space-y-0.5"><h2 id="token-title" className="font-semibold">{c('tokens')}</h2><p className="text-xs leading-relaxed text-faint">{c('tokenHint')}</p></div><Button size="sm" variant="outline" onClick={() => { setOpen(true); setError(false); setValidation(false); }}>{c('createToken')}</Button></div>
+    {error && <div role="alert" className="p-4 text-destructive">{c('tokenFailed')} <Button size="sm" variant="outline" disabled={busy} onClick={() => void load()}>{c('retry')}</Button></div>}
+    {newToken && <div role="status" className="mx-4 mt-3 space-y-2 rounded-[10px] border border-attention-line bg-attention-soft px-3.5 py-3"><p className="font-medium text-attention">{c('tokenOnce')}</p><div className="flex gap-2"><Input readOnly aria-label={c('newToken')} value={newToken} className="min-w-0 flex-1 bg-ground font-mono text-xs" /><Button size="sm" onClick={async () => { try { await navigator.clipboard.writeText(newToken); setCopied(true); } catch { setError(true); } }}>{c(copied ? 'copied' : 'copy')}</Button></div></div>}
+    {loading ? <p role="status" className="p-4 text-muted-foreground">{c('tokenLoading')}</p> : !loaded ? null : !tokens.length ? <p className="p-4 text-muted-foreground">{c('noTokens')}</p> : <>
+      <table className="hidden w-full border-collapse text-left sm:table"><thead className="text-xs text-faint"><tr>{['tokenName', 'permissions', 'lastUsed'].map(key => <th key={key} className="px-4 py-2.5 font-medium">{c(key)}</th>)}<th><span className="sr-only">{c('revoke')}</span></th></tr></thead><tbody>{tokens.map(token => <tr key={token.id} className="border-t border-border"><td className="max-w-40 break-words px-4 py-2.5"><p className="font-medium">{token.label}</p><p className="text-xs text-faint">{c('created', { time: date(token.createdAt) })}</p></td><td className="max-w-48 px-3 py-2.5 text-muted-foreground">{token.scopes.map(permissionLabel).join(' · ')}</td><td className="px-3 py-2.5 text-muted-foreground">{token.lastUsedAt ? date(token.lastUsedAt) : c('neverUsed')}</td><td className="pr-4"><Button size="sm" variant="outline" aria-label={c('revokeName', { name: token.label })} onClick={() => setRevoking(token)}>{c('revoke')}</Button></td></tr>)}</tbody></table>
+      <div className="space-y-3 p-4 sm:hidden">{tokens.map(token => <article key={token.id} aria-label={token.label} className="space-y-2 rounded-[7px] border border-border p-3"><h3 className="break-words font-medium">{token.label}</h3><p className="text-xs text-faint">{c('created', { time: date(token.createdAt) })}</p><p className="text-muted-foreground">{token.scopes.map(permissionLabel).join(' · ')}</p><p className="text-xs text-faint">{c('lastUsed')}: {token.lastUsedAt ? date(token.lastUsedAt) : c('neverUsed')}</p><Button size="sm" variant="outline" aria-label={c('revokeName', { name: token.label })} onClick={() => setRevoking(token)}>{c('revoke')}</Button></article>)}</div>
+    </>}
+    <Dialog open={open} onOpenChange={value => { if (!busy) setOpen(value); }}><DialogContent className="w-[calc(100%-32px)]"><DialogHeader><DialogTitle>{c('createToken')}</DialogTitle><DialogDescription>{c('tokenHint')}</DialogDescription></DialogHeader><form className="space-y-4" onSubmit={event => { event.preventDefault(); void create(); }}><label className="block space-y-1.5">{c('tokenName')}<Input maxLength={100} value={label} disabled={busy} onChange={event => setLabel(event.target.value)} /></label><fieldset disabled={busy} className="space-y-2"><legend className="mb-2">{c('permissions')}</legend>{Object.entries(scopes).map(([value, key]) => <label key={value} className="flex items-center gap-2"><input type="checkbox" checked={selectedScopes.includes(value)} onChange={() => setSelectedScopes(current => current.includes(value) ? current.filter(scope => scope !== value) : [...current, value])} />{c(key)}</label>)}</fieldset>{validation && <p role="alert" className="text-destructive">{c('tokenRequired')}</p>}{error && <p role="alert" className="text-destructive">{c('tokenFailed')}</p>}<div className="flex justify-end gap-2"><Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>{c('cancel')}</Button><Button type="submit" disabled={busy}>{c('createToken')}</Button></div></form></DialogContent></Dialog>
+    <AlertDialog open={!!revoking} onOpenChange={value => { if (!value && !busy) setRevoking(null); }}><AlertDialogContent className="w-[calc(100%-32px)]"><AlertDialogHeader><AlertDialogTitle>{c('revokeName', { name: revoking?.label ?? '' })}</AlertDialogTitle><AlertDialogDescription>{c('revokeNote')}</AlertDialogDescription></AlertDialogHeader>{error && <p role="alert" className="text-destructive">{c('tokenFailed')}</p>}<AlertDialogFooter><Button variant="outline" disabled={busy} onClick={() => setRevoking(null)}>{c('cancel')}</Button><Button variant="destructive" disabled={busy} onClick={() => void revoke()}>{c('revoke')}</Button></AlertDialogFooter></AlertDialogContent></AlertDialog>
+  </section>;
 }

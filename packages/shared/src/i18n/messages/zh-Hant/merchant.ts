@@ -1,3 +1,7 @@
+import { notificationPageMessages } from '../admin-notifications';
+import { auditPageMessages } from '../admin-audit';
+import { settingsPageMessages } from '../admin-settings';
+import { healthPageMessages } from '../admin-health';
 /**
  * Traditional Chinese Merchant Messages
  * 
@@ -7,8 +11,16 @@
 
 import { adminAuthMessages } from '../admin-auth';
 import { pluginMessages } from '../admin-plugins';
+import { adminHealthMessages } from '../admin-health';
+import { adminNotificationMessages } from '../admin-notifications';
+import { adminSettingsMessages } from '../admin-settings';
+import { adminAuditMessages } from '../admin-audit';
 
 export const merchant = {
+  healthView: adminHealthMessages['zh-Hant'],
+  notificationView: adminNotificationMessages['zh-Hant'],
+  settingsView: adminSettingsMessages['zh-Hant'],
+  auditView: adminAuditMessages['zh-Hant'],
   authFlow: adminAuthMessages['zh-Hant'],
   staffView: {
     emailPlaceholder: "name@example.com",
@@ -271,27 +283,7 @@ export const merchant = {
     loadProduct: '正在載入商品…', productError: '無法載入此商品。', orderedVariantHint: '請恢復已移除的規格，並關閉「可販售」。',
     addCategory: '新增分類', editCategory: '編輯分類', emptyCategories: '暫無分類', slug: '網址識別', categorySaved: '分類已儲存。', categoryDeleted: '分類已刪除。',
   },
-  auditEvents: {
-    corePlan: 'Core 更新計劃已檢查',
-    invalidTime: '此時間在商店時區中不存在。',
-    coreResults: { succeeded: '成功', rolled_back_before_migration: '遷移前已回滾', stopped_in_maintenance_after_migration: '遷移後停留在維護狀態', refused: '已拒絕' },
-    title: '審計記錄', time: '時間', actor: '操作人', action: '操作', target: '目標',
-    targetType: '目標類型', from: '開始時間', to: '結束時間',
-    allActors: '所有操作人', allActions: '所有操作', allTargets: '所有目標類型',
-    details: '事件詳情', summary: '摘要', notRecorded: '未記錄',
-    deletedAccount: '已刪除帳戶', deactivated: '已停用',
-    loading: '正在載入事件...', empty: '尚無稽核事件', total: '事件總數',
-    page: '頁', previous: '上一頁', next: '下一頁',
-    actions: {
-      coreUpdate: 'Core 更新', coreRestore: '從備份還原 Core', storeTimezoneChanged: '商店時區已變更',
-      themeInstall: '已安裝主題', themeUninstall: '已解除安裝主題',
-      themeActivate: '已啟用主題', themeRestorePrevious: '已還原上一個主題',
-      themeConfigUpdate: '已更新主題設定', themeConfigRestore: '已還原主題設定',
-      themeConfigMigrated: '已移轉主題設定',
-      storefrontCodeSave: '已儲存追蹤設定', storefrontCodeSwitch: '已變更追蹤總開關',
-      storefrontCodeRestore: '已還原追蹤設定',
-    },
-  },
+  auditEvents: auditPageMessages["zh-Hant"],
   storefrontCode: {
     title: '追蹤與自訂程式碼', providers: '服務商 ID', freeCode: '自訂程式碼',
     enabled: '總開關', headCode: '頁首程式碼', bodyStartCode: '本文開頭程式碼', bodyEndCode: '本文結尾程式碼',
@@ -334,21 +326,7 @@ export const merchant = {
     productHasOrders: '該商品或規格已有訂單，不能刪除，請改為下架。',
     customerHasOrders: "該客戶已有訂單，不能刪除。可以停用，訂單會保留。",
   },
-  health: {
-    loadFailed: '載入健康狀態失敗',
-    database: '資料庫',
-    redis: 'Redis',
-    pluginRuntime: '外掛執行環境',
-    backgroundWorker: '背景工作程序',
-    workerRunning: '執行中（{count}）',
-    workerNotRunning: '未執行',
-    title: '系統健康',
-    subtitle: '元件狀態概覽',
-    overallStatus: '整體狀態',
-    version: '版本',
-    uptime: '運行時間',
-    loadedPlugins: '已載入外掛執行環境',
-  },
+  health: healthPageMessages["zh-Hant"],
   // Navigation
   nav: {
     dashboard: "概覽",
@@ -360,21 +338,7 @@ export const merchant = {
     themes: '主題',
     settings: '設定',
   },
-  notifications: {
-    title: '通知',
-    all: '所有狀態',
-    recipient: '收件人',
-    type: '類型',
-    status: '狀態',
-    created: '建立時間',
-    attempts: '嘗試次數',
-    error: '最後錯誤',
-    content: '內容',
-    resend: '重新傳送',
-    queued: '通知已排入佇列',
-    empty: '尚無通知',
-    detail: '通知詳情',
-  },
+  notifications: notificationPageMessages["zh-Hant"],
 
   // Extensions
   extensions: {
@@ -1115,164 +1079,7 @@ export const merchant = {
   },
 
   // Settings
-  settings: {
-    title: '設定',
-    subtitle: '管理您的商店配置和偏好設定',
-    general: '一般',
-    store: '商店',
-    domain: '網域',
-    payments: '付款',
-    shipping: '運送',
-    taxes: '稅務',
-    notifications: '通知',
-    users: '使用者',
-    storeName: '商店名稱',
-    storeDescription: '商店描述',
-    currency: '貨幣',
-    timezone: '時區',
-    language: '語言',
-    // Sections
-    sections: {
-      title: '設定區段',
-      underDevelopment: '此區段正在開發中。',
-      general: '一般設定',
-      generalDesc: '基本商店配置和偏好設定',
-      payments: '付款方式',
-      paymentsDesc: '配置付款閘道和選項',
-      shipping: '運送與配送',
-      shippingDesc: '運送區域、費率和配送選項',
-      taxes: '稅務',
-      taxesDesc: '稅率和計算設定',
-      localization: '本地化',
-      localizationDesc: '語言、貨幣和地區設定',
-      security: '安全性',
-      securityDesc: '安全政策和存取控制',
-      notifications: '通知',
-      notificationsDesc: '電子郵件和簡訊通知設定',
-      users: '使用者管理',
-      usersDesc: '管理員使用者和角色權限',
-    },
-    // General Settings
-    generalSettings: {
-      storeInfo: '商店資訊',
-      storeName: '商店名稱',
-      storeUrl: '商店網址',
-      storeDescription: '商店描述',
-      contactInfo: '聯絡資訊',
-      email: '電子郵件',
-      phone: '電話',
-      address: '地址',
-      businessHours: '營業時間',
-      to: '至',
-      closed: '休息',
-    },
-    // Days
-    days: {
-      monday: '週一',
-      tuesday: '週二',
-      wednesday: '週三',
-      thursday: '週四',
-      friday: '週五',
-      saturday: '週六',
-      sunday: '週日',
-    },
-    // Payment Settings
-    paymentSettings: {
-      gateways: '付款閘道',
-      alipayDesc: '透過支付寶收款',
-      wechatDesc: '透過微信支付收款',
-      unionpayDesc: '透過銀聯卡收款',
-      paypalDesc: '透過 PayPal 收取國際付款',
-      enabled: '啟用',
-      currencySettings: '貨幣設定',
-      defaultCurrency: '預設貨幣',
-      cny: '人民幣 (¥)',
-      usd: '美元 ($)',
-      eur: '歐元 (€)',
-      gbp: '英鎊 (£)',
-      currencyPosition: '貨幣位置',
-      beforeAmount: '金額前 ($100)',
-      afterAmount: '金額後 (100$)',
-    },
-    // Shipping Settings
-    shippingSettings: {
-      zones: '運送區域',
-      domestic: '國內（中國）',
-      hkMacau: '香港和澳門',
-      international: '國際',
-      addZone: '新增運送區域',
-      deliveryOptions: '配送選項',
-      standard: '標準配送',
-      express: '快速配送',
-      sameDay: '當日配送',
-    },
-    // Localization Settings
-    localization: {
-      languageRegion: '語言和地區',
-      languageSettings: '語言設定',
-      languageSettingsDesc: '配置管理介面的語言偏好',
-      currencySettings: '貨幣設定',
-      currencySettingsDesc: '設定預設貨幣和格式選項',
-      timezone: '時區',
-      timezoneDesc: '用於商店、後台和郵件中的日期時間，預設為 UTC。',
-    },
-    // Security Settings
-    security: {
-      authentication: '驗證',
-      twoFactor: '雙重驗證',
-      twoFactorDesc: '為管理員帳戶增加額外的安全層',
-      sessionTimeout: '工作階段逾時',
-      sessionTimeoutDesc: '自動登出閒置使用者',
-      '15minutes': '15 分鐘',
-      '30minutes': '30 分鐘',
-      '1hour': '1 小時',
-      '2hours': '2 小時',
-      loginAttempts: '登入嘗試',
-      loginAttemptsDesc: '帳戶鎖定前的最大失敗登入嘗試次數',
-      dataProtection: '資料保護',
-      sslCertificate: 'SSL 憑證',
-      sslCertificateDesc: '使用 HTTPS 保護資料傳輸',
-      active: '啟用',
-      dataBackup: '資料備份',
-      dataBackupDesc: '自動每日備份商店資料',
-      dailyAt2am: '每日凌晨 2:00',
-      activityLogging: '活動記錄',
-      activityLoggingDesc: '追蹤管理員操作和系統事件',
-    },
-    // Domain Settings Page
-    domainSettings: {
-      title: '網域設定',
-      subtitle: '為您的線上商店設定自訂網域和子網域',
-      currentConfig: '目前設定',
-      currentConfigDesc: '您的商店可透過以下網址存取',
-      statusActive: '啟用中',
-      statusPendingDns: '等待 DNS',
-      statusNotConfigured: '未設定',
-      frontend: '前台（商店）',
-      adminDashboard: '管理後台',
-      apiEndpoint: 'API 端點',
-      customDomain: '自訂網域',
-      subdomain: '子網域',
-      platformUrl: '平台網址',
-      customAdminDomain: '自訂管理網域',
-      platformAdminUrl: '平台管理網址',
-      customApiDomain: '自訂 API 網域',
-      platformApiUrl: '平台 API 網址',
-      customDomainTitle: '自訂網域',
-      customDomainDesc: '使用您自己的網域名稱（例如：shop.yourcompany.com 或 yourcompany.com）',
-      domainName: '網域名稱',
-      domainPlaceholder: 'example.com',
-      checkingAvailability: '檢查可用性中...',
-      dnsConfigRequired: '需要 DNS 設定：',
-      dnsContactIt: '請聯繫您的 IT 團隊或提交支援工單以設定 DNS 記錄。DNS 傳播可能需要最多 48 小時。',
-      subdomainTitle: '子網域',
-      subdomainDesc: '在我們的平台上選擇一個子網域（例如：yourstore.jiffoo.com）',
-      subdomainPlaceholder: 'yourstore',
-      cancel: '取消',
-      saving: '儲存中...',
-      saveChanges: '儲存變更',
-    },
-  },
+  settings: settingsPageMessages["zh-Hant"],
 
   // Auth
   auth: {

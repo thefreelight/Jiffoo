@@ -65,6 +65,15 @@ describe('Admin audit event viewer', () => {
       expect((await get(invalid)).statusCode).toBe(400);
     }
   });
+  it('filters board categories and supports ascending chronological order without removing existing filters', async () => {
+    const first = await event({ action: 'STAFF_INVITED', targetType: 'staff', createdAt: new Date('2026-01-01T00:00:00Z') });
+    const second = await event({ action: 'CUSTOMER_PASSWORD_RESET_LINK_GENERATED', targetType: 'customer', createdAt: new Date('2026-01-02T00:00:00Z') });
+    await event({ action: 'theme.activate', targetType: 'theme' });
+    const result = await list(`actorId=${admin.user.id}&category=accounts&sort=oldest`);
+    expect(result.items.map((row: { id: string }) => row.id)).toEqual([first.id, second.id]);
+    expect((await list(`actorId=${admin.user.id}&category=accounts&action=STAFF_INVITED`)).total).toBe(1);
+    expect((await get('category=unknown')).statusCode).toBe(400);
+  });
 
   it('B applies individual and combined filters and rejects unknown fields and invalid time ranges', async () => {
     const second = await createAdminWithToken();
@@ -91,6 +100,39 @@ describe('Admin audit event viewer', () => {
       const response = await get(invalid);
       expect(response.statusCode).toBe(400);
       expect(validateResponse(route, 'GET', 400, response.json()).valid).toBe(true);
+    }
+  });
+
+  it('links only existing accounts in their canonical role route and preserves historical context', async () => {
+    const customer = await createUserWithToken();
+    userIds.push(customer.user.id);
+    const existing = await event({ targetType: 'customer', targetId: customer.user.id, summary: { version: '1.2.3', revision: 6 } });
+    const missing = await event({ targetType: 'order', targetId: 'missing-order' });
+    const wrongRole = await event({ targetType: 'staff', targetId: customer.user.id });
+    const rows = (await list(`actorId=${admin.user.id}`)).items;
+    expect(rows.find((row: { id: string }) => row.id === existing.id)).toMatchObject({ context: { path: `/customers/${customer.user.id}`, label: customer.user.username }, summary: { version: '1.2.3', revision: 6 } });
+    expect(rows.find((row: { id: string }) => row.id === missing.id).context).toBeUndefined();
+    expect(rows.find((row: { id: string }) => row.id === wrongRole.id).context).toBeUndefined();
+  });
+
+  it('resolves real payment amount and attempt number without changing the stored summary', async () => {
+    const { order, account, payment } = await prisma.$transaction(async tx => {
+      const order = await tx.order.create({ data: { id: randomUUID(), userId: admin.user.id, status: 'PENDING', paymentStatus: 'PENDING', subtotalAmount: 459, taxAmount: 0, totalAmount: 459, currency: 'CNY' } });
+      const account = await tx.paymentProviderAccount.create({ data: { namespace: randomUUID(), merchantAccount: 'audit', environment: 'test' } });
+      const payment = await tx.payment.create({ data: { orderId: order.id, providerKey: account.providerKey, idempotencyKey: randomUUID(), paymentMethod: 'audit', amount: 459, currency: 'CNY', attemptNumber: 2 } });
+      return { order, account, payment };
+    });
+    try {
+      const summary = { paymentId: payment.id, orderId: order.id, reference: 'verified-reference', outcome: 'PAID' };
+      const saved = await event({ targetType: 'payment', targetId: payment.id, summary });
+      const row = (await list(`actorId=${admin.user.id}`)).items.find((row: { id: string }) => row.id === saved.id);
+      expect(row).toMatchObject({ context: { path: `/orders/${order.id}`, label: order.id }, paymentContext: { amount: '459.00', currency: 'CNY', attemptNumber: 2 }, summary });
+    } finally {
+      await prisma.$transaction([
+        prisma.payment.delete({ where: { id: payment.id } }),
+        prisma.order.delete({ where: { id: order.id } }),
+        prisma.paymentProviderAccount.delete({ where: { providerKey: account.providerKey } }),
+      ]);
     }
   });
 

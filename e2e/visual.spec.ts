@@ -116,7 +116,6 @@ async function captureDynamicBoxes(page: Page, name: string, width: number, heig
         boxes.push({ name: `${reason} ${index + 1}`, ...bounds });
     }
   };
-  const date = /\d{1,2}\/\d{1,2}\/\d{4}/;
   if (name === 'dashboard') {
     await add('recent order generated ID', page.getByRole('link', { name: /^View order / }));
     await add('recent order created time', page.getByText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/));
@@ -126,21 +125,14 @@ async function captureDynamicBoxes(page: Page, name: string, width: number, heig
     await add('order generated ID', page.getByRole('heading', { name: /^Order #/ }));
     await add('order exact store times', page.getByText(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/));
   } else if (name === 'notifications') {
-    const rows = page.getByRole('row').filter({ hasText: date });
-    const count = await rows.count();
-    for (let index = 0; index < count; index++) {
-      const cells = rows.nth(index).getByRole('cell');
-      for (let column = 0; column < 4; column++) {
-        const bounds = await paintedBounds(cells.nth(column));
-        if (bounds.box.y < height && bounds.box.y + bounds.box.height > 0)
-          boxes.push({ name: `notification ${index + 1} time-driven column ${column + 1}`, ...bounds });
-      }
-    }
-    if (width === 1440) {
-      await add('time width reflows table headings', page.getByRole('columnheader'));
-    }
+    const timestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
+    await add('notification creation time', width < 768
+      ? page.getByText(timestamp).filter({ visible: true })
+      : page.getByRole('cell', { name: timestamp }));
   } else if (name === 'health') {
-    await add('API uptime seconds', page.getByText(/Uptime:\s*\d+s/i));
+    await add('API uptime duration', page.getByText(/^\d+ days \d+ hours \d+ minutes$/));
+    await add('worker heartbeat time', page.getByText(/Last heartbeat:/));
+    await add('database check time', page.getByText(/^Last checked:/));
   }
   await writeFile(`e2e/visual-results/${set}/${name}-${width}.boxes.json`, JSON.stringify(boxes, null, 2));
 }
@@ -159,6 +151,7 @@ const pages = [
   ['settings', '/en/settings'],
   ['themes', '/en/themes'],
   ['notifications', '/en/notifications'],
+  ['audit', '/en/audit-events'],
   ['health', '/en/system/health'],
 ] as const;
 
@@ -472,7 +465,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
             { label: 'Reset link', locator: page.getByRole('button', { name: 'Generate password reset link', exact: true }) },
           ],
           'products-list': [{ label: 'Add product', locator: page.getByRole('link', { name: 'Add product', exact: true }) }],
-          settings: [{ label: 'Save Changes', locator: page.getByRole('button', { name: 'Save Changes' }) }],
+          settings: [{ label: 'Save', locator: page.getByRole('button', { name: 'Save', exact: true }) }],
         } as Record<string, { label: string; locator: ReturnType<typeof page.getByRole> }[]>;
         if (targets[name]) {
           const computed = await Promise.all(targets[name].map(async ({ label, locator }) => ({

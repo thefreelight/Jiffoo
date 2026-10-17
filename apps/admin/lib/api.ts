@@ -651,8 +651,8 @@ export const pluginsApi = {
 };
 
 export const notificationsApi = {
-  getAll: (page = 1, limit = 20, status?: AdminNotification['status']): Promise<ApiResponse<PageResult<AdminNotification>>> =>
-    apiClient.get('/admin/notifications', { params: { page, limit, status } }),
+  getAll: (page = 1, limit = 20, status?: AdminNotification['status'], filters?: { search?: string; type?: string; sort?: string }): Promise<ApiResponse<PageResult<AdminNotification> & { counts?: Record<string, number>; types?: string[] }>> =>
+    apiClient.get('/admin/notifications', { params: { page, limit, status, ...filters } }),
   getById: (id: string): Promise<ApiResponse<AdminNotification>> =>
     apiClient.get(`/admin/notifications/${id}`),
   resend: (id: string, idempotencyKey: string): Promise<ApiResponse<AdminNotification>> =>

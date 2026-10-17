@@ -23,6 +23,20 @@ describe('Store Endpoints', () => {
   });
 
   describe('GET /api/v1/store/context', () => {
+    it.each([
+      [null, ['US', 'CA', 'AU', 'CN', 'GB']],
+      [['DE'], ['DE']],
+      [[], []],
+    ])('uses the configured checkout country value %j without replacing an explicit empty list', async (stored, expected) => {
+      const get = vi.spyOn(systemSettingsService, 'getSetting').mockResolvedValue(stored as never);
+      try {
+        expect(await systemSettingsService.getCheckoutCountriesRequireStatePostal()).toEqual(expected);
+        const response = await app.inject({ method: 'GET', url: '/api/v1/store/context' });
+        expect(response.statusCode).toBe(200);
+        expect(response.json().data.checkoutCountriesRequireStatePostal).toEqual(expected);
+        expect(validateResponse('/api/v1/store/context', 'GET', 200, response.json()).valid).toBe(true);
+      } finally { get.mockRestore(); }
+    });
     it('exposes the configured checkout address requirements and includes them in the ETag', async () => {
       const setting = vi.spyOn(systemSettingsService, 'getCheckoutCountriesRequireStatePostal');
       try {

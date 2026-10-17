@@ -1,3 +1,7 @@
+import { notificationPageMessages } from '../admin-notifications';
+import { auditPageMessages } from '../admin-audit';
+import { settingsPageMessages } from '../admin-settings';
+import { healthPageMessages } from '../admin-health';
 /**
  * Simplified Chinese Merchant Messages
  * 
@@ -7,8 +11,16 @@
 
 import { adminAuthMessages } from '../admin-auth';
 import { pluginMessages } from '../admin-plugins';
+import { adminHealthMessages } from '../admin-health';
+import { adminNotificationMessages } from '../admin-notifications';
+import { adminSettingsMessages } from '../admin-settings';
+import { adminAuditMessages } from '../admin-audit';
 
 export const merchant = {
+  healthView: adminHealthMessages['zh-Hans'],
+  notificationView: adminNotificationMessages['zh-Hans'],
+  settingsView: adminSettingsMessages['zh-Hans'],
+  auditView: adminAuditMessages['zh-Hans'],
   authFlow: adminAuthMessages['zh-Hans'],
   staffView: {
     emailPlaceholder: "name@example.com",
@@ -271,27 +283,7 @@ export const merchant = {
     loadProduct: '正在加载商品…', productError: '无法加载此商品。', orderedVariantHint: '请恢复已移除的规格，并关闭“可销售”。',
     addCategory: '添加分类', editCategory: '编辑分类', emptyCategories: '暂无分类', slug: '网址标识', categorySaved: '分类已保存。', categoryDeleted: '分类已删除。',
   },
-  auditEvents: {
-    corePlan: 'Core 更新计划已检查',
-    invalidTime: '此时间在商店时区中不存在。',
-    coreResults: { succeeded: '成功', rolled_back_before_migration: '迁移前已回滚', stopped_in_maintenance_after_migration: '迁移后停留在维护状态', refused: '已拒绝' },
-    title: '审计记录', time: '时间', actor: '操作人', action: '操作', target: '目标',
-    targetType: '目标类型', from: '开始时间', to: '结束时间',
-    allActors: '所有操作人', allActions: '所有操作', allTargets: '所有目标类型',
-    details: '事件详情', summary: '摘要', notRecorded: '未记录',
-    deletedAccount: '已删除账户', deactivated: '已停用',
-    loading: '正在加载事件...', empty: '暂无审计事件', total: '事件总数',
-    page: '页', previous: '上一页', next: '下一页',
-    actions: {
-      coreUpdate: 'Core 更新', coreRestore: '从备份恢复 Core', storeTimezoneChanged: '商店时区已更改',
-      themeInstall: '已安装主题', themeUninstall: '已卸载主题',
-      themeActivate: '已启用主题', themeRestorePrevious: '已恢复上一个主题',
-      themeConfigUpdate: '已更新主题配置', themeConfigRestore: '已恢复主题配置',
-      themeConfigMigrated: '已迁移主题配置',
-      storefrontCodeSave: '已保存跟踪配置', storefrontCodeSwitch: '已更改跟踪总开关',
-      storefrontCodeRestore: '已恢复跟踪配置',
-    },
-  },
+  auditEvents: auditPageMessages["zh-Hans"],
   storefrontCode: {
     title: '追踪与自定义代码', providers: '服务商 ID', freeCode: '自定义代码',
     enabled: '总开关', headCode: '头部代码', bodyStartCode: '正文开头代码', bodyEndCode: '正文末尾代码',
@@ -334,21 +326,7 @@ export const merchant = {
     productHasOrders: '该商品或规格已有订单，不能删除，请改为下架。',
     customerHasOrders: "该客户已有订单，不能删除。可以停用，订单会保留。",
   },
-  health: {
-    loadFailed: '加载健康状态失败',
-    database: '数据库',
-    redis: 'Redis',
-    pluginRuntime: '插件运行时',
-    backgroundWorker: '后台工作进程',
-    workerRunning: '运行中（{count}）',
-    workerNotRunning: '未运行',
-    title: '系统健康',
-    subtitle: '组件状态概览',
-    overallStatus: '总体状态',
-    version: '版本',
-    uptime: '运行时间',
-    loadedPlugins: '已加载插件运行时',
-  },
+  health: healthPageMessages["zh-Hans"],
   // Navigation
   nav: {
     dashboard: "概览",
@@ -360,21 +338,7 @@ export const merchant = {
     themes: '主题',
     settings: '设置',
   },
-  notifications: {
-    title: '通知',
-    all: '全部状态',
-    recipient: '收件人',
-    type: '类型',
-    status: '状态',
-    created: '创建时间',
-    attempts: '尝试次数',
-    error: '最后错误',
-    content: '内容',
-    resend: '重新发送',
-    queued: '通知已排队',
-    empty: '暂无通知',
-    detail: '通知详情',
-  },
+  notifications: notificationPageMessages["zh-Hans"],
 
   // Extensions
   extensions: {
@@ -1115,164 +1079,7 @@ export const merchant = {
   },
 
   // Settings
-  settings: {
-    title: '设置',
-    subtitle: '管理您的商店配置和偏好设定',
-    general: '一般',
-    store: '商店',
-    domain: '网域',
-    payments: '付款',
-    shipping: '运送',
-    taxes: '税务',
-    notifications: '通知',
-    users: '使用者',
-    storeName: '商店名称',
-    storeDescription: '商店描述',
-    currency: '货币',
-    timezone: '时区',
-    language: '语言',
-    // Sections
-    sections: {
-      title: '设定区段',
-      underDevelopment: '此区段正在开发中。',
-      general: '一般设定',
-      generalDesc: '基本商店配置和偏好设定',
-      payments: '付款方式',
-      paymentsDesc: '配置付款闸道和选项',
-      shipping: '运送与配送',
-      shippingDesc: '运送区域、费率和配送选项',
-      taxes: '税务',
-      taxesDesc: '税率和计算设定',
-      localization: '本地化',
-      localizationDesc: '语言、货币和地区设定',
-      security: '安全性',
-      securityDesc: '安全政策和存取控制',
-      notifications: '通知',
-      notificationsDesc: '电子邮件和简讯通知设定',
-      users: '使用者管理',
-      usersDesc: '管理员使用者和角色权限',
-    },
-    // General Settings
-    generalSettings: {
-      storeInfo: '商店资讯',
-      storeName: '商店名称',
-      storeUrl: '商店网址',
-      storeDescription: '商店描述',
-      contactInfo: '联络资讯',
-      email: '电子邮件',
-      phone: '电话',
-      address: '地址',
-      businessHours: '营业时间',
-      to: '至',
-      closed: '休息',
-    },
-    // Days
-    days: {
-      monday: '周一',
-      tuesday: '周二',
-      wednesday: '周三',
-      thursday: '周四',
-      friday: '周五',
-      saturday: '周六',
-      sunday: '周日',
-    },
-    // Payment Settings
-    paymentSettings: {
-      gateways: '付款闸道',
-      alipayDesc: '透过支付宝收款',
-      wechatDesc: '透过微信支付收款',
-      unionpayDesc: '透过银联卡收款',
-      paypalDesc: '透过 PayPal 收取国际付款',
-      enabled: '启用',
-      currencySettings: '货币设定',
-      defaultCurrency: '预设货币',
-      cny: '人民币 (¥)',
-      usd: '美元 ($)',
-      eur: '欧元 (€)',
-      gbp: '英镑 (£)',
-      currencyPosition: '货币位置',
-      beforeAmount: '金额前 ($100)',
-      afterAmount: '金额后 (100$)',
-    },
-    // Shipping Settings
-    shippingSettings: {
-      zones: '运送区域',
-      domestic: '国内（中国）',
-      hkMacau: '香港和澳门',
-      international: '国际',
-      addZone: '新增运送区域',
-      deliveryOptions: '配送选项',
-      standard: '标准配送',
-      express: '快速配送',
-      sameDay: '当日配送',
-    },
-    // Localization Settings
-    localization: {
-      languageRegion: '语言和地区',
-      languageSettings: '语言设定',
-      languageSettingsDesc: '配置管理介面的语言偏好',
-      currencySettings: '货币设定',
-      currencySettingsDesc: '设定预设货币和格式选项',
-      timezone: '时区',
-      timezoneDesc: '用于商店、后台和邮件中的日期时间，默认为 UTC。',
-    },
-    // Security Settings
-    security: {
-      authentication: '验证',
-      twoFactor: '双重验证',
-      twoFactorDesc: '为管理员帐户增加额外的安全层',
-      sessionTimeout: '工作阶段逾时',
-      sessionTimeoutDesc: '自动登出闲置使用者',
-      '15minutes': '15 分钟',
-      '30minutes': '30 分钟',
-      '1hour': '1 小时',
-      '2hours': '2 小时',
-      loginAttempts: '登入尝试',
-      loginAttemptsDesc: '帐户锁定前的最大失败登入尝试次数',
-      dataProtection: '资料保护',
-      sslCertificate: 'SSL 凭证',
-      sslCertificateDesc: '使用 HTTPS 保护资料传输',
-      active: '启用',
-      dataBackup: '资料备份',
-      dataBackupDesc: '自动每日备份商店资料',
-      dailyAt2am: '每日凌晨 2:00',
-      activityLogging: '活动记录',
-      activityLoggingDesc: '追踪管理员操作和系统事件',
-    },
-    // Domain Settings Page
-    domainSettings: {
-      title: '网域设定',
-      subtitle: '为您的线上商店设定自订网域和子网域',
-      currentConfig: '目前设定',
-      currentConfigDesc: '您的商店可透过以下网址存取',
-      statusActive: '启用中',
-      statusPendingDns: '等待 DNS',
-      statusNotConfigured: '未设定',
-      frontend: '前台（商店）',
-      adminDashboard: '管理后台',
-      apiEndpoint: 'API 端点',
-      customDomain: '自订网域',
-      subdomain: '子网域',
-      platformUrl: '平台网址',
-      customAdminDomain: '自订管理网域',
-      platformAdminUrl: '平台管理网址',
-      customApiDomain: '自订 API 网域',
-      platformApiUrl: '平台 API 网址',
-      customDomainTitle: '自订网域',
-      customDomainDesc: '使用您自己的网域名称（例如：shop.yourcompany.com 或 yourcompany.com）',
-      domainName: '网域名称',
-      domainPlaceholder: 'example.com',
-      checkingAvailability: '检查可用性中...',
-      dnsConfigRequired: '需要 DNS 设定：',
-      dnsContactIt: '请联系您的 IT 团队或提交支援工单以设定 DNS 记录。DNS 传播可能需要最多 48 小时。',
-      subdomainTitle: '子网域',
-      subdomainDesc: '在我们的平台上选择一个子网域（例如：yourstore.jiffoo.com）',
-      subdomainPlaceholder: 'yourstore',
-      cancel: '取消',
-      saving: '储存中...',
-      saveChanges: '储存变更',
-    },
-  },
+  settings: settingsPageMessages["zh-Hans"],
 
   // Auth
   auth: {

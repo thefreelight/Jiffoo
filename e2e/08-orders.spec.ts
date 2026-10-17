@@ -150,13 +150,13 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await expect(page.getByText('Delivered', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Delivered', { exact: true }).first()).toHaveCSS('flex-shrink', '0');
     await page.goto('/en/notifications');
-    await expect(page.getByText('order confirmation')).toBeVisible();
-    await expect(page.getByText('payment received')).toBeVisible();
-    await expect(page.getByText('shipped', { exact: true })).toBeVisible();
+    await expect(page.getByText('Order confirmation', { exact: true }).filter({ visible: true }).first()).toBeVisible();
+    await expect(page.getByText('Payment received', { exact: true }).filter({ visible: true }).first()).toBeVisible();
+    await expect(page.getByText('Order shipped', { exact: true }).filter({ visible: true }).first()).toBeVisible();
     await page.getByRole('row', { name: /order confirmation.*customer@e2e.example/i }).click();
-    await expect(page.getByRole('dialog', { name: 'Notification detail' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Order confirmation', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Resend' }).click();
-    await expect(page.getByText('Notification queued')).toBeVisible();
+    await expect(page.getByText('Email queued', { exact: true })).toBeVisible();
     await expect(shop.getByRole('heading', { name: 'Order placed, payment successful', exact: true })).toBeVisible();
     await captureS4State(shop, 'checkout-paid');
     await expect(shop.getByText('Pay manually.')).toHaveCount(0);

@@ -75,8 +75,10 @@ test('M real unsigned upload requires a typed second confirmation, remains disab
   await expect(installed.getByText('Disabled', { exact: true })).toBeVisible();
   await expect(installed.getByRole('button', { name: 'Disable', exact: true })).toHaveCount(0);
   await page.goto('/en/audit-events');
-  await page.getByRole('combobox', { name: 'Action', exact: true }).selectOption('PLUGIN_UNSIGNED_INSTALL_CONFIRMED');
-  await expect(page.getByRole('row', { name: /e2e-upload-unsigned/ })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Category', exact: true }).click();
+  await page.getByRole('option', { name: 'Plugins', exact: true }).click();
+  await page.getByRole('table', { name: 'Audit log', exact: true }).getByRole('button', { name: 'Expand: PLUGIN_UNSIGNED_INSTALL_CONFIRMED', exact: true }).first().click();
+  await expect(page.getByText('e2e-upload-unsigned', { exact: true }).filter({ visible: true })).toBeVisible();
 });
 
 test('K migration preview confirms the plan, shows real in-flight progress and publishes the complete success result', async ({ page }) => {

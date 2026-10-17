@@ -289,10 +289,6 @@ export class SystemSettingsService {
             .map((item) => normalizeCountryCode(item))
             .filter((item) => item.length > 0);
 
-        if (normalized.length === 0) {
-            return Array.from(DEFAULT_COUNTRIES_REQUIRE_STATE_POSTAL);
-        }
-
         return Array.from(new Set(normalized));
     }
 }
