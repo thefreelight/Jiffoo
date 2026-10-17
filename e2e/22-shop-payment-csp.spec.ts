@@ -91,7 +91,7 @@ async function placeOrder(page: Page) {
   await page.getByRole('radio', { name: 'Manual payment', exact: true }).check();
   await page.getByRole('button', { name: /^Pay / }).click();
   await expect(page).toHaveURL(/\/en\/checkout\/complete\?order=/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Confirming payment', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Payment instructions', exact: true })).toBeVisible();
   const id = new URL(page.url()).searchParams.get('order');
   expect(id).toBeTruthy();
   return id!;
@@ -195,6 +195,6 @@ test('E storefront and confirmation documents have no Content-Security-Policy he
   await page.goto(`${shopOrigin}/en/checkout`);
   const id = await placeOrder(page);
   const headers = documentHeaders(await page.goto(`${shopOrigin}/en/checkout/complete?order=${id}`));
-  await expect(page.getByRole('heading', { level: 1, name: 'Confirming payment', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Payment instructions', exact: true })).toBeVisible();
   expect(headers.csp).toBeNull();
 });

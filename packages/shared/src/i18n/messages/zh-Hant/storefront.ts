@@ -1,5 +1,6 @@
 export const storefront = {
   s4: {
+    manualBody: '請按以下說明付款。付款確認後，訂單狀態會自動更新。',
     "forgotTitle": "找回密碼",
     "forgotLink": "忘記密碼？",
     "resetTitle": "設定新密碼",

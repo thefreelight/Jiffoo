@@ -89,7 +89,7 @@ test('stock limit and changed price require a fresh checkout confirmation', asyn
     await captureS4State(shop, 'checkout-changed');
     await shop.getByRole('button', { name: 'Confirm new total and pay $15.00', exact: true }).click();
     await expect(shop).toHaveURL(/\/en\/checkout\/complete\?order=/);
-    await expect(shop.getByRole('heading', { name: 'Confirming payment' })).toBeVisible();
+    await expect(shop.getByRole('heading', { name: 'Payment instructions' })).toBeVisible();
     await expect(shop.getByText('Pay manually.')).toBeVisible();
   } finally {
     await shopContext.close();

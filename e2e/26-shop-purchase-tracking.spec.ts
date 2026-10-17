@@ -141,7 +141,7 @@ async function placeOrder(page: Page) {
   await page.getByRole('radio', { name: 'Manual payment', exact: true }).check();
   const claim = nextClaim(page);
   await page.getByRole('button', { name: /^Pay / }).click();
-  await expect(page.getByRole('heading', { name: 'Confirming payment', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Payment instructions', exact: true })).toBeVisible();
   await checkClaim(await claim, true);
   const id = new URL(page.url()).searchParams.get('order');
   expect(id).toBeTruthy();
@@ -174,7 +174,7 @@ test('H reload and return for the same order never send additional purchase comm
   await checkMarker(page, config);
   const returnClaim = nextClaim(page);
   await page.goto(`${shop}/en/checkout/return?order=${order.id}`);
-  await expect(page.getByRole('heading', { name: 'Confirming payment', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Payment instructions', exact: true })).toBeVisible();
   await checkClaim(await returnClaim, false);
   await checkMarker(page, config);
   expect(claims).toEqual(Array(3).fill(`${shop}/bff/orders/${order.id}/tracking-claim`));

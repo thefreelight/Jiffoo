@@ -78,8 +78,22 @@ describe('S4 result and summary states', () => {
     expect(cancel).toContain(en.s4.cancellationBody);
     expect(cancel).not.toContain('cart has been kept');
   });
-  it('backs off polling from 5 seconds to a bounded 30 seconds', () => {
-    expect([0, 1, 2, 3, 20].map(paymentPollDelay)).toEqual([5000, 10000, 20000, 30000, 30000]);
+  it('uses a modest bounded polling interval', () => {
+    expect(paymentPollDelay()).toBe(5000);
+  });
+  it('shows instructions for a real pending manual attempt and preserves provider and review states', () => {
+    const manual = { ...order, paymentAttemptState: 'PENDING' };
+    const html = renderToStaticMarkup(createElement(OrderSummary, { order: manual, locale: 'en', timezone: 'UTC' }));
+    expect(html).toContain(en.checkout.paymentInstructions);
+    expect(html).toContain(en.s4.manualBody);
+    expect(html).toContain('Pay manually.');
+    expect(html).not.toContain(en.s4.pendingBody);
+    expect(html).not.toContain('animate-spin');
+    expect(paymentResult({ ...manual, paymentInstructions: null })).toBe('pending');
+    expect(paymentResult({ ...manual, paymentAttemptState: 'REQUIRES_REVIEW' })).toBe('pending');
+    expect(paymentResult({ ...manual, paymentAttemptState: 'UNKNOWN' })).toBe('pending');
+    expect(paymentResult({ ...manual, paymentStatus: 'PAID' })).toBe('paid');
+    expect(paymentResult({ ...manual, status: 'CANCELLED' })).toBe('cancelled');
   });
   it('shows final cancellation or failure without polling forever or claiming that an expired order awaits payment', () => {
     const html = renderToStaticMarkup(createElement(OrderSummary, { order: { ...order, status: 'CANCELLED' }, locale: 'en', timezone: 'UTC' }));

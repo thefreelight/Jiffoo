@@ -210,7 +210,7 @@ async function placeOrder(page: Page) {
   await page.getByRole('radio', { name: 'Manual payment', exact: true }).check();
   await page.getByRole('button', { name: /^Pay / }).click();
   await expect(page).toHaveURL(/\/en\/checkout\/complete\?order=/);
-  await expect(page.getByRole('heading', { name: 'Confirming payment', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Payment instructions', exact: true })).toBeVisible();
   const id = new URL(page.url()).searchParams.get('order');
   expect(id).toBeTruthy();
   return id!;

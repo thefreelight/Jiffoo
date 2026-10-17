@@ -166,7 +166,7 @@ test('D order detail hydrates and reloads in a browser timezone different from t
     await page.getByRole('radio', { name: /Free shipping/ }).check();
     await page.getByRole('radio', { name: 'Manual payment', exact: true }).check();
     await page.getByRole('button', { name: /^Pay / }).click();
-    await expect(page.getByRole('heading', { name: 'Confirming payment', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Payment instructions', exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'View order', exact: true }).click();
     for (let index = 0; index <= (reloadStress ? 20 : 1); index++) {
       if (index) await page.reload();

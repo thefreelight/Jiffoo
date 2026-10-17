@@ -206,6 +206,20 @@ table.t td{padding:14px 16px;border-top:1px solid var(--border)}
     </div>
   </main><dc-import name="Footer" mode="{{mode}}" width="{{width}}" hint-size="1440px,350px"></dc-import>
 </sc-if>
+<sc-if value="{{visible.manual}}" hint-placeholder-val="{{ false }}">
+<dc-import name="Header" mode="{{mode}}" width="{{width}}" active="" count="0" hint-size="1440px,64px"></dc-import><main class="wrap" style="padding:72px 32px 96px;min-height:640px">
+    <div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:28px">
+      <div class="center" style="gap:12px"><div style="width:56px;height:56px;border-radius:50%;background:var(--active);color:var(--foreground);display:flex;align-items:center;justify-content:center"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.56"/></svg></div><h1 class="h2" style="font-size:26px">付款说明</h1><p class="muted" style="margin:0">请按以下说明付款。付款确认后，订单状态会自动更新。</p></div>
+
+      <div class="card sum" style="padding:24px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;justify-content:space-between"><span class="muted">订单号</span><span class="mono">JF-20261016-0042</span></div>
+        <hr class="sep">
+        <dl><div><dt>纯棉短袖 T 恤 × 2</dt><dd>¥298.00</dd></div><div><dt>粗陶马克杯 350ml × 1</dt><dd>¥69.00</dd></div><div><dt>运费</dt><dd>¥12.00</dd></div><div class="tot"><dt style="color:inherit">合计</dt><dd>¥379.00</dd></div></dl><section aria-label="付款说明"><p>付款说明</p></section>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center"><a class="btn btn-p" href="Account.dc.html">查看订单</a><a class="btn btn-o" href="Home.dc.html">继续购物</a></div>
+    </div>
+  </main><dc-import name="Footer" mode="{{mode}}" width="{{width}}" hint-size="1440px,350px"></dc-import>
+</sc-if>
 <sc-if value="{{visible.cancel}}" hint-placeholder-val="{{ false }}">
 <dc-import name="Header" mode="{{mode}}" width="{{width}}" active="" count="2" hint-size="1440px,64px"></dc-import><main class="wrap" style="padding:72px 32px 96px;min-height:640px">
     <div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:28px">
@@ -216,7 +230,7 @@ table.t td{padding:14px 16px;border-top:1px solid var(--border)}
 </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["light","dark"],"default":"light"},"width":{"editor":"enum","options":["desktop","mobile"],"default":"desktop"},"state":{"editor":"enum","options":["paid","pending","cancel"],"default":"paid"},"$preview":{"width":1440,"height":1100}}'>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["light","dark"],"default":"light"},"width":{"editor":"enum","options":["desktop","mobile"],"default":"desktop"},"state":{"editor":"enum","options":["paid","pending","manual","cancel"],"default":"paid"},"$preview":{"width":1440,"height":1100}}'>
 class Component extends DCLogic {
   constructor(props) { super(props); this.state = { selected: null, selectedProp: null }; }
   renderVals() {
@@ -225,8 +239,8 @@ class Component extends DCLogic {
     const t = mode === 'dark' ? {"ground":"#0a0a0a","raised":"#111111","foreground":"#ededed","muted":"#a1a1a1","faint":"#7c7c7c","border":"rgba(255,255,255,.09)","border_strong":"rgba(255,255,255,.18)","active":"rgba(255,255,255,.06)","primary":"#ededed","primary_foreground":"#0a0a0a","attention":"#f0a640","attention_soft":"#2a1d08","attention_line":"#5a3c10","destructive":"#ff6b5e","destructive_soft":"#2c0f0c","destructive_line":"#5c1d17","success":"#4cc38a","success_soft":"#0d2419","announcement_bg":"#ededed","announcement_text":"#0a0a0a","img_a":"#1a1a19","img_b":"#17191b","img_c":"#1b1a17","img_d":"#191816","img_ink":"rgba(255,255,255,.14)","shadow":"0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5)"} : {"ground":"#ffffff","raised":"#fafafa","foreground":"#171717","muted":"#5c5c5c","faint":"#737373","border":"rgba(0,0,0,.09)","border_strong":"rgba(0,0,0,.16)","active":"rgba(0,0,0,.045)","primary":"#171717","primary_foreground":"#ffffff","attention":"#a15c07","attention_soft":"#fdf6e9","attention_line":"#f1dcb4","destructive":"#c4281c","destructive_soft":"#fdeeec","destructive_line":"#f5c7c2","success":"#1a7f4b","success_soft":"#ebf7f0","announcement_bg":"#171717","announcement_text":"#ffffff","img_a":"#efede9","img_b":"#e9ecee","img_c":"#ecebe6","img_d":"#e8e6e1","img_ink":"rgba(0,0,0,.18)","shadow":"0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06)"};
     const propState = this.props.state ?? "paid";
     const selected = this.state.selectedProp === propState ? (this.state.selected ?? propState) : propState;
-    const visible = Object.fromEntries(["paid","pending","cancel"].map(key => [key, key === selected]));
-    const go = Object.fromEntries(["paid","pending","cancel"].map(key => [key, event => { if (event && event.preventDefault) event.preventDefault(); this.setState({ selected: key, selectedProp: propState }); }]));
+    const visible = Object.fromEntries(["paid","pending","manual","cancel"].map(key => [key, key === selected]));
+    const go = Object.fromEntries(["paid","pending","manual","cancel"].map(key => [key, event => { if (event && event.preventDefault) event.preventDefault(); this.setState({ selected: key, selectedProp: propState }); }]));
     return { t, mode, width, maxWidth: width === 'mobile' ? '390px' : '1440px', menuPosition: this.props.embedded ? 'static' : 'relative', menuDisplay: this.props.embedded ? 'contents' : 'block', menuHeight: this.props.embedded ? '0' : '900px', visible, go, cats: [{"slug":"coffee","src":"img/cat-coffee.jpg","name":"咖啡与茶","desc":"产地直采的咖啡豆与茶叶","count":12,"tone":"a"},{"slug":"home","src":"img/cat-home.jpg","name":"家居","desc":"日常用得上的器物","count":24,"tone":"b"},{"slug":"stationery","src":"img/cat-stationery.jpg","name":"文具","desc":"书写与收纳","count":9,"tone":"c"},{"slug":"apparel","src":"img/cat-apparel.jpg","name":"服饰","desc":"基础款与配件","count":16,"tone":"d"}], active: this.props.active ?? '', count: this.props.count ?? 2,
 
     };

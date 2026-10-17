@@ -1,5 +1,6 @@
 export const storefront = {
   s4: {
+    manualBody: 'Pay using the instructions below. Your order will update after payment is confirmed.',
     "forgotTitle": "Forgot password",
     "forgotLink": "Forgot password",
     "resetTitle": "Set a new password",
