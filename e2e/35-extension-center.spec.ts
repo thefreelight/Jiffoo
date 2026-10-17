@@ -72,7 +72,7 @@ async function buyer(page: Page, request: APIRequestContext) {
   const id = randomUUID();
   const email = `extension-${id}@e2e.example`, password = 'ExtensionBuyerPassword123!';
   await page.goto('http://127.0.0.1:3003/en/register');
-  await page.getByLabel('Name').fill(`Extension Buyer ${id}`);
+  await page.getByLabel('Username').fill(`Extension Buyer ${id}`);
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
@@ -103,7 +103,7 @@ async function placeOrder(shop: Page, request: APIRequestContext, token: string,
     await option.check();
   } else await shop.getByRole('radio', { name: /Free shipping/i }).check();
   await shop.getByRole('radio', { name: paymentName, exact: true }).check();
-  await shop.getByRole('button', { name: 'Place order', exact: true }).click();
+  await shop.getByRole('button', { name: /^Pay / }).click();
   await expect(shop).toHaveURL(/\/en\/checkout\/complete\?order=/);
   const id = new URL(shop.url()).searchParams.get('order')!;
   ownedOrders.add(id);

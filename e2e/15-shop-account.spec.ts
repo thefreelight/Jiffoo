@@ -1,5 +1,6 @@
 import { expect, test } from './local-requests';
 import { shopLogin, shopLogout, shopAccountAction } from './helpers';
+import { captureS4State } from './s4-captures';
 
 const email = 'shop-register@e2e.example';
 const password = 'ShopRegister123!';
@@ -7,19 +8,34 @@ const newPassword = 'ShopChanged123!';
 
 test('manage profile and language, change password and delete account with confirmation', async ({ page }) => {
   await page.goto('/en/login');
+  await page.getByRole('link', { name: 'Forgot password', exact: true }).click();
+  await page.getByLabel('Email', { exact: true }).fill('s4-unknown-account@e2e.example');
+  await page.getByRole('button', { name: 'Request reset link', exact: true }).click();
+  await expect(page.getByRole('status', { name: '' })).toHaveText('If this email is registered, you will receive an email in a few minutes.');
+  await captureS4State(page, 'forgot-confirmation');
+  await page.getByRole('link', { name: 'Back to login', exact: true }).click();
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill('WrongPassword123!');
+  await page.getByRole('button', { name: 'Login', exact: true }).click();
+  await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByRole('form', { name: 'Login', exact: true }).getByRole('alert', { name: '' })).toHaveText('Invalid email or password.');
+  await captureS4State(page, 'login-error');
   await shopLogin(page, { locale: 'en', email, password, expectedPath: '/en' });
   await shopAccountAction(page, 'en', 'account');
   await expect(page).toHaveURL(/\/en\/account$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'My account', exact: true })).toBeVisible();
   const profile = page.getByRole('region', { name: 'Account' });
-  await profile.getByLabel('Name').fill('Updated Shop Customer');
+  await captureS4State(page, 'account-profile');
+  await profile.getByLabel('Username').fill('Updated Shop Customer');
   await profile.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByRole('status')).toHaveText('Account updated.');
   const language = page.getByRole('region', { name: 'Email language' });
+  await page.getByText('Email language', { exact: true }).first().click();
   await language.getByLabel('Email language').selectOption('zh-Hant');
   await language.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByRole('status')).toHaveText('Account updated.');
   const changePassword = page.getByRole('region', { name: 'Change password' });
+  await page.getByText('Change password', { exact: true }).first().click();
   await changePassword.getByLabel('Current password').fill(password);
   await changePassword.getByLabel('New password').fill(newPassword);
   await changePassword.getByRole('button', { name: 'Change password' }).click();
@@ -29,8 +45,9 @@ test('manage profile and language, change password and delete account with confi
   await shopLogin(page, { locale: 'en', email, password: newPassword, expectedPath: '/en' });
   await shopAccountAction(page, 'en', 'account');
   await expect(page).toHaveURL(/\/en\/account$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'My account', exact: true })).toBeVisible();
   const deletion = page.getByRole('region', { name: 'Delete account' });
+  await page.getByText('Delete account', { exact: true }).first().click();
   await deletion.getByLabel('Current password').fill(password);
   await deletion.getByRole('button', { name: 'Delete account' }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'Current password is incorrect.' })).toHaveText('Current password is incorrect.');

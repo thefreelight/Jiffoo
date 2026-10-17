@@ -1,22 +1,18 @@
 import { notFound, redirect } from 'next/navigation';
-import { requireLocale, messages } from '@/lib/catalog';
+import { requireLocale } from '@/lib/catalog';
 import { customerOrder } from '@/lib/server-checkout';
 import { accountProfile } from '@/lib/server-account';
-import Link from 'next/link';
+import { OrderSummary } from '@/components/order-summary';
 
 export default async function CancelPage({ params, searchParams }: {
   params: Promise<{ locale: string }>;
   searchParams: Promise<{ order?: string }>;
 }) {
-  const { locale } = await requireLocale((await params).locale);
+  const { locale, context } = await requireLocale((await params).locale);
   const id = (await searchParams).order;
   if (!id) notFound();
   if (!(await accountProfile())) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/checkout/cancel?order=${id}`)}`);
   const order = await customerOrder(id);
   if (!order) notFound();
-  return <main className="mx-auto max-w-4xl px-4 py-10 md:px-8">
-    <h1 className="text-2xl font-semibold">{messages(locale).checkout.pending}</h1>
-    <p className="mt-4">{messages(locale).checkout.cancelled}</p>
-    <Link href={`/${locale}/account/orders/${id}`} className="mt-4 inline-block text-action underline">{messages(locale).checkout.viewOrder}</Link>
-  </main>;
+  return <OrderSummary order={order} locale={locale} timezone={context.timezone} cancelled />;
 }

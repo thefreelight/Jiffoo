@@ -1,4 +1,5 @@
 import { captureReview, expect, test } from './review-capture';
+import { captureS4State } from './s4-captures';
 import { randomUUID } from 'node:crypto';
 import archiver from 'archiver';
 import type { APIRequestContext, BrowserContext, Page } from '@playwright/test';
@@ -134,7 +135,7 @@ async function openCheckout(shop: Page) {
 async function register(fixture: Fixture) {
   const { shop, slug } = fixture;
   await shop.goto('/en/register');
-  await shop.getByLabel('Name').fill(`Isolation Buyer ${slug}`);
+  await shop.getByLabel('Username').fill(`Isolation Buyer ${slug}`);
   await shop.getByLabel('Email').fill(`${slug}@e2e.example`);
   await shop.getByLabel('Password', { exact: true }).fill('IsolationBuyerPassword123!');
   await shop.getByRole('button', { name: 'Create account' }).click();
@@ -165,7 +166,7 @@ test('B warns for a pending payment, Cancel preserves enablement and Disable any
   const fixture = await setupFixture(page, request, newObservedContext);
   try {
     await register(fixture);
-    await fixture.shop.getByRole('button', { name: 'Place order' }).click();
+    await fixture.shop.getByRole('button', { name: /^Pay /, exact: false }).click();
     await expect(fixture.shop).toHaveURL(/\/en\/checkout\/complete\?order=/);
     fixture.orderId = new URL(fixture.shop.url()).searchParams.get('order');
     expect(fixture.orderId).toBeTruthy();
@@ -206,12 +207,13 @@ test('C stale checkout shows the unavailable payment message, refreshes methods 
     await page.getByRole('button', { name: 'Disable' }).click();
     await expect(page.getByRole('alertdialog', { name: 'Disable payment method?' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Enable' })).toBeVisible();
-    await fixture.shop.getByRole('button', { name: 'Place order' }).click();
-    await expect(fixture.shop.getByText('This payment method is no longer available. Please choose another.', { exact: true })).toBeVisible();
+    await fixture.shop.getByRole('button', { name: /^Pay /, exact: false }).click();
+    await expect(fixture.shop.getByText('This payment method is temporarily unavailable', { exact: true })).toBeVisible();
+    await captureS4State(fixture.shop, 'checkout-payment-unavailable');
     await expect(fixture.shop.getByRole('radio', { name: 'Fixture payment' })).toHaveCount(0);
     await captureReview(fixture.shop, 'disabled-plugin-review', 'disabled-plugin-checkout-message');
     await fixture.shop.goto('/en/account/orders');
-    await expect(fixture.shop.getByRole('link', { name: 'View details' })).toHaveCount(0);
+    await expect(fixture.shop.getByRole('link', { name: /^View details/ })).toHaveCount(0);
   } finally {
     await cleanup(fixture);
   }

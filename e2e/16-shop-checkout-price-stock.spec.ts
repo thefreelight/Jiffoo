@@ -1,7 +1,9 @@
 import { expect, test } from './local-requests';
 import { login, ownerEmail } from './helpers';
+import { captureS4State } from './s4-captures';
 
 test('stock limit and changed price require a fresh checkout confirmation', async ({ page, newObservedContext }) => {
+  test.setTimeout(120_000);
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/products/create');
   await page.getByLabel('Name', { exact: true }).first().fill('Price Change Product');
@@ -19,7 +21,7 @@ test('stock limit and changed price require a fresh checkout confirmation', asyn
   const shop = await shopContext.newPage();
   try {
     await shop.goto('/en/register');
-    await shop.getByLabel('Name').fill('Price Buyer');
+    await shop.getByLabel('Username').fill('Price Buyer');
     await shop.getByLabel('Email').fill('price-change@e2e.example');
     await shop.getByLabel('Password', { exact: true }).fill('PriceBuyerPassword123!');
     await shop.getByRole('button', { name: 'Create account' }).click();
@@ -43,7 +45,25 @@ test('stock limit and changed price require a fresh checkout confirmation', asyn
     await shop.getByRole('button', { name: 'Add to cart' }).click();
     await shop.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
     await expect(shop).toHaveURL(/\/en\/cart$/);
+    await shop.getByRole('spinbutton', { name: 'Quantity Price Change Product', exact: true }).fill('2');
+    await expect(shop.getByRole('link', { name: 'Checkout', exact: true })).toBeVisible();
+    await page.getByRole('spinbutton', { name: /^Stock:/ }).first().fill('1');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText('Unsaved changes', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Product saved.', { exact: true })).toBeVisible();
+    await shop.reload();
+    await expect(shop.getByRole('button', { name: 'Checkout', exact: true })).toBeDisabled();
+    await expect(shop.getByRole('main', { name: '' }).getByRole('alert', { name: '' })).toContainText('only 1 left');
+    await captureS4State(shop, 'cart-stock');
+    await shop.getByRole('button', { name: 'Decrease Price Change Product', exact: true }).click();
+    await expect(shop.getByRole('link', { name: 'Checkout', exact: true })).toBeVisible();
+    await captureS4State(shop, 'cart-lines');
     await shop.getByRole('link', { name: 'Checkout', exact: true }).click();
+    await captureS4State(shop, 'checkout-address');
+    await shop.getByRole('button', { name: 'Get shipping options', exact: true }).click();
+    await expect(shop.getByLabel('Last name', { exact: true })).toBeFocused();
+    await expect(shop.getByRole('main', { name: '' }).getByRole('alert', { name: '' }).first()).toHaveText('This field is required.');
+    await captureS4State(shop, 'checkout-validation');
     await shop.getByLabel('First name').fill('Price');
     await shop.getByLabel('Last name').fill('Buyer');
     await shop.getByLabel('Phone').fill('+1-555-0199');
@@ -55,19 +75,21 @@ test('stock limit and changed price require a fresh checkout confirmation', asyn
     await shop.getByRole('button', { name: 'Get shipping options' }).click();
     await shop.getByRole('radio', { name: /Free shipping/i }).check();
     await expect(shop.getByRole('status', { name: 'Total $10.00' })).toBeVisible();
-    await expect(shop.getByText('Tax (Tax added)')).toBeVisible();
+    await expect(shop.getByText('Tax (Tax added)', { exact: true }).filter({ visible: true })).toBeVisible();
     await shop.getByRole('radio', { name: 'Manual payment' }).check();
+    await captureS4State(shop, 'checkout-ready');
 
     await page.getByRole('spinbutton', { name: /^Price:/ }).first().fill('15.00');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.getByText('Unsaved changes', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Product saved.', { exact: true })).toHaveCount(1);
-    await shop.getByRole('button', { name: 'Place order' }).click();
-    await expect(shop.getByText('Price changed. Review the new total and confirm again.', { exact: true })).toHaveText('Price changed. Review the new total and confirm again.');
+    await shop.getByRole('button', { name: /^Pay /, exact: false }).click();
+    await expect(shop.getByText('The total is now $15.00. Confirm before paying.', { exact: true })).toHaveText('The total is now $15.00. Confirm before paying.');
     await expect(shop.getByRole('status', { name: 'Total $15.00' })).toBeVisible();
-    await shop.getByRole('button', { name: 'Place order' }).click();
+    await captureS4State(shop, 'checkout-changed');
+    await shop.getByRole('button', { name: 'Confirm new total and pay $15.00', exact: true }).click();
     await expect(shop).toHaveURL(/\/en\/checkout\/complete\?order=/);
-    await expect(shop.getByRole('heading', { name: 'Order confirmation' })).toBeVisible();
+    await expect(shop.getByRole('heading', { name: 'Confirming payment' })).toBeVisible();
     await expect(shop.getByText('Pay manually.')).toBeVisible();
   } finally {
     await shopContext.close();

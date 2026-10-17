@@ -1,29 +1,35 @@
 'use client';
 
-import { useRef, useState, type FormEvent } from 'react';
+import { useRef, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { getNamespaceMessages } from 'shared/src/i18n/messages';
 import type { common } from 'shared/src/i18n/messages/en/common';
-import type { Address, Cart, Quote } from '@/lib/checkout-types';
+import { addressFormValues, addressRequest, type Address, type Cart, type Quote, type SavedAddress } from '@/lib/checkout-types';
 import type { ShopLocale } from '@/lib/locale';
 import { formatPrice } from '@/lib/price';
 import { storefrontMessages } from '@/lib/storefront-messages';
 import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
+import { addressFields, addressSchema, serverFieldIssues, type AddressField } from '@/lib/form-validation';
+import { CheckoutSummary } from './checkout-summary';
+import { CircleAlert } from 'lucide-react';
 
-const addressFields = ['firstName', 'lastName', 'phone', 'addressLine1', 'addressLine2', 'city', 'state', 'postalCode'] as const;
-
-export function CheckoutView({ cart, locale, address: initialAddress, countries }: {
+export function CheckoutView({ cart, locale, address: initialAddress, countries, requiredCountries, email, currency }: {
   cart: Cart;
   locale: ShopLocale;
-  address: Address | null;
+  address: SavedAddress | null;
   countries: Array<{ code: string; name: string }>;
+  requiredCountries: string[];
+  email: string;
+  currency: string;
 }) {
   const t = storefrontMessages(locale).checkout;
+  const copy = storefrontMessages(locale).s4;
   const feedback = getNamespaceMessages(locale, 'common') as typeof common;
   const paymentRequestKey = useRef('');
-  const [address, setAddress] = useState<Address>(initialAddress ?? {
-    firstName: '', lastName: '', phone: '', addressLine1: '', addressLine2: '',
-    city: '', state: '', postalCode: '', country: '',
-  });
+  const form = useForm<Address>({ resolver: zodResolver(addressSchema(copy, requiredCountries)), shouldFocusError: true, defaultValues: addressFormValues(initialAddress) });
+  const country = useWatch({ control: form.control, name: 'country' });
+  const requiredRegion = requiredCountries.includes(country?.toUpperCase());
   const [quote, setQuote] = useState<Quote | null>(null);
   const [shippingOptionId, setShippingOptionId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -31,15 +37,17 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries 
   const [busy, setBusy] = useState(false);
   const [priceChanged, setPriceChanged] = useState(false);
   const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
+  const [cartSnapshot, setCartSnapshot] = useState(cart);
   const availability = useShopAvailability(locale);
 
   async function requestQuote(optionId?: string, errorOnFailure: string = t.genericError): Promise<Quote | null> {
     const response = await availabilityFetch('/bff/checkout/quote', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shippingAddress: address, ...(optionId ? { shippingOptionId: optionId } : {}) }),
+      body: JSON.stringify({ shippingAddress: addressRequest(form.getValues()), ...(optionId ? { shippingOptionId: optionId } : {}) }),
     });
     if (!response.ok) {
       const failure = await response.json();
+      showFieldErrors(failure);
       setError(failure.error?.code === 'ADMIN_ACCOUNT_NOT_FOR_SHOP' ? storefrontMessages(locale).account.adminAccountNotForShop : errorOnFailure);
       return null;
     }
@@ -48,8 +56,13 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries 
     return result;
   }
 
-  async function begin(event: FormEvent) {
-    event.preventDefault();
+  function showFieldErrors(body: unknown) {
+    const fields = serverFieldIssues(body).filter((field): field is AddressField => addressFields.includes(field as AddressField));
+    fields.forEach((field) => form.setError(field, { type: 'server', message: copy.invalidField }));
+    if (fields[0]) form.setFocus(fields[0]);
+  }
+
+  async function begin() {
     if (availability.blocked || paymentOrderId) return;
     availability.clear();
     setBusy(true); setError('');
@@ -85,14 +98,20 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries 
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: cart.items.map(({ productId, variantId, quantity }) => ({ productId, variantId, quantity })),
-          shippingAddress: address, shippingOptionId, paymentMethod, expectedTotal: quote.total,
+          shippingAddress: addressRequest(form.getValues()), shippingOptionId, paymentMethod, expectedTotal: quote.total,
         }),
       });
       const body = await response.json();
       if (!response.ok) {
+        showFieldErrors(body);
         if (body.error?.code === 'QUOTE_CHANGED') {
           const next = await requestQuote(shippingOptionId);
-          if (next) setPriceChanged(true);
+          if (next) {
+            setPriceChanged(true);
+            const cartResponse = await availabilityFetch('/bff/cart', { cache: 'no-store' });
+            if (!cartResponse.ok) throw new Error('Cart refresh failed');
+            setCartSnapshot((await cartResponse.json()).data as Cart);
+          }
         } else if (body.error?.code === 'SHIPPING_METHOD_UNAVAILABLE') {
           setShippingOptionId(''); setPaymentMethod(''); setPriceChanged(false);
           await requestQuote(undefined, t.shippingUnavailable);
@@ -138,61 +157,70 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries 
     finally { setBusy(false); }
   }
 
-  return <main className="mx-auto max-w-5xl px-4 py-10 md:px-8">
-    <h1 className="text-2xl font-semibold">{t.checkout}</h1>
-    <form onSubmit={(event) => void begin(event)} className="mt-8 space-y-6">
-      <fieldset disabled={!!paymentOrderId}>
-        <legend className="mb-4 font-semibold">{t.address}</legend>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {addressFields.map((field) => <label key={field} className="block text-sm">
-            {t[field]}
-            <input value={address[field]} required={field !== 'addressLine2' && field !== 'state' && field !== 'postalCode'}
-              onChange={(event) => { setAddress({ ...address, [field]: event.target.value }); setQuote(null); setPriceChanged(false); }}
-              className="mt-1 block w-full rounded-shop border border-line bg-surface px-3 py-2" />
-          </label>)}
-          <label className="block text-sm">{t.country}
-            <select value={address.country} required
-              onChange={(event) => { setAddress({ ...address, country: event.target.value }); setQuote(null); setPriceChanged(false); }}
-              className="mt-1 block w-full rounded-shop border border-line bg-surface px-3 py-2">
-              <option value="">{t.chooseCountry}</option>
-              {countries.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
-            </select>
-          </label>
-        </div>
-      </fieldset>
-      <button type="submit" disabled={busy || availability.blocked || !!paymentOrderId} className="rounded-shop border border-action px-5 py-2 text-action">{t.getQuote}</button>
-    </form>
-    {quote && <section className="mt-8 space-y-5 border-t border-line pt-6">
-      <fieldset disabled={availability.blocked || !!paymentOrderId}>
-        <legend className="font-semibold">{t.shipping}</legend>
-        {quote.shippingOptions.map((option) => <label key={option.id} className="mt-3 flex items-center gap-3">
-          <input type="radio" name="shipping" checked={shippingOptionId === option.id}
-            onChange={() => void selectShipping(option.id)} />
-          <span>{option.label} · {formatPrice(option.amount, locale, quote.currency)}</span>
-        </label>)}
-      </fieldset>
-      {quote.total && shippingOptionId && <>
-        <dl className="space-y-2 border-t border-line pt-4">
-          <div className="flex justify-between"><dt>{t.subtotal}</dt><dd>{formatPrice(quote.subtotal, locale, quote.currency)}</dd></div>
-          <div className="flex justify-between"><dt>{t.shipping}</dt><dd>{formatPrice(quote.shippingOptions.find((option) => option.id === shippingOptionId)?.amount ?? '0', locale, quote.currency)}</dd></div>
-          <div className="flex justify-between"><dt>{t.tax} ({quote.taxInclusive ? t.taxInclusive : t.taxExclusive})</dt><dd>{formatPrice(quote.tax ?? '0', locale, quote.currency)}</dd></div>
-          <div className="flex justify-between border-t border-line pt-3 font-semibold"><dt>{t.total}</dt>
-            <dd role="status" aria-label={`${t.total} ${formatPrice(quote.total, locale, quote.currency)}`}>{formatPrice(quote.total, locale, quote.currency)}</dd>
-          </div>
-        </dl>
-        <fieldset disabled={!!paymentOrderId}>
-          <legend className="font-semibold">{t.payment}</legend>
-          {quote.paymentMethods.map((method) => <label key={method.providerSlug} className="mt-3 flex items-center gap-3">
-            <input type="radio" name="payment" checked={paymentMethod === method.providerSlug}
-              onChange={() => setPaymentMethod(method.providerSlug)} />
-            <span>{method.displayName}</span>
+  const total = quote?.total && shippingOptionId ? formatPrice(quote.total, locale, quote.currency) : '';
+  const invalidate = () => { setQuote(null); setShippingOptionId(''); setPaymentMethod(''); setPriceChanged(false); };
+  const summary = <CheckoutSummary cart={cartSnapshot} quote={quote} shippingOptionId={shippingOptionId} locale={locale} currency={currency} />;
+  const inputClass = 'h-10 w-full rounded-md border border-[var(--shop-border-strong)] bg-canvas px-3 aria-invalid:border-destructive';
+  return <main className="mx-auto max-w-7xl px-4 pb-[72px] pt-9 md:px-8">
+    <h1 className="sr-only">{t.checkout}</h1>
+    <details className="mb-5 rounded-lg border border-line p-4 md:hidden">
+      <summary className="flex cursor-pointer justify-between gap-3 font-medium"><span>{copy.summary}</span><span className="tabular-nums">{total || formatPrice(cart.subtotal, locale, currency)}</span></summary>
+      <div className="pt-4">{summary}</div>
+    </details>
+    <div className="grid items-start gap-7 md:grid-cols-[minmax(0,1fr)_380px] md:gap-12">
+      <div className="space-y-8">
+        {priceChanged && <div role="alert" className="flex gap-2.5 rounded-lg border border-[var(--shop-core-attention-line)] bg-[var(--shop-core-attention-soft)] p-3.5 text-[13px]">
+          <CircleAlert size={15} className="mt-0.5 shrink-0 text-[var(--shop-core-attention)]" aria-hidden="true" /><div><p className="font-medium">{copy.changedTitle}</p><p className="text-subtle">{copy.changedBody.replace('{amount}', total)}</p></div>
+        </div>}
+        {(availability.message || error) && <div role="alert" className="flex gap-2.5 rounded-lg border border-[var(--shop-core-destructive-line)] bg-[var(--shop-core-destructive-soft)] p-3.5 text-[13px]">
+          <CircleAlert size={15} className="mt-0.5 shrink-0 text-destructive" aria-hidden="true" /><div>
+          {error === t.paymentUnavailable && <p className="font-medium">{copy.unavailableTitle}</p>}
+          <p>{availability.message || (error === t.paymentUnavailable ? copy.unavailableBody : error)}</p></div>
+        </div>}
+        <section className="space-y-4"><h2 className="text-base font-semibold">{copy.contact}</h2>
+          <label className="flex flex-col gap-1.5 text-[13px] font-medium">{storefrontMessages(locale).account.email}<input className={inputClass} type="email" value={email} disabled /></label>
+        </section>
+        <form noValidate onSubmit={form.handleSubmit(begin)} className="space-y-4">
+          <fieldset disabled={busy || availability.blocked || !!paymentOrderId}>
+            <legend className="mb-4 text-base font-semibold">{t.address}</legend>
+            <div className="grid grid-cols-2 gap-3">
+              {addressFields.map((field) => {
+                const optional = field === 'addressLine2' || ((field === 'state' || field === 'postalCode') && !requiredRegion);
+                const issue = form.formState.errors[field];
+                const props = form.register(field, { onChange: invalidate });
+                return <div key={field} className={['lastName', 'firstName', 'state', 'city'].includes(field) ? '' : 'col-span-2'}>
+                  <div className="mb-1.5 flex gap-1 text-[13px]"><label htmlFor={`address-${field}`} className="font-medium">{t[field]}</label>{optional && <span className="text-subtle">{copy.optional}</span>}</div>
+                  {field === 'country' ? <select id={`address-${field}`} {...props} aria-required={!optional} aria-invalid={!!issue} aria-describedby={issue ? `error-${field}` : undefined} className={inputClass}>
+                    <option value="">{t.chooseCountry}</option>{countries.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
+                  </select> : <input id={`address-${field}`} {...props} type={field === 'phone' ? 'tel' : 'text'} autoComplete={({ firstName: 'given-name', lastName: 'family-name', phone: 'tel', addressLine1: 'address-line1', addressLine2: 'address-line2', city: 'address-level2', state: 'address-level1', postalCode: 'postal-code' } as Record<string, string>)[field]}
+                    aria-required={!optional} aria-invalid={!!issue} aria-describedby={issue ? `error-${field}` : undefined} className={inputClass} />}
+                  {issue && <p id={`error-${field}`} role="alert" className="mt-1.5 text-xs text-destructive">{issue.message}</p>}
+                </div>;
+              })}
+            </div>
+          </fieldset>
+          <button type="submit" disabled={busy || availability.blocked || !!paymentOrderId} className="h-10 rounded-md border border-line px-[18px] disabled:opacity-45">{t.getQuote}</button>
+        </form>
+        <fieldset disabled={busy || availability.blocked || !!paymentOrderId} className="space-y-3">
+          <legend className="mb-3 text-base font-semibold">{storefrontMessages(locale).orders.shippingMethod}</legend>
+          {!quote && <p className="rounded-lg border border-line p-4 text-[13px] text-subtle">{copy.shippingPrompt}</p>}
+          {quote?.shippingOptions.map((option) => <label key={option.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--shop-border-strong)] p-4 has-checked:border-ink">
+            <input type="radio" name="shipping" className="size-4 accent-action" checked={shippingOptionId === option.id} onChange={() => void selectShipping(option.id)} />
+            <span className="flex-1">{option.label}</span><span>{formatPrice(option.amount, locale, quote.currency)}</span>
           </label>)}
         </fieldset>
-        {priceChanged && <p role="alert" className="text-action">{t.priceChanged}</p>}
-        <button type="button" disabled={busy || availability.blocked || !paymentMethod} onClick={() => void placeOrder()}
-          className="rounded-shop bg-action px-5 py-3 text-action-ink disabled:opacity-50">{t.placeOrder}</button>
-      </>}
-    </section>}
-    {(availability.message || error) && <p role="alert" className="mt-4 text-action">{availability.message || error}</p>}
+        <fieldset disabled={busy || availability.blocked || !!paymentOrderId} className="space-y-3">
+          <legend className="mb-3 text-base font-semibold">{t.payment}</legend>
+          {!total && <p className="rounded-lg border border-line p-4 text-[13px] text-subtle">{copy.paymentPrompt}</p>}
+          {total && quote?.paymentMethods.map((method) => <label key={method.providerSlug} className="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--shop-border-strong)] p-4 has-checked:border-ink">
+            <input type="radio" name="payment" className="size-4 accent-action" checked={paymentMethod === method.providerSlug} onChange={() => setPaymentMethod(method.providerSlug)} /><span>{method.displayName}</span>
+          </label>)}
+        </fieldset>
+        {total && <p role="status" aria-label={`${t.total} ${total}`} className="sr-only">{total}</p>}
+        <button type="button" disabled={busy || availability.blocked || !total || !paymentMethod} onClick={placeOrder}
+          className="h-12 w-full rounded-md bg-action px-6 text-[15px] font-medium text-action-ink disabled:opacity-45">{(priceChanged ? copy.confirmPay : copy.pay).replace('{amount}', total).trim()}</button>
+      </div>
+      <aside className="hidden rounded-lg border border-line bg-[var(--shop-core-raised)] p-6 md:sticky md:top-[88px] md:block"><h2 className="mb-4 text-base font-semibold">{copy.summary}</h2>{summary}</aside>
+    </div>
   </main>;
 }

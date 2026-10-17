@@ -209,8 +209,8 @@ table.t td{padding:14px 16px;border-top:1px solid var(--border)}
 <sc-if value="{{visible.cancel}}" hint-placeholder-val="{{ false }}">
 <dc-import name="Header" mode="{{mode}}" width="{{width}}" active="" count="2" hint-size="1440px,64px"></dc-import><main class="wrap" style="padding:72px 32px 96px;min-height:640px">
     <div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:28px">
-      <div class="center" style="gap:12px"><div style="width:56px;height:56px;border-radius:50%;background:var(--active);color:var(--muted);display:flex;align-items:center;justify-content:center"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></div><h1 class="h2" style="font-size:26px">支付已取消</h1><p class="muted" style="margin:0">订单没有扣款，购物车里的商品已为你保留。</p></div>
-      <div style="display:flex;gap:10px;justify-content:center"><a class="btn btn-p" href="Checkout.dc.html">重新支付</a><a class="btn btn-o" href="Cart.dc.html">返回购物车</a></div>
+      <div class="center" style="gap:12px"><div style="width:56px;height:56px;border-radius:50%;background:var(--active);color:var(--muted);display:flex;align-items:center;justify-content:center"><svg class="i l" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></div><h1 class="h2" style="font-size:26px">支付已取消</h1><p class="muted" style="margin:0">订单已创建，仍在等待付款，尚未扣款。</p></div>
+      <div style="display:flex;gap:10px;justify-content:center"><a class="btn btn-p" href="Account.dc.html">查看订单</a><a class="btn btn-o" href="Cart.dc.html">返回购物车</a></div>
     </div>
   </main><dc-import name="Footer" mode="{{mode}}" width="{{width}}" hint-size="1440px,350px"></dc-import>
 </sc-if>

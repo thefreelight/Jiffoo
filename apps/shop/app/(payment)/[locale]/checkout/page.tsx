@@ -2,17 +2,19 @@ import { redirect } from 'next/navigation';
 import { requireLocale } from '@/lib/catalog';
 import { accountProfile } from '@/lib/server-account';
 import { customerCart, customerData } from '@/lib/server-checkout';
-import type { Address, Order } from '@/lib/checkout-types';
+import type { Order } from '@/lib/checkout-types';
 import { CheckoutView } from '@/components/checkout-view';
 import { localizedCountries } from '@/lib/countries';
 
 export default async function CheckoutPage({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await requireLocale((await params).locale);
-  if (!(await accountProfile())) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/checkout`)}`);
+  const { locale, context } = await requireLocale((await params).locale);
+  const profile = await accountProfile();
+  if (!profile) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/checkout`)}`);
   const cart = await customerCart();
   if (!cart?.items.length) redirect(`/${locale}/cart`);
   const orders = await customerData<{ items: Order[] }>('/orders?limit=1');
   const address = orders?.items[0]?.shippingAddress ?? null;
   const countries = localizedCountries(locale);
-  return <CheckoutView cart={cart} locale={locale} address={address as Address | null} countries={countries} />;
+  return <CheckoutView cart={cart} locale={locale} address={address} countries={countries}
+    requiredCountries={context.checkoutCountriesRequireStatePostal ?? []} email={profile.email} currency={context.currency} />;
 }

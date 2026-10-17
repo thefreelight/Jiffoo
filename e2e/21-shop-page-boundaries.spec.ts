@@ -18,7 +18,7 @@ async function buyerWithCart(page: Page, label: string) {
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page).toHaveURL(/\/en\/products\/[^/]+\/edit$/);
   await page.goto(`${shopOrigin}/en/register`);
-  await page.getByLabel('Name').fill(`Boundary ${label} Buyer`);
+  await page.getByLabel('Username').fill(`Boundary ${label} Buyer`);
   await page.getByLabel('Email').fill(`boundary-${label.toLowerCase()}-${id}@e2e.example`);
   await page.getByLabel('Password', { exact: true }).fill('BoundaryPassword123!');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
@@ -101,21 +101,22 @@ test('F confirmation to order detail stays within the storefront document', asyn
   await page.getByRole('button', { name: 'Get shipping options', exact: true }).click();
   await page.getByRole('radio', { name: /Free shipping/i }).check();
   await page.getByRole('radio', { name: 'Manual payment', exact: true }).check();
-  await page.getByRole('button', { name: 'Place order', exact: true }).click();
+  await page.getByRole('button', { name: /^Pay / }).click();
   await expect(page).toHaveURL(/\/en\/checkout\/complete\?order=/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Order confirmation', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Confirming payment', exact: true })).toBeVisible();
   const id = new URL(page.url()).searchParams.get('order');
   expect(id).toBeTruthy();
   const documents = await documentRequestsDuring(page,
     () => page.getByRole('link', { name: 'View order', exact: true }).click(),
-    `${shopOrigin}/en/account/orders/${id}`, 'Order details');
+    `${shopOrigin}/en/account/orders/${id}`, 'My account');
   expect(documents).toEqual([]);
 });
 
 const notFoundCases = [
-  { title: 'G preserves missing storefront path status and heading', path: '/en/scenario-14-missing-page', status: 404, heading: '404' },
+  { title: 'G preserves missing storefront path status and heading', path: '/en/scenario-14-missing-page', status: 404, heading: 'Page not found' },
   { title: 'G preserves missing product slug status and heading', path: '/en/products/scenario-14-missing-product', status: 404, heading: 'Page not found' },
-  { title: 'G preserves missing top-level path status and heading', path: '/scenario-14-missing-top-level', status: 404, heading: '404' },
+  { title: 'G preserves missing top-level path status and heading', path: '/scenario-14-missing-top-level', status: 404, heading: 'Page not found' },
+  { title: 'G renders the approved fallback for an unsupported payment-route locale', path: '/scenario-14-invalid-locale/checkout', status: 404, heading: 'Page not found' },
   { title: 'G preserves payment cancel notFound status and heading', path: '/en/checkout/cancel', status: 404, heading: 'Page not found' },
 ] as const;
 

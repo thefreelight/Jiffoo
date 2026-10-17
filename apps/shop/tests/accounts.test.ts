@@ -68,7 +68,7 @@ describe('Shop account security', () => {
         params: Promise.resolve({ locale: 'en' }),
         searchParams: Promise.resolve({ token: new URL(request.url).searchParams.get('token')! }),
       });
-      expect(element.props.children[1].type).toBe(VerifyEmailAction);
+      expect(element.props.children[0].type).toBe(VerifyEmailAction);
       expect(fetcher).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllGlobals();

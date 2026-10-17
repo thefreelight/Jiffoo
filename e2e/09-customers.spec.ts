@@ -1,4 +1,5 @@
 import { expect, test } from './local-requests';
+import { captureS4State } from './s4-captures';
 import { customerEmail, login, shopLogin } from './helpers';
 import { captureCustomers } from './customer-captures';
 import { readFile } from 'node:fs/promises';
@@ -121,10 +122,13 @@ test('generate a customer reset link immediately, copy it and reset and log in t
   await page.getByRole('region', { name: 'Details', exact: true }).getByRole('button', { name: 'Copy email', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Details', exact: true }).getByText('Copied', { exact: true })).toBeVisible();
   await page.goto(link);
-  await expect(page.getByRole('heading', { name: 'Reset password' })).toBeVisible();
-  await page.getByLabel('New password').fill('CustomerChanged123!');
-  await page.getByRole('button', { name: 'Reset password' }).click();
+  await expect(page.getByRole('heading', { name: 'Set a new password', exact: true })).toBeVisible();
+  await captureS4State(page, 'reset-form');
+  await page.getByLabel('New password', { exact: true }).fill('CustomerChanged123!');
+  await page.getByLabel('Confirm new password', { exact: true }).fill('CustomerChanged123!');
+  await page.getByRole('button', { name: 'Save new password', exact: true }).click();
   await expect(page.getByText('Password updated.', { exact: true })).toBeVisible();
+  await captureS4State(page, 'reset-success');
   await page.goto('http://127.0.0.1:3003/en/login');
   await shopLogin(page, { locale: 'en', email: customerEmail, password: 'CustomerChanged123!', expectedPath: '/en' });
 });

@@ -63,6 +63,15 @@ describe('S3 approved storefront states', () => {
     expect(html).toMatch(/aria-label="Increase" disabled=""/);
     expect(html).toContain('max="3"');
   });
+  it('reduces a stale cart quantity directly to available stock and requires removal when stock is zero', () => {
+    const onChange = vi.fn();
+    const stepper = QuantityStepper({ value: 5, max: 3, onChange, locale: 'en', name: 'Product' });
+    stepper.props.children[0].props.onClick();
+    expect(onChange).toHaveBeenCalledWith(3);
+    const empty = render(h(QuantityStepper, { value: 5, max: 0, onChange, locale: 'en', name: 'Product' }));
+    expect(empty).toMatch(/aria-label="Decrease Product" disabled=""/);
+    expect(empty).toMatch(/aria-label="Increase Product" disabled=""/);
+  });
   it('renders the sold-out product tag with real product fields', () => {
     const html = render(h(ProductCard, { product, locale: 'en', currency: 'USD' }));
     expect(html).toContain('Sold out'); expect(html).toContain('Books'); expect(html).toContain('$12.00');

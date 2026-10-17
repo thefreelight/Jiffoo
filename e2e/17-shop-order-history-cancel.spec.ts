@@ -7,7 +7,7 @@ test('customer order history, detail, and cancellation are reflected in Admin', 
   const shop = await shopContext.newPage();
   try {
     await shop.goto('/en/register');
-    await shop.getByLabel('Name').fill('History Buyer');
+    await shop.getByLabel('Username').fill('History Buyer');
     await shop.getByLabel('Email').fill('history-buyer@e2e.example');
     await shop.getByLabel('Password', { exact: true }).fill('HistoryBuyerPassword123!');
     await shop.getByRole('button', { name: 'Create account' }).click();
@@ -27,14 +27,14 @@ test('customer order history, detail, and cancellation are reflected in Admin', 
     await shop.getByRole('button', { name: 'Get shipping options' }).click();
     await shop.getByRole('radio', { name: /Free shipping/i }).check();
     await shop.getByRole('radio', { name: 'Manual payment' }).check();
-    await shop.getByRole('button', { name: 'Place order' }).click();
+    await shop.getByRole('button', { name: /^Pay /, exact: false }).click();
     await expect(shop).toHaveURL(/\/en\/checkout\/complete\?order=/);
     const orderId = new URL(shop.url()).searchParams.get('order');
     expect(orderId).toBeTruthy();
     await shopAccountAction(shop, 'en', 'orders');
     await expect(shop.getByRole('heading', { name: 'My orders' })).toBeVisible();
     await expect(shop.getByText('Pending', { exact: true }).first()).toBeVisible();
-    await shop.getByRole('link', { name: 'View details' }).click();
+    await shop.getByRole('link', { name: /^View details/ }).filter({ visible: true }).click();
     await expect(shop.getByText('Pay manually.')).toBeVisible();
     await expect(shop.getByText(/Pay before/)).toBeVisible();
     await shop.getByRole('button', { name: 'Cancel order' }).click();
@@ -87,15 +87,15 @@ test('Q Shop phone Sheet supports categories, language, account and cart without
   await page.goto('http://127.0.0.1:3003/en/login');
   await shopLogin(page, { locale: 'en', email: 'history-buyer@e2e.example', password: 'HistoryBuyerPassword123!', expectedPath: '/en' });
   await page.goto('http://127.0.0.1:3003/en/cart');
-  await expect(page.getByText('Your cart is empty.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Your cart is empty', { exact: true })).toBeVisible();
   await expect(header.getByRole('button', { name: 'Cart (0)', exact: true })).toBeVisible();
   await checkWidth();
   await trigger.click();
   await menu.getByRole('link', { name: 'Account', exact: true }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'My account', exact: true })).toBeVisible();
   await page.getByRole('main', { name: '' }).getByRole('link', { name: 'My orders', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'My orders' })).toBeVisible();
-  await expect(page.getByText('Cancelled', { exact: true })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'My orders', exact: true }).getByText('Cancelled', { exact: true })).toBeVisible();
   await checkWidth();
   await trigger.click(); await menu.getByRole('button', { name: 'Logout', exact: true }).click();
   await expect(page).toHaveURL('http://127.0.0.1:3003/en');

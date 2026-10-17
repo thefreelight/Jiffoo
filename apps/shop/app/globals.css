@@ -12,6 +12,8 @@
 }
 
 :root {
+  --shop-border-strong: color-mix(in srgb, var(--shop-core-foreground) 16%, transparent);
+  --shop-success-soft: color-mix(in srgb, var(--shop-success) 8%, var(--shop-core-ground));
   --background: var(--shop-background);
   --foreground: var(--shop-text);
   --card: var(--shop-surface);

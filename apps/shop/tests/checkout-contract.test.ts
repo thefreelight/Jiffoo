@@ -15,6 +15,7 @@ import { common as hansCommon } from '../../../packages/shared/src/i18n/messages
 import { common as hantCommon } from '../../../packages/shared/src/i18n/messages/zh-Hant/common';
 
 vi.mock('server-only', () => ({}));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }), usePathname: () => '/en' }));
 vi.mock('nuqs/adapters/next/app', () => ({ NuqsAdapter: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock('../components/ui/sonner', () => ({ Toaster: () => null }));
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-shop-locale': 'en' }) }));
@@ -108,6 +109,8 @@ describe('Shop checkout boundaries', () => {
     expect(renderToStaticMarkup(await StorefrontRoot({ children: 'root-boundary' }))).toBe(expected);
     expect(renderToStaticMarkup(await PaymentRoot({ children: 'root-boundary' }))).toBe(expected);
     for (const group of ['(payment)', '(storefront)']) {
+      expect(readFileSync(path.join(app, group, 'not-found.tsx'), 'utf8'))
+        .toBe("export { default } from '@/components/root-not-found';\n");
       expect(readFileSync(path.join(app, group, '[locale]/layout.tsx'), 'utf8'))
         .toBe("export { default } from '@/components/locale-layout';\n\nexport const dynamic = 'force-dynamic';\n");
       expect(readFileSync(path.join(app, group, '[locale]/not-found.tsx'), 'utf8'))

@@ -1,4 +1,5 @@
 import { expect, test } from './local-requests';
+import { captureS4State } from './s4-captures';
 import { customerEmail, login, shopAccountAction } from './helpers';
 import { captureOrderDetail } from './order-detail-captures';
 import { readFile } from 'node:fs/promises';
@@ -14,7 +15,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await shop.goto('/en/products');
     await shop.getByRole('link', { name: /E2E Product/ }).click();
     await shopAccountAction(shop, 'en', 'register');
-    await shop.getByLabel('Name').fill('E2E Customer');
+    await shop.getByLabel('Username').fill('E2E Customer');
     await shop.getByLabel('Email').fill(customerEmail);
     await shop.getByLabel('Password', { exact: true }).fill('CustomerPassword123!');
     await shop.getByRole('button', { name: 'Create account' }).click();
@@ -24,8 +25,8 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await shop.getByRole('button', { name: 'Add to cart' }).click();
     await shop.getByRole('dialog', { name: /^Cart/ }).getByRole('link', { name: 'View cart', exact: true }).click();
     await expect(shop).toHaveURL(/\/en\/cart$/);
-    await shop.getByLabel('Quantity', { exact: true }).fill('2');
-    await expect(shop.getByLabel('Quantity', { exact: true })).toHaveValue('2');
+    await shop.getByRole('spinbutton', { name: 'Quantity E2E Product', exact: true }).fill('2');
+    await expect(shop.getByRole('spinbutton', { name: 'Quantity E2E Product', exact: true })).toHaveValue('2');
     await shop.getByRole('link', { name: 'Checkout', exact: true }).click();
     await expect(shop).toHaveURL(/\/en\/checkout$/);
     await shop.getByLabel('First name').fill('E2E');
@@ -38,13 +39,14 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await shop.getByRole('combobox', { name: 'Country', exact: true }).selectOption({ label: 'United States' });
     await shop.getByRole('button', { name: 'Get shipping options' }).click();
     await shop.getByRole('radio', { name: /Free shipping/i }).check();
-    await expect(shop.getByText('Tax (Tax added)')).toBeVisible();
+    await expect(shop.getByText('Tax (Tax added)', { exact: true }).filter({ visible: true })).toBeVisible();
     await expect(shop.getByRole('status', { name: 'Total $39.98' })).toBeVisible();
     await shop.getByRole('radio', { name: 'Manual payment' }).check();
-    await shop.getByRole('button', { name: 'Place order' }).click();
+    await shop.getByRole('button', { name: /^Pay /, exact: false }).click();
     await expect(shop).toHaveURL(/\/en\/checkout\/complete\?order=/);
     await expect(shop.getByRole('heading', { name: 'Payment instructions' })).toBeVisible();
     await expect(shop.getByText('Pay manually.')).toBeVisible();
+    await captureS4State(shop, 'checkout-pending');
     const orderId = new URL(shop.url()).searchParams.get('order');
     expect(orderId).toBeTruthy();
     await shop.reload();
@@ -135,6 +137,15 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await expect(page.getByLabel('Shipping', { exact: true }).getByText('Copied', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Track shipment (opens in 17TRACK)', exact: true })).toHaveAttribute('href', 'https://t.17track.net/en#nums=E2E-TRACK-001');
     await captureOrderDetail(page, 'shipped');
+    if (process.env.VISUAL_SET) {
+      const shipment = await shopContext.newPage();
+      try {
+        await shipment.goto(`/en/account/orders/${orderId}`);
+        await expect(shipment.getByText('Shipped', { exact: true })).toBeVisible();
+        await expect(shipment.getByText('E2E-TRACK-001', { exact: true })).toBeVisible();
+        await captureS4State(shipment, 'order-shipped');
+      } finally { await shipment.close(); }
+    }
     await page.getByRole('button', { name: 'Mark as delivered' }).click();
     await expect(page.getByText('Delivered', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Delivered', { exact: true }).first()).toHaveCSS('flex-shrink', '0');
@@ -146,14 +157,15 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await expect(page.getByRole('dialog', { name: 'Notification detail' })).toBeVisible();
     await page.getByRole('button', { name: 'Resend' }).click();
     await expect(page.getByText('Notification queued')).toBeVisible();
-    await shop.reload();
-    await expect(shop.getByText('Paid', { exact: true })).toBeVisible();
+    await expect(shop.getByRole('heading', { name: 'Order placed, payment successful', exact: true })).toBeVisible();
+    await captureS4State(shop, 'checkout-paid');
     await expect(shop.getByText('Pay manually.')).toHaveCount(0);
     await shop.getByRole('link', { name: 'View order' }).click();
     await expect(shop.getByRole('heading', { name: 'Order details' })).toBeVisible();
     await expect(shop.getByText('Delivered', { exact: true })).toBeVisible();
     await expect(shop.getByText('Paid', { exact: true })).toBeVisible();
     await expect(shop.getByText('E2E-TRACK-001')).toBeVisible();
+    await captureS4State(shop, 'order-shipment');
   } finally {
     await shopContext.close();
   }

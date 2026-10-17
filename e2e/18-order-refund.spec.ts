@@ -20,7 +20,7 @@ test('refund before shipment restores stock and notifies the customer', async ({
   const shop = await shopContext.newPage();
   try {
     await shop.goto('/en/register');
-    await shop.getByLabel('Name').fill('Refund Buyer');
+    await shop.getByLabel('Username').fill('Refund Buyer');
     await shop.getByLabel('Email').fill('refund-buyer@e2e.example');
     await shop.getByLabel('Password', { exact: true }).fill('RefundBuyerPassword123!');
     await shop.getByRole('button', { name: 'Create account' }).click();
@@ -42,7 +42,7 @@ test('refund before shipment restores stock and notifies the customer', async ({
     await shop.getByRole('button', { name: 'Get shipping options' }).click();
     await shop.getByRole('radio', { name: /Free shipping/i }).check();
     await shop.getByRole('radio', { name: 'Manual payment' }).check();
-    await shop.getByRole('button', { name: 'Place order' }).click();
+    await shop.getByRole('button', { name: /^Pay /, exact: false }).click();
     await expect(shop).toHaveURL(/\/en\/checkout\/complete\?order=/);
     const id = new URL(shop.url()).searchParams.get('order');
     expect(id).toBeTruthy();

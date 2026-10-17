@@ -28,7 +28,7 @@ test('J Admin edits manual payment configuration and a new customer order displa
 
     const id = randomUUID();
     await shop.goto('/en/register');
-    await shop.getByLabel('Name').fill(`Plugin Config Buyer ${id}`);
+    await shop.getByLabel('Username').fill(`Plugin Config Buyer ${id}`);
     await shop.getByLabel('Email').fill(`plugin-config-${id}@e2e.example`);
     await shop.getByLabel('Password', { exact: true }).fill('PluginConfigBuyerPassword123!');
     await shop.getByRole('button', { name: 'Create account' }).click();
@@ -50,7 +50,7 @@ test('J Admin edits manual payment configuration and a new customer order displa
     await shop.getByRole('button', { name: 'Get shipping options' }).click();
     await shop.getByRole('radio', { name: /Free shipping/i }).check();
     await shop.getByRole('radio', { name: 'Manual payment' }).check();
-    await shop.getByRole('button', { name: 'Place order' }).click();
+    await shop.getByRole('button', { name: /^Pay /, exact: false }).click();
     await expect(shop.getByText(updated, { exact: true })).toBeVisible();
   } finally {
     await instructions.fill(previousInstructions.trim() || 'Pay manually.');

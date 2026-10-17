@@ -180,7 +180,7 @@ async function buyerWithCart(page: Page, request: APIRequestContext, label: stri
     },
   });
   await page.goto(`${shopOrigin}/en/register`);
-  await page.getByLabel('Name').fill(`Merchant Code ${label} Buyer`);
+  await page.getByLabel('Username').fill(`Merchant Code ${label} Buyer`);
   await page.getByLabel('Email').fill(`merchant-code-${label}-${id}@e2e.example`);
   await page.getByLabel('Password', { exact: true }).fill('MerchantCodePassword123!');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
@@ -208,9 +208,9 @@ async function placeOrder(page: Page) {
   await page.getByRole('button', { name: 'Get shipping options', exact: true }).click();
   await page.getByRole('radio', { name: /Free shipping/i }).check();
   await page.getByRole('radio', { name: 'Manual payment', exact: true }).check();
-  await page.getByRole('button', { name: 'Place order', exact: true }).click();
+  await page.getByRole('button', { name: /^Pay / }).click();
   await expect(page).toHaveURL(/\/en\/checkout\/complete\?order=/);
-  await expect(page.getByRole('heading', { name: 'Order confirmation', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Confirming payment', exact: true })).toBeVisible();
   const id = new URL(page.url()).searchParams.get('order');
   expect(id).toBeTruthy();
   return id!;
@@ -300,7 +300,7 @@ test('E payment documents exclude code and stop prior probes on direct and store
   const observation = observe(page, probe);
   try {
     for (const [path, heading] of [
-      ['/en/checkout', 'Checkout'], [`/en/checkout/cancel?order=${id}`, 'Payment pending'],
+      ['/en/checkout', 'Checkout'], [`/en/checkout/cancel?order=${id}`, 'Payment cancelled'],
     ]) {
       observation.resetPayment();
       await page.goto(`${shopOrigin}${path}`);
@@ -322,7 +322,7 @@ test('E payment documents exclude code and stop prior probes on direct and store
     await page.goto(`${shopOrigin}/en`);
     await expectMarker(page);
     await page.getByRole('link', { name: 'Merchant cancel destination', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Payment pending', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Payment cancelled', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'View order', exact: true })).toBeVisible();
     await expect(page.getByText(markerText, { exact: true })).toHaveCount(0);
     expect(observation.afterPayment).toEqual([]);

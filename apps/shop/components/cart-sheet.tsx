@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useEffectEvent, useState } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Trash2 } from 'lucide-react';
 import type { Cart } from '@/lib/checkout-types';
@@ -8,7 +8,7 @@ import type { ShopLocale } from '@/lib/locale';
 import { storefrontMessages } from '@/lib/storefront-messages';
 import { formatPrice } from '@/lib/price';
 import { useCartUI } from '@/lib/cart-ui';
-import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
+import { useCart } from '@/lib/use-cart';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from './ui/sheet';
 import { QuantityStepper } from './quantity-stepper';
 import { ShopImage } from './shop-image';
@@ -24,50 +24,23 @@ export function CartButton({ initialCount, locale, loggedIn }: { initialCount: n
 }
 
 export function CartSheet({ locale, currency, loggedIn, initial }: { locale: ShopLocale; currency: string; loggedIn: boolean; initial?: Cart | null }) {
-  const { open, setOpen, lastAdded, setCount } = useCartUI();
-  const [cart, setCart] = useState<Cart | null>(initial ?? null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  const availability = useShopAvailability(locale);
+  const { open, setOpen, lastAdded } = useCartUI();
+  const { cart, busy, error, setError, availability, refresh, change, blocked } = useCart(initial ?? null, locale);
   const t = storefrontMessages(locale);
   const capture = useEffectEvent((error: unknown) => { if (!availability.capture(error)) setError(t.shop.error); });
-  const refresh = useCallback(async () => {
-    const response = await availabilityFetch('/bff/cart', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Cart read failed');
-    const next: Cart = (await response.json()).data;
-    setCart(next); setCount(next.itemCount);
-  }, [setCount]);
   useEffect(() => {
     const read = () => { if (loggedIn) void refresh().then(() => setError('')).catch(capture); };
     if (open) read();
     window.addEventListener('cart-updated', read);
     return () => window.removeEventListener('cart-updated', read);
-  }, [open, loggedIn, refresh]);
+  }, [open, loggedIn, refresh, setError]);
 
-  async function change(id: string, quantity?: number) {
-    if (busy || availability.blocked) return;
-    setBusy(true); setError(''); availability.clear();
-    try {
-      const response = await availabilityFetch(`/bff/cart/items/${encodeURIComponent(id)}`, {
-        method: quantity === undefined ? 'DELETE' : 'PUT',
-        ...(quantity === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quantity }) }),
-      });
-      const body = await response.json();
-      if (!response.ok) setError(body.error?.code === 'INSUFFICIENT_STOCK'
-        ? `${t.checkout.stockAvailable} ${body.error.details?.availableQuantity}`
-        : body.error?.code === 'ADMIN_ACCOUNT_NOT_FOR_SHOP' ? t.account.adminAccountNotForShop : t.shop.error);
-      await refresh();
-    } catch (error) { if (!availability.capture(error)) setError(t.shop.error); }
-    finally { setBusy(false); }
-  }
   async function retry() {
     if (busy || availability.blocked) return;
-    availability.clear(); setBusy(true); setError('');
+    availability.clear(); setError('');
     try { await refresh(); }
     catch (error) { if (!availability.capture(error)) setError(t.shop.error); }
-    finally { setBusy(false); }
   }
-  const blocked = busy || availability.blocked || !!error || !cart?.items.length || cart.items.some((line) => line.quantity > line.maxQuantity);
   return <Sheet open={open && loggedIn} onOpenChange={setOpen}>
     {open && loggedIn && <SheetContent closeLabel={t.shop.close} className="w-full gap-0 sm:max-w-[420px]">
       <div className="border-b border-line px-5 py-4"><SheetTitle className="text-base font-semibold">{t.shop.cartTitle.replace('{count}', String(cart?.itemCount ?? 0))}</SheetTitle>

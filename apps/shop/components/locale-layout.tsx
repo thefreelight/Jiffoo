@@ -1,4 +1,7 @@
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
+import { isPaymentPath } from '@/lib/payment-csp';
+import { CheckoutHeader } from './checkout-header';
 import { Header } from '@/components/header';
 import { isShopLocale } from '@/lib/locale';
 import { shopBootstrap } from '@/lib/server-bootstrap';
@@ -19,14 +22,18 @@ export default async function LocaleLayout({ children, params }: {
   if (!isShopLocale(locale)) notFound();
   const { context, theme, navigation, profile, cart } = await shopBootstrap();
   if (!isShopLocale(locale) || !context.supportedLocales.includes(locale)) notFound();
+  const path = (await headers()).get('x-shop-return-path')?.split('?')[0] ?? '/';
+  const payment = isPaymentPath(path) && !path.endsWith('/cancel');
   return <ThemeShell context={context} locale={locale} navigation={navigation} theme={theme}
-    loggedIn={!!profile} cartCount={cart?.itemCount ?? 0} initialCart={cart}>{children}</ThemeShell>;
+    loggedIn={!!profile} cartCount={cart?.itemCount ?? 0} initialCart={cart} payment={payment}>{children}</ThemeShell>;
 }
 
-export function ThemeShell({ context, locale, navigation, theme, loggedIn, cartCount, initialCart, children }: {
+export function ThemeShell({ context, locale, navigation, theme, loggedIn, cartCount, initialCart, children, payment = false }: {
   context: StoreContext; locale: ShopLocale; navigation: Category[]; theme: ShopTheme | null;
   loggedIn: boolean; cartCount: number; initialCart?: Cart | null; children?: React.ReactNode;
+  payment?: boolean;
 }) {
+  if (payment) return <><style data-shop-theme="" dangerouslySetInnerHTML={{ __html: themeStyle(theme) }} /><CheckoutHeader context={context} locale={locale} />{children}</>;
   return <>
     <style data-shop-theme="" dangerouslySetInnerHTML={{ __html: themeStyle(theme) }} />
     {theme?.layout.pages.home.sections.filter((section) => section.type === 'announcement-bar').map((section) =>

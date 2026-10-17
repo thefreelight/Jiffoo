@@ -5,7 +5,8 @@
  * - GET /api/v1/store/context
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { systemSettingsService } from '@/core/admin/system-settings/service';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { validateResponse } from '../helpers/openapi';
@@ -22,6 +23,21 @@ describe('Store Endpoints', () => {
   });
 
   describe('GET /api/v1/store/context', () => {
+    it('exposes the configured checkout address requirements and includes them in the ETag', async () => {
+      const setting = vi.spyOn(systemSettingsService, 'getCheckoutCountriesRequireStatePostal');
+      try {
+        setting.mockResolvedValue(['DE']);
+        const first = await app.inject({ method: 'GET', url: '/api/v1/store/context' });
+        expect(first.statusCode).toBe(200);
+        expect(first.json().data.checkoutCountriesRequireStatePostal).toEqual(['DE']);
+        expect(validateResponse('/api/v1/store/context', 'GET', 200, first.json()).valid).toBe(true);
+        setting.mockResolvedValue(['JP', 'NZ']);
+        const second = await app.inject({ method: 'GET', url: '/api/v1/store/context', headers: { 'if-none-match': first.headers.etag! } });
+        expect(second.statusCode).toBe(200);
+        expect(second.json().data.checkoutCountriesRequireStatePostal).toEqual(['JP', 'NZ']);
+        expect(second.headers.etag).not.toBe(first.headers.etag);
+      } finally { setting.mockRestore(); }
+    });
     it('should return store context', async () => {
       const response = await app.inject({
         method: 'GET',

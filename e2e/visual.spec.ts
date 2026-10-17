@@ -4,6 +4,9 @@ import { headerThemePackage } from './theme-package';
 import { pluginMessage } from '../packages/shared/src/i18n/messages/admin-plugins';
 import { uploadPackages } from './upload-packages';
 import { shopBoardReference } from './shop-board-reference';
+import { captureS4State } from './s4-captures';
+import { storefront as hansCopy } from '../packages/shared/src/i18n/messages/zh-Hans/storefront';
+import { getNamespaceMessages } from '../packages/shared/src/i18n/messages';
 import { mkdir, writeFile } from 'node:fs/promises';
 import type { BrowserContext, Locator, Page } from '@playwright/test';
 
@@ -274,7 +277,7 @@ test(`observe Shop header ${variant}/${menu}/search=${showSearch} at 390x844`, a
             await observe(buyer, fixture.name, name, true);
           }
           await buyer.goto('/en/account/orders');
-          await buyer.getByRole('link', { name: 'View details' }).click();
+          await buyer.getByRole('link', { name: /^View details/ }).filter({ visible: true }).click();
           await expect(buyer.getByRole('heading', { name: 'Order details', exact: true })).toBeVisible();
           await observe(buyer, fixture.name, 'order-detail', true);
           await buyer.goto('/en/products');
@@ -285,7 +288,7 @@ test(`observe Shop header ${variant}/${menu}/search=${showSearch} at 390x844`, a
           await observe(buyer, fixture.name, 'checkout', true);
           await buyer.goto('/en/cart');
           await buyer.getByRole('button', { name: 'Remove E2E Product', exact: true }).click();
-          await expect(buyer.getByText('Your cart is empty.', { exact: true })).toBeVisible();
+          await expect(buyer.getByText('Your cart is empty', { exact: true })).toBeVisible();
           await page.getByRole('button', { name: 'More actions: ' + fixture.name, exact: true }).click();
           await page.getByRole('menuitem', { name: 'Restore previous theme', exact: true }).click();
           await expect(page.getByRole('article').filter({ hasText: 'Default Shop' })
@@ -334,7 +337,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       computed.push({ page: name, bodyFontFamily, ...await headerMeasurements(page) });
       const boxes: Array<{ name: string } & Awaited<ReturnType<typeof paintedBounds>>> = [];
       if (name === 'shop-orders') {
-        const dates = page.getByText(/^[A-Z][a-z]{2} \d{1,2}, \d{4} \([^)]+\)$/);
+        const dates = page.getByText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/).filter({ visible: true });
         await expect(dates).toHaveCount(1);
         for (let index = 0; index < await dates.count(); index++) {
           boxes.push({ name: `order created date ${index + 1}`, ...await paintedBounds(dates.nth(index)) });
@@ -382,13 +385,14 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       password: 'HistoryBuyerPassword123!', expectedPath: '/en',
     });
     await page.goto('http://127.0.0.1:3003/en/cart');
-    await expect(page.getByRole('heading', { level: 1, name: 'Cart', exact: true })).toBeVisible();
-    await expect(page.getByText('Your cart is empty.', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Your cart is empty', exact: true })).toBeVisible();
+    await expect(page.getByText('Your cart is empty', { exact: true })).toBeVisible();
     await capture('shop-cart');
     await page.goto('http://127.0.0.1:3003/en/account/orders');
     await expect(page.getByRole('heading', { name: 'My orders' })).toBeVisible();
-    await expect(page.getByText('Cancelled', { exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'View details' })).toHaveCount(1);
+    const orders = width < 768 ? page.getByRole('list', { name: 'My orders', exact: true }) : page.getByRole('table', { name: 'My orders', exact: true });
+    await expect(orders.getByText('Cancelled', { exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: /^View details/ }).filter({ visible: true })).toHaveCount(1);
     await capture('shop-orders');
     await writeFile(`e2e/visual-results/${set}/shop-observations-${width}.json`,
       JSON.stringify({ computed, requests, external }, null, 2));
@@ -580,6 +584,64 @@ test('S3 capture the approved reference board states with the superseding system
   const set = process.env.VISUAL_SET;
   if (!['baseline', 'current', 'noise-1', 'noise-2'].includes(set ?? '')) throw new Error('Invalid reference capture set');
   const boards = { Header: ['default'], Footer: ['default'], MobileMenu: ['default'], Home: ['default', 'menu'], Category: ['list', 'empty', 'filters'], Search: ['results', 'none'], Product: ['ok', 'low', 'oos', 'added'] };
+  for (const mode of ['light', 'dark']) for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
+    for (const [name, states] of Object.entries(boards)) for (const state of states) {
+      await page.goto(await shopBoardReference(name, state, mode, width));
+      await screenshotWithoutOverflow(page, { path: `e2e/visual-results/${set}/board-${name}-${state}-${mode}-${width}.png`, fullPage: true, animations: 'disabled' });
+    }
+  }
+});
+
+test('S4 capture account, authentication, cart and not-found pages in every approved viewport and mode', async ({ page }) => {
+  test.setTimeout(300_000);
+  const origin = 'http://127.0.0.1:3003';
+  for (const route of ['login', 'register', 'forgot-password', 'reset-password', 'verify-email']) {
+    await page.goto(`${origin}/zh-Hans/${route}${route === 'reset-password' ? '?token=invalid-visual-token' : ''}`);
+    await expect(page.getByRole('heading', { name: /.+/ }).first()).toBeVisible();
+    await captureS4State(page, route);
+  }
+  await page.goto(`${origin}/en/login`);
+  await shopLogin(page, { locale: 'en', email: 'history-buyer@e2e.example', password: 'HistoryBuyerPassword123!', expectedPath: '/en' });
+  await page.goto(`${origin}/zh-Hans/account`);
+  await expect(page.getByRole('heading', { name: hansCopy.s4.accountTitle, exact: true })).toBeVisible();
+  await captureS4State(page, 'profile');
+  await page.goto(`${origin}/zh-Hans/account/orders`);
+  await expect(page.getByRole('heading', { name: hansCopy.orders.title, exact: true })).toBeVisible();
+  await captureS4State(page, 'orders');
+  await page.getByRole('main', { name: '' }).getByRole('link', { name: new RegExp(`^${hansCopy.orders.view}`) }).filter({ visible: true }).first().click();
+  await expect(page.getByRole('heading', { name: hansCopy.orders.detail, exact: true })).toBeVisible();
+  await captureS4State(page, 'order-detail');
+  await page.goto(`${origin}/zh-Hans/cart`);
+  await expect(page.getByRole('heading', { name: hansCopy.s4.emptyTitle, exact: true })).toBeVisible();
+  await captureS4State(page, 'cart-empty');
+  await page.goto(`${origin}/zh-Hans/products`);
+  await page.getByRole('searchbox', { name: hansCopy.navigation.search, exact: true }).fill('E2E Localized Product');
+  await page.getByRole('button', { name: hansCopy.navigation.searchAction, exact: true }).click();
+  await page.getByRole('heading', { name: '测试商品', exact: true }).click();
+  await page.getByRole('button', { name: hansCopy.product.addToCart, exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: /^购物车/ });
+  await sheet.getByRole('link', { name: hansCopy.shop.viewCart, exact: true }).click();
+  await expect(page.getByRole('heading', { name: hansCopy.checkout.cart, exact: true })).toBeVisible();
+  await captureS4State(page, 'cart-items');
+  await page.getByRole('button', { name: new RegExp(`^${hansCopy.checkout.remove} `) }).click();
+  await expect(page.getByRole('heading', { name: hansCopy.s4.emptyTitle, exact: true })).toBeVisible();
+  const contextResponse = await page.request.get('http://127.0.0.1:3001/api/v1/store/context');
+  expect(contextResponse.ok()).toBe(true);
+  const defaultCopy = getNamespaceMessages((await contextResponse.json()).data.defaultLocale, 'storefront') as typeof hansCopy;
+  for (const route of ['/zh-Hans/s4-missing-page', '/s4-missing-top-level']) {
+    const response = await page.goto(`${origin}${route}`);
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole('heading', { name: route.startsWith('/zh-Hans/') ? hansCopy.notFound.title : defaultCopy.notFound.title, exact: true })).toBeVisible();
+    await captureS4State(page, route.startsWith('/zh-Hans/') ? 'not-found-locale' : 'not-found-global');
+  }
+});
+
+test('S4 capture all six approved reference boards and their states', async ({ page }) => {
+  test.setTimeout(300_000);
+  const set = process.env.VISUAL_SET;
+  if (!['baseline', 'current', 'noise-1', 'noise-2'].includes(set ?? '')) throw new Error('Invalid S4 reference capture set');
+  const boards = { Cart: ['items', 'stock', 'empty'], Checkout: ['address', 'ready', 'changed', 'payfail'], CheckoutResult: ['paid', 'pending', 'cancel'], SignIn: ['login', 'register', 'forgot', 'reset', 'verify'], Account: ['orders', 'detail', 'profile'], NotFound: ['default'] };
   for (const mode of ['light', 'dark']) for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
     for (const [name, states] of Object.entries(boards)) for (const state of states) {

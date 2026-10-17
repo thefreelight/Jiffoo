@@ -186,6 +186,7 @@ table.t td{padding:14px 16px;border-top:1px solid var(--border)}
 </sc-if>
 <sc-if value="{{visible.register}}" hint-placeholder-val="{{ false }}">
 <dc-import name="Header" mode="{{mode}}" width="{{width}}" active="" count="0" hint-size="1440px,64px"></dc-import><main class="wrap"><div class="authbox"><h1 class="h2" style="font-size:26px">创建账户</h1><p class="muted" style="margin:-8px 0 0">已有账户？<a href="#" onClick="{{go.login}}" style="color:var(--foreground);text-decoration:underline">登录</a></p>
+      <label class="fl">用户名<input class="in" name="username" required minlength="3"></label>
       <label class="fl">邮箱<input class="in" type="email" value="" placeholder="you@example.com"></label><label class="fl">密码<input class="in" type="password" value="" ></label><span class="faint" style="font-size:12px;margin-top:-12px">至少 8 位</span>
       <button class="btn btn-p btn-lg w100">注册</button><p class="faint" style="margin:0;font-size:12px;text-align:center">注册后我们会发送一封验证邮件</p></div></main><dc-import name="Footer" mode="{{mode}}" width="{{width}}" hint-size="1440px,350px"></dc-import>
 </sc-if>

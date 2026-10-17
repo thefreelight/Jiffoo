@@ -147,14 +147,14 @@ test('M typed purge blocks unfinished payments and keeps payment order history r
   await expect(page.getByRole('button', { name: 'Disable', exact: true })).toBeVisible();
   const context = await newObservedContext({ baseURL: 'http://127.0.0.1:3003', viewport: { width: 1440, height: 900 } }), shop = await context.newPage();
   try {
-    await shop.goto('/en/register'); await shop.getByLabel('Name').fill('Removal Buyer'); await shop.getByLabel('Email').fill(`${slug}@e2e.example`);
+    await shop.goto('/en/register'); await shop.getByLabel('Username').fill('Removal Buyer'); await shop.getByLabel('Email').fill(`${slug}@e2e.example`);
     await shop.getByLabel('Password', { exact: true }).fill('RemovalBuyerPassword123!'); await shop.getByRole('button', { name: 'Create account' }).click(); await expect(shop).toHaveURL(/\/en\/account$/);
     await shop.goto('/en/products'); await shop.getByRole('searchbox', { name: 'Search products' }).fill('E2E Product'); await shop.getByRole('button', { name: 'Search', exact: true }).click();
     await shop.getByRole('link', { name: /E2E Product/ }).click(); await shop.getByRole('button', { name: 'Add to cart' }).click(); await shop.getByRole('link', { name: 'Checkout', exact: true }).click();
     await shop.getByLabel('First name').fill('Removal'); await shop.getByLabel('Last name').fill('Buyer'); await shop.getByLabel('Phone').fill('+1-555-0132'); await shop.getByLabel('Address line 1').fill('32 Test Street');
     await shop.getByRole('textbox', { name: 'City', exact: true }).fill('San Francisco'); await shop.getByLabel('State / province').fill('CA'); await shop.getByLabel('Postal code').fill('94105');
     await shop.getByRole('combobox', { name: 'Country', exact: true }).selectOption({ label: 'United States' }); await shop.getByRole('button', { name: 'Get shipping options' }).click();
-    await shop.getByRole('radio', { name: /Free shipping/i }).check(); await shop.getByRole('radio', { name: 'Removal payment', exact: true }).check(); await shop.getByRole('button', { name: 'Place order' }).click();
+    await shop.getByRole('radio', { name: /Free shipping/i }).check(); await shop.getByRole('radio', { name: 'Removal payment', exact: true }).check(); await shop.getByRole('button', { name: /^Pay /, exact: false }).click();
     await expect(shop).toHaveURL(/\/en\/checkout\/complete\?order=/); const orderId = new URL(shop.url()).searchParams.get('order')!;
     for (const locale of ['en', 'zh-Hans'] as const) {
       if (locale === 'en') await uninstall(page); else { await page.goto(`/${locale}/plugins`); await page.getByRole('tab', { name: labels[locale].removed, exact: true }).click(); }

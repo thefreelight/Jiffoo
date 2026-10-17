@@ -1,6 +1,3 @@
-'use client';
-
-import { useState, type FormEvent } from 'react';
 import type { Order } from '@/lib/checkout-types';
 import type { ShopLocale } from '@/lib/locale';
 import { storefrontMessages } from '@/lib/storefront-messages';
@@ -9,97 +6,60 @@ import { common as hans } from 'shared/src/i18n/messages/zh-Hans/common';
 import { common as hant } from 'shared/src/i18n/messages/zh-Hant/common';
 import { formatPrice } from '@/lib/price';
 import { formatStoreDate } from 'shared';
-import { buildCancelReason, orderStatusLabel, paymentStatusLabel, type CancelReason } from '@/lib/order-labels';
-import { availabilityFetch, useShopAvailability } from '@/lib/client-availability';
+import { paymentStatusLabel } from '@/lib/order-labels';
+import { OrderCancellation } from './order-cancellation';
+import { AccountNav } from './account-nav';
+import { OrderStatus } from './order-status';
+import { ShopImage } from './shop-image';
+import Link from 'next/link';
 
-export function OrderDetail({ initialOrder, locale, timezone }: { initialOrder: Order; locale: ShopLocale; timezone: string }) {
-  const [order, setOrder] = useState(initialOrder);
-  const [confirming, setConfirming] = useState(false);
-  const [reason, setReason] = useState<CancelReason>('changedMind');
-  const [other, setOther] = useState('');
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const availability = useShopAvailability(locale);
+export function OrderDetail({ initialOrder: order, locale, timezone }: { initialOrder: Order; locale: ShopLocale; timezone: string }) {
   const t = storefrontMessages(locale);
+  const feedback = ({ en, 'zh-Hans': hans, 'zh-Hant': hant })[locale].errors;
   const date = (value: string) => formatStoreDate(value, locale, timezone);
-  const cancel = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (availability.blocked) return;
-    availability.clear();
-    const cancelReason = buildCancelReason(locale, reason, other);
-    if (!cancelReason) { setError(t.orders.cancelError); return; }
-    setBusy(true);
-    try {
-      const response = await availabilityFetch(`/bff/orders/${order.id}/cancel`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cancelReason }),
-      });
-      const result = await response.json() as { success: boolean; data?: Order };
-      if (!response.ok || !result.success || !result.data) { setError(t.orders.cancelError); return; }
-      setOrder(result.data);
-      setConfirming(false);
-      setError('');
-    } catch (error) {
-      if (availability.capture(error)) return;
-      setError(t.orders.cancelError);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return <main className="mx-auto max-w-4xl space-y-7 px-4 py-10 md:px-8">
-    <div><h1 className="text-2xl font-semibold">{t.orders.detail}</h1>
-      <p className="mt-2 text-sm text-subtle">{order.id} · {date(order.createdAt)}</p></div>
-    <dl className="grid gap-3 border-y border-line py-5 sm:grid-cols-2">
-      <div><dt>{t.checkout.orderStatus}</dt><dd>{orderStatusLabel(locale, order.status)}</dd></div>
-      <div><dt>{t.checkout.status}</dt><dd>{paymentStatusLabel(locale, order.paymentStatus)}</dd></div>
-    </dl>
-    {order.paymentAttemptState === 'UNKNOWN' && <p role="status">{({ en, 'zh-Hans': hans, 'zh-Hant': hant })[locale].errors.paymentOutcomeUnknown}</p>}
-    {order.paymentAttemptState === 'REQUIRES_REVIEW' && <p role="status">{({ en, 'zh-Hans': hans, 'zh-Hant': hant })[locale].errors.paymentRequiresReview}</p>}
-    {order.refundRequired && <p role="status">{({ en, 'zh-Hans': hans, 'zh-Hant': hant })[locale].errors.paymentRefundRequired}</p>}
-    <section><h2 className="font-semibold">{t.checkout.items}</h2>
-      <ul className="divide-y divide-line">{order.items.map((item) =>
-        <li key={item.id} className="flex justify-between gap-4 py-3">
-          <span>{item.productName}{item.variantName ? ` · ${item.variantName}` : ''} × {item.quantity}</span>
-          <span>{formatPrice(item.totalPrice, locale, order.currency)}</span>
-        </li>)}</ul>
-    </section>
-    {order.shippingAddress && <section><h2 className="font-semibold">{t.checkout.address}</h2>
-      <address className="mt-2 not-italic">{order.shippingAddress.firstName} {order.shippingAddress.lastName}<br />
-        {order.shippingAddress.addressLine1}<br />{order.shippingAddress.addressLine2 && <>{order.shippingAddress.addressLine2}<br /></>}
-        {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.postalCode}<br />
-        {order.shippingAddress.country}<br />{order.shippingAddress.phone}</address>
-    </section>}
-    <section><h2 className="font-semibold">{t.orders.shippingMethod}</h2><p>{order.shippingMethod?.label ?? '—'}</p></section>
-    {!!order.shipments?.length && <section><h2 className="font-semibold">{t.orders.shipments}</h2>
-      {order.shipments.map((shipment) => <p key={shipment.id} className="mt-2">
-        {t.orders.carrier}: {shipment.carrier ?? '—'} · {t.orders.tracking}: {shipment.trackingNumber ?? '—'}
-      </p>)}</section>}
-    <dl className="space-y-2 border-t border-line pt-5">
-      <div className="flex justify-between"><dt>{t.checkout.subtotal}</dt><dd>{formatPrice(order.subtotalAmount, locale, order.currency)}</dd></div>
-      <div className="flex justify-between"><dt>{t.checkout.shipping}</dt><dd>{formatPrice(order.shippingAmount, locale, order.currency)}</dd></div>
-      <div className="flex justify-between"><dt>{t.checkout.tax} ({order.taxInclusive ? t.checkout.taxInclusive : t.checkout.taxExclusive})</dt><dd>{formatPrice(order.taxAmount, locale, order.currency)}</dd></div>
-      <div className="flex justify-between font-semibold"><dt>{t.checkout.total}</dt><dd>{formatPrice(order.totalAmount, locale, order.currency)}</dd></div>
-    </dl>
-    {order.status === 'PENDING' && order.paymentStatus === 'PENDING' && <>
-      {order.paymentInstructions && <section><h2 className="font-semibold">{t.checkout.paymentInstructions}</h2>
-        <p className="whitespace-pre-wrap">{order.paymentInstructions}</p></section>}
-      {order.unpaidExpiresAt && <p>{t.orders.payBefore} {date(order.unpaidExpiresAt)}</p>}
-      {!confirming ? <button type="button" className="text-action underline" onClick={() => setConfirming(true)}>{t.orders.cancel}</button> :
-        <form onSubmit={cancel} className="space-y-3 border-t border-line pt-5">
-          <label className="block">{t.orders.reason}
-            <select value={reason} onChange={(event) => setReason(event.target.value as CancelReason)}
-              className="mt-1 block w-full rounded-shop border border-line bg-surface p-2">
-              {Object.entries(t.orders.reasons).map(([key, text]) => <option key={key} value={key}>{text}</option>)}
-            </select>
-          </label>
-          {reason === 'other' && <label className="block">{t.orders.otherReason}
-            <input value={other} onChange={(event) => setOther(event.target.value)} required maxLength={200}
-              className="mt-1 block w-full rounded-shop border border-line bg-surface p-2" />
-          </label>}
-          <button disabled={busy || availability.blocked} className="rounded-shop bg-action px-4 py-2 text-action-ink">{t.orders.confirmCancel}</button>
-        </form>}
-    </>}
-    {order.status === 'CANCELLED' && <dl><dt>{t.orders.cancelReason}</dt><dd>{order.cancelReason}</dd>
-      {order.cancelledAt && <><dt>{t.orders.cancelledAt}</dt><dd>{date(order.cancelledAt)}</dd></>}</dl>}
-    {(availability.message || error) && <p role="alert">{availability.message || error}</p>}
+  const money = (value: number) => formatPrice(value, locale, order.currency);
+  const address = order.shippingAddress;
+  return <main className="mx-auto min-h-[620px] max-w-7xl px-4 pb-14 pt-9 md:px-8">
+    <AccountNav locale={locale} active="orders" />
+    <Link href={`/${locale}/account/orders`} className="mb-4 inline-block text-subtle">{t.orders.title}</Link>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h2 className="sr-only">{t.orders.detail}</h2><p className="break-all font-mono text-xl font-semibold">{order.id}</p>
+      <p className="mt-1 text-subtle">{date(order.createdAt)}</p></div><OrderStatus status={order.status} paymentStatus={order.paymentStatus} locale={locale} /></div>
+    <div className="grid items-start gap-7 md:grid-cols-[minmax(0,1fr)_380px] md:gap-12">
+      <div className="space-y-6">
+        {order.paymentAttemptState === 'UNKNOWN' && <p role="status" className="rounded-lg bg-highlight p-3.5">{feedback.paymentOutcomeUnknown}</p>}
+        {order.paymentAttemptState === 'REQUIRES_REVIEW' && <p role="status" className="rounded-lg bg-highlight p-3.5">{feedback.paymentRequiresReview}</p>}
+        {order.refundRequired && <p role="status" className="rounded-lg bg-highlight p-3.5">{feedback.paymentRefundRequired}</p>}
+        {!!order.shipments?.length && <section className="rounded-lg border border-line p-5"><h3 className="mb-2 text-base font-semibold">{t.orders.shipments}</h3>
+          {order.shipments.map((shipment) => <p key={shipment.id} className="mt-2">{shipment.carrier && <span>{shipment.carrier} </span>}{shipment.trackingNumber && <span className="break-all font-mono">{shipment.trackingNumber}</span>}</p>)}
+        </section>}
+        <section className="border-t border-line"><h3 className="sr-only">{t.checkout.items}</h3>
+          <ul className="divide-y divide-line">{order.items.map((item) => <li key={item.id} className="flex items-start gap-4 py-5">
+            <div className="relative size-[72px] shrink-0 overflow-hidden rounded-lg bg-highlight">{!!item.productImages?.[0] && <ShopImage src={item.productImages[0]} alt={item.productName} fill sizes="72px" className="object-cover" />}</div>
+            <span className="min-w-0 flex-1 font-medium">{item.productName}{item.variantName && <span className="block text-[13px] font-normal text-subtle">{item.variantName}</span>}<span className="mt-1 block text-[13px] font-normal text-subtle">× {item.quantity}</span></span>
+            <span className="shrink-0 tabular-nums">{money(item.totalPrice)}</span>
+          </li>)}</ul>
+        </section>
+        {order.status === 'PENDING' && order.paymentStatus === 'PENDING' && <>
+          {order.paymentInstructions && <section><h3 className="font-semibold">{t.checkout.paymentInstructions}</h3><p className="mt-2 whitespace-pre-wrap">{order.paymentInstructions}</p></section>}
+          {order.unpaidExpiresAt && <p>{t.orders.payBefore} {date(order.unpaidExpiresAt)}</p>}
+          <OrderCancellation order={order} locale={locale} />
+        </>}
+        {order.status === 'CANCELLED' && <dl className="space-y-2"><dt>{t.orders.cancelReason}</dt><dd>{order.cancelReason}</dd>{order.cancelledAt && <><dt>{t.orders.cancelledAt}</dt><dd>{date(order.cancelledAt)}</dd></>}</dl>}
+      </div>
+      <aside className="space-y-4">
+        <div className="rounded-lg border border-line p-5"><dl className="space-y-2.5">
+          <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.subtotal}</dt><dd>{money(order.subtotalAmount)}</dd></div>
+          <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.shipping}</dt><dd>{money(order.shippingAmount)}</dd></div>
+          <div className="flex justify-between gap-3"><dt className="text-subtle">{t.checkout.tax} ({order.taxInclusive ? t.checkout.taxInclusive : t.checkout.taxExclusive})</dt><dd>{money(order.taxAmount)}</dd></div>
+          <div className="flex justify-between border-t border-line pt-3 text-base font-semibold"><dt>{t.checkout.total}</dt><dd>{money(order.totalAmount)}</dd></div>
+        </dl></div>
+        {address && <section className="rounded-lg border border-line p-5 text-[13px]"><h3 className="mb-2 text-sm font-semibold">{t.checkout.address}</h3>
+          <address className="space-y-1 not-italic"><p>{address.lastName} {address.firstName} · {address.phone}</p><p className="text-subtle">{[address.country, address.state, address.city, address.addressLine1, address.addressLine2, address.postalCode].filter(Boolean).join(' ')}</p></address>
+        </section>}
+        <dl className="space-y-2 text-[13px]"><dt className="text-subtle">{t.checkout.status}</dt><dd>{paymentStatusLabel(locale, order.paymentStatus)}</dd>
+          {order.shippingMethod && <><dt className="text-subtle">{t.orders.shippingMethod}</dt><dd>{order.shippingMethod.label}</dd></>}
+        </dl>
+      </aside>
+    </div>
   </main>;
 }

@@ -140,8 +140,8 @@ async function placeOrder(page: Page) {
   await page.getByRole('radio', { name: /Free shipping/i }).check();
   await page.getByRole('radio', { name: 'Manual payment', exact: true }).check();
   const claim = nextClaim(page);
-  await page.getByRole('button', { name: 'Place order', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Order confirmation', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /^Pay / }).click();
+  await expect(page.getByRole('heading', { name: 'Confirming payment', exact: true })).toBeVisible();
   await checkClaim(await claim, true);
   const id = new URL(page.url()).searchParams.get('order');
   expect(id).toBeTruthy();
@@ -174,7 +174,7 @@ test('H reload and return for the same order never send additional purchase comm
   await checkMarker(page, config);
   const returnClaim = nextClaim(page);
   await page.goto(`${shop}/en/checkout/return?order=${order.id}`);
-  await expect(page.getByRole('heading', { name: 'Order confirmation', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Confirming payment', exact: true })).toBeVisible();
   await checkClaim(await returnClaim, false);
   await checkMarker(page, config);
   expect(claims).toEqual(Array(3).fill(`${shop}/bff/orders/${order.id}/tracking-claim`));
@@ -217,7 +217,7 @@ test('J an order cancelled from the account page cannot claim or send a purchase
   const order = (await created.json()).data as Order;
   const claims = observeClaims(page);
   await page.goto(`${shop}/en/account/orders`);
-  await page.getByRole('link', { name: 'View details', exact: true }).click();
+  await page.getByRole('link', { name: /^View details/ }).filter({ visible: true }).click();
   await page.getByRole('button', { name: 'Cancel order', exact: true }).click();
   await page.getByRole('combobox', { name: 'Reason', exact: true }).selectOption('other');
   await page.getByRole('textbox', { name: 'Other reason', exact: true }).fill('Cancel before first confirmation');
@@ -259,7 +259,7 @@ test('K checkout and cancel payment documents make no post-commit provider stub 
   await expect(page.getByRole('heading', { name: 'Checkout', exact: true })).toBeVisible();
   await expect(page.getByText(/^Provider commands:/)).toHaveCount(0);
   await page.goto(`${shop}/en/checkout/cancel?order=${order.id}`);
-  await expect(page.getByRole('heading', { name: 'Payment pending', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Payment cancelled', exact: true })).toBeVisible();
   await expect(page.getByText(/^Provider commands:/)).toHaveCount(0);
   expect(commits).toEqual([`${shop}/en/checkout`, `${shop}/en/checkout/cancel?order=${order.id}`]);
   expect(requests).toEqual([]);

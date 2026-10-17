@@ -7,6 +7,7 @@ module.exports = {
   port: 3003,
   turbopack: { root: require('path').resolve(__dirname, '../..') },
   images: { remotePatterns: [], localPatterns, maximumRedirects: 0 },
+  experimental: { globalNotFound: true },
   }),
   output: undefined,
 };

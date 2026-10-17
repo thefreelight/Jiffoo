@@ -121,7 +121,7 @@ async function buyerWithCart(page: Page, request: APIRequestContext) {
   const name = await product(request);
   const id = randomUUID();
   await page.goto(`${shop}/en/register`);
-  await page.getByLabel('Name').fill(`Provider Buyer ${id}`);
+  await page.getByLabel('Username').fill(`Provider Buyer ${id}`);
   await page.getByLabel('Email').fill(`provider-${id}@e2e.example`);
   await page.getByLabel('Password', { exact: true }).fill('ProviderBuyerPassword123!');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
@@ -147,8 +147,8 @@ async function placeOrder(page: Page) {
   await page.getByRole('button', { name: 'Get shipping options', exact: true }).click();
   await page.getByRole('radio', { name: /Free shipping/i }).check();
   await page.getByRole('radio', { name: 'Manual payment', exact: true }).check();
-  await page.getByRole('button', { name: 'Place order', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Order confirmation', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /^Pay / }).click();
+  await expect(page.getByRole('heading', { name: 'Confirming payment', exact: true })).toBeVisible();
   const id = new URL(page.url()).searchParams.get('order');
   expect(id).toBeTruthy();
   return id!;
@@ -229,7 +229,7 @@ test('E direct and storefront arrivals at checkout and cancel have no provider m
     const response = await page.goto(`${shop}${path}`);
     expect(response?.ok()).toBe(true);
     expect(await response!.text()).not.toContain('StorefrontCodeLoader');
-    await expect(page.getByRole('heading', { name: path.includes('cancel') ? 'Payment pending' : 'Checkout', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: path.includes('cancel') ? 'Payment cancelled' : 'Checkout', exact: true })).toBeVisible();
     await expect(page.getByText(/^Provider commands:/)).toHaveCount(0);
   }
   await page.goto(`${shop}/en/cart`);
@@ -240,7 +240,7 @@ test('E direct and storefront arrivals at checkout and cancel have no provider m
   await page.goto(`${shop}/en`);
   await checkMarker(page, config);
   await page.getByRole('link', { name: 'Provider cancel destination', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Payment pending', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Payment cancelled', exact: true })).toBeVisible();
   await expect(page.getByText(/^Provider commands:/)).toHaveCount(0);
   expect(afterPayment).toEqual([]);
   expect(paymentCommits).toEqual([

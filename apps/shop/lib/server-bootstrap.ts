@@ -18,7 +18,12 @@ export const shopBootstrap = cache(() => deferredAvailability(async () => {
   const code = isPaymentPath(path) ? Promise.resolve(null) : getStorefrontCode();
   if (!isShopLocale(selected)) {
     const [context, slots] = await resolveAvailabilityReads([readStoreContext(), code] as const);
-    return { context, slots, locale: context.defaultLocale, theme: null, navigation: [], profile: null, cart: null };
+    const profileRead = accountProfile();
+    const [theme, navigation, profile, cart] = await resolveAvailabilityReads([
+      getShopTheme(context.defaultLocale), categories(context.defaultLocale), profileRead,
+      profileRead.then((profile) => profile ? customerCart() : null),
+    ] as const);
+    return { context, slots, locale: context.defaultLocale, theme, navigation, profile, cart };
   }
   const profileRead = accountProfile();
   const [context, theme, slots, navigation, profile, cart] = await resolveAvailabilityReads([

@@ -18,6 +18,12 @@ export type Cart = {
   subtotal: number;
 };
 
+export function variantText(line: CartLine) {
+  return line.variantAttributes && Object.keys(line.variantAttributes).length
+    ? Object.entries(line.variantAttributes).map(([key, value]) => `${key}: ${String(value)}`).join(' / ')
+    : line.variantName;
+}
+
 export type Address = {
   firstName: string;
   lastName: string;
@@ -29,6 +35,26 @@ export type Address = {
   postalCode: string;
   country: string;
 };
+
+export type SavedAddress = { [Field in keyof Address]?: string | null } & { company?: string | null };
+
+export function addressFormValues(address: SavedAddress | null): Address {
+  return {
+    firstName: address?.firstName ?? '', lastName: address?.lastName ?? '', phone: address?.phone ?? '',
+    addressLine1: address?.addressLine1 ?? '', addressLine2: address?.addressLine2 ?? '',
+    city: address?.city ?? '', state: address?.state ?? '', postalCode: address?.postalCode ?? '', country: address?.country ?? '',
+  };
+}
+
+export function addressRequest(values: Address) {
+  const { addressLine2, state, postalCode, ...required } = values;
+  return {
+    ...Object.fromEntries(Object.entries(required).map(([key, value]) => [key, value.trim()])),
+    ...(addressLine2.trim() ? { addressLine2: addressLine2.trim() } : {}),
+    ...(state.trim() ? { state: state.trim() } : {}),
+    ...(postalCode.trim() ? { postalCode: postalCode.trim() } : {}),
+  };
+}
 
 export type Quote = {
   currency: string;
@@ -50,8 +76,8 @@ export type Order = {
   paymentId?: string | null;
   paymentAttemptState?: string | null;
   refundRequired?: boolean;
-  items: Array<{ id: string; productId: string; variantId?: string | null; productName: string; variantName?: string; unitPrice: number | string; quantity: number; totalPrice: number }>;
-  shippingAddress: Address | null;
+  items: Array<{ id: string; productId: string; variantId?: string | null; productName: string; productImages?: string[]; variantName?: string; unitPrice: number | string; quantity: number; totalPrice: number }>;
+  shippingAddress: SavedAddress | null;
   currency: string;
   subtotalAmount: number;
   shippingAmount: number;

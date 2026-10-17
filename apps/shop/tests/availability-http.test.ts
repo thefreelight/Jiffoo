@@ -202,14 +202,14 @@ it('G2 real checkout retries a 429 or 503 payment session with exactly one HTTP-
       await page.getByRole('radio', { name: /Free shipping/ }).check();
       await page.getByRole('radio', { name: 'Manual payment' }).check();
       status = failure; sessionFailure = true;
-      await page.getByRole('button', { name: 'Place order' }).click();
+      await page.getByRole('button', { name: /^Pay /, exact: false }).click();
       await browserExpect(page.getByRole('main').getByRole('alert')).toContainText(failure === 429 ? 'Too many requests' : 'Shop temporarily unavailable');
       expect(orders).toHaveLength(1);
       expect(sessionOrders).toEqual([orderId]);
       await browserExpect(page.getByLabel('First name')).toHaveValue(address.firstName);
-      await browserExpect(page.getByRole('button', { name: 'Place order' })).toBeEnabled({ timeout: 10000 });
+      await browserExpect(page.getByRole('button', { name: /^Pay /, exact: false })).toBeEnabled({ timeout: 10000 });
       expect(sessionOrders).toEqual([orderId]);
-      await page.getByRole('button', { name: 'Place order' }).click();
+      await page.getByRole('button', { name: /^Pay /, exact: false }).click();
       await browserExpect(page).toHaveURL(new RegExp(`/en/checkout/complete\\?order=${orderId}$`));
       const response = await page.request.get(`${shop}/bff/orders`);
       expect((await response.json()).data.items).toHaveLength(1);
@@ -226,10 +226,10 @@ it.each(['account-management', 'auth-form', 'auth-links', 'cart-view', 'checkout
       status = failure;
       if (component === 'account-management') {
         deniedPath = '/api/v1/account/profile';
-        await page.getByLabel('Name', { exact: true }).fill('Retained account input');
+        await page.getByLabel('Username', { exact: true }).fill('Retained account input');
         await page.getByRole('region', { name: 'Account', exact: true }).getByRole('button', { name: 'Save', exact: true }).click();
         await browserExpect(page.getByRole('main').getByRole('alert')).toContainText(failure === 429 ? 'Too many requests' : 'Shop temporarily unavailable');
-        await browserExpect(page.getByLabel('Name', { exact: true })).toHaveValue('Retained account input');
+        await browserExpect(page.getByLabel('Username', { exact: true })).toHaveValue('Retained account input');
         deniedPath = ''; await page.reload(); deniedPath = '/api/v1/auth/resend-verification';
         await page.getByRole('button', { name: 'Resend verification', exact: true }).click();
         await browserExpect(page.getByText('Request received. Please check your inbox.', { exact: true })).toHaveCount(0);
@@ -245,8 +245,8 @@ it.each(['account-management', 'auth-form', 'auth-links', 'cart-view', 'checkout
         await browserExpect(page).toHaveURL(`${shop}/en/account`);
       } else if (component === 'cart-view') {
         await page.goto(`${shop}/en/cart`); deniedPath = '/api/v1/cart/items/cm6abcdefghijklmnopqrstuv';
-        await page.getByLabel('Quantity', { exact: true }).fill('4');
-        await browserExpect(page.getByLabel('Quantity', { exact: true })).toHaveValue('4');
+        await page.getByRole('spinbutton', { name: /^Quantity / }).fill('4');
+        await browserExpect(page.getByRole('spinbutton', { name: /^Quantity / })).toHaveValue('4');
       } else if (component === 'checkout-view') {
         await quotePage(page); deniedPath = '/api/v1/checkout/quote';
         await page.getByRole('button', { name: 'Get shipping options' }).click();

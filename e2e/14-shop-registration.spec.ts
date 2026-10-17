@@ -1,5 +1,6 @@
 import { expect, test } from './local-requests';
 import { deliveredLink, shopLogin, shopLogout, shopAccountAction } from './helpers';
+import { captureS4State } from './s4-captures';
 
 const email = 'shop-register@e2e.example';
 const password = 'ShopRegister123!';
@@ -7,12 +8,12 @@ const password = 'ShopRegister123!';
 test('register and verify in zh-Hans, then log in from the product page', async ({ page, context }) => {
   await page.goto('/zh-Hans/products/e2e-localized-product');
   await shopAccountAction(page, 'zh-Hans', 'register');
-  await page.getByLabel('姓名').fill('Shop Registration');
+  await page.getByLabel('用户名').fill('Shop Registration');
   await page.getByLabel('邮箱').fill(email);
   await page.getByLabel('密码', { exact: true }).fill(password);
-  await page.getByRole('button', { name: '创建账户' }).click();
+  await page.getByRole('button', { name: '注册', exact: true }).click();
   await expect(page).toHaveURL(/\/zh-Hans\/account$/);
-  await expect(page.getByRole('heading', { level: 1, name: '账户', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: '我的账户', exact: true })).toBeVisible();
   await expect(page.getByText('您的邮箱尚未验证。')).toBeVisible();
   const firstLink = await deliveredLink(email, '/zh-Hans/verify-email');
   await page.getByRole('button', { name: '重新发送验证邮件' }).click();
@@ -25,7 +26,8 @@ test('register and verify in zh-Hans, then log in from the product page', async 
   await page.reload();
   await expect(page.getByRole('heading', { name: '验证邮箱' })).toBeVisible();
   await page.getByRole('button', { name: '验证我的邮箱', exact: true }).click();
-  await expect(page.getByText('邮箱已验证。')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '邮箱已验证', exact: true })).toBeVisible();
+  await captureS4State(page, 'email-verified');
   await shopAccountAction(page, 'zh-Hans', 'account');
   await expect(page.getByText('您的邮箱尚未验证。')).toHaveCount(0);
   const state = await context.storageState();

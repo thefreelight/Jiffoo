@@ -2,6 +2,7 @@ import { expect, test } from './local-requests';
 import type { ConsoleMessage, Page, Response } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { login, ownerEmail } from './helpers';
+import { captureS4State } from './s4-captures';
 
 const shopOrigin = 'http://127.0.0.1:3003';
 const privateCacheControl = 'private, no-cache, no-store, max-age=0, must-revalidate';
@@ -19,7 +20,7 @@ async function buyerWithCart(page: Page, label: string) {
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page).toHaveURL(/\/en\/products\/[^/]+\/edit$/);
   await page.goto(`${shopOrigin}/en/register`);
-  await page.getByLabel('Name').fill(`Payment CSP ${label} Buyer`);
+  await page.getByLabel('Username').fill(`Payment CSP ${label} Buyer`);
   await page.getByLabel('Email').fill(`payment-csp-${label.toLowerCase()}-${id}@e2e.example`);
   await page.getByLabel('Password', { exact: true }).fill('PaymentCspPassword123!');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
@@ -88,9 +89,9 @@ async function placeOrder(page: Page) {
   await page.getByRole('button', { name: 'Get shipping options', exact: true }).click();
   await page.getByRole('radio', { name: /Free shipping/i }).check();
   await page.getByRole('radio', { name: 'Manual payment', exact: true }).check();
-  await page.getByRole('button', { name: 'Place order', exact: true }).click();
+  await page.getByRole('button', { name: /^Pay / }).click();
   await expect(page).toHaveURL(/\/en\/checkout\/complete\?order=/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Order confirmation', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Confirming payment', exact: true })).toBeVisible();
   const id = new URL(page.url()).searchParams.get('order');
   expect(id).toBeTruthy();
   return id!;
@@ -128,17 +129,21 @@ test('D own-order cancel uses fresh strict script CSP without changing console o
   const observation = observeErrors(page);
   try {
     const first = documentHeaders(await page.goto(`${shopOrigin}/en/checkout/cancel?order=${id}`));
-    await expect(page.getByRole('heading', { level: 1, name: 'Payment pending', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Payment cancelled', exact: true })).toBeVisible();
     const firstNonce = assertPaymentHeaders(first);
     assertConsoleBaseline(observation);
     const second = documentHeaders(await page.reload());
-    await expect(page.getByRole('heading', { level: 1, name: 'Payment pending', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Payment cancelled', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'View order', exact: true })).toBeVisible();
+    await captureS4State(page, 'checkout-cancel');
     expect(assertPaymentHeaders(second)).not.toBe(firstNonce);
     assertConsoleBaseline(observation);
     const result = { first, second, consoleMessages: observation.consoleMessages, pageErrors: observation.pageErrors };
     testInfo.annotations.push({ type: 'payment-csp-observation', description: JSON.stringify(result) });
     console.log('Payment CSP cancel:', JSON.stringify(result));
+    await page.getByRole('link', { name: 'Back to cart', exact: true }).last().click();
+    await expect(page).toHaveURL(`${shopOrigin}/en/cart`);
+    await expect(page.getByRole('heading', { name: 'Your cart is empty', exact: true })).toBeVisible();
   } finally {
     observation.stop();
   }
@@ -147,7 +152,7 @@ test('D own-order cancel uses fresh strict script CSP without changing console o
 test('B checkout country options hydrate without errors in every supported locale', async ({ page }) => {
   const id = randomUUID();
   await page.goto(`${shopOrigin}/en/register`);
-  await page.getByLabel('Name').fill('Country Options Buyer');
+  await page.getByLabel('Username').fill('Country Options Buyer');
   await page.getByLabel('Email').fill(`country-options-${id}@e2e.example`);
   await page.getByLabel('Password', { exact: true }).fill('CountryOptionsPassword123!');
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
@@ -190,6 +195,6 @@ test('E storefront and confirmation documents have no Content-Security-Policy he
   await page.goto(`${shopOrigin}/en/checkout`);
   const id = await placeOrder(page);
   const headers = documentHeaders(await page.goto(`${shopOrigin}/en/checkout/complete?order=${id}`));
-  await expect(page.getByRole('heading', { level: 1, name: 'Order confirmation', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Confirming payment', exact: true })).toBeVisible();
   expect(headers.csp).toBeNull();
 });

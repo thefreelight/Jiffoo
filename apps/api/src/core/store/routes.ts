@@ -39,6 +39,11 @@ const storeContextSchema = {
         status: { type: 'string' },
         currency: { type: 'string' },
         timezone: { type: 'string' },
+        checkoutCountriesRequireStatePostal: {
+            type: 'array',
+            items: { type: 'string', pattern: '^[A-Z]{2}$' },
+            description: 'Countries requiring both state/province and postal code at checkout',
+        },
         defaultLocale: { type: 'string' },
         supportedLocales: {
             type: 'array',
@@ -76,12 +81,13 @@ export async function storeRoutes(fastify: FastifyInstance) {
         }
     }, async (request, reply) => {
         try {
-            const [platformName, currency, logo, defaultLocale, timezone] = await Promise.all([
+            const [platformName, currency, logo, defaultLocale, timezone, checkoutCountriesRequireStatePostal] = await Promise.all([
                 systemSettingsService.getString('branding.platform_name', 'Jiffoo Store'),
                 systemSettingsService.getShopCurrency(),
                 systemSettingsService.getString('branding.logo', null),
                 systemSettingsService.getShopLocale(),
                 systemSettingsService.getTimezone(),
+                systemSettingsService.getCheckoutCountriesRequireStatePostal(),
             ]);
 
             const contextData = {
@@ -97,6 +103,7 @@ export async function storeRoutes(fastify: FastifyInstance) {
                 status: 'active',
                 currency,
                 timezone,
+                checkoutCountriesRequireStatePostal,
                 defaultLocale,
                 supportedLocales: STORE_SUPPORTED_LOCALES,
                 settings: null, // Reserved for future use
