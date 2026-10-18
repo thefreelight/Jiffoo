@@ -96,7 +96,7 @@ describe('T2 Shop theme rendering', () => {
       .toBe(themeStyle(defaultShop as unknown as ShopTheme).trimStart() + '\n');
     expect(css).toContain(':root[data-shop-dark-available="true"][data-color-mode="dark"]');
     expect(css).toContain(':root[data-shop-dark-available="true"][data-color-mode="system"]');
-    expect(css).toContain('--shop-canvas: var(--shop-background);');
+    expect(css).toContain('--shop-canvas: var(--shop-core-ground);');
   });
   it('B4 font-face accepts hash URLs and rejects semver aliases', () => {
     expect(themeFontFaces(fixture.fonts)).toContain('a'.repeat(64));

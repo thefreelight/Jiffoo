@@ -46,7 +46,7 @@ export function CartSheet({ locale, currency, loggedIn, initial }: { locale: Sho
       <div className="border-b border-line px-5 py-4"><SheetTitle className="text-base font-semibold">{t.shop.cartTitle.replace('{count}', String(cart?.itemCount ?? 0))}</SheetTitle>
         <SheetDescription className="sr-only">{t.shop.viewCart}</SheetDescription></div>
       <div className="flex-1 overflow-y-auto px-5">
-        {lastAdded && <p role="status" className="mt-4 rounded-md bg-highlight p-3 text-success">{t.shop.added} · {lastAdded}</p>}
+        {lastAdded && <p role="status" className="mt-4 rounded-md bg-highlight p-3 text-[var(--shop-extras-success)]">{t.shop.added} · {lastAdded}</p>}
         {(error || availability.message) && <p role="alert" className="my-4 text-destructive">{availability.message || error}</p>}
         {(error || availability.message) && <button type="button" disabled={busy || availability.blocked} onClick={() => void retry()} className="rounded-md border border-line px-4 py-2">{t.shop.retry}</button>}
         {!cart ? !error && <p role="status" className="py-8">{t.shop.loading}</p> : !cart.items.length ? <p className="py-8 text-subtle">{t.checkout.empty}</p>

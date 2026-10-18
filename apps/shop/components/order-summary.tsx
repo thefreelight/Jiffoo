@@ -19,7 +19,7 @@ export function OrderSummary({ order, locale, cancelled = false }: { order: Orde
     <main className="mx-auto min-h-[640px] max-w-7xl px-4 pb-24 pt-[72px] md:px-8">
       <div className="mx-auto flex max-w-[560px] flex-col gap-7">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className={`flex size-14 items-center justify-center rounded-full ${state === 'paid' ? 'bg-[var(--shop-success-soft)] text-success' : 'bg-highlight'}`}><Icon size={24} className={state === 'pending' ? 'animate-spin motion-reduce:animate-none' : ''} aria-hidden="true" /></div>
+          <div className={`flex size-14 items-center justify-center rounded-full ${state === 'paid' ? 'bg-[var(--shop-success-soft)] text-[var(--shop-extras-success)]' : 'bg-highlight'}`}><Icon size={24} className={state === 'pending' ? 'animate-spin motion-reduce:animate-none' : ''} aria-hidden="true" /></div>
           <h1 className="text-[26px] font-semibold leading-tight tracking-tight">{state === 'manual' ? t.checkout.paymentInstructions : t.s4[state]}</h1>
           {state !== 'paid' && <p className="text-subtle">{state === 'cancelled'
             ? order.status === 'PENDING' && order.paymentStatus === 'PENDING' ? t.s4.cancellationBody

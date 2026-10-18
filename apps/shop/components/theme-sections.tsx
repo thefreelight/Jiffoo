@@ -20,7 +20,7 @@ const href = (locale: ShopLocale, value: unknown) => {
 const icon = { check: Check, star: Star, truck: Truck };
 
 export const sectionRegistry: Record<(typeof SECTION_TYPES)[number], (props: RenderProps) => React.ReactNode> = {
-  'announcement-bar': ({ settings, data }) => text(settings.text) ? <aside className="bg-announcement-bg px-4 py-2 text-center text-[13px] text-announcement-text">
+  'announcement-bar': ({ settings, data }) => text(settings.text) ? <aside className="bg-[var(--shop-extras-announcement-bg)] px-4 py-2 text-center text-[13px] text-[var(--shop-extras-announcement-text)]">
     {settings.link ? <Link href={href(data.locale, settings.link)}>{text(settings.text)}</Link> : text(settings.text)}
   </aside> : null,
   'hero-banner': ({ settings, data }) => (text(settings.image) || text(settings.title) || text(settings.body)) ? <section className={`relative flex aspect-[4/5] items-end overflow-hidden rounded-2xl bg-highlight md:aspect-[16/7] ${settings.image ? 'text-white' : ''}`}>
@@ -46,7 +46,7 @@ export const sectionRegistry: Record<(typeof SECTION_TYPES)[number], (props: Ren
     return <section>{!!settings.title && <h2 className="mb-6 text-[22px] font-semibold tracking-tight">{text(settings.title)}</h2>}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">{groups.map((group) =>
         <Link key={group.id} href={localePath(data.locale, `/categories/${group.slug}`)}
-          className="rounded-lg border border-line bg-surface p-5 hover:border-action"><span className="font-medium">{group.name}</span><p className="mt-1 text-[13px] text-subtle">{messages(data.locale).shop.count.replace('{count}', String(group.productCount))}</p></Link>)}</div>
+          className="rounded-lg border border-line bg-[var(--shop-core-raised)] p-5 hover:border-action"><span className="font-medium">{group.name}</span><p className="mt-1 text-[13px] text-subtle">{messages(data.locale).shop.count.replace('{count}', String(group.productCount))}</p></Link>)}</div>
     </section>;
   },
   'product-grid': ({ settings, data }) => {

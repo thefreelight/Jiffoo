@@ -9,7 +9,7 @@ export function BulkDeleteDialog({ result, pending, error, onCancel, onConfirm }
   const names = result?.processedPreview.map(product => product.name).join('、') ?? '';
   const sold = result?.skipped.filter(product => product.reason === 'HAS_ORDERS') ?? [];
   const missing = result?.skipped.filter(product => product.reason === 'NOT_FOUND') ?? [];
-  return <AlertDialog open={result !== null} onOpenChange={open => { if (!open && !pending) onCancel(); }}><AlertDialogContent overlayClassName="bg-overlay-ink/45" className="max-h-[90dvh] w-[calc(100%_-_32px)] max-w-[440px] overflow-y-auto rounded-lg p-5 sm:top-[160px] sm:max-h-[calc(100dvh_-_176px)] sm:translate-y-0"><AlertDialogHeader>
+  return <AlertDialog open={result !== null} onOpenChange={open => { if (!open && !pending) onCancel(); }}><AlertDialogContent overlayClassName="bg-overlay/45" className="max-h-[90dvh] w-[calc(100%_-_32px)] max-w-[440px] overflow-y-auto rounded-lg p-5 sm:top-[160px] sm:max-h-[calc(100dvh_-_176px)] sm:translate-y-0"><AlertDialogHeader>
     <AlertDialogTitle>{c('deleteCountTitle', { count: result?.matched ?? 0 })}</AlertDialogTitle>
     <AlertDialogDescription asChild><div className="space-y-2 text-muted-foreground">
       {!!result?.processed && <p>{c('deleteProducts', { count: result.processed, names: result.processed > result.processedPreview.length ? c('namesMore', { names, count: result.processed }) : names })}</p>}

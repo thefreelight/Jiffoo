@@ -65,9 +65,9 @@ export function LoadingState({
   if (type === 'skeleton') {
     return (
       <div className={cn('space-y-3 animate-pulse', className)}>
-        <div className={cn('bg-neutral-soft rounded w-full', sizeClasses[size].skeleton)} />
-        <div className={cn('bg-neutral-soft rounded w-3/4', sizeClasses[size].skeleton)} />
-        <div className={cn('bg-neutral-soft rounded w-1/2', sizeClasses[size].skeleton)} />
+        <div className={cn('bg-raised rounded w-full', sizeClasses[size].skeleton)} />
+        <div className={cn('bg-raised rounded w-3/4', sizeClasses[size].skeleton)} />
+        <div className={cn('bg-raised rounded w-1/2', sizeClasses[size].skeleton)} />
       </div>
     );
   }
@@ -124,8 +124,8 @@ function getErrorConfig(error: Error | string | null | undefined) {
       icon: Clock,
       title: 'Request Timeout',
       message: 'Server response timed out. Please check your network connection and try again.',
-      bgColor: 'bg-alert-faint',
-      iconColor: 'text-alert-strong',
+      bgColor: 'bg-attention-soft',
+      iconColor: 'text-attention',
     };
   }
 
@@ -134,8 +134,8 @@ function getErrorConfig(error: Error | string | null | undefined) {
       icon: WifiOff,
       title: 'Network Connection Failed',
       message: 'Unable to connect to the server. Please check your network settings.',
-      bgColor: 'bg-caution-faint',
-      iconColor: 'text-caution-strong',
+      bgColor: 'bg-attention-soft',
+      iconColor: 'text-attention',
     };
   }
 
@@ -144,8 +144,8 @@ function getErrorConfig(error: Error | string | null | undefined) {
     icon: AlertCircle,
     title: 'Something went wrong',
     message: 'Please try again later or refresh the page',
-    bgColor: 'bg-danger-faint',
-    iconColor: 'text-danger-strong',
+    bgColor: 'bg-destructive-soft',
+    iconColor: 'text-destructive',
   };
 }
 
@@ -184,11 +184,11 @@ export function ErrorState({
         <IconComponent className={cn('h-8 w-8', config.iconColor)} />
       </div>
 
-      <h3 className="text-lg font-semibold text-neutral-deepest mb-2">
+      <h3 className="text-lg font-semibold text-foreground mb-2">
         {displayTitle}
       </h3>
 
-      <p className="text-sm text-neutral-base mb-4 max-w-md">
+      <p className="text-sm text-muted-foreground mb-4 max-w-md">
         {displayMessage}
       </p>
 
@@ -196,7 +196,7 @@ export function ErrorState({
         {onRetry && (
           <button
             onClick={onRetry}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-surface bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-ground bg-primary hover:bg-primary/90 rounded-lg transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             Retry
@@ -205,7 +205,7 @@ export function ErrorState({
         {onGoBack && (
           <button
             onClick={onGoBack}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-deep bg-neutral-faint hover:bg-neutral-soft rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-raised hover:bg-raised rounded-lg transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
@@ -214,7 +214,7 @@ export function ErrorState({
         {onGoHome && (
           <button
             onClick={onGoHome}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-deep bg-neutral-faint hover:bg-neutral-soft rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-raised hover:bg-raised rounded-lg transition-colors"
           >
             <Home className="h-4 w-4" />
             Go Home
@@ -224,15 +224,15 @@ export function ErrorState({
 
       {showDetails && errorMessage && (
         <details className="mt-6 text-left w-full max-w-lg">
-          <summary className="text-sm text-neutral-strong cursor-pointer hover:text-neutral-dark">
+          <summary className="text-sm text-foreground cursor-pointer hover:text-foreground">
             Error Details (Development Mode)
           </summary>
-          <div className="mt-2 p-3 bg-danger-veil rounded-lg">
-            <p className="text-sm font-mono text-danger-strong break-all">
+          <div className="mt-2 p-3 bg-destructive-soft rounded-lg">
+            <p className="text-sm font-mono text-destructive break-all">
               {errorMessage}
             </p>
             {errorStack && (
-              <pre className="mt-2 text-xs text-danger-base overflow-auto max-h-40">
+              <pre className="mt-2 text-xs text-destructive overflow-auto max-h-40">
                 {errorStack}
               </pre>
             )}
@@ -270,22 +270,22 @@ export function EmptyState({
       'flex flex-col items-center justify-center text-center p-8',
       className
     )}>
-      <div className="w-16 h-16 rounded-full bg-neutral-faint flex items-center justify-center mb-4">
-        {icon || <PackageOpen className="h-8 w-8 text-neutral-light" />}
+      <div className="w-16 h-16 rounded-full bg-raised flex items-center justify-center mb-4">
+        {icon || <PackageOpen className="h-8 w-8 text-muted-foreground" />}
       </div>
 
-      <h3 className="text-lg font-semibold text-neutral-deepest mb-2">
+      <h3 className="text-lg font-semibold text-foreground mb-2">
         {title}
       </h3>
 
-      <p className="text-sm text-neutral-base mb-4 max-w-md">
+      <p className="text-sm text-muted-foreground mb-4 max-w-md">
         {message}
       </p>
 
       {action && (
         <button
           onClick={action.onClick}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-surface bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-ground bg-primary hover:bg-primary/90 rounded-lg transition-colors"
         >
           {action.label}
         </button>

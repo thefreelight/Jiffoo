@@ -26,6 +26,14 @@ describe('Admin v4 theme foundation', () => {
     expect(values('.border-border\\/50', 'border-color').join()).toContain('var(--admin-core-border)');
     expect(adminThemeCss(adminTheme.tokens)).toContain('--admin-core-border: #00000017;');
   });
+  it('uses the named v2 overlay color for solid and translucent backdrops', () => {
+    expect(values('.bg-overlay', 'background-color')).toContain('var(--admin-extras-overlay)');
+    for (const opacity of [30, 45, 50, 80]) {
+      const background = values(`.bg-overlay\\/${opacity}`, 'background-color').join();
+      expect(background).toContain('var(--admin-extras-overlay)');
+      expect(background).toContain('color-mix');
+    }
+  });
   it('compiles the approved single-column plugin list and detail widths', () => {
     const widths: string[] = [];
     compiled.walkDecls('max-width', declaration => { widths.push(declaration.value); });
@@ -49,9 +57,9 @@ describe('Admin v4 theme foundation', () => {
     expect(adminThemeStyle({ ...adminTheme, fonts: [] })).toContain('prefers-color-scheme: dark');
     expect(adminThemeStyle({ ...adminTheme, fonts: [] })).toContain('[data-admin-dark-available="true"][data-color-mode="dark"]');
   });
-  it('uses the fixed bridge while old pages retain semantic utility names', () => {
-    expect(values('.text-neutral-light', 'color').join()).toContain('var(--admin-neutral-light)');
-    expect(adminThemeCss(adminTheme.tokens)).toContain('--admin-action-strong: var(--admin-core-foreground);');
+  it('uses v2 roles directly for neutral captions and primary actions', () => {
+    expect(values('.text-muted-foreground', 'color').join()).toContain('var(--admin-core-muted)');
+    expect(adminThemeCss(adminTheme.tokens)).toContain('--admin-core-foreground: #171717;');
   });
   it('self-hosts font subsets and uses Geist for body and mono roles', () => {
     expect(compiled.toString()).toContain('unicode-range:');

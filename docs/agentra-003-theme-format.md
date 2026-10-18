@@ -78,16 +78,6 @@ darkTokens. Styles declare light roles on :root, dark roles on
 :root[data-color-mode="dark"] and, inside prefers-color-scheme:dark,
 :root[data-color-mode="system"]. No mode attribute is set by U1a.
 
-### Temporary presentation bridge
-
-packages/shared/src/extensions/theme-bridge.json is the single fixed alias map
-for unconverted Admin utilities and existing Shop CSS variables. It maps to v2
-core/extras variables, never parses a v1 manifest, and preserves color alpha.
-Admin palette aliases are neutral; warning/needs-action aliases use attention,
-danger aliases use destructive, and primary actions use foreground.
-Remove aliases page-by-page in later redesign batches. Shop aliases retain the
-current storefront colors, layout and font behavior.
-
 Builtin packages are synchronized from disk at API startup. An invalid active
 package is replaced by the target's builtin default with a theme.startup_fallback
 AdminAuditEvent. Stored packages are not deleted. Invalid stored setting values

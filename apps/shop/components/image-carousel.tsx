@@ -19,7 +19,7 @@ export function ImageCarousel({ slides, locale = 'en' }: {
     <div className="relative aspect-[4/5] md:aspect-[16/7]">
       {slide.image && <Image src={slide.image} alt={slide.alt ?? ''} fill sizes="100vw" className="object-cover" />}
     </div>
-    <div className="absolute inset-x-0 bottom-0 bg-surface p-4">
+    <div className="absolute inset-x-0 bottom-0 bg-[var(--shop-core-raised)] p-4">
       {slide.link ? <Link href={slide.link} className="font-semibold text-action">{slide.title}</Link>
         : <h2 className="font-semibold">{slide.title}</h2>}
       <div className="mt-2 flex gap-2">

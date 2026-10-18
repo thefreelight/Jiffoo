@@ -75,19 +75,19 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-overlay-ink/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-overlay/50 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Modal */}
       <Card className="relative w-full max-w-md mx-4 shadow-2xl border-0">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-action-base to-highlight-strong rounded-2xl flex items-center justify-center shadow-lg">
-            <Lock className="w-8 h-8 text-surface" />
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-foreground to-foreground rounded-2xl flex items-center justify-center shadow-lg">
+            <Lock className="w-8 h-8 text-ground" />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold">{modalTitle}</CardTitle>
-            <CardDescription className="text-neutral-strong">
+            <CardDescription className="text-foreground">
               {modalDescription}
             </CardDescription>
           </div>
@@ -98,7 +98,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
             {/* Error Message */}
             {error && (
-              <div className="bg-danger-veil border border-danger-soft text-danger-deep px-4 py-3 rounded-lg text-sm">
+              <div className="bg-destructive-soft border border-destructive-soft text-destructive px-4 py-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
@@ -107,7 +107,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             <div className="space-y-2">
               <Label htmlFor="email">{getText('merchant.auth.emailAddress', 'Email Address')}</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-light w-4 h-4" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   id="email"
                   type="email"
@@ -124,7 +124,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             <div className="space-y-2">
               <Label htmlFor="password">{getText('merchant.auth.password', 'Password')}</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-light w-4 h-4" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -137,7 +137,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-light hover:text-neutral-strong"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -148,7 +148,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-action-strong to-highlight-strong hover:from-action-deep hover:to-highlight-deep"
+              className="w-full bg-gradient-to-r from-foreground to-foreground hover:from-foreground hover:to-foreground"
               disabled={isLoading}
             >
               {isLoading ? (

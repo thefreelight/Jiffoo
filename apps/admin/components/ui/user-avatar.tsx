@@ -48,7 +48,7 @@ export function UserAvatar({
       ) : (
         <div
           className={cn(
-            'flex h-full w-full items-center justify-center bg-action-veil text-action-strong',
+            'flex h-full w-full items-center justify-center bg-active text-foreground',
             fallbackClassName,
           )}
           aria-label={imageAlt}

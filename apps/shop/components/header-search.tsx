@@ -10,12 +10,12 @@ export function HeaderSearch({ locale, label, actionLabel }: {
       action={localePath(locale, '/search')} method="get" role="search" aria-label={label}
       className={mobile
         ? 'hidden absolute left-4 right-4 top-full z-20 mt-2 items-center rounded-md border border-line bg-canvas group-open:flex'
-        : 'hidden h-9 items-center rounded-md border border-line bg-surface md:flex'}>
+        : 'hidden h-9 items-center rounded-md border border-line bg-[var(--shop-core-raised)] md:flex'}>
       <label htmlFor={inputId} className="sr-only">{label}</label>
       <input id={inputId} name="q" type="search" placeholder={label}
-        className="min-w-0 flex-1 bg-transparent px-[calc(var(--shop-section-spacing)/4)] py-[calc(var(--shop-section-spacing)/6)] text-sm outline-none md:w-44 md:flex-none md:px-3 md:py-2" />
+        className="min-w-0 flex-1 bg-transparent px-[calc(var(--shop-extras-section-spacing)/4)] py-[calc(var(--shop-extras-section-spacing)/6)] text-sm outline-none md:w-44 md:flex-none md:px-3 md:py-2" />
       <button type="submit" aria-label={actionLabel} title={actionLabel}
-        className="shrink-0 p-[calc(var(--shop-section-spacing)/6)] text-action md:p-2">
+        className="shrink-0 p-[calc(var(--shop-extras-section-spacing)/6)] text-action md:p-2">
         <Search size={18} aria-hidden="true" />
       </button>
     </form>;
@@ -23,7 +23,7 @@ export function HeaderSearch({ locale, label, actionLabel }: {
   return <>
     <details className="group shrink-0 md:hidden">
       <summary role="button" aria-label={label} title={label} aria-controls="shop-header-search"
-        className="list-none p-[calc(var(--shop-section-spacing)/6)] text-action [&::-webkit-details-marker]:hidden">
+        className="list-none p-[calc(var(--shop-extras-section-spacing)/6)] text-action [&::-webkit-details-marker]:hidden">
         <Search size={18} className="group-open:hidden" aria-hidden="true" />
         <X size={18} className="hidden group-open:block" aria-hidden="true" />
       </summary>

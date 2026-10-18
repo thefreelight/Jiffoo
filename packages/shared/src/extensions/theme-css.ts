@@ -3,7 +3,6 @@ import {
   ADMIN_EXTRA_COLOR_ROLES, SHOP_EXTRA_COLOR_ROLES, SHOP_EXTRA_LENGTH_ROLES,
   type ThemeTarget, type ThemeTokens, type ThemeDarkTokens,
 } from './theme-contract';
-const bridge: Record<ThemeTarget, Record<string, string>> = require('./theme-bridge.json');
 export const themeDefaultTokens: Record<ThemeTarget, ThemeTokens> = require('./theme-defaults.json');
 
 export const builtinFontStacks = {
@@ -51,23 +50,14 @@ function serialize(target: ThemeTarget, group: string, role: string, value: unkn
   return null;
 }
 
-// Temporary presentation bridge only: remove aliases as Admin/Shop pages adopt v2 roles.
-// This does not accept or serialize v1 manifests. See docs/agentra-003-theme-format.md.
 export function themeTokensToCss(target: ThemeTarget, tokens: ThemeTokens, resolveFont: FontResolver = () => undefined): string {
   tokens = mergeThemeTokens(themeDefaultTokens[target], tokens);
   const declarations: string[] = [];
-  const serialized = new Set<string>();
   for (const group of ['core', 'extras'] as const) for (const [role, raw] of Object.entries(tokens[group])) {
     const value = serialize(target, group, role, raw, resolveFont)
       ?? serialize(target, group, role, themeDefaultTokens[target][group][role], resolveFont);
     if (value === null) continue;
-    serialized.add(`${group}.${role}`);
     declarations.push(`--${target}-${group}-${role}: ${value};`);
-  }
-  for (const [alias, tokenPath] of Object.entries(bridge[target])) {
-    if (!serialized.has(tokenPath)) continue;
-    const [group, role] = tokenPath.split('.');
-    declarations.push(`--${target}-${alias}: var(--${target}-${group}-${role});`);
   }
   return declarations.join('\n');
 }

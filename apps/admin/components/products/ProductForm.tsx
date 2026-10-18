@@ -147,7 +147,7 @@ export function ProductForm({ product, source, categoryId, storefrontUrl = '' }:
         </section>
       </fieldset>
     </div>
-    <AlertDialog open={destination !== null} onOpenChange={open => { if (!open && !saving) setDestination(null); }}><AlertDialogContent overlayClassName="bg-overlay-ink/45" className="w-[calc(100%_-_32px)] max-w-[420px] rounded-lg p-5 sm:top-[160px] sm:translate-y-0"><AlertDialogHeader><AlertDialogTitle className="text-base">{c('leaveTitle')}</AlertDialogTitle><AlertDialogDescription>{c('leaveDescription')}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="gap-2">
+    <AlertDialog open={destination !== null} onOpenChange={open => { if (!open && !saving) setDestination(null); }}><AlertDialogContent overlayClassName="bg-overlay/45" className="w-[calc(100%_-_32px)] max-w-[420px] rounded-lg p-5 sm:top-[160px] sm:translate-y-0"><AlertDialogHeader><AlertDialogTitle className="text-base">{c('leaveTitle')}</AlertDialogTitle><AlertDialogDescription>{c('leaveDescription')}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter className="gap-2">
       <Button type="button" variant="outline" className="text-destructive" disabled={pending} onClick={() => { const target = destination!; setDestination(null); proceed(target); }}>{c('leaveWithoutSaving')}</Button>
       <AlertDialogCancel disabled={pending}>{c('keepEditing')}</AlertDialogCancel>
       <Button type="button" disabled={pending} onClick={async () => { const target = destination!; if (await save('stay', true)) { setDestination(null); proceed(target); } else setDestination(null); }}>{c('saveAndLeave')}</Button>

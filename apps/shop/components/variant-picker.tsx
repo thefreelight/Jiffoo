@@ -87,7 +87,7 @@ export function VariantPicker({ variants, locale, currency, labels, productId, s
           ))}
         </div>
       </fieldset>
-      <p className={`text-sm ${current.stock > 5 ? 'text-success' : current.stock > 0 ? 'text-[var(--shop-core-attention)]' : 'text-subtle'}`}>{current.stock > 5 ? labels.stock : current.stock > 0 ? t.shop.lowStock.replace('{count}', String(current.stock)) : t.shop.soldOut}</p>
+      <p className={`text-sm ${current.stock > 5 ? 'text-[var(--shop-extras-success)]' : current.stock > 0 ? 'text-[var(--shop-core-attention)]' : 'text-subtle'}`}>{current.stock > 5 ? labels.stock : current.stock > 0 ? t.shop.lowStock.replace('{count}', String(current.stock)) : t.shop.soldOut}</p>
       {current.stock < 1 && <p role="alert" className="rounded-md border border-[var(--shop-core-destructive-line)] bg-[var(--shop-core-destructive-soft)] p-3 text-sm">{t.shop.variantSoldOut}</p>}
       <div className="flex items-center gap-2.5">
       <QuantityStepper value={quantity} max={current.stock} disabled={busy || availability.blocked} locale={locale} onChange={setQuantity} />

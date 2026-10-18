@@ -127,7 +127,7 @@ test('C a merchant theme change replaces the plain style without leaving an old 
   await expect(page.getByRole('article', { name: 'Active', exact: true }).getByRole('heading', { name: 'E2E Shop Theme', exact: true })).toBeVisible();
   await shop.reload();
   await expect(shop.getByRole('heading', { name: 'Theme launch', exact: true })).toBeVisible();
-  await expect(shop.getByRole('main', { name: '' })).toHaveCSS('--shop-primary', '#cc0033');
+  await expect(shop.getByRole('main', { name: '' })).toHaveCSS('--shop-extras-primary', '#cc0033');
   // The approved image hero uses a white action for contrast over its photograph.
   await expect(shop.getByRole('link', { name: 'Browse products', exact: true })).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(shop.getByRole('link', { name: 'Browse products', exact: true })).toHaveCSS('color', 'rgb(0, 0, 0)');

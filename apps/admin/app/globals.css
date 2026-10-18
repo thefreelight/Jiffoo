@@ -21,110 +21,10 @@ html[data-color-mode="dark"][data-admin-dark-available="true"] .admin-auth-panel
   html[data-color-mode="system"][data-admin-dark-available="true"] .admin-auth-panel { background: var(--admin-core-raised); }
 }
 
-/* Temporary fixed utility bridge; remove aliases as pages migrate to v2 roles. */
 @theme inline {
-  --color-surface: var(--admin-surface);
-  --color-surface-muted: var(--admin-surface-muted);
-  --color-text: var(--admin-text);
-  --color-text-muted: var(--admin-text-muted);
-  --color-sidebar-bg: var(--admin-sidebar-bg);
-  --color-sidebar-text: var(--admin-sidebar-text);
-  --color-sidebar-active-bg: var(--admin-sidebar-active-bg);
-  --color-sidebar-active-text: var(--admin-sidebar-active-text);
-  --color-success: var(--admin-success);
-  --color-warning: var(--admin-warning);
-  --color-danger: var(--admin-danger);
-  --color-info: var(--admin-info);
-  --color-surface-gradient: var(--admin-surface-gradient);
-  --color-action-base: var(--admin-action-base);
-  --color-action-dark: var(--admin-action-dark);
-  --color-action-deep: var(--admin-action-deep);
-  --color-action-faint: var(--admin-action-faint);
-  --color-action-light: var(--admin-action-light);
-  --color-action-pale: var(--admin-action-pale);
-  --color-action-soft: var(--admin-action-soft);
-  --color-action-strong: var(--admin-action-strong);
-  --color-action-veil: var(--admin-action-veil);
-  --color-alert-dark: var(--admin-alert-dark);
-  --color-alert-faint: var(--admin-alert-faint);
-  --color-alert-strong: var(--admin-alert-strong);
-  --color-caution-base: var(--admin-caution-base);
-  --color-caution-faint: var(--admin-caution-faint);
-  --color-caution-soft: var(--admin-caution-soft);
-  --color-caution-strong: var(--admin-caution-strong);
-  --color-caution-veil: var(--admin-caution-veil);
-  --color-chart-amber-base: var(--admin-chart-amber-base);
-  --color-chart-cyan-base: var(--admin-chart-cyan-base);
-  --color-chart-teal-light: var(--admin-chart-teal-light);
-  --color-chart-violet-base: var(--admin-chart-violet-base);
-  --color-contrast-base: var(--admin-contrast-base);
-  --color-contrast-faint: var(--admin-contrast-faint);
-  --color-contrast-strong: var(--admin-contrast-strong);
-  --color-cool-base: var(--admin-cool-base);
-  --color-cool-faint: var(--admin-cool-faint);
-  --color-cool-ink: var(--admin-cool-ink);
-  --color-cool-light: var(--admin-cool-light);
-  --color-cool-pale: var(--admin-cool-pale);
-  --color-cool-soft: var(--admin-cool-soft);
-  --color-cool-strong: var(--admin-cool-strong);
-  --color-cool-veil: var(--admin-cool-veil);
-  --color-danger-base: var(--admin-danger-base);
-  --color-danger-dark: var(--admin-danger-dark);
-  --color-danger-deep: var(--admin-danger-deep);
-  --color-danger-deepest: var(--admin-danger-deepest);
-  --color-danger-faint: var(--admin-danger-faint);
-  --color-danger-light: var(--admin-danger-light);
-  --color-danger-soft: var(--admin-danger-soft);
-  --color-danger-strong: var(--admin-danger-strong);
-  --color-danger-veil: var(--admin-danger-veil);
-  --color-highlight-base: var(--admin-highlight-base);
-  --color-highlight-dark: var(--admin-highlight-dark);
-  --color-highlight-deep: var(--admin-highlight-deep);
-  --color-highlight-faint: var(--admin-highlight-faint);
-  --color-highlight-icon: var(--admin-highlight-icon);
-  --color-highlight-soft: var(--admin-highlight-soft);
-  --color-highlight-strong: var(--admin-highlight-strong);
-  --color-highlight-veil: var(--admin-highlight-veil);
-  --color-neutral-base: var(--admin-neutral-base);
-  --color-neutral-dark: var(--admin-neutral-dark);
-  --color-neutral-deep: var(--admin-neutral-deep);
-  --color-neutral-deepest: var(--admin-neutral-deepest);
-  --color-neutral-faint: var(--admin-neutral-faint);
-  --color-neutral-light: var(--admin-neutral-light);
-  --color-neutral-pale: var(--admin-neutral-pale);
-  --color-neutral-soft: var(--admin-neutral-soft);
-  --color-neutral-strong: var(--admin-neutral-strong);
-  --color-neutral-veil: var(--admin-neutral-veil);
-  --color-positive-deep: var(--admin-positive-deep);
-  --color-positive-faint: var(--admin-positive-faint);
-  --color-positive-light: var(--admin-positive-light);
-  --color-positive-pale: var(--admin-positive-pale);
-  --color-positive-strong: var(--admin-positive-strong);
-  --color-positive-veil: var(--admin-positive-veil);
-  --color-success-base: var(--admin-success-base);
-  --color-success-dark: var(--admin-success-dark);
-  --color-success-deep: var(--admin-success-deep);
-  --color-success-deepest: var(--admin-success-deepest);
-  --color-success-faint: var(--admin-success-faint);
-  --color-success-light: var(--admin-success-light);
-  --color-success-soft: var(--admin-success-soft);
-  --color-success-strong: var(--admin-success-strong);
-  --color-success-veil: var(--admin-success-veil);
-  --color-warning-base: var(--admin-warning-base);
-  --color-warning-dark: var(--admin-warning-dark);
-  --color-warning-deep: var(--admin-warning-deep);
-  --color-warning-faint: var(--admin-warning-faint);
-  --color-warning-strong: var(--admin-warning-strong);
-  --color-warning-veil: var(--admin-warning-veil);
-  --color-highlight-faint-extra: var(--admin-highlight-faint-extra);
-  --color-install-background: var(--admin-install-background);
-  --color-install-foreground: var(--admin-install-foreground);
-  --color-install-surface: var(--admin-install-surface);
-  --color-media-surface: var(--admin-media-surface);
-  --color-overlay-ink: var(--admin-overlay-ink);
-  --color-page-surface: var(--admin-page-surface);
   --color-background: var(--admin-core-ground);
   --color-foreground: var(--admin-core-foreground);
+  --color-overlay: var(--admin-extras-overlay);
   --color-border: var(--admin-core-border);
   --color-input: var(--admin-core-border);
   --color-ring: var(--admin-extras-focus-ring);
@@ -188,18 +88,6 @@ html[data-color-mode="dark"][data-admin-dark-available="true"] .admin-auth-panel
 .admin-main { font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
-/* Inverse legacy panels need readable neutral captions in both modes. */
-.bg-neutral-deepest {
-  --admin-action-light: var(--admin-core-ground);
-  --admin-neutral-light: var(--admin-core-ground);
-  --admin-neutral-base: var(--admin-core-ground);
-  --admin-success-base: var(--admin-core-ground);
-  --admin-success-light: var(--admin-core-ground);
-  --admin-danger-base: var(--admin-core-ground);
-  --admin-danger-light: var(--admin-core-ground);
-}
-.bg-neutral-deepest .text-muted-foreground { color: var(--admin-core-ground); }
-
 /* Remove old arbitrary panel shadows while retaining utility focus rings. */
 .admin-main :where([class*="shadow-["]) { --tw-shadow: 0 0 transparent; }
 
@@ -208,16 +96,5 @@ html[data-color-mode="dark"][data-admin-dark-available="true"] .admin-auth-panel
   background: var(--admin-core-ground);
   border-color: var(--admin-core-border);
   border-radius: var(--admin-core-radius-panel);
-  --admin-warning: var(--admin-core-foreground);
-  --admin-alert-faint: var(--admin-core-raised);
-  --admin-caution-base: var(--admin-core-foreground);
-  --admin-caution-soft: var(--admin-core-raised);
-  --admin-caution-strong: var(--admin-core-foreground);
-  --admin-caution-faint: var(--admin-core-border);
-  --admin-danger-dark: var(--admin-core-foreground);
-  --admin-danger-strong: var(--admin-core-foreground);
-  --admin-danger-base: var(--admin-core-foreground);
-  --admin-danger-veil: var(--admin-core-raised);
-  --admin-danger-faint: var(--admin-core-border);
 }
 [data-slot="metric-card"] > .absolute { display: none; }

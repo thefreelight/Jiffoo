@@ -78,7 +78,7 @@ export function AccountManagement({ locale, profile: initial, labels, locales, n
     </section>}
     <section aria-label={labels.profile} className="space-y-4">
       <label className="block text-[13px] font-medium">{labels.email}<input value={profile.email} disabled className="mt-1.5 h-10 w-full rounded-md border border-line bg-canvas px-3" /></label>
-      {profile.emailVerified && <span className="inline-flex h-[22px] items-center rounded-md bg-highlight px-2 text-xs font-medium text-success">{t.verified}</span>}
+      {profile.emailVerified && <span className="inline-flex h-[22px] items-center rounded-md bg-highlight px-2 text-xs font-medium text-[var(--shop-extras-success)]">{t.verified}</span>}
       <form onSubmit={submit('/account/profile', 'PUT', (data) => setProfile(data))} className="space-y-4">
         {field(labels.username, 'username', profile.username)}
         <p className="text-xs text-subtle">{t.usernameHint}</p>
@@ -89,7 +89,7 @@ export function AccountManagement({ locale, profile: initial, labels, locales, n
       <h2 className="mb-4 text-lg font-semibold">{labels.language}</h2>
       <form onSubmit={submit('/account/profile', 'PUT', (data) => setProfile(data))} className="space-y-4">
         <label className="block text-sm">{labels.language}
-          <select name="locale" defaultValue={profile.locale || locale} className="mt-1 w-full rounded-shop border border-line bg-surface p-2 text-ink">
+          <select name="locale" defaultValue={profile.locale || locale} className="mt-1 w-full rounded-shop border border-line bg-[var(--shop-core-raised)] p-2 text-ink">
             {locales.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
         </label>

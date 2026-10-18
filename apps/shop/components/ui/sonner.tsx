@@ -9,7 +9,7 @@ export function Toaster(props: ComponentProps<typeof Sonner>) {
     '--normal-text': 'var(--popover-foreground)',
     '--normal-border': 'var(--border)',
     '--success-bg': 'var(--popover)',
-    '--success-text': 'var(--shop-success)',
+    '--success-text': 'var(--shop-extras-success)',
     '--error-bg': 'var(--shop-core-destructive-soft)',
     '--error-text': 'var(--shop-core-destructive)',
     '--error-border': 'var(--shop-core-destructive-line)',

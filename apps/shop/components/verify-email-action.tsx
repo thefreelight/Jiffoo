@@ -33,7 +33,7 @@ export function VerifyEmailAction({ token, labels, locale }: {
     }
   };
   if (verified) return <div className="flex flex-col items-center gap-3 text-center">
-    <div className="flex size-14 items-center justify-center rounded-full bg-highlight text-success"><Check size={24} aria-hidden="true" /></div>
+    <div className="flex size-14 items-center justify-center rounded-full bg-highlight text-[var(--shop-extras-success)]"><Check size={24} aria-hidden="true" /></div>
     <h1 className="text-[26px] font-semibold">{t.verifiedTitle}</h1><p className="text-subtle">{t.verifiedBody}</p>
     <p role="status" className="sr-only">{message}</p><Link href={`/${locale}`} className="mt-2 flex h-10 items-center rounded-md bg-action px-[18px] text-action-ink">{t.goShopping}</Link>
   </div>;

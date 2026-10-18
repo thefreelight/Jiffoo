@@ -20,7 +20,7 @@ export function DrawerMenu({ label, links, locale, supported, storeName, loggedI
     <SheetContent side="left" closeLabel={t.shop.closeMenu} className="w-full gap-0 sm:max-w-[420px]">
       <div className="border-b border-line px-5 py-4"><SheetTitle className="text-base font-bold">{storeName}</SheetTitle><SheetDescription className="sr-only">{label}</SheetDescription></div>
       <div className="flex-1 overflow-auto px-5">
-        {showSearch && <form action={`/${locale}/search`} method="get" role="search" aria-label={t.navigation.search} className="my-4 flex h-10 rounded-md border border-line bg-surface">
+        {showSearch && <form action={`/${locale}/search`} method="get" role="search" aria-label={t.navigation.search} className="my-4 flex h-10 rounded-md border border-line bg-[var(--shop-core-raised)]">
           <input type="search" name="q" aria-label={t.navigation.search} placeholder={t.navigation.search} className="min-w-0 flex-1 bg-transparent px-3" />
           <button type="submit" className="px-3">{t.navigation.searchAction}</button></form>}
         <nav aria-label={label}>{links.map((link) => <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="flex items-center justify-between border-b border-line py-4 text-base">{link.label}<ChevronRight size={15} /></Link>)}</nav>

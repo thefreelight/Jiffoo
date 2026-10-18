@@ -17,7 +17,7 @@ export function Header({ context, locale, categories, loggedIn, cartCount, optio
   const t = messages(locale);
   const links = [{ href: localePath(locale, '/products'), label: t.navigation.products },
     ...categories.map((category) => ({ href: localePath(locale, `/categories/${category.slug}`), label: category.name }))];
-  return <header className="relative z-30 border-b border-line bg-header-bg text-header-text">
+  return <header className="relative z-30 border-b border-line bg-[var(--shop-extras-header-bg)] text-[var(--shop-extras-header-text)]">
     <div className={`mx-auto flex min-h-14 max-w-7xl items-center gap-2 px-4 md:min-h-16 md:gap-7 md:px-8 ${options?.variant === 'logo-center' ? 'flex-wrap justify-center' : ''}`}>
       <div className={options?.menu === 'drawer' ? '' : 'md:hidden'}><DrawerMenu label={t.navigation.categories} links={links}
         locale={locale} supported={context.supportedLocales} storeName={context.storeName} loggedIn={loggedIn} showSearch={options?.showSearch !== false} /></div>
