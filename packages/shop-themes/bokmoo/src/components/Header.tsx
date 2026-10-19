@@ -65,6 +65,20 @@ export const Header = React.memo(function Header({
   ];
   const [isLocaleOpen, setIsLocaleOpen] = React.useState(false);
   const currentLocaleLabel = LOCALE_OPTIONS.find((option) => option.value === locale)?.label ?? 'English';
+
+  const [cartPulse, setCartPulse] = React.useState(false);
+  const prevCartCount = React.useRef(cartItemCount);
+  React.useEffect(() => {
+    if (cartItemCount > prevCartCount.current) {
+      setCartPulse(true);
+      const timer = window.setTimeout(() => setCartPulse(false), 900);
+      return () => window.clearTimeout(timer);
+    }
+    prevCartCount.current = cartItemCount;
+  }, [cartItemCount]);
+  React.useEffect(() => {
+    prevCartCount.current = cartItemCount;
+  }, [cartItemCount]);
   const switchLocale = (next: 'en' | 'zh-Hans' | 'zh-Hant') => {
     if (next === locale) {
       setIsLocaleOpen(false);
@@ -96,6 +110,7 @@ export const Header = React.memo(function Header({
     { label: pickCopy(locale, { en: 'Global Plans', hans: '全球套餐', hant: '全球套餐' }), onClick: onNavigateToProducts },
     { label: pickCopy(locale, { en: 'Download App', hans: '下载 App', hant: '下載 App' }), onClick: () => openHref('/download/app') },
     { label: pickCopy(locale, { en: 'Support', hans: '支持', hant: '支援' }), onClick: () => openHref('/help') },
+    { label: pickCopy(locale, { en: 'Affiliate', hans: '联盟计划', hant: '聯盟計劃' }), onClick: () => openHref('/affiliate') },
   ];
 
   return (
@@ -205,7 +220,7 @@ export const Header = React.memo(function Header({
           >
             <ShoppingBag className="h-4 w-4" />
             {cartItemCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex min-h-[1.2rem] min-w-[1.2rem] items-center justify-center rounded-full bg-[var(--bokmoo-gold)] px-1 text-[10px] font-bold text-[var(--bokmoo-bg)]">
+              <span className="absolute -right-1 -top-1 flex min-h-[1.2rem] min-w-[1.2rem] items-center justify-center rounded-full bg-[var(--bokmoo-gold)] px-1 text-[10px] font-bold text-[var(--bokmoo-bg)] cart-pulse">
                 {cartItemCount > 99 ? '99+' : cartItemCount}
               </span>
             ) : null}

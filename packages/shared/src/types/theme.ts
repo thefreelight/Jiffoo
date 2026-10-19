@@ -233,6 +233,8 @@ export interface ProductDetailPageProps extends ThemeI18nProps {
   onQuantityChange: (quantity: number) => void;
   onAddToCart: () => Promise<void>;
   onBack: () => void;
+  /** Navigates to checkout after a successful add-to-cart (Buy Now flow). */
+  onNavigateToCheckout?: () => void;
 }
 
 /**

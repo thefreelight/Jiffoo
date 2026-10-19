@@ -14703,6 +14703,19 @@
     ];
     const [isLocaleOpen, setIsLocaleOpen] = react_default.useState(false);
     const currentLocaleLabel = LOCALE_OPTIONS.find((option) => option.value === locale)?.label ?? "English";
+    const [cartPulse, setCartPulse] = react_default.useState(false);
+    const prevCartCount = react_default.useRef(cartItemCount);
+    react_default.useEffect(() => {
+      if (cartItemCount > prevCartCount.current) {
+        setCartPulse(true);
+        const timer = window.setTimeout(() => setCartPulse(false), 900);
+        return () => window.clearTimeout(timer);
+      }
+      prevCartCount.current = cartItemCount;
+    }, [cartItemCount]);
+    react_default.useEffect(() => {
+      prevCartCount.current = cartItemCount;
+    }, [cartItemCount]);
     const switchLocale = (next) => {
       if (next === locale) {
         setIsLocaleOpen(false);
@@ -14731,7 +14744,8 @@
       { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1" }), onClick: onNavigateToProducts },
       { label: pickCopy(locale, { en: "Global Plans", hans: "\u5168\u7403\u5957\u9910", hant: "\u5168\u7403\u5957\u9910" }), onClick: onNavigateToProducts },
       { label: pickCopy(locale, { en: "Download App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App" }), onClick: () => openHref("/download/app") },
-      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), onClick: () => openHref("/help") }
+      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), onClick: () => openHref("/help") },
+      { label: pickCopy(locale, { en: "Affiliate", hans: "\u8054\u76DF\u8BA1\u5212", hant: "\u806F\u76DF\u8A08\u5283" }), onClick: () => openHref("/affiliate") }
     ];
     return /* @__PURE__ */ jsxs("header", { className: "sticky top-0 z-50 border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[radial-gradient(circle_at_8%_-24%,color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent),transparent_34%),linear-gradient(180deg,oklch(0.055_0.007_75_/_0.98),oklch(0.028_0.004_75_/_0.96))] shadow-[0_18px_52px_rgba(0,0,0,0.3)] backdrop-blur-2xl", children: [
       /* @__PURE__ */ jsxs("div", { className: "mx-auto flex max-w-[107rem] items-center gap-3 px-4 py-2.5 sm:px-6 xl:min-h-[4.35rem] xl:gap-5 xl:px-0", children: [
@@ -14846,7 +14860,7 @@
               type: "button",
               children: [
                 /* @__PURE__ */ jsx(ShoppingBag, { className: "h-4 w-4" }),
-                cartItemCount > 0 ? /* @__PURE__ */ jsx("span", { className: "absolute -right-1 -top-1 flex min-h-[1.2rem] min-w-[1.2rem] items-center justify-center rounded-full bg-[var(--bokmoo-gold)] px-1 text-[10px] font-bold text-[var(--bokmoo-bg)]", children: cartItemCount > 99 ? "99+" : cartItemCount }) : null
+                cartItemCount > 0 ? /* @__PURE__ */ jsx("span", { className: "absolute -right-1 -top-1 flex min-h-[1.2rem] min-w-[1.2rem] items-center justify-center rounded-full bg-[var(--bokmoo-gold)] px-1 text-[10px] font-bold text-[var(--bokmoo-bg)] cart-pulse", children: cartItemCount > 99 ? "99+" : cartItemCount }) : null
               ]
             }
           )
@@ -16761,6 +16775,7 @@
     onVariantChange,
     onQuantityChange,
     onAddToCart,
+    onNavigateToCheckout,
     onBack,
     config,
     locale
@@ -16782,6 +16797,34 @@
     const priceValue = Number(currentVariant?.price ?? normalizedProduct?.price ?? 0);
     const maxQuantity = Math.max(1, Math.min(stockValue || 1, 10));
     const image = resolveBokmooMediaUrl(getProductImage2(normalizedProduct), site.apiBaseUrl);
+    const [adding, setAdding] = react_default.useState(false);
+    const [justAdded, setJustAdded] = react_default.useState(false);
+    const addedTimer = react_default.useRef(null);
+    react_default.useEffect(() => () => {
+      if (addedTimer.current) window.clearTimeout(addedTimer.current);
+    }, []);
+    const handleAddToCart = react_default.useCallback(async () => {
+      if (adding) return;
+      setAdding(true);
+      try {
+        await onAddToCart();
+        setJustAdded(true);
+        if (addedTimer.current) window.clearTimeout(addedTimer.current);
+        addedTimer.current = window.setTimeout(() => setJustAdded(false), 2200);
+      } finally {
+        setAdding(false);
+      }
+    }, [adding, onAddToCart]);
+    const handleBuyNow = react_default.useCallback(async () => {
+      if (adding) return;
+      setAdding(true);
+      try {
+        await onAddToCart();
+        onNavigateToCheckout?.();
+      } finally {
+        setAdding(false);
+      }
+    }, [adding, onAddToCart, onNavigateToCheckout]);
     react_default.useEffect(() => {
       if (product) return;
       const productId = getProductIdFromLocation();
@@ -16816,7 +16859,7 @@
     }
     if (!normalizedProduct) {
       return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--bokmoo-bg)] px-4", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-10 text-center shadow-[var(--bokmoo-shadow)]", children: [
-        /* @__PURE__ */ jsx("h1", { className: "text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: "Plan not found" }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Plan not found", hans: "\u672A\u627E\u5230\u5957\u9910", hant: "\u672A\u627E\u5230\u5957\u9910" }) }),
         /* @__PURE__ */ jsxs(
           "button",
           {
@@ -16825,7 +16868,7 @@
             type: "button",
             children: [
               /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
-              "Back to store"
+              pickCopy(locale, { en: "Back to store", hans: "\u8FD4\u56DE\u5546\u5E97", hant: "\u8FD4\u56DE\u5546\u5E97" })
             ]
           }
         )
@@ -16840,7 +16883,7 @@
           type: "button",
           children: [
             /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
-            "Back to Store"
+            pickCopy(locale, { en: "Back to Store", hans: "\u8FD4\u56DE\u5546\u5E97", hant: "\u8FD4\u56DE\u5546\u5E97" })
           ]
         }
       ),
@@ -16858,9 +16901,9 @@
             ] }) })
           ] }),
           /* @__PURE__ */ jsx("div", { className: "mt-5 grid gap-3 sm:grid-cols-3", children: [
-            { label: "Data", value: profile.planLabel },
-            { label: "Validity", value: profile.durationLabel },
-            { label: "Network", value: profile.networkLabel }
+            { label: pickCopy(locale, { en: "Data", hans: "\u6570\u636E", hant: "\u6578\u64DA" }), value: profile.planLabel },
+            { label: pickCopy(locale, { en: "Validity", hans: "\u6709\u6548\u671F", hant: "\u6709\u6548\u671F" }), value: profile.durationLabel },
+            { label: pickCopy(locale, { en: "Network", hans: "\u7F51\u7EDC", hant: "\u7DB2\u8DEF" }), value: profile.networkLabel }
           ].map((item) => /* @__PURE__ */ jsxs(
             "div",
             {
@@ -16873,28 +16916,28 @@
             item.label
           )) }),
           /* @__PURE__ */ jsx("div", { className: "mt-6 space-y-3", children: [
-            "High-speed 4G/5G data",
-            "Stay connected in major cities and more",
-            "No roaming charges"
+            { en: "High-speed 4G/5G data", hans: "\u9AD8\u901F 4G/5G \u6570\u636E", hant: "\u9AD8\u901F 4G/5G \u6578\u64DA" },
+            { en: "Stay connected in major cities and more", hans: "\u4E3B\u8981\u57CE\u5E02\u53CA\u66F4\u591A\u5730\u533A\u4FDD\u6301\u8FDE\u63A5", hant: "\u4E3B\u8981\u57CE\u5E02\u53CA\u66F4\u591A\u5730\u5340\u4FDD\u6301\u9023\u7DDA" },
+            { en: "No roaming charges", hans: "\u65E0\u6F2B\u6E38\u8D39\u7528", hant: "\u7121\u6F2B\u904A\u8CBB\u7528" }
           ].map((item) => /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 text-sm text-[var(--bokmoo-copy)]", children: [
             /* @__PURE__ */ jsx(Check, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-            /* @__PURE__ */ jsx("span", { children: item })
-          ] }, item)) }),
+            /* @__PURE__ */ jsx("span", { children: pickCopy(locale, item) })
+          ] }, item.en)) }),
           /* @__PURE__ */ jsx("div", { className: "mt-6 rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: "Coverage" }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Coverage", hans: "\u8986\u76D6\u8303\u56F4", hant: "\u8986\u84CB\u7BC4\u570D" }) }),
               /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: profile.coverageLabel })
             ] }),
-            /* @__PURE__ */ jsx("button", { className: "text-sm text-[var(--bokmoo-gold)]", type: "button", children: "View Details" })
+            /* @__PURE__ */ jsx("button", { className: "text-sm text-[var(--bokmoo-gold)]", type: "button", children: pickCopy(locale, { en: "View Details", hans: "\u67E5\u770B\u8BE6\u60C5", hant: "\u67E5\u770B\u8A73\u60C5" }) })
           ] }) })
         ] }),
         /* @__PURE__ */ jsxs("aside", { className: "space-y-4", children: [
           /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
-            /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: "Quick Facts" }),
+            /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Quick Facts", hans: "\u5FEB\u901F\u4FE1\u606F", hant: "\u5FEB\u901F\u8CC7\u8A0A" }) }),
             /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-3", children: [
-              { icon: Signal, label: "Activation", value: "Instant via QR" },
-              { icon: Smartphone, label: "Compatibility", value: profile.compatibilityLabel },
-              { icon: ShieldCheck, label: "Support", value: "24/7 Global Team" }
+              { icon: Signal, label: pickCopy(locale, { en: "Activation", hans: "\u6FC0\u6D3B\u65B9\u5F0F", hant: "\u555F\u7528\u65B9\u5F0F" }), value: pickCopy(locale, { en: "Instant via QR", hans: "\u626B\u7801\u5373\u65F6\u6FC0\u6D3B", hant: "\u6383\u78BC\u5373\u6642\u555F\u7528" }) },
+              { icon: Smartphone, label: pickCopy(locale, { en: "Compatibility", hans: "\u8BBE\u5907\u517C\u5BB9", hant: "\u88DD\u7F6E\u76F8\u5BB9" }), value: profile.compatibilityLabel },
+              { icon: ShieldCheck, label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), value: pickCopy(locale, { en: "24/7 Global Team", hans: "24/7 \u5168\u7403\u56E2\u961F", hant: "24/7 \u5168\u7403\u5718\u968A" }) }
             ].map(({ icon: Icon2, label, value }) => /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
               /* @__PURE__ */ jsx("div", { className: "mt-0.5 flex h-9 w-9 items-center justify-center rounded-[0.85rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Icon2, { className: "h-4 w-4" }) }),
               /* @__PURE__ */ jsxs("div", { children: [
@@ -16904,7 +16947,7 @@
             ] }, label)) })
           ] }),
           normalizedProduct.variants?.length ? /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
-            /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: "Choose an option" }),
+            /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Choose an option", hans: "\u9009\u62E9\u9009\u9879", hant: "\u9078\u64C7\u9078\u9805" }) }),
             /* @__PURE__ */ jsx("div", { className: "mt-4 flex flex-wrap gap-2", children: normalizedProduct.variants.map((variant) => {
               const isActive = effectiveSelectedVariant === variant.id;
               return /* @__PURE__ */ jsx(
@@ -16923,7 +16966,7 @@
             }) })
           ] }) : null,
           /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
-            /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: "Quantity" }),
+            /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Quantity", hans: "\u6570\u91CF", hant: "\u6578\u91CF" }) }),
             /* @__PURE__ */ jsxs("div", { className: "mt-4 flex items-center justify-between rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-3 py-2", children: [
               /* @__PURE__ */ jsx(
                 "button",
@@ -16946,23 +16989,41 @@
               )
             ] })
           ] }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              onClick: handleAddToCart,
+              disabled: stockValue <= 0 || adding,
+              className: `flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] px-5 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${justAdded ? "scale-[1.02] bg-[#1f7a3d] text-white" : "bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-[var(--bokmoo-bg)]"}`,
+              type: "button",
+              children: justAdded ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+                /* @__PURE__ */ jsx(Check, { className: "h-4 w-4" }),
+                pickCopy(locale, { en: `Added to cart \u2014 $${priceValue.toFixed(2)}`, hans: `\u5DF2\u52A0\u5165\u8D2D\u7269\u8F66 \u2014 $${priceValue.toFixed(2)}`, hant: `\u5DF2\u52A0\u5165\u8CFC\u7269\u8ECA \u2014 $${priceValue.toFixed(2)}` })
+              ] }) : adding ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+                /* @__PURE__ */ jsx(ShoppingBag, { className: "h-4 w-4 animate-pulse" }),
+                pickCopy(locale, { en: "Adding\u2026", hans: "\u6DFB\u52A0\u4E2D\u2026", hant: "\u6DFB\u52A0\u4E2D\u2026" })
+              ] }) : /* @__PURE__ */ jsxs(Fragment2, { children: [
+                /* @__PURE__ */ jsx(ShoppingBag, { className: "h-4 w-4" }),
+                pickCopy(locale, { en: `Add to Cart \u2014 $${priceValue.toFixed(2)}`, hans: `\u52A0\u5165\u8D2D\u7269\u8F66 \u2014 $${priceValue.toFixed(2)}`, hant: `\u52A0\u5165\u8CFC\u7269\u8ECA \u2014 $${priceValue.toFixed(2)}` })
+              ] })
+            }
+          ),
           /* @__PURE__ */ jsxs(
             "button",
             {
-              onClick: () => onAddToCart(),
-              disabled: stockValue <= 0,
-              className: "flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50",
+              onClick: handleBuyNow,
+              disabled: stockValue <= 0 || adding,
+              className: "flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_32%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-5 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_52%,transparent)] disabled:cursor-not-allowed disabled:opacity-50",
               type: "button",
               children: [
-                /* @__PURE__ */ jsx(ShoppingBag, { className: "h-4 w-4" }),
-                "Add to Cart \u2014 $",
-                priceValue.toFixed(2)
+                pickCopy(locale, { en: "Buy Now", hans: "\u7ACB\u5373\u8D2D\u4E70", hant: "\u7ACB\u5373\u8CFC\u8CB7" }),
+                /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
               ]
             }
           ),
           /* @__PURE__ */ jsx("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 text-sm text-[var(--bokmoo-copy)]", children: [
             /* @__PURE__ */ jsx(Star, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-            "4.9 average traveler satisfaction"
+            pickCopy(locale, { en: "4.9 average traveler satisfaction", hans: "4.9 \u65C5\u884C\u8005\u5E73\u5747\u6EE1\u610F\u5EA6", hant: "4.9 \u65C5\u4EBA\u5E73\u5747\u6EFF\u610F\u5EA6" })
           ] }) })
         ] })
       ] }) })
@@ -17159,6 +17220,15 @@ body[data-theme='bokmoo'] ::selection {
   background: color-mix(in oklab, var(--bokmoo-gold) 38%, transparent);
   color: var(--bokmoo-ink);
 }
+
+/* Cart badge pulse on add-to-cart */
+@keyframes cart-pulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.5); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.cart-pulse { animation: cart-pulse 0.9s ease-in-out; }
 `;
   var existingMeta = runtime_default && typeof runtime_default === "object" && runtime_default.meta && typeof runtime_default.meta === "object" ? runtime_default.meta : {};
   window.__JIFFOO_THEME_RUNTIME__ = {
@@ -17166,7 +17236,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.20",
+      version: "1.1.21",
       target: "shop"
     }
   };
