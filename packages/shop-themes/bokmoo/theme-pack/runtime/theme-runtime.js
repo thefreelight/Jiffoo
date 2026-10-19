@@ -13401,6 +13401,21 @@
     });
     const [errors, setErrors] = react_default.useState({});
     react_default.useEffect(() => {
+      if (!savedAddress) return;
+      setFormData((prev) => ({
+        ...prev,
+        email: prev.email || savedAddress.email || "",
+        firstName: prev.firstName || savedAddress.firstName || "",
+        lastName: prev.lastName || savedAddress.lastName || "",
+        phone: prev.phone || savedAddress.phone || "",
+        addressLine1: prev.addressLine1 || savedAddress.addressLine1 || "",
+        city: prev.city || savedAddress.city || "",
+        state: prev.state || savedAddress.state || "",
+        postalCode: prev.postalCode || savedAddress.postalCode || "",
+        country: prev.country || savedAddress.country || ""
+      }));
+    }, [savedAddress]);
+    react_default.useEffect(() => {
       if (!currentUserEmail) return;
       setFormData((prev) => ({ ...prev, email: prev.email || currentUserEmail }));
     }, [currentUserEmail]);
@@ -17236,7 +17251,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.21",
+      version: "1.1.23",
       target: "shop"
     }
   };

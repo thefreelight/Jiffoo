@@ -37,6 +37,25 @@ export const CheckoutPage = React.memo(function CheckoutPage({
   });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
+  // The parent fetches savedAddress asynchronously (address book, then last
+  // order); merge it into the form once it arrives without clobbering
+  // anything the shopper already typed.
+  React.useEffect(() => {
+    if (!savedAddress) return;
+    setFormData((prev) => ({
+      ...prev,
+      email: prev.email || savedAddress.email || '',
+      firstName: prev.firstName || savedAddress.firstName || '',
+      lastName: prev.lastName || savedAddress.lastName || '',
+      phone: prev.phone || savedAddress.phone || '',
+      addressLine1: prev.addressLine1 || savedAddress.addressLine1 || '',
+      city: prev.city || savedAddress.city || '',
+      state: prev.state || savedAddress.state || '',
+      postalCode: prev.postalCode || savedAddress.postalCode || '',
+      country: prev.country || savedAddress.country || '',
+    }));
+  }, [savedAddress]);
+
   React.useEffect(() => {
     if (!currentUserEmail) return;
     setFormData((prev) => ({ ...prev, email: prev.email || currentUserEmail }));
