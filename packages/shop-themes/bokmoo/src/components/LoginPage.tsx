@@ -138,7 +138,7 @@ export function LoginPage({
                     onChange={(event) => setEmail(event.target.value)}
                     onAnimationStart={handleAutofill(setEmail)}
                     placeholder="you@example.com"
-                    className={`h-12 w-full rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
+                    className={`h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--bokmoo-copy)_80%,transparent)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
                     disabled={isLoading}
                     autoComplete="email"
                   />

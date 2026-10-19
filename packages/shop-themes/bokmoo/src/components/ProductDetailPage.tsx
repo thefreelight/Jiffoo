@@ -303,7 +303,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
               <button
                 onClick={handleAddToCart}
                 disabled={stockValue <= 0 || adding}
-                className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] px-5 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+                className={`btn-shimmer flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] px-5 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
                   justAdded
                     ? 'scale-[1.02] bg-[#1f7a3d] text-white'
                     : 'bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-[var(--bokmoo-bg)]'
@@ -331,7 +331,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
               <button
                 onClick={handleBuyNow}
                 disabled={stockValue <= 0 || adding}
-                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_32%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-5 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_52%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-shimmer flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_32%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-5 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_52%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
                 type="button"
               >
                 {pickCopy(locale, { en: 'Buy Now', hans: '立即购买', hant: '立即購買' })}
