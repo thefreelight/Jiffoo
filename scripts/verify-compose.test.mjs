@@ -103,9 +103,14 @@ test('edge renders only derived hostname variables and preserves nginx request v
   assert.match(compose, /edge\.conf\.template:\/etc\/nginx\/templates\/nginx\.conf\.template:ro/);
 });
 test('worker delivery evidence rejects duplicate sends and malformed production stdout', () => {
-  const proof = { orderId: 'order-one', to: 'customer@example.test' };
-  const line = JSON.stringify({ timestamp: '2026-10-11T00:00:00.000Z', level: 'info', message: '[plugin:console-email] Console email customer@example.test Payment received order-one' }) + '\n';
+  const proof = { orderId: 'order-one', orderNumber: 'JF-20261011-0001', to: 'customer@example.test' };
+  const line = JSON.stringify({ timestamp: '2026-10-11T00:00:00.000Z', level: 'info', message: '[plugin:console-email] Console email customer@example.test Payment received JF-20261011-0001' }) + '\n';
   validateWorkerLogs([line, ''], proof);
+  validateWorkerLogs(['', line], proof);
+  assert.throws(() => validateWorkerLogs([line.replace(proof.orderNumber, proof.orderId), ''], proof));
+  for (const required of ['[plugin:console-email] Console email', proof.to, 'Payment received']) {
+    assert.throws(() => validateWorkerLogs([line.replace(required, 'unrelated'), ''], proof));
+  }
   assert.throws(() => validateWorkerLogs([line, line], proof));
   assert.throws(() => validateWorkerLogs(['plain text\n'], proof));
   assert.throws(() => validateWorkerLogs(['', ''], proof));

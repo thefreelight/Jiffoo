@@ -136,7 +136,8 @@ async function state() {
       for (const base of bases) assert.equal((await http(base, `/api/v1/admin/orders/${order.id}`, 'GET', undefined, owner)).data.paymentStatus, 'PAID');
     });
     if (checks.rows.find(row => row.name === 'Manual payment across APIs')?.status === 'PASS') {
-      console.info('COMPOSE_NOTIFICATION_PROOF ' + JSON.stringify({ orderId: order.id, to: customerEmail }));
+      const { orderNumber } = await db.order.findUniqueOrThrow({ where: { id: order.id }, select: { orderNumber: true } });
+      console.info('COMPOSE_NOTIFICATION_PROOF ' + JSON.stringify({ orderId: order.id, orderNumber, to: customerEmail }));
     }
     await checks.run('Payment notification persisted exactly once', ['Manual payment across APIs'], async () => {
       const sentDeadline = Date.now() + 90000;

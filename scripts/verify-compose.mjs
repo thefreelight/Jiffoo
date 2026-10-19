@@ -22,7 +22,7 @@ export function validateWorkerLogs(outputs, proof) {
     assert.match(entry.timestamp, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     assert.equal(typeof entry.level, 'string'); return entry;
   }));
-  const delivered = entries.filter(entry => entry.message?.includes('[plugin:console-email] Console email') && entry.message.includes(proof.orderId) && entry.message.includes(proof.to) && entry.message.includes('Payment received'));
+  const delivered = entries.filter(entry => entry.message?.includes('[plugin:console-email] Console email') && entry.message.includes(proof.orderNumber) && entry.message.includes(proof.to) && entry.message.includes('Payment received'));
   assert.equal(delivered.length, 1, 'Both worker stdout logs together must contain exactly one payment notification send');
 }
 
