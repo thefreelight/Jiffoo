@@ -4,6 +4,7 @@ export type AuditActor = { id: string; email: string; username: string; isActive
 export type AuditEvent = {
   id: string; createdAt: string; action: string; targetType: string; targetId: string;
   context?: { path: string; label: string };
+  targetLabel?: string;
   paymentContext?: { amount: string; currency: string; attemptNumber: number };
   summary: unknown; actor: AuditActor | null;
   actorId: string;

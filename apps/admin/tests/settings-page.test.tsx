@@ -18,6 +18,22 @@ function button(name: string) { const result = [...document.querySelectorAll('bu
 async function click(name: string) { await act(async () => button(name).click()); }
 async function fill(id: string, value: string) { const input = document.getElementById(id) as HTMLInputElement; expect(input).not.toBeNull(); await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })); }); }
 async function save() { await act(async () => document.getElementById('settings-editor')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))); }
+it('validates the order prefix, tracks dirty state and saves it only on success', async () => {
+  await render();
+  expect((document.getElementById('orders.number_prefix') as HTMLInputElement).value).toBe('JF');
+  expect(container.textContent).toContain('Applies to new orders only');
+  await fill('orders.number_prefix', 'jf'); await save();
+  expect(mock.batchUpdate).not.toHaveBeenCalled();
+  expect(document.activeElement?.id).toBe('orders.number_prefix');
+  await fill('orders.number_prefix', 'SHOP');
+  expect(container.textContent).toContain('Unsaved changes');
+  mock.batchUpdate.mockRejectedValueOnce(new Error()); await save();
+  expect(document.activeElement?.id).toBe('orders.number_prefix');
+  expect((document.getElementById('orders.number_prefix') as HTMLInputElement).value).toBe('SHOP');
+  await save();
+  expect(mock.batchUpdate).toHaveBeenLastCalledWith({ 'orders.number_prefix': 'SHOP' });
+  expect(button('Save').disabled).toBe(true);
+});
 it('shows every section, a disabled clean save and no fabricated saved timestamp', async () => { await render(); expect(button('Save').disabled).toBe(true); for (const title of ['Shop information', 'Contact details', 'Language, currency and timezone', 'Checkout', 'API tokens']) expect(container.textContent).toContain(title); expect(container.textContent).not.toContain('2026-10-12 18:00'); });
 it('removes the last country and saves an explicit empty list', async () => { await render(); await click('Remove United States'); expect(container.textContent).toContain('No country requires state/province and postal code.'); await save(); expect(mock.batchUpdate).toHaveBeenCalledWith({ [key]: [] }); expect(button('Save').disabled).toBe(true); });
 it('uses defaults only when the countries setting is absent', async () => { const { [key]: _, ...unset } = initial; mock.getAll.mockResolvedValue({ data: unset }); await render(); expect(container.textContent).toContain('United Kingdom'); expect(container.textContent).toContain('Canada'); });

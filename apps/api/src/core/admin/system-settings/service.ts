@@ -50,6 +50,7 @@ export class SystemSettingsService {
             sanitized['localization.locale'] = 'en';
         }
         sanitized['localization.timezone'] ??= 'UTC';
+        sanitized['orders.number_prefix'] ??= 'JF';
         return sanitized;
     }
 
@@ -182,6 +183,7 @@ export class SystemSettingsService {
      * Set a single setting
      */
     async setSetting(key: string, value: SettingValue): Promise<void> {
+        if (key === 'orders.number_prefix' && (typeof value !== 'string' || !/^[A-Z]{2,6}$(?![\s\S])/.test(value))) throw new ApiError('VALIDATION_ERROR');
         if (key === 'localization.timezone' && !isStoreTimezone(value)) throw new ApiError('VALIDATION_ERROR');
         if (key === 'branding.store_url') throw new ApiError('BAD_REQUEST');
         if (key === 'localization.locale' && !['en', 'zh-Hans', 'zh-Hant'].includes(String(value))) {
@@ -209,6 +211,7 @@ export class SystemSettingsService {
      * Batch update settings - returns full settings Map
      */
     async batchUpdate(updates: Record<string, SettingValue>, actorId?: string): Promise<Record<string, any>> {
+        if ('orders.number_prefix' in updates && (typeof updates['orders.number_prefix'] !== 'string' || !/^[A-Z]{2,6}$(?![\s\S])/.test(updates['orders.number_prefix']))) throw new ApiError('VALIDATION_ERROR');
         if ('localization.timezone' in updates && !isStoreTimezone(updates['localization.timezone'])) throw new ApiError('VALIDATION_ERROR');
         if ('branding.store_url' in updates) throw new ApiError('BAD_REQUEST');
         if ('localization.locale' in updates && !['en', 'zh-Hans', 'zh-Hant'].includes(String(updates['localization.locale']))) {

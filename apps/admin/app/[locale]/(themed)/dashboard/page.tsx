@@ -31,7 +31,7 @@ export default function DashboardPage() {
     { key: 'newCustomers', today: data.today.newCustomers.toLocaleString(locale), yesterday: data.yesterday.newCustomers.toLocaleString(locale) },
   ];
   type RecentOrder = DashboardData['recentOrders'][number];
-  const orderLink = (order: RecentOrder) => <Link href={'/' + locale + '/orders/' + order.id} aria-label={orderCopy('detail', { id: order.id })} title={order.id} className="font-mono text-xs hover:underline break-all min-[769px]:block min-[769px]:max-w-[150px] min-[769px]:truncate">#{order.id}</Link>;
+  const orderLink = (order: RecentOrder) => <Link href={'/' + locale + '/orders/' + order.id} aria-label={orderCopy('detail', { id: order.orderNumber })} title={order.orderNumber} className="font-mono text-xs hover:underline break-all min-[769px]:block min-[769px]:max-w-[150px] min-[769px]:truncate">{order.orderNumber}</Link>;
   const status = (order: RecentOrder) => <span>{t('merchant.orders.' + order.status.toLowerCase())}{order.requiresPaymentReview && <> · {orderCopy('requiresReview')}</>}</span>;
   return <section className="min-w-0 space-y-6 text-[13px]">
     <header><h1 className="text-[26px] font-semibold tracking-[-0.025em]">{copy('title')}</h1><p className="mt-1 text-muted-foreground">{headerDate} · {timezone}</p></header>
@@ -76,7 +76,7 @@ export default function DashboardPage() {
         </table>
       </div>
       <div className="divide-y divide-border min-[769px]:hidden">
-        {data.recentOrders.length ? data.recentOrders.slice(0, 5).map(order => <article key={order.id} aria-label={orderCopy('detail', { id: order.id })} className="min-w-0 space-y-3 p-4">
+        {data.recentOrders.length ? data.recentOrders.slice(0, 5).map(order => <article key={order.id} aria-label={orderCopy('detail', { id: order.orderNumber })} className="min-w-0 space-y-3 p-4">
           <div className="flex items-start justify-between gap-3"><div className="min-w-0">{orderLink(order)}</div><span className="shrink-0 font-mono tabular-nums">{formatCurrency(order.totalAmount, order.currency)}</span></div><p className="break-all text-muted-foreground">{order.customer.email || t('merchant.orders.noEmail')}</p><div>{status(order)}</div><p className="flex flex-wrap justify-between gap-1 text-xs text-faint"><span>{copy('placedAt')}</span><time dateTime={order.createdAt}>{formatStoreTimestamp(order.createdAt, timezone)}</time></p>
         </article>) : <p className="py-12 text-center text-muted-foreground">{copy('noOrders')}</p>}
       </div>

@@ -1,3 +1,4 @@
+import { createNumberedOrder } from '../helpers/numbered-order';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
@@ -126,7 +127,7 @@ describe('business event coverage', () => {
     users.push(buyer.id);
     const product = await createTestProduct();
     products.push(product.id);
-    const order = await prisma.order.create({
+    const order = await createNumberedOrder(prisma, {
       data: {
         userId: buyer.id, status: 'PROCESSING', paymentStatus: 'PAID',
         subtotalAmount: 12, totalAmount: 12, currency: 'USD',

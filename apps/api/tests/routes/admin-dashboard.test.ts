@@ -1,3 +1,4 @@
+import { createNumberedOrder } from '../helpers/numbered-order';
 import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
 /**
  * Admin Dashboard Endpoints Tests
@@ -106,7 +107,7 @@ describe('Admin Dashboard Endpoints', () => {
     const headers = { authorization: 'Bearer ' + adminToken };
     const clearDashboard = async () => {
       await CacheService.delete('stats:admin-dashboard:v2:metrics');
-      await CacheService.delete('stats:admin-dashboard:v2:');
+      await CacheService.delete('stats:admin-dashboard:v3:');
     };
     const dashboard = async () => {
       await clearDashboard();
@@ -123,7 +124,7 @@ describe('Admin Dashboard Endpoints', () => {
       const { days, endUtc } = getStoreCalendarDays('Asia/Shanghai', 14);
       const before = await dashboard();
       const create = async (date: Date, amount: number, status: 'PENDING' | 'PROCESSING' | 'CANCELLED' | 'REFUNDED', paymentStatus: 'PAID' | 'PENDING') => {
-        const order = await prisma.order.create({ data: { userId, status, paymentStatus, totalAmount: amount, subtotalAmount: amount, createdAt: date } });
+        const order = await createNumberedOrder(prisma, { data: { userId, status, paymentStatus, totalAmount: amount, subtotalAmount: amount, createdAt: date } });
         owned.push(order.id); return order;
       };
       const yesterday = await create(new Date(startOfTodayUtc.getTime() - 1), 17.25, 'PROCESSING', 'PAID');

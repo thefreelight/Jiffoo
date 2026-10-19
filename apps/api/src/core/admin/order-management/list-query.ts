@@ -33,6 +33,7 @@ export function orderWhere(filter: OrderFilter): Prisma.OrderWhereInput {
     } } : {}),
     ...(search ? { OR: [
       { id: { contains: search, mode: 'insensitive' } },
+      { orderNumber: { contains: search, mode: 'insensitive' } },
       { user: { email: { contains: search, mode: 'insensitive' } } },
       { user: { username: { contains: search, mode: 'insensitive' } } },
     ] } : {}),

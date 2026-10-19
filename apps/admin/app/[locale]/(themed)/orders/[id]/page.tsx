@@ -70,8 +70,8 @@ export default function OrderDetailPage() {
       {(invalidQuery || neighbors.error) && <div role="alert" className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><p>{text('neighborsError')}</p>{!invalidQuery && <Button type="button" size="sm" variant="outline" onClick={() => neighbors.refetch()}>{text('retry')}</Button>}</div>}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-          <h1 aria-labelledby="order-title order-id" className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-1 font-semibold tracking-tight"><span id="order-title" className="text-[22px]">{text('title')}</span><span id="order-id" className="break-all font-mono text-[15px] font-normal text-muted-foreground">#{order.id}</span></h1>
-          <CopyButton name={text('copyId')} value={order.id} />
+          <h1 aria-labelledby="order-title order-id" className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-1 font-semibold tracking-tight"><span id="order-title" className="text-[22px]">{text('title')}</span><span id="order-id" className="break-all font-mono text-[15px] font-normal text-muted-foreground">{order.orderNumber}</span></h1>
+          <CopyButton name={text('copyId')} value={order.orderNumber} />
         </div>
         <div aria-labelledby="actions-title" className="flex gap-2"><span id="actions-title" className="sr-only">{text('actions')}</span>
           {(actions.record || actions.refund || actions.cancel) && <DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="outline" size="icon" className="size-8" aria-label={text('more')}><MoreHorizontal aria-hidden="true" className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">

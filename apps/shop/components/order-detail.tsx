@@ -22,7 +22,7 @@ export function OrderDetail({ initialOrder: order, locale, timezone }: { initial
   return <main className="mx-auto min-h-[620px] max-w-7xl px-4 pb-14 pt-9 md:px-8">
     <AccountNav locale={locale} active="orders" />
     <Link href={`/${locale}/account/orders`} className="mb-4 inline-block text-subtle">{t.orders.title}</Link>
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h2 className="sr-only">{t.orders.detail}</h2><p className="break-all font-mono text-xl font-semibold">{order.id}</p>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div><h2 className="sr-only">{t.orders.detail}</h2><p className="break-all font-mono text-xl font-semibold">{order.orderNumber}</p>
       <p className="mt-1 text-subtle">{date(order.createdAt)}</p></div><OrderStatus status={order.status} paymentStatus={order.paymentStatus} locale={locale} /></div>
     <div className="grid items-start gap-7 md:grid-cols-[minmax(0,1fr)_380px] md:gap-12">
       <div className="space-y-6">

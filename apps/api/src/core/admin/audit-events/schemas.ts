@@ -19,6 +19,7 @@ export const eventSchema = {
     actorId: { type: 'string' },
     action: { type: 'string' }, targetType: { type: 'string' }, targetId: { type: 'string' },
     summary: {},
+    targetLabel: { type: 'string' },
     context: { type: 'object', properties: { path: { type: 'string' }, label: { type: 'string' } }, required: ['path', 'label'], additionalProperties: false },
     paymentContext: { type: 'object', properties: { amount: { type: 'string' }, currency: { type: 'string' }, attemptNumber: { type: 'integer' } }, required: ['amount', 'currency', 'attemptNumber'], additionalProperties: false },
     actor: { anyOf: [actorSchema, { type: 'null' }] },

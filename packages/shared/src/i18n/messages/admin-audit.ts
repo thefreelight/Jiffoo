@@ -1,4 +1,8 @@
 const labels = {
+  administratorReinvited: ['Administrator re-invited', '重新邀请管理员', '重新邀請管理員'],
+  administratorAccepted: ['Administrator accepted invitation', '管理员接受邀请', '管理員接受邀請'],
+  unsignedThemeConfirmed: ['Unsigned theme installation confirmed', '确认安装未签名主题', '確認安裝未簽署主題'],
+  builtinPluginInstalled: ['Built-in plugin installed', '安装内置插件', '安裝內建外掛'],
   paymentAttempt: ['Payment attempt {count}', '第 {count} 次付款', '第 {count} 次付款'],
   notificationResent: ['Notification resent', '重新发送通知', '重新寄送通知'],
   customerReset: ['Customer password reset link generated', '为客户生成重置密码链接', '為客戶產生重設密碼連結'],

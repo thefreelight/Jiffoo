@@ -142,7 +142,7 @@ export class AdminDashboardService {
 
     static async getDashboardMetrics(include: string[] = []) {
         // 0. Check Cache (15s TTL)
-        const cacheKey = `stats:admin-dashboard:v2:${include.slice().sort().join(',')}`;
+        const cacheKey = `stats:admin-dashboard:v3:${include.slice().sort().join(',')}`;
         const cached = await CacheService.get<any>(cacheKey);
         if (cached) return cached;
 
@@ -155,6 +155,7 @@ export class AdminDashboardService {
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
+                    orderNumber: true,
                     status: true,
                     paymentStatus: true,
                     payments: { where: paymentReviewWhere(), select: { id: true }, take: 1 },
@@ -196,6 +197,7 @@ export class AdminDashboardService {
             ordersByStatus,
             recentOrders: recentOrders.map((order: any) => ({
                 id: order.id,
+                orderNumber: order.orderNumber,
                 status: order.status,
                 paymentStatus: order.paymentStatus,
                 requiresPaymentReview: order.payments.length > 0,

@@ -62,11 +62,12 @@ const paymentVerificationSchema = {
     paymentId: { type: 'string', description: 'Core payment ID' },
     sessionId: { type: 'string', nullable: true, description: 'PSP session ID' },
     orderId: { type: 'string', nullable: true, description: 'Associated order ID' },
+    orderNumber: { type: 'string' },
     status: { type: 'string', description: 'Payment status (completed, pending, failed)' },
     paidAt: { type: 'string', format: 'date-time', nullable: true, description: 'Payment completion time' },
     paymentMethod: { type: 'string', description: 'Payment method used' },
   },
-  required: ['paymentId', 'sessionId', 'status', 'paymentMethod'],
+  required: ['paymentId', 'sessionId', 'orderNumber', 'status', 'paymentMethod'],
 } as const;
 
 // ============================================================================

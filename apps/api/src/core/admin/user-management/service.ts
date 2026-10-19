@@ -74,16 +74,16 @@ export class AdminUserService {
     const [rows, recentOrders, addressOrder] = await prisma.$transaction([
       prisma.$queryRaw<CustomerRow[]>(Prisma.sql`${customerBase(Prisma.sql`u.role = 'USER' AND u.id = ${userId}`)}`),
       prisma.order.findMany({ where: { userId }, take: 10, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        select: { id: true, status: true, paymentStatus: true, totalAmount: true, currency: true, createdAt: true } }),
+        select: { id: true, orderNumber: true, status: true, paymentStatus: true, totalAmount: true, currency: true, createdAt: true } }),
       prisma.order.findFirst({ where: { userId, shippingAddress: { isNot: null } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        select: { id: true, shippingAddress: true } }),
+        select: { id: true, orderNumber: true, shippingAddress: true } }),
     ], { isolationLevel: 'RepeatableRead' });
     if (!rows[0]) return null;
     const address = addressOrder?.shippingAddress;
     return { ...customerItem(rows[0], currency),
       recentOrders: recentOrders.map(order => ({ ...order, totalAmount: Number(order.totalAmount), createdAt: order.createdAt.toISOString() })),
       latestShippingAddress: address ? {
-        orderId: addressOrder!.id, recipientName: [address.firstName, address.lastName].filter(Boolean).join(' '),
+        orderId: addressOrder!.id, orderNumber: addressOrder!.orderNumber, recipientName: [address.firstName, address.lastName].filter(Boolean).join(' '),
         phone: address.phone, street: address.addressLine1, street2: address.addressLine2,
         city: address.city, state: address.state, zipCode: address.postalCode, country: address.country,
       } : null,

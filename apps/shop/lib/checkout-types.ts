@@ -67,6 +67,7 @@ export type Quote = {
 };
 
 export type Order = {
+  orderNumber: string;
   id: string;
   createdAt: string;
   status: string;

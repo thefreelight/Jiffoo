@@ -1,3 +1,4 @@
+import { createNumberedOrders } from '../helpers/numbered-order';
 import { afterAll, beforeAll, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
@@ -10,10 +11,12 @@ import { createAdminWithToken, createUserWithToken } from '../helpers/auth';
 
 let app: FastifyInstance, admin: Awaited<ReturnType<typeof createAdminWithToken>>, buyer: Awaited<ReturnType<typeof createUserWithToken>>;
 const prefix = 'list-export-' + randomUUID(), ids = [0, 1, 2, 3].map(i => prefix + '-' + i);
+const orderNumbers: Record<string, string> = {};
 const first = '2026-10-01T00:00:00.000Z', last = '2026-10-02T00:00:00.000Z';
 beforeAll(async () => {
   app = await createTestApp({ enableSwagger: true }); admin = await createAdminWithToken(); buyer = await createUserWithToken({ username: '=SUM(1,2)\nBuyer' });
-  await prisma.order.createMany({ data: ids.map((id, i) => ({ id, userId: buyer.user.id, status: 'PROCESSING', paymentStatus: 'PAID', subtotalAmount: i < 2 ? 10 : 20, totalAmount: i < 2 ? 10 : 20, currency: 'USD', createdAt: i < 3 ? first : last })) });
+  await createNumberedOrders(prisma, { data: ids.map((id, i) => ({ id, userId: buyer.user.id, status: 'PROCESSING', paymentStatus: 'PAID', subtotalAmount: i < 2 ? 10 : 20, totalAmount: i < 2 ? 10 : 20, currency: 'USD', createdAt: i < 3 ? first : last })) });
+  Object.assign(orderNumbers, Object.fromEntries((await prisma.order.findMany({ where: { id: { in: ids } } })).map(order => [order.id, order.orderNumber])));
   await prisma.orderShippingAddress.create({ data: { orderId: ids[0], firstName: 'Test', lastName: 'Buyer', addressLine1: '=1+1', addressLine2: 'A,"B"\nC', city: 'City', country: 'US' } });
   await CacheService.incrementOrderVersion();
 });
@@ -61,7 +64,7 @@ it('requires admin authentication before export validation', async () => {
 it('exports ids exactly, ignores unknown ids, localizes headers and protects cells', async () => {
   const spy = vi.spyOn(systemSettingsService, 'getTimezone').mockResolvedValue('Asia/Shanghai');
   try {
-    for (const [locale, header] of [['en', 'Order ID,Placed at'], ['zh-Hans', '订单编号,下单时间'], ['zh-Hant', '訂單編號,下單時間']]) {
+    for (const [locale, header] of [['en', 'Order number,Placed at'], ['zh-Hans', '订单编号,下单时间'], ['zh-Hant', '訂單編號,下單時間']]) {
       const response = await csv({ mode: 'ids', ids: [ids[0], ids[0], 'missing'] }, {}, locale);
       expect(response.statusCode).toBe(200); expect(response.headers['content-type']).toBe('text/csv; charset=utf-8');
       expect(response.headers['content-disposition']).toMatch(/attachment; filename="orders-\d{8}-\d{4}\.csv"/);
@@ -69,26 +72,27 @@ it('exports ids exactly, ignores unknown ids, localizes headers and protects cel
       expect(response.body).toContain('\uFEFF' + header); expect(response.body).toContain('2026-10-01 08:00:00,Asia/Shanghai');
       expect(response.body).toContain('"\'=SUM(1,2)\nBuyer"'); expect(response.body).toContain("'=1+1");
       expect(response.body).toContain('"A,""B""\nC"'); expect(response.body).toContain(',10.00,');
-      expect(response.body).not.toContain(ids[1]); expect(response.body).not.toContain('missing');
+      expect(response.body).not.toContain(orderNumbers[ids[1]]); expect(response.body).not.toContain('missing');
     }
   } finally { spy.mockRestore(); }
 });
 it('exports filters minus exclusions in requested order and validates limits', async () => {
   const response = await csv({ mode: 'filter', filter: { search: prefix, status: 'PROCESSING', paymentStatus: 'PAID', createdFrom: first, createdTo: last }, excludeIds: [ids[1]] }, { sortBy: 'totalAmount', sortOrder: 'asc' });
-  expect(response.statusCode).toBe(200); expect(response.body.indexOf(ids[0])).toBeLessThan(response.body.indexOf(ids[2]));
-  expect(response.body).not.toContain(ids[1]); expect(response.body).not.toContain(ids[3]);
+  expect(response.statusCode).toBe(200); expect(response.body.indexOf(orderNumbers[ids[0]])).toBeLessThan(response.body.indexOf(orderNumbers[ids[2]]));
+  expect(response.body).not.toContain(orderNumbers[ids[1]]); expect(response.body).not.toContain(orderNumbers[ids[3]]);
   for (const selection of [{ mode: 'ids', ids: [] }, { mode: 'ids', ids: Array.from({ length: 101 }, (_, i) => String(i)) }, { mode: 'filter', filter: {}, excludeIds: Array.from({ length: 101 }, (_, i) => String(i)) }]) expect((await csv(selection)).statusCode).toBe(400);
   const invalid = await csv({ mode: 'filter', filter: { createdFrom: last, createdTo: first } });
   expect(invalid.statusCode).toBe(400); expect(invalid.json().error.code).toBe('INVALID_TIME_RANGE');
 });
 it('streams more than one bounded batch without missing or duplicating tied rows', async () => {
   const batchIds = Array.from({ length: 503 }, (_, i) => prefix + '-batch-' + String(i).padStart(4, '0'));
-  await prisma.order.createMany({ data: batchIds.map(id => ({ id, userId: buyer.user.id, subtotalAmount: 1, totalAmount: 1, createdAt: first })) });
+  await createNumberedOrders(prisma, { data: batchIds.map(id => ({ id, userId: buyer.user.id, subtotalAmount: 1, totalAmount: 1, createdAt: first })) });
   for (const sortBy of ['createdAt', 'totalAmount']) {
     const response = await csv({ mode: 'filter', filter: { search: prefix + '-batch-' } }, { sortBy, sortOrder: 'asc' });
     expect(response.statusCode).toBe(200);
-    const idsInCsv = [...response.body.matchAll(new RegExp(prefix + '-batch-\\d{4}', 'g'))].map(match => match[0]);
-    expect(idsInCsv).toEqual(batchIds);
+    const numbers = await prisma.order.findMany({ where: { id: { in: batchIds } }, orderBy: { id: 'asc' }, select: { orderNumber: true } });
+    const idsInCsv = response.body.replace(/^\uFEFF/, '').trim().split('\r\n').slice(1).map(row => row.split(',')[0]);
+    expect(idsInCsv).toEqual(numbers.map(order => order.orderNumber));
   }
 });
 it.each(['=1', '+1', '-1', '@a', '\ttext', '\rtext'])('protects formula prefix %j', value => expect(csvCell(value)).toContain("'" + value));

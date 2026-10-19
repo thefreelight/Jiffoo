@@ -8,6 +8,7 @@
  * - etc.
  */
 
+import { createNumberedOrder } from './numbered-order';
 import { getTestPrisma } from './db';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestUser } from './auth';
@@ -198,7 +199,7 @@ export async function createTestOrder(options: CreateOrderOptions) {
   const id = uuidv4();
   const totalAmount = options.total ?? 0;
 
-  return prisma.order.create({
+  return createNumberedOrder(prisma, {
     data: {
       id,
       userId: options.userId,

@@ -1,3 +1,4 @@
+import { createNumberedOrder } from '../helpers/numbered-order';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
@@ -129,6 +130,16 @@ describe('durable plugin event delivery', () => {
     return event;
   }
   const delivery = (eventId: string, installationId: string) => prisma.eventDelivery.findUniqueOrThrow({ where: { eventId_installationId: { eventId, installationId } } });
+  it('delivers an unchanged stored v1 order payload without an order number', async () => {
+    expect(eventRegistry['order.created'].parse(payload)).toEqual(payload);
+    const installation = await plugin();
+    const event = await prisma.eventRecord.create({ data: { type: 'order.created', version: 1, aggregateId: payload.id, data: payload } });
+    eventIds.push(event.id);
+    await prisma.eventDelivery.create({ data: { eventId: event.id, installationId: installation.id } });
+    await run();
+    expect((await delivery(event.id, installation.id)).status).toBe('SUCCEEDED');
+    expect((await prisma.eventRecord.findUniqueOrThrow({ where: { id: event.id } })).data).toEqual(payload);
+  });
   async function expectDelivery(
     row: Awaited<ReturnType<typeof delivery>>,
     expected: Partial<Awaited<ReturnType<typeof delivery>>>,
@@ -273,7 +284,7 @@ module.exports = { register(ctx) {
       payload: { name: 'Updated event product', variants: [{ id: variant.id, name: 'Single', stock: 3, salePrice: 10 }] },
     });
     expect(updated.statusCode).toBe(200);
-    const order = await prisma.order.create({
+    const order = await createNumberedOrder(prisma, {
       data: {
         userId, status: 'PROCESSING', paymentStatus: 'PAID', subtotalAmount: 10, totalAmount: 10,
         items: { create: { productId, variantId: variant.id, quantity: 1, unitPrice: 10, lineTotal: 10,

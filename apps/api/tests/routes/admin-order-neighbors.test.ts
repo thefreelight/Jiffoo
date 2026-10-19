@@ -1,3 +1,4 @@
+import { createNumberedOrder, createNumberedOrders } from '../helpers/numbered-order';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
@@ -14,9 +15,9 @@ const amounts = [30, 10, 20, 20, 10];
 beforeAll(async () => {
   await redisCache.connect();
   app = await createTestApp({ enableSwagger: true }); admin = await createAdminWithToken(); buyer = await createUserWithToken(); other = await createUserWithToken();
-  await prisma.order.createMany({ data: ids.map((id, i) => ({ id, userId: buyer.user.id, status: i === 2 ? 'PENDING' as const : 'PROCESSING' as const, paymentStatus: 'PAID' as const,
+  await createNumberedOrders(prisma, { data: ids.map((id, i) => ({ id, userId: buyer.user.id, status: i === 2 ? 'PENDING' as const : 'PROCESSING' as const, paymentStatus: 'PAID' as const,
     subtotalAmount: amounts[i], totalAmount: amounts[i], createdAt: new Date(dates[i]) })) });
-  await prisma.order.create({ data: { id: prefix + '-other', userId: other.user.id, subtotalAmount: 10, totalAmount: 10 } });
+  await createNumberedOrder(prisma, { data: { id: prefix + '-other', userId: other.user.id, subtotalAmount: 10, totalAmount: 10 } });
   await CacheService.incrementOrderVersion();
 });
 afterAll(async () => {
@@ -36,7 +37,8 @@ it('filters both list and export by exact customer id without sharing cached lis
     expect(cached?.items.map((item: any) => item.id).sort()).toEqual([...expected].sort());
     const csv = await app.inject({ method: 'POST', url: '/api/v1/admin/orders/export', headers: headers(), payload: { selection: { mode: 'filter', filter: { customerId: customer.user.id } } } });
     expect(csv.statusCode).toBe(200);
-    for (const id of [...ids, prefix + '-other']) expect(csv.body.includes(id + ',')).toBe(expected.includes(id as never));
+    const numbered = new Map((await prisma.order.findMany({ where: { id: { in: [...ids, prefix + '-other'] } }, select: { id: true, orderNumber: true } })).map(order => [order.id, order.orderNumber]));
+    for (const id of [...ids, prefix + '-other']) expect(csv.body.includes(numbered.get(id)! + ',')).toBe(expected.includes(id as never));
   }
 });
 it('numbers customer orders by creation then id and returns the customer total', async () => {

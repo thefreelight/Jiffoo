@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
+import { allocateOrderNumber } from '@/core/order/number';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken } from '../helpers/auth';
 import { loadOpenApiSpec, setOpenApiSpec, validateResponse } from '../helpers/openapi';
@@ -12,6 +13,7 @@ describe('Admin audit event viewer', () => {
   let admin: Awaited<ReturnType<typeof createAdminWithToken>>;
   const userIds: string[] = [];
   const eventIds: string[] = [];
+  const staffIds: string[] = [];
   const target = `audit-${randomUUID()}`;
   const route = '/api/v1/admin/audit-events';
   async function event(overrides: Partial<Prisma.AdminAuditEventCreateInput> = {}) {
@@ -40,10 +42,14 @@ describe('Admin audit event viewer', () => {
   });
   beforeEach(async () => {
     await prisma.adminAuditEvent.deleteMany({ where: { id: { in: eventIds } } });
+    await prisma.adminStaffAuditLog.deleteMany({ where: { id: { in: staffIds } } });
+    staffIds.length = 0;
     eventIds.length = 0;
   });
   afterAll(async () => {
     await prisma.adminAuditEvent.deleteMany({ where: { id: { in: eventIds } } });
+    await prisma.adminStaffAuditLog.deleteMany({ where: { id: { in: staffIds } } });
+    staffIds.length = 0;
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     await app.close();
   });
@@ -65,6 +71,39 @@ describe('Admin audit event viewer', () => {
       expect((await get(invalid)).statusCode).toBe(400);
     }
   });
+  it('merges historical staff rows before filtering, counting, pagination and export reads', async () => {
+    const at = new Date('2039-01-01T00:00:00Z');
+    const core = await event({ id: target + '-core', createdAt: at, targetType: 'staff' });
+    const staff = await prisma.adminStaffAuditLog.create({ data: {
+      id: target + '-staff', createdAt: at, action: 'ADMIN_INVITED', metadata: { reinvite: true },
+      staffUserId: 'deleted-staff', staffEmail: 'past@example.com', staffUsername: 'Past Staff',
+      actorUserId: admin.user.id, actorEmail: 'historical-owner@example.com', actorUsername: 'Historical Owner',
+    } });
+    staffIds.push(staff.id);
+    const system = await prisma.adminStaffAuditLog.create({ data: {
+      action: 'ADMIN_REMOVED', staffUserId: 'deleted-staff', staffEmail: 'past@example.com',
+      createdAt: at, actorUserId: null,
+    } });
+    staffIds.push(system.id);
+    const query = `actorId=${admin.user.id}&category=accounts&from=${at.toISOString()}&to=${at.toISOString()}`;
+    const ordered = [core.id, 'staff:' + staff.id].sort().reverse();
+    const first = await list(query + '&page=1&limit=1');
+    expect(first).toMatchObject({ total: 2, totalPages: 2 });
+    expect(first.items[0].id).toBe(ordered[0]);
+    expect((await list(query + '&page=2&limit=1')).items[0].id).toBe(ordered[1]);
+    const exported = await list(query + '&limit=100');
+    expect(exported.items.map((row: any) => row.id)).toEqual(ordered);
+    expect(exported.items.find((row: any) => row.id === 'staff:' + staff.id)).toMatchObject({
+      action: 'ADMIN_REINVITED', targetLabel: 'Past Staff · past@example.com',
+      actor: { email: 'historical-owner@example.com', username: 'Historical Owner' },
+    });
+    expect((await list(query + '&action=ADMIN_REINVITED&targetType=staff')).total).toBe(1);
+    const systemRows = await list(`actorId=system&action=ADMIN_REMOVED&from=${at.toISOString()}&to=${at.toISOString()}`);
+    expect(systemRows.items).toEqual([expect.objectContaining({ id: 'staff:' + system.id, actorId: 'system', actor: null })]);
+    const filters = (await get('', admin.token, '/filters')).json().data;
+    expect(filters.actions).toContain('ADMIN_REINVITED');
+    expect(filters.targetTypes).toContain('staff');
+  });
   it('filters board categories and supports ascending chronological order without removing existing filters', async () => {
     const first = await event({ action: 'STAFF_INVITED', targetType: 'staff', createdAt: new Date('2026-01-01T00:00:00Z') });
     const second = await event({ action: 'CUSTOMER_PASSWORD_RESET_LINK_GENERATED', targetType: 'customer', createdAt: new Date('2026-01-02T00:00:00Z') });
@@ -81,7 +120,12 @@ describe('Admin audit event viewer', () => {
     const one = await event({ action: `${target}.one`, createdAt: new Date('2026-01-02T00:00:00Z') });
     const two = await event({ actorId: second.user.id, action: `${target}.two`, targetType: `${target}-other`,
       createdAt: new Date('2026-01-04T00:00:00Z') });
-    const ids = async (query: string) => (await list(query)).items.map((row: { id: string }) => row.id);
+    const ids = async (query: string) => {
+      const first = await list(`${query}&limit=100`);
+      const records = [...first.items];
+      for (let page = 2; page <= first.totalPages; page++) records.push(...(await list(`${query}&limit=100&page=${page}`)).items);
+      return records.map((row: { id: string }) => row.id);
+    };
     expect(await ids(`actorId=${admin.user.id}`)).toEqual([one.id]);
     expect(await ids(`action=${target}.two`)).toEqual([two.id]);
     expect(await ids(`targetType=${target}`)).toEqual([one.id]);
@@ -102,6 +146,15 @@ describe('Admin audit event viewer', () => {
       expect(validateResponse(route, 'GET', 400, response.json()).valid).toBe(true);
     }
   });
+  it('resolves a recorded actor id when historical staff rows have no name or email snapshot', async () => {
+    const staff = await prisma.adminStaffAuditLog.create({ data: {
+      action: 'ADMIN_REMOVED', actorUserId: admin.user.id, staffUserId: 'historical-target', staffEmail: 'past@example.com',
+    } });
+    staffIds.push(staff.id);
+    const row = (await list(`actorId=${admin.user.id}&action=ADMIN_REMOVED`)).items.find((record: any) => record.id === 'staff:' + staff.id);
+    expect(row.actor).toMatchObject({ id: admin.user.id, email: admin.user.email, username: admin.user.username });
+    expect(row.targetLabel).toBe('past@example.com');
+  });
 
   it('links only existing accounts in their canonical role route and preserves historical context', async () => {
     const customer = await createUserWithToken();
@@ -117,7 +170,7 @@ describe('Admin audit event viewer', () => {
 
   it('resolves real payment amount and attempt number without changing the stored summary', async () => {
     const { order, account, payment } = await prisma.$transaction(async tx => {
-      const order = await tx.order.create({ data: { id: randomUUID(), userId: admin.user.id, status: 'PENDING', paymentStatus: 'PENDING', subtotalAmount: 459, taxAmount: 0, totalAmount: 459, currency: 'CNY' } });
+      const order = await tx.order.create({ data: { ...await allocateOrderNumber(tx), id: randomUUID(), userId: admin.user.id, status: 'PENDING', paymentStatus: 'PENDING', subtotalAmount: 459, taxAmount: 0, totalAmount: 459, currency: 'CNY' } });
       const account = await tx.paymentProviderAccount.create({ data: { namespace: randomUUID(), merchantAccount: 'audit', environment: 'test' } });
       const payment = await tx.payment.create({ data: { orderId: order.id, providerKey: account.providerKey, idempotencyKey: randomUUID(), paymentMethod: 'audit', amount: 459, currency: 'CNY', attemptNumber: 2 } });
       return { order, account, payment };
@@ -126,7 +179,7 @@ describe('Admin audit event viewer', () => {
       const summary = { paymentId: payment.id, orderId: order.id, reference: 'verified-reference', outcome: 'PAID' };
       const saved = await event({ targetType: 'payment', targetId: payment.id, summary });
       const row = (await list(`actorId=${admin.user.id}`)).items.find((row: { id: string }) => row.id === saved.id);
-      expect(row).toMatchObject({ context: { path: `/orders/${order.id}`, label: order.id }, paymentContext: { amount: '459.00', currency: 'CNY', attemptNumber: 2 }, summary });
+      expect(row).toMatchObject({ context: { path: `/orders/${order.id}`, label: order.orderNumber }, paymentContext: { amount: '459.00', currency: 'CNY', attemptNumber: 2 }, summary });
     } finally {
       await prisma.$transaction([
         prisma.payment.delete({ where: { id: payment.id } }),
@@ -183,14 +236,17 @@ describe('Admin audit event viewer', () => {
     expect(response.statusCode).toBe(200);
     expect(validateResponse(`${route}/filters`, 'GET', 200, response.json()).valid).toBe(true);
     const rows = await prisma.adminAuditEvent.findMany();
+    const staffRows = await prisma.adminStaffAuditLog.findMany();
     const data = response.json().data;
-    expect(data.actions).toEqual([...new Set(rows.map((row) => row.action))].sort());
-    expect(data.targetTypes).toEqual([...new Set(rows.map((row) => row.targetType))].sort());
+    expect(data.actions).toEqual([...new Set([...rows.map(row => row.action), ...staffRows.map(row => row.action === 'ADMIN_INVITED' && (row.metadata as any)?.reinvite ? 'ADMIN_REINVITED' : row.action)])].sort());
+    expect(data.targetTypes).toEqual([...new Set([...rows.map(row => row.targetType), ...staffRows.map(row => row.action === 'CUSTOMER_PASSWORD_RESET_LINK_GENERATED' ? 'customer' : row.action === 'THEME_UNSIGNED_INSTALL_CONFIRMED' ? 'theme' : row.action === 'BUILTIN_PLUGIN_INSTALLED' ? 'plugin' : 'staff')])].sort());
     const actors = await prisma.user.findMany({
-      where: { id: { in: rows.map((row) => row.actorId) } }, orderBy: [{ email: 'asc' }, { id: 'asc' }],
+      where: { id: { in: [...rows.map(row => row.actorId), ...staffRows.flatMap(row => row.actorUserId ? [row.actorUserId] : [])] } }, orderBy: [{ email: 'asc' }, { id: 'asc' }],
       select: { id: true, email: true, username: true, isActive: true },
     });
-    expect(data.actors).toEqual(actors);
+    const expectedActors = new Map(actors.map(actor => [actor.id, actor]));
+    for (const row of staffRows) if (row.actorUserId && row.actorUserId !== 'system' && !expectedActors.has(row.actorUserId)) expectedActors.set(row.actorUserId, { id: row.actorUserId, email: row.actorEmail ?? '', username: row.actorUsername ?? '', isActive: false });
+    expect(data.actors).toEqual([...expectedActors.values()].sort((a, b) => a.email.localeCompare(b.email) || a.id.localeCompare(b.id)));
     expect(data.actors.some((actor: { id: string }) => actor.id === unused.user.id)).toBe(false);
     expect((await get('unknown=value', admin.token, '/filters')).statusCode).toBe(400);
   });

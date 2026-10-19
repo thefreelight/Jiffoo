@@ -45,6 +45,7 @@ export async function emitOrderPaidEvent(
     userId: order.userId,
     order: {
       id: order.id,
+      orderNumber: order.orderNumber,
       userId: order.userId,
       customerEmail: order.customerEmail,
       totalAmount: Number(order.totalAmount),

@@ -288,6 +288,14 @@ external URLs. V1 events are order.created, order.paid, order.cancelled,
 order.refunded, order.fulfilled, payment.succeeded, payment.failed,
 customer.created, product.created, and product.updated.
 
+V1 order event payloads include an optional `orderNumber` string matching
+`PREFIX-YYYYMMDD-NNNN` (2–6 uppercase ASCII prefix letters, 8 date digits,
+and at least 4 sequence digits). Events emitted after the readable-order-number
+release always include this field; older stored events may omit it. For
+`order.paid`, the field belongs to the nested `order` object. Historical event
+snapshots and event versions remain unchanged. HTTP order responses require
+`orderNumber` because all order rows are numbered by the migration.
+
 This event layer supports extensions that do not implement a capability
 contract, including ERP synchronization, CRM delivery, SMS, tagging, and
 reporting, without a Core change. Event handlers run in-process: Core cannot

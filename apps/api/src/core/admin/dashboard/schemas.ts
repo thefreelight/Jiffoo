@@ -73,9 +73,10 @@ const dashboardMetricsSchema = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['requiresPaymentReview'],
+        required: ['requiresPaymentReview', 'orderNumber'],
         properties: {
           id: { type: 'string', description: 'Order ID' },
+          orderNumber: { type: 'string' },
           status: { type: 'string', enum: orderStatusEnum, description: 'Order status' },
           paymentStatus: { type: 'string', enum: paymentStatusEnum, nullable: true, description: 'Payment status' },
           requiresPaymentReview: { type: 'boolean' },

@@ -15,7 +15,7 @@ export async function captureOrderDetail(page: Page, state: 'processing' | 'ship
     await page.goto(original.replace('/en/', '/zh-Hans/'));
     for (const [width, height] of [[1440, 1700], [390, 2000]]) {
       await page.setViewportSize({ width, height });
-      await page.getByRole('heading', { level: 1, name: /^订单 #/ }).click(); await page.keyboard.press('Control+Home');
+      await page.getByRole('heading', { level: 1, name: /^订单 [A-Z]{2,6}-[0-9]{8}-[0-9]{4,}$/ }).click(); await page.keyboard.press('Control+Home');
       await expect(page.getByRole('region', { name: 'Notifications alt+T', exact: true }).getByRole('listitem', { name: /.*/ })).toHaveCount(0);
       const image = await page.screenshot({ ...(writeCapture ? { path: directory + '/detail-' + state + '-' + mode.toLowerCase() + '-' + width + '.png' } : {}), animations: 'disabled' });
       expect(image.readUInt32BE(16)).toBe(width); expect(image.readUInt32BE(20)).toBe(height);

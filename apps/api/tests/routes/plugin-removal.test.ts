@@ -1,3 +1,4 @@
+import { createNumberedOrder } from '../helpers/numbered-order';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { randomUUID } from 'node:crypto';
@@ -207,7 +208,7 @@ describe('Plugin uninstall, restore and purge', () => {
     await prisma.pluginEventSubscription.create({ data: { pluginSlug: slug, eventType: 'order.created', version: 1 } });
     const event = await prisma.eventRecord.create({ data: { type: 'order.created', version: 1, aggregateId: slug, data: { plugin: slug } } }); eventIds.add(event.id);
     const row = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } }); const pkg = await pluginPackageStore.get(slug, row.zipHash!);
-    const order = await prisma.order.create({ data: { userId: customerId, subtotalAmount: 12, totalAmount: 12, paymentMethod: slug } }); orderIds.add(order.id);
+    const order = await createNumberedOrder(prisma, { data: { userId: customerId, subtotalAmount: 12, totalAmount: 12, paymentMethod: slug } }); orderIds.add(order.id);
     const account = await prisma.paymentProviderAccount.create({ data: { namespace: slug, merchantAccount: 'test', environment: 'test' } });
     const payment = await prisma.payment.create({ data: { providerKey: account.providerKey, orderId: order.id, paymentMethod: slug, amount: 12, sessionId: status === 'PENDING' ? randomUUID() : null, status, idempotencyKey: randomUUID(), expiresAt: new Date(Date.now()+30*60_000) } });
     expect((await request(slug, 'uninstall')).status).toBe(200);

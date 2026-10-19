@@ -192,6 +192,7 @@ export class AdminOrderService {
         orderBy: orderSort(options),
         select: {
           id: true,
+          orderNumber: true,
           status: true,
           paymentStatus: true,
           totalAmount: true,
@@ -217,6 +218,7 @@ export class AdminOrderService {
     const result = {
       items: orders.map(order => ({
         id: order.id,
+        orderNumber: order.orderNumber,
         status: order.status,
         paymentStatus: order.paymentStatus,
         totalAmount: Number(order.totalAmount),
@@ -271,6 +273,7 @@ export class AdminOrderService {
       where: { id: orderId },
       select: {
         id: true,
+        orderNumber: true,
         status: true,
         paymentStatus: true,
         totalAmount: true,
@@ -380,6 +383,7 @@ export class AdminOrderService {
     const refundRequired = refundResolutions.some(row => row.status === 'pending');
     return {
       id: order.id,
+      orderNumber: order.orderNumber,
       customerOrderNumber,
       customerOrderCount,
       status: order.status,
@@ -541,7 +545,7 @@ export class AdminOrderService {
         data: { status: OrderStatus.SHIPPED }
       }), { notFound: 'NOT_FOUND' });
       await emitEvent(tx, 'order.fulfilled', 1, orderId, {
-        id: updated.id, userId: updated.userId, status: 'SHIPPED',
+        id: updated.id, orderNumber: updated.orderNumber, userId: updated.userId, status: 'SHIPPED',
         subtotalAmount: Number(updated.subtotalAmount), shippingAmount: Number(updated.shippingAmount),
         taxAmount: Number(updated.taxAmount), totalAmount: Number(updated.totalAmount), currency: updated.currency,
         items: order.items.map((item) => ({
@@ -672,6 +676,7 @@ export class AdminOrderService {
 
         await emitEvent(tx, 'order.refunded', 1, order.id, {
           id: order.id,
+          orderNumber: order.orderNumber,
           orderId: order.id,
           refundId: refund.id,
           userId: order.userId,

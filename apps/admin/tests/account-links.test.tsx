@@ -7,6 +7,7 @@ import ForgotPasswordPage from '@/app/[locale]/(themed)/auth/forgot-password/pag
 import StaffDetailPage from '@/app/[locale]/(themed)/staff/[id]/page'
 import CustomerDetailPage from '@/app/[locale]/(themed)/customers/[id]/page'
 
+const customerOrders = vi.hoisted(() => ({ recent: [] as any[], address: null as any }));
 const { forgotPassword, generateResetLink, generateInviteLink } = vi.hoisted(() => ({
   forgotPassword: vi.fn(),
   generateResetLink: vi.fn(),
@@ -21,7 +22,7 @@ vi.mock('next/navigation', () => ({
 }))
 vi.mock('shared/src/i18n/react', () => ({
   useLocale: () => 'en',
-  useT: () => (key: string) => key,
+  useT: () => (key: string, values?: Record<string, string | number>) => key + (values ? ' ' + Object.values(values).join(' ') : ''),
 }))
 vi.mock('@/lib/api', () => ({
   authApi: { forgotPassword },
@@ -39,7 +40,7 @@ vi.mock('@/lib/hooks/use-api', () => ({
     data: {
       id: 'customer-1', username: 'buyer', email: 'buyer@example.com',
       role: 'USER', isActive: true, avatar: null, locale: null, emailVerified: false,
-      orderCount: 0, paidTotal: 0, currency: 'USD', lastOrderAt: null, recentOrders: [], latestShippingAddress: null,
+      orderCount: 0, paidTotal: 0, currency: 'USD', lastOrderAt: null, recentOrders: customerOrders.recent, latestShippingAddress: customerOrders.address,
       createdAt: '2026-09-23T00:00:00.000Z', updatedAt: '2026-09-23T00:00:00.000Z',
     },
     isLoading: false, error: null, refetch: vi.fn(),
@@ -72,6 +73,7 @@ describe('Admin account links', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    customerOrders.recent = []; customerOrders.address = null;
     ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
     container = document.createElement('div')
     document.body.appendChild(container)
@@ -110,6 +112,15 @@ describe('Admin account links', () => {
     expect(container.querySelector<HTMLInputElement>('input[aria-label="merchant.customers.workspace.resetLink"]')?.value).toContain('token=one')
     expect(container.querySelector('[role="dialog"]')).toBeNull()
     expect(container.textContent).toContain('merchant.customers.workspace.linkNote')
+  })
+
+  it('shows readable numbers in customer orders and address provenance while linking by internal id', async () => {
+    customerOrders.recent = [{ id: 'internal-order', orderNumber: 'JF-20261012-0001', status: 'PROCESSING', paymentStatus: 'PAID', totalAmount: 20, currency: 'USD', createdAt: '2026-10-12T00:00:00Z' }];
+    customerOrders.address = { orderId: 'internal-order', orderNumber: 'JF-20261012-0001', recipientName: 'Buyer', street: '1 Road', city: 'City', country: 'US' };
+    await act(async () => root.render(<CustomerDetailPage />));
+    expect(container.textContent).toContain('JF-20261012-0001');
+    expect(container.textContent).not.toContain('internal-order');
+    expect(container.querySelectorAll('a[href="/en/orders/internal-order"]')).toHaveLength(3);
   })
 
   it('shows an Admin invite link on staff detail', async () => {

@@ -71,14 +71,14 @@ export class CacheService {
   static async getOrderList(page: number, limit: number, filters?: any): Promise<any | null> {
     const version = await this.getOrderVersion();
     const filterKey = filters ? JSON.stringify(filters) : 'all';
-    const listKey = `${this.PREFIXES.ORDER}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    const listKey = `${this.PREFIXES.ORDER}list:order-number-v1:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
     return await redisCache.get(listKey);
   }
 
   static async setOrderList(page: number, limit: number, data: any, filters?: any, ttl: number = 600): Promise<boolean> {
     const version = await this.getOrderVersion();
     const filterKey = filters ? JSON.stringify(filters) : 'all';
-    const listKey = `${this.PREFIXES.ORDER}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    const listKey = `${this.PREFIXES.ORDER}list:order-number-v1:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
     return await redisCache.set(listKey, data, ttl);
   }
 

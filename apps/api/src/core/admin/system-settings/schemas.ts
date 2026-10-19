@@ -27,6 +27,7 @@ const settingsSchema = {
   type: 'object',
   properties: {
     'branding.platform_name': { type: 'string', description: 'Store/platform display name' },
+    'orders.number_prefix': { type: 'string', pattern: '^[A-Z]{2,6}$(?![\\s\\S])', description: 'Prefix for new order numbers only' },
     'branding.logo': { type: 'string', nullable: true, description: 'Store logo URL' },
     'branding.store_description': { type: 'string', nullable: true, description: 'Store description' },
     'contact.email': { type: 'string', nullable: true, description: 'Contact email' },

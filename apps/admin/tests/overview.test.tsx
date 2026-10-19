@@ -29,7 +29,7 @@ beforeEach(() => {
     metrics: { currency: 'USD' }, today: { paidSales: 123.45, orders: 7, newCustomers: 2 }, yesterday: { paidSales: 20, orders: 3, newCustomers: 1 },
     attention: { paymentReviewCount: 4, toShipCount: 5 },
     dailySales: Array.from({ length: 14 }, (_, index) => ({ date: '2026-10-' + String(index + 1).padStart(2, '0'), paidSales: index === 13 ? 123.45 : 0, orders: index === 13 ? 7 : 0 })),
-    recentOrders: [{ id: 'order-1', status: 'PROCESSING', paymentStatus: 'PAID', requiresPaymentReview: true, totalAmount: 123.45, currency: 'USD', createdAt: '2026-10-12T16:15:00Z', customer: { email: 'buyer@example.test' } }],
+    recentOrders: [{ id: 'order-1', orderNumber: 'JF-20261012-0001', status: 'PROCESSING', paymentStatus: 'PAID', requiresPaymentReview: true, totalAmount: 123.45, currency: 'USD', createdAt: '2026-10-12T16:15:00Z', customer: { email: 'buyer@example.test' } }],
   } };
 });
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = undefined; document.body.innerHTML = ''; vi.unstubAllGlobals(); });
@@ -51,6 +51,7 @@ it('shows real figures, attention links, store-local dates, review pills and an 
   expect(chart.children[13].getAttribute('title')).toBe('10-14 · $123.45');
   expect(chart.children[13].className).toContain('opacity-100');
   expect(container.querySelector('article a')?.getAttribute('href')).toBe('/en/orders/order-1');
+  expect(container.textContent).toContain('JF-20261012-0001');
   expect(container.textContent).not.toMatch(/%|vs yesterday|Analytics|Ledger|No Signal/);
 });
 it.each(['en', 'zh-Hans', 'zh-Hant'])('renders quiet zero states and translated copy in %s', async locale => {

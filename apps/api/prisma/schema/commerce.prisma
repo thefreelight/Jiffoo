@@ -138,6 +138,7 @@ model ProductTranslation {
 // ============================================================
 model Order {
   id     String      @id @default(cuid())
+  orderNumber String @unique @map("order_number")
   userId String
   status OrderStatus @default(PENDING)
 
@@ -183,6 +184,14 @@ model Order {
   @@index([expiresAt])
   @@index([userId])
   @@map("orders")
+  @@schema("public")
+}
+
+model OrderNumberCounter {
+  day String @id
+  lastValue Int @map("last_value")
+
+  @@map("order_number_counters")
   @@schema("public")
 }
 

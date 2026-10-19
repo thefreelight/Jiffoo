@@ -129,6 +129,7 @@ export interface ShipmentResponse {
 
 // Order Response Interface
 export interface OrderResponse {
+  orderNumber: string;
   id: string;
   userId: string;
   status: OrderStatusType;

@@ -275,12 +275,12 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     try {
       const { paymentId } = request.params as { paymentId: string };
       await queryPaymentByRequestKey(paymentId);
-      const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+      const payment = await prisma.payment.findUnique({ where: { id: paymentId }, include: { order: { select: { orderNumber: true } } } });
       if (!payment) throw new ApiError('NOT_FOUND');
       const capture = payment.status === 'SUCCEEDED' ? await prisma.paymentLedger.findFirst({
         where: { paymentId, eventType: 'SUCCEEDED' }, orderBy: { createdAt: 'asc' }, select: { createdAt: true },
       }) : null;
-      return sendSuccess(reply, { paymentId, sessionId: payment.sessionId, orderId: payment.orderId,
+      return sendSuccess(reply, { paymentId, sessionId: payment.sessionId, orderId: payment.orderId, orderNumber: payment.order.orderNumber,
         status: payment.status === 'SUCCEEDED' ? 'paid' : payment.status, paidAt: capture?.createdAt ?? null,
         paymentMethod: payment.paymentMethod });
     } catch (error) { return sendMappedError(reply, error); }

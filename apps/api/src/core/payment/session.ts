@@ -89,7 +89,7 @@ export async function createPaymentSession(input: SessionInput) {
       throw new ApiError('PAYMENT_REQUIRES_REVIEW');
     }
     if (current.sessionId && current.actionJson) await createNotification(tx, 'order_confirmation', input.userId, reservation.order.customerEmail || input.email, {
-      orderId: input.orderId, instructions: fact.action?.type === 'instructions' ? fact.action.text : '',
+      orderId: reservation.order.orderNumber, instructions: fact.action?.type === 'instructions' ? fact.action.text : '',
     }, { relatedType: 'order', relatedId: input.orderId, dedupKey: 'notification:order_confirmation:' + input.orderId });
     return current;
   });

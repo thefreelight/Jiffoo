@@ -94,6 +94,7 @@ const shipmentResponseSchema = {
 const orderResponseSchema = {
   type: 'object',
   properties: {
+    orderNumber: { type: 'string', pattern: '^[A-Z]{2,6}-[0-9]{8}-[0-9]{4,}$' },
     id: { type: 'string', description: 'Order ID' },
     userId: { type: 'string', description: 'User ID who placed the order' },
     status: { type: 'string', enum: orderStatusEnum, description: 'Order status' },
@@ -127,7 +128,7 @@ const orderResponseSchema = {
     cancelReason: { type: 'string', nullable: true, description: 'Cancellation reason (if cancelled)' },
     cancelledAt: { type: 'string', format: 'date-time', nullable: true, description: 'Cancellation time (if cancelled)' },
   },
-  required: ['id', 'userId', 'status', 'paymentStatus', 'totalAmount', 'currency', 'items', 'createdAt', 'updatedAt'],
+  required: ['id', 'orderNumber', 'userId', 'status', 'paymentStatus', 'totalAmount', 'currency', 'items', 'createdAt', 'updatedAt'],
 } as const;
 
 // ============================================================================
@@ -227,7 +228,7 @@ export const orderSchemas = {
       type: 'object',
       required: ['id'],
       properties: {
-        id: { type: 'string', description: 'Order ID' },
+        id: { type: 'string', description: 'Internal order ID or readable order number' },
       },
     },
     response: createTypedReadResponses(orderResponseSchema),

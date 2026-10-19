@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const id = z.string().min(1);
 const amount = z.number().finite().nonnegative();
+const orderNumber = z.string().regex(/^[A-Z]{2,6}-[0-9]{8}-[0-9]{4,}$/).optional();
 const json: z.ZodType<unknown> = z.lazy(() => z.union([
   z.string(), z.number().finite(), z.boolean(), z.null(), z.array(json), z.record(json),
 ]));
@@ -34,7 +35,7 @@ export const eventRegistry = {
   'product.created': product,
   'product.updated': product,
   'order.fulfilled': z.object({
-    id, userId: id, status: z.literal('SHIPPED'),
+    id, orderNumber, userId: id, status: z.literal('SHIPPED'),
     subtotalAmount: amount, shippingAmount: amount, taxAmount: amount, totalAmount: amount,
     currency: id, items: z.array(item),
     shipment: z.object({
@@ -43,10 +44,10 @@ export const eventRegistry = {
       items: z.array(z.object({ orderItemId: id, quantity: z.number().int().positive() }).strict()),
     }).strict(),
   }).strict(),
-  'order.created': z.object({ id, userId: id, totalAmount: amount, currency: id, items: z.array(item) }).strict(),
-  'order.cancelled': z.object({ id, orderId: id, userId: id, reason: z.string() }).strict(),
+  'order.created': z.object({ id, orderNumber, userId: id, totalAmount: amount, currency: id, items: z.array(item) }).strict(),
+  'order.cancelled': z.object({ id, orderNumber, orderId: id, userId: id, reason: z.string() }).strict(),
   'order.refunded': z.object({
-    id, orderId: id, refundId: id, userId: id, paymentId: id.optional(),
+    id, orderNumber, orderId: id, refundId: id, userId: id, paymentId: id.optional(),
     amount, currency: id, fullyRefunded: z.boolean(), reason: z.string().optional(),
     providerRefundId: id.optional(),
     items: z.array(z.object({ orderItemId: id, quantity: z.number().int().positive() }).strict()).optional(),
@@ -54,7 +55,7 @@ export const eventRegistry = {
   'order.paid': z.object({
     orderId: id, userId: id,
     order: z.object({
-      id, userId: id, customerEmail: z.string().nullable(), totalAmount: amount, currency: id,
+      id, orderNumber, userId: id, customerEmail: z.string().nullable(), totalAmount: amount, currency: id,
       items: z.array(item.extend({
         productName: z.string().optional(), variantName: z.string().optional(),
         skuCode: z.string().nullable().optional(), productTypeData: record,

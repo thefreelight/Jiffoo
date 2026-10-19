@@ -27,7 +27,7 @@ let releaseProfiles: (() => void) | undefined;
 let profileLatch: Promise<void> | undefined;
 const product = { id: 'cm8abcdefghijklmnopqrstuv', slug: 'fixture-product', name: 'Fixture product', description: null, categoryName: null, categorySlug: null, price: 10, stock: 20, images: [], variants: [{ id: 'cm7abcdefghijklmnopqrstuv', name: 'Standard', skuCode: 'SKU', salePrice: 10, stock: 20, attributes: null }] };
 function cartFor(name: string, count: number) { return { items: [{ id: 'cm6abcdefghijklmnopqrstuv', productId: product.id, variantId: product.variants[0].id, productName: `${name} private cart`, variantName: 'Standard', price: 10, quantity: count, maxQuantity: 20, subtotal: count * 10 }], itemCount: count, subtotal: count * 10 }; }
-function orderFor(id: string) { return { id, createdAt: '2026-10-05T00:00:00Z', status: 'PENDING', paymentStatus: 'PENDING', paymentInstructions: null, paymentSessionId: null, items: [], shippingAddress: address, currency: 'USD', subtotalAmount: 30, shippingAmount: 0, taxAmount: 0, totalAmount: 30, taxInclusive: false, shippingMethod: { label: 'Free shipping' }, shipments: [], cancelReason: null, cancelledAt: null, unpaidExpiresAt: null }; }
+function orderFor(id: string) { return { id, orderNumber: 'JF-20261005-0001', createdAt: '2026-10-05T00:00:00Z', status: 'PENDING', paymentStatus: 'PENDING', paymentInstructions: null, paymentSessionId: null, items: [], shippingAddress: address, currency: 'USD', subtotalAmount: 30, shippingAmount: 0, taxAmount: 0, totalAmount: 30, taxInclusive: false, shippingMethod: { label: 'Free shipping' }, shipments: [], cancelReason: null, cancelledAt: null, unpaidExpiresAt: null }; }
 const calls: Array<{ path: string; authorization?: string }> = [];
 
 beforeAll(async () => {

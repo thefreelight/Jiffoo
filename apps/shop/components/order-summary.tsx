@@ -27,7 +27,7 @@ export function OrderSummary({ order, locale, cancelled = false }: { order: Orde
             : state === 'manual' ? t.s4.manualBody : t.s4.pendingBody}</p>}
         </div>
         {state !== 'cancelled' && <div className="space-y-4 rounded-lg border border-line p-6">
-          <p className="flex flex-wrap justify-between gap-3 border-b border-line pb-4"><span className="text-subtle">{t.s4.orderNumber}</span><span className="break-all font-mono text-[13px]">{order.id}</span></p>
+          <p className="flex flex-wrap justify-between gap-3 border-b border-line pb-4"><span className="text-subtle">{t.s4.orderNumber}</span><span className="break-all font-mono text-[13px]">{order.orderNumber}</span></p>
           <dl className="space-y-2.5">
             {order.items.map((item) => <div key={item.id} className="flex justify-between gap-3"><dt className="text-subtle">{item.productName}{item.variantName ? ` · ${item.variantName}` : ''} × {item.quantity}</dt><dd className="shrink-0 tabular-nums">{money(item.totalPrice)}</dd></div>)}
             <div className="flex justify-between"><dt className="text-subtle">{t.checkout.shipping}</dt><dd>{money(order.shippingAmount)}</dd></div>

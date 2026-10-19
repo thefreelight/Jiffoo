@@ -29,7 +29,7 @@ export async function createOrderExport(selection: OrderExportSelection, sort: O
       for (const order of batch) {
         const address = order.shippingAddress, shipment = order.shipments[0];
         const paymentLabel = order.paymentStatus === 'PAID' ? orders.paid : order.paymentStatus === 'REFUNDED' ? orders.refunded : labels.unpaid;
-        yield [order.id, timestamp(order.createdAt), timezone, orders[order.status.toLowerCase()], paymentLabel,
+        yield [order.orderNumber, timestamp(order.createdAt), timezone, orders[order.status.toLowerCase()], paymentLabel,
           yesNo(order.payments.length > 0), order.user.email, order.user.username,
           order.items.length, order.items.reduce((sum, item) => sum + item.quantity, 0),
           order.subtotalAmount.toFixed(2), order.shippingAmount.toFixed(2), order.taxAmount.toFixed(2), yesNo(order.taxInclusive),

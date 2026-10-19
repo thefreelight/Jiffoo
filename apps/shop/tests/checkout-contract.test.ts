@@ -44,7 +44,7 @@ function normalizedPageUrl(file: string): string {
 
 describe('Shop checkout boundaries', () => {
   it.each([['en', enCommon], ['zh-Hans', hansCommon], ['zh-Hant', hantCommon]] as const)('v2 payment uncertainty and refund-required render the approved messages in %s', (locale, copy) => {
-    const order = { id: 'order-1', createdAt: '2026-10-10T00:00:00Z', status: 'PENDING', paymentStatus: 'PENDING',
+    const order = { id: 'order-1', orderNumber: 'JF-20261010-0001', createdAt: '2026-10-10T00:00:00Z', status: 'PENDING', paymentStatus: 'PENDING',
       paymentInstructions: null, paymentSessionId: null, items: [], shippingAddress: null, currency: 'USD', subtotalAmount: 20,
       shippingAmount: 0, taxAmount: 0, taxInclusive: false, totalAmount: 20, shippingMethod: null, shipments: [], cancelReason: null, cancelledAt: null, unpaidExpiresAt: null };
     const unknown = renderToStaticMarkup(createElement(OrderDetail, { initialOrder: { ...order, paymentAttemptState: 'UNKNOWN', refundRequired: true }, locale, timezone: 'UTC' }));

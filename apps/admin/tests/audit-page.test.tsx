@@ -13,13 +13,25 @@ beforeEach(() => { vi.clearAllMocks(); mock.query = ''; (globalThis as { IS_REAC
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
 async function render() { await act(async () => root.render(<AuditEventsPage />)); }
 async function click(name: string) { const button = [...document.querySelectorAll('button')].find(element => element.textContent === name || element.getAttribute('aria-label') === name); expect(button).toBeDefined(); await act(async () => button!.click()); }
+it.each([
+  ['ADMIN_INVITED', 'Administrator invited'], ['ADMIN_REINVITED', 'Administrator re-invited'],
+  ['ADMIN_REMOVED', 'Administrator removed'], ['ADMIN_INVITE_ACCEPTED', 'Administrator accepted invitation'],
+  ['THEME_UNSIGNED_INSTALL_CONFIRMED', 'Unsigned theme installation confirmed'], ['BUILTIN_PLUGIN_INSTALLED', 'Built-in plugin installed'],
+])('shows historical staff action %s with its target snapshot', async (action, label) => {
+  mock.list.mockResolvedValue({ items: [{ ...item, action, targetType: 'staff', targetLabel: 'Past Staff · past@example.com', actor: null, actorId: 'system' }], total: 1, totalPages: 1 });
+  await render(); expect(container.textContent).toContain(label);
+  expect(container.textContent).toContain('Past Staff · past@example.com');
+  expect(container.textContent).toContain('System');
+});
 it('does not invent target links and renders verified context with payment facts', async () => {
-  mock.list.mockResolvedValue({ items: [{ ...item, context: { path: '/orders/real-order', label: 'real-order' }, paymentContext: { amount: '459.00', currency: 'CNY', attemptNumber: 2 }, summary: { version: '2.3.1', revision: 6 } }], total: 1, totalPages: 1 });
+  mock.list.mockResolvedValue({ items: [{ ...item, context: { path: '/orders/real-order', label: 'JF-20261013-0001' }, paymentContext: { amount: '459.00', currency: 'CNY', attemptNumber: 2 }, summary: { orderId: 'real-order', version: '2.3.1', revision: 6 } }], total: 1, totalPages: 1 });
   await render(); await click('Expand: Store timezone changed');
   expect(container.querySelector('a[href="/en/orders/real-order"]')).not.toBeNull();
   expect(container.textContent).toContain('CNY 459.00');
   expect(container.textContent).toContain('Payment attempt 2');
   expect(container.textContent).toContain('2.3.1');
+  expect(container.textContent).toContain('JF-20261013-0001');
+  expect(container.textContent).not.toContain('real-order');
 });
 it('opens human facts and then literal technical details on desktop and phone', async () => { await render(); await click('Expand: Store timezone changed'); expect(container.textContent).toContain('Before'); expect(container.textContent).toContain('Asia/Shanghai'); await click('Technical details (raw record) ›'); expect(container.querySelector('pre')!.textContent).toContain('"from": "UTC"'); expect(container.textContent).toContain('Owner'); });
 it.each([['NOTIFICATION_RESENT', 'Notification resent'], ['CUSTOMER_PASSWORD_RESET_LINK_GENERATED', 'Customer password reset link generated'], ['PAYMENT_REVIEW_CONFIRMED_PAID', 'Confirmed payment received']])('uses a merchant-readable label for %s', async (action, label) => { mock.list.mockResolvedValue({ items: [{ ...item, action }], total: 1, totalPages: 1 }); await render(); expect(container.textContent).toContain(label); expect(container.textContent).not.toContain(action); });

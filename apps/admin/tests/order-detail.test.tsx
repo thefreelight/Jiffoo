@@ -49,7 +49,7 @@ beforeEach(() => {
   sessionStorage.clear();
   vi.clearAllMocks(); state.pending = false; state.error = null;
   state.neighbors = { position: 1, total: 1, previousId: null, nextId: null };
-  state.order = { id: 'order-1', status: 'PROCESSING', paymentStatus: 'PAID', totalAmount: 25, currency: 'USD', createdAt: '2026-10-12T16:00:00Z',
+  state.order = { id: 'order-1', orderNumber: 'JF-20261012-0001', status: 'PROCESSING', paymentStatus: 'PAID', totalAmount: 25, currency: 'USD', createdAt: '2026-10-12T16:00:00Z',
     amounts: { subtotal: 20, shipping: 3, tax: 2, taxInclusive: true, total: 25 },
     customerOrderNumber: 1, customerOrderCount: 2, shipments: [],
     items: [{ id: 'item-1', productId: 'product-1', productName: 'Snapshot product', variantName: 'Snapshot variant', skuCode: 'SKU-1', quantity: 2, unitPrice: 10, totalPrice: 20 }],
@@ -187,7 +187,7 @@ it('copies id, full displayed address and tracking text without moving focus and
   state.order.shippingAddress = { recipientName: 'Buyer', phone: '+1 555', street: '1 Road', street2: 'Unit 2', city: 'City', state: 'CA', zipCode: '12345', country: 'US' };
   state.order.shipments = [{ id: 's', carrier: 'Carrier', trackingNumber: 'A & B', status: 'SHIPPED', shippedAt: state.order.createdAt }];
   const container = await mount();
-  for (const [label, value] of [['Copy order ID', 'order-1'], ['Copy shipping address including recipient and phone', 'Buyer · +1 555\n1 Road\nUnit 2\nCity CA 12345 · US'], ['Copy tracking number', 'A & B']]) {
+  for (const [label, value] of [['Copy order number', 'JF-20261012-0001'], ['Copy shipping address including recipient and phone', 'Buyer · +1 555\n1 Road\nUnit 2\nCity CA 12345 · US'], ['Copy tracking number', 'A & B']]) {
     const control = container.querySelector<HTMLButtonElement>('button[aria-label="' + label + '"]')!; control.focus();
     await act(async () => control.click()); expect(writeText).toHaveBeenLastCalledWith(value); expect(document.activeElement).toBe(control);
     expect(control.parentElement?.textContent).toContain('Copied');
@@ -195,6 +195,6 @@ it('copies id, full displayed address and tracking text without moving focus and
   const link = container.querySelector('a[aria-label="Track shipment (opens in 17TRACK)"]')!;
   expect(link.getAttribute('href')).toBe('https://t.17track.net/en#nums=A%20%26%20B'); expect(link.getAttribute('target')).toBe('_blank'); expect(link.getAttribute('rel')).toBe('noopener noreferrer');
   writeText.mockRejectedValue(new Error('Denied'));
-  await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="Copy order ID"]')!.click());
+  await act(async () => container.querySelector<HTMLButtonElement>('button[aria-label="Copy order number"]')!.click());
   expect(container.querySelector('[role="alert"]')?.textContent).toBe(merchant.orders.detailView.copyError);
 });

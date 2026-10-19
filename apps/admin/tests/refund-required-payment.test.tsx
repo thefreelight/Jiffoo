@@ -28,7 +28,7 @@ afterEach(async () => {
   for (const { root, container } of mounted.splice(0)) { await act(async () => root.unmount()); container.remove(); }
   vi.clearAllMocks();
 });
-const order = { id: 'order-1', userId: 'user-1', status: 'PROCESSING', paymentStatus: 'PAID', totalAmount: 20, amounts: { subtotal: 20, shipping: 0, tax: 0, taxInclusive: false, total: 20 }, timeline: [],
+const order = { id: 'order-1', orderNumber: 'JF-20261010-0001', userId: 'user-1', status: 'PROCESSING', paymentStatus: 'PAID', totalAmount: 20, amounts: { subtotal: 20, shipping: 0, tax: 0, taxInclusive: false, total: 20 }, timeline: [],
   currency: 'USD', customerOrderNumber: 1, customerOrderCount: 1, shippingAddress: null, createdAt: '2026-10-10T00:00:00Z', updatedAt: '2026-10-10T00:00:00Z', items: [],
   customer: { id: 'user-1', email: 'buyer@example.test', username: 'buyer' },
 } satisfies AdminOrderDetailDTO;

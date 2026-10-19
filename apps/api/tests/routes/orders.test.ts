@@ -135,6 +135,15 @@ describe('Orders Endpoints', () => {
     const created = await app.inject({ method: 'POST', url: '/api/v1/orders', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal } });
     expect(created.statusCode).toBe(201);
     const orderId = created.json().data.id;
+    const orderNumber = created.json().data.orderNumber;
+    expect(orderNumber).toMatch(/^[A-Z]{2,6}-[0-9]{8}-[0-9]{4,}$/);
+    const createdEvent = await prisma.eventRecord.findFirstOrThrow({ where: { aggregateId: orderId, type: 'order.created' } });
+    expect(createdEvent.data).toMatchObject({ orderNumber });
+    const numberedLookup = await app.inject({ url: `/api/v1/orders/${orderNumber}`, headers: { authorization: `Bearer ${userToken}` } });
+    expect(numberedLookup.statusCode).toBe(200);
+    expect(numberedLookup.json().data).toMatchObject({ id: orderId, orderNumber });
+    const numberedSearch = await app.inject({ url: `/api/v1/admin/orders?search=${orderNumber}`, headers: { authorization: `Bearer ${adminToken}` } });
+    expect(numberedSearch.json().data.items).toEqual([expect.objectContaining({ id: orderId, orderNumber })]);
     const stored = await prisma.orderItem.findFirstOrThrow({ where: { orderId } });
     expect(stored.catalogSnapshot).toMatchObject({ source: 'order-time', productName: 'Snapshot Test Product', variantName: variant.name, productImages: ['original.png'], productTranslations: { 'zh-Hans': '原始商品' } });
     expect(stored.lineTotal.toString()).toBe('29.97');
@@ -150,6 +159,7 @@ describe('Orders Endpoints', () => {
     expect(admin.statusCode).toBe(200);
     expect(admin.json().data.items[0]).toMatchObject(expectedItem);
     const paid = await prisma.$transaction(tx => emitOrderPaidEvent(tx, orderId));
+    expect(paid?.order.orderNumber).toBe(orderNumber);
     expect(paid?.order.items[0]).toMatchObject({ productName: product.name, variantName: variant.name, skuCode: variant.skuCode ?? undefined, productTypeData: { images: ['original.png', 7] } });
     const hidden = await app.inject({ url: `/api/v1/products/${product.id}` });
     expect(hidden.statusCode).toBe(404);

@@ -25,15 +25,15 @@ export default async function OrdersPage({ params, searchParams }: {
     <div className="hidden overflow-hidden rounded-lg border border-line md:block"><table aria-label={t.orders.title} className="w-full text-left">
       <thead className="bg-[var(--shop-core-raised)] text-xs font-medium text-subtle"><tr>{[t.s4.orderNumber, t.orders.date, t.checkout.orderStatus, t.checkout.total, t.orders.view].map((label) => <th key={label} className="px-4 py-2.5 font-medium">{label}</th>)}</tr></thead>
       <tbody>{result?.items.map((order) => <tr key={order.id} className="border-t border-line">
-        <td className="px-4 py-3.5 font-mono text-[13px]">{order.id}</td><td className="px-4 py-3.5 text-subtle"><time dateTime={order.createdAt}>{formatStoreTimestamp(order.createdAt, context.timezone)}</time></td>
+        <td className="px-4 py-3.5 font-mono text-[13px]">{order.orderNumber}</td><td className="px-4 py-3.5 text-subtle"><time dateTime={order.createdAt}>{formatStoreTimestamp(order.createdAt, context.timezone)}</time></td>
         <td className="px-4 py-3.5"><OrderStatus status={order.status} paymentStatus={order.paymentStatus} locale={locale} /></td>
         <td className="px-4 py-3.5 tabular-nums">{formatPrice(order.totalAmount, locale, order.currency)}</td>
         <td className="px-4 py-3.5"><Link href={`/${locale}/account/orders/${order.id}`} className="text-subtle">{t.orders.view}</Link></td>
       </tr>)}</tbody>
     </table></div>
     <ul aria-label={t.orders.title} className="space-y-2.5 md:hidden">{result?.items.map((order) => <li key={order.id}>
-      <Link href={`/${locale}/account/orders/${order.id}`} aria-label={`${t.orders.view} ${order.id}`} className="flex flex-col gap-1.5 rounded-lg border border-line px-4 py-3.5">
-        <div className="flex flex-wrap justify-between gap-2"><span className="break-all font-mono text-xs">{order.id}</span><OrderStatus status={order.status} paymentStatus={order.paymentStatus} locale={locale} /></div>
+      <Link href={`/${locale}/account/orders/${order.id}`} aria-label={`${t.orders.view} ${order.orderNumber}`} className="flex flex-col gap-1.5 rounded-lg border border-line px-4 py-3.5">
+        <div className="flex flex-wrap justify-between gap-2"><span className="break-all font-mono text-xs">{order.orderNumber}</span><OrderStatus status={order.status} paymentStatus={order.paymentStatus} locale={locale} /></div>
         <div className="flex justify-between gap-3"><time className="text-[13px] text-subtle" dateTime={order.createdAt}>{formatStoreTimestamp(order.createdAt, context.timezone)}</time><span className="shrink-0 tabular-nums">{formatPrice(order.totalAmount, locale, order.currency)}</span></div>
       </Link>
     </li>)}</ul>

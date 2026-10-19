@@ -1,4 +1,7 @@
 const labels = {
+  orderNumberPrefix: ['Order number prefix', '订单号前缀', '訂單號前綴'],
+  orderNumberPrefixHint: ['Applies to new orders only', '仅适用于新订单', '僅適用於新訂單'],
+  invalidOrderNumberPrefix: ['Enter 2 to 6 uppercase letters (A–Z).', '请输入 2 至 6 个大写字母（A–Z）。', '請輸入 2 至 6 個大寫字母（A–Z）。'],
   currencyFormat: ['{name} {code} ({symbol})', '{name} {code}（{symbol}）', '{name} {code}（{symbol}）'],
   title: ['Settings', '设置', '設定'], description: ['Basic shop information and shop-wide rules.', '店铺的基本信息和全店通用的规则。', '店鋪的基本資訊和全店通用的規則。'],
   store: ['Shop information', '店铺信息', '店鋪資訊'], contact: ['Contact details', '联系方式', '聯絡方式'], region: ['Language, currency and timezone', '语言、货币与时区', '語言、貨幣與時區'], checkout: ['Checkout', '结账', '結帳'], tokens: ['API tokens', 'API 令牌', 'API 權杖'], sections: ['Settings sections', '设置分区', '設定分區'],

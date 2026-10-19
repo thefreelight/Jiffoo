@@ -30,6 +30,7 @@ const adminOrderListItemSchema = {
   type: 'object',
   properties: {
     id: { type: 'string', description: 'Order ID' },
+    orderNumber: { type: 'string', pattern: '^[A-Z]{2,6}-[0-9]{8}-[0-9]{4,}$' },
     status: { type: 'string', enum: orderStatusEnum, description: 'Order status' },
     paymentStatus: { type: 'string', enum: paymentStatusEnum, nullable: true, description: 'Payment status' },
     totalAmount: { type: 'number', description: 'Total order amount' },
@@ -48,7 +49,7 @@ const adminOrderListItemSchema = {
       required: ['id', 'email', 'username'],
     },
   },
-  required: ['id', 'status', 'totalAmount', 'currency', 'createdAt', 'itemsCount', 'itemQuantitySum', 'requiresPaymentReview', 'customer'],
+  required: ['id', 'orderNumber', 'status', 'totalAmount', 'currency', 'createdAt', 'itemsCount', 'itemQuantitySum', 'requiresPaymentReview', 'customer'],
 } as const;
 
 const adminOrderDetailSchema = {
@@ -66,6 +67,7 @@ const adminOrderDetailSchema = {
           fromPaymentStatus: { type: 'string', nullable: true }, toPaymentStatus: { type: 'string', nullable: true }, actorType: { type: 'string', nullable: true } } },
     },
     id: { type: 'string', description: 'Order ID' },
+    orderNumber: { type: 'string', pattern: '^[A-Z]{2,6}-[0-9]{8}-[0-9]{4,}$' },
     status: { type: 'string', enum: orderStatusEnum, description: 'Order status' },
     paymentStatus: { type: 'string', enum: paymentStatusEnum, nullable: true, description: 'Payment status' },
     totalAmount: { type: 'number', description: 'Total order amount' },
@@ -168,7 +170,7 @@ const adminOrderDetailSchema = {
     },
   },
   required: [
-    'amounts', 'timeline', 'customerOrderNumber', 'customerOrderCount',
+    'amounts', 'timeline', 'customerOrderNumber', 'customerOrderCount', 'orderNumber',
     'id',
     'status',
     'paymentStatus',
@@ -233,7 +235,7 @@ export const orderFilterProperties = {
   status: { type: 'string', enum: orderStatusEnum, description: 'Filter by order status' },
   paymentStatus: { type: 'string', enum: ['PAID', 'UNPAID', 'REFUNDED'], description: 'Unpaid includes pending and failed payments' },
   paymentReview: { type: 'string', enum: ['required'], description: 'Filter orders with unresolved payment reviews' },
-  search: { type: 'string', description: 'Search by order id, customer email, or username' },
+  search: { type: 'string', description: 'Search by order number, internal id, customer email, or username' },
   createdFrom: { type: 'string', format: 'date-time', description: 'Inclusive UTC lower bound' },
   createdTo: { type: 'string', format: 'date-time', description: 'Exclusive UTC upper bound' },
 } as const;

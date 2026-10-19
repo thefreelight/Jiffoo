@@ -30,6 +30,7 @@ export interface OrderItemDTO {
 // ============================================================================
 
 export interface ShopOrderListItemDTO {
+  orderNumber: string;
   id: string;
   userId: string;
   status: string;
@@ -61,6 +62,7 @@ export type ShopOrderDetailDTO = ShopOrderListItemDTO;
 
 // Admin order list item DTO (flattened customer info)
 export interface AdminOrderListItemDTO {
+  orderNumber: string;
   id: string;
   status: string;
   paymentStatus?: string;
@@ -101,6 +103,7 @@ export interface AdminOrderItemDTO {
 
 // Admin order detail DTO
 export interface AdminOrderDetailDTO {
+  orderNumber: string;
   customerOrderNumber: number;
   customerOrderCount: number;
   amounts: { subtotal: number; shipping: number; tax: number; taxInclusive: boolean; total: number };

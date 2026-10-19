@@ -11,6 +11,7 @@
  * - POST /api/v1/admin/customers/:id/password-reset-link
  */
 
+import { createNumberedOrder } from '../helpers/numbered-order';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
@@ -278,7 +279,7 @@ describe('Admin Users Endpoints', () => {
         } });
         const count = index === 0 ? 12 : index === 1 ? 3 : 0;
         for (let n = 0; n < count; n++) {
-          const order = await prisma.order.create({ data: {
+          const order = await createNumberedOrder(prisma, { data: {
             userId: user.user.id, subtotalAmount: 10, totalAmount: 10, currency: 'USD',
             status: index === 1 ? n === 0 ? 'CANCELLED' : n === 1 ? 'REFUNDED' : 'PENDING' : 'PROCESSING',
             paymentStatus: index === 1 && n === 2 ? 'PENDING' : 'PAID',

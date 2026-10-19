@@ -38,7 +38,7 @@ async function chooseFilter(label: string, text: string) {
 }
 beforeEach(() => {
   state.locale = 'en'; state.url = ''; state.replace.mockClear();
-  state.data = { data: { data: [{ id: 'order-1', status: 'PENDING', paymentStatus: 'PENDING', requiresPaymentReview: true, itemQuantitySum: 5, itemsCount: 2, totalAmount: 50, currency: 'USD', createdAt: '2026-10-12T00:15:00Z', customer: { email: 'buyer@example.test' } }], pagination: { page: 1, limit: 20, total: 25, totalPages: 2 } } };
+  state.data = { data: { data: [{ id: 'order-1', orderNumber: 'JF-20261012-0001', status: 'PENDING', paymentStatus: 'PENDING', requiresPaymentReview: true, itemQuantitySum: 5, itemsCount: 2, totalAmount: 50, currency: 'USD', createdAt: '2026-10-12T00:15:00Z', customer: { email: 'buyer@example.test' } }], pagination: { page: 1, limit: 20, total: 25, totalPages: 2 } } };
   state.stats = { data: { paymentReviewCount: 1, metrics: { totalOrders: 25 }, statusCounts: { PENDING: 3, PROCESSING: 4, SHIPPED: 5, DELIVERED: 6, CANCELLED: 2, REFUNDED: 5 } } };
 });
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = undefined; document.body.innerHTML = ''; vi.unstubAllGlobals(); vi.useRealTimers(); });
@@ -51,7 +51,7 @@ it('shows global status counts, the quantity sum, an absolute store-time header 
   const card = container.querySelector('article')!;
   expect(card.parentElement?.className).toContain('min-[769px]:hidden');
   expect(card.textContent).toContain('5 items'); expect(card.textContent).toContain('buyer@example.test'); expect(card.textContent).toContain('Requires review');
-  expect(card.querySelector('a')?.getAttribute('aria-label')).toBe('View order order-1');
+  expect(card.querySelector('a')?.getAttribute('aria-label')).toBe('View order JF-20261012-0001');
   expect(card.querySelector('a')?.getAttribute('href')).toBe('/en/orders/order-1');
   expect(container.textContent).toContain('1–20 of 25');
   expect(container.textContent).not.toMatch(/Transaction|Ledger|vs yesterday|Stable/);

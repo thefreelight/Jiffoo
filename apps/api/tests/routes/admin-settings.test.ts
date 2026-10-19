@@ -21,6 +21,22 @@ describe('Admin Settings Endpoints', () => {
   let userToken: string;
   let adminToken: string;
 
+  it.each(['J', 'jf', 'JF1', 'TOOLONG', 'JF\n'])('rejects invalid order number prefix %s', async prefix => {
+    const response = await app.inject({ method: 'PUT', url: '/api/v1/admin/settings/batch',
+      headers: { authorization: `Bearer ${adminToken}` }, payload: { settings: { 'orders.number_prefix': prefix } } });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error.code).toBe('VALIDATION_ERROR');
+  });
+  it('saves a valid order number prefix', async () => {
+    const previous = await systemSettingsService.getSetting('orders.number_prefix');
+    try {
+      const response = await app.inject({ method: 'PUT', url: '/api/v1/admin/settings/batch',
+        headers: { authorization: `Bearer ${adminToken}` }, payload: { settings: { 'orders.number_prefix': 'SHOP' } } });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().data['orders.number_prefix']).toBe('SHOP');
+    } finally { await systemSettingsService.setSetting('orders.number_prefix', previous ?? 'JF'); }
+  });
+
   beforeAll(async () => {
     app = await createTestApp();
 

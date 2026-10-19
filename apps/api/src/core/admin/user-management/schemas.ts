@@ -28,11 +28,11 @@ const customerProperties = {
 } as const;
 const userSchema = { type: 'object', properties: customerProperties, required: ['id', 'email', 'username', 'isActive', 'createdAt', 'updatedAt'] } as const;
 const detailSchema = { ...userSchema, properties: { ...customerProperties,
-  recentOrders: { type: 'array', maxItems: 10, items: { type: 'object', required: ['id', 'status', 'paymentStatus', 'totalAmount', 'currency', 'createdAt'], properties: {
-    id: { type: 'string' }, status: { type: 'string' }, paymentStatus: { type: 'string' }, totalAmount: { type: 'number' }, currency: { type: 'string' }, createdAt: { type: 'string', format: 'date-time' },
+  recentOrders: { type: 'array', maxItems: 10, items: { type: 'object', required: ['id', 'orderNumber', 'status', 'paymentStatus', 'totalAmount', 'currency', 'createdAt'], properties: {
+    id: { type: 'string' }, orderNumber: { type: 'string' }, status: { type: 'string' }, paymentStatus: { type: 'string' }, totalAmount: { type: 'number' }, currency: { type: 'string' }, createdAt: { type: 'string', format: 'date-time' },
   } } },
-  latestShippingAddress: { type: 'object', nullable: true, required: ['orderId', 'recipientName', 'phone', 'street', 'street2', 'city', 'state', 'zipCode', 'country'], properties: {
-    orderId: { type: 'string' }, recipientName: { type: 'string' }, phone: { type: 'string', nullable: true },
+  latestShippingAddress: { type: 'object', nullable: true, required: ['orderId', 'orderNumber', 'recipientName', 'phone', 'street', 'street2', 'city', 'state', 'zipCode', 'country'], properties: {
+    orderId: { type: 'string' }, orderNumber: { type: 'string' }, recipientName: { type: 'string' }, phone: { type: 'string', nullable: true },
     street: { type: 'string' }, street2: { type: 'string', nullable: true }, city: { type: 'string' },
     state: { type: 'string', nullable: true }, zipCode: { type: 'string', nullable: true }, country: { type: 'string' },
   } },

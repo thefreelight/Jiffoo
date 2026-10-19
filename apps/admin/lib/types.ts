@@ -5,8 +5,8 @@ export interface Customer {
   orderCount: number; paidTotal: number; currency: string; lastOrderAt: string | null;
 }
 export interface CustomerDetail extends Customer {
-  recentOrders: { id: string; status: string; paymentStatus: string; totalAmount: number; currency: string; createdAt: string }[];
-  latestShippingAddress: (import('shared').OrderAddressDTO & { orderId: string }) | null;
+  recentOrders: { orderNumber: string; id: string; status: string; paymentStatus: string; totalAmount: number; currency: string; createdAt: string }[];
+  latestShippingAddress: (import('shared').OrderAddressDTO & { orderId: string; orderNumber: string }) | null;
 }
 export interface User {
   id: string
@@ -83,6 +83,7 @@ export interface ProductImage {
 
 // Order types - Flattened list format
 export interface Order {
+  orderNumber: string
   id: string
   status: OrderStatus | string
   paymentStatus?: string
@@ -103,6 +104,7 @@ export interface Order {
 
 // Order detail type - Projected detail format
 export interface OrderDetail {
+  orderNumber: string
   amounts: { subtotal: number; shipping: number; tax: number; taxInclusive: boolean; total: number }
   timeline: Array<{ at: string; fromStatus: string | null; toStatus: string; fromPaymentStatus: string | null; toPaymentStatus: string | null; actorType: string | null }>
   paymentReviews?: Array<{ paymentId: string; status: string; amount: number; currency: string; failureReason: string | null; reviewResolution: string | null; reviewReference: string | null; reviewResolvedAt: string | null; reviewResolvedBy: string | null }>

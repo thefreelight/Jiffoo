@@ -85,6 +85,11 @@ test('administrator invite, revoke, removal, re-invite, protected accounts and a
     await expect(invited.getByRole('region', { name: 'Sign in to Admin', exact: true }).getByRole('alert')).toHaveText('This administrator account has been removed and cannot sign in. Contact the store owner with any questions.');
     await captureAuthState(invited, 'login-removed', 'Sign in to Admin');
     await captureStaffPage(page, 'detail', 'removed', 'e2e-admin');
+    await page.goto('/en/audit-events?category=accounts');
+    const audit = page.getByRole('table', { name: 'Audit log', exact: true });
+    await expect(audit.getByRole('row', { name: /Administrator invited.*e2e-admin/ })).toBeVisible();
+    await expect(audit.getByRole('row', { name: /Administrator removed.*e2e-admin/ })).toBeVisible();
+    await page.goto(detail);
     const duplicate = await invite(page, staffEmail, 'e2e-admin');
     await expect(duplicate.getByText('This email belongs to a removed administrator. Re-invite them from their detail page.', { exact: true })).toBeVisible();
     await duplicate.getByRole('button', { name: 'Cancel', exact: true }).click();

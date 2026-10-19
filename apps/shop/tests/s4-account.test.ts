@@ -9,7 +9,7 @@ import { storefront } from '../../../packages/shared/src/i18n/messages/en/storef
 import GlobalNotFound from '../app/global-not-found';
 import RootNotFound from '../components/root-not-found';
 
-const state = vi.hoisted(() => ({ items: [{ id: 'cm9abcdefghijklmnopqrstuv', createdAt: '2026-10-12T00:15:00Z', status: 'SHIPPED', paymentStatus: 'PAID', currency: 'USD', totalAmount: 24 }], page: 0, locale: 'zh-Hans' }));
+const state = vi.hoisted(() => ({ items: [{ id: 'cm9abcdefghijklmnopqrstuv', orderNumber: 'JF-20261012-0001', createdAt: '2026-10-12T00:15:00Z', status: 'SHIPPED', paymentStatus: 'PAID', currency: 'USD', totalAmount: 24 }], page: 0, locale: 'zh-Hans' }));
 vi.mock('server-only', () => ({}));
 vi.mock('next/navigation', () => ({ useParams: () => ({}), useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-shop-locale': state.locale }) }));
@@ -25,6 +25,7 @@ it('renders desktop order rows and phone order cards with the same real amount, 
   const result = await OrdersPage({ params: Promise.resolve({ locale: 'en' }), searchParams: Promise.resolve({ page: '2' }) });
   const html = renderToStaticMarkup(result);
   expect(state.page).toBe(2);
+  expect(html).toContain('JF-20261012-0001');
   expect(html).toContain('<table'); expect(html).toContain('<ul');
   expect(html.match(/href="\/en\/account\/orders\/cm9abcdefghijklmnopqrstuv"/g)).toHaveLength(2);
   expect(html.match(/\$24.00/g)).toHaveLength(2);

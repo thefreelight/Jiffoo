@@ -159,10 +159,10 @@ export async function createOrderNotification(
 ): Promise<void> {
   const order = await tx.order.findUniqueOrThrow({
     where: { id: orderId },
-    select: { userId: true, customerEmail: true, user: { select: { email: true } } },
+    select: { orderNumber: true, userId: true, customerEmail: true, user: { select: { email: true } } },
   });
   await createNotification(tx, type, order.userId, order.customerEmail || order.user.email, {
-    orderId, ...values,
+    orderId: order.orderNumber, ...values,
   }, { relatedType: 'order', relatedId: orderId });
 }
 

@@ -17,6 +17,7 @@ const codeConstants = [
   'core/account/service.ts:AccountService.profileSelect',
   'core/account/types.ts:UpdateEmailSchema',
   'core/account/types.ts:UpdateProfileSchema',
+  'core/admin/audit-events/records.ts:union',
   'core/admin/audit-events/routes.ts:actorFields',
   'core/admin/audit-events/routes.ts:metadata',
   'core/admin/audit-events/schemas.ts:actorSchema',

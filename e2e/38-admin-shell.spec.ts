@@ -1,3 +1,4 @@
+import { createNumberedOrder } from '../apps/api/tests/helpers/numbered-order';
 import { expect, test } from './local-requests';
 import { login, ownerEmail } from './helpers';
 import { PrismaClient } from '@prisma/client';
@@ -54,7 +55,7 @@ test('U2 Overview shows real attention counts and opens the Orders review deep l
     const item = await db.orderItem.findFirstOrThrow();
     const provider = await db.paymentProviderAccount.findFirstOrThrow({ where: { namespace: 'jiffoo-manual' } });
     const amount = item.unitPrice.mul(3);
-    for (const [index, id] of ids.entries()) await db.order.create({ data: {
+    for (const [index, id] of ids.entries()) await createNumberedOrder(db, { data: {
       id, userId: user.id, status: index === 0 ? 'PENDING' : 'PROCESSING', paymentStatus: index === 0 ? 'PENDING' : 'PAID',
       currency: 'USD', subtotalAmount: amount, totalAmount: amount,
       items: { create: { productId: item.productId, variantId: item.variantId, quantity: 3, unitPrice: item.unitPrice, lineTotal: amount, catalogSnapshot: item.catalogSnapshot! } },
@@ -78,8 +79,8 @@ test('U2 Overview shows real attention counts and opens the Orders review deep l
     await page.getByRole('link', { name: 'Review payments', exact: true }).click();
     await expect(page).toHaveURL(/\/en\/orders\?payment=review$/);
     await expect(page.getByRole('button', { name: 'Payment', exact: true })).toContainText('Requires review');
-    await expect(page.getByRole('link', { name: 'View order ' + ids[0], exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'View order ' + ids[1], exact: true })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'View order ' + (await db.order.findUniqueOrThrow({ where: { id: ids[0] } })).orderNumber, exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View order ' + (await db.order.findUniqueOrThrow({ where: { id: ids[1] } })).orderNumber, exact: true })).toHaveCount(0);
     if (process.env.VISUAL_SET) for (const mode of ['Light', 'Dark']) {
       await chooseOverviewMode(page, mode);
       await page.getByRole('heading', { name: 'Orders', exact: true }).click(); await page.keyboard.press('Control+Home');
@@ -90,7 +91,7 @@ test('U2 Overview shows real attention counts and opens the Orders review deep l
     await expect(page).toHaveURL(/\/en\/orders\?status=PROCESSING&payment=paid$/);
     await expect(page.getByRole('button', { name: 'Payment', exact: true })).toContainText('Paid');
     await expect(page.getByRole('tab', { name: /^Processing/ })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByRole('link', { name: 'View order ' + ids[1], exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View order ' + (await db.order.findUniqueOrThrow({ where: { id: ids[1] } })).orderNumber, exact: true })).toBeVisible();
     expect(errors).toEqual([]);
   } finally {
     await db.payment.deleteMany({ where: { orderId: { in: ids } } });
@@ -167,7 +168,7 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
     const item = await db.orderItem.findFirstOrThrow();
     const amount = item.unitPrice.mul(3);
     const provider = await db.paymentProviderAccount.findFirstOrThrow({ where: { namespace: 'jiffoo-manual' } });
-    await db.order.create({ data: { id, userId: user.id, status: 'PENDING', paymentStatus: 'PENDING', currency: 'USD', subtotalAmount: amount, totalAmount: amount,
+    await createNumberedOrder(db, { data: { id, userId: user.id, status: 'PENDING', paymentStatus: 'PENDING', currency: 'USD', subtotalAmount: amount, totalAmount: amount,
       items: { create: { productId: item.productId, variantId: item.variantId, quantity: 3, unitPrice: item.unitPrice, lineTotal: amount, catalogSnapshot: item.catalogSnapshot! } },
       payments: { create: { paymentMethod: 'manual-payment', providerKey: provider.providerKey, amount, currency: 'USD', status: 'REQUIRES_REVIEW', idempotencyKey: randomUUID() } },
     } });
@@ -176,7 +177,7 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
     await page.getByRole('button', { name: 'Review payments', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Payment', exact: true })).toContainText('Requires review');
     await page.getByRole('textbox', { name: 'Search order number or customer email' }).fill(id);
-    await expect(page.getByRole('link', { name: 'View order ' + id, exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View order ' + (await db.order.findUniqueOrThrow({ where: { id: id } })).orderNumber, exact: true })).toBeVisible();
     await expect(page.getByText('3 items', { exact: true }).first()).toBeVisible();
     await page.getByRole('checkbox', { name: 'Select all orders on this page', exact: true }).check();
     await page.getByRole('button', { name: 'Select all 1 matching orders', exact: true }).click();
@@ -190,9 +191,9 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
       }
     }
     await page.getByRole('button', { name: 'Clear selection', exact: true }).click();
-    await page.getByRole('link', { name: 'View order ' + id, exact: true }).click();
+    await page.getByRole('link', { name: 'View order ' + (await db.order.findUniqueOrThrow({ where: { id: id } })).orderNumber, exact: true }).click();
     await expect(page).toHaveURL(new RegExp('/en/orders/' + id + '$'));
-    await expect(page.getByRole('heading', { name: /^Order #/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Order [A-Z]{2,6}-[0-9]{8}-[0-9]{4,}$/ })).toBeVisible();
     test.setTimeout(120000);
     await captureOrderDetail(page, 'review');
     await page.getByRole('button', { name: 'Confirm not charged and close', exact: true }).click();

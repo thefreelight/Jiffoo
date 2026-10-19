@@ -117,12 +117,12 @@ async function captureDynamicBoxes(page: Page, name: string, width: number, heig
     }
   };
   if (name === 'dashboard') {
-    await add('recent order generated ID', page.getByRole('link', { name: /^View order / }));
+    await add('recent order number', page.getByRole('link', { name: /^View order / }));
     await add('recent order created time', page.getByText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/));
   } else if (name === 'customers-list' || name === 'customer-detail') {
     await add('customer store timestamps', page.getByText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/));
   } else if (name === 'order-detail') {
-    await add('order generated ID', page.getByRole('heading', { name: /^Order #/ }));
+    await add('order number', page.getByRole('heading', { name: /^Order [A-Z]{2,6}-[0-9]{8}-[0-9]{4,}$/ }));
     await add('order exact store times', page.getByText(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/));
   } else if (name === 'notifications') {
     const timestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
@@ -151,7 +151,7 @@ const pages = [
   ['settings', '/en/settings'],
   ['themes', '/en/themes'],
   ['notifications', '/en/notifications'],
-  ['audit', '/en/audit-events'],
+  ['audit', '/en/audit-events?category=accounts'],
   ['health', '/en/system/health'],
 ] as const;
 

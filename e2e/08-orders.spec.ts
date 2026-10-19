@@ -4,7 +4,6 @@ import { customerEmail, login, shopAccountAction } from './helpers';
 import { captureOrderDetail } from './order-detail-captures';
 import { readFile } from 'node:fs/promises';
 import { getTestPrisma, disconnectDatabase } from '../apps/api/tests/helpers/db';
-import { createOrderWithItems } from '../apps/api/tests/helpers/fixtures';
 
 test('record payment, ship a Shop checkout order, and resend its notification', async ({ page, newObservedContext }) => {
   test.setTimeout(120000);
@@ -47,6 +46,8 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await expect(shop.getByRole('heading', { name: 'Payment instructions' })).toBeVisible();
     await expect(shop.getByText('Pay manually.')).toBeVisible();
     await captureS4State(shop, 'checkout-pending');
+    const orderNumber = (await shop.getByText(/^[A-Z]{2,6}-[0-9]{8}-[0-9]{4,}$/, { exact: true }).textContent())!;
+    expect(orderNumber).toMatch(/^JF-[0-9]{8}-[0-9]{4,}$/);
     const orderId = new URL(shop.url()).searchParams.get('order');
     expect(orderId).toBeTruthy();
     await shop.reload();
@@ -54,8 +55,8 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
 
     await login(page);
     await page.goto('/en/orders');
-    await page.getByRole('textbox', { name: 'Search order number or customer email' }).fill(orderId!);
-    await expect(page.getByRole('link', { name: 'View order ' + orderId, exact: true })).toBeVisible();
+    await page.getByRole('textbox', { name: 'Search order number or customer email' }).fill(orderNumber);
+    await expect(page.getByRole('link', { name: 'View order ' + orderNumber, exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Payment', exact: true }).click();
     await page.getByRole('menuitemradio', { name: 'Unpaid', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Remove filter: Payment Unpaid', exact: true })).toBeVisible();
@@ -66,7 +67,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await page.getByRole('button', { name: 'Rows per page', exact: true }).click();
     await page.getByRole('menuitemradio', { name: '50', exact: true }).click();
     await expect(page).toHaveURL(/pageSize=50/);
-    await page.getByRole('checkbox', { name: 'Select order ' + orderId, exact: true }).check();
+    await page.getByRole('checkbox', { name: 'Select order ' + orderNumber, exact: true }).check();
     await expect(page.getByRole('region', { name: 'Bulk actions', exact: true })).toBeVisible();
     await expect(page.getByText('Selected 1 orders on this page.', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Select all 1 matching orders', exact: true }).click();
@@ -78,24 +79,44 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     const download = await downloadPromise, file = await download.path();
     expect(file).toBeTruthy();
     const exported = await readFile(file!, 'utf8');
-    expect(exported.split('\r\n')[0]).toBe('\uFEFFOrder ID,Placed at,Time zone,Status,Payment status,Payment review pending,Customer email,Customer name,Item count,Item quantity,Subtotal,Shipping,Tax,Tax inclusive,Total,Currency,Payment method,Recipient name,Phone,Address line 1,Address line 2,City,State / province,Postal code,Country,Carrier,Tracking number,Shipped at');
-    expect(exported).toContain(orderId!);
+    expect(exported.split('\r\n')[0]).toBe('\uFEFFOrder number,Placed at,Time zone,Status,Payment status,Payment review pending,Customer email,Customer name,Item count,Item quantity,Subtotal,Shipping,Tax,Tax inclusive,Total,Currency,Payment method,Recipient name,Phone,Address line 1,Address line 2,City,State / province,Postal code,Country,Carrier,Tracking number,Shipped at');
+    expect(exported).toContain(orderNumber);
     const listUrl = page.url();
-    await page.getByRole('link', { name: 'View order ' + orderId, exact: true }).click();
+    await page.getByRole('link', { name: 'View order ' + orderNumber, exact: true }).click();
     await page.getByRole('link', { name: '← Orders', exact: true }).click();
     await expect(page).toHaveURL(listUrl);
+    await page.goto('/en/settings');
+    await page.getByRole('textbox', { name: 'Order number prefix', exact: true }).fill('SHOP');
+    const prefixSaved = page.waitForResponse(response => response.url().endsWith('/admin/settings/batch') && response.request().method() === 'PUT');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    expect((await prefixSaved).ok()).toBe(true);
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
     const db = getTestPrisma();
-    let companionId: string;
+    let companionId: string, companionNumber: string;
     try {
-      const buyer = await db.user.findUniqueOrThrow({ where: { email: customerEmail } });
       const product = await db.product.findFirstOrThrow({ where: { name: 'E2E Product' }, include: { variants: true } });
-      const companion = await createOrderWithItems(buyer as any, [{ product }]);
-      companionId = companion.order.id;
+      const created = await shop.request.post('/bff/orders', { headers: { origin: 'http://127.0.0.1:3003' }, data: {
+        items: [{ productId: product.id, variantId: product.variants[0].id, quantity: 1 }],
+        shippingAddress: { firstName: 'E2E', lastName: 'Customer', phone: '+1-555-0102', addressLine1: '1 Test Street', city: 'San Francisco', state: 'CA', postalCode: '94105', country: 'US' },
+        shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal: product.variants[0].salePrice.toFixed(2),
+      } });
+      expect(created.status(), await created.text()).toBe(201);
+      const companion = (await created.json()).data;
+      companionId = companion.id;
+      companionNumber = companion.orderNumber;
+      expect(companionNumber).toMatch(/^SHOP-[0-9]{8}-[0-9]{4,}$/);
+      expect((await db.order.findUniqueOrThrow({ where: { id: orderId! } })).orderNumber).toBe(orderNumber);
     } finally { await disconnectDatabase(); }
+    await page.getByRole('textbox', { name: 'Order number prefix', exact: true }).fill('JF');
+    const prefixRestored = page.waitForResponse(response => response.url().endsWith('/admin/settings/batch') && response.request().method() === 'PUT');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    expect((await prefixRestored).ok()).toBe(true);
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+    await page.goto(listUrl);
     await page.getByRole('textbox', { name: 'Search order number or customer email', exact: true }).fill(customerEmail);
-    await expect(page.getByRole('link', { name: 'View order ' + companionId!, exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View order ' + companionNumber!, exact: true })).toBeVisible();
     const filteredUrl = page.url();
-    await page.getByRole('link', { name: 'View order ' + orderId, exact: true }).click();
+    await page.getByRole('link', { name: 'View order ' + orderNumber, exact: true }).click();
     await expect(page.getByRole('button', { name: 'Next order', exact: true })).toBeDisabled();
     await page.getByRole('link', { name: 'Previous order', exact: true }).click();
     await expect(page).toHaveURL(new RegExp('/en/orders/' + companionId! + '\\?'));
@@ -104,12 +125,18 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await expect(page).toHaveURL(new RegExp('/en/orders/' + orderId + '\\?'));
     await page.getByRole('link', { name: '← Orders', exact: true }).click();
     await expect(page).toHaveURL(filteredUrl);
+    const cancelled = await shop.request.post(`/bff/orders/${companionId!}/cancel`, { headers: { origin: 'http://127.0.0.1:3003' }, data: { cancelReason: 'E2E companion cleanup' } });
+    expect(cancelled.ok(), await cancelled.text()).toBe(true);
+    expect((await cancelled.json()).data.orderNumber).toBe(companionNumber!);
     const cleanup = getTestPrisma();
-    try { await cleanup.order.delete({ where: { id: companionId! } }); }
+    try {
+      await cleanup.notification.deleteMany({ where: { relatedType: 'order', relatedId: companionId! } });
+      await cleanup.order.delete({ where: { id: companionId! } });
+    }
     finally { await disconnectDatabase(); }
     await page.goto(`/en/orders/${orderId}`);
-    await page.getByRole('button', { name: 'Copy order ID', exact: true }).click();
-    await expect(page.getByText(new RegExp('^Order\\s*#' + orderId + '\\s*Copied$')).getByText('Copied', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Copy order number', exact: true }).click();
+    await expect(page.getByText(new RegExp('^Order\\s*' + orderNumber + '\\s*Copied$')).getByText('Copied', { exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'View all orders from this customer', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Remove filter: Customer ' + customerEmail, exact: true })).toBeVisible();
     await expect(page).toHaveURL(/customerId=/);
@@ -126,7 +153,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await expect(page.getByLabel('Customer and shipping address', { exact: true }).getByText('Copied', { exact: true })).toBeVisible();
     await captureOrderDetail(page, 'processing');
     await page.getByRole('heading', { name: 'Order history', exact: true }).scrollIntoViewIfNeeded();
-    await expect(page.getByRole('button', { name: 'Copy order ID', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Copy order number', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Ship order', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Ship order' }).click();
     await page.getByRole('textbox', { name: 'Carrier' }).fill('E2E Carrier');

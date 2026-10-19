@@ -13,6 +13,7 @@ import { ApiError } from '@/utils/api-errors';
  */
 
 import { prisma } from '@/config/database';
+import { allocateOrderNumber } from './number';
 import { createOrderNotification } from '@/core/notifications/service';
 import { Prisma, OrderStatus as PrismaOrderStatus, OrderPaymentStatus as PrismaOrderPaymentStatus } from '@prisma/client';
 import {
@@ -324,6 +325,7 @@ export class OrderService {
       const catalogMap = new Map(catalog.map(product => [product.id, product]));
       const created = await tx.order.create({
         data: {
+          ...await allocateOrderNumber(tx),
           user: { connect: { id: userId } },
           customerEmail: data.customerEmail?.trim() || user.email,
           status: OrderStatus.PENDING,
@@ -408,6 +410,7 @@ export class OrderService {
 
         await emitEvent(tx, 'order.created', 1, created.id, {
           id: created.id,
+          orderNumber: created.orderNumber,
           userId: created.userId,
           totalAmount: Number(created.totalAmount),
           currency,
@@ -503,7 +506,7 @@ export class OrderService {
     orderId: string,
     userId?: string
   ): Promise<OrderResponse | null> {
-    const where: Prisma.OrderWhereInput = { id: orderId };
+    const where: Prisma.OrderWhereInput = { OR: [{ id: orderId }, { orderNumber: orderId }] };
     if (userId) {
       where.userId = userId;
     }
@@ -526,7 +529,7 @@ export class OrderService {
 
     const currency = await systemSettingsService.getShopCurrency();
     const payment = await prisma.payment.findFirst({
-      where: { orderId },
+      where: { orderId: order.id },
       orderBy: { createdAt: 'desc' },
       select: { id: true, sessionId: true, actionJson: true, status: true },
     });
@@ -539,7 +542,7 @@ export class OrderService {
     response.paymentSessionId = payment?.sessionId ?? null;
     response.paymentId = payment?.id ?? null;
     response.paymentAttemptState = payment?.status ?? null;
-    response.refundRequired = await prisma.paymentLedger.count({ where: { orderId, eventType: 'SUCCEEDED', refundRequired: true, refunds: { none: { status: 'COMPLETED' } } } }) > 0;
+    response.refundRequired = await prisma.paymentLedger.count({ where: { orderId: order.id, eventType: 'SUCCEEDED', refundRequired: true, refunds: { none: { status: 'COMPLETED' } } } }) > 0;
     return response;
   }
 
@@ -641,6 +644,7 @@ export class OrderService {
         });
         await emitEvent(tx, 'order.cancelled', 1, order.id, {
           id: order.id,
+          orderNumber: order.orderNumber,
           orderId: order.id,
           userId: order.userId,
           reason: 'unpaid timeout',
@@ -664,6 +668,7 @@ export class OrderService {
    */
   private static formatOrderResponse(order: any, currency: string): OrderResponse {
     return {
+      orderNumber: order.orderNumber,
       id: order.id,
       userId: order.userId,
       status: order.status as OrderStatusType,

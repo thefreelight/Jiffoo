@@ -19,6 +19,7 @@ vi.mock('@/config/database', () => ({
   prisma: {
     user: { findUnique: vi.fn() },
     product: { findMany: vi.fn() },
+    systemSettings: { findUnique: vi.fn().mockResolvedValue({ settings: {} }) },
     order: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -33,7 +34,10 @@ vi.mock('@/config/database', () => ({
     payment: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     cart: { findUnique: vi.fn().mockResolvedValue(null) },
     eventRecord: { create: vi.fn().mockResolvedValue({ id: 'event-1' }) },
-    $queryRaw: vi.fn().mockResolvedValue([]),
+    $queryRaw: vi.fn(async (query: any) => {
+      const sql = (Array.isArray(query) ? query : query.strings ?? []).join(' ');
+      return sql.includes('order_number_counters') ? [{ last_value: 1 }] : [];
+    }),
     $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
   },
 }));
@@ -152,7 +156,7 @@ const TEST_PRODUCT = {
 };
 
 const makeCreatedOrder = (overrides: Record<string, unknown> = {}) => ({
-  id: 'order-1',
+  id: 'order-1', orderNumber: 'JF-20261012-0001',
   userId: 'user-1',
   status: 'PENDING',
   paymentStatus: 'PENDING',
@@ -271,7 +275,7 @@ describe('OrderService', () => {
 
       // Returns formatted response
       expect(result).toMatchObject({
-        id: 'order-1',
+        id: 'order-1', orderNumber: 'JF-20261012-0001',
         userId: 'user-1',
         totalAmount: 50,
         currency: 'USD',

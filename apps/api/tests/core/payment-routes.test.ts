@@ -123,7 +123,7 @@ const ENABLED_INSTANCE = {
 
 /** Configure the standard "happy-path" mocks for a single payment plugin. */
 function setupDefaultMocks() {
-  vi.mocked(prisma.order.findFirst).mockResolvedValue({ id: 'order-1', userId: 'user-1', currency: 'USD', status: 'PENDING', paymentStatus: 'PENDING', paymentMethod: 'test-gateway-payment', totalAmount: 19.99 } as any);
+  vi.mocked(prisma.order.findFirst).mockResolvedValue({ id: 'order-1', orderNumber: 'JF-20261012-0001', userId: 'user-1', currency: 'USD', status: 'PENDING', paymentStatus: 'PENDING', paymentMethod: 'test-gateway-payment', totalAmount: 19.99 } as any);
   (CacheService.getPluginVersion as ReturnType<typeof vi.fn>).mockResolvedValue('1');
   (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (CacheService.set as ReturnType<typeof vi.fn>).mockResolvedValue(true);
@@ -350,6 +350,7 @@ describe('Payment Routes', () => {
     it('returns payment status for the Core payment id', async () => {
       const mockPayment = {
         id: 'pay-1',
+        order: { orderNumber: 'JF-20261012-0001' },
         orderId: 'order-1',
         sessionId: 'sess-abc',
         status: 'SUCCEEDED',
@@ -372,6 +373,7 @@ describe('Payment Routes', () => {
       expect(body.data.sessionId).toBe('sess-abc');
       expect(body.data.paymentId).toBe('pay-1');
       expect(body.data.orderId).toBe('order-1');
+      expect(body.data.orderNumber).toBe('JF-20261012-0001');
       expect(body.data.status).toBe('paid');
       expect(body.data.paymentMethod).toBe('test-gateway-payment');
     });

@@ -20,7 +20,7 @@ vi.mock('../lib/client-availability', () => ({ useShopAvailability: () => ({ blo
 
 const address = { firstName: 'First', lastName: 'Last', phone: '123', addressLine1: 'Street', addressLine2: '', city: 'City', state: '', postalCode: '', country: 'DE' };
 const auth = { email: 'buyer@example.com', username: 'buyer', password: '12345678', newPassword: '123456', confirmPassword: '123456', code: '123456' };
-const order: Order = { id: 'cm9abcdefghijklmnopqrstuv', createdAt: '2026-10-10T00:00:00Z', status: 'PENDING', paymentStatus: 'PENDING', paymentInstructions: 'Pay manually.', paymentSessionId: null, items: [], shippingAddress: null, currency: 'USD', subtotalAmount: 20, shippingAmount: 0, taxAmount: 0, taxInclusive: false, totalAmount: 20, shippingMethod: null, shipments: [], cancelReason: null, cancelledAt: null, unpaidExpiresAt: null };
+const order: Order = { id: 'cm9abcdefghijklmnopqrstuv', orderNumber: 'JF-20261010-0001', createdAt: '2026-10-10T00:00:00Z', status: 'PENDING', paymentStatus: 'PENDING', paymentInstructions: 'Pay manually.', paymentSessionId: null, items: [], shippingAddress: null, currency: 'USD', subtotalAmount: 20, shippingAmount: 0, taxAmount: 0, taxInclusive: false, totalAmount: 20, shippingMethod: null, shipments: [], cancelReason: null, cancelledAt: null, unpaidExpiresAt: null };
 
 describe('S4 form contracts', () => {
   it('requires region and postal code only for merchant-configured countries', () => {
@@ -56,6 +56,12 @@ describe('S4 form contracts', () => {
 });
 
 describe('S4 result and summary states', () => {
+  it('shows the readable number on the checkout result and retains the internal detail link', () => {
+    const html = renderToStaticMarkup(createElement(OrderSummary, { order, locale: 'en', timezone: 'UTC' }));
+    expect(html).toContain(order.orderNumber);
+    expect(html).toContain(`href="/en/account/orders/${order.id}"`);
+    expect(html).not.toContain(`>${order.id}<`);
+  });
   it('keeps the approved static Simplified Chinese copy byte-identical to the design sources', () => {
     const boards = Buffer.concat(['Cart', 'Checkout', 'CheckoutResult', 'SignIn', 'Account', 'NotFound'].map((name) => readFileSync(resolve(__dirname, `../../../docs/design/shop/${name}.dc.html`))));
     for (const key of ['summary', 'unitPrice', 'continueShopping', 'browse', 'emptyTitle', 'emptyBody', 'calculatedCheckout', 'contact', 'backCart', 'finish', 'optional', 'afterAddress', 'shippingPrompt', 'paymentPrompt', 'changedTitle', 'unavailableTitle', 'unavailableBody', 'paid', 'pending', 'pendingBody', 'cancelled', 'orderNumber', 'accountTitle', 'accountInfo', 'verified', 'registerHint', 'registerMail', 'forgotBody', 'forgotReceived', 'confirmPassword', 'verifiedTitle', 'verifiedBody', 'goShopping', 'storeTime'] as const) {
