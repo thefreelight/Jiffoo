@@ -13861,7 +13861,7 @@
               type: "submit",
               form: "bokmoo-checkout-form",
               disabled: isProcessing,
-              className: "flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50",
+              className: "btn-shimmer flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50",
               children: [
                 /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4" }),
                 isProcessing ? "Processing..." : "Continue to Payment"
@@ -14911,7 +14911,7 @@
     );
     const navItems = [
       { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1" }), onClick: onNavigateToProducts },
-      { label: pickCopy(locale, { en: "Global Plans", hans: "\u5168\u7403\u5957\u9910", hant: "\u5168\u7403\u5957\u9910" }), onClick: onNavigateToProducts },
+      { label: pickCopy(locale, { en: "Global Plans", hans: "\u5168\u7403\u5957\u9910", hant: "\u5168\u7403\u5957\u9910" }), onClick: () => openHref("/#destinations") },
       { label: pickCopy(locale, { en: "Download App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App" }), onClick: () => openHref("/download/app") },
       { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), onClick: () => openHref("/help") },
       { label: pickCopy(locale, { en: "Affiliate", hans: "\u8054\u76DF\u8BA1\u5212", hant: "\u806F\u76DF\u8A08\u5283" }), onClick: () => openHref("/affiliate") }
@@ -14948,18 +14948,6 @@
           item.label
         )) }),
         /* @__PURE__ */ jsxs("div", { className: "ml-auto hidden items-center gap-3 xl:flex", children: [
-          /* @__PURE__ */ jsxs(
-            "button",
-            {
-              onClick: () => openHref("/products"),
-              className: `inline-flex min-h-[2.75rem] items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[#141210] ${FOCUS_VISIBLE_RING2}`,
-              type: "button",
-              children: [
-                pickCopy(locale, { en: "Get Started", hans: "\u5F00\u59CB\u4F7F\u7528", hant: "\u958B\u59CB\u4F7F\u7528" }),
-                /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
-              ]
-            }
-          ),
           /* @__PURE__ */ jsxs("div", { className: "relative", children: [
             /* @__PURE__ */ jsxs(
               "button",
@@ -15263,7 +15251,7 @@
                 "button",
                 {
                   onClick: () => openHref("/products"),
-                  className: "inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]",
+                  className: "btn-shimmer inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]",
                   type: "button",
                   children: [
                     t({ en: "Explore BOKMOO", hans: "\u63A2\u7D22 BOKMOO", hant: "\u63A2\u7D22 BOKMOO" }),
@@ -15275,7 +15263,7 @@
                 "button",
                 {
                   onClick: () => openHref("/download/app"),
-                  className: "inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] px-6 text-sm font-semibold text-[var(--bokmoo-ink)]",
+                  className: "btn-shimmer inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] px-6 text-sm font-semibold text-[var(--bokmoo-ink)]",
                   type: "button",
                   children: [
                     t({ en: "Download the App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App" }),
@@ -15389,7 +15377,7 @@
                 "button",
                 {
                   onClick: () => openHref("/download/app"),
-                  className: "inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left",
+                  className: "btn-shimmer inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left",
                   type: "button",
                   children: [
                     /* @__PURE__ */ jsx(AppleIcon2, {}),
@@ -15404,7 +15392,7 @@
                 "button",
                 {
                   onClick: () => openHref("/download/app"),
-                  className: "inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left",
+                  className: "btn-shimmer inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left",
                   type: "button",
                   children: [
                     /* @__PURE__ */ jsx(PlayIcon, {}),
@@ -15417,21 +15405,51 @@
               )
             ] })
           ] }),
-          /* @__PURE__ */ jsxs("div", { className: "relative mx-auto w-full max-w-[20rem]", children: [
+          /* @__PURE__ */ jsxs("div", { className: "relative mx-auto w-full max-w-[19rem]", children: [
             /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_65%)]" }),
-            /* @__PURE__ */ jsx(
-              "img",
-              {
-                src: "/theme-assets/bokmoo/bokmoo-app-screen.png",
-                alt: t({ en: "BOKMOO App", hans: "BOKMOO App", hant: "BOKMOO App" }),
-                className: "relative w-full rounded-[2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] shadow-[0_24px_80px_rgba(0,0,0,0.6)]",
-                loading: "lazy"
-              }
-            )
+            /* @__PURE__ */ jsx("div", { className: "relative rounded-[2.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] bg-[#050408] p-2 shadow-[0_24px_80px_rgba(0,0,0,0.6)]", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.8rem] bg-[#0b0a0d] p-4", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between text-[0.65rem] text-[var(--bokmoo-copy-soft)]", children: [
+                /* @__PURE__ */ jsx("span", { children: "9:41" }),
+                /* @__PURE__ */ jsxs("span", { className: "flex items-center gap-1", children: [
+                  /* @__PURE__ */ jsx("span", { className: "inline-block h-1 w-3 rounded-full bg-[var(--bokmoo-copy-soft)]" }),
+                  /* @__PURE__ */ jsx("span", { className: "inline-block h-2 w-2 rounded-full border border-[var(--bokmoo-copy-soft)]" })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mt-4 flex items-center justify-between", children: [
+                /* @__PURE__ */ jsx("span", { className: "text-sm font-bold tracking-tight text-[var(--bokmoo-gold)]", children: "BOKMOO" }),
+                /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-copy-soft)]", children: "\u2699" })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mt-4 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] bg-[#121016] p-3", children: [
+                /* @__PURE__ */ jsxs("p", { className: "flex items-center gap-1.5 text-[0.65rem] text-[#4ade80]", children: [
+                  /* @__PURE__ */ jsx("span", { className: "inline-block h-1.5 w-1.5 rounded-full bg-[#4ade80]" }),
+                  t({ en: "Connected", hans: "\u5DF2\u8FDE\u63A5", hant: "\u5DF2\u9023\u7DDA" })
+                ] }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs font-semibold text-[var(--bokmoo-ink)]", children: t({ en: "BOKMOO Card", hans: "BOKMOO \u5361\u7247", hant: "BOKMOO \u5361\u7247" }) }),
+                /* @__PURE__ */ jsx("p", { className: "mt-0.5 text-[0.6rem] tracking-wide text-[var(--bokmoo-copy-soft)]", children: "EID 8903****\u2026S287" })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mt-4 flex items-center justify-between", children: [
+                /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold text-[var(--bokmoo-ink)]", children: t({ en: "eSIM list (2)", hans: "eSIM \u5217\u8868\uFF082\uFF09", hant: "eSIM \u5217\u8868\uFF082\uFF09" }) }),
+                /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] px-2 py-0.5 text-[0.6rem] text-[var(--bokmoo-gold)]", children: "+ eSIM" })
+              ] }),
+              /* @__PURE__ */ jsx("div", { className: "mt-3 space-y-2", children: [
+                { flag: "\u{1F1EF}\u{1F1F5}", name: { en: "Japan", hans: "\u65E5\u672C", hant: "\u65E5\u672C" }, state: { en: "Active", hans: "\u4F7F\u7528\u4E2D", hant: "\u4F7F\u7528\u4E2D" }, on: true },
+                { flag: "\u{1F1EB}\u{1F1F7}", name: { en: "France", hans: "\u6CD5\u56FD", hant: "\u6CD5\u570B" }, state: { en: "Unused", hans: "\u672A\u5E94\u7528", hant: "\u672A\u61C9\u7528" }, on: false },
+                { flag: "\u{1F1F8}\u{1F1EC}", name: { en: "Singapore", hans: "\u65B0\u52A0\u5761", hant: "\u65B0\u52A0\u5761" }, state: { en: "Unused", hans: "\u672A\u5E94\u7528", hant: "\u672A\u61C9\u7528" }, on: false }
+              ].map((row) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between rounded-[0.8rem] bg-[#141218] px-3 py-2.5", children: [
+                /* @__PURE__ */ jsxs("span", { className: "flex items-center gap-2 text-xs text-[var(--bokmoo-ink)]", children: [
+                  /* @__PURE__ */ jsx("span", { children: row.flag }),
+                  /* @__PURE__ */ jsxs("span", { children: [
+                    t(row.name),
+                    /* @__PURE__ */ jsx("span", { className: "ml-1.5 rounded bg-[#221e28] px-1 py-0.5 text-[0.55rem] text-[var(--bokmoo-copy-soft)]", children: t(row.state) })
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsx("span", { className: `inline-flex h-3.5 w-6 items-center rounded-full p-0.5 ${row.on ? "bg-[var(--bokmoo-gold)]" : "bg-[#2c2830]"}`, children: /* @__PURE__ */ jsx("span", { className: `h-2.5 w-2.5 rounded-full bg-white transition-transform ${row.on ? "translate-x-3" : ""}` }) })
+              ] }, row.name.en)) })
+            ] }) })
           ] })
         ] })
       ] }) }),
-      /* @__PURE__ */ jsx("section", { className: "border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] bg-[#0b0a0d]", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1180px] px-4 py-16 sm:px-6 lg:py-20", children: [
+      /* @__PURE__ */ jsx("section", { id: "destinations", className: "scroll-mt-24 border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] bg-[#0b0a0d]", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1180px] px-4 py-16 sm:px-6 lg:py-20", children: [
         /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-end justify-between gap-6", children: [
           /* @__PURE__ */ jsxs("div", { children: [
             /* @__PURE__ */ jsx(SectionEyebrow, { children: t({ en: "Popular destinations", hans: "\u70ED\u95E8\u76EE\u7684\u5730", hant: "\u71B1\u9580\u76EE\u7684\u5730" }) }),
@@ -15442,8 +15460,9 @@
             /* @__PURE__ */ jsx(
               "input",
               {
+                "aria-label": t({ en: "Search a country or region", hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A", hant: "\u641C\u5C0B\u570B\u5BB6\u6216\u5730\u5340" }),
                 placeholder: t({ en: "Search a country or region", hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A", hant: "\u641C\u5C0B\u570B\u5BB6\u6216\u5730\u5340" }),
-                className: "w-full bg-transparent outline-none placeholder:text-[var(--bokmoo-copy-soft)]",
+                className: "w-full border-0 bg-transparent p-0 outline-none ring-0 placeholder:text-[var(--bokmoo-copy-soft)] focus:ring-0",
                 onKeyDown: (event) => {
                   if (event.key === "Enter") {
                     const value = event.target.value.trim();
@@ -15522,7 +15541,7 @@
             "button",
             {
               onClick: () => openHref("/download/app"),
-              className: "inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]",
+              className: "btn-shimmer inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]",
               type: "button",
               children: [
                 t({ en: "Download the BOKMOO App", hans: "\u4E0B\u8F7D BOKMOO App", hant: "\u4E0B\u8F09 BOKMOO App" }),
@@ -15651,7 +15670,7 @@
                     onChange: (event) => setEmail(event.target.value),
                     onAnimationStart: handleAutofill(setEmail),
                     placeholder: "you@example.com",
-                    className: `h-12 w-full rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
+                    className: `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--bokmoo-copy)_80%,transparent)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
                     disabled: isLoading,
                     autoComplete: "email"
                   }
@@ -16742,7 +16761,7 @@
       if (!canSubmit) return;
       await onSubmit(formData);
     };
-    const inputClassName = `h-12 w-full rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`;
+    const inputClassName = `h-12 w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_62%,#1a1720)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[color:color-mix(in_oklab,var(--bokmoo-copy)_80%,transparent)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`;
     return /* @__PURE__ */ jsxs("div", { className: "relative min-h-screen overflow-hidden bg-[var(--bokmoo-bg)] px-4 py-12 text-[var(--bokmoo-ink)] sm:px-6 lg:px-8", children: [
       /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
         /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_80%_18%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_25%),radial-gradient(circle_at_12%_76%,color-mix(in_oklab,var(--bokmoo-gold)_8%,transparent),transparent_26%),linear-gradient(180deg,var(--bokmoo-bg),color-mix(in_oklab,var(--bokmoo-bg)_86%,black))]" }),
@@ -17163,7 +17182,7 @@
             {
               onClick: handleAddToCart,
               disabled: stockValue <= 0 || adding,
-              className: `flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] px-5 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${justAdded ? "scale-[1.02] bg-[#1f7a3d] text-white" : "bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-[var(--bokmoo-bg)]"}`,
+              className: `btn-shimmer flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] px-5 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${justAdded ? "scale-[1.02] bg-[#1f7a3d] text-white" : "bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-[var(--bokmoo-bg)]"}`,
               type: "button",
               children: justAdded ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                 /* @__PURE__ */ jsx(Check, { className: "h-4 w-4" }),
@@ -17182,7 +17201,7 @@
             {
               onClick: handleBuyNow,
               disabled: stockValue <= 0 || adding,
-              className: "flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_32%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-5 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_52%,transparent)] disabled:cursor-not-allowed disabled:opacity-50",
+              className: "btn-shimmer flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_32%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-5 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_52%,transparent)] disabled:cursor-not-allowed disabled:opacity-50",
               type: "button",
               children: [
                 pickCopy(locale, { en: "Buy Now", hans: "\u7ACB\u5373\u8D2D\u4E70", hant: "\u7ACB\u5373\u8CFC\u8CB7" }),
@@ -17398,6 +17417,27 @@ body[data-theme='bokmoo'] ::selection {
   100% { transform: scale(1); }
 }
 .cart-pulse { animation: cart-pulse 0.9s ease-in-out; }
+
+/* Gold shimmer sweep on button hover (\u6D41\u5149) */
+@keyframes gold-sweep {
+  0% { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translateX(240%) skewX(-18deg); opacity: 0; }
+}
+.btn-shimmer { position: relative; overflow: hidden; isolation: isolate; }
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 244, 214, 0.55), transparent);
+  transform: translateX(-130%) skewX(-18deg);
+  opacity: 0;
+  pointer-events: none;
+}
+.btn-shimmer:hover::after { animation: gold-sweep 0.9s ease; }
 `;
   var existingMeta = runtime_default && typeof runtime_default === "object" && runtime_default.meta && typeof runtime_default.meta === "object" ? runtime_default.meta : {};
   window.__JIFFOO_THEME_RUNTIME__ = {
@@ -17405,7 +17445,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.24",
+      version: "1.1.25",
       target: "shop"
     }
   };

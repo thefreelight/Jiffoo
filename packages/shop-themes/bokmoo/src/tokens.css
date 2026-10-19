@@ -94,3 +94,24 @@ body[data-theme='bokmoo'] ::selection {
   100% { transform: scale(1); }
 }
 .cart-pulse { animation: cart-pulse 0.9s ease-in-out; }
+
+/* Gold shimmer sweep on button hover (流光) */
+@keyframes gold-sweep {
+  0% { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translateX(240%) skewX(-18deg); opacity: 0; }
+}
+.btn-shimmer { position: relative; overflow: hidden; isolation: isolate; }
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 244, 214, 0.55), transparent);
+  transform: translateX(-130%) skewX(-18deg);
+  opacity: 0;
+  pointer-events: none;
+}
+.btn-shimmer:hover::after { animation: gold-sweep 0.9s ease; }

@@ -397,7 +397,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                 type="submit"
                 form="bokmoo-checkout-form"
                 disabled={isProcessing}
-                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-shimmer flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ShieldCheck className="h-4 w-4" />
                 {isProcessing ? 'Processing...' : 'Continue to Payment'}

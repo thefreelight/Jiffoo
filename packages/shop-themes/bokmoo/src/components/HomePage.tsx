@@ -101,7 +101,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <button
                 onClick={() => openHref('/products')}
-                className="inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]"
+                className="btn-shimmer inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]"
                 type="button"
               >
                 {t({ en: 'Explore BOKMOO', hans: '探索 BOKMOO', hant: '探索 BOKMOO' })}
@@ -109,7 +109,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
               </button>
               <button
                 onClick={() => openHref('/download/app')}
-                className="inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] px-6 text-sm font-semibold text-[var(--bokmoo-ink)]"
+                className="btn-shimmer inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] px-6 text-sm font-semibold text-[var(--bokmoo-ink)]"
                 type="button"
               >
                 {t({ en: 'Download the App', hans: '下载 App', hant: '下載 App' })}
@@ -244,7 +244,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
               <div className="mt-10 flex flex-wrap gap-4">
                 <button
                   onClick={() => openHref('/download/app')}
-                  className="inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left"
+                  className="btn-shimmer inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left"
                   type="button"
                 >
                   <AppleIcon />
@@ -257,7 +257,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                 </button>
                 <button
                   onClick={() => openHref('/download/app')}
-                  className="inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left"
+                  className="btn-shimmer inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left"
                   type="button"
                 >
                   <PlayIcon />
@@ -270,21 +270,68 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
                 </button>
               </div>
             </div>
-            <div className="relative mx-auto w-full max-w-[20rem]">
+            <div className="relative mx-auto w-full max-w-[19rem]">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_65%)]" />
-              <img
-                src="/theme-assets/bokmoo/bokmoo-app-screen.png"
-                alt={t({ en: 'BOKMOO App', hans: 'BOKMOO App', hant: 'BOKMOO App' })}
-                className="relative w-full rounded-[2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
-                loading="lazy"
-              />
+              <div className="relative rounded-[2.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] bg-[#050408] p-2 shadow-[0_24px_80px_rgba(0,0,0,0.6)]">
+                <div className="rounded-[1.8rem] bg-[#0b0a0d] p-4">
+                  <div className="flex items-center justify-between text-[0.65rem] text-[var(--bokmoo-copy-soft)]">
+                    <span>9:41</span>
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block h-1 w-3 rounded-full bg-[var(--bokmoo-copy-soft)]" />
+                      <span className="inline-block h-2 w-2 rounded-full border border-[var(--bokmoo-copy-soft)]" />
+                    </span>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-sm font-bold tracking-tight text-[var(--bokmoo-gold)]">BOKMOO</span>
+                    <span className="text-[var(--bokmoo-copy-soft)]">⚙</span>
+                  </div>
+                  <div className="mt-4 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] bg-[#121016] p-3">
+                    <p className="flex items-center gap-1.5 text-[0.65rem] text-[#4ade80]">
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#4ade80]" />
+                      {t({ en: 'Connected', hans: '已连接', hant: '已連線' })}
+                    </p>
+                    <p className="mt-2 text-xs font-semibold text-[var(--bokmoo-ink)]">
+                      {t({ en: 'BOKMOO Card', hans: 'BOKMOO 卡片', hant: 'BOKMOO 卡片' })}
+                    </p>
+                    <p className="mt-0.5 text-[0.6rem] tracking-wide text-[var(--bokmoo-copy-soft)]">EID 8903****…S287</p>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <p className="text-xs font-semibold text-[var(--bokmoo-ink)]">
+                      {t({ en: 'eSIM list (2)', hans: 'eSIM 列表（2）', hant: 'eSIM 列表（2）' })}
+                    </p>
+                    <span className="rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] px-2 py-0.5 text-[0.6rem] text-[var(--bokmoo-gold)]">
+                      + eSIM
+                    </span>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {[
+                      { flag: '🇯🇵', name: { en: 'Japan', hans: '日本', hant: '日本' }, state: { en: 'Active', hans: '使用中', hant: '使用中' }, on: true },
+                      { flag: '🇫🇷', name: { en: 'France', hans: '法国', hant: '法國' }, state: { en: 'Unused', hans: '未应用', hant: '未應用' }, on: false },
+                      { flag: '🇸🇬', name: { en: 'Singapore', hans: '新加坡', hant: '新加坡' }, state: { en: 'Unused', hans: '未应用', hant: '未應用' }, on: false },
+                    ].map((row) => (
+                      <div key={row.name.en} className="flex items-center justify-between rounded-[0.8rem] bg-[#141218] px-3 py-2.5">
+                        <span className="flex items-center gap-2 text-xs text-[var(--bokmoo-ink)]">
+                          <span>{row.flag}</span>
+                          <span>
+                            {t(row.name)}
+                            <span className="ml-1.5 rounded bg-[#221e28] px-1 py-0.5 text-[0.55rem] text-[var(--bokmoo-copy-soft)]">{t(row.state)}</span>
+                          </span>
+                        </span>
+                        <span className={`inline-flex h-3.5 w-6 items-center rounded-full p-0.5 ${row.on ? 'bg-[var(--bokmoo-gold)]' : 'bg-[#2c2830]'}`}>
+                          <span className={`h-2.5 w-2.5 rounded-full bg-white transition-transform ${row.on ? 'translate-x-3' : ''}`} />
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Destinations */}
-      <section className="border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] bg-[#0b0a0d]">
+      <section id="destinations" className="scroll-mt-24 border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] bg-[#0b0a0d]">
         <div className="mx-auto max-w-[1180px] px-4 py-16 sm:px-6 lg:py-20">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
@@ -296,8 +343,9 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
             <label className="flex min-h-11 w-full max-w-xs items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[#0d0c0f] px-4 text-sm text-[var(--bokmoo-copy-soft)]">
               <Search className="h-4 w-4" />
               <input
+                aria-label={t({ en: 'Search a country or region', hans: '搜索国家或地区', hant: '搜尋國家或地區' })}
                 placeholder={t({ en: 'Search a country or region', hans: '搜索国家或地区', hant: '搜尋國家或地區' })}
-                className="w-full bg-transparent outline-none placeholder:text-[var(--bokmoo-copy-soft)]"
+                className="w-full border-0 bg-transparent p-0 outline-none ring-0 placeholder:text-[var(--bokmoo-copy-soft)] focus:ring-0"
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') {
                     const value = (event.target as HTMLInputElement).value.trim();
@@ -384,7 +432,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
             </p>
             <button
               onClick={() => openHref('/download/app')}
-              className="inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]"
+              className="btn-shimmer inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]"
               type="button"
             >
               {t({ en: 'Download the BOKMOO App', hans: '下载 BOKMOO App', hant: '下載 BOKMOO App' })}
