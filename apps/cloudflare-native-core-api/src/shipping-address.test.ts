@@ -61,6 +61,35 @@ describe('normalizeShippingAddress', () => {
     expect(normalizeShippingAddress({ name: '张三', phone: '13800138000', line1: ' address ', city: '北京', state: '', postalCode: '', country: 'CN' })).not.toBeNull();
   });
 
+  it('accepts the web checkout shape (firstName/lastName/addressLine1)', () => {
+    const address = normalizeShippingAddress({
+      firstName: '姚',
+      lastName: '大',
+      phone: '13900000000',
+      addressLine1: '测试大道88号',
+      city: '深圳市',
+      state: '广东省',
+      postalCode: '518000',
+      country: 'cn',
+    });
+    expect(address).not.toBeNull();
+    expect(address?.name).toBe('姚 大');
+    expect(address?.line1).toBe('测试大道88号');
+    expect(address?.city).toBe('深圳市');
+    expect(address?.country).toBe('CN');
+  });
+
+  it('still rejects the web shape when names are blank', () => {
+    expect(normalizeShippingAddress({
+      firstName: '',
+      lastName: '',
+      phone: '13900000000',
+      addressLine1: '测试大道88号',
+      city: '深圳市',
+      country: 'CN',
+    })).toBeNull();
+  });
+
   it('trims fields, uppercases country, and keeps optional line2', () => {
     const address = normalizeShippingAddress({
       name: ' 张三 ', phone: ' 13800138000 ', line1: ' 朝阳区 ', line2: '某大厦 8 层',

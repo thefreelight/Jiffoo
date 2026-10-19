@@ -93,9 +93,24 @@ export type NormalizedShippingAddress = Record<(typeof SHIPPING_ADDRESS_FIELDS)[
 export function normalizeShippingAddress(raw: unknown): NormalizedShippingAddress | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const source = raw as Record<string, unknown>;
+  // The web checkout sends firstName/lastName/addressLine1; the address book
+  // and the app send name/line1. Accept both shapes for every alias field.
+  const read = (field: string): string => {
+    const value = typeof source[field] === 'string' ? (source[field] as string).trim() : '';
+    if (value) return value;
+    if (field === 'name') {
+      const firstName = typeof source.firstName === 'string' ? (source.firstName as string).trim() : '';
+      const lastName = typeof source.lastName === 'string' ? (source.lastName as string).trim() : '';
+      return `${firstName} ${lastName}`.trim();
+    }
+    if (field === 'line1') {
+      return typeof source.addressLine1 === 'string' ? (source.addressLine1 as string).trim() : '';
+    }
+    return '';
+  };
   const address: Record<string, string> = {};
   for (const field of SHIPPING_ADDRESS_REQUIRED_FIELDS) {
-    const value = typeof source[field] === 'string' ? (source[field] as string).trim() : '';
+    const value = read(field);
     if (!value) return null;
     address[field] = value;
   }
