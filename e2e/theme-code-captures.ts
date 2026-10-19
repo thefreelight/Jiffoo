@@ -1,4 +1,5 @@
-import { mkdir } from 'node:fs/promises';
+import { captureVisual } from './visual-capture';
+import { mkdir, rm } from 'node:fs/promises';
 import type { Page } from '@playwright/test';
 import { expect } from './local-requests';
 
@@ -17,15 +18,21 @@ export async function captureThemeCodeState(page: Page, name: string, overlay?: 
     if (overlay) await overlay.open();
     for (const [width, height] of [[1440, 900], [390, 844]]) {
       await page.setViewportSize({ width, height });
-      const image = await page.screenshot({ path: `${directory}/c1a-${name}-${mode.toLowerCase()}-${width}.png`, fullPage: true, animations: 'disabled', caret: 'hide' });
-      expect(image.readUInt32BE(16), 'Page has no horizontal overflow').toBe(width);
+      // The conflict state has a scrolled inner main; resizing preserves its offset.
+      // Capture only the tall version below, where the entire editor fits.
+      if (name !== 'code-conflict') {
+        const image = await captureVisual(page, { path: `${directory}/c1a-${name}-${mode.toLowerCase()}-${width}.png`, fullPage: true, animations: 'disabled', caret: 'hide' });
+        expect(image.readUInt32BE(16), 'Page has no horizontal overflow').toBe(width);
+      } else {
+        await rm(`${directory}/c1a-${name}-${mode.toLowerCase()}-${width}.png`, { force: true });
+      }
       if (!overlay) {
         for (const field of await page.getByRole('main').getByRole('textbox').all()) {
           const box = await field.boundingBox();
           if (box) { expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(width); }
         }
         await page.setViewportSize({ width, height: 3000 });
-        const full = await page.screenshot({ path: `${directory}/c1a-${name}-${mode.toLowerCase()}-${width}-full.png`, fullPage: true, animations: 'disabled', caret: 'hide' });
+        const full = await captureVisual(page, { path: `${directory}/c1a-${name}-${mode.toLowerCase()}-${width}-full.png`, fullPage: true, animations: 'disabled', caret: 'hide' });
         expect(full.readUInt32BE(16)).toBe(width);
       }
     }

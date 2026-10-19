@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import type { Locator, Page } from '@playwright/test';
@@ -98,11 +99,11 @@ export async function captureReview(page: Page, set: string, name: string, viewp
     .toEqual({ page: { x: 0, y: 0 }, scrolledContainers: [] });
   const directory = path.resolve('e2e/visual-results', set);
   await mkdir(directory, { recursive: true });
-  const png = await page.screenshot({ path: path.join(directory, `${name}.png`), fullPage: true, animations: 'disabled', caret: 'hide', timeout: 10_000 });
+  const png = await captureVisual(page, { path: path.join(directory, `${name}.png`), fullPage: true, animations: 'disabled', caret: 'hide', timeout: 10_000 });
   expect(png.readUInt32BE(16), 'Full-page screenshot must fit the viewport').toBe(page.viewportSize()!.width);
 }
 
 // The existing mobile overflow assertion needs PNG bytes, but never a disk capture.
 export function captureViewportProof(page: Page) {
-  return page.screenshot({ type: 'png', fullPage: true, animations: 'disabled' });
+  return captureVisual(page, { type: 'png', fullPage: true, animations: 'disabled' });
 }

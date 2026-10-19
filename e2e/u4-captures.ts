@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { mkdir } from 'node:fs/promises';
 import type { Page } from '@playwright/test';
 import { expect } from './local-requests';
@@ -8,7 +9,7 @@ export async function captureU4(page: Page, name: string) {
   if (writeCapture) await mkdir(directory, { recursive: true });
   await page.waitForLoadState('networkidle');
   await expect(page.getByRole('listitem').filter({ hasText: /Product saved\.|Product created\.|cannot be deleted/ })).toHaveCount(0, { timeout: 10000 });
-  await page.screenshot({ ...(writeCapture ? { path: directory + '/' + name + '.png' } : {}), animations: 'disabled', caret: 'hide' });
+  await captureVisual(page, { ...(writeCapture ? { path: directory + '/' + name + '.png' } : {}), animations: 'disabled', caret: 'hide' });
 }
 export async function appearanceU4(page: Page, mode: string) {
   await page.setViewportSize({ width: 1440, height: 900 });

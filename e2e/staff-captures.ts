@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { expect, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { chooseOverviewMode } from './overview-captures';
@@ -24,7 +25,7 @@ export async function captureStaffPage(page: Page, kind: 'list' | 'detail' | 'pr
       if (kind === 'list') await expect(page.getByRole('link', { name: /e2e-admin/ })).toBeVisible();
       if (kind === 'profile') await expect(page.getByLabel('名字', { exact: true })).not.toHaveValue('');
       await title.click(); await page.keyboard.press('Control+Home');
-      const image = await page.screenshot({ ...(writeCapture ? { path: directory + '/' + kind + '-' + state + '-' + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
+      const image = await captureVisual(page, { ...(writeCapture ? { path: directory + '/' + kind + '-' + state + '-' + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
       expect(image.readUInt32BE(16), 'Staff and profile pages stay within the viewport').toBe(width);
     }
   }

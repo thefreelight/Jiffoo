@@ -1,3 +1,4 @@
+import { captureVisual, paintedBounds } from './visual-capture';
 import { expect, test } from './local-requests';
 import { login, ownerEmail, shopLogin } from './helpers';
 import { headerThemePackage } from './theme-package';
@@ -7,8 +8,8 @@ import { shopBoardReference } from './shop-board-reference';
 import { captureS4State } from './s4-captures';
 import { storefront as hansCopy } from '../packages/shared/src/i18n/messages/zh-Hans/storefront';
 import { getNamespaceMessages } from '../packages/shared/src/i18n/messages';
-import { mkdir, writeFile } from 'node:fs/promises';
-import type { BrowserContext, Locator, Page } from '@playwright/test';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import type { BrowserContext, Page } from '@playwright/test';
 
 async function parkPointerOnHeading(page: Page) {
   const heading = page.getByRole('heading', { name: /.+/ }).first();
@@ -18,125 +19,13 @@ async function parkPointerOnHeading(page: Page) {
 }
 
 async function screenshotWithoutOverflow(page: Page, options: NonNullable<Parameters<Page['screenshot']>[0]>) {
-  const image = await page.screenshot(options);
+  const image = await captureVisual(page, options);
   const imageWidth = image.readUInt32BE(16);
   const viewportWidth = page.viewportSize()!.width;
   expect(imageWidth, `Overflow failure: ${options.path}: PNG width ${imageWidth}, viewport width ${viewportWidth}`)
     .toBe(viewportWidth);
   return image;
 }
-
-async function paintedBounds(locator: Locator) {
-  return locator.evaluate((element) => {
-    type Box = { x: number; y: number; width: number; height: number };
-    type Extents = { left: number; top: number; right: number; bottom: number };
-    const union = (boxes: Box[]): Box => {
-      const left = Math.min(...boxes.map((box) => box.x));
-      const top = Math.min(...boxes.map((box) => box.y));
-      const right = Math.max(...boxes.map((box) => box.x + box.width));
-      const bottom = Math.max(...boxes.map((box) => box.y + box.height));
-      return { x: left, y: top, width: right - left, height: bottom - top };
-    };
-    const split = (value: string, delimiter: ',' | ' ') => {
-      let depth = 0;
-      let start = 0;
-      const parts: string[] = [];
-      for (let index = 0; index < value.length; index++) {
-        if (value[index] === '(') depth++;
-        else if (value[index] === ')') depth--;
-        else if (!depth && (delimiter === ',' ? value[index] === ',' : /\s/.test(value[index]))) {
-          if (value.slice(start, index).trim()) parts.push(value.slice(start, index).trim());
-          start = index + 1;
-        }
-      }
-      if (value.slice(start).trim()) parts.push(value.slice(start).trim());
-      return parts;
-    };
-    const shadows = (value: string, text: boolean): Extents[] => {
-      if (value === 'none') return [];
-      return split(value, ',').flatMap((shadow) => {
-        const tokens = split(shadow, ' ');
-        if (tokens.includes('inset')) return [];
-        const lengths = tokens.filter((token) => /^-?(?:\d+\.?\d*|\.\d+)px$/.test(token)).map(Number.parseFloat);
-        if (lengths.length < 2) throw new Error(`Unsupported computed shadow: ${shadow}`);
-        const [x, y, blur = 0, spread = 0] = lengths;
-        const radius = blur + (text ? 0 : spread);
-        return [{
-          left: Math.max(0, radius - x), right: Math.max(0, radius + x),
-          top: Math.max(0, radius - y), bottom: Math.max(0, radius + y),
-        }];
-      });
-    };
-    const nodes = [element, ...element.querySelectorAll('*')].map((node, index) => {
-      const rect = node.getBoundingClientRect();
-      const css = getComputedStyle(node);
-      const ownBox = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-      const boxShadows = shadows(css.boxShadow, false);
-      const textShadows = shadows(css.textShadow, true);
-      const outline = css.outlineStyle === 'none' ? 0
-        : Math.max(0, Number.parseFloat(css.outlineWidth) + Number.parseFloat(css.outlineOffset));
-      const overflow = {
-        left: Math.max(outline, ...boxShadows.map((item) => item.left), ...textShadows.map((item) => item.left)),
-        top: Math.max(outline, ...boxShadows.map((item) => item.top), ...textShadows.map((item) => item.top)),
-        right: Math.max(outline, ...boxShadows.map((item) => item.right), ...textShadows.map((item) => item.right)),
-        bottom: Math.max(outline, ...boxShadows.map((item) => item.bottom), ...textShadows.map((item) => item.bottom)),
-      };
-      return {
-        index, ownBox, boxShadows, textShadows, outline, overflow,
-        paintedBox: {
-          x: ownBox.x - overflow.left, y: ownBox.y - overflow.top,
-          width: ownBox.width + overflow.left + overflow.right,
-          height: ownBox.height + overflow.top + overflow.bottom,
-        },
-      };
-    }).filter((node) => node.ownBox.width > 0 && node.ownBox.height > 0);
-    if (!nodes.length) throw new Error('Exclusion element has no painted box');
-    const painted = union(nodes.map((node) => node.paintedBox));
-    const x = Math.floor(painted.x);
-    const y = Math.floor(painted.y);
-    return {
-      box: { x, y, width: Math.ceil(painted.x + painted.width) - x, height: Math.ceil(painted.y + painted.height) - y },
-      breakdown: {
-        ownBox: nodes[0].ownBox,
-        descendantUnion: nodes.length > 1 ? union(nodes.slice(1).map((node) => node.ownBox)) : null,
-        nodes,
-      },
-    };
-  });
-}
-
-async function captureDynamicBoxes(page: Page, name: string, width: number, height: number, set: string) {
-  const boxes: Array<{ name: string } & Awaited<ReturnType<typeof paintedBounds>>> = [];
-  const add = async (reason: string, locator: Locator) => {
-    const count = await locator.count();
-    for (let index = 0; index < count; index++) {
-      if (!await locator.nth(index).isVisible()) continue;
-      const bounds = await paintedBounds(locator.nth(index));
-      if (bounds.box.y < height && bounds.box.y + bounds.box.height > 0)
-        boxes.push({ name: `${reason} ${index + 1}`, ...bounds });
-    }
-  };
-  if (name === 'dashboard') {
-    await add('recent order number', page.getByRole('link', { name: /^View order / }));
-    await add('recent order created time', page.getByText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/));
-  } else if (name === 'customers-list' || name === 'customer-detail') {
-    await add('customer store timestamps', page.getByText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/));
-  } else if (name === 'order-detail') {
-    await add('order number', page.getByRole('heading', { name: /^Order [A-Z]{2,6}-[0-9]{8}-[0-9]{4,}$/ }));
-    await add('order exact store times', page.getByText(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/));
-  } else if (name === 'notifications') {
-    const timestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/;
-    await add('notification creation time', width < 768
-      ? page.getByText(timestamp).filter({ visible: true })
-      : page.getByRole('cell', { name: timestamp }));
-  } else if (name === 'health') {
-    await add('API uptime duration', page.getByText(/^\d+ days \d+ hours \d+ minutes$/));
-    await add('worker heartbeat time', page.getByText(/Last heartbeat:/));
-    await add('database check time', page.getByText(/^Last checked:/));
-  }
-  await writeFile(`e2e/visual-results/${set}/${name}-${width}.boxes.json`, JSON.stringify(boxes, null, 2));
-}
-
 const pages = [
   ['login', '/en/auth/login'],
   ['dashboard', '/en/dashboard'],
@@ -328,20 +217,14 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
       expect(bodyFontFamily).not.toMatch(/Geist/i);
       await page.evaluate(() => document.fonts.ready);
       computed.push({ page: name, bodyFontFamily, ...await headerMeasurements(page) });
-      const boxes: Array<{ name: string } & Awaited<ReturnType<typeof paintedBounds>>> = [];
       if (name === 'shop-orders') {
         const dates = page.getByText(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/).filter({ visible: true });
         await expect(dates).toHaveCount(1);
-        for (let index = 0; index < await dates.count(); index++) {
-          boxes.push({ name: `order created date ${index + 1}`, ...await paintedBounds(dates.nth(index)) });
-        }
       }
-      await writeFile(`e2e/visual-results/${set}/${name}-${width}.boxes.json`, JSON.stringify(boxes, null, 2));
       if (set === 'current') {
         // Capture unchanged pages twice so font rasterization noise is measured first.
         for (const noise of ['noise-1', 'noise-2']) {
           await mkdir(`e2e/visual-results/${noise}`, { recursive: true });
-          await writeFile(`e2e/visual-results/${noise}/${name}-${width}.boxes.json`, JSON.stringify(boxes, null, 2));
           await screenshotWithoutOverflow(page, {
             path: `e2e/visual-results/${noise}/${name}-${width}.png`,
             fullPage: true, animations: 'disabled',
@@ -405,7 +288,6 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
     await page.goto('/en/auth/login');
     await expect(page.getByLabel('Email or login name', { exact: true })).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
-    await captureDynamicBoxes(page, 'login', width, height, set);
     await screenshotWithoutOverflow(page, { path: `e2e/visual-results/${set}/login-${width}.png`, fullPage: true, animations: 'disabled' });
     await page.getByLabel('Email or login name', { exact: true }).fill(ownerEmail);
     await page.getByLabel('Password', { exact: true }).fill('FinalOwnerPassword123!');
@@ -490,17 +372,10 @@ for (const [width, height] of [[1440, 900], [390, 844]]) {
 
       }
 
-      const date = new Date().toLocaleDateString('en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-      });
-      await captureDynamicBoxes(page, name, width, height, set);
-
       await screenshotWithoutOverflow(page, {
         path: `e2e/visual-results/${set}/${name}-${width}.png`,
         fullPage: true,
         animations: 'disabled',
-        mask: [page.getByText(date, { exact: true }), page.getByText(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)],
-        maskColor: '#000000',
       });
     }
     await writeFile(`e2e/visual-results/${set}/font-requests-${width}.json`,
@@ -667,7 +542,18 @@ test('capture plugin boards in light and dark at desktop and phone widths', asyn
             const left = await dialog.evaluate(element => Number.parseFloat(getComputedStyle(element).left));
             expect(left, 'Plugin dialogs are centered over the main content area').toBeCloseTo(mainBounds!.x + mainBounds!.width / 2, 0);
           }
-          const png = await page.screenshot({ path: `e2e/visual-results/${set}/plugins-${name}-${mode.toLowerCase()}-${width}.png`, fullPage: true, animations: 'disabled' });
+          const png = await captureVisual(page, { path: `e2e/visual-results/${set}/plugins-${name}-${mode.toLowerCase()}-${width}.png`, fullPage: true, animations: 'disabled' });
+          if (mode === 'Light' && ['upload-choose', 'upload-preview'].includes(name)) {
+            const { breakdown: { ownBox: box } } = await paintedBounds(dialog, true);
+            // Baseline shadow profiles end 44px sideways, 32px above and 56px below.
+            const boxesPath = `e2e/visual-results/${set}/plugins-${name}-light-${width}.boxes.json`;
+            const maskBoxes = JSON.parse(await readFile(boxesPath, 'utf8'));
+            await writeFile(boxesPath, JSON.stringify([...maskBoxes, {
+              name: 'same-code dialog shadow rasterization', kind: 'shadow-ring', box,
+              outerBox: { x: box.x - 44, y: box.y - 32, width: box.width + 88, height: box.height + 88 },
+              radius: 56,
+            }], null, 2));
+          }
           expect(png.readUInt32BE(16), 'Plugin pages fit the viewport without horizontal overflow').toBe(width);
         };
         await page.goto('/zh-Hans/plugins');

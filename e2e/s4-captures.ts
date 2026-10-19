@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { mkdir } from 'node:fs/promises';
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
@@ -14,7 +15,7 @@ export async function captureS4State(page: Page, name: string) {
       await page.keyboard.press('Control+Home');
       for (const captureSet of set === 'current' ? ['noise-1', 'noise-2', 'current'] : [set!]) {
         await mkdir(`e2e/visual-results/${captureSet}`, { recursive: true });
-        const png = await page.screenshot({ path: `e2e/visual-results/${captureSet}/s4-${name}-${colorScheme}-${width}.png`, fullPage: true, animations: 'disabled' });
+        const png = await captureVisual(page, { path: `e2e/visual-results/${captureSet}/s4-${name}-${colorScheme}-${width}.png`, fullPage: true, animations: 'disabled' });
         expect(png.readUInt32BE(16), `${name} fits the viewport`).toBe(width);
       }
     }

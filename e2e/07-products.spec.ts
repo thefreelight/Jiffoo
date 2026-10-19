@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { expect, test } from './local-requests';
 import { api, changedPassword, login, ownerEmail } from './helpers';
 import { getTestPrisma, disconnectDatabase } from '../apps/api/tests/helpers/db';
@@ -211,7 +212,7 @@ test('A5 product editor guards changes, reorders images, navigates, duplicates a
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.getByRole('dialog', { name: 'Bulk price / stock', exact: true })).toBeVisible();
-    const screenshot = await page.screenshot({ fullPage: true, animations: 'disabled' });
+    const screenshot = await captureVisual(page, { fullPage: true, animations: 'disabled' });
     expect(screenshot.readUInt32BE(16), 'Bulk panel has no horizontal overflow at ' + width).toBe(width);
   }
   await page.setViewportSize({ width: 1440, height: 900 });

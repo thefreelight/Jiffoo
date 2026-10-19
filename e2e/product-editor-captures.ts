@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { expect, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { appearanceU4 } from './u4-captures';
@@ -12,7 +13,7 @@ export async function captureProductEditorStates(page: Page, productId: string) 
       await page.setViewportSize({ width, height });
       if (!name.includes('leave')) { await page.getByRole('heading', { level: 1, name: /.+/ }).click(); await page.keyboard.press('Control+Home'); }
       await expect(page.getByRole('region', { name: 'Notifications alt+T', exact: true }).getByRole('listitem', { name: /.*/ })).toHaveCount(0);
-      const screenshot = await page.screenshot({ ...(writeCapture ? { path: directory + '/' + name + '-' + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
+      const screenshot = await captureVisual(page, { ...(writeCapture ? { path: directory + '/' + name + '-' + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
       expect(screenshot.readUInt32BE(16), name + ' has no horizontal overflow at ' + width).toBe(width);
     }
     await page.setViewportSize({ width: 1440, height: 900 });

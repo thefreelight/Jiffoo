@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { expect, test } from './local-requests';
 import type { Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
@@ -49,7 +50,7 @@ async function screenshot(page: Page, name: string) {
   const directory = path.resolve('e2e/visual-results/review');
   await mkdir(directory, { recursive: true });
   await page.getByRole('heading', { name: /.+/ }).first().hover();
-  await page.screenshot({ path: path.join(directory, `${name}.png`), fullPage: true, animations: 'disabled' });
+  await captureVisual(page, { path: path.join(directory, `${name}.png`), fullPage: true, animations: 'disabled' });
 }
 
 test('A home retains one theme style after a reload and across locale and page navigation', async ({ page }) => {

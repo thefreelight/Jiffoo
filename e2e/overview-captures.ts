@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { expect, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
@@ -22,14 +23,14 @@ export async function captureOverview(page: Page, empty = false) {
       await expect(page.getByRole('heading', { name: 'Recent orders', exact: true })).toBeVisible();
       await page.getByRole('heading', { name: 'Overview', exact: true }).click();
       await page.keyboard.press('Control+Home');
-      const image = await page.screenshot({ ...(capture ? { path: directory + '/overview-' + (empty ? 'empty-' : '') + mode.toLowerCase() + '-' + width + '.png' } : {}), animations: 'disabled' });
+      const image = await captureVisual(page, { ...(capture ? { path: directory + '/overview-' + (empty ? 'empty-' : '') + mode.toLowerCase() + '-' + width + '.png' } : {}), animations: 'disabled' });
       expect(image.readUInt32BE(16)).toBe(width);
       expect(image.readUInt32BE(20)).toBe(height);
       await page.getByRole('img', { name: 'Daily paid sales over the last 14 days', exact: true }).scrollIntoViewIfNeeded();
-      await page.screenshot({ ...(capture ? { path: directory + '/overview-sales-' + (empty ? 'empty-' : '') + mode.toLowerCase() + '-' + width + '.png' } : {}), animations: 'disabled' });
+      await captureVisual(page, { ...(capture ? { path: directory + '/overview-sales-' + (empty ? 'empty-' : '') + mode.toLowerCase() + '-' + width + '.png' } : {}), animations: 'disabled' });
       await page.getByRole('link', { name: 'View all orders', exact: true }).focus();
       await page.keyboard.press('End');
-      const recent = await page.screenshot({ ...(capture ? { path: directory + '/overview-recent-' + (empty ? 'empty-' : '') + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
+      const recent = await captureVisual(page, { ...(capture ? { path: directory + '/overview-recent-' + (empty ? 'empty-' : '') + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
       expect(recent.readUInt32BE(16), 'Overview stays within the viewport width').toBe(width);
     }
   }

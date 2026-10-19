@@ -9,7 +9,7 @@ const privateCacheControl = 'private, no-cache, no-store, max-age=0, must-revali
 
 async function buyerWithCart(page: Page, label: string) {
   const id = randomUUID();
-  const productName = `Payment CSP ${label} ${id.slice(0, 8)}`;
+  const productName = `Payment CSP ${label} fixture`;
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/products/create');
   await page.getByLabel('Name', { exact: true }).first().fill(productName);

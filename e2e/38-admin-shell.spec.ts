@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { createNumberedOrder } from '../apps/api/tests/helpers/numbered-order';
 import { expect, test } from './local-requests';
 import { login, ownerEmail } from './helpers';
@@ -84,7 +85,7 @@ test('U2 Overview shows real attention counts and opens the Orders review deep l
     if (process.env.VISUAL_SET) for (const mode of ['Light', 'Dark']) {
       await chooseOverviewMode(page, mode);
       await page.getByRole('heading', { name: 'Orders', exact: true }).click(); await page.keyboard.press('Control+Home');
-      await page.screenshot({ path: 'e2e/visual-results/' + process.env.VISUAL_SET + '/admin-shell/orders-deeplink-' + mode.toLowerCase() + '-1440.png', animations: 'disabled' });
+      await captureVisual(page, { path: 'e2e/visual-results/' + process.env.VISUAL_SET + '/admin-shell/orders-deeplink-' + mode.toLowerCase() + '-1440.png', animations: 'disabled' });
     }
     await page.goto('/en/dashboard');
     await page.getByRole('link', { name: 'View orders', exact: true }).click();
@@ -156,12 +157,12 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
       for (const [width, height] of [[1440, 900], [390, 844]]) {
         await page.setViewportSize({ width, height });
         await expect(page.getByRole('link', { name: /^View order / }).first()).toBeVisible();
-        const image = await page.screenshot({ ...(capture ? { path: directory + '/orders-' + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
+        const image = await captureVisual(page, { ...(capture ? { path: directory + '/orders-' + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
         expect(image.readUInt32BE(16)).toBe(width);
       }
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click();
-      if (capture) await page.screenshot({ path: directory + '/rail-' + mode.toLowerCase() + '-1440.png', animations: 'disabled' });
+      if (capture) await captureVisual(page, { path: directory + '/rail-' + mode.toLowerCase() + '-1440.png', animations: 'disabled' });
       await page.getByRole('button', { name: 'Expand sidebar', exact: true }).click();
     }
     const user = await db.user.findUniqueOrThrow({ where: { email: 'customer@e2e.example' } });
@@ -186,7 +187,7 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
       for (const [width, height] of [[1440, 900], [390, 844]]) {
         await page.setViewportSize({ width, height });
         await expect(page.getByRole('button', { name: 'Review payments', exact: true })).toBeVisible();
-        const image = await page.screenshot({ ...(capture ? { path: directory + '/orders-review-' + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
+        const image = await captureVisual(page, { ...(capture ? { path: directory + '/orders-review-' + mode.toLowerCase() + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
         expect(image.readUInt32BE(16)).toBe(width);
       }
     }

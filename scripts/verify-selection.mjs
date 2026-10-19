@@ -2,6 +2,7 @@
 export const localScriptTests = new Set([
   'scripts/check-e2e-contexts.test.mjs', 'scripts/backup.test.mjs',
   'scripts/compose-volumes.test.mjs', 'scripts/verify-compose.test.mjs',
+  'scripts/visual-compare.test.mjs',
   'scripts/upload-test-storage.test.mjs', 'scripts/upload-test-image-identity.test.mjs',
   'scripts/release-identity.test.mjs', 'scripts/lane-config.test.mjs',
   'scripts/lane-provision.test.mjs', 'scripts/verify-selection.test.mjs',

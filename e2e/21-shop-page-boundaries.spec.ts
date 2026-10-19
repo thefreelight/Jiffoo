@@ -7,7 +7,7 @@ const shopOrigin = 'http://127.0.0.1:3003';
 
 async function buyerWithCart(page: Page, label: string) {
   const id = randomUUID();
-  const productName = `Boundary ${label} ${id.slice(0, 8)}`;
+  const productName = `Boundary ${label} fixture`;
   await login(page, ownerEmail, 'FinalOwnerPassword123!');
   await page.goto('/en/products/create');
   await page.getByLabel('Name', { exact: true }).first().fill(productName);

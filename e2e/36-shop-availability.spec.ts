@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { expect, test } from './local-requests';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -22,7 +23,7 @@ test('R exhausted real Core quotas preserve form input and render isolated local
   await expect(page.getByRole('button', { name: 'Request reset link' })).toBeDisabled();
   if (process.env.VISUAL_SET === 'review') {
     await mkdir(resolve('e2e/visual-results/review'), { recursive: true });
-    await page.screenshot({ path: resolve('e2e/visual-results/review/availability-form-en.png'), fullPage: true, animations: 'disabled' });
+    await captureVisual(page, { path: resolve('e2e/visual-results/review/availability-form-en.png'), fullPage: true, animations: 'disabled' });
   }
   denied = false;
   for (let index = 0; index < 1001; index++) {
@@ -42,7 +43,7 @@ test('R exhausted real Core quotas preserve form input and render isolated local
     expect(response?.headers()['cache-control']).toBe('no-store');
     expect(Number(response?.headers()['retry-after'])).toBeGreaterThan(0);
     expect(await page.content()).not.toMatch(/e2e-head-code|provider-marker|G-E2E/);
-    if (process.env.VISUAL_SET === 'review') await page.screenshot({ path: resolve(`e2e/visual-results/review/availability-${locale}.png`), fullPage: true, animations: 'disabled' });
+    if (process.env.VISUAL_SET === 'review') await captureVisual(page, { path: resolve(`e2e/visual-results/review/availability-${locale}.png`), fullPage: true, animations: 'disabled' });
   }
   expect(merchantRequests).toEqual([]);
 });

@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { expect, test } from './review-capture';
 import { login, ownerEmail } from './helpers';
 import { adminThemePackage } from './theme-package';
@@ -41,7 +42,7 @@ test('C1a activates Admin assets on every auth screen and restores the default',
         await expect(auth.getByRole('main')).toHaveCSS('background-image', `url("http://127.0.0.1:3002/api/v1/themes/e2e-admin-theme/${hash}/assets/login.png")`);
         if (process.env.VISUAL_SET) {
           const directory = 'e2e/visual-results/' + process.env.VISUAL_SET; await mkdir(directory, { recursive: true });
-          for (const [width, height] of [[1440, 900], [390, 844]]) { await auth.setViewportSize({ width, height }); const image = await auth.screenshot({ path: `${directory}/c1a-auth-${route}-${mode.toLowerCase()}-${width}.png`, fullPage: true, animations: 'disabled' }); expect(image.readUInt32BE(16)).toBe(width); }
+          for (const [width, height] of [[1440, 900], [390, 844]]) { await auth.setViewportSize({ width, height }); const image = await captureVisual(auth, { path: `${directory}/c1a-auth-${route}-${mode.toLowerCase()}-${width}.png`, fullPage: true, animations: 'disabled' }); expect(image.readUInt32BE(16)).toBe(width); }
         }
       }
     } finally { await fresh.close(); }

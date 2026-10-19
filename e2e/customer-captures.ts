@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { expect, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { chooseOverviewMode } from './overview-captures';
@@ -20,7 +21,7 @@ export async function captureCustomers(page: Page, kind: 'list' | 'detail') {
       await expect(page.getByRole('button', { name: '更多操作：E2E Customer', exact: true })).toBeVisible();
       await heading.click();
       await page.keyboard.press('Control+Home');
-      const image = await page.screenshot({ ...(writeCapture ? { path: directory + '/' + kind + '-' + mode.toLowerCase() + '-' + width + '.png' } : {}), animations: 'disabled', fullPage: true });
+      const image = await captureVisual(page, { ...(writeCapture ? { path: directory + '/' + kind + '-' + mode.toLowerCase() + '-' + width + '.png' } : {}), animations: 'disabled', fullPage: true });
       expect(image.readUInt32BE(16), 'Customer pages stay within the viewport').toBe(width);
     }
   }

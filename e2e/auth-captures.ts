@@ -1,3 +1,4 @@
+import { captureVisual } from './visual-capture';
 import { expect, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 
@@ -13,7 +14,7 @@ export async function captureAuthState(page: Page, state: string, heading: strin
       await expect(page.getByRole('heading', { name: heading, exact: true, level: 1 })).toBeVisible();
       await page.getByRole('heading', { name: heading, exact: true, level: 1 }).click();
       await page.keyboard.press('Control+Home');
-      const image = await page.screenshot({ ...(writeCapture ? { path: directory + '/' + state + '-' + colorScheme + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
+      const image = await captureVisual(page, { ...(writeCapture ? { path: directory + '/' + state + '-' + colorScheme + '-' + width + '.png' } : {}), fullPage: true, animations: 'disabled' });
       expect(image.readUInt32BE(16), 'Public account screens stay within the viewport').toBe(width);
     }
   }
