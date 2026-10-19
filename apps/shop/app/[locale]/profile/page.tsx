@@ -11,6 +11,8 @@ import React from 'react';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useAuthStore } from '@/store/auth';
+import { apiClient } from '@/lib/api';
+import type { AddressBookInput, SavedAddress } from 'shared/src/types/theme';
 import { useT } from 'shared/src/i18n/react';
 
 export default function ProfilePage() {
@@ -25,6 +27,80 @@ export default function ProfilePage() {
       getProfile();
     }
   }, [isAuthenticated, getProfile]);
+
+  const [addresses, setAddresses] = React.useState<SavedAddress[]>([]);
+  const [isLoadingAddresses, setIsLoadingAddresses] = React.useState(false);
+
+  const loadAddresses = React.useCallback(async () => {
+    if (!isAuthenticated) return;
+    setIsLoadingAddresses(true);
+    try {
+      const response = await apiClient.get('/me/addresses');
+      const items = (response.data?.items ?? []) as Array<{
+        id: string;
+        label?: string;
+        isDefault?: boolean;
+        shippingAddress?: {
+          name?: string;
+          phone?: string;
+          line1?: string;
+          line2?: string;
+          city?: string;
+          state?: string;
+          postalCode?: string;
+          country?: string;
+        };
+      }>;
+      setAddresses(items.map((item) => ({
+        id: item.id,
+        label: item.label,
+        name: item.shippingAddress?.name || '',
+        phone: item.shippingAddress?.phone || '',
+        line1: item.shippingAddress?.line1 || '',
+        line2: item.shippingAddress?.line2 ?? null,
+        city: item.shippingAddress?.city || '',
+        state: item.shippingAddress?.state ?? null,
+        postalCode: item.shippingAddress?.postalCode ?? null,
+        country: item.shippingAddress?.country || '',
+        isDefault: Boolean(item.isDefault),
+      })));
+    } catch {
+      setAddresses([]);
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  }, [isAuthenticated]);
+
+  React.useEffect(() => {
+    void loadAddresses();
+  }, [loadAddresses]);
+
+  const handleAddAddress = React.useCallback(async (input: AddressBookInput) => {
+    await apiClient.post('/me/addresses', {
+      shippingAddress: {
+        name: input.name,
+        phone: input.phone,
+        line1: input.line1,
+        ...(input.line2 ? { line2: input.line2 } : {}),
+        city: input.city,
+        ...(input.state ? { state: input.state } : {}),
+        ...(input.postalCode ? { postalCode: input.postalCode } : {}),
+        country: input.country,
+      },
+      ...(input.isDefault !== undefined ? { is_default: input.isDefault } : {}),
+    });
+    await loadAddresses();
+  }, [loadAddresses]);
+
+  const handleDeleteAddress = React.useCallback(async (addressId: string) => {
+    await apiClient.delete(`/me/addresses/${encodeURIComponent(addressId)}`);
+    await loadAddresses();
+  }, [loadAddresses]);
+
+  const handleSetDefaultAddress = React.useCallback(async (addressId: string) => {
+    await apiClient.post(`/me/addresses/${encodeURIComponent(addressId)}/default`);
+    await loadAddresses();
+  }, [loadAddresses]);
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -83,6 +159,11 @@ export default function ProfilePage() {
       onNavigateToSettings={() => nav.push('/profile/settings')}
       onNavigateToOrders={() => nav.push('/orders')}
       onNavigateToLogin={() => nav.push('/auth/login')}
+      addresses={addresses}
+      isLoadingAddresses={isLoadingAddresses}
+      onAddAddress={handleAddAddress}
+      onDeleteAddress={handleDeleteAddress}
+      onSetDefaultAddress={handleSetDefaultAddress}
     />
   );
 }

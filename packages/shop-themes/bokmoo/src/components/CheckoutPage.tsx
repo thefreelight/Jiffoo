@@ -1,7 +1,8 @@
 import React from 'react';
 import { ArrowLeft, CreditCard, Mail, ShieldCheck, Wallet } from 'lucide-react';
 import { cn } from '@jiffoo/ui';
-import type { CheckoutPageProps } from 'shared/src/types/theme';
+import { pickCopy } from '../site';
+import type { CheckoutPageProps, SavedAddress } from 'shared/src/types/theme';
 
 export const CheckoutPage = React.memo(function CheckoutPage({
   cart,
@@ -13,7 +14,11 @@ export const CheckoutPage = React.memo(function CheckoutPage({
   availablePaymentMethods,
   onSubmit,
   onBack,
-  savedAddress,}: CheckoutPageProps) {
+  savedAddress,
+  savedAddresses,
+  onPickSavedAddress,
+  locale,
+}: CheckoutPageProps) {
   const countriesRequireStatePostalSet = React.useMemo(() => {
     const source = countriesRequireStatePostal && countriesRequireStatePostal.length > 0
       ? countriesRequireStatePostal
@@ -36,6 +41,10 @@ export const CheckoutPage = React.memo(function CheckoutPage({
     promoCode: '',
   });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+  const [selectedSavedAddressId, setSelectedSavedAddressId] = React.useState<string | null>(
+    savedAddresses?.find((address) => address.isDefault)?.id ?? savedAddresses?.[0]?.id ?? null,
+  );
 
   // The parent fetches savedAddress asynchronously (address book, then last
   // order); merge it into the form once it arrives without clobbering
@@ -288,7 +297,49 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
               {shouldCollectShipping ? (
                 <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
-                  <p className="text-lg font-medium text-[var(--bokmoo-ink)]">Billing Details</p>
+                  {(savedAddresses?.length ?? 0) > 0 && onPickSavedAddress ? (
+              <div className="mb-8">
+                <p className="text-lg font-medium text-[var(--bokmoo-ink)]">
+                  {pickCopy(locale, { en: 'Saved addresses', hans: '已保存地址', hant: '已保存地址' })}
+                </p>
+                <div className="mt-4 grid gap-3">
+                  {(savedAddresses ?? []).map((address) => {
+                    const active = selectedSavedAddressId === address.id;
+                    return (
+                      <button
+                        key={address.id}
+                        onClick={() => {
+                          setSelectedSavedAddressId(address.id);
+                          onPickSavedAddress(address);
+                        }}
+                        className={`rounded-[1rem] border p-4 text-left transition-colors ${
+                          active
+                            ? 'border-[var(--bokmoo-gold)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)]'
+                            : 'border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_40%,transparent)]'
+                        }`}
+                        type="button"
+                      >
+                        <span className="flex flex-wrap items-center gap-2 text-sm font-medium text-[var(--bokmoo-ink)]">
+                          {address.name}
+                          {address.isDefault ? (
+                            <span className="rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--bokmoo-gold)]">
+                              {pickCopy(locale, { en: 'Default', hans: '默认', hant: '預設' })}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="mt-1 block text-xs text-[var(--bokmoo-copy)]">
+                          {address.phone} · {address.line1}
+                          {address.city ? `, ${address.city}` : ''}
+                          {address.country ? ` · ${address.country}` : ''}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            <p className="text-lg font-medium text-[var(--bokmoo-ink)]">Billing Details</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div>
                       <input
