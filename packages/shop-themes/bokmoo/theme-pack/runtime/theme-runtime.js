@@ -390,6 +390,18 @@
     ["path", { d: "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7", key: "1ocrg3" }]
   ]);
 
+  // ../../../node_modules/lucide-react/dist/esm/icons/map-pin.js
+  var MapPin = createLucideIcon("MapPin", [
+    [
+      "path",
+      {
+        d: "M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0",
+        key: "1r0f0z"
+      }
+    ],
+    ["circle", { cx: "12", cy: "10", r: "3", key: "ilqhr7" }]
+  ]);
+
   // ../../../node_modules/lucide-react/dist/esm/icons/menu.js
   var Menu = createLucideIcon("Menu", [
     ["line", { x1: "4", x2: "20", y1: "12", y2: "12", key: "1e0a9i" }],
@@ -11618,9 +11630,15 @@
     onNavigate,
     onNavigateToSettings,
     onNavigateToOrders,
-    onNavigateToLogin
+    onNavigateToLogin,
+    addresses,
+    isLoadingAddresses,
+    onAddAddress,
+    onDeleteAddress,
+    onSetDefaultAddress
   }) {
     const isZhHant = locale === "zh-Hant";
+    const [showAddressForm, setShowAddressForm] = react_default.useState(false);
     const site = resolveBokmooSiteConfig(config);
     const go = react_default.useCallback(
       (path) => {
@@ -11878,6 +11896,105 @@
               ] })
             ] })
           ] }),
+          onAddAddress ? /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-5 shadow-[var(--bokmoo-shadow)] sm:p-6", children: [
+            /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between gap-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
+              /* @__PURE__ */ jsx("div", { className: "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_15%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(MapPin, { className: "h-6 w-6" }) }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold tracking-tight text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "My Addresses", hans: "\u6211\u7684\u5730\u5740", hant: "\u6211\u7684\u5730\u5740" }) }),
+                /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Saved shipping addresses for checkout", hans: "\u7ED3\u7B97\u65F6\u4F7F\u7528\u7684\u6536\u8D27\u5730\u5740", hant: "\u7D50\u5E33\u6642\u4F7F\u7528\u7684\u6536\u8CA8\u5730\u5740" }) })
+              ] })
+            ] }) }),
+            isLoadingAddresses ? /* @__PURE__ */ jsx("p", { className: "mt-5 text-sm text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Loading\u2026", hans: "\u52A0\u8F7D\u4E2D\u2026", hant: "\u8F09\u5165\u4E2D\u2026" }) }) : /* @__PURE__ */ jsxs("div", { className: "mt-5 space-y-3", children: [
+              (addresses ?? []).length === 0 ? /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "No saved addresses yet.", hans: "\u8FD8\u6CA1\u6709\u4FDD\u5B58\u7684\u5730\u5740\u3002", hant: "\u9084\u6C92\u6709\u4FDD\u5B58\u7684\u5730\u5740\u3002" }) }) : (addresses ?? []).map((address) => /* @__PURE__ */ jsxs(
+                "div",
+                {
+                  className: "flex flex-col gap-3 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4 sm:flex-row sm:items-center sm:justify-between",
+                  children: [
+                    /* @__PURE__ */ jsxs("div", { className: "text-sm", children: [
+                      /* @__PURE__ */ jsxs("p", { className: "flex flex-wrap items-center gap-2 font-medium text-[var(--bokmoo-ink)]", children: [
+                        address.name,
+                        address.isDefault ? /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--bokmoo-gold)]", children: pickCopy(locale, { en: "Default", hans: "\u9ED8\u8BA4", hant: "\u9810\u8A2D" }) }) : null
+                      ] }),
+                      /* @__PURE__ */ jsxs("p", { className: "mt-1 text-[var(--bokmoo-copy)]", children: [
+                        address.phone,
+                        " \xB7 ",
+                        address.line1,
+                        address.city ? `, ${address.city}` : "",
+                        address.state ? `, ${address.state}` : "",
+                        address.country ? ` \xB7 ${address.country}` : ""
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ jsxs("div", { className: "flex shrink-0 items-center gap-2", children: [
+                      !address.isDefault && onSetDefaultAddress ? /* @__PURE__ */ jsx(
+                        "button",
+                        {
+                          onClick: () => void onSetDefaultAddress(address.id),
+                          className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1.5 text-xs text-[var(--bokmoo-copy)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)]",
+                          type: "button",
+                          children: pickCopy(locale, { en: "Set default", hans: "\u8BBE\u4E3A\u9ED8\u8BA4", hant: "\u8A2D\u70BA\u9810\u8A2D" })
+                        }
+                      ) : null,
+                      onDeleteAddress ? /* @__PURE__ */ jsx(
+                        "button",
+                        {
+                          onClick: () => void onDeleteAddress(address.id),
+                          className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1.5 text-xs text-[var(--bokmoo-copy)] transition-colors hover:border-[var(--bokmoo-danger)] hover:text-[var(--bokmoo-danger)]",
+                          type: "button",
+                          children: pickCopy(locale, { en: "Delete", hans: "\u5220\u9664", hant: "\u522A\u9664" })
+                        }
+                      ) : null
+                    ] })
+                  ]
+                },
+                address.id
+              )),
+              showAddressForm ? /* @__PURE__ */ jsxs(
+                "form",
+                {
+                  className: "grid gap-3 rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4 sm:grid-cols-2",
+                  onSubmit: (event) => {
+                    event.preventDefault();
+                    const data = new FormData(event.currentTarget);
+                    const input = {
+                      name: String(data.get("name") || "").trim(),
+                      phone: String(data.get("phone") || "").trim(),
+                      line1: String(data.get("line1") || "").trim(),
+                      city: String(data.get("city") || "").trim(),
+                      state: String(data.get("state") || "").trim(),
+                      postalCode: String(data.get("postalCode") || "").trim(),
+                      country: String(data.get("country") || "").trim()
+                    };
+                    if (!input.name || !input.phone || !input.line1 || !input.city || !input.country) return;
+                    void onAddAddress(input).then(() => setShowAddressForm(false));
+                  },
+                  children: [
+                    /* @__PURE__ */ jsx("input", { name: "name", required: true, placeholder: pickCopy(locale, { en: "Full name", hans: "\u59D3\u540D", hant: "\u59D3\u540D" }), className: "rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "phone", required: true, placeholder: pickCopy(locale, { en: "Phone", hans: "\u624B\u673A\u53F7", hant: "\u624B\u6A5F\u865F" }), className: "rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "line1", required: true, placeholder: pickCopy(locale, { en: "Address", hans: "\u8BE6\u7EC6\u5730\u5740", hant: "\u8A73\u7D30\u5730\u5740" }), className: "sm:col-span-2 rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "city", required: true, placeholder: pickCopy(locale, { en: "City", hans: "\u57CE\u5E02", hant: "\u57CE\u5E02" }), className: "rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "state", placeholder: pickCopy(locale, { en: "State / Province", hans: "\u7701/\u5DDE", hant: "\u7701/\u5DDE" }), className: "rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "postalCode", placeholder: pickCopy(locale, { en: "Postal code", hans: "\u90AE\u7F16", hant: "\u90F5\u905E\u5340\u865F" }), className: "rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" }),
+                    /* @__PURE__ */ jsx("input", { name: "country", required: true, placeholder: pickCopy(locale, { en: "Country (e.g. CN)", hans: "\u56FD\u5BB6\uFF08\u5982 CN\uFF09", hant: "\u570B\u5BB6\uFF08\u5982 CN\uFF09" }), className: "rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" }),
+                    /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-end gap-2 sm:col-span-2", children: [
+                      /* @__PURE__ */ jsx("button", { onClick: () => setShowAddressForm(false), className: "rounded-full px-4 py-2 text-xs text-[var(--bokmoo-copy)]", type: "button", children: pickCopy(locale, { en: "Cancel", hans: "\u53D6\u6D88", hant: "\u53D6\u6D88" }) }),
+                      /* @__PURE__ */ jsx("button", { className: "rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 py-2 text-xs font-semibold text-[var(--bokmoo-bg)]", type: "submit", children: pickCopy(locale, { en: "Save address", hans: "\u4FDD\u5B58\u5730\u5740", hant: "\u4FDD\u5B58\u5730\u5740" }) })
+                    ] })
+                  ]
+                }
+              ) : /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: () => setShowAddressForm(true),
+                  className: "inline-flex min-h-10 items-center gap-2 rounded-full border border-dashed border-[color:color-mix(in_oklab,var(--bokmoo-gold)_38%,transparent)] px-4 text-xs font-medium text-[var(--bokmoo-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)]",
+                  type: "button",
+                  children: [
+                    "+ ",
+                    pickCopy(locale, { en: "Add a new address", hans: "\u6DFB\u52A0\u65B0\u5730\u5740", hant: "\u6DFB\u52A0\u65B0\u5730\u5740" })
+                  ]
+                }
+              )
+            ] })
+          ] }) : null,
           /* @__PURE__ */ jsxs("section", { className: "grid gap-6 lg:grid-cols-2", children: [
             /* @__PURE__ */ jsxs(
               "div",
@@ -13379,7 +13496,10 @@
     availablePaymentMethods,
     onSubmit,
     onBack,
-    savedAddress
+    savedAddress,
+    savedAddresses,
+    onPickSavedAddress,
+    locale
   }) {
     const countriesRequireStatePostalSet = react_default.useMemo(() => {
       const source = countriesRequireStatePostal && countriesRequireStatePostal.length > 0 ? countriesRequireStatePostal : ["US", "CA", "AU", "CN", "GB"];
@@ -13400,6 +13520,9 @@
       promoCode: ""
     });
     const [errors, setErrors] = react_default.useState({});
+    const [selectedSavedAddressId, setSelectedSavedAddressId] = react_default.useState(
+      savedAddresses?.find((address) => address.isDefault)?.id ?? savedAddresses?.[0]?.id ?? null
+    );
     react_default.useEffect(() => {
       if (!savedAddress) return;
       setFormData((prev) => ({
@@ -13633,6 +13756,37 @@
             }) })
           ] }),
           shouldCollectShipping ? /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
+            (savedAddresses?.length ?? 0) > 0 && onPickSavedAddress ? /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
+              /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Saved addresses", hans: "\u5DF2\u4FDD\u5B58\u5730\u5740", hant: "\u5DF2\u4FDD\u5B58\u5730\u5740" }) }),
+              /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-3", children: (savedAddresses ?? []).map((address) => {
+                const active = selectedSavedAddressId === address.id;
+                return /* @__PURE__ */ jsxs(
+                  "button",
+                  {
+                    onClick: () => {
+                      setSelectedSavedAddressId(address.id);
+                      onPickSavedAddress(address);
+                    },
+                    className: `rounded-[1rem] border p-4 text-left transition-colors ${active ? "border-[var(--bokmoo-gold)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)]" : "border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_40%,transparent)]"}`,
+                    type: "button",
+                    children: [
+                      /* @__PURE__ */ jsxs("span", { className: "flex flex-wrap items-center gap-2 text-sm font-medium text-[var(--bokmoo-ink)]", children: [
+                        address.name,
+                        address.isDefault ? /* @__PURE__ */ jsx("span", { className: "rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--bokmoo-gold)]", children: pickCopy(locale, { en: "Default", hans: "\u9ED8\u8BA4", hant: "\u9810\u8A2D" }) }) : null
+                      ] }),
+                      /* @__PURE__ */ jsxs("span", { className: "mt-1 block text-xs text-[var(--bokmoo-copy)]", children: [
+                        address.phone,
+                        " \xB7 ",
+                        address.line1,
+                        address.city ? `, ${address.city}` : "",
+                        address.country ? ` \xB7 ${address.country}` : ""
+                      ] })
+                    ]
+                  },
+                  address.id
+                );
+              }) })
+            ] }) : null,
             /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: "Billing Details" }),
             /* @__PURE__ */ jsxs("div", { className: "mt-4 grid gap-3 sm:grid-cols-2", children: [
               /* @__PURE__ */ jsxs("div", { children: [
@@ -17251,7 +17405,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.23",
+      version: "1.1.24",
       target: "shop"
     }
   };

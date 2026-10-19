@@ -22,8 +22,7 @@ import {
   Settings,
   ShoppingBag,
   UserRound,
-  Users,
-} from 'lucide-react';
+  Users, MapPin } from 'lucide-react';
 import type { ProfilePageProps } from 'shared/src/types/theme';
 import { pickCopy, resolveBokmooSiteConfig } from '../site';
 
@@ -123,8 +122,14 @@ export const ProfilePage = React.memo(function ProfilePage({
   onNavigateToSettings,
   onNavigateToOrders,
   onNavigateToLogin,
+  addresses,
+  isLoadingAddresses,
+  onAddAddress,
+  onDeleteAddress,
+  onSetDefaultAddress,
 }: ProfilePageProps) {
   const isZhHant = locale === 'zh-Hant';
+  const [showAddressForm, setShowAddressForm] = React.useState(false);
   const site = resolveBokmooSiteConfig(config);
 
   const go = React.useCallback(
@@ -474,6 +479,130 @@ export const ProfilePage = React.memo(function ProfilePage({
               </div>
             </div>
           </section>
+
+          {/* My addresses */}
+          {onAddAddress ? (
+            <section className="rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-5 shadow-[var(--bokmoo-shadow)] sm:p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_15%,transparent)] text-[var(--bokmoo-gold)]">
+                    <MapPin className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold tracking-tight text-[var(--bokmoo-ink)]">
+                      {pickCopy(locale, { en: 'My Addresses', hans: '我的地址', hant: '我的地址' })}
+                    </h3>
+                    <p className="mt-1 text-sm text-[var(--bokmoo-copy-soft)]">
+                      {pickCopy(locale, { en: 'Saved shipping addresses for checkout', hans: '结算时使用的收货地址', hant: '結帳時使用的收貨地址' })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {isLoadingAddresses ? (
+                <p className="mt-5 text-sm text-[var(--bokmoo-copy-soft)]">
+                  {pickCopy(locale, { en: 'Loading…', hans: '加载中…', hant: '載入中…' })}
+                </p>
+              ) : (
+                <div className="mt-5 space-y-3">
+                  {(addresses ?? []).length === 0 ? (
+                    <p className="text-sm text-[var(--bokmoo-copy-soft)]">
+                      {pickCopy(locale, { en: 'No saved addresses yet.', hans: '还没有保存的地址。', hant: '還沒有保存的地址。' })}
+                    </p>
+                  ) : (
+                    (addresses ?? []).map((address: NonNullable<ProfilePageProps['addresses']>[number]) => (
+                      <div
+                        key={address.id}
+                        className="flex flex-col gap-3 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="text-sm">
+                          <p className="flex flex-wrap items-center gap-2 font-medium text-[var(--bokmoo-ink)]">
+                            {address.name}
+                            {address.isDefault ? (
+                              <span className="rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--bokmoo-gold)]">
+                                {pickCopy(locale, { en: 'Default', hans: '默认', hant: '預設' })}
+                              </span>
+                            ) : null}
+                          </p>
+                          <p className="mt-1 text-[var(--bokmoo-copy)]">
+                            {address.phone} · {address.line1}
+                            {address.city ? `, ${address.city}` : ''}
+                            {address.state ? `, ${address.state}` : ''}
+                            {address.country ? ` · ${address.country}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {!address.isDefault && onSetDefaultAddress ? (
+                            <button
+                              onClick={() => void onSetDefaultAddress(address.id)}
+                              className="rounded-full border border-[var(--bokmoo-line)] px-3 py-1.5 text-xs text-[var(--bokmoo-copy)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)]"
+                              type="button"
+                            >
+                              {pickCopy(locale, { en: 'Set default', hans: '设为默认', hant: '設為預設' })}
+                            </button>
+                          ) : null}
+                          {onDeleteAddress ? (
+                            <button
+                              onClick={() => void onDeleteAddress(address.id)}
+                              className="rounded-full border border-[var(--bokmoo-line)] px-3 py-1.5 text-xs text-[var(--bokmoo-copy)] transition-colors hover:border-[var(--bokmoo-danger)] hover:text-[var(--bokmoo-danger)]"
+                              type="button"
+                            >
+                              {pickCopy(locale, { en: 'Delete', hans: '删除', hant: '刪除' })}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))
+                  )}
+
+                  {showAddressForm ? (
+                    <form
+                      className="grid gap-3 rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4 sm:grid-cols-2"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        const data = new FormData(event.currentTarget);
+                        const input = {
+                          name: String(data.get('name') || '').trim(),
+                          phone: String(data.get('phone') || '').trim(),
+                          line1: String(data.get('line1') || '').trim(),
+                          city: String(data.get('city') || '').trim(),
+                          state: String(data.get('state') || '').trim(),
+                          postalCode: String(data.get('postalCode') || '').trim(),
+                          country: String(data.get('country') || '').trim(),
+                        };
+                        if (!input.name || !input.phone || !input.line1 || !input.city || !input.country) return;
+                        void onAddAddress(input).then(() => setShowAddressForm(false));
+                      }}
+                    >
+                      <input name="name" required placeholder={pickCopy(locale, { en: 'Full name', hans: '姓名', hant: '姓名' })} className="rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" />
+                      <input name="phone" required placeholder={pickCopy(locale, { en: 'Phone', hans: '手机号', hant: '手機號' })} className="rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" />
+                      <input name="line1" required placeholder={pickCopy(locale, { en: 'Address', hans: '详细地址', hant: '詳細地址' })} className="sm:col-span-2 rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" />
+                      <input name="city" required placeholder={pickCopy(locale, { en: 'City', hans: '城市', hant: '城市' })} className="rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" />
+                      <input name="state" placeholder={pickCopy(locale, { en: 'State / Province', hans: '省/州', hant: '省/州' })} className="rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" />
+                      <input name="postalCode" placeholder={pickCopy(locale, { en: 'Postal code', hans: '邮编', hant: '郵遞區號' })} className="rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" />
+                      <input name="country" required placeholder={pickCopy(locale, { en: 'Country (e.g. CN)', hans: '国家（如 CN）', hant: '國家（如 CN）' })} className="rounded-[0.7rem] border border-[var(--bokmoo-line)] bg-transparent px-3 py-2.5 text-sm text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]" />
+                      <div className="flex items-center justify-end gap-2 sm:col-span-2">
+                        <button onClick={() => setShowAddressForm(false)} className="rounded-full px-4 py-2 text-xs text-[var(--bokmoo-copy)]" type="button">
+                          {pickCopy(locale, { en: 'Cancel', hans: '取消', hant: '取消' })}
+                        </button>
+                        <button className="rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 py-2 text-xs font-semibold text-[var(--bokmoo-bg)]" type="submit">
+                          {pickCopy(locale, { en: 'Save address', hans: '保存地址', hant: '保存地址' })}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button
+                      onClick={() => setShowAddressForm(true)}
+                      className="inline-flex min-h-10 items-center gap-2 rounded-full border border-dashed border-[color:color-mix(in_oklab,var(--bokmoo-gold)_38%,transparent)] px-4 text-xs font-medium text-[var(--bokmoo-gold)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)]"
+                      type="button"
+                    >
+                      + {pickCopy(locale, { en: 'Add a new address', hans: '添加新地址', hant: '添加新地址' })}
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+          ) : null}
 
           {/* Quick links */}
           <section className="grid gap-6 lg:grid-cols-2">

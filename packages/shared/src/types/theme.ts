@@ -290,6 +290,8 @@ export interface CheckoutPageProps extends ThemeI18nProps {
     displayName: string;
     icon?: string;
   }>;
+  savedAddresses?: SavedAddress[];
+  onPickSavedAddress?: (address: SavedAddress) => void;
   savedAddress?: {
     email?: string;
     firstName?: string;
@@ -444,6 +446,32 @@ export interface OrderCancelledPageProps extends ThemeI18nProps {
 /**
  * Profile Page Component Props
  */
+export interface SavedAddress {
+  id: string;
+  label?: string;
+  name: string;
+  phone: string;
+  line1: string;
+  line2?: string | null;
+  state?: string | null;
+  city: string;
+  postalCode?: string | null;
+  country: string;
+  isDefault: boolean;
+}
+
+export interface AddressBookInput {
+  name: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  state?: string;
+  city: string;
+  postalCode?: string;
+  country: string;
+  isDefault?: boolean;
+}
+
 export interface ProfilePageProps extends ThemeI18nProps {
   user: {
     id: string;
@@ -452,6 +480,11 @@ export interface ProfilePageProps extends ThemeI18nProps {
     avatar?: string;
     createdAt: string;
   } | null;
+  addresses?: SavedAddress[];
+  isLoadingAddresses?: boolean;
+  onAddAddress?: (input: AddressBookInput) => Promise<void>;
+  onDeleteAddress?: (addressId: string) => Promise<void>;
+  onSetDefaultAddress?: (addressId: string) => Promise<void>;
   isLoading: boolean;
   isAuthenticated: boolean;
   config?: ThemeConfig;

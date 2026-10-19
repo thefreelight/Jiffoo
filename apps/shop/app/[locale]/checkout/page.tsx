@@ -17,7 +17,7 @@ import { apiClient, ordersApi, paymentApi } from '@/lib/api';
 import { useT } from 'shared/src/i18n/react';
 import { toast } from '@/components/ui/toaster';
 import { LoadingState, ErrorState } from '@/components/ui/state-components';
-import type { CheckoutFormData } from 'shared/src/types/theme';
+import type { CheckoutFormData, SavedAddress } from 'shared/src/types/theme';
 import type { Cart } from 'shared/src/types/cart';
 import {
   clearSelectedCartItemIds,
@@ -76,6 +76,7 @@ export default function CheckoutPage() {
     postalCode?: string;
     country?: string;
   } | null>(null);
+  const [savedAddressList, setSavedAddressList] = React.useState<SavedAddress[]>([]);
   const fallbackStripePublishableKey = (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').trim();
 
   // Helper function for translations with fallback
@@ -99,6 +100,8 @@ export default function CheckoutPage() {
       try {
         const bookResponse = await apiClient.get('/me/addresses');
         const bookItems = (bookResponse.data?.items ?? []) as Array<{
+          id: string;
+          label?: string;
           isDefault?: boolean;
           shippingAddress?: {
             name?: string;
@@ -110,6 +113,18 @@ export default function CheckoutPage() {
             country?: string;
           };
         }>;
+        setSavedAddressList(bookItems.map((item) => ({
+          id: item.id,
+          label: item.label,
+          name: item.shippingAddress?.name || '',
+          phone: item.shippingAddress?.phone || '',
+          line1: item.shippingAddress?.line1 || '',
+          city: item.shippingAddress?.city || '',
+          state: item.shippingAddress?.state ?? null,
+          postalCode: item.shippingAddress?.postalCode ?? null,
+          country: item.shippingAddress?.country || '',
+          isDefault: Boolean(item.isDefault),
+        })));
         const pick = bookItems.find((item) => item.isDefault) ?? bookItems[0];
         const ship = pick?.shippingAddress;
         if (cancelled || !ship) return;
@@ -152,6 +167,21 @@ export default function CheckoutPage() {
       cancelled = true;
     };
   }, [isAuthenticated, savedAddress, user?.email]);
+
+  const handlePickSavedAddress = React.useCallback((address: SavedAddress) => {
+    const nameParts = (address.name || '').trim().split(/\s+/).filter(Boolean);
+    setSavedAddress({
+      email: user?.email,
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' '),
+      phone: address.phone || '',
+      addressLine1: address.line1 || '',
+      city: address.city || '',
+      state: address.state || '',
+      postalCode: address.postalCode || '',
+      country: address.country || '',
+    });
+  }, [user?.email]);
 
   const checkoutItems = React.useMemo(() => {
     if (!selectedCartItemIds || selectedCartItemIds.length === 0) {
@@ -459,6 +489,8 @@ export default function CheckoutPage() {
         countriesRequireStatePostal={countriesRequireStatePostal}
         currentUserEmail={user?.email}
         savedAddress={savedAddress}
+        savedAddresses={savedAddressList}
+        onPickSavedAddress={handlePickSavedAddress}
         locale={nav.locale}
         t={t}
         availablePaymentMethods={availablePaymentMethods}
