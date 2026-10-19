@@ -33,6 +33,22 @@ it('does not invent target links and renders verified context with payment facts
   expect(container.textContent).toContain('JF-20261013-0001');
   expect(container.textContent).not.toContain('real-order');
 });
+it.each([
+  ['customer.deactivated', 'Customer deactivated'], ['customer.reactivated', 'Customer reactivated'],
+  ['customer.renamed', 'Customer renamed'], ['customer.deleted', 'Customer deleted'],
+])('shows customer action %s in the accounts category with recorded facts', async (action, label) => {
+  mock.query = 'category=accounts';
+  mock.list.mockResolvedValue({ items: [{ ...item, action, targetType: 'customer', targetId: 'past-customer', targetLabel: 'New Name · customer@example.com', summary: { email: 'customer@example.com', username: 'New Name', from: 'Old Name', to: 'New Name' } }], total: 1, totalPages: 1 });
+  await render();
+  expect(mock.list).toHaveBeenCalledWith(1, expect.objectContaining({ category: 'accounts' }), 20);
+  expect(container.textContent).toContain(label);
+  expect(container.textContent).toContain('Administrators and accounts');
+  expect(container.textContent).toContain('New Name · customer@example.com');
+  await click(`Expand: ${label}`);
+  expect(container.textContent).toContain('Old Name');
+  expect(container.textContent).toContain('New Name');
+  expect(container.textContent).toContain('customer@example.com');
+});
 it('opens human facts and then literal technical details on desktop and phone', async () => { await render(); await click('Expand: Store timezone changed'); expect(container.textContent).toContain('Before'); expect(container.textContent).toContain('Asia/Shanghai'); await click('Technical details (raw record) ›'); expect(container.querySelector('pre')!.textContent).toContain('"from": "UTC"'); expect(container.textContent).toContain('Owner'); });
 it.each([['NOTIFICATION_RESENT', 'Notification resent'], ['CUSTOMER_PASSWORD_RESET_LINK_GENERATED', 'Customer password reset link generated'], ['PAYMENT_REVIEW_CONFIRMED_PAID', 'Confirmed payment received']])('uses a merchant-readable label for %s', async (action, label) => { mock.list.mockResolvedValue({ items: [{ ...item, action }], total: 1, totalPages: 1 }); await render(); expect(container.textContent).toContain(label); expect(container.textContent).not.toContain(action); });
 it('restores filters, page size and sort from the URL and removes chips', async () => { mock.query = 'category=settings&actorId=owner&page=2&pageSize=50&sort=oldest'; await render(); expect(mock.list).toHaveBeenCalledWith(2, expect.objectContaining({ category: 'settings', actorId: 'owner', sort: 'oldest' }), 50); await click('Remove filter: Shop settings'); expect(mock.replace.mock.calls.at(-1)![0]).not.toContain('category='); });

@@ -35,7 +35,11 @@ export async function adminAuditEventRoutes(fastify: FastifyInstance) {
     ]);
     const orders = await prisma.order.findMany({ where: { id: { in: [...ids('order'), ...payments.map(payment => payment.orderId)] } }, select: { id: true, orderNumber: true } });
     const existingOrders = new Map(orders.map(order => [order.id, order.orderNumber]));
-    const items = records.map(({ actorId: id, actorSnapshot, targetLabel, ...record }) => {
+    const items = records.map(({ actorId: id, actorSnapshot, targetLabel: storedTargetLabel, ...record }) => {
+      const summary = record.summary && typeof record.summary === 'object' && !Array.isArray(record.summary) ? record.summary : {};
+      const targetLabel = record.targetType === 'customer' && typeof summary.email === 'string'
+        ? [typeof summary.username === 'string' ? summary.username : '', summary.email].filter(Boolean).join(' · ')
+        : storedTargetLabel;
       const currentActor = actors.get(id);
       const payment = record.targetType === 'payment' ? payments.find(row => row.id === record.targetId) : undefined;
       const plugin = record.targetType === 'plugin' ? plugins.find(row => row.slug === record.targetId) : undefined;

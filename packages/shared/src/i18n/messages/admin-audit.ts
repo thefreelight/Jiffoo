@@ -1,4 +1,8 @@
 const labels = {
+  customerDeactivated: ['Customer deactivated', '已停用客户', '已停用客戶'],
+  customerReactivated: ['Customer reactivated', '已恢复客户', '已恢復客戶'],
+  customerRenamed: ['Customer renamed', '已更改客户姓名', '已變更客戶姓名'],
+  customerDeleted: ['Customer deleted', '已删除客户', '已刪除客戶'],
   administratorReinvited: ['Administrator re-invited', '重新邀请管理员', '重新邀請管理員'],
   administratorAccepted: ['Administrator accepted invitation', '管理员接受邀请', '管理員接受邀請'],
   unsignedThemeConfirmed: ['Unsigned theme installation confirmed', '确认安装未签名主题', '確認安裝未簽署主題'],

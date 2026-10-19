@@ -148,15 +148,16 @@ export class AdminUserService {
     username?: string;
     role?: string;
     isActive?: boolean;
-  }) {
+  }, actorId: string) {
     if (Object.prototype.hasOwnProperty.call(data, 'role')) {
       throw new CustomerManagementError('Role cannot be changed here', 'ROLE_CHANGE_FORBIDDEN', 400);
     }
     const user = await prisma.$transaction(async (tx) => {
-      const target = await tx.user.findUnique({ where: { id: userId }, select: { role: true } });
+      await tx.$queryRaw(Prisma.sql`SELECT id FROM public.users WHERE id = ${userId} FOR UPDATE`);
+      const target = await tx.user.findUnique({ where: { id: userId }, select: { role: true, email: true, username: true, isActive: true } });
       if (!target) throw new ApiError('NOT_FOUND');
       if (target?.role === 'ADMIN') throw new CustomerManagementError('Administrator accounts are managed separately', 'ADMIN_ACCOUNT_PROTECTED', 409);
-      return tx.user.update({
+      const updated = await tx.user.update({
         where: { id: userId, role: 'USER' },
         data: { ...(data.username !== undefined ? { username: data.username } : {}), ...(data.isActive !== undefined ? { isActive: data.isActive } : {}) },
         select: {
@@ -170,6 +171,15 @@ export class AdminUserService {
           updatedAt: true
         }
       });
+      const summary = { email: updated.email, username: updated.username };
+      if (updated.username !== target.username) {
+        await tx.adminAuditEvent.create({ data: { actorId, action: 'customer.renamed', targetType: 'customer', targetId: userId,
+          summary: { ...summary, from: target.username, to: updated.username } } });
+      }
+      if (updated.isActive !== target.isActive) {
+        await tx.adminAuditEvent.create({ data: { actorId, action: updated.isActive ? 'customer.reactivated' : 'customer.deactivated', targetType: 'customer', targetId: userId, summary } });
+      }
+      return updated;
     });
 
     // Invalidate user list cache and specific user cache
@@ -185,11 +195,13 @@ export class AdminUserService {
     };
   }
 
-  static async deleteUser(userId: string) {
+  static async deleteUser(userId: string, actorId: string) {
     await prisma.$transaction(async (tx) => {
+      // Lock before reading the snapshot so it matches the deleted customer.
+      await tx.$queryRaw(Prisma.sql`SELECT id FROM public.users WHERE id = ${userId} FOR UPDATE`);
       const existingUser = await tx.user.findUnique({
         where: { id: userId },
-        select: { id: true, role: true },
+        select: { id: true, role: true, email: true, username: true },
       });
 
       if (!existingUser) {
@@ -199,13 +211,13 @@ export class AdminUserService {
         throw new CustomerManagementError('Administrator accounts are managed separately', 'ADMIN_ACCOUNT_PROTECTED', 409);
       }
 
-      // Lock the customer row so concurrent order inserts cannot race the deletion.
-      await tx.$queryRaw(Prisma.sql`SELECT id FROM public.users WHERE id = ${userId} FOR UPDATE`);
       if (await tx.order.count({ where: { userId } }) > 0) throw new ApiError('CUSTOMER_HAS_ORDERS');
 
       await knownPrismaOperation(() => tx.user.delete({
         where: { id: userId, role: 'USER' },
       }), { notFound: 'NOT_FOUND' });
+      await tx.adminAuditEvent.create({ data: { actorId, action: 'customer.deleted', targetType: 'customer', targetId: userId,
+        summary: { email: existingUser.email, username: existingUser.username } } });
     });
 
     // Invalidate user list cache and specific user cache

@@ -13,6 +13,7 @@ import { Pagination } from '@/components/operations/Pagination';
 
 const categories = ['payment', 'plugin', 'theme', 'code', 'settings', 'notification', 'system', 'accounts'];
 const operationKeys: Record<string, string> = {
+  'customer.deactivated': 'customerDeactivated', 'customer.reactivated': 'customerReactivated', 'customer.renamed': 'customerRenamed', 'customer.deleted': 'customerDeleted',
   NOTIFICATION_RESENT: 'notificationResent', CUSTOMER_PASSWORD_RESET_LINK_GENERATED: 'customerReset', ADMIN_INVITED: 'administratorInvited', ADMIN_REMOVED: 'administratorRemoved', ADMIN_REINVITED: 'administratorReinvited', ADMIN_INVITE_ACCEPTED: 'administratorAccepted', THEME_UNSIGNED_INSTALL_CONFIRMED: 'unsignedThemeConfirmed', BUILTIN_PLUGIN_INSTALLED: 'builtinPluginInstalled',
   PAYMENT_REVIEW_CONFIRMED_PAID: 'paymentConfirmed', PAYMENT_REVIEW_CLOSED_NOT_CHARGED: 'paymentNotCharged', PAYMENT_REVIEW_REQUIRED: 'paymentReview', PAYMENT_OBSERVATION_REVIEW_REQUIRED: 'paymentReview', PAYMENT_REVIEW_CONTRADICTED: 'paymentContradicted', PAYMENT_REFUND_REQUIRED_RESOLVED: 'refundResolved',
 };

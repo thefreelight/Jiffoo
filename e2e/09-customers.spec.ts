@@ -10,7 +10,10 @@ import type { Page } from '@playwright/test';
 async function searchCustomers(page: Page, search: string, count: number) {
   await page.getByPlaceholder('Search name or email').fill(search);
   await expect(page).toHaveURL(url => url.searchParams.get('search') === (search || null));
-  await expect(page.getByRole('row', { name: /./ })).toHaveCount(count + 1);
+  const pagination = page.getByRole('navigation', { name: 'Pagination', exact: true });
+  const size = Number(await pagination.getByRole('button', { name: 'Rows per page', exact: true }).innerText());
+  await expect(pagination.getByText(`${count ? 1 : 0}\u2013${Math.min(count, size)} of ${count}`, { exact: true })).toBeVisible();
+  await expect(page.getByRole('row', { name: /./ })).toHaveCount(Math.min(count, size) + 1);
 }
 
 test('customer filters, real order totals, navigation, rename, status, protected deletion and exports', async ({ page, newObservedContext }) => {
@@ -99,6 +102,14 @@ test('customer filters, real order totals, navigation, rename, status, protected
     await page.getByRole('alertdialog', { name: 'Delete customer', exact: true }).getByRole('button', { name: 'Delete customer', exact: true }).click();
     await expect(page.getByText('No matching customers', { exact: true })).toBeVisible();
     expect(await db.user.findUnique({ where: { id: disposable.id } })).toBeNull(); disposableId = undefined;
+    await page.goto('/en/audit-events');
+    await page.getByRole('combobox', { name: 'Category', exact: true }).click();
+    await page.getByRole('option', { name: 'Administrators and accounts', exact: true }).click();
+    const audit = page.getByRole('table', { name: 'Audit log', exact: true });
+    await expect(audit.getByRole('row', { name: /Customer deactivated.*E2E Customer Renamed/ })).toBeVisible();
+    const renamed = audit.getByRole('row', { name: /Customer renamed/ }).first();
+    await renamed.getByRole('button', { name: 'Expand: Customer renamed', exact: true }).click();
+    await expect(audit.getByText('E2E Customer Renamed', { exact: true })).toBeVisible();
   } finally {
     if (disposableId) await db.user.deleteMany({ where: { id: disposableId } });
     await db.user.updateMany({ where: { email: customerEmail }, data: { isActive: true, username: 'E2E Customer' } });

@@ -146,6 +146,23 @@ describe('Admin audit event viewer', () => {
       expect(validateResponse(route, 'GET', 400, response.json()).valid).toBe(true);
     }
   });
+  it('includes customer changes and deleted snapshots in account filters and export reads', async () => {
+    const actions = ['customer.deactivated', 'customer.reactivated', 'customer.renamed', 'customer.deleted'];
+    for (const action of actions) await event({ action, targetType: 'customer', targetId: 'deleted-customer',
+      summary: { email: 'customer@example.com', username: 'Recorded Name', ...(action === 'customer.renamed' ? { from: 'Old Name', to: 'Recorded Name' } : {}) } });
+    const query = `actorId=${admin.user.id}&category=accounts&targetType=customer`;
+    const exported = await list(query + '&limit=100');
+    expect(exported.total).toBe(4);
+    expect(exported.items.map((row: any) => row.action).sort()).toEqual([...actions].sort());
+    for (const row of exported.items) {
+      expect(row.targetLabel).toBe('Recorded Name · customer@example.com');
+      expect(row.context).toBeUndefined();
+      expect((await list(query + '&action=' + row.action)).items).toEqual([row]);
+    }
+    const filters = (await get('', admin.token, '/filters')).json().data;
+    expect(filters.actions).toEqual(expect.arrayContaining(actions));
+    expect(filters.targetTypes).toContain('customer');
+  });
   it('resolves a recorded actor id when historical staff rows have no name or email snapshot', async () => {
     const staff = await prisma.adminStaffAuditLog.create({ data: {
       action: 'ADMIN_REMOVED', actorUserId: admin.user.id, staffUserId: 'historical-target', staffEmail: 'past@example.com',

@@ -116,7 +116,7 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
-      const user = await AdminUserService.updateUser(id, request.body as any);
+      const user = await AdminUserService.updateUser(id, request.body as any, request.user!.id);
       return sendSuccess(reply, user);
     } catch (error) { return sendMappedError(reply, error); }
   });
@@ -133,7 +133,7 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
-      const result = await AdminUserService.deleteUser(id);
+      const result = await AdminUserService.deleteUser(id, request.user!.id);
       return sendSuccess(reply, {
         userId: id,
         deleted: result.deleted,
