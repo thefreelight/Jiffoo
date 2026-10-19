@@ -5,17 +5,21 @@ import { KeyRound, Loader2, MailCheck } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
+import { useShopTheme } from '@/lib/themes/provider';
 
 type Step = 'email' | 'reset' | 'done';
 
 /**
  * Forgot password — request a reset code, then set a new password.
  * The core sends a six-digit code by email; this page collects it with the
- * new password and completes the reset.
+ * new password and completes the reset. When the active theme provides a
+ * ForgotPasswordPage component it renders that; otherwise the built-in
+ * form below is the fallback.
  */
 function ForgotPasswordContent() {
   const searchParams = useSearchParams();
   const nav = useLocalizedNavigation();
+  const { theme, config } = useShopTheme();
   const presetEmail = searchParams.get('email')?.trim().toLowerCase() || '';
 
   const [step, setStep] = useState<Step>(presetEmail ? 'reset' : 'email');
@@ -27,19 +31,19 @@ function ForgotPasswordContent() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  const submitEmail = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const value = email.trim().toLowerCase();
-    if (!value.includes('@')) {
+  const requestCode = async (value: string) => {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized.includes('@')) {
       setError('Enter a valid email address.');
       return;
     }
     setBusy(true);
     setError('');
     try {
-      await authApi.forgotPassword(value);
+      await authApi.forgotPassword(normalized);
+      setEmail(normalized);
       setStep('reset');
-      setNotice(`If an account exists for ${value}, a six-digit reset code is on its way. It expires in 10 minutes.`);
+      setNotice(`If an account exists for ${normalized}, a six-digit reset code is on its way. It expires in 10 minutes.`);
     } catch (caught: any) {
       setError(caught?.message || 'Could not send the reset code. Try again in a moment.');
     } finally {
@@ -47,30 +51,53 @@ function ForgotPasswordContent() {
     }
   };
 
-  const submitReset = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!/^\d{6}$/.test(code.trim())) {
+  const resetPassword = async (input: { email: string; code: string; password: string }) => {
+    if (!/^\d{6}$/.test(input.code.trim())) {
       setError('Enter the six-digit code from the email.');
       return;
     }
-    if (password.length < 8) {
+    if (input.password.length < 8) {
       setError('The new password must be at least 8 characters.');
-      return;
-    }
-    if (password !== confirm) {
-      setError('The passwords do not match.');
       return;
     }
     setBusy(true);
     setError('');
     try {
-      await authApi.resetPassword({ email: email.trim().toLowerCase(), code: code.trim(), password });
+      await authApi.resetPassword({ email: input.email.trim().toLowerCase(), code: input.code.trim(), password: input.password });
       setStep('done');
     } catch (caught: any) {
       setError(caught?.message || 'Could not reset the password. Check the code and try again.');
     } finally {
       setBusy(false);
     }
+  };
+
+  const ThemeForgotPassword = theme?.components?.ForgotPasswordPage;
+  if (ThemeForgotPassword) {
+    return (
+      <ThemeForgotPassword
+        isLoading={busy}
+        error={error || null}
+        config={config}
+        onRequestCode={requestCode}
+        onResetPassword={resetPassword}
+        onNavigateToLogin={() => nav.push('/auth/login')}
+      />
+    );
+  }
+
+  const submitEmail = (event: React.FormEvent) => {
+    event.preventDefault();
+    void requestCode(email);
+  };
+
+  const submitReset = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (password !== confirm) {
+      setError('The passwords do not match.');
+      return;
+    }
+    void resetPassword({ email, code, password });
   };
 
   return (

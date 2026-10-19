@@ -172,3 +172,66 @@ describe('password reset codes', () => {
     expect(result.error).toMatch(/expired/i);
   });
 });
+
+describe('password security audit trail', () => {
+  it('records password.reset_requested when a known user requests a reset code', async () => {
+    smtp.sendSmtpEmail.mockReset().mockResolvedValue(undefined);
+    const { db, statements } = emailDb({
+      existing: {
+        id: 'u1', email: 'user@example.com', username: 'Jordan', role: 'USER', is_active: 1,
+        email_verified: 1, verification_code_hash: null, verification_expires_at: null, verification_attempts: 0,
+      },
+    });
+    const response = await tryNativeAuth(
+      new Request('https://api.example/api/v1/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'cf-connecting-ip': '203.0.113.9' },
+        body: JSON.stringify({ email: 'user@example.com' }),
+      }),
+      { DB: db, JWT_SECRET_VALUE: 'secret' } as never,
+      vi.fn(),
+    );
+    expect(response?.status).toBe(200);
+    const event = statements.find((statement) => statement.sql.includes('INTO native_user_security_events'));
+    expect(event?.values).toContain('password.reset_requested');
+    expect(event?.values).toContain('u1');
+    expect(event?.values).toContain('203.0.113.9');
+  });
+
+  it('records password.reset when a valid code completes a reset', async () => {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey('raw', encoder.encode('secret'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const signature = new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode('u1:654321')));
+    const codeHash = Array.from(signature, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const { db, statements } = emailDb({
+      existing: {
+        id: 'u1', email: 'user@example.com', username: 'Jordan', role: 'USER', is_active: 1,
+        email_verified: 1, verification_code_hash: codeHash,
+        verification_expires_at: new Date(Date.now() + 300_000).toISOString(), verification_attempts: 0,
+      },
+    });
+    const response = await tryNativeAuth(
+      new Request('https://api.example/api/v1/auth/reset-password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'cf-connecting-ip': '203.0.113.9' },
+        body: JSON.stringify({ email: 'user@example.com', code: '654321', password: 'newpassword1' }),
+      }),
+      { DB: db, JWT_SECRET_VALUE: 'secret' } as never,
+      vi.fn(),
+    );
+    expect(response?.status).toBe(200);
+    const events = statements.filter((statement) => statement.sql.includes('INTO native_user_security_events'));
+    expect(events.some((statement) => statement.values?.includes('password.reset'))).toBe(true);
+  });
+
+  it('reports the passwordReset capability as available', async () => {
+    const { tryNativeShopperAccount } = await import('./shopper-account');
+    const response = await tryNativeShopperAccount(
+      new Request('https://api.example/api/v1/shop/auth/capabilities', { method: 'GET' }),
+      { DB: emailDb().db, JWT_SECRET_VALUE: 'secret' } as never,
+    );
+    expect(response?.status).toBe(200);
+    const payload = await response?.json() as { data?: { passwordReset?: boolean } };
+    expect(payload.data?.passwordReset).toBe(true);
+  });
+});

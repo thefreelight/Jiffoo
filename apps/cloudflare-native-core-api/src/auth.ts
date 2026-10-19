@@ -1,5 +1,6 @@
 import { clearNativePasswordResetCode, sendNativePasswordResetCode, sendNativeVerificationCode, verifyNativeEmailCode, verifyNativePasswordResetCode } from './email-verification';
-import { consumeVerificationRateLimit } from './auth-rate-limit';
+import { consumeVerificationRateLimit, requestIp } from './auth-rate-limit';
+import { recordNativeSecurityEvent } from './security-audit';
 
 export interface NativeSmtpEnv {
   SITE_NAME?: string;
@@ -433,6 +434,13 @@ export async function tryNativeAuth(
       return Response.json({ success: false, error: { code: 'INVALID_PASSWORD', message: 'Current password is incorrect' } }, { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-auth' } });
     }
     await updateNativePassword(env, user.id, body.newPassword);
+    await recordNativeSecurityEvent(env, {
+      action: 'password.changed',
+      email: nativeUser?.email ?? user.email,
+      userId: user.id,
+      source: 'admin',
+      ip: requestIp(request),
+    });
     return Response.json({ success: true, data: { passwordChanged: true, changedAt: new Date().toISOString() } }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-auth' } });
   }
 
@@ -625,6 +633,12 @@ export async function tryNativeAuth(
         { status: 503, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
       );
     }
+    await recordNativeSecurityEvent(env, {
+      action: 'password.reset_requested',
+      email: user.email,
+      userId: user.id,
+      ip: requestIp(request),
+    });
     return Response.json(
       { success: true, data: { email }, message: 'Password reset code sent' },
       { status: 200, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
@@ -658,6 +672,12 @@ export async function tryNativeAuth(
     }
     await updateNativePassword(env, result.userId, newPassword);
     await clearNativePasswordResetCode(env, result.userId);
+    await recordNativeSecurityEvent(env, {
+      action: 'password.reset',
+      email,
+      userId: result.userId,
+      ip: requestIp(request),
+    });
     return Response.json(
       { success: true, data: { passwordReset: true }, message: 'Password has been reset' },
       { status: 200, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },

@@ -11,7 +11,8 @@ import {
   type NativeUser,
 } from './auth';
 import { sendNativeVerificationCode, verifyNativeEmailCode } from './email-verification';
-import { consumeVerificationRateLimit } from './auth-rate-limit';
+import { consumeVerificationRateLimit, requestIp } from './auth-rate-limit';
+import { recordNativeSecurityEvent } from './security-audit';
 
 const RUNTIME = 'cloudflare-native-d1-shopper-account';
 
@@ -161,6 +162,12 @@ async function changePassword(request: Request, env: NativeAuthEnv): Promise<Res
     return error(401, 'INVALID_PASSWORD', 'Current password is incorrect');
   }
   await updateNativePassword(env, user.id, body.newPassword);
+  await recordNativeSecurityEvent(env, {
+    action: 'password.changed',
+    email: user.email,
+    userId: user.id,
+    ip: requestIp(request),
+  });
   return success({ passwordChanged: true, changedAt: new Date().toISOString() });
 }
 
@@ -320,7 +327,7 @@ export async function tryNativeShopperAccount(request: Request, env: NativeAuthE
   if (path === '/api/v1/shop/auth/capabilities' && request.method === 'GET') {
     return success({
       emailAvailable: true,
-      passwordReset: false,
+      passwordReset: true,
       passwordChange: true,
       emailCodeLogin: false,
       registrationVerification: true,

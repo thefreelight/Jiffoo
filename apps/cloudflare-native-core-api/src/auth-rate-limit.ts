@@ -15,7 +15,7 @@ async function digest(value: string): Promise<string> {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function requestIp(request: Request): string {
+export function requestIp(request: Request): string {
   return request.headers.get('cf-connecting-ip')?.trim()
     || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || 'unknown';
