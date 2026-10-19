@@ -94,6 +94,41 @@ export default function CheckoutPage() {
     if (!isAuthenticated || savedAddress) return;
     let cancelled = false;
     (async () => {
+      // Preferred source: the shopper's address book (#391) — default address
+      // first. Falls back to the most recent order's shipping address.
+      try {
+        const bookResponse = await apiClient.get('/me/addresses');
+        const bookItems = (bookResponse.data?.items ?? []) as Array<{
+          isDefault?: boolean;
+          shippingAddress?: {
+            name?: string;
+            phone?: string;
+            line1?: string;
+            city?: string;
+            state?: string;
+            postalCode?: string;
+            country?: string;
+          };
+        }>;
+        const pick = bookItems.find((item) => item.isDefault) ?? bookItems[0];
+        const ship = pick?.shippingAddress;
+        if (cancelled || !ship) return;
+        const nameParts = (ship.name || '').trim().split(/\s+/).filter(Boolean);
+        setSavedAddress({
+          email: user?.email,
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' '),
+          phone: ship.phone || '',
+          addressLine1: ship.line1 || '',
+          city: ship.city || '',
+          state: ship.state || '',
+          postalCode: ship.postalCode || '',
+          country: ship.country || '',
+        });
+        return;
+      } catch {
+        // Address book unavailable (guest or API error) — try last order.
+      }
       try {
         const response = await ordersApi.getOrders({});
         const latest = response.data?.items?.[0]?.shippingAddress;
