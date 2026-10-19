@@ -116,6 +116,14 @@
     ["path", { d: "M10 2c1 .5 2 2 2 5", key: "fcco2y" }]
   ]);
 
+  // ../../../node_modules/lucide-react/dist/esm/icons/arrow-left-right.js
+  var ArrowLeftRight = createLucideIcon("ArrowLeftRight", [
+    ["path", { d: "M8 3 4 7l4 4", key: "9rb6wj" }],
+    ["path", { d: "M4 7h16", key: "6tx8e3" }],
+    ["path", { d: "m16 21 4-4-4-4", key: "siv7j2" }],
+    ["path", { d: "M20 17H4", key: "h6l3hr" }]
+  ]);
+
   // ../../../node_modules/lucide-react/dist/esm/icons/arrow-left.js
   var ArrowLeft = createLucideIcon("ArrowLeft", [
     ["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
@@ -314,6 +322,19 @@
         key: "1d0kgt"
       }
     ]
+  ]);
+
+  // ../../../node_modules/lucide-react/dist/esm/icons/layers.js
+  var Layers = createLucideIcon("Layers", [
+    [
+      "path",
+      {
+        d: "m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z",
+        key: "8b97xw"
+      }
+    ],
+    ["path", { d: "m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65", key: "dd6zsq" }],
+    ["path", { d: "m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65", key: "ep9fru" }]
   ]);
 
   // ../../../node_modules/lucide-react/dist/esm/icons/layout-grid.js
@@ -569,21 +590,6 @@
     ["path", { d: "M12 18h.01", key: "mhygvu" }]
   ]);
 
-  // ../../../node_modules/lucide-react/dist/esm/icons/sparkles.js
-  var Sparkles = createLucideIcon("Sparkles", [
-    [
-      "path",
-      {
-        d: "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z",
-        key: "4pj2yx"
-      }
-    ],
-    ["path", { d: "M20 3v4", key: "1olli1" }],
-    ["path", { d: "M22 5h-4", key: "1gvqau" }],
-    ["path", { d: "M4 17v2", key: "vumght" }],
-    ["path", { d: "M5 18H3", key: "zchphs" }]
-  ]);
-
   // ../../../node_modules/lucide-react/dist/esm/icons/star.js
   var Star = createLucideIcon("Star", [
     [
@@ -675,17 +681,6 @@
   var X = createLucideIcon("X", [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
     ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
-  ]);
-
-  // ../../../node_modules/lucide-react/dist/esm/icons/zap.js
-  var Zap = createLucideIcon("Zap", [
-    [
-      "path",
-      {
-        d: "M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z",
-        key: "1xq2db"
-      }
-    ]
   ]);
 
   // theme-host:react/jsx-runtime
@@ -14733,12 +14728,10 @@
       [onNavigate]
     );
     const navItems = [
-      { label: pickCopy(locale, { en: "Store", hans: "\u5546\u5E97", hant: "\u5546\u5E97" }), onClick: onNavigateToProducts },
-      { label: pickCopy(locale, { en: "Coverage", hans: "\u670D\u52A1\u8303\u56F4", hant: "\u670D\u52D9\u7BC4\u570D" }), onClick: onNavigateToProducts },
-      { label: pickCopy(locale, { en: "How It Works", hans: "\u4F7F\u7528\u65B9\u5F0F", hant: "\u4F7F\u7528\u65B9\u5F0F" }), onClick: () => openHref("/#how-it-works") },
-      { label: pickCopy(locale, { en: "About Us", hans: "\u5173\u4E8E\u6211\u4EEC", hant: "\u95DC\u65BC\u6211\u5011" }), onClick: () => openHref("/contact") },
-      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u63F4", hant: "\u652F\u63F4" }), onClick: () => openHref("/help") },
-      { label: pickCopy(locale, { en: "Affiliate", hans: "\u63A8\u5E7F", hant: "\u63A8\u5EE3" }), onClick: () => openHref("/affiliate") }
+      { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1" }), onClick: onNavigateToProducts },
+      { label: pickCopy(locale, { en: "Global Plans", hans: "\u5168\u7403\u5957\u9910", hant: "\u5168\u7403\u5957\u9910" }), onClick: onNavigateToProducts },
+      { label: pickCopy(locale, { en: "Download App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App" }), onClick: () => openHref("/download/app") },
+      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), onClick: () => openHref("/help") }
     ];
     return /* @__PURE__ */ jsxs("header", { className: "sticky top-0 z-50 border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[radial-gradient(circle_at_8%_-24%,color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent),transparent_34%),linear-gradient(180deg,oklch(0.055_0.007_75_/_0.98),oklch(0.028_0.004_75_/_0.96))] shadow-[0_18px_52px_rgba(0,0,0,0.3)] backdrop-blur-2xl", children: [
       /* @__PURE__ */ jsxs("div", { className: "mx-auto flex max-w-[107rem] items-center gap-3 px-4 py-2.5 sm:px-6 xl:min-h-[4.35rem] xl:gap-5 xl:px-0", children: [
@@ -14772,6 +14765,18 @@
           item.label
         )) }),
         /* @__PURE__ */ jsxs("div", { className: "ml-auto hidden items-center gap-3 xl:flex", children: [
+          /* @__PURE__ */ jsxs(
+            "button",
+            {
+              onClick: () => openHref("/products"),
+              className: `inline-flex min-h-[2.75rem] items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[#141210] ${FOCUS_VISIBLE_RING2}`,
+              type: "button",
+              children: [
+                pickCopy(locale, { en: "Get Started", hans: "\u5F00\u59CB\u4F7F\u7528", hant: "\u958B\u59CB\u4F7F\u7528" }),
+                /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
+              ]
+            }
+          ),
           /* @__PURE__ */ jsxs("div", { className: "relative", children: [
             /* @__PURE__ */ jsxs(
               "button",
@@ -15016,460 +15021,339 @@
   });
 
   // src/components/HomePage.tsx
-  var BOKMOO_HERO_CARD_SRC = "/theme-assets/bokmoo/bokmoo-hero-card-product.png?v=20260716";
-  var FOCUS_VISIBLE_RING3 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function HeroPillar({ className }) {
-    return /* @__PURE__ */ jsx(
-      "div",
-      {
-        className: `absolute w-px bg-[linear-gradient(180deg,transparent,color-mix(in_oklab,var(--bokmoo-gold)_82%,transparent),transparent)] shadow-[0_0_52px_color-mix(in_oklab,var(--bokmoo-gold)_48%,transparent)] ${className}`
-      }
-    );
+    return /* @__PURE__ */ jsx("div", { className: `pointer-events-none absolute rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] ${className}` });
   }
-  function WorldGlobe() {
-    const dots = [
-      [22, 44],
-      [29, 36],
-      [38, 51],
-      [47, 32],
-      [52, 45],
-      [59, 39],
-      [68, 50],
-      [73, 35],
-      [81, 43]
-    ];
-    return /* @__PURE__ */ jsxs("div", { className: "absolute -right-[24%] top-[-5%] hidden h-[58rem] w-[92rem] opacity-100 lg:block xl:-right-[21%] 2xl:-right-[16%] 2xl:top-[-8%]", children: [
-      /* @__PURE__ */ jsx("div", { className: "absolute inset-[-8%] rounded-full bg-[radial-gradient(circle_at_52%_52%,color-mix(in_oklab,var(--bokmoo-gold)_58%,transparent),transparent_58%)] blur-3xl" }),
-      /* @__PURE__ */ jsxs("svg", { className: "absolute inset-0 h-full w-full", viewBox: "0 0 760 520", "aria-hidden": "true", children: [
-        /* @__PURE__ */ jsxs("defs", { children: [
-          /* @__PURE__ */ jsxs("radialGradient", { id: "bokmooGlobeGlow", cx: "54%", cy: "52%", r: "48%", children: [
-            /* @__PURE__ */ jsx("stop", { offset: "0%", stopColor: "rgba(226,188,94,0.58)" }),
-            /* @__PURE__ */ jsx("stop", { offset: "58%", stopColor: "rgba(226,188,94,0.24)" }),
-            /* @__PURE__ */ jsx("stop", { offset: "100%", stopColor: "rgba(226,188,94,0)" })
-          ] }),
-          /* @__PURE__ */ jsxs("linearGradient", { id: "bokmooGlobeLine", x1: "0", x2: "1", y1: "0", y2: "1", children: [
-            /* @__PURE__ */ jsx("stop", { offset: "0%", stopColor: "rgba(244,203,111,0)" }),
-            /* @__PURE__ */ jsx("stop", { offset: "48%", stopColor: "rgba(244,203,111,0.88)" }),
-            /* @__PURE__ */ jsx("stop", { offset: "100%", stopColor: "rgba(244,203,111,0)" })
-          ] })
-        ] }),
-        /* @__PURE__ */ jsx("ellipse", { cx: "430", cy: "260", rx: "310", ry: "180", fill: "url(#bokmooGlobeGlow)" }),
-        /* @__PURE__ */ jsx("ellipse", { cx: "430", cy: "260", rx: "318", ry: "182", fill: "none", stroke: "rgba(226,188,94,0.52)", strokeWidth: "1.6" }),
-        /* @__PURE__ */ jsx("ellipse", { cx: "430", cy: "260", rx: "245", ry: "126", fill: "none", stroke: "rgba(226,188,94,0.36)", strokeWidth: "1.2" }),
-        /* @__PURE__ */ jsx("ellipse", { cx: "430", cy: "260", rx: "150", ry: "78", fill: "none", stroke: "rgba(226,188,94,0.28)", strokeWidth: "1.1" }),
-        /* @__PURE__ */ jsx("path", { d: "M150 264 C270 210 410 208 548 248 C604 264 664 258 714 226", fill: "none", stroke: "url(#bokmooGlobeLine)", strokeWidth: "2.6" }),
-        /* @__PURE__ */ jsx("path", { d: "M168 310 C286 260 390 286 498 322 C572 346 640 334 710 292", fill: "none", stroke: "rgba(226,188,94,0.46)", strokeWidth: "1.7" }),
-        /* @__PURE__ */ jsx("path", { d: "M202 220 C316 178 468 172 612 214", fill: "none", stroke: "rgba(226,188,94,0.34)", strokeWidth: "1.35" }),
-        /* @__PURE__ */ jsx("path", { d: "M300 120 C342 212 342 316 302 404", fill: "none", stroke: "rgba(226,188,94,0.34)", strokeWidth: "1.2" }),
-        /* @__PURE__ */ jsx("path", { d: "M430 84 C410 198 412 322 456 432", fill: "none", stroke: "rgba(226,188,94,0.4)", strokeWidth: "1.3" }),
-        /* @__PURE__ */ jsx("path", { d: "M570 128 C530 220 528 320 592 410", fill: "none", stroke: "rgba(226,188,94,0.32)", strokeWidth: "1.2" }),
-        dots.map(([x, y]) => /* @__PURE__ */ jsx(
-          "circle",
-          {
-            cx: x / 100 * 760,
-            cy: y / 100 * 520,
-            r: "4.6",
-            fill: "rgba(244,203,111,0.96)",
-            filter: "drop-shadow(0 0 14px rgba(244,203,111,0.82))"
-          },
-          `${x}-${y}`
-        ))
-      ] })
-    ] });
+  function AppleIcon2() {
+    return /* @__PURE__ */ jsx("svg", { viewBox: "0 0 24 24", fill: "currentColor", className: "h-5 w-5", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" }) });
   }
+  function PlayIcon() {
+    return /* @__PURE__ */ jsx("svg", { viewBox: "0 0 24 24", fill: "currentColor", className: "h-5 w-5", "aria-hidden": "true", children: /* @__PURE__ */ jsx("path", { d: "M3.61 1.81L13.79 12 3.61 22.19a1.5 1.5 0 01-.44-1.06V2.87c0-.41.16-.78.44-1.06zm11.6 11.6l2.52 2.52-9.72 5.47 7.2-7.99zm4.99-4.11c.36.34.58.81.58 1.34v2.72c0 .53-.22 1-.58 1.34l-2.88 2.88-2.76-2.76 2.76-2.77-2.76-2.76 2.76-2.76 2.88 2.77zm-12.19-8.8l9.72 5.46-2.52 2.52-7.2-7.98z" }) });
+  }
+  function SectionEyebrow({ children }) {
+    return /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase tracking-[0.22em] text-[var(--bokmoo-gold)]", children });
+  }
+  var HERO_STATS = [
+    { value: "200+", label: { en: "Countries & regions", hans: "\u56FD\u5BB6\u548C\u5730\u533A", hant: "\u570B\u5BB6\u548C\u5730\u5340" } },
+    { value: "1000+", label: { en: "Carrier plans", hans: "\u8FD0\u8425\u5546\u5957\u9910", hant: "\u71DF\u904B\u5546\u5957\u9910" } },
+    { value: "15\u201320", label: { en: "Plans per card", hans: "\u5957\u9910/\u5F20\u5361", hant: "\u5957\u9910/\u5F35\u5361" } }
+  ];
+  var DESTINATIONS = [
+    { name: { en: "Japan", hans: "\u65E5\u672C", hant: "\u65E5\u672C" }, flag: "\u{1F1EF}\u{1F1F5}", image: "/theme-assets/bokmoo/bokmoo-dest-japan.jpg" },
+    { name: { en: "France", hans: "\u6CD5\u56FD", hant: "\u6CD5\u570B" }, flag: "\u{1F1EB}\u{1F1F7}", image: "/theme-assets/bokmoo/bokmoo-dest-france.jpg" },
+    { name: { en: "Singapore", hans: "\u65B0\u52A0\u5761", hant: "\u65B0\u52A0\u5761" }, flag: "\u{1F1F8}\u{1F1EC}", image: "/theme-assets/bokmoo/bokmoo-dest-singapore.jpg" },
+    { name: { en: "United States", hans: "\u7F8E\u56FD", hant: "\u7F8E\u570B" }, flag: "\u{1F1FA}\u{1F1F8}", image: "/theme-assets/bokmoo/bokmoo-dest-usa.jpg" }
+  ];
   var HomePage = react_default.memo(function HomePage2({ locale, config, onNavigate }) {
     const site = resolveBokmooSiteConfig(config, locale);
-    const [homeProducts, setHomeProducts] = react_default.useState([]);
-    const [homeProductsLoading, setHomeProductsLoading] = react_default.useState(true);
+    const t = (copy) => pickCopy(locale, copy);
     const openHref = react_default.useCallback(
       (href) => {
         if (isExternalHref(href)) {
           window.open(href, "_blank", "noopener,noreferrer");
           return;
         }
-        const hashTarget = href.startsWith("/#") ? href.slice(2) : href.startsWith("#") ? href.slice(1) : "";
-        if (hashTarget) {
-          onNavigate?.(href);
-          window.setTimeout(() => {
-            document.getElementById(hashTarget)?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }, 0);
-          return;
-        }
         onNavigate?.(href);
       },
       [onNavigate]
     );
-    react_default.useEffect(() => {
-      let cancelled = false;
-      void getBokmooProducts({ baseUrl: site.apiBaseUrl }, { page: 1, limit: 12, locale: "en", type: "esim" }).then((response) => {
-        if (cancelled) return;
-        setHomeProducts(
-          response.items.map((item) => {
-            const variantPrices = (item.variants || []).map((variant) => Number(variant.salePrice || 0)).filter((price) => price > 0).sort((a, b) => a - b);
-            return {
-              id: String(item.id || ""),
-              name: displayProductTitle(item.name),
-              description: String(item.description || ""),
-              price: variantPrices[0] ?? Number(item.price || 0),
-              image: resolveBokmooMediaUrl(
-                (typeof item.images?.[0] === "string" ? item.images[0] : item.images?.[0]?.url) || item.image,
-                site.apiBaseUrl
-              )
-            };
-          })
-        );
-      }).catch(() => {
-        if (!cancelled) setHomeProducts([]);
-      }).finally(() => {
-        if (!cancelled) setHomeProductsLoading(false);
-      });
-      return () => {
-        cancelled = true;
-      };
-    }, [site.apiBaseUrl]);
-    const reasonCards = [
-      {
-        title: "Global Coverage",
-        body: "Access data in 200+ countries and regions with local rates.",
-        icon: Earth
-      },
-      {
-        title: "Instant Activation",
-        body: "Install your eSIM profile in seconds, anytime, anywhere.",
-        icon: Zap
-      },
-      {
-        title: "Secure & Private",
-        body: "Your data and privacy are protected with top-tier security.",
-        icon: ShieldCheck
-      },
-      {
-        title: "24/7 Support",
-        body: "Our global support team is here to help, anytime.",
-        icon: Headphones
-      }
-    ];
-    const heroBadges = [
-      { icon: Earth, title: "200+ Countries", body: "Coverage" },
-      { icon: WalletCards, title: "Instant Delivery", body: "via eSIM" },
-      { icon: ShieldCheck, title: "Secure & Trusted", body: "Platform" },
-      { icon: Headphones, title: "24/7 Global", body: "Support" }
-    ];
-    const steps = [
-      {
-        title: "Get Your Card",
-        body: "Purchase a BOKMOO eUICC card and receive it securely.",
-        icon: CreditCard
-      },
-      {
-        title: "Install Profile",
-        body: "Scan QR code or enter activation details to install your eSIM profile.",
-        icon: QrCode
-      },
-      {
-        title: "Stay Connected",
-        body: "Enjoy fast, reliable data wherever you go.",
-        icon: Smartphone
-      }
-    ];
-    const euiccFeatures = [
-      {
-        title: "Multiple Profiles",
-        body: "Manage multiple eSIM profiles on one card.",
-        icon: WalletCards
-      },
-      {
-        title: "Easy Switch",
-        body: "Switch between profiles easily in our app.",
-        icon: Sparkles
-      },
-      {
-        title: "Wide Compatibility",
-        body: "Works with most eSIM-compatible devices.",
-        icon: Signal
-      }
-    ];
-    const metrics2 = [
-      { value: "200+", label: "Countries & Regions" },
-      { value: "1M+", label: "Happy Users" },
-      { value: "10M+", label: "eSIM Profiles Delivered" },
-      { value: "99.9%", label: "Uptime Guarantee" }
-    ];
-    const heroTitleLines = react_default.useMemo(() => {
-      const lines = site.headline.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-      return lines.length > 0 ? lines : ["One Card.", "Global Connection."];
-    }, [site.headline]);
-    return /* @__PURE__ */ jsxs("div", { className: "bg-[var(--bokmoo-bg)] text-[var(--bokmoo-ink)]", children: [
-      /* @__PURE__ */ jsxs("section", { className: "relative overflow-hidden border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] px-5 pb-12 pt-12 sm:px-8 lg:min-h-[calc(100vh-5.25rem)] lg:px-0 lg:pb-8 lg:pt-14 xl:min-h-[calc(100vh-6.75rem)] xl:pt-16 2xl:pt-[4.5rem]", children: [
-        /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
-          /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_78%_32%,color-mix(in_oklab,var(--bokmoo-gold)_48%,transparent),transparent_36%),radial-gradient(circle_at_93%_12%,color-mix(in_oklab,var(--bokmoo-gold)_32%,transparent),transparent_24%),radial-gradient(circle_at_63%_86%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_25%),linear-gradient(90deg,var(--bokmoo-bg)_0%,var(--bokmoo-bg)_34%,color-mix(in_oklab,var(--bokmoo-gold)_12%,var(--bokmoo-bg))_69%,var(--bokmoo-bg)_100%)]" }),
-          /* @__PURE__ */ jsx("div", { className: "absolute left-[41%] top-[-6%] hidden h-[104%] w-[76%] rounded-full bg-[var(--bokmoo-orbit-glow)] opacity-100 blur-3xl lg:block" }),
-          /* @__PURE__ */ jsx("div", { className: "absolute right-[-18%] top-0 hidden h-full w-[82%] bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--bokmoo-gold)_27%,transparent)_44%,transparent)] lg:block" }),
-          /* @__PURE__ */ jsx(WorldGlobe, {}),
-          /* @__PURE__ */ jsx(HeroPillar, { className: "left-[55%] top-[5%] hidden h-[72%] lg:block" }),
-          /* @__PURE__ */ jsx(HeroPillar, { className: "left-[63%] top-[-4%] hidden h-[82%] lg:block" }),
-          /* @__PURE__ */ jsx(HeroPillar, { className: "left-[72%] top-[5%] hidden h-[78%] lg:block" }),
-          /* @__PURE__ */ jsx(HeroPillar, { className: "left-[82%] top-[10%] hidden h-[64%] lg:block" }),
-          /* @__PURE__ */ jsx(HeroPillar, { className: "left-[92%] top-[18%] hidden h-[48%] lg:block" }),
-          /* @__PURE__ */ jsx("div", { className: "absolute right-[-19%] top-[12%] hidden h-[58%] w-[72%] rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_54%,transparent)] opacity-70 blur-[1px] lg:block" }),
-          /* @__PURE__ */ jsx("div", { className: "absolute bottom-[-18%] right-[-4%] h-[34rem] w-[34rem] rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_50%,transparent)] lg:h-[42rem] lg:w-[42rem]" }),
-          /* @__PURE__ */ jsx("div", { className: "absolute bottom-[-1%] right-[6%] h-72 w-72 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] lg:h-96 lg:w-96" })
-        ] }),
-        /* @__PURE__ */ jsx(
-          "img",
-          {
-            src: BOKMOO_HERO_CARD_SRC,
-            alt: "",
-            className: "pointer-events-none absolute right-[-108%] top-[22.5rem] z-0 block h-[33rem] w-[44rem] max-w-none select-none object-contain opacity-35 mix-blend-multiply [mask-image:radial-gradient(ellipse_82%_76%_at_52%_48%,black_52%,rgba(0,0,0,0.72)_72%,transparent_100%)] sm:right-[-58%] sm:top-[21rem] sm:h-[36rem] sm:w-[48rem] lg:hidden",
-            draggable: false,
-            "aria-hidden": "true"
-          }
-        ),
-        /* @__PURE__ */ jsxs("div", { className: "relative mx-auto flex w-full max-w-[107rem] flex-col lg:min-h-[calc(100vh-13.25rem)] xl:min-h-[calc(100vh-14.75rem)]", children: [
-          /* @__PURE__ */ jsxs("div", { className: "grid flex-1 gap-8 lg:grid-cols-[minmax(0,0.98fr)_minmax(25rem,1.02fr)] lg:items-center xl:grid-cols-[minmax(0,0.96fr)_minmax(32rem,1.04fr)] 2xl:grid-cols-[minmax(0,0.94fr)_minmax(38rem,1.06fr)]", children: [
-            /* @__PURE__ */ jsxs("div", { className: "relative z-20 max-w-[68rem] pt-2", children: [
-              /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-3 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent)] bg-[color:oklch(0.065_0.007_75_/_0.7)] px-5 py-2.5 text-[0.78rem] font-bold uppercase tracking-[0.28em] text-[var(--bokmoo-gold)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.025)]", children: [
-                /* @__PURE__ */ jsx(Sparkles, { className: "h-4 w-4" }),
-                site.eyebrow
-              ] }),
-              /* @__PURE__ */ jsx("h1", { className: "mt-8 max-w-full text-[clamp(2.85rem,11.2vw,4.55rem)] font-black leading-[0.94] tracking-[-0.052em] text-[color:oklch(0.985_0.004_86)] sm:max-w-[16ch] lg:mt-9 lg:max-w-[17.5ch] lg:text-[clamp(4.3rem,5.45vw,6.2rem)] lg:leading-[0.92] xl:text-[clamp(5.1rem,5.45vw,7.35rem)] 2xl:text-[clamp(5.6rem,5.25vw,8rem)]", children: heroTitleLines.map((line) => /* @__PURE__ */ jsx("span", { className: "block [text-wrap:balance]", children: line }, line)) }),
-              /* @__PURE__ */ jsx("p", { className: "mt-7 max-w-[43rem] text-[clamp(1.08rem,1.35vw,1.42rem)] leading-[1.58] text-[color:color-mix(in_oklab,var(--bokmoo-copy)_94%,white)] lg:mt-8", children: site.subheadline }),
-              /* @__PURE__ */ jsxs("div", { className: "mt-9 flex flex-col gap-4 sm:flex-row", children: [
-                /* @__PURE__ */ jsx(
-                  "button",
-                  {
-                    onClick: () => openHref(site.primaryCtaHref),
-                    className: `inline-flex min-h-[4.15rem] items-center justify-center rounded-[1.05rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_62%,black))] px-11 text-lg font-black text-[var(--bokmoo-bg)] shadow-[0_22px_54px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING3}`,
-                    type: "button",
-                    children: site.primaryCtaLabel
-                  }
-                ),
-                /* @__PURE__ */ jsx(
-                  "button",
-                  {
-                    onClick: () => openHref(site.secondaryCtaHref),
-                    className: `inline-flex min-h-[4.15rem] items-center justify-center rounded-[1.05rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] bg-[color:oklch(0.045_0.006_75_/_0.66)] px-11 text-lg font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING3}`,
-                    type: "button",
-                    children: site.secondaryCtaLabel
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ jsx("div", { className: "mt-10 grid max-w-[48rem] grid-cols-2 gap-4 xl:grid-cols-4", children: heroBadges.map(({ icon: Icon2, title, body }) => /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 rounded-[1.1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] bg-[color:oklch(0.058_0.007_75_/_0.68)] px-4 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.018)]", children: [
-                /* @__PURE__ */ jsx("div", { className: "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_17%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Icon2, { className: "h-5 w-5" }) }),
-                /* @__PURE__ */ jsxs("div", { children: [
-                  /* @__PURE__ */ jsx("p", { className: "text-[1.02rem] font-medium leading-tight text-[var(--bokmoo-ink)]", children: title }),
-                  /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm leading-tight text-[var(--bokmoo-copy-soft)]", children: body })
-                ] })
-              ] }, title)) })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { className: "pointer-events-none relative mx-auto hidden h-[27rem] w-full max-w-[37rem] sm:h-[35rem] sm:max-w-[48rem] lg:mx-0 lg:block lg:h-[36rem] lg:max-w-[47rem] lg:justify-self-end xl:h-[42rem] xl:max-w-[56rem] 2xl:h-[48rem] 2xl:max-w-[64rem]", children: [
-              /* @__PURE__ */ jsx("div", { className: "absolute inset-[5%_-3%_1%_2%] z-0 bg-[radial-gradient(ellipse_at_58%_52%,color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent),transparent_68%)] blur-2xl" }),
-              /* @__PURE__ */ jsx("div", { className: "absolute bottom-[8%] left-[8%] right-[3%] h-28 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--bokmoo-gold)_70%,transparent),transparent_70%)] blur-2xl lg:h-40" }),
-              /* @__PURE__ */ jsx("div", { className: "absolute bottom-[9%] left-[7%] right-[2%] h-36 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_54%,transparent)] opacity-80 lg:h-52" }),
-              /* @__PURE__ */ jsx("div", { className: "absolute bottom-[3%] left-[-2%] right-[-8%] h-52 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] opacity-70 lg:h-72" }),
-              /* @__PURE__ */ jsx(
-                "img",
+    const heroStats = HERO_STATS.map((stat) => ({
+      value: stat.value,
+      label: t(stat.label)
+    }));
+    return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-[#08070a] text-[var(--bokmoo-ink)]", children: [
+      /* @__PURE__ */ jsxs("section", { className: "relative overflow-hidden border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)]", children: [
+        /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_75%_35%,color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent),transparent_55%)]" }),
+        /* @__PURE__ */ jsx(HeroPillar, { className: "left-[58%] top-[-20%] hidden h-[130%] w-[28rem] lg:block" }),
+        /* @__PURE__ */ jsx(HeroPillar, { className: "left-[70%] top-[-10%] hidden h-[150%] w-[36rem] lg:block" }),
+        /* @__PURE__ */ jsxs("div", { className: "relative mx-auto grid max-w-[1180px] items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:py-20", children: [
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("h1", { className: "text-[clamp(3.4rem,8vw,6.4rem)] font-bold leading-[0.92] tracking-[-0.02em] text-white", children: "BOKMOO" }),
+            /* @__PURE__ */ jsx("p", { className: "mt-3 text-[clamp(1.5rem,3vw,2.2rem)] font-semibold tracking-[-0.02em] text-[var(--bokmoo-gold)]", children: t({ en: "One card, connected to your world.", hans: "\u4E00\u5F20\u5361\uFF0C\u8FDE\u63A5\u4F60\u7684\u4E16\u754C\u3002", hant: "\u4E00\u5F35\u5361\uFF0C\u9023\u63A5\u4F60\u7684\u4E16\u754C\u3002" }) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-6 max-w-xl text-base leading-8 text-[var(--bokmoo-copy)]", children: t({
+              en: "A physical eSIM card that makes global connectivity simple. 200+ countries and regions, flexible plans, effortless management.",
+              hans: "\u5B9E\u4F53 eSIM \u5361\uFF0C\u8BA9\u5168\u7403\u8FDE\u63A5\u66F4\u7B80\u5355\u3002\u652F\u6301 200+ \u56FD\u5BB6\u548C\u5730\u533A\uFF0C\u7075\u6D3B\u5957\u9910\uFF0C\u8F7B\u677E\u7BA1\u7406\u3002",
+              hant: "\u5BE6\u9AD4 eSIM \u5361\uFF0C\u8B93\u5168\u7403\u9023\u63A5\u66F4\u7C21\u55AE\u3002\u652F\u63F4 200+ \u570B\u5BB6\u548C\u5730\u5340\uFF0C\u9748\u6D3B\u5957\u9910\uFF0C\u8F15\u9B06\u7BA1\u7406\u3002"
+            }) }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-8 flex flex-wrap items-center gap-4", children: [
+              /* @__PURE__ */ jsxs(
+                "button",
                 {
-                  src: BOKMOO_HERO_CARD_SRC,
-                  alt: "BOKMOO eUICC card",
-                  className: "relative z-10 h-full w-full select-none object-contain object-center opacity-95 mix-blend-multiply contrast-[1.04] saturate-[0.94] [mask-image:radial-gradient(ellipse_88%_92%_at_56%_50%,black_56%,rgba(0,0,0,0.92)_72%,rgba(0,0,0,0.42)_88%,transparent_100%)] drop-shadow-[0_44px_90px_rgba(0,0,0,0.68)] lg:object-right",
-                  draggable: false
+                  onClick: () => openHref("/products"),
+                  className: "inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]",
+                  type: "button",
+                  children: [
+                    t({ en: "Explore BOKMOO", hans: "\u63A2\u7D22 BOKMOO", hant: "\u63A2\u7D22 BOKMOO" }),
+                    /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: () => openHref("/download/app"),
+                  className: "inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] px-6 text-sm font-semibold text-[var(--bokmoo-ink)]",
+                  type: "button",
+                  children: [
+                    t({ en: "Download the App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App" }),
+                    /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsx("div", { className: "mt-12 grid max-w-lg grid-cols-3 gap-6 border-t border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] pt-7", children: heroStats.map((stat) => /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("p", { className: "text-2xl font-bold tracking-[-0.02em] text-white sm:text-3xl", children: stat.value }),
+              /* @__PURE__ */ jsx("p", { className: "mt-1.5 text-xs leading-5 text-[var(--bokmoo-copy-soft)]", children: stat.label })
+            ] }, stat.value)) })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+            /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_60%_50%,color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent),transparent_60%)]" }),
+            /* @__PURE__ */ jsx(
+              "img",
+              {
+                src: "/theme-assets/bokmoo/bokmoo-hero-card-pair.jpg",
+                alt: "BOKMOO",
+                className: "relative w-full rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] object-cover",
+                loading: "eager"
+              }
+            )
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsx("section", { className: "border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] bg-[#0b0a0d]", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1180px] px-4 py-16 sm:px-6 lg:py-20", children: [
+        /* @__PURE__ */ jsx(SectionEyebrow, { children: t({ en: "BOKMOO products", hans: "BOKMOO \u4EA7\u54C1", hant: "BOKMOO \u7522\u54C1" }) }),
+        /* @__PURE__ */ jsx("h2", { className: "mt-4 text-[clamp(1.9rem,3.4vw,2.8rem)] font-bold tracking-[-0.02em] text-white", children: t({ en: "Find the connection that fits you", hans: "\u627E\u5230\u9002\u5408\u4F60\u7684\u8FDE\u63A5\u65B9\u5F0F", hant: "\u627E\u5230\u9069\u5408\u4F60\u7684\u9023\u63A5\u65B9\u5F0F" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mt-4 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]", children: t({
+          en: "One physical card managing multiple eSIM plans \u2014 built for different countries and every kind of trip.",
+          hans: "\u4E00\u5F20\u5B9E\u4F53\u5361\uFF0C\u7BA1\u7406\u591A\u4E2A eSIM \u5957\u9910\uFF0C\u6EE1\u8DB3\u4E0D\u540C\u56FD\u5BB6\u3001\u4E0D\u540C\u573A\u666F\u7684\u51FA\u884C\u9700\u6C42\u3002",
+          hant: "\u4E00\u5F35\u5BE6\u9AD4\u5361\uFF0C\u7BA1\u7406\u591A\u500B eSIM \u5957\u9910\uFF0C\u6EFF\u8DB3\u4E0D\u540C\u570B\u5BB6\u3001\u4E0D\u540C\u5834\u666F\u7684\u51FA\u884C\u9700\u6C42\u3002"
+        }) }),
+        /* @__PURE__ */ jsxs("div", { className: "mt-12 grid items-center gap-10 overflow-hidden rounded-[1.4rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[linear-gradient(120deg,#171310_0%,#0c0b0e_55%,#08070a_100%)] p-6 sm:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]", children: [
+          /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+            /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_35%_50%,color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent),transparent_62%)]" }),
+            /* @__PURE__ */ jsx(
+              "img",
+              {
+                src: "/theme-assets/bokmoo/bokmoo-hero-card-pair.jpg",
+                alt: t({ en: "BOKMOO eSIM Card", hans: "BOKMOO eSIM \u5361", hant: "BOKMOO eSIM \u5361" }),
+                className: "relative w-full rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] object-cover",
+                loading: "lazy"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("h3", { className: "text-2xl font-bold tracking-[-0.02em] text-white", children: t({ en: "BOKMOO eSIM Card", hans: "BOKMOO eSIM \u5361", hant: "BOKMOO eSIM \u5361" }) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--bokmoo-copy)]", children: t({ en: "One physical card, multiple eSIM plans.", hans: "\u4E00\u5F20\u5B9E\u4F53\u5361\uFF0C\u7BA1\u7406\u591A\u4E2A eSIM \u5957\u9910\u3002", hant: "\u4E00\u5F35\u5BE6\u9AD4\u5361\uFF0C\u7BA1\u7406\u591A\u500B eSIM \u5957\u9910\u3002" }) }),
+            /* @__PURE__ */ jsx("ul", { className: "mt-7 grid gap-4 sm:grid-cols-2", children: [
+              { en: "1.6MB capacity", hans: "1.6MB \u5927\u5BB9\u91CF", hant: "1.6MB \u5927\u5BB9\u91CF" },
+              { en: "SGP.22 / SGP.32", hans: "SGP.22 / SGP.32", hant: "SGP.22 / SGP.32" },
+              { en: "15\u201320 plans per card", hans: "\u652F\u6301 15-20 \u4E2A\u5957\u9910", hant: "\u652F\u63F4 15-20 \u500B\u5957\u9910" },
+              { en: "GSMA certified", hans: "GSMA \u8BA4\u8BC1", hant: "GSMA \u8A8D\u8B49" }
+            ].map((feature) => /* @__PURE__ */ jsxs("li", { className: "flex items-center gap-3 text-sm text-[var(--bokmoo-ink)]", children: [
+              /* @__PURE__ */ jsx("span", { className: "inline-flex h-6 w-6 items-center justify-center rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Check, { className: "h-3.5 w-3.5" }) }),
+              t(feature)
+            ] }, feature.en)) }),
+            /* @__PURE__ */ jsxs(
+              "button",
+              {
+                onClick: () => openHref("/products"),
+                className: "mt-8 inline-flex items-center gap-2 text-sm font-semibold text-[var(--bokmoo-gold)] hover:underline",
+                type: "button",
+                children: [
+                  t({ en: "Learn more", hans: "\u4E86\u89E3\u4EA7\u54C1", hant: "\u4E86\u89E3\u7522\u54C1" }),
+                  /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
+                ]
+              }
+            )
+          ] })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsx("section", { className: "border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)]", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1180px] px-4 py-16 sm:px-6 lg:py-20", children: [
+        /* @__PURE__ */ jsx(SectionEyebrow, { children: t({ en: "BOKMOO App", hans: "BOKMOO App", hant: "BOKMOO App" }) }),
+        /* @__PURE__ */ jsx("h2", { className: "mt-4 text-[clamp(1.9rem,3.4vw,2.8rem)] font-bold tracking-[-0.02em] text-white", children: t({ en: "Your plans, in your grasp.", hans: "\u4F60\u7684\u5957\u9910\uFF0C\u5C3D\u5728\u638C\u63E1\u3002", hant: "\u4F60\u7684\u5957\u9910\uFF0C\u76E1\u5728\u638C\u63E1\u3002" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mt-4 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]", children: t({
+          en: "Scan to add, review cards, switch plans \u2014 one app does it all.",
+          hans: "\u626B\u7801\u6DFB\u52A0\u3001\u67E5\u770B\u5361\u7247\u3001\u5207\u6362\u5957\u9910\uFF0C\u4E00\u4E2A App \u5B8C\u6210\u3002",
+          hant: "\u6383\u78BC\u6DFB\u52A0\u3001\u67E5\u770B\u5361\u7247\u3001\u5207\u63DB\u5957\u9910\uFF0C\u4E00\u500B App \u5B8C\u6210\u3002"
+        }) }),
+        /* @__PURE__ */ jsxs("div", { className: "mt-12 grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]", children: [
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("ul", { className: "grid gap-8", children: [
+              {
+                icon: /* @__PURE__ */ jsx(QrCode, { className: "h-5 w-5" }),
+                title: { en: "Scan to add eSIMs", hans: "\u626B\u7801\u6DFB\u52A0 eSIM", hant: "\u6383\u78BC\u6DFB\u52A0 eSIM" },
+                copy: { en: "Quick scan, effortless plan setup.", hans: "\u5FEB\u901F\u626B\u63CF\uFF0C\u8F7B\u677E\u6DFB\u52A0\u5957\u9910\u3002", hant: "\u5FEB\u901F\u6383\u63CF\uFF0C\u8F15\u9B06\u6DFB\u52A0\u5957\u9910\u3002" }
+              },
+              {
+                icon: /* @__PURE__ */ jsx(Layers, { className: "h-5 w-5" }),
+                title: { en: "Manage plans per card", hans: "\u6309\u5361\u7247\u7BA1\u7406\u5957\u9910", hant: "\u6309\u5361\u7247\u7BA1\u7406\u5957\u9910" },
+                copy: { en: "Multiple cards, clearly organized.", hans: "\u591A\u5F20\u5361\u7247\uFF0C\u6E05\u6670\u7BA1\u7406\u3002", hant: "\u591A\u5F35\u5361\u7247\uFF0C\u6E05\u6670\u7BA1\u7406\u3002" }
+              },
+              {
+                icon: /* @__PURE__ */ jsx(ArrowLeftRight, { className: "h-5 w-5" }),
+                title: { en: "View & switch anytime", hans: "\u968F\u65F6\u67E5\u770B\u4E0E\u5207\u6362", hant: "\u96A8\u6642\u67E5\u770B\u8207\u5207\u63DB" },
+                copy: { en: "One-tap switching for flexible travel.", hans: "\u4E00\u952E\u5207\u6362\uFF0C\u51FA\u884C\u66F4\u7075\u6D3B\u3002", hant: "\u4E00\u9375\u5207\u63DB\uFF0C\u51FA\u884C\u66F4\u9748\u6D3B\u3002" }
+              }
+            ].map((feature) => /* @__PURE__ */ jsxs("li", { className: "flex gap-5", children: [
+              /* @__PURE__ */ jsx("span", { className: "mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] text-[var(--bokmoo-gold)]", children: feature.icon }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("p", { className: "text-base font-semibold text-[var(--bokmoo-ink)]", children: t(feature.title) }),
+                /* @__PURE__ */ jsx("p", { className: "mt-1.5 text-sm leading-6 text-[var(--bokmoo-copy)]", children: t(feature.copy) })
+              ] })
+            ] }, feature.title.en)) }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-10 flex flex-wrap gap-4", children: [
+              /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: () => openHref("/download/app"),
+                  className: "inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left",
+                  type: "button",
+                  children: [
+                    /* @__PURE__ */ jsx(AppleIcon2, {}),
+                    /* @__PURE__ */ jsxs("span", { children: [
+                      /* @__PURE__ */ jsx("span", { className: "block text-[0.65rem] uppercase tracking-wide text-[var(--bokmoo-copy-soft)]", children: t({ en: "Download on the", hans: "\u4E0B\u8F7D\u5230", hant: "\u4E0B\u8F09\u5230" }) }),
+                      /* @__PURE__ */ jsx("span", { className: "block text-base font-semibold text-[var(--bokmoo-ink)]", children: "App Store" })
+                    ] })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: () => openHref("/download/app"),
+                  className: "inline-flex min-h-13 items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] bg-[#0d0c0f] px-6 py-3 text-left",
+                  type: "button",
+                  children: [
+                    /* @__PURE__ */ jsx(PlayIcon, {}),
+                    /* @__PURE__ */ jsxs("span", { children: [
+                      /* @__PURE__ */ jsx("span", { className: "block text-[0.65rem] uppercase tracking-wide text-[var(--bokmoo-copy-soft)]", children: t({ en: "Download on", hans: "\u4E0B\u8F7D\u5230", hant: "\u4E0B\u8F09\u5230" }) }),
+                      /* @__PURE__ */ jsx("span", { className: "block text-base font-semibold text-[var(--bokmoo-ink)]", children: "Google Play" })
+                    ] })
+                  ]
                 }
               )
             ] })
           ] }),
-          /* @__PURE__ */ jsx("div", { className: "mt-10 overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] bg-[linear-gradient(90deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] px-5 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.018),0_22px_70px_rgba(0,0,0,0.36)] sm:rounded-full sm:px-7 sm:py-3.5 lg:mt-auto", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", children: [
-            /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 text-sm sm:items-center sm:text-base", children: [
-              /* @__PURE__ */ jsx("span", { className: "shrink-0 rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: pickCopy(locale, { en: "Notice", hans: "\u516C\u544A", hant: "\u516C\u544A" }) }),
-              /* @__PURE__ */ jsx("span", { className: "text-[color:color-mix(in_oklab,var(--bokmoo-copy)_92%,white)]", children: pickCopy(locale, { en: "BOKMOO Pro eUICC Card is now available! Manage multiple eSIM profiles with ease.", hans: "BOKMOO Pro eUICC \u5361\u73B0\u5DF2\u63A8\u51FA\uFF0C\u8F7B\u677E\u7BA1\u7406\u591A\u4E2A eSIM \u8BBE\u5B9A\u6863\u3002", hant: "BOKMOO Pro eUICC \u5361\u73FE\u5DF2\u63A8\u51FA\uFF0C\u8F15\u9B06\u7BA1\u7406\u591A\u500B eSIM \u8A2D\u5B9A\u6A94\u3002" }) })
-            ] }),
-            /* @__PURE__ */ jsxs(
-              "button",
-              {
-                onClick: () => openHref("/products"),
-                className: `inline-flex shrink-0 items-center gap-3 rounded-full px-2 py-1 text-sm font-semibold text-[var(--bokmoo-gold)] sm:text-base ${FOCUS_VISIBLE_RING3}`,
-                type: "button",
-                children: [
-                  pickCopy(locale, { en: "Learn more", hans: "\u4E86\u89E3\u66F4\u591A", hant: "\u77AD\u89E3\u66F4\u591A" }),
-                  /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
-                ]
-              }
-            )
-          ] }) })
-        ] })
-      ] }),
-      /* @__PURE__ */ jsx("section", { className: "px-4 py-6 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1280px] space-y-6", children: [
-        /* @__PURE__ */ jsxs("div", { id: "how-it-works", className: "scroll-mt-24 rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8 lg:scroll-mt-32", children: [
-          /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
-            /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2.2rem,4vw,3.4rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Why Choose BOKMOO?", hans: "\u4E3A\u4EC0\u4E48\u9009\u62E9 BOKMOO\uFF1F", hant: "\u70BA\u4EC0\u9EBC\u9078\u64C7 BOKMOO\uFF1F" }) }),
-            /* @__PURE__ */ jsx("p", { className: "mt-3 text-base text-[var(--bokmoo-copy)]", children: pickCopy(locale, { en: "The next generation eSIM platform that puts you in control.", hans: "\u7531\u60A8\u5168\u9762\u638C\u63A7\u7684\u65B0\u4E16\u4EE3 eSIM \u5E73\u53F0\u3002", hant: "\u7531\u60A8\u5168\u9762\u638C\u63A7\u7684\u65B0\u4E16\u4EE3 eSIM \u5E73\u53F0\u3002" }) })
-          ] }),
-          /* @__PURE__ */ jsx("div", { className: "mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4", children: reasonCards.map(({ title, body, icon: Icon2 }) => /* @__PURE__ */ jsxs(
-            "article",
-            {
-              className: "rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] px-5 py-6",
-              children: [
-                /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_40%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Icon2, { className: "h-6 w-6" }) }),
-                /* @__PURE__ */ jsx("h3", { className: "mt-5 text-center text-xl font-medium text-[var(--bokmoo-ink)]", children: title }),
-                /* @__PURE__ */ jsx("p", { className: "mt-3 text-center text-sm leading-7 text-[var(--bokmoo-copy)]", children: body })
-              ]
-            },
-            title
-          )) })
-        ] }),
-        homeProductsLoading || homeProducts.length > 0 ? /* @__PURE__ */ jsxs("div", { className: "rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
-          /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-4 border-b border-[var(--bokmoo-line)] pb-5 sm:flex-row sm:items-end sm:justify-between", children: [
-            /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2rem,3.4vw,3rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "The BOKMOO Card", hans: "BOKMOO \u5B9E\u4F53\u5361", hant: "BOKMOO \u5BE6\u9AD4\u5361" }) }),
-              /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-[var(--bokmoo-copy)]", children: pickCopy(locale, { en: "Live data straight from our product catalog. Buy the physical card and activate eSIM service on arrival.", hans: "\u4E0E\u5546\u54C1\u76EE\u5F55\u5373\u65F6\u540C\u6B65\u7684\u771F\u5B9E\u8D44\u8BAF\u2014\u2014\u8D2D\u4E70\u5B9E\u4F53\u5361\uFF0C\u843D\u5730\u5373\u53EF\u542F\u7528 eSIM \u670D\u52A1\u3002", hant: "\u8207\u5546\u54C1\u76EE\u9304\u5373\u6642\u540C\u6B65\u7684\u771F\u5BE6\u8CC7\u8A0A\u2014\u2014\u8CFC\u8CB7\u5BE6\u9AD4\u5361\uFF0C\u843D\u5730\u5373\u53EF\u555F\u7528 eSIM \u670D\u52D9\u3002" }) })
-            ] }),
-            /* @__PURE__ */ jsxs(
-              "button",
-              {
-                onClick: () => openHref("/products"),
-                className: `inline-flex items-center gap-2 rounded-full px-2 py-1 text-sm font-medium text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
-                type: "button",
-                children: [
-                  pickCopy(locale, { en: "View card & plans", hans: "\u67E5\u770B\u5361\u7247\u4E0E\u65B9\u6848", hant: "\u67E5\u770B\u5361\u7247\u8207\u65B9\u6848" }),
-                  /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
-                ]
-              }
-            )
-          ] }),
-          /* @__PURE__ */ jsx("div", { className: "mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3", children: homeProductsLoading ? [0, 1, 2].map((index) => /* @__PURE__ */ jsx(
-            "div",
-            {
-              className: "h-[25rem] animate-pulse rounded-[1.25rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)]"
-            },
-            index
-          )) : homeProducts.map((product) => /* @__PURE__ */ jsxs(
-            "article",
-            {
-              className: "group overflow-hidden rounded-[1.25rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] shadow-[var(--bokmoo-shadow)] transition-transform duration-300 hover:-translate-y-1",
-              children: [
-                /* @__PURE__ */ jsx("div", { className: "aspect-[1.6/1] overflow-hidden border-b border-[var(--bokmoo-line)] bg-[linear-gradient(160deg,color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent),transparent_60%),var(--bokmoo-bg-soft)]", children: product.image ? /* @__PURE__ */ jsx(
-                  "img",
-                  {
-                    src: product.image,
-                    alt: product.name,
-                    loading: "lazy",
-                    className: "h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  }
-                ) : /* @__PURE__ */ jsx("div", { className: "flex h-full items-center justify-center text-[var(--bokmoo-copy-soft)]", children: /* @__PURE__ */ jsx(CreditCard, { className: "h-10 w-10" }) }) }),
-                /* @__PURE__ */ jsxs("div", { className: "p-5", children: [
-                  /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
-                    /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]", children: pickCopy(locale, { en: "Physical card", hans: "\u5B9E\u4F53\u5361", hant: "\u5BE6\u9AD4\u5361" }) }),
-                    /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy)]", children: "eUICC" })
-                  ] }),
-                  /* @__PURE__ */ jsx("h3", { className: "mt-4 text-2xl font-semibold tracking-[-0.03em] text-[var(--bokmoo-ink)]", children: product.name }),
-                  /* @__PURE__ */ jsx("p", { className: "mt-2 line-clamp-2 text-sm leading-6 text-[var(--bokmoo-copy)]", children: product.description }),
-                  /* @__PURE__ */ jsxs("div", { className: "mt-4 flex items-center justify-between gap-3", children: [
-                    /* @__PURE__ */ jsxs("p", { className: "text-2xl font-semibold tracking-[-0.03em] text-[var(--bokmoo-ink)]", children: [
-                      "$",
-                      Number(product.price || 0).toFixed(2)
-                    ] }),
-                    /* @__PURE__ */ jsx(
-                      "button",
-                      {
-                        onClick: () => openHref("/products"),
-                        className: `inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_84%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-semibold text-[var(--bokmoo-bg)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING3}`,
-                        type: "button",
-                        children: pickCopy(locale, { en: "Buy Now", hans: "\u7ACB\u5373\u8D2D\u4E70", hant: "\u7ACB\u5373\u8CFC\u8CB7" })
-                      }
-                    )
-                  ] })
-                ] })
-              ]
-            },
-            product.id
-          )) })
-        ] }) : null,
-        /* @__PURE__ */ jsx("div", { className: "rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]", children: [
-          /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2rem,3.2vw,2.8rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "How It Works", hans: "\u4F7F\u7528\u65B9\u5F0F", hant: "\u4F7F\u7528\u65B9\u5F0F" }) }),
-            /* @__PURE__ */ jsx("div", { className: "mt-6 grid gap-5 md:grid-cols-3", children: steps.map(({ title, body, icon: Icon2 }) => /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
-              /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--bokmoo-line-strong)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Icon2, { className: "h-7 w-7" }) }),
-              /* @__PURE__ */ jsx("h3", { className: "mt-5 text-lg font-medium text-[var(--bokmoo-ink)]", children: title }),
-              /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--bokmoo-copy)]", children: body })
-            ] }, title)) })
-          ] }),
-          /* @__PURE__ */ jsxs("div", { className: "relative overflow-hidden rounded-[1.25rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(160deg,#7c6244_0%,#25211c_55%,#0d0d0d_100%)] p-5", children: [
-            /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_65%_18%,rgba(255,215,138,0.4),transparent_18%),linear-gradient(180deg,transparent,rgba(0,0,0,0.28))]" }),
-            /* @__PURE__ */ jsx("div", { className: "absolute left-10 top-12 h-5 w-5 rounded-full bg-[rgba(255,219,162,0.32)] blur-[1px]" }),
-            /* @__PURE__ */ jsx("div", { className: "absolute left-20 top-20 h-3 w-3 rounded-full bg-[rgba(255,219,162,0.24)] blur-[1px]" }),
-            /* @__PURE__ */ jsx("div", { className: "absolute left-[36%] top-16 h-6 w-6 rounded-full bg-[rgba(255,219,162,0.28)] blur-[1px]" }),
-            /* @__PURE__ */ jsxs("div", { className: "relative ml-auto w-[11rem] rounded-[1.05rem] border border-[rgba(255,255,255,0.14)] bg-[rgba(12,12,14,0.7)] p-4 backdrop-blur-xl", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
-                  /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-2 gap-0.5", children: [
-                    /* @__PURE__ */ jsx("span", { className: "h-2.5 w-2.5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" }),
-                    /* @__PURE__ */ jsx("span", { className: "h-2.5 w-2.5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" }),
-                    /* @__PURE__ */ jsx("span", { className: "h-2.5 w-2.5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" }),
-                    /* @__PURE__ */ jsx("span", { className: "h-2.5 w-2.5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" })
-                  ] }),
-                  /* @__PURE__ */ jsx("span", { className: "text-xs font-semibold text-[var(--bokmoo-ink)]", children: "BOKMOO Pro" })
-                ] }),
-                /* @__PURE__ */ jsx("span", { className: "text-[10px] font-semibold text-emerald-300", children: pickCopy(locale, { en: "Active", hans: "\u4F7F\u7528\u4E2D", hant: "\u4F7F\u7528\u4E2D" }) })
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "mt-4", children: [
-                /* @__PURE__ */ jsx("p", { className: "text-[11px] text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Data Usage", hans: "\u6570\u636E\u7528\u91CF", hant: "\u6578\u64DA\u7528\u91CF" }) }),
-                /* @__PURE__ */ jsxs("p", { className: "mt-1 text-2xl font-semibold text-[var(--bokmoo-ink)]", children: [
-                  "12.45 ",
-                  /* @__PURE__ */ jsx("span", { className: "text-sm font-medium text-[var(--bokmoo-copy)]", children: "GB / 20 GB" })
-                ] }),
-                /* @__PURE__ */ jsx("div", { className: "mt-3 h-2 rounded-full bg-[rgba(255,255,255,0.08)]", children: /* @__PURE__ */ jsx("div", { className: "h-full w-[62%] rounded-full bg-[linear-gradient(90deg,var(--bokmoo-gold),color-mix(in_oklab,var(--bokmoo-gold)_72%,white))]" }) }),
-                /* @__PURE__ */ jsx("p", { className: "mt-4 text-[11px] text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Valid Until", hans: "\u6709\u6548\u671F\u9650", hant: "\u6709\u6548\u671F\u9650" }) }),
-                /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm font-medium text-[var(--bokmoo-ink)]", children: "2025-06-30" })
-              ] })
-            ] })
-          ] })
-        ] }) }),
-        /* @__PURE__ */ jsx("div", { className: "overflow-hidden rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(135deg,#1b1610,#0c0b09_45%,#19130e)] shadow-[var(--bokmoo-shadow)]", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-8 px-6 py-8 lg:grid-cols-[minmax(0,0.86fr)_22rem] lg:px-8", children: [
-          /* @__PURE__ */ jsxs("div", { className: "relative", children: [
-            /* @__PURE__ */ jsx("div", { className: "absolute -bottom-28 left-[28%] h-72 w-72 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] opacity-60" }),
-            /* @__PURE__ */ jsx("div", { className: "absolute -bottom-36 left-[24%] h-96 w-96 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] opacity-50" }),
-            /* @__PURE__ */ jsx("p", { className: "text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: "BOKMOO eUICC Card" }),
-            /* @__PURE__ */ jsx("h2", { className: "mt-3 text-[clamp(2.2rem,4vw,3.8rem)] font-semibold leading-[0.95] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "One Card. Unlimited Possibilities.", hans: "\u4E00\u5361\u5728\u624B\uFF0C\u65E0\u9650\u53EF\u80FD\u3002", hant: "\u4E00\u5361\u5728\u624B\uFF0C\u7121\u9650\u53EF\u80FD\u3002" }) }),
-            /* @__PURE__ */ jsxs("ul", { className: "mt-6 space-y-3 text-base text-[var(--bokmoo-copy)]", children: [
-              /* @__PURE__ */ jsx("li", { children: pickCopy(locale, { en: "Store multiple eSIM profiles", hans: "\u50A8\u5B58\u591A\u4E2A eSIM \u8BBE\u5B9A\u6863", hant: "\u5132\u5B58\u591A\u500B eSIM \u8A2D\u5B9A\u6A94" }) }),
-              /* @__PURE__ */ jsx("li", { children: pickCopy(locale, { en: "Easy management via BOKMOO App", hans: "\u900F\u8FC7 BOKMOO App \u8F7B\u677E\u7BA1\u7406", hant: "\u900F\u904E BOKMOO App \u8F15\u9B06\u7BA1\u7406" }) }),
-              /* @__PURE__ */ jsx("li", { children: pickCopy(locale, { en: "Compatible with iOS & Android", hans: "\u76F8\u5BB9 iOS \u4E0E Android", hant: "\u76F8\u5BB9 iOS \u8207 Android" }) })
-            ] }),
+          /* @__PURE__ */ jsxs("div", { className: "relative mx-auto w-full max-w-[20rem]", children: [
+            /* @__PURE__ */ jsx("div", { className: "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_65%)]" }),
             /* @__PURE__ */ jsx(
-              "button",
+              "img",
               {
-                onClick: () => openHref(site.secondaryCtaHref),
-                className: `mt-8 inline-flex min-h-12 items-center justify-center rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_84%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-7 text-sm font-semibold text-[var(--bokmoo-bg)] ${FOCUS_VISIBLE_RING3}`,
-                type: "button",
-                children: pickCopy(locale, { en: "Shop Now", hans: "\u7ACB\u5373\u9009\u8D2D", hant: "\u7ACB\u5373\u9078\u8CFC" })
+                src: "/theme-assets/bokmoo/bokmoo-app-screen.png",
+                alt: t({ en: "BOKMOO App", hans: "BOKMOO App", hant: "BOKMOO App" }),
+                className: "relative w-full rounded-[2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] shadow-[0_24px_80px_rgba(0,0,0,0.6)]",
+                loading: "lazy"
               }
             )
+          ] })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsx("section", { className: "border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] bg-[#0b0a0d]", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1180px] px-4 py-16 sm:px-6 lg:py-20", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-end justify-between gap-6", children: [
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx(SectionEyebrow, { children: t({ en: "Popular destinations", hans: "\u70ED\u95E8\u76EE\u7684\u5730", hant: "\u71B1\u9580\u76EE\u7684\u5730" }) }),
+            /* @__PURE__ */ jsx("h2", { className: "mt-4 text-[clamp(1.9rem,3.4vw,2.8rem)] font-bold tracking-[-0.02em] text-white", children: t({ en: "Where to next?", hans: "\u4E0B\u4E00\u7AD9\uFF0C\u53BB\u54EA\u91CC\uFF1F", hant: "\u4E0B\u4E00\u7AD9\uFF0C\u53BB\u54EA\u88E1\uFF1F" }) })
           ] }),
-          /* @__PURE__ */ jsx("div", { className: "grid gap-4", children: euiccFeatures.map(({ title, body, icon: Icon2 }) => /* @__PURE__ */ jsx(
-            "article",
-            {
-              className: "rounded-[1.1rem] border border-[var(--bokmoo-line)] bg-[rgba(255,255,255,0.03)] px-4 py-4",
-              children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
-                /* @__PURE__ */ jsx("div", { className: "flex h-11 w-11 items-center justify-center rounded-[0.95rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Icon2, { className: "h-5 w-5" }) }),
-                /* @__PURE__ */ jsxs("div", { children: [
-                  /* @__PURE__ */ jsx("h3", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: title }),
-                  /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm leading-7 text-[var(--bokmoo-copy)]", children: body })
+          /* @__PURE__ */ jsxs("label", { className: "flex min-h-11 w-full max-w-xs items-center gap-3 rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[#0d0c0f] px-4 text-sm text-[var(--bokmoo-copy-soft)]", children: [
+            /* @__PURE__ */ jsx(Search, { className: "h-4 w-4" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                placeholder: t({ en: "Search a country or region", hans: "\u641C\u7D22\u56FD\u5BB6\u6216\u5730\u533A", hant: "\u641C\u5C0B\u570B\u5BB6\u6216\u5730\u5340" }),
+                className: "w-full bg-transparent outline-none placeholder:text-[var(--bokmoo-copy-soft)]",
+                onKeyDown: (event) => {
+                  if (event.key === "Enter") {
+                    const value = event.target.value.trim();
+                    openHref(value ? `/products?search=${encodeURIComponent(value)}` : "/products");
+                  }
+                }
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx("div", { className: "mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4", children: DESTINATIONS.map((destination) => /* @__PURE__ */ jsxs(
+          "button",
+          {
+            onClick: () => openHref("/products"),
+            className: "group relative overflow-hidden rounded-[1.1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] text-left",
+            type: "button",
+            children: [
+              /* @__PURE__ */ jsx(
+                "img",
+                {
+                  src: destination.image,
+                  alt: t(destination.name),
+                  className: "aspect-[6/5] w-full object-cover transition-transform duration-500 group-hover:scale-105",
+                  loading: "lazy"
+                }
+              ),
+              /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,rgba(4,3,6,0.88)_100%)]" }),
+              /* @__PURE__ */ jsxs("div", { className: "absolute inset-x-0 bottom-0 flex items-center justify-between p-4", children: [
+                /* @__PURE__ */ jsxs("span", { className: "flex items-center gap-2 text-sm font-semibold text-white", children: [
+                  /* @__PURE__ */ jsx("span", { children: destination.flag }),
+                  t(destination.name)
+                ] }),
+                /* @__PURE__ */ jsxs("span", { className: "inline-flex items-center gap-1 text-xs font-medium text-[var(--bokmoo-gold)]", children: [
+                  t({ en: "View plans", hans: "\u67E5\u770B\u5957\u9910", hant: "\u67E5\u770B\u5957\u9910" }),
+                  /* @__PURE__ */ jsx(ArrowRight, { className: "h-3 w-3" })
                 ] })
               ] })
-            },
-            title
-          )) })
-        ] }) }),
-        /* @__PURE__ */ jsx("div", { className: "grid gap-4 rounded-[1.35rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-5 shadow-[var(--bokmoo-shadow)] sm:grid-cols-2 xl:grid-cols-4", children: metrics2.map((metric) => /* @__PURE__ */ jsxs("div", { className: "border-b border-[var(--bokmoo-line)] pb-4 last:border-none sm:border-b-0 sm:border-r sm:pb-0 sm:pr-4 sm:last:border-r-0", children: [
-          /* @__PURE__ */ jsx("p", { className: "text-[clamp(2rem,3vw,2.8rem)] font-semibold tracking-[-0.06em] text-[var(--bokmoo-ink)]", children: metric.value }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--bokmoo-copy-soft)]", children: metric.label })
-        ] }, metric.label)) })
+            ]
+          },
+          destination.name.en
+        )) })
+      ] }) }),
+      /* @__PURE__ */ jsx("section", { children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1180px] px-4 py-16 sm:px-6 lg:py-20", children: [
+        /* @__PURE__ */ jsx(SectionEyebrow, { children: t({ en: "How to start", hans: "\u5982\u4F55\u5F00\u59CB", hant: "\u5982\u4F55\u958B\u59CB" }) }),
+        /* @__PURE__ */ jsx("h2", { className: "mt-4 text-[clamp(1.9rem,3.4vw,2.8rem)] font-bold tracking-[-0.02em] text-white", children: t({ en: "From card to connected world.", hans: "\u4ECE\u8FDE\u63A5\u5361\u7247\uFF0C\u5230\u8FDE\u63A5\u4E16\u754C\u3002", hant: "\u5F9E\u9023\u63A5\u5361\u7247\uFF0C\u5230\u9023\u63A5\u4E16\u754C\u3002" }) }),
+        /* @__PURE__ */ jsx("div", { className: "mt-12 grid gap-10 md:grid-cols-3", children: [
+          {
+            step: "01",
+            icon: /* @__PURE__ */ jsx(Smartphone, { className: "h-5 w-5" }),
+            title: { en: "Connect the card", hans: "\u8FDE\u63A5\u5361\u7247", hant: "\u9023\u63A5\u5361\u7247" },
+            copy: { en: "Connect the physical eSIM card to the app.", hans: "\u901A\u8FC7\u5B9E\u4F53 eSIM \u5361\u8FDE\u63A5\u5230 App\u3002", hant: "\u900F\u904E\u5BE6\u9AD4 eSIM \u5361\u9023\u63A5\u5230 App\u3002" }
+          },
+          {
+            step: "02",
+            icon: /* @__PURE__ */ jsx(QrCode, { className: "h-5 w-5" }),
+            title: { en: "Add an eSIM", hans: "\u6DFB\u52A0 eSIM", hant: "\u6DFB\u52A0 eSIM" },
+            copy: { en: "Scan or pick a plan and add it to your card.", hans: "\u626B\u7801\u6216\u9009\u62E9\u5957\u9910\uFF0C\u6DFB\u52A0\u5230\u5361\u7247\u3002", hant: "\u6383\u78BC\u6216\u9078\u64C7\u5957\u9910\uFF0C\u6DFB\u52A0\u5230\u5361\u7247\u3002" }
+          },
+          {
+            step: "03",
+            icon: /* @__PURE__ */ jsx(ArrowLeftRight, { className: "h-5 w-5" }),
+            title: { en: "Switch plans", hans: "\u5207\u6362\u5957\u9910", hant: "\u5207\u63DB\u5957\u9910" },
+            copy: { en: "Review and switch in the app \u2014 one card, many destinations.", hans: "\u5728 App \u4E2D\u968F\u65F6\u67E5\u770B\u4E0E\u5207\u6362\uFF0C\u4E00\u5F20\u5361\u8F7B\u677E\u7BA1\u7406\u591A\u4E2A\u76EE\u7684\u5730\u3002", hant: "\u5728 App \u4E2D\u96A8\u6642\u67E5\u770B\u8207\u5207\u63DB\uFF0C\u4E00\u5F35\u5361\u8F15\u9B06\u7BA1\u7406\u591A\u500B\u76EE\u7684\u5730\u3002" }
+          }
+        ].map((step) => /* @__PURE__ */ jsxs("div", { className: "flex gap-5", children: [
+          /* @__PURE__ */ jsx("span", { className: "text-3xl font-bold text-[var(--bokmoo-gold)]", children: step.step }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("span", { className: "inline-flex h-11 w-11 items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] text-[var(--bokmoo-gold)]", children: step.icon }),
+            /* @__PURE__ */ jsx("p", { className: "mt-4 text-base font-semibold text-[var(--bokmoo-ink)]", children: t(step.title) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm leading-6 text-[var(--bokmoo-copy)]", children: t(step.copy) })
+          ] })
+        ] }, step.step)) }),
+        /* @__PURE__ */ jsxs("div", { className: "mt-14 flex flex-wrap items-center justify-center gap-5 rounded-[1.3rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] bg-[linear-gradient(120deg,color-mix(in_oklab,var(--bokmoo-gold)_8%,transparent),transparent_60%)] px-6 py-8 text-center", children: [
+          /* @__PURE__ */ jsx("p", { className: "text-lg font-semibold text-[var(--bokmoo-ink)]", children: t({ en: "Ready to get started?", hans: "\u51C6\u5907\u597D\u5F00\u59CB\u4E86\u5417\uFF1F", hant: "\u6E96\u5099\u597D\u958B\u59CB\u4E86\u55CE\uFF1F" }) }),
+          /* @__PURE__ */ jsxs(
+            "button",
+            {
+              onClick: () => openHref("/download/app"),
+              className: "inline-flex min-h-12 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[#141210]",
+              type: "button",
+              children: [
+                t({ en: "Download the BOKMOO App", hans: "\u4E0B\u8F7D BOKMOO App", hant: "\u4E0B\u8F09 BOKMOO App" }),
+                /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
+              ]
+            }
+          )
+        ] })
       ] }) })
     ] });
   });
 
   // src/components/LoginPage.tsx
-  var FOCUS_VISIBLE_RING4 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
+  var FOCUS_VISIBLE_RING3 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function LoginPage({
     isLoading,
     error,
@@ -15542,7 +15426,7 @@
               {
                 type: "button",
                 onClick: () => onOAuthClick("google"),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
+                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING3}`,
                 disabled: isLoading,
                 children: [
                   /* @__PURE__ */ jsx(Chrome, { className: "h-4 w-4" }),
@@ -15555,7 +15439,7 @@
               {
                 type: "button",
                 onClick: () => onAppleOAuthClick?.(),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
+                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING3}`,
                 disabled: isLoading || !onAppleOAuthClick,
                 children: [
                   /* @__PURE__ */ jsx(Apple, { className: "h-4 w-4" }),
@@ -15584,7 +15468,7 @@
                     onChange: (event) => setEmail(event.target.value),
                     onAnimationStart: handleAutofill(setEmail),
                     placeholder: "you@example.com",
-                    className: `h-12 w-full rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`,
+                    className: `h-12 w-full rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
                     disabled: isLoading,
                     autoComplete: "email"
                   }
@@ -15604,7 +15488,7 @@
                     onChange: (event) => setPassword(event.target.value),
                     onAnimationStart: handleAutofill(setPassword),
                     placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
-                    className: `h-12 w-full rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] py-3 pl-11 pr-12 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`,
+                    className: `h-12 w-full rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] py-3 pl-11 pr-12 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
                     disabled: isLoading,
                     autoComplete: "current-password"
                   }
@@ -15614,7 +15498,7 @@
                   {
                     type: "button",
                     onClick: () => setShowPassword((value) => !value),
-                    className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`,
+                    className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
                     disabled: isLoading,
                     "aria-label": showPassword ? "Hide password" : "Show password",
                     children: showPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
@@ -15627,7 +15511,7 @@
               {
                 type: "button",
                 onClick: onNavigateToForgotPassword,
-                className: `text-sm font-medium text-[var(--bokmoo-copy)] underline decoration-[var(--bokmoo-line)] underline-offset-4 hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`,
+                className: `text-sm font-medium text-[var(--bokmoo-copy)] underline decoration-[var(--bokmoo-line)] underline-offset-4 hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
                 disabled: isLoading,
                 children: "Forgot password"
               }
@@ -15637,7 +15521,7 @@
               {
                 type: "submit",
                 disabled: isLoading,
-                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
+                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING3}`,
                 children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                   /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
                   "Signing in"
@@ -15656,7 +15540,7 @@
               {
                 type: "button",
                 onClick: onNavigateToRegister,
-                className: `mt-3 text-sm font-semibold text-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING4}`,
+                className: `mt-3 text-sm font-semibold text-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING3}`,
                 disabled: isLoading,
                 children: "Create account"
               }
@@ -16647,7 +16531,7 @@
   });
 
   // src/components/RegisterPage.tsx
-  var FOCUS_VISIBLE_RING5 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
+  var FOCUS_VISIBLE_RING4 = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]";
   function RegisterPage({
     isLoading,
     error,
@@ -16675,7 +16559,7 @@
       if (!canSubmit) return;
       await onSubmit(formData);
     };
-    const inputClassName = `h-12 w-full rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`;
+    const inputClassName = `h-12 w-full rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] py-3 pl-11 pr-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] transition-colors focus:border-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`;
     return /* @__PURE__ */ jsxs("div", { className: "relative min-h-screen overflow-hidden bg-[var(--bokmoo-bg)] px-4 py-12 text-[var(--bokmoo-ink)] sm:px-6 lg:px-8", children: [
       /* @__PURE__ */ jsxs("div", { className: "pointer-events-none absolute inset-0", children: [
         /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_80%_18%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_25%),radial-gradient(circle_at_12%_76%,color-mix(in_oklab,var(--bokmoo-gold)_8%,transparent),transparent_26%),linear-gradient(180deg,var(--bokmoo-bg),color-mix(in_oklab,var(--bokmoo-bg)_86%,black))]" }),
@@ -16703,7 +16587,7 @@
               {
                 type: "button",
                 onClick: () => onOAuthClick("google"),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
+                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
                 disabled: isLoading,
                 children: [
                   /* @__PURE__ */ jsx(Chrome, { className: "h-4 w-4" }),
@@ -16716,7 +16600,7 @@
               {
                 type: "button",
                 onClick: () => onAppleOAuthClick?.(),
-                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
+                className: `inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
                 disabled: isLoading || !onAppleOAuthClick,
                 children: [
                   /* @__PURE__ */ jsx(Apple, { className: "h-4 w-4" }),
@@ -16790,7 +16674,7 @@
                     {
                       type: "button",
                       onClick: () => setShowPassword((value) => !value),
-                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`,
+                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`,
                       disabled: isLoading,
                       "aria-label": showPassword ? "Hide password" : "Show password",
                       children: showPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
@@ -16819,7 +16703,7 @@
                     {
                       type: "button",
                       onClick: () => setShowConfirmPassword((value) => !value),
-                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING5}`,
+                      className: `absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[0.8rem] text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING4}`,
                       disabled: isLoading,
                       "aria-label": showConfirmPassword ? "Hide password" : "Show password",
                       children: showConfirmPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
@@ -16834,7 +16718,7 @@
               {
                 type: "submit",
                 disabled: isLoading || !canSubmit,
-                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING5}`,
+                className: `inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-5 text-sm font-black uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] shadow-[0_18px_42px_color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] transition-transform duration-300 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING4}`,
                 children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
                   /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
                   "Creating"
@@ -16849,7 +16733,7 @@
               {
                 type: "button",
                 onClick: onNavigateToLogin,
-                className: `mt-3 text-sm font-semibold text-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING5}`,
+                className: `mt-3 text-sm font-semibold text-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold-strong)] ${FOCUS_VISIBLE_RING4}`,
                 disabled: isLoading,
                 children: "Sign in"
               }
@@ -17282,7 +17166,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.19",
+      version: "1.1.20",
       target: "shop"
     }
   };

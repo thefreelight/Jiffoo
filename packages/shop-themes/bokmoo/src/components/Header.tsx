@@ -1,7 +1,7 @@
 import React from 'react';
-import { ChevronDown, Globe2, Menu, ShoppingBag, X } from 'lucide-react';
+import { ArrowRight, ChevronDown, Globe2, Menu, ShoppingBag, X } from 'lucide-react';
 import type { HeaderProps } from 'shared/src/types/theme';
-import { isExternalHref,pickCopy, resolveBokmooSiteConfig } from '../site';
+import { isExternalHref, pickCopy, resolveBokmooSiteConfig } from '../site';
 
 const FOCUS_VISIBLE_RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--bokmoo-gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bokmoo-bg)]';
@@ -92,12 +92,10 @@ export const Header = React.memo(function Header({
   );
 
   const navItems = [
-    { label: pickCopy(locale, { en: 'Store', hans: '商店', hant: '商店' }), onClick: onNavigateToProducts },
-    { label: pickCopy(locale, { en: 'Coverage', hans: '服务范围', hant: '服務範圍' }), onClick: onNavigateToProducts },
-    { label: pickCopy(locale, { en: 'How It Works', hans: '使用方式', hant: '使用方式' }), onClick: () => openHref('/#how-it-works') },
-    { label: pickCopy(locale, { en: 'About Us', hans: '关于我们', hant: '關於我們' }), onClick: () => openHref('/contact') },
-    { label: pickCopy(locale, { en: 'Support', hans: '支援', hant: '支援' }), onClick: () => openHref('/help') },
-    { label: pickCopy(locale, { en: 'Affiliate', hans: '推广', hant: '推廣' }), onClick: () => openHref('/affiliate') },
+    { label: pickCopy(locale, { en: 'Products', hans: '产品', hant: '產品' }), onClick: onNavigateToProducts },
+    { label: pickCopy(locale, { en: 'Global Plans', hans: '全球套餐', hant: '全球套餐' }), onClick: onNavigateToProducts },
+    { label: pickCopy(locale, { en: 'Download App', hans: '下载 App', hant: '下載 App' }), onClick: () => openHref('/download/app') },
+    { label: pickCopy(locale, { en: 'Support', hans: '支持', hant: '支援' }), onClick: () => openHref('/help') },
   ];
 
   return (
@@ -133,6 +131,14 @@ export const Header = React.memo(function Header({
         </nav>
 
         <div className="ml-auto hidden items-center gap-3 xl:flex">
+          <button
+            onClick={() => openHref('/products')}
+            className={`inline-flex min-h-[2.75rem] items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[#141210] ${FOCUS_VISIBLE_RING}`}
+            type="button"
+          >
+            {pickCopy(locale, { en: 'Get Started', hans: '开始使用', hant: '開始使用' })}
+            <ArrowRight className="h-4 w-4" />
+          </button>
           <div className="relative">
             <button
               onClick={() => setIsLocaleOpen((open) => !open)}
