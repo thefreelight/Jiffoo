@@ -1,0 +1,1599 @@
+{
+  "GET /api/v1/admin/health/summary": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "healthy",
+                "degraded",
+                "unhealthy"
+              ]
+            },
+            "database": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "redis": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "pluginRuntime": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ok"
+                  ]
+                },
+                "loaded": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "status",
+                "loaded"
+              ]
+            },
+            "version": {
+              "type": "string"
+            },
+            "gitSha": {
+              "type": "string"
+            },
+            "worker": {
+              "type": "object",
+              "properties": {
+                "running": {
+                  "type": "boolean"
+                },
+                "instances": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "lastBeatAt": {
+                  "type": [
+                    "null",
+                    "string"
+                  ],
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "running",
+                "instances",
+                "lastBeatAt"
+              ]
+            },
+            "uptime": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "status",
+            "database",
+            "redis",
+            "pluginRuntime",
+            "worker",
+            "version",
+            "gitSha",
+            "uptime"
+          ]
+        }
+      },
+      "required": [
+        "success",
+        "data"
+      ]
+    }
+  },
+  "POST /api/v1/extensions/theme/install": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "manifestJson": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "packageHash": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "trustLevel": {
+              "type": "string"
+            },
+            "installedAt": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "activatedAt": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "format": "date-time"
+            },
+            "packageState": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "available",
+                    "unavailable",
+                    "corrupt"
+                  ]
+                },
+                "code": {
+                  "enum": [
+                    "THEME_PACKAGE_UNAVAILABLE",
+                    "THEME_PACKAGE_CORRUPT",
+                    null
+                  ]
+                }
+              },
+              "required": [
+                "status",
+                "code"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "slug",
+            "version",
+            "target",
+            "name",
+            "manifestJson",
+            "packageHash",
+            "source",
+            "trustLevel",
+            "installedAt",
+            "updatedAt",
+            "activatedAt",
+            "packageState"
+          ],
+          "additionalProperties": false
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "success",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "GET /api/v1/extensions/theme": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "slug": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "manifestJson": {
+                "type": "object",
+                "additionalProperties": true
+              },
+              "packageHash": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "trustLevel": {
+                "type": "string"
+              },
+              "installedAt": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              },
+              "activatedAt": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "format": "date-time"
+              },
+              "packageState": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "available",
+                      "unavailable",
+                      "corrupt"
+                    ]
+                  },
+                  "code": {
+                    "enum": [
+                      "THEME_PACKAGE_UNAVAILABLE",
+                      "THEME_PACKAGE_CORRUPT",
+                      null
+                    ]
+                  }
+                },
+                "required": [
+                  "status",
+                  "code"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "slug",
+              "version",
+              "target",
+              "name",
+              "manifestJson",
+              "packageHash",
+              "source",
+              "trustLevel",
+              "installedAt",
+              "updatedAt",
+              "activatedAt",
+              "packageState"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "success",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "GET /api/v1/extensions/theme/{slug}": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "manifestJson": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "packageHash": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "trustLevel": {
+              "type": "string"
+            },
+            "installedAt": {
+              "type": "string"
+            },
+            "updatedAt": {
+              "type": "string"
+            },
+            "activatedAt": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "format": "date-time"
+            },
+            "packageState": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "available",
+                    "unavailable",
+                    "corrupt"
+                  ]
+                },
+                "code": {
+                  "enum": [
+                    "THEME_PACKAGE_UNAVAILABLE",
+                    "THEME_PACKAGE_CORRUPT",
+                    null
+                  ]
+                }
+              },
+              "required": [
+                "status",
+                "code"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "slug",
+            "version",
+            "target",
+            "name",
+            "manifestJson",
+            "packageHash",
+            "source",
+            "trustLevel",
+            "installedAt",
+            "updatedAt",
+            "activatedAt",
+            "packageState"
+          ],
+          "additionalProperties": false
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "success",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "DELETE /api/v1/extensions/theme/{slug}": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string"
+            },
+            "deleted": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "slug",
+            "deleted"
+          ],
+          "additionalProperties": false
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "success",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "POST /api/v1/extensions/themes/{target}/activate": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            },
+            "packageHash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "target",
+            "slug",
+            "packageHash"
+          ],
+          "additionalProperties": false
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "success",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "POST /api/v1/extensions/themes/{target}/restore-previous": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            },
+            "packageHash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "target",
+            "slug",
+            "packageHash"
+          ],
+          "additionalProperties": false
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "success",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "GET /api/v1/extensions/themes/{slug}/config": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "settings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "values": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "revision": {
+              "type": "integer"
+            },
+            "configurationSavedAt": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "format": "date-time"
+            },
+            "homeSections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          },
+          "required": [
+            "settings",
+            "values",
+            "revision",
+            "homeSections",
+            "configurationSavedAt"
+          ],
+          "additionalProperties": false
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "success",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "PUT /api/v1/extensions/themes/{slug}/config": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "settings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "values": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "revision": {
+              "type": "integer"
+            },
+            "configurationSavedAt": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "format": "date-time"
+            },
+            "homeSections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          },
+          "required": [
+            "settings",
+            "values",
+            "revision",
+            "homeSections",
+            "configurationSavedAt"
+          ],
+          "additionalProperties": false
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "success",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "POST /api/v1/extensions/themes/{slug}/config/restore-previous": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "revision": {
+              "type": "integer"
+            },
+            "configurationSavedAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "required": [
+            "values",
+            "revision",
+            "configurationSavedAt"
+          ],
+          "additionalProperties": false
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "success",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "GET /api/v1/store/theme": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "success",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "GET /api/v1/extensions/marketplace/status": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "required": [
+        "success",
+        "data"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "configured",
+            "testSigningMode"
+          ],
+          "properties": {
+            "configured": {
+              "type": "boolean"
+            },
+            "testSigningMode": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  },
+  "GET /api/v1/extensions/marketplace/catalog": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "required": [
+        "success",
+        "data"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "schemaVersion",
+            "items"
+          ],
+          "properties": {
+            "schemaVersion": {
+              "type": "integer",
+              "enum": [
+                1
+              ]
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "slug",
+                  "name",
+                  "description",
+                  "publisherId",
+                  "versions",
+                  "installedVersion",
+                  "installedPublisherId",
+                  "updateAvailable"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "slug": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "publisherId": {
+                    "type": "string"
+                  },
+                  "declaredCapabilities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "declaredCapabilitiesVerified": {
+                    "type": "boolean",
+                    "enum": [
+                      false
+                    ]
+                  },
+                  "capabilities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "capabilitiesSource": {
+                    "type": "string",
+                    "enum": [
+                      "package",
+                      "declared"
+                    ]
+                  },
+                  "signingRoot": {
+                    "type": "string",
+                    "enum": [
+                      "official",
+                      "test"
+                    ],
+                    "nullable": true
+                  },
+                  "installedVersion": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "installedPublisherId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "updateAvailable": {
+                    "type": "boolean"
+                  },
+                  "versions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "version",
+                        "minApiVersion",
+                        "sha256",
+                        "size",
+                        "downloadUrl",
+                        "compatible"
+                      ],
+                      "properties": {
+                        "version": {
+                          "type": "string"
+                        },
+                        "minApiVersion": {
+                          "type": "string"
+                        },
+                        "sha256": {
+                          "type": "string"
+                        },
+                        "size": {
+                          "type": "integer"
+                        },
+                        "downloadUrl": {
+                          "type": "string"
+                        },
+                        "compatible": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "POST /api/v1/extensions/marketplace/preview": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "required": [
+        "success",
+        "data"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "package",
+            "current",
+            "operation",
+            "compatibility",
+            "migrationPlan",
+            "requiresUnsignedConfirmation",
+            "expiresAt",
+            "previewToken"
+          ],
+          "properties": {
+            "package": {
+              "type": "object",
+              "required": [
+                "slug",
+                "name",
+                "version",
+                "hash",
+                "trust",
+                "publisher",
+                "declaredCapabilities"
+              ],
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "hash": {
+                  "type": "string"
+                },
+                "trust": {
+                  "type": "string",
+                  "enum": [
+                    "signed",
+                    "unsigned"
+                  ]
+                },
+                "publisher": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "publisherId": {
+                      "type": "string"
+                    },
+                    "publisherName": {
+                      "type": "string"
+                    },
+                    "publisherCertificateFingerprint": {
+                      "type": "string"
+                    },
+                    "signingRoot": {
+                      "type": "string",
+                      "enum": [
+                        "official",
+                        "test"
+                      ]
+                    }
+                  }
+                },
+                "declaredCapabilities": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "current": {
+              "type": "object",
+              "required": [
+                "version",
+                "hash",
+                "state"
+              ],
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "hash": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "installed",
+                    "uninstalled",
+                    "not-installed"
+                  ]
+                }
+              }
+            },
+            "operation": {
+              "type": "string",
+              "enum": [
+                "install",
+                "upgrade",
+                "unchanged"
+              ]
+            },
+            "migrationPlan": {
+              "type": "object",
+              "required": [
+                "schemaName",
+                "provisionNamespace",
+                "applied",
+                "pending",
+                "changesDatabase"
+              ],
+              "additionalProperties": true
+            },
+            "compatibility": {
+              "type": "object",
+              "required": [
+                "compatible",
+                "currentApiVersion"
+              ],
+              "properties": {
+                "compatible": {
+                  "type": "boolean"
+                },
+                "currentApiVersion": {
+                  "type": "string"
+                },
+                "requiredApiVersion": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            },
+            "requiresUnsignedConfirmation": {
+              "type": "boolean"
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "previewToken": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "POST /api/v1/extensions/marketplace/install": {
+    "status": 202,
+    "schema": {
+      "type": "object",
+      "required": [
+        "success",
+        "data"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "operationId"
+          ],
+          "properties": {
+            "operationId": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "GET /api/v1/extensions/plugin/{slug}/disable-impact": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "required": [
+        "success",
+        "data"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "pendingPaymentOrders"
+          ],
+          "properties": {
+            "pendingPaymentOrders": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    }
+  },
+  "POST /api/v1/extensions/plugin/preview": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "required": [
+        "success",
+        "data"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "package",
+            "current",
+            "operation",
+            "compatibility",
+            "migrationPlan",
+            "requiresUnsignedConfirmation",
+            "expiresAt",
+            "previewToken"
+          ],
+          "properties": {
+            "package": {
+              "type": "object",
+              "required": [
+                "slug",
+                "name",
+                "version",
+                "hash",
+                "trust",
+                "publisher",
+                "declaredCapabilities"
+              ],
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "hash": {
+                  "type": "string"
+                },
+                "trust": {
+                  "type": "string",
+                  "enum": [
+                    "signed",
+                    "unsigned"
+                  ]
+                },
+                "publisher": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "publisherId": {
+                      "type": "string"
+                    },
+                    "publisherName": {
+                      "type": "string"
+                    },
+                    "publisherCertificateFingerprint": {
+                      "type": "string"
+                    },
+                    "signingRoot": {
+                      "type": "string",
+                      "enum": [
+                        "official",
+                        "test"
+                      ]
+                    }
+                  }
+                },
+                "declaredCapabilities": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "current": {
+              "type": "object",
+              "required": [
+                "version",
+                "hash",
+                "state"
+              ],
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "hash": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "installed",
+                    "uninstalled",
+                    "not-installed"
+                  ]
+                }
+              }
+            },
+            "operation": {
+              "type": "string",
+              "enum": [
+                "install",
+                "upgrade",
+                "unchanged"
+              ]
+            },
+            "migrationPlan": {
+              "type": "object",
+              "required": [
+                "schemaName",
+                "provisionNamespace",
+                "applied",
+                "pending",
+                "changesDatabase"
+              ],
+              "additionalProperties": true
+            },
+            "compatibility": {
+              "type": "object",
+              "required": [
+                "compatible",
+                "currentApiVersion"
+              ],
+              "properties": {
+                "compatible": {
+                  "type": "boolean"
+                },
+                "currentApiVersion": {
+                  "type": "string"
+                },
+                "requiredApiVersion": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            },
+            "requiresUnsignedConfirmation": {
+              "type": "boolean"
+            },
+            "expiresAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "previewToken": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "POST /api/v1/extensions/plugin/install": {
+    "status": 202,
+    "schema": {
+      "type": "object",
+      "required": [
+        "success",
+        "data"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "operationId"
+          ],
+          "properties": {
+            "operationId": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "GET /api/v1/extensions/plugin/operations/{operationId}": {
+    "status": 200,
+    "schema": {
+      "type": "object",
+      "required": [
+        "success",
+        "data"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "operationId",
+            "slug",
+            "version",
+            "phase",
+            "terminal",
+            "committedPrefix",
+            "recoveryState",
+            "result",
+            "errorCode"
+          ],
+          "properties": {
+            "operationId": {
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "phase": {
+              "type": "string"
+            },
+            "terminal": {
+              "type": "boolean"
+            },
+            "committedPrefix": {
+              "type": "integer"
+            },
+            "recoveryState": {
+              "type": "string"
+            },
+            "result": {
+              "type": "object",
+              "properties": {
+                "filename": {
+                  "type": "string",
+                  "description": "Stored filename on server"
+                },
+                "originalName": {
+                  "type": "string",
+                  "description": "Original filename from upload"
+                },
+                "size": {
+                  "type": "number",
+                  "description": "File size in bytes"
+                },
+                "mimetype": {
+                  "type": "string",
+                  "description": "MIME type of the file"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Public URL to access the file"
+                },
+                "slug": {
+                  "type": "string",
+                  "description": "Extension slug identifier"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Extension display name"
+                },
+                "version": {
+                  "type": "string",
+                  "description": "Extension version"
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Extension description"
+                },
+                "author": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Extension author"
+                },
+                "category": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Extension category"
+                },
+                "runtimeType": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Extension runtime type"
+                },
+                "trustLevel": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Plugin trust level (builtin | signed | unsigned)"
+                },
+                "publisherId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "publisherName": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "publisherVerified": {
+                  "type": "boolean"
+                },
+                "signingRoot": {
+                  "type": "string",
+                  "enum": [
+                    "official",
+                    "test"
+                  ],
+                  "nullable": true
+                },
+                "publisherCertificateFingerprint": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "source": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Extension source"
+                },
+                "manifestJson": {
+                  "description": "Raw or parsed manifest JSON payload",
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": true
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "manifestError": {
+                  "type": "object",
+                  "nullable": true,
+                  "properties": {
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "path",
+                          "message",
+                          "code"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "issues"
+                  ]
+                },
+                "deletedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true,
+                  "description": "Soft-delete timestamp for uninstalled plugin"
+                },
+                "lastFailureAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "nullable": true,
+                  "description": "Timestamp of the last recorded error; not current health"
+                },
+                "lastFailureMessage": {
+                  "type": "string",
+                  "nullable": true,
+                  "maxLength": 500,
+                  "description": "Sanitized last recorded error; historical information"
+                },
+                "packageState": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "code"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "available",
+                        "unavailable",
+                        "corrupt"
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "nullable": true,
+                      "enum": [
+                        "PLUGIN_PACKAGE_UNAVAILABLE",
+                        "PLUGIN_PACKAGE_CORRUPT",
+                        null
+                      ]
+                    }
+                  }
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "plugin"
+                  ]
+                },
+                "warnings": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "installedVersion": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "filename",
+                "originalName",
+                "size",
+                "mimetype",
+                "url",
+                "slug",
+                "name",
+                "version"
+              ],
+              "nullable": true
+            },
+            "errorCode": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "POST /api/v1/extensions/plugin/operations/{operationId}/retry": {
+    "status": 202,
+    "schema": {
+      "type": "object",
+      "required": [
+        "success",
+        "data"
+      ],
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "required": [
+            "operationId"
+          ],
+          "properties": {
+            "operationId": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

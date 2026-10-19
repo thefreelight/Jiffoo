@@ -525,8 +525,18 @@ describe('Declared plugin migrations over real TCP', () => {
       const first = await install(bytes, 'FAILED');
       expect(Buffer.from((await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id: first.operationId } })).artifactBytes!)).toEqual(bytes);
       const retry = async (id: string, expected: string) => {
-        const accepted = await fetch(`${base}/api/v1/extensions/plugin/operations/${id}/retry`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ confirmMigrations: true }) });
-        expect(accepted.status).toBe(202); return terminal((await accepted.json()).data.operationId, expected);
+        const accepted = await app.inject({ method: 'POST', url: `/api/v1/extensions/plugin/operations/${id}/retry`, headers: { authorization: `Bearer ${token}` }, payload: { confirmMigrations: true } });
+        expect(accepted.statusCode).toBe(202);
+        expect(accepted.json()).toEqual({ success: true, data: { operationId: expect.any(String) } });
+        const operationId = accepted.json().data.operationId;
+        const status = await app.inject({ url: `/api/v1/extensions/plugin/operations/${operationId}`, headers: { authorization: `Bearer ${token}` } });
+        expect(status.statusCode).toBe(200);
+        expect(status.json().success).toBe(true);
+        expect(Object.keys(status.json().data).sort()).toEqual([
+          'operationId', 'slug', 'version', 'phase', 'terminal', 'committedPrefix', 'recoveryState', 'result', 'errorCode',
+        ].sort());
+        expect(status.json().data).toMatchObject({ operationId, slug, version: '1.0.0' });
+        return terminal(operationId, expected);
       };
       const second = await retry(first.operationId, 'FAILED');
       for (const id of [first.operationId, second.operationId]) expect(Buffer.from((await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id } })).artifactBytes!)).toEqual(bytes);

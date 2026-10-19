@@ -34,7 +34,7 @@ const theme = {
 } as const;
 const success = (data: unknown) => ({
   type: 'object',
-  properties: { success: { type: 'boolean' }, data, message: { type: 'string' } },
+  properties: { success: { type: 'boolean', enum: [true] }, data, message: { type: 'string' } },
   required: ['success', 'data'],
   additionalProperties: false,
 });

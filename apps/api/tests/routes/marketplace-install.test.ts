@@ -101,7 +101,8 @@ function setCatalog(slug: string, bytes: Buffer, version = '1.0.0', overrides: R
 
 const previews = new Map<string, string>();
 async function preparePreview(pluginId: string, version = '1.0.0') {
-  const response = await fetch(`${base}/api/v1/extensions/marketplace/preview`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ pluginId, version }) });
+  const injected = await app.inject({ method: 'POST', url: '/api/v1/extensions/marketplace/preview', headers: { authorization: `Bearer ${token}` }, payload: { pluginId, version } });
+  const response = new Response(injected.body, { status: injected.statusCode });
   const body = await response.clone().json();
   if (response.ok) previews.set(`${pluginId}/${version}`, body.data.previewToken);
   return response;
@@ -112,7 +113,8 @@ async function request(pluginId: string, version = '1.0.0', extra: Record<string
     const preview = await preparePreview(pluginId, version);
     if (!preview.ok) { const body = await preview.json(); return { statusCode: preview.status, json: () => body }; }
   }
-  const accepted = await fetch(`${base}/api/v1/extensions/marketplace/install`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ pluginId, version, previewToken: previews.get(`${pluginId}/${version}`) ?? 'unbound', confirmMigrations: true, ...extra }) });
+  const injected = await app.inject({ method: 'POST', url: '/api/v1/extensions/marketplace/install', headers: { authorization: `Bearer ${token}` }, payload: { pluginId, version, previewToken: previews.get(`${pluginId}/${version}`) ?? 'unbound', confirmMigrations: true, ...extra } });
+  const accepted = new Response(injected.body, { status: injected.statusCode });
   const response = await waitForPluginUpload(base, token, accepted);
   const body = await completedPluginUploadBody(response);
   return { statusCode: response.status, json: () => body };

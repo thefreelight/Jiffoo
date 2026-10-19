@@ -19,7 +19,7 @@ export async function healthMonitoringRoutes(fastify: FastifyInstance) {
         200: {
           type: 'object',
           properties: {
-            success: { type: 'boolean' },
+            success: { type: 'boolean', enum: [true] },
             data: {
               type: 'object',
               properties: {

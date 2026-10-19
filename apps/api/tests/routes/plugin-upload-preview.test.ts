@@ -35,7 +35,8 @@ async function request(bytes: Buffer, fields: Record<string, string> = {}, beare
   const boundary = `boundary-${randomUUID()}`;
   const parts = Object.entries(fields).map(([name, value]) => Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`));
   parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="plugin.zip"\r\nContent-Type: application/zip\r\n\r\n`), bytes, Buffer.from(`\r\n--${boundary}--\r\n`));
-  const accepted = await fetch(`${base}${url}`, { method: 'POST', headers: { authorization: `Bearer ${bearer}`, 'content-type': `multipart/form-data; boundary=${boundary}` }, body: Buffer.concat(parts) });
+  const injected = await app.inject({ method: 'POST', url, headers: { authorization: `Bearer ${bearer}`, 'content-type': `multipart/form-data; boundary=${boundary}` }, payload: Buffer.concat(parts) });
+  const accepted = new Response(injected.body, { status: injected.statusCode });
   const response = url.endsWith('/install') ? await waitForPluginUpload(base, bearer, accepted, expectedPhase) : accepted;
   const body = await response.json();
   return { statusCode: response.status, json: () => body };

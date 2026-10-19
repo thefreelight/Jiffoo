@@ -272,7 +272,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         querystring: { type: 'object', additionalProperties: false, properties: {} },
         response: {
           200: { type: 'object', required: ['success', 'data'], properties: {
-            success: { type: 'boolean' },
+            success: { type: 'boolean', enum: [true] },
             data: { type: 'object', required: ['configured', 'testSigningMode'], properties: {
               configured: { type: 'boolean' }, testSigningMode: { type: 'boolean' },
             } },
@@ -291,7 +291,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         querystring: { type: 'object', additionalProperties: false, properties: {} },
         response: {
           200: { type: 'object', required: ['success', 'data'], properties: {
-            success: { type: 'boolean' },
+            success: { type: 'boolean', enum: [true] },
             data: { type: 'object', required: ['schemaVersion', 'items'], properties: {
               schemaVersion: { type: 'integer', enum: [1] },
               items: { type: 'array', items: { type: 'object', required: ['id', 'slug', 'name', 'description', 'publisherId', 'versions', 'installedVersion', 'installedPublisherId', 'updateAvailable'], properties: {
@@ -406,7 +406,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
             type: 'object',
             required: ['success', 'data'],
             properties: {
-              success: { type: 'boolean' },
+              success: { type: 'boolean', enum: [true] },
               data: {
                 type: 'object',
                 required: ['pendingPaymentOrders'],

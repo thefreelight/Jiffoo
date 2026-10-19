@@ -219,7 +219,7 @@ export const extensionInstallerSchemas = {
       confirmMigrations: { type: 'string', enum: ['true', 'false'] },
     } },
     response: {
-      202: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean' }, data: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string' } } } } },
+      202: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean', enum: [true] }, data: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string' } } } } },
       400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 500: errorResponseSchema,
       413: errorResponseSchema,
       422: errorResponseSchema,
@@ -234,7 +234,7 @@ export const extensionInstallerSchemas = {
     body: { type: 'object', required: ['file'], additionalProperties: false, properties: { file: { type: 'string', format: 'binary' } } },
     response: {
       200: { type: 'object', required: ['success', 'data'], properties: {
-        success: { type: 'boolean' }, data: { type: 'object', required: ['package', 'current', 'operation', 'compatibility', 'migrationPlan', 'requiresUnsignedConfirmation', 'expiresAt', 'previewToken'], properties: {
+        success: { type: 'boolean', enum: [true] }, data: { type: 'object', required: ['package', 'current', 'operation', 'compatibility', 'migrationPlan', 'requiresUnsignedConfirmation', 'expiresAt', 'previewToken'], properties: {
           package: { type: 'object', required: ['slug', 'name', 'version', 'hash', 'trust', 'publisher', 'declaredCapabilities'], properties: {
             slug: { type: 'string' }, name: { type: 'string' }, version: { type: 'string' }, hash: { type: 'string' }, trust: { type: 'string', enum: ['signed', 'unsigned'] },
             publisher: { type: 'object', nullable: true, properties: { publisherId: { type: 'string' }, publisherName: { type: 'string' }, publisherCertificateFingerprint: { type: 'string' }, signingRoot: { type: 'string', enum: ['official', 'test'] } } },
@@ -254,7 +254,7 @@ export const extensionInstallerSchemas = {
   pluginOperation: {
     querystring: { type: 'object', additionalProperties: false, dependencies: { phase: ['committedPrefix'], committedPrefix: ['phase'] }, properties: { wait: { type: 'boolean' }, phase: { type: 'string', minLength: 1, maxLength: 64 }, committedPrefix: { type: 'integer', minimum: 0 } } },
     params: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string', maxLength: 128 } } },
-    response: { 200: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean' }, data: {
+    response: { 200: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean', enum: [true] }, data: {
       type: 'object', required: ['operationId', 'slug', 'version', 'phase', 'terminal', 'committedPrefix', 'recoveryState', 'result', 'errorCode'], properties: {
         operationId: { type: 'string' }, slug: { type: 'string' }, version: { type: 'string' }, phase: { type: 'string' }, terminal: { type: 'boolean' },
         committedPrefix: { type: 'integer' }, recoveryState: { type: 'string' }, result: { ...extensionInstallWithUploadSchema, nullable: true }, errorCode: { type: 'string', nullable: true },
@@ -265,7 +265,7 @@ export const extensionInstallerSchemas = {
   retryPluginOperation: {
     params: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string', maxLength: 128 } } },
     body: { type: 'object', required: ['confirmMigrations'], additionalProperties: false, properties: { confirmMigrations: { type: 'boolean' } } },
-    response: { 202: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean' }, data: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string' } } } } },
+    response: { 202: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean', enum: [true] }, data: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string' } } } } },
       400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 409: errorResponseSchema, 422: errorResponseSchema, 500: errorResponseSchema, 503: errorResponseSchema },
   },
 
