@@ -141,6 +141,7 @@ export default function ProductDetailClient({ product, locale }: ProductDetailCl
       onVariantChange={handleVariantChange}
       onQuantityChange={handleQuantityChange}
       onAddToCart={handleAddToCart}
+      onNavigateToCheckout={() => nav.push('/checkout')}
       onBack={handleBack}
     />
   );

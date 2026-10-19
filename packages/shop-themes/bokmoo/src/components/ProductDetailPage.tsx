@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ArrowLeft,
+  ArrowRight,
   Check,
   Minus,
   Plus,
@@ -14,6 +15,7 @@ import { cn } from '@jiffoo/ui';
 import type { Product } from 'shared/src/types/product';
 import type { ProductDetailPageProps } from 'shared/src/types/theme';
 import { getBokmooProduct, getProductIdFromLocation, mapBokmooApiProductToThemeProduct, normalizeProductForTheme, resolveBokmooMediaUrl } from '../lib/api';
+import { pickCopy } from '../site';
 import { getBokmooTravelProfile } from '../lib/digital-fulfillment';
 import { resolveBokmooSiteConfig } from '../site';
 
@@ -35,6 +37,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
   onVariantChange,
   onQuantityChange,
   onAddToCart,
+  onNavigateToCheckout,
   onBack,
   config,
   locale,
@@ -57,6 +60,37 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
   const priceValue = Number(currentVariant?.price ?? normalizedProduct?.price ?? 0);
   const maxQuantity = Math.max(1, Math.min(stockValue || 1, 10));
   const image = resolveBokmooMediaUrl(getProductImage(normalizedProduct), site.apiBaseUrl);
+  const [adding, setAdding] = React.useState(false);
+  const [justAdded, setJustAdded] = React.useState(false);
+  const addedTimer = React.useRef<number | null>(null);
+
+  React.useEffect(() => () => {
+    if (addedTimer.current) window.clearTimeout(addedTimer.current);
+  }, []);
+
+  const handleAddToCart = React.useCallback(async () => {
+    if (adding) return;
+    setAdding(true);
+    try {
+      await onAddToCart();
+      setJustAdded(true);
+      if (addedTimer.current) window.clearTimeout(addedTimer.current);
+      addedTimer.current = window.setTimeout(() => setJustAdded(false), 2200);
+    } finally {
+      setAdding(false);
+    }
+  }, [adding, onAddToCart]);
+
+  const handleBuyNow = React.useCallback(async () => {
+    if (adding) return;
+    setAdding(true);
+    try {
+      await onAddToCart();
+      onNavigateToCheckout?.();
+    } finally {
+      setAdding(false);
+    }
+  }, [adding, onAddToCart, onNavigateToCheckout]);
 
   React.useEffect(() => {
     if (product) return;
@@ -104,14 +138,14 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--bokmoo-bg)] px-4">
         <div className="rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-10 text-center shadow-[var(--bokmoo-shadow)]">
-          <h1 className="text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]">Plan not found</h1>
+          <h1 className="text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]">{pickCopy(locale, { en: 'Plan not found', hans: '未找到套餐', hant: '未找到套餐' })}</h1>
           <button
             onClick={onBack}
             className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]"
             type="button"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to store
+            {pickCopy(locale, { en: 'Back to store', hans: '返回商店', hant: '返回商店' })}
           </button>
         </div>
       </div>
@@ -127,7 +161,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
           type="button"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Store
+          {pickCopy(locale, { en: 'Back to Store', hans: '返回商店', hant: '返回商店' })}
         </button>
 
         <div className="mt-5 rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] p-3 shadow-[var(--bokmoo-shadow)] sm:rounded-[1.55rem] sm:p-5">
@@ -157,9 +191,9 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 {[
-                  { label: 'Data', value: profile.planLabel },
-                  { label: 'Validity', value: profile.durationLabel },
-                  { label: 'Network', value: profile.networkLabel },
+                  { label: pickCopy(locale, { en: 'Data', hans: '数据', hant: '數據' }), value: profile.planLabel },
+                  { label: pickCopy(locale, { en: 'Validity', hans: '有效期', hant: '有效期' }), value: profile.durationLabel },
+                  { label: pickCopy(locale, { en: 'Network', hans: '网络', hant: '網路' }), value: profile.networkLabel },
                 ].map((item) => (
                   <div
                     key={item.label}
@@ -173,13 +207,13 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 
               <div className="mt-6 space-y-3">
                 {[
-                  'High-speed 4G/5G data',
-                  'Stay connected in major cities and more',
-                  'No roaming charges',
+                  { en: 'High-speed 4G/5G data', hans: '高速 4G/5G 数据', hant: '高速 4G/5G 數據' },
+                  { en: 'Stay connected in major cities and more', hans: '主要城市及更多地区保持连接', hant: '主要城市及更多地區保持連線' },
+                  { en: 'No roaming charges', hans: '无漫游费用', hant: '無漫遊費用' },
                 ].map((item) => (
-                  <div key={item} className="flex items-center gap-3 text-sm text-[var(--bokmoo-copy)]">
+                  <div key={item.en} className="flex items-center gap-3 text-sm text-[var(--bokmoo-copy)]">
                     <Check className="h-4 w-4 text-[var(--bokmoo-gold)]" />
-                    <span>{item}</span>
+                    <span>{pickCopy(locale, item)}</span>
                   </div>
                 ))}
               </div>
@@ -187,11 +221,11 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
               <div className="mt-6 rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[var(--bokmoo-ink)]">Coverage</p>
+                    <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{pickCopy(locale, { en: 'Coverage', hans: '覆盖范围', hant: '覆蓋範圍' })}</p>
                     <p className="mt-1 text-xs text-[var(--bokmoo-copy-soft)]">{profile.coverageLabel}</p>
                   </div>
                   <button className="text-sm text-[var(--bokmoo-gold)]" type="button">
-                    View Details
+                    {pickCopy(locale, { en: 'View Details', hans: '查看详情', hant: '查看詳情' })}
                   </button>
                 </div>
               </div>
@@ -199,12 +233,12 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 
             <aside className="space-y-4">
               <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
-                <p className="text-sm font-medium text-[var(--bokmoo-ink)]">Quick Facts</p>
+                <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{pickCopy(locale, { en: 'Quick Facts', hans: '快速信息', hant: '快速資訊' })}</p>
                 <div className="mt-4 grid gap-3">
                   {[
-                    { icon: Signal, label: 'Activation', value: 'Instant via QR' },
-                    { icon: Smartphone, label: 'Compatibility', value: profile.compatibilityLabel },
-                    { icon: ShieldCheck, label: 'Support', value: '24/7 Global Team' },
+                    { icon: Signal, label: pickCopy(locale, { en: 'Activation', hans: '激活方式', hant: '啟用方式' }), value: pickCopy(locale, { en: 'Instant via QR', hans: '扫码即时激活', hant: '掃碼即時啟用' }) },
+                    { icon: Smartphone, label: pickCopy(locale, { en: 'Compatibility', hans: '设备兼容', hant: '裝置相容' }), value: profile.compatibilityLabel },
+                    { icon: ShieldCheck, label: pickCopy(locale, { en: 'Support', hans: '支持', hant: '支援' }), value: pickCopy(locale, { en: '24/7 Global Team', hans: '24/7 全球团队', hant: '24/7 全球團隊' }) },
                   ].map(({ icon: Icon, label, value }) => (
                     <div key={label} className="flex items-start gap-3">
                       <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-[0.85rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-[var(--bokmoo-gold)]">
@@ -221,7 +255,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 
               {normalizedProduct.variants?.length ? (
                 <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
-                  <p className="text-sm font-medium text-[var(--bokmoo-ink)]">Choose an option</p>
+                  <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{pickCopy(locale, { en: 'Choose an option', hans: '选择选项', hant: '選擇選項' })}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {normalizedProduct.variants.map((variant) => {
                       const isActive = effectiveSelectedVariant === variant.id;
@@ -246,7 +280,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
               ) : null}
 
               <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
-                <p className="text-sm font-medium text-[var(--bokmoo-ink)]">Quantity</p>
+                <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{pickCopy(locale, { en: 'Quantity', hans: '数量', hant: '數量' })}</p>
                 <div className="mt-4 flex items-center justify-between rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-3 py-2">
                   <button
                     onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
@@ -267,19 +301,47 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
               </div>
 
               <button
-                onClick={() => onAddToCart()}
-                disabled={stockValue <= 0}
-                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={handleAddToCart}
+                disabled={stockValue <= 0 || adding}
+                className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] px-5 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+                  justAdded
+                    ? 'scale-[1.02] bg-[#1f7a3d] text-white'
+                    : 'bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-[var(--bokmoo-bg)]'
+                }`}
                 type="button"
               >
-                <ShoppingBag className="h-4 w-4" />
-                Add to Cart — ${priceValue.toFixed(2)}
+                {justAdded ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    {pickCopy(locale, { en: `Added to cart — $${priceValue.toFixed(2)}`, hans: `已加入购物车 — $${priceValue.toFixed(2)}`, hant: `已加入購物車 — $${priceValue.toFixed(2)}` })}
+                  </>
+                ) : adding ? (
+                  <>
+                    <ShoppingBag className="h-4 w-4 animate-pulse" />
+                    {pickCopy(locale, { en: 'Adding…', hans: '添加中…', hant: '添加中…' })}
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="h-4 w-4" />
+                    {pickCopy(locale, { en: `Add to Cart — $${priceValue.toFixed(2)}`, hans: `加入购物车 — $${priceValue.toFixed(2)}`, hant: `加入購物車 — $${priceValue.toFixed(2)}` })}
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleBuyNow}
+                disabled={stockValue <= 0 || adding}
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_32%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-5 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_52%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+              >
+                {pickCopy(locale, { en: 'Buy Now', hans: '立即购买', hant: '立即購買' })}
+                <ArrowRight className="h-4 w-4" />
               </button>
 
               <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                 <div className="flex items-center gap-2 text-sm text-[var(--bokmoo-copy)]">
                   <Star className="h-4 w-4 text-[var(--bokmoo-gold)]" />
-                  4.9 average traveler satisfaction
+                  {pickCopy(locale, { en: '4.9 average traveler satisfaction', hans: '4.9 旅行者平均满意度', hant: '4.9 旅人平均滿意度' })}
                 </div>
               </div>
             </aside>
