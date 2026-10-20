@@ -14,6 +14,31 @@ import { shouldRequirePasswordRotation } from './bootstrap';
 import { createAuthUser, findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './user-compat';
 import crypto from 'node:crypto';
 
+// Audit writes must never block authentication.
+async function recordLoginEvent(event: {
+  action: 'login.success' | 'login.failed';
+  email: string;
+  userId?: string;
+  source?: 'storefront' | 'admin';
+  ip?: string | null;
+  userAgent?: string | null;
+}): Promise<void> {
+  try {
+    await prisma.securityEvent.create({
+      data: {
+        action: event.action,
+        email: event.email,
+        userId: event.userId ?? null,
+        source: event.source ?? 'storefront',
+        ip: event.ip ?? null,
+        metadata: event.userAgent ? { userAgent: event.userAgent } : undefined,
+      },
+    });
+  } catch (error) {
+    console.warn('login audit write failed', error);
+  }
+}
+
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
 const DEFAULT_DEMO_ADMIN_PASSWORD = 'jiffoo';
 
@@ -317,16 +342,34 @@ export class AuthService {
    * @returns Authentication response with user details and OAuth2-compliant tokens
    * @throws Error if the identifier does not exist, is ambiguous, or the password is incorrect
    */
-  static async login(data: LoginRequest): Promise<AuthResponse> {
+  static async login(
+    data: LoginRequest,
+    client?: { ip?: string | null; userAgent?: string | null; source?: 'storefront' | 'admin' },
+  ): Promise<AuthResponse> {
     const identifier = data.identifier ?? data.email;
     const user = await findAuthUserByIdentifier(identifier);
 
     if (!user) {
+      await recordLoginEvent({
+        action: 'login.failed',
+        email: identifier ?? '',
+        source: client?.source ?? 'storefront',
+        ip: client?.ip,
+        userAgent: client?.userAgent,
+      });
       throw new Error('Invalid email or password');
     }
 
     const isValid = await PasswordUtils.verify(data.password, user.password);
     if (!isValid) {
+      await recordLoginEvent({
+        action: 'login.failed',
+        email: user.email,
+        userId: user.id,
+        source: client?.source ?? 'storefront',
+        ip: client?.ip,
+        userAgent: client?.userAgent,
+      });
       throw new Error('Invalid email or password');
     }
     if (!user.isActive) {
@@ -337,6 +380,26 @@ export class AuthService {
     if (!user.emailVerified) {
       throw new Error('Email not verified. Please check your email for verification link.');
     }
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date(), lastLoginIp: client?.ip ?? null },
+      }),
+      prisma.securityEvent.create({
+        data: {
+          action: 'login.success',
+          email: user.email,
+          userId: user.id,
+          source: client?.source ?? 'storefront',
+          ip: client?.ip ?? null,
+          metadata: client?.userAgent ? { userAgent: client.userAgent } : undefined,
+        },
+      }),
+    ]).catch((error) => {
+      // Audit writes must never block authentication.
+      console.warn('login audit write failed', error);
+    });
 
     const requiresPasswordRotation = await shouldRequirePasswordRotation(user.email);
 

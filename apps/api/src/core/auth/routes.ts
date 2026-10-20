@@ -103,7 +103,10 @@ export async function authRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { identifier, email, password } = request.body as any;
-      const result = await AuthService.login(identifier ? { identifier, password } : { email, password });
+      const result = await AuthService.login(
+        identifier ? { identifier, password } : { email, password },
+        { ip: request.ip, userAgent: request.headers['user-agent'] ?? null, source: 'storefront' },
+      );
       return sendSuccess(reply, result);
     } catch (error: any) {
       if (error.message === 'Account is inactive') {

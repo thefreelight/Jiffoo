@@ -418,6 +418,49 @@ export default function CustomerDetailPage() {
 
               </div>
             </Card>
+
+            {/* Recent Logins & Security Events */}
+            <Card className="bg-white rounded-3xl border-gray-100 shadow-sm border overflow-hidden">
+              <div className="p-8 border-b border-gray-50 bg-gray-50/20">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">
+                    {getText('merchant.customers.detail.recentSecurityEvents', 'RECENT LOGINS & SECURITY EVENTS')}
+                  </h3>
+                </div>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {(user.recentEvents ?? []).length === 0 ? (
+                  <div className="p-6 px-4 sm:px-10 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    {getText('merchant.customers.detail.noSecurityEvents', 'No recorded activity yet')}
+                  </div>
+                ) : (
+                  (user.recentEvents ?? []).map((event) => (
+                    <div key={event.id} className="flex items-center justify-between p-6 px-4 transition-colors hover:bg-blue-50/20 sm:px-10">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="p-3 bg-gray-50 rounded-2xl transition-colors">
+                          <Activity className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                            {event.action}
+                            {event.source ? ` · ${event.source}` : ''}
+                          </span>
+                          {event.ip ? (
+                            <span className="text-[10px] font-medium text-gray-400 tracking-tight truncate">
+                              IP {event.ip}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-gray-900 tracking-tight whitespace-nowrap">
+                        {new Date(event.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
           </div>
 
           {/* Right Column: Analytics & Status */}

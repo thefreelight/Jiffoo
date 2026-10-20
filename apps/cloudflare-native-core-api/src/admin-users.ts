@@ -13,6 +13,9 @@ interface NativeUserRow {
   is_active: number;
   migrated_at: string;
   updated_at: string;
+  created_at: string | null;
+  last_login_at: string | null;
+  last_login_ip: string | null;
 }
 
 const encoder = new TextEncoder();
@@ -43,12 +46,30 @@ function userView(row: NativeUserRow, orders = 0): Record<string, unknown> {
     avatar: row.avatar,
     role: row.role,
     isActive: row.is_active === 1,
-    createdAt: row.migrated_at,
+    createdAt: row.created_at ?? row.migrated_at,
     updatedAt: row.updated_at,
     totalOrders: orders,
     totalSpent: 0,
-    lastLoginAt: null,
+    lastLoginAt: row.last_login_at,
+    lastLoginIp: row.last_login_ip,
   };
+}
+
+const USER_ROW_COLUMNS = 'id,email,username,role,avatar,is_active,migrated_at,updated_at,created_at,last_login_at,last_login_ip';
+
+async function recentSecurityEvents(env: AdminUserEnv, userId: string) {
+  const rows = await env.DB.prepare(
+    `SELECT id, action, source, ip, created_at
+       FROM native_user_security_events WHERE user_id = ?1
+      ORDER BY created_at DESC LIMIT 10`,
+  ).bind(userId).all<{ id: string; action: string; source: string; ip: string | null; created_at: string }>();
+  return (rows.results ?? []).map((row) => ({
+    id: row.id,
+    action: row.action,
+    source: row.source,
+    ip: row.ip,
+    createdAt: row.created_at,
+  }));
 }
 
 function json(data: unknown, status = 200, runtime = 'cloudflare-native-d1-admin-users'): Response {
@@ -108,10 +129,10 @@ export async function tryNativeAdminUsers(request: Request, env: AdminUserEnv): 
   const userId = parseId(url.pathname);
   const isPasswordPath = /\/password\/?$/.test(url.pathname);
   if (request.method === 'GET' && userId && !isPasswordPath) {
-    const row = await env.DB.prepare("SELECT id,email,username,role,avatar,is_active,migrated_at,updated_at FROM native_users WHERE id = ?1")
+    const row = await env.DB.prepare("SELECT id,email,username,role,avatar,is_active,migrated_at,updated_at,created_at,last_login_at,last_login_ip FROM native_users WHERE id = ?1")
       .bind(userId).first<NativeUserRow>();
     if (!row) return error(404, 'NOT_FOUND', 'User not found');
-    return json(userView(row));
+    return json({ ...userView(row), recentEvents: await recentSecurityEvents(env, userId) });
   }
 
   if (request.method === 'GET' && !userId) {
@@ -147,10 +168,10 @@ export async function tryNativeAdminUsers(request: Request, env: AdminUserEnv): 
     const role = typeof body.role === 'string' && body.role.trim() ? body.role.trim().toUpperCase() : 'USER';
     const now = new Date().toISOString();
     await env.DB.prepare(
-      `INSERT INTO native_users (id,email,username,role,avatar,password_salt,password_hash,password_iterations,is_active,migrated_at,updated_at)
-       VALUES (?1,?2,?3,?4,NULL,?5,?6,?7,1,?8,?8)`,
+      `INSERT INTO native_users (id,email,username,role,avatar,password_salt,password_hash,password_iterations,is_active,migrated_at,updated_at,created_at)
+       VALUES (?1,?2,?3,?4,NULL,?5,?6,?7,1,?8,?8,?8)`,
     ).bind(id, email, username, role, credentials.salt, credentials.hash, credentials.iterations, now).run();
-    const row = await env.DB.prepare('SELECT id,email,username,role,avatar,is_active,migrated_at,updated_at FROM native_users WHERE id = ?1').bind(id).first<NativeUserRow>();
+    const row = await env.DB.prepare('SELECT id,email,username,role,avatar,is_active,migrated_at,updated_at,created_at,last_login_at,last_login_ip FROM native_users WHERE id = ?1').bind(id).first<NativeUserRow>();
     return json(userView(row!), 201);
   }
 
@@ -167,7 +188,7 @@ export async function tryNativeAdminUsers(request: Request, env: AdminUserEnv): 
     const now = new Date().toISOString();
     await env.DB.prepare('UPDATE native_users SET email=?1, username=?2, role=?3, is_active=?4, updated_at=?5 WHERE id=?6')
       .bind(email, username, role, active, now, userId).run();
-    const row = await env.DB.prepare('SELECT id,email,username,role,avatar,is_active,migrated_at,updated_at FROM native_users WHERE id = ?1').bind(userId).first<NativeUserRow>();
+    const row = await env.DB.prepare('SELECT id,email,username,role,avatar,is_active,migrated_at,updated_at,created_at,last_login_at,last_login_ip FROM native_users WHERE id = ?1').bind(userId).first<NativeUserRow>();
     return json(userView(row!));
   }
 

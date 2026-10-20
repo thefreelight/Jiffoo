@@ -10,8 +10,18 @@ export interface User {
   createdAt: string
   updatedAt: string
   lastLoginAt?: string | null
+  lastLoginIp?: string | null
+  recentEvents?: UserSecurityEvent[]
   totalOrders?: number
   totalSpent?: number
+}
+
+export interface UserSecurityEvent {
+  id: string
+  action: string
+  source?: string
+  ip?: string | null
+  createdAt: string
 }
 
 export enum UserRole {

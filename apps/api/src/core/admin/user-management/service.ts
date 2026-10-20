@@ -91,6 +91,8 @@ export class AdminUserService {
           isActive: true,
           createdAt: true,
           updatedAt: true,
+          lastLoginAt: true,
+          lastLoginIp: true,
         },
         orderBy: { createdAt: 'desc' }
       }),
@@ -102,6 +104,7 @@ export class AdminUserService {
         ...u,
         createdAt: u.createdAt.toISOString(),
         updatedAt: u.updatedAt.toISOString(),
+        lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
       })),
       page,
       limit,
@@ -127,6 +130,8 @@ export class AdminUserService {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        lastLoginAt: true,
+        lastLoginIp: true,
         orders: {
           select: {
             id: true,
@@ -157,8 +162,14 @@ export class AdminUserService {
       // Order statistics
       totalOrders,
       totalSpent,
-      // Note: lastLoginAt is not in the schema yet, would need migration
-      lastLoginAt: null
+      lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+      lastLoginIp: user.lastLoginIp,
+      recentEvents: await prisma.securityEvent.findMany({
+        where: { OR: [{ userId: user.id }, { email: user.email }] },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: { id: true, action: true, source: true, ip: true, createdAt: true },
+      }),
     };
   }
 
