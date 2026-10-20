@@ -12,6 +12,7 @@ import {
   User as UserIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageShell } from '@/components/layout/page-shell'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -258,29 +259,22 @@ export default function StaffPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-            {getText('merchant.nav.staff', 'Staff')}
-          </h1>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
-            {getText('merchant.staff.subtitle', 'Back Office Access Control')}
-          </span>
-        </div>
-
-        {canWriteStaff && (
+    <PageShell
+      title={getText('merchant.nav.staff', 'Staff')}
+      description={getText('merchant.staff.subtitle', 'Back Office Access Control')}
+      actions={
+        canWriteStaff ? (
           <Button
             onClick={openCreateDialog}
-            className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white gap-2"
+            className="h-9 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
           >
             <Plus className="w-4 h-4" />
             {getText('merchant.staff.addStaff', 'Grant Staff Access')}
           </Button>
-        )}
-      </div>
-
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-6">
+        ) : undefined
+      }
+    >
+      <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-4">
           <div className="md:col-span-2 relative">
             <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -630,6 +624,6 @@ export default function StaffPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   )
 }

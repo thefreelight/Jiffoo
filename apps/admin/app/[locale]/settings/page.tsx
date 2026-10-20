@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, RefreshCw, Save, Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useT } from 'shared/src/i18n/react'
+import { PageShell } from '@/components/layout/page-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -509,28 +510,21 @@ function SettingsPageContent() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-            {getText('merchant.settings.title', 'Settings')}
-          </h1>
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
-            System Configuration
-          </span>
-        </div>
+    <PageShell
+      title={getText('merchant.settings.title', 'Settings')}
+      description={getText('merchant.settings.subtitle', 'Manage your store configuration and preferences')}
+      actions={
         <Button
           onClick={handleSave}
           disabled={saving || !hasChanges}
-          className="h-10 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50"
+          className="h-9 rounded-lg bg-blue-600 px-4 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
         >
-          <Save className="h-4 w-4 mr-2" />
+          <Save className="h-4 w-4 mr-1.5" />
           {saving ? getText('common.actions.saving', 'Saving...') : getText('common.actions.saveChanges', 'Save Changes')}
         </Button>
-      </div>
-
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+      }
+    >
+      <div className="space-y-5">
         {/* Store Branding Card */}
         <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between">
@@ -916,6 +910,6 @@ function SettingsPageContent() {
         {/* API Tokens */}
         <ApiTokenPanel />
       </div>
-    </div>
+    </PageShell>
   )
 }

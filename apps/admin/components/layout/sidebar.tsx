@@ -4,6 +4,7 @@
  * Provides the main navigation sidebar with i18n support.
  * Shopify-style flat navigation with only 5 main menu items.
  * Sub-navigation is handled within page content areas.
+ * Navigation entries are gated by the admin permission model.
  */
 
 'use client'
@@ -13,10 +14,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '../../lib/utils'
 import { useT, useLocale } from 'shared/src/i18n/react'
-import { useAuthStore } from '@/lib/store'
 import { canAccessAnyPermission, getSystemNavHref } from '@/lib/admin-access'
 import { ADMIN_PERMISSIONS, type AdminPermission } from 'shared'
-import { JiffooMark } from '@/components/branding/jiffoo-mark'
+import { useAuthStore } from '@/lib/store'
 
 import {
   LayoutDashboard,
@@ -28,6 +28,7 @@ import {
   Sliders,
   Activity,
   Palette,
+  Warehouse,
   ShieldCheck,
 } from 'lucide-react'
 
@@ -60,6 +61,13 @@ const baseNavigationConfig: NavigationItem[] = [
     href: '/products',
     icon: Package,
     requiredPermissions: [ADMIN_PERMISSIONS.PRODUCTS_READ],
+  },
+  {
+    nameKey: 'merchant.inventory.title',
+    fallback: 'Inventory',
+    href: '/inventory',
+    icon: Warehouse,
+    requiredPermissions: [ADMIN_PERMISSIONS.INVENTORY_READ, ADMIN_PERMISSIONS.INVENTORY_FORECAST],
   },
   {
     nameKey: 'merchant.orders.title',
@@ -138,7 +146,12 @@ export function Sidebar({ className, onCloseMobile }: SidebarProps) {
       {/* Header - Shopify style clean header */}
       <div className="flex items-center justify-between h-14 px-3 border-b border-gray-200">
         {!isCollapsed && (
-          <JiffooMark size="sm" />
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 bg-gray-900 dark:bg-blue-600 rounded-md flex items-center justify-center">
+              <span className="text-white font-semibold text-sm">S</span>
+            </div>
+            <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm tracking-tight">Store Console</span>
+          </div>
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}

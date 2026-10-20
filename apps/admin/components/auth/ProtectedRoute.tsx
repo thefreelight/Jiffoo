@@ -2,6 +2,8 @@
  * Protected Route Component
  *
  * Handles authentication and authorization for protected pages with i18n support.
+ * Enforces the admin workspace permission model: an admin-workspace access
+ * check plus per-path permission resolution with an accessible-page fallback.
  */
 
 'use client'

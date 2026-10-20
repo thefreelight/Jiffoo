@@ -8,7 +8,7 @@
 export const common = {
   // Direct access keys
   noData: '没有可用的资料',
-  loading: '载入中...',
+  loading: '加载中...',
   redirecting: '正在跳转...',
   unknown: '未知',
   cancel: '取消',
@@ -36,7 +36,7 @@ export const common = {
     previous: '上一步',
     refresh: '重新整理',
     retry: '重试',
-    loading: '载入中...',
+    loading: '加载中...',
     saving: '储存中...',
     processing: '处理中...',
     apply: '套用',
@@ -129,7 +129,7 @@ export const common = {
     componentUnavailable: '无法载入组件',
     cartUnavailable: '无法载入购物车组件',
     productsUnavailable: '无法载入商品组件',
-    checkoutUnavailable: '无法载入结帐组件',
+    checkoutUnavailable: '无法载入结算组件',
     validation: '验证错误',
     tryAgain: '请重试',
     error: '错误',
@@ -177,6 +177,7 @@ export const common = {
     title: '语言',
     select: '选择语言',
     en: '英文',
+    'zh-Hant': '繁体中文',
     'zh-Hans': '简体中文',
     ja: '日语',
     ko: '韩语',
@@ -189,7 +190,7 @@ export const common = {
     copyright: '© {year} 版权所有。',
     termsOfService: '服务条款',
     privacyPolicy: '隐私政策',
-    contactUs: '联络我们',
+    contactUs: '联系我们',
     help: '说明',
   },
 };

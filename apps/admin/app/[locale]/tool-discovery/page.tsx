@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useT } from 'shared/src/i18n/react'
+import { PageShell } from '@/components/layout/page-shell'
 import { apiClient, type ToolDiscoveryItem } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 
@@ -125,20 +126,14 @@ export default function ToolDiscoveryPage() {
   ]
 
   return (
-    <div className="container mx-auto space-y-6 px-4 py-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {getText('merchant.toolDiscovery.title', 'Tool Discovery')}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {getText(
-              'merchant.toolDiscovery.subtitle',
-              'Review trending AI tools collected from community sources before they are published to the storefront.',
-            )}
-          </p>
-        </div>
-        <Button onClick={() => runCollectors.mutate()} disabled={runCollectors.isPending}>
+    <PageShell
+      title={getText('merchant.toolDiscovery.title', 'Tool Discovery')}
+      description={getText(
+        'merchant.toolDiscovery.subtitle',
+        'Review trending AI tools collected from community sources before they are published to the storefront.',
+      )}
+      actions={
+        <Button onClick={() => runCollectors.mutate()} disabled={runCollectors.isPending} className="h-9 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700">
           {runCollectors.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -146,7 +141,8 @@ export default function ToolDiscoveryPage() {
           )}
           {getText('merchant.toolDiscovery.collectNow', 'Collect now')}
         </Button>
-      </div>
+      }
+    >
 
       <div className="flex flex-wrap items-center gap-2">
         {statusFilters.map((filter) => (
@@ -292,6 +288,6 @@ export default function ToolDiscoveryPage() {
           </div>
         </div>
       ) : null}
-    </div>
+    </PageShell>
   )
 }

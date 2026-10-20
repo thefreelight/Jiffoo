@@ -14,14 +14,14 @@ export const shop = {
     deals: '优惠',
     newArrivals: '新品上市',
     bestsellers: '热销商品',
-    contact: '联络我们',
+    contact: '联系我们',
     help: '帮助',
     cart: '购物车',
     account: '帐户',
     orders: '订单',
     wishlist: '愿望清单',
-    search: '搜寻',
-    searchPlaceholder: '搜寻商品...',
+    search: '搜索',
+    searchPlaceholder: '搜索商品...',
   },
 
   // Home page
@@ -118,7 +118,7 @@ export const shop = {
       secure: {
         badge: '交易安全',
         title: '安全支付',
-        subtitle: '100% 安全结帐',
+        subtitle: '100% 安全结算',
         description: '您的付款资讯经过加密保护。安心购物。',
       },
       returns: {
@@ -214,7 +214,7 @@ export const shop = {
     tax: '税金',
     discount: '折扣',
     total: '总计',
-    checkout: '前往结帐',
+    checkout: '前往结算',
     remove: '移除',
     update: '更新',
     itemAdded: '已加入购物车',
@@ -259,7 +259,7 @@ export const shop = {
     processing: '处理中...',
     termsNotice: '点击「提交订单」即表示您同意我们的服务条款和隐私政策',
     noPaymentMethods: '无可用付款方式',
-    installPaymentPlugin: '请安装付款插件以启用结帐功能。',
+    installPaymentPlugin: '请安装付款插件以启用结算功能。',
     contactAdmin: '请联络管理员配置付款方式。',
   },
 
@@ -298,19 +298,19 @@ export const shop = {
   // Auth
   auth: {
     login: {
-      title: '登入',
+      title: '登录',
       email: '电子邮件',
       password: '密码',
       rememberMe: '记住我',
       forgotPassword: '忘记密码？',
-      submit: '登入',
-      noAccount: '还没有帐户？',
+      submit: '登录',
+      noAccount: '还没有账户？',
       signUp: '注册',
       orContinueWith: '或使用以下方式继续',
-      success: '登入成功',
+      success: '登录成功',
       welcomeBack: '欢迎回来！',
-      failed: '登入失败',
-      oauthFailed: 'OAuth 登入失败',
+      failed: '登录失败',
+      oauthFailed: 'OAuth 登录失败',
     },
     register: {
       title: '建立帐户',
@@ -324,7 +324,7 @@ export const shop = {
       haveAccount: '已有帐户？',
       signIn: '登入',
       success: '注册成功',
-      welcomeMessage: '欢迎！请使用您的凭证登入。',
+      welcomeMessage: '欢迎！请使用您的凭证登录。',
       failed: '注册失败',
       oauthFailed: 'OAuth 注册失败',
       passwordMismatch: '密码不匹配',
@@ -334,13 +334,13 @@ export const shop = {
 
   // Profile
   profile: {
-    title: '我的帐户',
+    title: '我的账户',
     personalInfo: '个人资料',
     addresses: '地址',
     paymentMethods: '付款方式',
     orderHistory: '订单记录',
     settings: {
-      title: '设定',
+      title: '设置',
       profileUpdated: '个人资料更新成功',
       profileUpdateFailed: '更新个人资料失败',
       passwordChanged: '密码修改成功',
@@ -379,7 +379,7 @@ export const shop = {
     aboutUs: '关于我们',
     customerService: '客户服务',
     information: '资讯',
-    contactUs: '联络我们',
+    contactUs: '联系我们',
     quickLinks: '快速连结',
     allProducts: '所有商品',
     specialDeals: '特别优惠',
@@ -416,12 +416,12 @@ export const shop = {
     help: {
       title: '帮助中心',
       subtitle: '今天我们能帮您什么？',
-      searchPlaceholder: '搜寻帮助...',
+      searchPlaceholder: '搜索帮助...',
       popularTopics: '热门主题',
       contactSupport: '联络客服',
     },
     contact: {
-      title: '联络我们',
+      title: '联系我们',
       subtitle: '我们很乐意听取您的意见',
       form: {
         name: '姓名',

@@ -207,7 +207,7 @@ async function main() {
       update: { role: 'ADMIN', password: hashedPassword, emailVerified: true, storeId: defaultStore.id },
       create: {
         email: 'admin@jiffoo.com',
-        username: 'admin',
+        username: 'jiffoo',
         password: hashedPassword,
         role: 'ADMIN',
         emailVerified: true,

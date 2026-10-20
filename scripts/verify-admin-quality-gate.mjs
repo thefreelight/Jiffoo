@@ -154,7 +154,7 @@ addCheck('market, plugin, and theme pages mount the manager surfaces', () => {
   const pluginsPage = read('apps/admin/app/[locale]/plugins/page.tsx');
   const themesPage = read('apps/admin/app/[locale]/themes/page.tsx');
   assertIncludes(pluginsPage, 'PluginsManager', 'plugins manager page');
-  assertIncludes(themesPage, 'ThemesManager', 'themes manager page');
+  assertIncludes(themesPage, 'ThemeMarketplace', 'themes manager page');
 
   const pluginsManager = read('apps/admin/components/extensions/PluginsManager.tsx');
   const themesManager = read('apps/admin/components/extensions/ThemesManager.tsx');

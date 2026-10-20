@@ -14,6 +14,7 @@ import { useT } from 'shared/src/i18n/react'
 import { useState } from 'react'
 import { RefundDialog } from '@/components/orders/RefundDialog'
 import { ShipOrderDialog } from '@/components/orders/ShipOrderDialog'
+import { PageShell } from '@/components/layout/page-shell'
 import { formatCurrency, cn } from '@/lib/utils'
 
 export default function OrderDetailPage() {
@@ -87,39 +88,23 @@ export default function OrderDetailPage() {
   }
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen pb-20">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-xl hover:bg-gray-100 h-10 w-10"
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-900" />
-          </Button>
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight leading-none truncate uppercase">
-              {getText('merchant.orders.orderDetails', 'Order Specification')}
-            </h1>
-            <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-0.5 sm:mt-1">
-              Deployment Node: #{order.id.toUpperCase()}
-            </span>
-          </div>
+    <PageShell
+      title={getText('merchant.orders.orderDetails', 'Order Specification')}
+      description={`#${order.id.toUpperCase()}`}
+      actions={
+        <div className={cn(
+          "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all",
+          getStatusStyle(order.status)
+        )}>
+          {order.status}
         </div>
-
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            "px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all",
-            getStatusStyle(order.status)
-          )}>
-            {order.status}
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
+      }
+      className="max-w-[1400px]"
+    >
+      <div className="space-y-8">
+        <Button variant="ghost" size="sm" className="-ml-2 rounded-lg text-slate-500 hover:text-slate-900" onClick={() => router.back()}>
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
 
         {/* Incident Alert for Cancelled Orders */}
         {order.status === 'CANCELLED' && (
@@ -439,6 +424,6 @@ export default function OrderDetailPage() {
         onOpenChange={setShowShipDialog}
         onSuccess={() => refetch()}
       />
-    </div>
+    </PageShell>
   )
 }

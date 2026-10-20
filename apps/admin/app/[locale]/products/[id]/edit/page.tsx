@@ -38,6 +38,7 @@ import {
 } from '@/lib/hooks/use-api'
 import { VariantsEditor } from '@/components/products/VariantsEditor'
 import { SeoMetaEditor } from '@/components/seo/SeoMetaEditor'
+import { PageShell } from '@/components/layout/page-shell'
 
 interface ProductFormData {
   name: string
@@ -224,36 +225,30 @@ export default function EditProductPage() {
   if (error) return <div className="p-12 text-center text-red-500 font-black uppercase">{getText('common.errors.general', 'Something went wrong. Please try again.')}</div>
 
   return (
-    <div className="w-full bg-[#fcfdfe] min-h-screen">
-      {/* Header Bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
-        <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-gray-100 rounded-xl w-8 h-8 sm:w-10 sm:h-10 shrink-0">
-            <ArrowLeft className="w-4 h-4 sm:w-5 h-5 text-gray-900" />
-          </Button>
-          <div className="flex flex-col min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight leading-none truncate">
-              {formData.name || 'Edit Product'}
-            </h1>
-            <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-0.5 sm:mt-1">Product Editor</span>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-          <Button variant="outline" onClick={() => router.push('/products')} className="hidden sm:flex text-gray-500 border-gray-200 hover:bg-gray-50 font-semibold text-sm rounded-xl h-10 px-6">
+    <PageShell
+      title={formData.name || 'Edit Product'}
+      description="Product Editor"
+      actions={
+        <>
+          <Button variant="outline" onClick={() => router.push('/products')} className="hidden sm:flex text-slate-500 border-slate-200 hover:bg-slate-50 text-sm font-semibold rounded-lg h-9 px-4">
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={updateProductMutation.isPending}
-            className={`font-semibold text-xs sm:text-sm px-4 sm:px-8 h-9 sm:h-10 rounded-xl shadow-lg transition-all active:scale-95 ${successMode ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
+            className={`text-sm font-semibold px-4 sm:px-6 h-9 rounded-lg transition-all active:scale-95 ${successMode ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
           >
             {updateProductMutation.isPending ? 'Saving...' : successMode ? 'Updated' : 'Save Changes'}
           </Button>
-        </div>
-      </div>
-
-      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        </>
+      }
+      className="max-w-[1400px]"
+    >
+      <div className="space-y-6">
+        <Button variant="ghost" size="sm" className="-ml-2 rounded-lg text-slate-500 hover:text-slate-900" onClick={() => router.back()}>
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
         {hasExternalSource && (
           <section className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -525,6 +520,6 @@ export default function EditProductPage() {
         </div>
       </div>
 
-    </div>
+    </PageShell>
   )
 }

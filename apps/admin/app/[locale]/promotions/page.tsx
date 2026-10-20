@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { PageNav } from '@/components/layout/page-nav'
 import { AnalyticsDashboard } from '@/components/promotions/AnalyticsDashboard'
 import { useT, useLocale } from 'shared/src/i18n/react'
+import { PageShell } from '@/components/layout/page-shell'
 
 // Placeholder Promotion type (will be replaced with API types)
 interface Promotion {
@@ -120,24 +121,21 @@ export default function PromotionsPage() {
   }
 
   return (
-    <div className="p-6">
-      {/* Page Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{getText('merchant.promotions.title', 'Promotions')}</h1>
-            <p className="text-gray-600 mt-1">{getText('merchant.promotions.subtitle', 'Manage discounts and special offers')}</p>
-          </div>
-          <Link href={`/${locale}/promotions/create`}>
-            <Button className="bg-gray-900 hover:bg-gray-800">
-              <Plus className="w-4 h-4 mr-2" />
-              {getText('merchant.promotions.addPromotion', 'Add Promotion')}
-            </Button>
-          </Link>
-        </div>
+    <PageShell
+      title={getText('merchant.promotions.title', 'Promotions')}
+      description={getText('merchant.promotions.subtitle', 'Manage discounts and special offers')}
+      actions={
+        <Link href={`/${locale}/promotions/create`}>
+          <Button className="h-9 rounded-lg bg-slate-900 text-sm font-semibold text-white hover:bg-slate-800">
+            <Plus className="w-4 h-4 mr-1.5" />
+            {getText('merchant.promotions.addPromotion', 'Add Promotion')}
+          </Button>
+        </Link>
+      }
+    >
+      <div className="space-y-6">
         {/* In-page Navigation */}
         <PageNav items={navItems} />
-      </div>
 
       {/* Analytics Dashboard */}
       <AnalyticsDashboard isLoading={isLoading} />
@@ -255,6 +253,7 @@ export default function PromotionsPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </PageShell>
   )
 }

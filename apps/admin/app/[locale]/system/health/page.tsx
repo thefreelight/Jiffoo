@@ -20,6 +20,7 @@ import { CacheStats } from '@/components/health-dashboard/cache-stats'
 import { DatabaseStatus } from '@/components/health-dashboard/database-status'
 import { AlertConfig } from '@/components/health-dashboard/alert-config'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { PageShell } from '@/components/layout/page-shell'
 
 export default function HealthMonitoringPage() {
   const t = useT()
@@ -55,28 +56,23 @@ export default function HealthMonitoringPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#0F172A]">
-            {getText('admin.health.title', 'System Health Monitoring')}
-          </h1>
-          <p className="text-[#64748B]">
-            {getText('admin.health.subtitle', 'Monitor real-time system performance and health metrics')}
-          </p>
-        </div>
+    <PageShell
+      title={getText('admin.health.title', 'System Health Monitoring')}
+      description={getText('admin.health.subtitle', 'Monitor real-time system performance and health metrics')}
+      actions={
         <Button
           variant="outline"
           size="sm"
           onClick={() => refetch()}
           disabled={loading}
-          className="border-[#E2E8F0] text-[#0F172A] hover:border-[#3B82F6] hover:text-[#3B82F6]"
+          className="rounded-lg border-slate-200 text-slate-700 hover:border-blue-400 hover:text-blue-600"
         >
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           {getText('common.refresh', 'Refresh')}
         </Button>
-      </div>
+      }
+    >
+      <div className="space-y-6">
 
       {/* Health Status Summary */}
       {summary && (
@@ -169,6 +165,7 @@ export default function HealthMonitoringPage() {
           />
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </PageShell>
   )
 }

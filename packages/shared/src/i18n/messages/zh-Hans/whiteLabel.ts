@@ -9,11 +9,11 @@ export const whiteLabel = {
   // Navigation
   nav: {
     dashboard: '仪表板',
-    branding: '品牌设定',
+    branding: '品牌设置',
     themes: '主题',
     customization: '自订',
     domains: '网域',
-    settings: '设定',
+    settings: '设置',
     preview: '预览',
     brands: '品牌管理',
     templates: '模板库',
@@ -37,7 +37,7 @@ export const whiteLabel = {
   dashboard: {
     title: '白标工作室',
     subtitle: '创建并自订您的品牌体验。轻松建立专业的白标解决方案。',
-    welcome: '欢迎使用白标工作室。自订您的品牌外观并管理白标设定。',
+    welcome: '欢迎使用白标工作室。自订您的品牌外观并管理白标设置。',
     quickStart: '快速开始',
     recentChanges: '最近变更',
     publishStatus: '发布状态',
@@ -68,21 +68,21 @@ export const whiteLabel = {
 
   // Setup
   setup: {
-    title: '快速设定',
+    title: '快速设置',
     subtitle: '完成这些步骤以启动您的白标解决方案',
     stepsCompleted: '已完成步骤',
-    setupProgress: '设定进度',
-    brandSetup: '品牌设定',
+    setupProgress: '设置进度',
+    brandSetup: '品牌设置',
     brandSetupDesc: '上传标志和品牌资产',
     themeCustomization: '主题自订',
     themeCustomizationDesc: '自订颜色和样式',
     domainConfiguration: '网域配置',
-    domainConfigurationDesc: '设定自订网域',
+    domainConfigurationDesc: '设置自订网域',
     deployLaunch: '部署与启动',
     deployLaunchDesc: '让您的品牌上线',
     next: '下一步',
     continue: '继续',
-    setupComplete: '设定完成！',
+    setupComplete: '设置完成！',
     readyToLaunch: '您的白标解决方案已准备好启动。',
     preview: '预览',
   },
@@ -104,7 +104,7 @@ export const whiteLabel = {
 
   // Branding
   branding: {
-    title: '品牌设定',
+    title: '品牌设置',
     logo: '标志',
     uploadLogo: '上传标志',
     favicon: '网站图示',
@@ -142,7 +142,7 @@ export const whiteLabel = {
     typographyDesc: '字型和文字样式',
     layoutSpacing: '版面与间距',
     layoutSpacingDesc: '元件间距和版面配置',
-    configured: '已设定',
+    configured: '已设置',
     default: '预设',
     // Preview section
     livePreview: '即时预览',
@@ -291,17 +291,17 @@ export const whiteLabel = {
 
   // Domains
   domains: {
-    title: '网域设定',
+    title: '网域设置',
     customDomain: '自订网域',
     addDomain: '新增网域',
     verifyDomain: '验证网域',
     sslCertificate: 'SSL 凭证',
-    dnsSettings: 'DNS 设定',
+    dnsSettings: 'DNS 设置',
     status: '状态',
     verified: '已验证',
     pending: '待验证',
     failed: '失败',
-    configureCustomDomains: '设定自订网域',
+    configureCustomDomains: '设置自订网域',
   },
 
   // Settings
@@ -313,7 +313,7 @@ export const whiteLabel = {
     integrations: '整合',
     export: '汇出',
     import: '汇入',
-    whiteLabelSettings: '白标设定',
+    whiteLabelSettings: '白标设置',
   },
 
   // Preview
@@ -350,7 +350,7 @@ export const whiteLabel = {
   messages: {
     saveSuccess: '变更已成功储存',
     publishSuccess: '已成功发布',
-    resetConfirm: '确定要重设为预设设定吗？',
+    resetConfirm: '确定要重设为预设设置吗？',
     unsavedWarning: '您有未储存的变更。确定要离开吗？',
   },
 };
