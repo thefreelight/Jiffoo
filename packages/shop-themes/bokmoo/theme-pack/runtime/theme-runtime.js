@@ -13213,8 +13213,10 @@
     onToggleItemSelection,
     onSelectAllItems,
     onDeselectAllItems,
-    onContinueShopping
+    onContinueShopping,
+    locale
   }) {
+    const t = (copy) => pickCopy(locale, copy);
     const supportsSelection = Boolean(
       onCheckoutSelected && onToggleItemSelection && onSelectAllItems && onDeselectAllItems
     );
@@ -13233,8 +13235,8 @@
     if (cart.items.length === 0) {
       return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-16 pt-20 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-[960px]", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-6 py-16 text-center shadow-[var(--bokmoo-shadow)] sm:px-10", children: [
         /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-20 w-20 items-center justify-center rounded-[1.6rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(ShoppingBag, { className: "h-10 w-10" }) }),
-        /* @__PURE__ */ jsx("h1", { className: "mt-6 text-[clamp(2.2rem,4vw,4rem)] leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Your cart is empty." }),
-        /* @__PURE__ */ jsx("p", { className: "mx-auto mt-4 max-w-xl text-base leading-7 text-[var(--bokmoo-copy)]", children: "Add a destination or regional plan to prepare your connectivity before departure." }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-6 text-[clamp(2.2rem,4vw,4rem)] leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: t({ en: "Your cart is empty.", hans: "\u8D2D\u7269\u8F66\u662F\u7A7A\u7684\u3002", hant: "\u8CFC\u7269\u8ECA\u662F\u7A7A\u7684\u3002" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mx-auto mt-4 max-w-xl text-base leading-7 text-[var(--bokmoo-copy)]", children: t({ en: "Add a destination or regional plan to prepare your connectivity before departure.", hans: "\u6DFB\u52A0\u76EE\u7684\u5730\u6216\u533A\u57DF\u5957\u9910\uFF0C\u51FA\u53D1\u524D\u5907\u597D\u8FDE\u63A5\u3002", hant: "\u6DFB\u52A0\u76EE\u7684\u5730\u6216\u5340\u57DF\u5957\u9910\uFF0C\u51FA\u767C\u524D\u5099\u597D\u9023\u63A5\u3002" }) }),
         /* @__PURE__ */ jsxs(
           "button",
           {
@@ -13243,7 +13245,7 @@
             type: "button",
             children: [
               /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
-              "Continue browsing"
+              t({ en: "Continue browsing", hans: "\u7EE7\u7EED\u901B\u5E97", hant: "\u7E7C\u7E8C\u901B\u5E97" })
             ]
           }
         )
@@ -13261,8 +13263,8 @@
           }
         ),
         /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: "Travel Cart" }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-1 text-[clamp(2rem,4vw,3.6rem)] leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Review your selected plans." })
+          /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: t({ en: "Travel Cart", hans: "\u65C5\u884C\u8D2D\u7269\u8F66", hant: "\u65C5\u884C\u8CFC\u7269\u8ECA" }) }),
+          /* @__PURE__ */ jsx("h1", { className: "mt-1 text-[clamp(2rem,4vw,3.6rem)] leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: t({ en: "Review your selected plans.", hans: "\u786E\u8BA4\u4F60\u9009\u62E9\u7684\u5957\u9910\u3002", hant: "\u78BA\u8A8D\u4F60\u9078\u64C7\u7684\u5957\u9910\u3002" }) })
         ] })
       ] }),
       supportsSelection ? /* @__PURE__ */ jsxs("div", { className: "mt-5 flex items-center justify-between rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-4 shadow-[var(--bokmoo-shadow)]", children: [
@@ -13289,13 +13291,14 @@
                   children: /* @__PURE__ */ jsx(Check, { className: "h-3.5 w-3.5" })
                 }
               ),
-              allSelected ? "Deselect all" : "Select all"
+              allSelected ? t({ en: "Deselect all", hans: "\u53D6\u6D88\u5168\u9009", hant: "\u53D6\u6D88\u5168\u9078" }) : t({ en: "Select all", hans: "\u5168\u9009", hant: "\u5168\u9078" })
             ]
           }
         ),
         /* @__PURE__ */ jsxs("span", { className: "text-xs font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: [
           selectedItemCount ?? effectiveSelectedIds.length,
-          " selected"
+          " ",
+          t({ en: "selected", hans: "\u5DF2\u9009", hant: "\u5DF2\u9078" })
         ] })
       ] }) : null,
       /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-6 lg:grid-cols-[minmax(0,0.98fr)_minmax(22rem,0.72fr)]", children: [
@@ -13321,7 +13324,7 @@
               /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1", children: [
                 /* @__PURE__ */ jsx("h2", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: item.productName }),
                 item.variantName ? /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs tracking-[0.16em] text-[var(--bokmoo-copy-soft)]", children: item.variantName }) : null,
-                /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--bokmoo-copy)]", children: "Instant eSIM delivery with activation instructions included." }),
+                /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--bokmoo-copy)]", children: t({ en: "Instant eSIM delivery with activation instructions included.", hans: "\u5373\u65F6\u9001\u8FBE eSIM\uFF0C\u542B\u6FC0\u6D3B\u8BF4\u660E\u3002", hant: "\u5373\u6642\u9001\u9054 eSIM\uFF0C\u542B\u555F\u7528\u8AAA\u660E\u3002" }) }),
                 /* @__PURE__ */ jsxs("div", { className: "mt-4 flex items-center gap-3", children: [
                   /* @__PURE__ */ jsxs("div", { className: "flex items-center rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-2 py-1", children: [
                     /* @__PURE__ */ jsx(
@@ -13352,7 +13355,7 @@
                       onClick: () => onRemoveItem(item.id),
                       disabled: isLoading,
                       className: "flex h-10 w-10 items-center justify-center rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] text-[var(--bokmoo-copy)] transition-colors hover:text-[var(--bokmoo-danger)] disabled:opacity-40",
-                      title: "Remove",
+                      title: t({ en: "Remove", hans: "\u5220\u9664", hant: "\u522A\u9664" }),
                       type: "button",
                       children: /* @__PURE__ */ jsx(Trash2, { className: "h-4 w-4" })
                     }
@@ -13360,7 +13363,7 @@
                 ] })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "text-right", children: [
-                /* @__PURE__ */ jsx("p", { className: "text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Subtotal" }),
+                /* @__PURE__ */ jsx("p", { className: "text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: t({ en: "Subtotal", hans: "\u5C0F\u8BA1", hant: "\u5C0F\u8A08" }) }),
                 /* @__PURE__ */ jsxs("p", { className: "mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: [
                   "$",
                   item.subtotal.toFixed(2)
@@ -13371,39 +13374,39 @@
           item.id
         )) }),
         /* @__PURE__ */ jsx("aside", { className: "lg:col-span-1", children: /* @__PURE__ */ jsxs("div", { className: "sticky top-24 rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)]", children: [
-          /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Summary" }),
+          /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: t({ en: "Summary", hans: "\u6458\u8981", hant: "\u6458\u8981" }) }),
           /* @__PURE__ */ jsxs("div", { className: "mt-6 space-y-4", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-copy)]", children: "Selected items" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-copy)]", children: t({ en: "Selected items", hans: "\u5DF2\u9009\u5546\u54C1", hant: "\u5DF2\u9078\u5546\u54C1" }) }),
               /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-ink)]", children: supportsSelection ? selectedQuantity : cart.itemCount })
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-copy)]", children: "Subtotal" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-copy)]", children: t({ en: "Subtotal", hans: "\u5C0F\u8BA1", hant: "\u5C0F\u8A08" }) }),
               /* @__PURE__ */ jsxs("span", { className: "text-[var(--bokmoo-ink)]", children: [
                 "$",
                 selectedSubtotal.toFixed(2)
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-copy)]", children: "Tax" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-copy)]", children: t({ en: "Tax", hans: "\u7A0E\u8D39", hant: "\u7A05\u8CBB" }) }),
               /* @__PURE__ */ jsxs("span", { className: "text-[var(--bokmoo-ink)]", children: [
                 "$",
                 selectedTax.toFixed(2)
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-copy)]", children: "Shipping" }),
-              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-ink)]", children: selectedShipping === 0 ? "No shipping required" : `$${selectedShipping.toFixed(2)}` })
+              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-copy)]", children: t({ en: "Shipping", hans: "\u8FD0\u8D39", hant: "\u904B\u8CBB" }) }),
+              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-ink)]", children: selectedShipping === 0 ? t({ en: "No shipping required", hans: "\u65E0\u9700\u8FD0\u8D39", hant: "\u7121\u9700\u904B\u8CBB" }) : `$${selectedShipping.toFixed(2)}` })
             ] }),
             selectedDiscount > 0 ? /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm text-[var(--bokmoo-success)]", children: [
-              /* @__PURE__ */ jsx("span", { children: "Discount" }),
+              /* @__PURE__ */ jsx("span", { children: t({ en: "Discount", hans: "\u4F18\u60E0", hant: "\u512A\u60E0" }) }),
               /* @__PURE__ */ jsxs("span", { children: [
                 "-$",
                 selectedDiscount.toFixed(2)
               ] })
             ] }) : null,
             /* @__PURE__ */ jsx("div", { className: "border-t border-[var(--bokmoo-line)] pt-4", children: /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-lg", children: [
-              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-ink)]", children: "Total" }),
+              /* @__PURE__ */ jsx("span", { className: "text-[var(--bokmoo-ink)]", children: t({ en: "Total", hans: "\u603B\u8BA1", hant: "\u7E3D\u8A08" }) }),
               /* @__PURE__ */ jsxs("span", { className: "font-semibold text-[var(--bokmoo-ink)]", children: [
                 "$",
                 selectedTotal.toFixed(2)
@@ -13423,7 +13426,7 @@
               disabled: supportsSelection && !hasSelection,
               className: "mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-5 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50",
               type: "button",
-              children: "Secure Checkout"
+              children: t({ en: "Secure Checkout", hans: "\u5B89\u5168\u7ED3\u7B97", hant: "\u5B89\u5168\u7D50\u7B97" })
             }
           )
         ] }) })
@@ -14077,6 +14080,18 @@
 
   // src/components/ProductsPage.tsx
   var CATALOG_FILTERS = ["All", "Popular", "Local", "Regional", "Global"];
+  var FILTER_LABELS = {
+    All: { en: "All", hans: "\u5168\u90E8", hant: "\u5168\u90E8" },
+    Popular: { en: "Popular", hans: "\u70ED\u95E8", hant: "\u71B1\u9580" },
+    Local: { en: "Local", hans: "\u672C\u5730", hant: "\u672C\u5730" },
+    Regional: { en: "Regional", hans: "\u533A\u57DF", hant: "\u5340\u57DF" },
+    Global: { en: "Global", hans: "\u5168\u7403", hant: "\u5168\u7403" }
+  };
+  var SORT_LABELS = {
+    createdAt: { en: "Newest", hans: "\u6700\u65B0", hant: "\u6700\u65B0" },
+    price: { en: "Price", hans: "\u4EF7\u683C", hant: "\u50F9\u683C" },
+    name: { en: "Name", hans: "\u540D\u79F0", hant: "\u540D\u7A31" }
+  };
   function getProductImage(product) {
     if (!product?.images?.length) return null;
     const primary = product.images.find((image) => image.isMain) || product.images[0];
@@ -14146,6 +14161,7 @@
     const [remoteError, setRemoteError] = react_default.useState("");
     const [selectedFilter, setSelectedFilter] = react_default.useState("All");
     const site = resolveBokmooSiteConfig(config);
+    const t = (copy) => pickCopy(locale, copy);
     const normalizedProducts = react_default.useMemo(
       () => (remoteProducts.length > 0 ? remoteProducts : products).map(
         (product) => normalizeProductForTheme(product)
@@ -14211,10 +14227,10 @@
           /* @__PURE__ */ jsxs("div", { className: "max-w-2xl", children: [
             /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--bokmoo-copy)]", children: [
               /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-              "Plan Collection"
+              t({ en: "Plan collection", hans: "\u5957\u9910\u96C6\u5408", hant: "\u5957\u9910\u96C6\u5408" })
             ] }),
-            /* @__PURE__ */ jsx("h1", { className: "mt-5 text-[clamp(2.3rem,5vw,4.6rem)] leading-[0.95] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "eSIM plans built for every journey." }),
-            /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-7 text-[var(--bokmoo-copy)]", children: "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog." })
+            /* @__PURE__ */ jsx("h1", { className: "mt-5 text-[clamp(2.3rem,5vw,4.6rem)] leading-[0.95] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: t({ en: "eSIM plans built for every journey.", hans: "\u4E3A\u6BCF\u4E00\u6BB5\u65C5\u7A0B\u800C\u751F\u7684 eSIM \u5957\u9910\u3002", hant: "\u70BA\u6BCF\u4E00\u6BB5\u65C5\u7A0B\u800C\u751F\u7684 eSIM \u5957\u9910\u3002" }) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-7 text-[var(--bokmoo-copy)]", children: t({ en: "Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.", hans: "\u63A2\u7D22\u76EE\u7684\u5730\u5957\u9910\u3001\u533A\u57DF\u7EC4\u5408\u4E0E\u9AD8\u7EA7\u6D41\u91CF\u9009\u9879\uFF0C\u50CF\u5546\u54C1\u76EE\u5F55\u4E00\u6837\u4E00\u76EE\u4E86\u7136\u3002", hant: "\u63A2\u7D22\u76EE\u7684\u5730\u5957\u9910\u3001\u5340\u57DF\u7D44\u5408\u8207\u9AD8\u7D1A\u6D41\u91CF\u9078\u9805\uFF0C\u50CF\u5546\u54C1\u76EE\u9304\u4E00\u6A23\u4E00\u76EE\u4E86\u7136\u3002" }) })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_auto_auto] lg:min-w-[34rem]", children: [
             /* @__PURE__ */ jsxs("form", { onSubmit: submitSearch, className: "relative", children: [
@@ -14224,7 +14240,7 @@
                 {
                   value: searchQuery,
                   onChange: (event) => setSearchQuery(event.target.value),
-                  placeholder: "Search destinations or bundles...",
+                  placeholder: t({ en: "Search destinations or bundles...", hans: "\u641C\u7D22\u76EE\u7684\u5730\u6216\u5957\u9910\u2026", hant: "\u641C\u5C0B\u76EE\u7684\u5730\u6216\u5957\u9910\u2026" }),
                   className: "h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] pl-11 pr-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] sm:rounded-full"
                 }
               )
@@ -14236,9 +14252,9 @@
                 onChange: (event) => onSortChange(event.target.value),
                 className: "h-12 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none sm:rounded-full",
                 children: [
-                  /* @__PURE__ */ jsx("option", { value: "createdAt", children: "Newest" }),
-                  /* @__PURE__ */ jsx("option", { value: "price", children: "Price" }),
-                  /* @__PURE__ */ jsx("option", { value: "name", children: "Name" })
+                  /* @__PURE__ */ jsx("option", { value: "createdAt", children: t(SORT_LABELS.createdAt) }),
+                  /* @__PURE__ */ jsx("option", { value: "price", children: t(SORT_LABELS.price) }),
+                  /* @__PURE__ */ jsx("option", { value: "name", children: t(SORT_LABELS.name) })
                 ]
               }
             ),
@@ -14280,21 +14296,22 @@
                 selectedFilter === filter2 ? "border-[var(--bokmoo-line-strong)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-[var(--bokmoo-bg)]" : "border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] text-[var(--bokmoo-copy)]"
               ),
               type: "button",
-              children: filter2
+              children: t(FILTER_LABELS[filter2])
             },
             filter2
           )) }),
           /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap gap-2", children: [
             /* @__PURE__ */ jsxs("span", { className: "rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]", children: [
               displayTotal,
-              " plans"
+              " ",
+              t({ en: "plans", hans: "\u4E2A\u5957\u9910", hant: "\u500B\u5957\u9910" })
             ] }),
-            /* @__PURE__ */ jsx("span", { className: "rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]", children: "Instant eSIM delivery" })
+            /* @__PURE__ */ jsx("span", { className: "rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]", children: t({ en: "Instant eSIM delivery", hans: "eSIM \u5373\u65F6\u9001\u8FBE", hant: "eSIM \u5373\u6642\u9001\u9054" }) })
           ] })
         ] })
       ] }),
       /* @__PURE__ */ jsx("section", { className: "mt-8", children: remoteError && normalizedProducts.length === 0 ? /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-10 text-center shadow-[var(--bokmoo-shadow)]", children: [
-        /* @__PURE__ */ jsx("p", { className: "text-xl font-semibold text-[var(--bokmoo-ink)]", children: "Plans are unavailable right now." }),
+        /* @__PURE__ */ jsx("p", { className: "text-xl font-semibold text-[var(--bokmoo-ink)]", children: t({ en: "Plans are unavailable right now.", hans: "\u5957\u9910\u6682\u65F6\u65E0\u6CD5\u83B7\u53D6\u3002", hant: "\u5957\u9910\u66AB\u6642\u7121\u6CD5\u7372\u53D6\u3002" }) }),
         /* @__PURE__ */ jsx("p", { className: "mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--bokmoo-copy)]", children: remoteError }),
         /* @__PURE__ */ jsx(
           "button",
@@ -14302,10 +14319,10 @@
             onClick: () => void loadRemoteProducts(searchQuery.trim()),
             className: "mt-6 min-h-11 rounded-[0.9rem] bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]",
             type: "button",
-            children: "Try Again"
+            children: t({ en: "Try Again", hans: "\u91CD\u8BD5", hant: "\u91CD\u8A66" })
           }
         )
-      ] }) : normalizedProducts.length === 0 ? /* @__PURE__ */ jsx("div", { className: "rounded-[var(--bokmoo-radius-xl)] border border-dashed border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-16 text-center text-[var(--bokmoo-copy)]", children: "No plans matched the current search." }) : /* @__PURE__ */ jsx(
+      ] }) : normalizedProducts.length === 0 ? /* @__PURE__ */ jsx("div", { className: "rounded-[var(--bokmoo-radius-xl)] border border-dashed border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-16 text-center text-[var(--bokmoo-copy)]", children: t({ en: "No plans matched the current search.", hans: "\u6CA1\u6709\u7B26\u5408\u5F53\u524D\u641C\u7D22\u7684\u5957\u9910\u3002", hant: "\u6C92\u6709\u7B26\u5408\u7576\u524D\u641C\u5C0B\u7684\u5957\u9910\u3002" }) }) : /* @__PURE__ */ jsx(
         "div",
         {
           className: cn2(
@@ -14350,9 +14367,9 @@
                           /* @__PURE__ */ jsx("h2", { className: "mt-4 text-[clamp(1.7rem,2vw,2.4rem)] leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: displayProductTitle(product.name) }),
                           /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: product.description || profile.summary }),
                           /* @__PURE__ */ jsx("div", { className: "mt-5 grid gap-2 sm:grid-cols-3", children: [
-                            ["Coverage", profile.coverageLabel],
-                            ["Plan", profile.planLabel],
-                            ["Validity", profile.durationLabel]
+                            [t({ en: "Coverage", hans: "\u8986\u76D6\u8303\u56F4", hant: "\u8986\u84CB\u7BC4\u570D" }), profile.coverageLabel],
+                            [t({ en: "Plan", hans: "\u5957\u9910", hant: "\u5957\u9910" }), profile.planLabel],
+                            [t({ en: "Validity", hans: "\u6709\u6548\u671F", hant: "\u6709\u6548\u671F" }), profile.durationLabel]
                           ].map(([label, value]) => /* @__PURE__ */ jsxs(
                             "div",
                             {
@@ -14369,7 +14386,7 @@
                     }
                   ),
                   /* @__PURE__ */ jsx("div", { className: cn2(viewMode === "grid" ? "px-5 pb-5" : "md:w-[12rem]"), children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_90%,black)] p-4", children: [
-                    /* @__PURE__ */ jsx("p", { className: "text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Starting at" }),
+                    /* @__PURE__ */ jsx("p", { className: "text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: t({ en: "Starting at", hans: "\u8D77\u4EF7", hant: "\u8D77\u50F9" }) }),
                     /* @__PURE__ */ jsxs("p", { className: "mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: [
                       "$",
                       Number(Number.isFinite(displayPrice) ? displayPrice : 0).toFixed(2)
@@ -14381,7 +14398,7 @@
                         onClick: () => onAddToCart(product.id),
                         className: "mt-4 w-full rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)]",
                         type: "button",
-                        children: "Buy Now"
+                        children: t({ en: "Buy Now", hans: "\u7ACB\u5373\u8D2D\u4E70", hant: "\u7ACB\u5373\u8CFC\u8CB7" })
                       }
                     )
                   ] }) })
@@ -14404,7 +14421,8 @@
           }
         ),
         /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-5 py-3 text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy)]", children: [
-          "Page ",
+          t({ en: "Page", hans: "\u7B2C", hant: "\u7B2C" }),
+          " ",
           currentPage,
           " / ",
           displayTotalPages
@@ -16231,9 +16249,24 @@
     config,
     onPageChange,
     onOrderClick,
-    onCancelOrder
+    onCancelOrder,
+    locale
   }) {
     const site = resolveBokmooSiteConfig(config);
+    const t = (copy) => pickCopy(locale, copy);
+    const statusLabels = {
+      PENDING: { en: "Pending", hans: "\u5F85\u652F\u4ED8", hant: "\u5F85\u4ED8\u6B3E" },
+      PAID: { en: "Paid", hans: "\u5DF2\u652F\u4ED8", hant: "\u5DF2\u4ED8\u6B3E" },
+      PROCESSING: { en: "Processing", hans: "\u5904\u7406\u4E2D", hant: "\u8655\u7406\u4E2D" },
+      DELIVERED: { en: "Delivered", hans: "\u5DF2\u4EA4\u4ED8", hant: "\u5DF2\u4EA4\u4ED8" },
+      COMPLETED: { en: "Completed", hans: "\u5DF2\u5B8C\u6210", hant: "\u5DF2\u5B8C\u6210" },
+      CANCELLED: { en: "Cancelled", hans: "\u5DF2\u53D6\u6D88", hant: "\u5DF2\u53D6\u6D88" },
+      REFUNDED: { en: "Refunded", hans: "\u5DF2\u9000\u6B3E", hant: "\u5DF2\u9000\u6B3E" }
+    };
+    const statusText = (status) => {
+      const key = status.toUpperCase();
+      return statusLabels[key] ? t(statusLabels[key]) : status;
+    };
     const [remoteOrders, setRemoteOrders] = react_default.useState([]);
     const [remoteTotalPages, setRemoteTotalPages] = react_default.useState(1);
     const [remoteLoading, setRemoteLoading] = react_default.useState(false);
@@ -16281,14 +16314,14 @@
         /* @__PURE__ */ jsxs("div", { children: [
           /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy)]", children: [
             /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4 text-[var(--bokmoo-primary)]" }),
-            "Order archive"
+            t({ en: "Order archive", hans: "\u8BA2\u5355\u6863\u6848", hant: "\u8A02\u55AE\u6A94\u6848" })
           ] }),
-          /* @__PURE__ */ jsx("h1", { className: "mt-5 text-[clamp(2.2rem,5vw,4.2rem)] font-black leading-[0.94] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Every purchase stays readable after checkout." })
+          /* @__PURE__ */ jsx("h1", { className: "mt-5 text-[clamp(2.2rem,5vw,4.2rem)] font-black leading-[0.94] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: t({ en: "Every purchase stays readable after checkout.", hans: "\u6BCF\u7B14\u8BA2\u5355\u5728\u7ED3\u7B97\u540E\u90FD\u53EF\u968F\u65F6\u56DE\u770B\u3002", hant: "\u6BCF\u7B46\u8A02\u55AE\u5728\u7D50\u5E33\u5F8C\u90FD\u53EF\u96A8\u6642\u56DE\u770B\u3002" }) })
         ] }),
-        /* @__PURE__ */ jsx("div", { className: "rounded-[var(--bokmoo-radius-md)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-sm text-[var(--bokmoo-copy)]", children: "Keep status, delivery details, and activation notes visible after checkout." })
+        /* @__PURE__ */ jsx("div", { className: "rounded-[var(--bokmoo-radius-md)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-sm text-[var(--bokmoo-copy)]", children: t({ en: "Keep status, delivery details, and activation notes visible after checkout.", hans: "\u7ED3\u7B97\u540E\u4ECD\u53EF\u67E5\u770B\u72B6\u6001\u3001\u914D\u9001\u8BE6\u60C5\u4E0E\u6FC0\u6D3B\u5907\u6CE8\u3002", hant: "\u7D50\u5E33\u5F8C\u4ECD\u53EF\u67E5\u770B\u72C0\u614B\u3001\u914D\u9001\u8A73\u60C5\u8207\u555F\u7528\u5099\u8A3B\u3002" }) })
       ] }) }),
       displayError ? /* @__PURE__ */ jsx("div", { className: "mt-6 rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-surface)] p-8 text-[var(--bokmoo-copy)] shadow-[var(--bokmoo-shadow)]", children: displayError }) : null,
-      /* @__PURE__ */ jsx("section", { className: "mt-6 grid gap-4", children: effectiveOrders.length === 0 ? /* @__PURE__ */ jsx("div", { className: "rounded-[var(--bokmoo-radius-lg)] border border-dashed border-[var(--bokmoo-line)] bg-[var(--bokmoo-surface)] p-16 text-center text-[var(--bokmoo-copy)]", children: "No travel orders yet." }) : effectiveOrders.map((order) => {
+      /* @__PURE__ */ jsx("section", { className: "mt-6 grid gap-4", children: effectiveOrders.length === 0 ? /* @__PURE__ */ jsx("div", { className: "rounded-[var(--bokmoo-radius-lg)] border border-dashed border-[var(--bokmoo-line)] bg-[var(--bokmoo-surface)] p-16 text-center text-[var(--bokmoo-copy)]", children: t({ en: "No travel orders yet.", hans: "\u8FD8\u6CA1\u6709\u65C5\u884C\u8BA2\u5355\u3002", hant: "\u9084\u6C92\u6709\u65C5\u884C\u8A02\u55AE\u3002" }) }) : effectiveOrders.map((order) => {
         const artifactCount = order.items.reduce(
           (sum, item) => sum + getDeliveredArtifactCount(item.fulfillmentData),
           0
@@ -16301,15 +16334,16 @@
             children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between", children: [
               /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
                 /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
-                  /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", getStatusTone(order.status)), children: order.status }),
+                  /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.16em]", getStatusTone(order.status)), children: statusText(order.status) }),
                   /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[var(--bokmoo-copy)]", children: [
                     artifactCount,
-                    " delivered item",
-                    artifactCount === 1 ? "" : "s"
+                    " ",
+                    t({ en: artifactCount === 1 ? "delivered item" : "delivered items", hans: "\u4E2A\u5DF2\u4EA4\u4ED8\u9879\u76EE", hant: "\u500B\u5DF2\u4EA4\u4ED8\u9805\u76EE" })
                   ] })
                 ] }),
                 /* @__PURE__ */ jsxs("h2", { className: "mt-4 text-2xl font-black tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: [
-                  "Order #",
+                  t({ en: "Order", hans: "\u8BA2\u5355", hant: "\u8A02\u55AE" }),
+                  " #",
                   order.id.slice(-8).toUpperCase()
                 ] }),
                 /* @__PURE__ */ jsxs("div", { className: "mt-3 flex flex-wrap gap-4 text-sm text-[var(--bokmoo-copy)]", children: [
@@ -16320,14 +16354,14 @@
                   /* @__PURE__ */ jsxs("span", { className: "inline-flex items-center gap-2", children: [
                     /* @__PURE__ */ jsx(Package2, { className: "h-4 w-4" }),
                     order.items.length,
-                    " item",
-                    order.items.length === 1 ? "" : "s"
+                    " ",
+                    t({ en: order.items.length === 1 ? "item" : "items", hans: "\u4EF6\u5546\u54C1", hant: "\u4EF6\u5546\u54C1" })
                   ] })
                 ] })
               ] }),
               /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row sm:items-center", children: [
                 /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--bokmoo-radius-md)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-right", children: [
-                  /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.16em] text-[var(--bokmoo-copy-soft)]", children: "Total" }),
+                  /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold tracking-[0.16em] text-[var(--bokmoo-copy-soft)]", children: t({ en: "Total", hans: "\u603B\u8BA1", hant: "\u7E3D\u8A08" }) }),
                   /* @__PURE__ */ jsxs("p", { className: "mt-1 text-2xl font-black tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: [
                     "$",
                     Number(order.totalAmount || 0).toFixed(2)
@@ -16339,7 +16373,7 @@
                     onClick: () => onOrderClick(order.id),
                     className: "inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--bokmoo-primary)] px-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white",
                     children: [
-                      "Open order",
+                      t({ en: "Open order", hans: "\u67E5\u770B\u8BA2\u5355", hant: "\u67E5\u770B\u8A02\u55AE" }),
                       /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
                     ]
                   }
@@ -16349,7 +16383,7 @@
                   {
                     onClick: () => onCancelOrder(order.id),
                     className: "inline-flex min-h-12 items-center justify-center rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-surface)] px-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy)]",
-                    children: "Cancel order"
+                    children: t({ en: "Cancel order", hans: "\u53D6\u6D88\u8BA2\u5355", hant: "\u53D6\u6D88\u8A02\u55AE" })
                   }
                 ) : null
               ] })
@@ -16365,11 +16399,12 @@
             onClick: () => onPageChange(Math.max(1, currentPage - 1)),
             disabled: currentPage <= 1,
             className: "rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-surface)] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy)] disabled:opacity-40",
-            children: "Previous"
+            children: t({ en: "Previous", hans: "\u4E0A\u4E00\u9875", hant: "\u4E0A\u4E00\u9801" })
           }
         ),
         /* @__PURE__ */ jsxs("span", { className: "rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-surface)] px-5 py-3 text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy)]", children: [
-          "Page ",
+          t({ en: "Page", hans: "\u7B2C", hant: "\u7B2C" }),
+          " ",
           currentPage,
           " / ",
           displayTotalPages
@@ -16380,7 +16415,7 @@
             onClick: () => onPageChange(Math.min(displayTotalPages, currentPage + 1)),
             disabled: currentPage >= displayTotalPages,
             className: "rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-surface)] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy)] disabled:opacity-40",
-            children: "Next"
+            children: t({ en: "Next", hans: "\u4E0B\u4E00\u9875", hant: "\u4E0B\u4E00\u9801" })
           }
         )
       ] }) : null
@@ -17445,7 +17480,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.26",
+      version: "1.1.27",
       target: "shop"
     }
   };
