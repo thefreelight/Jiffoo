@@ -1,8 +1,10 @@
 import React from 'react';
 import type { ContactPageProps } from 'shared/src/types/theme';
+import { pickCopy } from '../site';
 import { resolveBokmooSiteConfig } from '../site';
 
-export const ContactPage = React.memo(function ContactPage({ config }: ContactPageProps) {
+export const ContactPage = React.memo(function ContactPage({ config, locale }: ContactPageProps) {
+  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
   const site = resolveBokmooSiteConfig(config);
 
   return (
@@ -12,13 +14,13 @@ export const ContactPage = React.memo(function ContactPage({ config }: ContactPa
           <div className="grid gap-7 p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
-                About BOKMOO
+                {t({ en: 'About BOKMOO', hans: '关于 BOKMOO', hant: '關於 BOKMOO' })}
               </p>
               <h1 className="mt-4 text-[clamp(2.2rem,4vw,3.6rem)] font-semibold leading-[0.96] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-                BOKMOO is built for global travelers.
+                {t({ en: 'BOKMOO is built for global travelers.', hans: 'BOKMOO 为全球旅行者而生。', hant: 'BOKMOO 為全球旅行者而生。' })}
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]">
-                Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.
+                {t({ en: 'Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.', hans: '我们的使命是让全球连接变得简单、实惠、可靠。', hant: '我們的使命是讓全球連接變得簡單、實惠、可靠。' })}
               </p>
               <a
                 href={`mailto:${site.supportEmail}`}
@@ -29,9 +31,9 @@ export const ContactPage = React.memo(function ContactPage({ config }: ContactPa
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 {[
-                  ['200+', 'Countries'],
-                  ['1M+', 'Happy Users'],
-                  ['99.9%', 'Uptime'],
+                  [{'200+', t({ en: 'Countries', hans: '国家和地区', hant: '國家和地區' })}],
+                  [{'1M+', t({ en: 'Happy Users', hans: '满意用户', hant: '滿意用戶' })}],
+                  [{'99.9%', t({ en: 'Uptime', hans: '在线率', hant: '在線率' })}],
                 ].map(([value, label]) => (
                   <div
                     key={label}
