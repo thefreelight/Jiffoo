@@ -13579,18 +13579,17 @@
     };
     const validate = () => {
       const nextErrors = {};
-      if (!formData.email.trim()) nextErrors.email = "Email is required";
-      if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) nextErrors.email = "Invalid email address";
+      if (!formData.email.trim()) nextErrors.email = pickCopy(locale, { en: "Email is required", hans: "\u8BF7\u8F93\u5165\u90AE\u7BB1", hant: "\u8ACB\u8F38\u5165\u90F5\u7BB1" });
+      if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) nextErrors.email = pickCopy(locale, { en: "Invalid email address", hans: "\u90AE\u7BB1\u683C\u5F0F\u4E0D\u6B63\u786E", hant: "\u90F5\u7BB1\u683C\u5F0F\u4E0D\u6B63\u78BA" });
       if (shouldCollectShipping) {
-        if (!formData.firstName.trim()) nextErrors.firstName = "First name is required";
-        if (!formData.lastName.trim()) nextErrors.lastName = "Last name is required";
-        if (!formData.addressLine1.trim()) nextErrors.addressLine1 = "Address is required";
-        if (!formData.city.trim()) nextErrors.city = "City is required";
-        if (!formData.country.trim()) nextErrors.country = "Country is required";
-        if (!formData.phone.trim()) nextErrors.phone = "Phone number is required";
+        if (!formData.firstName.trim()) nextErrors.firstName = pickCopy(locale, { en: "First name is required", hans: "\u8BF7\u8F93\u5165\u540D\u5B57", hant: "\u8ACB\u8F38\u5165\u540D\u5B57" });
+        if (!formData.addressLine1.trim()) nextErrors.addressLine1 = pickCopy(locale, { en: "Address is required", hans: "\u8BF7\u8F93\u5165\u5730\u5740", hant: "\u8ACB\u8F38\u5165\u5730\u5740" });
+        if (!formData.city.trim()) nextErrors.city = pickCopy(locale, { en: "City is required", hans: "\u8BF7\u8F93\u5165\u57CE\u5E02", hant: "\u8ACB\u8F38\u5165\u57CE\u5E02" });
+        if (!formData.country.trim()) nextErrors.country = pickCopy(locale, { en: "Country is required", hans: "\u8BF7\u9009\u62E9\u56FD\u5BB6/\u5730\u533A", hant: "\u8ACB\u9078\u64C7\u570B\u5BB6/\u5730\u5340" });
+        if (!formData.phone.trim()) nextErrors.phone = pickCopy(locale, { en: "Phone number is required", hans: "\u8BF7\u8F93\u5165\u7535\u8BDD\u53F7\u7801", hant: "\u8ACB\u8F38\u5165\u96FB\u8A71\u865F\u78BC" });
         if (statePostalRequired) {
-          if (!formData.state.trim()) nextErrors.state = "State is required";
-          if (!formData.postalCode.trim()) nextErrors.postalCode = "Postal code is required";
+          if (!formData.state.trim()) nextErrors.state = pickCopy(locale, { en: "State is required", hans: "\u8BF7\u8F93\u5165\u7701/\u5DDE", hant: "\u8ACB\u8F38\u5165\u7701/\u5DDE" });
+          if (!formData.postalCode.trim()) nextErrors.postalCode = pickCopy(locale, { en: "Postal code is required", hans: "\u8BF7\u8F93\u5165\u90AE\u7F16", hant: "\u8ACB\u8F38\u5165\u90F5\u905E\u5340\u865F" });
         }
       }
       setErrors(nextErrors);
@@ -13617,19 +13616,20 @@
           type: "button",
           children: [
             /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
-            "Back"
+            pickCopy(locale, { en: "Back", hans: "\u8FD4\u56DE", hant: "\u8FD4\u56DE" })
           ]
         }
       ),
       /* @__PURE__ */ jsx("div", { className: "mt-5 rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] p-3 shadow-[var(--bokmoo-shadow)] sm:rounded-[1.55rem] sm:p-5", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]", children: [
         /* @__PURE__ */ jsxs("aside", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
-          /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: "Order Summary" }),
+          /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Order Summary", hans: "\u8BA2\u5355\u6458\u8981", hant: "\u8A02\u55AE\u6458\u8981" }) }),
           /* @__PURE__ */ jsx("div", { className: "mt-4 space-y-3", children: cart.items.map((item) => /* @__PURE__ */ jsx("div", { className: "rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_84%,black)] p-3", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
             /* @__PURE__ */ jsx("div", { className: "h-14 w-16 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" }),
             /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1", children: [
               /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: item.productName }),
               /* @__PURE__ */ jsxs("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: [
-                "Qty ",
+                pickCopy(locale, { en: "Qty", hans: "\u6570\u91CF", hant: "\u6578\u91CF" }),
+                " ",
                 item.quantity,
                 item.variantName ? ` \xB7 ${item.variantName}` : ""
               ] })
@@ -13641,14 +13641,14 @@
           ] }) }, item.id)) }),
           /* @__PURE__ */ jsxs("div", { className: "mt-5 space-y-3 border-t border-[var(--bokmoo-line)] pt-4 text-sm", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between text-[var(--bokmoo-copy)]", children: [
-              /* @__PURE__ */ jsx("span", { children: "Subtotal" }),
+              /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Subtotal", hans: "\u5C0F\u8BA1", hant: "\u5C0F\u8A08" }) }),
               /* @__PURE__ */ jsxs("span", { children: [
                 "$",
                 Number(cart.subtotal || 0).toFixed(2)
               ] })
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between text-[var(--bokmoo-copy)]", children: [
-              /* @__PURE__ */ jsx("span", { children: "Total" }),
+              /* @__PURE__ */ jsx("span", { children: pickCopy(locale, { en: "Total", hans: "\u603B\u8BA1", hant: "\u7E3D\u8A08" }) }),
               /* @__PURE__ */ jsxs("span", { className: "font-semibold text-[var(--bokmoo-ink)]", children: [
                 "$",
                 Number(cart.total || 0).toFixed(2)
@@ -13658,23 +13658,23 @@
         ] }),
         /* @__PURE__ */ jsxs("form", { id: "bokmoo-checkout-form", onSubmit: handleSubmit, className: "space-y-4", children: [
           /* @__PURE__ */ jsxs("div", { className: "rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,var(--bokmoo-line))] bg-[var(--bokmoo-bg)] p-4", children: [
-            /* @__PURE__ */ jsx("label", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", htmlFor: "bokmoo-promo-code", children: "Promo / referral code" }),
+            /* @__PURE__ */ jsx("label", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", htmlFor: "bokmoo-promo-code", children: pickCopy(locale, { en: "Promo / referral code", hans: "\u4F18\u60E0\u7801 / \u63A8\u8350\u7801", hant: "\u512A\u60E0\u78BC / \u63A8\u85A6\u78BC" }) }),
             /* @__PURE__ */ jsx(
               "input",
               {
                 id: "bokmoo-promo-code",
                 value: formData.promoCode,
                 onChange: (event) => setFormData((prev) => ({ ...prev, promoCode: event.target.value.toUpperCase() })),
-                placeholder: "e.g. BOKMOO10",
+                placeholder: pickCopy(locale, { en: "e.g. BOKMOO10", hans: "\u5982 BOKMOO10", hant: "\u5982 BOKMOO10" }),
                 className: "mt-2 h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm font-semibold tracking-[0.08em] text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]"
               }
             ),
-            /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--bokmoo-copy-soft)]", children: "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment." })
+            /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment.", hans: "\u6709\u521B\u4F5C\u8005\u7684\u63A8\u8350\u7801\uFF1F\u8F93\u5165\u540E\u4F18\u60E0\u4F1A\u5728\u652F\u4ED8\u65F6\u8BA1\u5165\u8BA2\u5355\u603B\u989D\u3002", hant: "\u6709\u5275\u4F5C\u8005\u7684\u63A8\u85A6\u78BC\uFF1F\u8F38\u5165\u5F8C\u512A\u60E0\u6703\u5728\u4ED8\u6B3E\u6642\u8A08\u5165\u8A02\u55AE\u7E3D\u984D\u3002" }) })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
               /* @__PURE__ */ jsx("div", { className: "flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Mail, { className: "h-5 w-5" }) }),
-              /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: "Contact Information" })
+              /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Contact Information", hans: "\u8054\u7CFB\u4FE1\u606F", hant: "\u806F\u7D61\u8CC7\u8A0A" }) })
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "mt-4 space-y-3", children: [
               /* @__PURE__ */ jsx(
@@ -13685,7 +13685,7 @@
                   value: formData.email,
                   onChange: handleChange,
                   className: inputClassName("email"),
-                  placeholder: "Enter your email"
+                  placeholder: pickCopy(locale, { en: "Enter your email", hans: "\u8BF7\u8F93\u5165\u90AE\u7BB1", hant: "\u8ACB\u8F38\u5165\u90F5\u7BB1" })
                 }
               ),
               errors.email ? /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--bokmoo-danger)]", children: errors.email }) : null,
@@ -13698,7 +13698,7 @@
                       value: formData.firstName,
                       onChange: handleChange,
                       className: inputClassName("firstName"),
-                      placeholder: "First name"
+                      placeholder: pickCopy(locale, { en: "First name", hans: "\u540D\u5B57", hant: "\u540D\u5B57" })
                     }
                   ),
                   errors.firstName ? /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs text-[var(--bokmoo-danger)]", children: errors.firstName }) : null
@@ -13711,7 +13711,7 @@
                       value: formData.lastName,
                       onChange: handleChange,
                       className: inputClassName("lastName"),
-                      placeholder: "Last name"
+                      placeholder: pickCopy(locale, { en: "Last name", hans: "\u59D3\u6C0F", hant: "\u59D3\u6C0F" })
                     }
                   ),
                   errors.lastName ? /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs text-[var(--bokmoo-danger)]", children: errors.lastName }) : null
@@ -13720,7 +13720,7 @@
             ] })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
-            /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: "Payment Method" }),
+            /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Payment Method", hans: "\u652F\u4ED8\u65B9\u5F0F", hant: "\u4ED8\u6B3E\u65B9\u5F0F" }) }),
             /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-3", children: paymentMethods.map((method) => {
               const Icon2 = paymentIcon(method.name);
               const isSelected = formData.paymentMethod === method.name;
@@ -13787,7 +13787,7 @@
                 );
               }) })
             ] }) : null,
-            /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: "Billing Details" }),
+            /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Billing Details", hans: "\u8D26\u5355\u4FE1\u606F", hant: "\u5E33\u55AE\u8CC7\u8A0A" }) }),
             /* @__PURE__ */ jsxs("div", { className: "mt-4 grid gap-3 sm:grid-cols-2", children: [
               /* @__PURE__ */ jsxs("div", { children: [
                 /* @__PURE__ */ jsx(
@@ -13798,7 +13798,7 @@
                     value: formData.phone,
                     onChange: handleChange,
                     className: inputClassName("phone"),
-                    placeholder: "Phone number"
+                    placeholder: pickCopy(locale, { en: "Phone number", hans: "\u7535\u8BDD\u53F7\u7801", hant: "\u96FB\u8A71\u865F\u78BC" })
                   }
                 ),
                 errors.phone ? /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs text-[var(--bokmoo-danger)]", children: errors.phone }) : null
@@ -13810,7 +13810,7 @@
                   value: formData.addressLine1,
                   onChange: handleChange,
                   className: inputClassName("addressLine1"),
-                  placeholder: "Address"
+                  placeholder: pickCopy(locale, { en: "Address", hans: "\u8BE6\u7EC6\u5730\u5740", hant: "\u8A73\u7D30\u5730\u5740" })
                 }
               ) }),
               /* @__PURE__ */ jsx(
@@ -13820,7 +13820,7 @@
                   value: formData.city,
                   onChange: handleChange,
                   className: inputClassName("city"),
-                  placeholder: "City"
+                  placeholder: pickCopy(locale, { en: "City", hans: "\u57CE\u5E02", hant: "\u57CE\u5E02" })
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -13830,7 +13830,7 @@
                   value: formData.country,
                   onChange: handleChange,
                   className: inputClassName("country"),
-                  placeholder: "Country"
+                  placeholder: pickCopy(locale, { en: "Country", hans: "\u56FD\u5BB6/\u5730\u533A", hant: "\u570B\u5BB6/\u5730\u5340" })
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -13840,7 +13840,7 @@
                   value: formData.state,
                   onChange: handleChange,
                   className: inputClassName("state"),
-                  placeholder: "State / Province"
+                  placeholder: pickCopy(locale, { en: "State / Province", hans: "\u7701/\u5DDE", hant: "\u7701/\u5DDE" })
                 }
               ),
               /* @__PURE__ */ jsx(
@@ -13850,7 +13850,7 @@
                   value: formData.postalCode,
                   onChange: handleChange,
                   className: inputClassName("postalCode"),
-                  placeholder: "Postal code"
+                  placeholder: pickCopy(locale, { en: "Postal code", hans: "\u90AE\u7F16", hant: "\u90F5\u905E\u5340\u865F" })
                 }
               )
             ] })
@@ -13864,7 +13864,7 @@
               className: "btn-shimmer flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50",
               children: [
                 /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4" }),
-                isProcessing ? "Processing..." : "Continue to Payment"
+                isProcessing ? pickCopy(locale, { en: "Processing\u2026", hans: "\u5904\u7406\u4E2D\u2026", hant: "\u8655\u7406\u4E2D\u2026" }) : pickCopy(locale, { en: "Continue to Payment", hans: "\u7EE7\u7EED\u524D\u5F80\u652F\u4ED8", hant: "\u7E7C\u7E8C\u524D\u5F80\u4ED8\u6B3E" })
               ]
             }
           )
@@ -17445,7 +17445,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.25",
+      version: "1.1.26",
       target: "shop"
     }
   };
