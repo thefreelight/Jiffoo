@@ -3,7 +3,8 @@ import path from 'path';
 import os from 'os';
 import { promises as fs } from 'fs';
 import { getTestPrisma } from '../helpers/db';
-import { recordPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
+import { recordPluginFailure, redactPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
+import { PLUGIN_FAILURE_HIDDEN_MESSAGE } from '@/core/admin/extension-installer/plugin-failure-sanitizer';
 import { handlePluginProcessFailure } from '@/core/admin/extension-installer/plugin-process-failure';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
@@ -63,5 +64,36 @@ describe('Plugin failure containment', () => {
     expect(installation?.lastFailureMessage).toBe('plugin process failure');
     expect(exitSpy).not.toHaveBeenCalled();
     exitSpy.mockRestore();
+  });
+
+  it('keeps the caller running when the diagnostic write fails', async () => {
+    const failing = {
+      pluginInstallation: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        updateMany: vi.fn().mockRejectedValue(new Error('database unavailable')),
+      },
+    };
+    await expect(
+      recordPluginFailure(`${slug}-write-failure`, new Error('provider exploded'), 'checkout', undefined, undefined, failing as never),
+    ).resolves.toBeUndefined();
+    expect(failing.pluginInstallation.updateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('redacts with the supplied runtime context without reading the installation', async () => {
+    const probe = { pluginInstallation: { findFirst: vi.fn().mockResolvedValue(null) } };
+    const message = await redactPluginFailure('runtime-context', new Error('call failed with super-secret-credential'), 'installation-1', {
+      config: { credential: 'super-secret-credential' },
+      manifest: { configSchema: { type: 'object', properties: { credential: { type: 'string', sensitive: true } } } },
+    }, probe as never);
+    expect(probe.pluginInstallation.findFirst).not.toHaveBeenCalled();
+    expect(message).not.toContain('super-secret-credential');
+    expect(message).toContain('***');
+  });
+
+  it('hides the failure detail when the stored configuration cannot be read', async () => {
+    const failing = { pluginInstallation: { findFirst: vi.fn().mockRejectedValue(new Error('database unavailable')) } };
+    const message = await redactPluginFailure('lookup-failure', new Error('call failed with super-secret-credential'), 'installation-1', undefined, failing as never);
+    expect(message).toBe(PLUGIN_FAILURE_HIDDEN_MESSAGE);
+    expect(message).not.toContain('super-secret-credential');
   });
 });
