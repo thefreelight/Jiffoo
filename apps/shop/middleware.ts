@@ -53,6 +53,46 @@ const shopProxyConfig: ProxyConfig = {
 const baseProxy = createProxyHandler(shopProxyConfig);
 type ProxyRequest = Parameters<typeof baseProxy>[0];
 
+/**
+ * Locale list sourced from the Store Localization (i18n) plugin.
+ *
+ * The plugin's `i18n_locales` table is the source of truth for which
+ * languages a store offers. The middleware refreshes the enabled-locale
+ * list from the plugin's public read route on a TTL (per isolate, never
+ * blocking the in-flight request) and falls back to the deployment var,
+ * then to the framework-wide list.
+ */
+const PLUGIN_LOCALES_TTL_MS = 5 * 60 * 1000;
+let pluginLocales: readonly string[] | null = null;
+let pluginLocalesRefreshedAt = 0;
+
+async function refreshPluginLocales(request: ProxyRequest): Promise<void> {
+  if (pluginLocales && Date.now() - pluginLocalesRefreshedAt < PLUGIN_LOCALES_TTL_MS) return;
+  pluginLocalesRefreshedAt = Date.now();
+  try {
+    const apiOrigin = process.env.API_SERVICE_URL;
+    if (!apiOrigin) return;
+    const response = await fetch(`${apiOrigin.replace(/\/+$/, '')}/api/v1/plugins/i18n/store/locales`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return;
+    const body = await response.json();
+    const items = body?.data?.items;
+    if (!Array.isArray(items)) return;
+    const locales = items
+      .filter((item: { isEnabled?: boolean }) => item.isEnabled !== false)
+      .map((item: { locale?: string }) => item.locale)
+      .filter((locale: unknown): locale is string => typeof locale === 'string' && isSupportedLocale(locale));
+    if (locales.length > 0) {
+      pluginLocales = locales;
+      shopProxyConfig.locales = locales;
+    }
+  } catch {
+    // Plugin unavailable (not installed / DB error): keep the current list.
+  }
+}
+
+
 function isInstallRootRequest(request: ProxyRequest): boolean {
   const host = request.headers.get('host')?.split(':')[0]?.toLowerCase();
   const pathname = request.nextUrl.pathname;
