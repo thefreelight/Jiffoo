@@ -3,6 +3,7 @@ import { captureS4State } from './s4-captures';
 import { customerEmail, login, shopAccountAction } from './helpers';
 import { captureOrderDetail } from './order-detail-captures';
 import { readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { getTestPrisma, disconnectDatabase } from '../apps/api/tests/helpers/db';
 
 test('record payment, ship a Shop checkout order, and resend its notification', async ({ page, newObservedContext }) => {
@@ -99,6 +100,7 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
         items: [{ productId: product.id, variantId: product.variants[0].id, quantity: 1 }],
         shippingAddress: { firstName: 'E2E', lastName: 'Customer', phone: '+1-555-0102', addressLine1: '1 Test Street', city: 'San Francisco', state: 'CA', postalCode: '94105', country: 'US' },
         shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal: product.variants[0].salePrice.toFixed(2),
+        idempotencyKey: randomUUID(),
       } });
       expect(created.status(), await created.text()).toBe(201);
       const companion = (await created.json()).data;

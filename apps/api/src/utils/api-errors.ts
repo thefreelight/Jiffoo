@@ -138,6 +138,7 @@ export const errorCatalog = {
   [ApiErrorCodes.NOT_FOUND]: { status: 404, message: "Resource not found" },
   [ApiErrorCodes.NOT_RESENDABLE]: { status: 409, message: "Not resendable." },
   [ApiErrorCodes.ORDER_ALREADY_PAID]: { status: 409, message: "Order already paid." },
+  [ApiErrorCodes.ORDER_IDEMPOTENCY_CONFLICT]: { status: 409, message: "Order idempotency conflict." },
   [ApiErrorCodes.ORDER_NOT_PAYABLE]: { status: 409, message: "Order not payable." },
   [ApiErrorCodes.PATH_TRAVERSAL]: { status: 400, message: "Path traversal." },
   [ApiErrorCodes.PAYLOAD_TOO_LARGE]: { status: 413, message: "Payload too large." },

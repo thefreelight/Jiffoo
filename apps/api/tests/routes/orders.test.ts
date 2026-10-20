@@ -85,7 +85,7 @@ describe('Orders Endpoints', () => {
     const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, 'free-shipping:free');
     const response = await app.inject({
       method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` },
-      payload: { items, shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod, expectedTotal },
+      payload: { items, shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod, expectedTotal, idempotencyKey: uuidv4() },
     });
     expect(response.statusCode).toBe(201);
     return response.json().data.id as string;
@@ -132,7 +132,7 @@ describe('Orders Endpoints', () => {
     await prisma.product.update({ where: { id: product.id }, data: { typeData: { images: ['original.png', 7] }, translations: { create: { locale: 'zh-Hans', name: '原始商品' } } } });
     const items = [{ productId: product.id, variantId: variant.id, quantity: 3 }];
     const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, 'free-shipping:free');
-    const created = await app.inject({ method: 'POST', url: '/api/v1/orders', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal } });
+    const created = await app.inject({ method: 'POST', url: '/api/v1/orders', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal, idempotencyKey: uuidv4() } });
     expect(created.statusCode).toBe(201);
     const orderId = created.json().data.id;
     const orderNumber = created.json().data.orderNumber;
@@ -172,7 +172,7 @@ describe('Orders Endpoints', () => {
     const variant = ordered.variants[0];
     const items = [{ productId: ordered.id, variantId: variant.id, quantity: 1 }];
     const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, 'free-shipping:free');
-    expect((await app.inject({ method: 'POST', url: '/api/v1/orders', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal } })).statusCode).toBe(201);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/orders', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal, idempotencyKey: uuidv4() } })).statusCode).toBe(201);
     const rejected = await app.inject({ method: 'DELETE', url: `/api/v1/admin/products/${ordered.id}`, headers: { authorization: `Bearer ${adminToken}` } });
     expect(rejected.statusCode).toBe(409);
     expect(rejected.json().error.code).toBe('PRODUCT_HAS_ORDERS');
@@ -206,7 +206,7 @@ describe('Orders Endpoints', () => {
       // The quote helper populates the cart; isolate this race to order references.
       await prisma.cartItem.deleteMany({ where: { productId: product.id } });
       const [created, deleted] = await Promise.all([
-        app.inject({ method: 'POST', url: '/api/v1/orders', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal } }),
+        app.inject({ method: 'POST', url: '/api/v1/orders', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal, idempotencyKey: uuidv4() } }),
         app.inject({ method: 'DELETE', url: `/api/v1/admin/products/${product.id}`, headers: { authorization: `Bearer ${adminToken}` } }),
       ]);
       if (created.statusCode === 201) {
@@ -504,7 +504,7 @@ describe('Orders Endpoints', () => {
         const quoteResponse = await app.inject({ method: 'POST', url: '/api/v1/checkout/quote', headers: { authorization: `Bearer ${userToken}` }, payload: { shippingAddress: validShippingAddress, shippingOptionId: 'checkout-paid-shipping:standard' } });
         expect(quoteResponse.statusCode).toBe(200);
         expect(quoteResponse.json().data).toMatchObject({ subtotal: '79.99', tax: '8.50', taxInclusive: false, total: '93.49' });
-        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'checkout-paid-shipping:standard', paymentMethod: 'manual-payment', expectedTotal: quoteResponse.json().data.total } });
+        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'checkout-paid-shipping:standard', paymentMethod: 'manual-payment', expectedTotal: quoteResponse.json().data.total, idempotencyKey: uuidv4() } });
         expect(response.statusCode).toBe(201);
         expect(response.json().data).toMatchObject({
           subtotalAmount: 79.99, shippingAmount: 5, taxAmount: 8.5, taxInclusive: false,
@@ -530,7 +530,7 @@ describe('Orders Endpoints', () => {
       try {
         const items = [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }];
         const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, checkoutSelection.shippingOptionId);
-        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal } });
+        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal, idempotencyKey: uuidv4() } });
         expect(response.statusCode).toBe(201);
         expect(response.json().data).toMatchObject({ taxInclusive: true, taxAmount: 7.72, totalAmount: 79.99, items: [expect.objectContaining({ taxAmount: 7.27 })] });
         const order = await prisma.order.findUniqueOrThrow({ where: { id: response.json().data.id }, include: { items: true } });
@@ -544,7 +544,7 @@ describe('Orders Endpoints', () => {
     it('ignores client-sent amounts and persists product and contract amounts', async () => {
       const items = [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }];
       const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, checkoutSelection.shippingOptionId);
-      const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ ...items[0], unitPrice: 0 }], shippingAddress: validShippingAddress, ...checkoutSelection, subtotalAmount: 0, totalAmount: 0, shippingAmount: 999, expectedTotal } });
+      const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ ...items[0], unitPrice: 0 }], shippingAddress: validShippingAddress, ...checkoutSelection, subtotalAmount: 0, totalAmount: 0, shippingAmount: 999, expectedTotal, idempotencyKey: uuidv4() } });
       expect(response.statusCode).toBe(201);
       const order = await prisma.order.findUniqueOrThrow({ where: { id: response.json().data.id } });
       expect(order.subtotalAmount.toString()).toBe('79.99');
@@ -555,7 +555,7 @@ describe('Orders Endpoints', () => {
       const stockBefore = (await prisma.productVariant.findUniqueOrThrow({ where: { id: testVariantId } })).stock;
       const countBefore = await prisma.order.count();
       const eventsBefore = await prisma.eventRecord.count();
-      const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:missing', paymentMethod: 'manual-payment', expectedTotal: '0.00' } });
+      const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:missing', paymentMethod: 'manual-payment', expectedTotal: '0.00', idempotencyKey: uuidv4() } });
       expect(response.statusCode).toBe(409);
       expect(response.json().error.code).toBe('SHIPPING_OPTION_UNAVAILABLE');
       expect(await prisma.order.count()).toBe(countBefore);
@@ -568,7 +568,7 @@ describe('Orders Endpoints', () => {
       const stockBefore = (await prisma.productVariant.findUniqueOrThrow({ where: { id: testVariantId } })).stock;
       const countBefore = await prisma.order.count();
       try {
-        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal: '0.00' } });
+        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal: '0.00', idempotencyKey: uuidv4() } });
         expect(response.statusCode).toBe(502);
         expect(response.json().error.code).toBe('CONTRACT_CALL_FAILED');
         expect(response.json().error.message).toBe('Provider is temporarily unavailable');
@@ -588,12 +588,12 @@ describe('Orders Endpoints', () => {
         const instance = await prisma.pluginInstallation.findUniqueOrThrow({ where: { pluginSlug_instanceKey: { pluginSlug: 'checkout-card-payment', instanceKey: 'default' } } });
         const configResponse = await app.inject({ method: 'PATCH', url: `/api/v1/extensions/plugin/checkout-card-payment/instances/${instance.id}`, headers: { authorization: `Bearer ${adminToken}` }, payload: { config: { supported: false } } });
         expect(configResponse.statusCode).toBe(200);
-        const unsupported = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'checkout-card-payment', expectedTotal: '0.00' } });
+        const unsupported = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'checkout-card-payment', expectedTotal: '0.00', idempotencyKey: uuidv4() } });
         expect(unsupported.statusCode).toBe(409);
         expect(unsupported.json().error.code).toBe('PAYMENT_METHOD_UNAVAILABLE');
         const disabled = await app.inject({ method: 'PATCH', url: `/api/v1/extensions/plugin/checkout-card-payment/instances/${instance.id}`, headers: { authorization: `Bearer ${adminToken}` }, payload: { enabled: false } });
         expect(disabled.statusCode).toBe(200);
-        const unavailable = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'checkout-card-payment', expectedTotal: '0.00' } });
+        const unavailable = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'checkout-card-payment', expectedTotal: '0.00', idempotencyKey: uuidv4() } });
         expect(unavailable.statusCode).toBe(409);
         expect(unavailable.json().error.code).toBe('PAYMENT_METHOD_UNAVAILABLE');
         expect(await prisma.order.count()).toBe(ordersBefore);

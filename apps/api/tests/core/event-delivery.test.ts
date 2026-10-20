@@ -357,7 +357,7 @@ module.exports = { register(ctx) {
       constraintAdded = true;
       const response = await app.inject({
         method: 'POST', url: '/api/v1/orders', headers: buyer.authHeader,
-        payload: { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal: total },
+        payload: { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal: total, idempotencyKey: randomUUID() },
       });
       responseBody = { statusCode: response.statusCode, body: response.body };
       expect(response.statusCode).toBe(500);

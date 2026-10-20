@@ -48,6 +48,7 @@ export const CreateOrderSchema = z.object({
   shippingOptionId: z.string().min(1),
   paymentMethod: z.string().min(1),
   expectedTotal: z.string().regex(/^\d+(?:\.\d+)?$/),
+  idempotencyKey: z.string().trim().min(1).max(200),
 });
 
 // Order Status Enum
@@ -97,6 +98,9 @@ export type ShipmentStatusType = typeof ShipmentStatus[keyof typeof ShipmentStat
 export type OrderItemRequest = z.infer<typeof OrderItemSchema>;
 export type ShippingAddressRequest = z.infer<typeof ShippingAddressSchema>;
 export type CreateOrderRequest = z.infer<typeof CreateOrderSchema>;
+
+/** Result of an order creation attempt. A replay returns the original order. */
+export type OrderCreationResult = { order: OrderResponse; replayed: boolean };
 
 
 // Shipping Address Response

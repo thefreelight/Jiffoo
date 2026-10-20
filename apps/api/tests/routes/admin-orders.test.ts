@@ -230,7 +230,7 @@ describe('Admin Orders Endpoints', () => {
         [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }], validShippingAddress, 'free-shipping:free');
       const created = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: {
         items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }], shippingAddress: validShippingAddress,
-        shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal,
+        shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal, idempotencyKey: uuidv4(),
       } });
       expect(created.statusCode).toBe(201);
       const id = created.json().data.id;
@@ -426,7 +426,7 @@ describe('Admin Orders Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
-          shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal,
+          shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal, idempotencyKey: uuidv4(),
         },
       });
       expect(created.statusCode).toBe(201);
@@ -601,7 +601,7 @@ describe('Admin Orders Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
-          shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal,
+          shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal, idempotencyKey: uuidv4(),
         },
       });
       expect(created.statusCode).toBe(201);

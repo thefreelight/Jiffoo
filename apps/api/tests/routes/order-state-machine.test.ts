@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { prisma } from '@/config/database';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
@@ -30,7 +31,7 @@ describe('ORD-1 order state machine routes', () => {
     const expectedTotal = await checkoutTotal(app, customer, items, address, 'free-shipping:free');
     const response = await app.inject({
       method: 'POST', url: '/api/v1/orders/', headers: auth(customer),
-      payload: { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal },
+      payload: { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal, idempotencyKey: randomUUID() },
     });
     expect(response.statusCode).toBe(201);
     return response.json().data.id as string;

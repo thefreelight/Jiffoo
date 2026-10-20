@@ -27,6 +27,7 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
   const copy = storefrontMessages(locale).s4;
   const feedback = getNamespaceMessages(locale, 'common') as typeof common;
   const paymentRequestKey = useRef('');
+  const orderRequestKey = useRef('');
   const form = useForm<Address>({ resolver: zodResolver(addressSchema(copy, requiredCountries)), shouldFocusError: true, defaultValues: addressFormValues(initialAddress) });
   const country = useWatch({ control: form.control, name: 'country' });
   const requiredRegion = requiredCountries.includes(country?.toUpperCase());
@@ -79,6 +80,7 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
     if (availability.blocked || paymentOrderId) return;
     availability.clear();
     setBusy(true); setError(''); setShippingOptionId(id); setPriceChanged(false);
+    orderRequestKey.current = '';
     try {
       const next = await requestQuote(id);
       if (next && !next.paymentMethods.some((method) => method.providerSlug === paymentMethod)) setPaymentMethod('');
@@ -94,17 +96,21 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
     let orderId = paymentOrderId;
     try {
       if (!orderId) {
+      // One key per checkout attempt: a repeated click or a retried request returns the same order.
+      orderRequestKey.current ||= crypto.randomUUID();
       const response = await availabilityFetch('/bff/orders', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: cart.items.map(({ productId, variantId, quantity }) => ({ productId, variantId, quantity })),
           shippingAddress: addressRequest(form.getValues()), shippingOptionId, paymentMethod, expectedTotal: quote.total,
+          idempotencyKey: orderRequestKey.current,
         }),
       });
       const body = await response.json();
       if (!response.ok) {
         showFieldErrors(body);
         if (body.error?.code === 'QUOTE_CHANGED') {
+          orderRequestKey.current = '';
           const next = await requestQuote(shippingOptionId);
           if (next) {
             setPriceChanged(true);
@@ -113,10 +119,12 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
             setCartSnapshot((await cartResponse.json()).data as Cart);
           }
         } else if (body.error?.code === 'SHIPPING_METHOD_UNAVAILABLE') {
+          orderRequestKey.current = '';
           setShippingOptionId(''); setPaymentMethod(''); setPriceChanged(false);
           await requestQuote(undefined, t.shippingUnavailable);
           setError(t.shippingUnavailable);
         } else if (body.error?.code === 'PAYMENT_METHOD_UNAVAILABLE') {
+          orderRequestKey.current = '';
           setPaymentMethod(''); setPriceChanged(false);
           await requestQuote(shippingOptionId, t.paymentUnavailable);
           setError(t.paymentUnavailable);
@@ -124,6 +132,7 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
         return;
       }
       orderId = body.data.id as string;
+      orderRequestKey.current = '';
       }
       const successUrl = `${window.location.origin}/${locale}/checkout/return?order=${encodeURIComponent(orderId)}`;
       const cancelUrl = `${window.location.origin}/${locale}/checkout/cancel?order=${encodeURIComponent(orderId)}`;
@@ -158,7 +167,7 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
   }
 
   const total = quote?.total && shippingOptionId ? formatPrice(quote.total, locale, quote.currency) : '';
-  const invalidate = () => { setQuote(null); setShippingOptionId(''); setPaymentMethod(''); setPriceChanged(false); };
+  const invalidate = () => { setQuote(null); setShippingOptionId(''); setPaymentMethod(''); setPriceChanged(false); orderRequestKey.current = ''; };
   const summary = <CheckoutSummary cart={cartSnapshot} quote={quote} shippingOptionId={shippingOptionId} locale={locale} currency={currency} />;
   const inputClass = 'h-10 w-full rounded-md border border-[var(--shop-border-strong)] bg-canvas px-3 aria-invalid:border-destructive';
   return <main className="mx-auto max-w-7xl px-4 pb-[72px] pt-9 md:px-8">

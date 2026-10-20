@@ -142,6 +142,10 @@ model Order {
   userId String
   status OrderStatus @default(PENDING)
 
+  // Idempotency
+  idempotencyKey        String? @unique
+  idempotencyFingerprint String?
+
   // Payment status fields
   paymentStatus        OrderPaymentStatus @default(PENDING)
   expiresAt            DateTime?

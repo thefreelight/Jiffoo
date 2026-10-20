@@ -30,11 +30,12 @@ export async function orderRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const payload = request.body as any;
-      const order = await OrderService.createOrder(
+      const result = await OrderService.createOrder(
         request.user!.id,
         payload
       );
-      return sendSuccess(reply, order, undefined, 201);
+      // A replay returns the original order instead of creating a second one.
+      return sendSuccess(reply, result.order, undefined, result.replayed ? 200 : 201);
     } catch (error) { return sendMappedError(reply, error); }
   });
 

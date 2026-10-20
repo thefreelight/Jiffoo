@@ -23,6 +23,7 @@ import {
   OrderStatus,
   PaymentStatus,
   OrderStatusType,
+  OrderCreationResult,
   countryRequiresStatePostal,
   normalizeCountryCode,
 } from './types';
@@ -40,6 +41,7 @@ import { callContract, ContractCallError } from '@/core/admin/extension-installe
 import { decimalToMinor, minorToDecimal } from '@/core/payment/minor-units';
 import { currentLinePrice } from './current-pricing';
 import { createCatalogSnapshot, readCatalogSnapshot, snapshotProductName } from './catalog-snapshot';
+import { normalizeOrderIdempotencyKey, orderRequestFingerprint } from './idempotency';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -82,6 +84,10 @@ const shipmentSelect = {
     select: shipmentItemSelect,
   },
 } as const;
+
+function orderResponseInclude() {
+  return { shippingAddress: true, user: { select: { locale: true } }, items: true } as const;
+}
 
 export class OrderService {
   private static async validateShippingAddress(address: NonNullable<CreateOrderRequest['shippingAddress']>) {
@@ -159,7 +165,7 @@ export class OrderService {
   static async createOrder(
     userId: string,
     data: CreateOrderRequest
-  ): Promise<OrderResponse> {
+  ): Promise<OrderCreationResult> {
     const normalizedShippingAddress = data.shippingAddress
       ? this.normalizeShippingAddress(data.shippingAddress as any)
       : undefined;
@@ -172,6 +178,12 @@ export class OrderService {
       throw new ApiError('BAD_REQUEST');
     }
     const currency = await systemSettingsService.getShopCurrency();
+    const idempotencyKey = normalizeOrderIdempotencyKey(data.idempotencyKey);
+    if (!idempotencyKey) throw new ApiError('BAD_REQUEST');
+    const requestFingerprint = orderRequestFingerprint(data);
+    // A replay must return the original order before any pricing or provider work runs.
+    const replay = await this.findOrderByIdempotencyKey(idempotencyKey, userId, requestFingerprint);
+    if (replay) return { order: this.formatOrderResponse(replay.order, currency), replayed: true };
 
     // Verify products and calculate total amount
     let totalAmount = 0;
@@ -317,7 +329,12 @@ export class OrderService {
     const unpaidExpiresAt = new Date(Date.now() + description.unpaidTimeoutMinutes * 60_000);
 
     // Create order + deduct stock atomically
-    const order = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.order.findUnique({ where: { idempotencyKey }, include: orderResponseInclude() });
+      if (existing) {
+        this.assertIdempotentReplay(existing, userId, requestFingerprint);
+        return { order: existing, replayed: true };
+      }
       const catalog = await tx.product.findMany({
         where: { id: { in: productIds } },
         include: { variants: true, translations: true },
@@ -328,6 +345,8 @@ export class OrderService {
           ...await allocateOrderNumber(tx),
           user: { connect: { id: userId } },
           customerEmail: data.customerEmail?.trim() || user.email,
+          idempotencyKey,
+          idempotencyFingerprint: requestFingerprint,
           status: OrderStatus.PENDING,
           paymentStatus: PaymentStatus.PENDING,
           subtotalAmount,
@@ -424,8 +443,13 @@ export class OrderService {
           }))
         });
 
-      return created;
+      return { order: created, replayed: false };
     }).catch(async error => {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        // A concurrent request with the same key won the unique index race.
+        const replay = await this.findOrderByIdempotencyKey(idempotencyKey, userId, requestFingerprint);
+        if (replay) return { order: replay.order, replayed: true };
+      }
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
         if (/order_items_(productId|variantId)_fkey/.test(String(error.meta?.field_name)) ||
             await prisma.productVariant.count({ where: { OR: orderItems.map(item => ({ id: item.variantId, productId: item.productId })) } }) < new Set(orderItems.map(item => item.variantId)).size) {
@@ -435,7 +459,32 @@ export class OrderService {
       throw error;
     });
 
-    return this.formatOrderResponse(order, currency);
+    return { order: this.formatOrderResponse(result.order, currency), replayed: result.replayed };
+  }
+
+  /**
+   * Resolve an order that already owns the supplied idempotency key.
+   * Returns null when the key is unused and rejects a key that is reused with a different request.
+   */
+  private static async findOrderByIdempotencyKey(
+    idempotencyKey: string,
+    userId: string,
+    requestFingerprint: string,
+  ): Promise<{ order: any; replayed: true } | null> {
+    const existing = await prisma.order.findUnique({ where: { idempotencyKey }, include: orderResponseInclude() });
+    if (!existing) return null;
+    this.assertIdempotentReplay(existing, userId, requestFingerprint);
+    return { order: existing, replayed: true };
+  }
+
+  private static assertIdempotentReplay(
+    existing: { userId: string; idempotencyFingerprint: string | null },
+    userId: string,
+    requestFingerprint: string,
+  ): void {
+    if (existing.userId !== userId || existing.idempotencyFingerprint !== requestFingerprint) {
+      throw new ApiError('ORDER_IDEMPOTENCY_CONFLICT');
+    }
   }
 
   /**

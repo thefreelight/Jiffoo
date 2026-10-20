@@ -83,7 +83,7 @@ module.exports = { register(ctx) {
     const expectedTotal = await checkoutTotal(app, customer, items, address, 'free-shipping:free');
     const created = await app.inject({
       method: 'POST', url: '/api/v1/orders/', headers: auth(customer),
-      payload: { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: slug, expectedTotal },
+      payload: { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: slug, expectedTotal, idempotencyKey: randomUUID() },
     });
     expect(created.statusCode, created.payload).toBe(201);
     const id = created.json().data.id as string;

@@ -124,7 +124,7 @@ async function state() {
       await http(bases[1], '/api/v1/cart/items', 'POST', items[0], customer);
       const address = { firstName: 'Compose', lastName: 'Customer', phone: '+1-555-0101', addressLine1: '123 Test St', city: 'Test City', state: 'CA', postalCode: '94016', country: 'US' };
       const quote = (await http(bases[1], '/api/v1/checkout/quote', 'POST', { shippingAddress: address, shippingOptionId: 'free-shipping:free' }, customer)).data;
-      const order = (await http(bases[0], '/api/v1/orders/', 'POST', { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal: quote.total }, customer, 201)).data;
+      const order = (await http(bases[0], '/api/v1/orders/', 'POST', { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal: quote.total, idempotencyKey: randomUUID() }, customer, 201)).data;
       return order;
     });
     const order = checks.value('Product cart and order creation');

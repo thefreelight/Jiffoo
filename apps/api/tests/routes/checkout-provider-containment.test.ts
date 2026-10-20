@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
@@ -186,6 +187,7 @@ describe('Checkout provider failure containment', () => {
           shippingOptionId: category === 'shipping' ? `${slug}:standard` : 'free-shipping:free',
           paymentMethod: category === 'payment' ? slug : 'manual-payment',
           expectedTotal: selected.total,
+          idempotencyKey: randomUUID(),
         },
       });
       expect(response.statusCode).toBe(409);

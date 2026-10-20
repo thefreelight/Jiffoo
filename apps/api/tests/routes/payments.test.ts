@@ -53,7 +53,7 @@ describe('Payments Endpoints', () => {
     const response = await app.inject({
       method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` },
       payload: {
-        items, shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod, expectedTotal,
+        items, shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod, expectedTotal, idempotencyKey: uuidv4(),
       },
     });
     expect(response.statusCode).toBe(201);
@@ -170,7 +170,7 @@ describe('Payments Endpoints', () => {
         payload: {
           items,
           shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free',
-          paymentMethod: paymentFixtureSlug, expectedTotal,
+          paymentMethod: paymentFixtureSlug, expectedTotal, idempotencyKey: uuidv4(),
         },
       });
       expect(orderResponse.statusCode).toBe(201);

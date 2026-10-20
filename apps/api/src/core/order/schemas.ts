@@ -10,6 +10,7 @@ import {
   createTypedReadResponses,
   createTypedUpdateResponses,
   createPageResultSchema,
+  createSuccessResponseSchema,
   errorResponseSchema,
 } from '@/types/common-dto';
 
@@ -156,7 +157,7 @@ export const orderSchemas = {
   createOrder: {
     body: {
       type: 'object',
-      required: ['items', 'shippingOptionId', 'paymentMethod', 'expectedTotal'],
+      required: ['items', 'shippingOptionId', 'paymentMethod', 'expectedTotal', 'idempotencyKey'],
       properties: {
         items: {
           type: 'array',
@@ -200,10 +201,18 @@ export const orderSchemas = {
         shippingOptionId: { type: 'string', minLength: 1, description: 'Selected shipping option ID' },
         paymentMethod: { type: 'string', minLength: 1, description: 'Selected payment provider slug' },
         expectedTotal: { type: 'string', pattern: '^\\d+(?:\\.\\d+)?$', description: 'Confirmed quote total' },
+        idempotencyKey: {
+          type: 'string',
+          minLength: 1,
+          maxLength: 200,
+          pattern: '^.*\\S.*$',
+          description: 'Client generated key that makes a repeated request return the original order',
+        },
       },
     },
     response: {
       ...createTypedCreateResponses(orderResponseSchema),
+      200: createSuccessResponseSchema(orderResponseSchema),
       500: { ...errorResponseSchema, description: 'Includes PLUGIN_PACKAGE_CORRUPT' },
       503: { ...errorResponseSchema, description: 'PLUGIN_PACKAGE_UNAVAILABLE or PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT' },
     },

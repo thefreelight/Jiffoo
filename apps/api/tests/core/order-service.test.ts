@@ -216,13 +216,14 @@ describe('OrderService', () => {
       shippingOptionId: 'free-shipping:free',
       paymentMethod: 'manual-payment',
       expectedTotal: '50.00',
+      idempotencyKey: 'idem-order-1',
     };
     it.each([[[]], [['DE']]])('allows omitted state and postal code when the configured list %j excludes the destination', async countries => {
       vi.mocked(systemSettingsService.getCheckoutCountriesRequireStatePostal).mockResolvedValueOnce(countries);
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER);
       mockPrisma.product.findMany.mockResolvedValue([TEST_PRODUCT]);
       mockPrisma.order.create.mockResolvedValue(makeCreatedOrder());
-      await expect(OrderService.createOrder('user-1', { ...orderData, shippingAddress: { ...orderData.shippingAddress, state: '', postalCode: '' } })).resolves.toMatchObject({ id: 'order-1' });
+      await expect(OrderService.createOrder('user-1', { ...orderData, shippingAddress: { ...orderData.shippingAddress, state: '', postalCode: '' } })).resolves.toMatchObject({ order: { id: 'order-1' }, replayed: false });
     });
     it('requires both state and postal code for a configured destination', async () => {
       vi.mocked(systemSettingsService.getCheckoutCountriesRequireStatePostal).mockResolvedValueOnce(['US']);
@@ -274,12 +275,13 @@ describe('OrderService', () => {
       );
 
       // Returns formatted response
-      expect(result).toMatchObject({
-        id: 'order-1', orderNumber: 'JF-20261012-0001',
-        userId: 'user-1',
-        totalAmount: 50,
-        currency: 'USD',
-        status: 'PENDING',
+      expect(result.replayed).toBe(false);
+      expect(result.order).toMatchObject({
+          id: 'order-1', orderNumber: 'JF-20261012-0001',
+          userId: 'user-1',
+          totalAmount: 50,
+          currency: 'USD',
+          status: 'PENDING',
       });
     });
 
@@ -312,6 +314,7 @@ describe('OrderService', () => {
           shippingOptionId: 'free-shipping:free',
           paymentMethod: 'manual-payment',
           expectedTotal: '125.00',
+          idempotencyKey: 'idem-order-2',
         })
       ).rejects.toThrow('Insufficient stock for variant Default of product: Widget');
 

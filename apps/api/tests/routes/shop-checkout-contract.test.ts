@@ -1,6 +1,7 @@
 import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { createTestProduct, deleteAllTestCarts, deleteAllTestOrders, deleteAllTestProducts } from '../helpers/fixtures';
@@ -28,7 +29,7 @@ describe('Shop checkout contract', () => {
   });
   const order = (expectedTotal: string, items = [line()]) => app.inject({
     method: 'POST', url: '/api/v1/orders', headers: headers(),
-    payload: { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal },
+    payload: { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal, idempotencyKey: randomUUID() },
   });
 
   beforeAll(async () => {

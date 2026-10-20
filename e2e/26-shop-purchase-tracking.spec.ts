@@ -212,6 +212,7 @@ test('J an order cancelled from the account page cannot claim or send a purchase
   const created = await page.request.post(`${shop}/bff/orders`, { headers, data: {
     items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment',
     expectedTotal: (await quote.json()).data.total,
+    idempotencyKey: randomUUID(),
   } });
   expect(created.status()).toBe(201);
   const order = (await created.json()).data as Order;
