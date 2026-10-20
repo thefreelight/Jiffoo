@@ -1,6 +1,6 @@
 import { clearNativePasswordResetCode, sendNativePasswordResetCode, sendNativeVerificationCode, verifyNativeEmailCode, verifyNativePasswordResetCode } from './email-verification';
 import { consumeVerificationRateLimit, requestIp } from './auth-rate-limit';
-import { recordNativeSecurityEvent } from './security-audit';
+import { recordNativeSecurityEvent, recordLoginAudit, recordNativeLoginSuccess } from './security-audit';
 
 export interface NativeSmtpEnv {
   SITE_NAME?: string;
@@ -403,6 +403,13 @@ export async function tryNativeAuth(
         }
       }
       if (!user) {
+        await recordLoginAudit(env, {
+          action: 'login.failed',
+          email: identifier,
+          source: 'admin',
+          ip: requestIp(request),
+          userAgent: request.headers.get('user-agent'),
+        });
         return Response.json(
           { success: false, error: { code: 'LOGIN_FAILED', message: 'Invalid credentials' } },
           { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-auth' } },
@@ -411,11 +418,26 @@ export async function tryNativeAuth(
     }
     const hash = await derivePassword(body.password, decodeBase64Url(user.password_salt), user.password_iterations);
     if (!user.is_active || !['ADMIN', 'SUPER_ADMIN'].includes(user.role) || !constantTimeEqual(hash, decodeBase64Url(user.password_hash))) {
+      await recordLoginAudit(env, {
+        action: 'login.failed',
+        email: user.email,
+        userId: user.id,
+        source: 'admin',
+        ip: requestIp(request),
+        userAgent: request.headers.get('user-agent'),
+      });
       return Response.json(
         { success: false, error: { code: 'LOGIN_FAILED', message: 'Invalid credentials' } },
         { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-auth' } },
       );
     }
+    await recordNativeLoginSuccess(env, {
+      email: user.email,
+      userId: user.id,
+      source: 'admin',
+      ip: requestIp(request),
+      userAgent: request.headers.get('user-agent'),
+    });
     const session = await createNativeSession(env, nativePublicUser(user), 'admin');
     return new Response(JSON.stringify(session.body), { status: 200, headers: session.headers });
   }
@@ -690,8 +712,17 @@ export async function tryNativeAuth(
   ) {
     const body = await request.clone().json<{ email?: string; password?: string }>();
     if (!body.email || !body.password) return null;
+    const shopperIp = requestIp(request);
+    const shopperUa = request.headers.get('user-agent');
     const user = await findNativeUserByEmail(env, body.email);
     if (!user) {
+      await recordLoginAudit(env, {
+        action: 'login.failed',
+        email: body.email,
+        source: 'storefront',
+        ip: shopperIp,
+        userAgent: shopperUa,
+      });
       return Response.json(
         { success: false, error: { code: 'LOGIN_FAILED', message: 'Invalid credentials' } },
         { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
@@ -699,11 +730,26 @@ export async function tryNativeAuth(
     }
     const hash = await derivePassword(body.password, decodeBase64Url(user.password_salt), user.password_iterations);
     if (!user.is_active || !user.email_verified || !constantTimeEqual(hash, decodeBase64Url(user.password_hash))) {
+      await recordLoginAudit(env, {
+        action: 'login.failed',
+        email: user.email,
+        userId: user.id,
+        source: 'storefront',
+        ip: shopperIp,
+        userAgent: shopperUa,
+      });
       return Response.json(
         { success: false, error: { code: user.email_verified ? 'LOGIN_FAILED' : 'EMAIL_NOT_VERIFIED', message: user.email_verified ? 'Invalid credentials' : 'Email not verified' } },
         { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
       );
     }
+    await recordNativeLoginSuccess(env, {
+      email: user.email,
+      userId: user.id,
+      source: 'storefront',
+      ip: shopperIp,
+      userAgent: shopperUa,
+    });
     const session = await createNativeSession(env, nativePublicUser(user));
     return new Response(JSON.stringify(session.body), { status: 200, headers: session.headers });
   }

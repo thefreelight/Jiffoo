@@ -278,6 +278,7 @@ export default function CustomersPage() {
                   <th className="py-5 px-8 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.name', 'Customer')}</th>
                   <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.contact', 'Contact')}</th>
                   <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.joinDate', 'Join Date')}</th>
+                  <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.lastLogin', 'Last Login')}</th>
                   <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.role', 'Role')}</th>
                   <th className="py-5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.status', 'Status')}</th>
                   <th className="py-5 px-8 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.customers.actions', 'Actions')}</th>
@@ -286,7 +287,7 @@ export default function CustomersPage() {
               <tbody className="divide-y divide-gray-50">
                 {filteredCustomers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center">
+                    <td colSpan={7} className="py-12 text-center">
                       <div className="text-gray-400 font-medium">
                         {searchTerm ? getText('merchant.customers.noCustomersMatching', 'No customers found matching your search.') : getText('merchant.customers.noCustomersFound', 'No customers found.')}
                       </div>
@@ -319,6 +320,16 @@ export default function CustomersPage() {
                       <td className="py-5 px-6">
                         <div className="text-sm font-medium text-gray-600">
                           {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : getText('merchant.customers.unknown', 'Unknown')}
+                        </div>
+                      </td>
+                      <td className="py-5 px-6">
+                        <div className="flex flex-col">
+                          <div className="text-sm font-medium text-gray-600">
+                            {customer.lastLoginAt ? new Date(customer.lastLoginAt).toLocaleDateString() : getText('merchant.customers.neverLoggedIn', 'Never')}
+                          </div>
+                          {customer.lastLoginIp ? (
+                            <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{customer.lastLoginIp}</div>
+                          ) : null}
                         </div>
                       </td>
                       <td className="py-5 px-6">
