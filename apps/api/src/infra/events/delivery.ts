@@ -6,6 +6,7 @@ import { deliverInstallationEvent } from '@/core/admin/extension-installer/plugi
 import type { EventTransaction } from './emit';
 import { redactPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
 import { observeWorkerShutdownForTest } from '../worker-shutdown';
+import { CORE_EVENT_TARGET, coreSubscriberFor } from './core-subscribers';
 
 export const EVENT_HANDLER_TIMEOUT_MS = 30_000;
 export const EVENT_LEASE_SECONDS = 60;
@@ -92,6 +93,14 @@ export async function recoverEventLeases(): Promise<number> {
   });
 }
 
+/** Run the core subscriber for an event. Returns a skip reason when the core ignores it. */
+export async function deliverCoreEvent(event: PluginEvent): Promise<string | null> {
+  const subscriber = coreSubscriberFor(event.type, event.version);
+  if (!subscriber) return 'no_core_subscriber';
+  await subscriber(event.data);
+  return null;
+}
+
 export class EventDeliveryEngine {
   readonly timeoutMs: number;
   private readonly installations = new Set<string>();
@@ -156,6 +165,7 @@ export class EventDeliveryEngine {
         occurredAt: record.occurredAt.toISOString(), attempt: delivery.attempts,
         data: parseEventPayload(record.type as EventKey, record.version, record.data),
       };
+      if (delivery.installationId === CORE_EVENT_TARGET) return deliverCoreEvent(event);
       return deliverInstallationEvent(delivery.installationId, Object.freeze(event), databaseAbort.signal);
     };
     const databaseAbort = new AbortController();

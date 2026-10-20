@@ -30,6 +30,7 @@ import { prisma } from '@/config/database';
 import path from 'path';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { checkoutTotal } from '../helpers/checkout-total';
+import { deliverCoreEvents } from '../helpers/core-events';
 import { CacheService } from '@/core/cache/service';
 
 describe('Admin Orders Endpoints', () => {
@@ -448,6 +449,7 @@ describe('Admin Orders Endpoints', () => {
         payload: { carrier: 'FedEx', trackingNumber: `TRACK-${uuidv4()}` },
       });
       expect(shipped.statusCode).toBe(200);
+      await deliverCoreEvents();
       expect(await prisma.notification.count({ where: { relatedId: id, type: 'shipped' } })).toBe(1);
     });
     it('should return 401 without token', async () => {
@@ -611,6 +613,7 @@ describe('Admin Orders Endpoints', () => {
         headers: { authorization: `Bearer ${adminToken}` }, payload: { cancelReason: 'Admin requested cancellation' },
       });
       expect(cancelled.statusCode).toBe(200);
+      await deliverCoreEvents();
       const notifications = await prisma.notification.findMany({ where: { relatedId: id, type: 'cancelled' } });
       expect(notifications).toHaveLength(1);
       expect(notifications[0].text).toContain('Admin requested cancellation');

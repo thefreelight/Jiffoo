@@ -13,6 +13,7 @@ import { createPaymentSession } from '@/core/payment/session';
 import { queryPaymentByRequestKey, recordPaymentSucceeded, recordPaymentFailed, reconcilePendingPayments } from '@/core/payment/reconciliation';
 import { withPaymentTestClock, paymentNow, PAYMENT_SESSION_LIFETIME_MS } from '@/core/payment/clock';
 import { OrderService } from '@/core/order/service';
+import { deliverCoreEvents } from '../helpers/core-events';
 import { AdminOrderService } from '@/core/admin/order-management/service';
 import { EventDeliveryEngine } from '@/infra/events/delivery';
 import { withOrderLockTestControl } from '@/core/payment/locks';
@@ -328,6 +329,7 @@ it('B13 database guards reject invented, incomplete or mutated resolutions and r
   } finally { await Promise.allSettled([writer.end(), observer.end()]); clients.delete(writer); clients.delete(observer); }
 });
 async function counts(client: Client, orderId: string) {
+  await deliverCoreEvents();
   return (await client.query(`SELECT
     (SELECT count(*)::integer FROM event_records WHERE type='order.paid' AND "aggregateId"=$1) AS paid,
     (SELECT count(*)::integer FROM event_records WHERE type='payment.succeeded' AND data->>'orderId'=$1) AS success,

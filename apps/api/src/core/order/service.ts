@@ -14,7 +14,6 @@ import { ApiError } from '@/utils/api-errors';
 
 import { prisma } from '@/config/database';
 import { allocateOrderNumber } from './number';
-import { createOrderNotification } from '@/core/notifications/service';
 import { Prisma, OrderStatus as PrismaOrderStatus, OrderPaymentStatus as PrismaOrderPaymentStatus } from '@prisma/client';
 import {
   CreateOrderRequest,
@@ -644,7 +643,9 @@ export class OrderService {
           items: true
         }
       });
-      await createOrderNotification(tx, 'cancelled', orderId, { reason: cancelReason });
+      await emitEvent(tx, 'order.cancelled', 1, updated.id, {
+        id: updated.id, orderNumber: updated.orderNumber, orderId: updated.id, userId: updated.userId, reason: cancelReason,
+      });
 
       await recordOrderStatusHistory(tx, {
         orderId: updated.id,
@@ -698,7 +699,6 @@ export class OrderService {
           userId: order.userId,
           reason: 'unpaid timeout',
         });
-        await createOrderNotification(tx, 'cancelled', order.id, { reason: 'Cancelled for non-payment' });
         cancelled += 1;
       }
       return cancelled;

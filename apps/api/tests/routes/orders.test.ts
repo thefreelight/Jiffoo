@@ -27,6 +27,7 @@ import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin
 import { OrderService } from '@/core/order/service';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 import { checkoutTotal } from '../helpers/checkout-total';
+import { deliverCoreEvents } from '../helpers/core-events';
 import { getPluginManifestIssues } from '@jiffoo/shared';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { emitOrderPaidEvent } from '@/core/payment/order-paid-event';
@@ -628,6 +629,7 @@ describe('Orders Endpoints', () => {
       expect(await prisma.eventRecord.count({ where: { aggregateId: expiredId, type: 'order.cancelled' } })).toBe(1);
       expect(await prisma.eventRecord.count({ where: { aggregateId: unexpiredId, type: 'order.cancelled' } })).toBe(0);
       expect(await prisma.eventRecord.count({ where: { aggregateId: paidId, type: 'order.cancelled' } })).toBe(0);
+      await deliverCoreEvents();
       const cancellation = await prisma.notification.findMany({ where: { type: 'cancelled', relatedId: expiredId } });
       expect(cancellation).toHaveLength(1);
       expect(cancellation[0].text).toContain('non-payment');
@@ -857,6 +859,7 @@ describe('Orders Endpoints', () => {
       });
 
       expect(response.statusCode).toBe(200);
+      await deliverCoreEvents();
       const cancellations = await prisma.notification.findMany({ where: { type: 'cancelled', relatedId: orderId } });
       expect(cancellations).toHaveLength(1);
       expect(cancellations[0].text).toContain('Test cancel');

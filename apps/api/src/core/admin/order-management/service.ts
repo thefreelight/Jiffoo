@@ -5,7 +5,6 @@ import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
  */
 
 import { prisma } from '@/config/database';
-import { createOrderNotification } from '@/core/notifications/service';
 import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus, type Prisma } from '@prisma/client';
 import { systemSettingsService } from '../system-settings/service';
 import { CacheService } from '@/core/cache/service';
@@ -560,10 +559,6 @@ export class AdminOrderService {
           items: shipment.items.map(({ orderItemId, quantity }) => ({ orderItemId, quantity })),
         },
       });
-      if (order.status !== OrderStatus.SHIPPED) {
-        await createOrderNotification(tx, 'shipped', orderId);
-      }
-
       await recordOrderStatusHistory(tx, {
         orderId: updated.id,
         fromStatus: order.status as PrismaOrderStatus,
@@ -695,8 +690,6 @@ export class AdminOrderService {
             status: OrderStatus.REFUNDED,
           },
         }), { notFound: 'NOT_FOUND' });
-        await createOrderNotification(tx, 'refunded', orderId);
-
         await recordOrderStatusHistory(tx, {
           orderId: updated.id,
           fromStatus: order.status as PrismaOrderStatus,
@@ -784,7 +777,13 @@ export class AdminOrderService {
           cancelledAt: new Date(),
         }
       }), { notFound: 'NOT_FOUND' });
-      await createOrderNotification(tx, 'cancelled', orderId, { reason: data.cancelReason });
+      await emitEvent(tx, 'order.cancelled', 1, updated.id, {
+        id: updated.id,
+        orderNumber: updated.orderNumber,
+        orderId: updated.id,
+        userId: updated.userId,
+        reason: data.cancelReason,
+      });
 
       await recordOrderStatusHistory(tx, {
         orderId: updated.id,

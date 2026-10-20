@@ -7,6 +7,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { createTestProduct, deleteAllTestOrders, deleteAllTestProducts } from '../helpers/fixtures';
 import { checkoutTotal } from '../helpers/checkout-total';
+import { deliverCoreEvents } from '../helpers/core-events';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { loadOpenApiSpec } from '../helpers/openapi';
 import { OrderService } from '@/core/order/service';
@@ -200,11 +201,12 @@ describe('ORD-1 order state machine routes', () => {
     { locale: 'en', text: 'was refunded' },
     { locale: 'zh-Hans', text: '已退款' },
     { locale: 'zh-Hant', text: '已退款' },
-  ])('G queues a $locale refund notification in the transaction', async ({ locale, text }) => {
+  ])('G queues a $locale refund notification from the refund domain event', async ({ locale, text }) => {
     await prisma.user.update({ where: { id: userId }, data: { locale } });
     const id = await createOrder();
     await pay(id);
     expect((await adminAction(id, 'refund', { idempotencyKey: `refund:${id}` })).statusCode).toBe(200);
+    await deliverCoreEvents();
     const notifications = await prisma.notification.findMany({ where: { relatedId: id, type: 'refunded' } });
     expect(notifications).toHaveLength(1);
     expect(notifications[0]).toMatchObject({ locale, recipientUserId: userId });

@@ -34,6 +34,7 @@ vi.mock('@/config/database', () => ({
     payment: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     cart: { findUnique: vi.fn().mockResolvedValue(null) },
     eventRecord: { create: vi.fn().mockResolvedValue({ id: 'event-1' }) },
+    eventDelivery: { create: vi.fn().mockResolvedValue({ id: 'delivery-1' }), createMany: vi.fn().mockResolvedValue({ count: 0 }) },
     $queryRaw: vi.fn(async (query: any) => {
       const sql = (Array.isArray(query) ? query : query.strings ?? []).join(' ');
       return sql.includes('order_number_counters') ? [{ last_value: 1 }] : [];

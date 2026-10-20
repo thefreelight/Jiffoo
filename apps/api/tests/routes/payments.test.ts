@@ -18,6 +18,7 @@ import path from 'path';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { prisma } from '@/config/database';
 import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin, verifiedPaymentFixtureFact } from '../helpers/fixture-plugin';
+import { deliverCoreEvents } from '../helpers/core-events';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 import { env } from '@/config/env';
 import { checkoutTotal } from '../helpers/checkout-total';
@@ -321,6 +322,7 @@ describe('Payments Endpoints', () => {
       expect(recorded.statusCode).toBe(200);
       const fact = await verifiedPaymentFixtureFact(paymentFixtureSlug, cardSession.sessionId, `success:${cardOrderId}`);
       expect(await applyNormalizedPluginWebhook(paymentFixtureSlug, fact)).toBe(true);
+      await deliverCoreEvents();
       expect(await prisma.notification.count({ where: { type: 'payment_received', relatedId: manualOrderId } })).toBe(1);
       expect(await prisma.notification.count({ where: { type: 'payment_received', relatedId: cardOrderId } })).toBe(1);
       expect(await applyNormalizedPluginWebhook(paymentFixtureSlug, fact)).toBe(false);

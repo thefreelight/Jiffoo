@@ -6,7 +6,7 @@ import { assertOrderTransition } from '@/core/order/transition';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { emitOrderPaidEvent } from './order-paid-event';
 import { emitEvent } from '@/infra/events/emit';
-import { createNotification, type NotificationTransaction } from '@/core/notifications/service';
+import { type NotificationTransaction } from '@/core/notifications/service';
 import { Prisma } from '@prisma/client';
 import { ApiError } from '@/utils/api-errors';
 import { lockOrder, lockPayment } from './locks';
@@ -89,8 +89,6 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
         metadata: { ...input.metadata, ...(reference ? { manualReference: reference } : {}), refundRequired },
       });
       if (firstPaid) {
-        const recipient = await tx.user.findUniqueOrThrow({ where: { id: order.userId }, select: { email: true } });
-        await createNotification(tx, 'payment_received', order.userId, order.customerEmail || recipient.email, { orderId: order.orderNumber }, { relatedType: 'order', relatedId: order.id });
         await emitOrderPaidEvent(tx, order.id, {
           paymentId: payment.id, paymentMethod: payment.paymentMethod, paymentIntentId: input.paymentIntentId || payment.paymentIntentId,
           sessionId: payment.sessionId, providerEventId: input.providerEventId, metadata: (payment.metadata || {}) as Record<string, unknown>, actorId: input.actorId,

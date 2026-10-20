@@ -156,6 +156,7 @@ export async function createOrderNotification(
   type: Extract<NotificationType, 'order_confirmation' | 'payment_received' | 'shipped' | 'cancelled' | 'refunded'>,
   orderId: string,
   values: { instructions?: string; reason?: string } = {},
+  options: { dedupKey?: string } = {},
 ): Promise<void> {
   const order = await tx.order.findUniqueOrThrow({
     where: { id: orderId },
@@ -163,7 +164,7 @@ export async function createOrderNotification(
   });
   await createNotification(tx, type, order.userId, order.customerEmail || order.user.email, {
     orderId: order.orderNumber, ...values,
-  }, { relatedType: 'order', relatedId: orderId });
+  }, { relatedType: 'order', relatedId: orderId, dedupKey: options.dedupKey });
 }
 
 export function verificationLink(token: string, locale?: string | null): string {
