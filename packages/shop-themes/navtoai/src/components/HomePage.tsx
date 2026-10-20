@@ -190,7 +190,7 @@ export const HomePage = React.memo(function HomePage({ locale, onNavigate }: Hom
     : trendingTools.map((tool) => ({
         key: tool.name,
         name: tool.name,
-        tagline: tool.tagline[lang] ?? tool.tagline.en,
+        tagline: tool.tagline[lang] ?? tool.tagline.en ?? '',
         heatLabel: tool.heat,
         href: `/search?q=${encodeURIComponent(tool.name)}`,
       }));
