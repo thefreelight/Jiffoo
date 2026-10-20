@@ -86,12 +86,14 @@ export interface Order {
   createdAt: string
   itemsCount?: number
 
-  // Flattened customer info (for list)
-  customer: {
+  // Flattened customer info (for list). Native order payloads carry only a
+  // top-level customerEmail, so customer and its fields are all optional.
+  customer?: {
     id: string | null
     email: string | null
     username: string | null
   }
+  customerEmail?: string | null
 }
 
 // Order detail type - Projected detail format
@@ -106,11 +108,12 @@ export interface OrderDetail {
   cancelledAt?: string | null
   createdAt: string
   updatedAt?: string
-  customer: {
+  customer?: {
     id: string | null
     email: string | null
     username: string | null
   }
+  customerEmail?: string | null
   shippingAddress?: Address | null
   items: OrderDetailItem[]
   shipments?: OrderShipment[]

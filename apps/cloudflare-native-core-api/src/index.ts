@@ -28,6 +28,7 @@ import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
 import { tryNativeUpgradeStatus } from './upgrade-status';
 import { tryNativeAdminSettings } from './admin-settings';
+import { tryNativeAdminThemes } from './admin-themes';
 import { captureNativeError, tryNativeAdminErrors } from './admin-errors';
 import { tryNativeSeoRedirects } from './seo-redirects';
 import { tryNativeMailBounces } from './mail-bounces';
@@ -277,6 +278,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeUpgradeStatus) return nativeUpgradeStatus;
     const nativeAdminSettings = await tryNativeAdminSettings(nativeRequest, env);
     if (nativeAdminSettings) return nativeAdminSettings;
+    const nativeAdminThemes = await tryNativeAdminThemes(nativeRequest, env);
+    if (nativeAdminThemes) return nativeAdminThemes;
     const nativeAdminErrors = await tryNativeAdminErrors(nativeRequest, env);
     if (nativeAdminErrors) return nativeAdminErrors;
     const nativeSeoRedirects = await tryNativeSeoRedirects(nativeRequest, env);

@@ -352,14 +352,14 @@ export default function OrdersPage() {
                   <div className="rounded-2xl bg-gray-50/70 p-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xs font-black text-gray-400 shadow-sm">
-                        {order.customer.username?.charAt(0) || order.customer.email?.charAt(0) || 'U'}
+                        {order.customer?.username?.charAt(0) || order.customer?.email?.charAt(0) || order.customerEmail?.charAt(0) || 'U'}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-gray-900">
-                          {order.customer.username || 'Anonymous User'}
+                          {order.customer?.username || order.customerEmail || 'Anonymous User'}
                         </p>
                         <p className="truncate text-xs font-medium text-gray-400">
-                          {order.customer.email || 'no-email'}
+                          {order.customer?.email || order.customerEmail || 'no-email'}
                         </p>
                       </div>
                     </div>
@@ -443,11 +443,11 @@ export default function OrdersPage() {
                       <td className="py-4 px-6">
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-[10px] font-black text-gray-400 group-hover:bg-white transition-colors">
-                            {order.customer.username?.charAt(0) || order.customer.email?.charAt(0) || 'U'}
+                            {order.customer?.username?.charAt(0) || order.customer?.email?.charAt(0) || order.customerEmail?.charAt(0) || 'U'}
                           </div>
                           <div className="flex flex-col">
-                            <span className="font-bold text-gray-900 text-sm">{order.customer.username || 'Anonymous User'}</span>
-                            <span className="text-xs text-gray-400 font-medium">{order.customer.email || 'no-email'}</span>
+                            <span className="font-bold text-gray-900 text-sm">{order.customer?.username || order.customerEmail || 'Anonymous User'}</span>
+                            <span className="text-xs text-gray-400 font-medium">{order.customer?.email || order.customerEmail || 'no-email'}</span>
                           </div>
                         </div>
                       </td>
