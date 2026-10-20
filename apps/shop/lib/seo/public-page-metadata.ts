@@ -15,99 +15,99 @@ import type { Metadata } from 'next';
 const PAGE_META = {
   home: {
     en: {
-      title: 'RemoteRadar – Remote Job Search & Application Toolkit',
+      title: '{brand} – One Card, Connected to Your World',
       description:
-        'RemoteRadar continuously scans trusted sources, explains why each role matches your profile, and helps you prepare a stronger application.',
+        '{brand} is a physical eSIM card for global travelers. 200+ countries and regions, flexible plans, effortless management.',
     },
     'zh-Hant': {
-      title: 'RemoteRadar – 遠端求職搜尋與投遞助手',
+      title: '{brand} – 一張卡，連接你的世界',
       description:
-        'RemoteRadar 持續掃描可靠的職缺來源，說明每個職位為何與你的履歷匹配，並協助你準備更具說服力的求職申請。',
+        '{brand} 為全球旅行者打造的實體 eSIM 卡。支援 200+ 國家和地區，靈活套餐，輕鬆管理。',
     },
     jsonLd: true,
   },
   pricing: {
     en: {
-      title: 'Pricing',
+      title: 'Plans & Pricing',
       description:
-        'Compare RemoteRadar plans — free tier, Pro, and Power — to choose the right cadence for your remote job search.',
+        'Compare {brand} plans and find the right connectivity option for your next trip.',
     },
     'zh-Hant': {
-      title: '定價方案',
+      title: '套餐與定價',
       description:
-        '比較 RemoteRadar 方案——免費版、Pro 與 Power——選擇最適合你的求職節奏。',
+        '比較 {brand} 套餐，為你的下一次旅行選擇合適的連接方案。',
     },
   },
   contact: {
     en: {
       title: 'Contact Us',
       description:
-        'Get in touch with the RemoteRadar team to discuss your target markets, current hiring pipeline, and what you want from the first round of research.',
+        'Get in touch with the {brand} team — activation help, plan questions, and 24/7 global support.',
     },
     'zh-Hant': {
       title: '聯絡我們',
       description:
-        '與 RemoteRadar 團隊溝通你的目標市場、目前的招聘流程，以及你希望第一輪研究獲得什麼結果。',
+        '聯絡 {brand} 團隊——啟用協助、套餐問題，以及 24/7 全球支援。',
     },
   },
   help: {
     en: {
       title: 'Help Center',
       description:
-        'Learn how to create job projects, set exclusion rules, review evidence, and approve outreach before it goes out.',
+        'Learn how to install eSIM profiles, manage plans per card, and switch destinations in the {brand} app.',
     },
     'zh-Hant': {
       title: '幫助中心',
       description:
-        '了解如何建立職缺專案、設定排除規則、檢視證據，並在發送前核准每次觸達。',
+        '了解如何在 {brand} App 中安裝 eSIM、按卡片管理套餐，並隨時切換目的地。',
     },
   },
   privacy: {
     en: {
       title: 'Privacy Policy',
       description:
-        'RemoteRadar stores only the account, project, and lead data required to operate the service. Delete and suppression requests are applied immediately.',
+        'How {brand} collects, uses, and protects the account and order information required to operate the service.',
     },
     'zh-Hant': {
       title: '隱私權政策',
       description:
-        'RemoteRadar 僅儲存運作所需的帳號、專案與候選人資料，刪除與停權請求會立即生效。',
+        '{brand} 如何收集、使用和保護營運服務所需的帳戶與訂單資訊。',
     },
   },
   terms: {
     en: {
       title: 'Terms of Service',
       description:
-        'Clear and transparent terms covering remote job research, sourcing permissions, approval workflows, and acceptable use.',
+        'Clear terms covering purchases, payments, eSIM activation, and acceptable use of {brand} services.',
     },
     'zh-Hant': {
       title: '服務條款',
       description:
-        '涵蓋遠端職缺研究、資料來源授權、審核工作流與合理使用的明確條款。',
+        '涵蓋購買、付款、eSIM 啟用與 {brand} 服務合理使用的明確條款。',
     },
   },
   'how-it-works': {
     en: {
       title: 'How It Works',
       description:
-        'See how RemoteRadar scans sources, matches roles to your profile, and turns each opportunity into a ready-to-send application.',
+        'Connect the {brand} card, add an eSIM plan, and switch destinations — from the card to a connected world.',
     },
     'zh-Hant': {
       title: '運作方式',
       description:
-        '了解 RemoteRadar 如何掃描來源、將職位與你的檔案匹配，並把每個機會轉為可直接寄出的申請。',
+        '連接 {brand} 卡片、添加 eSIM 套餐並切換目的地——從一張卡到連接世界。',
     },
   },
   'download/app': {
     en: {
-      title: 'Get the BOKMOO App',
+      title: 'Get the {brand} App',
       description:
-        'Download the BOKMOO app for iOS and Android — activate your card over Bluetooth, install eSIM profiles, and track data on the go.',
+        'Download the {brand} app for iOS and Android — activate your card over Bluetooth, install eSIM profiles, and track data on the go.',
     },
     'zh-Hant': {
-      title: '取得 BOKMOO App',
+      title: '取得 {brand} App',
       description:
-        '下載 BOKMOO iOS 與 Android App——藍牙啟用您的卡片、安裝 eSIM 配置檔，隨時掌握數據用量。',
+        '下載 {brand} iOS 與 Android App——藍牙啟用您的卡片、安裝 eSIM 配置檔，隨時掌握數據用量。',
     },
   },
 } satisfies Record<string, { en: { title: string; description: string }; 'zh-Hant': { title: string; description: string }; jsonLd?: boolean }>;
@@ -135,7 +135,10 @@ export function generatePublicPageMetadata({
 }): Metadata {
   const meta = PAGE_META[route];
   const lang = locale === 'zh-Hant' ? 'zh-Hant' : 'en';
-  const { title, description } = meta[lang]!;
+  const brand = brandName?.trim() || 'BOKMOO';
+  const { title: rawTitle, description: rawDescription } = meta[lang]!;
+  const title = rawTitle.split('{brand}').join(brand);
+  const description = rawDescription.split('{brand}').join(brand);
 
   const base = new URL(origin);
   const urlPath = `/${locale}/${route === 'home' ? '' : route}`;
@@ -180,15 +183,15 @@ export function generatePublicPageMetadata({
 /*  JSON-LD (home page only)                                           */
 /* ------------------------------------------------------------------ */
 
-export function homeJsonLd(origin: string): string {
+export function homeJsonLd(origin: string, brandName = 'BOKMOO'): string {
   const base = new URL(origin);
   return JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'RemoteRadar',
+    name: brandName,
     url: base.toString(),
     description:
-      'RemoteRadar continuously scans trusted sources, explains why each role matches your profile, and helps you prepare a stronger application.',
+      `${brandName} is a physical eSIM card for global travelers — 200+ countries and regions with flexible plans.`,
     potentialAction: {
       '@type': 'SearchAction',
       target: { '@type': 'EntryPoint', urlTemplate: `${base}en/search?q={search_term_string}` },
@@ -197,12 +200,12 @@ export function homeJsonLd(origin: string): string {
   });
 }
 
-export function organizationJsonLd(origin: string): string {
+export function organizationJsonLd(origin: string, brandName = 'BOKMOO'): string {
   const base = new URL(origin);
   return JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'RemoteRadar',
+    name: brandName,
     url: base.toString(),
     logo: new URL('/icon-512x512.png', base).toString(),
     sameAs: [],

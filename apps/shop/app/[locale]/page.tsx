@@ -26,14 +26,16 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
     getServerStoreContext({ cache: 'no-store' }),
     resolvePublicOrigin(),
   ]);
-  const brandName = context?.theme?.config?.brand?.name?.trim() || context?.storeName?.trim() || 'RemoteRadar';
+  const brandName = context?.theme?.config?.brand?.name?.trim() || context?.storeName?.trim() || 'BOKMOO';
   return generatePublicPageMetadata({ route: 'home', locale, origin, brandName });
 }
 
 export default async function HomePage({ params }: HomePageProps) {
   const { locale } = await params;
+  const context = await getServerStoreContext({ cache: 'no-store' });
+  const brandName = context?.theme?.config?.brand?.name?.trim() || context?.storeName?.trim() || 'BOKMOO';
   const origin = await resolvePublicOrigin();
-  const structuredData = `${homeJsonLd(origin)}\n${organizationJsonLd(origin)}`;
+  const structuredData = `${homeJsonLd(origin, brandName)}\n${organizationJsonLd(origin, brandName)}`;
   return (
     <>
       <HomePageClient />
