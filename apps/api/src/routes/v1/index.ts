@@ -14,6 +14,7 @@ import { accountRoutes } from '@/core/account/routes';
 import { productRoutes } from '@/core/product/routes';
 import { cartRoutes } from '@/core/cart/routes';
 import { orderRoutes } from '@/core/order/routes';
+import { pluginOrderRoutes } from '@/core/order/plugin-orders-routes';
 import { paymentRoutes } from '@/core/payment/routes';
 
 import { upgradeRoutes } from '@/core/upgrade/routes';
@@ -72,6 +73,7 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(productRoutes, { prefix: '/products' });
   await fastify.register(cartRoutes, { prefix: '/cart' });
   await fastify.register(orderRoutes, { prefix: '/orders' });
+  await fastify.register(pluginOrderRoutes, { prefix: '/internal/plugin-orders' });
   await fastify.register(paymentRoutes, { prefix: '/payments' });
   await fastify.register(publicThemeRoutes, { prefix: '/themes' });
 

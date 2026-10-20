@@ -13,6 +13,16 @@ type SupplierOrderStatusItem = {
   planId?: string | null;
   qrCodeContent?: string | null;
   cardUid?: string | null;
+  shipmentId?: string | null;
+  carrierCode?: string | null;
+  carrierName?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  shipmentStatus?: string | null;
+  shippedAt?: string | null;
+  estimatedDeliveryAt?: string | null;
+  lastCheckedAt?: string | null;
+  shipmentEvents?: Array<Record<string, unknown>> | null;
   rawResponse?: Record<string, unknown> | null;
 };
 
@@ -76,6 +86,16 @@ export async function adminExternalOrdersIntegrationRoutes(fastify: FastifyInsta
                   planId: { type: 'string' },
                   qrCodeContent: { type: 'string' },
                   cardUid: { type: 'string' },
+                  shipmentId: { type: 'string' },
+                  carrierCode: { type: 'string' },
+                  carrierName: { type: 'string' },
+                  trackingNumber: { type: 'string' },
+                  trackingUrl: { type: 'string' },
+                  shipmentStatus: { type: 'string' },
+                  shippedAt: { type: 'string' },
+                  estimatedDeliveryAt: { type: 'string' },
+                  lastCheckedAt: { type: 'string' },
+                  shipmentEvents: { type: 'array', items: { type: 'object', additionalProperties: true } },
                   rawResponse: { type: 'object', additionalProperties: true },
                 },
               },
@@ -104,4 +124,3 @@ export async function adminExternalOrdersIntegrationRoutes(fastify: FastifyInsta
     }
   );
 }
-

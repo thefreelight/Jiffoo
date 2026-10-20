@@ -1,7 +1,7 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle2, Copy, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Copy, Loader2, Package, RefreshCw } from 'lucide-react';
 import type { OrderSuccessPageProps } from 'shared/src/types/theme';
-import { getBokmooInstallSession, getOrderIdFromLocation, type BokmooInstallSession } from '../lib/api';
+import { getBokmooInstallSession, getBokmooOrder, getOrderIdFromLocation, type BokmooInstallSession } from '../lib/api';
 import { InstallSessionPanel } from './InstallSessionPanel';
 import { resolveBokmooSiteConfig } from '../site';
 
@@ -33,9 +33,33 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
   );
   const [errorMessage, setErrorMessage] = React.useState<string>('');
   const [attempt, setAttempt] = React.useState(0);
+  // Physical-goods orders (e.g. the Bokmoo Card) ship by courier and have no
+  // install session; only eSIM orders enter the activation flow below.
+  const [orderKind, setOrderKind] = React.useState<'checking' | 'esim' | 'physical'>(
+    orderId ? 'checking' : 'esim'
+  );
+
+  React.useEffect(() => {
+    if (!orderId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const detail = await getBokmooOrder({ baseUrl: site.apiBaseUrl }, orderId);
+        if (cancelled) return;
+        const items = detail.items || [];
+        const hasEsim = items.some((item) => item.productKind === 'esim');
+        setOrderKind(hasEsim || items.length === 0 ? 'esim' : 'physical');
+      } catch {
+        if (!cancelled) setOrderKind('esim');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId, site.apiBaseUrl]);
 
   const loadInstallSession = React.useCallback(async () => {
-    if (!orderId) return;
+    if (!orderId || orderKind !== 'esim') return;
 
     try {
       const session = await getBokmooInstallSession(
@@ -60,7 +84,7 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
   }, [loadInstallSession, orderId]);
 
   React.useEffect(() => {
-    if (!orderId) return;
+    if (!orderId || orderKind !== 'esim') return;
     if (status !== 'processing' && status !== 'idle') return;
 
     const delay = getPollDelay(attempt);
@@ -75,7 +99,7 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
     }, delay);
 
     return () => window.clearTimeout(timer);
-  }, [attempt, loadInstallSession, orderId, status]);
+  }, [attempt, loadInstallSession, orderId, orderKind, status]);
 
   const isReady = status === 'ready' || status === 'installed';
   const isPendingPayment = status === 'pending_payment';
@@ -85,37 +109,51 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
       <div className="mx-auto max-w-[520px]">
         <div className="rounded-[1.6rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 text-center shadow-[var(--bokmoo-shadow)] sm:p-8">
           <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-[var(--bokmoo-gold)]">
-            {status === 'failed' || status === 'expired' || isPendingPayment ? (
-              <AlertTriangle className="h-11 w-11" />
-            ) : status === 'processing' || isVerifying ? (
-              <Loader2 className="h-11 w-11 animate-spin" />
-            ) : (
-              <CheckCircle2 className="h-11 w-11" />
-            )}
+            {orderKind === 'physical'
+              ? status === 'failed'
+                ? <AlertTriangle className="h-11 w-11" />
+                : <Package className="h-10 w-10" />
+              : status === 'failed' || status === 'expired' || isPendingPayment
+                ? <AlertTriangle className="h-11 w-11" />
+                : status === 'processing' || isVerifying
+                  ? <Loader2 className="h-11 w-11 animate-spin" />
+                  : <CheckCircle2 className="h-11 w-11" />}
           </div>
 
           <h1 className="mt-8 text-[clamp(2.2rem,4vw,3.6rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-            {status === 'failed'
-              ? 'Fulfillment Needs Attention'
-              : isPendingPayment
-                ? 'Payment Pending'
-              : status === 'expired'
-                ? 'Activation Expired'
-                : status === 'processing' || isVerifying
-                  ? 'Preparing your eSIM...'
-                  : 'Payment Successful!'}
+            {orderKind === 'physical'
+              ? status === 'failed'
+                ? 'Fulfillment Needs Attention'
+                : isPendingPayment
+                  ? 'Payment Pending'
+                  : 'Your card is being prepared for shipment'
+              : status === 'failed'
+                ? 'Fulfillment Needs Attention'
+                : isPendingPayment
+                  ? 'Payment Pending'
+                : status === 'expired'
+                  ? 'Activation Expired'
+                  : status === 'processing' || isVerifying
+                    ? 'Preparing your eSIM...'
+                    : 'Payment Successful!'}
           </h1>
 
           <p className="mt-4 text-base leading-8 text-[var(--bokmoo-copy)]">
-            {status === 'failed'
-              ? errorMessage || 'We could not prepare your install session yet.'
-              : isPendingPayment
-                ? 'Complete payment to unlock your eSIM install details.'
-              : status === 'expired'
-                ? 'Your activation session expired before installation completed.'
-                : status === 'processing' || isVerifying
-                  ? 'Your order is paid. We are preparing the install session now.'
-                  : 'Your eSIM is ready to use.'}
+            {orderKind === 'physical'
+              ? status === 'failed'
+                ? errorMessage || 'We could not prepare your shipment yet.'
+                : isPendingPayment
+                  ? 'Complete payment and we will start preparing your card for delivery.'
+                  : 'Your order is paid. We are packing your Bokmoo Card now — you will get a shipping confirmation with tracking, and it should arrive within a few business days.'
+              : status === 'failed'
+                ? errorMessage || 'We could not prepare your install session yet.'
+                : isPendingPayment
+                  ? 'Complete payment to unlock your eSIM install details.'
+                : status === 'expired'
+                  ? 'Your activation session expired before installation completed.'
+                  : status === 'processing' || isVerifying
+                    ? 'Your order is paid. We are preparing the install session now.'
+                    : 'Your eSIM is ready to use.'}
           </p>
 
           {installSession?.packageTitle ? (
@@ -138,14 +176,24 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
           ) : null}
 
           <div className="mt-8 space-y-3">
-            <button
-              onClick={isReady ? onViewOrders : () => void loadInstallSession()}
-              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]"
-              type="button"
-            >
-              {isReady ? 'View eSIM Details' : 'Refresh Status'}
-              {!isReady ? <RefreshCw className="h-4 w-4" /> : null}
-            </button>
+            {orderKind === 'physical' ? (
+              <button
+                onClick={onViewOrders}
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]"
+                type="button"
+              >
+                Track Your Order
+              </button>
+            ) : (
+              <button
+                onClick={isReady ? onViewOrders : () => void loadInstallSession()}
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]"
+                type="button"
+              >
+                {isReady ? 'View eSIM Details' : 'Refresh Status'}
+                {!isReady ? <RefreshCw className="h-4 w-4" /> : null}
+              </button>
+            )}
             <button
               onClick={onContinueShopping}
               className="flex min-h-12 w-full items-center justify-center rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-5 text-sm font-medium text-[var(--bokmoo-ink)]"

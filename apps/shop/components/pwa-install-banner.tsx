@@ -7,6 +7,11 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
 
+/** How long the banner stays visible before auto-dismissing. */
+const AUTO_DISMISS_MS = 5000;
+/** Tick resolution for the auto-dismiss countdown. */
+const AUTO_DISMISS_TICK_MS = 100;
+
 interface PwaInstallBannerProps {
   /** Custom install message */
   installMessage?: string;
@@ -45,12 +50,40 @@ export function PwaInstallBanner({
 
   const [mounted, setMounted] = React.useState(false);
   const [dismissed, setDismissed] = React.useState(false);
+  const [autoDismissRemaining, setAutoDismissRemaining] = React.useState(AUTO_DISMISS_MS);
+  const [interactionPaused, setInteractionPaused] = React.useState(false);
 
   // Initialize on mount
   React.useEffect(() => {
     setMounted(true);
     initialize();
   }, [initialize]);
+
+  const suppressedPath = isPwaInstallBannerSuppressedPath(pathname);
+  const bannerVisible = mounted && !suppressedPath && !isInstalled && isInstallable && !dismissed;
+
+  // Restart the auto-dismiss countdown whenever the banner (re)appears
+  React.useEffect(() => {
+    if (bannerVisible) {
+      setAutoDismissRemaining(AUTO_DISMISS_MS);
+    }
+  }, [bannerVisible]);
+
+  // Auto-dismiss: count down while the banner is visible and the user is not
+  // reading/interacting with it (hover or keyboard focus pauses the timer).
+  React.useEffect(() => {
+    if (!bannerVisible || interactionPaused) return;
+    const interval = setInterval(() => {
+      setAutoDismissRemaining((remaining) => {
+        if (remaining <= AUTO_DISMISS_TICK_MS) {
+          setDismissed(true);
+          return 0;
+        }
+        return remaining - AUTO_DISMISS_TICK_MS;
+      });
+    }, AUTO_DISMISS_TICK_MS);
+    return () => clearInterval(interval);
+  }, [bannerVisible, interactionPaused]);
 
   // Clear error after 5 seconds
   React.useEffect(() => {
@@ -86,10 +119,7 @@ export function PwaInstallBanner({
     : 'bottom-0';
 
   // Should show banner
-  const shouldShow = !isPwaInstallBannerSuppressedPath(pathname)
-    && !isInstalled
-    && isInstallable
-    && !dismissed;
+  const shouldShow = bannerVisible;
 
   // Mobile-optimized animation variants (GPU-accelerated: transform & opacity only)
   const bannerVariants = {
@@ -140,17 +170,30 @@ export function PwaInstallBanner({
           className={cn(
             'fixed left-4 right-4 z-[100] px-4 py-3 rounded-xl mb-4',
             'bg-[#1c1c1c]/90 backdrop-blur-md border border-[#2a2a2a] text-[#eaeaea] shadow-2xl',
-            'flex items-center justify-between gap-3',
+            'flex items-center justify-between gap-3 relative overflow-hidden',
             positionClass,
             className
           )}
           role="banner"
           aria-live="polite"
+          onMouseEnter={() => setInteractionPaused(true)}
+          onMouseLeave={() => setInteractionPaused(false)}
+          onFocusCapture={() => setInteractionPaused(true)}
+          onBlurCapture={() => setInteractionPaused(false)}
           style={{
             // Enable GPU acceleration for better mobile performance
             willChange: 'transform, opacity',
           }}
         >
+          {/* Auto-dismiss countdown: communicates that the banner is temporary */}
+          <div
+            aria-hidden="true"
+            className="absolute bottom-0 left-0 h-0.5 bg-white/40"
+            style={{
+              width: `${(autoDismissRemaining / AUTO_DISMISS_MS) * 100}%`,
+              transition: 'width 100ms linear',
+            }}
+          />
           <motion.div
             className="flex items-center gap-3 flex-1 min-w-0"
             initial={{ opacity: 0, x: -20 }}

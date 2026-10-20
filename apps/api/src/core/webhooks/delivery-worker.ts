@@ -343,6 +343,8 @@ export async function deliverInternalWebhook(params: InternalDeliveryParams): Pr
       eventType,
       installationId,
     });
+
+    throw error;
   }
 }
 

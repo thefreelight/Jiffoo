@@ -10,8 +10,9 @@ import './globals.css';
 import { DevTools } from '@/components/dev-tools';
 import { AdminThemePackWrapper } from '@/components/admin-theme-pack-wrapper';
 
+
 export const metadata: Metadata = {
-  title: 'Commerce Admin - Management Dashboard',
+  title: 'Jiffoo Admin',
   description: 'Operational admin workspace for commerce teams',
 };
 

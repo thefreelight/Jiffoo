@@ -15,6 +15,8 @@ model User {
   storeId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  lastLoginAt DateTime?
+  lastLoginIp  String?
 
   // Email verification fields
   emailVerified           Boolean   @default(false)
@@ -28,6 +30,7 @@ model User {
   discountUsages    DiscountUsage[]
   store             Store?             @relation(fields: [storeId], references: [id])
   adminMembership   AdminMembership?
+  securityEvents    SecurityEvent[]
 
   @@index([email])
   @@index([role])
@@ -167,5 +170,22 @@ model AdminStaffAuditLog {
   @@index([staffUserId, createdAt])
   @@index([action, createdAt])
   @@map("admin_staff_audit_logs")
+  @@schema("public")
+}
+
+model SecurityEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String
+  action    String
+  source    String   @default("storefront")
+  ip        String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([email, createdAt])
+  @@map("security_events")
   @@schema("public")
 }

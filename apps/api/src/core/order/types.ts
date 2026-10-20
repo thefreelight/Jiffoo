@@ -120,6 +120,10 @@ export interface ShipmentResponse {
   trackingNumber?: string | null;
   carrier?: string | null;
   status: ShipmentStatusType;
+  trackingUrl?: string | null;
+  estimatedDeliveryAt?: string | null;
+  lastCheckedAt?: string | null;
+  events?: Array<Record<string, unknown>>;
   items: Array<{ id: string; orderItemId: string; quantity: number }>;
 }
 

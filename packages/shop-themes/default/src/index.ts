@@ -92,7 +92,6 @@ export const theme: ThemePackage = {
       primaryCtaHref: '/products',
       secondaryCtaLabel: 'Explore categories',
       secondaryCtaHref: '/products',
-      installCommand: 'curl -fsSL https://get.jiffoo.com | bash',
       docsHref: '/help',
       demoHref: '/products',
       supportEmail: 'hello@jiffoo.com',

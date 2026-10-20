@@ -82,13 +82,24 @@ export default function LoginPage() {
         sessionStorage.removeItem('redirectAfterLogin');
         router.push(redirectPath);
       } else {
-        // Navigate to home with locale preserved
-        nav.push('/');
+        // A successful sign-in should expose the user's account state directly.
+        // Keep explicit checkout redirects intact, but never leave the user on
+        // the anonymous landing page after authentication.
+        nav.push('/profile');
       }
     } catch (error: any) {
+      const message = error?.message || getText('common.errors.tryAgain', 'Please try again');
+      if (error?.code === 'EMAIL_NOT_VERIFIED' || /email not verified/i.test(message)) {
+        toast({
+          title: getText('shop.auth.verifyTitle', 'Verify your email'),
+          description: getText('shop.auth.verifyMessage', 'Enter the six-digit code we sent, or request a new one.'),
+        });
+        nav.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
       toast({
         title: getText('shop.auth.login.failed', 'Login failed'),
-        description: error.message || getText('common.errors.tryAgain', 'Please try again'),
+        description: message,
         variant: 'destructive',
       });
     }
@@ -103,6 +114,16 @@ export default function LoginPage() {
   const handleNavigateToForgotPassword = () => {
     nav.push('/auth/forgot-password');
   };
+
+  // Prefetch the recovery page so clicking "Forgot password" is instant
+  // instead of waiting on a cold route render.
+  React.useEffect(() => {
+    try {
+      router.prefetch(`/${nav.locale}/auth/forgot-password`);
+    } catch {
+      // Prefetch is best-effort; navigation still works without it.
+    }
+  }, [router, nav.locale]);
 
   const handleOAuthClick = async (provider: SocialProvider) => {
     try {

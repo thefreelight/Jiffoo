@@ -4,6 +4,7 @@ const { createNextConfig } = require('../../packages/shared/config/next.config.b
 const nextConfig = createNextConfig({
   appName: 'Admin',
   port: 3002,
+  apiRouteHandler: true,
   turbopack: {
     root: require('path').resolve(__dirname, '../..'),
   },

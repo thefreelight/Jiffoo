@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft, Check, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { cn } from '@jiffoo/ui';
 import type { CartPageProps } from 'shared/src/types/theme';
+import { pickCopy } from '../site';
 
 export const CartPage = React.memo(function CartPage({
   cart,
@@ -16,7 +17,9 @@ export const CartPage = React.memo(function CartPage({
   onSelectAllItems,
   onDeselectAllItems,
   onContinueShopping,
+  locale,
 }: CartPageProps) {
+  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
   const supportsSelection = Boolean(
     onCheckoutSelected && onToggleItemSelection && onSelectAllItems && onDeselectAllItems
   );
@@ -46,10 +49,10 @@ export const CartPage = React.memo(function CartPage({
               <ShoppingBag className="h-10 w-10" />
             </div>
             <h1 className="mt-6 text-[clamp(2.2rem,4vw,4rem)] leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-              Your cart is empty.
+              {t({ en: 'Your cart is empty.', hans: '购物车是空的。', hant: '購物車是空的。' })}
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[var(--bokmoo-copy)]">
-              Add a destination or regional plan to prepare your connectivity before departure.
+              {t({ en: 'Add a destination or regional plan to prepare your connectivity before departure.', hans: '添加目的地或区域套餐，出发前备好连接。', hant: '添加目的地或區域套餐，出發前備好連接。' })}
             </p>
             <button
               onClick={onContinueShopping}
@@ -57,7 +60,7 @@ export const CartPage = React.memo(function CartPage({
               type="button"
             >
               <ArrowLeft className="h-4 w-4" />
-              Continue browsing
+              {t({ en: 'Continue browsing', hans: '继续逛店', hant: '繼續逛店' })}
             </button>
           </div>
         </div>
@@ -78,10 +81,10 @@ export const CartPage = React.memo(function CartPage({
           </button>
           <div>
             <p className="text-[11px] font-semibold tracking-[0.2em] text-[var(--bokmoo-copy-soft)]">
-              Travel Cart
+              {t({ en: 'Travel Cart', hans: '旅行购物车', hant: '旅行購物車' })}
             </p>
             <h1 className="mt-1 text-[clamp(2rem,4vw,3.6rem)] leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-              Review your selected plans.
+              {t({ en: 'Review your selected plans.', hans: '确认你选择的套餐。', hant: '確認你選擇的套餐。' })}
             </h1>
           </div>
         </div>
@@ -109,10 +112,10 @@ export const CartPage = React.memo(function CartPage({
               >
                 <Check className="h-3.5 w-3.5" />
               </span>
-              {allSelected ? 'Deselect all' : 'Select all'}
+              {allSelected ? t({ en: 'Deselect all', hans: '取消全选', hant: '取消全選' }) : t({ en: 'Select all', hans: '全选', hant: '全選' })}
             </button>
             <span className="text-xs font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-              {selectedItemCount ?? effectiveSelectedIds.length} selected
+              {selectedItemCount ?? effectiveSelectedIds.length} {t({ en: 'selected', hans: '已选', hant: '已選' })}
             </span>
           </div>
         ) : null}
@@ -158,7 +161,7 @@ export const CartPage = React.memo(function CartPage({
                         {item.variantName}
                       </p>
                     ) : null}
-                    <p className="mt-3 text-sm text-[var(--bokmoo-copy)]">Instant eSIM delivery with activation instructions included.</p>
+                    <p className="mt-3 text-sm text-[var(--bokmoo-copy)]">{t({ en: 'Instant eSIM delivery with activation instructions included.', hans: '即时送达 eSIM，含激活说明。', hant: '即時送達 eSIM，含啟用說明。' })}</p>
                     <div className="mt-4 flex items-center gap-3">
                       <div className="flex items-center rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-2 py-1">
                         <button
@@ -185,7 +188,7 @@ export const CartPage = React.memo(function CartPage({
                         onClick={() => onRemoveItem(item.id)}
                         disabled={isLoading}
                         className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] text-[var(--bokmoo-copy)] transition-colors hover:text-[var(--bokmoo-danger)] disabled:opacity-40"
-                        title="Remove"
+                        title={t({ en: 'Remove', hans: '删除', hant: '刪除' })}
                         type="button"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -194,7 +197,7 @@ export const CartPage = React.memo(function CartPage({
                   </div>
 
                   <div className="text-right">
-                    <p className="text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Subtotal</p>
+                    <p className="text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">{t({ en: 'Subtotal', hans: '小计', hant: '小計' })}</p>
                     <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]">
                       ${item.subtotal.toFixed(2)}
                     </p>
@@ -207,37 +210,37 @@ export const CartPage = React.memo(function CartPage({
           <aside className="lg:col-span-1">
             <div className="sticky top-24 rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)]">
               <p className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                Summary
+                {t({ en: 'Summary', hans: '摘要', hant: '摘要' })}
               </p>
 
               <div className="mt-6 space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[var(--bokmoo-copy)]">Selected items</span>
+                  <span className="text-[var(--bokmoo-copy)]">{t({ en: 'Selected items', hans: '已选商品', hant: '已選商品' })}</span>
                   <span className="text-[var(--bokmoo-ink)]">{supportsSelection ? selectedQuantity : cart.itemCount}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-[var(--bokmoo-copy)]">Subtotal</span>
+                  <span className="text-[var(--bokmoo-copy)]">{t({ en: 'Subtotal', hans: '小计', hant: '小計' })}</span>
                   <span className="text-[var(--bokmoo-ink)]">${selectedSubtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-[var(--bokmoo-copy)]">Tax</span>
+                  <span className="text-[var(--bokmoo-copy)]">{t({ en: 'Tax', hans: '税费', hant: '稅費' })}</span>
                   <span className="text-[var(--bokmoo-ink)]">${selectedTax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-[var(--bokmoo-copy)]">Shipping</span>
+                  <span className="text-[var(--bokmoo-copy)]">{t({ en: 'Shipping', hans: '运费', hant: '運費' })}</span>
                   <span className="text-[var(--bokmoo-ink)]">
-                    {selectedShipping === 0 ? 'No shipping required' : `$${selectedShipping.toFixed(2)}`}
+                    {selectedShipping === 0 ? t({ en: 'No shipping required', hans: '无需运费', hant: '無需運費' }) : `$${selectedShipping.toFixed(2)}`}
                   </span>
                 </div>
                 {selectedDiscount > 0 ? (
                   <div className="flex justify-between text-sm text-[var(--bokmoo-success)]">
-                    <span>Discount</span>
+                    <span>{t({ en: 'Discount', hans: '优惠', hant: '優惠' })}</span>
                     <span>-${selectedDiscount.toFixed(2)}</span>
                   </div>
                 ) : null}
                 <div className="border-t border-[var(--bokmoo-line)] pt-4">
                   <div className="flex justify-between text-lg">
-                    <span className="text-[var(--bokmoo-ink)]">Total</span>
+                    <span className="text-[var(--bokmoo-ink)]">{t({ en: 'Total', hans: '总计', hant: '總計' })}</span>
                     <span className="font-semibold text-[var(--bokmoo-ink)]">${selectedTotal.toFixed(2)}</span>
                   </div>
                 </div>
@@ -255,7 +258,7 @@ export const CartPage = React.memo(function CartPage({
                 className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-5 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50"
                 type="button"
               >
-                Secure Checkout
+                {t({ en: 'Secure Checkout', hans: '安全结算', hant: '安全結算' })}
               </button>
             </div>
           </aside>

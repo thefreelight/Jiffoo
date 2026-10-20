@@ -96,8 +96,13 @@ function isThemePackKind(kind?: string): boolean {
     return kind === 'theme-shop' || kind === 'theme-admin';
 }
 
-function isThemeRuntimeBundle(filename: string): boolean {
-    return filename.replace(/\\/g, '/') === 'runtime/theme-runtime.js';
+function isAllowedThemeRuntimeScript(filename: string, kind?: string): boolean {
+    if (!isThemePackKind(kind)) {
+        return false;
+    }
+
+    const normalized = filename.replace(/\\/g, '/').toLowerCase();
+    return normalized === 'runtime/theme-runtime.js';
 }
 
 /**
@@ -109,10 +114,7 @@ export function validateFileExtension(filename: string, kind?: string): void {
 
     // Theme Pack (L3.5): strict allow-list + strict forbidden-list
     if (isThemePackKind(kind)) {
-        // Theme packs are declarative by default, but the official runtime
-        // bundle is required to render the pack in the storefront. Keep the
-        // exception path-specific so arbitrary scripts remain blocked.
-        if (isThemeRuntimeBundle(filename)) {
+        if (isAllowedThemeRuntimeScript(filename, kind)) {
             return;
         }
         if (FORBIDDEN_EXTENSIONS.includes(ext as any)) {

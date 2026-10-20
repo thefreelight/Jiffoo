@@ -2,18 +2,23 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, AlertTriangle, CheckCircle2, Loader2, RefreshCw, ShieldCheck, Workflow } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Cloud, Loader2, RefreshCw, Send, Settings2, ShieldCheck, Truck, Workflow } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
 import { apiClient, unwrapApiResponse } from '@/lib/api';
 import type { PluginInstance } from '@/lib/api';
 import type { PluginConfigMeta } from '@/lib/types';
 import {
+  useAffiliateNativeOverview,
   useCreatePluginInstance,
   useInstalledPlugins,
   useOfficialCatalog,
   usePluginConfig,
   usePluginInstances,
+  useUpdateAffiliateCommissionStatus,
+  useUpdateAffiliateOrganization,
+  useUpdateAffiliatePartner,
   useUpdatePluginInstance,
+  type AffiliateNativeOverviewData,
 } from '@/lib/hooks/use-api';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +32,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
 import { OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import { PluginInstanceManager } from '@/components/plugins/PluginInstanceManager';
+import { RemoteRadarJobsNativeWorkspace } from '@/components/plugins/RemoteRadarJobsNativeWorkspace';
+import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability';
 import { toast } from 'sonner';
 
 type PluginConfigDescriptor = {
@@ -79,6 +86,31 @@ type OdooJobPayload = {
   progressTotal?: number | null;
   productType?: string | null;
   lastError?: string | null;
+};
+
+type ShippingProvider = 'kuaidi100' | 'fourpx';
+
+type ShippingProviderAction = {
+  value: string;
+  label: string;
+  endpoint: string;
+  needsMerchantReference?: boolean;
+};
+
+const shippingProviderActions: Record<ShippingProvider, ShippingProviderAction[]> = {
+  kuaidi100: [
+    { value: 'label-order', label: 'Create label order', endpoint: 'kuaidi100/label-orders', needsMerchantReference: true },
+    { value: 'pickup-order', label: 'Create pickup order', endpoint: 'kuaidi100/pickup-orders', needsMerchantReference: true },
+    { value: 'tracking-query', label: 'Query tracking', endpoint: 'kuaidi100/tracking/query' },
+    { value: 'tracking-subscribe', label: 'Subscribe to tracking', endpoint: 'kuaidi100/tracking/subscribe' },
+  ],
+  fourpx: [
+    { value: 'create-order', label: 'Create shipment order', endpoint: 'fourpx/orders', needsMerchantReference: true },
+    { value: 'get-order', label: 'Get shipment order', endpoint: 'fourpx/orders/get' },
+    { value: 'cancel-order', label: 'Cancel shipment order', endpoint: 'fourpx/orders/cancel' },
+    { value: 'get-label', label: 'Get shipping label', endpoint: 'fourpx/labels' },
+    { value: 'get-tracking', label: 'Query tracking', endpoint: 'fourpx/tracking' },
+  ],
 };
 
 function isPlainObject(value: unknown): value is Record<string, any> {
@@ -233,14 +265,14 @@ function GenericConfigEditor(props: {
   } = props;
 
   return (
-    <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-xl tracking-tight">Configuration</CardTitle>
+    <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+      <CardHeader className="px-7 pt-7">
+        <CardTitle className="text-2xl tracking-tight">Configuration</CardTitle>
         <CardDescription>
           Update plugin settings from a native Merchant Admin form. iframe-based plugin pages are no longer used here.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-6 px-7 pb-7">
         {Object.entries(configSchema).map(([field, descriptor]) => {
           const type = getDescriptorType(descriptor);
           const label = getConfigFieldLabel(field, descriptor);
@@ -262,7 +294,7 @@ function GenericConfigEditor(props: {
                   {required ? ' *' : ''}
                 </Label>
                 <Select value={normalizedValue} onValueChange={(nextValue) => onUpdateField(field, nextValue)}>
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="h-11 rounded-xl">
                     <SelectValue placeholder={label} />
                   </SelectTrigger>
                   <SelectContent>
@@ -280,7 +312,7 @@ function GenericConfigEditor(props: {
 
           if (type === 'boolean') {
             return (
-              <div key={field} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
+              <div key={field} className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3">
                 <div className="space-y-1 pr-4">
                   <Label className="text-sm font-medium">
                     {label}
@@ -305,7 +337,7 @@ function GenericConfigEditor(props: {
                 <Textarea
                   value={jsonFieldDrafts[field] ?? JSON.stringify(value ?? (type === 'array' ? [] : {}), null, 2)}
                   onChange={(event) => onUpdateJsonField(field, event.target.value, type)}
-                  className="min-h-[180px] rounded-2xl font-mono"
+                  className="min-h-[180px] rounded-xl font-mono"
                 />
                 {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
                 {error ? <p className="text-xs text-red-600">{error}</p> : null}
@@ -326,7 +358,7 @@ function GenericConfigEditor(props: {
                     onChange={(event) =>
                       onUpdateField(field, event.target.value === '' ? '' : Number(event.target.value))
                     }
-                    className="rounded-xl"
+                    className="h-11 rounded-xl"
                   />
                 {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
               </div>
@@ -350,7 +382,7 @@ function GenericConfigEditor(props: {
                     ? 'Stored securely. Leave blank to keep the current value.'
                     : undefined
                 }
-                className="rounded-xl"
+                className="h-11 rounded-xl"
               />
               {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
               {type === 'secret' && secretConfigured ? (
@@ -363,10 +395,103 @@ function GenericConfigEditor(props: {
         })}
 
         <div className="flex justify-end">
-          <Button onClick={onSave} disabled={saving} className="rounded-xl">
+          <Button onClick={onSave} disabled={saving} className="rounded-xl px-6">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Save configuration
           </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NativeConnectionTest({ slug, disabled, onEnable }: { slug: string; disabled: boolean; onEnable: () => Promise<void> }) {
+  const [recipient, setRecipient] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [message, setMessage] = useState('Save configuration, then enable this plugin to run a live test.');
+  const [tone, setTone] = useState<'default' | 'success' | 'error'>('default');
+  const [enabling, setEnabling] = useState(false);
+
+  const enablePlugin = async () => {
+    setEnabling(true);
+    setTone('default');
+    setMessage('Enabling plugin...');
+    try {
+      await onEnable();
+      setMessage('Plugin enabled. Enter a recipient and run the test.');
+    } catch (error) {
+      setTone('error');
+      setMessage(error instanceof Error ? error.message : 'Could not enable plugin.');
+    } finally {
+      setEnabling(false);
+    }
+  };
+
+  const testConnection = async () => {
+    if (slug === 'smtp-email' && !recipient.trim()) {
+      setTone('error');
+      setMessage('Enter a recipient for the SMTP delivery test.');
+      return;
+    }
+    setTesting(true);
+    setTone('default');
+    setMessage('Testing connection...');
+    try {
+      const response = await apiClient.post(`/extensions/plugin/${slug}/api/admin/test`, slug === 'smtp-email' ? { to: recipient.trim() } : {});
+      const data = unwrapApiResponse<Record<string, unknown>>(response);
+      const detail = slug === 'stripe' && typeof data.accountId === 'string'
+        ? ` Stripe account ${data.accountId}.`
+        : slug === 'odoo' && typeof data.database === 'string'
+          ? ` Odoo database ${data.database}.`
+          : slug === 'smtp-email'
+            ? ` Test email accepted for ${recipient.trim()}.`
+            : '';
+      setTone('success');
+      setMessage(`Connection successful.${detail}`);
+    } catch (error) {
+      setTone('error');
+      setMessage(error instanceof Error ? error.message : 'Connection test failed.');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <Card className="rounded-lg border-gray-100 shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-xl tracking-tight">Connection test</CardTitle>
+        <CardDescription>Validate the saved production configuration without exposing stored credentials.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {slug === 'smtp-email' ? (
+          <div className="space-y-2">
+            <Label htmlFor="smtp-test-recipient">Test recipient</Label>
+            <Input
+              id="smtp-test-recipient"
+              type="email"
+              value={recipient}
+              onChange={(event) => setRecipient(event.target.value)}
+              placeholder="you@example.com"
+              disabled={disabled || testing || enabling}
+              className="rounded-lg"
+            />
+          </div>
+        ) : null}
+        <div className="flex items-center justify-between gap-4">
+          <p className={tone === 'error' ? 'text-sm text-red-600' : tone === 'success' ? 'text-sm text-emerald-700' : 'text-sm text-slate-600'}>
+            {message}
+          </p>
+          {disabled ? (
+            <Button type="button" onClick={() => void enablePlugin()} disabled={enabling} className="shrink-0 rounded-lg">
+              {enabling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save and enable
+            </Button>
+          ) : (
+            <Button type="button" variant="outline" onClick={() => void testConnection()} disabled={testing} className="shrink-0 rounded-lg">
+            {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Test connection
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -478,7 +603,7 @@ function I18nNativeWorkspace(props: {
   };
 
   return (
-    <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+    <Card className="rounded-lg border-gray-100 shadow-sm">
       <CardHeader>
         <CardTitle className="text-xl tracking-tight">Localization workspace</CardTitle>
         <CardDescription>
@@ -489,7 +614,7 @@ function I18nNativeWorkspace(props: {
         <div className="space-y-2">
           <Label htmlFor="i18n-default-locale">Default locale</Label>
           <Select value={defaultLocale} onValueChange={setDefaultLocale} disabled={disabled || isLoading}>
-            <SelectTrigger id="i18n-default-locale" className="rounded-xl">
+            <SelectTrigger id="i18n-default-locale" className="rounded-lg">
               <SelectValue placeholder="Select default locale" />
             </SelectTrigger>
             <SelectContent>
@@ -510,7 +635,7 @@ function I18nNativeWorkspace(props: {
               return (
                 <div
                   key={locale.code}
-                  className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3"
+                  className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3"
                 >
                   <div>
                     <p className="text-sm font-medium text-slate-900">{locale.name}</p>
@@ -527,7 +652,7 @@ function I18nNativeWorkspace(props: {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
           <p className="font-medium text-slate-900">Status</p>
           <p
             className={
@@ -543,11 +668,11 @@ function I18nNativeWorkspace(props: {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Button onClick={() => void saveLocalization()} disabled={disabled || isSaving || isLoading} className="rounded-xl">
+          <Button onClick={() => void saveLocalization()} disabled={disabled || isSaving || isLoading} className="rounded-lg">
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Save localization
           </Button>
-          <Button variant="outline" onClick={() => void loadLocalizationState()} disabled={isSaving || isLoading} className="rounded-xl">
+          <Button variant="outline" onClick={() => void loadLocalizationState()} disabled={isSaving || isLoading} className="rounded-lg">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Reload
           </Button>
@@ -735,7 +860,7 @@ function OdooNativeWorkspace(props: {
 
   return (
     <div className="space-y-6">
-      <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+      <Card className="rounded-lg border-gray-100 shadow-sm">
         <CardHeader>
           <CardTitle className="text-xl tracking-tight">Odoo configuration</CardTitle>
           <CardDescription>
@@ -746,7 +871,7 @@ function OdooNativeWorkspace(props: {
           <div className="space-y-2">
             <Label htmlFor="odoo-mode">Environment mode</Label>
             <Select value={mode} onValueChange={(value) => setMode(value === 'production' ? 'production' : 'test')}>
-              <SelectTrigger id="odoo-mode" className="rounded-xl">
+              <SelectTrigger id="odoo-mode" className="rounded-lg">
                 <SelectValue placeholder="Select environment mode" />
               </SelectTrigger>
               <SelectContent>
@@ -757,7 +882,7 @@ function OdooNativeWorkspace(props: {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 rounded-2xl border border-slate-200 p-4">
+            <div className="space-y-2 rounded-lg border border-slate-200 p-4">
               <p className="text-sm font-semibold text-slate-900">Test credentials</p>
               <div className="space-y-2">
                 <Label htmlFor="odoo-test-channel-id">Channel ID</Label>
@@ -765,7 +890,7 @@ function OdooNativeWorkspace(props: {
                   id="odoo-test-channel-id"
                   value={testChannelId}
                   onChange={(event) => setTestChannelId(event.target.value)}
-                  className="rounded-xl"
+                  className="rounded-lg"
                 />
               </div>
               <div className="space-y-2">
@@ -775,12 +900,12 @@ function OdooNativeWorkspace(props: {
                   type="password"
                   value={testAuthSecret}
                   onChange={(event) => setTestAuthSecret(event.target.value)}
-                  className="rounded-xl"
+                  className="rounded-lg"
                 />
               </div>
             </div>
 
-            <div className="space-y-2 rounded-2xl border border-slate-200 p-4">
+            <div className="space-y-2 rounded-lg border border-slate-200 p-4">
               <p className="text-sm font-semibold text-slate-900">Production credentials</p>
               <div className="space-y-2">
                 <Label htmlFor="odoo-production-channel-id">Channel ID</Label>
@@ -788,7 +913,7 @@ function OdooNativeWorkspace(props: {
                   id="odoo-production-channel-id"
                   value={productionChannelId}
                   onChange={(event) => setProductionChannelId(event.target.value)}
-                  className="rounded-xl"
+                  className="rounded-lg"
                 />
               </div>
               <div className="space-y-2">
@@ -798,13 +923,13 @@ function OdooNativeWorkspace(props: {
                   type="password"
                   value={productionAuthSecret}
                   onChange={(event) => setProductionAuthSecret(event.target.value)}
-                  className="rounded-xl"
+                  className="rounded-lg"
                 />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
             <p className="font-medium text-slate-900">Configuration</p>
             <p
               className={
@@ -820,7 +945,7 @@ function OdooNativeWorkspace(props: {
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={() => void saveConfiguration()} disabled={isSavingConfig} className="rounded-xl">
+            <Button onClick={() => void saveConfiguration()} disabled={isSavingConfig} className="rounded-lg">
               {isSavingConfig ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save Odoo configuration
             </Button>
@@ -829,13 +954,13 @@ function OdooNativeWorkspace(props: {
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+        <Card className="rounded-lg border-gray-100 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg tracking-tight">Health</CardTitle>
             <CardDescription>Check whether the Odoo plugin runtime is reachable through the extension gateway.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
               <p className="font-medium text-slate-900">Status</p>
               <p
                 className={
@@ -851,7 +976,7 @@ function OdooNativeWorkspace(props: {
             </div>
 
             {healthPayload ? (
-              <div className="grid gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-600">
+              <div className="grid gap-3 rounded-lg border border-slate-200 p-4 text-sm text-slate-600">
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-500">Plugin</span>
                   <span className="font-medium text-slate-900">{healthPayload.plugin || 'odoo'}</span>
@@ -867,14 +992,14 @@ function OdooNativeWorkspace(props: {
               </div>
             ) : null}
 
-            <Button variant="outline" onClick={() => void checkHealth()} disabled={isLoadingHealth} className="rounded-xl">
+            <Button variant="outline" onClick={() => void checkHealth()} disabled={isLoadingHealth} className="rounded-lg">
               {isLoadingHealth ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
               Check health
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+        <Card className="rounded-lg border-gray-100 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg tracking-tight">Product sync</CardTitle>
             <CardDescription>Trigger sync jobs and inspect their runtime status from Merchant Admin.</CardDescription>
@@ -883,7 +1008,7 @@ function OdooNativeWorkspace(props: {
             <div className="space-y-2">
               <Label htmlFor="odoo-product-type">Product type</Label>
               <Select value={productType} onValueChange={setProductType}>
-                <SelectTrigger id="odoo-product-type" className="rounded-xl">
+                <SelectTrigger id="odoo-product-type" className="rounded-lg">
                   <SelectValue placeholder="Select product type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -897,7 +1022,7 @@ function OdooNativeWorkspace(props: {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Button onClick={() => void startSync()} disabled={isSyncing} className="rounded-xl">
+              <Button onClick={() => void startSync()} disabled={isSyncing} className="rounded-lg">
                 {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Workflow className="mr-2 h-4 w-4" />}
                 Start sync
               </Button>
@@ -910,16 +1035,16 @@ function OdooNativeWorkspace(props: {
                 value={jobId}
                 onChange={(event) => setJobId(event.target.value)}
                 placeholder="Paste a sync job id"
-                className="rounded-xl"
+                className="rounded-lg"
               />
             </div>
 
-            <Button variant="outline" onClick={() => void loadJob()} disabled={isLoadingJob} className="rounded-xl">
+            <Button variant="outline" onClick={() => void loadJob()} disabled={isLoadingJob} className="rounded-lg">
               {isLoadingJob ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               Load job status
             </Button>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
               <p className="font-medium text-slate-900">Sync status</p>
               <p
                 className={
@@ -935,7 +1060,7 @@ function OdooNativeWorkspace(props: {
             </div>
 
             {jobPayload ? (
-              <div className="grid gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-600">
+              <div className="grid gap-3 rounded-lg border border-slate-200 p-4 text-sm text-slate-600">
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-500">Job</span>
                   <span className="font-medium text-slate-900">{jobPayload.jobId}</span>
@@ -957,7 +1082,7 @@ function OdooNativeWorkspace(props: {
                   </span>
                 </div>
                 {jobPayload.lastError ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
                     {jobPayload.lastError}
                   </div>
                 ) : null}
@@ -970,10 +1095,216 @@ function OdooNativeWorkspace(props: {
   );
 }
 
+function ShippingNativeWorkspace(props: {
+  installationId: string;
+  enabled: boolean;
+}) {
+  const { installationId, enabled } = props;
+  const [provider, setProvider] = useState<ShippingProvider>('kuaidi100');
+  const [action, setAction] = useState(shippingProviderActions.kuaidi100[0].value);
+  const [merchantReference, setMerchantReference] = useState('');
+  const [orderId, setOrderId] = useState('');
+  const [requestDraft, setRequestDraft] = useState('{}');
+  const [responseDraft, setResponseDraft] = useState('');
+  const [statusMessage, setStatusMessage] = useState('Ready');
+  const [statusTone, setStatusTone] = useState<'default' | 'error' | 'success'>('default');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const availableActions = shippingProviderActions[provider];
+  const selectedAction = availableActions.find((item) => item.value === action) || availableActions[0];
+
+  const selectProvider = (nextProvider: ShippingProvider) => {
+    setProvider(nextProvider);
+    setAction(shippingProviderActions[nextProvider][0].value);
+    setResponseDraft('');
+    setStatusMessage('Ready');
+    setStatusTone('default');
+  };
+
+  const submitProviderAction = async () => {
+    if (!enabled) {
+      const message = 'Enable the Shipping instance before running provider operations.';
+      setStatusMessage(message);
+      setStatusTone('error');
+      toast.error(message);
+      return;
+    }
+
+    if (selectedAction.needsMerchantReference && !merchantReference.trim()) {
+      const message = 'Merchant reference is required for create operations.';
+      setStatusMessage(message);
+      setStatusTone('error');
+      toast.error(message);
+      return;
+    }
+    if (selectedAction.needsMerchantReference && !orderId.trim()) {
+      const message = 'Bokmoo order ID is required for create operations.';
+      setStatusMessage(message);
+      setStatusTone('error');
+      toast.error(message);
+      return;
+    }
+
+    let payload: Record<string, unknown>;
+    try {
+      const parsed = JSON.parse(requestDraft);
+      if (!isPlainObject(parsed)) throw new Error('Request body must be a JSON object.');
+      payload = parsed;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Request body is not valid JSON.';
+      setStatusMessage(message);
+      setStatusTone('error');
+      toast.error(message);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setResponseDraft('');
+    setStatusMessage(`Running ${selectedAction.label.toLowerCase()}...`);
+    setStatusTone('default');
+
+    try {
+      const requestBody = selectedAction.needsMerchantReference
+        ? { reference: merchantReference.trim(), orderId: orderId.trim(), input: payload }
+        : ['tracking-subscribe', 'cancel-order', 'get-tracking'].includes(selectedAction.value)
+          ? payload
+          : { input: payload };
+      const response = await apiClient.post(
+        `/extensions/plugin/shipping/api/admin/providers/${selectedAction.endpoint}`,
+        requestBody,
+        { params: { installationId }, timeout: 120000 }
+      );
+      const data = unwrapApiResponse<unknown>(response);
+      setResponseDraft(JSON.stringify(data, null, 2));
+      setStatusMessage(`${selectedAction.label} completed.`);
+      setStatusTone('success');
+      toast.success(`${selectedAction.label} completed`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : `${selectedAction.label} failed.`;
+      setStatusMessage(message);
+      setStatusTone('error');
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Card className="rounded-lg border-gray-100 shadow-sm">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+            <Truck className="h-5 w-5" />
+          </div>
+          <div>
+            <CardTitle className="text-xl tracking-tight">Fulfillment operations</CardTitle>
+            <CardDescription>Run provider operations through the selected Shipping instance.</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="shipping-provider">Provider</Label>
+            <Select value={provider} onValueChange={(value) => selectProvider(value === 'fourpx' ? 'fourpx' : 'kuaidi100')}>
+              <SelectTrigger id="shipping-provider" className="rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="kuaidi100">Kuaidi100</SelectItem>
+                <SelectItem value="fourpx">4PX</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="shipping-action">Operation</Label>
+            <Select value={selectedAction.value} onValueChange={setAction}>
+              <SelectTrigger id="shipping-action" className="rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableActions.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {selectedAction.needsMerchantReference ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="shipping-order-id">Bokmoo order ID</Label>
+              <Input
+                id="shipping-order-id"
+                value={orderId}
+                onChange={(event) => setOrderId(event.target.value)}
+                placeholder="ord_..."
+                className="rounded-lg"
+              />
+            </div>
+            <div className="space-y-2">
+            <Label htmlFor="shipping-merchant-reference">Merchant reference</Label>
+            <Input
+              id="shipping-merchant-reference"
+              value={merchantReference}
+              onChange={(event) => setMerchantReference(event.target.value)}
+              placeholder="Stable provider operation reference"
+              className="rounded-lg"
+            />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="space-y-2">
+          <Label htmlFor="shipping-request-body">Provider request</Label>
+          <Textarea
+            id="shipping-request-body"
+            value={requestDraft}
+            onChange={(event) => setRequestDraft(event.target.value)}
+            className="min-h-48 rounded-lg font-mono text-xs"
+            spellCheck={false}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={() => void submitProviderAction()} disabled={isSubmitting || !enabled} className="rounded-lg">
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            Run operation
+          </Button>
+          <Badge
+            variant="outline"
+            className={
+              statusTone === 'error'
+                ? 'border-red-200 bg-red-50 text-red-700'
+                : statusTone === 'success'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-slate-200 bg-slate-50 text-slate-600'
+            }
+          >
+            {statusMessage}
+          </Badge>
+        </div>
+
+        {responseDraft ? (
+          <div className="space-y-2">
+            <Label>Response</Label>
+            <pre className="max-h-80 overflow-auto rounded-lg bg-slate-950 p-4 text-xs leading-5 text-slate-100">
+              {responseDraft}
+            </pre>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function PluginWorkspace({ slug }: { slug: string }) {
   const locale = useLocale();
   const t = useT();
   const { data, isLoading, error } = usePluginConfig(slug);
+  const jobsAdminAvailable = useJobsAdminCapability();
+  const affiliateOverviewQuery = useAffiliateNativeOverview(slug);
   const { data: instancesData, isLoading: isInstancesLoading } = usePluginInstances(slug);
   const { data: installedPluginsData } = useInstalledPlugins();
   const { data: officialCatalogData } = useOfficialCatalog();
@@ -1031,7 +1362,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   );
   const selectedConfigMeta = selectedInstance?.configMeta || data?.configMeta;
   const selectedReadiness = evaluateConfigReadiness(configSchema, selectedConfig, selectedConfigMeta);
-  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || Boolean(configSchema);
+  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || slug === 'remoteradar-jobs' || Boolean(configSchema);
 
   useEffect(() => {
     setConfigDraft(selectedConfig);
@@ -1173,10 +1504,40 @@ export function PluginWorkspace({ slug }: { slug: string }) {
     );
   }
 
+  // The native affiliate adapter serves live partners/commissions/attributions
+  // from native_affiliate_* tables through its own admin overview endpoint, so
+  // the affiliate workspace renders that data view before the generic
+  // config-driven workspace (the generic detail endpoint is still used on
+  // platform deployments where the overview route does not exist).
+  if (slug === 'affiliate' && !isLoading && affiliateOverviewQuery.isSuccess) {
+    return (
+      <div className="min-h-screen w-full bg-[#f8fafc]">
+        <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
+          <AffiliateNativeWorkspace data={affiliateOverviewQuery.data} />
+        </div>
+      </div>
+    );
+  }
+
   if (error || !data) {
+    // The RemoteRadar jobs administration reads live connector/source data
+    // through the dedicated Core admin proxy, so it does not depend on the
+    // plugin-detail endpoint (which Cloudflare-native instances do not
+    // implement). Keep the panel available even when the generic workspace
+    // cannot load — but only on instances that actually configure the jobs
+    // service, so generic deployments still see the standard failure surface.
+    if (slug === 'remoteradar-jobs' && jobsAdminAvailable) {
+      return (
+        <div className="min-h-screen w-full bg-[#f8fafc]">
+          <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
+            <RemoteRadarJobsNativeWorkspace installationId="default" />
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="max-w-md rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="max-w-md rounded-lg border bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3 text-red-600">
             <AlertTriangle className="h-5 w-5" />
             <h1 className="text-lg font-semibold">Plugin unavailable</h1>
@@ -1195,8 +1556,8 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#fcfdfe] p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto grid max-w-[1600px] gap-6 lg:grid-cols-[280px,minmax(0,1fr)]">
+    <div className="min-h-screen bg-[#f8fafc] p-5 sm:p-7 lg:p-10">
+      <div className="mx-auto grid max-w-[1600px] gap-5 lg:grid-cols-[260px,minmax(0,1fr)]">
         <InstalledPluginsRail
           locale={locale}
           plugins={installedPlugins}
@@ -1205,20 +1566,24 @@ export function PluginWorkspace({ slug }: { slug: string }) {
           getText={getText}
         />
 
-        <div className="space-y-6">
-          <div className="rounded-[1.75rem] border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-slate-200/80 bg-white px-7 py-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
+                <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
+                  <Link href={`/${locale}/plugins`} className="hover:text-blue-600">Plugins</Link>
+                  <span>/</span>
+                  <span>Installed</span>
+                  <span>/</span>
+                  <span className="truncate text-slate-900">{data.name || slug}</span>
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">
-                    {getText('merchant.plugins.pluginWorkspace', 'Plugin workspace')}
-                  </p>
                   {officialPluginSlugs.has(slug) ? <OfficialBadge compact /> : null}
                 </div>
-                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+                <h1 className="mt-2 text-[30px] font-bold tracking-tight text-slate-950">
                   {data.name || slug}
                 </h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
                   {getText(
                     'merchant.plugins.workspaceDescription',
                     'Manage plugin-specific configuration, instance targeting, and native Admin controls from a dedicated workspace.'
@@ -1227,13 +1592,13 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               </div>
 
               <div className="flex flex-wrap gap-3 xl:justify-end">
-                <div className="min-w-[240px]">
+                <div className="min-w-[220px]">
                   <Select
                     value={selectedInstance?.installationId || selectedInstallationId}
                     onValueChange={setSelectedInstallationId}
                     disabled={isInstancesLoading || instances.length === 0}
                   >
-                    <SelectTrigger className="h-11 rounded-xl bg-white">
+                    <SelectTrigger className="h-10 rounded-lg bg-white">
                       <SelectValue placeholder={isInstancesLoading ? 'Loading instances...' : 'Select instance'} />
                     </SelectTrigger>
                     <SelectContent>
@@ -1250,13 +1615,27 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button asChild variant="outline" className="rounded-xl">
+                <Button asChild variant="outline" className="rounded-lg">
                   <Link href={`/${locale}/plugins`}>
                     {getText('merchant.plugins.backToMarketplace', 'Back to plugins')}
                   </Link>
                 </Button>
               </div>
             </div>
+          </div>
+
+          <div className="grid gap-3 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:grid-cols-4">
+            {[
+              ['Runtime', data.runtimeType || 'n/a'],
+              ['Instance', selectedInstance?.instanceKey || 'default'],
+              ['Config readiness', selectedReadiness.configReady ? 'Ready' : 'Needs config'],
+              ['Last updated', selectedInstance?.updatedAt ? new Date(selectedInstance.updatedAt).toLocaleDateString() : 'n/a'],
+            ].map(([label, value], index) => (
+              <div key={label} className="flex items-center gap-3 border-slate-200 sm:border-r sm:px-3 first:pl-0 last:border-0">
+                {index === 0 ? <Cloud className="h-5 w-5 text-slate-500" /> : index === 2 ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <Settings2 className="h-5 w-5 text-slate-500" />}
+                <div><p className="text-xs text-slate-500">{label}</p><p className="text-sm font-semibold text-slate-900">{value}</p></div>
+              </div>
+            ))}
           </div>
 
           <Alert className="border-blue-200 bg-blue-50 text-blue-950">
@@ -1267,7 +1646,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
             </AlertDescription>
           </Alert>
 
-          <div className="rounded-2xl border bg-white px-5 py-4 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white px-6 py-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
               <span>
                 <strong className="text-slate-900">Plugin:</strong> {data.name || slug}
@@ -1288,7 +1667,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),360px]">
-            <div className="space-y-6">
+            <div className="space-y-5">
               {slug === 'i18n' ? (
                 <I18nNativeWorkspace
                   installationId={selectedInstance?.installationId || 'default'}
@@ -1296,7 +1675,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                 />
               ) : null}
 
-              {slug === 'odoo' ? (
+              {slug === 'odoo' && data.runtimeType !== 'cloudflare-native' ? (
                 <OdooNativeWorkspace
                   installationId={selectedInstance?.installationId || 'default'}
                   selectedInstance={selectedInstance}
@@ -1304,18 +1683,53 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                 />
               ) : null}
 
-              {slug !== 'i18n' && slug !== 'odoo' && configSchema ? (
-                <GenericConfigEditor
-                  configSchema={configSchema}
-                  configDraft={configDraft}
-                  configMeta={selectedConfigMeta}
-                  jsonFieldDrafts={jsonFieldDrafts}
-                  jsonFieldErrors={jsonFieldErrors}
-                  onUpdateField={updateConfigField}
-                  onUpdateJsonField={updateJsonConfigField}
-                  onSave={() => void handleSaveGenericConfig()}
-                  saving={isCreatingInstance || isUpdatingInstance}
+              {slug === 'shipping' && data.runtimeType === 'cloudflare-native' ? (
+                <ShippingNativeWorkspace
+                  installationId={selectedInstance?.installationId || 'default'}
+                  enabled={Boolean(selectedInstance?.enabled)}
                 />
+              ) : null}
+
+              {slug === 'remoteradar-jobs' ? (
+                <RemoteRadarJobsNativeWorkspace
+                  installationId={selectedInstance?.installationId || 'default'}
+                  disabled={!selectedInstance}
+                />
+              ) : null}
+
+              {slug !== 'i18n' && (slug !== 'odoo' || data.runtimeType === 'cloudflare-native') && configSchema ? (
+                <div className="space-y-4">
+                  {slug === 'stripe' ? (
+                    configDraft.mode === 'live' ? (
+                      <Alert className="border-red-200 bg-red-50 text-red-950">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Live mode</AlertTitle>
+                        <AlertDescription>Stripe will create real charges after this configuration is saved.</AlertDescription>
+                      </Alert>
+                    ) : (
+                      <Alert className="border-amber-300 bg-amber-50 text-amber-950">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Test mode</AlertTitle>
+                        <AlertDescription>Stripe test data is active. No real charges will be created.</AlertDescription>
+                      </Alert>
+                    )
+                  ) : null}
+                  <GenericConfigEditor
+                    configSchema={configSchema}
+                    configDraft={configDraft}
+                    configMeta={selectedConfigMeta}
+                    jsonFieldDrafts={jsonFieldDrafts}
+                    jsonFieldErrors={jsonFieldErrors}
+                    onUpdateField={updateConfigField}
+                    onUpdateJsonField={updateJsonConfigField}
+                    onSave={() => void handleSaveGenericConfig()}
+                    saving={isCreatingInstance || isUpdatingInstance}
+                  />
+                </div>
+              ) : null}
+
+              {data.runtimeType === 'cloudflare-native' && ['smtp-email', 'stripe', 'odoo'].includes(slug) ? (
+                <NativeConnectionTest slug={slug} disabled={!selectedInstance?.enabled} onEnable={handleToggleSelectedInstance} />
               ) : null}
 
               {!hasNativeWorkspace ? (
@@ -1329,8 +1743,8 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               ) : null}
             </div>
 
-            <div className="space-y-6">
-              <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+            <div className="space-y-5">
+              <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
                 <CardHeader>
                   <CardTitle className="text-lg tracking-tight">Instance status</CardTitle>
                   <CardDescription>
@@ -1338,7 +1752,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm">
-                  <div className="grid gap-3 rounded-2xl border border-slate-200 p-4">
+                  <div className="grid gap-3 border border-slate-200 p-4">
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-slate-500">Enabled</span>
                       <Badge variant={selectedInstance?.enabled ? 'default' : 'outline'}>
@@ -1362,7 +1776,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                   </div>
 
                   {selectedReadiness.missingConfigFields.length > 0 ? (
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
                       Missing required fields: {selectedReadiness.missingConfigFields.join(', ')}
                     </div>
                   ) : null}
@@ -1371,7 +1785,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                     <Button
                       onClick={() => void handleToggleSelectedInstance()}
                       disabled={isCreatingInstance || isUpdatingInstance}
-                      className="rounded-xl"
+                      className="rounded-lg"
                     >
                       {isCreatingInstance || isUpdatingInstance ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                       {selectedInstance?.enabled ? 'Disable instance' : 'Enable instance'}
@@ -1382,7 +1796,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                         variant="outline"
                         onClick={() => void handleCreateDefaultInstance()}
                         disabled={isCreatingInstance}
-                        className="rounded-xl"
+                        className="rounded-lg"
                       >
                         Create default instance
                       </Button>
@@ -1397,6 +1811,354 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               />
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function affiliateText(value: unknown, fallback = '—'): string {
+  if (value === null || value === undefined || value === '') return fallback;
+  return String(value);
+}
+
+function affiliateMoney(value: unknown, currency: unknown): string {
+  const amount = Number(value || 0);
+  return `${affiliateText(currency, 'USD')} ${amount.toFixed(2)}`;
+}
+
+export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOverviewData }) {
+  const partners = data.partners || [];
+  const organizations = data.organizations || [];
+  const commissions = data.commissions || [];
+  const attributions = data.attributions || [];
+  const totals = data.totals || {};
+
+  const partnerMutation = useUpdateAffiliatePartner();
+  const organizationMutation = useUpdateAffiliateOrganization();
+  const commissionMutation = useUpdateAffiliateCommissionStatus();
+
+  const [partnerEdits, setPartnerEdits] = useState<Record<string, { rate: string; status: string; code: string; discount: string }>>({});
+  const [orgEdits, setOrgEdits] = useState<Record<string, { rate: string; status: string }>>({});
+  const [actionError, setActionError] = useState('');
+
+  const partnerEdit = (id: string) =>
+    partnerEdits[id] || {
+      rate: String(Number(partners.find((row) => row.id === id)?.commission_rate ?? 0)),
+      status: String(partners.find((row) => row.id === id)?.status ?? 'active'),
+      code: String(partners.find((row) => row.id === id)?.code ?? ''),
+      discount: String(Number(partners.find((row) => row.id === id)?.discount_rate ?? 0)),
+    };
+  const orgEdit = (id: string) =>
+    orgEdits[id] || {
+      rate: String(Number(organizations.find((row) => row.id === id)?.commission_rate ?? 0)),
+      status: String(organizations.find((row) => row.id === id)?.status ?? 'active'),
+    };
+
+  const savePartner = async (id: string) => {
+    setActionError('');
+    const edit = partnerEdit(id);
+    try {
+      await partnerMutation.mutateAsync({
+        id,
+        commissionRate: Number(edit.rate),
+        status: edit.status,
+        code: edit.code,
+        discountRate: Number(edit.discount),
+      });
+    } catch (cause: any) {
+      setActionError(cause?.message || 'Could not update the partner.');
+    }
+  };
+  const saveOrganization = async (id: string) => {
+    setActionError('');
+    const edit = orgEdit(id);
+    try {
+      await organizationMutation.mutateAsync({ id, commissionRate: Number(edit.rate), status: edit.status });
+    } catch (cause: any) {
+      setActionError(cause?.message || 'Could not update the organization.');
+    }
+  };
+  const markCommission = async (id: string, status: 'paid' | 'reversed') => {
+    setActionError('');
+    try {
+      await commissionMutation.mutateAsync({ id, status });
+    } catch (cause: any) {
+      setActionError(cause?.message || 'Could not update the commission.');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <h1 className="text-lg font-semibold">Affiliate workspace</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Manage partners, organizations, commission rates, and payouts. Changes apply immediately.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-5">
+          <div className="rounded-md border p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Partners</p>
+            <p className="mt-1 text-xl font-semibold">{Number(totals.partnerCount || 0)}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Organizations</p>
+            <p className="mt-1 text-xl font-semibold">{Number(totals.organizationCount || 0)}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Commission entries</p>
+            <p className="mt-1 text-xl font-semibold">{Number(totals.commissionCount || 0)}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Commission total</p>
+            <p className="mt-1 text-xl font-semibold">{affiliateMoney(totals.commissionTotal, 'USD')}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Pending payout</p>
+            <p className="mt-1 text-xl font-semibold">{affiliateMoney(totals.commissionPending, 'USD')}</p>
+          </div>
+        </div>
+        {actionError ? (
+          <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p>
+        ) : null}
+      </div>
+
+      <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold">Partners</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Set each partner&apos;s commission rate (%) or suspend them.</p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="py-2 pr-4">Promo code</th>
+                <th className="py-2 pr-4">Partner</th>
+                <th className="py-2 pr-4">Commissions</th>
+                <th className="py-2 pr-4">Rate (%)</th>
+                <th className="py-2 pr-4">Discount (%)</th>
+                <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partners.map((partner) => {
+                const id = String(partner.id || '');
+                const edit = partnerEdit(id);
+                return (
+                  <tr key={id} className="border-b align-middle">
+                    <td className="py-2 pr-4">
+                      <Input
+                        value={edit.code}
+                        onChange={(event) =>
+                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, code: event.target.value.toUpperCase() } }))
+                        }
+                        className="h-8 w-28 font-mono text-xs"
+                      />
+                    </td>
+                    <td className="py-2 pr-4">{String(partner.display_name || partner.email || '—')}</td>
+                    <td className="py-2 pr-4">
+                      {affiliateMoney(partner.commission_total, partner.currency)}
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        ({Number(partner.commission_count || 0)})
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={90}
+                        step="0.5"
+                        value={edit.rate}
+                        onChange={(event) =>
+                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, rate: event.target.value } }))
+                        }
+                        className="h-8 w-20"
+                      />
+                    </td>
+                    <td className="py-2 pr-4">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={90}
+                        step="1"
+                        value={edit.discount}
+                        onChange={(event) =>
+                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, discount: event.target.value } }))
+                        }
+                        className="h-8 w-16"
+                      />
+                    </td>
+                    <td className="py-2 pr-4">
+                      <select
+                        value={edit.status}
+                        onChange={(event) =>
+                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, status: event.target.value } }))
+                        }
+                        className="h-8 rounded-md border bg-background px-2 text-sm"
+                      >
+                        <option value="active">active</option>
+                        <option value="suspended">suspended</option>
+                      </select>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <Button size="sm" variant="outline" disabled={partnerMutation.isPending} onClick={() => void savePartner(id)}>
+                        Save
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {partners.length === 0 ? (
+                <tr><td colSpan={7} className="py-4 text-center text-muted-foreground">No partners yet.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold">Organizations</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Organization-wide commission rate and lifecycle status.</p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="py-2 pr-4">Code</th>
+                <th className="py-2 pr-4">Name</th>
+                <th className="py-2 pr-4">Members</th>
+                <th className="py-2 pr-4">Rate (%)</th>
+                <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {organizations.map((organization) => {
+                const id = String(organization.id || '');
+                const edit = orgEdit(id);
+                return (
+                  <tr key={id} className="border-b align-middle">
+                    <td className="py-2 pr-4 font-mono text-xs">{String(organization.code || '—')}</td>
+                    <td className="py-2 pr-4">{String(organization.name || '—')}</td>
+                    <td className="py-2 pr-4">{Number(organization.member_count || 0)}</td>
+                    <td className="py-2 pr-4">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={90}
+                        step="0.5"
+                        value={edit.rate}
+                        onChange={(event) =>
+                          setOrgEdits((previous) => ({ ...previous, [id]: { ...edit, rate: event.target.value } }))
+                        }
+                        className="h-8 w-20"
+                      />
+                    </td>
+                    <td className="py-2 pr-4">
+                      <select
+                        value={edit.status}
+                        onChange={(event) =>
+                          setOrgEdits((previous) => ({ ...previous, [id]: { ...edit, status: event.target.value } }))
+                        }
+                        className="h-8 rounded-md border bg-background px-2 text-sm"
+                      >
+                        <option value="active">active</option>
+                        <option value="suspended">suspended</option>
+                        <option value="closed">closed</option>
+                      </select>
+                    </td>
+                    <td className="py-2 pr-4">
+                      <Button size="sm" variant="outline" disabled={organizationMutation.isPending} onClick={() => void saveOrganization(id)}>
+                        Save
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {organizations.length === 0 ? (
+                <tr><td colSpan={6} className="py-4 text-center text-muted-foreground">No organizations yet.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold">Commissions</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Mark payouts as paid, or reverse an entry.</p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="py-2 pr-4">Partner</th>
+                <th className="py-2 pr-4">Order</th>
+                <th className="py-2 pr-4">Amount</th>
+                <th className="py-2 pr-4">Rate</th>
+                <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {commissions.map((commission) => {
+                const id = String(commission.id || '');
+                const status = String(commission.status || 'pending');
+                return (
+                  <tr key={id} className="border-b align-middle">
+                    <td className="py-2 pr-4 font-mono text-xs">{String(commission.partner_code || '—')}</td>
+                    <td className="py-2 pr-4 font-mono text-xs">{String(commission.order_id || '—')}</td>
+                    <td className="py-2 pr-4">{affiliateMoney(commission.amount, commission.currency)}</td>
+                    <td className="py-2 pr-4">{Number(commission.commission_rate || 0)}%</td>
+                    <td className="py-2 pr-4"><Badge variant="outline">{status}</Badge></td>
+                    <td className="py-2 pr-4">
+                      <div className="flex gap-2">
+                        {status !== 'paid' ? (
+                          <Button size="sm" variant="outline" disabled={commissionMutation.isPending} onClick={() => void markCommission(id, 'paid')}>
+                            Mark paid
+                          </Button>
+                        ) : null}
+                        {status !== 'reversed' ? (
+                          <Button size="sm" variant="ghost" disabled={commissionMutation.isPending} onClick={() => void markCommission(id, 'reversed')}>
+                            Reverse
+                          </Button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {commissions.length === 0 ? (
+                <tr><td colSpan={6} className="py-4 text-center text-muted-foreground">No commissions yet.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold">Attributions</h2>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="py-2 pr-4">Partner</th>
+                <th className="py-2 pr-4">User</th>
+                <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">Landing</th>
+                <th className="py-2 pr-4">Associated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {attributions.map((attribution) => (
+                <tr key={String(attribution.id || '')} className="border-b">
+                  <td className="py-2 pr-4 font-mono text-xs">{String(attribution.partner_code || '—')}</td>
+                  <td className="py-2 pr-4 font-mono text-xs">{String(attribution.user_id || '—').slice(0, 12)}</td>
+                  <td className="py-2 pr-4"><Badge variant="outline">{String(attribution.status || '—')}</Badge></td>
+                  <td className="py-2 pr-4 max-w-[16rem] truncate text-xs">{String(attribution.landing_url || '—')}</td>
+                  <td className="py-2 pr-4 text-xs">{affiliateText(attribution.associated_at)}</td>
+                </tr>
+              ))}
+              {attributions.length === 0 ? (
+                <tr><td colSpan={5} className="py-4 text-center text-muted-foreground">No attributions yet.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

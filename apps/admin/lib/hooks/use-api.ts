@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { apiClient, PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -951,13 +951,6 @@ const managedPackageQueryKeys = {
   status: ['managed-package', 'status'] as const,
 };
 
-function refreshOfficialExtensionState(queryClient: ReturnType<typeof useQueryClient>) {
-  queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-  queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
-  queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-  queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
-}
-
 function refreshPluginRuntimeState(
   queryClient: ReturnType<typeof useQueryClient>,
   slug: string,
@@ -976,6 +969,13 @@ function refreshThemeRuntimeState(
   queryClient.invalidateQueries({ queryKey: themeQueryKeys.installed(target) });
   queryClient.invalidateQueries({ queryKey: themeQueryKeys.active(target) });
   queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
+}
+
+function refreshOfficialExtensionState(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
+  queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+  queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+  queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
 }
 
 export function useManagedPackageBranding() {
@@ -1248,6 +1248,38 @@ export function useInstalledPlugins() {
   });
 }
 
+// Lightweight installed-plugin list for navigation (sidebar submenu). Unlike
+// useInstalledPlugins this does not fan out per-plugin instance requests —
+// the plain list endpoint already carries slug/name/enabled.
+export interface InstalledPluginNavItem {
+  slug: string;
+  name: string;
+  enabled: boolean;
+}
+
+export function useInstalledPluginNav() {
+  return useQuery({
+    queryKey: [...pluginQueryKeys.all, 'nav-installed'] as const,
+    queryFn: async () => {
+      const response = await apiClient.get('/extensions/plugin', { params: { page: 1, limit: 50 } });
+      const unwrapped = unwrapApiResponse<{ items?: Array<Record<string, unknown>> }>(response);
+      return (unwrapped.items || [])
+        .map((item) => ({
+          slug: String(item.slug || ''),
+          name: String(item.displayName || item.name || item.slug || ''),
+          enabled: item.enabled === 1 || item.enabled === true,
+        }))
+        .filter((item) => item.slug.length > 0)
+        .sort((a, b) => {
+          if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
+    },
+    staleTime: 2 * 60 * 1000,
+    retry: false,
+  });
+}
+
 // Get plugin configuration
 export function usePluginConfig(slug: string) {
   return useQuery({
@@ -1257,6 +1289,92 @@ export function usePluginConfig(slug: string) {
       return unwrapApiResponse(response);
     },
     enabled: !!slug,
+  });
+}
+
+// Native affiliate adapter overview: partners, attributions, and commissions
+// served by the Cloudflare-native core from native_affiliate_* tables. The
+// generic plugin-detail endpoint is not implemented natively, so this query
+// also acts as the capability probe for the dedicated affiliate workspace.
+export interface AffiliateNativeOverviewData {
+  totals?: {
+    partnerCount?: number;
+    organizationCount?: number;
+    commissionCount?: number;
+    commissionTotal?: number;
+    commissionPending?: number;
+  };
+  partners?: Array<Record<string, unknown>>;
+  organizations?: Array<Record<string, unknown>>;
+  commissions?: Array<Record<string, unknown>>;
+  attributions?: Array<Record<string, unknown>>;
+}
+
+// Affiliate admin mutations — partner/organization rate + status edits and
+// commission payout marks, all under the native admin overview contract.
+export function useUpdateAffiliatePartner() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+  return useMutation({
+    mutationFn: async (input: { id: string; commissionRate?: number; status?: string; code?: string; discountRate?: number }) => {
+      const response = await apiClient.patch(`/extensions/plugin/affiliate/api/admin/partners/${input.id}`, {
+        ...(input.commissionRate !== undefined ? { commissionRate: input.commissionRate } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+        ...(input.code !== undefined ? { code: input.code } : {}),
+        ...(input.discountRate !== undefined ? { discountRate: input.discountRate } : {}),
+      });
+      if (!response.success) throw new Error(getErrorMessage(response) || 'Update failed');
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', 'affiliate'] });
+    },
+  });
+}
+
+export function useUpdateAffiliateOrganization() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+  return useMutation({
+    mutationFn: async (input: { id: string; commissionRate?: number; status?: string }) => {
+      const response = await apiClient.patch(`/extensions/plugin/affiliate/api/admin/organizations/${input.id}`, {
+        ...(input.commissionRate !== undefined ? { commissionRate: input.commissionRate } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+      });
+      if (!response.success) throw new Error(getErrorMessage(response) || 'Update failed');
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', 'affiliate'] });
+    },
+  });
+}
+
+export function useUpdateAffiliateCommissionStatus() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+  return useMutation({
+    mutationFn: async (input: { id: string; status: 'pending' | 'paid' | 'reversed' }) => {
+      const response = await apiClient.post(`/extensions/plugin/affiliate/api/admin/commissions/${input.id}/status`, { status: input.status });
+      if (!response.success) throw new Error(getErrorMessage(response) || 'Update failed');
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', 'affiliate'] });
+    },
+  });
+}
+
+export function useAffiliateNativeOverview(slug: string) {
+  return useQuery({
+    queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', slug] as const,
+    queryFn: async () => {
+      const response = await apiClient.get('/extensions/plugin/affiliate/api/admin/overview');
+      return unwrapApiResponse<AffiliateNativeOverviewData>(response);
+    },
+    enabled: slug === 'affiliate',
+    retry: false,
+    staleTime: 30_000,
   });
 }
 
@@ -1656,6 +1774,7 @@ export function useRollbackTheme() {
 }
 
 // ==================== Inventory Forecasting Hooks ====================
+
 // Get aggregated inventory dashboard data
 export function useInventoryDashboard(params: {
   page?: number;

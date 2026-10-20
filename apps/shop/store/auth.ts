@@ -3,6 +3,19 @@ import { persist } from 'zustand/middleware';
 import { type UserProfile } from 'shared';
 import { authApi, accountApi, apiClient } from '@/lib/api';
 
+export async function associateAffiliateVisitor(): Promise<void> {
+  if (typeof document === 'undefined') return;
+  const match = document.cookie.match(/(?:^|;\s*)bokmoo_affiliate_visitor=([^;]+)/);
+  const visitorId = match?.[1] ? decodeURIComponent(match[1]) : '';
+  if (!visitorId) return;
+  try {
+    const response = await apiClient.post('/plugins/affiliate/store/attributions/associate', { visitorId });
+    if (response.success) document.cookie = 'bokmoo_affiliate_visitor=; Path=/; Max-Age=0; Secure; SameSite=Lax';
+  } catch {
+    // Keep the visitor cookie so a later authenticated session can retry.
+  }
+}
+
 interface AuthState {
   user: UserProfile | null;
   isAuthenticated: boolean;
@@ -12,7 +25,7 @@ interface AuthState {
 
 interface AuthActions {
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { email: string; password: string; firstName: string; lastName: string }) => Promise<void>;
+  register: (data: { email: string; password: string; username?: string; firstName: string; lastName: string }) => Promise<{ emailVerified: boolean }>;
   logout: () => void;
   getProfile: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
@@ -77,6 +90,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               });
             }
 
+            await associateAffiliateVisitor();
+
             // Sync guest cart after login
             if (typeof window !== 'undefined') {
               setTimeout(() => {
@@ -87,7 +102,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               }, 0);
             }
           } else {
-            throw new Error(response.error?.message || 'Login failed');
+            throw Object.assign(new Error(response.error?.message || 'Login failed'), {
+              code: response.error?.code,
+            });
           }
         } catch (error: unknown) {
           set({
@@ -98,7 +115,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
-      register: async (data: { email: string; password: string; firstName: string; lastName: string }) => {
+      register: async (data: { email: string; password: string; username?: string; firstName: string; lastName: string }) => {
         try {
           set({ isLoading: true, error: null });
 
@@ -106,12 +123,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           const displayParts = emailPrefix.replace(/[._-]+/g, ' ').trim().split(/\s+/).filter(Boolean);
           const firstName = data.firstName.trim() || displayParts[0] || 'Creator';
           const lastName = data.lastName.trim() || displayParts.slice(1).join(' ') || 'Studio';
-          const username =
+          const generatedUsername =
             `${emailPrefix}.${emailDomain}`
               .toLowerCase()
               .replace(/[^a-z0-9]+/g, '.')
               .replace(/^\.+|\.+$/g, '')
               .slice(0, 64) || 'creator';
+          const username = data.username?.trim() || generatedUsername;
 
           const registerData = {
             email: data.email,
@@ -124,6 +142,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           const response = await authApi.register(registerData);
 
           if (response.success && response.data) {
+            const emailVerified = response.data.user?.emailVerified !== false;
+            if (!emailVerified) {
+              await authApi.logout();
+              set({ user: null, isAuthenticated: false, isLoading: false, error: null });
+              return { emailVerified: false };
+            }
             try {
               const profileResponse = await accountApi.getProfile();
               if (profileResponse.success && profileResponse.data) {
@@ -151,8 +175,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                 error: null,
               });
             }
+            await associateAffiliateVisitor();
+            return { emailVerified: true };
           } else {
-            throw new Error(response.error?.message || 'Registration failed');
+            throw Object.assign(new Error(response.error?.message || 'Registration failed'), {
+              code: response.error?.code,
+            });
           }
         } catch (error: unknown) {
           set({

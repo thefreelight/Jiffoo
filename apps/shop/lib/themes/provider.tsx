@@ -178,6 +178,10 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
       try {
         setError(null);
 
+        if (themePack?.error && !isBuiltinFallbackSlug(normalizedSlug)) {
+          throw themePack.error;
+        }
+
         if (shouldDeferEmbeddedBuiltin || shouldDeferThemeResolution) {
           if (mounted) {
             setTheme(null);
@@ -266,7 +270,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
           // Fail closed for installed marketplace runtimes: silently swapping
           // in a host-bundled renderer would break the installed-version
           // source of truth. The error UI offers a retry instead.
-          if (canLoadRemoteRuntime) {
+          if (canLoadRemoteRuntime || (themePack?.error && !isBuiltinFallbackSlug(normalizedSlug))) {
             setTheme(null);
             setError(error);
             return;
@@ -311,7 +315,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
     return () => {
       mounted = false;
     };
-  }, [slug, themePack?.activeTheme?.slug, themePack?.activeTheme?.source, themePack?.activeTheme?.version, themePack?.manifest]);
+  }, [slug, themePack?.activeTheme?.slug, themePack?.activeTheme?.source, themePack?.activeTheme?.version, themePack?.manifest, themePack?.error]);
 
   // Merge configuration and inject CSS variables
   useEffect(() => {

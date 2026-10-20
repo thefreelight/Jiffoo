@@ -14,7 +14,7 @@ import type { Locale, TranslationFunction } from './i18n';
  * fields must stay narrower-or-equal to the shared core so the registry
  * bridge stays assignable.
  */
-export type CoreLocale = 'en' | 'zh-Hans' | 'zh-Hant';
+export type CoreLocale = 'en' | 'zh-Hans' | 'zh-Hant' | 'ja' | 'ko' | 'fr' | 'de';
 
 // ============================================================================
 // Theme i18n Props
@@ -63,7 +63,7 @@ export interface ThemeConfig {
     locale?: CoreLocale;
   };
   site?: {
-    archetype?: 'storefront' | 'landing-commerce' | 'product-site' | 'app-download';
+    archetype?: 'storefront' | 'app-download';
     eyebrow?: string;
     headline?: string;
     subheadline?: string;

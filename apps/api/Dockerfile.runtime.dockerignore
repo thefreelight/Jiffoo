@@ -1,0 +1,15 @@
+**
+!package.json
+!apps/
+!apps/api/
+!apps/api/package.json
+!apps/api/dist/**
+!apps/api/prisma/**
+!apps/api/node_modules/**
+!packages/
+!packages/shared/
+!packages/shared/package.json
+!packages/shared/dist/**
+!scripts/**
+!plugins/**
+!node_modules/**

@@ -13,28 +13,7 @@
  * - en: English (default)
  * - zh-Hans: Simplified Chinese
  */
-/**
- * Supported locale codes
- * - en: English (default)
- * - zh-Hans: Simplified Chinese
- * - zh-Hant: Traditional Chinese
- *
- * This is the fully-translated core locale set. Storefronts can expose
- * more languages through ROUTE_LOCALES (below) and their store context's
- * supportedLocales; themes translate what they ship and fall back to
- * English for missing keys.
- */
-export const LOCALES = ['en', 'zh-Hans', 'zh-Hant'] as const;
-
-/**
- * Routing superset for storefront locale prefixes. Includes the fully
- * translated core locales plus storefront languages whose translations
- * live in individual themes (e.g. app-landingpage ships es/fr/de/ja
- * landing copy). Plain strings on purpose: it must stay decoupled from
- * the shared Locale union so theme packages are not forced to translate
- * every language.
- */
-export const ROUTE_LOCALES: readonly string[] = ['en', 'zh-Hans', 'zh-Hant', 'es', 'fr', 'de', 'ja'];
+export const LOCALES = ['en', 'zh-Hans', 'zh-Hant', 'ja', 'ko', 'fr', 'de'] as const;
 
 /**
  * Locale type derived from LOCALES constant
@@ -65,6 +44,26 @@ export const LOCALE_CONFIG: Record<Locale, { name: string; nativeName: string; d
     nativeName: '繁體中文',
     dir: 'ltr',
   },
+  ja: {
+    name: 'Japanese',
+    nativeName: '日本語',
+    dir: 'ltr',
+  },
+  ko: {
+    name: 'Korean',
+    nativeName: '한국어',
+    dir: 'ltr',
+  },
+  fr: {
+    name: 'French',
+    nativeName: 'Français',
+    dir: 'ltr',
+  },
+  de: {
+    name: 'German',
+    nativeName: 'Deutsch',
+    dir: 'ltr',
+  },
 };
 
 /**
@@ -74,7 +73,7 @@ export const LOCALE_CONFIG: Record<Locale, { name: string; nativeName: string; d
  */
 export function isSupportedLocale(locale: string): locale is Locale {
   // Guard against LOCALES being undefined (can happen if tree-shaken in client bundles)
-  const locales = LOCALES ?? ['en', 'zh-Hant'];
+  const locales = LOCALES ?? ['en', 'zh-Hans', 'zh-Hant'];
   return (locales as readonly string[]).includes(locale);
 }
 
@@ -93,15 +92,33 @@ const BROWSER_LANGUAGE_MAP: Record<string, Locale> = {
   'en-NZ': 'en',
   'en-IE': 'en',
   'en-ZA': 'en',
-  // Chinese variants: Simplified Chinese for mainland/Singapore scripts,
-  // Traditional for TW/HK and the generic zh code.
-  'zh': 'zh-Hant',
+  // Simplified Chinese variants
+  'zh': 'zh-Hans',
   'zh-CN': 'zh-Hans',
   'zh-SG': 'zh-Hans',
   'zh-Hans': 'zh-Hans',
+  // Traditional Chinese variants
   'zh-TW': 'zh-Hant',
   'zh-HK': 'zh-Hant',
+  'zh-MO': 'zh-Hant',
   'zh-Hant': 'zh-Hant',
+  // Japanese
+  'ja': 'ja',
+  'ja-JP': 'ja',
+  // Korean
+  'ko': 'ko',
+  'ko-KR': 'ko',
+  'ko-KP': 'ko',
+  // French variants
+  'fr': 'fr',
+  'fr-FR': 'fr',
+  'fr-CA': 'fr',
+  'fr-BE': 'fr',
+  // German variants
+  'de': 'de',
+  'de-DE': 'de',
+  'de-AT': 'de',
+  'de-CH': 'de',
 };
 
 /**

@@ -10,14 +10,14 @@
 import * as React from 'react';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useCartStore } from '@/store/cart';
-import { useAuthStore } from '@/store/auth';
+import { associateAffiliateVisitor, useAuthStore } from '@/store/auth';
 import { useStoreContext } from '@/store/store';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { ordersApi, paymentApi } from '@/lib/api';
+import { apiClient, ordersApi, paymentApi } from '@/lib/api';
 import { useT } from 'shared/src/i18n/react';
 import { toast } from '@/components/ui/toaster';
 import { LoadingState, ErrorState } from '@/components/ui/state-components';
-import type { CheckoutFormData } from 'shared/src/types/theme';
+import type { CheckoutFormData, SavedAddress } from 'shared/src/types/theme';
 import type { Cart } from 'shared/src/types/cart';
 import {
   clearSelectedCartItemIds,
@@ -65,6 +65,18 @@ export default function CheckoutPage() {
   const [stripeOrderId, setStripeOrderId] = React.useState<string | null>(null);
   const [stripePublishableKey, setStripePublishableKey] = React.useState<string | null>(null);
   const [isStripeModalOpen, setIsStripeModalOpen] = React.useState(false);
+  const [savedAddress, setSavedAddress] = React.useState<{
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    addressLine1?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  } | null>(null);
+  const [savedAddressList, setSavedAddressList] = React.useState<SavedAddress[]>([]);
   const fallbackStripePublishableKey = (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').trim();
 
   // Helper function for translations with fallback
@@ -75,6 +87,101 @@ export default function CheckoutPage() {
   React.useEffect(() => {
     setSelectedCartItemIds(readSelectedCartItemIds());
   }, []);
+
+  // Remembered address: prefill checkout from the most recent order so the
+  // buyer does not re-type their details every time.
+  const isAuthenticated = Boolean(user);
+  React.useEffect(() => {
+    if (!isAuthenticated || savedAddress) return;
+    let cancelled = false;
+    (async () => {
+      // Preferred source: the shopper's address book (#391) — default address
+      // first. Falls back to the most recent order's shipping address.
+      try {
+        const bookResponse = await apiClient.get('/me/addresses');
+        const bookItems = (bookResponse.data?.items ?? []) as Array<{
+          id: string;
+          label?: string;
+          isDefault?: boolean;
+          shippingAddress?: {
+            name?: string;
+            phone?: string;
+            line1?: string;
+            city?: string;
+            state?: string;
+            postalCode?: string;
+            country?: string;
+          };
+        }>;
+        setSavedAddressList(bookItems.map((item) => ({
+          id: item.id,
+          label: item.label,
+          name: item.shippingAddress?.name || '',
+          phone: item.shippingAddress?.phone || '',
+          line1: item.shippingAddress?.line1 || '',
+          city: item.shippingAddress?.city || '',
+          state: item.shippingAddress?.state ?? null,
+          postalCode: item.shippingAddress?.postalCode ?? null,
+          country: item.shippingAddress?.country || '',
+          isDefault: Boolean(item.isDefault),
+        })));
+        const pick = bookItems.find((item) => item.isDefault) ?? bookItems[0];
+        const ship = pick?.shippingAddress;
+        if (cancelled || !ship) return;
+        const nameParts = (ship.name || '').trim().split(/\s+/).filter(Boolean);
+        setSavedAddress({
+          email: user?.email,
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' '),
+          phone: ship.phone || '',
+          addressLine1: ship.line1 || '',
+          city: ship.city || '',
+          state: ship.state || '',
+          postalCode: ship.postalCode || '',
+          country: ship.country || '',
+        });
+        return;
+      } catch {
+        // Address book unavailable (guest or API error) — try last order.
+      }
+      try {
+        const response = await ordersApi.getOrders({});
+        const latest = response.data?.items?.[0]?.shippingAddress;
+        if (cancelled || !latest) return;
+        setSavedAddress({
+          email: user?.email,
+          firstName: latest.firstName,
+          lastName: latest.lastName,
+          phone: latest.phone,
+          addressLine1: latest.addressLine1 || latest.street || latest.address,
+          city: latest.city,
+          state: latest.state,
+          postalCode: latest.postalCode,
+          country: latest.country,
+        });
+      } catch {
+        // Prefill is best-effort.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, savedAddress, user?.email]);
+
+  const handlePickSavedAddress = React.useCallback((address: SavedAddress) => {
+    const nameParts = (address.name || '').trim().split(/\s+/).filter(Boolean);
+    setSavedAddress({
+      email: user?.email,
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' '),
+      phone: address.phone || '',
+      addressLine1: address.line1 || '',
+      city: address.city || '',
+      state: address.state || '',
+      postalCode: address.postalCode || '',
+      country: address.country || '',
+    });
+  }, [user?.email]);
 
   const checkoutItems = React.useMemo(() => {
     if (!selectedCartItemIds || selectedCartItemIds.length === 0) {
@@ -211,6 +318,10 @@ export default function CheckoutPage() {
           }
           : undefined,
         customerEmail: normalizedEmail.length > 0 ? normalizedEmail : undefined,
+        locale: nav.locale,
+        affiliateCode: typeof data.promoCode === 'string' && data.promoCode.trim()
+          ? data.promoCode.trim().toUpperCase()
+          : undefined,
       });
 
       if (!orderResponse || !orderResponse.success || !orderResponse.data) {
@@ -219,6 +330,14 @@ export default function CheckoutPage() {
 
       const order = orderResponse.data as { id: string };
       const orderId = order.id;
+      // Attribute a referral click at the moment of checkout: the buyer may
+      // never pass through the login action, so this is the last reliable
+      // moment to bind the visitor cookie to the account.
+      try {
+        await associateAffiliateVisitor();
+      } catch {
+        // Attribution is best-effort; never block checkout.
+      }
 
       if (
         availablePaymentMethods.length > 0 &&
@@ -237,43 +356,65 @@ export default function CheckoutPage() {
           throw new Error(getText('common.errors.general', 'Stripe storefront key is not configured'));
         }
 
-        const intentResponse = await paymentApi.createIntent({ orderId });
-        const intentData = intentResponse?.data || readLegacyStripeIntentResponse(intentResponse);
+        try {
+          const intentResponse = await paymentApi.createIntent({ orderId });
+          const intentData = intentResponse?.data || readLegacyStripeIntentResponse(intentResponse);
 
-        if (!intentResponse || !intentResponse.success || !intentData?.clientSecret) {
-          throw new Error(intentResponse?.message || getText('common.errors.general', 'Failed to create payment intent'));
+          if (!intentResponse || !intentResponse.success || !intentData?.clientSecret) {
+            throw new Error(intentResponse?.message || getText('common.errors.general', 'Failed to create payment intent'));
+          }
+
+          setStripePublishableKey(publishableKey);
+          setStripeClientSecret(intentData.clientSecret);
+          setStripeOrderId(orderId);
+          setIsStripeModalOpen(true);
+          setIsProcessing(false);
+          return; // Modal now assumes control
+        } catch (intentError) {
+          // Native Cloudflare cores do not implement /payments/create-intent.
+          // Fall through to the hosted checkout-session redirect below so
+          // storefront checkout keeps working on native instances.
+          console.warn('Stripe direct-intent flow unavailable, falling back to hosted checkout session:', intentError);
         }
-
-        setStripePublishableKey(publishableKey);
-        setStripeClientSecret(intentData.clientSecret);
-        setStripeOrderId(orderId);
-        setIsStripeModalOpen(true);
-        setIsProcessing(false);
-        return; // Modal now assumes control
       }
 
-      // 2. Create payment session using legacy unified payment gateway
-      const paymentResponse = await paymentApi.createSession({
+      // 2. Create a hosted checkout session. Cloudflare-native cores
+      // implement POST /payments/sessions; the platform unified gateway uses
+      // /payments/create-session. Try the native shape first so storefront
+      // checkout works on native instances, then fall back to the gateway.
+      const sessionPayload = {
         paymentMethod: data.paymentMethod,
         orderId: orderId,
         successUrl: `${window.location.origin}${nav.getHref('/order-success')}?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${window.location.origin}${nav.getHref('/checkout')}`
-      });
+      };
 
-      console.log('Payment response:', JSON.stringify(paymentResponse, null, 2));
-
-      if (!paymentResponse || !paymentResponse.success || !paymentResponse.data) {
-        throw new Error(paymentResponse?.message || getText('common.errors.general', 'Failed to create payment session'));
+      let sessionData: any = null;
+      try {
+        const nativeSession = await apiClient.post('/payments/sessions', sessionPayload);
+        if (nativeSession?.success && nativeSession.data) {
+          sessionData = nativeSession.data;
+        }
+      } catch (nativeSessionError) {
+        console.warn('Native checkout session unavailable, falling back to unified gateway:', nativeSessionError);
       }
 
-      // 3. Redirect to payment page
-      const sessionData = paymentResponse.data as any;
+      if (!sessionData) {
+        const paymentResponse = await paymentApi.createSession(sessionPayload);
+
+        console.log('Payment response:', JSON.stringify(paymentResponse, null, 2));
+
+        if (!paymentResponse || !paymentResponse.success || !paymentResponse.data) {
+          throw new Error(paymentResponse?.message || getText('common.errors.general', 'Failed to create payment session'));
+        }
+        sessionData = paymentResponse.data;
+      }
       const paymentUrl = sessionData.url || sessionData.data?.url;
 
       if (paymentUrl) {
         window.location.href = paymentUrl;
       } else {
-        console.error('paymentResponse.data does not have url:', paymentResponse.data);
+        console.error('session data does not have url:', sessionData);
         throw new Error('Invalid payment session response');
       }
     } catch (error: any) {
@@ -347,6 +488,9 @@ export default function CheckoutPage() {
         requireShippingAddress={requireShippingAddress}
         countriesRequireStatePostal={countriesRequireStatePostal}
         currentUserEmail={user?.email}
+        savedAddress={savedAddress}
+        savedAddresses={savedAddressList}
+        onPickSavedAddress={handlePickSavedAddress}
         locale={nav.locale}
         t={t}
         availablePaymentMethods={availablePaymentMethods}

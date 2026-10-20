@@ -1,5 +1,5 @@
 /**
- * Simplified Chinese (converted from Traditional copy) Merchant Messages
+ * Simplified Chinese Merchant Messages
  * 
  * Merchant dashboard specific messages for store management,
  * products, orders, customers, and settings.
@@ -117,6 +117,23 @@ export const merchant = {
     platformReady: '市集已就绪。此实例与预设商店都已绑定到官方平台。',
     platformTenantPending: '实例已连线。绑定预设商店后即可安装官方项目。',
     platformUnbound: '连线到官方平台后即可安装官方主题与外挂。',
+    marketplaceReadyChip: '市集已就绪',
+    category: {
+      marketing: '营销增长',
+      seo: 'SEO 优化',
+      ai: 'AI 能力',
+      email: '邮件消息',
+      analytics: '数据分析',
+      payment: '支付账单',
+      integration: '集成',
+      content: '内容',
+      operations: '运营工具',
+      security: '登录安全',
+      shipping: '物流',
+      social: '社交',
+      theme: '主题',
+      other: '其他',
+    },
     platformAccountFallback: '平台拥有者',
     defaultStore: '预设商店',
     boundStoreFallback: '商店已绑定',
@@ -689,8 +706,8 @@ export const merchant = {
 
   // Settings
   settings: {
-    title: '设置',
-    subtitle: '管理您的商店配置和偏好设置',
+    title: '设定',
+    subtitle: '管理您的商店配置和偏好设定',
     general: '一般',
     store: '商店',
     domain: '网域',
@@ -820,7 +837,7 @@ export const merchant = {
       currentConfigDesc: '您的商店可透过以下网址存取',
       statusActive: '启用中',
       statusPendingDns: '等待 DNS',
-      statusNotConfigured: '未设置',
+      statusNotConfigured: '未设定',
       frontend: '前台（商店）',
       adminDashboard: '管理后台',
       apiEndpoint: 'API 端点',
@@ -863,6 +880,9 @@ export const merchant = {
     signIn: '登录',
     enterCredentials: '输入您的凭证以存取管理后台',
     emailAddress: '电子邮件地址',
+    emailOrUsername: '电子邮件或使用者名称',
+    enterEmailOrUsername: '输入电子邮件或使用者名称',
+    identifierRequired: '请输入电子邮件或使用者名称',
     email: '电子邮件',
     password: '密码',
     enterEmail: '输入您的电子邮件',
@@ -888,6 +908,7 @@ export const merchant = {
     help: '说明',
     myAccount: '我的账户',
     settings: '设置',
+    changePassword: '修改密码',
     addView: '新增视图',
   },
 
@@ -972,6 +993,7 @@ export const merchant = {
     configureDescription: '编辑此外挂的 JSON 设置。',
     table: {
       pluginInfo: '外挂资讯',
+    viewInstalled: '查看已安装插件',
       category: '分类',
       source: '来源',
       status: '状态',

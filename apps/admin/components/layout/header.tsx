@@ -20,6 +20,7 @@ import {
   Settings,
   LogOut,
   User,
+  KeyRound,
   Sun,
   Moon
 } from 'lucide-react'
@@ -171,6 +172,10 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
               <DropdownMenuItem onClick={() => router.push(`/${locale}/profile`)}>
                 <User className="mr-2 h-4 w-4" />
                 <span>{getText('merchant.header.profile', 'Profile')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push(`/${locale}/profile#security`)}>
+                <KeyRound className="mr-2 h-4 w-4" />
+                <span>{getText('merchant.header.changePassword', 'Change password')}</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push(`/${locale}/settings`)}>
                 <Settings className="mr-2 h-4 w-4" />

@@ -36,6 +36,17 @@ export interface ServerStoreContextOptions {
   revalidate?: number | false;
 }
 
+interface StoreContextApiResponse {
+  success?: boolean;
+  data?: ServerStoreContext;
+  // Snapshot-serving deployments answer with the bare store context (no
+  // success envelope); those fields are what the bare-shape check below
+  // sniffs on before accepting the payload as a full ServerStoreContext.
+  storeId?: unknown;
+  storeName?: unknown;
+  theme?: unknown;
+}
+
 const DEFAULT_STORE_CONTEXT_TIMEOUT_MS = 2000;
 
 function resolveServerStoreContextTimeoutMs(): number {
@@ -124,10 +135,10 @@ async function fetchServerStoreContext(
       return fallbackContext;
     }
 
-    const data = await response.json();
+    const data = await response.json() as StoreContextApiResponse;
 
     if (data.success && data.data) {
-      return data.data as ServerStoreContext;
+      return data.data;
     }
 
     // Snapshot-serving deployments may return the bare store context

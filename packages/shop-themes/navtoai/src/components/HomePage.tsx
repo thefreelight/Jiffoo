@@ -33,7 +33,7 @@ const featuredUsers: Record<string, string> = {
 interface TrendingEntry {
   name: string;
   heat: string;
-  tagline: Record<'en' | 'zh-Hans' | 'zh-Hant', string>;
+  tagline: Partial<Record<'en' | 'zh-Hans' | 'zh-Hant' | 'ja' | 'ko' | 'fr' | 'de', string>>;
 }
 
 // Shape served by GET /api/v1/tool-directory/trending on Cloudflare-native
@@ -190,7 +190,7 @@ export const HomePage = React.memo(function HomePage({ locale, onNavigate }: Hom
     : trendingTools.map((tool) => ({
         key: tool.name,
         name: tool.name,
-        tagline: tool.tagline[lang],
+        tagline: tool.tagline[lang] ?? tool.tagline.en ?? '',
         heatLabel: tool.heat,
         href: `/search?q=${encodeURIComponent(tool.name)}`,
       }));

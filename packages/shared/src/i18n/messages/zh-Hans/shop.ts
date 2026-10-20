@@ -1,5 +1,5 @@
 /**
- * Simplified Chinese (converted from Traditional copy) Shop Messages
+ * Simplified Chinese Shop Messages
  * 
  * Shop frontend specific messages for product browsing,
  * cart, checkout, orders, and customer-facing features.
@@ -17,7 +17,7 @@ export const shop = {
     contact: '联系我们',
     help: '帮助',
     cart: '购物车',
-    account: '账户',
+    account: '帐户',
     orders: '订单',
     wishlist: '愿望清单',
     search: '搜索',
@@ -242,7 +242,7 @@ export const shop = {
 
   // Checkout
   checkout: {
-    title: '结算',
+    title: '结帐',
     shipping: {
       title: '运送资讯',
       address: '运送地址',
@@ -313,16 +313,16 @@ export const shop = {
       oauthFailed: 'OAuth 登录失败',
     },
     register: {
-      title: '建立账户',
+      title: '建立帐户',
       firstName: '名字',
       lastName: '姓氏',
       email: '电子邮件',
       password: '密码',
       confirmPassword: '确认密码',
       agreeTerms: '我同意服务条款和隐私政策',
-      submit: '建立账户',
-      haveAccount: '已有账户？',
-      signIn: '登录',
+      submit: '建立帐户',
+      haveAccount: '已有帐户？',
+      signIn: '登入',
       success: '注册成功',
       welcomeMessage: '欢迎！请使用您的凭证登录。',
       failed: '注册失败',
@@ -405,7 +405,7 @@ export const shop = {
 
   // Header
   header: {
-    login: '登录',
+    login: '登入',
     signUp: '注册',
     logout: '登出',
     profile: '个人资料',

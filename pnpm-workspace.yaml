@@ -1,4 +1,5 @@
 packages:
+  - 'apps/cloudflare-native-core-api'
   - 'apps/api'
   - 'apps/admin'
   - 'apps/shop'

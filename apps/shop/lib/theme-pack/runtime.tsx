@@ -183,11 +183,20 @@ export function ThemePackProvider({
       } catch (error) {
         if (!mounted) return;
         console.error('[ThemePack] Failed to load theme:', error);
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error: error instanceof Error ? error : new Error('Failed to load theme'),
-        }));
+        setState((prev) => {
+          // Background refreshes (focus/visibility reload while a theme is
+          // already rendered) must not replace a working page with the error
+          // UI. Keep serving the last-known-good theme; only a first load
+          // failure (no active theme yet) surfaces the full error state.
+          if (prev.activeTheme) {
+            return { ...prev, isLoading: false, error: null };
+          }
+          return {
+            ...prev,
+            isLoading: false,
+            error: error instanceof Error ? error : new Error('Failed to load theme'),
+          };
+        });
       }
     }
 

@@ -50,6 +50,8 @@ import { extensionInstallerRoutes } from '@/core/admin/extension-installer/route
 import { adminExternalOrdersIntegrationRoutes } from '@/core/admin/external-orders-integration/routes';
 // Market integration routes
 import { marketRoutes } from '@/core/admin/market/routes';
+// Marketplace submission pipeline (developer submit + admin review)
+import { developerSubmissionRoutes, adminSubmissionReviewRoutes, developerPortalRoute } from '@/core/marketplace-submissions/routes';
 // Theme App Gateway routes
 import { themeAppGatewayRoutes } from '@/core/admin/theme-app-runtime/gateway';
 // Webhook admin routes
@@ -58,6 +60,7 @@ import { webhookRoutes } from '@/core/webhooks/routes';
 import { storeRoutes } from '@/core/store/routes';
 // Install routes (Restored)
 import { installRoutes } from '@/core/install/routes';
+import { bokmooAppRoutes } from '@/core/bokmoo-app/routes';
 
 /**
  * Register all API routes
@@ -77,6 +80,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // User account routes
   await fastify.register(accountRoutes, { prefix: '/api/account' });
+  await fastify.register(bokmooAppRoutes, { prefix: '/api' });
 
   // Admin routes
   await fastify.register(adminUserRoutes, { prefix: '/api/admin/users' });
@@ -131,6 +135,11 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // Official Market integration routes (§4.9)
   await fastify.register(marketRoutes, { prefix: '/api/admin/market' });
+
+  // Marketplace submission pipeline
+  await fastify.register(developerSubmissionRoutes, { prefix: '/api/v1' });
+  await fastify.register(adminSubmissionReviewRoutes, { prefix: '/api/admin/marketplace' });
+  await fastify.register(developerPortalRoute);
 
   // Theme App Gateway (reverse proxy to running Theme Apps)
   // This allows frontends to access Theme Apps through the API server

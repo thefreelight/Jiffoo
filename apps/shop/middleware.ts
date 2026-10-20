@@ -8,10 +8,29 @@
  * Priority: Theme App forwarding > Locale redirect > Pass through
  */
 
-import { ROUTE_LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
+import { LOCALES, DEFAULT_LOCALE, isSupportedLocale } from 'shared/src/i18n';
 import { createProxyHandler, type ProxyConfig } from 'shared/src/proxy';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+
+/**
+ * Store-scoped locale list for redirect detection.
+ *
+ * Locale detection must match against the locales THIS store actually
+ * supports (store context `supportedLocales`, mirrored in the deployment's
+ * NEXT_PUBLIC_FALLBACK_SUPPORTED_LOCALES var) — not the framework-wide
+ * list. Otherwise a zh-Hant-only store sends Simplified-Chinese visitors
+ * to /zh-Hans, where the theme's zh-Hant copy never renders. Stores that
+ * do not set the var keep the framework-wide behavior.
+ */
+function storeLocales(): readonly string[] {
+  const raw = process.env.NEXT_PUBLIC_FALLBACK_SUPPORTED_LOCALES;
+  if (!raw) return LOCALES;
+  const parsed = raw
+    .split(',')
+    .map((locale) => locale.trim())
+    .filter((locale) => isSupportedLocale(locale));
+  return parsed.length > 0 ? parsed : LOCALES;
+}
 
 /**
  * Shop proxy configuration
@@ -19,7 +38,7 @@ import type { NextRequest } from 'next/server';
 const shopProxyConfig: ProxyConfig = {
   target: 'shop',
   defaultLocale: DEFAULT_LOCALE,
-  locales: ROUTE_LOCALES,
+  locales: storeLocales(),
 };
 
 /**
@@ -32,8 +51,49 @@ const shopProxyConfig: ProxyConfig = {
  * 4. Pass through
  */
 const baseProxy = createProxyHandler(shopProxyConfig);
+type ProxyRequest = Parameters<typeof baseProxy>[0];
 
-function isInstallRootRequest(request: NextRequest): boolean {
+/**
+ * Locale list sourced from the Store Localization (i18n) plugin.
+ *
+ * The plugin's `i18n_locales` table is the source of truth for which
+ * languages a store offers. The middleware refreshes the enabled-locale
+ * list from the plugin's public read route on a TTL (per isolate, never
+ * blocking the in-flight request) and falls back to the deployment var,
+ * then to the framework-wide list.
+ */
+const PLUGIN_LOCALES_TTL_MS = 5 * 60 * 1000;
+let pluginLocales: readonly string[] | null = null;
+let pluginLocalesRefreshedAt = 0;
+
+async function refreshPluginLocales(request: ProxyRequest): Promise<void> {
+  if (pluginLocales && Date.now() - pluginLocalesRefreshedAt < PLUGIN_LOCALES_TTL_MS) return;
+  pluginLocalesRefreshedAt = Date.now();
+  try {
+    const apiOrigin = process.env.API_SERVICE_URL;
+    if (!apiOrigin) return;
+    const response = await fetch(`${apiOrigin.replace(/\/+$/, '')}/api/v1/plugins/i18n/store/locales`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return;
+    const body = await response.json();
+    const items = body?.data?.items;
+    if (!Array.isArray(items)) return;
+    const locales = items
+      .filter((item: { isEnabled?: boolean }) => item.isEnabled !== false)
+      .map((item: { locale?: string }) => item.locale)
+      .filter((locale: unknown): locale is string => typeof locale === 'string' && isSupportedLocale(locale));
+    if (locales.length > 0) {
+      pluginLocales = locales;
+      shopProxyConfig.locales = locales;
+    }
+  } catch {
+    // Plugin unavailable (not installed / DB error): keep the current list.
+  }
+}
+
+
+function isInstallRootRequest(request: ProxyRequest): boolean {
   const host = request.headers.get('host')?.split(':')[0]?.toLowerCase();
   const pathname = request.nextUrl.pathname;
 
@@ -44,7 +104,22 @@ function isInstallRootRequest(request: NextRequest): boolean {
   return pathname === '/' || pathname === `/${DEFAULT_LOCALE}`;
 }
 
-export async function middleware(request: NextRequest) {
+function isOfficialArtifactRequest(request: ProxyRequest): boolean {
+  const host = request.headers.get('host')?.split(':')[0]?.toLowerCase();
+  return host === 'get.jiffoo.com' && request.nextUrl.pathname.startsWith('/official-artifacts/');
+}
+
+export function officialArtifactRedirect(request: ProxyRequest): NextResponse | null {
+  if (!isOfficialArtifactRequest(request)) return null;
+  const target = new URL(`https://artifacts.jiffoo.com${request.nextUrl.pathname}`);
+  target.search = request.nextUrl.search;
+  return NextResponse.redirect(target, 307);
+}
+
+export async function middleware(request: ProxyRequest) {
+  const artifactRedirect = officialArtifactRedirect(request);
+  if (artifactRedirect) return artifactRedirect;
+
   if (isInstallRootRequest(request)) {
     return NextResponse.redirect(new URL('/install.sh', request.url));
   }
@@ -58,15 +133,18 @@ export async function middleware(request: NextRequest) {
  * IMPORTANT: This matcher MUST NOT exclude /_next/* because Theme App mode
  * needs to forward static resources to the Theme App server.
  *
- * Excluded paths (handled by next.config.js rewrites):
+ * Excluded paths:
  * - /api/* - Core API routes (prevents infinite loop)
+ * - /plugins/* - Plugin runtime mount for storefront slots
  * - /extensions/* - Extension static files
  * - /uploads/* - Upload files
+ * - /media/* - Core API media (proxied by app/media route handler; the locale
+ *   redirect must not prefix it, the path has no route in the shop app)
  * - /theme-app/* - Theme App Gateway (prevents infinite loop)
  * - favicon.ico - Browser default request
  *
  * NOTE: Next.js requires matcher to be a static literal, cannot be imported.
  */
 export const config = {
-  matcher: ['/((?!api/|extensions/|uploads/|theme-app/|favicon.ico).*)'],
+  matcher: ['/((?!api/|plugins/|extensions/|uploads/|media/|theme-app/|favicon.ico).*)'],
 };

@@ -1,5 +1,5 @@
 /**
- * Simplified Chinese (converted from Traditional copy) Common Messages
+ * Simplified Chinese Common Messages
  * 
  * Cross-application common messages including buttons, system prompts,
  * error states, and other shared UI text.
@@ -22,7 +22,7 @@ export const common = {
     update: '更新',
     delete: '删除',
     view: '查看',
-    search: '搜索',
+    search: '搜寻',
     create: '建立',
     add: '新增',
     remove: '移除',
@@ -54,12 +54,14 @@ export const common = {
     deselectAll: '取消全选',
     goHome: '返回首页',
     continueShopping: '继续购物',
-    configure: '设置',
+    configure: '设定',
+    manage: '管理',
+    viewDetails: '查看详情',
   },
 
   // Status
   status: {
-    loading: '加载中',
+    loading: '载入中',
     success: '成功',
     error: '错误',
     warning: '警告',
@@ -176,6 +178,11 @@ export const common = {
     select: '选择语言',
     en: '英文',
     'zh-Hant': '繁体中文',
+    'zh-Hans': '简体中文',
+    ja: '日语',
+    ko: '韩语',
+    fr: '法语',
+    de: '德语',
   },
 
   // Footer

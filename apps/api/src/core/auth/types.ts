@@ -1,8 +1,12 @@
 import { z } from 'zod';
 
 export const LoginSchema = z.object({
-  email: z.string().email('Invalid email format'),
+  identifier: z.string().trim().min(1, 'Email or username is required').optional(),
+  email: z.string().email('Invalid email format').optional(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+}).refine((data) => Boolean(data.identifier || data.email), {
+  message: 'Email or username is required',
+  path: ['identifier'],
 });
 
 export const RegisterSchema = z.object({

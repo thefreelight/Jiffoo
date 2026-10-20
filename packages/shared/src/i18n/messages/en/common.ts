@@ -55,6 +55,8 @@ export const common = {
     goHome: 'Go Home',
     continueShopping: 'Continue Shopping',
     configure: 'Configure',
+    manage: 'Manage',
+    viewDetails: 'View details',
   },
 
   // Status
@@ -78,6 +80,7 @@ export const common = {
 
   // Labels
   labels: {
+    all: 'All',
     pages: 'PAGES',
     more: 'MORE',
     file: 'File',
@@ -174,7 +177,12 @@ export const common = {
     title: 'Language',
     select: 'Select language',
     en: 'English',
+    'zh-Hans': 'Simplified Chinese',
     'zh-Hant': 'Traditional Chinese',
+    ja: 'Japanese',
+    ko: 'Korean',
+    fr: 'French',
+    de: 'German',
   },
 
   // Footer
@@ -186,4 +194,3 @@ export const common = {
     help: 'Help',
   },
 };
-

@@ -364,39 +364,28 @@ export { getAdminClient };
 
 // Auth API
 export const authApi = {
-  /**
-   * Admin login. Native admin runtimes expose /v1/admin/auth/login, which
-   * issues the admin-audience token required by /admin/* endpoints; runtimes
-   * without that surface fall back to the shared user login.
-   */
-  login: async (email: string, password: string) => {
-    try {
-      const native = await apiClient.post<{
-        access_token: string;
-        token_type: string;
-        expires_in: number;
-        refresh_token?: string;
-      }>('/v1/admin/auth/login', { identifier: email, password }, { withCredentials: true });
-      if (native.success && native.data?.access_token) {
-        apiClient.setToken(native.data.access_token);
-        if (native.data.refresh_token) {
-          (apiClient as unknown as { setRefreshToken: (token: string) => void }).setRefreshToken(
-            native.data.refresh_token,
-          );
-        }
-        return native as unknown as ApiResponse<{ user: UserProfile }>;
-      }
-    } catch {
-      // Native admin auth surface not available; fall through to shared login.
-    }
-    return apiClient.login({ email, password });
-  },
-
   forgotPassword: (email: string): Promise<ApiResponse<void>> =>
     apiClient.forgotPassword(email),
 
-  resetPassword: (data: { token: string; password: string }): Promise<ApiResponse<void>> =>
+  resetPassword: (data: { email: string; code: string; password: string }): Promise<ApiResponse<void>> =>
     apiClient.resetPassword(data),
+
+  login: async (identifier: string, password: string) => {
+    const response = await apiClient.post<{
+      access_token: string;
+      token_type: string;
+      expires_in: number;
+      refresh_token?: string;
+    }>('/admin/auth/login', { identifier, password }, { withCredentials: true });
+    if (response.success && response.data?.access_token) {
+      apiClient.setToken(response.data.access_token);
+      if (response.data.refresh_token) {
+        (apiClient as unknown as { setRefreshToken: (token: string) => void })
+          .setRefreshToken(response.data.refresh_token);
+      }
+    }
+    return response;
+  },
 
   getLoginConfig: (): Promise<ApiResponse<{
     demoModeEnabled: boolean;
@@ -407,56 +396,25 @@ export const authApi = {
   }>> =>
     apiClient.get('/auth/login-config'),
 
-  /** Prefer the native admin profile; fall back to the shared profile. */
-  me: async (): Promise<ApiResponse<UserProfile>> => {
-    try {
-      const native = await apiClient.get<{
-        id: string;
-        email: string;
-        username: string | null;
-        role: string;
-        avatar?: string | null;
-      }>('/v1/admin/auth/me');
-      if (native.success && native.data) {
-        const profile = native.data as unknown as UserProfile;
-        return {
-          ...native,
-          data: {
-            ...profile,
-            firstName: profile.username || profile.email?.split('@')[0] || 'Admin',
-          },
-        };
-      }
-    } catch {
-      // Fall through to the shared profile endpoint.
-    }
-    return apiClient.getProfile();
-  },
+  me: (): Promise<ApiResponse<UserProfile>> => apiClient.get('/admin/auth/me'),
 
   bootstrapStatus: (): Promise<ApiResponse<AuthBootstrapStatus>> =>
     apiClient.get('/auth/bootstrap-status'),
 
   logout: async () => {
     try {
-      await apiClient.post('/v1/admin/auth/logout', {}, { withCredentials: true });
-    } catch {
-      // Native logout surface not available; clear local auth regardless.
+      return await apiClient.post<void>('/admin/auth/logout', {}, { withCredentials: true });
+    } finally {
+      apiClient.clearAuth();
     }
-    apiClient.clearAuth();
   },
 
-  refreshToken: async () => {
-    try {
-      return await apiClient.post('/v1/admin/auth/refresh', {
-        refresh_token: (apiClient as unknown as { getRefreshToken: () => string }).getRefreshToken(),
-      });
-    } catch {
-      return apiClient.refreshAuthToken();
-    }
-  },
+  refreshToken: () => apiClient.post('/admin/auth/refresh', {
+    refresh_token: apiClient.getRefreshToken(),
+  }, { withCredentials: true }),
 
   changePassword: (currentPassword: string, newPassword: string): Promise<ApiResponse<{ passwordChanged: boolean; changedAt: string }>> =>
-    apiClient.post('/auth/change-password', { currentPassword, newPassword }),
+    apiClient.post('/admin/auth/change-password', { currentPassword, newPassword }),
 };
 
 export const accountApi = {
@@ -1410,19 +1368,19 @@ export interface Promotion {
 // SEO Redirect API
 export const redirectsApi = {
   getAll: (page = 1, limit = 10, search?: string): Promise<ApiResponse<PageResult<SeoRedirect>>> =>
-    apiClient.get('/api/seo/redirects', { params: { page, limit, search } }),
+    apiClient.get('/seo/redirects', { params: { page, limit, search } }),
 
   getById: (id: string): Promise<ApiResponse<SeoRedirect>> =>
-    apiClient.get(`/api/seo/redirects/${id}`),
+    apiClient.get(`/seo/redirects/${id}`),
 
   create: (data: { fromPath: string; toPath: string; statusCode?: number; isActive?: boolean }): Promise<ApiResponse<SeoRedirect>> =>
-    apiClient.post('/api/seo/redirects', data),
+    apiClient.post('/seo/redirects', data),
 
   update: (id: string, data: Partial<SeoRedirect>): Promise<ApiResponse<SeoRedirect>> =>
-    apiClient.put(`/api/seo/redirects/${id}`, data),
+    apiClient.put(`/seo/redirects/${id}`, data),
 
   delete: (id: string): Promise<ApiResponse<void>> =>
-    apiClient.delete(`/api/seo/redirects/${id}`),
+    apiClient.delete(`/seo/redirects/${id}`),
 };
 
 // SEO Audit types
@@ -1479,10 +1437,10 @@ export const seoAuditApi = {
     limit?: number;
     offset?: number;
   }): Promise<ApiResponse<AuditResult>> =>
-    apiClient.get('/api/seo/audit', { params: options }),
+    apiClient.get('/seo/audit', { params: options }),
 
   getStats: (): Promise<ApiResponse<AuditStats>> =>
-    apiClient.get('/api/seo/audit/stats'),
+    apiClient.get('/seo/audit/stats'),
 };
 
 export interface PromotionForm {
@@ -1531,23 +1489,23 @@ export const errorsApi = {
     sortOrder?: string;
   } = {}): Promise<ApiResponse<PageResult<any>>> => {
     const { page = 1, limit = 10, ...filters } = params;
-    return apiClient.get('/api/admin/errors', { params: { page, limit, ...filters } });
+    return apiClient.get('/admin/errors', { params: { page, limit, ...filters } });
   },
 
   getById: (id: string): Promise<ApiResponse<any>> =>
-    apiClient.get(`/api/admin/errors/${id}`),
+    apiClient.get(`/admin/errors/${id}`),
 
   resolve: (id: string): Promise<ApiResponse<any>> =>
-    apiClient.patch(`/api/admin/errors/${id}/resolve`, { resolved: true }),
+    apiClient.patch(`/admin/errors/${id}/resolve`, { resolved: true }),
 
   unresolve: (id: string): Promise<ApiResponse<any>> =>
-    apiClient.patch(`/api/admin/errors/${id}/resolve`, { resolved: false }),
+    apiClient.patch(`/admin/errors/${id}/resolve`, { resolved: false }),
 
   getStats: (): Promise<ApiResponse<any>> =>
-    apiClient.get('/api/admin/errors/stats'),
+    apiClient.get('/admin/errors/stats'),
 
   getTrends: (timeRange?: string): Promise<ApiResponse<any>> =>
-    apiClient.get('/api/admin/errors/trends', { params: { timeRange } }),
+    apiClient.get('/admin/errors/trends', { params: { timeRange } }),
 };
 
 // Tool Discovery (automated trending-AI-tool intake + admin review)

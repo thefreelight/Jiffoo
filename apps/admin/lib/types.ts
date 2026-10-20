@@ -10,8 +10,18 @@ export interface User {
   createdAt: string
   updatedAt: string
   lastLoginAt?: string | null
+  lastLoginIp?: string | null
+  recentEvents?: UserSecurityEvent[]
   totalOrders?: number
   totalSpent?: number
+}
+
+export interface UserSecurityEvent {
+  id: string
+  action: string
+  source?: string
+  ip?: string | null
+  createdAt: string
 }
 
 export enum UserRole {
@@ -86,12 +96,14 @@ export interface Order {
   createdAt: string
   itemsCount?: number
 
-  // Flattened customer info (for list)
-  customer: {
+  // Flattened customer info (for list). Native order payloads carry only a
+  // top-level customerEmail, so customer and its fields are all optional.
+  customer?: {
     id: string | null
     email: string | null
     username: string | null
   }
+  customerEmail?: string | null
 }
 
 // Order detail type - Projected detail format
@@ -106,11 +118,12 @@ export interface OrderDetail {
   cancelledAt?: string | null
   createdAt: string
   updatedAt?: string
-  customer: {
+  customer?: {
     id: string | null
     email: string | null
     username: string | null
   }
+  customerEmail?: string | null
   shippingAddress?: Address | null
   items: OrderDetailItem[]
   shipments?: OrderShipment[]
@@ -175,7 +188,7 @@ export interface PluginState {
   configRequired?: boolean
   configReady?: boolean
   missingConfigFields?: string[]
-  runtimeType?: 'internal-fastify' | 'external-http'
+  runtimeType?: 'internal-fastify' | 'external-http' | 'cloudflare-native'
   enabledAt?: string
   disabledAt?: string
 }
@@ -434,11 +447,13 @@ export interface HealthSummaryResponse {
 }
 
 // Error tracking types
+// Values mirror the error-tracking API contract (both Node and Cloudflare
+// native persist lowercase severities); display sites uppercase as needed.
 export enum ErrorSeverity {
-  CRITICAL = 'CRITICAL',
-  ERROR = 'ERROR',
-  WARNING = 'WARNING',
-  INFO = 'INFO'
+  CRITICAL = 'critical',
+  ERROR = 'error',
+  WARNING = 'warning',
+  INFO = 'info'
 }
 
 export interface ErrorLog {

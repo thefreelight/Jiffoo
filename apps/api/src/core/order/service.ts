@@ -38,6 +38,7 @@ import { LoggerService } from '@/core/logger/unified-logger';
 import { getSupplierProductProfile, resolveSupplierFulfillmentData, parseJsonRecord } from '@/core/external-orders/utils';
 import { InventoryService } from '@/core/inventory/service';
 import { WarehouseService } from '@/core/warehouse/service';
+import { OutboxService } from '@/infra/outbox';
 
 const shipmentItemSelect = {
   id: true,
@@ -54,6 +55,7 @@ const shipmentSelect = {
   status: true,
   shippedAt: true,
   deliveredAt: true,
+  metadata: true,
   items: {
     select: shipmentItemSelect,
   },
@@ -926,6 +928,19 @@ export class OrderService {
               idempotencyKey,
             },
           });
+
+          await OutboxService.emit(tx, 'order.refunded', order.id, {
+            id: order.id,
+            orderId: order.id,
+            refundId: refund.id,
+            userId: order.userId,
+            paymentId: successfulPayment.id,
+            amount: Number(refund.amount),
+            currency: refund.currency,
+            fullyRefunded: true,
+            reason: refund.reason ?? undefined,
+            items: order.items.map((item) => ({ orderItemId: item.id, quantity: item.quantity })),
+          });
         }
 
         // 2. Update order status
@@ -1037,7 +1052,24 @@ export class OrderService {
         : [],
       currency: currency,
       shippingAddress: order.shippingAddress || null,
-      shipments: (order.shipments || []) as OrderResponse['shipments'],
+      shipments: (order.shipments || []).map((shipment) => {
+        const metadata = shipment.metadata && typeof shipment.metadata === 'object' && !Array.isArray(shipment.metadata)
+          ? shipment.metadata as Record<string, unknown>
+          : {};
+        return {
+          id: shipment.id,
+          carrier: shipment.carrier,
+          trackingNumber: shipment.trackingNumber,
+          status: shipment.status,
+          shippedAt: shipment.shippedAt,
+          deliveredAt: shipment.deliveredAt,
+          trackingUrl: typeof metadata.trackingUrl === 'string' ? metadata.trackingUrl : null,
+          estimatedDeliveryAt: typeof metadata.estimatedDeliveryAt === 'string' ? metadata.estimatedDeliveryAt : null,
+          lastCheckedAt: typeof metadata.lastCheckedAt === 'string' ? metadata.lastCheckedAt : null,
+          events: Array.isArray(metadata.events) ? metadata.events : [],
+          items: shipment.items,
+        };
+      }) as OrderResponse['shipments'],
       items: order.items.map((item) => ({
         id: item.id,
         productId: item.productId,

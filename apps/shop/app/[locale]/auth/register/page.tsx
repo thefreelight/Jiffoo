@@ -61,21 +61,39 @@ export default function RegisterPage() {
         });
         return;
       }
-      await register({
+      const result = await register({
         firstName: formData.firstName,
         lastName: formData.lastName,
+        username: formData.username,
         email: formData.email,
         password: formData.password,
       });
+      if (!result.emailVerified) {
+        toast({
+          title: getText('shop.auth.register.verifyTitle', 'Check your email'),
+          description: getText('shop.auth.register.verifyMessage', 'Enter the six-digit code we sent to finish registration.'),
+        });
+        nav.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
+        return;
+      }
       toast({
         title: getText('shop.auth.register.success', 'Registration successful'),
         description: getText('shop.auth.register.welcomeMessage', 'Welcome! You have been registered and logged in successfully.'),
       });
       nav.push('/');
     } catch (error: any) {
+      const message = error?.message || getText('common.errors.tryAgain', 'Please try again');
+      if (error?.code === 'EMAIL_NOT_VERIFIED' || /already registered but has not been verified/i.test(message)) {
+        toast({
+          title: getText('shop.auth.verifyTitle', 'Verify your email'),
+          description: getText('shop.auth.verifyMessage', 'Your account is waiting for verification. Enter the code we sent, or request a new one.'),
+        });
+        nav.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
+        return;
+      }
       toast({
         title: getText('shop.auth.register.failed', 'Registration failed'),
-        description: error.message || getText('common.errors.tryAgain', 'Please try again'),
+        description: message,
         variant: 'destructive',
       });
     }

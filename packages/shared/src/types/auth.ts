@@ -1,7 +1,6 @@
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
+export type LoginRequest =
+  | { identifier: string; password: string; email?: never }
+  | { email: string; password: string; identifier?: never };
 
 export interface RegisterRequest {
   email: string;

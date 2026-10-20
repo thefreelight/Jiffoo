@@ -1,0 +1,19 @@
+name = "jiffoo-admin-app"
+main = "cloudflare-entry.ts"
+compatibility_date = "2026-07-12"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+workers_dev = true
+preview_urls = true
+
+routes = [
+  { pattern = "admin.jiffoo.com", custom_domain = true }
+]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[vars]
+NEXT_PUBLIC_API_URL = "/api"
+NEXT_PUBLIC_ADMIN_URL = "https://admin.jiffoo.com"
+API_SERVICE_URL = "https://demo-api.jiffoo.com"

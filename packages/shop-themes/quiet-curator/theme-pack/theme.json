@@ -34,7 +34,7 @@
       "enableQuickView": false
     },
     "site": {
-      "archetype": "landing-commerce",
+      "archetype": "storefront",
       "eyebrow": "Premium editorial community",
       "headline": "Build a calmer paid community around premium writing, private discussion, and member rituals.",
       "subheadline": "Use a restrained editorial storefront to sell membership access, preview paid artifacts, and keep your community surfaces coherent from landing page to member dashboard.",

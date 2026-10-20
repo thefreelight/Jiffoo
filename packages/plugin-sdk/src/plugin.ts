@@ -34,6 +34,15 @@ import { validateManifest } from './validators';
  * ```
  */
 export function definePlugin(config: PluginConfig): Plugin {
+  // Contract v1 plugins use the original `{ manifest, register }` shape.
+  // Keep that public contract compatible while newer plugins use a flat manifest.
+  if (
+    'manifest' in (config as Record<string, unknown>) &&
+    typeof (config as Record<string, unknown>).register === 'function'
+  ) {
+    return config as unknown as Plugin;
+  }
+
   // Validate configuration
   const manifest: PluginManifest = {
     schemaVersion: config.schemaVersion,

@@ -14,6 +14,13 @@ import { renderDigitalDeliveryEmail, extractDigitalItems } from '@/core/notifica
 import { ResendProvider } from '@/plugins/email-providers/resend-provider';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 
+async function dispatchToPluginRuntimes(outboxEventId: string, eventType: string): Promise<void> {
+  const event = await prisma.outboxEvent.findUnique({ where: { id: outboxEventId } });
+  if (!event) return;
+  const { dispatchPluginRuntimeEvent } = await import('@/core/admin/extension-installer/plugin-runtime');
+  await dispatchPluginRuntimeEvent(eventType, event.payload);
+}
+
 // ============================================================
 // Webhook Delivery Handler
 // ============================================================
@@ -58,6 +65,7 @@ const webhookDeliveryHandler: JobHandler = {
       payload: (event.payload as any)?.data ?? event.payload,
       aggregateId: event.aggregateId,
     });
+    await dispatchToPluginRuntimes(outboxEventId, eventType);
 
     winstonLogger.debug('Webhook event dispatched', {
       component: 'webhookDeliveryHandler',
@@ -148,6 +156,7 @@ const fulfillmentHandler: JobHandler = {
       outboxEventId,
       aggregateId: event.aggregateId,
     });
+    await dispatchToPluginRuntimes(outboxEventId, eventType);
 
     // Task 7.1.2: Digital fulfillment is handled by ExternalOrderService
     // (called directly from payment reconciliation). This handler serves as

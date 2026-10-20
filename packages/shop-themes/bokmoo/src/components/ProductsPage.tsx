@@ -3,12 +3,26 @@ import { ChevronLeft, ChevronRight, Grid3X3, List, Search, ShieldCheck } from 'l
 import { cn } from '@jiffoo/ui';
 import type { Product } from 'shared/src/types/product';
 import type { ProductsPageProps } from 'shared/src/types/theme';
-import { getBokmooProducts, mapBokmooApiProductToThemeProduct, normalizeProductForTheme } from '../lib/api';
+import { displayProductTitle, getBokmooProducts, mapBokmooApiProductToThemeProduct, normalizeProductForTheme, resolveBokmooMediaUrl } from '../lib/api';
 import { getBokmooTravelProfile } from '../lib/digital-fulfillment';
-import { resolveBokmooSiteConfig } from '../site';
+import { pickCopy, resolveBokmooSiteConfig } from '../site';
 
 const CATALOG_FILTERS = ['All', 'Popular', 'Local', 'Regional', 'Global'] as const;
 type CatalogFilter = (typeof CATALOG_FILTERS)[number];
+
+const FILTER_LABELS: Record<CatalogFilter, { en: string; hans: string; hant: string }> = {
+  All: { en: 'All', hans: '全部', hant: '全部' },
+  Popular: { en: 'Popular', hans: '热门', hant: '熱門' },
+  Local: { en: 'Local', hans: '本地', hant: '本地' },
+  Regional: { en: 'Regional', hans: '区域', hant: '區域' },
+  Global: { en: 'Global', hans: '全球', hant: '全球' },
+};
+
+const SORT_LABELS: Record<string, { en: string; hans: string; hant: string }> = {
+  createdAt: { en: 'Newest', hans: '最新', hant: '最新' },
+  price: { en: 'Price', hans: '价格', hant: '價格' },
+  name: { en: 'Name', hans: '名称', hant: '名稱' },
+};
 
 function getProductImage(product: Product): string | null {
   if (!product?.images?.length) return null;
@@ -33,15 +47,15 @@ function matchesCatalogFilter(product: { typeData?: { esim?: { country?: string;
   return true;
 }
 
-function ProductMedia({ product }: { product: Product }) {
-  const image = getProductImage(product);
+function ProductMedia({ product, apiBaseUrl }: { product: Product; apiBaseUrl?: string }) {
+  const image = resolveBokmooMediaUrl(getProductImage(product), apiBaseUrl);
   const profile = getBokmooTravelProfile(product);
 
   if (image) {
     return (
       <img
         src={image}
-        alt={product.name}
+        alt={displayProductTitle(product.name)}
         className="h-full w-full object-cover"
       />
     );
@@ -91,6 +105,7 @@ export const ProductsPage = React.memo(function ProductsPage({
   const [remoteError, setRemoteError] = React.useState('');
   const [selectedFilter, setSelectedFilter] = React.useState<CatalogFilter>('All');
   const site = resolveBokmooSiteConfig(config);
+  const t = (copy: { en: string; hans: string; hant: string }) => pickCopy(locale, copy);
   const normalizedProducts = React.useMemo(
     () =>
       (remoteProducts.length > 0 ? remoteProducts : products).map((product) =>
@@ -170,13 +185,13 @@ export const ProductsPage = React.memo(function ProductsPage({
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--bokmoo-copy)]">
                 <ShieldCheck className="h-4 w-4 text-[var(--bokmoo-gold)]" />
-                Plan Collection
+                {t({ en: 'Plan collection', hans: '套餐集合', hant: '套餐集合' })}
               </div>
               <h1 className="mt-5 text-[clamp(2.3rem,5vw,4.6rem)] leading-[0.95] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-                eSIM plans built for every journey.
+                {t({ en: 'eSIM plans built for every journey.', hans: '为每一段旅程而生的 eSIM 套餐。', hant: '為每一段旅程而生的 eSIM 套餐。' })}
               </h1>
               <p className="mt-4 text-base leading-7 text-[var(--bokmoo-copy)]">
-                Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.
+                {t({ en: 'Explore destination-ready profiles, regional bundles, and premium data options with the clarity of a product catalog.', hans: '探索目的地套餐、区域组合与高级流量选项，像商品目录一样一目了然。', hant: '探索目的地套餐、區域組合與高級流量選項，像商品目錄一樣一目了然。' })}
               </p>
             </div>
 
@@ -186,7 +201,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search destinations or bundles..."
+                  placeholder={t({ en: 'Search destinations or bundles...', hans: '搜索目的地或套餐…', hant: '搜尋目的地或套餐…' })}
                   className="h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] pl-11 pr-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] sm:rounded-full"
                 />
               </form>
@@ -196,9 +211,9 @@ export const ProductsPage = React.memo(function ProductsPage({
                 onChange={(event) => onSortChange(event.target.value)}
                 className="h-12 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none sm:rounded-full"
               >
-                <option value="createdAt">Newest</option>
-                <option value="price">Price</option>
-                <option value="name">Name</option>
+                <option value="createdAt">{t(SORT_LABELS.createdAt)}</option>
+                <option value="price">{t(SORT_LABELS.price)}</option>
+                <option value="name">{t(SORT_LABELS.name)}</option>
               </select>
 
               <div className="flex items-center rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-1 sm:rounded-full">
@@ -244,16 +259,16 @@ export const ProductsPage = React.memo(function ProductsPage({
                   )}
                   type="button"
                 >
-                  {filter}
+                  {t(FILTER_LABELS[filter])}
                 </button>
               ))}
             </div>
             <div className="flex flex-wrap gap-2">
               <span className="rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]">
-                {displayTotal} plans
+                {displayTotal} {t({ en: 'plans', hans: '个套餐', hant: '個套餐' })}
               </span>
               <span className="rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]">
-                Instant eSIM delivery
+                {t({ en: 'Instant eSIM delivery', hans: 'eSIM 即时送达', hant: 'eSIM 即時送達' })}
               </span>
             </div>
           </div>
@@ -262,19 +277,19 @@ export const ProductsPage = React.memo(function ProductsPage({
         <section className="mt-8">
           {remoteError && normalizedProducts.length === 0 ? (
             <div className="rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-10 text-center shadow-[var(--bokmoo-shadow)]">
-              <p className="text-xl font-semibold text-[var(--bokmoo-ink)]">Plans are unavailable right now.</p>
+              <p className="text-xl font-semibold text-[var(--bokmoo-ink)]">{t({ en: 'Plans are unavailable right now.', hans: '套餐暂时无法获取。', hant: '套餐暫時無法獲取。' })}</p>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--bokmoo-copy)]">{remoteError}</p>
               <button
                 onClick={() => void loadRemoteProducts(searchQuery.trim())}
                 className="mt-6 min-h-11 rounded-[0.9rem] bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]"
                 type="button"
               >
-                Try Again
+                {t({ en: 'Try Again', hans: '重试', hant: '重試' })}
               </button>
             </div>
           ) : normalizedProducts.length === 0 ? (
             <div className="rounded-[var(--bokmoo-radius-xl)] border border-dashed border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-16 text-center text-[var(--bokmoo-copy)]">
-              No plans matched the current search.
+              {t({ en: 'No plans matched the current search.', hans: '没有符合当前搜索的套餐。', hant: '沒有符合當前搜尋的套餐。' })}
             </div>
           ) : (
             <div
@@ -285,6 +300,16 @@ export const ProductsPage = React.memo(function ProductsPage({
             >
               {normalizedProducts.map((product) => {
                 const profile = getBokmooTravelProfile(product);
+                // The core's product-level price is the odoo list price; the
+                // amount checkout bills is the variant sale price. Show the
+                // cheapest sellable figure so the card matches the cart.
+                const variantSalePrices = (Array.isArray(product.variants) ? product.variants : [])
+                  .map((variant: any) => Number(variant.salePrice ?? variant.price ?? 0))
+                  .filter((price: number) => price > 0);
+                const listPrice = Number(product.price || 0);
+                const displayPrice = variantSalePrices.length > 0
+                  ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices)
+                  : listPrice;
 
                 return (
                   <article
@@ -307,7 +332,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                             : 'aspect-[1.45/1] rounded-[1rem] border md:aspect-auto md:h-full md:rounded-[var(--bokmoo-radius-lg)]'
                         )}
                       >
-                        <ProductMedia product={product} />
+                        <ProductMedia product={product} apiBaseUrl={site.apiBaseUrl} />
                       </div>
 
                       <div className={cn(viewMode === 'grid' ? 'p-5' : 'min-w-0')}>
@@ -321,18 +346,18 @@ export const ProductsPage = React.memo(function ProductsPage({
                         </div>
 
                         <h2 className="mt-4 text-[clamp(1.7rem,2vw,2.4rem)] leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-                          {product.name}
+                          {displayProductTitle(product.name)}
                         </h2>
                         <p className="mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]">
                           {product.description || profile.summary}
                         </p>
 
                         <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                          {[
-                            ['Coverage', profile.coverageLabel],
-                            ['Plan', profile.planLabel],
-                            ['Validity', profile.durationLabel],
-                          ].map(([label, value]) => (
+                          {([
+                            [t({ en: 'Coverage', hans: '覆盖范围', hant: '覆蓋範圍' }), profile.coverageLabel],
+                            [t({ en: 'Plan', hans: '套餐', hant: '套餐' }), profile.planLabel],
+                            [t({ en: 'Validity', hans: '有效期', hant: '有效期' }), profile.durationLabel],
+                          ] as [string, string][]).map(([label, value]) => (
                             <div
                               key={label}
                               className="rounded-[var(--bokmoo-radius-md)] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-3 py-3"
@@ -348,10 +373,10 @@ export const ProductsPage = React.memo(function ProductsPage({
                     <div className={cn(viewMode === 'grid' ? 'px-5 pb-5' : 'md:w-[12rem]')}>
                       <div className="rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_90%,black)] p-4">
                         <p className="text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                          Starting at
+                          {t({ en: 'Starting at', hans: '起价', hant: '起價' })}
                         </p>
                         <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-                          ${Number(product.price || 0).toFixed(2)}
+                          ${Number(Number.isFinite(displayPrice) ? displayPrice : 0).toFixed(2)}
                         </p>
                         <p className="mt-2 text-xs text-[var(--bokmoo-copy)]">{profile.planBadge}</p>
                         <button
@@ -359,7 +384,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                           className="mt-4 w-full rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)]"
                           type="button"
                         >
-                          Buy Now
+                          {t({ en: 'Buy Now', hans: '立即购买', hant: '立即購買' })}
                         </button>
                       </div>
                     </div>
@@ -381,7 +406,7 @@ export const ProductsPage = React.memo(function ProductsPage({
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-5 py-3 text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy)]">
-              Page {currentPage} / {displayTotalPages}
+              {t({ en: 'Page', hans: '第', hant: '第' })} {currentPage} / {displayTotalPages}
             </span>
             <button
               onClick={() => onPageChange(Math.min(displayTotalPages, currentPage + 1))}

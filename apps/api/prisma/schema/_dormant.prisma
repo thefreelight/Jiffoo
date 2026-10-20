@@ -90,54 +90,7 @@ model OrderStatusHistory {
   @@schema("public")
 }
 
-// ============================================================
-// DORMANT: SHIPMENT
-// Superseded by Order.shipmentStatus enum
-// ============================================================
-// DORMANT since 2026-07: no code references, do not use
-model Shipment {
-  id             String         @id @default(cuid())
-  orderId        String
-  carrier        String?
-  trackingNumber String?
-  status         ShipmentStatus @default(PENDING)
-  shippedAt      DateTime?
-  deliveredAt    DateTime?
-  metadata       Json?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-
-  order Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  items ShipmentItem[]
-
-  @@index([orderId])
-  @@index([trackingNumber])
-  @@index([status])
-  @@map("shipments")
-  @@schema("public")
-}
-
-// ============================================================
-// DORMANT: SHIPMENT ITEM
-// Superseded by embedded OrderItem fields
-// ============================================================
-// DORMANT since 2026-07: no code references, do not use
-model ShipmentItem {
-  id          String   @id @default(cuid())
-  shipmentId  String
-  orderItemId String
-  quantity    Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
-
-  shipment  Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-
-  @@index([shipmentId])
-  @@index([orderItemId])
-  @@map("shipment_items")
-  @@schema("public")
-}
+// SHIPMENT / SHIPMENT ITEM: reactivated 2026-10, moved to commerce.prisma
 
 // ============================================================
 // DORMANT: INVENTORY RESERVATION

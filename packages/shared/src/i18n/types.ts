@@ -73,7 +73,7 @@ export interface I18nContextValue {
 export interface MallContextLocaleFields {
   /** Default locale for the tenant (currently always 'en') */
   defaultLocale: Locale;
-  /** Supported locales for the tenant (currently always ['en', 'zh-Hant']) */
+  /** Supported locales for the tenant */
   supportedLocales: Locale[];
 }
 
@@ -110,4 +110,3 @@ export interface LanguageSwitcherItem {
   href: string;
   isActive: boolean;
 }
-

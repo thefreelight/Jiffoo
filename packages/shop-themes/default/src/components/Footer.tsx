@@ -2,7 +2,6 @@ import React from 'react';
 import { ArrowRight, Mail, ShieldCheck, ShoppingBag } from 'lucide-react';
 import type { FooterProps } from '../../../../shared/src/types/theme';
 import { isExternalHref, resolveSiteConfig } from '../site';
-import { ProductSiteFooter } from './ProductSiteFooter';
 
 function StorefrontFooter({
   config,
@@ -168,11 +167,5 @@ function StorefrontFooter({
 }
 
 export const Footer = React.memo(function Footer(props: FooterProps) {
-  const site = resolveSiteConfig(props.config);
-
-  if (site.archetype !== 'storefront') {
-    return <ProductSiteFooter {...props} />;
-  }
-
   return <StorefrontFooter {...props} />;
 });

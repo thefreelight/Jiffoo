@@ -3,14 +3,16 @@ import type { ThemePackage } from 'shared/src/types/theme';
 
 import { NotFound } from '@shop-themes/default/src/components/NotFound';
 import { OrderCancelledPage } from '@shop-themes/default/src/components/OrderCancelledPage';
-import { ProfilePage } from '@shop-themes/default/src/components/ProfilePage';
+import { ProfilePage } from './components/ProfilePage';
 
 import { AuthCallbackPage } from './components/AuthCallbackPage';
+import { AffiliatePage } from './components/AffiliatePage';
 import { CartPage } from './components/CartPage';
 import { CategoriesPage } from './components/CategoriesPage';
 import { CheckoutPage } from './components/CheckoutPage';
 import { BestsellersPage, DealsPage, NewArrivalsPage, SearchPage } from './components/CollectionPages';
 import { ContactPage } from './components/ContactPage';
+import { DownloadAppPage } from './components/DownloadAppPage';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { HelpPage } from './components/HelpPage';
@@ -44,10 +46,12 @@ export const theme: ThemePackage = {
     OrderCancelledPage,
     ProfilePage,
     ProfileSettingsPage,
+    AffiliatePage,
     ContactPage,
     HelpPage,
     PrivacyPage,
     TermsPage,
+    DownloadAppPage,
     DealsPage,
     LoginPage,
     RegisterPage,

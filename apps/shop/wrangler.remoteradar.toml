@@ -1,0 +1,29 @@
+name = "remoteradar-production-shop"
+main = ".open-next/worker.js"
+compatibility_date = "2026-07-13"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+workers_dev = true
+preview_urls = true
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[observability]
+enabled = true
+
+[vars]
+NEXT_PUBLIC_API_URL = "/api"
+API_SERVICE_URL = "https://api.remoteradar.cc"
+SERVER_STORE_CONTEXT_TIMEOUT_MS = "2000"
+THEME_APP_PROXY_DISABLED = "1"
+NEXT_PUBLIC_FALLBACK_STORE_NAME = "RemoteRadar"
+NEXT_PUBLIC_FALLBACK_THEME_SLUG = "remoteradar"
+
+[[r2_buckets]]
+binding = "THEME_ASSETS"
+bucket_name = "remoteradar-production-assets"
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "remoteradar-production-shop-cache"

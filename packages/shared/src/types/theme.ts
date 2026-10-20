@@ -118,18 +118,21 @@ export interface ThemePackage {
     // User center pages
     ProfilePage: React.ComponentType<ProfilePageProps>;
     ProfileSettingsPage?: React.ComponentType<ProfileSettingsPageProps>;
+    AffiliatePage?: React.ComponentType<AffiliatePageProps>;
     // Content pages
     ContactPage: React.ComponentType<ContactPageProps>;
     HelpPage: React.ComponentType<HelpPageProps>;
     HowItWorksPage?: React.ComponentType<HowItWorksPageProps>;
     PrivacyPage: React.ComponentType<PrivacyPageProps>;
     TermsPage: React.ComponentType<TermsPageProps>;
+    DownloadAppPage?: React.ComponentType<DownloadAppPageProps>;
     // Special pages
     DealsPage?: React.ComponentType<DealsPageProps>;
     // Auth pages
     LoginPage: React.ComponentType<LoginPageProps>;
     RegisterPage: React.ComponentType<RegisterPageProps>;
     AuthCallbackPage: React.ComponentType<AuthCallbackPageProps>;
+    ForgotPasswordPage?: React.ComponentType<ForgotPasswordPageProps>;
     // Layout components
     Header: React.ComponentType<HeaderProps>;
     Footer: React.ComponentType<FooterProps>;
@@ -170,7 +173,7 @@ export interface ThemeConfig {
     locale?: Locale;
   };
   site?: {
-    archetype?: 'storefront' | 'landing-commerce' | 'product-site' | 'app-download';
+    archetype?: 'storefront' | 'app-download' | 'product-site';
     eyebrow?: string;
     headline?: string;
     subheadline?: string;
@@ -231,6 +234,8 @@ export interface ProductDetailPageProps extends ThemeI18nProps {
   onQuantityChange: (quantity: number) => void;
   onAddToCart: () => Promise<void>;
   onBack: () => void;
+  /** Navigates to checkout after a successful add-to-cart (Buy Now flow). */
+  onNavigateToCheckout?: () => void;
 }
 
 /**
@@ -267,6 +272,7 @@ export interface CheckoutFormData {
   postalCode: string;
   country: string;
   paymentMethod: string;
+  promoCode?: string;
 }
 
 /**
@@ -285,6 +291,19 @@ export interface CheckoutPageProps extends ThemeI18nProps {
     displayName: string;
     icon?: string;
   }>;
+  savedAddresses?: SavedAddress[];
+  onPickSavedAddress?: (address: SavedAddress) => void;
+  savedAddress?: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    addressLine1?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  } | null;
   onSubmit: (data: CheckoutFormData) => Promise<void>;
   onBack: () => void;
 }
@@ -408,7 +427,7 @@ export interface OrderDetailPageProps extends ThemeI18nProps {
  */
 export interface OrderSuccessPageProps extends ThemeI18nProps {
   orderNumber: string;
-  order?: ShopOrderDetailDTO | null;
+  order?: { id?: string; items?: Array<{ productKind?: string; productName?: string; fulfillmentStatus?: string | null; fulfillmentData?: Record<string, unknown> | null }> } | null;
   isVerifying?: boolean;
   config?: ThemeConfig;
   onContinueShopping: () => void;
@@ -428,6 +447,32 @@ export interface OrderCancelledPageProps extends ThemeI18nProps {
 /**
  * Profile Page Component Props
  */
+export interface SavedAddress {
+  id: string;
+  label?: string;
+  name: string;
+  phone: string;
+  line1: string;
+  line2?: string | null;
+  state?: string | null;
+  city: string;
+  postalCode?: string | null;
+  country: string;
+  isDefault: boolean;
+}
+
+export interface AddressBookInput {
+  name: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  state?: string;
+  city: string;
+  postalCode?: string;
+  country: string;
+  isDefault?: boolean;
+}
+
 export interface ProfilePageProps extends ThemeI18nProps {
   user: {
     id: string;
@@ -436,9 +481,15 @@ export interface ProfilePageProps extends ThemeI18nProps {
     avatar?: string;
     createdAt: string;
   } | null;
+  addresses?: SavedAddress[];
+  isLoadingAddresses?: boolean;
+  onAddAddress?: (input: AddressBookInput) => Promise<void>;
+  onDeleteAddress?: (addressId: string) => Promise<void>;
+  onSetDefaultAddress?: (addressId: string) => Promise<void>;
   isLoading: boolean;
   isAuthenticated: boolean;
   config?: ThemeConfig;
+  onNavigate?: (path: string) => void;
   onNavigateToSettings: () => void;
   onNavigateToOrders: () => void;
   onNavigateToLogin: () => void;
@@ -475,6 +526,14 @@ export interface ProfileSettingsPageProps extends ThemeI18nProps {
   onNavigateToLogin: () => void;
 }
 
+export interface AffiliatePageProps extends ThemeI18nProps {
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  config?: ThemeConfig;
+  onNavigateBack: () => void;
+  onNavigateToLogin: () => void;
+}
+
 /**
  * Contact Page Component Props
  */
@@ -501,6 +560,13 @@ export interface HelpPageProps extends ThemeI18nProps {
  * How It Works Page Component Props
  */
 export interface HowItWorksPageProps extends ThemeI18nProps {
+  config?: ThemeConfig;
+}
+
+/**
+ * Download App Page Component Props
+ */
+export interface DownloadAppPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
 }
 
@@ -553,6 +619,25 @@ export interface LoginPageProps extends ThemeI18nProps {
 }
 
 /**
+ * Forgot Password Page Component Props
+ * Optional theme component: a branded two-step reset (request code, then set a
+ * new password). The shop app renders its built-in page when the theme does
+ * not provide one.
+ */
+export interface ForgotPasswordPageProps extends ThemeI18nProps {
+  isLoading: boolean;
+  error?: string | null;
+  config?: ThemeConfig;
+  /** Preset from /auth/forgot-password?email=… deep links (e.g. after an email change). */
+  initialEmail?: string;
+  /** Requests the six-digit reset code. Rejects with a user-facing message on failure. */
+  onRequestCode: (email: string) => Promise<void>;
+  /** Completes the reset. Rejects with a user-facing message on failure. */
+  onResetPassword: (input: { email: string; code: string; password: string }) => Promise<void>;
+  onNavigateToLogin: () => void;
+}
+
+/**
  * Register Page Component Props
  */
 export interface RegisterPageProps extends ThemeI18nProps {
@@ -562,6 +647,8 @@ export interface RegisterPageProps extends ThemeI18nProps {
   socialAuthStatus?: SocialAuthStatus;
   onSubmit: (data: {
     email: string;
+    /** Stable account name used for greeting and username login. */
+    username?: string;
     password: string;
     confirmPassword: string;
     firstName: string;

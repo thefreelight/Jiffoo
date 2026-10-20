@@ -27,6 +27,7 @@ function OrderSuccessContent() {
   const { clearCart, removeItem } = useCartStore();
   const t = useT();
   const [orderNumber, setOrderNumber] = React.useState<string>('');
+  const [orderId, setOrderId] = React.useState<string>('');
   const [isVerifying, setIsVerifying] = React.useState(true);
 
   // Helper function for translations with fallback
@@ -58,7 +59,8 @@ function OrderSuccessContent() {
     try {
       const response = await paymentApi.verifySession(sessionId);
       if (response.success) {
-        setOrderNumber(response.data?.orderId || `JF${Date.now().toString().slice(-6)}`);
+        setOrderId(response.data?.orderId || '');
+        setOrderNumber(response.data?.orderNumber || response.data?.orderId || `JF${Date.now().toString().slice(-6)}`);
       } else {
         setOrderNumber(`JF${Date.now().toString().slice(-6)}`);
       }
@@ -139,6 +141,7 @@ function OrderSuccessContent() {
   return (
     <OrderSuccessPageComponent
       orderNumber={orderNumber}
+      order={orderId ? { id: orderId } : null}
       isVerifying={isVerifying}
       config={config}
       locale={nav.locale}

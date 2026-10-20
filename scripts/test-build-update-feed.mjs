@@ -39,6 +39,13 @@ function readTarFile(repoDir, archivePath, fileName) {
   });
 }
 
+function listTarFiles(repoDir, archivePath) {
+  return run('tar', ['-tzf', archivePath], {
+    cwd: repoDir,
+    capture: true,
+  }).trim().split('\n');
+}
+
 function createFixtureRepo(repoDir) {
   run('git', ['init', '-q'], { cwd: repoDir });
   run('git', ['config', 'user.email', 'release-test@example.test'], { cwd: repoDir });
@@ -53,6 +60,7 @@ function createFixtureRepo(repoDir) {
   writeFile(path.join(repoDir, '.env.production.example'), 'NODE_ENV=production\nAPP_SOURCE=release-tag\n');
   writeFile(path.join(repoDir, 'nginx', 'get-jiffoo.conf'), 'server { # release tag }\n');
   writeFile(path.join(repoDir, 'release-source.txt'), 'archive source from release tag\n');
+  writeFile(path.join(repoDir, 'self-hosted', 'jiffoo-source.tar.gz'), 'previous release archive\n');
 
   run('git', ['add', '.'], { cwd: repoDir });
   run('git', ['commit', '-qm', 'release fixture'], { cwd: repoDir });
@@ -100,6 +108,11 @@ function main() {
     const archivePath = path.join(outputDir, 'jiffoo-source.tar.gz');
     const archivedSource = readTarFile(scratchRoot, archivePath, 'release-source.txt');
     assert.equal(archivedSource, 'archive source from release tag\n');
+    assert.equal(
+      listTarFiles(scratchRoot, archivePath).includes('self-hosted/jiffoo-source.tar.gz'),
+      false,
+      'the source archive must never recursively contain its own previous output',
+    );
     assert.equal(fs.readFileSync(path.join(outputDir, 'install.sh'), 'utf8'), '#!/bin/sh\necho install from release tag\n');
     assert.equal(fs.readFileSync(path.join(outputDir, 'docker-compose.yml'), 'utf8'), 'services:\n  api:\n    image: release-tag\n');
     assert.equal(fs.readFileSync(path.join(outputDir, '.env.production.example'), 'utf8'), 'NODE_ENV=production\nAPP_SOURCE=release-tag\n');

@@ -118,10 +118,9 @@ export default function ProductsPage() {
         throw new Error(getText('shop.cart.addFailed', 'No available SKU for this product'));
       }
       await addToCart(productId, 1, variantId);
-      toast({
-        title: getText('shop.cart.itemAdded', 'Item added to cart'),
-        description: product ? product.name : getText('shop.cart.itemAdded', 'Item added to cart'),
-      });
+      // Card-level Buy Now: go straight to checkout so the shopper does not
+      // have to detour through the cart.
+      nav.push('/checkout');
     } catch (err) {
       console.error('Failed to add product to cart:', err);
       toast({

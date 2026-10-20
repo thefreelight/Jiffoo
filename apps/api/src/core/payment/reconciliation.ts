@@ -3,6 +3,8 @@ import { ExternalOrderService } from '@/core/external-orders/service';
 import { OrderStatus, PaymentStatus } from '@/core/order/types';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { callPaymentPlugin } from '@/core/payment/plugin-gateway';
+import { emitOrderPaidEvent } from '@/core/payment/order-paid-event';
+import { OutboxService } from '@/infra/outbox';
 import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus, Prisma } from '@prisma/client';
 
 const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
@@ -113,6 +115,24 @@ export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean>
           });
         }
 
+        await emitOrderPaidEvent(tx, payment.orderId, {
+          paymentId: updatedPayment.id,
+          paymentMethod: updatedPayment.paymentMethod,
+          paymentIntentId: updatedPayment.paymentIntentId,
+          sessionId: updatedPayment.sessionId,
+          providerEventId,
+          metadata: (updatedPayment.metadata || {}) as Record<string, unknown>,
+        });
+
+        await OutboxService.emit(tx, 'payment.succeeded', updatedPayment.id, {
+          paymentId: updatedPayment.id,
+          orderId: payment.orderId,
+          userId: (updatedPayment.metadata as Record<string, unknown> | null)?.userId,
+          amount: Number(updatedPayment.amount),
+          currency: updatedPayment.currency,
+          metadata: updatedPayment.metadata || {},
+        });
+
         didUpdate = true;
       });
     } catch (error) {
@@ -177,6 +197,16 @@ export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean>
             actorType: 'system',
           });
         }
+
+
+        await OutboxService.emit(tx, 'payment.failed', updatedPayment.id, {
+          paymentId: updatedPayment.id,
+          orderId: payment.orderId,
+          userId: (updatedPayment.metadata as Record<string, unknown> | null)?.userId,
+          amount: Number(updatedPayment.amount),
+          currency: updatedPayment.currency,
+          metadata: updatedPayment.metadata || {},
+        });
 
         didUpdate = true;
       });

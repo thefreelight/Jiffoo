@@ -117,10 +117,17 @@ describe('ThemeInstaller upgrade path', () => {
     expect(latestInstalled.installedAt).toEqual(oldInstalled.installedAt);
 
     const themeDir = path.join(extensionsRoot, 'themes', 'shop', 'modelsfind');
+    const oldVersionDir = path.join(extensionsRoot, 'themes', 'shop', '.versions', 'modelsfind', '0.1.3');
+    const latestVersionDir = path.join(extensionsRoot, 'themes', 'shop', '.versions', 'modelsfind', '0.1.4');
     const manifest = JSON.parse(await fs.readFile(path.join(themeDir, 'theme.json'), 'utf-8')) as { version: string };
     const installedMeta = JSON.parse(await fs.readFile(path.join(themeDir, '.installed.json'), 'utf-8')) as { version: string };
+    const oldVersionManifest = JSON.parse(await fs.readFile(path.join(oldVersionDir, 'theme.json'), 'utf-8')) as { version: string };
+    const latestVersionManifest = JSON.parse(await fs.readFile(path.join(latestVersionDir, 'theme.json'), 'utf-8')) as { version: string };
 
     expect(manifest.version).toBe('0.1.4');
     expect(installedMeta.version).toBe('0.1.4');
+    expect(oldVersionManifest.version).toBe('0.1.3');
+    expect(latestVersionManifest.version).toBe('0.1.4');
+    await expect(fs.readFile(path.join(latestVersionDir, 'tokens.css'), 'utf-8')).resolves.toContain('#ff2d8f');
   });
 });

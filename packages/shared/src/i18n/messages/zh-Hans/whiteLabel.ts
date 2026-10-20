@@ -1,5 +1,5 @@
 /**
- * Simplified Chinese (converted from Traditional copy) White Label Messages
+ * Simplified Chinese White Label Messages
  * 
  * White-label studio specific messages for branding customization,
  * theme configuration, and white-label management.
@@ -24,7 +24,7 @@ export const whiteLabel = {
   header: {
     title: '白标',
     subtitle: '工作室',
-    searchPlaceholder: '搜索品牌、模板...',
+    searchPlaceholder: '搜寻品牌、模板...',
   },
 
   // User
@@ -306,7 +306,7 @@ export const whiteLabel = {
 
   // Settings
   settings: {
-    title: '设置',
+    title: '设定',
     general: '一般',
     seo: 'SEO',
     analytics: '分析',
