@@ -1,6 +1,6 @@
 # AGENTRA-004: Plugin Pages, Storage, Tasks and Services
 
-Status: P-0 design draft; not implemented
+Status: Design revision 3; P-1 implemented, remaining batches not implemented
 Decision basis: owner decisions of 2026-10-19 and 2026-10-20
 
 ## 1. Scope and implementation baseline
@@ -395,7 +395,7 @@ change an admitted task's retry budget. Final hooks share execution slots and
 have a separate 1-60 second operator cap (default 30 seconds).
 
 Server SDK: `ctx.tasks.enqueue(name,version,payload,
-{idempotencyKey,runAt?,delayMs?})`, `get(id)`,
+{idempotencyKey,runAt?,delayMs?,principal?})`, `get(id)`,
 `list({status,cursor,limit})`, `cancel(id)`. `runAt` and nonnegative `delayMs`
 are mutually exclusive, at most 30 days ahead; Core resolves delay once and
 stores it. Duplicate keys compare the original normalized request (delay
@@ -420,6 +420,34 @@ the long task. Cron/recurring schedules are deferred; delayMs plus a new
 time-bucket key on self re-enqueue is the interim pattern, for example
 `cleanup:2026-10-20T10:10` (UTC minute bucket). The next bucket must use a
 different key; reusing `cleanup` forever returns the same task forever.
+
+#### R1: Bound task principal
+
+Core automatically binds request-handler enqueues to the immutable invoking
+principal. Supplying `principal` in a request context is rejected with
+PLUGIN_TASK_PRINCIPAL_OVERRIDE_FORBIDDEN (403); a caller cannot impersonate
+another identity. Without request context, a repair/worker context may supply
+`principal:{type:'customer'|'admin',id:string}`. Core accepts only an active
+customer/admin previously recorded for this exact installation in
+`plugin_principals`. Core upserts that registry when an authenticated
+plugin-page session or gateway call for that principal reaches the installation.
+This G1 registry does not depend on P-3 code: existing authenticated gateway
+admissions can populate it first. It is not a credential or permission grant.
+Core revalidates current identity status and audits installation, invoking
+actor/execution, selected principal, task and validation outcome, without
+tokens or payload contents.
+
+Malformed options return PLUGIN_TASK_PRINCIPAL_INVALID (422); unrecorded,
+deleted, inactive or other-installation identities return
+PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED (403). Missing binding for an operation
+requiring identity returns PLUGIN_TASK_PRINCIPAL_REQUIRED (403). Without an
+explicit option, a background enqueue inherits its enclosing task/hook's
+binding if any; otherwise it has no customer/admin authority. Guest request
+tasks retain their guest binding without acquiring customer/admin authority.
+The resolved binding is immutable, persisted and included in idempotency input
+comparison. Execution and each principal-sensitive operation revalidate it.
+`ctx.storage.put` and `ctx.services.call` inside tasks/final-failure hooks use
+the task's bound principal; payload IDs or owner options cannot override it.
 
 ### Cluster-wide admission, timeout and fairness
 
@@ -485,12 +513,20 @@ Resume only when the dependency is authoritative operational, using its
 Retry-After as a minimum backoff for transient unavailability. Other failures
 use retry delays of 1 min, 5 min,
 15 min, then 60 min for every remaining retry, up to the declared maxAttempts.
+R3: A handler may throw SDK `TaskPermanentError(code,message)` to atomically
+move its live task straight to FAILED, skipping remaining retries. Core
+validates the bounded safe code/message, records PERMANENT_ERROR as the
+attempt outcome, and creates the same unique final-failure record as exhausted
+retries, even if isFinalAttempt was false. A stale/lifecycle-revoked invocation
+cannot override a winning pause/cancellation transition. The final-failure
+hook follows the once-invocation rule; duplicate throws and worker recovery
+never invoke it twice. Ordinary errors remain retryable.
 Store safe errors and existing throttled failure history. A lower current
 operator cap blocks admission rather than resetting a task's attempts.
 
 ### Final failure and compensation
 
-When the last attempt becomes FAILED, the same transaction inserts one
+When the last attempt or TaskPermanentError makes the task FAILED, the same transaction inserts one
 unique final-failure record for that task if declared. Only a worker may
 invoke `onFinalFailure({taskId,payload,idempotencyKey,attempt,lastError,
 principal,signal})`, with its own claim/fence, 30-second default deadline,
@@ -697,13 +733,60 @@ Core rejects missing keys and persists a service call ledger before invocation.
 Unique identity is caller/provider installation + service/version/method/key.
 Equal key/input hash returns the stored terminal success or business failure;
 unequal hash is 409; in-flight duplicates do not invoke again.
-A timeout/crash becomes UNKNOWN, not safe to
-retry blindly. Provider must persist a domain deduplication record keyed by
-the stable call ID in the same transaction as its monetary effect and support
-reconciliation via the same method/key; Core permits only that reconciliation
-path for UNKNOWN calls. No distributed exactly-once or atomic cross-plugin
-transaction is promised. Providers must document business failure versus
-unknown-outcome contracts. Successful retry/reconciliation never re-debits.
+A timeout/crash becomes UNKNOWN, not safe to retry blindly.
+
+#### R2: Unknown-outcome reconciliation
+
+The caller invokes the same service method/provider/version with the same
+input and idempotency key. Core recognizes the UNKNOWN ledger row, rechecks
+principal, grants, generations and deadline, and exclusively claims that row
+for reconciliation. A new key is a new operation, never a repair. Changed
+input is 409; concurrent callers receive source:core
+PLUGIN_SERVICE_CALL_IN_PROGRESS with original callId and retry guidance,
+without entering provider code. Provider SDK registration uses:
+
+```typescript
+type BoundPrincipal = { type: 'customer' | 'admin'; id: string };
+type ProviderOutcome<T> =
+  | { ok: true; data: T }
+  | { ok: false; source: 'provider'; error: { code: string; message: string; details: unknown } };
+type ProviderInvocation = {
+  callId: string; reconcile: boolean; signal: AbortSignal;
+  caller: Readonly<{ installationId: string; slug: string; version: string;
+    principal: BoundPrincipal | null; requestId: string }>;
+};
+type ProviderHandler<I, O> = (input: I, context: ProviderInvocation) =>
+  Promise<ProviderOutcome<O> | { outcome: 'NOT_EXECUTED' }>;
+// ctx.services.provide(service, version, { [method]: handler });
+```
+
+Normal invocation receives reconcile:false. UNKNOWN reconciliation receives
+`{callId:originalCallId,reconcile:true}` and the original validated input.
+The provider durably stores its original success/business rejection keyed by
+callId in the same transaction as its domain effect, and returns that exact
+outcome without repeating the effect when its dedup record exists. It may
+return `{outcome:'NOT_EXECUTED'}` only after proving no effect committed and
+fencing any original invocation that could still commit. Missing dedup data
+alone is insufficient while the original invocation can still complete;
+serialize the check against the original domain transaction.
+
+Ledger transitions are RUNNING -> SUCCEEDED (success), FAILED (durable
+business rejection), or UNKNOWN (timeout/crash/ambiguous outcome). A claimed
+UNKNOWN row remains UNKNOWN with a reconciliation claim/deadline. A recovered
+original outcome moves UNKNOWN -> SUCCEEDED/FAILED and returns the ordinary
+ServiceResult. Proven NOT_EXECUTED atomically fences the reconciliation claim
+and moves UNKNOWN -> RUNNING once; Core executes normally with the same
+callId and reconcile:false. Only one normal invocation follows that proof;
+it settles or becomes UNKNOWN by the same rules. NOT_EXECUTED is internal to
+this protocol, never a caller-visible success/business error; receiving it
+during normal execution is a protocol error leaving UNKNOWN. Reconciliation
+timeout, crash, invalid response or unprovable non-execution keeps UNKNOWN
+and returns source:core PLUGIN_SERVICE_OUTCOME_UNKNOWN, original callId and
+same-method/same-key repair instructions. Expired reconciliation claims can
+be reclaimed, never authorize normal execution without NOT_EXECUTED, and
+stale original completions cannot publish. Stored outcomes still require
+current authorization. No distributed exactly-once or atomic cross-plugin
+transaction is promised. Successful retry/reconciliation never re-debits.
 
 Disable of a provider is allowed only after a separate merchant confirmation
 of the listed transitive dependents becoming unavailable. Core returns a
@@ -754,20 +837,28 @@ type PaidOrder = {
   orderId: string; orderNumber: string; customerId: string;
   paidAt: string; currency: string; paymentStatus: string;
   amounts: { subtotal: string; shipping: string; tax: string; total: string };
-  lines: Array<{
-    lineId: string; productId: string; variantId: string; quantity: number;
-    unitPrice: string; taxAmount: string; lineTotal: string;
-  }>;
+  items: EventPayload<'order.paid'>['order']['items'];
 };
 ```
+
+R4: `items` has exactly the published order.paid v1 order.items shape from
+packages/shared/src/events/registry.ts, including field names, optional/null
+fields and money format: id, productId, variantId, quantity, numeric unitPrice,
+nullable fulfillmentData, optional productName/variantName/skuCode, and
+productTypeData. Do not introduce lines/lineId/taxAmount/lineTotal aliases or
+rename event fields. Acceptance compares query items
+directly with the existing event payload, including deleted-catalog snapshots.
 
 All timestamps are ISO UTC; `from <= paidAt < to`, with from < to, a maximum
 31-day window, and no future to. Limit defaults to 25, maximum 100 orders.
 Include every persisted order line, even if the catalog item was deleted;
-never silently truncate lines. Monetary strings are exact canonical decimal
-amounts in the indicated currency, never floating-point or recomputed current
-catalog prices. Expose no customer email, addresses, provider credentials,
-payment tokens or mutable product metadata. Customer ID is the stored order
+never silently truncate items. The query's aggregate monetary strings are exact
+canonical decimals; item unitPrice retains the existing event's finite
+nonnegative numeric amount, without conversion to minor units or strings.
+Never recompute stored prices from current catalog data. Expose no customer email,
+addresses, provider credentials,
+payment tokens or additional mutable product metadata beyond the published
+item snapshot. Customer ID is the stored order
 userId; orderNumber is the existing required readable order number.
 
 `paidAt` means the first accepted commerce payment, consistent with the
@@ -843,13 +934,14 @@ accidental cascade may erase financial audit or delete shared object bytes.
 | P-4 `plugin_files` | id PK, installationId immutable text snapshot (deliberately no FK so deletion work survives purge), ownerType CUSTOMER/ADMIN, ownerId, objectKey UNIQUE, sha256, MIME, sizeBytes bigint >=0, state RESERVED/READY/DELETING, reservationExpiresAt, deletedAt. Index installation/ownerType/ownerId/state. READY requires verified metadata and a live installation at admission. Purge schedules cleanup before installation deletion; worker removes metadata only after object deletion. |
 | P-4 `plugin_storage_quotas` | installationId FK cascade, ownerType (CUSTOMER/ADMIN/INSTALLATION), ownerId (empty for installation), reservedBytes, usedBytes; composite PK and nonnegative checks. Lock aggregate then principal rows consistently; reserve both in upload transaction. |
 | P-4 `plugin_file_cleanup` | id PK, fileId nullable, installationId snapshot (no deleting FK), objectKey UNIQUE, attempts, nextAttemptAt, claimToken, leaseUntil, lastError. Due/lease indexes; worker-fenced idempotent deletion. |
+| G1 `plugin_principals` | installationId FK cascade, principalType CUSTOMER/ADMIN, principalId, firstSeenAt, lastSeenAt, source PAGE_SESSION/GATEWAY; composite PK(installationId,principalType,principalId). Core-authenticated admissions only; revalidate current identity before binding/use; registry existence does not grant permissions. Purge cascades registry; audit preserves safe selection/outcome. |
 | G1 `plugin_tasks` | id PK, installationId FK cascade, execution zipHash/generation nullable until claim, name, version, idempotencyKey, inputHash, scheduleRequest JSON, payload, result nullable, principalType/principalId, status PENDING/RUNNING/SUCCEEDED/FAILED/CANCELLED, runAt, nextAttemptAt, attemptsCharged, executionSequence, maxAttempts, maxRuntimeSeconds, declaredConcurrency, policyVersion, deadlineAt nullable, claimedByBootNonce nullable FK CoreProcess, claimToken UUID nullable (SDK claimId), fence bigint default 0 (SDK decimal string), leaseUntil nullable, progress nullable, lastError nullable, startedAt/finishedAt nullable, pauseReason/pausedAt nullable, cancellationReason/previousState/cancelRequestedAt nullable. UNIQUE(installationId,name,version,idempotencyKey) is retained until purge. Partial due index(nextAttemptAt,id) WHERE PENDING; lease index(leaseUntil,id) WHERE RUNNING; installation/status index. Pause preserves PENDING eligibility gating, not a terminal status; final admission rechecks live graph rather than trusting cached pauseReason. Positive admitted limits are snapshots. RUNNING requires claim/lease/deadline; terminal or paused rows have no live task claim. |
-| G1 `plugin_task_attempts` | taskId FK cascade, executionSequence, chargedAttempt, claimToken UUID, fence, bootNonce snapshot, startedAt, finishedAt, outcome (including TIMED_OUT/PAUSE_ABORT/UPDATE_ABORT), safeError; PK(taskId,executionSequence), UNIQUE(taskId,fence), UNIQUE(claimToken). executionSequence/fence always increase and claimId never repeats; pause/update-aborted runs do not consume a retry and the next run can reuse chargedAttempt. SDK attempt/isFinalAttempt use chargedAttempt, not executionSequence. No duplicated payload. |
+| G1 `plugin_task_attempts` | taskId FK cascade, executionSequence, chargedAttempt, claimToken UUID, fence, bootNonce snapshot, startedAt, finishedAt, outcome (including TIMED_OUT/PAUSE_ABORT/UPDATE_ABORT/PERMANENT_ERROR), safeError; PK(taskId,executionSequence), UNIQUE(taskId,fence), UNIQUE(claimToken). executionSequence/fence always increase and claimId never repeats; pause/update-aborted runs do not consume a retry and the next run can reuse chargedAttempt. SDK attempt/isFinalAttempt use chargedAttempt, not executionSequence. No duplicated payload. |
 | G1 `plugin_task_final_failures` | taskId PK FK cascade, handler name/version, payload reference, status PENDING/RUNNING/SUCCEEDED/FAILED/UNKNOWN/SUPPRESSED, maxRuntimeSeconds, claimToken, fence, bootNonce, leaseUntil, deadlineAt, startedAt, finishedAt, safeError. UNIQUE task ensures one hook record. Only PENDING can be automatically admitted; RUNNING never becomes PENDING on recovery. Ownership/generation checks and occupancy apply independently from the FAILED task. |
 | G1 `plugin_task_execution_slots` | id PK, installationId snapshot, taskId snapshot, kind TASK/FINAL_FAILURE, name, version, claimToken, fence, bootNonce FK CoreProcess, state ACTIVE/LINGERING/RELEASED, lastObservedAt/releasedAt. UNIQUE(taskId,kind,fence). Index bootNonce/state and installationId/name/version/state. ACTIVE and LINGERING count against caps until promise settlement or confirmed process death, including across update/purge; no task/installation cascade prematurely frees a slot. |
 | G1 `plugin_task_scheduler` / `plugin_task_fairness` | Singleton scheduler row with round sequence and shared operator policy JSON/version; fairness table keyed installationId with lastServedSequence. All slot admission locks the singleton, then installation rows in the documented lifecycle ordering. Configured concurrency/attempt/runtime/hook caps and their validation are shared across workers; no process-local cap authority. |
 | G4 `plugin_service_dependencies` | consumerInstallationId FK cascade, providerInstallationId FK restrict, service, version, methods JSON array (nonempty unique), grantedMethods JSON array, grantedDeclarationDigest, grantedBy, grantedAt; composite PK; index providerInstallationId. Grant changes require audited merchant approval; every call checks declared and granted method. Projection updated from current verified manifest in graph transaction; purge removes disabled-consumer edges explicitly. |
-| G4 `plugin_service_calls` | id PK (stable callId), callerInstallationId/providerInstallationId snapshots, service, version, method, idempotencyKey, inputHash, status RUNNING/SUCCEEDED/FAILED/UNKNOWN, caller/provider generations, claimToken, deadlineAt, response nullable, safeError, timestamps. UNIQUE(callerInstallationId,providerInstallationId,service,version,method,idempotencyKey). Deadline/status index. No cascading loss on purge; retain safe identity/hash/outcome, redact input/result on purge where needed; provider monetary dedup history remains plugin-owned. |
+| G4 `plugin_service_calls` | id PK (stable callId), callerInstallationId/providerInstallationId snapshots, service, version, method, idempotencyKey, inputHash, status RUNNING/SUCCEEDED/FAILED/UNKNOWN, caller/provider generations, claimToken, deadlineAt, reconciliationClaimToken nullable, reconciliationDeadlineAt nullable, reconciliationSequence, response nullable, safeError, timestamps. UNIQUE(callerInstallationId,providerInstallationId,service,version,method,idempotencyKey). Deadline/status index. No cascading loss on purge; retain safe identity/hash/outcome, redact input/result on purge where needed; provider monetary dedup history remains plugin-owned. |
 | G4-R `plugin_commerce_grants` | installationId FK cascade, permission (commerce:orders.read), declarationDigest, grantRevision, grantedBy/grantedAt, revokedAt nullable; PK(installationId,permission). Audit grant/revoke with the lifecycle operation; query requires declared and unrevoked approved grant. No copy of order data/checkpoints stored here. |
 | G4-R payment-ledger index | New partial index on payment_ledgers(createdAt,orderId,id) WHERE eventType='SUCCEEDED' AND refundRequired=false; verify real query plan including earliest capture per order, and adjust only in this new migration if existing indexes suffice or a different order is required. No paidAt column or event backfill; existing financial records remain the source of truth. |
 
@@ -866,7 +958,8 @@ introduced. Add any required purchase-origin FK to order only if the nullable
 unique order binding above cannot satisfy the current checkout transaction;
 the batch should choose the single representation, not dual-write both.
 
-Migration order is P-3, P-4, G1, G4 and G4-R by integration scheduling, not guessed
+Migration ordering across P-3, P-4, G1, G4 and G4-R is assigned by integration
+scheduling; this listing does not require G1 to wait for P-3 code. Never guess
 timestamps here. Before implementation, advisor coordinates current UTC
 timestamps later than every existing migration. Generate each new migration
 only with approved migrate diff against that lane's validated test URL after
@@ -889,6 +982,11 @@ and localized Core presentation together:
 
 | Code | HTTP / meaning |
 | --- | --- |
+| PLUGIN_TASK_PRINCIPAL_INVALID | 422 / malformed explicit task principal |
+| PLUGIN_TASK_PRINCIPAL_OVERRIDE_FORBIDDEN | 403 / request principal cannot be replaced |
+| PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED | 403 / principal not recorded for installation or no longer active |
+| PLUGIN_TASK_PRINCIPAL_REQUIRED | 403 / operation requires a bound principal |
+| PLUGIN_SERVICE_CALL_IN_PROGRESS | 409 / exclusive execution or reconciliation already active; retry same key |
 | PLUGIN_UI_MANIFEST_INVALID | 422 / invalid declaration |
 | PLUGIN_UI_ASSET_INVALID | 422 / rejected asset, MIME or path |
 | PLUGIN_UI_ASSET_TOO_LARGE | 413 / UI-specific limit |
@@ -919,6 +1017,20 @@ record lifecycle, dependency warnings/decisions, task cancellation, file purge
 and service reconciliation; audit never records tokens or uploaded contents.
 
 ## 10. SDK, acceptance fixture and batch plan
+
+### G7: SDK distribution
+
+The standalone Extension SDK is `@jiffoo-core/plugin-sdk`, retaining the
+`jiffoo-plugin` binary. Each Core release attaches a self-contained SDK tarball
+as a release asset, with authoring types and compiled signing, manifest and
+UI-asset validation modules, without workspace dependencies or Core application
+imports. Pre-release versions use `1.0.0-alpha.N`, starting at alpha.1. npm
+publishing comes later, after the owner supplies an npm organisation; set
+publishConfig.access to public at that time. Consumers can install the release
+asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.1.tgz` and import
+`PluginContext` from `@jiffoo-core/plugin-sdk`.
+
+### Authoring and acceptance
 
 Server SDK publishes ctx.storage/tasks/services additions in shared types and
 generated scaffold definitions, with handler lifetime and AbortSignal rules.
@@ -992,11 +1104,12 @@ not replay a missed event or restart an already-completed generation task.
 | P-2 | Asset routes, global null-origin guard, strict frame headers with allow-forms and form-action none; P-1 | Integration; none | API CORS/CSP and cookie-route inventory tests; integration browser module/font, onSubmit and blocked real-submission proof in approved E2E; moderate/high | Global optional auth/CORS and X-Frame-Options ordering |
 | P-3 | Bridge SDK, sessions/tokens, Shop/Admin shells/nav, purchase return and file.download shell action; P-2 (file grants completed in P-4) | Integration; sessions and purchase origins | Auth/shared mandatory suites, API + Shop/Admin accessible UI tests, integration E2E; high | Cross-instance sign-out/disable races, download gestures and return-path validation |
 | P-4 | Private storage SDK/endpoints/quotas/cleanup; P-3 | Integration; files/quotas/cleanup | API ownership/grant expiry/local+S3 failure tests and upload browser acceptance; high | Signed URL leakage window and non-transactional object writes |
-| G1 | Durable tasks, configurable handler policy, final hooks, occupancy/fairness, pause/resume, per-attempt claimId/fence, compatible updates and dev/drain helper; P-1 declaration base, P-3 principal contract | Plugins lane; tasks/attempts/final-failure/slots/scheduler/fairness (no enable-staging table), coordinated timestamp | Lane API/worker + mandatory DB/shared suites; two-worker 45s/180s tasks, 300s budgets, hook crash, ignored-abort occupancy, fairness, disable/dependency pause without budget loss, uninstall cancellation, claim-conditional writes, permanent keys/time buckets and update preservation; no local E2E; high | Stale execution, external duplicate cost, ambiguous compensation and uncooperative code |
+| G1 | Durable tasks, configurable handler policy, final hooks, occupancy/fairness, pause/resume, per-attempt claimId/fence, compatible updates and dev/drain helper; P-1 merged and R1 principal contract specified here; no P-3 code dependency | Plugins lane; principal registry/tasks/attempts/final-failure/slots/scheduler/fairness (no enable-staging table), coordinated timestamp | Lane API/worker + mandatory DB/shared suites; two-worker 45s/180s tasks, 300s budgets, hook crash, ignored-abort occupancy, fairness, disable/dependency pause without budget loss, uninstall cancellation, claim-conditional writes, permanent keys/time buckets and update preservation; no local E2E; high | Stale execution, external duplicate cost, ambiguous compensation and uncooperative code |
 | G4 | Services/graph/method grants, business errors, typed-client generation and lifecycle confirmation; P-1, agreed P-3 identity, G1 hook/reconciliation integration | Plugins lane; dependency grants/call ledger | Lane API/worker permission/error/schema/client compile tests, task/hook debit-refund calls, graph confirmation races, idempotency/reconciliation/lifecycle; no local E2E; high | Unknown monetary outcomes, permission escalation and lifecycle lock ordering |
 | G4-R | Permissioned read-only ctx.commerce.orders.listPaid with cursor/limits, exact amounts and order-ID dedup recipe; G4 and G1 repair context | Plugins lane; commerce grants plus payment-ledger query index, coordinated timestamp | API/SDK permission, revocation, cursor/window/page bounds, historical/refunded/duplicate capture semantics, query plan, two-instance recovery after disable/crash/exhausted delivery, event+sweep concurrent dedup; mandatory commerce/auth/DB suites from planner; no local E2E; moderate/high | Sensitive store-wide order read, late commits and checkpoint gaps |
 | P-5 | Scaffold/examples and complete acceptance; P-3/P-4/G1/G4/G4-R merged | Integration; example plugin-owned SQL only | SDK pack/install suites; complete CI gate including E2E and multi-instance Compose; local integration E2E only through approved runner; high | Cross-batch SDK/manifest drift |
 
+G1 can start after P-1 is merged and R1 is specified in this document; it does not wait for P-3 code.
 G1 and G4, followed by G4-R, can be developed in the plugins lane while integration implements
 P-2/P-3/P-4, after shared declaration/type changes are merged and advisor
 assigns migration ordering. Shared-contract edits must be sequenced, not
@@ -1008,6 +1121,22 @@ and always complete in CI. CI evidence is read by the advisor. P-0 itself
 runs no tests and is not committed.
 
 Required acceptance and adversarial cases, assigned to the batches above:
+
+- R1/G1: request binding and forbidden overrides; recorded customer/admin repair
+  selection, wrong-installation/unrecorded/inactive/malformed rejection; binding
+  persisted across retries and included in idempotency conflicts; task/hook
+  storage and service calls use the bound identity, including revocation races.
+- R2/G4: timeout after commit recovers the original success/business rejection
+  with original callId and no duplicate effect; proven NOT_EXECUTED executes
+  once; race with still-running original cannot falsely prove non-execution;
+  concurrent repairs are exclusive; repair timeout/crash stays UNKNOWN; changed
+  input conflicts; grants, identity and generations rechecked; stale claims
+  cannot publish and stored outcomes preserve caller-visible ServiceResult.
+- R3/G1: TaskPermanentError on attempt one of a larger retry budget immediately
+  fails, schedules one final hook and never retries; hook crash stays UNKNOWN;
+  ordinary errors still retry and lifecycle/stale-claim races remain fenced.
+- R4/G4-R: exact event item field names, numeric unitPrice and optional/null
+  snapshots match order.paid v1 without changing the published event payload.
 
 - P-1/P-2: preview/install/restore reject malformed declarations, traversal,
   source maps, over-limit files and signature changes. Real Vite module,
