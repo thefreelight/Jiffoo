@@ -1,4 +1,4 @@
-export type NavLocale = 'en' | 'zh-Hans' | 'zh-Hant';
+export type NavLocale = 'en' | 'zh-Hans' | 'zh-Hant' | 'ja' | 'ko' | 'fr' | 'de';
 
 export interface NavCategoryShowcase {
   title: string;

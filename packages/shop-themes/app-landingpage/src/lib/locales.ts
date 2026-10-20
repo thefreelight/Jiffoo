@@ -18,7 +18,6 @@ export const THEME_LOCALES: readonly ThemeLocaleOption[] = [
   { code: 'en', label: 'EN', nativeName: 'English' },
   { code: 'zh-Hans', label: '简', nativeName: '简体中文' },
   { code: 'zh-Hant', label: '繁', nativeName: '繁體中文' },
-  { code: 'es', label: 'ES', nativeName: 'Español' },
   { code: 'fr', label: 'FR', nativeName: 'Français' },
   { code: 'de', label: 'DE', nativeName: 'Deutsch' },
   { code: 'ja', label: 'JA', nativeName: '日本語' },
