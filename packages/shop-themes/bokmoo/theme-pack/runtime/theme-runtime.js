@@ -11546,6 +11546,10 @@
     return null;
   }
   function pickCopy(locale, copy) {
+    if (locale === "ja") return copy.ja ?? copy.en;
+    if (locale === "ko") return copy.ko ?? copy.en;
+    if (locale === "fr") return copy.fr ?? copy.en;
+    if (locale === "de") return copy.de ?? copy.en;
     const mode = zhModeOf(locale);
     if (mode === "zh-Hant") return copy.hant ?? copy.en;
     if (mode === "zh-Hans") return copy.hans ?? copy.hant ?? copy.en;
@@ -14929,11 +14933,11 @@
       [onNavigate]
     );
     const navItems = [
-      { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1" }), onClick: onNavigateToProducts },
-      { label: pickCopy(locale, { en: "Global Plans", hans: "\u5168\u7403\u5957\u9910", hant: "\u5168\u7403\u5957\u9910" }), onClick: () => openHref("/#destinations") },
-      { label: pickCopy(locale, { en: "Download App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App" }), onClick: () => openHref("/download/app") },
-      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), onClick: () => openHref("/help") },
-      { label: pickCopy(locale, { en: "Affiliate", hans: "\u8054\u76DF\u8BA1\u5212", hant: "\u806F\u76DF\u8A08\u5283" }), onClick: () => openHref("/affiliate") }
+      { label: pickCopy(locale, { en: "Products", hans: "\u4EA7\u54C1", hant: "\u7522\u54C1", ja: "\u88FD\u54C1", ko: "\uC81C\uD488", fr: "Produits", de: "Produkte" }), onClick: onNavigateToProducts },
+      { label: pickCopy(locale, { en: "Global Plans", hans: "\u5168\u7403\u5957\u9910", hant: "\u5168\u7403\u5957\u9910", ja: "\u30B0\u30ED\u30FC\u30D0\u30EB\u30D7\u30E9\u30F3", ko: "\uAE00\uB85C\uBC8C \uD50C\uB79C", fr: "Forfaits mondiaux", de: "Weltweite Tarife" }), onClick: () => openHref("/#destinations") },
+      { label: pickCopy(locale, { en: "Download App", hans: "\u4E0B\u8F7D App", hant: "\u4E0B\u8F09 App", ja: "\u30A2\u30D7\u30EA\u3092\u30C0\u30A6\u30F3\u30ED\u30FC\u30C9", ko: "\uC571 \uB2E4\uC6B4\uB85C\uB4DC", fr: "T\xE9l\xE9charger l\u2019app", de: "App herunterladen" }), onClick: () => openHref("/download/app") },
+      { label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4", ja: "\u30B5\u30DD\u30FC\u30C8", ko: "\uC9C0\uC6D0", fr: "Assistance", de: "Support" }), onClick: () => openHref("/help") },
+      { label: pickCopy(locale, { en: "Affiliate", hans: "\u8054\u76DF\u8BA1\u5212", hant: "\u806F\u76DF\u8A08\u5283", ja: "\u30A2\u30D5\u30A3\u30EA\u30A8\u30A4\u30C8", ko: "\uC81C\uD734 \uD504\uB85C\uADF8\uB7A8", fr: "Affiliation", de: "Partnerprogramm" }), onClick: () => openHref("/affiliate") }
     ];
     return /* @__PURE__ */ jsxs("header", { className: "sticky top-0 z-50 border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[radial-gradient(circle_at_8%_-24%,color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent),transparent_34%),linear-gradient(180deg,oklch(0.055_0.007_75_/_0.98),oklch(0.028_0.004_75_/_0.96))] shadow-[0_18px_52px_rgba(0,0,0,0.3)] backdrop-blur-2xl", children: [
       /* @__PURE__ */ jsxs("div", { className: "mx-auto flex max-w-[107rem] items-center gap-3 px-4 py-2.5 sm:px-6 xl:min-h-[4.35rem] xl:gap-5 xl:px-0", children: [
@@ -15003,7 +15007,7 @@
               type: "button",
               children: [
                 /* @__PURE__ */ jsx("span", { className: "flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_86%,white),color-mix(in_oklab,var(--bokmoo-gold)_66%,black))] text-[0.8rem] font-bold text-[var(--bokmoo-bg)]", children: accountInitial }),
-                pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" }),
+                pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" }),
                 /* @__PURE__ */ jsx(ChevronDown, { className: "h-4 w-4 text-[var(--bokmoo-copy-soft)]" })
               ]
             }
@@ -15032,7 +15036,7 @@
             {
               onClick: onNavigateToCart,
               className: `relative inline-flex h-[2.75rem] w-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(0,0,0,0.18))] text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING2}`,
-              "aria-label": pickCopy(locale, { en: "Open cart", hans: "\u5F00\u542F\u8D2D\u7269\u8F66", hant: "\u958B\u555F\u8CFC\u7269\u8ECA" }),
+              "aria-label": pickCopy(locale, { en: "Open cart", hans: "\u5F00\u542F\u8D2D\u7269\u8F66", hant: "\u958B\u555F\u8CFC\u7269\u8ECA", ja: "\u30AB\u30FC\u30C8\u3092\u958B\u304F", ko: "\uC7A5\uBC14\uAD6C\uB2C8 \uC5F4\uAE30", fr: "Ouvrir le panier", de: "Warenkorb \xF6ffnen" }),
               type: "button",
               children: [
                 /* @__PURE__ */ jsx(ShoppingBag, { className: "h-4 w-4" }),
@@ -15090,7 +15094,7 @@
               },
               className: `rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236" })
+              children: pickCopy(locale, { en: "My Account", hans: "\u6211\u7684\u5E10\u6237", hant: "\u6211\u7684\u5E33\u6236", ja: "\u30DE\u30A4\u30A2\u30AB\u30A6\u30F3\u30C8", ko: "\uB0B4 \uACC4\uC815", fr: "Mon compte", de: "Mein Konto" })
             }
           ),
           /* @__PURE__ */ jsx(

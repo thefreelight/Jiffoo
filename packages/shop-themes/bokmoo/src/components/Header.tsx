@@ -106,11 +106,11 @@ export const Header = React.memo(function Header({
   );
 
   const navItems = [
-    { label: pickCopy(locale, { en: 'Products', hans: '产品', hant: '產品' }), onClick: onNavigateToProducts },
-    { label: pickCopy(locale, { en: 'Global Plans', hans: '全球套餐', hant: '全球套餐' }), onClick: () => openHref('/#destinations') },
-    { label: pickCopy(locale, { en: 'Download App', hans: '下载 App', hant: '下載 App' }), onClick: () => openHref('/download/app') },
-    { label: pickCopy(locale, { en: 'Support', hans: '支持', hant: '支援' }), onClick: () => openHref('/help') },
-    { label: pickCopy(locale, { en: 'Affiliate', hans: '联盟计划', hant: '聯盟計劃' }), onClick: () => openHref('/affiliate') },
+    { label: pickCopy(locale, { en: 'Products', hans: '产品', hant: '產品', ja: '製品', ko: '제품', fr: 'Produits', de: 'Produkte' }), onClick: onNavigateToProducts },
+    { label: pickCopy(locale, { en: 'Global Plans', hans: '全球套餐', hant: '全球套餐', ja: 'グローバルプラン', ko: '글로벌 플랜', fr: 'Forfaits mondiaux', de: 'Weltweite Tarife' }), onClick: () => openHref('/#destinations') },
+    { label: pickCopy(locale, { en: 'Download App', hans: '下载 App', hant: '下載 App', ja: 'アプリをダウンロード', ko: '앱 다운로드', fr: 'Télécharger l’app', de: 'App herunterladen' }), onClick: () => openHref('/download/app') },
+    { label: pickCopy(locale, { en: 'Support', hans: '支持', hant: '支援', ja: 'サポート', ko: '지원', fr: 'Assistance', de: 'Support' }), onClick: () => openHref('/help') },
+    { label: pickCopy(locale, { en: 'Affiliate', hans: '联盟计划', hant: '聯盟計劃', ja: 'アフィリエイト', ko: '제휴 프로그램', fr: 'Affiliation', de: 'Partnerprogramm' }), onClick: () => openHref('/affiliate') },
   ];
 
   return (
@@ -182,7 +182,7 @@ export const Header = React.memo(function Header({
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_86%,white),color-mix(in_oklab,var(--bokmoo-gold)_66%,black))] text-[0.8rem] font-bold text-[var(--bokmoo-bg)]">
                 {accountInitial}
               </span>
-              {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶' })}
+              {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶', ja: 'マイアカウント', ko: '내 계정', fr: 'Mon compte', de: 'Mein Konto' })}
               <ChevronDown className="h-4 w-4 text-[var(--bokmoo-copy-soft)]" />
             </button>
           ) : (
@@ -207,7 +207,7 @@ export const Header = React.memo(function Header({
           <button
             onClick={onNavigateToCart}
             className={`relative inline-flex h-[2.75rem] w-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(0,0,0,0.18))] text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
-            aria-label={pickCopy(locale, { en: 'Open cart', hans: '开启购物车', hant: '開啟購物車' })}
+            aria-label={pickCopy(locale, { en: 'Open cart', hans: '开启购物车', hant: '開啟購物車', ja: 'カートを開く', ko: '장바구니 열기', fr: 'Ouvrir le panier', de: 'Warenkorb öffnen' })}
             type="button"
           >
             <ShoppingBag className="h-4 w-4" />
@@ -269,7 +269,7 @@ export const Header = React.memo(function Header({
                   className={`rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                    {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶' })}
+                    {pickCopy(locale, { en: 'My Account', hans: '我的帐户', hant: '我的帳戶', ja: 'マイアカウント', ko: '내 계정', fr: 'Mon compte', de: 'Mein Konto' })}
                   </button>
                   <button
                     onClick={() => {

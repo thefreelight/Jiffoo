@@ -27,8 +27,12 @@ function zhModeOf(locale: string | undefined | null): ZhMode {
 
 export function pickCopy(
   locale: string | undefined,
-  copy: { en: string; hans?: string; hant?: string }
+  copy: { en: string; hans?: string; hant?: string; ja?: string; ko?: string; fr?: string; de?: string }
 ): string {
+  if (locale === 'ja') return copy.ja ?? copy.en;
+  if (locale === 'ko') return copy.ko ?? copy.en;
+  if (locale === 'fr') return copy.fr ?? copy.en;
+  if (locale === 'de') return copy.de ?? copy.en;
   const mode = zhModeOf(locale);
   if (mode === 'zh-Hant') return copy.hant ?? copy.en;
   if (mode === 'zh-Hans') return copy.hans ?? copy.hant ?? copy.en;
