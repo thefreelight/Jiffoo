@@ -31,9 +31,9 @@ export const ContactPage = React.memo(function ContactPage({ config, locale }: C
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 {[
-                  [{'200+', t({ en: 'Countries', hans: '国家和地区', hant: '國家和地區' })}],
-                  [{'1M+', t({ en: 'Happy Users', hans: '满意用户', hant: '滿意用戶' })}],
-                  [{'99.9%', t({ en: 'Uptime', hans: '在线率', hant: '在線率' })}],
+                  ['200+', t({ en: 'Countries', hans: '国家和地区', hant: '國家和地區' })],
+                  ['1M+', t({ en: 'Happy Users', hans: '满意用户', hant: '滿意用戶' })],
+                  ['99.9%', t({ en: 'Uptime', hans: '在线率', hant: '在線率' })],
                 ].map(([value, label]) => (
                   <div
                     key={label}

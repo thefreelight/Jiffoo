@@ -14510,13 +14510,14 @@
   );
 
   // src/components/ContactPage.tsx
-  var ContactPage = react_default.memo(function ContactPage2({ config }) {
+  var ContactPage = react_default.memo(function ContactPage2({ config, locale }) {
+    const t = (copy) => pickCopy(locale, copy);
     const site = resolveBokmooSiteConfig(config);
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--bokmoo-gold)_9%,transparent),transparent_34%),var(--bokmoo-bg)] px-4 pb-24 pt-8 sm:px-6 sm:pt-10 lg:px-8", children: /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-[980px]", children: /* @__PURE__ */ jsx("div", { className: "overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] shadow-[var(--bokmoo-shadow)] sm:rounded-[1.6rem]", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-7 p-5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_20rem]", children: [
       /* @__PURE__ */ jsxs("div", { children: [
-        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: "About BOKMOO" }),
-        /* @__PURE__ */ jsx("h1", { className: "mt-4 text-[clamp(2.2rem,4vw,3.6rem)] font-semibold leading-[0.96] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "BOKMOO is built for global travelers." }),
-        /* @__PURE__ */ jsx("p", { className: "mt-5 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]", children: "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world." }),
+        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: t({ en: "About BOKMOO", hans: "\u5173\u4E8E BOKMOO", hant: "\u95DC\u65BC BOKMOO" }) }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-4 text-[clamp(2.2rem,4vw,3.6rem)] font-semibold leading-[0.96] tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: t({ en: "BOKMOO is built for global travelers.", hans: "BOKMOO \u4E3A\u5168\u7403\u65C5\u884C\u8005\u800C\u751F\u3002", hant: "BOKMOO \u70BA\u5168\u7403\u65C5\u884C\u8005\u800C\u751F\u3002" }) }),
+        /* @__PURE__ */ jsx("p", { className: "mt-5 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]", children: t({ en: "Our mission is to make connectivity simple, affordable, and reliable anywhere in the world.", hans: "\u6211\u4EEC\u7684\u4F7F\u547D\u662F\u8BA9\u5168\u7403\u8FDE\u63A5\u53D8\u5F97\u7B80\u5355\u3001\u5B9E\u60E0\u3001\u53EF\u9760\u3002", hant: "\u6211\u5011\u7684\u4F7F\u547D\u662F\u8B93\u5168\u7403\u9023\u63A5\u8B8A\u5F97\u7C21\u55AE\u3001\u5BE6\u60E0\u3001\u53EF\u9760\u3002" }) }),
         /* @__PURE__ */ jsx(
           "a",
           {
@@ -14526,9 +14527,9 @@
           }
         ),
         /* @__PURE__ */ jsx("div", { className: "mt-8 grid gap-4 sm:grid-cols-3", children: [
-          ["200+", "Countries"],
-          ["1M+", "Happy Users"],
-          ["99.9%", "Uptime"]
+          ["200+", t({ en: "Countries", hans: "\u56FD\u5BB6\u548C\u5730\u533A", hant: "\u570B\u5BB6\u548C\u5730\u5340" })],
+          ["1M+", t({ en: "Happy Users", hans: "\u6EE1\u610F\u7528\u6237", hant: "\u6EFF\u610F\u7528\u6236" })],
+          ["99.9%", t({ en: "Uptime", hans: "\u5728\u7EBF\u7387", hant: "\u5728\u7DDA\u7387" })]
         ].map(([value, label]) => /* @__PURE__ */ jsxs(
           "div",
           {
@@ -15137,47 +15138,48 @@
   // src/components/HelpPage.tsx
   var topics = [
     {
-      title: "How to install eSIM",
-      subtitle: "Step-by-step guide",
+      title: { en: "How to install eSIM", hans: "\u5982\u4F55\u5B89\u88C5 eSIM", hant: "\u5982\u4F55\u5B89\u88DD eSIM" },
+      subtitle: { en: "Step-by-step guide", hans: "\u5206\u6B65\u6307\u5357", hant: "\u5206\u6B65\u6307\u5357" },
       icon: QrCode
     },
     {
-      title: "How eSIM works",
-      subtitle: "Learn the basics",
+      title: { en: "How eSIM works", hans: "eSIM \u7684\u5DE5\u4F5C\u539F\u7406", hant: "eSIM \u7684\u5DE5\u4F5C\u539F\u7406" },
+      subtitle: { en: "Learn the basics", hans: "\u4E86\u89E3\u57FA\u7840\u77E5\u8BC6", hant: "\u4E86\u89E3\u57FA\u790E\u77E5\u8B58" },
       icon: Earth
     },
     {
-      title: "Supported devices",
-      subtitle: "Check compatibility",
+      title: { en: "Supported devices", hans: "\u652F\u6301\u7684\u8BBE\u5907", hant: "\u652F\u63F4\u7684\u88DD\u7F6E" },
+      subtitle: { en: "Check compatibility", hans: "\u67E5\u770B\u517C\u5BB9\u6027", hant: "\u67E5\u770B\u76F8\u5BB9\u6027" },
       icon: ShieldCheck
     },
     {
-      title: "Top up & Data plans",
-      subtitle: "Manage your plan",
+      title: { en: "Top up & Data plans", hans: "\u5145\u503C\u4E0E\u6D41\u91CF\u5957\u9910", hant: "\u5145\u503C\u8207\u6D41\u91CF\u5957\u9910" },
+      subtitle: { en: "Manage your plan", hans: "\u7BA1\u7406\u4F60\u7684\u5957\u9910", hant: "\u7BA1\u7406\u4F60\u7684\u5957\u9910" },
       icon: Signal
     }
   ];
-  var HelpPage = react_default.memo(function HelpPage2({ onNavigateToContact }) {
+  var HelpPage = react_default.memo(function HelpPage2({ onNavigateToContact, locale }) {
+    const t = (copy) => pickCopy(locale, copy);
     const [query, setQuery] = react_default.useState("");
     const filtered = topics.filter(
-      (topic) => !query ? true : `${topic.title} ${topic.subtitle}`.toLowerCase().includes(query.toLowerCase())
+      (topic) => !query ? true : `${topic.title.en} ${topic.title.hans} ${topic.title.hant} ${topic.subtitle.en} ${topic.subtitle.hans} ${topic.subtitle.hant}`.toLowerCase().includes(query.toLowerCase())
     );
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--bokmoo-gold)_9%,transparent),transparent_34%),var(--bokmoo-bg)] px-4 pb-24 pt-8 sm:px-6 sm:pt-10 lg:px-8", children: /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-[980px]", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] p-5 shadow-[var(--bokmoo-shadow)] sm:rounded-[1.6rem] sm:p-8", children: [
       /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between gap-4", children: /* @__PURE__ */ jsxs("div", { children: [
         /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: "BOKMOO" }),
-        /* @__PURE__ */ jsx("h1", { className: "mt-3 text-[clamp(2.2rem,4vw,3.6rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Help Center" })
+        /* @__PURE__ */ jsx("h1", { className: "mt-3 text-[clamp(2.2rem,4vw,3.6rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: t({ en: "Help Center", hans: "\u5E2E\u52A9\u4E2D\u5FC3", hant: "\u5E6B\u52A9\u4E2D\u5FC3" }) })
       ] }) }),
       /* @__PURE__ */ jsx("div", { className: "mt-6", children: /* @__PURE__ */ jsx(
         "input",
         {
           value: query,
           onChange: (event) => setQuery(event.target.value),
-          placeholder: "Search for help...",
+          placeholder: t({ en: "Search for help...", hans: "\u641C\u7D22\u5E2E\u52A9\u2026", hant: "\u641C\u5C0B\u5E6B\u52A9\u2026" }),
           className: "h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)]"
         }
       ) }),
       /* @__PURE__ */ jsxs("div", { className: "mt-8", children: [
-        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Popular Topics" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, { en: "Popular Topics", hans: "\u70ED\u95E8\u4E3B\u9898", hant: "\u71B1\u9580\u4E3B\u984C" }) }),
         /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-3", children: filtered.map(({ title, subtitle, icon: Icon2 }) => /* @__PURE__ */ jsxs(
           "button",
           {
@@ -15187,14 +15189,14 @@
               /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
                 /* @__PURE__ */ jsx("div", { className: "flex h-11 w-11 items-center justify-center rounded-[0.9rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Icon2, { className: "h-5 w-5" }) }),
                 /* @__PURE__ */ jsxs("div", { children: [
-                  /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: title }),
-                  /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: subtitle })
+                  /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, title) }),
+                  /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: pickCopy(locale, subtitle) })
                 ] })
               ] }),
               /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4 text-[var(--bokmoo-copy-soft)]" })
             ]
           },
-          title
+          title.en
         )) })
       ] }),
       /* @__PURE__ */ jsx(
@@ -15203,7 +15205,7 @@
           onClick: () => onNavigateToContact?.(),
           className: "mt-8 inline-flex min-h-12 items-center justify-center rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[var(--bokmoo-bg)]",
           type: "button",
-          children: "Contact Support"
+          children: t({ en: "Contact Support", hans: "\u8054\u7CFB\u652F\u6301", hant: "\u806F\u7D61\u652F\u63F4" })
         }
       )
     ] }) }) });
@@ -16576,30 +16578,50 @@
 
   // src/components/PrivacyPage.tsx
   var sections = [
-    ["Information We Collect", "We collect information you provide directly to us, such as when you create an account or make a purchase."],
-    ["How We Use Information", "We use the information to provide, maintain, and improve our services."],
-    ["Data Protection", "We implement appropriate security measures to protect your data."],
-    ["Your Rights", "You have the right to access, update, or delete your personal information."]
+    {
+      en: { title: "Information We Collect", body: "We collect information you provide directly to us, such as when you create an account or make a purchase." },
+      hans: { title: "\u6211\u4EEC\u6536\u96C6\u7684\u4FE1\u606F", body: "\u6211\u4EEC\u6536\u96C6\u4F60\u76F4\u63A5\u63D0\u4F9B\u7684\u4FE1\u606F\uFF0C\u4F8B\u5982\u521B\u5EFA\u8D26\u6237\u6216\u8D2D\u4E70\u65F6\u63D0\u4F9B\u7684\u4FE1\u606F\u3002" },
+      hant: { title: "\u6211\u5011\u6536\u96C6\u7684\u8CC7\u8A0A", body: "\u6211\u5011\u6536\u96C6\u4F60\u76F4\u63A5\u63D0\u4F9B\u7684\u8CC7\u8A0A\uFF0C\u4F8B\u5982\u5EFA\u7ACB\u5E33\u6236\u6216\u8CFC\u8CB7\u6642\u63D0\u4F9B\u7684\u8CC7\u8A0A\u3002" }
+    },
+    {
+      en: { title: "How We Use Information", body: "We use the information to provide, maintain, and improve our services." },
+      hans: { title: "\u6211\u4EEC\u5982\u4F55\u4F7F\u7528\u4FE1\u606F", body: "\u6211\u4EEC\u4F7F\u7528\u8FD9\u4E9B\u4FE1\u606F\u6765\u63D0\u4F9B\u3001\u7EF4\u62A4\u548C\u6539\u8FDB\u6211\u4EEC\u7684\u670D\u52A1\u3002" },
+      hant: { title: "\u6211\u5011\u5982\u4F55\u4F7F\u7528\u8CC7\u8A0A", body: "\u6211\u5011\u4F7F\u7528\u9019\u4E9B\u8CC7\u8A0A\u4F86\u63D0\u4F9B\u3001\u7DAD\u8B77\u548C\u6539\u9032\u6211\u5011\u7684\u670D\u52D9\u3002" }
+    },
+    {
+      en: { title: "Data Protection", body: "We implement appropriate security measures to protect your data." },
+      hans: { title: "\u6570\u636E\u4FDD\u62A4", body: "\u6211\u4EEC\u91C7\u53D6\u9002\u5F53\u7684\u5B89\u5168\u63AA\u65BD\u6765\u4FDD\u62A4\u4F60\u7684\u6570\u636E\u3002" },
+      hant: { title: "\u8CC7\u6599\u4FDD\u8B77", body: "\u6211\u5011\u63A1\u53D6\u9069\u7576\u7684\u5B89\u5168\u63AA\u65BD\u4F86\u4FDD\u8B77\u4F60\u7684\u8CC7\u6599\u3002" }
+    },
+    {
+      en: { title: "Your Rights", body: "You have the right to access, update, or delete your personal information." },
+      hans: { title: "\u4F60\u7684\u6743\u5229", body: "\u4F60\u6709\u6743\u8BBF\u95EE\u3001\u66F4\u65B0\u6216\u5220\u9664\u4F60\u7684\u4E2A\u4EBA\u4FE1\u606F\u3002" },
+      hant: { title: "\u4F60\u7684\u6B0A\u5229", body: "\u4F60\u6709\u6B0A\u5B58\u53D6\u3001\u66F4\u65B0\u6216\u522A\u9664\u4F60\u7684\u500B\u4EBA\u8CC7\u8A0A\u3002" }
+    }
   ];
-  var PrivacyPage = react_default.memo(function PrivacyPage2(_props) {
+  var PrivacyPage = react_default.memo(function PrivacyPage2({ locale }) {
+    const t = (copy) => pickCopy(locale, copy);
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[980px] rounded-[1.6rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
-      /* @__PURE__ */ jsx("h1", { className: "text-[clamp(2.2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Privacy Policy" }),
+      /* @__PURE__ */ jsx("h1", { className: "text-[clamp(2.2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: t({ en: "Privacy Policy", hans: "\u9690\u79C1\u653F\u7B56", hant: "\u96B1\u79C1\u653F\u7B56" }) }),
       /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--bokmoo-copy-soft)]", children: "Last updated: April 15, 2024" }),
-      /* @__PURE__ */ jsx("div", { className: "mt-8 space-y-5", children: sections.map(([title, body], index) => /* @__PURE__ */ jsxs(
-        "section",
-        {
-          className: "rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-5",
-          children: [
-            /* @__PURE__ */ jsxs("p", { className: "text-base font-medium text-[var(--bokmoo-ink)]", children: [
-              index + 1,
-              ". ",
-              title
-            ] }),
-            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--bokmoo-copy)]", children: body })
-          ]
-        },
-        title
-      )) })
+      /* @__PURE__ */ jsx("div", { className: "mt-8 space-y-5", children: sections.map((section, index) => {
+        const copy = locale === "zh-Hans" ? section.hans : locale === "zh-Hant" ? section.hant : section.en;
+        return /* @__PURE__ */ jsxs(
+          "section",
+          {
+            className: "rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-5",
+            children: [
+              /* @__PURE__ */ jsxs("p", { className: "text-base font-medium text-[var(--bokmoo-ink)]", children: [
+                index + 1,
+                ". ",
+                copy.title
+              ] }),
+              /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--bokmoo-copy)]", children: copy.body })
+            ]
+          },
+          section.en.title
+        );
+      }) })
     ] }) });
   });
 
@@ -17255,30 +17277,50 @@
 
   // src/components/TermsPage.tsx
   var sections2 = [
-    ["Acceptance of Terms", "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service."],
-    ["Use of Services", "You agree to use our services only for lawful purposes and in accordance with these Terms."],
-    ["Purchases and Payments", "All payments are final and non-refundable unless required by law."],
-    ["Limitation of Liability", "BOKMOO is not liable for any indirect, incidental, or consequential damages."]
+    {
+      en: { title: "Acceptance of Terms", body: "By accessing or using the BOKMOO website and services, you agree to be bound by these Terms of Service." },
+      hans: { title: "\u63A5\u53D7\u6761\u6B3E", body: "\u8BBF\u95EE\u6216\u4F7F\u7528 BOKMOO \u7F51\u7AD9\u4E0E\u670D\u52A1\uFF0C\u5373\u8868\u793A\u4F60\u540C\u610F\u672C\u670D\u52A1\u6761\u6B3E\u3002" },
+      hant: { title: "\u63A5\u53D7\u689D\u6B3E", body: "\u8A2A\u554F\u6216\u4F7F\u7528 BOKMOO \u7DB2\u7AD9\u8207\u670D\u52D9\uFF0C\u5373\u8868\u793A\u4F60\u540C\u610F\u672C\u670D\u52D9\u689D\u6B3E\u3002" }
+    },
+    {
+      en: { title: "Use of Services", body: "You agree to use our services only for lawful purposes and in accordance with these Terms." },
+      hans: { title: "\u4F7F\u7528\u670D\u52A1", body: "\u4F60\u540C\u610F\u4EC5\u51FA\u4E8E\u5408\u6CD5\u76EE\u7684\u4F7F\u7528\u6211\u4EEC\u7684\u670D\u52A1\uFF0C\u5E76\u9075\u5B88\u672C\u6761\u6B3E\u3002" },
+      hant: { title: "\u4F7F\u7528\u670D\u52D9", body: "\u4F60\u540C\u610F\u50C5\u51FA\u65BC\u5408\u6CD5\u76EE\u7684\u4F7F\u7528\u6211\u5011\u7684\u670D\u52D9\uFF0C\u4E26\u9075\u5B88\u672C\u689D\u6B3E\u3002" }
+    },
+    {
+      en: { title: "Purchases and Payments", body: "All payments are final and non-refundable unless required by law." },
+      hans: { title: "\u8D2D\u4E70\u4E0E\u652F\u4ED8", body: "\u9664\u975E\u6CD5\u5F8B\u8981\u6C42\uFF0C\u6240\u6709\u4ED8\u6B3E\u5747\u4E3A\u6700\u7EC8\u4ED8\u6B3E\uFF0C\u4E0D\u4E88\u9000\u6B3E\u3002" },
+      hant: { title: "\u8CFC\u8CB7\u8207\u652F\u4ED8", body: "\u9664\u975E\u6CD5\u5F8B\u8981\u6C42\uFF0C\u6240\u6709\u4ED8\u6B3E\u5747\u70BA\u6700\u7D42\u4ED8\u6B3E\uFF0C\u4E0D\u4E88\u9000\u6B3E\u3002" }
+    },
+    {
+      en: { title: "Limitation of Liability", body: "BOKMOO is not liable for any indirect, incidental, or consequential damages." },
+      hans: { title: "\u8D23\u4EFB\u9650\u5236", body: "BOKMOO \u5BF9\u4EFB\u4F55\u95F4\u63A5\u3001\u9644\u5E26\u6216\u540E\u679C\u6027\u635F\u5BB3\u4E0D\u627F\u62C5\u8D23\u4EFB\u3002" },
+      hant: { title: "\u8CAC\u4EFB\u9650\u5236", body: "BOKMOO \u5C0D\u4EFB\u4F55\u9593\u63A5\u3001\u9644\u5E36\u6216\u5F8C\u679C\u6027\u640D\u5BB3\u4E0D\u627F\u64D4\u8CAC\u4EFB\u3002" }
+    }
   ];
-  var TermsPage = react_default.memo(function TermsPage2(_props) {
+  var TermsPage = react_default.memo(function TermsPage2({ locale }) {
+    const t = (copy) => pickCopy(locale, copy);
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[980px] rounded-[1.6rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
-      /* @__PURE__ */ jsx("h1", { className: "text-[clamp(2.2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Terms of Service" }),
+      /* @__PURE__ */ jsx("h1", { className: "text-[clamp(2.2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: t({ en: "Terms of Service", hans: "\u670D\u52A1\u6761\u6B3E", hant: "\u670D\u52D9\u689D\u6B3E" }) }),
       /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--bokmoo-copy-soft)]", children: "Last updated: April 15, 2024" }),
-      /* @__PURE__ */ jsx("div", { className: "mt-8 space-y-5", children: sections2.map(([title, body], index) => /* @__PURE__ */ jsxs(
-        "section",
-        {
-          className: "rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-5",
-          children: [
-            /* @__PURE__ */ jsxs("p", { className: "text-base font-medium text-[var(--bokmoo-ink)]", children: [
-              index + 1,
-              ". ",
-              title
-            ] }),
-            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--bokmoo-copy)]", children: body })
-          ]
-        },
-        title
-      )) })
+      /* @__PURE__ */ jsx("div", { className: "mt-8 space-y-5", children: sections2.map((section, index) => {
+        const copy = locale === "zh-Hans" ? section.hans : locale === "zh-Hant" ? section.hant : section.en;
+        return /* @__PURE__ */ jsxs(
+          "section",
+          {
+            className: "rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-5",
+            children: [
+              /* @__PURE__ */ jsxs("p", { className: "text-base font-medium text-[var(--bokmoo-ink)]", children: [
+                index + 1,
+                ". ",
+                copy.title
+              ] }),
+              /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--bokmoo-copy)]", children: copy.body })
+            ]
+          },
+          section.en.title
+        );
+      }) })
     ] }) });
   });
 
@@ -17480,7 +17522,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.27",
+      version: "1.1.28",
       target: "shop"
     }
   };
