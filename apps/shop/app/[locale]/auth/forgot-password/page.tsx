@@ -31,21 +31,20 @@ function ForgotPasswordContent() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
+  // Throwing handlers: the theme component catches and displays rejections
+  // itself; the built-in fallback below wraps them and keeps error state.
+  // busy drives the isLoading prop for both paths.
   const requestCode = async (value: string) => {
     const normalized = value.trim().toLowerCase();
     if (!normalized.includes('@')) {
-      setError('Enter a valid email address.');
-      return;
+      throw new Error('Enter a valid email address.');
     }
     setBusy(true);
-    setError('');
     try {
       await authApi.forgotPassword(normalized);
       setEmail(normalized);
       setStep('reset');
       setNotice(`If an account exists for ${normalized}, a six-digit reset code is on its way. It expires in 10 minutes.`);
-    } catch (caught: any) {
-      setError(caught?.message || 'Could not send the reset code. Try again in a moment.');
     } finally {
       setBusy(false);
     }
@@ -53,20 +52,15 @@ function ForgotPasswordContent() {
 
   const resetPassword = async (input: { email: string; code: string; password: string }) => {
     if (!/^\d{6}$/.test(input.code.trim())) {
-      setError('Enter the six-digit code from the email.');
-      return;
+      throw new Error('Enter the six-digit code from the email.');
     }
     if (input.password.length < 8) {
-      setError('The new password must be at least 8 characters.');
-      return;
+      throw new Error('The new password must be at least 8 characters.');
     }
     setBusy(true);
-    setError('');
     try {
       await authApi.resetPassword({ email: input.email.trim().toLowerCase(), code: input.code.trim(), password: input.password });
       setStep('done');
-    } catch (caught: any) {
-      setError(caught?.message || 'Could not reset the password. Check the code and try again.');
     } finally {
       setBusy(false);
     }
@@ -79,6 +73,7 @@ function ForgotPasswordContent() {
         isLoading={busy}
         error={error || null}
         config={config}
+        initialEmail={presetEmail}
         onRequestCode={requestCode}
         onResetPassword={resetPassword}
         onNavigateToLogin={() => nav.push('/auth/login')}
@@ -88,7 +83,8 @@ function ForgotPasswordContent() {
 
   const submitEmail = (event: React.FormEvent) => {
     event.preventDefault();
-    void requestCode(email);
+    setError('');
+    requestCode(email).catch((cause: unknown) => setError(cause instanceof Error && cause.message ? cause.message : 'Could not send the reset code. Try again in a moment.'));
   };
 
   const submitReset = (event: React.FormEvent) => {
@@ -97,7 +93,8 @@ function ForgotPasswordContent() {
       setError('The passwords do not match.');
       return;
     }
-    void resetPassword({ email, code, password });
+    setError('');
+    resetPassword({ email, code, password }).catch((cause: unknown) => setError(cause instanceof Error && cause.message ? cause.message : 'Could not reset the password. Check the code and try again.'));
   };
 
   return (

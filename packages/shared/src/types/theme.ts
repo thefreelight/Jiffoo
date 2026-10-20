@@ -628,7 +628,11 @@ export interface ForgotPasswordPageProps extends ThemeI18nProps {
   isLoading: boolean;
   error?: string | null;
   config?: ThemeConfig;
+  /** Preset from /auth/forgot-password?email=… deep links (e.g. after an email change). */
+  initialEmail?: string;
+  /** Requests the six-digit reset code. Rejects with a user-facing message on failure. */
   onRequestCode: (email: string) => Promise<void>;
+  /** Completes the reset. Rejects with a user-facing message on failure. */
   onResetPassword: (input: { email: string; code: string; password: string }) => Promise<void>;
   onNavigateToLogin: () => void;
 }
