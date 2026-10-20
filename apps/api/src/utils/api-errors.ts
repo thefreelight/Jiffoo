@@ -1,11 +1,16 @@
 import { ApiErrorCodes, type ApiErrorCode } from 'shared';
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
-import { PackageVerificationError, PluginMigrationValidationError } from 'shared/plugin-signing';
+import { PackageVerificationError, PluginMigrationValidationError, PluginUiValidationError } from 'shared/plugin-signing';
 import { errorCodes, type FastifyReply } from 'fastify';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 
 export const errorCatalog = {
+  [ApiErrorCodes.PLUGIN_UI_MANIFEST_INVALID]: { status: 422, message: 'Invalid plugin page declarations.' },
+  [ApiErrorCodes.PLUGIN_UI_ASSET_INVALID]: { status: 422, message: 'Invalid plugin page asset.' },
+  [ApiErrorCodes.PLUGIN_UI_ASSET_TOO_LARGE]: { status: 413, message: 'Plugin page assets exceed the size or file count limit.' },
+  [ApiErrorCodes.PLUGIN_TASK_DECLARATION_INVALID]: { status: 422, message: 'Invalid plugin task declarations.' },
+  [ApiErrorCodes.PLUGIN_SERVICE_DEPENDENCY_INVALID]: { status: 422, message: 'Invalid plugin service declarations or dependencies.' },
   [ApiErrorCodes.CUSTOMER_ACCOUNT_NOT_ADMIN]: { status: 403, message: 'This customer account cannot access the administration.' },
   [ApiErrorCodes.ADMIN_ACCOUNT_REMOVED]: { status: 403, message: 'This administrator account has been removed.' },
   [ApiErrorCodes.ADMIN_ACCOUNT_NOT_FOR_SHOP]: { status: 403, message: 'Administrator accounts cannot sign in to or purchase from the storefront.' },
@@ -325,7 +330,7 @@ function detailsFor(error: ApiError): unknown {
 
 export function mapApiError(error: unknown) {
   const known = error instanceof ApiError && Object.hasOwn(errorCatalog, error.code) ? error
-    : error instanceof PackageVerificationError || error instanceof PluginMigrationValidationError ? catalogError(error.code)
+    : error instanceof PackageVerificationError || error instanceof PluginMigrationValidationError || error instanceof PluginUiValidationError ? catalogError(error.code)
     : error instanceof ZodError ? new ApiError('VALIDATION_ERROR', { issues: error.issues.map(issue => ({ path: issue.path.join('.'), code: issue.code })) })
     : error instanceof SharedProtectionUnavailable ? new ApiError('SHARED_PROTECTION_UNAVAILABLE')
       : isDatabaseUnavailable(error) ? new ApiError('DATABASE_UNAVAILABLE')

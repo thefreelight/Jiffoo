@@ -10,7 +10,22 @@ import {
   createPageResultSchema,
   uploadResultSchema,
 } from '@/types/common-dto';
-import { errorResponseSchema } from '@/utils/schema-helpers';
+import { errorResponseSchema as coreErrorResponseSchema } from '@/utils/schema-helpers';
+import { ApiErrorCodes } from '@jiffoo/shared';
+
+const errorResponseSchema = {
+  ...coreErrorResponseSchema,
+  properties: {
+    ...coreErrorResponseSchema.properties,
+    error: {
+      ...coreErrorResponseSchema.properties.error,
+      properties: {
+        ...coreErrorResponseSchema.properties.error.properties,
+        code: { type: 'string', enum: Object.values(ApiErrorCodes) },
+      },
+    },
+  },
+};
 
 // ============================================================================
 // Extension Metadata Schema
@@ -266,7 +281,7 @@ export const extensionInstallerSchemas = {
     params: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string', maxLength: 128 } } },
     body: { type: 'object', required: ['confirmMigrations'], additionalProperties: false, properties: { confirmMigrations: { type: 'boolean' } } },
     response: { 202: { type: 'object', required: ['success', 'data'], properties: { success: { type: 'boolean', enum: [true] }, data: { type: 'object', required: ['operationId'], properties: { operationId: { type: 'string' } } } } },
-      400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 409: errorResponseSchema, 422: errorResponseSchema, 500: errorResponseSchema, 503: errorResponseSchema },
+      400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 409: errorResponseSchema, 413: errorResponseSchema, 422: errorResponseSchema, 500: errorResponseSchema, 503: errorResponseSchema },
   },
 
   // GET /api/extensions/plugin
@@ -323,7 +338,7 @@ export const extensionInstallerSchemas = {
         slug: { type: 'string', description: 'Plugin slug to restore' },
       },
     },
-    response: { ...createTypedReadResponses(restorePluginResultSchema), 409: errorResponseSchema, 503: errorResponseSchema },
+    response: { ...createTypedReadResponses(restorePluginResultSchema), 409: errorResponseSchema, 413: errorResponseSchema, 422: errorResponseSchema, 503: errorResponseSchema },
   },
 
   // DELETE /api/extensions/plugin/:slug/purge

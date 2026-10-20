@@ -94,6 +94,151 @@ export interface PluginDatabaseDeclaration {
   migrations: PluginMigrationDeclaration[];
 }
 
+export interface PluginPageDeclaration {
+  id: string;
+  path: string;
+  entry: string;
+  title: { en: string; 'zh-Hans': string; 'zh-Hant': string };
+}
+export interface PluginStorefrontPageDeclaration extends PluginPageDeclaration {
+  placements: Array<'header-nav' | 'account-menu' | 'footer'>;
+  requiresLogin: boolean;
+}
+export interface PluginUiDeclaration {
+  bridgeVersion: 1;
+  assetDirectory: string;
+  storefrontPages: PluginStorefrontPageDeclaration[];
+  adminPages: PluginPageDeclaration[];
+}
+export interface PluginTaskDeclaration {
+  name: string;
+  version: number;
+  concurrency: number;
+  maxAttempts: number;
+  maxRuntimeSeconds: number;
+  onFinalFailure?: { maxRuntimeSeconds: number };
+}
+export interface PluginServiceDeclaration {
+  name: string;
+  version: number;
+  methods: Array<{ name: string; idempotencyRequired: boolean; schema: string }>;
+}
+export interface PluginServiceDependencyDeclaration {
+  plugin: string;
+  service: string;
+  version: number;
+  methods: string[];
+}
+
+/** Canonical portable paths, with no URL decoding or filesystem normalization. */
+export function isPluginAssetPath(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value === value.normalize('NFC')
+    && !/[\\:%?#<>"|*\u0000-\u001f\u007f\uD800-\uDFFF]/u.test(value)
+    && value.split('/').every(part => !!part && part !== '.' && part !== '..'
+      && !/[. ]$/.test(part) && !/^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part));
+}
+
+const declarationName = (value: unknown): value is string => typeof value === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(value);
+const positiveInteger = (value: unknown, max = Number.MAX_SAFE_INTEGER): boolean => Number.isSafeInteger(value) && (value as number) >= 1 && (value as number) <= max;
+const exactFields = (value: Record<string, unknown>, fields: string[]): boolean => Object.keys(value).every(key => fields.includes(key));
+
+function validatePageDeclarations(manifest: Record<string, unknown>, issues: PluginManifestIssue[]): void {
+  if (manifest.ui === undefined) return;
+  const invalid = (path: string, message: string) => pushIssue(issues, path, message, 'PLUGIN_UI_MANIFEST_INVALID');
+  const ui = manifest.ui;
+  if (!isRecord(ui) || !exactFields(ui, ['bridgeVersion', 'assetDirectory', 'storefrontPages', 'adminPages'])) {
+    invalid('ui', 'ui must contain only supported declarations'); return;
+  }
+  if (ui.bridgeVersion !== 1) invalid('ui.bridgeVersion', 'bridgeVersion must be 1');
+  const directory = ui.assetDirectory;
+  if (!isPluginAssetPath(directory)) invalid('ui.assetDirectory', 'assetDirectory must be a normalized package-relative directory');
+  else {
+    const lower = directory.toLowerCase();
+    const entry = typeof manifest.entryModule === 'string' ? manifest.entryModule.toLowerCase().replace(/\\/g, '/') : '';
+    const serverDirectory = entry.includes('/') ? entry.slice(0, entry.lastIndexOf('/')) : entry;
+    const overlaps = (a: string, b: string) => a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
+    if (['migrations', 'meta-inf', ...(serverDirectory ? [serverDirectory] : [])].some(tree => overlaps(lower, tree)))
+      invalid('ui.assetDirectory', 'UI assets must be outside the server entry, migrations and META-INF trees');
+  }
+  for (const surface of ['storefrontPages', 'adminPages'] as const) {
+    const pages = ui[surface];
+    if (!Array.isArray(pages) || pages.length > 20) { invalid(`ui.${surface}`, 'Each surface requires an array of at most 20 pages'); continue; }
+    const ids = new Set<string>(), paths = new Set<string>();
+    pages.forEach((page, index) => {
+      const location = `ui.${surface}[${index}]`;
+      const storefront = surface === 'storefrontPages';
+      if (!isRecord(page) || !exactFields(page, ['id', 'path', 'entry', 'title', ...(storefront ? ['placements', 'requiresLogin'] : [])])) {
+        invalid(location, 'Page must contain only supported fields'); return;
+      }
+      if (!declarationName(page.id) || ids.has(page.id)) invalid(`${location}.id`, 'Page ID must be a unique declaration name within its surface');
+      if (typeof page.id === 'string') ids.add(page.id);
+      if (typeof page.path !== 'string' || !/^(?:\/|\/[a-z][a-z0-9-]*(?:\/[a-z][a-z0-9-]*)*)$/.test(page.path) || paths.has(page.path))
+        invalid(`${location}.path`, 'Page path must be a unique literal lowercase route within its surface');
+      if (typeof page.path === 'string') paths.add(page.path);
+      if (!isPluginAssetPath(page.entry) || !page.entry.endsWith('.html')) invalid(`${location}.entry`, 'Page entry must be a relative HTML asset');
+      if (!isRecord(page.title) || !exactFields(page.title, ['en', 'zh-Hans', 'zh-Hant'])
+        || ['en', 'zh-Hans', 'zh-Hant'].some(locale => {
+          const text = (page.title as Record<string, unknown>)[locale];
+          return typeof text !== 'string' || !text.trim() || [...text].length > 80 || /[<>\u0000-\u001f\u007f\uD800-\uDFFF]/u.test(text);
+        })) invalid(`${location}.title`, 'Page titles require 1-80 plain-text characters in all three locales');
+      if (storefront) {
+        if (typeof page.requiresLogin !== 'boolean') invalid(`${location}.requiresLogin`, 'requiresLogin must be a boolean');
+        if (!Array.isArray(page.placements) || page.placements.some(item => !['header-nav', 'account-menu', 'footer'].includes(item))
+          || new Set(page.placements).size !== page.placements.length) invalid(`${location}.placements`, 'placements must contain unique supported navigation placements');
+      }
+    });
+  }
+}
+
+function validateTaskAndServiceDeclarations(manifest: Record<string, unknown>, issues: PluginManifestIssue[]): void {
+  for (const field of ['tasks', 'services', 'serviceDependencies'] as const) {
+    const declarations = manifest[field];
+    if (declarations === undefined) continue;
+    const code = field === 'tasks' ? 'PLUGIN_TASK_DECLARATION_INVALID' : 'PLUGIN_SERVICE_DEPENDENCY_INVALID';
+    const invalid = (path: string, message: string) => pushIssue(issues, path, message, code);
+    if (!Array.isArray(declarations) || declarations.length > 32) { invalid(field, `${field} must contain at most 32 declarations`); continue; }
+    const identities = new Set<string>();
+    declarations.forEach((item, index) => {
+      const location = `${field}[${index}]`;
+      const fields = field === 'tasks' ? ['name', 'version', 'concurrency', 'maxAttempts', 'maxRuntimeSeconds', 'onFinalFailure']
+        : field === 'services' ? ['name', 'version', 'methods'] : ['plugin', 'service', 'version', 'methods'];
+      if (!isRecord(item) || !exactFields(item, fields)) { invalid(location, 'Declaration must contain only supported fields'); return; }
+      const identityParts = field === 'serviceDependencies' ? [item.plugin, item.service, item.version] : [item.name, item.version];
+      if (!positiveInteger(identityParts[identityParts.length - 1]) || identityParts.slice(0, -1).some(part => typeof part !== 'string')) {
+        invalid(location, 'Declaration identity requires string names and a positive integer version');
+      } else {
+        const identity = identityParts.join(':');
+        if (identities.has(identity)) invalid(location, 'Declaration identity must be unique');
+        identities.add(identity);
+      }
+      if (field === 'serviceDependencies') {
+        if (typeof item.plugin !== 'string' || !isSlug(item.plugin) || item.plugin === manifest.slug || !declarationName(item.service))
+          invalid(location, 'Dependency requires an explicit other provider slug and a service name');
+      } else if (!declarationName(item.name)) invalid(`${location}.name`, 'Invalid declaration name');
+      if (field === 'tasks') {
+        for (const [key, cap] of [['concurrency', 16], ['maxAttempts', 20], ['maxRuntimeSeconds', 600]] as const)
+          if (!positiveInteger(item[key], cap)) invalid(`${location}.${key}`, `${key} must be an integer from 1 to ${cap}`);
+        if (item.onFinalFailure !== undefined && (!isRecord(item.onFinalFailure)
+          || !exactFields(item.onFinalFailure, ['maxRuntimeSeconds']) || !positiveInteger(item.onFinalFailure.maxRuntimeSeconds, 60)))
+          invalid(`${location}.onFinalFailure`, 'Final failure hook runtime must be an integer from 1 to 60 seconds');
+      } else {
+        const methods = item.methods;
+        if (!Array.isArray(methods) || !methods.length || methods.length > 32) { invalid(`${location}.methods`, 'methods must contain 1-32 unique declarations'); return; }
+        const names = new Set<string>();
+        methods.forEach((method, methodIndex) => {
+          const name = field === 'services' && isRecord(method) ? method.name : method;
+          if (!declarationName(name) || names.has(name)) invalid(`${location}.methods[${methodIndex}]`, 'Method names must be valid and unique');
+          if (typeof name === 'string') names.add(name);
+          if (field === 'services' && (!isRecord(method) || !exactFields(method, ['name', 'idempotencyRequired', 'schema'])
+            || typeof method.idempotencyRequired !== 'boolean' || !isPluginAssetPath(method.schema)
+            || !method.schema.startsWith('services/') || !method.schema.endsWith('.json')))
+            invalid(`${location}.methods[${methodIndex}]`, 'Method requires idempotencyRequired and a normalized services/*.json schema path');
+        });
+      }
+    });
+  }
+}
+
 export function pluginDatabaseDeclarationIsValid(value: unknown): value is PluginDatabaseDeclaration {
   if (!isRecord(value) || value.apiVersion !== 1 || !Array.isArray(value.migrations)
     || Object.keys(value).some(key => !['apiVersion', 'migrations'].includes(key))) return false;
@@ -158,6 +303,10 @@ export interface PluginManifest {
   subscriptions?: EventSubscription[];
   lifecycle?: PluginLifecycleDeclaration;
   database?: PluginDatabaseDeclaration;
+  ui?: PluginUiDeclaration;
+  tasks?: PluginTaskDeclaration[];
+  services?: PluginServiceDeclaration[];
+  serviceDependencies?: PluginServiceDependencyDeclaration[];
 }
 
 export interface PluginManifestIssue {
@@ -206,6 +355,7 @@ const manifestFields = new Set([
   'minApiVersion', 'sdkVersion', 'requiredApiVersion', 'dependencies', 'tags',
   'configSchema', 'contracts', 'requiredScopes', 'subscriptions', 'lifecycle', 'database',
   'trustLevel', 'capabilities', 'webhooks',
+  'ui', 'tasks', 'services', 'serviceDependencies',
 ]);
 
 function rejectUnknown(
@@ -263,6 +413,8 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
   }
 
   rejectUnknown(issues, manifest, manifestFields, '');
+  validatePageDeclarations(manifest, issues);
+  validateTaskAndServiceDeclarations(manifest, issues);
 
   if (manifest.database !== undefined && !pluginDatabaseDeclarationIsValid(manifest.database)) {
     pushIssue(issues, 'database', 'Invalid plugin migration declaration', 'PLUGIN_MIGRATION_MANIFEST_INVALID');

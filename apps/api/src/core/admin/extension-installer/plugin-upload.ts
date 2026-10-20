@@ -4,7 +4,7 @@ import { isDeepStrictEqual } from 'node:util';
 import type { PluginInstall } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
-import { PLUGIN_MAX_ZIP_SIZE, readPluginZipEntries, verifyPluginZip, validatePluginMigrations } from 'shared/plugin-signing';
+import { PLUGIN_MAX_ZIP_SIZE, readPluginZipEntries, verifyPluginZip, validatePluginMigrations, buildPluginUiAssetIndex } from 'shared/plugin-signing';
 import { migrationPlan } from './plugin-migration-executor';
 import { validateFileExtension, validateFileSize } from './security';
 import { validatePluginManifest } from './utils';
@@ -40,11 +40,6 @@ export async function inspectPluginUpload(bytes: Buffer) {
     if (error && typeof error === 'object' && 'statusCode' in error) throw error;
     throw new PluginUploadError('INVALID_PLUGIN_ARCHIVE', 400, 'Invalid plugin ZIP archive');
   }
-  for (const entry of entries) {
-    if (entry.path.endsWith('/')) continue;
-    validateFileExtension(entry.path, 'plugin');
-    validateFileSize(entry.path, entry.content.length, 'plugin');
-  }
   const rootManifest = entries.find((entry) => entry.path === 'manifest.json');
   const topFolders = new Set(entries.map((entry) => entry.path.split('/')[0]).filter((name) => !name.startsWith('.') && name !== '__MACOSX'));
   const wrapped = entries.filter((entry) => /^[^/]+\/manifest\.json$/.test(entry.path));
@@ -57,9 +52,14 @@ export async function inspectPluginUpload(bytes: Buffer) {
   const packageRoot = manifestEntry.path.slice(0, -'manifest.json'.length);
   const files = entries.filter(entry => !entry.path.endsWith('/')).map(entry => ({ ...entry, path: packageRoot && entry.path.startsWith(packageRoot) ? entry.path.slice(packageRoot.length) : entry.path }));
   validatePluginMigrations(manifest.database, files);
+  const assetIndex = buildPluginUiAssetIndex(manifest, files);
+  for (const entry of files) {
+    validateFileExtension(entry.path, 'plugin');
+    validateFileSize(entry.path, entry.content.length, 'plugin');
+  }
   if (['manual-payment', 'free-shipping', 'zero-tax', 'manual-fulfillment', 'console-email'].includes(manifest.slug))
     throw new PluginUploadError('SLUG_RESERVED', 400);
-  return { manifest, files, manifestDigest: createHash('sha256').update(manifestEntry.content).digest('hex'), publisher, hash: createHash('sha256').update(bytes).digest('hex'), trust: publisher ? 'signed' as const : 'unsigned' as const };
+  return { manifest, files, assetIndex, manifestDigest: createHash('sha256').update(manifestEntry.content).digest('hex'), publisher, hash: createHash('sha256').update(bytes).digest('hex'), trust: publisher ? 'signed' as const : 'unsigned' as const };
 }
 
 export function uploadOperation(inspection: UploadInspection, current: PluginInstall | null): 'install' | 'upgrade' | 'unchanged' {

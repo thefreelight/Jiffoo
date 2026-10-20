@@ -57,6 +57,9 @@ export const pluginUploadApi = {
 export function pluginUploadErrorKey(error: unknown) {
   const code = (error as { code?: string })?.code;
   const keys: Partial<Record<ApiErrorCode, string>> = {
+    PLUGIN_UI_MANIFEST_INVALID: 'uiManifestInvalid', PLUGIN_UI_ASSET_INVALID: 'uiAssetInvalid',
+    PLUGIN_UI_ASSET_TOO_LARGE: 'uiAssetTooLarge', PLUGIN_TASK_DECLARATION_INVALID: 'taskDeclarationInvalid',
+    PLUGIN_SERVICE_DEPENDENCY_INVALID: 'serviceDeclarationInvalid',
     UNKNOWN_MANIFEST_FIELD: 'unknownManifestField',
     PLUGIN_DOWNGRADE_NOT_SUPPORTED: 'downgrade', PLUGIN_VERSION_CONTENT_CHANGED: 'versionContentChanged',
     PUBLISHER_CHANGE_FORBIDDEN: 'publisherChanged', SIGNED_UPGRADE_REQUIRED: 'signatureRequired',

@@ -26,6 +26,9 @@ import { readStoredPluginManifest } from '@/core/admin/extension-installer/store
 import { getPluginManifestIssues, parsePluginConfigSchema, validatePluginConfig } from '@jiffoo/shared';
 import { ExtensionInstallerError } from '@/core/admin/extension-installer/errors';
 import { writePluginAudit } from '@/core/admin/extension-installer/plugin-audit';
+import { inspectPluginUpload } from '@/core/admin/extension-installer/plugin-upload';
+import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 
 type ProviderContract = 'payment' | 'shipping' | 'tax' | 'fulfillment' | 'notification';
 type UpdatedInstance = PluginInstallation & { replacedPlugins: string[] };
@@ -628,6 +631,18 @@ export async function restorePlugin(slug: string, actorId = 'system'): Promise<v
     throw new ExtensionInstallerError(`Plugin "${slug}" is not uninstalled`, { statusCode: 409, code: 'PLUGIN_NOT_UNINSTALLED' });
   }
   assertPluginSigningAllowed(pluginPackage);
+
+  if (pluginPackage.source !== 'builtin') {
+    const blob = pluginPackage.zipHash ? await pluginPackageBlobStore.get(slug, pluginPackage.zipHash) : null;
+    if (!blob) throw new PluginPackageResolutionError('PLUGIN_PACKAGE_UNAVAILABLE', 503, slug);
+    const bytes = Buffer.from(blob.bytes);
+    if (blob.sizeBytes !== bytes.length || createHash('sha256').update(bytes).digest('hex') !== pluginPackage.zipHash)
+      throw new PluginPackageResolutionError('PLUGIN_PACKAGE_CORRUPT', 500, slug);
+    const inspection = await inspectPluginUpload(bytes);
+    if (inspection.manifest.slug !== slug || inspection.manifest.version !== pluginPackage.version
+      || !isDeepStrictEqual(inspection.manifest, pluginPackage.manifestJson))
+      throw new PluginPackageResolutionError('PLUGIN_PACKAGE_CORRUPT', 500, slug);
+  }
 
   const pluginPackageFiles = pluginPackage.zipHash
     ? await resolveCurrentPluginPackage(slug, pluginPackage.zipHash, true) : null;

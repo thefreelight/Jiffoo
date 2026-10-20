@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { themeTestBarrier } from './theme-test-hooks';
 import { randomUUID } from 'node:crypto';
+import { isPluginAssetPath } from '@jiffoo/shared';
 
 async function renameWithRetry(source: string, target: string): Promise<void> {
   for (let attempt = 1; attempt <= 5; attempt += 1) {
@@ -19,6 +20,7 @@ async function renameWithRetry(source: string, target: string): Promise<void> {
 export interface PluginPackage {
   getEntryPath(relativePath: string): string;
   readText(relativePath: string): Promise<string>;
+  readBinary(relativePath: string): Promise<Buffer>;
   exists(relativePath?: string): Promise<boolean>;
   stat(): Promise<{ birthtime: Date; mtime: Date }>;
 }
@@ -49,6 +51,19 @@ class LocalPluginPackage implements PluginPackage {
 
   async readText(relativePath: string): Promise<string> {
     return fs.readFile(this.getEntryPath(relativePath), 'utf-8');
+  }
+
+  async readBinary(relativePath: string): Promise<Buffer> {
+    if (!isPluginAssetPath(relativePath)) throw new Error('Invalid package asset path');
+    let current = this.directory;
+    const segments = relativePath.split('/');
+    for (const [index, segment] of segments.entries()) {
+      current = path.join(current, segment);
+      const info = await fs.lstat(current);
+      if (info.isSymbolicLink() || (index === segments.length - 1 ? !info.isFile() : !info.isDirectory()))
+        throw new Error('Invalid package asset file');
+    }
+    return fs.readFile(current);
   }
 
   async exists(relativePath?: string): Promise<boolean> {

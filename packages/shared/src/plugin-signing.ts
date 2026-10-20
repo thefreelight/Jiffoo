@@ -3,6 +3,7 @@ import { inflateRawSync } from 'node:zlib';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 export * from './plugin-migrations';
+export * from './plugin-ui-assets';
 export { getPluginManifestIssues, type PluginManifest, type PluginMigrationDeclaration } from './extensions/plugin-contract';
 
 export const OFFICIAL_ROOT_PUBLIC_KEY = 'MCowBQYDK2VwAyEAA_zy6wrHIT-xusqZjtIoRFlK0wwe_08awdPoFnJhs6o';
@@ -237,7 +238,7 @@ export function validatePluginZipPaths(entries: PluginZipEntry[]): void {
 
 export function readPluginZipEntries(zip: Buffer, allowDirectories = false): PluginZipEntry[] {
   const entries = rawEntries(zip);
-  validatePluginZipPaths(allowDirectories ? entries.map((entry) => entry.path.endsWith('/')
+  validatePluginZipPaths(allowDirectories ? entries.map((entry) => entry.path.endsWith('/') && [0, 0x4000].includes(entry.mode & 0xf000)
     ? { ...entry, path: entry.path.slice(0, -1), mode: 0o100644 } : entry) : entries);
   return entries;
 }

@@ -6,7 +6,7 @@ import { pluginPackageBlobStore } from './plugin-package-blob-store';
 import { pluginPackageStore, type PluginPackage } from './plugin-package-store';
 import { extractZipToTemp, cleanupTemp, readJsonFile, resolveExtractedPackageRoot, validatePluginManifest } from '@/core/admin/extension-installer/utils';
 import type { PluginManifest } from '@/core/admin/extension-installer/types';
-import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
+import { PLUGIN_MAX_ZIP_SIZE, readPluginZipEntries, buildPluginUiAssetIndex } from 'shared/plugin-signing';
 
 type ResolutionCode = 'PLUGIN_PACKAGE_UNAVAILABLE' | 'PLUGIN_PACKAGE_CORRUPT' | 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT'
   | 'PLUGIN_REINSTALL_REQUIRED' | 'PLUGIN_TEST_SIGNING_DISABLED';
@@ -69,6 +69,14 @@ async function materialize(slug: string, zipHash: string): Promise<void> {
         const { rootDir, manifestPath } = await resolveExtractedPackageRoot(tempDir, 'plugin');
         const manifest = await readJsonFile<PluginManifest>(manifestPath);
         validatePluginManifest(manifest);
+        const entries = readPluginZipEntries(bytes, true);
+        const manifestEntry = entries.find(entry => entry.path === 'manifest.json')
+          ?? entries.find(entry => /^[^/]+\/manifest\.json$/.test(entry.path));
+        if (!manifestEntry) throw new PluginPackageResolutionError('PLUGIN_PACKAGE_CORRUPT', 500, slug);
+        const root = manifestEntry.path.slice(0, -'manifest.json'.length);
+        buildPluginUiAssetIndex(manifest, entries.filter(entry => !entry.path.endsWith('/')).map(entry => ({
+          ...entry, path: root && entry.path.startsWith(root) ? entry.path.slice(root.length) : entry.path,
+        })));
         if (manifest.slug !== slug) {
           console.error('Corrupt plugin package manifest', { slug, zipHash });
           corrupt.add(key);

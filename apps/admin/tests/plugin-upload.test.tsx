@@ -52,6 +52,11 @@ describe('Plugin upload dialog', () => {
   it.each([[ApiErrorCodes.PLUGIN_DOWNGRADE_NOT_SUPPORTED, 'downgrade'], [ApiErrorCodes.PLUGIN_VERSION_CONTENT_CHANGED, 'versionContentChanged'], [ApiErrorCodes.PUBLISHER_CHANGE_FORBIDDEN, 'publisherChanged'], [ApiErrorCodes.SIGNED_UPGRADE_REQUIRED, 'signatureRequired'], [ApiErrorCodes.PACKAGE_CONTENT_MISMATCH, 'signatureInvalid']] as const)('shows the %s preview refusal without installing', async (code, key) => {
     previewApi.mockRejectedValue({ code }); await preview(); expect(document.body.textContent).toContain(en.plugins.upload[key]); expect(installApi).not.toHaveBeenCalled();
   });
+  it.each([['PLUGIN_UI_MANIFEST_INVALID', 'uiManifestInvalid'], ['PLUGIN_UI_ASSET_INVALID', 'uiAssetInvalid'],
+    ['PLUGIN_UI_ASSET_TOO_LARGE', 'uiAssetTooLarge'], ['PLUGIN_TASK_DECLARATION_INVALID', 'taskDeclarationInvalid'],
+    ['PLUGIN_SERVICE_DEPENDENCY_INVALID', 'serviceDeclarationInvalid']] as const)('shows the localized %s refusal', async (code, key) => {
+    previewApi.mockRejectedValue({ code }); await preview(); expect(document.body.textContent).toContain(en.plugins.upload[key]); expect(installApi).not.toHaveBeenCalled();
+  });
   it('disables installation of an incompatible package and retains the reason', async () => {
     previewApi.mockResolvedValue({ ...fixture(), compatibility: { compatible: false, reason: 'Requires API v99' } }); await preview();
     expect(document.body.textContent).toContain('Requires API v99'); expect(button('Confirm installation').disabled).toBe(true);

@@ -2,9 +2,12 @@ import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import path from 'path';
 import os from 'os';
 import { promises as fs } from 'fs';
+import { createHash } from 'node:crypto';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
-import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
+import { clearTestPluginCache } from '../helpers/plugin-cache';
+import { pageZip } from '../fixtures/plugin-pages';
+import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { warmPluginInstanceRuntime } from '@/core/admin/extension-installer/plugin-runtime';
 import { callContract, handlePluginGateway } from '@/core/admin/extension-installer/plugin-runtime';
@@ -68,10 +71,16 @@ describe('Plugin lifecycle reconciliation', () => {
     };
     await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify(manifest), 'utf-8');
     await fs.writeFile(path.join(sourceDirectory, 'server', 'index.js'), source, 'utf-8');
-    const zipHash = await publishTestPlugin(slug, sourceDirectory);
+    const bytes = await pageZip([
+      { path: 'manifest.json', content: Buffer.from(JSON.stringify(manifest)) },
+      { path: 'server/index.js', content: Buffer.from(source) },
+    ]);
+    const zipHash = createHash('sha256').update(bytes).digest('hex');
+    await pluginPackageStore.put(slug, zipHash, sourceDirectory);
     await prisma.pluginInstall.create({
       data: { slug, name: slug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip', zipHash, manifestJson: manifest },
     });
+    await prisma.$transaction(tx => pluginPackageBlobStore.put(tx, slug, zipHash, bytes));
     await prisma.$transaction((tx) => syncEventSubscriptions(tx, slug, manifest.subscriptions));
     const installation = await prisma.pluginInstallation.create({
       data: { pluginSlug: slug, instanceKey: 'default', enabled },

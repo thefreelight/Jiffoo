@@ -13,6 +13,7 @@ import {
   signPackage, verifyPublisherCertificate, validatePluginZipPaths,
   type PluginZipEntry,
   validatePluginMigrations,
+  buildPluginUiAssetIndex, type PluginManifest, PLUGIN_MAX_DECOMPRESSED_SIZE, PLUGIN_MAX_ZIP_ENTRIES,
 } from 'shared/plugin-signing';
 
 const HELP = `jiffoo-plugin create --slug <slug> --name <name> --output <dir> [--category integration|shipping|payment]
@@ -51,20 +52,23 @@ function assertNoPrivateKey(bytes: Buffer, file: string) {
   if (bytes.includes(Buffer.from('BEGIN PRIVATE KEY')) || bytes.includes(Buffer.from('BEGIN OPENSSH PRIVATE KEY'))) failure('PRIVATE_KEY_MATERIAL', file);
 }
 function checkContent(entries: Entry[]) {
+  if (entries.length > PLUGIN_MAX_ZIP_ENTRIES || entries.reduce((total, entry) => total + entry.content.length, 0) > PLUGIN_MAX_DECOMPRESSED_SIZE)
+    failure('PAYLOAD_TOO_LARGE');
   validatePluginZipPaths(entries.map((entry): PluginZipEntry => ({ ...entry, flags: 0x800, mode: 0o100644 })));
   if (entries.some((entry) => entry.path === CERT_PATH || entry.path === SIGNATURE_PATH || entry.path.startsWith('META-INF/jiffoo/'))) failure('SIGNATURE_MATERIAL_PRESENT');
-  for (const entry of entries) {
-    const violation = getPluginFileViolation(entry.path);
-    if (violation) failure(violation.code, entry.path);
-    if (entry.content.length > extensionMaxFileSize('plugin')) failure('FILE_TOO_LARGE', entry.path);
-    assertNoPrivateKey(entry.content, entry.path);
-  }
   const manifestEntry = entries.find((entry) => entry.path === 'manifest.json');
   if (!manifestEntry) failure('MISSING_MANIFEST', 'manifest.json');
   let manifest: unknown;
   try { manifest = JSON.parse(manifestEntry.content.toString('utf8')); } catch { failure('INVALID_JSON', 'manifest.json'); }
   const issue = getPluginManifestIssues(manifest)[0];
   if (issue) failure(issue.code, `manifest.json:${issue.path}`);
+  buildPluginUiAssetIndex(manifest as PluginManifest, entries);
+  for (const entry of entries) {
+    const violation = getPluginFileViolation(entry.path);
+    if (violation) failure(violation.code, entry.path);
+    if (entry.content.length > extensionMaxFileSize('plugin')) failure('FILE_TOO_LARGE', entry.path);
+    assertNoPrivateKey(entry.content, entry.path);
+  }
   validatePluginMigrations((manifest as { database?: unknown }).database, entries);
 }
 async function collect(root: string): Promise<Entry[]> {

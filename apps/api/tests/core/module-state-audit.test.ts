@@ -60,6 +60,7 @@ const codeConstants = [
   'core/admin/extension-installer/routes.ts:PLUGIN_CATEGORIES',
   'core/admin/extension-installer/routes.ts:packageCorruptResponse',
   'core/admin/extension-installer/routes.ts:packageUnavailableResponse',
+  'core/admin/extension-installer/schemas.ts:errorResponseSchema',
   'core/admin/extension-installer/schemas.ts:extensionInstallWithUploadSchema',
   'core/admin/extension-installer/schemas.ts:extensionInstallerSchemas',
   'core/admin/extension-installer/schemas.ts:extensionMetaSchema',

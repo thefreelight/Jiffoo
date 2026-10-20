@@ -11,9 +11,10 @@ const files = [
 ].map(name => path.join(shared, name));
 const lifecyclePath = path.join(root, 'apps/api/src/core/admin/plugin-management/lifecycle-hooks.ts');
 const runtimePath = path.join(root, 'apps/api/src/core/admin/extension-installer/contract-v1-runtime.ts');
+const errorCodesPath = path.join(shared, 'error-codes.ts');
 
 export function generateSnapshot() {
-  const program = ts.createProgram([...files, lifecyclePath, runtimePath], {
+  const program = ts.createProgram([...files, lifecyclePath, runtimePath, errorCodesPath], {
     target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS,
     moduleResolution: ts.ModuleResolutionKind.Node10, strict: true, skipLibCheck: true,
   });
@@ -50,6 +51,12 @@ export function generateSnapshot() {
     'export type EventKey = keyof typeof eventRegistry;', "export type EventPayload<K extends EventKey> = (typeof eventRegistry)[K]['_output'];");
   for (const name of ['EventSubscription', 'PluginEvent', 'PluginEventHandler']) lines.push(declaration(eventSource, name).getText());
   for (const name of ['PluginDatabaseJson', 'PluginDatabaseParameter', 'PluginDatabaseOptions', 'PluginDatabaseResult', 'PluginDatabaseTransaction', 'PluginDatabase', 'PluginContext', 'PluginEntryModule', 'PluginBusinessErrorResponse', 'PluginMigrationDeclaration', 'PluginDatabaseDeclaration']) lines.push(declaration(files[0], name).getFullText().trim());
+  for (const name of ['PluginRuntimeType', 'PluginHostProtocol', 'PluginCategory', 'PluginContractDeclaration'])
+    lines.push(`export type ${name} = ${render(checker.getTypeAtLocation(declaration(files[0], name).name))};`);
+  for (const name of ['PluginPageDeclaration', 'PluginStorefrontPageDeclaration', 'PluginUiDeclaration', 'PluginTaskDeclaration',
+    'PluginServiceDeclaration', 'PluginServiceDependencyDeclaration', 'PluginApiVersionRange', 'PluginLifecycleDeclaration', 'PluginManifest'])
+    lines.push(declaration(files[0], name).getFullText().trim());
+  lines.push(`export type ApiErrorCode = ${render(checker.getTypeAtLocation(declaration(errorCodesPath, 'ApiErrorCode').name))};`);
   lines.push(declaration(lifecyclePath, 'LifecycleContext').getText());
   const hooks = checker.getTypeAtLocation(variable(files[0], 'PLUGIN_LIFECYCLE_HOOKS').name);
   lines.push('export interface PluginLifecycleExports {');
