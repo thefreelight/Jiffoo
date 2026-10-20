@@ -10,7 +10,7 @@ import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-syn
 import { deliverPendingNotifications } from '@/core/notifications/delivery';
 import { createNotification, renderNotification, type NotificationType } from '@/core/notifications/service';
 import { verificationLink } from '@/core/notifications/service';
-import { EmailVerificationService } from '@/services/email-verification.service';
+import { EmailVerificationService } from '@/core/auth/email-verification.service';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-plugin';

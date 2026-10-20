@@ -4,7 +4,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createTestUser, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { hashAuthToken } from '@/core/auth/auth-token';
-import { EmailVerificationService } from '@/services/email-verification.service';
+import { EmailVerificationService } from '@/core/auth/email-verification.service';
 import { randomUUID } from 'node:crypto';
 
 describe('Email Verification Endpoints', () => {

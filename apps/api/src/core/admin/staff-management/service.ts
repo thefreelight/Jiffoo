@@ -3,7 +3,7 @@ import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
-import { EmailVerificationService } from '@/services/email-verification.service';
+import { EmailVerificationService } from '@/core/auth/email-verification.service';
 
 export class StaffManagementError extends ApiError {
   constructor(_message: string, code: ErrorCode, _statusCode: number) { super(code); }

@@ -12,7 +12,7 @@ import { PasswordUtils } from '@/utils/password';
 import { sendSuccess, sendError } from '@/utils/response';
 import { ApiError, sendMappedError } from '@/utils/api-errors';
 import { authSchemas } from './schemas';
-import { EmailVerificationService } from '@/services/email-verification.service';
+import { EmailVerificationService } from '@/core/auth/email-verification.service';
 import { acceptStaffInvite, requestPasswordReset, resetPassword, lookupRecoveryToken } from './account-recovery';
 import { JwtUtils } from '@/utils/jwt';
 import { createSuccessResponseSchema, createTypedUpdateResponses, errorResponseSchema } from '@/types/common-dto';

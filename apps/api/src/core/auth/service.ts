@@ -9,7 +9,7 @@ import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
-import { EmailVerificationService } from '@/services/email-verification.service';
+import { EmailVerificationService } from '@/core/auth/email-verification.service';
 import { findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './identity';
 import { negotiateNotificationLocale, normalizeNotificationLocale } from '@/core/notifications/service';
 import { emitEvent } from '@/infra/events/emit';

@@ -45,7 +45,7 @@ vi.mock('@/utils/jwt', () => ({
   },
 }));
 
-vi.mock('@/services/email-verification.service', () => ({
+vi.mock('@/core/auth/email-verification.service', () => ({
   EmailVerificationService: {
     sendVerificationEmail: vi.fn(),
     createVerification: vi.fn(),
@@ -60,7 +60,7 @@ import { AuthService } from '@/core/auth/service';
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { JwtUtils } from '@/utils/jwt';
-import { EmailVerificationService } from '@/services/email-verification.service';
+import { EmailVerificationService } from '@/core/auth/email-verification.service';
 import jwt from 'jsonwebtoken';
 
 // ---------------------------------------------------------------------------

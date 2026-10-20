@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { ApiError } from '@/utils/api-errors';
 import { NotificationStatus, type Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
-import { EmailVerificationService } from '@/services/email-verification.service';
+import { EmailVerificationService } from '@/core/auth/email-verification.service';
 import { sendError, sendSuccess } from '@/utils/response';
 import { createTypedCreateResponses, createTypedReadResponses, errorResponseSchema } from '@/types/common-dto';
 

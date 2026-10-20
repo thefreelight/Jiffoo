@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@/config/database';
 import { createTestUser, deleteAllTestUsers } from '../helpers/auth';
-import { EmailVerificationService } from '@/services/email-verification.service';
+import { EmailVerificationService } from '@/core/auth/email-verification.service';
 
 describe('EmailVerificationService code flow', () => {
   beforeEach(async () => { await deleteAllTestUsers(); });

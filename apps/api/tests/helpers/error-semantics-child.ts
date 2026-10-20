@@ -5,7 +5,7 @@ import { authMiddleware } from '@/core/auth/middleware';
 import { prisma } from '@/config/database';
 import { redisCache } from '@/core/cache/redis';
 import { sharedProtection } from '@/infra/shared-protection';
-import { EmailVerificationService } from '@/services/email-verification.service';
+import { EmailVerificationService } from '@/core/auth/email-verification.service';
 import { InstallService } from '@/core/install/service';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { AuthService } from '@/core/auth/service';

@@ -21,7 +21,7 @@ vi.mock('@/config/database', () => ({ prisma: prismaMock }));
 vi.mock('@/utils/password', () => ({
   PasswordUtils: { verify: verifyPasswordMock },
 }));
-vi.mock('@/services/email-verification.service', () => ({
+vi.mock('@/core/auth/email-verification.service', () => ({
   EmailVerificationService: { createVerification: queueVerificationMock },
 }));
 

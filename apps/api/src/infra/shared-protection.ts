@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
 import { randomUUID } from 'node:crypto';
 import { env } from '@/config/env';
+import { CIRCUIT_BREAKER_CONFIG } from '@/core/admin/extension-installer/gateway-protection';
 
 export const PROTECTION_DEADLINE_MS = 1000;
 export const PROTECTION_RETRY_SECONDS = 5;
@@ -53,21 +54,21 @@ local now = tonumber(t[1]) * 1000 + math.floor(tonumber(t[2]) / 1000)
 if state == 'half-open' and tonumber(redis.call('HGET', KEYS[1], 'until') or '0') <= now then return 0 end
 if not redis.call('SET', KEYS[4], '1', 'PX', 120000, 'NX') then return 0 end
 local failed = ARGV[3] == '0'
-redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', now - 60000)
-redis.call('ZREMRANGEBYSCORE', KEYS[3], '-inf', now - 60000)
+redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', now - ${CIRCUIT_BREAKER_CONFIG.windowMs})
+redis.call('ZREMRANGEBYSCORE', KEYS[3], '-inf', now - ${CIRCUIT_BREAKER_CONFIG.windowMs})
 redis.call('ZADD', KEYS[2], now, ARGV[1])
 if failed then redis.call('ZADD', KEYS[3], now, ARGV[1]) end
 local total = redis.call('ZCARD', KEYS[2])
 local failures = redis.call('ZCARD', KEYS[3])
-if (state == 'half-open' and failed) or (state == 'closed' and total >= 10 and failures * 2 >= total) then
-  redis.call('HSET', KEYS[1], 'state', 'open', 'epoch', tonumber(epoch) + 1, 'until', now + 30000)
+if (state == 'half-open' and failed) or (state == 'closed' and total >= ${CIRCUIT_BREAKER_CONFIG.minSamples} and failures >= total * ${CIRCUIT_BREAKER_CONFIG.failureRateThreshold}) then
+  redis.call('HSET', KEYS[1], 'state', 'open', 'epoch', tonumber(epoch) + 1, 'until', now + ${CIRCUIT_BREAKER_CONFIG.openDurationMs})
 elseif state == 'half-open' then
   redis.call('HSET', KEYS[1], 'state', 'closed', 'epoch', tonumber(epoch) + 1)
   redis.call('DEL', KEYS[2], KEYS[3])
 end
 redis.call('PEXPIRE', KEYS[1], 120000)
-redis.call('PEXPIRE', KEYS[2], 60000)
-redis.call('PEXPIRE', KEYS[3], 60000)
+redis.call('PEXPIRE', KEYS[2], ${CIRCUIT_BREAKER_CONFIG.windowMs})
+redis.call('PEXPIRE', KEYS[3], ${CIRCUIT_BREAKER_CONFIG.windowMs})
 return 1
 `;
 

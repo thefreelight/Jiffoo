@@ -6,7 +6,7 @@ import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '.
 import { getTestPrisma } from '../helpers/db';
 import { hashAuthToken, issueAuthToken } from '@/core/auth/auth-token';
 import { env } from '@/config/env';
-import { EmailVerificationService } from '@/services/email-verification.service';
+import { EmailVerificationService } from '@/core/auth/email-verification.service';
 
 describe('AUTH-1 administrator management', () => {
   let app: FastifyInstance;
