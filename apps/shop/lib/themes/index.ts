@@ -72,6 +72,7 @@ export type {
   LoginPageProps,
   RegisterPageProps,
   AuthCallbackPageProps,
+  ForgotPasswordPageProps,
   HeaderProps,
   FooterProps,
 } from 'shared/src/types/theme';

@@ -1,4 +1,6 @@
 import { authenticateNativeAdmin, type NativeAuthEnv, type NativeSessionUser } from './auth';
+import { requestIp } from './auth-rate-limit';
+import { recordNativeSecurityEvent } from './security-audit';
 
 type AdminUserEnv = NativeAuthEnv;
 
@@ -179,6 +181,14 @@ export async function tryNativeAdminUsers(request: Request, env: AdminUserEnv): 
     const now = new Date().toISOString();
     await env.DB.prepare('UPDATE native_users SET password_salt=?1,password_hash=?2,password_iterations=?3,updated_at=?4 WHERE id=?5')
       .bind(credentials.salt, credentials.hash, credentials.iterations, now, userId).run();
+    const target = await env.DB.prepare('SELECT email FROM native_users WHERE id = ?1').bind(userId).first<{ email: string }>();
+    await recordNativeSecurityEvent(env, {
+      action: 'password.admin_reset',
+      email: target?.email ?? '',
+      userId,
+      source: 'admin',
+      ip: requestIp(request),
+    });
     return json({ userId, passwordReset: true, resetAt: now });
   }
 

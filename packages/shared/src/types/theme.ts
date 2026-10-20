@@ -132,6 +132,7 @@ export interface ThemePackage {
     LoginPage: React.ComponentType<LoginPageProps>;
     RegisterPage: React.ComponentType<RegisterPageProps>;
     AuthCallbackPage: React.ComponentType<AuthCallbackPageProps>;
+    ForgotPasswordPage?: React.ComponentType<ForgotPasswordPageProps>;
     // Layout components
     Header: React.ComponentType<HeaderProps>;
     Footer: React.ComponentType<FooterProps>;
@@ -615,6 +616,21 @@ export interface LoginPageProps extends ThemeI18nProps {
   onAppleOAuthClick?: () => Promise<void>;
   onNavigateToRegister: () => void;
   onNavigateToForgotPassword: () => void;
+}
+
+/**
+ * Forgot Password Page Component Props
+ * Optional theme component: a branded two-step reset (request code, then set a
+ * new password). The shop app renders its built-in page when the theme does
+ * not provide one.
+ */
+export interface ForgotPasswordPageProps extends ThemeI18nProps {
+  isLoading: boolean;
+  error?: string | null;
+  config?: ThemeConfig;
+  onRequestCode: (email: string) => Promise<void>;
+  onResetPassword: (input: { email: string; code: string; password: string }) => Promise<void>;
+  onNavigateToLogin: () => void;
 }
 
 /**
