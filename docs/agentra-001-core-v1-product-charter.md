@@ -172,8 +172,22 @@ V1.
 
 Every extension has a Core-native settings page generated from its declared
 configuration. Core owns navigation, form validation, secret storage,
-authorization, and error presentation. An extension does not supply arbitrary
-Admin application code in V1.
+authorization, and error presentation. An extension may also declare custom
+Admin pages in its package. Core renders their static front-end assets only
+inside Core-provided sandboxed iframes without allow-same-origin, beneath the
+Admin plugin area, with administrator authorization and a versioned bridge.
+These pages do not replace Core-native settings or inject application code
+into Core pages.
+
+Plugins may declare storefront pages under /apps/<slug>/... with translated
+titles, Core-owned navigation placement, and optional sign-in requirements.
+Core owns the page shell and renders package assets only in an opaque-origin
+sandboxed iframe through a versioned bridge. Page context may include the
+signed-in customer's ID, display name and email, or null when signed out,
+alongside locale, currency, theme tokens and store information. Core owns
+cart, checkout and payment actions; plugin pages never render on cart,
+checkout or payment pages. Disabling a plugin removes its navigation and
+makes its pages return 404.
 
 ### Failure Containment
 
@@ -222,6 +236,26 @@ and two worker instances.
   service shared by all instances.
 - Background jobs take a distributed lock rather than assuming a single
   instance. Scheduled jobs are idempotent.
+- Plugins may enqueue durable PostgreSQL-backed background tasks with
+  idempotency keys and optional scheduled execution. Only workers execute
+  declared handlers, with bounded runtimes, renewing leases, claim fencing,
+  retries, cancellation and observable status across instances. Disabled
+  plugins receive no new execution. Delivery is at least once; plugin authors
+  must deduplicate external effects.
+  Handlers declare concurrency, attempt and runtime limits within operator
+  caps, with cluster-wide fairness and optional fenced final-failure hooks.
+  Disable or dependency unavailability pauses pending work and aborts/fences
+  running attempts without consuming an attempt or invoking a failure hook;
+  tasks resume after availability returns. Uninstall cancels pending/running
+  work without a failure hook, retaining history and inputs until purge.
+  Compatible handler versions retain queued work across ordinary updates;
+  update-aborted attempts retry without consuming their attempt budget.
+  Each execution exposes a unique claim ID and increasing fence for
+  plugin-owned conditional writes; task keys are retained until purge.
+- Plugin files use Core object storage through scoped SDK operations and
+  token-authorized uploads. References are isolated by plugin and owning
+  customer or administrator; display uses short-lived signed URLs, not public
+  object paths. Browser frames receive no Core session credentials.
 - Core maintains a plugin registry version counter in the database, incremented
   on install, enable, disable and update. Each instance reads it to trigger
   coordinated runtime reload. Registry reload and cache invalidation use
@@ -302,12 +336,41 @@ reporting, without a Core change. Event handlers run in-process: Core cannot
 stop a handler that exceeds its time limit, and process isolation remains
 deferred.
 
+Events occurring while an extension is disabled or dependency-unavailable
+are never delivered later. Core provides a read-only, cursor-paginated SDK
+query of paid orders and their lines for recovery after missed events, plugin
+crashes or exhausted retries. It requires the merchant-approved manifest
+permission commerce:orders.read and enforces bounded time windows and page
+sizes. Plugins deduplicate reconciliation and event effects by order ID in
+their own transactional effect ledger; this query is not event replay.
+
+### Plugin Services
+
+Plugins may export versioned service methods and declare dependencies on
+other plugins' services. Calls pass through Core with trusted caller identity,
+timeouts, failure containment and idempotency keys for money-like operations.
+Calls work in task handlers and final-failure hooks. Consumers declare the
+specific provider and permitted methods; Core shows and enforces merchant
+grants. Provider business errors retain structured code, message and details,
+distinct from Core failures, and the SDK generates versioned client types.
+Install and enable validate dependency versions and ordering. Disabling a
+dependency requires merchant confirmation of affected dependents and makes
+them unavailable for new work; uninstall and purge
+are blocked while an enabled dependent exists. Core does not promise an
+atomic cross-plugin transaction or exactly-once external effects.
+
 ### Extension SDK
 
 Core ships an Extension SDK versioned alongside Core. It includes TypeScript
 definitions for the five capability contracts and event layer, create
 scaffolds for integration, shipping and payment plugins, and keygen, pack,
 sign, upload and dev commands. Scaffold builds produce CommonJS packages.
+
+The SDK also includes a versioned front-end bridge package, a Vite-based
+plugin-page scaffold, and server-side storage, durable task and service APIs.
+Browser assets are built separately from the CommonJS server entry and are
+delivered in the same verified plugin package. An example plugin demonstrates
+pages, uploads, long-running tasks and a call to another plugin's service.
 
 Upload uses the normal preview and final-install path with an administrator
 access token. Unsigned upload requires an interactive terminal and exact
@@ -339,9 +402,13 @@ cannot keep pace with regional and long-tail tools, and free-form input alone
 gives the most common providers no correctness or update path.
 
 Custom code and tracking identifiers originate from merchant input in Admin.
-A theme package or extension package must not carry browser script or declare
-an injection point. The merchant is responsible for the safety, performance,
-and regulatory compliance of custom code. Core records which merchant account
+A theme package must not carry browser script or declare an injection point.
+An extension package may carry declared sandboxed page assets, rendered only
+inside Core-provided opaque-origin frames through the versioned bridge, never
+injected into Core pages and never rendered on cart, checkout or payment pages.
+Extension packages cannot declare Core-page injection points. The merchant is
+responsible for the safety, performance, and regulatory compliance of custom
+code. Core records which merchant account
 changed it and when. Core does not review its content. This is the same
 accountability posture Core takes toward unsigned packages.
 
@@ -420,9 +487,15 @@ the update flow, not every business write.
 An enabled extension is visible only at its declared product surface. Disabling
 an extension removes its Admin and Shop entry points and stops Core from running
 its code for new work: capability calls, event delivery, and background
-processing. Lifecycle hooks (onDisable, onUninstall) and install/upgrade
+processing. Pending tasks pause; running attempts are aborted and fenced
+without consuming an attempt, then become eligible again after enable or
+dependency recovery. Uninstall instead cancels pending/running tasks. Neither
+pause nor cancellation invokes a task final-failure hook. Lifecycle hooks
+(onDisable, onUninstall) and install/upgrade
 validation are the only exceptions. Events that occur while an extension is
-disabled are never delivered, even after it is re-enabled. For a disabled
+disabled or dependency-unavailable are never delivered, even after availability
+returns; permissioned paid-order reconciliation recovers missed effects
+without replaying events. For a disabled
 payment extension, inbound payment callbacks are refused with a retryable
 response, reconciliation skips it, and manual mark-paid is blocked; Admin warns
 about orders awaiting payment before it is disabled. Core continues to protect
@@ -472,12 +545,15 @@ the plugin migration ledger and local package directories.
   payment state, order state, reconciliation, and provider-independent error
   semantics. Provider-specific direct checkout paths are not retained.
 - Storefront custom code and tracking identifiers originate only from merchant
-  input in Admin. No theme package or extension package may carry browser
-  script or declare an injection point.
+  input in Admin. Theme packages cannot carry browser script. Extension
+  packages may carry browser assets only for declared pages rendered in
+  Core-provided sandboxed iframes without allow-same-origin and accessed through
+  the versioned bridge. Neither package type may declare Core-page injection
+  points; plugin pages never render on cart, checkout or payment pages.
 - Themes are presentation data only. Executable Theme App processes, theme
   gateways, and arbitrary executable theme runtimes are not Core V1 features.
-- imagic is a downstream branded product outside Core that consumes the Core
-  API. It is not a V1 static theme and receives no Core V1 exception.
+- imagic is built as Core plugins on the general plugin page capability and
+  receives no product-specific exception. It is not a V1 static theme.
 - Core update, extension update, enable, disable, and theme activation are
   auditable merchant actions with a visible result.
 
@@ -537,14 +613,73 @@ are demonstrated:
     PostgreSQL, Redis, and S3-compatible object storage. Shared rate limiting,
     task claims and fencing, extension lifecycle and runtime reload, and plugin,
     theme, and uploaded-file availability remain correct across instances.
+18. A verified plugin package provides storefront and Admin pages in Core
+    shells through sandboxed iframes without allow-same-origin. Three-language
+    navigation, theme tokens, locale and light/dark changes work. The storefront
+    page receives signed-in customer ID, display name and email, adds a product
+    through Core cart actions, completes Core checkout and offers a return link
+    from the payment result page. Sign-out removes identity and revokes access;
+    disabling the plugin removes navigation and makes both page surfaces 404.
+    Admin pages require an administrator and an Admin-scoped plugin token.
+19. Opaque-origin requests use plugin-scoped Bearer tokens with no cookies.
+    Null Origin is rejected by every cookie-authenticated endpoint, including
+    requests that do not require CORS preflight. Ordinary Core credentials and
+    forged bridge sources cannot bypass this isolation. Vite-built module
+    scripts and bundled fonts load under the frame CSP. No plugin frame renders
+    on cart, checkout, payment or result pages; result pages contain only the
+    Core-owned return link.
+    Frame attributes and response sandbox allow scripts and forms, but not
+    same-origin access. A React/Vite onSubmit handler works while CSP
+    form-action 'none' blocks actual form submission/navigation.
+20. A customer uploads a file from a plugin frame to Core storage; the owning
+    plugin reads the reference and writes a file through the SDK. A short-lived
+    signed URL displays the file. Other plugins/customers, expired or tampered
+    grants, disabled plugins and purged installations cannot access it.
+    A bridge file.download action lets the customer save a generated image
+    after Core-owned confirmation without frame download privileges.
+21. A plugin's durable task runs longer than 30 seconds with lease renewal
+    across at least two worker instances. Competing claims, worker loss, stale
+    completion, retry, idempotency, scheduled execution, cancellation and disable
+    are demonstrated without accepting stale fenced writes or new disabled work.
+    Handler-declared limits and cluster-wide fairness are enforced; ignored
+    aborts retain physical execution slots. Final failures can call a refund
+    service once through a fenced worker hook, with unknown outcomes retained
+    for reconciliation. Disable and dependency loss pause tasks; running
+    attempts abort/fence without consuming an attempt or invoking a failure
+    hook, then resume with a fresh claim after recovery. Uninstall cancels
+    pending/running work without a hook; cancelled payloads remain queryable.
+    Compatible handler updates preserve queued tasks and retry aborted attempts
+    without a budget charge. Unique claim IDs and increasing fences protect
+    plugin-owned conditional result writes from older attempts. Task keys
+    remain until purge; recurring self-enqueue uses time-bucket keys. SDK dev and test drain
+    run tasks and final-failure hooks through the same engine.
+22. Two plugins call a declared versioned service through Core with trusted
+    caller identity and money-like idempotency. Timeout/unknown outcomes are
+    reconciled without repeating the business effect. Missing dependencies and
+    cycles are rejected; dependency disable makes dependents unavailable and
+    uninstall/purge is blocked while an enabled dependent exists.
+    Provider disable requires confirmation of its impact. Merchant-approved
+    method permissions apply in requests, tasks and failure hooks; structured
+    provider errors pass through unchanged and generated wallet-v1 types
+    compile in the consumer. Debit/enqueue crash gaps and unknown compensation
+    use stable business keys; dependency unavailability is explicitly retryable
+    and pauses dependent tasks until recovery.
+23. A wallet provider is disabled while another enabled payment provider
+    completes a paid order. No event from the disabled window is delivered
+    later. After recovery, a merchant-granted commerce:orders.read SDK query
+    lists paid orders and their lines using bounded windows and cursor pages.
+    Reconciliation credits the order once, deduplicating by order ID against
+    events and repeated/concurrent sweeps. Plugin crashes and exhausted event
+    retries are also recovered; missing or revoked permission is rejected.
 
 ## 6. Deferred Decisions
 
 The following are not implied by Core V1 and require a new product decision:
 
 - remote third-party applications, their hosting model, and OAuth;
-- executable signed storefront extensions, UI slots, CSP, and data access;
-- plugin-owned custom Admin pages and analytics dashboards;
+- component-rendered extensions and UI slots inside Core pages; V1 instead
+  supports declared sandboxed storefront and Admin pages with scoped data
+  access and an explicit frame CSP;
 - multiple configuration instances for one extension;
 - automatic reclamation of retained local package directories and deletion
   of plugin-owned database data or plugin migration history; Core-held
@@ -556,9 +691,10 @@ The following are not implied by Core V1 and require a new product decision:
 - Kubernetes deployment profiles, autoscaling, and zero-downtime rolling Core
   updates;
 - consent management and cookie banner for storefront tracking;
-- sandboxed extension execution. V1 chooses publisher accountability over
-  technical isolation. Products that sandbox extension code restrict it to
-  standard language built-ins without third-party module imports, which is
+- sandboxed server-side extension execution. V1 chooses publisher
+  accountability over technical isolation for server code; browser page
+  sandboxing does not change this boundary. Products that sandbox server code
+  restrict it to standard language built-ins without third-party module imports, which is
   incompatible with the capability contracts in §3;
 - storefront script sandboxing, in which tracking code subscribes to structured
   events rather than executing in the page;
