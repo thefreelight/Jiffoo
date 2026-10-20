@@ -70,10 +70,12 @@ async function refreshPluginLocales(request: ProxyRequest): Promise<void> {
   if (pluginLocales && Date.now() - pluginLocalesRefreshedAt < PLUGIN_LOCALES_TTL_MS) return;
   pluginLocalesRefreshedAt = Date.now();
   try {
-    const apiOrigin = process.env.API_SERVICE_URL;
-    if (!apiOrigin) return;
-    const response = await fetch(`${apiOrigin.replace(/\/+$/, '')}/api/v1/plugins/i18n/store/locales`, {
+    // Same-origin subrequest: the middleware runtime does not expose
+    // wrangler vars on process.env, and /api/* re-enters this worker's
+    // API proxy to the Core API without recursing into the middleware.
+    const response = await fetch(`${request.nextUrl.origin}/api/v1/plugins/i18n/store/locales`, {
       cache: 'no-store',
+      headers: { accept: 'application/json' },
     });
     if (!response.ok) return;
     const body = await response.json();
