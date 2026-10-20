@@ -35,7 +35,7 @@ return quick
       ['Build shared package', [['--filter', 'shared', 'build']]],
       ['Build admin application', [['--filter', 'admin', 'build']]],
       ['Build Shop application', [['--filter', 'shop', 'build']]],
-      ['Build plugin SDK', [['--filter', 'plugin-sdk', 'build']]],
+      ['Build plugin SDK', [['--filter', '@jiffoo-core/plugin-sdk', 'build']]],
       ['Type-check workspace', [['exec', 'turbo', 'run', 'type-check', '--continue=always', '--force']]],
       ['Lint Shop', [['--filter', 'shop', 'lint']]],
       ['Export OpenAPI', [['--filter', 'api', 'export:openapi']]],

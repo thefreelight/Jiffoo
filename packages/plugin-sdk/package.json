@@ -1,17 +1,29 @@
 {
-  "name": "plugin-sdk",
-  "version": "1.0.0",
-  "private": true,
+  "name": "@jiffoo-core/plugin-sdk",
+  "version": "1.0.0-alpha.1",
+  "license": "GPL-2.0-or-later",
+  "types": "dist/template-types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/template-types/index.d.ts",
+      "default": "./dist/internal/plugin-sdk/src/index.js"
+    },
+    "./cli": "./dist/cli.js",
+    "./package.json": "./package.json"
+  },
+  "engines": { "node": ">=24.13.1 <25" },
+  "files": ["dist", "types", "README.md", "LICENSE"],
   "bin": {
     "jiffoo-plugin": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc && node scripts/generate-types.mjs",
+    "build": "node scripts/build.mjs",
+    "test:standalone": "node ../../scripts/plugin-sdk-standalone.mjs",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "archiver": "^7.0.1",
-    "shared": "workspace:*"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/archiver": "^7.0.0",

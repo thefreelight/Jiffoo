@@ -4,7 +4,7 @@ import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync } fr
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { finished } from 'node:stream/promises';
-import { getPluginManifestIssues } from 'shared';
+import { getPluginManifestIssues } from '../../shared/src/extensions/plugin-contract';
 import { createPlugin } from './create';
 import { uploadZip, formatSdkError, redact, SdkError } from './upload';
 import { dev } from './dev';
@@ -14,7 +14,7 @@ import {
   type PluginZipEntry,
   validatePluginMigrations,
   buildPluginUiAssetIndex, type PluginManifest, PLUGIN_MAX_DECOMPRESSED_SIZE, PLUGIN_MAX_ZIP_ENTRIES,
-} from 'shared/plugin-signing';
+} from '../../shared/src/plugin-signing';
 
 const HELP = `jiffoo-plugin create --slug <slug> --name <name> --output <dir> [--category integration|shipping|payment]
 jiffoo-plugin keygen --out <private.pem>

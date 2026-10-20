@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { promises as fs } from 'node:fs';
 import { createServer } from 'node:http';
 import os from 'node:os';
@@ -10,7 +11,7 @@ import { testPublisher, testRoot } from '../apps/api/tests/fixtures/plugin-signi
 async function main() {
 const root = process.cwd();
 const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'jiffoo-e2e-marketplace-'));
-const sdk = path.resolve(root, 'packages/plugin-sdk/dist/cli.js');
+const sdk = createRequire(path.resolve(root, 'packages/plugin-sdk/package.json')).resolve('@jiffoo-core/plugin-sdk/cli');
 const packages = new Map<string, Buffer>();
 const publisherId = 'e2e-marketplace-publisher';
 const certificate = path.join(temporary, 'certificate.json');

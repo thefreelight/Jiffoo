@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { createPublicKey, randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,7 +15,7 @@ import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { issuePublisherCertificate, readPluginZipEntries } from 'shared/plugin-signing';
 import { otherPublisher, testRoot, testPublisher, untrustedRoot } from '../fixtures/plugin-signing-keys';
 
-const cli = path.resolve('../../packages/plugin-sdk/dist/cli.js');
+const cli = createRequire(path.resolve('../../packages/plugin-sdk/package.json')).resolve('@jiffoo-core/plugin-sdk/cli');
 const ownerTool = path.resolve('../../tools/owner/issue-publisher-cert.mjs');
 const prisma = getTestPrisma();
 const slug = () => `sdk-${randomUUID().slice(0, 12)}`;

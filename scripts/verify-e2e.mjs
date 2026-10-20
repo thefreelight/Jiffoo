@@ -295,7 +295,7 @@ try {
     await command(['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']);
   });
   await step('Build shared package', () => command(['--filter', 'shared', 'build']));
-  await step('Build plugin SDK', () => command(['--filter', 'plugin-sdk', 'build']));
+  await step('Build plugin SDK', () => command(['--filter', '@jiffoo-core/plugin-sdk', 'build']));
   await step(apiBuildStep[0], () => command(apiBuildStep[1][0]));
   await step('Build Admin', () => command(['--filter', 'admin', 'build']));
   await step('Build Shop', () => command(['--filter', 'shop', 'build']));

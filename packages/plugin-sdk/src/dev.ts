@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
-import { getPluginManifestIssues } from 'shared';
+import { getPluginManifestIssues } from '../../shared/src/extensions/plugin-contract';
 import { CoreClient, SdkError, formatSdkError, uploadBytes } from './upload';
 
 type Manifest = { slug: string; version: string; [key: string]: unknown };

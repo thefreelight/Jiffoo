@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createHash, randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -19,7 +20,8 @@ import { pageManifest, pageFiles, pageZip, symlinkDirectoryZip } from '../fixtur
 import { testPublisher, testRoot } from '../fixtures/plugin-signing-keys';
 import { extensionInstallerSchemas } from '@/core/admin/extension-installer/schemas';
 
-const root = path.resolve('../..'), sdk = path.join(root, 'packages/plugin-sdk/dist/cli.js');
+const root = path.resolve('../..');
+const sdk = createRequire(path.join(root, 'packages/plugin-sdk/package.json')).resolve('@jiffoo-core/plugin-sdk/cli');
 const digest = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
 const slugs = new Set<string>();
 const own = () => { const slug = `pages-${randomUUID().slice(0, 12)}`; slugs.add(slug); return slug; };
@@ -28,7 +30,7 @@ const run = (args: string[]) => spawnSync(process.execPath, [sdk, ...args], { cw
 describe('P-1 verified page packages', () => {
   let app: FastifyInstance, token: string, actorId: string, base: string, temporary: string;
   beforeAll(async () => {
-    const built = spawnSync(process.execPath, [path.join(root, 'node_modules/typescript/bin/tsc'), '-p', path.join(root, 'packages/plugin-sdk/tsconfig.json')], { cwd: root, encoding: 'utf8', windowsHide: true });
+    const built = spawnSync(process.execPath, [path.join(root, 'packages/plugin-sdk/scripts/build.mjs')], { cwd: root, encoding: 'utf8', windowsHide: true });
     expect(built.status, built.stdout + built.stderr).toBe(0);
     app = await createTestApp({ disableFileSystem: false });
     base = await app.listen({ host: '127.0.0.1', port: 0 });

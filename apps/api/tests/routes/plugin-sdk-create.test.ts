@@ -19,7 +19,7 @@ import { uploadPluginZip } from '../helpers/plugin-upload';
 import { testRoot, testPublisher } from '../fixtures/plugin-signing-keys';
 
 const root = path.resolve('../..');
-const sdk = path.join(root, 'packages/plugin-sdk/dist/cli.js');
+const sdk = createRequire(path.join(root, 'packages/plugin-sdk/package.json')).resolve('@jiffoo-core/plugin-sdk/cli');
 const generator = path.join(root, 'packages/plugin-sdk/scripts/generate-types.mjs');
 const repoRequire = createRequire(path.join(root, 'package.json'));
 const run = (entry: string, args: string[] = [], env: NodeJS.ProcessEnv = process.env, cwd = root) =>
@@ -54,8 +54,7 @@ describe('Plugin SDK create and generated projects', () => {
   let app: FastifyInstance;
   let base: string;
   beforeAll(async () => {
-    successful(run(repoRequire.resolve('typescript/bin/tsc'), ['-p', path.join(root, 'packages/plugin-sdk/tsconfig.json')]));
-    successful(run(generator));
+    successful(run(path.join(root, 'packages/plugin-sdk/scripts/build.mjs')));
     app = await createTestApp({ disableFileSystem: false });
     base = await app.listen({ port: 0, host: '127.0.0.1' });
   });

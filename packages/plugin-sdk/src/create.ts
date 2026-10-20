@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { getPluginManifestIssues } from 'shared';
+import { getPluginManifestIssues } from '../../shared/src/extensions/plugin-contract';
 import { redact } from './upload';
 
 const categories = ['integration', 'shipping', 'payment'] as const;

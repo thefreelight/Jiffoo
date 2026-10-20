@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -7,12 +8,13 @@ import { issuePublisherCertificate } from '../packages/shared/src/plugin-signing
 import { testRoot, testPublisher } from '../apps/api/tests/fixtures/plugin-signing-keys';
 
 export async function uploadPackages() {
+  const sdk = createRequire(path.resolve('packages/plugin-sdk/package.json')).resolve('@jiffoo-core/plugin-sdk/cli');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'jiffoo-upload-e2e-'));
   const certificate = path.join(root, 'certificate.json'), key = path.join(root, 'publisher.pem');
   await fs.writeFile(certificate, JSON.stringify(issuePublisherCertificate('e2e-upload-publisher', 'E2E Upload Publisher', testPublisher.publicKey, testRoot.privateKey)));
   await fs.writeFile(key, testPublisher.privateKey);
   const command = (args: string[]) => {
-    const result = spawnSync(process.execPath, [path.resolve('packages/plugin-sdk/dist/cli.js'), ...args], { env: process.env, encoding: 'utf8', windowsHide: true });
+    const result = spawnSync(process.execPath, [sdk, ...args], { env: process.env, encoding: 'utf8', windowsHide: true });
     if (result.status !== 0) throw new Error(`SDK failed: ${result.stdout}${result.stderr}`);
   };
   const make = async (slug: string, name: string, version: string, signed: boolean, sql: string[] = []) => {

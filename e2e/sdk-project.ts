@@ -6,7 +6,7 @@ import path from 'node:path';
 import { issuePublisherCertificate } from '../packages/shared/src/plugin-signing';
 import { testPublisher, testRoot } from '../apps/api/tests/fixtures/plugin-signing-keys';
 
-const sdk = path.resolve('packages/plugin-sdk/dist/cli.js');
+const sdk = createRequire(path.resolve('packages/plugin-sdk/package.json')).resolve('@jiffoo-core/plugin-sdk/cli');
 const repoRequire = createRequire(path.resolve('package.json'));
 
 export async function shippingProject(slug: string) {
