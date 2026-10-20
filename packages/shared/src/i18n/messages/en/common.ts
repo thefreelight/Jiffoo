@@ -179,6 +179,10 @@ export const common = {
     en: 'English',
     'zh-Hans': 'Simplified Chinese',
     'zh-Hant': 'Traditional Chinese',
+    ja: 'Japanese',
+    ko: 'Korean',
+    fr: 'French',
+    de: 'German',
   },
 
   // Footer

@@ -86,7 +86,7 @@ export const Header = React.memo(function Header({
     }
     document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=31536000; samesite=lax`;
     const path = window.location.pathname;
-    const rest = path.replace(/^\/(en|zh-Hans|zh-Hant)(?=\/|$)/, '');
+    const rest = path.replace(/^\/(en|zh-Hans|zh-Hant|ja|ko|fr|de)(?=\/|$)/, '');
     setIsLocaleOpen(false);
     window.location.href = `/${next}${rest === '/' ? '' : rest}`;
   };
