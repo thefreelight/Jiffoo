@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
-import { parseSelection, quickRequirements, mandatorySuites, ciOnlyScriptTests } from './verify-selection.mjs';
+import { parseSelection, quickRequirements, mandatorySuites, ciOnlyScriptTests, ciOnlyVitestWrappers, localQuickVitestExclusions } from './verify-selection.mjs';
 import { localSteps } from './verify-steps.mjs';
 
 const select = args => parseSelection(['--quick', ...args], () => true);
@@ -23,9 +23,32 @@ test('audited script-only selection is service-free; CI-only tests cannot enter 
   assert.equal(requirements.database, false);
   assert.deepEqual(localSteps(undefined, true, ['selected'], selection.files, { ...requirements, drift: true }), [['Run script tests', [['__node_test__', 'scripts/lane-config.test.mjs']]]]);
   for (const file of ciOnlyScriptTests) assert.throws(() => select([`--test-files=${file}`]), /CI-only/);
+  for (const file of ciOnlyVitestWrappers) assert.throws(() => select([`--test-files=${file}`]), /CI-only and cannot run through local quick verification/);
   for (const file of ['scripts/unreviewed.test.mjs', 'scripts/../outside.test.mjs']) assert.throws(() => select([`--test-files=${file}`]));
   assert.throws(() => select(['--scope=wrong']));
   assert.throws(() => select(['--scope=admin', '--test-files=apps/api/tests/example.test.ts']));
+});
+
+test('conservative selection excludes every CI-only wrapper and inventory rejects unregistered wrappers', () => {
+  const files = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', 'apps'], { encoding: 'utf8' }).split('\0').filter(file => /\.(?:test|spec)\.[cm]?[jt]sx?$/.test(file));
+  const wrappers = files.filter(file => {
+    const source = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
+    return /\b(?:spawn|spawnSync|execFile|execFileSync|fork)\s*\(/.test(source) && [...ciOnlyScriptTests].some(script => source.includes(script));
+  });
+  assert.deepEqual([...new Set(wrappers)].sort(), [...ciOnlyVitestWrappers].sort());
+  const selected = mandatorySuites(['packages/shared/src/index.ts'], ['api'], files).map(item => item.file);
+  for (const wrapper of ciOnlyVitestWrappers) assert.equal(selected.includes(wrapper), false);
+  assert.ok(selected.includes('apps/api/tests/core/local-trial.test.ts') === false);
+});
+
+test('default and scoped quick invocations exclude wrappers while full verification remains complete', () => {
+  const files = { api: ['tests/example.test.ts'], admin: [], shop: [], scripts: [] };
+  for (const plan of [localSteps('url', true), localSteps('url', true, ['selected'], files, { apps: ['api'], database: true })]) {
+    const command = plan.flatMap(([, commands]) => commands).find(args => args.includes('vitest') && args.includes('api'));
+    assert.ok(command);
+    for (const wrapper of ciOnlyVitestWrappers) assert.ok(command.includes(`--exclude=${wrapper.slice('apps/api/'.length)}`));
+  }
+  assert.equal(localSteps('url').flatMap(([, commands]) => commands).flat().some(arg => arg.startsWith('--exclude=')), false);
 });
 test('mandatory planner expands contract, shared, auth and migration coverage', () => {
   const catalogue = ['apps/api/tests/contract/api-standards.test.ts', 'apps/api/tests/contract/openapi-contract.test.ts', 'apps/api/tests/routes/auth.test.ts', 'apps/api/tests/core/core-migrations.test.ts', 'apps/admin/tests/session.test.tsx', 'apps/shop/tests/example.test.ts'];
@@ -42,18 +65,20 @@ test('existing default quick and explicit application catalogues are unchanged',
   assert.deepEqual(localSteps('url', true).map(([name]) => name), ['Prisma generate', 'Type-check API, Admin, Shop and shared', 'Lint Shop', 'Reset test database', 'Run changed API tests', 'Run Shop tests']);
   const files = { api: ['tests/example.test.ts'], admin: [], shop: [] };
   const plan = localSteps('url', true, ['selected'], files);
-  assert.deepEqual(plan.at(-1), ['Run API tests', [['--filter', 'api', 'exec', 'vitest', 'run', 'tests/example.test.ts']]]);
+  assert.deepEqual(plan.at(-1), ['Run API tests', [['--filter', 'api', 'exec', 'vitest', 'run', ...localQuickVitestExclusions('api'), 'tests/example.test.ts']]]);
   assert.deepEqual(quickRequirements(select([])), { apps: ['api', 'admin', 'shop'], database: true, scriptOnly: false });
 });
 test('existing invocation catalogues retain their committed behavior', async () => {
   const original = execFileSync('git', ['show', 'HEAD:scripts/verify-steps.mjs'], { encoding: 'utf8' });
-  const previous = await import(`data:text/javascript;base64,${Buffer.from(original).toString('base64')}`);
+  const executable = original.replace(/^import \{ localQuickVitestExclusions \} from '\.\/verify-selection\.mjs';\r?\n/m, '');
+  const previous = await import(`data:text/javascript;base64,${Buffer.from('const localQuickVitestExclusions = () => [];\n' + executable).toString('base64')}`);
+  const withoutExclusions = plan => plan.map(([name, commands]) => [name, commands.map(args => args.filter(arg => !arg.startsWith('--exclude=')))]);
   assert.deepEqual(localSteps('url'), previous.localSteps('url'));
-  assert.deepEqual(localSteps('url', true), previous.localSteps('url', true));
+  assert.deepEqual(withoutExclusions(localSteps('url', true)), withoutExclusions(previous.localSteps('url', true)));
   for (const app of ['api', 'admin', 'shop']) {
     const files = { api: [], admin: [], shop: [] };
     files[app].push('tests/example.test.ts');
-    assert.deepEqual(localSteps('url', true, ['selected'], files), previous.localSteps('url', true, ['selected'], files));
+    assert.deepEqual(withoutExclusions(localSteps('url', true, ['selected'], files)), withoutExclusions(previous.localSteps('url', true, ['selected'], files)));
   }
 });
 test('CI workflow changes only the push branch list and retains manual trigger', () => {
