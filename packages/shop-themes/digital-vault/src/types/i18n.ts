@@ -1,4 +1,4 @@
-export type Locale = 'en' | 'zh-Hans' | 'zh-Hant';
+export type Locale = 'en' | 'zh-Hans' | 'zh-Hant' | 'ja' | 'ko' | 'fr' | 'de';
 
 export type TranslationFunction = (
   key: string,
