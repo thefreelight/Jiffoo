@@ -14911,7 +14911,7 @@
       }
       document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=31536000; samesite=lax`;
       const path = window.location.pathname;
-      const rest = path.replace(/^\/(en|zh-Hans|zh-Hant)(?=\/|$)/, "");
+      const rest = path.replace(/^\/(en|zh-Hans|zh-Hant|ja|ko|fr|de)(?=\/|$)/, "");
       setIsLocaleOpen(false);
       window.location.href = `/${next}${rest === "/" ? "" : rest}`;
     };
@@ -17522,7 +17522,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.28",
+      version: "1.1.29",
       target: "shop"
     }
   };

@@ -11,6 +11,10 @@ import type { Messages, AppName } from '../types';
 import * as enMessages from './en';
 import * as zhHansMessages from './zh-Hans';
 import * as zhHantMessages from './zh-Hant';
+import * as jaMessages from './ja';
+import * as koMessages from './ko';
+import * as frMessages from './fr';
+import * as deMessages from './de';
 
 /**
  * All messages organized by locale
@@ -40,6 +44,34 @@ const allMessages: Record<Locale, Messages> = {
     tenant: zhHantMessages.merchant,
     merchant: zhHantMessages.merchant, // Alias for backward compatibility with merchant.* keys
     whiteLabel: zhHantMessages.whiteLabel,
+  },
+  ja: {
+    common: jaMessages.common,
+    shop: jaMessages.shop,
+    tenant: jaMessages.merchant,
+    merchant: jaMessages.merchant, // Alias for backward compatibility with merchant.* keys
+    whiteLabel: jaMessages.whiteLabel,
+  },
+  ko: {
+    common: koMessages.common,
+    shop: koMessages.shop,
+    tenant: koMessages.merchant,
+    merchant: koMessages.merchant, // Alias for backward compatibility with merchant.* keys
+    whiteLabel: koMessages.whiteLabel,
+  },
+  fr: {
+    common: frMessages.common,
+    shop: frMessages.shop,
+    tenant: frMessages.merchant,
+    merchant: frMessages.merchant, // Alias for backward compatibility with merchant.* keys
+    whiteLabel: frMessages.whiteLabel,
+  },
+  de: {
+    common: deMessages.common,
+    shop: deMessages.shop,
+    tenant: deMessages.merchant,
+    merchant: deMessages.merchant, // Alias for backward compatibility with merchant.* keys
+    whiteLabel: deMessages.whiteLabel,
   },
 };
 

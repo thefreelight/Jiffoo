@@ -13,7 +13,7 @@
  * - en: English (default)
  * - zh-Hans: Simplified Chinese
  */
-export const LOCALES = ['en', 'zh-Hans', 'zh-Hant'] as const;
+export const LOCALES = ['en', 'zh-Hans', 'zh-Hant', 'ja', 'ko', 'fr', 'de'] as const;
 
 /**
  * Locale type derived from LOCALES constant
@@ -41,7 +41,27 @@ export const LOCALE_CONFIG: Record<Locale, { name: string; nativeName: string; d
   },
   'zh-Hant': {
     name: 'Traditional Chinese',
-    nativeName: 'Traditional Chinese',
+    nativeName: '繁體中文',
+    dir: 'ltr',
+  },
+  ja: {
+    name: 'Japanese',
+    nativeName: '日本語',
+    dir: 'ltr',
+  },
+  ko: {
+    name: 'Korean',
+    nativeName: '한국어',
+    dir: 'ltr',
+  },
+  fr: {
+    name: 'French',
+    nativeName: 'Français',
+    dir: 'ltr',
+  },
+  de: {
+    name: 'German',
+    nativeName: 'Deutsch',
     dir: 'ltr',
   },
 };
@@ -80,7 +100,25 @@ const BROWSER_LANGUAGE_MAP: Record<string, Locale> = {
   // Traditional Chinese variants
   'zh-TW': 'zh-Hant',
   'zh-HK': 'zh-Hant',
+  'zh-MO': 'zh-Hant',
   'zh-Hant': 'zh-Hant',
+  // Japanese
+  'ja': 'ja',
+  'ja-JP': 'ja',
+  // Korean
+  'ko': 'ko',
+  'ko-KR': 'ko',
+  'ko-KP': 'ko',
+  // French variants
+  'fr': 'fr',
+  'fr-FR': 'fr',
+  'fr-CA': 'fr',
+  'fr-BE': 'fr',
+  // German variants
+  'de': 'de',
+  'de-DE': 'de',
+  'de-AT': 'de',
+  'de-CH': 'de',
 };
 
 /**

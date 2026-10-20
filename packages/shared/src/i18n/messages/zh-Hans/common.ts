@@ -178,6 +178,10 @@ export const common = {
     select: '选择语言',
     en: '英文',
     'zh-Hans': '简体中文',
+    ja: '日语',
+    ko: '韩语',
+    fr: '法语',
+    de: '德语',
   },
 
   // Footer
