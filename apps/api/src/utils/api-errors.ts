@@ -6,6 +6,15 @@ import { errorCodes, type FastifyReply } from 'fastify';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 
 export const errorCatalog = {
+  [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_INVALID]: { status: 422, message: 'Invalid task principal.' },
+  [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_OVERRIDE_FORBIDDEN]: { status: 403, message: 'The request principal cannot be replaced.' },
+  [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED]: { status: 403, message: 'The task principal is not allowed for this installation.' },
+  [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_REQUIRED]: { status: 403, message: 'A customer or administrator principal is required.' },
+  [ApiErrorCodes.PLUGIN_TASK_NOT_FOUND]: { status: 404, message: 'Plugin task not found.' },
+  [ApiErrorCodes.PLUGIN_TASK_IDEMPOTENCY_CONFLICT]: { status: 409, message: 'The task key was used with different input.' },
+  [ApiErrorCodes.PLUGIN_TASK_CLAIM_LOST]: { status: 409, message: 'The task execution claim is no longer valid.' },
+  [ApiErrorCodes.PLUGIN_TASK_LIMIT_CONFLICT]: { status: 409, message: 'The task limits conflict with admitted work or operator policy.' },
+  [ApiErrorCodes.PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE]: { status: 503, message: 'A required plugin provider is unavailable.' },
   [ApiErrorCodes.PLUGIN_UI_MANIFEST_INVALID]: { status: 422, message: 'Invalid plugin page declarations.' },
   [ApiErrorCodes.PLUGIN_UI_ASSET_INVALID]: { status: 422, message: 'Invalid plugin page asset.' },
   [ApiErrorCodes.PLUGIN_UI_ASSET_TOO_LARGE]: { status: 413, message: 'Plugin page assets exceed the size or file count limit.' },
@@ -300,8 +309,13 @@ export function safeIssues(issues: unknown): Array<{ path: string; message: stri
 }
 
 function detailsFor(error: ApiError): unknown {
+  if (error.code === 'PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE') {
+    const seconds = (error.safeDetails as { retryAfterSeconds?: unknown } | undefined)?.retryAfterSeconds;
+    return { retryable:true,retryAfterSeconds:typeof seconds === 'number' && Number.isSafeInteger(seconds) && seconds >= 5 ? seconds : 5 };
+  }
   if (!error.safeDetails || typeof error.safeDetails !== 'object' || errorCatalog[error.code].status >= 500) return undefined;
   const input = error.safeDetails as Record<string, unknown>;
+  if (error.code === 'PLUGIN_TASK_LIMIT_CONFLICT' && typeof input.taskId === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(input.taskId)) return {taskId:input.taskId};
   if (['SPU_CODE_TAKEN', 'SKU_CODE_TAKEN', 'INVALID_PRODUCT_CODE'].includes(error.code)) {
     return { ...(typeof input.name === 'string' ? { name: input.name } : {}),
       ...(input.field === 'spuCode' || input.field === 'skuCode' ? { field: input.field } : {}),
@@ -345,7 +359,7 @@ export function mapApiError(error: unknown) {
 export function sendMappedError(reply: FastifyReply, error: unknown) {
   const mapped = mapApiError(error);
   reply.header('Cache-Control', 'no-store');
-  if (mapped.status === 503) reply.header('Retry-After', mapped.body.error.code === 'PLUGIN_CIRCUIT_OPEN' ? 30 : 5);
+  if (mapped.status === 503) reply.header('Retry-After', mapped.body.error.code === 'PLUGIN_CIRCUIT_OPEN' ? 30 : mapped.body.error.code === 'PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE' ? (mapped.body.error.details as {retryAfterSeconds:number}).retryAfterSeconds : 5);
   return reply.code(mapped.status).send(mapped.body);
 }
 

@@ -81,6 +81,7 @@ const existingMessages = {
       "uiAssetInvalid": "A plugin page asset has an invalid type, content or path.",
       "uiAssetTooLarge": "The plugin page assets exceed a size or file count limit.",
       "taskDeclarationInvalid": "The plugin task declarations are invalid.",
+      "taskLimitConflict": "The task limits conflict with queued work or operator policy.",
       "serviceDeclarationInvalid": "The plugin service declarations or dependencies are invalid.",
       "migrationLegacy": "This plugin package uses an unsupported migration format. Ask its developer to provide the database changes as SQL files.",
       "migrationDrift": "This plugin package changed migration files that have already run. Those files must remain unchanged.",
@@ -288,6 +289,7 @@ const existingMessages = {
       "uiAssetInvalid": "插件页面资源的类型、内容或路径无效。",
       "uiAssetTooLarge": "插件页面资源超出大小或文件数量限制。",
       "taskDeclarationInvalid": "插件任务声明无效。",
+      "taskLimitConflict": "任务限制与排队任务或运营策略冲突。",
       "serviceDeclarationInvalid": "插件服务声明或依赖无效。",
       "migrationLegacy": "此插件包导出了旧格式迁移。请改用声明的 SQL 文件。",
       "migrationDrift": "此插件包改动了已执行过的迁移文件。已执行的文件必须保持原样。",
@@ -493,6 +495,7 @@ const existingMessages = {
       "uiAssetInvalid": "外掛頁面資源的類型、內容或路徑無效。",
       "uiAssetTooLarge": "外掛頁面資源超出大小或檔案數量限制。",
       "taskDeclarationInvalid": "外掛任務宣告無效。",
+      "taskLimitConflict": "任務限制與排隊任務或營運策略衝突。",
       "serviceDeclarationInvalid": "外掛服務宣告或相依項目無效。",
       "migrationLegacy": "此外掛套件匯出了舊格式遷移。請改用宣告的 SQL 檔案。",
       "migrationDrift": "此外掛套件改動了已執行過的遷移檔案。已執行的檔案必須保持原樣。",
@@ -701,6 +704,21 @@ const labels = {
 } as const;
 
 export type PluginLabel = keyof typeof labels;
+const taskErrorMessages = {
+  PLUGIN_TASK_DECLARATION_INVALID: ['Invalid plugin task declarations.', '插件任务声明无效。', '外掛任務宣告無效。'],
+  PLUGIN_TASK_PRINCIPAL_INVALID: ['Invalid task principal.', '任务身份无效。', '任務身分無效。'],
+  PLUGIN_TASK_PRINCIPAL_OVERRIDE_FORBIDDEN: ['The request principal cannot be replaced.', '不能替换请求身份。', '無法取代請求身分。'],
+  PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED: ['The task principal is not allowed for this installation.', '此安装不允许使用该任务身份。', '此安裝不允許使用此任務身分。'],
+  PLUGIN_TASK_PRINCIPAL_REQUIRED: ['A customer or administrator principal is required.', '需要客户或管理员身份。', '需要客戶或管理員身分。'],
+  PLUGIN_TASK_NOT_FOUND: ['Plugin task not found.', '未找到插件任务。', '找不到外掛任務。'],
+  PLUGIN_TASK_IDEMPOTENCY_CONFLICT: ['The task key was used with different input.', '任务键已用于不同的输入。', '任務鍵已用於不同的輸入。'],
+  PLUGIN_TASK_CLAIM_LOST: ['The task execution claim is no longer valid.', '任务执行凭据已失效。', '任務執行憑據已失效。'],
+  PLUGIN_TASK_LIMIT_CONFLICT: ['The task limits conflict with queued work or operator policy.', '任务限制与排队任务或运营策略冲突。', '任務限制與排隊任務或營運策略衝突。'],
+  PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE: ['A required plugin provider is unavailable. Try again later.', '所需的插件提供方暂不可用，请稍后重试。', '所需的外掛提供方暫時無法使用，請稍後重試。'],
+} as const;
+export function pluginTaskErrorMessage(locale: Locale, code: keyof typeof taskErrorMessages): string {
+  return taskErrorMessages[code][(['en', 'zh-Hans', 'zh-Hant'] as const).indexOf(locale)];
+}
 const categoryLabels: Record<PluginCategory, PluginLabel> = { payment: 'categoryPayment', shipping: 'categoryShipping', tax: 'categoryTax', fulfillment: 'categoryFulfillment', notification: 'categoryNotification', integration: 'categoryIntegration' };
 export function pluginCategoryMessage(locale: Locale, category: PluginCategory) { return pluginMessage(locale, categoryLabels[category]); }
 export function pluginMessage(locale: Locale, key: PluginLabel, values: Record<string, string | number> = {}) {

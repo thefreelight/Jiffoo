@@ -36,3 +36,34 @@ directory and removes that directory afterward. It does not start services.
 Each Core release distributes a self-contained SDK tarball as a release asset.
 Pre-releases use 1.0.0-alpha.N. npm publishing is deferred until the owner
 provides an npm organisation; public publish access will be configured then.
+
+Durable tasks use `ctx.tasks.handle/enqueue/get/list/cancel`. Registration must
+match the signed manifest. Tasks are at-least-once, worker-only executions,
+with a fresh claimId and increasing fence on every invocation; attempt numbers
+can repeat after pause/update. Propagate AbortSignal to external APIs. Core SDK
+operations reject expired/revoked claims, but already-issued operations may
+complete. The scaffold's examples/tasks.ts contains a repair handler, durable
+intent guidance and a conditional result-write recipe for plugin-owned tables.
+Use a distinct UTC time-bucket key for each periodic enqueue. Keys survive
+terminal history until purge. Anonymous tasks have principal=null and no
+customer/admin authority. Request principal overrides are forbidden.
+
+Import `TaskPermanentError` to skip retries and schedule the declared final
+hook. One automatic hook invocation can become UNKNOWN after timeout/crash;
+reconcile compensation with stable provider keys rather than blindly replaying.
+Disable/dependency loss pauses tasks without a retry charge or refund hook;
+uninstall cancels them. Ignored abort retains physical execution occupancy.
+Handler limits are concurrency 1-16, attempts 1-20, runtime 1-600 seconds;
+shared operator caps may be lower. A final hook has its own 1-60 second budget.
+
+For task development use `jiffoo-plugin dev --worker`, an already-running
+loopback Core API, and JIFFOO_DEV_WORKER_ENTRY pointing to the matching compiled
+Core worker entry. Explicit DATABASE_URL_TEST and REDIS_URL select the dedicated
+local test environment; the worker revalidates the lane registry. No database
+is reset by dev. Only the SDK-owned child receives shutdown signals.
+In approved integration tests, attach the real Core drain engine with
+attachPluginTaskDrain(), then import drainPluginTasks from this package.
+The helper is NODE_ENV=test-only, requires includeFinalFailure:true and explicit
+installationIds/deadlineMs, reports future work and UNKNOWN hooks, and refuses
+to conceal unsettled invocations. advanceDueTo affects only the captured task
+selection and never changes execution deadlines.

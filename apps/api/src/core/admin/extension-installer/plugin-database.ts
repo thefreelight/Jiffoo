@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { currentTaskClaim, fenceTaskDatabase } from '@/core/plugins/tasks';
 import { validateDatabaseUrl } from '@/config/test-lane';
 import { Pool, type PoolClient } from 'pg';
 import { prisma } from '@/config/database';
@@ -16,7 +17,7 @@ const scopes = new AsyncLocalStorage<Scope>();
 const invocations = new Set<Scope>();
 const transactions = new AsyncLocalStorage<object>();
 const failures = new WeakSet<object>();
-type DatabaseCode = 'PLUGIN_ERROR' | 'PLUGIN_TIMEOUT' | 'DATABASE_UNAVAILABLE' | 'PLUGIN_DATABASE_BUSY' | 'PLUGIN_DATABASE_OUTCOME_UNKNOWN' | 'PLUGIN_MIGRATION_DRIFT';
+type DatabaseCode = 'PLUGIN_ERROR' | 'PLUGIN_TIMEOUT' | 'DATABASE_UNAVAILABLE' | 'PLUGIN_DATABASE_BUSY' | 'PLUGIN_DATABASE_OUTCOME_UNKNOWN' | 'PLUGIN_MIGRATION_DRIFT' | 'PLUGIN_TASK_CLAIM_LOST' | 'PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED';
 type NamespaceLookup = (slug: string) => Promise<{ schemaName: string; provisionedAt: Date | null } | null>;
 class PluginDatabaseError extends ApiError {
   constructor(code: DatabaseCode) { super(code); failures.add(this); }
@@ -80,7 +81,7 @@ export async function withPluginDatabaseHandler<T>(slug: string, installationId:
 function admission(slug: string, installationId: string): Scope {
   const scope = scopes.getStore();
   if (!scope?.handler || !scope.open || !scope.root.open || scope.slug !== slug || scope.installationId !== installationId) throw new PluginDatabaseError('PLUGIN_ERROR');
-  if (scope.controller.signal.aborted) throw new PluginDatabaseError('PLUGIN_TIMEOUT');
+  if (scope.controller.signal.aborted) throw new PluginDatabaseError(currentTaskClaim() ? 'PLUGIN_TASK_CLAIM_LOST' : 'PLUGIN_TIMEOUT');
   return scope;
 }
 
@@ -182,6 +183,7 @@ class PluginDatabaseRuntime {
       pid = settings.rows[0].pid;
       backendStart = settings.rows[0].started;
       if (settings.rows[0].schema !== schemaName) throw new PluginDatabaseError('PLUGIN_MIGRATION_DRIFT');
+      await fenceTaskDatabase(client);
       check();
       const token = {};
       const tx: PluginDatabaseTransaction = Object.freeze({ query: <Row extends Record<string, unknown>>(text: string, values: readonly PluginDatabaseParameter[], queryOptions?: PluginDatabaseOptions): Promise<PluginDatabaseResult<Row>> => {
@@ -194,6 +196,7 @@ class PluginDatabaseRuntime {
         if (queryOptions?.signal?.aborted) queryAbort();
         const work = tail.then(async () => {
           check();
+          await fenceTaskDatabase(client!);
           const resultPromise = wire(text, [...values].map(value => value instanceof Uint8Array ? Buffer.from(value) : value));
           observePluginDatabase({ stage: 'query', slug, pid });
           const result = await resultPromise;
@@ -210,6 +213,7 @@ class PluginDatabaseRuntime {
       const result = await Promise.race([callback, interrupted]);
       await Promise.race([tail, interrupted]); check();
       await Promise.race([pluginDatabaseBeforeCommit(), interrupted]); check();
+      await fenceTaskDatabase(client);
       open = false; committing = true;
       await wire('COMMIT'); committing = false; committed = true;
       return result;

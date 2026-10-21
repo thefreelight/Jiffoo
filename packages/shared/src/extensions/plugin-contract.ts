@@ -62,6 +62,55 @@ export interface PluginDatabase extends PluginDatabaseTransaction {
   transaction<T>(run: (transaction: PluginDatabaseTransaction) => Promise<T>, options?: PluginDatabaseOptions): Promise<T>;
 }
 
+export type TaskPrincipal = Readonly<{ type: 'customer' | 'admin'; id: string }>;
+export interface TaskInput {
+  taskId: string;
+  payload: PluginDatabaseJson;
+  idempotencyKey: string;
+  attempt: number;
+  claimId: string;
+  fence: string;
+  isFinalAttempt: boolean;
+  signal: AbortSignal;
+  heartbeat(progress?: PluginDatabaseJson): Promise<void>;
+  principal: TaskPrincipal | null;
+}
+export interface TaskFinalFailureInput extends Omit<TaskInput, 'isFinalAttempt' | 'heartbeat'> {
+  lastError: { code: string; message: string };
+}
+export interface TaskHandlerOptions {
+  concurrency: number;
+  maxAttempts: number;
+  maxRuntimeSeconds: number;
+  onFinalFailure?: { maxRuntimeSeconds: number; handler(input: TaskFinalFailureInput): unknown | Promise<unknown> };
+}
+export interface TaskStatus {
+  id: string;
+  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+  paused: boolean;
+  pauseReason?: 'plugin-disabled' | 'dependency-unavailable';
+  attempt: number;
+  lastError: { code: string; message: string } | null;
+  result?: PluginDatabaseJson;
+  finalFailure?: { status: 'pending' | 'running' | 'succeeded' | 'failed' | 'unknown' | 'suppressed'; suppressionReason?: string; lastError?: { code: string; message: string } };
+}
+export interface PluginTasks {
+  handle(name: string, version: number, handler: (input: TaskInput) => unknown | Promise<unknown>, options: TaskHandlerOptions): void;
+  enqueue(name: string, version: number, payload: PluginDatabaseJson, options: { idempotencyKey: string; runAt?: string; delayMs?: number; principal?: TaskPrincipal }): Promise<TaskStatus>;
+  get(id: string): Promise<TaskStatus>;
+  list(options: { status?: TaskStatus['status']; cursor?: string; limit?: number }): Promise<{ items: TaskStatus[]; nextCursor: string | null }>;
+  cancel(id: string): Promise<TaskStatus>;
+}
+
+/** Permanent failure still requires a live claim and follows normal compensation. */
+export class TaskPermanentError extends Error {
+  readonly name = 'TaskPermanentError';
+  constructor(readonly code: string, message: string) {
+    super(message);
+    if (!/^[A-Z][A-Z0-9_]{0,63}$/.test(code) || !message || message.length > 512 || /[<>\u0000-\u001f]/.test(message)) throw new Error('Invalid permanent task error');
+  }
+}
+
 export interface PluginContext {
   plugin: { slug: string; installationId: string; version: string };
   config: Readonly<Record<string, unknown>>;
@@ -72,6 +121,7 @@ export interface PluginContext {
    * detached timers and captured transactions after settlement cannot use this API.
    */
   readonly database: PluginDatabase;
+  readonly tasks: PluginTasks;
   logger: { info(message: string, data?: unknown): void; warn(message: string, data?: unknown): void; error(message: string, data?: unknown): void };
   http: { route(route: { method: string; path: string; handler: (...args: any[]) => unknown }): void };
   events: { subscribe<K extends EventKey>(eventType: K, version: 1, handler: (event: PluginEvent<K>) => Promise<unknown> | unknown): void };

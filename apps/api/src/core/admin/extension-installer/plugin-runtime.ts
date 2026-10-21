@@ -22,6 +22,8 @@
 
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { randomUUID } from 'crypto';
+import { assertTaskClaim, recordTaskPrincipal, withTaskScope, type TaskClaim } from '@/core/plugins/tasks';
+import type { TaskInput, PluginTasks, TaskHandlerOptions } from '@jiffoo/shared';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import type { PluginManifest } from './types';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
@@ -34,7 +36,7 @@ import {
   registerContractV1Runtime,
 } from './contract-v1-runtime';
 import { withPluginMigrationGate, assertPluginNotPaused } from './plugin-migration-gate';
-import { withPluginDatabaseInvocation, isPluginDatabaseError } from './plugin-database';
+import { withPluginDatabaseInvocation, withPluginDatabaseHandler, isPluginDatabaseError } from './plugin-database';
 import { pluginDatabaseLimit } from './plugin-database-test-control';
 import { registerPluginStateReset } from './plugin-state';
 import { recordPluginFailure, redactPluginFailure } from './plugin-failure';
@@ -118,6 +120,7 @@ export class PluginGatewayError extends ApiError {
 }
 
 type InternalRuntime = {
+  taskHandlers: ReadonlyMap<string, { handler: Parameters<PluginTasks['handle']>[2]; options: TaskHandlerOptions }>;
   app: FastifyInstance;
   manifest: PluginManifest;
   zipHash: string;
@@ -650,16 +653,20 @@ async function ensureInternalRuntime(
       slug,
       installationId: ctx.installationId,
       version: manifest.version,
+      generation: ctx.protectionGeneration,
+      zipHash: ctx.zipHash,
       config,
       configSchema: manifest.configSchema,
       declaredContracts: manifest.contracts || [],
       subscriptions: manifest.subscriptions || [],
+      tasks: manifest.tasks || [],
     });
     await candidateApp.ready();
 
     // Phase 3: Candidate succeeded - create runtime object
     const newRuntime: InternalRuntime = {
       app: candidateApp,
+      taskHandlers: registration.taskHandlers,
       manifest,
       zipHash: ctx.zipHash,
       createdAt: new Date(),
@@ -688,7 +695,7 @@ async function ensureInternalRuntime(
 
     return newRuntime;
   } catch (error: any) {
-    if (error instanceof ApiError && error.code === 'PLUGIN_MIGRATION_LEGACY_FORMAT') throw error;
+    if (error instanceof ApiError && ['PLUGIN_MIGRATION_LEGACY_FORMAT','PLUGIN_TASK_DECLARATION_INVALID','PLUGIN_TASK_LIMIT_CONFLICT'].includes(error.code)) throw error;
     await recordPluginFailure(slug, error, 'load', ctx.installationId, { config: ctx.config, manifest });
     // Candidate failed: old runtime (if exists) remains in map and continues serving
     throw new PluginGatewayError(
@@ -894,6 +901,33 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
   }
 }
 
+export async function invokePluginTask(claim: TaskClaim, input: TaskInput): Promise<unknown> {
+  await prisma.$transaction(tx => assertTaskClaim(tx, claim));
+  const instance = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: claim.task.installationId }, include: { plugin: true } });
+  const manifest = await readPluginManifest(instance.plugin);
+  const config = decryptPluginConfig(manifest, parseJsonObject(instance.configJson));
+  const permit = await sharedProtection.breaker(pluginProtectionScope(instance.id, claim.generation));
+  if (!permit) throw new ApiError('PLUGIN_CIRCUIT_OPEN');
+  const runtime = await ensureInternalRuntime(instance.pluginSlug, manifest, { slug: instance.pluginSlug, zipHash: claim.zipHash, installationId: instance.id, protectionGeneration: claim.generation, instanceKey: instance.instanceKey, config }, true);
+  try {
+    await prisma.$transaction(tx => assertTaskClaim(tx, claim));
+    const registration = runtime.taskHandlers.get(`${claim.task.name}:${claim.task.version}`);
+    if (!registration) throw new ApiError('PLUGIN_TASK_DECLARATION_INVALID');
+    const result = await withPluginDatabaseInvocation(instance.pluginSlug, instance.id, () => withPluginDatabaseHandler(instance.pluginSlug, instance.id, async () => {
+      if (claim.hook) {
+        if (!registration.options.onFinalFailure) throw new ApiError('PLUGIN_TASK_DECLARATION_INVALID');
+        return registration.options.onFinalFailure.handler({ taskId:input.taskId,payload:input.payload,idempotencyKey:input.idempotencyKey,attempt:input.attempt,claimId:input.claimId,fence:input.fence,principal:input.principal,signal:input.signal,lastError: claim.task.lastError as { code: string; message: string } ?? { code: 'PLUGIN_ERROR', message: 'Plugin task failed.' } });
+      }
+      return registration.handler(input);
+    }), input.signal);
+    await sharedProtection.result(permit, true);
+    return result;
+  } catch (error) {
+    if (!isDatabaseUnavailable(error) && !(error instanceof ApiError && ['PLUGIN_TASK_CLAIM_LOST','PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED','PLUGIN_DISABLED','PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE'].includes(error.code))) await sharedProtection.result(permit, false);
+    throw error;
+  } finally { await releaseRuntime(runtime); }
+}
+
 export async function validateCandidateRuntime(slug: string, zipHash: string, manifest: PluginManifest, installationId: string, config: Record<string, unknown>): Promise<void> {
   try {
   const pkg = await pluginPackageStore.get(slug, zipHash);
@@ -903,11 +937,12 @@ export async function validateCandidateRuntime(slug: string, zipHash: string, ma
   if (!isContractV1Runtime(entry)) throw new Error('Plugin entry module must export an object with register(ctx)');
   const app = Fastify({ logger: false });
   try {
-    await registerContractV1Runtime(app, entry, { slug, installationId, version: manifest.version, config, configSchema: manifest.configSchema, declaredContracts: manifest.contracts || [], subscriptions: manifest.subscriptions || [] });
+    const instance = await prisma.pluginInstallation.findUniqueOrThrow({ where:{id:installationId} });
+    await registerContractV1Runtime(app, entry, { slug, installationId, generation:instance.protectionGeneration, zipHash, version: manifest.version, config, configSchema: manifest.configSchema, declaredContracts: manifest.contracts || [], subscriptions: manifest.subscriptions || [], tasks: manifest.tasks || [] });
     await app.ready();
   } finally { await app.close(); }
   } catch (error) {
-    if (error instanceof ApiError && error.code === 'PLUGIN_MIGRATION_LEGACY_FORMAT') throw error;
+    if (error instanceof ApiError && ['PLUGIN_MIGRATION_LEGACY_FORMAT','PLUGIN_TASK_DECLARATION_INVALID','PLUGIN_TASK_LIMIT_CONFLICT'].includes(error.code)) throw error;
     await recordPluginFailure(slug, error, 'candidate', installationId, { config, manifest });
     throw new Error(await redactPluginFailure(slug, error, installationId, { config, manifest }));
   }
@@ -984,12 +1019,14 @@ async function forwardToInternalFastify(
   if (!latest?.enabled || latest.deletedAt || latest.protectionGeneration !== installation.protectionGeneration) {
     throw new ApiError('PLUGIN_DISABLED');
   }
-  const invocation = withPluginMigrationGate(slug, () => withPluginDatabaseInvocation(slug, installation.id, async () => runtime.app.inject({
+  const identity = (request as any).apiToken ? null : (request as any).user;
+  const principal = await recordTaskPrincipal(installation.id, identity ? { id: identity.id || identity.userId, role: identity.role } : null);
+  const invocation = withTaskScope({ installationId: installation.id, generation:installation.protectionGeneration, zipHash:ctx.zipHash, request: true, principal, actorId: principal?.id ?? 'anonymous', signal: databaseAbort.signal }, () => withPluginMigrationGate(slug, () => withPluginDatabaseInvocation(slug, installation.id, async () => runtime.app.inject({
       method: request.method as any,
       url: forwardUrl,
       headers,
       payload,
-    }), databaseAbort.signal));
+    }), databaseAbort.signal)));
   injected = true;
   const invocationKey = Symbol();
   contractInvocations.set(invocationKey, { kind: 'gateway-request', id: request.id, installationId: installation.id, promise: invocation });

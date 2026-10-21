@@ -1,0 +1,151 @@
+model PluginPrincipal {
+  installationId String
+  principalType String
+  principalId String
+  firstSeenAt DateTime @default(now()) @db.Timestamptz(3)
+  lastSeenAt DateTime @default(now()) @db.Timestamptz(3)
+  source String
+  installation PluginInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  @@id([installationId, principalType, principalId])
+  @@map("plugin_principals")
+  @@schema("public")
+}
+
+model PluginTask {
+  id String @id @default(cuid())
+  installationId String
+  zipHash String?
+  generation BigInt?
+  name String
+  version Int
+  idempotencyKey String
+  inputHash String
+  scheduleRequest Json
+  payload Json
+  result Json?
+  principalType String?
+  principalId String?
+  status String @default("PENDING")
+  runAt DateTime @db.Timestamptz(3)
+  nextAttemptAt DateTime @db.Timestamptz(3)
+  attemptsCharged Int @default(0)
+  executionSequence Int @default(0)
+  maxAttempts Int
+  maxRuntimeSeconds Int
+  declaredConcurrency Int
+  policyVersion Int
+  deadlineAt DateTime? @db.Timestamptz(3)
+  claimedByBootNonce String? @db.Uuid
+  claimToken String? @db.Uuid
+  fence BigInt @default(0)
+  leaseUntil DateTime? @db.Timestamptz(3)
+  progress Json?
+  lastError Json?
+  startedAt DateTime? @db.Timestamptz(3)
+  finishedAt DateTime? @db.Timestamptz(3)
+  pauseReason String?
+  pausedAt DateTime? @db.Timestamptz(3)
+  cancellationReason String?
+  previousState String?
+  cancelRequestedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  installation PluginInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  owner CoreProcess? @relation(fields: [claimedByBootNonce], references: [bootNonce], onDelete: Restrict)
+  attempts PluginTaskAttempt[]
+  finalFailure PluginTaskFinalFailure?
+  @@unique([installationId, name, version, idempotencyKey])
+  @@index([status, nextAttemptAt, id])
+  @@index([status, leaseUntil, id])
+  @@index([installationId, status])
+  @@map("plugin_tasks")
+  @@schema("public")
+}
+
+model PluginTaskAttempt {
+  taskId String
+  executionSequence Int
+  chargedAttempt Int
+  claimToken String @unique @db.Uuid
+  fence BigInt
+  bootNonce String @db.Uuid
+  startedAt DateTime @db.Timestamptz(3)
+  finishedAt DateTime? @db.Timestamptz(3)
+  outcome String?
+  safeError Json?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  task PluginTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  @@id([taskId, executionSequence])
+  @@unique([taskId, fence])
+  @@map("plugin_task_attempts")
+  @@schema("public")
+}
+
+model PluginTaskFinalFailure {
+  taskId String @id
+  name String
+  version Int
+  status String @default("PENDING")
+  maxRuntimeSeconds Int
+  claimToken String? @db.Uuid
+  fence BigInt @default(0)
+  bootNonce String? @db.Uuid
+  leaseUntil DateTime? @db.Timestamptz(3)
+  deadlineAt DateTime? @db.Timestamptz(3)
+  startedAt DateTime? @db.Timestamptz(3)
+  finishedAt DateTime? @db.Timestamptz(3)
+  safeError Json?
+  suppressionReason String?
+  zipHash String?
+  generation BigInt?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  task PluginTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  @@index([status, createdAt])
+  @@map("plugin_task_final_failures")
+  @@schema("public")
+}
+
+model PluginTaskExecutionSlot {
+  id String @id @default(cuid())
+  installationId String
+  taskId String
+  kind String
+  name String
+  version Int
+  claimToken String @db.Uuid
+  fence BigInt
+  bootNonce String @db.Uuid
+  state String @default("ACTIVE")
+  lastObservedAt DateTime @default(now()) @db.Timestamptz(3)
+  releasedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  owner CoreProcess @relation(fields: [bootNonce], references: [bootNonce], onDelete: Restrict)
+  @@unique([taskId, kind, fence])
+  @@index([bootNonce, state])
+  @@index([installationId, name, version, state])
+  @@map("plugin_task_execution_slots")
+  @@schema("public")
+}
+
+model PluginTaskScheduler {
+  id String @id @default("singleton")
+  roundSequence BigInt @default(0)
+  policy Json
+  policyVersion Int @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@map("plugin_task_scheduler")
+  @@schema("public")
+}
+
+model PluginTaskFairness {
+  installationId String @id
+  lastServedSequence BigInt @default(0)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@map("plugin_task_fairness")
+  @@schema("public")
+}

@@ -85,7 +85,8 @@ describe('Plugin SDK create and generated projects', () => {
       const manifest = JSON.parse(await fs.readFile(path.join(output, 'manifest.json'), 'utf8'));
       expect(manifest.category).toBe('integration');
       expect(manifest.configSchema.properties.apiKey).toEqual({ type: 'string', title: 'API key', sensitive: true });
-      expect(await fs.readdir(output)).toEqual(['.gitignore', 'manifest.json', 'migrations', 'package.json', 'src', 'tools', 'types']);
+      expect(await fs.readdir(output)).toEqual(['.gitignore', 'examples', 'manifest.json', 'migrations', 'package.json', 'src', 'tools', 'types']);
+      expect(await fs.readFile(path.join(output, 'examples/tasks.ts'), 'utf8')).toContain('registerRepairTask');
       const packageJson = JSON.parse(await fs.readFile(path.join(output, 'package.json'), 'utf8'));
       expect(Object.keys(packageJson.scripts)).toEqual(['build', 'pack', 'sign', 'upload', 'dev']);
       expect(packageJson.devDependencies).toEqual({ esbuild: '0.27.2' });

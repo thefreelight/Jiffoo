@@ -16,6 +16,7 @@ import { promises as fs } from 'fs';
 import { packBuiltinPlugin } from './builtin-package';
 import path from 'path';
 import { prisma } from '@/config/database';
+import { assertTaskPolicy, lockTaskScheduler, transitionInstallationTasks } from '@/core/plugins/tasks';
 import { ExtensionInstallerError } from './errors';
 import {
   IPluginInstaller,
@@ -309,6 +310,13 @@ export class PluginFsInstaller implements IPluginInstaller {
           // All instances warmed successfully - proceed with DB update
           // CRITICAL: Set deletedAt=null to restore visibility (in case of re-install after soft delete)
           const pluginInstall = await prisma.$transaction(async (tx) => {
+            const scheduler = await lockTaskScheduler(tx);
+            assertTaskPolicy(manifest.tasks ?? [], scheduler.policy);
+            const taskInstallations = await tx.pluginInstallation.findMany({ where: { pluginSlug: manifest.slug }, orderBy: { id: 'asc' } });
+            for (const instance of taskInstallations) {
+              await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${instance.id} FOR UPDATE`;
+              await transitionInstallationTasks(tx, instance.id, 'UPDATE', 'PACKAGE_UPDATED', manifest.tasks ?? []);
+            }
             if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
             if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
             {
@@ -420,7 +428,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           deployment = null;
 
 
-          if (warmError?.code === 'PLUGIN_OPERATION_LEASE_LOST') throw warmError;
+          if (['PLUGIN_OPERATION_LEASE_LOST','PLUGIN_TASK_DECLARATION_INVALID','PLUGIN_TASK_LIMIT_CONFLICT'].includes(warmError?.code)) throw warmError;
           throw new Error(`Plugin upgrade failed before the package transaction committed: ${safeFailure}`);
         }
       } else {

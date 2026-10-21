@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '@/config/database';
+import { assertTaskPolicy, lockTaskScheduler, transitionInstallationTasks } from '@/core/plugins/tasks';
 import { ApiError } from '@/utils/api-errors';
 import { CacheService } from '@/core/cache/service';
 import type { PluginMeta, PluginState, PluginConfig, InstalledPluginsResponse } from './types';
@@ -409,6 +410,7 @@ async function updateInstance(
         await warmPluginInstanceRuntime(existing.pluginSlug, existing.id, runtimeConfig);
       }
     } catch (error: any) {
+      if (error instanceof ApiError && ['PLUGIN_TASK_DECLARATION_INVALID','PLUGIN_TASK_LIMIT_CONFLICT'].includes(error.code)) throw error;
       throw new ExtensionInstallerError(redactPluginText(`Plugin runtime failed to load: ${error.message}`, runtimeConfig, manifest), { statusCode: 500, code: 'INTERNAL_SERVER_ERROR' });
     }
   }
@@ -440,6 +442,10 @@ async function updateInstance(
   }
 
   const updated = await prisma.$transaction(async (tx) => {
+    const scheduler = await lockTaskScheduler(tx);
+    await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${installationId} FOR UPDATE`;
+    if (isEnabling) assertTaskPolicy(manifest.tasks ?? [], scheduler.policy);
+    if (isDisabling || updates.config !== undefined && existing.enabled) await transitionInstallationTasks(tx, installationId, isDisabling ? 'PAUSE' : 'UPDATE', isDisabling ? 'plugin-disabled' : 'CONFIG_UPDATED', manifest.tasks ?? []);
     if (isDisabling && !updates.replacingProvider && declaresContract(pluginPackage.manifestJson, 'payment')) {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('jiffoo:payment-provider-decision', 0))`;
       await assertNotLastEnabledProvider(existing.pluginSlug, existing.enabled, pluginPackage.manifestJson, tx);
@@ -577,6 +583,12 @@ export async function uninstallPlugin(slug: string, actorId = 'system'): Promise
 
   // Soft delete: set deletedAt on package and disable all non-deleted instances
   await prisma.$transaction(async (tx) => {
+    await lockTaskScheduler(tx);
+    const taskInstallations = await tx.pluginInstallation.findMany({ where: { pluginSlug: slug }, orderBy: { id: 'asc' } });
+    for (const instance of taskInstallations) {
+      await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${instance.id} FOR UPDATE`;
+      await transitionInstallationTasks(tx, instance.id, 'CANCEL', 'UNINSTALLED');
+    }
     await fencePluginOperationLease(tx, slug, token);
     if (defaultInstance?.enabled && declaresContract(pluginPackage.manifestJson, 'payment')) {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('jiffoo:payment-provider-decision', 0))`;
@@ -720,6 +732,12 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
 
   await prisma.$transaction(async (tx) => {
     await fencePluginOperationLease(tx, slug, token);
+    await lockTaskScheduler(tx);
+    const taskInstallations = await tx.pluginInstallation.findMany({ where: { pluginSlug: slug }, orderBy: { id: 'asc' } });
+    for (const instance of taskInstallations) {
+      await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${instance.id} FOR UPDATE`;
+      await transitionInstallationTasks(tx, instance.id, 'CANCEL', 'PURGED');
+    }
     const pending = await tx.payment.count({ where: { paymentMethod: slug, status: { in: ['CREATING','PENDING','UNKNOWN','REQUIRES_REVIEW'] } } });
     if (pending) {
       throw new ExtensionInstallerError('Plugin has unfinished payment work', { statusCode: 409, code: 'PLUGIN_UNFINISHED_PAYMENTS' });

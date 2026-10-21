@@ -7,7 +7,7 @@ export const WORKER_HEARTBEAT_TTL_SECONDS = 30;
 export const WORKER_LAST_BEAT_PREFIX = 'worker:last-beat:';
 export const WORKER_LAST_BEAT_TTL_SECONDS = 30 * 24 * 60 * 60;
 export const WORKER_HEARTBEAT_INTERVAL_MS = 10_000;
-export const WORKER_TASKS = ['eventDelivery', 'eventCleanup', 'notifications', 'unpaidOrders', 'paymentReconciliation', 'pluginRecovery'] as const;
+export const WORKER_TASKS = ['eventDelivery', 'eventCleanup', 'notifications', 'unpaidOrders', 'paymentReconciliation', 'pluginRecovery', 'pluginTasks'] as const;
 
 export const workerHeartbeatSchema = z.object({
   instanceId: z.string().uuid(),

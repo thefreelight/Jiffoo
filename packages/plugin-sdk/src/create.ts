@@ -7,6 +7,30 @@ import { redact } from './upload';
 const categories = ['integration', 'shipping', 'payment'] as const;
 const builtins = new Set(['manual-payment', 'free-shipping', 'zero-tax', 'manual-fulfillment', 'console-email']);
 const reserved = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+const taskRecipe = `import type { PluginContext } from '../types/index';
+
+// Declare repair.v1 with these exact limits in manifest.tasks, then call this
+// function from register(ctx) to opt in to the ordinary repair handler.
+export function registerRepairTask(ctx: PluginContext): void {
+  ctx.tasks.handle('repair', 1, async ({ taskId, claimId, fence, signal, principal }) => {
+    signal.throwIfAborted();
+    // Persist business intent before debit/enqueue. Reconcile incomplete intents,
+    // cancelled work and failed/UNKNOWN compensation with stable business keys.
+    // Customer/admin authority is principal, never an ID taken from payload.
+    ctx.logger.info('Repair task admitted', { taskId, claimId, fence, hasPrincipal: principal !== null });
+  }, { concurrency: 1, maxAttempts: 3, maxRuntimeSeconds: 60 });
+}
+
+// Acquire plugin-owned result ownership atomically with a newer fence:
+// INSERT INTO task_results(task_id, claim_id, fence) VALUES ($1,$2,$3::bigint)
+// ON CONFLICT(task_id) DO UPDATE SET claim_id=$2, fence=$3::bigint
+// WHERE task_results.fence < $3::bigint RETURNING task_id;
+// Publish only WHERE task_id=$1 AND claim_id=$2 AND fence=$3::bigint.
+// Use ctx.database.transaction for a live Core claim check in that transaction.
+// Direct SQL/network access has no Core fencing guarantee. Already-issued remote
+// effects can complete after abort: honor signal and use provider idempotency.
+// Periodic work needs a distinct UTC bucket key, not one permanent key.
+`;
 const common = { schemaVersion: 1, version: '1.0.0', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'index.js', permissions: [] };
 
 const buildScript = `import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -192,6 +216,7 @@ export async function createPlugin(flags: Record<string, string>): Promise<void>
     'manifest.json': `${JSON.stringify(manifest, null, 2)}\n`,
     'package.json': `${JSON.stringify(packageJson, null, 2)}\n`,
     'src/index.ts': selected.source, 'types/index.d.ts': types,
+    'examples/tasks.ts': taskRecipe,
     'tools/build.mjs': buildScript, 'tools/sdk.mjs': sdkScript,
     '.gitignore': 'node_modules/\ndist/\nartifacts/\n.env\n.env.*\n*.pem\n*.key\n',
     ...(database ? { 'migrations/001_records.sql': migration } : {}),

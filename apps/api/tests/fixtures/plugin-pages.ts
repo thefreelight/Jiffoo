@@ -17,7 +17,7 @@ export function pageManifest(slug = 'page-fixture'): PluginManifest {
 export function pageFiles(manifest = pageManifest()) {
   return [
     { path: 'manifest.json', content: Buffer.from(JSON.stringify(manifest)) },
-    { path: 'server/index.js', content: Buffer.from('module.exports = { register() {} };') },
+    { path: 'server/index.js', content: Buffer.from(`module.exports = { register(ctx) { for (const d of ${JSON.stringify(manifest.tasks ?? [])}) { ctx.tasks.handle(d.name, d.version, async () => null, { concurrency:d.concurrency, maxAttempts:d.maxAttempts, maxRuntimeSeconds:d.maxRuntimeSeconds, ...(d.onFinalFailure ? {onFinalFailure:{maxRuntimeSeconds:d.onFinalFailure.maxRuntimeSeconds,handler:async()=>{}}} : {}) }); } } };`) },
     { path: 'services/debit.json', content: Buffer.from('{"input":{"type":"object"},"result":{"type":"boolean"},"errorDetails":{"type":"null"}}') },
     { path: 'ui/index.html', content: Buffer.from('<!doctype html><html><script type="module" src="./assets/app.js"></script></html>') },
     { path: 'ui/admin.html', content: Buffer.from('<!doctype html><html><body>Reports</body></html>') },
