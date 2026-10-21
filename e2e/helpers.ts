@@ -5,6 +5,7 @@ import { getNamespaceMessages } from '../packages/shared/src/i18n/messages';
 export const ownerEmail = 'owner@e2e.example';
 export const originalPassword = 'OwnerPassword123!';
 export const changedPassword = 'ChangedPassword123!';
+export const finalOwnerPassword = 'FinalOwnerPassword123!';
 export const customerEmail = 'customer@e2e.example';
 export const staffEmail = 'staff@e2e.example';
 type ShopLocale = 'en' | 'zh-Hans' | 'zh-Hant';

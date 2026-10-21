@@ -103,9 +103,11 @@ describe('Payments Endpoints', () => {
         shippingAddress: validShippingAddress,
         ...checkoutSelection,
         expectedTotal,
+        idempotencyKey: uuidv4(),
       },
     });
 
+    expect(orderResponse.statusCode).toBe(201);
     if (orderResponse.statusCode === 200 || orderResponse.statusCode === 201) {
       testOrderId = orderResponse.json().data.id;
     }

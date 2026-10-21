@@ -5,7 +5,7 @@ import { isProtectionExempt } from '@/plugins/rate-limiter';
 const pluginGatewayPath = /^\/api\/v1\/extensions\/plugin\/[^/]+\/(?:api(?:\/|$)|health$|manifest$)/;
 
 export function requiredHookStatuses(method: string, url: string, authenticated = false): number[] {
-  const statuses = [400, 413, 415, 500];
+  const statuses = [400, 403, 413, 415, 500];
   if (!isProtectionExempt({ method, routeOptions: { url } } as Parameters<typeof isProtectionExempt>[0])) statuses.push(429, 503);
   if (authenticated || /^\/api\/v1\/(admin(?:\/|$)|account(?:\/|$)|cart(?:\/|$)|orders(?:\/|$)|checkout(?:\/|$))/.test(url)
     || /^\/api\/v1\/auth\/(me|change-password|logout)$/.test(url)

@@ -28,6 +28,7 @@ const areas = [
   '34-shop-reload',
   '35-extension-center',
   '37-uploaded-storage',
+  '39-plugin-page-assets',
   '36-shop-availability',
 ];
 

@@ -3,7 +3,7 @@ import { expect, test } from './local-requests';
 import type { Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import { api, customerEmail, login, ownerEmail, shopLogin } from './helpers';
+import { api, customerEmail, finalOwnerPassword, login, ownerEmail, shopLogin } from './helpers';
 import { themePackage } from './theme-package';
 
 const shopOrigin = 'http://127.0.0.1:3003';
@@ -12,8 +12,8 @@ const reloadMode = reloadStress ? 'stress' : 'regression';
 
 test.beforeAll(async ({ request }) => {
   if (!reloadStress) return;
-  await api(request, '/install/complete', { method: 'POST', data: { siteName: 'E2E Updated Store', adminUsername: 'e2e-owner', adminEmail: ownerEmail, adminPassword: 'FinalOwnerPassword123!' } });
-  const owner = await api<{ token: string }>(request, '/auth/login', { method: 'POST', data: { email: ownerEmail, password: 'FinalOwnerPassword123!' } });
+  await api(request, '/install/complete', { method: 'POST', data: { siteName: 'E2E Updated Store', adminUsername: 'e2e-owner', adminEmail: ownerEmail, adminPassword: finalOwnerPassword } });
+  const owner = await api<{ token: string }>(request, '/auth/login', { method: 'POST', data: { email: ownerEmail, password: finalOwnerPassword } });
   await api(request, '/admin/products', { method: 'POST', token: owner.token, data: {
     name: 'E2E Localized Product', requiresShipping: true, variants: [{ name: 'Standard', salePrice: 12, stock: 100, skuCode: 'RELOAD-STRESS-PRODUCT' }],
   } });
@@ -110,7 +110,7 @@ test('B checkout with a real cart item retains one theme style after a reload', 
 });
 
 test('C a merchant theme change replaces the plain style without leaving an old theme style', async ({ page, context }) => {
-  await login(page, ownerEmail, 'FinalOwnerPassword123!');
+  await login(page, ownerEmail, finalOwnerPassword);
   await page.getByRole('link', { name: 'Themes', exact: true }).click();
   await page.getByRole('button', { name: 'Upload theme', exact: true }).click();
   await page.getByLabel('Theme package', { exact: true }).setInputFiles({

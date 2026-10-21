@@ -49,6 +49,22 @@ describe('Plugin upload dialog', () => {
     expect(document.body.textContent).toContain('migrations/001.sql'); expect(document.body.textContent).toContain('1 pending change files');
     expect(installApi).not.toHaveBeenCalled();
   });
+  it.each([
+    { capabilities: ['general'], expected: 'None yet' },
+    { capabilities: ['unknown-capability', 'shipping'], expected: 'Shipping' },
+  ])('previews unknown category names safely: $capabilities', async ({ capabilities, expected }) => {
+    const value = fixture();
+    value.package.declaredCapabilities = capabilities;
+    previewApi.mockResolvedValue(value);
+    await preview();
+    const term = Array.from(document.getElementsByTagName('dt')).find(node => node.textContent === pluginMessage('en', 'capabilities'));
+    expect(term).toBeDefined();
+    expect(term!.nextElementSibling?.textContent).toContain(expected);
+    expect(term!.nextElementSibling?.textContent).not.toContain('unknown-capability');
+    expect(term!.nextElementSibling?.textContent).not.toContain('general');
+    expect(button('Confirm installation').disabled).toBe(false);
+    expect(installApi).not.toHaveBeenCalled();
+  });
   it.each([[ApiErrorCodes.PLUGIN_DOWNGRADE_NOT_SUPPORTED, 'downgrade'], [ApiErrorCodes.PLUGIN_VERSION_CONTENT_CHANGED, 'versionContentChanged'], [ApiErrorCodes.PUBLISHER_CHANGE_FORBIDDEN, 'publisherChanged'], [ApiErrorCodes.SIGNED_UPGRADE_REQUIRED, 'signatureRequired'], [ApiErrorCodes.PACKAGE_CONTENT_MISMATCH, 'signatureInvalid']] as const)('shows the %s preview refusal without installing', async (code, key) => {
     previewApi.mockRejectedValue({ code }); await preview(); expect(document.body.textContent).toContain(en.plugins.upload[key]); expect(installApi).not.toHaveBeenCalled();
   });

@@ -52,7 +52,13 @@ async function installPayment(page: Page) {
   await page.getByRole('tab', { name: 'Marketplace', exact: true }).click();
   const entry = page.getByRole('article', { name: providerName, exact: true });
   await entry.getByRole('button', { name: 'Install', exact: true }).click();
+  const completed = page.waitForResponse(async response => {
+    if (!response.url().includes('/extensions/plugin/operations/') || response.status() !== 200) return false;
+    const { data } = await response.json();
+    return data.slug === provider && data.terminal === true;
+  });
   await page.getByRole('dialog', { name: 'Confirm installation', exact: true }).getByRole('button', { name: 'Confirm installation', exact: true }).click();
+  expect((await (await completed).json()).data.phase).toBe('SUCCESS');
   await expect(entry.getByRole('button', { name: 'Installed', exact: true })).toBeDisabled();
   await page.getByRole('tab', { name: 'Installed', exact: true }).click();
   const installed = page.getByRole('article', { name: providerName, exact: true });

@@ -14,6 +14,9 @@ const adminProxyConfig: ProxyConfig = {
 const proxyHandler = createProxyHandler(adminProxyConfig);
 
 export function proxy(request: Parameters<typeof proxyHandler>[0]) {
+  if (request.headers.get('origin') === 'null') {
+    return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Request origin is forbidden' } }, { status: 403 });
+  }
   const locale = getLocaleFromPathname(request.nextUrl.pathname, LOCALES);
   if (locale) {
     const headers = new Headers(request.headers);
@@ -24,5 +27,5 @@ export function proxy(request: Parameters<typeof proxyHandler>[0]) {
 }
 
 export const config = {
-  matcher: ['/((?!api/|plugins/|health$|extensions/|uploads/|favicon.ico).*)'],
+  matcher: ['/((?!api/|health$|favicon.ico).*)'],
 };

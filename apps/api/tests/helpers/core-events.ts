@@ -9,7 +9,11 @@ import { CORE_EVENT_TARGET } from '@/infra/events/core-subscribers';
  * explicitly so a core side effect is observable right after the request.
  */
 export async function deliverCoreEvents(): Promise<void> {
-  for (let round = 0; round < 5; round += 1) {
+  const countPending = () => prisma.eventDelivery.count({
+    where: { installationId: CORE_EVENT_TARGET, status: { in: ['PENDING', 'RUNNING'] } },
+  });
+  let pending = await countPending();
+  while (pending > 0) {
     const engine = new EventDeliveryEngine(`test-core-${randomUUID()}`);
     try {
       await engine.runOnce();
@@ -17,10 +21,8 @@ export async function deliverCoreEvents(): Promise<void> {
     } finally {
       await engine.stop();
     }
-    const pending = await prisma.eventDelivery.count({
-      where: { installationId: CORE_EVENT_TARGET, status: { in: ['PENDING', 'RUNNING'] } },
-    });
-    if (pending === 0) return;
+    const remaining = await countPending();
+    if (remaining >= pending) throw new Error('Core event deliveries made no progress');
+    pending = remaining;
   }
-  throw new Error('Core event deliveries did not settle');
 }

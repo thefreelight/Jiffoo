@@ -275,6 +275,7 @@ describe('Orders Endpoints', () => {
           shippingAddress: validShippingAddress,
           ...checkoutSelection,
           expectedTotal,
+          idempotencyKey: uuidv4(),
         },
       });
 
@@ -315,6 +316,7 @@ describe('Orders Endpoints', () => {
           shippingAddress: validShippingAddress,
           ...checkoutSelection,
           expectedTotal,
+          idempotencyKey: uuidv4(),
         },
       });
 
@@ -481,6 +483,7 @@ describe('Orders Endpoints', () => {
           shippingAddress: validShippingAddress,
           ...checkoutSelection,
           expectedTotal: quote.total,
+          idempotencyKey: uuidv4(),
         },
       });
       expect(orderResponse.statusCode).toBe(201);

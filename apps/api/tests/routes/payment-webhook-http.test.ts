@@ -13,6 +13,7 @@ import { createTestOrder } from '../helpers/fixtures';
 import { getTestPrisma } from '../helpers/db';
 import { uploadPluginZip } from '../helpers/plugin-upload';
 import { pluginProtectionScope } from '@/infra/shared-protection';
+import { deliverCoreEvents } from '../helpers/core-events';
 
 const prisma = getTestPrisma();
 const secret = 'b3-test-provider-secret';
@@ -262,8 +263,11 @@ it('F sends success ACK only after the real payment transaction commits and boun
 it('F replay creates no additional ledger event history or notification rows', async () => {
   const payment = await pendingPayment(), headers = { 'x-session': payment.sessionId!, 'x-event': randomUUID() };
   const response = await send(Buffer.from('{}'), { mode: 'default', headers }); expect(response.status).toBe(200); expect(JSON.parse(response.body.toString())).toEqual({ success: true, data: { received: true } });
+  await deliverCoreEvents();
   const before = await evidence(payment); expect(before.ledger).toHaveLength(1); expect(before.history).toHaveLength(1); expect(before.events).toHaveLength(2); expect(before.notifications).toHaveLength(1);
-  expect((await send(Buffer.from('{}'), { mode: 'default', headers })).status).toBe(200); expect(await evidence(payment)).toEqual(before);
+  expect((await send(Buffer.from('{}'), { mode: 'default', headers })).status).toBe(200);
+  await deliverCoreEvents();
+  expect(await evidence(payment)).toEqual(before);
 });
 it('F a verified callback for another provider session changes no payment or order', async () => {
   const payment = await pendingPayment('manual-payment'), before = await evidence(payment);

@@ -10,7 +10,9 @@
  * - POST /api/v1/admin/orders/:id/cancel
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import type Redis from 'ioredis';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import {
@@ -32,6 +34,87 @@ import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-syn
 import { checkoutTotal } from '../helpers/checkout-total';
 import { deliverCoreEvents } from '../helpers/core-events';
 import { CacheService } from '@/core/cache/service';
+import { sharedProtection } from '@/infra/shared-protection';
+
+function installProtectionDiagnostics() {
+  const protection = sharedProtection as unknown as { client: Redis; closed: boolean; connecting?: Promise<unknown> };
+  const context = new AsyncLocalStorage<{ operation?: string; evaluationId?: number }>();
+  const clients = new WeakMap<Redis, number>();
+  const cleanups: Array<() => void> = [];
+  let nextEvaluationId = 0, nextClientId = 0, active = true;
+  const record = (event: string, details: Record<string, unknown> = {}, client = protection.client) => {
+    if (!active) return;
+    console.info('Admin orders protection diagnostic', JSON.stringify({
+      event, at: new Date().toISOString(), monotonicNs: process.hrtime.bigint().toString(), pid: process.pid,
+      ...context.getStore(), clientId: clients.get(client), status: client.status,
+      closed: protection.closed, connecting: Boolean(protection.connecting), ...details,
+    }));
+  };
+  const errorState = (error: unknown) => {
+    const value = error as { name?: string; code?: string; message?: string } | undefined;
+    const errorClass = ['Error', 'ReplyError', 'AbortError', 'MaxRetriesPerRequestError', 'SharedProtectionUnavailable', 'TypeError'].includes(value?.name ?? '') ? value!.name : 'OTHER';
+    const errorCode = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'EPIPE', 'ENOTFOUND', 'EAI_AGAIN', 'SHARED_PROTECTION_UNAVAILABLE'].includes(value?.code ?? '') ? value!.code : 'OTHER';
+    const classification = value?.message === 'Command timed out' ? 'COMMAND_TIMEOUT'
+      : value?.message === "Stream isn't writeable and enableOfflineQueue options is false" ? 'NONWRITABLE'
+      : value?.message === 'Connection is closed.' ? 'CONNECTION_CLOSED'
+      : value?.message === 'Redis is already connecting/connected' ? 'ALREADY_CONNECTING'
+      : value?.code === 'SHARED_PROTECTION_UNAVAILABLE' ? 'NORMALIZED_UNAVAILABLE_AMBIGUOUS' : 'OTHER';
+    return { errorClass, errorCode, classification };
+  };
+  const trace = (target: object, method: string, client?: Redis, onReturn?: (value: unknown) => void) => {
+    const methods = target as Record<string, (...args: unknown[]) => unknown>;
+    const original = methods[method];
+    const spy = vi.spyOn(methods, method).mockImplementation(function (this: unknown, ...args: unknown[]) {
+      const inherited = context.getStore();
+      const scope = method === 'evaluate' ? { ...inherited, evaluationId: ++nextEvaluationId }
+        : method === 'breaker' || method === 'result' ? { ...inherited, operation: method } : inherited;
+      return context.run(scope ?? {}, () => {
+        const started = process.hrtime.bigint();
+        const elapsedMs = () => Number(process.hrtime.bigint() - started) / 1_000_000;
+        record(method + '-start', {}, client);
+        try {
+          const result = Reflect.apply(original, this, args);
+          onReturn?.(result);
+          if (result instanceof Promise) {
+            void result.then(
+              () => record(method + '-resolved', { elapsedMs: elapsedMs() }, client),
+              error => record(method + '-rejected', { elapsedMs: elapsedMs(), ...errorState(error) }, client),
+            ).catch(() => undefined);
+          } else record(method + '-returned', { elapsedMs: elapsedMs() }, client);
+          return result;
+        } catch (error) {
+          record(method + '-threw', { elapsedMs: elapsedMs(), ...errorState(error) }, client);
+          throw error;
+        }
+      });
+    });
+    cleanups.push(() => spy.mockRestore());
+  };
+  const observeClient = (client: Redis) => {
+    if (clients.has(client)) return;
+    clients.set(client, ++nextClientId);
+    for (const event of ['connect', 'ready', 'close', 'reconnecting', 'end', 'error']) {
+      const listener = (error?: unknown) => record('client-' + event, event === 'error' ? errorState(error) : {}, client);
+      client.on(event, listener);
+      cleanups.push(() => client.off(event, listener));
+    }
+    trace(client, 'connect', client);
+    trace(client, 'eval', client);
+    record('client-observed', {}, client);
+  };
+  const restore = () => {
+    record('diagnostics-cleanup');
+    active = false;
+    for (const cleanup of cleanups.reverse()) cleanup();
+    context.disable();
+  };
+  try {
+    observeClient(protection.client);
+    trace(sharedProtection, 'createClient', undefined, value => observeClient(value as Redis));
+    for (const method of ['evaluate', 'breaker', 'result']) trace(sharedProtection, method);
+  } catch (error) { restore(); throw error; }
+  return { record, restore };
+}
 
 describe('Admin Orders Endpoints', () => {
   let app: FastifyInstance;
@@ -39,29 +122,43 @@ describe('Admin Orders Endpoints', () => {
   let adminToken: string;
   let testProduct: Awaited<ReturnType<typeof createTestProduct>>;
   let testOrderId: string;
+  let protectionDiagnostics: ReturnType<typeof installProtectionDiagnostics> | undefined;
   const validShippingAddress = {
     firstName: 'Admin', lastName: 'Order', phone: '+1-555-0102', addressLine1: '1 Admin Way',
     city: 'Test City', state: 'CA', postalCode: '94016', country: 'US',
   };
 
   beforeAll(async () => {
+    protectionDiagnostics = installProtectionDiagnostics();
+    protectionDiagnostics.record('before-builtin-sync');
     await syncBuiltinPlugins(path.resolve(process.cwd(), 'builtin-plugins'));
+    protectionDiagnostics.record('after-builtin-sync');
+    protectionDiagnostics.record('before-create-test-app');
     app = await createTestApp();
+    protectionDiagnostics.record('after-create-test-app');
 
+    protectionDiagnostics.record('before-user-auth');
     const { token: uToken } = await createUserWithToken();
+    protectionDiagnostics.record('after-user-auth');
+    protectionDiagnostics.record('before-admin-auth');
     const { token: aToken } = await createAdminWithToken();
+    protectionDiagnostics.record('after-admin-auth');
 
     userToken = uToken;
     adminToken = aToken;
 
+    protectionDiagnostics.record('before-product-fixture');
     testProduct = await createTestProduct({
       name: 'Admin Order Test Product',
       price: 99.99,
       stock: 100,
     });
+    protectionDiagnostics.record('after-product-fixture');
+    protectionDiagnostics.record('before-checkout-total');
     const expectedTotal = await checkoutTotal(app, userToken,
       [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
       validShippingAddress, 'free-shipping:free');
+    protectionDiagnostics.record('after-checkout-total');
 
     // Create a test order
     const orderResponse = await app.inject({
@@ -74,19 +171,23 @@ describe('Admin Orders Endpoints', () => {
         shippingOptionId: 'free-shipping:free',
         paymentMethod: 'manual-payment',
         expectedTotal,
+        idempotencyKey: uuidv4(),
       },
     });
 
+    expect(orderResponse.statusCode).toBe(201);
     if (orderResponse.statusCode === 200 || orderResponse.statusCode === 201) {
       testOrderId = orderResponse.json().data.id;
     }
   });
 
   afterAll(async () => {
-    await deleteAllTestOrders();
-    await deleteAllTestProducts();
-    await deleteAllTestUsers();
-    await app.close();
+    try {
+      await deleteAllTestOrders();
+      await deleteAllTestProducts();
+      await deleteAllTestUsers();
+      if (app) await app.close();
+    } finally { protectionDiagnostics?.restore(); }
   });
 
   describe('Authentication & Authorization', () => {

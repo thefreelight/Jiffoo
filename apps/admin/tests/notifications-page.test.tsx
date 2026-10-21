@@ -24,3 +24,46 @@ it('shows empty and failed load states without fake counts', async () => { mock.
 it('retains detail after resend failure and reuses its idempotency key', async () => { mock.resend.mockRejectedValueOnce(new Error()); await render(); await open(); await click('Resend'); expect(document.body.textContent).toContain('Unable to queue email'); await click('Resend'); expect(mock.resend.mock.calls[0][1]).toBe(mock.resend.mock.calls[1][1]); });
 it.each([['password_reset', 'SENT'], ['order_confirmation', 'PENDING'], ['order_confirmation', 'SENDING']])('disables resend for %s in %s', async (type, status) => { mock.getById.mockResolvedValue({ data: { ...item, type, status } }); await render(); await open(); const button = [...document.querySelectorAll('button')].find(value => value.textContent === 'Resend')!; expect(button.disabled).toBe(true); expect(mock.resend).not.toHaveBeenCalled(); });
 it('shows failed delivery evidence and handles detail request failure', async () => { mock.getById.mockRejectedValueOnce(new Error()); await render(); await open(); expect(document.body.textContent).toContain('Unable to load notification details'); await click('Close'); mock.getById.mockResolvedValue({ data: { ...item, status: 'FAILED', attempts: 5, lastError: '550 mailbox rejected' } }); await open(); expect(document.body.textContent).toContain('550 mailbox rejected'); expect(document.body.textContent).toContain('Automatic retries have stopped.'); });
+const refunded = { ...item, id: 'refund', type: 'refunded', toAddress: 'refund-buyer@e2e.example', subject: 'Order refunded' };
+const snapshot = (items: Array<typeof item>) => ({ data: { items, total: items.length, counts: { all: items.length, SENT: items.length, FAILED: 0 }, types: ['order_confirmation'] } });
+it('shows a notification that arrives after the first snapshot without a manual reload', async () => {
+  vi.useFakeTimers();
+  try {
+    mock.getAll.mockResolvedValueOnce(snapshot([item]));
+    await render();
+    expect(container.textContent).not.toContain('refund-buyer@e2e.example');
+    mock.getAll.mockResolvedValueOnce(snapshot([refunded, item]));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    await act(async () => {});
+    expect(container.textContent).toContain('refund-buyer@e2e.example');
+  } finally { vi.useRealTimers(); }
+});
+it('stops polling once the page unmounts', async () => {
+  vi.useFakeTimers();
+  const ownContainer = document.createElement('div'); document.body.append(ownContainer);
+  const ownRoot = createRoot(ownContainer);
+  try {
+    await act(async () => ownRoot.render(<NotificationsPage />));
+    const calls = mock.getAll.mock.calls.length;
+    await act(async () => ownRoot.unmount());
+    await act(async () => { await vi.advanceTimersByTimeAsync(6_000); });
+    expect(mock.getAll).toHaveBeenCalledTimes(calls);
+  } finally { ownContainer.remove(); vi.useRealTimers(); }
+});
+it('keeps a newer result when a poll response arrives late', async () => {
+  vi.useFakeTimers();
+  try {
+    await render();
+    let resolvePoll!: (value: unknown) => void;
+    mock.getAll.mockReturnValueOnce(new Promise(resolve => { resolvePoll = resolve; }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    mock.getAll.mockResolvedValueOnce(snapshot([{ ...item, toAddress: 'fresh-buyer@example.com' }]));
+    await open();
+    await click('Resend');
+    await act(async () => {});
+    expect(container.textContent).toContain('fresh-buyer@example.com');
+    await act(async () => { resolvePoll(snapshot([{ ...item, toAddress: 'stale-buyer@example.com' }])); });
+    expect(container.textContent).toContain('fresh-buyer@example.com');
+    expect(container.textContent).not.toContain('stale-buyer@example.com');
+  } finally { vi.useRealTimers(); }
+});

@@ -20,6 +20,9 @@ const fields: ListFields = {
 };
 import { completedAttempts } from '@/lib/notification-attempts';
 const knownTypes = ['order_confirmation', 'payment_received', 'staff_invite', 'email_verification', 'password_reset', 'shipped', 'cancelled', 'refunded'];
+// Notifications are created asynchronously by the domain event outbox, so the
+// list polls in the background to show rows that arrive after the first load.
+const POLL_INTERVAL_MS = 2_000;
 
 export default function NotificationsPage() {
   const t = useT(), locale = useLocale(), { timezone } = useStoreDate();
@@ -30,16 +33,23 @@ export default function NotificationsPage() {
   const [counts, setCounts] = useState<Record<string, number>>({}), [types, setTypes] = useState<string[]>([]), [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true), [detailLoading, setDetailLoading] = useState(false), [open, setOpen] = useState(false);
   const [error, setError] = useState(''), [detailError, setDetailError] = useState(''), [notice, setNotice] = useState(''), [resending, setResending] = useState(false), [revision, setRevision] = useState(0);
-  const requestId = useRef(0), detailId = useRef(0), resendKeys = useRef(new Map<string, string>());
-  const refresh = useCallback(async () => {
-    const id = ++requestId.current; setLoading(true); setError('');
+  const requestId = useRef(0), detailId = useRef(0), resendKeys = useRef(new Map<string, string>()), inFlight = useRef(0);
+  const refresh = useCallback(async (background = false) => {
+    // A background poll never overlaps a request that is still running.
+    if (background && inFlight.current > 0) return;
+    const id = ++requestId.current; inFlight.current += 1;
+    if (!background) { setLoading(true); setError(''); }
     try {
       const result = unwrapApiResponse(await notificationsApi.getAll(page, size, state.status === 'all' ? undefined : state.status as AdminNotification['status'], { search: state.search || undefined, type: state.type || undefined, sort: state.sort }));
       if (requestId.current === id) { setItems(result.items); setTotal(result.total); setCounts(result.counts ?? {}); setTypes(result.types ?? []); }
-    } catch { if (requestId.current === id) { setItems([]); setTotal(0); setCounts({}); setError('failed'); } }
-    finally { if (requestId.current === id) setLoading(false); }
+    } catch { if (requestId.current === id && !background) { setItems([]); setTotal(0); setCounts({}); setError('failed'); } }
+    finally { inFlight.current -= 1; if (requestId.current === id) setLoading(false); }
   }, [page, size, state.status, state.search, state.type, state.sort]);
   useEffect(() => { void refresh(); return () => { requestId.current++; }; }, [refresh, revision]);
+  useEffect(() => {
+    const timer = setInterval(() => { void refresh(true); }, POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [refresh]);
   const filter = (patch: Record<string, string>) => update({ ...patch, page: '1' });
   async function openDetail(id: string) {
     const request = ++detailId.current; setOpen(true); setSelected(null); setDetailLoading(true); setDetailError(''); setNotice('');

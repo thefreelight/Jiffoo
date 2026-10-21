@@ -25,7 +25,13 @@ export class JwtUtils {
   }
 
   static verify(token: string): JwtPayload {
-    return jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET, { complete: true });
+    if (typeof decoded.payload !== 'object' || decoded.payload === null || decoded.header.typ === 'plugin-page-v1'
+      || decoded.payload.typ === 'plugin-page-v1' || decoded.payload.iss === 'jiffoo-plugin-pages'
+      || [decoded.payload.aud].flat().includes('jiffoo-plugin-gateway')) {
+      throw new jwt.JsonWebTokenError('Plugin page tokens cannot authenticate Core APIs');
+    }
+    return decoded.payload as JwtPayload;
   }
 
   static decode(token: string): JwtPayload | null {

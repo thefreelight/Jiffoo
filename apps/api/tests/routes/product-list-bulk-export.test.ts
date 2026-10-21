@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
+import type { Socket } from 'node:net';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
@@ -13,9 +14,106 @@ let app: FastifyInstance, admin: Awaited<ReturnType<typeof createAdminWithToken>
 const prefix = 'a2-' + randomUUID(), owned: string[] = [];
 let categoryId: string, childId: string;
 const sorted: { id: string; price: number; stock: number; name: string; updatedAt: string; createdAt: string }[] = [];
+const redisClient = redisCache.getRawClient();
+const redisEvidence: Array<Record<string, unknown>> = [];
+let restoreRedisDiagnostics = () => {};
+function recordRedisState(event: string, details: Record<string, unknown> = {}) {
+  const state = { event, at: new Date().toISOString(), monotonicNs: process.hrtime.bigint().toString(), pid: process.pid,
+    status: redisClient.status, connected: redisCache.getConnectionStatus(), ...details };
+  redisEvidence.push(state);
+  console.info('Product bulk Redis diagnostic', JSON.stringify(state));
+}
+function assertRedisReady() {
+  expect(redisCache.getConnectionStatus(), JSON.stringify(redisEvidence)).toBe(true);
+  expect(redisClient.status, JSON.stringify(redisEvidence)).toBe('ready');
+}
 beforeAll(async () => {
+  const diagnosticClient = redisClient as unknown as { stream?: Socket; connector: { disconnect(): void } };
+  const socketCleanups: Array<() => void> = [];
+  const observedSockets = new WeakSet<Socket>();
+  let nextSocketId = 0;
+  const observeSocket = () => {
+    const socket = diagnosticClient.stream;
+    if (!socket || observedSockets.has(socket)) return;
+    observedSockets.add(socket);
+    const socketId = ++nextSocketId;
+    const recordSocket = (event: string, details: Record<string, unknown> = {}) => recordRedisState(event, {
+      socketId, localAddress: socket.localAddress, localPort: socket.localPort,
+      remoteAddress: socket.remoteAddress, remotePort: socket.remotePort,
+      bytesRead: socket.bytesRead, bytesWritten: socket.bytesWritten,
+      destroyed: socket.destroyed, readableEnded: socket.readableEnded, writableEnded: socket.writableEnded,
+      ...details,
+    });
+    const listeners = ['end', 'close', 'error', 'timeout', 'finish'].map(event => {
+      const listener = (value?: unknown) => recordSocket('socket-' + event, {
+        ...(event === 'close' ? { hadError: value } : {}),
+        ...(event === 'error' ? { errorCode: (value as NodeJS.ErrnoException)?.code } : {}),
+      });
+      socket.on(event, listener);
+      return { event, listener };
+    });
+    const end = socket.end;
+    const endSpy = vi.spyOn(socket, 'end').mockImplementation(function (this: Socket, ...args: Parameters<Socket['end']>) {
+      recordSocket('socket-end-call', { stack: new Error('Redis socket end caller').stack });
+      return Reflect.apply(end, this, args);
+    });
+    const destroy = socket.destroy;
+    const destroySpy = vi.spyOn(socket, 'destroy').mockImplementation(function (this: Socket, ...args: Parameters<Socket['destroy']>) {
+      recordSocket('socket-destroy-call', { stack: new Error('Redis socket destroy caller').stack });
+      return Reflect.apply(destroy, this, args);
+    });
+    socketCleanups.push(() => {
+      for (const { event, listener } of listeners) socket.off(event, listener);
+      destroySpy.mockRestore();
+      endSpy.mockRestore();
+    });
+    recordSocket('socket-observed');
+  };
+  const connector = diagnosticClient.connector;
+  const connectorDisconnect = connector.disconnect;
+  const connectorSpy = vi.spyOn(connector, 'disconnect').mockImplementation(function (this: typeof connector, ...args: Parameters<typeof connectorDisconnect>) {
+    recordRedisState('connector-disconnect-call', { stack: new Error('Redis connector disconnect caller').stack });
+    return Reflect.apply(connectorDisconnect, this, args);
+  });
+  const disconnect = redisClient.disconnect.bind(redisClient);
+  const disconnectSpy = vi.spyOn(redisClient, 'disconnect').mockImplementation((reconnect) => {
+    recordRedisState('disconnect-call', { stack: new Error('Redis disconnect caller').stack });
+    return disconnect(reconnect);
+  });
+  const quitSpy = vi.spyOn(redisClient, 'quit');
+  const observers = ['connect', 'ready', 'close', 'reconnecting', 'end', 'error'].map(event => {
+    const listener = (value?: unknown) => {
+      if (event === 'connect') observeSocket();
+      recordRedisState(event, {
+        quitCalls: quitSpy.mock.calls.length,
+        ...(event === 'error' ? { errorCode: (value as NodeJS.ErrnoException)?.code, errorName: (value as Error)?.name } : {}),
+      });
+    };
+    redisClient.on(event, listener);
+    return { event, listener };
+  });
+  restoreRedisDiagnostics = () => {
+    for (const { event, listener } of observers) redisClient.off(event, listener);
+    for (const cleanup of socketCleanups.reverse()) cleanup();
+    connectorSpy.mockRestore();
+    quitSpy.mockRestore();
+    disconnectSpy.mockRestore();
+  };
+  recordRedisState('before-connect');
   await redisCache.connect();
-  app = await createTestApp({ enableSwagger: true }); admin = await createAdminWithToken(); buyer = await createUserWithToken();
+  recordRedisState('after-connect');
+  expect(await redisCache.ping(), JSON.stringify(redisEvidence)).toBe(true);
+  observeSocket();
+  recordRedisState('before-create-test-app');
+  app = await createTestApp({ enableSwagger: true });
+  recordRedisState('after-create-test-app');
+  recordRedisState('before-admin-auth');
+  admin = await createAdminWithToken();
+  recordRedisState('after-admin-auth');
+  recordRedisState('before-buyer-auth');
+  buyer = await createUserWithToken();
+  recordRedisState('after-buyer-auth');
+  recordRedisState('after-app-bootstrap');
   categoryId = (await prisma.category.create({ data: { name: prefix, slug: prefix } })).id;
   childId = (await prisma.category.create({ data: { name: prefix + '-child', slug: prefix + '-child', parentId: categoryId } })).id;
   for (let index = 0; index < 4; index++) {
@@ -27,6 +125,8 @@ beforeAll(async () => {
   await CacheService.incrementProductVersion();
 });
 afterAll(async () => {
+  recordRedisState('before-suite-cleanup');
+  restoreRedisDiagnostics();
   await prisma.eventDelivery.deleteMany({ where: { event: { aggregateId: { in: owned } } } });
   await prisma.eventRecord.deleteMany({ where: { aggregateId: { in: owned } } });
   await prisma.orderItem.deleteMany({ where: { productId: { in: owned } } });
@@ -66,6 +166,7 @@ it.each(['activate', 'deactivate', 'setCategory', 'delete'])('dry-runs and execu
   const product = await createTestProduct({ name: prefix + '-action-' + action }); owned.push(product.id);
   if (action === 'activate') await prisma.product.update({ where: { id: product.id }, data: { isActive: false } });
   const before = await prisma.product.findUniqueOrThrow({ where: { id: product.id } });
+  assertRedisReady();
   const version = await CacheService.getProductVersion();
   const body = { action, selection: selection([product.id]), ...(action === 'setCategory' ? { categoryId } : {}) };
   const dry = await post('bulk', { ...body, dryRun: true }); expect(dry.statusCode).toBe(200);
@@ -74,7 +175,8 @@ it.each(['activate', 'deactivate', 'setCategory', 'delete'])('dry-runs and execu
   expect(await CacheService.getProductVersion()).toBe(version);
   const result = await post('bulk', body); expect(result.statusCode).toBe(200);
   expect(result.json().data).toMatchObject({ matched: 1, processed: 1, skippedCount: 0 });
-  expect(await CacheService.getProductVersion()).toBe(version + 1);
+  assertRedisReady();
+  expect(await CacheService.getProductVersion(), JSON.stringify(redisEvidence)).toBe(version + 1);
   const after = await prisma.product.findUnique({ where: { id: product.id } });
   if (action === 'delete') expect(after).toBeNull();
   else {

@@ -4,6 +4,7 @@ import { sendError } from '@/utils/response';
 import { findAuthIdentityById } from './identity';
 import jwt from 'jsonwebtoken';
 import { ApiTokenService, type ApiTokenScope } from './api-token';
+import { isPluginAssetRequest, pluginPageAdmission } from '@/core/plugin-pages/origin-policy';
 
 /**
  * Auth Middleware
@@ -72,6 +73,7 @@ export async function optionalAuthMiddleware(
   request: FastifyRequest,
   _reply: FastifyReply
 ) {
+  if (request[pluginPageAdmission] || isPluginAssetRequest(request)) return;
   if (request.user) return;
   try {
     const authHeader = request.headers.authorization;

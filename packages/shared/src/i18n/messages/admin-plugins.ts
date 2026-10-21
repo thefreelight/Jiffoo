@@ -1,4 +1,4 @@
-import type { PluginCategory } from '../../extensions/plugin-contract';
+import { PLUGIN_CATEGORIES, type PluginCategory } from '../../extensions/plugin-contract';
 
 type Locale = 'en' | 'zh-Hans' | 'zh-Hant';
 
@@ -703,6 +703,14 @@ const labels = {
 export type PluginLabel = keyof typeof labels;
 const categoryLabels: Record<PluginCategory, PluginLabel> = { payment: 'categoryPayment', shipping: 'categoryShipping', tax: 'categoryTax', fulfillment: 'categoryFulfillment', notification: 'categoryNotification', integration: 'categoryIntegration' };
 export function pluginCategoryMessage(locale: Locale, category: PluginCategory) { return pluginMessage(locale, categoryLabels[category]); }
+/**
+ * Total category lookup. A manifest may omit the optional category and the installer then
+ * stores a value outside PLUGIN_CATEGORIES, so an unknown value has no label at all.
+ */
+export function pluginCategoryLabel(locale: Locale, category: string): string | undefined {
+  if (!PLUGIN_CATEGORIES.includes(category as PluginCategory)) return undefined;
+  return pluginCategoryMessage(locale, category as PluginCategory);
+}
 export function pluginMessage(locale: Locale, key: PluginLabel, values: Record<string, string | number> = {}) {
   let message: string = labels[key][(['en', 'zh-Hans', 'zh-Hant'] as const).indexOf(locale)];
   for (const [name, value] of Object.entries(values)) message = message.split(`{${name}}`).join(String(value));

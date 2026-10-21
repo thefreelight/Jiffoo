@@ -148,7 +148,7 @@ the ZIP hash makes even unhashed HTML filenames immutable by content.
 | POST `/plugin-pages/:slug/sessions/:id/refresh` | Same Core identity/origin as issuance; guest session requires its shell-only random secret. Recheck page, package, role and generation; rotate token. |
 | DELETE `/plugin-pages/:slug/sessions/:id` | Same shell authentication/secret; revoke bridge session. |
 | GET/HEAD `/plugin-assets/:installationId/:zipHash/*` | No cookies/authentication; only indexed static bytes for current enabled operational installation. HTML only for declared entries. Disabled/removed/old hash returns 404. |
-| OPTIONS for gateway and plugin storage routes | Exact null-origin policy below; no plugin execution or user authentication on preflight. |
+| OPTIONS `/extensions/plugin/:slug/api[/...]` and `/plugin-storage/:slug/...` | Exact null-origin policy below; no plugin execution or user authentication on preflight. |
 
 Shell POST requests use JSON and exact Origin checks, rejecting absent Origin
 in browser issuance; trusted SSR initial loads consume declarations only, and
@@ -197,7 +197,40 @@ Use exact operator-validated origins, not literal placeholders or a wildcard
 deployment allow-list. URLs in HTML are package-relative or Core asset/file
 URLs. A frame-specific Helmet configuration replaces documentation CSP and
 omits conflicting X-Frame-Options; all other endpoints retain their policy.
+
+The only trusted public origins are the configured `STOREFRONT_URL` and
+`ADMIN_URL` origins, parsed and validated once at API startup. They must be
+absolute HTTPS origins (HTTP is permitted only for configured loopback hosts),
+without credentials, a non-root path, query, fragment, wildcard host or CSP
+separator characters. Do not derive them
+from `API_SERVICE_URL`, `NEXT_PUBLIC_API_URL`, Referer or an unconfigured Host.
+The reference edge proxies `/api/`, `/uploads/` and `/themes/` on both public
+hosts. For frame HTML, match the incoming Host exactly, including its port,
+to one configured URL's host. A proxy that cannot send a Host header states
+the public host in `x-forwarded-host`; Core accepts that value only when it
+matches a configured URL's host exactly, and only when the Host header itself
+matches no configured origin. Use that single configured origin for script,
+style, font, image, connection and file sources; images additionally allow
+`data:` and `blob:`. Frame ancestors list exactly both configured origins.
+Missing or invalid configuration, or an unmatched Host, makes frame HTML
+return 404. Static non-HTML assets retain their specified CORS headers.
+The local Shop asset route and Admin Next proxy preserve an exactly configured
+public host only for plugin asset GET/HEAD requests. Those requests strip Cookie and
+Authorization and never forward Set-Cookie or credentialed CORS responses;
+they are stateless asset transport, not a cookie-authenticated exception.
+Other proxy operations still reject null Origin. The gateway and
+plugin-storage paths keep their null-origin exception through the local
+proxies, so only Core decides whether such an operation is admitted and the
+local behaviour matches the deployment edge, which routes `/api/` directly to
+Core.
+Shop keeps its ordinary canonical API rewrite as a fallback after the
+stateless dynamic asset handler; existing non-asset API paths are preserved.
+
 The sandbox response header also protects direct asset-document navigation.
+Until G4 supplies authoritative service-graph admission, assets of a package
+with declared service dependencies fail closed with 404. P-2 does not assume
+an unimplemented or unknown dependency graph is operational. G4 must replace
+this denial with its live graph/grant/generation checks for every asset read.
 No service workers. localStorage, sessionStorage and IndexedDB are unavailable
 in this opaque origin; SDK stores transient state only in memory. A later
 optional bridge key-value batch may add storage isolated by installation and
@@ -205,7 +238,7 @@ customer (or expiring guest session), with quotas and sign-out clearing; it is
 not part of this implementation or an excuse to grant allow-same-origin.
 
 Global CORS must reject literal `Origin: null` by default, even in development.
-Only gateway `/plugin/:slug/api[/...]` and `/plugin-storage/:slug/...` Bearer
+Only gateway `/extensions/plugin/:slug/api[/...]` and `/plugin-storage/:slug/...` Bearer
 operations allow it; these respond `Access-Control-Allow-Origin: null`,
 `Vary: Origin`, never `Access-Control-Allow-Credentials`, with explicit methods
 and `Authorization, Content-Type, Idempotency-Key` allowed headers. Reject a
@@ -217,12 +250,32 @@ effects. Never pass them through optionalAuthMiddleware as anonymous traffic.
 Other ordinary gateway callers keep their canonical Core authentication; this
 is a distinct credential type, not a legacy fallback.
 
+The existing gateway's full path is `/api/v1/extensions/plugin/:slug/api[/...]`.
+P-2 preserves it without moving it or adding an alias. Future storage routes
+remain `/api/v1/plugin-storage/:slug/...`.
+
 Every cookie-consuming route, including Shop/Admin BFF auth/refresh/logout
 and same-origin proxy routes, must reject null Origin server-side before
 mutation, not merely omit CORS response headers. Inventory those routes in
 implementation and add parameterized isolation tests. Plugin tokens must also
 be rejected by all ordinary Core identity, commerce and Admin APIs. Only the
 shell makes Core cart/checkout calls with Core credentials.
+
+The executable P-2 cookie-route inventory is
+`scripts/cookie-route-inventory.json`, shared by the parameterized API,
+Shop and Admin isolation suites. API identity is Bearer-only; the gateway
+previously forwarded Cookie to plugins and now strips it for every caller.
+Null-origin gateway requests with Cookie are rejected before admission.
+All ordinary API routes reject null Origin before body parsing.
+Shop BFF includes every allowlisted auth/account/cart/checkout/
+order/payment method and dynamic path. All Shop SSR pages consume cookies
+through bootstrap/catalog/theme reads. All Admin pages consume preference
+cookies through the root layout; its API catchall forwards cookies except
+the explicitly stateless asset transport above. Health and availability
+route handlers do not consume cookies. Both application proxies reject null
+Origin before page rendering and before `/extensions/`, `/plugins/` and
+`/uploads/` local cookie-forwarding rewrites. Ordinary API error schemas include the global
+403 rejection, including public routes.
 
 ## 4. Bridge and scoped tokens (P-3)
 
@@ -1144,6 +1197,11 @@ Required acceptance and adversarial cases, assigned to the batches above:
   same-origin sandbox privilege. Verify rendered font/text, not network alone.
   A real React/Vite form onSubmit runs and calls the gateway after preventDefault;
   an attempted real form submission/navigation is blocked by form-action none.
+  P-2's test-only signed fixture provides an ordinary gateway host page and a
+  real SDK-packed Vite/React build, without adding a production shell route.
+  Its uncredentialed form request must reach the gateway and be rejected
+  before plugin execution. Successful token-authorized form execution remains
+  a tracked P-3 acceptance item because P-2 intentionally issues no tokens.
 - P-2/P-3: shell theme, locale and dark-mode subscriptions; customer ID/name/
   email on sign-in and null on sign-out; no Admin identity in Shop; forged
   sources, sibling frames, wrong nonce/version and post-navigation refresh

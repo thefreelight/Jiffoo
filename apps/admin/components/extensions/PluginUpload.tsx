@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { pluginMessage, pluginCategoryMessage, type PluginLabel } from 'shared/src/i18n/messages/admin-plugins';
-import type { PluginCategory } from 'shared';
+import { pluginMessage, pluginCategoryLabel, type PluginLabel } from 'shared/src/i18n/messages/admin-plugins';
 import { Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,7 +17,7 @@ export function PluginInstallPreview({ preview, testSigningMode }: { preview: Pl
   return <dl className="divide-y divide-border rounded-lg border border-border px-3.5">
     <div className="flex flex-wrap gap-3 py-2"><dt className="w-[88px] text-muted-foreground">{c('title')}</dt><dd className="min-w-0 break-words"><span>{preview.package.name}</span> <span className="font-mono text-xs text-muted-foreground">{preview.package.slug} · {preview.package.version}</span></dd></div>
     <div className="flex flex-wrap gap-3 py-2"><dt className="w-[88px] text-muted-foreground">{c('signature')}</dt><dd>{preview.package.publisher ? <><PluginTrustLabel compact plugin={{ trustLevel: preview.package.trust, signingRoot: preview.package.publisher.signingRoot }} testSigningMode={testSigningMode} /> {preview.package.publisher.publisherName}</> : <span className="text-attention">{c('unsigned')}</span>}</dd></div>
-    <div className="flex flex-wrap gap-3 py-2"><dt className="w-[88px] text-muted-foreground">{c('capabilities')}</dt><dd className="min-w-0 flex-1 break-words">{preview.package.declaredCapabilities.map(name => pluginCategoryMessage(locale, name as PluginCategory)).join(', ') || c('none')}<p className="text-xs text-faint">{c('capabilityNote')}</p></dd></div>
+    <div className="flex flex-wrap gap-3 py-2"><dt className="w-[88px] text-muted-foreground">{c('capabilities')}</dt><dd className="min-w-0 flex-1 break-words">{preview.package.declaredCapabilities.map(name => pluginCategoryLabel(locale, name)).filter((label): label is string => Boolean(label)).join(', ') || c('none')}<p className="text-xs text-faint">{c('capabilityNote')}</p></dd></div>
     <div className="flex flex-wrap gap-3 py-2"><dt className="w-[88px] text-muted-foreground">{c('databaseChanges')}</dt><dd className="min-w-0 flex-1 break-words"><p>{preview.migrationPlan.provisionNamespace && c('provision')} <span className="font-mono text-xs">{preview.migrationPlan.schemaName}</span></p><p>{pluginMessage(locale, 'pending', { count: preview.migrationPlan.pending.length })}</p><ul>{preview.migrationPlan.pending.map(item => <li className="break-all font-mono text-xs" key={item.id}>{item.path}</li>)}</ul>{preview.migrationPlan.changesDatabase && <p className="text-xs text-faint">{c('backup')}</p>}</dd></div>
   </dl>;
 }

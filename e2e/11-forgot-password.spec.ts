@@ -1,5 +1,5 @@
 import { expect, test } from './local-requests';
-import { deliveredLink, login, ownerEmail } from './helpers';
+import { deliveredLink, finalOwnerPassword, login, ownerEmail } from './helpers';
 import { captureAuthState } from './auth-captures';
 
 test('admin requests a reset email and signs in with the new password', async ({ page }) => {
@@ -15,8 +15,8 @@ test('admin requests a reset email and signs in with the new password', async ({
   const link = await deliveredLink(ownerEmail, '/en/auth/reset-password');
   await page.goto(link);
   await captureAuthState(page, 'reset-form', 'Set a new password');
-  await page.getByLabel('New password', { exact: true }).fill('FinalOwnerPassword123!');
-  await page.getByLabel('Enter again', { exact: true }).fill('FinalOwnerPassword123!');
+  await page.getByLabel('New password', { exact: true }).fill(finalOwnerPassword);
+  await page.getByLabel('Enter again', { exact: true }).fill(finalOwnerPassword);
   await page.getByRole('button', { name: 'Save new password', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Password updated', exact: true })).toBeVisible();
   await captureAuthState(page, 'reset-complete', 'Password updated');
@@ -24,5 +24,5 @@ test('admin requests a reset email and signs in with the new password', async ({
   await expect(page.getByRole('heading', { name: 'Link expired', exact: true })).toBeVisible();
   await expect(page.getByLabel('New password', { exact: true })).toHaveCount(0);
   await captureAuthState(page, 'reset-invalid', 'Link expired');
-  await login(page, ownerEmail, 'FinalOwnerPassword123!');
+  await login(page, ownerEmail, finalOwnerPassword);
 });

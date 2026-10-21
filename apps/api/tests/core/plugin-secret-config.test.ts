@@ -129,7 +129,7 @@ describe('plugin secret configuration', () => {
 
   it('B and G: contract, gateway and child worker receive config only through runtime context', async () => {
     const secret = `secret-${randomUUID()}`;
-    const { slug } = await install(secret);
+    const { slug, row } = await install(secret);
     const digest = createHash('sha256').update(secret).digest('hex');
     const described = await callContract(slug, 'payment', 2, 'describe', { storeCurrency: 'USD' }) as { displayName: string };
     expect(described.displayName).toBe(digest);
@@ -143,11 +143,23 @@ describe('plugin secret configuration', () => {
     });
     const exited = once(child, 'exit');
     children.push({ child, exited });
-    await once(child, 'message');
-    const result = new Promise<Record<string, unknown>>((resolve) => child.once('message', resolve));
-    child.send({ command: 'run', requestId: randomUUID() });
-    expect((await result).kind).toBe('claimed');
-    await new Promise<void>((resolve) => child.once('message', () => resolve()));
+    const [ready] = await once(child, 'message');
+    expect(ready).toMatchObject({ kind: 'ready' });
+    const requestId = randomUUID();
+    const result = new Promise<Record<string, unknown>>((resolve, reject) => {
+      const onMessage = (message: Record<string, unknown>) => {
+        if (message.requestId !== requestId || !['done', 'error'].includes(String(message.kind))) return;
+        child.off('message', onMessage);
+        if (message.kind === 'error') reject(new Error(String(message.message)));
+        else resolve(message);
+      };
+      child.on('message', onMessage);
+    });
+    child.send({ command: 'run', requestId });
+    expect((await result).count).toBeGreaterThan(0);
+    expect(await prisma.eventDelivery.findUniqueOrThrow({
+      where: { eventId_installationId: { eventId: event.id, installationId: row.id } },
+    })).toMatchObject({ status: 'SUCCEEDED', lastError: null });
     expect(await fs.readFile(path.join(directory, event.id + '.digest'), 'utf8')).toBe(digest);
   });
 

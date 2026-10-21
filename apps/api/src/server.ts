@@ -23,7 +23,7 @@ import 'module-alias/register';
 import { parseTrustedProxies } from 'shared/trusted-proxies';
 
 import Fastify, { type FastifyInstance, type FastifyPluginAsync } from 'fastify';
-import cors from '@fastify/cors';
+import { registerOriginPolicy } from '@/core/plugin-pages/origin-policy';
 import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
 import cookie from '@fastify/cookie';
@@ -174,17 +174,45 @@ async function buildApp() {
 
     await pluginPackageStore.ensureRoot();
 
+    // Apply the existing security policy even when origin admission rejects a request early.
+    await fastify.register(helmet, {
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      originAgentCluster: true,
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      strictTransportSecurity: { maxAge: 15552000, includeSubDomains: true },
+      xContentTypeOptions: true,
+      xDnsPrefetchControl: { allow: false },
+      xDownloadOptions: true,
+      xFrameOptions: { action: 'sameorigin' },
+      xPermittedCrossDomainPolicies: { permittedPolicies: 'none' },
+      xXssProtection: true,
+    });
+
     // Register CORS
-    if (env.CORS_ENABLED) {
+    {
       const corsOrigins = env.CORS_ORIGIN
         ? env.CORS_ORIGIN.split(',').map(origin => origin.trim())
         : (env.NODE_ENV === 'development' ? true : false);
 
-      await fastify.register(cors, {
+      await registerOriginPolicy(fastify, {
+        enabled: env.CORS_ENABLED,
         origin: corsOrigins,
         credentials: env.CORS_CREDENTIALS,
-        allowedHeaders: ['Authorization', 'Content-Type', 'X-App-Type', 'X-Client-Version'],
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
       });
     }
 
@@ -342,40 +370,6 @@ async function buildApp() {
         return reply.status(503).send(result);
       }
       return result;
-    });
-
-    // Register Security Headers (Helmet)
-    await fastify.register(helmet, {
-      // Relax CSP for API documentation endpoints (Swagger/Scalar require inline scripts)
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", 'data:', 'https:'],
-          connectSrc: ["'self'"],
-          fontSrc: ["'self'"],
-          objectSrc: ["'none'"],
-          mediaSrc: ["'self'"],
-          frameSrc: ["'none'"],
-        },
-      },
-      // Enable other important security headers
-      crossOriginEmbedderPolicy: false, // Disabled for API compatibility
-      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
-      originAgentCluster: true,
-      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-      strictTransportSecurity: {
-        maxAge: 15552000, // 180 days
-        includeSubDomains: true,
-      },
-      xContentTypeOptions: true,
-      xDnsPrefetchControl: { allow: false },
-      xDownloadOptions: true,
-      xFrameOptions: { action: 'sameorigin' },
-      xPermittedCrossDomainPolicies: { permittedPolicies: 'none' },
-      xXssProtection: true,
     });
 
     // Register Global Rate Limiter

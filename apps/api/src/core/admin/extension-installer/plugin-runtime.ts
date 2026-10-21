@@ -50,6 +50,7 @@ import { sharedProtection, pluginProtectionScope, SharedProtectionUnavailable, s
 import { decryptPluginConfig, redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { pluginSigningError } from './plugin-signing-policy';
 import { encodePaymentWebhook } from './payment-webhook-wire';
+import { pluginPageAdmission } from '@/core/plugin-pages/origin-policy';
 
 // ============================================================================
 // Constants
@@ -283,7 +284,7 @@ function sanitizeForwardHeaders(headers: Record<string, any>): Record<string, an
     const lowerKey = key.toLowerCase();
 
     // Skip connection-specific headers
-    if (['host', 'content-length', 'connection', 'transfer-encoding'].includes(lowerKey)) {
+    if (['host', 'content-length', 'connection', 'transfer-encoding', 'authorization', 'cookie'].includes(lowerKey)) {
       continue;
     }
 
@@ -367,6 +368,8 @@ function injectPlatformHeaders(
     'x-installation-key': ctx.instanceKey,
     'x-user-id': userId,           // FIXED: Anonymous = "" (empty string)
     'x-user-role': userRole,
+    'x-user-email': request[pluginPageAdmission] ? user?.email || '' : '',
+    'x-plugin-page-id': request[pluginPageAdmission]?.pageId || '',
     'x-request-id': requestId,
     'x-platform-id': platformId,
     'x-platform-version': process.env.PLATFORM_VERSION || '1.0.0',
@@ -493,7 +496,11 @@ async function resolveGatewayContext(
   const query = request.query as Record<string, string | undefined>;
 
   // Priority: installationId > installation (instanceKey) > default
-  const installationId = query.installationId;
+  const admission = request[pluginPageAdmission];
+  if (admission && ((query.installationId && query.installationId !== admission.installationId) || query.installation)) {
+    throw new ApiError('FORBIDDEN');
+  }
+  const installationId = admission?.installationId ?? query.installationId;
   const instanceKeyParam = query.installation;
 
   // Validate instanceKey format if provided
@@ -558,6 +565,9 @@ async function resolveGatewayContext(
       404
     );
   }
+
+  if (admission && (admission.slug !== slug || admission.zipHash !== pluginPackage.zipHash
+    || admission.generation !== instance.protectionGeneration.toString())) throw new ApiError('INVALID_TOKEN');
 
   // Parse config
   const config = decryptPluginConfig(readStoredPluginManifest(pluginPackage), parseJsonObject(instance.configJson));
@@ -1126,7 +1136,7 @@ export async function handlePluginGateway(
   let errorMessage: string | undefined;
   let manifest: PluginManifest | null = null;
   let trustLevel: string | undefined;
-  const caller = inferCaller(request);
+  const caller = request[pluginPageAdmission]?.surface ?? inferCaller(request);
 
   try {
     await assertPluginNotPaused(slug);

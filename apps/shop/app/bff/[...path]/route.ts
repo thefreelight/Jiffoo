@@ -32,7 +32,8 @@ function unavailableResponse(error: ShopAvailability): NextResponse {
 }
 
 async function handle(request: NextRequest, { params }: Params): Promise<NextResponse> {
-  if (request.method !== 'GET' && request.headers.get('origin') !== storefrontOrigin()) {
+  if (request.headers.get('origin') === 'null' ||
+    (request.method !== 'GET' && request.headers.get('origin') !== storefrontOrigin())) {
     return NextResponse.json({ success: false, error: { code: ORIGIN_ERROR, message: 'Invalid request origin' } }, { status: 403 });
   }
   const path = `/${(await params).path.join('/')}`;

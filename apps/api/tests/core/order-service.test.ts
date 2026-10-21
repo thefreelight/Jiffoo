@@ -290,7 +290,7 @@ describe('OrderService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER);
 
       await expect(
-        OrderService.createOrder('user-1', { items: [], expectedTotal: '0.00' } as any)
+        OrderService.createOrder('user-1', { items: [], expectedTotal: '0.00', idempotencyKey: 'empty-order' } as any)
       ).rejects.toThrow('Order must contain at least one item');
 
       expect(mockPrisma.order.create).not.toHaveBeenCalled();
