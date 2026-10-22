@@ -50,7 +50,9 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | **B-P3P4** — plugin pages P-3/P-4, SDK consumption, imager dependency | P-3/P-4 main line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `49dc5ff1a` | `apps/api/src/core/plugin-pages/**`, `apps/api/src/core/order/{service,idempotency,schemas,types}.ts`, `apps/api/prisma/schema/plugin-pages.prisma`, `apps/api/prisma/migrations/20261022023424_plugin_page_sessions/**`, `packages/shared/src/plugin-pages/**`, `packages/plugin-bridge/**`, `packages/shared/src/{error-codes.ts,i18n/**}`, `apps/shop/app/(storefront)/**`, `apps/shop/components/plugin-*.tsx`, `apps/shop/lib/plugin-pages.ts`, `apps/shop/tests/plugin-pages.test.ts`, `apps/admin/app/[locale]/(themed)/plugins/**`, `apps/admin/components/plugins/Declared*`, `apps/api/src/{server.ts,routes/v1/index.ts,config/env.ts}`, `apps/api/src/core/auth/**`, `apps/api/src/core/account/service.ts`, `apps/api/src/core/admin/{user-management,staff-management,plugin-management,extension-installer}/**`, `scripts/verify*.mjs`, `scripts/cookie-route-inventory.json` | `jiffoo_core_test` (integration) | p3-p4 coordinator (`coordinator-launch.py p3-p4-20261022`, session `01a15dd3-9b82-7443-b67d-6f349fc594b4`) | **draft, uncommitted** | migration `20261022023424_plugin_page_sessions` present and matching the schema; gate blocked on `apps/shop/tests/checkout-contract.test.ts` (see B-BOUND-A) |
 | **B-BOUND-A** — cart & inventory write-side consolidation (WP-A) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `49dc5ff1a` | `apps/api/src/core/cart/service.ts`, `apps/api/src/core/inventory/service.ts`, `apps/api/src/core/product/service.ts`, `apps/api/src/core/admin/product-management/service.ts` | `jiffoo_core_test_orders` | `wp-a-cart-inventory` (pi session `01a1618f-53db-7312-a05c-e79a1bd62a0e`, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed `4d83fa2c6`, merge-ready** (lane gate green, §5) | §5 |
 | `wp-b-order-domain` (pi session `01a1623c-d126-7486-8e17-bc93fd298db5`, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed `6a99ec298`, merge-ready** (lane gate green, §5b) | §5b |
-| `wp-c-neutral-layer` (pi session `01a162ba-7abe-70b3-bcef-84e228028c26`) | **running** | §5c |
+| `wp-c-neutral-layer` (pi session `01a162d0-2774-7588-9e96-3b543210b169`) | **committed `add8de45b`, merge-ready** (lane gate green, §5c) | §5c |
+| `wp-d1-audit-outlet` (pi session `01a162ec-e93a-720f-bfe7-43601a8cf294`) | **committed `a65695b70`, merge-ready** (lane gate green, §5d) | §5d |
+| `wp-d2-boundary-guard` (pi session `01a1630a-…`) | **running** | §5e |
 | **B-BOUND-B** — order domain single owner (WP-B) | Boundary-remediation line | `codex/lane-orders` | `49dc5ff1a` + B-BOUND-A | `apps/api/src/core/order/**`, `apps/api/src/core/payment/{reconciliation,session,order-paid-event}.ts`, `apps/api/src/core/admin/order-management/**`, `apps/api/src/core/notifications/service.ts` | `jiffoo_core_test_orders` | not assigned | **registered, blocked** — overlaps B-P3P4 on `core/order/service.ts` (§4) | needs contract agreement with B-P3P4 first |
 | **B-BOUND-C** — neutral layer + directory re-layering (WP-C) | Boundary-remediation line | `codex/lane-orders` | TBD | new `apps/api/src/core/shared/**`; move `core/admin/system-settings`→`core/settings`, `core/admin/plugin-management`+`extension-installer`→`core/extensions`; retarget imports in `core/storage/**`, `core/plugin-pages/asset-routes.ts` | `jiffoo_core_test_orders` | not assigned | **registered, not started** | depends on B-BOUND-B for `core/order/**` import churn |
 | **B-BOUND-D** — audit outlet, dead code, boundary guard, plugin risk register (WP-D) | Boundary-remediation line | `codex/lane-orders` | TBD | new `apps/api/src/core/audit/service.ts` + 9 audit call sites; delete `apps/api/src/core/user/`, `apps/api/src/core/order/hooks.ts`; new `apps/api/tests/core/module-boundary-audit.test.ts`; `docs/agentra-001-core-v1-product-charter.md`; `packages/shared/src/extensions/plugin-contract.ts`; `BUILTIN_PLUGIN_SLUGS` → `@jiffoo/shared` | `jiffoo_core_test_orders` | not assigned | **registered, not started** | last in sequence: touches `packages/shared` → widest mandatory gate |
@@ -150,14 +152,57 @@ in the other two (a load-dependent performance test, unrelated to this change).
 
 ## 5c. Handover evidence — B-BOUND-C (neutral layer + dependency direction)
 
-Executor `wp-c-neutral-layer`, session `01a162ba-7abe-70b3-bcef-84e228028c26`, running at the time
-of writing. Scope: `core/shared/{locks,money,pricing}.ts`; `core/settings/` (moved from
-`core/admin/system-settings/`); `core/extensions/registry/service.ts` (provider resolution);
-`core/extensions/shared/{utils,types,errors}.ts` (moved from `core/admin/extension-installer/`);
-plus the last private-helper reach (`admin/product-management` → `order/catalog-snapshot`).
-Every moved module keeps a re-export shim at its old path, so no test file and no consumer import
-has to change. The only shared file touched is the state-audit allowlist (7 key renames, in place,
-not re-sorted).
+**Commit:** `add8de45b` on `codex/lane-orders`.
+
+**What moved (renames, not copies):**
+- `core/payment/locks.ts` → `core/shared/locks.ts` (the order row lock was owned by the payment module)
+- `core/payment/minor-units.ts` → `core/shared/money.ts`
+- `core/order/current-pricing.ts` → `core/shared/pricing.ts`
+- `core/admin/system-settings/{service,schemas}.ts` → `core/settings/`
+- `core/admin/extension-installer/{utils,types,errors,version-utils}.ts` → `core/extensions/shared/`
+- new `core/extensions/registry/` owns the read-only extension provider queries
+  (`listProviders`, `resolveSingleProvider`, `getAllPluginPackages`, `getDefaultInstance`)
+
+Every old path keeps a re-export shim, so no consumer import and no test import had to change.
+The only test edits were nine lines across three files: the `vi.mock` paths and the matching
+`import` paths for the two moved modules. The state-audit allowlist changed by exactly seven
+renames, in place, not re-sorted.
+
+**Orchestrator-verified after the merge:**
+- no module under `apps/api/src/core/` outside `core/admin/**` imports
+  `@/core/admin/system-settings/**` or `@/core/admin/plugin-management/**` — **the commerce → admin
+  dependency inversion is gone**
+- `core/extensions/**` has no import of `@/core/admin/extension-installer/**`
+- the three test files changed by exactly 9 lines, all of them mock/import paths
+
+**Gate:** API 26 files / 464 tests passed, Admin 3 files / 26 tests passed, Shop 2 files / 3 tests
+passed; all steps PASS; exit code 0.
+
+**Residual found by the orchestrator after the merge** (folded into B-BOUND-D1): `core/extensions/
+shared/utils.ts` still reached `extension-installer/security` through a **dynamic** `import()` —
+a static import scan misses it. Closed in `a65695b70`.
+
+## 5d. Handover evidence — B-BOUND-D1 (audit outlet + dead user module + last core→admin edge)
+
+**Commit:** `a65695b70` on `codex/lane-orders`.
+
+- new `core/audit/service.ts` — `AuditService.write(tx, entry)` is now the **only** place that
+  writes an admin audit event (orchestrator-verified: the only remaining
+  `adminAuditEvent.create` / `adminAuditEvent.upsert` calls in `apps/api/src` are the three inside
+  that file). 21 write sites across 12 files now call it.
+- `core/admin/audit-events/records.ts` → `core/audit/records.ts`, **byte-identical** (same git
+  blob `5deda49c`), with a shim at the old path; the admin HTTP surface stays put.
+- `writePluginAudit` and the theme runtime's `audit()` keep their exported names and behaviour
+  (including the `writePluginAudit` test barrier); only the final write delegates.
+- `apps/api/src/core/user/` deleted — it had no consumer at all.
+- `core/admin/extension-installer/security.ts` → `core/extensions/shared/security.ts` (shim kept),
+  so `core/extensions/**` no longer imports the installer folder **at all**, dynamic import
+  included.
+- The state-audit allowlist changed by exactly four lines: two keys renamed, two dead `core/user`
+  keys removed.
+
+**Gate:** API 22 files / 350 tests passed, Admin 3 files / 26 tests passed, Shop 2 files / 3 tests
+passed; all steps PASS; exit code 0.
 
 ## 5. Handover evidence — B-BOUND-A
 
