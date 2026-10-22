@@ -49,6 +49,8 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 |---|---|---|---|---|---|---|---|---|
 | **B-P3P4** — plugin pages P-3/P-4, SDK consumption, imager dependency | P-3/P-4 main line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `49dc5ff1a` | `apps/api/src/core/plugin-pages/**`, `apps/api/src/core/order/{service,idempotency,schemas,types}.ts`, `apps/api/prisma/schema/plugin-pages.prisma`, `apps/api/prisma/migrations/20261022023424_plugin_page_sessions/**`, `packages/shared/src/plugin-pages/**`, `packages/plugin-bridge/**`, `packages/shared/src/{error-codes.ts,i18n/**}`, `apps/shop/app/(storefront)/**`, `apps/shop/components/plugin-*.tsx`, `apps/shop/lib/plugin-pages.ts`, `apps/shop/tests/plugin-pages.test.ts`, `apps/admin/app/[locale]/(themed)/plugins/**`, `apps/admin/components/plugins/Declared*`, `apps/api/src/{server.ts,routes/v1/index.ts,config/env.ts}`, `apps/api/src/core/auth/**`, `apps/api/src/core/account/service.ts`, `apps/api/src/core/admin/{user-management,staff-management,plugin-management,extension-installer}/**`, `scripts/verify*.mjs`, `scripts/cookie-route-inventory.json` | `jiffoo_core_test` (integration) | p3-p4 coordinator (`coordinator-launch.py p3-p4-20261022`, session `01a15dd3-9b82-7443-b67d-6f349fc594b4`) | **draft, uncommitted** | migration `20261022023424_plugin_page_sessions` present and matching the schema; gate blocked on `apps/shop/tests/checkout-contract.test.ts` (see B-BOUND-A) |
 | **B-BOUND-A** — cart & inventory write-side consolidation (WP-A) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `49dc5ff1a` | `apps/api/src/core/cart/service.ts`, `apps/api/src/core/inventory/service.ts`, `apps/api/src/core/product/service.ts`, `apps/api/src/core/admin/product-management/service.ts` | `jiffoo_core_test_orders` | `wp-a-cart-inventory` (pi session `01a1618f-53db-7312-a05c-e79a1bd62a0e`, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed `4d83fa2c6`, merge-ready** (lane gate green, §5) | §5 |
+| `wp-b-order-domain` (pi session `01a1623c-d126-7486-8e17-bc93fd298db5`, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed `6a99ec298`, merge-ready** (lane gate green, §5b) | §5b |
+| `wp-c-neutral-layer` (pi session `01a162ba-7abe-70b3-bcef-84e228028c26`) | **running** | §5c |
 | **B-BOUND-B** — order domain single owner (WP-B) | Boundary-remediation line | `codex/lane-orders` | `49dc5ff1a` + B-BOUND-A | `apps/api/src/core/order/**`, `apps/api/src/core/payment/{reconciliation,session,order-paid-event}.ts`, `apps/api/src/core/admin/order-management/**`, `apps/api/src/core/notifications/service.ts` | `jiffoo_core_test_orders` | not assigned | **registered, blocked** — overlaps B-P3P4 on `core/order/service.ts` (§4) | needs contract agreement with B-P3P4 first |
 | **B-BOUND-C** — neutral layer + directory re-layering (WP-C) | Boundary-remediation line | `codex/lane-orders` | TBD | new `apps/api/src/core/shared/**`; move `core/admin/system-settings`→`core/settings`, `core/admin/plugin-management`+`extension-installer`→`core/extensions`; retarget imports in `core/storage/**`, `core/plugin-pages/asset-routes.ts` | `jiffoo_core_test_orders` | not assigned | **registered, not started** | depends on B-BOUND-B for `core/order/**` import churn |
 | **B-BOUND-D** — audit outlet, dead code, boundary guard, plugin risk register (WP-D) | Boundary-remediation line | `codex/lane-orders` | TBD | new `apps/api/src/core/audit/service.ts` + 9 audit call sites; delete `apps/api/src/core/user/`, `apps/api/src/core/order/hooks.ts`; new `apps/api/tests/core/module-boundary-audit.test.ts`; `docs/agentra-001-core-v1-product-charter.md`; `packages/shared/src/extensions/plugin-contract.ts`; `BUILTIN_PLUGIN_SLUGS` → `@jiffoo/shared` | `jiffoo_core_test_orders` | not assigned | **registered, not started** | last in sequence: touches `packages/shared` → widest mandatory gate |
@@ -67,6 +69,95 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | `apps/api/src/routes/v1/index.ts`, `apps/api/src/server.ts` | route/hook registration | serial |
 | `apps/shop/**`, `apps/admin/**` | storefront + admin shells | P-3/P-4 owns |
 | `apps/api/tests/core/module-state-audit.test.ts` | static scenario-12/15 allowlist; both sides add module state | serial |
+
+## 5b. Handover evidence — B-BOUND-B (order domain single owner)
+
+**Commit:** `6a99ec298` on `codex/lane-orders`. 8 files changed, +674 / −389, plus the new
+`apps/api/src/core/payment/service.ts` (262 lines). No schema change, no migration, no route,
+envelope, error-code or status-code change, no test file touched.
+
+**Table ownership after this package (verified by the orchestrator, independently of the executor):**
+
+| Table | Writers found by `grep -rnE "\b(tx\|prisma)\.<table>\.(create\|update\|updateMany\|delete\|deleteMany\|upsert)"` |
+|---|---|
+| `orders` | `core/order/service.ts` only (11 sites) |
+| `order_items`, `order_shipping_addresses` | nested create inside `core/order/service.ts` `tx.order.create` |
+| `order_status_history` | `core/order/status-history.ts` only |
+| `shipments`, `shipment_items` | `core/order/service.ts` only |
+| `payments` | `core/payment/{observations,reconciliation,service,session}.ts` |
+| `payment_ledgers` | `core/payment/{reconciliation,service,session}.ts` |
+| `refunds`, `refund_ledgers` | `core/payment/service.ts` only (were admin-only) |
+
+`core/admin/order-management/service.ts` writes **none** of them. The parallel order state machine
+in the admin module is gone. `core/payment/**` imports **no** order-internal helper.
+
+**New public API**
+- `core/payment/service.ts` → `PaymentService.cancelPendingForOrder`,
+  `getOrderPaymentSummary`, `refundOrder`, `resolveRefundRequiredPayment`
+- `core/order/service.ts` → `OrderService.applyPaymentSucceeded`, `applyPaymentFailed`,
+  `recordPaymentAttempt`, `markRefunded`, `shipOrder`, `deliverOrder`, `cancelOrderByAdmin`,
+  `getOrderProjection`, `catalogSnapshotView`
+
+**Status-history actor identity preserved exactly** (a nullable column; the old rows store NULL):
+ship / deliver / admin cancel still write `actorType: 'admin'` with no `actorId`; the admin refund
+still writes the administrator id and `metadata: { refundId }`.
+
+**Gate** (lane `orders`, `jiffoo_core_test_orders`, Redis DB 12):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: orders
+Database: jiffoo_core_test_orders
+Planner added suites: none
+Run API tests:
+   Start at  15:32:25
+ Test Files  21 passed (21)
+      Tests  323 passed (323)
+Run Admin tests:
+   Start at  15:38:55
+ Test Files  3 passed (3)
+      Tests  26 passed (26)
+Run Shop tests:
+   Start at  15:38:57
+ Test Files  2 passed (2)
+      Tests  3 passed (3)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 15.67s |
+| Lint Shop | PASS | 10.62s |
+| Reset test database | PASS | 3.99s |
+| Run API tests | PASS | 389.33s |
+| Run Admin tests | PASS | 2.31s |
+| Run Shop tests | PASS | 1.71s |
+```
+
+Exit code 0. The planner added 13 authentication suites (the changed file
+`core/payment/session.ts` matches its `/session/i` rule) and they ran and passed.
+
+**Executor-reported deviations from the task contract (all accepted, none behavioural):**
+`PaymentStatus` is a const object, not a type — the type is `PaymentStatusType`; the admin
+"NOT_CHARGED" review resolution has no slot in the mandated `PaymentService` shape, so
+`recordPaymentNotCharged` was added as a public export of the payment module; `getSellableCatalog`
+had to switch from a `select` shape to `include: { variants: true }` plus a second translations
+query because `tests/core/order-service.test.ts` asserts the exact product read — the projection now
+costs two queries; `apps/api/openapi.json` (a gitignored artifact) had to be generated with
+`pnpm --filter api export:openapi` for the state-machine suite; `tests/core/event-delivery.test.ts`
+→ "measures the real claim query over 100000 due rows" timed out in one of three runs and passed
+in the other two (a load-dependent performance test, unrelated to this change).
+
+## 5c. Handover evidence — B-BOUND-C (neutral layer + dependency direction)
+
+Executor `wp-c-neutral-layer`, session `01a162ba-7abe-70b3-bcef-84e228028c26`, running at the time
+of writing. Scope: `core/shared/{locks,money,pricing}.ts`; `core/settings/` (moved from
+`core/admin/system-settings/`); `core/extensions/registry/service.ts` (provider resolution);
+`core/extensions/shared/{utils,types,errors}.ts` (moved from `core/admin/extension-installer/`);
+plus the last private-helper reach (`admin/product-management` → `order/catalog-snapshot`).
+Every moved module keeps a re-export shim at its old path, so no test file and no consumer import
+has to change. The only shared file touched is the state-audit allowlist (7 key renames, in place,
+not re-sorted).
 
 ## 5. Handover evidence — B-BOUND-A
 
