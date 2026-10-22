@@ -19,7 +19,8 @@ export default async function ReturnPage({ params, searchParams }: {
   if (initial.paymentId) {
     await customerData(`/payments/verify/${encodeURIComponent(initial.paymentId)}`);
   }
-  const order = await customerOrder(id);
+  // An explicit signal bypasses render-time GET deduplication after verification writes.
+  const order = await customerOrder(id, AbortSignal.timeout(10_000));
   if (!order) notFound();
   return <><OrderSummary order={order} locale={locale} timezone={context.timezone} /><OrderPurchaseTracking order={purchaseData(order)} /></>;
 }
