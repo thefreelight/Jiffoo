@@ -1,5 +1,5 @@
 import { prisma } from '@/config/database';
-import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { PluginManagementService } from '@/core/extensions/registry';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { observeWorkerShutdownForTest } from '@/infra/worker-shutdown';

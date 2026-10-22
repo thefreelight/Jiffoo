@@ -31,21 +31,21 @@ import {
 } from './types';
 import { recordOrderStatusHistory } from './status-history';
 import { assertOrderTransition } from './transition';
-import { lockOrder } from '@/core/payment/locks';
+import { lockOrder } from '@/core/shared/locks';
 import { CartService } from '@/core/cart/service';
 import { ProductService, type CatalogProductProjection } from '@/core/product/service';
 import { PaymentService } from '@/core/payment/service';
 
-import { systemSettingsService } from '../admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { InventoryService } from '@/core/inventory/service';
 import { emitEvent, type EventTransaction } from '@/infra/events/emit';
 import { CheckoutService } from '@/core/checkout/service';
-import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { PluginManagementService } from '@/core/extensions/registry';
 import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
-import { decimalToMinor, minorToDecimal } from '@/core/payment/minor-units';
-import { currentLinePrice } from './current-pricing';
-import { createCatalogSnapshot, readCatalogSnapshot, snapshotProductName } from './catalog-snapshot';
+import { decimalToMinor, minorToDecimal } from '@/core/shared/money';
+import { currentLinePrice } from '@/core/shared/pricing';
+import { createCatalogSnapshot, readCatalogSnapshot, snapshotProductName, isOrderItemCatalogRestriction } from './catalog-snapshot';
 import { normalizeOrderIdempotencyKey, orderRequestFingerprint } from './idempotency';
 
 type JsonRecord = Record<string, unknown>;
@@ -132,6 +132,11 @@ function orderResponseInclude() {
 }
 
 export class OrderService {
+  /** Public predicate for the order-item catalog restriction (foreign key guard). */
+  static isOrderItemCatalogRestriction(error: unknown): boolean {
+    return isOrderItemCatalogRestriction(error);
+  }
+
   private static async validateShippingAddress(address: NonNullable<CreateOrderRequest['shippingAddress']>) {
     const requiredFields: Array<keyof NonNullable<CreateOrderRequest['shippingAddress']>> = [
       'firstName',

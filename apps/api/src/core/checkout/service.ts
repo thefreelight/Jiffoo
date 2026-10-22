@@ -1,10 +1,10 @@
 import { ApiError } from '@/utils/api-errors';
 import { CartService } from '@/core/cart/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
-import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { systemSettingsService } from '@/core/settings/service';
+import { PluginManagementService } from '@/core/extensions/registry';
 import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
 import { recordPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
-import { decimalToMinor, minorToDecimal } from '@/core/payment/minor-units';
+import { decimalToMinor, minorToDecimal } from '@/core/shared/money';
 
 type Address = { country: string; state?: string; city?: string; postalCode?: string; addressLine1?: string; addressLine2?: string };
 

@@ -43,7 +43,7 @@ vi.mock('@/config/database', () => ({
   },
 }));
 
-vi.mock('@/core/admin/system-settings/service', () => ({
+vi.mock('@/core/settings/service', () => ({
   systemSettingsService: {
     getShopCurrency: vi.fn().mockResolvedValue('USD'),
     getCheckoutCountriesRequireStatePostal: vi.fn().mockResolvedValue(['US', 'CA']),
@@ -85,7 +85,7 @@ vi.mock('@/core/checkout/service', () => ({
   CheckoutService: { quoteItems: vi.fn() },
 }));
 
-vi.mock('@/core/admin/plugin-management/service', () => ({
+vi.mock('@/core/extensions/registry', () => ({
   PluginManagementService: { resolveSingleProvider: vi.fn() },
 }));
 
@@ -99,12 +99,12 @@ vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
 // ---------------------------------------------------------------------------
 
 import { OrderService } from '@/core/order/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { prisma } from '@/config/database';
 import { getOrderHooks } from '@/core/order/hooks';
 import { InventoryService } from '@/core/inventory/service';
 import { CheckoutService } from '@/core/checkout/service';
-import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { PluginManagementService } from '@/core/extensions/registry';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
 // ---------------------------------------------------------------------------

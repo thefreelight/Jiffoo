@@ -2,9 +2,9 @@ import { createHash } from 'node:crypto';
 import type { PaymentFact, PaymentAccountIdentity } from '@jiffoo/shared';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
-import { decimalToMinor } from './minor-units';
+import { decimalToMinor } from '@/core/shared/money';
 import { samePaymentAccount, bindObservedPaymentAccount } from './provider-account';
-import { lockOrder, lockPayment } from './locks';
+import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { recordPaymentSucceeded, recordPaymentFailed, PAYMENT_RECONCILIATION_MAX_ATTEMPTS } from './reconciliation';
 import { paymentNow } from './clock';
 

@@ -34,14 +34,14 @@ vi.mock('@/config/database', () => ({
   },
 }));
 
-vi.mock('@/core/admin/plugin-management/service', () => ({
+vi.mock('@/core/extensions/registry', () => ({
   PluginManagementService: {
     getAllPluginPackages: vi.fn(),
     getDefaultInstance: vi.fn(),
   },
 }));
 
-vi.mock('@/core/admin/system-settings/service', () => ({
+vi.mock('@/core/settings/service', () => ({
   systemSettingsService: {
     getShopCurrency: vi.fn(),
   },
@@ -86,8 +86,8 @@ vi.mock('@/core/payment/observations', () => ({ observePaymentFact: vi.fn() }));
 
 import { paymentRoutes } from '@/core/payment/routes';
 import { prisma } from '@/config/database';
-import { PluginManagementService } from '@/core/admin/plugin-management/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { PluginManagementService } from '@/core/extensions/registry';
+import { systemSettingsService } from '@/core/settings/service';
 import { CacheService } from '@/core/cache/service';
 import { authMiddleware } from '@/core/auth/middleware';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';

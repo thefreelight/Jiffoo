@@ -30,8 +30,8 @@ import { writePluginAudit } from '@/core/admin/extension-installer/plugin-audit'
 import { inspectPluginUpload } from '@/core/admin/extension-installer/plugin-upload';
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
+import { declaresContract, getAllPluginPackages, getDefaultInstance, listProviders, resolveSingleProvider } from '@/core/extensions/registry';
 
-type ProviderContract = 'payment' | 'shipping' | 'tax' | 'fulfillment' | 'notification';
 type UpdatedInstance = PluginInstallation & { replacedPlugins: string[] };
 
 // slug validation regex: ^[a-z][a-z0-9-]{0,30}[a-z0-9]$
@@ -103,21 +103,6 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
-function declaresContract(manifestJson: unknown, contract: ProviderContract): boolean {
-  return Array.isArray((manifestJson as { contracts?: unknown[] } | null)?.contracts)
-    && (manifestJson as { contracts: Array<{ name?: unknown; version?: unknown }> }).contracts.some((declaration) => declaration.name === contract && declaration.version === (contract === 'payment' ? 2 : 1));
-}
-
-async function listProviders(contract: 'payment' | 'shipping'): Promise<PluginInstallation[]> {
-  const installations = await prisma.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } }, include: { plugin: true } });
-  return installations.filter((installation) => declaresContract(installation.plugin.manifestJson, contract));
-}
-
-async function resolveSingleProvider(contract: 'tax' | 'fulfillment' | 'notification'): Promise<PluginInstallation | null> {
-  const installations = await prisma.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } }, include: { plugin: true } });
-  return installations.find((installation) => declaresContract(installation.plugin.manifestJson, contract)) ?? null;
-}
-
 async function assertNotLastEnabledProvider(pluginSlug: string, enabled: boolean, manifestJson: unknown, database: Pick<typeof prisma, 'pluginInstallation'> = prisma): Promise<void> {
   if (!enabled || getPluginManifestIssues(manifestJson).length > 0) return;
   const contracts = (['payment', 'shipping', 'tax', 'fulfillment', 'notification'] as const)
@@ -158,20 +143,6 @@ async function getPluginPackage(slug: string): Promise<PluginInstall | null> {
   return plugin;
 }
 
-/**
- * Get all plugin packages.
- * By default excludes soft-deleted packages unless includeDeleted=true.
- */
-async function getAllPluginPackages(options?: { includeDeleted?: boolean }): Promise<PluginInstall[]> {
-  const includeDeleted = options?.includeDeleted ?? false;
-  const rows = await prisma.pluginInstall.findMany({
-    where: includeDeleted ? undefined : { deletedAt: null },
-    orderBy: { installedAt: 'desc' },
-  });
-
-  return rows;
-}
-
 // ============================================================================
 // Plugin Instance Operations (PluginInstallation table)
 // ============================================================================
@@ -198,13 +169,6 @@ async function getInstanceByKey(slug: string, instanceKey: string): Promise<Plug
       },
     },
   });
-}
-
-/**
- * Get default instance for a plugin
- */
-async function getDefaultInstance(slug: string): Promise<PluginInstallation | null> {
-  return getInstanceByKey(slug, 'default');
 }
 
 /**
@@ -761,6 +725,15 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
 // Export Service Object
 // ============================================================================
 
+/**
+ * Admin plugin-management service.
+ *
+ * This is the LIFECYCLE service (install / uninstall / restore / purge / audit).
+ * The read-only provider registry at `@/core/extensions/registry` exposes a
+ * separate `PluginManagementService` with the same call syntax but only the
+ * read members; the four read members below are re-exported from it so the
+ * admin callers keep working unchanged.
+ */
 export const PluginManagementService = {
   // Instance-level API (Only API)
   getPluginPackage,

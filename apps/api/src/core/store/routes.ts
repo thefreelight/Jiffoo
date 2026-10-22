@@ -6,7 +6,7 @@ import { sendMappedError } from '@/utils/api-errors';
 
 import { createHash } from 'crypto';
 import { FastifyInstance, FastifyReply } from 'fastify';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { createTypedReadResponses } from '@/types/common-dto';
 import { STORE_SUPPORTED_LOCALES } from './localization';

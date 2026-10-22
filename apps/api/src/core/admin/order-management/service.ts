@@ -6,7 +6,7 @@ import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 
 import { prisma } from '@/config/database';
 import { OrderStatus as PrismaOrderStatus, type Prisma } from '@prisma/client';
-import { systemSettingsService } from '../system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { CacheService } from '@/core/cache/service';
 import { getTodayAndYesterdayRangeUtc } from '@/utils/timezone';
 import { OrderStatus, PaymentStatus } from '@/core/order/types';
@@ -15,7 +15,7 @@ import { InventoryService } from '@/core/inventory/service';
 import { emitEvent } from '@/infra/events/emit';
 import { recordPaymentNotCharged, recordPaymentSucceeded } from '@/core/payment/reconciliation';
 import { PaymentService } from '@/core/payment/service';
-import { lockOrder, lockPayment } from '@/core/payment/locks';
+import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { orderWhere, orderSort, type OrderFilter, type OrderSort } from './list-query';
 

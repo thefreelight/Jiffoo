@@ -10,7 +10,7 @@ import { prisma } from '@/config/database';
 import { Locale, DEFAULT_LOCALE } from '@/utils/i18n';
 import { CacheService } from '@/core/cache/service';
 import { InventoryService } from '@/core/inventory/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 
 /**
  * Read surface of a product variant used by the sellable catalog projection.
