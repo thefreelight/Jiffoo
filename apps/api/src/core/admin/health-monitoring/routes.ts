@@ -50,6 +50,16 @@ export async function healthMonitoringRoutes(fastify: FastifyInstance) {
                   required: ['status', 'loaded'],
                 },
                 version: { type: 'string' },
+                pluginTasks: {
+                  type: 'object',
+                  properties: {
+                    queued: { type: 'integer', minimum: 0 }, running: { type: 'integer', minimum: 0 }, oldestAgeSeconds: { type: 'number', minimum: 0 },
+                    occupiedSlots: { type: 'array', items: { type: 'object', properties: { installationId: { type: 'string' }, state: { type: 'string' }, count: { type: 'integer' } }, required: ['installationId','state','count'] } },
+                    finalFailureOutcomes: { type: 'array', items: { type: 'object', properties: { status: { type: 'string' }, count: { type: 'integer' } }, required: ['status','count'] } },
+                    failures: { type: 'array', items: { type: 'object', properties: { taskId: { type: 'string' }, installationId: { type: 'string' }, error: { type: 'object', properties: { code: { type: 'string' }, message: { type: 'string' } }, required: ['code','message'] } }, required: ['taskId','installationId','error'] } },
+                    finalFailures: {type:'array',items:{type:'object',properties:{taskId:{type:'string'},installationId:{type:'string'},status:{type:'string',enum:['FAILED','UNKNOWN']},error:{type:['object','null'],properties:{code:{type:'string'},message:{type:'string'}},required:['code','message']}},required:['taskId','installationId','status','error']}},
+                  }, required: ['queued','running','oldestAgeSeconds','occupiedSlots','finalFailureOutcomes','failures','finalFailures'],
+                },
                 gitSha: { type: 'string' },
                 worker: {
                   type: 'object',
@@ -62,7 +72,7 @@ export async function healthMonitoringRoutes(fastify: FastifyInstance) {
                 },
                 uptime: { type: 'number' },
               },
-              required: ['status', 'database', 'redis', 'pluginRuntime', 'worker', 'version', 'gitSha', 'uptime'],
+              required: ['status', 'database', 'redis', 'pluginRuntime', 'pluginTasks', 'worker', 'version', 'gitSha', 'uptime'],
             },
           },
           required: ['success', 'data'],

@@ -5,6 +5,7 @@
 export type ComponentStatus = 'ok' | 'error';
 
 export interface HealthSummaryResponse {
+  pluginTasks: Awaited<ReturnType<typeof import('@/core/plugins/task-health').pluginTaskHealth>>;
   status: 'healthy' | 'degraded' | 'unhealthy';
   database: {
     status: ComponentStatus;

@@ -17,6 +17,7 @@ const stoppedTasks = {
   unpaidOrders: false,
   paymentReconciliation: false,
   pluginRecovery: false,
+  pluginTasks: false,
 };
 
 describe('backend process isolation', () => {
@@ -40,7 +41,7 @@ describe('backend process isolation', () => {
     eventId = event.id;
   }
 
-  it('A: starts exactly six worker tasks and stops every task and Redis connection', async () => {
+  it('A: starts exactly seven worker tasks and stops every task and Redis connection', async () => {
     await createOwnEvent();
     const runtime = await startWorkerRuntime({ healthPort: 0 });
     stop = runtime.stop;
@@ -49,7 +50,7 @@ describe('backend process isolation', () => {
     expect(connections.every(({ status }) => status === 'ready')).toBe(true);
     expect(connections.map(({ name }) => name).sort()).toEqual(['cache', 'heartbeat']);
     expect(runtime.state()).toEqual({
-      tasks: { eventDelivery: true, eventCleanup: true, notifications: true, unpaidOrders: true, paymentReconciliation: true, pluginRecovery: true },
+      tasks: { eventDelivery: true, eventCleanup: true, notifications: true, unpaidOrders: true, paymentReconciliation: true, pluginRecovery: true, pluginTasks: true },
       eventHandlerTimeoutMs: 30000,
       redisConnected: true,
       redisConnections: connections,

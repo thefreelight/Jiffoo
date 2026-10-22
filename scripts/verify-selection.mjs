@@ -10,6 +10,18 @@ export const localScriptTests = new Set([
   'scripts/plugin-sdk-standalone.test.mjs',
 ]);
 export const ciOnlyScriptTests = new Set(['scripts/verify-ci.test.mjs', 'scripts/update.test.mjs', 'scripts/local-trial.test.mjs']);
+export const ciOnlyVitestWrappers = new Set([
+  'apps/api/tests/core/backup-delivery.test.ts',
+  'apps/api/tests/core/compose-delivery.test.ts',
+  'apps/api/tests/core/local-trial.test.ts',
+  'apps/api/tests/core/release-identity.test.ts',
+  'apps/api/tests/core/update-delivery.test.ts',
+]);
+
+export function localQuickVitestExclusions(app) {
+  const prefix = `apps/${app}/`;
+  return [...ciOnlyVitestWrappers].filter(file => file.startsWith(prefix)).map(file => `--exclude=${file.slice(prefix.length)}`);
+}
 
 export function parseSelection(args, exists) {
   const selections = args.filter(arg => arg.startsWith('--test-files='));
@@ -20,6 +32,7 @@ export function parseSelection(args, exists) {
   const files = { api: [], admin: [], shop: [], scripts: [] };
   for (const file of selections.length ? selections[0].slice(13).split(',') : []) {
     if (file.split('/').some(part => part === '.' || part === '..') || !exists(file)) throw new Error(`Invalid explicit test file: ${file}`);
+    if (ciOnlyVitestWrappers.has(file)) throw new Error(`${file} is CI-only and cannot run through local quick verification.`);
     if (/^scripts\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.test\.mjs$/.test(file)) {
       if (ciOnlyScriptTests.has(file)) throw new Error(`${file} is CI-only and cannot run through local quick verification.`);
       if (!localScriptTests.has(file)) throw new Error(`${file} has not been audited for database/container-free local execution.`);
@@ -37,6 +50,7 @@ export function parseSelection(args, exists) {
 export function mandatorySuites(changed, scopes, catalogue, sharedConsumerApps = ['api', 'admin', 'shop']) {
   const additions = new Map();
   const add = (file, reason) => {
+    if (ciOnlyVitestWrappers.has(file)) return;
     if (!additions.has(file)) additions.set(file, { file, reason });
   };
   // Cross-scope mandatory suites intentionally expand the requested scope. Conservative matching

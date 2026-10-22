@@ -196,6 +196,8 @@ model CoreProcess {
   deathProof       Json?
   leases           PluginOperationLease[]
   operations       PluginMigrationOperation[]
+  tasks            PluginTask[]
+  taskSlots        PluginTaskExecutionSlot[]
 
   @@index([state, heartbeatAt])
   @@map("core_processes")
@@ -354,6 +356,7 @@ model PluginInstallation {
 
   enabled Boolean @default(true)
   protectionGeneration BigInt @default(0)
+  taskDependencyUnavailable Boolean @default(false)
 
   configJson Json?
 
@@ -370,6 +373,8 @@ model PluginInstallation {
   updatedAt DateTime @updatedAt
 
   plugin               PluginInstall          @relation(fields: [pluginSlug], references: [slug], onDelete: Cascade)
+  taskPrincipals       PluginPrincipal[]
+  tasks                PluginTask[]
 
   @@unique([pluginSlug, instanceKey])
   @@index([pluginSlug])

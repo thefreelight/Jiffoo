@@ -109,7 +109,7 @@ export async function executePluginMigrationFiles(operation: PluginMigrationOper
     const drainDeadline = await databaseNowMs() + (limits.drainTimeoutMs ?? PLUGIN_MIGRATION_LOCK_TIMEOUT_MS);
     let announcedDrain = false;
     for (;;) {
-      const markers = await client.query('SELECT EXISTS(SELECT 1 FROM public.plugin_operation_leases WHERE operation = $1) AS active', [`plugin-invocation:${operation.slug}`]);
+      const markers = await client.query('SELECT EXISTS(SELECT 1 FROM public.plugin_operation_leases WHERE operation = $1) OR EXISTS(SELECT 1 FROM public.plugin_task_execution_slots s JOIN public.plugin_installations i ON i.id=s."installationId" WHERE i."pluginSlug"=$2 AND s.state IN (\'ACTIVE\',\'LINGERING\')) AS active', [`plugin-invocation:${operation.slug}`, operation.slug]);
       // Expired markers are still evidence of unknown work; never infer completion from a TTL.
       if (!markers.rows[0].active) break;
       if (!announcedDrain) { observePluginMigrationDrain(operation.id); announcedDrain = true; }

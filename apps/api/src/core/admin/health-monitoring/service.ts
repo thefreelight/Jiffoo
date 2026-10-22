@@ -6,6 +6,7 @@ import { getPluginRuntimeState } from '@/core/admin/extension-installer/plugin-r
 import { performHealthCheck } from '@/utils/health-check';
 import type { HealthSummaryResponse } from './types';
 import { getWorkerHealthSummary } from '@/infra/worker-health';
+import { pluginTaskHealth } from '@/core/plugins/task-health';
 
 export class HealthMonitoringService {
   static async getHealthSummary(): Promise<HealthSummaryResponse> {
@@ -28,6 +29,7 @@ export class HealthMonitoringService {
       database,
       redis,
       worker,
+      pluginTasks: await pluginTaskHealth(),
       pluginRuntime: {
         status: 'ok',
         loaded: pluginRuntime.loaded,

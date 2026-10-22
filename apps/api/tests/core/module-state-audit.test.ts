@@ -8,6 +8,10 @@ type Entry = { category: 1 | 2 | 3; reason: string; rebuild?: { file: string; fu
 
 // Every entry is explicit: new names, including persistent class fields, require review.
 const codeConstants = [
+  'core/plugins/tasks.ts:DEFAULT_TASK_POLICY',
+  'core/plugins/tasks.ts:activeStates',
+  'core/plugins/tasks.ts:occupiedTaskSlots',
+  'core/plugins/task-worker.ts:RETRIES',
   'config/api-versions.ts:apiVersionConfig',
   'config/api-versions.ts:versionMetadata',
   'config/env.ts:env',
@@ -336,6 +340,11 @@ const runtimeHandles = [
   'server.ts:shutdownDeadlineExceeded',
 ] as const;
 const pluginState: Record<string, Entry> = {
+  'core/plugins/tasks.ts:scopes': { category: 2, reason: 'Invocation-local identity and claim authority; closed on actual handler settlement, never a cached identity.' },
+  'core/plugins/task-worker.ts:PluginTaskWorker.pending': { category: 2, reason: 'Actual in-flight task promises retain physical occupancy until settlement; PostgreSQL owns admission and policy.' },
+  'core/plugins/task-worker.ts:PluginTaskWorker.settledSlots': { category: 2, reason: 'Bounded slot IDs with confirmed local promise settlement await an idempotent PostgreSQL release acknowledgement.' },
+  'core/plugins/task-worker.ts:PluginTaskWorker.timer': { category: 2, reason: 'Worker polling timer is stopped before draining.' },
+  'core/plugins/task-worker.ts:PluginTaskWorker.poll': { category: 2, reason: 'Single in-flight admission/recovery operation, awaited during drain.' },
   'core/admin/extension-installer/contract-v1-runtime.ts:eventHandlers': { category: 1, reason: 'Registry-version reconciliation resets and rebuilds plugin-derived state.', rebuild: { file: 'core/admin/extension-installer/plugin-runtime.ts', functions: ["dropInternalRuntime","clearContractV1EventHandlers"] } },
   'core/admin/extension-installer/plugin-runtime.ts:internalRuntimes': { category: 1, reason: 'Registry-version reconciliation resets and rebuilds plugin-derived state.', rebuild: { file: 'core/admin/extension-installer/plugin-runtime.ts', functions: ["dropInternalRuntime","warmPluginInstanceRuntime"] } },
   'core/admin/extension-installer/plugin-failure.ts:lastRecordedAt': { category: 1, reason: 'Registry-version reconciliation resets and rebuilds plugin-derived state.', rebuild: { file: 'core/admin/extension-installer/plugin-failure.ts', functions: ["registerPluginStateReset","lastRecordedAt.delete"] } },

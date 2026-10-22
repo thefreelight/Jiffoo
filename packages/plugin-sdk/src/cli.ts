@@ -22,7 +22,7 @@ jiffoo-plugin pack --input <dir> --output <zip>
 jiffoo-plugin migrations --input <dir>
 jiffoo-plugin sign --input <unsigned.zip> --certificate <cert.json> --key <private.pem> --output <signed.zip>
 jiffoo-plugin upload --zip <path> [--enable] [--confirm-migrations]
-jiffoo-plugin dev [--enable] [--confirm-migrations]
+jiffoo-plugin dev [--enable] [--confirm-migrations] [--worker]
 upload/dev read JIFFOO_CORE_URL and JIFFOO_ADMIN_TOKEN from the environment only.
 dev requires JIFFOO_DEV_CERTIFICATE and JIFFOO_DEV_PRIVATE_KEY, plus the existing SDK test-root signing configuration.
 dev stops gracefully on Ctrl+C or closed non-interactive stdin.
@@ -111,15 +111,17 @@ async function main() {
   if (command === 'upload' || command === 'dev') {
     let enable = false;
     let confirmMigrations = false;
+    let worker = false;
     let zip: string | undefined;
     for (let i = 0; i < args.length; i++) {
       if (args[i] === '--enable' && !enable) enable = true;
       else if (args[i] === '--confirm-migrations' && !confirmMigrations) confirmMigrations = true;
+      else if (command === 'dev' && args[i] === '--worker' && !worker) worker = true;
       else if (command === 'upload' && args[i] === '--zip' && !zip && args[i + 1] && !args[i + 1].startsWith('--')) zip = args[++i];
       else failure('INVALID_ARGUMENTS');
     }
     if (command === 'upload') { if (!zip) failure('INVALID_ARGUMENTS'); await uploadZip(zip, enable, undefined, confirmMigrations); }
-    else await dev(enable, confirmMigrations);
+    else await dev(enable, confirmMigrations, worker);
   } else if (command === 'create') {
     await createPlugin(options(args, ['--slug', '--name', '--output'], ['--category']));
   } else if (command === 'keygen') {

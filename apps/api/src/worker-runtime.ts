@@ -27,8 +27,11 @@ import { prewarmThemePackages } from './core/storage/prewarm-theme-packages';
 import { assertThemeTestHooks } from './core/storage/theme-test-hooks';
 import { uploadedObjectStore } from './core/storage/uploaded-object-store';
 import path from 'node:path';
+import { PluginTaskWorker } from '@/core/plugins/task-worker';
+import { validateDatabaseUrl, validateRedisUrl } from '@/config/test-lane';
 
 export async function startWorkerRuntime(options: { redisUrl?: string; healthPort?: number } = {}) {
+  if (env.NODE_ENV === 'test') { validateDatabaseUrl(env.DATABASE_URL); validateRedisUrl(options.redisUrl ?? env.REDIS_URL); }
   workerShutdownDeadlineMs();
   assertThemeTestHooks();
   await uploadedObjectStore.initialize();
@@ -41,6 +44,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
   const heartbeatKey = `${WORKER_HEARTBEAT_PREFIX}${instanceId}`;
   const heartbeatRedis = new Redis(options.redisUrl ?? env.REDIS_URL, { lazyConnect: true, retryStrategy: () => null, maxRetriesPerRequest: 1, connectTimeout: 1000 });
   const eventDelivery = new EventDeliveryEngine(instanceId);
+  const pluginTasks = new PluginTaskWorker();
   let cleanupTimer: NodeJS.Timeout | null = null;
   let started = false;
   let heartbeatTimer: NodeJS.Timeout | null = null;
@@ -83,6 +87,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
       unpaidOrders: unpaidTimer !== null,
       paymentReconciliation: PaymentReconciliationJob.getStatus().hasScheduledUpdates,
       pluginRecovery: recovery?.isRunning() ?? false,
+      pluginTasks: !stopping,
     },
     eventHandlerTimeoutMs: eventDelivery.timeoutMs,
     redisConnected: redisCache.getConnectionStatus(),
@@ -92,6 +97,8 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     const deadlineMs = workerShutdownDeadlineMs();
     stopping = true;
     eventDelivery.stopClaiming();
+    pluginTasks.stopClaiming();
+    const pluginTasksStopped = trackDrain('plugin-task-drain', pluginTasks.drain());
     const eventStopped = trackDrain('event-drain', eventDelivery.stop());
     const recoveryStopped = recovery ? trackDrain('plugin-recovery-sweep', recovery.stop()) : undefined;
     started = false;
@@ -107,6 +114,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     const drain = (async () => {
       await trackDrain('core-process-draining', drainCoreProcess());
       observeWorkerShutdownForTest('draining', { bootNonce: coreProcessIdentity.bootNonce });
+      await pluginTasksStopped;
       await Promise.allSettled([recoveryStopped, healthClosed, trackDrain('plugin-database-close', closePluginDatabase()), ...pending, eventStopped, trackDrain('payment-reconciliation-drain', PaymentReconciliationJob.drain()), trackDrain('plugin-install-drain', drainPluginInstallOperations())]);
       await trackDrain('contract-invocation-drain', drainContractInvocations());
       await trackDrain('core-heartbeat-drain', drainCoreProcessHeartbeat());
@@ -119,6 +127,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     if (!drained) {
       const unsettled = [
         ...eventDelivery.unsettled(), ...unsettledContractInvocations(), ...unsettledNotifications(), ...unsettledPluginInstallOperations(),
+        ...pluginTasks.unsettled(),
         ...drainItems.values(),
         ...[...pendingLabels.values()].map(kind => ({ kind, id: instanceId })),
         ...(PaymentReconciliationJob.getStatus().inFlight ? [{ kind: 'payment-reconciliation', id: instanceId }] : []),
@@ -126,6 +135,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
       for (const item of unsettled) console.error(JSON.stringify({ event: 'worker-shutdown-unsettled', ...item }));
       console.error(JSON.stringify({ event: 'worker-shutdown-deadline', deadlineMs, unsettled: unsettled.length, bootNonce: coreProcessIdentity.bootNonce }));
       stopCoreProcessHeartbeat();
+      pluginTasks.abandon();
       abandonPluginDatabase();
       healthServer.closeAllConnections();
       heartbeatRedis.disconnect();
@@ -163,6 +173,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     await prewarmThemePackages();
     await recovery.run();
     await eventDelivery.start();
+    pluginTasks.start();
     await run(cleanupEvents, 'Event cleanup failed');
     cleanupTimer = setInterval(() => void run(cleanupEvents, 'Event cleanup failed'), EVENT_CLEANUP_INTERVAL_MS);
     await run(() => OrderService.cancelExpiredUnpaidOrders(), 'Unpaid order timeout failed');

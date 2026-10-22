@@ -1,3 +1,5 @@
+import { localQuickVitestExclusions } from './verify-selection.mjs';
+
 export const apiBuildStep = ['Build API', [['--filter', 'api', 'build']]];
 
 export function localSteps(databaseUrl, quick = false, selectedArgument = [], selectedFiles = { api: [], admin: [], shop: [] }, options) {
@@ -12,7 +14,7 @@ if (quick && options) {
     ...(database && options.drift ? [['Check Prisma migration drift', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'diff', '--from-url', databaseUrl, '--to-schema-datamodel', 'prisma/schema', '--exit-code']]]] : []),
     ...apps.filter(app => selectedFiles[app].length || !selectedArgument.length).map(app => [
       `Run ${app === 'api' ? 'API' : app === 'admin' ? 'Admin' : 'Shop'} tests`,
-      [['--filter', app, 'exec', 'vitest', 'run', ...selectedFiles[app], ...(!selectedArgument.length && app === 'api' ? ['--changed', '--passWithNoTests'] : [])]],
+      [['--filter', app, 'exec', 'vitest', 'run', ...localQuickVitestExclusions(app), ...selectedFiles[app], ...(!selectedArgument.length && app === 'api' ? ['--changed', '--passWithNoTests'] : [])]],
     ]),
   ];
 }
@@ -23,9 +25,9 @@ return quick
       ['Lint Shop', [['--filter', 'shop', 'lint']]],
       ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
       ...(selectedArgument.length
-        ? Object.entries(selectedFiles).filter(([, files]) => files.length).map(([app, files]) => [`Run ${app === 'api' ? 'API' : app === 'admin' ? 'Admin' : 'Shop'} tests`, [['--filter', app, 'exec', 'vitest', 'run', ...files]]])
+        ? Object.entries(selectedFiles).filter(([, files]) => files.length).map(([app, files]) => [`Run ${app === 'api' ? 'API' : app === 'admin' ? 'Admin' : 'Shop'} tests`, [['--filter', app, 'exec', 'vitest', 'run', ...localQuickVitestExclusions(app), ...files]]])
         : [
-            ['Run changed API tests', [['--filter', 'api', 'exec', 'vitest', 'run', '--changed', '--passWithNoTests']]],
+            ['Run changed API tests', [['--filter', 'api', 'exec', 'vitest', 'run', ...localQuickVitestExclusions('api'), '--changed', '--passWithNoTests']]],
             ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
           ]),
     ]

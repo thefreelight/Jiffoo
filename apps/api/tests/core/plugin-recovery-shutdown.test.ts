@@ -42,7 +42,7 @@ it('S API app.close and worker stop release process heartbeats, recovery tasks, 
       } });
       if (!outage) expect(result.state.redis).toBe('end');
       if (role === 'worker') {
-        expect(Object.values(result.state.worker.tasks)).toEqual(Array(6).fill(false));
+        expect(Object.values(result.state.worker.tasks)).toEqual(Array(7).fill(false));
         expect(result.state.worker.redisConnections.every((client: { status: string }) => client.status === 'end')).toBe(true);
       }
       const [code, signal] = await exited;

@@ -54,9 +54,11 @@ it.each([['disable', 'disable'], ['uninstall', 'uninstall'], ['disable', 'uninst
       }));
       const deadline = Date.now() + 2500;
       for (;;) {
-        const waiting = await control.query("SELECT count(*)::int AS count FROM pg_stat_activity WHERE wait_event = 'advisory' AND query LIKE '%pg_advisory_xact_lock%' AND query LIKE '%jiffoo:payment-provider-decision%'");
-        if (waiting.rows[0].count === 2) break;
-        if (Date.now() > deadline) throw new Error('Both real PostgreSQL transactions did not wait for the shared provider decision lock');
+        const waiting = await control.query("SELECT count(*) FILTER (WHERE query LIKE '%jiffoo:payment-provider-decision%')::int AS provider, count(*) FILTER (WHERE query LIKE '%jiffoo:plugin-service-graph%')::int AS graph FROM pg_stat_activity WHERE datname=current_database() AND wait_event = 'advisory' AND query LIKE '%pg_advisory_xact_lock%'");
+        // G1 takes the graph lock first: one writer waits on the held provider
+        // decision and the other must wait on that writer's graph admission.
+        if (waiting.rows[0].provider === 1 && waiting.rows[0].graph === 1) break;
+        if (Date.now() > deadline) throw new Error('Both real PostgreSQL transactions did not wait in graph/provider lock order');
         await new Promise(resolve => setTimeout(resolve, 10));
       }
       expect(await prisma.pluginInstallation.count({ where: { pluginSlug: { in: slugs }, enabled: true, deletedAt: null } })).toBe(2);

@@ -47,6 +47,10 @@ export async function verifyStandaloneSdk() {
     assert(!JSON.stringify(manifest).includes('workspace:'));
     assert(!Object.hasOwn(manifest.dependencies, 'shared'));
     const consumerRequire = createRequire(path.join(temporary, 'package.json'));
+    const publicSdk = consumerRequire('@jiffoo-core/plugin-sdk');
+    assert.equal(new publicSdk.TaskPermanentError('RENDER_REJECTED', 'Rendering rejected').name, 'TaskPermanentError');
+    assert.throws(() => new publicSdk.TaskPermanentError('invalid-code', 'Invalid'), /Invalid permanent task error/);
+    await assert.rejects(() => publicSdk.drainPluginTasks({ installationIds: ['unattached'], deadlineMs: 100, includeFinalFailure: true }), /not attached|NODE_ENV=test/);
     const cli = consumerRequire.resolve('@jiffoo-core/plugin-sdk/cli');
     assert.equal(cli, path.join(installed, 'dist/cli.js'));
     // npm exec exercises the installed jiffoo-plugin bin shim on Windows and Linux.
@@ -59,7 +63,7 @@ export async function verifyStandaloneSdk() {
     assert((await readFile(path.join(temporary, 'plugin.zip'))).length > 0);
     const migrations = JSON.parse(command(['migrations', '--input', project]));
     assert.deepEqual(migrations, JSON.parse(await readFile(path.join(project, 'manifest.json'), 'utf8')).database);
-    await writeFile(path.join(temporary, 'consumer.ts'), "import type { PluginContext, PluginUiDeclaration, PluginTaskDeclaration } from '@jiffoo-core/plugin-sdk';\ndeclare const ctx: PluginContext;\nconst slug: string = ctx.plugin.slug;\ndeclare const ui: PluginUiDeclaration;\ndeclare const task: PluginTaskDeclaration;\nvoid [slug, ui, task];\n");
+    await writeFile(path.join(temporary, 'consumer.ts'), "import { TaskPermanentError, drainPluginTasks, type PluginContext, type PluginUiDeclaration, type PluginTaskDeclaration } from '@jiffoo-core/plugin-sdk';\ndeclare const ctx: PluginContext;\nconst slug: string = ctx.plugin.slug;\ndeclare const ui: PluginUiDeclaration;\ndeclare const task: PluginTaskDeclaration;\nctx.tasks.handle('render', 1, async input => { const fence: string = input.fence; input.signal.throwIfAborted(); await input.heartbeat({done:true}); return {fence}; }, {concurrency:1,maxAttempts:3,maxRuntimeSeconds:300,onFinalFailure:{maxRuntimeSeconds:30,handler:async input => { const principal = input.principal; void principal; }}});\nconst error = new TaskPermanentError('RENDER_REJECTED','Rendering rejected');\nvoid [slug, ui, task, error, drainPluginTasks];\n");
     run(consumerRequire.resolve('typescript/bin/tsc'), ['--noEmit', '--strict', '--target', 'ES2022', '--module', 'Node16', '--moduleResolution', 'Node16', 'consumer.ts']);
     console.log('Standalone SDK: npm pack/install, installed bin create/pack/migrations, scaffold build and public types passed');
   } finally {

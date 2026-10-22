@@ -3,6 +3,7 @@ import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { isDeepStrictEqual } from 'node:util';
 import type { PluginInstall } from '@prisma/client';
 import { prisma } from '@/config/database';
+import { assertTaskPolicy, lockTaskScheduler } from '@/core/plugins/tasks';
 import { env } from '@/config/env';
 import { PLUGIN_MAX_ZIP_SIZE, readPluginZipEntries, verifyPluginZip, validatePluginMigrations, buildPluginUiAssetIndex } from 'shared/plugin-signing';
 import { migrationPlan } from './plugin-migration-executor';
@@ -49,6 +50,7 @@ export async function inspectPluginUpload(bytes: Buffer) {
   try { manifest = JSON.parse(manifestEntry.content.toString('utf8')); }
   catch { throw new PluginUploadError('INVALID_JSON', 400, 'Invalid manifest.json'); }
   validatePluginManifest(manifest);
+  if (manifest.tasks?.length) await prisma.$transaction(async tx => { const scheduler = await lockTaskScheduler(tx); assertTaskPolicy(manifest.tasks!, scheduler.policy); });
   const packageRoot = manifestEntry.path.slice(0, -'manifest.json'.length);
   const files = entries.filter(entry => !entry.path.endsWith('/')).map(entry => ({ ...entry, path: packageRoot && entry.path.startsWith(packageRoot) ? entry.path.slice(packageRoot.length) : entry.path }));
   validatePluginMigrations(manifest.database, files);

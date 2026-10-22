@@ -64,7 +64,7 @@ async function command(entry: string, args: string[], cwd: string, code: string)
   });
 }
 
-export async function dev(enable: boolean, confirmMigrations = false): Promise<void> {
+export async function dev(enable: boolean, confirmMigrations = false, startWorker = false): Promise<void> {
   const client = new CoreClient();
   if (!['localhost', '127.0.0.1', '[::1]'].includes(client.origin.hostname)) throw new SdkError('DEV_LOOPBACK_REQUIRED');
   const certificate = process.env.JIFFOO_DEV_CERTIFICATE;
@@ -75,6 +75,19 @@ export async function dev(enable: boolean, confirmMigrations = false): Promise<v
   try { await fs.access(key); } catch { throw new SdkError('DEV_PRIVATE_KEY_NOT_FOUND'); }
   const project = process.cwd();
   const original = await manifestAt(path.join(project, 'manifest.json'));
+  const workerEntry = process.env.JIFFOO_DEV_WORKER_ENTRY;
+  const workerDatabase = process.env.DATABASE_URL_TEST;
+  const workerRedis = process.env.REDIS_URL;
+  if (Array.isArray(original.tasks) && original.tasks.length && !startWorker) throw new SdkError('DEV_WORKER_REQUIRED');
+  if (startWorker) {
+    const database = workerDatabase ? new URL(workerDatabase) : undefined;
+    const redis = workerRedis ? new URL(workerRedis) : undefined;
+    const lane = process.env.LANE_ID || '';
+    if (!workerEntry || !path.isAbsolute(workerEntry) || path.basename(workerEntry) !== 'worker.js' || path.basename(path.dirname(workerEntry)) !== 'dist' || !database || !['postgres:', 'postgresql:'].includes(database.protocol) || !['localhost', '127.0.0.1', '[::1]'].includes(database.hostname)
+      || database.pathname !== `/jiffoo_core_test${lane ? `_${lane}` : ''}` || !redis || !['localhost', '127.0.0.1', '[::1]'].includes(redis.hostname)) throw new SdkError('DEV_WORKER_ENVIRONMENT_INVALID');
+    await fs.access(workerEntry);
+  }
+  const worker = startWorker ? spawn(process.execPath, [workerEntry!], { cwd: path.dirname(path.dirname(workerEntry!)), windowsHide: true, shell: false, stdio: ['ignore', 'ignore', 'ignore'], env: { ...process.env, NODE_ENV: 'test', DATABASE_URL: workerDatabase, REDIS_URL: workerRedis, JIFFOO_ADMIN_TOKEN: undefined, JIFFOO_CORE_URL: undefined } }) : undefined;
   const slug = `${original.slug}-dev`;
   if (getPluginManifestIssues({ ...original, slug }).some(issue => issue.path === 'slug')) throw new SdkError('DEV_SLUG_INVALID');
   const staging = path.join(project, 'dist/package');
@@ -101,6 +114,8 @@ export async function dev(enable: boolean, confirmMigrations = false): Promise<v
   }
   const onEnd = () => stop();
   const onSignal = () => stop();
+  worker?.once('error', () => { process.exitCode = 1; stop(); });
+  worker?.once('exit', () => { if (!stopping) { process.exitCode = 1; stop(); } });
 
   async function execute(): Promise<void> {
     if (stopping) return;
@@ -178,5 +193,7 @@ export async function dev(enable: boolean, confirmMigrations = false): Promise<v
     process.stdin.off('end', onEnd);
     process.off('SIGINT', onSignal);
     process.off('SIGTERM', onSignal);
+    // Only the child started by this SDK invocation is signalled.
+    if (worker && worker.exitCode === null && worker.signalCode === null) worker.kill('SIGTERM');
   }
 }
