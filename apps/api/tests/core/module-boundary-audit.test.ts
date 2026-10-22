@@ -89,6 +89,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/product-management -> settings': 'the admin product module reads system settings through the public settings service.',
   'admin/product-management -> upload': 'the admin product routes publish product media through the public upload service.',
   'admin/staff-management -> auth': 'the staff module uses the public account-recovery and email-verification services.',
+  'admin/storefront-code -> audit': 'the storefront-code module records audit events through the single audit write outlet.',
   'admin/system-settings -> settings': 'the old admin path is a pure re-export shim of the relocated settings module.',
   'admin/user-management -> admin/system-settings': 'the admin user module reads system settings through the re-export shim of the relocated settings module.',
   'admin/user-management -> audit': 'the admin user module records audit events through the audit outlet.',
@@ -241,13 +242,6 @@ type KnownViolation = {
 };
 
 const KNOWN_VIOLATIONS: KnownViolation[] = [
-  {
-    file: 'admin/storefront-code/service.ts',
-    module: 'admin/storefront-code -> admin/extension-installer',
-    specifier: '@/core/admin/extension-installer/theme-runtime',
-    reason: 'the storefront-code module imports the generic `audit` helper that happens to live in the theme runtime; that helper is an internal helper of another module and belongs in the neutral `core/audit` module.',
-    owner: 'B-BOUND-D follow-up: move the shared audit helper into `core/audit` and import it from there.',
-  },
   {
     file: 'admin/extension-installer/plugin-migration-executor.ts',
     table: 'admin_audit_events',
