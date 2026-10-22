@@ -5,6 +5,7 @@ import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { EmailVerificationService } from '@/core/auth/email-verification.service';
 import { AuthIdentityService } from '@/core/auth/identity-service';
+import { AuditService } from '@/core/audit/service';
 
 export class StaffManagementError extends ApiError {
   constructor(_message: string, code: ErrorCode, _statusCode: number) { super(code); }
@@ -32,8 +33,8 @@ function project(user: Prisma.UserGetPayload<{ select: typeof selectAdmin }>, in
 }
 async function audit(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], actorUserId: string, user: { id: string; email: string; username: string }, action: string, reinvite = false) {
   const actor = await tx.user.findUniqueOrThrow({ where: { id: actorUserId }, select: { email: true, username: true } });
-  await tx.adminStaffAuditLog.create({ data: { staffUserId: user.id, staffEmail: user.email, staffUsername: user.username,
-    actorUserId, actorEmail: actor.email, actorUsername: actor.username, action, ...(reinvite ? { metadata: { reinvite: true } } : {}) } });
+  await AuditService.writeStaffAudit(tx, { staffUserId: user.id, staffEmail: user.email, staffUsername: user.username,
+    actorUserId, actorEmail: actor.email, actorUsername: actor.username, action, ...(reinvite ? { metadata: { reinvite: true } } : {}) });
 }
 export class StaffManagementService {
   static async listStaff(page = 1, limit = 20, filter: StaffFilter = {}) {

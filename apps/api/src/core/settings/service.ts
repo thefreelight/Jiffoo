@@ -4,10 +4,36 @@ import { ApiError } from '@/utils/api-errors';
  * Handles platform-wide configuration settings using Prisma
  */
 
+import type { SystemSettings } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { isStoreTimezone } from 'shared';
 import { AuditService } from '@/core/audit/service';
+
+/**
+ * The transaction handle the settings module accepts for its writes.
+ */
+export type SettingsTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/**
+ * The minimal client surface the settings module needs for a column bump.
+ */
+export type SettingsClient = {
+    systemSettings: {
+        upsert(args: any): Promise<any>;
+    };
+};
+
+/**
+ * The installation-level columns of the `system_settings` row.
+ */
+export type InstallationSettingsUpdate = {
+    siteDescription?: string;
+    faviconUrl?: string;
+    maintenanceMode?: boolean;
+    allowRegistration?: boolean;
+    requireEmailVerification?: boolean;
+};
 
 // Keep types compatible with existing code
 type SettingValue = string | number | boolean | Record<string, any>;
@@ -102,6 +128,66 @@ export class SystemSettingsService {
         // Invalidate cache after update
         await CacheService.delete(SETTINGS_CACHE_KEY);
         await CacheService.delete(LOCALIZATION_CACHE_KEY);
+    }
+
+    /**
+     * Persist the settings blob exactly as the caller composed it.
+     *
+     * The blob is stored verbatim (no sanitising), so a module that owns one
+     * dedicated key inside the settings JSON can write it without the settings
+     * module rewriting the other keys. The `system_settings` row keeps a
+     * single writer: the settings module.
+     */
+    async saveSettingsBlob(settings: Record<string, any>): Promise<void> {
+        await prisma.systemSettings.update({
+            where: { id: SYSTEM_ID },
+            data: { settings: JSON.stringify(settings) },
+        });
+    }
+
+    /**
+     * Mark the platform as installed and store the installation settings.
+     */
+    async completeInstallation(tx: SettingsTransaction, installation: {
+        installedBy: string;
+        siteDescription?: string;
+        settings: Record<string, any>;
+        version: string;
+    }): Promise<void> {
+        await tx.systemSettings.upsert({
+            where: { id: SYSTEM_ID },
+            create: {
+                id: SYSTEM_ID, isInstalled: true, installedAt: new Date(),
+                installedBy: installation.installedBy, siteDescription: installation.siteDescription,
+                settings: installation.settings, version: installation.version,
+            },
+            update: {
+                isInstalled: true, installedAt: new Date(),
+                installedBy: installation.installedBy, siteDescription: installation.siteDescription,
+                settings: installation.settings, version: installation.version,
+            },
+        });
+    }
+
+    /**
+     * Update the installation-level flags of the `system_settings` row.
+     */
+    async updateInstallationSettings(data: InstallationSettingsUpdate): Promise<SystemSettings> {
+        return prisma.systemSettings.update({
+            where: { id: SYSTEM_ID },
+            data,
+        });
+    }
+
+    /**
+     * Bump the plugin registry version counter of the `system_settings` row.
+     */
+    async incrementPluginRegistryVersion(client: SettingsClient): Promise<void> {
+        await client.systemSettings.upsert({
+            where: { id: SYSTEM_ID },
+            create: { id: SYSTEM_ID, pluginRegistryVersion: 1 },
+            update: { pluginRegistryVersion: { increment: 1 } },
+        });
     }
 
     /**

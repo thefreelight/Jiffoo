@@ -6,6 +6,7 @@ import { PluginManagementService } from '@/core/admin/plugin-management/service'
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { packBuiltinPlugin } from './builtin-package';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
+import { AuditService } from '@/core/audit/service';
 
 const BUILTIN_SYNC_LOCK = 824_301_551;
 
@@ -32,15 +33,13 @@ export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
         const instance = await PluginManagementService.getDefaultInstance(manifest.slug);
         if (!instance) throw new Error(`Builtin plugin "${manifest.slug}" has no default installation`);
         await PluginManagementService.updateInstance(instance.id, { enabled: true });
-        await prisma.adminStaffAuditLog.create({
-          data: {
-            staffUserId: 'system',
-            staffEmail: 'system',
-            actorUserId: 'system',
-            actorEmail: 'system',
-            action: 'BUILTIN_PLUGIN_INSTALLED',
-            metadata: { slug: manifest.slug, version: manifest.version, source: 'builtin' },
-          },
+        await AuditService.writeStaffAudit(prisma, {
+          staffUserId: 'system',
+          staffEmail: 'system',
+          actorUserId: 'system',
+          actorEmail: 'system',
+          action: 'BUILTIN_PLUGIN_INSTALLED',
+          metadata: { slug: manifest.slug, version: manifest.version, source: 'builtin' },
         });
       }
     }

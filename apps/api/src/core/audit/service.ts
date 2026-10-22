@@ -29,6 +29,30 @@ export type AuditEntry = {
   failOnDuplicateId?: boolean;
 };
 
+/**
+ * The client surface the staff-audit outlet needs.
+ */
+export type StaffAuditTx = {
+  adminStaffAuditLog: {
+    create(args: any): Promise<any>;
+  };
+};
+
+/**
+ * One row of the legacy staff-audit log. The staff log is a second table next
+ * to `admin_audit_events`; both are written through this outlet.
+ */
+export type StaffAuditEntry = {
+  staffUserId: string;
+  staffEmail: string;
+  staffUsername?: string | null;
+  actorUserId?: string | null;
+  actorEmail?: string | null;
+  actorUsername?: string | null;
+  action: string;
+  metadata?: Prisma.InputJsonValue;
+};
+
 export class AuditService {
   /** Write one audit event. With `id` the row is created-if-absent (upsert with an empty
    *  update); without `id` it is a plain create. */
@@ -50,5 +74,13 @@ export class AuditService {
       return;
     }
     await tx.adminAuditEvent.create({ data });
+  }
+
+  /** Write one legacy staff-audit row. */
+  static async writeStaffAudit(tx: StaffAuditTx, entry: StaffAuditEntry): Promise<void> {
+    const { staffUserId, staffEmail, staffUsername, actorUserId, actorEmail, actorUsername, action, metadata } = entry;
+    await tx.adminStaffAuditLog.create({ data: {
+      staffUserId, staffEmail, staffUsername, actorUserId, actorEmail, actorUsername, action, metadata,
+    } });
   }
 }

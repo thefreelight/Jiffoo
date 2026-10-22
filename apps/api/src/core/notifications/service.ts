@@ -153,6 +153,54 @@ export async function createNotification(
   return dedupKey ? tx.notification.upsert({ where: { dedupKey }, create: data, update: {} }) : tx.notification.create({ data });
 }
 
+/**
+ * The notification fields a resend copies from the original row.
+ */
+export interface ResendableNotification {
+  id: string;
+  type: string;
+  channel: string;
+  recipientUserId: string | null;
+  toAddress: string;
+  locale: string;
+  subject: string;
+  html: string;
+  text: string;
+  relatedType: string | null;
+  relatedId: string | null;
+}
+
+/**
+ * Resend a notification: write the copy of the original row and stamp the
+ * idempotency key on it.
+ *
+ * The copy of a verification-style notification (email verification, staff
+ * invitation) is created by the auth module that owns the verification mail;
+ * `createCopy` performs that creation, this method then finds the created row
+ * and writes its dedup key. Every other notification is copied here.
+ */
+export async function resendNotification(
+  tx: NotificationTransaction,
+  original: ResendableNotification,
+  options: {
+    dedupKey: string;
+    createCopy?: (tx: NotificationTransaction) => Promise<void>;
+  },
+): Promise<string> {
+  if (options.createCopy) {
+    await options.createCopy(tx);
+    const created = await tx.notification.findFirstOrThrow({ where: { resentFromId: original.id }, orderBy: { createdAt: 'desc' } });
+    await tx.notification.update({ where: { id: created.id }, data: { dedupKey: options.dedupKey } });
+    return created.id;
+  }
+  const created = await tx.notification.create({ data: {
+    type: original.type, channel: original.channel, recipientUserId: original.recipientUserId, toAddress: original.toAddress,
+    locale: original.locale, subject: original.subject, html: original.html, text: original.text,
+    relatedType: original.relatedType, relatedId: original.relatedId, resentFromId: original.id, dedupKey: options.dedupKey,
+  } });
+  return created.id;
+}
+
 export async function createOrderNotification(
   tx: NotificationTransaction,
   type: Extract<NotificationType, 'order_confirmation' | 'payment_received' | 'shipped' | 'cancelled' | 'refunded'>,

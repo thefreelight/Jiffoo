@@ -24,6 +24,7 @@ import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { CacheService } from '@/core/cache/service';
 import { logger } from '@/core/logger/logger';
+import { systemSettingsService } from '@/core/settings/service';
 import { sendError } from '@/utils/response';
 
 // ---------------------------------------------------------------------------
@@ -116,10 +117,7 @@ async function saveTokenRecords(records: ApiTokenRecord[]): Promise<void> {
 
   current.apiTokens = records;
 
-  await prisma.systemSettings.update({
-    where: { id: 'system' },
-    data: { settings: JSON.stringify(current) },
-  });
+  await systemSettingsService.saveSettingsBlob(current);
 
   // Invalidate cache
   await CacheService.delete(CACHE_KEY);
