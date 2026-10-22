@@ -1,11 +1,11 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { getPluginManifestIssues } from '../../shared/src/extensions/plugin-contract';
+import { BUILTIN_PLUGIN_SLUGS, getPluginManifestIssues } from '../../shared/src/extensions/plugin-contract';
 import { redact } from './upload';
 
 const categories = ['integration', 'shipping', 'payment'] as const;
-const builtins = new Set(['manual-payment', 'free-shipping', 'zero-tax', 'manual-fulfillment', 'console-email']);
+const builtins = new Set<string>(BUILTIN_PLUGIN_SLUGS as readonly string[]);
 const reserved = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
 const taskRecipe = `import type { PluginContext } from '../types/index';
 

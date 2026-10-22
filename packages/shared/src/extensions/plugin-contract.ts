@@ -18,6 +18,20 @@ export const PLUGIN_LIFECYCLE_HOOKS = [
   'onUpgrade',
 ] as const;
 
+/**
+ * The plugin slugs that ship with the Core distribution itself.
+ *
+ * These slugs are reserved: only the built-in package source may install them.
+ * An upload or a marketplace install of one of these slugs is rejected.
+ */
+export const BUILTIN_PLUGIN_SLUGS = [
+  'manual-payment',
+  'free-shipping',
+  'zero-tax',
+  'manual-fulfillment',
+  'console-email',
+] as const;
+
 export type PluginRuntimeType = 'internal-fastify';
 
 export const INTERNAL_FASTIFY_HOST_PROTOCOL = 'internal-fastify-v1';
@@ -116,9 +130,17 @@ export interface PluginContext {
   config: Readonly<Record<string, unknown>>;
   /**
    * Parameterized queries and transactions admitted only during a live handler.
-   * Plugin code is trusted in-process code. The schema scope prevents accidental
-   * use of Core tables; it does not isolate a malicious plugin. Registration,
-   * detached timers and captured transactions after settlement cannot use this API.
+   *
+   * Plugin code is trusted in-process code. The plugin database applies a
+   * `search_path` default that points at the plugin's own schema, so an
+   * unqualified table name does not reach a Core table by accident. That is a
+   * naming convention, not a table-level boundary: a schema-qualified statement
+   * (`public.orders`) can still reach Core tables, and Core applies no
+   * table-level permission boundary to the plugin database role;
+   * it does not isolate a malicious plugin.
+   *
+   * Registration, detached timers and captured transactions after settlement
+   * cannot use this API.
    */
   readonly database: PluginDatabase;
   readonly tasks: PluginTasks;

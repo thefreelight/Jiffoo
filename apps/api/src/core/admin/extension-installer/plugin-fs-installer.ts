@@ -26,6 +26,7 @@ import {
   type ExtensionSource,
 } from './types';
 import { CacheService } from '@/core/cache/service';
+import { BUILTIN_PLUGIN_SLUGS as RESERVED_PLUGIN_SLUGS } from '@jiffoo/shared';
 import {
   extractZipToTemp,
   cleanupTemp,
@@ -87,13 +88,9 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
-const BUILTIN_PLUGIN_SLUGS = new Set([
-  'manual-payment',
-  'free-shipping',
-  'zero-tax',
-  'manual-fulfillment',
-  'console-email',
-]);
+// The reserved builtin slugs come from the shared contract; this module only
+// keeps the lookup set it uses for the reserved-slug check.
+const BUILTIN_PLUGIN_SLUGS = new Set<string>(RESERVED_PLUGIN_SLUGS as readonly string[]);
 
 /**
  * Plugin file system installer implementation
