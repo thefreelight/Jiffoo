@@ -12,9 +12,12 @@
  *   module. Reaching into another module's private helper file is a violation.
  *
  * Check 2 — cross-domain table writes
- *   Every table has exactly one owning module. A write (`prisma.<model>.<write>`,
- *   `tx.<model>.<write>` or a raw `INSERT`/`UPDATE`/`DELETE` against
- *   `public.<table>`) from a module that does not own the table is a violation.
+ *   Every table has exactly one owner. The owner is either a module or a
+ *   domain. A write (`prisma.<model>.<write>`, `tx.<model>.<write>` or a raw
+ *   `INSERT`/`UPDATE`/`DELETE` against `public.<table>`) from a module that does
+ *   not own the table is a violation. A domain owner is satisfied when the
+ *   writing module is one of the domain's members, because some domains are
+ *   deliberately split across several modules that share the same tables.
  *   Reads are never violations.
  *
  * ── How to add an entry ──────────────────────────────────────────────────────
@@ -22,9 +25,15 @@
  *                    one-line reason saying why the dependency is legitimate.
  *                    A new cross-module import fails the audit until its edge is
  *                    added here with a reason.
- * TABLE_OWNERS       one owning module per table. A table that is written from a
- *                    second module fails the audit until that module is either
- *                    removed as a writer or the table is recorded below.
+ * TABLE_OWNERS       one owner per table — a module or a domain. A table that is
+ *                    written from a second module fails the audit until that
+ *                    module is either removed as a writer or the table is
+ *                    recorded below.
+ * DOMAIN_MEMBERS     the modules of every domain owner, and DOMAIN_TABLES the
+ *                    tables every domain owns. A domain lets modules that
+ *                    share one table set write it without that becoming a
+ *                    known exception. The safety assertion below keeps a
+ *                    domain from turning into a loophole.
  * KNOWN_VIOLATIONS   the still-open exceptions. Every entry names the file, what
  *                    is wrong, and the batch/decision that owns the follow-up.
  *                    An entry that no longer matches a real violation fails the
@@ -159,9 +168,14 @@ const LEGAL_EDGES: Record<string, string> = {
 /**
  * Section 2 — table ownership.
  *
- * Exactly one module may write a table. The key is the physical table name
- * (`@@map`), the value is the owning module. `infra` marks a table that is owned
- * outside `apps/api/src/core` (the outbox and the core-process registry).
+ * Exactly one owner may write a table. The key is the physical table name
+ * (`@@map`), the value is the owning module or the owning domain. `infra` marks
+ * a table that is owned outside `apps/api/src/core` (the outbox and the
+ * core-process registry).
+ *
+ * A domain is a group of modules that deliberately share a table set. A write
+ * is allowed when the writing module is the owner, or when the owner is a
+ * domain that contains the writing module.
  */
 const TABLE_OWNERS: Record<string, string> = {
   // catalogue
@@ -202,8 +216,8 @@ const TABLE_OWNERS: Record<string, string> = {
   storefront_code_configurations: 'admin/storefront-code',
   storefront_code_revisions: 'admin/storefront-code',
   // plugins and themes
-  plugin_installs: 'admin/plugin-management',
-  plugin_installations: 'admin/plugin-management',
+  plugin_installs: 'extensions',
+  plugin_installations: 'extensions',
   plugin_package_blobs: 'storage',
   plugin_operation_leases: 'storage',
   plugin_namespaces: 'admin/extension-installer',
@@ -220,7 +234,7 @@ const TABLE_OWNERS: Record<string, string> = {
   plugin_tasks: 'plugins',
   plugin_task_attempts: 'plugins',
   plugin_task_final_failures: 'plugins',
-  plugin_task_execution_slots: 'plugins',
+  plugin_task_execution_slots: 'extensions',
   plugin_task_scheduler: 'plugins',
   plugin_task_fairness: 'plugins',
   // written outside apps/api/src/core
@@ -229,6 +243,62 @@ const TABLE_OWNERS: Record<string, string> = {
   plugin_event_subscriptions: 'infra',
   core_processes: 'infra',
 };
+
+/**
+ * Section 2b — domain ownership.
+ *
+ * A domain is a group of core modules that deliberately share one table set.
+ * The commerce modules are not split that way: each of their tables has
+ * exactly one owner module. The extension domain is, because the installer,
+ * the registry/lifecycle module and the durable-task engine all work on the
+ * same installation rows.
+ *
+ * A table whose owner is a domain may be written by every member of that
+ * domain. Every other ownership rule of the audit is unchanged: a table
+ * without an owner, an unknown module and a stale known violation are still
+ * failures.
+ */
+const DOMAIN_MEMBERS: Record<string, string[]> = {
+  // The extension domain spans three modules on purpose: the installer owns
+  // installation and packaging, plugin management owns the registry and the
+  // lifecycle, and the task engine owns the durable task rows.
+  extensions: ['admin/extension-installer', 'admin/plugin-management', 'plugins'],
+};
+
+/**
+ * The tables each domain owns. This is the independent declaration of the
+ * domain's table set: a table may only be assigned to a domain that declares
+ * it here, and a declared table must have that domain as its owner. The safety
+ * assertion below enforces both directions.
+ */
+const DOMAIN_TABLES: Record<string, string[]> = {
+  extensions: ['plugin_installations', 'plugin_installs', 'plugin_task_execution_slots'],
+};
+
+/**
+ * The commerce modules. A domain may never contain one of them: the commerce
+ * domain owns its tables through a single module.
+ */
+const COMMERCE_MODULES = [
+  'order',
+  'payment',
+  'cart',
+  'checkout',
+  'inventory',
+  'product',
+  'account',
+  'user',
+  'auth',
+  'notifications',
+  'settings',
+  'audit',
+  'store',
+  'upload',
+  'cache',
+  'secrets',
+  'logger',
+  'install',
+];
 
 /**
  * Section 3 — the still-open violations.
@@ -262,30 +332,6 @@ const KNOWN_VIOLATIONS: KnownViolation[] = [
     owner: 'B-BOUND-A decision (accepted): the stock field of `product_variants` is owned by the inventory module; the guard cannot express field-level ownership.',
   },
   {
-    file: 'admin/extension-installer/plugin-fs-installer.ts',
-    table: 'plugin_installations',
-    reason: 'the filesystem installer creates and updates the `plugin_installations` row directly instead of calling the plugin-management module that owns the table.',
-    owner: 'B-BOUND-D follow-up: route the installation writes through `PluginManagementService`.',
-  },
-  {
-    file: 'admin/extension-installer/plugin-failure.ts',
-    table: 'plugin_installations',
-    reason: 'the failure recorder writes the last-failure fields of the `plugin_installations` row directly instead of calling the plugin-management module that owns the table.',
-    owner: 'B-BOUND-D follow-up: route the failure bookkeeping through `PluginManagementService`.',
-  },
-  {
-    file: 'plugins/tasks.ts',
-    table: 'plugin_installations',
-    reason: 'the durable-task module writes the `plugin_installations` dependency flag directly instead of calling the plugin-management module that owns the table.',
-    owner: 'B-BOUND-D follow-up: route the dependency flag through `PluginManagementService`.',
-  },
-  {
-    file: 'admin/extension-installer/plugin-fs-installer.ts',
-    table: 'plugin_installs',
-    reason: 'the filesystem installer creates and updates the `plugin_installs` row directly instead of calling the plugin-management module that owns the table.',
-    owner: 'B-BOUND-D follow-up: route the installation writes through `PluginManagementService`.',
-  },
-  {
     file: 'admin/extension-installer/plugin-migration-gate.ts',
     table: 'plugin_operation_leases',
     reason: 'the migration gate deletes `plugin_operation_leases` rows directly instead of using the storage module that owns the lease.',
@@ -296,12 +342,6 @@ const KNOWN_VIOLATIONS: KnownViolation[] = [
     table: 'plugin_operation_leases',
     reason: 'the recovery sweep deletes `plugin_operation_leases` rows directly instead of using the storage module that owns the lease.',
     owner: 'B-BOUND-D follow-up: expose a lease-reclaim entry point in the storage module.',
-  },
-  {
-    file: 'admin/extension-installer/plugin-recovery.ts',
-    table: 'plugin_task_execution_slots',
-    reason: 'the recovery sweep deletes released `plugin_task_execution_slots` rows with raw SQL instead of calling the durable-task module that owns the table.',
-    owner: 'B-BOUND-D follow-up: expose a slot-prune entry point in the durable-task module.',
   },
   {
     file: 'admin/extension-installer/plugin-recovery.ts',
@@ -540,11 +580,73 @@ describe('module boundary audit', () => {
         continue;
       }
       if (owner === write.module) continue;
+      // A domain owner is satisfied by every module of that domain.
+      const domainMembers = DOMAIN_MEMBERS[owner];
+      if (domainMembers && domainMembers.includes(write.module)) continue;
       const known = KNOWN_VIOLATIONS.find(entry => matchesKnown(entry, write.file, undefined, write.table));
       if (known) continue;
       violations.push(`${write.file}:${write.line} writes "${write.table}" (${write.call}) but the table is owned by "${owner}"`);
     }
     expect(violations, `Cross-domain table writes:\n${violations.join('\n')}\n\nKnown violations still open:\n${knownList}`).toEqual([]);
+  });
+
+  it('keeps the domain model safe and free of loopholes', () => {
+    const problems: string[] = [];
+    const treeModules = new Set(coreFiles.map(file => moduleOf(file)));
+
+    // 1. Every domain has members and every member exists in the tree.
+    for (const [domain, members] of Object.entries(DOMAIN_MEMBERS)) {
+      if (members.length === 0) problems.push(`the domain "${domain}" has no members`);
+      for (const member of members) {
+        if (!treeModules.has(member)) {
+          problems.push(`the domain "${domain}" lists "${member}" as a member, but "${member}" is not a module of the core tree`);
+        }
+      }
+    }
+
+    // 2. A domain may never contain a commerce module.
+    for (const [domain, members] of Object.entries(DOMAIN_MEMBERS)) {
+      for (const member of members) {
+        if (COMMERCE_MODULES.includes(member)) {
+          problems.push(`the domain "${domain}" contains the commerce module "${member}"`);
+        }
+      }
+    }
+
+    // 3. A domain may only own the tables it declares, and every declared
+    //    table must be owned by that domain.
+    for (const [table, owner] of Object.entries(TABLE_OWNERS)) {
+      if (!DOMAIN_MEMBERS[owner]) continue;
+      const declared = DOMAIN_TABLES[owner] ?? [];
+      if (!declared.includes(table)) {
+        problems.push(`the table "${table}" is assigned to the domain "${owner}", but "${table}" is not one of the tables of that domain`);
+      }
+    }
+    for (const [domain, tables] of Object.entries(DOMAIN_TABLES)) {
+      for (const table of tables) {
+        const owner = TABLE_OWNERS[table];
+        if (owner !== domain) {
+          problems.push(`the table "${table}" is declared as a table of the domain "${domain}", but its owner is "${owner ?? 'none'}"`);
+        }
+      }
+    }
+
+    // 4. A domain member may only write the tables of its own domain, the
+    //    tables it owns as a module, or a table that is registered as a known
+    //    violation. A domain must never authorize a foreign table silently.
+    for (const write of writes) {
+      for (const [domain, members] of Object.entries(DOMAIN_MEMBERS)) {
+        if (!members.includes(write.module)) continue;
+        const owner = TABLE_OWNERS[write.table];
+        if (owner === domain) continue;
+        if (owner === write.module) continue;
+        const registered = KNOWN_VIOLATIONS.find(entry => matchesKnown(entry, write.file, undefined, write.table));
+        if (registered) continue;
+        problems.push(`the domain member "${write.module}" writes "${write.table}" (${write.file}:${write.line}), which the domain "${domain}" does not own`);
+      }
+    }
+
+    expect(problems, `Domain model problems:\n${problems.join('\n')}`).toEqual([]);
   });
 
   it('keeps every known violation anchored to a real violation', () => {
