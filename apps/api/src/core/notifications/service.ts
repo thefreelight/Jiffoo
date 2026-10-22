@@ -2,6 +2,8 @@ import { Prisma } from '@prisma/client';
 import { env } from '@/config/env';
 import { prisma } from '@/config/database';
 import { formatStoreDate } from 'shared';
+import { ApiError } from '@/utils/api-errors';
+import { OrderService } from '@/core/order/service';
 
 export type NotificationTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -158,11 +160,10 @@ export async function createOrderNotification(
   values: { instructions?: string; reason?: string } = {},
   options: { dedupKey?: string } = {},
 ): Promise<void> {
-  const order = await tx.order.findUniqueOrThrow({
-    where: { id: orderId },
-    select: { orderNumber: true, userId: true, customerEmail: true, user: { select: { email: true } } },
-  });
-  await createNotification(tx, type, order.userId, order.customerEmail || order.user.email, {
+  const order = await OrderService.getOrderProjection(tx, orderId);
+  if (!order) throw new ApiError('NOT_FOUND');
+  const user = await tx.user.findUnique({ where: { id: order.userId }, select: { email: true } });
+  await createNotification(tx, type, order.userId, order.customerEmail || user?.email || '', {
     orderId: order.orderNumber, ...values,
   }, { relatedType: 'order', relatedId: orderId, dedupKey: options.dedupKey });
 }

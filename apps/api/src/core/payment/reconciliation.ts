@@ -1,8 +1,6 @@
 import { prisma } from '@/config/database';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
-import { OrderStatus, PaymentStatus } from '@/core/order/types';
-import { recordOrderStatusHistory } from '@/core/order/status-history';
-import { assertOrderTransition } from '@/core/order/transition';
+import { OrderService } from '@/core/order/service';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { emitOrderPaidEvent } from './order-paid-event';
 import { emitEvent } from '@/infra/events/emit';
@@ -36,7 +34,6 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
   try {
     const run = async (tx: NotificationTransaction) => {
       await lockOrder(tx, identity.orderId); await lockPayment(tx, input.paymentId);
-      const order = await tx.order.findUniqueOrThrow({ where: { id: identity.orderId } });
       const payment = await tx.payment.findUniqueOrThrow({ where: { id: input.paymentId } });
       if (input.reviewConfirmation && payment.status !== 'REQUIRES_REVIEW') throw new ApiError('PAYMENT_REVIEW_ALREADY_RESOLVED');
       if (input.claimToken && payment.claimToken !== input.claimToken) return false;
@@ -55,46 +52,40 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
         }
         return false;
       }
-      const firstPaid = order.status === OrderStatus.PENDING && order.paymentStatus !== PaymentStatus.PAID && order.paymentStatus !== PaymentStatus.REFUNDED;
-      if (firstPaid) assertOrderTransition(order.status, OrderStatus.PROCESSING, order.paymentStatus);
-      const refundRequired = !firstPaid;
-      const refundReason = refundRequired ? order.status === OrderStatus.CANCELLED ? 'cancelled_order_payment' : 'additional_successful_payment' : null;
       const changed = await tx.payment.updateMany({
         where: { id: payment.id, ...(input.claimToken ? { claimToken: input.claimToken } : {}) },
         data: { status: 'SUCCEEDED', paymentIntentId: input.paymentIntentId || payment.paymentIntentId, providerEventId: input.providerEventId, ...clearLease },
       });
       if (!changed.count) return false;
+      // The order module owns the order state machine and records the outcome.
+      const decision = await OrderService.applyPaymentSucceeded(tx, {
+        orderId: identity.orderId,
+        reason: input.reason,
+        actorType: input.actorType || 'system',
+        actorId: input.actorId,
+        metadata: { ...input.metadata, ...(reference ? { manualReference: reference } : {}) },
+      });
       if (payment.reviewResolution === 'NOT_CHARGED') {
         await tx.adminAuditEvent.create({ data: { actorId: 'system', action: 'PAYMENT_REVIEW_CONTRADICTED',
           targetType: 'payment', targetId: payment.id,
-          summary: { paymentId: payment.id, orderId: order.id, providerPaymentId: input.providerPaymentId,
-            reviewReference: payment.reviewReference, refundRequired },
+          summary: { paymentId: payment.id, orderId: identity.orderId, providerPaymentId: input.providerPaymentId,
+            reviewReference: payment.reviewReference, refundRequired: decision.refundRequired },
         } });
       }
       await tx.paymentLedger.create({ data: {
-        paymentId: payment.id, orderId: order.id, eventType: 'SUCCEEDED', amount: payment.amount, currency: payment.currency,
+        paymentId: payment.id, orderId: identity.orderId, eventType: 'SUCCEEDED', amount: payment.amount, currency: payment.currency,
         provider: payment.paymentMethod, providerEventId: input.providerEventId, metadata: input.metadata as Prisma.InputJsonValue | undefined,
         providerKey: payment.providerKey, providerPaymentId: input.providerPaymentId,
-        actorType: input.actorType || 'system', manualReference: reference, refundRequired, refundReason, createdAt: await paymentNow(tx),
+        actorType: input.actorType || 'system', manualReference: reference, refundRequired: decision.refundRequired,
+        refundReason: decision.refundReason, createdAt: await paymentNow(tx),
       } });
-      let updatedOrder = order;
-      if (firstPaid) updatedOrder = await tx.order.update({ where: { id: order.id }, data: { status: OrderStatus.PROCESSING, paymentStatus: PaymentStatus.PAID } });
-      else if (order.status === OrderStatus.CANCELLED && order.paymentStatus !== PaymentStatus.REFUNDED)
-        updatedOrder = await tx.order.update({ where: { id: order.id }, data: { paymentStatus: PaymentStatus.PAID } });
-      await recordOrderStatusHistory(tx, {
-        orderId: order.id, fromStatus: order.status, toStatus: updatedOrder.status,
-        fromPaymentStatus: order.paymentStatus, toPaymentStatus: updatedOrder.paymentStatus,
-        reason: refundRequired ? order.status === OrderStatus.CANCELLED ? 'refund_required_after_cancelled_order_payment' : 'refund_required_after_additional_payment'
-          : input.reason || 'payment_succeeded', actorType: input.actorType || 'system', actorId: input.actorId,
-        metadata: { ...input.metadata, ...(reference ? { manualReference: reference } : {}), refundRequired },
-      });
-      if (firstPaid) {
-        await emitOrderPaidEvent(tx, order.id, {
+      if (!decision.refundRequired) {
+        const paid = await emitOrderPaidEvent(tx, identity.orderId, {
           paymentId: payment.id, paymentMethod: payment.paymentMethod, paymentIntentId: input.paymentIntentId || payment.paymentIntentId,
           sessionId: payment.sessionId, providerEventId: input.providerEventId, metadata: (payment.metadata || {}) as Record<string, unknown>, actorId: input.actorId,
         });
         await emitEvent(tx, 'payment.succeeded', 1, payment.id, {
-          paymentId: payment.id, orderId: order.id, userId: order.userId, amount: Number(payment.amount), currency: payment.currency, metadata: payment.metadata || {},
+          paymentId: payment.id, orderId: identity.orderId, userId: paid?.userId ?? '', amount: Number(payment.amount), currency: payment.currency, metadata: payment.metadata || {},
         }, { actorId: input.actorId });
       }
       return true;
@@ -109,7 +100,8 @@ export async function recordPaymentFailed(input: { paymentId: string; providerEv
   try {
     const run = async (tx: NotificationTransaction) => {
       await lockOrder(tx, identity.orderId); await lockPayment(tx, input.paymentId);
-      const order = await tx.order.findUniqueOrThrow({ where: { id: identity.orderId } });
+      const projection = await OrderService.getOrderProjection(tx, identity.orderId);
+      if (!projection) throw new ApiError('NOT_FOUND');
       const payment = await tx.payment.findUniqueOrThrow({ where: { id: input.paymentId } });
       if (['SUCCEEDED','FAILED','CANCELLED','EXPIRED'].includes(payment.status) || input.claimToken && payment.claimToken !== input.claimToken) return false;
       if (await tx.paymentLedger.findFirst({ where: { paymentId: payment.id, providerEventId: input.providerEventId, eventType: 'FAILED' } })) return false;
@@ -119,21 +111,34 @@ export async function recordPaymentFailed(input: { paymentId: string; providerEv
       });
       if (!changed.count) return false;
       await tx.paymentLedger.create({ data: {
-        paymentId: payment.id, orderId: order.id, eventType: 'FAILED', amount: payment.amount, currency: payment.currency,
+        paymentId: payment.id, orderId: identity.orderId, eventType: 'FAILED', amount: payment.amount, currency: payment.currency,
         provider: payment.paymentMethod, providerEventId: input.providerEventId, actorType: input.actorType || 'system', createdAt: await paymentNow(tx),
       } });
-      if (order.paymentStatus !== PaymentStatus.PAID && order.paymentStatus !== PaymentStatus.REFUNDED) {
-        const updated = await tx.order.update({ where: { id: order.id }, data: { paymentStatus: PaymentStatus.FAILED } });
-        await recordOrderStatusHistory(tx, {
-          orderId: order.id, fromStatus: order.status, toStatus: updated.status, fromPaymentStatus: order.paymentStatus,
-          toPaymentStatus: updated.paymentStatus, reason: 'payment_failed', actorType: input.actorType || 'system', actorId: input.actorId,
-        });
-      }
-      await emitEvent(tx, 'payment.failed', 1, payment.id, { paymentId: payment.id, orderId: order.id, userId: order.userId, amount: Number(payment.amount), currency: payment.currency, metadata: payment.metadata || {} }, { actorId: input.actorId });
+      // The order module owns the order state machine and records the outcome.
+      await OrderService.applyPaymentFailed(tx, {
+        orderId: identity.orderId, actorType: input.actorType || 'system', actorId: input.actorId,
+      });
+      await emitEvent(tx, 'payment.failed', 1, payment.id, { paymentId: payment.id, orderId: identity.orderId, userId: projection.userId, amount: Number(payment.amount), currency: payment.currency, metadata: payment.metadata || {} }, { actorId: input.actorId });
       return true;
     };
     return transaction ? await run(transaction) : await prisma.$transaction(run);
   } catch (error) { if (isUniqueConstraintError(error)) return false; throw error; }
+}
+
+
+/**
+ * Close a payment attempt that an administrator confirmed was not charged.
+ * The payment module owns the payment table, so the resolution is applied here.
+ */
+export async function recordPaymentNotCharged(
+  input: { paymentId: string; actorId: string; reference: string },
+  transaction: NotificationTransaction,
+): Promise<void> {
+  await transaction.payment.update({ where: { id: input.paymentId }, data: {
+    status: 'FAILED', failureReason: 'admin_confirmed_not_charged', reviewResolution: 'NOT_CHARGED',
+    reviewResolvedAt: new Date(), reviewResolvedBy: input.actorId, reviewReference: input.reference,
+    claimToken: null, claimedBy: null, leaseUntil: null,
+  } });
 }
 
 

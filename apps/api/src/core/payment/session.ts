@@ -5,6 +5,7 @@ import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { createNotification } from '@/core/notifications/service';
+import { OrderService } from '@/core/order/service';
 import { lockOrder, lockPayment } from './locks';
 import { paymentNow, PAYMENT_SESSION_LIFETIME_MS } from './clock';
 import { decimalToMinor } from './minor-units';
@@ -60,7 +61,7 @@ export async function createPaymentSession(input: SessionInput) {
       expiresAt: new Date(now.getTime() + PAYMENT_SESSION_LIFETIME_MS),
     } });
     await tx.paymentLedger.create({ data: { paymentId: payment.id, orderId: order.id, eventType: 'CREATED', amount: payment.amount, currency: payment.currency, provider: payment.paymentMethod, idempotencyKey: requestKey, createdAt: now } });
-    await tx.order.update({ where: { id: order.id }, data: { paymentAttempts: attemptNumber, lastPaymentAttemptAt: now, lastPaymentMethod: input.pluginSlug } });
+    await OrderService.recordPaymentAttempt(tx, { orderId: order.id, attemptNumber, at: now, method: input.pluginSlug });
     return { payment, order, owner: true };
   });
   if (!reservation.owner) return response(reservation.payment);

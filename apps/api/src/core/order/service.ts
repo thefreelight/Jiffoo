@@ -22,18 +22,24 @@ import {
   OrderStatus,
   PaymentStatus,
   OrderStatusType,
+  PaymentStatusType,
   OrderCreationResult,
+  OrderProjection,
+  OrderPaidPayload,
   countryRequiresStatePostal,
   normalizeCountryCode,
 } from './types';
 import { recordOrderStatusHistory } from './status-history';
 import { assertOrderTransition } from './transition';
 import { lockOrder } from '@/core/payment/locks';
+import { CartService } from '@/core/cart/service';
+import { ProductService, type CatalogProductProjection } from '@/core/product/service';
+import { PaymentService } from '@/core/payment/service';
 
 import { systemSettingsService } from '../admin/system-settings/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { InventoryService } from '@/core/inventory/service';
-import { emitEvent } from '@/infra/events/emit';
+import { emitEvent, type EventTransaction } from '@/infra/events/emit';
 import { CheckoutService } from '@/core/checkout/service';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
@@ -43,6 +49,38 @@ import { createCatalogSnapshot, readCatalogSnapshot, snapshotProductName } from 
 import { normalizeOrderIdempotencyKey, orderRequestFingerprint } from './idempotency';
 
 type JsonRecord = Record<string, unknown>;
+
+/**
+ * Transaction surface required by the order module. Both the plain Prisma
+ * client and a transaction client satisfy it, so the caller passes its own
+ * transaction client straight through.
+ */
+export type OrderWriteTx = {
+  order: {
+    findUnique(args: any): Promise<any>;
+    findFirst(args: any): Promise<any>;
+    findMany(args: any): Promise<any>;
+    update(args: any): Promise<any>;
+    updateMany(args: any): Promise<{ count: number }>;
+  };
+  orderStatusHistory: {
+    create(args: any): Promise<any>;
+  };
+  shipment: {
+    create(args: any): Promise<any>;
+  };
+  eventRecord: {
+    create(args: any): Promise<any>;
+  };
+  $queryRaw: (...args: any[]) => Promise<any>;
+};
+
+/** Read surface of the order module used by the public projections. */
+export type OrderReadTx = {
+  order: {
+    findUnique(args: any): Promise<any>;
+  };
+};
 
 export function parseJsonRecord(value: unknown): JsonRecord | null {
   if (!value) return null;
@@ -61,6 +99,11 @@ export function parseJsonRecord(value: unknown): JsonRecord | null {
   }
 
   return null;
+}
+
+/** Parse a JSON value into an object, falling back to an empty object. */
+function parseJsonObject(value: unknown): JsonRecord {
+  return parseJsonRecord(value) ?? {};
 }
 
 const shipmentItemSelect = {
@@ -200,13 +243,10 @@ export class OrderService {
 
     // Batch fetch all products to avoid N+1 query problem
     const productIds = data.items.map(item => item.productId);
-    const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
-      include: { variants: true }
-    });
+    const catalog = await ProductService.getSellableCatalog(prisma, productIds);
 
     // Create a map for O(1) lookup
-    const productMap = new Map(products.map(p => [p.id, p]));
+    const productMap = catalog;
     const requestedQuantityByVariant = new Map<string, number>();
     for (const item of data.items) {
       if (!item.variantId) continue;
@@ -215,10 +255,6 @@ export class OrderService {
         (requestedQuantityByVariant.get(item.variantId) || 0) + item.quantity
       );
     }
-
-    const stockMap = await InventoryService.getAvailableStockByVariantIds(
-      [...requestedQuantityByVariant.keys()]
-    );
 
     for (const item of data.items) {
       const product = productMap.get(item.productId);
@@ -252,7 +288,7 @@ export class OrderService {
 
       const unitPrice = currentLinePrice(variant, currency).unitPrice;
       const requestedQuantity = requestedQuantityByVariant.get(variantId) ?? item.quantity;
-      const stock = stockMap.get(variantId) ?? 0;
+      const stock = variant.stock;
 
       if (stock < requestedQuantity) {
         throw Object.assign(new ApiError('BAD_REQUEST'), { message: `Insufficient stock for variant ${variant.name} of product: ${product.name}` });
@@ -334,11 +370,7 @@ export class OrderService {
         this.assertIdempotentReplay(existing, userId, requestFingerprint);
         return { order: existing, replayed: true };
       }
-      const catalog = await tx.product.findMany({
-        where: { id: { in: productIds } },
-        include: { variants: true, translations: true },
-      });
-      const catalogMap = new Map(catalog.map(product => [product.id, product]));
+      const catalogMap = await ProductService.getSellableCatalog(tx, productIds);
       const created = await tx.order.create({
         data: {
           ...await allocateOrderNumber(tx),
@@ -383,7 +415,18 @@ export class OrderService {
                 variantId: item.variantId,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
-                catalogSnapshot: createCatalogSnapshot(product, variant),
+                catalogSnapshot: createCatalogSnapshot({
+                  id: product.id,
+                  name: product.name,
+                  productType: product.productType,
+                  typeData: product.typeData as Prisma.JsonValue,
+                  translations: product.translations,
+                }, {
+                  id: variant.id,
+                  name: variant.name,
+                  skuCode: variant.skuCode,
+                  attributes: variant.attributes as Prisma.JsonValue,
+                }),
                 lineTotal: new Prisma.Decimal(item.unitPrice).mul(item.quantity),
                 taxAmount: Number(minorToDecimal(tax.lines.find((line) => line.lineId === String(index))?.taxMinor ?? 0, currency)),
               };
@@ -400,20 +443,7 @@ export class OrderService {
       for (const item of orderItems) {
         await InventoryService.decrementStock(tx, item.variantId, item.quantity);
       }
-      const cart = await tx.cart.findUnique({ where: { userId }, include: { items: true } });
-      if (cart) {
-        for (const line of cart.items) {
-          const purchased = orderItems
-            .filter((item) => item.productId === line.productId && item.variantId === line.variantId)
-            .reduce((total, item) => total + item.quantity, 0);
-          if (!purchased) continue;
-          if (line.quantity <= purchased) {
-            await tx.cartItem.delete({ where: { id: line.id } });
-          } else {
-            await tx.cartItem.update({ where: { id: line.id }, data: { quantity: { decrement: purchased } } });
-          }
-        }
-      }
+      await CartService.consumePurchasedItems(tx, userId, orderItems);
 
       await recordOrderStatusHistory(tx, {
         orderId: created.id,
@@ -451,7 +481,7 @@ export class OrderService {
       }
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
         if (/order_items_(productId|variantId)_fkey/.test(String(error.meta?.field_name)) ||
-            await prisma.productVariant.count({ where: { OR: orderItems.map(item => ({ id: item.variantId, productId: item.productId })) } }) < new Set(orderItems.map(item => item.variantId)).size) {
+            this.countCatalogVariants(catalog, orderItems) < new Set(orderItems.map(item => item.variantId)).size) {
           throw new ApiError('BAD_REQUEST');
         }
       }
@@ -459,6 +489,24 @@ export class OrderService {
     });
 
     return { order: this.formatOrderResponse(result.order, currency), replayed: result.replayed };
+  }
+
+  /**
+   * Number of requested order variants that the catalog projection knows.
+   * Mirrors the foreign key guard of the order items without a second query.
+   */
+  private static countCatalogVariants(
+    catalog: Map<string, CatalogProductProjection>,
+    orderItems: Array<{ productId: string; variantId: string }>,
+  ): number {
+    const known = new Set<string>();
+    for (const product of catalog.values()) {
+      for (const variant of product.variants) known.add(`${product.id}:${variant.id}`);
+    }
+    const pairs = new Set(orderItems.map(item => `${item.productId}:${item.variantId}`));
+    let count = 0;
+    for (const pair of pairs) if (known.has(pair)) count += 1;
+    return count;
   }
 
   /**
@@ -576,13 +624,10 @@ export class OrderService {
     }
 
     const currency = await systemSettingsService.getShopCurrency();
-    const payment = await prisma.payment.findFirst({
-      where: { orderId: order.id },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true, sessionId: true, actionJson: true, status: true },
-    });
+    const summary = await PaymentService.getOrderPaymentSummary(order.id);
+    const payment = summary.payment;
     const response = this.formatOrderResponse(order, currency);
-    const action = payment?.actionJson;
+    const action = payment?.actionJson as Prisma.JsonValue | undefined | null;
     response.paymentInstructions = order.paymentStatus === PaymentStatus.PENDING &&
       order.status !== OrderStatus.CANCELLED && action && typeof action === 'object' &&
       !Array.isArray(action) && action.type === 'instructions' && typeof action.text === 'string'
@@ -590,7 +635,7 @@ export class OrderService {
     response.paymentSessionId = payment?.sessionId ?? null;
     response.paymentId = payment?.id ?? null;
     response.paymentAttemptState = payment?.status ?? null;
-    response.refundRequired = await prisma.paymentLedger.count({ where: { orderId: order.id, eventType: 'SUCCEEDED', refundRequired: true, refunds: { none: { status: 'COMPLETED' } } } }) > 0;
+    response.refundRequired = summary.refundRequired;
     return response;
   }
 
@@ -625,10 +670,7 @@ export class OrderService {
       for (const item of order.items) {
         await InventoryService.incrementStock(tx, item.variantId, item.quantity);
       }
-      await tx.payment.updateMany({
-        where: { orderId, status: { in: ['CREATING','PENDING'] } },
-        data: { status: 'CANCELLED', claimToken: null, claimedBy: null, leaseUntil: null },
-      });
+      await PaymentService.cancelPendingForOrder(tx, orderId);
 
       const updated = await tx.order.update({
         where: { id: orderId },
@@ -682,7 +724,7 @@ export class OrderService {
         });
         if (result.count === 0) continue;
         for (const item of order.items) await InventoryService.incrementStock(tx, item.variantId, item.quantity);
-        await tx.payment.updateMany({ where: { orderId: order.id, status: { in: ['CREATING','PENDING'] } }, data: { status: 'CANCELLED', claimToken: null, claimedBy: null, leaseUntil: null } });
+        await PaymentService.cancelPendingForOrder(tx, order.id);
         await recordOrderStatusHistory(tx, {
           orderId: order.id,
           fromStatus: order.status as PrismaOrderStatus,
@@ -703,6 +745,377 @@ export class OrderService {
       }
       return cancelled;
     }, { timeout: 60_000 });
+  }
+
+  /**
+   * Apply a successful capture to the order.
+   *
+   * The order module owns the order state machine: it evaluates the outcome
+   * against the (locked) order row, applies the transition, writes the status
+   * history and returns the decision so the payment module can record the
+   * matching payment ledger entry.
+   */
+  static async applyPaymentSucceeded(tx: OrderWriteTx, input: {
+    orderId: string;
+    reason?: string;
+    actorType: string;
+    actorId?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<{
+    status: OrderStatusType;
+    paymentStatus: PaymentStatusType;
+    changed: boolean;
+    refundRequired: boolean;
+    refundReason: string | null;
+  }> {
+    const order = await tx.order.findUnique({ where: { id: input.orderId } });
+    if (!order) throw new ApiError('NOT_FOUND');
+    const firstPaid = order.status === OrderStatus.PENDING
+      && order.paymentStatus !== PaymentStatus.PAID
+      && order.paymentStatus !== PaymentStatus.REFUNDED;
+    if (firstPaid) assertOrderTransition(order.status, OrderStatus.PROCESSING, order.paymentStatus);
+    const refundRequired = !firstPaid;
+    const refundReason = refundRequired
+      ? order.status === OrderStatus.CANCELLED ? 'cancelled_order_payment' : 'additional_successful_payment'
+      : null;
+
+    let status = order.status as OrderStatusType;
+    let paymentStatus = order.paymentStatus as PaymentStatusType;
+    let changed = false;
+    if (firstPaid) {
+      const updated = await tx.order.update({
+        where: { id: order.id },
+        data: { status: OrderStatus.PROCESSING, paymentStatus: PaymentStatus.PAID },
+      });
+      status = updated.status as OrderStatusType;
+      paymentStatus = updated.paymentStatus as PaymentStatusType;
+      changed = true;
+    } else if (order.status === OrderStatus.CANCELLED && order.paymentStatus !== PaymentStatus.REFUNDED) {
+      const updated = await tx.order.update({
+        where: { id: order.id },
+        data: { paymentStatus: PaymentStatus.PAID },
+      });
+      status = updated.status as OrderStatusType;
+      paymentStatus = updated.paymentStatus as PaymentStatusType;
+      changed = true;
+    }
+
+    await recordOrderStatusHistory(tx, {
+      orderId: order.id,
+      fromStatus: order.status as PrismaOrderStatus,
+      toStatus: status as PrismaOrderStatus,
+      fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+      toPaymentStatus: paymentStatus as PrismaOrderPaymentStatus,
+      reason: refundRequired
+        ? order.status === OrderStatus.CANCELLED
+          ? 'refund_required_after_cancelled_order_payment'
+          : 'refund_required_after_additional_payment'
+        : input.reason || 'payment_succeeded',
+      actorType: input.actorType,
+      actorId: input.actorId,
+      metadata: { ...input.metadata, refundRequired },
+    });
+
+    return { status, paymentStatus, changed, refundRequired, refundReason };
+  }
+
+  /**
+   * Apply a failed capture to the order. The order status itself is unchanged,
+   * only the payment status moves to FAILED when the order is not paid or
+   * refunded yet.
+   */
+  static async applyPaymentFailed(tx: OrderWriteTx, input: {
+    orderId: string;
+    actorType: string;
+    actorId?: string;
+  }): Promise<{ status: OrderStatusType; paymentStatus: PaymentStatusType; changed: boolean }> {
+    const order = await tx.order.findUnique({ where: { id: input.orderId } });
+    if (!order) throw new ApiError('NOT_FOUND');
+    if (order.paymentStatus === PaymentStatus.PAID || order.paymentStatus === PaymentStatus.REFUNDED) {
+      return {
+        status: order.status as OrderStatusType,
+        paymentStatus: order.paymentStatus as PaymentStatusType,
+        changed: false,
+      };
+    }
+    const updated = await tx.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: PaymentStatus.FAILED },
+    });
+    await recordOrderStatusHistory(tx, {
+      orderId: order.id,
+      fromStatus: order.status as PrismaOrderStatus,
+      toStatus: updated.status as PrismaOrderStatus,
+      fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+      toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
+      reason: 'payment_failed',
+      actorType: input.actorType,
+      actorId: input.actorId,
+    });
+    return {
+      status: updated.status as OrderStatusType,
+      paymentStatus: updated.paymentStatus as PaymentStatusType,
+      changed: true,
+    };
+  }
+
+  /** Record a payment attempt on the order. */
+  static async recordPaymentAttempt(tx: OrderWriteTx, input: {
+    orderId: string;
+    attemptNumber: number;
+    at: Date;
+    method: string;
+  }): Promise<void> {
+    await tx.order.update({
+      where: { id: input.orderId },
+      data: {
+        paymentAttempts: input.attemptNumber,
+        lastPaymentAttemptAt: input.at,
+        lastPaymentMethod: input.method,
+      },
+    });
+  }
+
+  /**
+   * Order side of a refund: the order becomes refunded and the status history
+   * records the refund.
+   */
+  static async markRefunded(tx: OrderWriteTx, input: {
+    orderId: string;
+    reason?: string;
+    actorId: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<{ status: OrderStatusType; paymentStatus: PaymentStatusType }> {
+    const order = await tx.order.findUnique({ where: { id: input.orderId } });
+    if (!order) throw new ApiError('NOT_FOUND');
+    if (order.paymentStatus !== PaymentStatus.PAID) throw new ApiError('INVALID_ORDER_TRANSITION');
+    assertOrderTransition(order.status, OrderStatus.REFUNDED, order.paymentStatus);
+    const updated = await tx.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: PaymentStatus.REFUNDED, status: OrderStatus.REFUNDED },
+    });
+    await recordOrderStatusHistory(tx, {
+      orderId: updated.id,
+      fromStatus: order.status as PrismaOrderStatus,
+      toStatus: updated.status as PrismaOrderStatus,
+      fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+      toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
+      reason: input.reason ?? 'admin_refund',
+      actorType: 'admin',
+      actorId: input.actorId,
+      metadata: input.metadata,
+    });
+    return {
+      status: updated.status as OrderStatusType,
+      paymentStatus: updated.paymentStatus as PaymentStatusType,
+    };
+  }
+
+  /**
+   * Ship the order: create the shipment with its items, move the order to
+   * SHIPPED, write the status history and emit order.fulfilled.
+   */
+  static async shipOrder(tx: OrderWriteTx, input: {
+    orderId: string;
+    carrier: string;
+    trackingNumber: string;
+    items?: Array<{ orderItemId: string; quantity: number }>;
+  }): Promise<void> {
+    const order = await tx.order.findUnique({ where: { id: input.orderId }, include: { items: true } });
+    if (!order) throw new ApiError('NOT_FOUND');
+    assertOrderTransition(order.status, OrderStatus.SHIPPED, order.paymentStatus);
+
+    const shipment = await tx.shipment.create({
+      data: {
+        orderId: input.orderId,
+        carrier: input.carrier,
+        trackingNumber: input.trackingNumber,
+        status: 'SHIPPED',
+        shippedAt: new Date(),
+        items: input.items ? {
+          create: input.items.map(item => ({
+            orderItemId: item.orderItemId,
+            quantity: item.quantity,
+          })),
+        } : undefined,
+      },
+      include: { items: true },
+    });
+
+    const updated = await tx.order.update({
+      where: { id: input.orderId },
+      data: { status: OrderStatus.SHIPPED },
+    });
+    await emitEvent(tx as unknown as EventTransaction, 'order.fulfilled', 1, input.orderId, {
+      id: updated.id, orderNumber: updated.orderNumber, userId: updated.userId, status: 'SHIPPED',
+      subtotalAmount: Number(updated.subtotalAmount), shippingAmount: Number(updated.shippingAmount),
+      taxAmount: Number(updated.taxAmount), totalAmount: Number(updated.totalAmount), currency: updated.currency,
+      items: order.items.map((item: any) => ({
+        id: item.id, productId: item.productId, variantId: item.variantId,
+        quantity: item.quantity, unitPrice: Number(item.unitPrice),
+        fulfillmentData: item.fulfillmentData && typeof item.fulfillmentData === 'object' && !Array.isArray(item.fulfillmentData)
+          ? item.fulfillmentData as Record<string, string | number | boolean | null> : null,
+      })),
+      shipment: {
+        id: shipment.id, carrier: shipment.carrier, trackingNumber: shipment.trackingNumber,
+        shippedAt: shipment.shippedAt?.toISOString() ?? null,
+        items: shipment.items.map(({ orderItemId, quantity }: any) => ({ orderItemId, quantity })),
+      },
+    });
+    await recordOrderStatusHistory(tx, {
+      orderId: updated.id,
+      fromStatus: order.status as PrismaOrderStatus,
+      toStatus: updated.status as PrismaOrderStatus,
+      fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+      toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
+      reason: 'admin_ship_order',
+      actorType: 'admin',
+    });
+  }
+
+  /** Deliver the order: move it to DELIVERED and write the status history. */
+  static async deliverOrder(tx: OrderWriteTx, input: { orderId: string }): Promise<void> {
+    const order = await tx.order.findUnique({
+      where: { id: input.orderId },
+      select: { status: true, paymentStatus: true },
+    });
+    if (!order) throw new ApiError('NOT_FOUND');
+    assertOrderTransition(order.status, OrderStatus.DELIVERED, order.paymentStatus);
+    const updated = await tx.order.update({
+      where: { id: input.orderId },
+      data: { status: OrderStatus.DELIVERED },
+    });
+    await recordOrderStatusHistory(tx, {
+      orderId: input.orderId,
+      fromStatus: order.status as PrismaOrderStatus,
+      toStatus: updated.status as PrismaOrderStatus,
+      fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+      toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
+      reason: 'admin_deliver_order',
+      actorType: 'admin',
+    });
+  }
+
+  /**
+   * Cancel the order on behalf of an administrator: move it to CANCELLED,
+   * write the status history and emit order.cancelled.
+   */
+  static async cancelOrderByAdmin(tx: OrderWriteTx, input: {
+    orderId: string;
+    cancelReason: string;
+  }): Promise<void> {
+    const order = await tx.order.findUnique({ where: { id: input.orderId }, include: { items: true } });
+    if (!order) throw new ApiError('NOT_FOUND');
+    assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
+    const updated = await tx.order.update({
+      where: { id: input.orderId },
+      data: {
+        status: OrderStatus.CANCELLED,
+        cancelReason: input.cancelReason,
+        cancelledAt: new Date(),
+      },
+    });
+    await emitEvent(tx as unknown as EventTransaction, 'order.cancelled', 1, updated.id, {
+      id: updated.id,
+      orderNumber: updated.orderNumber,
+      orderId: updated.id,
+      userId: updated.userId,
+      reason: input.cancelReason,
+    });
+    await recordOrderStatusHistory(tx, {
+      orderId: updated.id,
+      fromStatus: order.status as PrismaOrderStatus,
+      toStatus: updated.status as PrismaOrderStatus,
+      fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+      toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
+      reason: input.cancelReason,
+      actorType: 'admin',
+    });
+  }
+
+  /**
+   * Read-only projection of an order. Other modules consume the order through
+   * this projection instead of reading the order table themselves.
+   */
+  static async getOrderProjection(tx: OrderReadTx, orderId: string): Promise<OrderProjection | null> {
+    const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
+    if (!order) return null;
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      userId: order.userId,
+      customerEmail: order.customerEmail ?? null,
+      status: order.status as OrderStatusType,
+      paymentStatus: order.paymentStatus as PaymentStatusType,
+      totalAmount: Number(order.totalAmount),
+      currency: order.currency,
+      subtotalAmount: Number(order.subtotalAmount),
+      shippingAmount: Number(order.shippingAmount),
+      taxAmount: Number(order.taxAmount),
+      items: order.items.map((item: any) => ({
+        id: item.id,
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        fulfillmentData: item.fulfillmentData ?? null,
+        catalogSnapshot: item.catalogSnapshot,
+      })),
+    };
+  }
+
+  /**
+   * The order body of the order.paid event payload. The order module owns the
+   * catalog snapshot, so it also owns the payload that carries it.
+   */
+  static async getOrderPaidPayload(tx: OrderReadTx, orderId: string): Promise<OrderPaidPayload | null> {
+    const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
+    if (!order) return null;
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      userId: order.userId,
+      customerEmail: order.customerEmail ?? null,
+      totalAmount: Number(order.totalAmount),
+      currency: order.currency,
+      items: order.items.map((item: any) => {
+        const snapshot = readCatalogSnapshot(item.catalogSnapshot);
+        return {
+          id: item.id,
+          productId: item.productId,
+          variantId: item.variantId,
+          productName: snapshot.productName,
+          variantName: snapshot.variantName,
+          skuCode: snapshot.skuCode ?? undefined,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          fulfillmentData: parseJsonObject(item.fulfillmentData),
+          productTypeData: parseJsonObject(snapshot.productTypeData),
+        };
+      }),
+    };
+  }
+
+  /**
+   * Display fields of the catalog snapshot captured with an order item. The
+   * snapshot belongs to the order module, so other modules read it through the
+   * order service.
+   */
+  static catalogSnapshotView(catalogSnapshot: unknown, locale?: string | null): {
+    productName: string;
+    productImages: string[];
+    variantName: string;
+    skuCode: string | null;
+    variantAttributes: JsonRecord | null;
+  } {
+    const snapshot = readCatalogSnapshot(catalogSnapshot as Prisma.JsonValue);
+    return {
+      productName: snapshotProductName(snapshot, locale),
+      productImages: snapshot.productImages,
+      variantName: snapshot.variantName,
+      skuCode: snapshot.skuCode,
+      variantAttributes: parseJsonRecord(snapshot.variantAttributes),
+    };
   }
 
   /**

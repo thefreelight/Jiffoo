@@ -22,6 +22,7 @@ export interface CatalogVariantProjection {
   salePrice: number;
   isActive: boolean;
   attributes: unknown;
+  skuCode: string | null;
   stock: number;
 }
 
@@ -31,9 +32,12 @@ export interface CatalogVariantProjection {
 export interface CatalogProductProjection {
   id: string;
   name: string;
+  productType: string;
   isActive: boolean;
   requiresShipping: boolean;
   typeData: unknown;
+  /** The localized product names the product domain owns. */
+  translations: Array<{ locale: string; name: string }>;
   /** Every variant of the product, ordered by sort order. */
   variants: CatalogVariantProjection[];
   /** The variants that may be sold: the active ones, in the same order. */
@@ -178,27 +182,11 @@ export class ProductService {
 
     const products = await tx.product.findMany({
       where: { id: { in: requestedIds } },
-      select: {
-        id: true,
-        name: true,
-        isActive: true,
-        requiresShipping: true,
-        typeData: true,
-        variants: {
-          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          select: {
-            id: true,
-            productId: true,
-            name: true,
-            salePrice: true,
-            isActive: true,
-            attributes: true,
-          },
-        },
-      },
+      include: { variants: true },
     }) as Array<{
       id: string;
       name: string;
+      productType: string;
       isActive: boolean;
       requiresShipping: boolean;
       typeData: unknown;
@@ -209,29 +197,44 @@ export class ProductService {
         salePrice: unknown;
         isActive: boolean;
         attributes: unknown;
+        skuCode: string | null;
+        sortOrder: number;
+        createdAt: Date | string;
       }>;
     }>;
+
+    const translated = await tx.product.findMany({
+      where: { id: { in: requestedIds } },
+      select: { id: true, translations: true },
+    }) as Array<{ id: string; translations: Array<{ locale: string; name: string }> }>;
+    const translationsByProduct = new Map(translated.map(product => [product.id, product.translations ?? []]));
 
     const stockMap = await this.getVariantStockMap(
       products.flatMap((product) => product.variants.map((variant) => variant.id))
     );
 
     for (const product of products) {
-      const variants: CatalogVariantProjection[] = product.variants.map((variant) => ({
+      const variants: CatalogVariantProjection[] = [...product.variants]
+        .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0)
+          || new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime())
+        .map((variant) => ({
         id: variant.id,
         productId: variant.productId,
         name: variant.name,
         salePrice: Number(variant.salePrice),
         isActive: variant.isActive,
         attributes: variant.attributes,
+        skuCode: variant.skuCode ?? null,
         stock: stockMap.get(variant.id) ?? 0,
       }));
       catalog.set(product.id, {
         id: product.id,
         name: product.name,
+        productType: product.productType,
         isActive: product.isActive,
         requiresShipping: product.requiresShipping,
         typeData: product.typeData,
+        translations: translationsByProduct.get(product.id) ?? [],
         variants,
         sellableVariants: variants.filter((variant) => variant.isActive),
       });
