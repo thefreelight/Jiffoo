@@ -101,8 +101,12 @@ for (const surface of ['shop', 'admin'] as const) test(`${surface}: dedicated sh
         await customer.getByRole('combobox', { name: 'Country', exact: true }).selectOption({ label: 'United States' });
         await customer.getByRole('button', { name: 'Get shipping options', exact: true }).click();
         await customer.getByRole('radio', { name: /Free shipping/i }).check();
-        await customer.getByRole('radio', { name: 'Manual payment', exact: true }).check();
+        await customer.getByRole('radio', { name: 'E2E Bridge Redirect', exact: true }).check();
         await customer.getByRole('button', { name: /^Pay / }).click();
+        await expect(customer).toHaveURL(new RegExp('^http://127\\.0\\.0\\.1:3001/api/v1/extensions/plugin/' + slug + '/api/pay/'));
+        await expect(customer.getByRole('heading', { name: 'Local payment provider', exact: true })).toBeVisible();
+        await expect(customer.getByRole('document', { name: title, exact: true })).toHaveCount(0);
+        await customer.getByRole('button', { name: 'Confirm provider payment', exact: true }).click();
         await expect(customer).toHaveURL(/\/en\/checkout\/complete\?order=/);
         await expect(customer.getByRole('document', { name: title, exact: true })).toHaveCount(0);
         await customer.getByRole('link', { name: 'Return to plugin: Studio', exact: true }).click();

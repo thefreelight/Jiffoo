@@ -72,8 +72,14 @@ it('I a real refresh authentication rejection clears cookies while dependency er
   const expired = jwt.sign({ userId: user.id, sv: 0 }, process.env.JWT_SECRET!, { expiresIn: -1 });
   const expiredRefresh = jwt.sign({ userId: user.id, sv: 0, type: 'refresh' }, process.env.JWT_SECRET!, { expiresIn: -1 });
   const response = await fetch(`${shop}/bff/account/profile`, { headers: { Cookie: `shop_access=${expired}; shop_refresh=${expiredRefresh}` } });
-  expect(response.status).toBe(401); expect(response.headers.getSetCookie()).toHaveLength(2);
-  for (const cookie of response.headers.getSetCookie()) expect(cookie).toContain('Max-Age=0');
+  expect(response.status).toBe(401);
+  const cleared = response.headers.getSetCookie();
+  expect(cleared.map(cookie => cookie.split('=')[0]).sort()).toEqual(['shop_access', 'shop_plugin_purchase_origin', 'shop_refresh']);
+  for (const cookie of cleared) {
+    expect(cookie).toContain('Max-Age=0');
+    expect(cookie).toContain('HttpOnly');
+    expect(cookie).toContain('SameSite=lax');
+  }
 });
 
 it.each(['/api/v1/store/theme', '/api/v1/store/storefront-code', '/api/v1/account/profile', '/api/v1/cart'])('I real SSR %s failures reach the safe production 500 boundary', async (path) => {

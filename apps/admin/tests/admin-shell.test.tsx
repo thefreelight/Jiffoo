@@ -21,7 +21,7 @@ vi.mock('next/navigation', () => ({ usePathname: () => state.pathname, useRouter
 vi.mock('next/link', () => ({ default: ({ children, ...props }: any) => <a {...props}>{children}</a> }));
 vi.mock('next/image', () => ({ default: (props: any) => <img {...props} /> }));
 vi.mock('../lib/store', () => ({ useAuthStore: () => ({ user: { firstName: 'Simo', username: 'simo', email: 'simo@example.test' }, logout: state.logout }) }));
-beforeEach(() => { state.locale = 'en'; state.pathname = '/en/dashboard'; state.count = 0; state.push.mockClear(); state.logout.mockClear(); });
+beforeEach(() => { state.locale = 'en'; state.pathname = '/en/dashboard'; state.count = 0; state.push.mockClear(); state.logout.mockReset().mockResolvedValue(undefined); });
 let root: Root | undefined;
 const mount = async (children: ReactNode, collapsed = false, darkAvailable = true) => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -172,4 +172,16 @@ it.each(['My account', 'Log out'])('defers account navigation and side effects f
     expect(state.push).toHaveBeenCalledWith(name === 'My account' ? '/en/profile' : '/en/auth/login');
     expect(state.logout).toHaveBeenCalledTimes(name === 'Log out' ? 1 : 0);
   } finally { unregister(); }
+});
+
+it('keeps the administrator on the page until server logout succeeds', async () => {
+  let finish!: () => void;
+  state.logout.mockImplementation(() => new Promise<void>(resolve => { finish = resolve; }));
+  await mount(<AdminNavigation storeName="Local Store" storeUrl="http://localhost:3003/en" />);
+  await act(async () => document.querySelector<HTMLButtonElement>('button[aria-label="Account menu"]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+  await act(async () => Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(item => item.textContent?.trim() === 'Log out')!.click());
+  expect(state.logout).toHaveBeenCalledTimes(1);
+  expect(state.push).not.toHaveBeenCalled();
+  await act(async () => finish());
+  expect(state.push).toHaveBeenCalledWith('/en/auth/login');
 });

@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -28,6 +29,13 @@ export async function pluginPagePackage(slug: string, shellProof = false) {
     if (shellProof) {
       manifest.ui!.storefrontPages[0].placements = ['header-nav', 'account-menu', 'footer'];
       manifest.ui!.adminPages = [{ id: 'reports', path: '/reports', entry: 'index.html', title: { en: 'Reports', 'zh-Hans': '报表', 'zh-Hant': '報表' } }];
+      manifest.contracts = [{ name: 'payment', version: 2 }];
+      manifest.category = 'payment';
+      const migration = 'CREATE TABLE bridge_payments ("requestKey" TEXT PRIMARY KEY, "sessionId" TEXT NOT NULL UNIQUE, "returnUrl" TEXT NOT NULL, fact JSONB NOT NULL);\n';
+      manifest.database = { apiVersion: 1, migrations: [{ id: 'bridge-payments', order: 1,
+        path: 'migrations/001-payments.sql', sha256: createHash('sha256').update(migration).digest('hex') }] };
+      await fs.mkdir(path.join(packaged, 'migrations'), { recursive: true });
+      await fs.writeFile(path.join(packaged, 'migrations/001-payments.sql'), migration);
     }
     await fs.mkdir(frontend, { recursive: true });
     await fs.mkdir(path.join(packaged, 'server'), { recursive: true });
@@ -143,6 +151,39 @@ document.body.append(main);
     await fs.writeFile(path.join(packaged, 'manifest.json'), JSON.stringify(manifest));
     await fs.writeFile(path.join(packaged, 'server/index.js'), `module.exports = { register(ctx) {
       let checkExecutions = 0;
+      ${shellProof ? `
+      const account = { namespace: '${slug}', merchantAccount: 'bridge-test', environment: 'test' };
+      ctx.contracts.implement('payment', 2, {
+        describe: input => ({displayName:'E2E Bridge Redirect',requiresManualConfirmation:false,unpaidTimeoutMinutes:120,supportedCurrencies:[input.storeCurrency],account}),
+        createSession: async input => {
+          const sessionId = require('node:crypto').randomUUID();
+          const fact = {account,requestKey:input.idempotencyKey,sessionId,amountMinor:input.amountMinor,currency:input.currency,
+            observedAt:new Date().toISOString(),status:'pending',captures:[],canStillBeCharged:true,requestClosed:false,
+            action:{type:'redirect',url:'http://127.0.0.1:3001/api/v1/extensions/plugin/${slug}/api/pay/' + sessionId}};
+          await ctx.database.query('INSERT INTO bridge_payments ("requestKey","sessionId","returnUrl",fact) VALUES($1,$2,$3,$4) ON CONFLICT ("requestKey") DO NOTHING',[input.idempotencyKey,sessionId,input.returnUrl,fact]);
+          return (await ctx.database.query('SELECT fact FROM bridge_payments WHERE "requestKey"=$1',[input.idempotencyKey])).rows[0].fact;
+        },
+        queryByRequestKey: async input => {
+          const row = (await ctx.database.query('SELECT fact FROM bridge_payments WHERE "requestKey"=$1',[input.requestKey])).rows[0];
+          if (!row) throw new Error('Unknown provider request');
+          return row.fact;
+        }
+      });
+      ctx.http.route({method:'GET',path:'/pay/:id',handler:async (request,reply) => {
+        const row = (await ctx.database.query('SELECT fact FROM bridge_payments WHERE "sessionId"=$1',[request.params.id])).rows[0];
+        if (!row) return reply.code(404).send();
+        return reply.type('text/html').send('<!doctype html><html lang="en"><title>Local payment provider</title><h1>Local payment provider</h1><form method="post" enctype="text/plain"><button type="submit">Confirm provider payment</button></form></html>');
+      }});
+      ctx.http.route({method:'POST',path:'/pay/:id',handler:async (request,reply) => {
+        const row = (await ctx.database.query('SELECT fact,"returnUrl" FROM bridge_payments WHERE "sessionId"=$1',[request.params.id])).rows[0];
+        if (!row) return reply.code(404).send();
+        const fact = row.fact;
+        fact.status = 'succeeded'; fact.canStillBeCharged = false; fact.requestClosed = true;
+        if (!fact.captures.length) fact.captures.push({account,requestKey:fact.requestKey,sessionId:fact.sessionId,providerPaymentId:fact.sessionId,amountMinor:fact.amountMinor,currency:fact.currency,observedAt:new Date().toISOString()});
+        await ctx.database.query('UPDATE bridge_payments SET fact=$2 WHERE "sessionId"=$1',[request.params.id,fact]);
+        return reply.redirect(row.returnUrl);
+      }});
+      ` : ''}
       ctx.http.route({ method: 'GET', path: '/proof-host', handler: (request, reply) => {
         const hash = request.query.hash;
         if (typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash)) return reply.code(400).send({ error: 'Invalid hash' });

@@ -14,7 +14,7 @@ interface AuthState {
   isChecking: boolean
   sessionNotice: boolean
   login: (identifier: string, password: string) => Promise<void>
-  logout: (reason?: 'expired') => void
+  logout: (reason?: 'expired') => Promise<void>
   checkAuth: () => Promise<void>
   updateUser: (user: AppUser) => void
   getAuthToken: () => string | null
@@ -82,12 +82,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  logout: (reason) => {
-    void authApi.logout()
+  logout: async (reason) => {
+    if (reason === 'expired') {
+      window.dispatchEvent(new Event('jiffoo:identity-changing'));
+      apiClient.clearAuth();
+    } else {
+      await authApi.logout();
+    }
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_status');
     }
-    set({ user: null, isAuthenticated: false, sessionNotice: reason === 'expired' })
+    set({ user: null, isAuthenticated: false, isLoading: false, isChecking: false, sessionNotice: reason === 'expired' })
   },
 
   checkAuth: async () => {

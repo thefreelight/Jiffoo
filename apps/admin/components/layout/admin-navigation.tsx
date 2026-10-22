@@ -15,6 +15,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useOrderStats } from '@/lib/hooks/use-api';
 import { requestAppNavigation } from '@/lib/pending-navigation';
+import { toast } from 'sonner';
+import { resolveApiErrorMessage } from '@/lib/error-utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 const navigationIcons = {
   overview: 'M3.5 10.5 12 3.5l8.5 7V20h-5.5v-5.5h-6V20H3.5z',
@@ -122,7 +124,10 @@ export function AdminNavigation({ storeName, storeUrl, logo, collapsed = false, 
           <DropdownMenuSub><DropdownMenuSubTrigger><Languages className="mr-2 size-4" />{t('merchant.shell.language')}</DropdownMenuSubTrigger><DropdownMenuSubContent>
             {[['zh-Hans', copy.simplifiedChinese], ['zh-Hant', copy.traditionalChinese], ['en', copy.english]].map(([value, name]) => <DropdownMenuItem key={value} asChild><Link href={languagePath(value)}>{name}</Link></DropdownMenuItem>)}
           </DropdownMenuSubContent></DropdownMenuSub>
-          <DropdownMenuSeparator /><DropdownMenuItem onSelect={() => requestAppNavigation(() => { logout(); router.push('/' + locale + '/auth/login'); })}><LogOut className="mr-2 size-4" />{label('merchant.header.logout', 'Log out')}</DropdownMenuItem>
+          <DropdownMenuSeparator /><DropdownMenuItem onSelect={() => requestAppNavigation(() => {
+            void logout().then(() => router.push('/' + locale + '/auth/login'))
+              .catch(error => toast.error(resolveApiErrorMessage(error, t)));
+          })}><LogOut className="mr-2 size-4" />{label('merchant.header.logout', 'Log out')}</DropdownMenuItem>
         </DropdownMenuContent></DropdownMenu>
       </div>
     </div>
