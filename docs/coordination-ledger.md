@@ -52,7 +52,8 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | `wp-b-order-domain` (pi session `01a1623c-d126-7486-8e17-bc93fd298db5`, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed `6a99ec298`, merge-ready** (lane gate green, §5b) | §5b |
 | `wp-c-neutral-layer` (pi session `01a162d0-2774-7588-9e96-3b543210b169`) | **committed `add8de45b`, merge-ready** (lane gate green, §5c) | §5c |
 | `wp-d1-audit-outlet` (pi session `01a162ec-e93a-720f-bfe7-43601a8cf294`) | **committed `a65695b70`, merge-ready** (lane gate green, §5d) | §5d |
-| `wp-d2-boundary-guard` (pi session `01a1630a-…`) | **running** | §5e |
+| `wp-d2-boundary-guard` (pi session `01a16309-9c62-71f3-8ccf-114cc071b48d`) | **committed `2c2a40e24`, merge-ready** (lane gate green, §5e) | §5e |
+| `wp-d3-audit-gap` (pi session `01a1633f-…`) | **committed `b55714018`, merge-ready** (lane gate green, §5f) | §5f |
 | **B-BOUND-B** — order domain single owner (WP-B) | Boundary-remediation line | `codex/lane-orders` | `49dc5ff1a` + B-BOUND-A | `apps/api/src/core/order/**`, `apps/api/src/core/payment/{reconciliation,session,order-paid-event}.ts`, `apps/api/src/core/admin/order-management/**`, `apps/api/src/core/notifications/service.ts` | `jiffoo_core_test_orders` | not assigned | **registered, blocked** — overlaps B-P3P4 on `core/order/service.ts` (§4) | needs contract agreement with B-P3P4 first |
 | **B-BOUND-C** — neutral layer + directory re-layering (WP-C) | Boundary-remediation line | `codex/lane-orders` | TBD | new `apps/api/src/core/shared/**`; move `core/admin/system-settings`→`core/settings`, `core/admin/plugin-management`+`extension-installer`→`core/extensions`; retarget imports in `core/storage/**`, `core/plugin-pages/asset-routes.ts` | `jiffoo_core_test_orders` | not assigned | **registered, not started** | depends on B-BOUND-B for `core/order/**` import churn |
 | **B-BOUND-D** — audit outlet, dead code, boundary guard, plugin risk register (WP-D) | Boundary-remediation line | `codex/lane-orders` | TBD | new `apps/api/src/core/audit/service.ts` + 9 audit call sites; delete `apps/api/src/core/user/`, `apps/api/src/core/order/hooks.ts`; new `apps/api/tests/core/module-boundary-audit.test.ts`; `docs/agentra-001-core-v1-product-charter.md`; `packages/shared/src/extensions/plugin-contract.ts`; `BUILTIN_PLUGIN_SLUGS` → `@jiffoo/shared` | `jiffoo_core_test_orders` | not assigned | **registered, not started** | last in sequence: touches `packages/shared` → widest mandatory gate |
@@ -204,6 +205,60 @@ a static import scan misses it. Closed in `a65695b70`.
 **Gate:** API 22 files / 350 tests passed, Admin 3 files / 26 tests passed, Shop 2 files / 3 tests
 passed; all steps PASS; exit code 0.
 
+## 5e. Handover evidence — B-BOUND-D2 (the boundary guard)
+
+**Commit:** `2c2a40e24`. New `apps/api/tests/core/module-boundary-audit.test.ts` (650 lines, 8
+assertions) and `apps/api/tests/core/builtin-plugin-slug-parity.test.ts`.
+
+The guard has two independent static checks over `apps/api/src/core/**`:
+1. **cross-module import graph** — every `@/core/...` import is resolved to the module it reaches
+   and compared with an explicit allowlist of legal edges (each with a reason); an import that does
+   not bind to a **public export** of the target module is rejected by a separate assertion.
+2. **cross-domain table writes** — table ownership is derived from the Prisma schema; a write to a
+   table from a module that does not own it is a violation. Reads are not violations.
+
+Every residual is listed in a `knownViolations` array anchored to file, table/module, reason and
+owning batch, and the list is required to stay anchored to real violations so it cannot go stale.
+
+**The guard was verified non-vacuous** (orchestrator): a temporary probe file in `core/cart/` that
+imported another module's private helper and wrote a foreign domain's table made **three** of its
+assertions fail; deleting the probe restored green. The probe was removed — no tracked file was
+touched by the probe.
+
+Also in this commit: `BUILTIN_PLUGIN_SLUGS` consolidated into `@jiffoo/shared` (installer, upload
+validator and SDK scaffold now share one constant, SDK still self-contained); the
+`PluginContext.database` comment made precise; a `Plugin Trust Model in V1` note added to the
+charter §3, stating the accepted in-process model and pointing at the concrete code locations.
+
+**Gate:** API PASS, Admin PASS, Shop PASS; all steps PASS; exit code 0.
+
+## 5f. Handover evidence — B-BOUND-D3 (last mechanical audit-outlet gap)
+
+**Commit:** `b55714018`. `admin/storefront-code/service.ts` now imports `AuditService` from
+`@/core/audit/service` instead of the `audit` helper that lived in the theme runtime, so the
+`admin/storefront-code -> admin/extension-installer` edge is gone and the guard's
+`knownViolations` list loses that entry.
+
+**Gate:** API PASS (13.70s); all steps PASS; exit code 0.
+
+## 5g. The boundary audit result — what is still open
+
+The guard registers **23 known violations**, in six families. Each has a reason and an owner.
+
+| Family | Count | Nature | Owner / next step |
+|---|---|---|---|
+| `users` written by `account`, `admin/staff-management`, `admin/user-management`, `install` | 4 | **architecture decision** — the `users` table has no single owner | **needs the owner's decision** (see §8 Q1) |
+| `admin_staff_audit_logs` written by `builtin-sync`, `theme-service`, `admin/staff-management`, `auth/account-recovery` | 4 | the audit outlet covers `admin_audit_events` only; this is the legacy staff-audit table | extend the outlet to the second table, or declare it the staff module's own log |
+| plugin-domain tables (`plugin_installations` x3, `plugin_installs`, `plugin_operation_leases` x2, `plugin_task_execution_slots`, `core_processes`) | 8 | **granularity artifact** — one domain split across `core/admin/extension-installer`, `core/admin/plugin-management`, `core/plugins`, `core/storage` | resolved by the deferred move of `core/admin/extension-installer` → `core/extensions/extension-installer` (blocked on P-3) |
+| `system_settings` written by `auth/api-token`, `install`, `admin/extension-installer/plugin-registry-version` | 3 | small — the settings module owns the table, these three write it directly | route through `core/settings` (small batch) |
+| `admin_audit_events` written by `admin/extension-installer/plugin-migration-executor` | 1 | **legitimate exception** — raw SQL inside a manual `pg` transaction that provisions a plugin schema; a Prisma-based outlet cannot join it | keep registered |
+| `product_variants` written by `inventory` | 1 | **column-level ownership split** — the product domain owns the variant row, the inventory domain owns the `stock` column; a table-level owner map cannot express that | either accept the split explicitly or give the stock column its own owner |
+| `notifications` written by `admin/notifications` | 1 | small — two writers of the notifications table | route the admin module through `core/notifications` (small batch) |
+| `auth_tokens` written by `admin/staff-management` | 1 | **architecture decision** — token revocation bypasses the auth module that owns the table | part of the same decision as `users` (§8 Q1) |
+
+**Nothing is untracked.** Every remaining violation is in the guard with a reason and an owner, so
+it is visible in CI and cannot silently grow.
+
 ## 5. Handover evidence — B-BOUND-A
 
 **Diff:** 4 files, +333 / −64.
@@ -331,6 +386,16 @@ registered.
    extract its draft to `codex/lane-plugins` before either side commits.
 4. **Shop gate fix.** The failing `checkout-contract.test.ts` classification is B-P3P4's; it blocks
    a green Shop step for **both** sides until fixed.
+5. **The `users` / `auth_tokens` owner (Q1).** The boundary guard registers four writers of the
+   `users` table and one writer of `auth_tokens`. The AGENTS.md rule says each of those tables has
+   exactly one owning module. The owner has to be decided: `core/auth` (it owns identity and
+   session state) or a new `core/user` (it would own the customer profile and the staff rows).
+   This is a product/architecture decision, not a mechanical refactor, so it was not forced into a
+   batch. **Recommendation: a new `core/user` module that owns `users` and `auth_tokens`, with
+   `core/auth` owning the session/credential flows on top of it.**
+6. **Three small mechanical residuals** could be closed in one short batch without a decision:
+   `system_settings` (3 writers), `notifications` (2 writers), and the plugin-domain table
+   granularity (which needs the deferred extension-installer move first).
 
 ## 9. Extraction record — B-BOUND-A
 
