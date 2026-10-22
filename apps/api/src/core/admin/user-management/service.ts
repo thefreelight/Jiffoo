@@ -1,3 +1,4 @@
+import { PluginPageService } from "@/core/plugin-pages/service";
 /**
  * Admin User Service
  */
@@ -177,6 +178,10 @@ export class AdminUserService {
           summary: { ...summary, from: target.username, to: updated.username } } });
       }
       if (updated.isActive !== target.isActive) {
+        if (!updated.isActive) {
+          await tx.user.update({ where: { id: userId }, data: { sessionVersion: { increment: 1 } } });
+          await PluginPageService.revokePrincipalSessions(tx, userId);
+        }
         await tx.adminAuditEvent.create({ data: { actorId, action: updated.isActive ? 'customer.reactivated' : 'customer.deactivated', targetType: 'customer', targetId: userId, summary } });
       }
       return updated;
@@ -212,6 +217,7 @@ export class AdminUserService {
       }
 
       if (await tx.order.count({ where: { userId } }) > 0) throw new ApiError('CUSTOMER_HAS_ORDERS');
+      await PluginPageService.revokePrincipalSessions(tx, userId);
 
       await knownPrismaOperation(() => tx.user.delete({
         where: { id: userId, role: 'USER' },

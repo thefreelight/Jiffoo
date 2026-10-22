@@ -5,6 +5,7 @@ import { coreAuthRejection, safeCoreFailure } from '@/lib/core-errors';
 import {
   ACCESS_COOKIE, REFRESH_COOKIE, REFRESH_SECONDS, ORIGIN_ERROR,
   allowedBffRoute, cookieOptions, stripTokens,
+  PURCHASE_ORIGIN_COOKIE, purchaseOriginId,
 } from '@/lib/auth-contract';
 
 type Tokens = { access_token: string; refresh_token: string; expires_in: number };
@@ -23,6 +24,7 @@ function setTokens(response: NextResponse, tokens: Tokens) {
 function clearTokens(response: NextResponse) {
   response.cookies.set(ACCESS_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
   response.cookies.set(REFRESH_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
+  response.cookies.set(PURCHASE_ORIGIN_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
 }
 
 function unavailableResponse(error: ShopAvailability): NextResponse {
@@ -41,12 +43,31 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
   const upstreamPath = `${path}${request.nextUrl.search}`;
   const payload = request.method === 'GET' ? undefined : await request.text();
   const init: RequestInit = { method: request.method, ...(payload ? { body: payload, headers: { 'Content-Type': 'application/json' } } : {}) };
+  if (path.startsWith('/plugin-pages/')) {
+    init.headers = { 'Content-Type': 'application/json', Origin: storefrontOrigin() };
+    if (path.endsWith('/session') && payload) {
+      try {
+        const body = JSON.parse(payload);
+        if (body.surface !== 'shop') return NextResponse.json({ success: false, error: { code: 'FORBIDDEN' } }, { status: 403 });
+      } catch { return NextResponse.json({ success: false, error: { code: 'VALIDATION_ERROR' } }, { status: 400 }); }
+    }
+  }
   if (path === '/auth/login' && payload) {
     try { init.body = JSON.stringify({ ...JSON.parse(payload), surface: 'storefront' }); }
     catch { return NextResponse.json({ success: false, error: { code: 'VALIDATION_ERROR' } }, { status: 400 }); }
   }
   let access = request.cookies.get(ACCESS_COOKIE)?.value;
   const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
+  let submittedOrigin: string | undefined;
+  if (path === '/orders' && request.method === 'POST' && payload) {
+    try {
+      const order = JSON.parse(payload);
+      // Core validates this checkout snapshot against its customer-owned durable intent.
+      // A newer intent cookie from another tab must never replace it.
+      submittedOrigin = order.pluginPurchaseOriginId;
+      init.body = JSON.stringify(order);
+    } catch { return NextResponse.json({ success: false, error: { code: 'VALIDATION_ERROR' } }, { status: 400 }); }
+  }
   if (path === '/auth/refresh') {
     if (!refresh) return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED' } }, { status: 401 });
     init.body = JSON.stringify({ refresh_token: refresh });
@@ -64,7 +85,7 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
   }
   const authenticated = path.startsWith('/account') || path === '/auth/change-password' ||
     path.startsWith('/cart') || path.startsWith('/checkout') || path.startsWith('/orders') ||
-    path.startsWith('/payments');
+    path.startsWith('/payments') || path.startsWith('/plugin-pages/') && Boolean(access || refresh);
   let renewed: Tokens | undefined;
   if (authenticated && !access && !refresh) return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED' } }, { status: 401 });
   let upstream = access || !authenticated ? await send(access) : new Response(null, { status: 401 });
@@ -97,7 +118,18 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
   const refreshRejected = path === '/auth/refresh' && await coreAuthRejection(upstream);
   const body = await upstream.json();
   const response = NextResponse.json(stripTokens(body), { status: upstream.status });
+  if (path.startsWith('/plugin-pages')) response.headers.set('Cache-Control', 'no-store');
+  if (path.endsWith('/purchase-origins') && upstream.ok && typeof body.data?.id === 'string') {
+    response.cookies.set(PURCHASE_ORIGIN_COOKIE, JSON.stringify({ id: body.data.id }), cookieOptions(storefrontOrigin(), 24 * 60 * 60));
+  }
+  if (path === '/orders' && request.method === 'POST' && upstream.ok && submittedOrigin
+    && submittedOrigin === purchaseOriginId(request.cookies.get(PURCHASE_ORIGIN_COOKIE)?.value)) {
+    response.cookies.set(PURCHASE_ORIGIN_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
+  }
   if (refreshRejected) clearTokens(response);
+  if (upstream.ok && ['/auth/login', '/auth/register'].includes(path)) {
+    response.cookies.set(PURCHASE_ORIGIN_COOKIE, '', cookieOptions(storefrontOrigin(), 0));
+  }
   if (upstream.ok && ['/auth/login', '/auth/register', '/auth/refresh', '/auth/change-password'].includes(path)) {
     const tokens = (body as { data: Tokens | PasswordTokens }).data;
     setTokens(response, { ...tokens, expires_in: 'expires_in' in tokens ? tokens.expires_in : REFRESH_SECONDS });

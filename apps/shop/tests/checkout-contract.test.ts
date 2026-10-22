@@ -75,6 +75,7 @@ describe('Shop checkout boundaries', () => {
     const routes = appFiles().filter((file) => path.basename(file) === 'page.tsx').map(normalizedPageUrl);
     expect(new Set(routes).size).toBe(routes.length);
     expect(Object.keys(pageClasses).sort()).toEqual(routes.sort());
+    expect(pageClasses['/[locale]/apps/[slug]/[[...path]]']).toBe('storefront');
     expect(pageClasses['/[locale]/checkout']).toBe('payment');
     expect(pageClasses['/[locale]/checkout/cancel']).toBe('payment');
     expect(pageClasses['/[locale]/checkout/complete']).toBe('confirmation');

@@ -1,3 +1,4 @@
+import { PluginPageService } from "@/core/plugin-pages/service";
 import { randomUUID } from 'node:crypto';
 import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { Prisma } from '@prisma/client';
@@ -111,6 +112,7 @@ export class StaffManagementService {
       if (user.removedAt) throw new ApiError('INVITE_NOT_AVAILABLE');
       const now = new Date();
       await tx.user.update({ where: { id: userId }, data: { removedAt: now, isActive: false, sessionVersion: { increment: 1 } } });
+      await PluginPageService.revokePrincipalSessions(tx, userId);
       await tx.authToken.updateMany({ where: { userId, purpose: 'STAFF_INVITE', consumedAt: null }, data: { consumedAt: now } });
       await audit(tx, actorUserId, user, 'ADMIN_REMOVED');
       return { userId, removed: true };
@@ -124,6 +126,7 @@ export class StaffManagementService {
       if (!user) throw new ApiError('NOT_FOUND');
       if (!user.removedAt) throw new ApiError('INVITE_NOT_AVAILABLE');
       await tx.user.update({ where: { id: userId }, data: { removedAt: null, isActive: false, emailVerified: false, password, sessionVersion: { increment: 1 } } });
+      await PluginPageService.revokePrincipalSessions(tx, userId);
       await EmailVerificationService.createStaffInvitation(tx, user.id, user.email, user.username);
       await audit(tx, actorUserId, user, 'ADMIN_INVITED', true);
       return project(await tx.user.findUniqueOrThrow({ where: { id: userId }, select: selectAdmin }));

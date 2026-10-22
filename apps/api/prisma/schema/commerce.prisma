@@ -181,6 +181,7 @@ model Order {
   shipments       Shipment[]
   statusHistory   OrderStatusHistory[]
   purchaseClaim   OrderPurchaseClaim?
+  pluginPurchaseOrigin PluginPurchaseOrigin?
 
   @@index([status])
   @@index([paymentStatus])

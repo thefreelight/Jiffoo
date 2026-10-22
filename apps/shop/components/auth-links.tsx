@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { PluginNavigation } from './plugin-navigation';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { UserRound } from 'lucide-react';
@@ -25,6 +26,7 @@ export function AuthLinks({ locale, loggedIn, labels, presentation, onNavigate }
     try {
       const response = await availabilityFetch('/bff/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
       if (!response.ok) { setError(storefrontMessages(locale).account.genericError); return; }
+      window.dispatchEvent(new Event('jiffoo:identity-changing'));
       window.location.assign(`/${locale}`);
     } catch (error) { if (!availability.capture(error)) setError(storefrontMessages(locale).account.genericError); }
   }
@@ -34,11 +36,13 @@ export function AuthLinks({ locale, loggedIn, labels, presentation, onNavigate }
       className={index === 0 ? 'flex h-10 w-full items-center justify-center gap-2 rounded-md border border-line text-sm' : 'text-sm'}>
       {index === 0 && <UserRound size={16} aria-hidden="true" />}{index === 0 ? storefrontMessages(locale).shop.accountEntry : link.label}</Link>)}
     {loggedIn && <button type="button" aria-label={labels.logout} disabled={availability.blocked} onClick={() => void logout()} className="text-sm">{labels.logout}</button>}
+    <PluginNavigation locale={locale} placement="account-menu" />
     {message && <p role="alert" className="text-sm text-destructive">{message}</p>}
   </>;
   return <><DropdownMenu><DropdownMenuTrigger aria-label={labels.account} className="flex size-9 items-center justify-center rounded-md hover:bg-highlight"><UserRound size={18} aria-hidden="true" /></DropdownMenuTrigger>
     <DropdownMenuContent align="end" aria-label={labels.account}>
       {links.map((link) => <DropdownMenuItem key={link.href} asChild><Link href={link.href}>{link.label}</Link></DropdownMenuItem>)}
+      <PluginNavigation locale={locale} placement="account-menu" />
       {loggedIn && <DropdownMenuItem disabled={availability.blocked} onSelect={() => void logout()}>{labels.logout}</DropdownMenuItem>}
     </DropdownMenuContent></DropdownMenu>
     {message && <p role="alert" className="text-sm text-destructive">{message}</p>}

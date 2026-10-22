@@ -1,0 +1,40 @@
+model PluginPageSession {
+  id String @id @default(uuid())
+  installationId String
+  zipHash String
+  generation BigInt
+  surface String
+  pageId String
+  principalType String
+  principalId String?
+  sessionVersion Int?
+  guestSecretHash String?
+  expiresAt DateTime @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  installation PluginInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  @@index([installationId, revokedAt])
+  @@index([principalType, principalId])
+  @@map("plugin_page_sessions")
+  @@schema("public")
+}
+
+model PluginPurchaseOrigin {
+  id String @id @default(uuid())
+  installationId String?
+  pluginSlug String
+  generation BigInt
+  customerId String
+  pageId String
+  canonicalPath String
+  orderId String? @unique
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  installation PluginInstallation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  @@index([customerId, expiresAt])
+  @@map("plugin_purchase_origins")
+  @@schema("public")
+}

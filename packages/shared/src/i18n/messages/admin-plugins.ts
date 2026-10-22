@@ -707,6 +707,8 @@ export type PluginLabel = keyof typeof labels;
 const taskErrorMessages = {
   PLUGIN_TASK_DECLARATION_INVALID: ['Invalid plugin task declarations.', '插件任务声明无效。', '外掛任務宣告無效。'],
   PLUGIN_TASK_PRINCIPAL_INVALID: ['Invalid task principal.', '任务身份无效。', '任務身分無效。'],
+  PLUGIN_PAGE_ORIGIN_FORBIDDEN: ['The plugin page shell origin is forbidden.', '不允许此插件页面来源。', '不允許此外掛頁面來源。'],
+  PLUGIN_PAGE_SESSION_REVOKED: ['The plugin page session is no longer valid.', '插件页面会话已失效。', '外掛頁面工作階段已失效。'],
   PLUGIN_TASK_PRINCIPAL_OVERRIDE_FORBIDDEN: ['The request principal cannot be replaced.', '不能替换请求身份。', '無法取代請求身分。'],
   PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED: ['The task principal is not allowed for this installation.', '此安装不允许使用该任务身份。', '此安裝不允許使用此任務身分。'],
   PLUGIN_TASK_PRINCIPAL_REQUIRED: ['A customer or administrator principal is required.', '需要客户或管理员身份。', '需要客戶或管理員身分。'],

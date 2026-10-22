@@ -80,13 +80,17 @@ export async function validateTaskPrincipal(tx: TaskTransaction, installationId:
 }
 export async function recordTaskPrincipal(installationId: string, user: { id: string; role: string } | null, source: 'GATEWAY' | 'PAGE_SESSION' = 'GATEWAY'): Promise<TaskPrincipal | null> {
   if (!user) return null;
+  return prisma.$transaction(tx => recordTaskPrincipalInTransaction(tx, installationId, user, source));
+}
+
+/** Record a trusted principal atomically with its owning shell admission. */
+export async function recordTaskPrincipalInTransaction(tx: TaskTransaction, installationId: string, user: { id: string; role: string } | null, source: 'GATEWAY' | 'PAGE_SESSION'): Promise<TaskPrincipal | null> {
+  if (!user) return null;
   const principal: TaskPrincipal = Object.freeze({ type: user.role === 'ADMIN' ? 'admin' : 'customer', id: user.id });
-  await prisma.$transaction(async tx => {
-    const live = await tx.user.findUnique({ where: { id: user.id } });
-    if (!live?.isActive || live.removedAt || live.role !== user.role || !['USER', 'ADMIN'].includes(live.role)) throw new ApiError('PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED');
-    const now = await taskDatabaseTime(tx);
-    await tx.pluginPrincipal.upsert({ where: { installationId_principalType_principalId: { installationId, principalType: principal.type.toUpperCase(), principalId: user.id } }, create: { installationId, principalType: principal.type.toUpperCase(), principalId: user.id, source, firstSeenAt: now, lastSeenAt: now }, update: { lastSeenAt: now, source } });
-  });
+  const live = await tx.user.findUnique({ where: { id: user.id } });
+  if (!live?.isActive || live.removedAt || live.role !== user.role || !['USER', 'ADMIN'].includes(live.role)) throw new ApiError('PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED');
+  const now = await taskDatabaseTime(tx);
+  await tx.pluginPrincipal.upsert({ where: { installationId_principalType_principalId: { installationId, principalType: principal.type.toUpperCase(), principalId: user.id } }, create: { installationId, principalType: principal.type.toUpperCase(), principalId: user.id, source, firstSeenAt: now, lastSeenAt: now }, update: { lastSeenAt: now, source } });
   return principal;
 }
 export function principalForTask(task: PluginTask): TaskPrincipal | null {

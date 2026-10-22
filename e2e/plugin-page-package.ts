@@ -9,7 +9,7 @@ import { issuePublisherCertificate } from '../packages/shared/src/plugin-signing
 import { testPublisher, testRoot } from '../apps/api/tests/fixtures/plugin-signing-keys';
 
 /** A real SDK-packed, signed Vite build; its ordinary gateway route hosts only this fixture. */
-export async function pluginPagePackage(slug: string) {
+export async function pluginPagePackage(slug: string, shellProof = false) {
   const require = createRequire(path.resolve('package.json'));
   const sdk = createRequire(path.resolve('packages/plugin-sdk/package.json')).resolve('@jiffoo-core/plugin-sdk/cli');
   const { build } = await import(pathToFileURL(require.resolve('vite')).href);
@@ -25,6 +25,10 @@ export async function pluginPagePackage(slug: string) {
     delete manifest.services; delete manifest.serviceDependencies; delete manifest.tasks;
     manifest.ui!.adminPages = [];
     manifest.ui!.storefrontPages[0].requiresLogin = false;
+    if (shellProof) {
+      manifest.ui!.storefrontPages[0].placements = ['header-nav', 'account-menu', 'footer'];
+      manifest.ui!.adminPages = [{ id: 'reports', path: '/reports', entry: 'index.html', title: { en: 'Reports', 'zh-Hans': '报表', 'zh-Hant': '報表' } }];
+    }
     await fs.mkdir(frontend, { recursive: true });
     await fs.mkdir(path.join(packaged, 'server'), { recursive: true });
     await fs.writeFile(path.join(frontend, 'index.html'), '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Opaque plugin proof</title></head><body><div id="root"></div><script type="module" src="./main.js"></script></body></html>');
@@ -98,8 +102,42 @@ function Proof() {
 }
 createRoot(document.getElementById('root')).render(React.createElement(Proof));
 `);
+    if (shellProof) await fs.writeFile(path.join(frontend, 'main.js'), `
+import { createPluginBridge } from '@jiffoo/plugin-bridge';
+const bridge = createPluginBridge();
+const main = document.createElement('main');
+const title = document.createElement('h1'); title.textContent = 'Bridge page ready'; main.append(title);
+const identity = document.createElement('p'); identity.setAttribute('role', 'status'); identity.setAttribute('aria-label', 'Page identity'); main.append(identity);
+const result = document.createElement('p'); result.setAttribute('role', 'status'); result.setAttribute('aria-label', 'Action result'); main.append(result);
+function button(name, action) {
+  const control = document.createElement('button'); control.type = 'button'; control.textContent = name;
+  control.addEventListener('click', async () => { try { result.textContent = await action(); } catch { result.textContent = 'Action refused'; } });
+  main.append(control);
+}
+await bridge.ready;
+function show(context) { identity.textContent = context.customer?.email ?? context.admin?.email ?? 'Guest'; }
+show(await bridge.context()); await bridge.subscribe(show);
+button('Refresh scoped token', async () => { await bridge.refreshToken(); return 'Token refreshed'; });
+button('Call plugin gateway', async () => {
+  const response = await fetch('/api/v1/extensions/plugin/${slug}/api/check', { method: 'POST', credentials: 'omit', headers: { Authorization: 'Bearer ' + await bridge.token() } });
+  return response.ok ? 'Gateway admitted' : 'Gateway refused';
+});
+button('Attempt Core API', async () => {
+  const response = await fetch('/api/v1/account/profile', { credentials: 'omit', headers: { Authorization: 'Bearer ' + await bridge.token() } });
+  return response.status === 403 ? 'Core API refused' : 'Core API unexpectedly admitted';
+});
+button('Unsafe navigation', async () => { await bridge.request('navigate', { path: '//evil.example' }); return 'Unexpected navigation'; });
+button('Request file', async () => { await bridge.request('file.download', { reference: 'file-reference' }); return 'Prompt requested'; });
+button('Resize page', async () => { await bridge.request('frame.resize', { height: 800 }); return 'Page resized'; });
+const variantLabel = document.createElement('label'); variantLabel.textContent = 'Variant ID';
+const variantInput = document.createElement('input'); variantLabel.append(variantInput); main.append(variantLabel);
+button('Add selected variant', async () => { await bridge.request('cart.add', { variantId: variantInput.value, quantity: 1 }); return 'Product added'; });
+button('Open Core checkout', async () => { await bridge.request('checkout.open'); return 'Checkout opened'; });
+const reload = document.createElement('a'); reload.textContent = 'Reload plugin document'; reload.href = location.href; main.append(reload);
+document.body.append(main);
+`);
     await build({ configFile: false, root: frontend, base: './', logLevel: 'warn',
-      resolve: { alias: { 'react-dom/client': require.resolve('react-dom/client'), react: require.resolve('react') } },
+      resolve: { alias: { '@jiffoo/plugin-bridge': path.resolve('packages/plugin-bridge/src/index.ts'), 'react-dom/client': require.resolve('react-dom/client'), react: require.resolve('react') } },
       build: { target: 'esnext', outDir: path.join(packaged, 'ui'), assetsInlineLimit: 0, sourcemap: false, emptyOutDir: true },
     });
     await fs.writeFile(path.join(packaged, 'manifest.json'), JSON.stringify(manifest));

@@ -1,3 +1,5 @@
+import type { ShopLocale } from './locale';
+
 export type CartLine = {
   id: string;
   productId: string;
@@ -67,6 +69,7 @@ export type Quote = {
 };
 
 export type Order = {
+  pluginReturnTarget?: { path: string; title: Record<ShopLocale, string> };
   orderNumber: string;
   id: string;
   createdAt: string;

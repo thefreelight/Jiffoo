@@ -1,3 +1,4 @@
+import { PluginPageService } from "@/core/plugin-pages/service";
 /**
  * Plugin Management Service
  *
@@ -452,6 +453,9 @@ async function updateInstance(
     }
     if (updates.enabled !== undefined || updates.config !== undefined) updateData.protectionGeneration = { increment: 1 };
     const next = await tx.pluginInstallation.update({ where: { id: installationId }, data: updateData });
+    if (updates.enabled !== undefined || updates.config !== undefined) {
+      await PluginPageService.revokeInstallationSessions(tx, installationId);
+    }
     await incrementPluginRegistryVersion(tx);
     return next;
   });
@@ -608,6 +612,7 @@ export async function uninstallPlugin(slug: string, actorId = 'system'): Promise
       },
       data: { enabled: false, protectionGeneration: { increment: 1 } },
     });
+    await PluginPageService.revokePluginSessions(tx, slug);
     await incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_UNINSTALLED', slug, { slug, version: pluginPackage.version });
   });

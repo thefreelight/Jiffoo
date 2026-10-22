@@ -1,3 +1,4 @@
+import { PluginPageService } from "@/core/plugin-pages/service";
 import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
@@ -21,7 +22,8 @@ export class AccountService {
         const settings = await tx.systemSettings.findUnique({ where: { id: 'system' }, select: { installedBy: true } });
         throw new ApiError(settings?.installedBy === userId ? 'INSTALL_ADMIN_PROTECTED' : 'SELF_REMOVAL_FORBIDDEN');
       }
-      await tx.user.update({ where: { id: userId, role: 'USER' }, data: { isActive: false } });
+      await tx.user.update({ where: { id: userId, role: 'USER' }, data: { isActive: false, sessionVersion: { increment: 1 } } });
+      await PluginPageService.revokePrincipalSessions(tx, userId);
     }), { notFound: 'NOT_FOUND' });
   }
   private static readonly profileSelect = {

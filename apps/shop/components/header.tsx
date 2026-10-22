@@ -5,6 +5,7 @@ import { messages } from '@/lib/catalog';
 import { localePath, type ShopLocale } from '@/lib/locale';
 import { LanguageSwitcher } from './language-switcher';
 import { AuthLinks } from './auth-links';
+import { PluginNavigation } from './plugin-navigation';
 import { DrawerMenu } from './drawer-menu';
 import { HeaderSearch } from './header-search';
 import { CartButton } from './cart-sheet';
@@ -28,6 +29,7 @@ export function Header({ context, locale, categories, loggedIn, cartCount, optio
         {links.map((link) => <Link key={link.href} href={link.href} className="whitespace-nowrap hover:text-ink">{link.label}</Link>)}
       </nav>}
       <div className="ml-auto flex shrink-0 items-center gap-1">
+        <PluginNavigation locale={locale} placement="header-nav" />
         {options?.showSearch !== false && <HeaderSearch locale={locale} label={t.navigation.search} actionLabel={t.navigation.searchAction} />}
         <div className="hidden items-center gap-2 md:flex"><LanguageSwitcher locale={locale} supported={context.supportedLocales} label={t.navigation.language} names={t.navigation.localeNames} />
           <AuthLinks locale={locale} loggedIn={loggedIn} labels={t.navigation} presentation="menu" /></div>

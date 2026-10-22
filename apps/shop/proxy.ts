@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { isPaymentPath, paymentNonce, paymentScriptPolicy } from './lib/payment-csp';
 import { isShopLocale } from './lib/locale';
+import { pluginShellCsp } from 'shared/src/plugin-pages/csp';
 
 export function proxy(request: NextRequest) {
   const assetRequest = ['GET', 'HEAD'].includes(request.method) &&
@@ -21,6 +22,13 @@ export function proxy(request: NextRequest) {
   const locale = request.nextUrl.pathname.split('/')[1];
   headers.delete('x-shop-locale');
   if (isShopLocale(locale)) headers.set('x-shop-locale', locale);
+  if (/^\/(?:en|zh-Hans|zh-Hant)\/apps\/[a-z][a-z0-9-]*(?:\/[a-z][a-z0-9-]*)*$/.test(request.nextUrl.pathname)) {
+    const policy = pluginShellCsp(new URL(process.env.STOREFRONT_URL!).origin);
+    headers.set('Content-Security-Policy', policy);
+    const response = NextResponse.next({ request: { headers } });
+    response.headers.set('Content-Security-Policy', policy);
+    return response;
+  }
   if (!isPaymentPath(request.nextUrl.pathname)) return NextResponse.next({ request: { headers } });
   const policy = paymentScriptPolicy(paymentNonce());
   headers.set('Content-Security-Policy', policy);

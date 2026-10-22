@@ -74,6 +74,7 @@ const testDefaults = {
   REDIS_URL: `redis://localhost:6379/${config.apiRedisDb}`,
   JWT_SECRET: 'ci-test-secret',
   PLUGIN_SECRETS_KEY: Buffer.alloc(32, 17).toString('base64'),
+  PLUGIN_PAGE_TOKEN_SECRET: Buffer.from(Array.from({ length: 32 }, (_, index) => index + 1)).toString('base64'),
 };
 
 if (needsDatabase && !databaseUrl) {

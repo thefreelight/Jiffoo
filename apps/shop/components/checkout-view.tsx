@@ -14,7 +14,7 @@ import { addressFields, addressSchema, serverFieldIssues, type AddressField } fr
 import { CheckoutSummary } from './checkout-summary';
 import { CircleAlert } from 'lucide-react';
 
-export function CheckoutView({ cart, locale, address: initialAddress, countries, requiredCountries, email, currency }: {
+export function CheckoutView({ cart, locale, address: initialAddress, countries, requiredCountries, email, currency, pluginPurchaseOriginId }: {
   cart: Cart;
   locale: ShopLocale;
   address: SavedAddress | null;
@@ -22,12 +22,14 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
   requiredCountries: string[];
   email: string;
   currency: string;
+  pluginPurchaseOriginId?: string;
 }) {
   const t = storefrontMessages(locale).checkout;
   const copy = storefrontMessages(locale).s4;
   const feedback = getNamespaceMessages(locale, 'common') as typeof common;
   const paymentRequestKey = useRef('');
   const orderRequestKey = useRef('');
+  const purchaseOrigin = useRef(pluginPurchaseOriginId);
   const form = useForm<Address>({ resolver: zodResolver(addressSchema(copy, requiredCountries)), shouldFocusError: true, defaultValues: addressFormValues(initialAddress) });
   const country = useWatch({ control: form.control, name: 'country' });
   const requiredRegion = requiredCountries.includes(country?.toUpperCase());
@@ -104,6 +106,7 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
           items: cart.items.map(({ productId, variantId, quantity }) => ({ productId, variantId, quantity })),
           shippingAddress: addressRequest(form.getValues()), shippingOptionId, paymentMethod, expectedTotal: quote.total,
           idempotencyKey: orderRequestKey.current,
+          ...(purchaseOrigin.current ? { pluginPurchaseOriginId: purchaseOrigin.current } : {}),
         }),
       });
       const body = await response.json();

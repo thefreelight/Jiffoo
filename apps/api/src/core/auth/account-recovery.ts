@@ -1,3 +1,4 @@
+import { PluginPageService } from "@/core/plugin-pages/service";
 import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
@@ -42,6 +43,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
     const account = await tx.user.findUniqueOrThrow({ where: { id: row.userId }, select: { role: true } });
     if (account.role === 'ADMIN' && newPassword.length < 8) throw new ApiError('VALIDATION_ERROR');
     await tx.user.update({ where: { id: row.userId }, data: { password, sessionVersion: { increment: 1 } } });
+    await PluginPageService.revokePrincipalSessions(tx, row.userId);
     await tx.authToken.updateMany({
       where: { userId: row.userId, purpose: 'PASSWORD_RESET', consumedAt: null },
       data: { consumedAt: new Date() },
@@ -76,6 +78,7 @@ export async function acceptStaffInvite(token: string, passwordInput: string): P
     if (!user || user.role !== 'ADMIN' || user.isActive || user.removedAt) throw new ApiError('INVALID_INVITE_TOKEN');
     if (passwordInput.length < 8) throw new ApiError('VALIDATION_ERROR');
     await tx.user.update({ where: { id: row.userId, role: 'ADMIN' }, data: { password, emailVerified: true, isActive: true, sessionVersion: { increment: 1 } } });
+    await PluginPageService.revokePrincipalSessions(tx, row.userId);
     await tx.adminStaffAuditLog.create({ data: { staffUserId: user.id, staffEmail: user.email, staffUsername: user.username,
       actorUserId: user.id, actorEmail: user.email, actorUsername: user.username, action: 'ADMIN_INVITE_ACCEPTED' } });
   });

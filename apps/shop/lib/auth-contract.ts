@@ -4,6 +4,15 @@ export const ACCESS_COOKIE = 'shop_access';
 export const REFRESH_COOKIE = 'shop_refresh';
 export const REFRESH_SECONDS = 7 * 24 * 60 * 60;
 export const ORIGIN_ERROR = 'INVALID_ORIGIN';
+export const PURCHASE_ORIGIN_COOKIE = 'shop_plugin_purchase_origin';
+
+export function purchaseOriginId(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    const intent = JSON.parse(value) as { id?: unknown };
+    return typeof intent.id === 'string' && /^[0-9a-f-]{36}$/.test(intent.id) ? intent.id : undefined;
+  } catch { return undefined; }
+}
 
 export function cookieOptions(storefrontUrl: string, maxAge: number) {
   return {
@@ -45,6 +54,10 @@ export function safeNextPath(value: string | null | undefined, locale: ShopLocal
 
 export function allowedBffRoute(method: string, path: string): boolean {
   if (/(?:%|\\|\/\/|\.\.)/i.test(path)) return false;
+  if (path === '/plugin-pages') return method === 'GET';
+  if (/^\/plugin-pages\/[a-z][a-z0-9-]*\/(?:session|purchase-origins)$/.test(path)) return method === 'POST';
+  if (/^\/plugin-pages\/[a-z][a-z0-9-]*\/sessions\/[0-9a-f-]{36}\/(?:refresh|cart)$/.test(path)) return method === 'POST';
+  if (/^\/plugin-pages\/[a-z][a-z0-9-]*\/sessions\/[0-9a-f-]{36}$/.test(path)) return method === 'DELETE';
   if (/^\/cart\/items\/c[a-z0-9]{24}$/.test(path)) return ['PUT', 'DELETE'].includes(method);
   if (/^\/orders\/c[a-z0-9]{24}$/.test(path)) return method === 'GET';
   if (/^\/orders\/c[a-z0-9]{24}\/cancel$/.test(path)) return method === 'POST';

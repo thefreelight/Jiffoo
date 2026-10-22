@@ -28,6 +28,7 @@
     }
   },
   "include": [
+    "../plugin-bridge/src/**/*.ts",
     "src/**/*",
     "src/**/*.json",
     "config/**/*",

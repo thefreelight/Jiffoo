@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { PURCHASE_ORIGIN_COOKIE, purchaseOriginId } from '@/lib/auth-contract';
 import { requireLocale } from '@/lib/catalog';
 import { accountProfile } from '@/lib/server-account';
 import { customerCart, customerData } from '@/lib/server-checkout';
@@ -15,6 +17,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
   const orders = await customerData<{ items: Order[] }>('/orders?limit=1');
   const address = orders?.items[0]?.shippingAddress ?? null;
   const countries = localizedCountries(locale);
+  const pluginPurchaseOriginId = purchaseOriginId((await cookies()).get(PURCHASE_ORIGIN_COOKIE)?.value);
   return <CheckoutView cart={cart} locale={locale} address={address} countries={countries}
-    requiredCountries={context.checkoutCountriesRequireStatePostal ?? []} email={profile.email} currency={context.currency} />;
+    requiredCountries={context.checkoutCountriesRequireStatePostal ?? []} email={profile.email} currency={context.currency}
+    pluginPurchaseOriginId={pluginPurchaseOriginId} />;
 }

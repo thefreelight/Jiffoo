@@ -2,6 +2,10 @@
   "apiCookieConsumers": ["ALL /api/v1/extensions/plugin/:slug/api", "ALL /api/v1/extensions/plugin/:slug/api/*"],
   "pluginTokenRoutes": ["/api/v1/extensions/plugin/studio/api", "/api/v1/extensions/plugin/studio/api/render", "/api/v1/plugin-storage/studio/files"],
   "shopBff": [
+    ["GET", "/plugin-pages"], ["POST", "/plugin-pages/studio/session"], ["POST", "/plugin-pages/studio/purchase-origins"],
+    ["POST", "/plugin-pages/studio/sessions/00000000-0000-4000-8000-000000000000/refresh"],
+    ["POST", "/plugin-pages/studio/sessions/00000000-0000-4000-8000-000000000000/cart"],
+    ["DELETE", "/plugin-pages/studio/sessions/00000000-0000-4000-8000-000000000000"],
     ["POST", "/auth/login"], ["POST", "/auth/register"], ["POST", "/auth/refresh"],
     ["POST", "/auth/logout"], ["POST", "/auth/forgot-password"], ["POST", "/auth/reset-password"],
     ["POST", "/auth/resend-verification"], ["POST", "/auth/verify-email/code"],
@@ -16,6 +20,7 @@
     ["POST", "/payments/create-session"]
   ],
   "shopSsr": [
+    "/en/apps/studio", "/en/apps/studio/editor",
     "/", "/reset-password", "/verify-email", "/en", "/en/categories/example", "/en/products",
     "/en/forgot-password", "/en/login", "/en/register", "/en/reset-password", "/en/search", "/en/verify-email",
     "/en/account", "/en/account/orders", "/en/account/orders/own-order", "/en/cart",
@@ -33,6 +38,7 @@
     "/api/v1/plugin-storage/example/files"
   ],
   "adminPreferenceConsumers": [
+    "/en/plugins/example/pages", "/en/plugins/example/pages/reports",
     "/", "/en", "/en/install", "/en/dashboard", "/en/orders", "/en/orders/example",
     "/en/notifications", "/en/system/health", "/en/audit-events", "/en/profile",
     "/en/customers", "/en/customers/example", "/en/storefront-code", "/en/plugins", "/en/plugins/example",

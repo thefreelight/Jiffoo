@@ -36,6 +36,7 @@ import { installRoutes } from '@/core/install/routes';
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
 import { publicThemeAssetRoutes } from '@/core/admin/extension-installer/theme-routes';
 import { pluginAssetRoutes } from '@/core/plugin-pages/asset-routes';
+import { adminPluginPageRoutes, pluginPageRoutes } from '@/core/plugin-pages/routes';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 // Store routes
 import { storeRoutes } from '@/core/store/routes';
@@ -55,6 +56,7 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(async (admin) => {
     admin.addHook('onRequest', authMiddleware);
     admin.addHook('onRequest', requireAdmin);
+    await admin.register(adminPluginPageRoutes);
     await admin.register(adminUserRoutes, { prefix: '/users' });
     await admin.register(customerPasswordResetLinkRoutes, { prefix: '/customers' });
     await admin.register(adminProductRoutes, { prefix: '/products' });
@@ -86,5 +88,6 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(extensionInstallerRoutes, { prefix: '/extensions' });
   await fastify.register(publicThemeAssetRoutes);
   await fastify.register(pluginAssetRoutes);
+  await fastify.register(pluginPageRoutes);
   await fastify.register(installRoutes, { prefix: '/install' });
 }

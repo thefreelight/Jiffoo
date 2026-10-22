@@ -5,6 +5,10 @@
   "main": "dist/shared/index.js",
   "types": "dist/shared/index.d.ts",
   "exports": {
+    "./src/plugin-pages/*": {
+      "types": "./dist/shared/src/plugin-pages/*.d.ts",
+      "default": "./dist/shared/src/plugin-pages/*.js"
+    },
     ".": {
       "types": "./dist/shared/index.d.ts",
       "default": "./dist/shared/index.js"

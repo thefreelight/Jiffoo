@@ -375,6 +375,8 @@ model PluginInstallation {
   plugin               PluginInstall          @relation(fields: [pluginSlug], references: [slug], onDelete: Cascade)
   taskPrincipals       PluginPrincipal[]
   tasks                PluginTask[]
+  pageSessions         PluginPageSession[]
+  purchaseOrigins      PluginPurchaseOrigin[]
 
   @@unique([pluginSlug, instanceKey])
   @@index([pluginSlug])

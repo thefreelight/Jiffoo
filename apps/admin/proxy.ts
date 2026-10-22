@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server';
 import { LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
 import { createProxyHandler, getLocaleFromPathname, type ProxyConfig } from 'shared/src/proxy';
+import { pluginShellCsp } from 'shared/src/plugin-pages/csp';
 
 const adminProxyConfig: ProxyConfig = {
   target: 'admin',
@@ -21,6 +22,13 @@ export function proxy(request: Parameters<typeof proxyHandler>[0]) {
   if (locale) {
     const headers = new Headers(request.headers);
     headers.set('x-admin-locale', locale);
+    if (/^\/(?:en|zh-Hans|zh-Hant)\/plugins\/[a-z][a-z0-9-]*\/pages(?:\/[a-z][a-z0-9-]*)*$/.test(request.nextUrl.pathname)) {
+      const policy = pluginShellCsp(new URL(process.env.ADMIN_URL!).origin);
+      headers.set('Content-Security-Policy', policy);
+      const response = NextResponse.next({ request: { headers } });
+      response.headers.set('Content-Security-Policy', policy);
+      return response;
+    }
     return NextResponse.next({ request: { headers } });
   }
   return proxyHandler(request);

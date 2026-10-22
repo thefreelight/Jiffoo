@@ -8,6 +8,16 @@ type Entry = { category: 1 | 2 | 3; reason: string; rebuild?: { file: string; fu
 
 // Every entry is explicit: new names, including persistent class fields, require review.
 const codeConstants = [
+  'core/plugin-pages/routes.ts:string',
+  'core/plugin-pages/routes.ts:title',
+  'core/plugin-pages/routes.ts:pageSchema',
+  'core/plugin-pages/routes.ts:declarationsSchema',
+  'core/plugin-pages/routes.ts:identitySchema',
+  'core/plugin-pages/routes.ts:contextSchema',
+  'core/plugin-pages/routes.ts:sessionSchema',
+  'core/plugin-pages/routes.ts:params',
+  'core/plugin-pages/routes.ts:sessionParams',
+  'core/plugin-pages/routes.ts:secretBody',
   'core/plugins/tasks.ts:DEFAULT_TASK_POLICY',
   'core/plugins/tasks.ts:activeStates',
   'core/plugins/tasks.ts:occupiedTaskSlots',

@@ -1,3 +1,4 @@
+import { PluginPageService } from "@/core/plugin-pages/service";
 /**
  * Plugin File System Installer Service
  *
@@ -233,6 +234,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             create: { pluginSlug: manifest.slug, instanceKey: 'default', enabled: false, configJson: {}, grantedPermissions: manifest.permissions ?? [] },
             update: { protectionGeneration: { increment: 1 } },
           });
+          await PluginPageService.revokePluginSessions(tx, manifest.slug);
           await writePluginInstallAudit(tx, options!.actorUserId!, 'PLUGIN_INSTALLED', inspection!, operation, existingByHash.version, options?.source ?? 'local-zip');
           await publishPluginMigrationOperation(tx, options?.operationId);
           await incrementPluginRegistryVersion(tx);
@@ -362,6 +364,7 @@ export class PluginFsInstaller implements IPluginInstaller {
               create: { pluginSlug: manifest.slug, instanceKey: 'default', enabled: false, configJson: {}, grantedPermissions: manifest.permissions ?? [] },
               update: { protectionGeneration: { increment: 1 } },
             });
+            await PluginPageService.revokePluginSessions(tx, manifest.slug);
             if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, operation === 'upgrade' ? 'PLUGIN_UPGRADED' : 'PLUGIN_INSTALLED', inspection, operation, existingBySlug.version, options?.source ?? 'local-zip');
             await publishPluginMigrationOperation(tx, options?.operationId);
             await incrementPluginRegistryVersion(tx);

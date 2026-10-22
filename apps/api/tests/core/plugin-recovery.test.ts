@@ -144,7 +144,8 @@ it('D UNKNOWN attempts without committed proof remain UNKNOWN after a sweep', as
 it('D retry cannot abort UNKNOWN while the old migration session exists and only replays after fenced end proof',async()=>{
   const slug=own(),child=await fixture('api','before-file'),id=randomUUID();let oldId='';
   try{
-    child.child.send({kind:'install',id,slug,actorId:'fixture',bytes:(await archive(slug)).toString('base64')});const accepted=await child.next('accepted',id);oldId=accepted.operationId;await child.next('plugin-migration-barrier');await child.kill();
+    // Expiry is injected explicitly after the barrier; setup must not race a 200 ms lease.
+    child.child.send({kind:'install',id,slug,actorId:'fixture',bytes:(await archive(slug)).toString('base64'),useDefaultLease:true});const accepted=await child.next('accepted',id);oldId=accepted.operationId;await child.next('plugin-migration-barrier');await child.kill();
     await prisma.$executeRaw`UPDATE public.plugin_operation_leases SET "expiresAt"=(clock_timestamp() AT TIME ZONE 'UTC')-interval '1 millisecond' WHERE slug=${slug}`;await recoverPluginOperation(oldId);
     const attempt=await prisma.pluginMigrationAttempt.findFirstOrThrow({where:{operationId:oldId}});expect(attempt.status).toBe('UNKNOWN');
     const lingering=new Client({connectionString:databaseUrl,application_name:processApplicationName('migration',child.ready.bootNonce,oldId)});await lingering.connect();

@@ -1,3 +1,4 @@
+import { PluginPageService } from "@/core/plugin-pages/service";
 /**
  * Auth Routes
  *
@@ -185,15 +186,31 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Logout (client-side token removal)
+  // Revoke shared page sessions before the client removes its credentials.
   fastify.post('/logout', {
     schema: {
       tags: ['auth'],
       summary: 'User logout',
-      description: 'Logout user (client-side token removal)',
+      description: 'Logout user and revoke plugin page sessions',
       ...authSchemas.logout,
     }
-  }, async (_request, reply) => {
+  }, async (request, reply) => {
+    if (request.headers.authorization !== undefined) {
+      const token = request.headers.authorization.match(/^Bearer ([^\s]+)$/)?.[1];
+      let claims;
+      try {
+        if (!token || token.startsWith('jiffoo_')) throw new ApiError('INVALID_TOKEN');
+        claims = JwtUtils.verify(token);
+        if (claims.type === 'refresh' || !claims.userId || !Number.isSafeInteger(claims.sv)) throw new ApiError('INVALID_TOKEN');
+      } catch { return sendMappedError(reply, new ApiError('INVALID_TOKEN')); }
+      await prisma.$transaction(async tx => {
+        await tx.$queryRaw`SELECT id FROM public.users WHERE id = ${claims.userId} FOR UPDATE`;
+        const user = await tx.user.findUnique({ where: { id: claims.userId } });
+        if (!user || user.sessionVersion !== claims.sv) throw new ApiError('SESSION_REVOKED');
+        await tx.user.update({ where: { id: user.id }, data: { sessionVersion: { increment: 1 } } });
+        await PluginPageService.revokePrincipalSessions(tx, user.id);
+      });
+    }
     return sendSuccess(reply, {
       loggedOut: true,
       timestamp: new Date().toISOString(),
@@ -353,10 +370,11 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       if (user.role === 'ADMIN' && newPassword.length < 8) throw new ApiError('VALIDATION_ERROR');
       const hashedPassword = await PasswordUtils.hash(newPassword);
-      const updated = await prisma.$transaction((tx) => tx.user.update({
-        where: { id: user.id },
-        data: { password: hashedPassword, sessionVersion: { increment: 1 } },
-      }));
+      const updated = await prisma.$transaction(async tx => {
+        const updated = await tx.user.update({ where: { id: user.id }, data: { password: hashedPassword, sessionVersion: { increment: 1 } } });
+        await PluginPageService.revokePrincipalSessions(tx, user.id);
+        return updated;
+      });
 
 
       return sendSuccess(reply, {

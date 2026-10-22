@@ -73,6 +73,8 @@ export async function cleanupDatabase(): Promise<void> {
   
   try {
     // Delete in correct order to avoid foreign key constraints
+    await client.pluginPageSession.deleteMany({});
+    await client.pluginPurchaseOrigin.deleteMany({});
     await client.payment.updateMany({ data: { closureObservationId: null, closedAt: null } });
     await client.paymentObservation.deleteMany({});
     await client.refundLedger.deleteMany({});

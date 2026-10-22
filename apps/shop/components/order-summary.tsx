@@ -7,6 +7,7 @@ import { Check, LoaderCircle, X, FileText } from 'lucide-react';
 import { paymentResult } from '@/lib/payment-result';
 import { PaymentRefresh } from './payment-refresh';
 import { orderStatusLabel, paymentStatusLabel } from '@/lib/order-labels';
+import { pluginPageLabels } from 'shared/src/plugin-pages/labels';
 
 export function OrderSummary({ order, locale, cancelled = false }: { order: Order; locale: ShopLocale; timezone: string; cancelled?: boolean }) {
   const t = messages(locale);
@@ -37,6 +38,8 @@ export function OrderSummary({ order, locale, cancelled = false }: { order: Orde
           {(state === 'pending' || state === 'manual') && order.paymentInstructions && <section aria-label={t.checkout.paymentInstructions}><p className="whitespace-pre-wrap text-subtle">{order.paymentInstructions}</p></section>}
         </div>}
         <div className="flex flex-wrap justify-center gap-2.5">
+          {order.pluginReturnTarget && /^\/apps\/[a-z][a-z0-9-]*(?:\/[a-z][a-z0-9-]*)*$/.test(order.pluginReturnTarget.path) &&
+            <Link href={`/${locale}${order.pluginReturnTarget.path}`} className="flex h-10 items-center rounded-md border px-[18px]">{pluginPageLabels[locale].returnTo}: {order.pluginReturnTarget.title[locale]}</Link>}
           <Link href={`/${locale}/account/orders/${order.id}`} className="flex h-10 items-center rounded-md bg-action px-[18px] text-action-ink">{t.checkout.viewOrder}</Link>
           <Link href={backToCart ? `/${locale}/cart` : `/${locale}`} className="flex h-10 items-center rounded-md border border-[var(--shop-border-strong)] px-[18px]">{backToCart ? t.s4.backCart : t.s4.continueShopping}</Link>
         </div>

@@ -95,6 +95,9 @@ const shipmentResponseSchema = {
 const orderResponseSchema = {
   type: 'object',
   properties: {
+    pluginReturnTarget: { type: 'object', additionalProperties: false, required: ['path', 'title'], properties: {
+      path: { type: 'string' }, title: { type: 'object', additionalProperties: false, required: ['en', 'zh-Hans', 'zh-Hant'],
+        properties: { en: { type: 'string' }, 'zh-Hans': { type: 'string' }, 'zh-Hant': { type: 'string' } } } } },
     orderNumber: { type: 'string', pattern: '^[A-Z]{2,6}-[0-9]{8}-[0-9]{4,}$' },
     id: { type: 'string', description: 'Order ID' },
     userId: { type: 'string', description: 'User ID who placed the order' },
@@ -198,6 +201,7 @@ export const orderSchemas = {
           format: 'email',
           description: 'Customer contact email (optional, defaults to authenticated user email)',
         },
+        pluginPurchaseOriginId: { type: 'string', format: 'uuid' },
         shippingOptionId: { type: 'string', minLength: 1, description: 'Selected shipping option ID' },
         paymentMethod: { type: 'string', minLength: 1, description: 'Selected payment provider slug' },
         expectedTotal: { type: 'string', pattern: '^\\d+(?:\\.\\d+)?$', description: 'Confirmed quote total' },

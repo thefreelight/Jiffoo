@@ -69,6 +69,7 @@ export function orderRequestFingerprint(input: {
   shippingOptionId?: string;
   paymentMethod?: string;
   expectedTotal?: string | number;
+  pluginPurchaseOriginId?: string;
 }): string {
   const items = (input.items ?? [])
     .map((item) => `${normalizeText(item.productId)}:${normalizeText(item.variantId)}:${Number(item.quantity) || 0}`)
@@ -80,6 +81,7 @@ export function orderRequestFingerprint(input: {
     normalizeText(input.paymentMethod),
     normalizeAmount(input.expectedTotal),
     fingerprintAddress(input.shippingAddress),
+    normalizeText(input.pluginPurchaseOriginId),
   ].join('|');
   return createHash('sha256').update(canonical).digest('hex');
 }

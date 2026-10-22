@@ -49,6 +49,7 @@ export const CreateOrderSchema = z.object({
   paymentMethod: z.string().min(1),
   expectedTotal: z.string().regex(/^\d+(?:\.\d+)?$/),
   idempotencyKey: z.string().trim().min(1).max(200),
+  pluginPurchaseOriginId: z.string().uuid().optional(),
 });
 
 // Order Status Enum
@@ -133,6 +134,7 @@ export interface ShipmentResponse {
 
 // Order Response Interface
 export interface OrderResponse {
+  pluginReturnTarget?: { path: string; title: { en: string; 'zh-Hans': string; 'zh-Hant': string } };
   orderNumber: string;
   id: string;
   userId: string;

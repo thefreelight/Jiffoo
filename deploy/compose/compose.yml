@@ -16,6 +16,7 @@ x-backend: &backend
     REDIS_URL: redis://redis:6379
     JWT_SECRET: ${JWT_SECRET:?Generate JWT secret}
     PLUGIN_SECRETS_KEY: ${PLUGIN_SECRETS_KEY:?Generate plugin secrets key}
+    PLUGIN_PAGE_TOKEN_SECRET: ${PLUGIN_PAGE_TOKEN_SECRET:?Generate dedicated plugin page token key}
     STOREFRONT_URL: ${STOREFRONT_URL:?Set HTTPS Shop origin}
     ADMIN_URL: ${ADMIN_URL:?Set HTTPS Admin origin}
     CORS_ORIGIN: ${STOREFRONT_URL},${ADMIN_URL}

@@ -6,6 +6,8 @@ import { errorCodes, type FastifyReply } from 'fastify';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 
 export const errorCatalog = {
+  [ApiErrorCodes.PLUGIN_PAGE_ORIGIN_FORBIDDEN]: { status: 403, message: 'The plugin page shell origin is forbidden.' },
+  [ApiErrorCodes.PLUGIN_PAGE_SESSION_REVOKED]: { status: 401, message: 'The plugin page session is no longer valid.' },
   [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_INVALID]: { status: 422, message: 'Invalid task principal.' },
   [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_OVERRIDE_FORBIDDEN]: { status: 403, message: 'The request principal cannot be replaced.' },
   [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED]: { status: 403, message: 'The task principal is not allowed for this installation.' },

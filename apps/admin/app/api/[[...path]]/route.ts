@@ -39,6 +39,15 @@ async function proxyToCore(request: NextRequest): Promise<Response> {
 
   const upstreamUrl = new URL(`${incomingUrl.pathname}${incomingUrl.search}`, apiServiceUrl)
   const headers = new Headers(request.headers)
+  const pageRequest = /^\/api\/v1\/(?:plugin-pages(?:\/|$)|admin\/plugin-pages\/)/.test(incomingUrl.pathname)
+  if (pageRequest) {
+    const configured = process.env.ADMIN_URL ? new URL(process.env.ADMIN_URL).origin : null
+    if (!configured || request.method !== 'GET' && request.headers.get('origin') !== configured) {
+      return Response.json({ success: false, error: { code: 'FORBIDDEN', message: 'Request origin is forbidden' } }, { status: 403 })
+    }
+    headers.delete('cookie')
+    if (request.method !== 'GET') headers.set('origin', configured)
+  }
   HOP_BY_HOP_HEADERS.forEach((name) => headers.delete(name))
   headers.delete('host')
   if (assetRequest) {

@@ -14,6 +14,7 @@ import { ApiError } from '@/utils/api-errors';
 
 import { prisma } from '@/config/database';
 import { allocateOrderNumber } from './number';
+import { bindPurchaseOrigin, purchaseReturnTarget } from '@/core/plugin-pages/service';
 import { Prisma, OrderStatus as PrismaOrderStatus, OrderPaymentStatus as PrismaOrderPaymentStatus } from '@prisma/client';
 import {
   CreateOrderRequest,
@@ -397,6 +398,7 @@ export class OrderService {
         }
       });
 
+      if (data.pluginPurchaseOriginId) await bindPurchaseOrigin(tx, data.pluginPurchaseOriginId, userId, created.id);
       for (const item of orderItems) {
         await InventoryService.decrementStock(tx, item.variantId, item.quantity);
       }
@@ -582,6 +584,7 @@ export class OrderService {
       select: { id: true, sessionId: true, actionJson: true, status: true },
     });
     const response = this.formatOrderResponse(order, currency);
+    if (userId) response.pluginReturnTarget = await purchaseReturnTarget(order.id, userId);
     const action = payment?.actionJson;
     response.paymentInstructions = order.paymentStatus === PaymentStatus.PENDING &&
       order.status !== OrderStatus.CANCELLED && action && typeof action === 'object' &&

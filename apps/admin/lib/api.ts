@@ -254,11 +254,11 @@ export const authApi = {
   me: (): Promise<ApiResponse<UserProfile>> => apiClient.get('/auth/me'),
 
   logout: async () => {
-    try {
-      return await apiClient.post<void>('/auth/logout', {}, { withCredentials: true });
-    } finally {
-      apiClient.clearAuth();
-    }
+    const response = await apiClient.post<void>('/auth/logout', {}, { withCredentials: true });
+    unwrapApiResponse(response);
+    window.dispatchEvent(new Event('jiffoo:identity-changing'));
+    apiClient.clearAuth();
+    return response;
   },
 
   refreshToken: () => apiClient.post('/auth/refresh', {
