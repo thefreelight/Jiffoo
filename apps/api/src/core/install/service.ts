@@ -7,6 +7,7 @@ import path from 'node:path';
 import { prisma } from '@/config/database';
 import { Prisma } from '@prisma/client';
 import { ApiError } from '@/utils/api-errors';
+import { AuthIdentityService } from '@/core/auth/identity-service';
 import bcrypt from 'bcryptjs';
 
 export interface InstallationStatus {
@@ -182,15 +183,7 @@ export class InstallService {
         if (existingAdmin) {
           throw new ApiError('INSTALL_EMAIL_IN_USE');
         }
-        const adminUser = await tx.user.create({
-          data: {
-            email,
-            username,
-            password: hashedPassword,
-            role: 'ADMIN',
-            isActive: true,
-          },
-        });
+        const adminUser = await AuthIdentityService.createBootstrapAdmin(tx, { email, username, password: hashedPassword });
         const installedSettings = {
           'branding.platform_name': data.siteName,
           'localization.locale': 'en',

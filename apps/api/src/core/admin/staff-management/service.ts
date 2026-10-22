@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { EmailVerificationService } from '@/core/auth/email-verification.service';
+import { AuthIdentityService } from '@/core/auth/identity-service';
 
 export class StaffManagementError extends ApiError {
   constructor(_message: string, code: ErrorCode, _statusCode: number) { super(code); }
@@ -90,7 +91,7 @@ export class StaffManagementService {
     const password = await PasswordUtils.hash(randomUUID());
     try {
       return await prisma.$transaction(async tx => {
-        const user = await tx.user.create({ data: { email, username, password, role: 'ADMIN', isActive: false, emailVerified: false } });
+        const user = await AuthIdentityService.createStaff(tx, { email, username, password });
         await EmailVerificationService.createStaffInvitation(tx, user.id, user.email, user.username);
         await audit(tx, actorUserId, user, 'ADMIN_INVITED');
         return project(await tx.user.findUniqueOrThrow({ where: { id: user.id }, select: selectAdmin }));
@@ -110,8 +111,8 @@ export class StaffManagementService {
       if (!user) throw new ApiError('NOT_FOUND');
       if (user.removedAt) throw new ApiError('INVITE_NOT_AVAILABLE');
       const now = new Date();
-      await tx.user.update({ where: { id: userId }, data: { removedAt: now, isActive: false, sessionVersion: { increment: 1 } } });
-      await tx.authToken.updateMany({ where: { userId, purpose: 'STAFF_INVITE', consumedAt: null }, data: { consumedAt: now } });
+      await AuthIdentityService.removeStaff(tx, userId, now);
+      await AuthIdentityService.revokeStaffInvites(tx, userId, now);
       await audit(tx, actorUserId, user, 'ADMIN_REMOVED');
       return { userId, removed: true };
     });
@@ -123,7 +124,7 @@ export class StaffManagementService {
       const user = await tx.user.findUnique({ where: { id: userId, role: 'ADMIN' } });
       if (!user) throw new ApiError('NOT_FOUND');
       if (!user.removedAt) throw new ApiError('INVITE_NOT_AVAILABLE');
-      await tx.user.update({ where: { id: userId }, data: { removedAt: null, isActive: false, emailVerified: false, password, sessionVersion: { increment: 1 } } });
+      await AuthIdentityService.reinviteStaff(tx, userId, password);
       await EmailVerificationService.createStaffInvitation(tx, user.id, user.email, user.username);
       await audit(tx, actorUserId, user, 'ADMIN_INVITED', true);
       return project(await tx.user.findUniqueOrThrow({ where: { id: userId }, select: selectAdmin }));

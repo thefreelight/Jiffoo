@@ -11,6 +11,7 @@ import { customerSnapshot } from '@/infra/events/snapshots';
 import { Prisma } from '@prisma/client';
 import { customerList, customerNeighbors, customerBase, customerItem, type CustomerQuery, type CustomerRow } from './list-query';
 import { AuditService } from '@/core/audit/service';
+import { AuthIdentityService } from '@/core/auth/identity-service';
 import { systemSettingsService } from '../system-settings/service';
 
 function calculateTrendPercent(current: number, previous: number): number {
@@ -111,14 +112,11 @@ export class AdminUserService {
     const hashedPassword = await PasswordUtils.hash(data.password);
 
     const user = await prisma.$transaction(async (tx) => {
-      const created = await tx.user.create({
-      data: {
+      const created = await AuthIdentityService.createCustomer(tx, {
         email: data.email,
         password: hashedPassword,
         username: data.username || data.email.split('@')[0],
-        role: 'USER'
-      },
-      select: {
+      }, {
         id: true,
         email: true,
         username: true,
@@ -129,7 +127,6 @@ export class AdminUserService {
         updatedAt: true,
         locale: true,
         emailVerified: true,
-      }
       });
       await emitEvent(tx, 'customer.created', 1, created.id, customerSnapshot(created));
       return created;
@@ -158,19 +155,18 @@ export class AdminUserService {
       const target = await tx.user.findUnique({ where: { id: userId }, select: { role: true, email: true, username: true, isActive: true } });
       if (!target) throw new ApiError('NOT_FOUND');
       if (target?.role === 'ADMIN') throw new CustomerManagementError('Administrator accounts are managed separately', 'ADMIN_ACCOUNT_PROTECTED', 409);
-      const updated = await tx.user.update({
-        where: { id: userId, role: 'USER' },
-        data: { ...(data.username !== undefined ? { username: data.username } : {}), ...(data.isActive !== undefined ? { isActive: data.isActive } : {}) },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          avatar: true,
-          role: true,
-          isActive: true,
-          createdAt: true,
-          updatedAt: true
-        }
+      const updated = await AuthIdentityService.updateCustomer(tx, userId, {
+        username: data.username,
+        isActive: data.isActive,
+      }, {
+        id: true,
+        email: true,
+        username: true,
+        avatar: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true
       });
       const summary = { email: updated.email, username: updated.username };
       if (updated.username !== target.username) {
@@ -214,9 +210,7 @@ export class AdminUserService {
 
       if (await tx.order.count({ where: { userId } }) > 0) throw new ApiError('CUSTOMER_HAS_ORDERS');
 
-      await knownPrismaOperation(() => tx.user.delete({
-        where: { id: userId, role: 'USER' },
-      }), { notFound: 'NOT_FOUND' });
+      await knownPrismaOperation(() => AuthIdentityService.deleteCustomer(tx, userId), { notFound: 'NOT_FOUND' });
       await AuditService.write(tx, { actorId, action: 'customer.deleted', targetType: 'customer', targetId: userId,
         summary: { email: existingUser.email, username: existingUser.username } });
     });

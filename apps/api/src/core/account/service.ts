@@ -3,6 +3,7 @@ import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
 import { UpdateEmailRequest, UpdateProfileRequest } from './types';
 import { EmailVerificationService } from '@/core/auth/email-verification.service';
+import { AuthIdentityService } from '@/core/auth/identity-service';
 
 /**
  * User Account Service
@@ -10,7 +11,7 @@ import { EmailVerificationService } from '@/core/auth/email-verification.service
  */
 export class AccountService {
   static async removeAvatar(userId: string) {
-    const profile = await knownPrismaOperation(() => prisma.user.update({ where: { id: userId }, data: { avatar: null }, select: this.profileSelect }), { notFound: 'NOT_FOUND' });
+    const profile = await knownPrismaOperation(() => AuthIdentityService.removeAvatar(prisma, userId, this.profileSelect), { notFound: 'NOT_FOUND' });
     return { ...profile, ...(await this.getOrderStats(userId)) };
   }
   static async deleteAccount(userId: string, currentPassword: string): Promise<void> {
@@ -21,7 +22,7 @@ export class AccountService {
         const settings = await tx.systemSettings.findUnique({ where: { id: 'system' }, select: { installedBy: true } });
         throw new ApiError(settings?.installedBy === userId ? 'INSTALL_ADMIN_PROTECTED' : 'SELF_REMOVAL_FORBIDDEN');
       }
-      await tx.user.update({ where: { id: userId, role: 'USER' }, data: { isActive: false } });
+      await AuthIdentityService.deactivateCustomer(tx, userId);
     }), { notFound: 'NOT_FOUND' });
   }
   private static readonly profileSelect = {
@@ -78,14 +79,12 @@ export class AccountService {
    * Update user profile
    */
   static async updateProfile(userId: string, updateData: UpdateProfileRequest) {
-    const updatedProfile = await knownPrismaOperation(() => prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...updateData,
-        updatedAt: new Date()
-      },
-      select: this.profileSelect
-    }), { notFound: 'NOT_FOUND' });
+    const updatedProfile = await knownPrismaOperation(() => AuthIdentityService.updateProfile(
+      prisma,
+      userId,
+      updateData,
+      this.profileSelect
+    ), { notFound: 'NOT_FOUND' });
 
     return {
       ...updatedProfile,
@@ -121,15 +120,7 @@ export class AccountService {
     }
 
     const updatedProfile = await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
-      const updated = await tx.user.update({
-        where: { id: userId },
-        data: {
-          email: normalizedEmail,
-          emailVerified: false,
-          updatedAt: new Date(),
-        },
-        select: this.profileSelect,
-      });
+      const updated = await AuthIdentityService.changeEmail(tx, userId, normalizedEmail, this.profileSelect);
       await EmailVerificationService.createVerification(tx, userId, updated.email, updated.username);
       return updated;
     }), { notFound: 'NOT_FOUND', duplicateEmail: 'EMAIL_TAKEN' });
