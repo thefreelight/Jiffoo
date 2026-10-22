@@ -1,11 +1,25 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { assertObservedContexts } from './check-e2e-contexts.mjs';
-import { existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import { resolve } from 'node:path';
 import vm from 'node:vm';
 import ts from 'typescript';
+
+test('Every numbered acceptance spec runs exactly once in the complete browser gate', () => {
+  const expected = readdirSync(resolve('e2e')).filter(name => /^\d+-.*\.spec\.ts$/.test(name)).map(name => name.replace('.spec.ts', '')).sort();
+  const config = readFileSync(resolve('e2e/playwright.config.ts'), 'utf8');
+  const tree = ts.createSourceFile('playwright.config.ts', config, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const areas = tree.statements.filter(ts.isVariableStatement).flatMap(node => [...node.declarationList.declarations]).find(node => node.name.getText(tree) === 'areas');
+  assert.ok(areas?.initializer);
+  const registered = JSON.parse(JSON.stringify(vm.runInNewContext(areas.initializer.getText(tree))));
+  assert.deepEqual(registered.sort(), expected, 'Every acceptance spec must have a Playwright project');
+  const runner = readFileSync(resolve('scripts/verify-e2e.mjs'), 'utf8');
+  const scheduling = runner.slice(runner.indexOf('const playwrightGroups ='), runner.indexOf('\nfunction step('));
+  const groups = vm.runInNewContext(scheduling + '\nJSON.stringify(playwrightGroups.flat())', { visual: false, review: false, process: { env: {} } });
+  assert.deepEqual(JSON.parse(groups).sort(), expected, 'The default complete runner must schedule every acceptance project exactly once');
+});
 
 test('A rejects direct context creation in specs while accepting observed factories and non-code text', () => {
   for (const source of [

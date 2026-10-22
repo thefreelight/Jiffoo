@@ -111,6 +111,7 @@ playwrightGroups.push(['34-shop-reload']);
 playwrightGroups.push(['35-extension-center']);
 playwrightGroups.push(['37-uploaded-storage']);
 playwrightGroups.push(['39-plugin-page-assets']);
+playwrightGroups.push(['40-plugin-page-shells']);
 // Quota exhaustion runs alone and last; project boundaries clean only protection keys in test DB 14.
 playwrightGroups.push(['36-shop-availability']);
 if (process.env.E2E_RELOAD_STRESS === '1') playwrightGroups.splice(0, playwrightGroups.length, ['34-shop-reload']);
