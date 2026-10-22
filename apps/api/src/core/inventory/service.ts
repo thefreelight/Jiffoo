@@ -2,7 +2,7 @@ import { prisma } from '@/config/database';
 import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 import { CacheService } from '@/core/cache/service';
 import type { InventoryListItem } from './types';
-import { emitEvent } from '@/infra/events/emit';
+import { emitEvent, type EventTransaction } from '@/infra/events/emit';
 import { productSnapshot } from '@/infra/events/snapshots';
 
 export type InventoryStockTx = {
@@ -10,6 +10,45 @@ export type InventoryStockTx = {
     update(args: any): Promise<any>;
     updateMany(args: any): Promise<{ count: number }>;
   };
+};
+
+/**
+ * Transaction shape required by the ledger aware stock write.
+ *
+ * `InventoryStockTx` only covers the `product_variants` write itself. Applying a
+ * desired stock level additionally needs the `inventory_adjustments` insert, the
+ * product snapshot read and the outbox writes of the `product.updated` event, so the
+ * transaction surface is widened explicitly here. The narrow shape is kept for the
+ * existing callers that only move stock around.
+ */
+export type InventoryLedgerTx = {
+  productVariant: {
+    findUnique(args: any): Promise<any>;
+    updateMany(args: any): Promise<{ count: number }>;
+  };
+  inventoryAdjustment: {
+    create(args: any): Promise<any>;
+  };
+  product: {
+    findUniqueOrThrow(args: any): Promise<any>;
+  };
+  eventRecord: {
+    create(args: any): Promise<any>;
+  };
+  eventDelivery: {
+    createMany(args: any): Promise<any>;
+  };
+  $queryRaw: (...args: any[]) => Promise<any>;
+};
+
+/** Details recorded next to every inventory ledger row. */
+export type InventoryAdjustmentDetails = {
+  type: string;
+  reason?: string;
+  notes?: string;
+  userId?: string;
+  referenceId?: string;
+  metadata?: unknown;
 };
 
 export class InventoryService {
@@ -73,10 +112,68 @@ export class InventoryService {
     });
   }
 
+  /**
+   * Apply an absolute desired stock level inside the caller's transaction.
+   *
+   * The inventory module owns `product_variants.stock`, so a caller that only knows
+   * the desired level (for example the admin product editor) must not write the
+   * column itself. The level is normalised like `setStock` does, the change is
+   * recorded in the `inventory_adjustments` ledger, the `product.updated` event is
+   * published with the product snapshot and the product cache version is bumped,
+   * exactly like `adjustStock` does.
+   *
+   * The write is idempotent: when the desired level already matches the stored one
+   * nothing is written, no ledger row is created and no event is published. The
+   * conditional update carries the expected prior level, so a concurrent stock
+   * change is detected instead of being overwritten.
+   *
+   * @param tx Transaction client owned by the caller
+   * @param variantId Variant whose stock level is applied
+   * @param desiredQuantity Desired absolute stock level
+   * @param details Ledger details of the applied change
+   * @param options `publishProductChange: false` suppresses the event and the cache
+   * version bump for callers that already publish the wider product change
+   */
+  static async applyDesiredStock(
+    tx: InventoryLedgerTx,
+    variantId: string,
+    desiredQuantity: number,
+    details: InventoryAdjustmentDetails,
+    options: { publishProductChange?: boolean } = {}
+  ): Promise<void> {
+    const normalized = Math.max(0, Math.trunc(Number(desiredQuantity)));
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const variant = await tx.productVariant.findUnique({
+        where: { id: variantId },
+        select: { id: true, stock: true, productId: true },
+      }) as { id: string; stock: number; productId: string } | null;
+      if (!variant) throw new ApiError('NOT_FOUND');
+
+      const delta = normalized - variant.stock;
+      if (delta === 0) return;
+
+      const updated = await tx.productVariant.updateMany({
+        where: { id: variantId, stock: variant.stock },
+        data: { stock: normalized },
+      });
+      if (updated.count === 0) continue;
+
+      await tx.inventoryAdjustment.create({ data: { variantId, quantity: delta, ...details } });
+      if (options.publishProductChange !== false) {
+        await emitEvent(tx as unknown as EventTransaction, 'product.updated', 1, variant.productId, await productSnapshot(tx as unknown as EventTransaction, variant.productId));
+        await CacheService.incrementProductVersion();
+      }
+      return;
+    }
+
+    throw new ApiError('CONFLICT');
+  }
+
   static async adjustStock(
     variantId: string,
     quantity: number,
-    details: { type: string; reason?: string; notes?: string; userId?: string; referenceId?: string; metadata?: unknown }
+    details: InventoryAdjustmentDetails
   ) {
     if (!Number.isInteger(quantity) || quantity === 0) throw new ApiError('VALIDATION_ERROR');
 

@@ -527,7 +527,6 @@ export class AdminProductService {
           data: {
             productId: created.id,
             name: variant.name,
-            stock: normalizedStock,
             salePrice,
             ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
             skuCode,
@@ -538,6 +537,13 @@ export class AdminProductService {
           select: { id: true },
         });
 
+        // The inventory module owns the stock column, so the desired level is applied
+        // through it. The surrounding product creation publishes the product change.
+        await InventoryService.applyDesiredStock(tx, createdVariant.id, normalizedStock, {
+          type: 'initial',
+          reason: 'product_created',
+          referenceId: created.id,
+        }, { publishProductChange: false });
       }
 
       await emitEvent(tx, 'product.created', 1, created.id, await productSnapshot(tx, created.id));
@@ -640,7 +646,6 @@ export class AdminProductService {
               where: { id: variant.id },
               data: {
                 name: variant.name,
-                stock: normalizedStock,
                 salePrice,
                 ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
                 skuCode,
@@ -649,13 +654,20 @@ export class AdminProductService {
               }
             });
 
+            // The inventory module owns the stock column, so the desired level is applied
+            // through it. The surrounding product update publishes the product change.
+            await InventoryService.applyDesiredStock(tx, variant.id, normalizedStock, {
+              type: 'correction',
+              reason: 'product_updated',
+              referenceId: productId,
+            }, { publishProductChange: false });
+
           } else {
             // Create
             const createdVariant = await tx.productVariant.create({
               data: {
                 productId,
                 name: variant.name,
-                stock: normalizedStock,
                 salePrice,
                 ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
                 skuCode,
@@ -664,6 +676,13 @@ export class AdminProductService {
               }
             });
 
+            // The inventory module owns the stock column, so the desired level is applied
+            // through it. The surrounding product update publishes the product change.
+            await InventoryService.applyDesiredStock(tx, createdVariant.id, normalizedStock, {
+              type: 'initial',
+              reason: 'product_updated',
+              referenceId: productId,
+            }, { publishProductChange: false });
           }
         }
       }

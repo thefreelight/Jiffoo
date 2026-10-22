@@ -1,8 +1,21 @@
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
-import { InventoryService } from '@/core/inventory/service';
-import { currentLinePrice } from '@/core/order/current-pricing';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { ProductService } from '@/core/product/service';
+
+/**
+ * Transaction surface required to consume purchased cart lines. A Prisma
+ * transaction client satisfies it, so the caller passes its own transaction
+ * client straight through.
+ */
+export type CartPurchaseTx = {
+  cart: {
+    findUnique(args: any): Promise<any>;
+  };
+  cartItem: {
+    delete(args: any): Promise<any>;
+    update(args: any): Promise<any>;
+  };
+};
 
 export class InsufficientCartStockError extends ApiError {
 
@@ -125,29 +138,15 @@ export class CartService {
         });
       }
 
-      const product = await prisma.product.findUnique({
-        where: { id: productId },
-        include: {
-          variants: {
-            where: { isActive: true },
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            select: {
-              id: true,
-              name: true,
-              salePrice: true,
-              isActive: true,
-            },
-          },
-        },
-      });
+      const product = (await ProductService.getSellableCatalog(prisma, [productId])).get(productId);
 
       if (!product || !product.isActive) {
         throw new ApiError('BAD_REQUEST');
       }
 
       const variant = variantId
-        ? product.variants.find((item) => item.id === variantId)
-        : product.variants[0];
+        ? product.sellableVariants.find((item) => item.id === variantId)
+        : product.sellableVariants[0];
 
       if (!variant) {
         throw new ApiError('NOT_FOUND');
@@ -159,7 +158,7 @@ export class CartService {
           item.productId === productId &&
           item.variantId === variant.id
       );
-      const availableQuantity = (await InventoryService.getAvailableStockByVariantIds([variant.id])).get(variant.id) ?? 0;
+      const availableQuantity = variant.stock;
       if ((existingItem?.quantity ?? 0) + quantity > availableQuantity) {
         throw new InsufficientCartStockError(availableQuantity);
       }
@@ -220,27 +219,12 @@ export class CartService {
       }
 
       const productIds = Array.from(new Set(items.map((item) => item.productId)));
-      const products = await tx.product.findMany({
-        where: { id: { in: productIds } },
-        include: {
-          variants: {
-            where: { isActive: true },
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            select: {
-              id: true,
-              name: true,
-              salePrice: true,
-              isActive: true,
-            },
-          },
-        },
-      });
-      const productMap = new Map(products.map((product) => [product.id, product]));
+      const catalog = await ProductService.getSellableCatalog(tx, productIds);
 
       for (const item of items) {
         const quantity = Number(item.quantity ?? 1);
         const normalizedQuantity = Number.isFinite(quantity) && quantity > 0 ? Math.trunc(quantity) : 1;
-        const product = productMap.get(item.productId);
+        const product = catalog.get(item.productId);
 
         if (!product) {
           throw new ApiError('NOT_FOUND');
@@ -250,8 +234,8 @@ export class CartService {
         }
 
         const variant = item.variantId
-          ? product.variants.find((entry) => entry.id === item.variantId)
-          : product.variants[0];
+          ? product.sellableVariants.find((entry) => entry.id === item.variantId)
+          : product.sellableVariants[0];
 
         if (!variant) {
           throw new ApiError('NOT_FOUND');
@@ -332,7 +316,9 @@ export class CartService {
       if (quantity <= 0) {
         await prisma.cartItem.delete({ where: { id: itemId } });
       } else {
-        const availableQuantity = (await InventoryService.getAvailableStockByVariantIds([item.variantId])).get(item.variantId) ?? 0;
+        const catalog = await ProductService.getSellableCatalog(prisma, [item.productId]);
+        const variant = catalog.get(item.productId)?.variants.find((entry) => entry.id === item.variantId);
+        const availableQuantity = variant?.stock ?? 0;
         if (quantity > availableQuantity) throw new InsufficientCartStockError(availableQuantity);
         await prisma.cartItem.update({
           where: { id: itemId },
@@ -406,6 +392,53 @@ export class CartService {
   }
 
   // ============================================
+  // Public Methods
+  // ============================================
+
+  /**
+   * Consume the purchased lines of the customer's cart inside the caller's transaction
+   *
+   * Removes a cart line when it is fully purchased and decrements its quantity when only
+   * part of it was purchased. The cart belongs to this module, so the order module asks
+   * this method to give the purchased lines back instead of writing the cart tables.
+   *
+   * @param tx Transaction client owned by the caller
+   * @param userId The unique identifier of the user whose cart is consumed
+   * @param purchasedLines The purchased `{ productId, variantId, quantity }` lines
+   * @returns Promise resolving once the purchased lines are removed or decremented
+   *
+   * @example
+   * ```typescript
+   * await CartService.consumePurchasedItems(tx, 'user-123', [{ productId: 'p-1', variantId: 'v-1', quantity: 2 }]);
+   * ```
+   */
+  static async consumePurchasedItems(
+    tx: CartPurchaseTx,
+    userId: string,
+    purchasedLines: Array<{ productId: string; variantId: string; quantity: number }>
+  ): Promise<void> {
+    const purchased = new Map<string, number>();
+    for (const line of purchasedLines) {
+      const key = `${line.productId}:${line.variantId}`;
+      purchased.set(key, (purchased.get(key) ?? 0) + line.quantity);
+    }
+    if (purchased.size === 0) return;
+
+    const cart = await tx.cart.findUnique({ where: { userId }, include: { items: true } });
+    if (!cart) return;
+
+    for (const line of cart.items) {
+      const quantity = purchased.get(`${line.productId}:${line.variantId}`) ?? 0;
+      if (!quantity) continue;
+      if (line.quantity <= quantity) {
+        await tx.cartItem.delete({ where: { id: line.id } });
+      } else {
+        await tx.cartItem.update({ where: { id: line.id }, data: { quantity: { decrement: quantity } } });
+      }
+    }
+  }
+
+  // ============================================
   // Private Methods
   // ============================================
 
@@ -424,40 +457,36 @@ export class CartService {
   private static async getCartFromDatabase(userId: string): Promise<Cart | null> {
     const cart = await prisma.cart.findUnique({
       where: { userId },
-      include: {
-        items: {
-          include: {
-            product: true,
-            variant: true
-          }
-        }
-      }
+      include: { items: true }
     });
 
     if (!cart) return null;
 
-    const variantIds = cart.items.map(item => item.variantId).filter(Boolean);
-    const stockMap = await InventoryService.getAvailableStockByVariantIds(variantIds);
-    const currency = await systemSettingsService.getShopCurrency();
+    const catalog = await ProductService.getSellableCatalog(
+      prisma,
+      cart.items.map((item) => item.productId)
+    );
 
     const items: CartItem[] = cart.items.map(item => {
-      const typeData = parseJsonRecord(item.product?.typeData);
+      const product = catalog.get(item.productId);
+      const variant = product?.variants.find((entry) => entry.id === item.variantId);
+      const typeData = parseJsonRecord(product?.typeData);
       const images = Array.isArray(typeData?.images)
         ? typeData?.images.filter((image): image is string => typeof image === 'string')
         : [];
-      const availableStock = stockMap.get(item.variantId) ?? 0;
-      const unitPrice = currentLinePrice(item.variant, currency).unitPrice;
+      const availableStock = variant?.stock ?? 0;
+      const unitPrice = variant?.salePrice ?? 0;
       return {
         id: item.id,
         productId: item.productId,
-        productName: item.product?.name || 'Unknown Product',
+        productName: product?.name || 'Unknown Product',
         productImage: images[0] || '',
         price: unitPrice,
         quantity: item.quantity,
         variantId: item.variantId,
-        variantName: item.variant?.name || undefined,
-        variantAttributes: parseJsonRecord(item.variant?.attributes),
-        requiresShipping: item.product?.requiresShipping ?? true,
+        variantName: variant?.name || undefined,
+        variantAttributes: parseJsonRecord(variant?.attributes),
+        requiresShipping: product?.requiresShipping ?? true,
         maxQuantity: availableStock,
         subtotal: unitPrice * item.quantity,
       };
