@@ -32,7 +32,7 @@ import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 export async function extractZipToTemp(zipStream: Readable, kind?: ExtensionKind): Promise<string> {
   const tempDir = await pluginPackageStore.createTemporaryDirectory(`extract-${kind || 'extension'}`);
 
-  const { validateZipEntry, MAX_FONT_FILES, MAX_FONT_FILE_SIZE, MAX_TOTAL_FONT_SIZE } = await import('@/core/admin/extension-installer/security');
+  const { validateZipEntry, MAX_FONT_FILES, MAX_FONT_FILE_SIZE, MAX_TOTAL_FONT_SIZE } = await import('@/core/extensions/shared/security');
   const enforceFontLimits = false;
 
   return new Promise((resolve, reject) => {

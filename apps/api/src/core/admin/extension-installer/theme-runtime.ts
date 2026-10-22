@@ -5,6 +5,7 @@ import { prisma } from '@/config/database';
 import { resolveThemePackage, type ThemeFiles } from '@/core/storage/current-theme-package';
 import { withThemeLeases, fenceThemeLeases, type ThemeLease } from '@/core/storage/theme-operation-lease';
 import { readMediaFile } from '@/core/storage/uploaded-media-set';
+import { AuditService, type AuditTx } from '@/core/audit/service';
 import { ExtensionInstallerError } from './errors';
 import { validateThemeManifest } from './theme-validator';
 import { defaultHomeSections, validateHomeSections } from './theme-home-sections';
@@ -22,10 +23,8 @@ function fail(code: import('@/utils/api-errors').ErrorCode, _statusCode: number,
   throw new ExtensionInstallerError(`${code}: ${path}`, { code, details: { path } });
 }
 
-export async function audit(tx: { adminAuditEvent: { create: (args: any) => Promise<unknown> } }, actorId: string, action: string, targetId: string, summary: object = {}, targetType = 'theme') {
-  await tx.adminAuditEvent.create({
-    data: { actorId, action, targetType, targetId, summary },
-  });
+export async function audit(tx: AuditTx, actorId: string, action: string, targetId: string, summary: object = {}, targetType = 'theme') {
+  await AuditService.write(tx, { actorId, action, targetType, targetId, summary: summary as Prisma.InputJsonValue });
 }
 
 export async function validateConfig(manifest: ThemeManifest, values: Record<string, unknown>, pkg: ThemeFiles): Promise<void> {

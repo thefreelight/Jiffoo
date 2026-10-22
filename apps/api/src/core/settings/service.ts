@@ -7,6 +7,7 @@ import { ApiError } from '@/utils/api-errors';
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { isStoreTimezone } from 'shared';
+import { AuditService } from '@/core/audit/service';
 
 // Keep types compatible with existing code
 type SettingValue = string | number | boolean | Record<string, any>;
@@ -225,8 +226,8 @@ export class SystemSettingsService {
             await tx.systemSettings.upsert({ where: { id: SYSTEM_ID }, update: { settings: next }, create: { id: SYSTEM_ID, settings: next } });
             if (before['localization.timezone'] !== next['localization.timezone']) {
                 if (!actorId) throw new ApiError('VALIDATION_ERROR');
-                await tx.adminAuditEvent.create({ data: { actorId, action: 'STORE_TIMEZONE_CHANGED', targetType: 'settings', targetId: 'localization.timezone',
-                    summary: { from: before['localization.timezone'], to: next['localization.timezone'] } } });
+                await AuditService.write(tx, { actorId, action: 'STORE_TIMEZONE_CHANGED', targetType: 'settings', targetId: 'localization.timezone',
+                    summary: { from: before['localization.timezone'], to: next['localization.timezone'] } });
             }
             return next;
         });

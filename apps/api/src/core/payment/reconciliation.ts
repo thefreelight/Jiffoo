@@ -10,6 +10,7 @@ import { ApiError } from '@/utils/api-errors';
 import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { paymentNow, PAYMENT_SESSION_LIFETIME_MS } from './clock';
 import { decimalToMinor } from '@/core/shared/money';
+import { AuditService } from '@/core/audit/service';
 import { claimPaymentReconciliations, paymentLeaseAllowsQuery, releasePaymentReconciliation, type PaymentLeaseClient } from './lease';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import type { PaymentFact } from '@jiffoo/shared';
@@ -48,7 +49,7 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
           if (input.reviewConfirmation) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
           if (payment.reviewResolution) return false;
           await tx.payment.update({ where: { id: payment.id }, data: { status: 'REQUIRES_REVIEW', failureReason: 'capture_already_bound', ...clearLease } });
-          await tx.adminAuditEvent.create({ data: { actorId: input.actorId || 'system', action: 'PAYMENT_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { reason: 'capture_already_bound', providerPaymentId: input.providerPaymentId } } });
+          await AuditService.write(tx, { actorId: input.actorId || 'system', action: 'PAYMENT_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { reason: 'capture_already_bound', providerPaymentId: input.providerPaymentId } });
         }
         return false;
       }
@@ -66,11 +67,11 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
         metadata: { ...input.metadata, ...(reference ? { manualReference: reference } : {}) },
       });
       if (payment.reviewResolution === 'NOT_CHARGED') {
-        await tx.adminAuditEvent.create({ data: { actorId: 'system', action: 'PAYMENT_REVIEW_CONTRADICTED',
+        await AuditService.write(tx, { actorId: 'system', action: 'PAYMENT_REVIEW_CONTRADICTED',
           targetType: 'payment', targetId: payment.id,
           summary: { paymentId: payment.id, orderId: identity.orderId, providerPaymentId: input.providerPaymentId,
             reviewReference: payment.reviewReference, refundRequired: decision.refundRequired },
-        } });
+        });
       }
       await tx.paymentLedger.create({ data: {
         paymentId: payment.id, orderId: identity.orderId, eventType: 'SUCCEEDED', amount: payment.amount, currency: payment.currency,
@@ -184,9 +185,9 @@ export async function reconcilePendingPayments(options: PaymentReconciliationOpt
             : payment.status === 'SUCCEEDED' || payment.status === 'CANCELLED' ? payment.status : 'UNKNOWN', ...clearLease,
           nextReconcileAt: new Date((await paymentNow(tx)).getTime() + 60_000), failureReason: 'request_query_unavailable',
         } });
-        if (changed.count && payment.attempts >= PAYMENT_RECONCILIATION_MAX_ATTEMPTS) await tx.adminAuditEvent.create({ data: {
+        if (changed.count && payment.attempts >= PAYMENT_RECONCILIATION_MAX_ATTEMPTS) await AuditService.write(tx, {
           actorId: 'system', action: 'PAYMENT_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { reason: 'query_budget_exhausted' },
-        } });
+        });
       });
     }
     finally { await releasePaymentReconciliation(client, payment, stopBatch ? 0 : 60_000); }

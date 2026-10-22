@@ -5,6 +5,7 @@ import { INCOMPLETE_PLUGIN_OPERATION_PHASES } from './plugin-migration-gate';
 import { CORE_PROCESS_RETENTION_DAYS } from '@/infra/core-process';
 import { recoveryLimit, observeRecovery } from './plugin-recovery-test-control';
 import { createHash } from 'node:crypto';
+import { AuditService } from '@/core/audit/service';
 
 export const RECOVERY_SWEEP_MS = 60_000;
 export const RECOVERY_SWEEP_BATCH = 50;
@@ -54,7 +55,7 @@ export async function recoverPluginOperation(id: string): Promise<void> {
         }
       }
       await tx.pluginOperationLease.deleteMany({ where: { slug: operation.slug, token: operation.leaseToken } });
-      await tx.adminAuditEvent.create({ data: { actorId: 'system', action: published ? 'PLUGIN_PUBLICATION_RECOVERED' : 'PLUGIN_RECOVERY_REQUIRED', targetType: 'plugin', targetId: operation.slug, summary: { operationId: id, priorPhase: operation.phase, reason } } });
+      await AuditService.write(tx, { actorId: 'system', action: published ? 'PLUGIN_PUBLICATION_RECOVERED' : 'PLUGIN_RECOVERY_REQUIRED', targetType: 'plugin', targetId: operation.slug, summary: { operationId: id, priorPhase: operation.phase, reason } });
       observeRecovery(published ? 'published-recovered' : 'needs-recovery', id);
     }, { maxWait: 1_000, timeout: 5_000 });
   } catch (error) {

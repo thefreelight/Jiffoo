@@ -11,6 +11,7 @@ import { pluginMigrationTestControl, observePluginMigrationDrain } from './plugi
 import { processDatabaseUrl } from '@/infra/core-process-identity';
 import { recoveryLimit } from './plugin-recovery-test-control';
 import { databaseNowMs } from '@/infra/database-clock';
+import { AuditService } from '@/core/audit/service';
 
 export const PLUGIN_MIGRATION_LOCK_TIMEOUT_MS = 5_000;
 export const PLUGIN_MIGRATION_STATEMENT_TIMEOUT_MS = 600_000;
@@ -47,7 +48,7 @@ export async function claimPluginNamespace(operation: PluginMigrationOperation, 
     }
     if (existing) {
       if (existing.publisherKind === 'unsigned' && publisher) {
-        await tx.adminAuditEvent.create({ data: { actorId: operation.actorId, targetType: 'plugin', targetId: operation.slug, action: 'PLUGIN_NAMESPACE_SIGNED', summary: { operationId: operation.id, publisherId: publisher.publisherId } } });
+        await AuditService.write(tx, { actorId: operation.actorId, targetType: 'plugin', targetId: operation.slug, action: 'PLUGIN_NAMESPACE_SIGNED', summary: { operationId: operation.id, publisherId: publisher.publisherId } });
         return tx.pluginNamespace.update({ where: { id: existing.id }, data: { publisherKind: 'signed', publisherId: publisher.publisherId } });
       }
       return existing;

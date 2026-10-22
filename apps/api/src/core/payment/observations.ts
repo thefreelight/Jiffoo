@@ -7,6 +7,7 @@ import { samePaymentAccount, bindObservedPaymentAccount } from './provider-accou
 import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { recordPaymentSucceeded, recordPaymentFailed, PAYMENT_RECONCILIATION_MAX_ATTEMPTS } from './reconciliation';
 import { paymentNow } from './clock';
+import { AuditService } from '@/core/audit/service';
 
 const clearLease = { claimToken: null, claimedBy: null, leaseUntil: null };
 function canonical(value: unknown): string {
@@ -52,9 +53,7 @@ export async function observePaymentFact(slug: string, fact: PaymentFact, source
     const payment = await tx.payment.findUniqueOrThrow({ where: { id: identity.id } });
     if (claimToken && payment.claimToken !== claimToken) return false;
     if (reason) {
-      await tx.adminAuditEvent.upsert({ where: { id: `payment-observation:${observation.id}` }, update: {}, create: {
-        id: `payment-observation:${observation.id}`, actorId: slug, action: 'PAYMENT_OBSERVATION_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { observationId: observation.id, reason },
-      } });
+      await AuditService.write(tx, { id: `payment-observation:${observation.id}`, actorId: slug, action: 'PAYMENT_OBSERVATION_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { observationId: observation.id, reason } });
       if (source !== 'webhook' && payment.status !== 'SUCCEEDED' && !payment.reviewResolution) await tx.payment.update({ where: { id: payment.id }, data: { status: 'REQUIRES_REVIEW', failureReason: reason, ...clearLease } });
       return false;
     }
@@ -92,7 +91,7 @@ export async function observePaymentFact(slug: string, fact: PaymentFact, source
       if (settled.status === 'UNKNOWN') {
         if (settled.attempts >= PAYMENT_RECONCILIATION_MAX_ATTEMPTS) {
           await tx.payment.update({ where: { id: payment.id }, data: { status: 'REQUIRES_REVIEW', failureReason: 'query_budget_exhausted', ...clearLease } });
-          await tx.adminAuditEvent.create({ data: { actorId: 'system', action: 'PAYMENT_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { reason: 'query_budget_exhausted' } } });
+          await AuditService.write(tx, { actorId: 'system', action: 'PAYMENT_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { reason: 'query_budget_exhausted' } });
         }
       } else await tx.payment.update({ where: { id: payment.id }, data: { attempts: 0 } });
     }

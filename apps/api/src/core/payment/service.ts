@@ -1,5 +1,6 @@
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
+import { AuditService } from '@/core/audit/service';
 
 /**
  * Payment Service
@@ -34,6 +35,7 @@ export type PaymentWriteTx = {
   };
   adminAuditEvent: {
     create(args: any): Promise<any>;
+    upsert(args: any): Promise<any>;
   };
 };
 
@@ -247,14 +249,12 @@ export class PaymentService {
       },
     });
 
-    await tx.adminAuditEvent.create({
-      data: {
-        actorId: input.actorId,
-        action: 'PAYMENT_REFUND_REQUIRED_RESOLVED',
-        targetType: 'payment',
-        targetId: payment.id,
-        summary: { refundId: refund.id, providerPaymentId: success.providerPaymentId, reference: input.reference },
-      },
+    await AuditService.write(tx, {
+      actorId: input.actorId,
+      action: 'PAYMENT_REFUND_REQUIRED_RESOLVED',
+      targetType: 'payment',
+      targetId: payment.id,
+      summary: { refundId: refund.id, providerPaymentId: success.providerPaymentId, reference: input.reference },
     });
 
     return { refundId: refund.id, created: true };

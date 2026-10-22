@@ -5,6 +5,7 @@ import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import type { PluginTasks, PluginTaskDeclaration, TaskPrincipal, TaskStatus } from '@jiffoo/shared';
 import type { PoolClient } from 'pg';
+import { AuditService } from '@/core/audit/service';
 
 export type TaskTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 export type TaskPolicy = { globalSlots: number; installationSlots: number; handlerConcurrency: number; attempts: number; runtimeSeconds: number; hookSeconds: number };
@@ -186,13 +187,13 @@ export function createTaskApi(installationId: string, handle: PluginTasks['handl
       const { policy, policyVersion } = await lockTaskScheduler(tx);
       assertTaskPolicy([declaration], policy);
       const task = await tx.pluginTask.create({ data: { installationId, name, version, idempotencyKey: options.idempotencyKey, inputHash, scheduleRequest: schedule, payload: taskJson(payload), principalType: principal?.type.toUpperCase(), principalId: principal?.id, runAt, nextAttemptAt: runAt, maxAttempts: declaration.maxAttempts, maxRuntimeSeconds: declaration.maxRuntimeSeconds, declaredConcurrency: declaration.concurrency, policyVersion } });
-      await tx.adminAuditEvent.create({ data: { actorId: scope.actorId, action: 'PLUGIN_TASK_PRINCIPAL_BOUND', targetType: 'plugin-task', targetId: task.id, summary: { installationId, principal, outcome: 'ALLOWED' } } });
+      await AuditService.write(tx, { actorId: scope.actorId, action: 'PLUGIN_TASK_PRINCIPAL_BOUND', targetType: 'plugin-task', targetId: task.id, summary: { installationId, principal, outcome: 'ALLOWED' } });
       return taskStatus(tx, task);
     }).catch(async error => {
       if (error instanceof ApiError && ['PLUGIN_TASK_PRINCIPAL_INVALID','PLUGIN_TASK_PRINCIPAL_OVERRIDE_FORBIDDEN','PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED','PLUGIN_TASK_PRINCIPAL_REQUIRED'].includes(error.code)) {
         const scope = scopes.getStore();
         const selected = options?.principal;
-        await prisma.adminAuditEvent.create({ data: { actorId: scope?.actorId ?? 'unknown', action: 'PLUGIN_TASK_PRINCIPAL_REJECTED', targetType: 'plugin', targetId: installationId, summary: { installationId, executionTaskId: scope?.claim?.task.id ?? null, principal: selected && ['customer','admin'].includes(selected.type) && typeof selected.id === 'string' && selected.id.length <= 128 ? { type: selected.type, id: selected.id } : null, outcome: error.code } } });
+        await AuditService.write(prisma, { actorId: scope?.actorId ?? 'unknown', action: 'PLUGIN_TASK_PRINCIPAL_REJECTED', targetType: 'plugin', targetId: installationId, summary: { installationId, executionTaskId: scope?.claim?.task.id ?? null, principal: selected && ['customer','admin'].includes(selected.type) && typeof selected.id === 'string' && selected.id.length <= 128 ? { type: selected.type, id: selected.id } : null, outcome: error.code } });
       }
       throw error;
     }),
@@ -212,7 +213,7 @@ export function createTaskApi(installationId: string, handle: PluginTasks['handl
       await tx.$queryRaw`SELECT id FROM public.plugin_tasks WHERE id = ${id} AND "installationId" = ${installationId} FOR UPDATE`;
       if (['PENDING', 'RUNNING'].includes(row.status)) await transitionTask(tx, row, 'CANCEL', 'EXPLICIT_CANCEL');
       const suppressed = await tx.pluginTaskFinalFailure.updateMany({ where: { taskId: id, status: 'PENDING' }, data: { status: 'SUPPRESSED', suppressionReason: 'EXPLICIT_CANCEL', finishedAt: await taskDatabaseTime(tx) } });
-      if (suppressed.count) await tx.adminAuditEvent.create({ data: { actorId: scopes.getStore()?.actorId ?? 'system', action: 'PLUGIN_TASK_FINAL_FAILURE_SUPPRESSED', targetType: 'plugin-task', targetId: id, summary: { installationId, reason:'EXPLICIT_CANCEL' } } });
+      if (suppressed.count) await AuditService.write(tx, { actorId: scopes.getStore()?.actorId ?? 'system', action: 'PLUGIN_TASK_FINAL_FAILURE_SUPPRESSED', targetType: 'plugin-task', targetId: id, summary: { installationId, reason:'EXPLICIT_CANCEL' } });
       return taskStatus(tx, await owned(tx, id));
     }),
   };
@@ -225,7 +226,7 @@ export async function transitionTask(tx: TaskTransaction, task: PluginTask, mode
     await tx.pluginTaskExecutionSlot.updateMany({ where: { taskId: task.id, kind: 'TASK', fence: task.fence, state: 'ACTIVE' }, data: { state: 'LINGERING' } });
   }
   if (['PENDING', 'RUNNING'].includes(task.status)) await tx.pluginTask.update({ where: { id: task.id }, data: { status: mode === 'CANCEL' ? 'CANCELLED' : 'PENDING', claimToken: null, claimedByBootNonce: null, leaseUntil: null, deadlineAt: null, ...(mode === 'CANCEL' ? { previousState: task.status, cancellationReason: reason, cancelRequestedAt: now, finishedAt: now } : { pauseReason: mode === 'PAUSE' ? reason : null, pausedAt: mode === 'PAUSE' ? now : null }) } });
-  if (mode === 'CANCEL' && ['PENDING', 'RUNNING'].includes(task.status)) await tx.adminAuditEvent.create({ data: { actorId: scopes.getStore()?.actorId ?? 'system', action: 'PLUGIN_TASK_CANCELLED', targetType: 'plugin-task', targetId: task.id, summary: { installationId: task.installationId, previousState: task.status, reason } } });
+  if (mode === 'CANCEL' && ['PENDING', 'RUNNING'].includes(task.status)) await AuditService.write(tx, { actorId: scopes.getStore()?.actorId ?? 'system', action: 'PLUGIN_TASK_CANCELLED', targetType: 'plugin-task', targetId: task.id, summary: { installationId: task.installationId, previousState: task.status, reason } });
 }
 export async function transitionInstallationTasks(tx: TaskTransaction, installationId: string, mode: 'PAUSE' | 'UPDATE' | 'CANCEL', reason: string, declarations?: readonly PluginTaskDeclaration[]): Promise<void> {
   const rows = await tx.pluginTask.findMany({ where: { installationId, status: { in: ['PENDING', 'RUNNING'] } }, orderBy: { id: 'asc' } });

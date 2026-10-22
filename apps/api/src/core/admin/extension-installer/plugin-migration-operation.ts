@@ -11,6 +11,7 @@ import { decryptPluginConfig } from '@/core/admin/plugin-management/config-crypt
 import type { PluginMigrationDeclaration } from '@jiffoo/shared';
 import { assertUploadPreview, inspectPluginUpload, uploadSnapshot, uploadOperation, writePluginInstallAudit, assertPluginPackageHistory } from './plugin-upload';
 import { compareVersions } from './version-utils';
+import { AuditService } from '@/core/audit/service';
 import { checkPluginApiCompatibility } from './plugin-compatibility';
 import { extractZipToTemp, cleanupTemp, resolveExtractedPackageRoot } from './utils';
 import { loadPluginEntryModule } from './plugin-module-loader';
@@ -79,7 +80,7 @@ export async function startPluginInstallOperation(bytes: Buffer, options: Plugin
         confirmed: options.confirmMigrations === true, committedPrefix: plan.applied.length, recoveryState: incomplete.length ? 'FORWARD_RECOVERY' : 'NONE', createdAt: new Date(),
       } });
       if (!inspection.publisher) await writePluginInstallAudit(tx, options.actorUserId!, 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED', inspection, action, current?.version ?? null, options.source ?? 'local-zip');
-      if (plan.changesDatabase) await tx.adminAuditEvent.create({ data: { actorId: options.actorUserId!, action: 'PLUGIN_MIGRATIONS_CONFIRMED', targetType: 'plugin', targetId: inspection.manifest.slug, summary: json({ operationId: id, plan }) } });
+      if (plan.changesDatabase) await AuditService.write(tx, { actorId: options.actorUserId!, action: 'PLUGIN_MIGRATIONS_CONFIRMED', targetType: 'plugin', targetId: inspection.manifest.slug, summary: json({ operationId: id, plan }) });
     });
   } catch (error) { await releasePluginOperationLease(inspection.manifest.slug, token); throw error; }
   const work = runPluginInstallOperation(id, observe).finally(() => running.delete(id));

@@ -10,6 +10,7 @@ import { emitEvent } from '@/infra/events/emit';
 import { customerSnapshot } from '@/infra/events/snapshots';
 import { Prisma } from '@prisma/client';
 import { customerList, customerNeighbors, customerBase, customerItem, type CustomerQuery, type CustomerRow } from './list-query';
+import { AuditService } from '@/core/audit/service';
 import { systemSettingsService } from '../system-settings/service';
 
 function calculateTrendPercent(current: number, previous: number): number {
@@ -173,11 +174,11 @@ export class AdminUserService {
       });
       const summary = { email: updated.email, username: updated.username };
       if (updated.username !== target.username) {
-        await tx.adminAuditEvent.create({ data: { actorId, action: 'customer.renamed', targetType: 'customer', targetId: userId,
-          summary: { ...summary, from: target.username, to: updated.username } } });
+        await AuditService.write(tx, { actorId, action: 'customer.renamed', targetType: 'customer', targetId: userId,
+          summary: { ...summary, from: target.username, to: updated.username } });
       }
       if (updated.isActive !== target.isActive) {
-        await tx.adminAuditEvent.create({ data: { actorId, action: updated.isActive ? 'customer.reactivated' : 'customer.deactivated', targetType: 'customer', targetId: userId, summary } });
+        await AuditService.write(tx, { actorId, action: updated.isActive ? 'customer.reactivated' : 'customer.deactivated', targetType: 'customer', targetId: userId, summary });
       }
       return updated;
     });
@@ -216,8 +217,8 @@ export class AdminUserService {
       await knownPrismaOperation(() => tx.user.delete({
         where: { id: userId, role: 'USER' },
       }), { notFound: 'NOT_FOUND' });
-      await tx.adminAuditEvent.create({ data: { actorId, action: 'customer.deleted', targetType: 'customer', targetId: userId,
-        summary: { email: existingUser.email, username: existingUser.username } } });
+      await AuditService.write(tx, { actorId, action: 'customer.deleted', targetType: 'customer', targetId: userId,
+        summary: { email: existingUser.email, username: existingUser.username } });
     });
 
     // Invalidate user list cache and specific user cache

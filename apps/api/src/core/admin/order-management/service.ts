@@ -10,6 +10,7 @@ import { systemSettingsService } from '@/core/settings/service';
 import { CacheService } from '@/core/cache/service';
 import { getTodayAndYesterdayRangeUtc } from '@/utils/timezone';
 import { OrderStatus, PaymentStatus } from '@/core/order/types';
+import { AuditService } from '@/core/audit/service';
 import { OrderService } from '@/core/order/service';
 import { InventoryService } from '@/core/inventory/service';
 import { emitEvent } from '@/infra/events/emit';
@@ -62,10 +63,10 @@ export class AdminOrderService {
       } else {
         await recordPaymentNotCharged({ paymentId, actorId, reference }, tx);
       }
-      await tx.adminAuditEvent.create({ data: { actorId,
+      await AuditService.write(tx, { actorId,
         action: outcome === 'PAID' ? 'PAYMENT_REVIEW_CONFIRMED_PAID' : 'PAYMENT_REVIEW_CLOSED_NOT_CHARGED',
         targetType: 'payment', targetId: paymentId, summary: { paymentId, orderId, reference, outcome },
-      } });
+      });
     });
     await CacheService.incrementOrderVersion();
     return this.getOrderById(orderId);

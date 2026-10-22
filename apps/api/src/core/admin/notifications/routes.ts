@@ -5,6 +5,7 @@ import { prisma } from '@/config/database';
 import { EmailVerificationService } from '@/core/auth/email-verification.service';
 import { sendError, sendSuccess } from '@/utils/response';
 import { createTypedCreateResponses, createTypedReadResponses, errorResponseSchema } from '@/types/common-dto';
+import { AuditService } from '@/core/audit/service';
 
 const statusValues = ['PENDING', 'SENDING', 'SENT', 'FAILED'] as const;
 const detailSchema = {
@@ -128,10 +129,10 @@ export async function adminNotificationRoutes(fastify: FastifyInstance) {
         } });
         createdId = created.id;
       }
-      await tx.adminAuditEvent.create({ data: {
+      await AuditService.write(tx, {
         actorId: request.user!.id, action: 'NOTIFICATION_RESENT', targetType: 'notification', targetId: original.id,
         summary: { resentId: createdId, idempotencyKey },
-      } });
+      });
       return createdId;
     });
     const resent = await prisma.notification.findUniqueOrThrow({ where: { id: resentId }, select: publicFields });
