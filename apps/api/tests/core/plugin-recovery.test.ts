@@ -202,13 +202,24 @@ it('G boot application names override URL input and remain within PostgreSQL lim
   expect(url.searchParams.get('application_name')).toContain(processApplicationPrefix()); expect(Buffer.byteLength(url.searchParams.get('application_name')!)).toBeLessThanOrEqual(63);
 });
 it('H complete killed-fixture evidence reclaims atomically and the same request is idempotent', async () => {
-  const slug=own(), child=await fixture('api'), id=randomUUID(); child.child.send({kind:'marker',slug,id}); await child.next('held',id); await child.kill();
+  const slug=own(), child=await fixture('api'), id=randomUUID();
+  const lifetime: Array<Record<string, unknown>> = [];
+  const track = (stage: string, details: Record<string, unknown> = {}) => lifetime.push({ stage, atMs: performance.now(), ...details });
+  track('child-ready', { pid: child.child.pid, bootNonce: child.ready.bootNonce });
+  const onExit = (code: number | null, signal: string | null) => track('child-exit', { pid: child.child.pid, code, signal });
+  child.child.once('exit', onExit);
+  child.child.send({kind:'marker',slug,id}); await child.next('held',id);
+  const ownedPids = (await prisma.$queryRaw<Array<{ pid: number }>>`SELECT pid FROM pg_stat_activity WHERE datname = current_database() AND application_name LIKE ${processApplicationPrefix(child.ready.bootNonce) + '%'}`).map(row => row.pid);
+  track('child-backends', { pids: ownedPids });
+  await child.kill(); track('child-kill-settled');
   const testSchema=`test_reclaim_${randomUUID().replaceAll('-','')}`;
   await prisma.$executeRawUnsafe(`CREATE SCHEMA "${testSchema}"`);
   for(const table of ['core_processes','plugin_operation_leases','admin_audit_events'])await prisma.$executeRawUnsafe(`CREATE TABLE "${testSchema}".${table} (LIKE public.${table} INCLUDING ALL)`);
   await prisma.$executeRawUnsafe(`INSERT INTO "${testSchema}".core_processes SELECT * FROM public.core_processes WHERE "bootNonce"=$1::uuid`,child.ready.bootNonce);
   await prisma.$executeRawUnsafe(`INSERT INTO "${testSchema}".plugin_operation_leases SELECT * FROM public.plugin_operation_leases WHERE operation=$1`,`plugin-invocation:${slug}`);
   await prisma.$disconnect(); await getTestPrisma().$disconnect(); const client=new Client({connectionString:databaseUrl}); await client.connect();
+  track('known-prisma-clients-disconnected');
+  track('reclaim-client-connected', { pid: (await client.query('SELECT pg_backend_pid() AS pid')).rows[0].pid });
   const evidence: CompleteStopEvidence={version:1,requestId:randomUUID(),actorId:'operator',reason:'Isolated killed fixture',composeFile:'fixture',project:'fixture',coreServices:['api','worker'],boots:[{bootNonce:child.ready.bootNonce,containerId:'fixture'}]};
   try {
     const verify=async()=>{expect(child.child.exitCode!==null||child.child.signalCode!==null).toBe(true);};
@@ -221,12 +232,25 @@ it('H complete killed-fixture evidence reclaims atomically and the same request 
     await client.query(`DELETE FROM "${testSchema}".plugin_operation_leases WHERE slug=$1`,[newMarker]);await client.query(`DELETE FROM "${testSchema}".core_processes WHERE "bootNonce"=$1::uuid`,[reusedBoot]);
     const lingering=new Client({connectionString:databaseUrl,application_name:`${processApplicationPrefix(child.ready.bootNonce)}runtime`});await lingering.connect();
     const lingeringPid=(await lingering.query('SELECT pg_backend_pid() AS pid')).rows[0].pid;
+    track('lingering-connected', { pid: lingeringPid });
     try {await expect(reclaimInvocationMarkers(client,evidence,verify,testSchema)).rejects.toThrow('sessions are still present');expect((await client.query(`SELECT count(*)::integer AS count FROM "${testSchema}".plugin_operation_leases WHERE operation=$1`,[`plugin-invocation:${slug}`])).rows).toEqual([{count:1}]);}finally{await lingering.end();}
     while((await client.query('SELECT 1 FROM pg_stat_activity WHERE pid=$1',[lingeringPid])).rows.length){}
+    track('lingering-backend-gone', { pid: lingeringPid });
     expect(await reclaimInvocationMarkers(client,evidence,verify,testSchema)).toEqual({reclaimed:1,alreadyApplied:false});
     expect(await reclaimInvocationMarkers(client,evidence,verify,testSchema)).toEqual({reclaimed:1,alreadyApplied:true});
     expect((await client.query(`SELECT count(*)::integer AS count FROM "${testSchema}".admin_audit_events WHERE "targetId"=$1`,[evidence.requestId])).rows).toEqual([{count:1}]);
-  } finally { await client.query(`DROP SCHEMA "${testSchema}" CASCADE`); await client.end(); }
+  } catch (error) {
+    // Match the production database-wide guard exactly; never terminate matching sessions.
+    try {
+      const roles = [...new Set((await client.query(`SELECT "databaseRole" FROM "${testSchema}".core_processes`)).rows.map(row => row.databaseRole))];
+      const sessions = await client.query('SELECT pid, application_name, usename, state, backend_start, xact_start FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid() AND (application_name LIKE $1 OR usename = ANY($2::text[]) OR usename = session_user)', ['jf:%', roles]);
+      console.info(JSON.stringify({ event: 'recovery-reclaim-session-evidence', lifetime, sessions: sessions.rows.map(row => ({ pid: row.pid, applicationName: /^jf:[A-Za-z0-9_-]{22}:(?:core|runtime|m:[A-Za-z0-9_-]{22})$/.test(row.application_name) ? row.application_name : 'unrecognized', roleMatchesRecorded: roles.includes(row.usename), state: row.state, backendStart: row.backend_start, transactionStart: row.xact_start, knownChildBackend: ownedPids.includes(row.pid), knownLingeringBackend: lifetime.some(item => item.stage === 'lingering-connected' && item.pid === row.pid) })) }));
+    } catch { console.info(JSON.stringify({ event: 'recovery-reclaim-session-evidence-unavailable', lifetime })); }
+    throw error;
+  } finally {
+    try { await client.query(`DROP SCHEMA "${testSchema}" CASCADE`); }
+    finally { await client.end(); child.child.off('exit', onExit); track('reclaim-client-ended'); console.info(JSON.stringify({ event: 'recovery-fixture-lifetime', lifetime })); }
+  }
 });
 it('I a real deletion outage retries only settled markers after reconnection while live work remains marked',async()=>{
   const relay=await tcpRelay(databaseUrl,5432), child=await fixture('api',undefined,relay.url), a=own(),b=own(),first=randomUUID(),second=randomUUID();

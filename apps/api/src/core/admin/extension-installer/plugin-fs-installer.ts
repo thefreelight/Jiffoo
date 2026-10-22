@@ -639,7 +639,6 @@ export class PluginFsInstaller implements IPluginInstaller {
 
 async function testLeaseBarrier(stage: 'acquired' | 'published', slug: string, zipHash: string): Promise<void> {
   if (process.env.NODE_ENV !== 'test' || process.env.JIFFOO_TEST_PLUGIN_LEASE_BARRIER !== stage || !process.send) return;
-  process.send({ kind: 'plugin-lease-ready', stage, slug, zipHash });
   await new Promise<void>((resolve) => {
     const release = (message: unknown) => {
       if ((message as { kind?: string })?.kind !== 'plugin-lease-release') return;
@@ -647,6 +646,7 @@ async function testLeaseBarrier(stage: 'acquired' | 'published', slug: string, z
       resolve();
     };
     process.on('message', release);
+    process.send!({ kind: 'plugin-lease-ready', stage, slug, zipHash });
   });
 }
 

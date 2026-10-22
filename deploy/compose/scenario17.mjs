@@ -144,10 +144,10 @@ async function state() {
       let notification;
       for (;;) {
         const rows = await db.notification.findMany({ where: { type: 'payment_received', relatedId: order.id } });
-        assert.equal(rows.length, 1);
+        assert.ok(rows.length <= 1, 'Payment notification must never be duplicated');
         notification = rows[0];
-        if (notification.status === 'SENT') break;
-        if (Date.now() > sentDeadline) throw new Error(`Notification was not sent: ${JSON.stringify(notification)}`);
+        if (notification?.status === 'SENT') { assert.equal(rows.length, 1); break; }
+        if (Date.now() > sentDeadline) throw new Error(`Notification was not sent: ${JSON.stringify({ count: rows.length, status: notification?.status, attempts: notification?.attempts })}`);
         await new Promise(done => setTimeout(done, 100));
       }
       assert.equal(notification.status, 'SENT');

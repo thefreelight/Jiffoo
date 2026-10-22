@@ -1,5 +1,5 @@
 import { laneConfig, validateDatabaseUrl } from '../../src/config/test-lane';
-import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest';
 import { Client } from 'pg';
 import { randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
@@ -22,6 +22,8 @@ import { drainContractInvocations } from '@/core/admin/extension-installer/plugi
 import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
 import { finishCoreProcess } from '@/infra/core-process';
 import { sharedProtection } from '@/infra/shared-protection';
+import * as pluginRuntime from '@/core/admin/extension-installer/plugin-runtime';
+import { setWorkerShutdownObserverForTest } from '@/infra/worker-shutdown';
 
 class Mailbox<T> {
   private values: T[] = [];
@@ -54,10 +56,13 @@ const children = new Set<Awaited<ReturnType<typeof child>>>();
 const clients = new Set<Client>();
 let queueIsolation: Client | null = null;
 let queueSnapshot: Array<Record<string, unknown> & { id: string }> = [];
+let providerObserver: ((request: Request) => void) | undefined;
+let restoreSlowDiagnostics: (() => void) | undefined;
 const server = createServer(async (request, response) => {
   const chunks: Buffer[] = []; for await (const chunk of request) chunks.push(Buffer.from(chunk));
   const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
   const value = { kind: request.url === '/notification' ? 'notification' : 'event', id: body.idempotencyKey ?? body.id, pid: body.pid, response };
+  providerObserver?.(value);
   observed.push({ kind: value.kind, id: value.id, pid: value.pid }); responses.add(response);
   response.once('close', () => responses.delete(response)); requests.put(value);
 });
@@ -84,6 +89,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  restoreSlowDiagnostics?.(); restoreSlowDiagnostics = undefined;
   for (const response of responses) response.end(JSON.stringify({ accepted: true, providerMessageId: 'released' }));
   const cleanup = await Promise.allSettled([...children].map(value => stopChild(value)));
   if (queueIsolation) cleanup.push(...await Promise.allSettled([(async () => {
@@ -299,6 +305,35 @@ it('H slow successful sends across multiple lease-sized batches never reclaim or
   const limit = notificationClaimLimit(getPluginTimeoutMs());
   const items = await Promise.all(Array.from({ length: limit + 2 }, notification));
   const ids = items.map(item => item.id), control = await connect();
+  const mark = (stage: string, id?: string) => {
+    try { console.info(JSON.stringify({ event: 'notification-slow-fixture-phase', stage, id, atMs: performance.now() })); } catch { /* Observation must not affect delivery. */ }
+  };
+  const responseListeners: Array<{ response: ServerResponse; finish: () => void; close: () => void }> = [];
+  let restoreCall = () => {};
+  restoreSlowDiagnostics = () => {
+    providerObserver = undefined; restoreCall(); setWorkerShutdownObserverForTest(true);
+    for (const { response, finish, close } of responseListeners) { response.off('finish', finish); response.off('close', close); }
+  };
+  providerObserver = request => {
+    if (!ids.includes(request.id) || request.pid !== process.pid) return;
+    mark('provider-arrival', request.id);
+    const finish = () => mark('provider-finish', request.id), close = () => mark('provider-close', request.id);
+    request.response.once('finish', finish); request.response.once('close', close);
+    responseListeners.push({ response: request.response, finish, close });
+  };
+  const originalCall = pluginRuntime.callContract;
+  const callObserver = vi.spyOn(pluginRuntime, 'callContract').mockImplementation(function (this: unknown, ...args: Parameters<typeof originalCall>) {
+    const label = args[5];
+    const id = label?.kind === 'notification-send' && ids.includes(label.id) ? label.id : undefined;
+    if (id) mark('contract-call-start', id);
+    const pending = originalCall.apply(this, args);
+    if (id) void pending.then(() => mark('contract-call-resolved', id), () => mark('contract-call-rejected', id)).catch(() => undefined);
+    return pending;
+  });
+  restoreCall = () => callObserver.mockRestore();
+  setWorkerShutdownObserverForTest(true, (stage, details) => {
+    if (typeof details.id === 'string' && ids.includes(details.id)) mark(stage, details.id);
+  });
   let timer: NodeJS.Timeout | undefined;
   let releaseDelay: (() => void) | undefined, stopped = false, reclaimed = 0;
   let reclaim: Promise<void> | undefined;
@@ -311,6 +346,7 @@ it('H slow successful sends across multiple lease-sized batches never reclaim or
       const request = await requests.take(value => value.kind === 'notification' && ids.includes(value.id) && value.pid === process.pid);
       try { await new Promise<void>(resolve => { releaseDelay = resolve; timer = setTimeout(resolve, getPluginTimeoutMs() * 0.9); }); }
       finally { clearTimeout(timer); }
+      mark('provider-release', request.id);
       request.response.end(JSON.stringify({ accepted: true, providerMessageId: `slow-${request.id}` }));
     }
   })();
@@ -321,6 +357,7 @@ it('H slow successful sends across multiple lease-sized batches never reclaim or
     expect(await deliverPendingNotifications()).toBe(2);
     await provider;
     const rows = await prisma.notification.findMany({ where: { id: { in: ids } } });
+    console.info(JSON.stringify({ event: 'notification-slow-fixture-result', reclaimed, rows: rows.map(({ id, status, attempts }) => ({ id, status, attempts })), requests: ids.map(id => ({ id, count: observed.filter(value => value.id === id).length })) }));
     expect(rows).toHaveLength(items.length);
     for (const row of rows) expect(row).toMatchObject({ status: 'SENT', attempts: 0 });
     for (const id of ids) expect(observed.filter(value => value.id === id)).toHaveLength(1);
@@ -331,7 +368,10 @@ it('H slow successful sends across multiple lease-sized batches never reclaim or
     clearTimeout(timer);
     releaseDelay?.();
     for (const response of responses) response.end(JSON.stringify({ accepted: true }));
-    try { await provider; await reclaim; } finally { await control.end(); }
+    try { await provider; await reclaim; } finally {
+      restoreSlowDiagnostics?.(); restoreSlowDiagnostics = undefined;
+      await control.end();
+    }
   }
 }, 120_000);
 it('I a second overlapping tick in one real worker claims nothing', async () => {

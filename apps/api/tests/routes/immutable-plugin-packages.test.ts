@@ -63,6 +63,40 @@ describe('immutable plugin package deployment', () => {
   let app: FastifyInstance;
   let base: string;
   let token: string;
+  type ChildMailbox = { values: any[]; waiters: Array<{ kind: string; resolve: (value: any) => void; reject: (error: Error) => void }>; failure?: Error; trace: unknown[] };
+  const mailboxes = new WeakMap<ChildProcess, ChildMailbox>();
+  const phase = (stage: string, pid?: number) => console.info(JSON.stringify({ event: 'immutable-fixture-phase', stage, pid, atMs: performance.now() }));
+  function observeChild(worker: ChildProcess) {
+    const state: ChildMailbox = { values: [], waiters: [], trace: [] };
+    mailboxes.set(worker, state);
+    const record = (value: object) => { state.trace.push({ atMs: performance.now(), ...value }); if (state.trace.length > 64) state.trace.shift(); };
+    const fail = () => {
+      state.failure = new Error(`Immutable fixture IPC failed: ${JSON.stringify({ pid: worker.pid, trace: state.trace })}`);
+      for (const waiter of state.waiters.splice(0)) waiter.reject(state.failure);
+    };
+    const receive = (value: any) => {
+      record({ kind: ['ready', 'plugin-lease-ready', 'operations-drained', 'resolved-packages', 'error', 'plugin-materialize-ready', 'plugin-materialize-released'].includes(value?.kind) ? value.kind : 'other' });
+      if (value?.kind === 'error') { fail(); return; }
+      const index = state.waiters.findIndex(waiter => waiter.kind === value?.kind);
+      if (index >= 0) state.waiters.splice(index, 1)[0].resolve(value);
+      else if (state.values.length < 64) state.values.push(value);
+      else fail();
+    };
+    // Consume both pipes immediately; retain only bounded, allowlisted metadata.
+    const consume = (stream: 'stdout' | 'stderr') => (chunk: Buffer) => record({ stream, bytes: chunk.length });
+    const stdout = consume('stdout'), stderr = consume('stderr');
+    worker.stdout?.on('data', stdout); worker.stderr?.on('data', stderr);
+    worker.on('message', receive); worker.on('error', fail);
+    worker.once('exit', (code, signal) => {
+      record({ stage: 'exit', code, signal }); fail();
+      console.info(JSON.stringify({ event: 'immutable-fixture-trace', pid: worker.pid, trace: state.trace }));
+      worker.off('message', receive); worker.off('error', fail);
+      worker.stdout?.off('data', stdout); worker.stderr?.off('data', stderr);
+      phase('child-exited', worker.pid);
+    });
+    phase('child-forked', worker.pid);
+    return worker;
+  }
   const slugs = new Set<string>();
   const own = () => { const id = slug(); slugs.add(id); return id; };
   let before: Awaited<ReturnType<typeof snapshotPluginRows>>;
@@ -93,7 +127,9 @@ describe('immutable plugin package deployment', () => {
   }
   async function uploadTo(url: string, bytes: Buffer, confirmUnsigned = true, expectedPhase = 'SUCCESS') {
     const { uploadPluginZip, completedPluginUploadBody } = await import('../helpers/plugin-upload');
+    phase('upload-start');
     const response = await uploadPluginZip(url, token, bytes, confirmUnsigned, expectedPhase);
+    phase('upload-settled');
     return { status: response.status, body: await completedPluginUploadBody(response) };
   }
   async function enabled(id: string) {
@@ -120,33 +156,25 @@ describe('immutable plugin package deployment', () => {
     expect(Buffer.from((await pluginPackageBlobStore.get(id, hash(bytes)))!.bytes)).toEqual(bytes);
   }
   function child(stage: 'acquired' | 'published') {
-    return fork(path.resolve('tests/helpers/plugin-lease-child.ts'), [], {
+    return observeChild(fork(path.resolve('tests/helpers/plugin-lease-child.ts'), [], {
       execArgv: ['--import', 'tsx'], stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
       env: { ...process.env, NODE_ENV: 'test', JIFFOO_TEST_PLUGIN_LEASE_BARRIER: stage },
-    });
+    }));
   }
   function message(process: ChildProcess, kind: string): Promise<any> {
+    const state = mailboxes.get(process)!;
+    const index = state.values.findIndex(value => value?.kind === kind);
+    if (index >= 0) return Promise.resolve(state.values.splice(index, 1)[0]);
+    if (state.failure) return Promise.reject(state.failure);
+    if (state.waiters.length >= 64) return Promise.reject(new Error('Immutable fixture IPC waiter bound exceeded'));
+    phase(`wait-${kind}`, process.pid);
     return new Promise((resolve, reject) => {
-      const cleanup = () => {
-        process.off('message', receive);
-        process.off('error', fail);
-        process.off('exit', exit);
-      };
-      const fail = (error: Error) => { cleanup(); reject(error); };
-      const exit = (code: number | null) => fail(new Error(`Child exited before ${kind}: ${code}`));
-      const receive = (value: any) => {
-        if (value?.kind !== kind && value?.kind !== 'error') return;
-        cleanup();
-        if (value.kind === 'error') reject(new Error(value.message));
-        else resolve(value);
-      };
-      process.on('message', receive);
-      process.on('error', fail);
-      process.on('exit', exit);
+      state.waiters.push({ kind, resolve: value => { phase(`received-${kind}`, process.pid); resolve(value); }, reject });
     });
   }
   async function stop(childProcess: ChildProcess) {
-    if (childProcess.exitCode !== null) return;
+    if (childProcess.exitCode !== null || childProcess.signalCode !== null) return;
+    phase('stop-requested', childProcess.pid);
     const exited = once(childProcess, 'exit');
     childProcess.send({ kind: 'stop' });
     await exited;
@@ -158,7 +186,7 @@ describe('immutable plugin package deployment', () => {
     const rowsBefore = await snapshotPluginRows();
     const root = await fs.mkdtemp(path.join(tmpdir(), 'materialize-cache-'));
     expect(await fs.readdir(root)).toEqual([]);
-    const worker = fork(path.resolve('tests/helpers/plugin-lease-child.ts'), [], {
+    const worker = observeChild(fork(path.resolve('tests/helpers/plugin-lease-child.ts'), [], {
       execArgv: ['--import', 'tsx'], stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
       env: {
         ...process.env, NODE_ENV: 'test', EXTENSIONS_PATH: root,
@@ -167,7 +195,7 @@ describe('immutable plugin package deployment', () => {
         JIFFOO_TEST_PLUGIN_MATERIALIZE_OBSERVE: options.observe ? '1' : '0',
         JIFFOO_TEST_PLUGIN_MATERIALIZE_BARRIER: options.barrier ? '1' : '0',
       },
-    });
+    }));
     const ready = await message(worker, 'ready');
     return { worker, root, base: ready.base as string, builtinSlugs, builtinBefore, rowsBefore };
   }
@@ -284,15 +312,10 @@ describe('immutable plugin package deployment', () => {
     try {
       const finished = message(child.worker, 'resolved-packages');
       void finished.catch(() => undefined);
-      const firstTwo = new Promise<string[]>((resolve) => {
-        const seen: string[] = [];
-        const observe = (value: any) => {
-          if (value?.kind !== 'plugin-materialize-ready') return;
-          seen.push(value.slug);
-          if (seen.length === 2) { child.worker.off('message', observe); resolve(seen); }
-        };
-        child.worker.on('message', observe);
-      });
+      const firstTwo = Promise.all([
+        message(child.worker, 'plugin-materialize-ready'),
+        message(child.worker, 'plugin-materialize-ready'),
+      ]).then(values => values.map(value => value.slug as string));
       child.worker.send({ kind: 'resolve-packages', slugs: ids });
       const active = new Set(await firstTwo);
       expect(active.size).toBe(2);
@@ -452,6 +475,7 @@ describe('immutable plugin package deployment', () => {
       expect(abandoned).toMatchObject({ phase: 'NEEDS_RECOVERY', errorCode: 'PLUGIN_MIGRATION_OUTCOME_UNKNOWN', recoveryState: 'LEASE_EXPIRED' });
       expect(Buffer.from(abandoned.artifactBytes!)).toEqual(oldZip);
       const aDrained = message(a, 'operations-drained');
+      phase('old-publisher-release', a.pid);
       a.send({ kind: 'plugin-lease-release' });
       a.send({ kind: 'drain-operations' });
       await aDrained;
@@ -464,6 +488,7 @@ describe('immutable plugin package deployment', () => {
       expect(await prisma.pluginMigrationOperation.findUniqueOrThrow({ where: { id: abandoned.id } })).toEqual(abandoned);
       expect(await prisma.pluginInstall.findUnique({ where: { slug: id } })).toBeNull();
       expect((await prisma.pluginOperationLease.findUniqueOrThrow({ where: { slug: id } })).token).toBe(bLease.token);
+      phase('new-publisher-release', b.pid);
       b.send({ kind: 'plugin-lease-release' });
       expect((await second).status).toBe(200);
       expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: id } })).zipHash).toBe(hash(newZip));

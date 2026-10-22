@@ -9,7 +9,6 @@ async function main() {
   }
   const app = await createTestApp({ disableFileSystem: false });
   const base = await app.listen({ port: 0, host: '127.0.0.1' });
-  process.send?.({ kind: 'ready', base });
   process.on('message', async (message: unknown) => {
     if ((message as { kind?: string })?.kind === 'drain-operations') {
       await drainPluginInstallOperations();
@@ -29,6 +28,7 @@ async function main() {
     await app.close();
     process.exit(0);
   });
+  process.send?.({ kind: 'ready', base });
 }
 
 main().catch((error) => {
