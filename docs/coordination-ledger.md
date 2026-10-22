@@ -54,6 +54,9 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | `wp-d1-audit-outlet` (pi session `01a162ec-e93a-720f-bfe7-43601a8cf294`) | **committed `a65695b70`, merge-ready** (lane gate green, §5d) | §5d |
 | `wp-d2-boundary-guard` (pi session `01a16309-9c62-71f3-8ccf-114cc071b48d`) | **committed `2c2a40e24`, merge-ready** (lane gate green, §5e) | §5e |
 | `wp-d3-audit-gap` (pi session `01a1633f-…`) | **committed `b55714018`, merge-ready** (lane gate green, §5f) | §5f |
+| `wp-e1-user-owner` (pi session `01a163e5-…`) | **committed `41d30671c`, merge-ready** (lane gate green, §5h) | §5h |
+| `wp-e2-table-owners` (pi session `01a163f7-…`) | **committed `ede8a7f3b`, merge-ready** (lane gate green, §5i) | §5i |
+| `wp-e3-domain-guard` (pi session `01a1640a-…`) | **committed (guard model), merge-ready** (lane gate green, §5j) | §5j |
 | **B-BOUND-B** — order domain single owner (WP-B) | Boundary-remediation line | `codex/lane-orders` | `49dc5ff1a` + B-BOUND-A | `apps/api/src/core/order/**`, `apps/api/src/core/payment/{reconciliation,session,order-paid-event}.ts`, `apps/api/src/core/admin/order-management/**`, `apps/api/src/core/notifications/service.ts` | `jiffoo_core_test_orders` | not assigned | **registered, blocked** — overlaps B-P3P4 on `core/order/service.ts` (§4) | needs contract agreement with B-P3P4 first |
 | **B-BOUND-C** — neutral layer + directory re-layering (WP-C) | Boundary-remediation line | `codex/lane-orders` | TBD | new `apps/api/src/core/shared/**`; move `core/admin/system-settings`→`core/settings`, `core/admin/plugin-management`+`extension-installer`→`core/extensions`; retarget imports in `core/storage/**`, `core/plugin-pages/asset-routes.ts` | `jiffoo_core_test_orders` | not assigned | **registered, not started** | depends on B-BOUND-B for `core/order/**` import churn |
 | **B-BOUND-D** — audit outlet, dead code, boundary guard, plugin risk register (WP-D) | Boundary-remediation line | `codex/lane-orders` | TBD | new `apps/api/src/core/audit/service.ts` + 9 audit call sites; delete `apps/api/src/core/user/`, `apps/api/src/core/order/hooks.ts`; new `apps/api/tests/core/module-boundary-audit.test.ts`; `docs/agentra-001-core-v1-product-charter.md`; `packages/shared/src/extensions/plugin-contract.ts`; `BUILTIN_PLUGIN_SLUGS` → `@jiffoo/shared` | `jiffoo_core_test_orders` | not assigned | **registered, not started** | last in sequence: touches `packages/shared` → widest mandatory gate |
@@ -243,21 +246,109 @@ charter §3, stating the accepted in-process model and pointing at the concrete 
 
 ## 5g. The boundary audit result — what is still open
 
-The guard registers **23 known violations**, in six families. Each has a reason and an owner.
+**Final state after batches B-BOUND-A … B-BOUND-E3: 23 known violations → 5.** All five are real
+and registered with a reason and an owner.
 
-| Family | Count | Nature | Owner / next step |
-|---|---|---|---|
-| `users` written by `account`, `admin/staff-management`, `admin/user-management`, `install` | 4 | **architecture decision** — the `users` table has no single owner | **needs the owner's decision** (see §8 Q1) |
-| `admin_staff_audit_logs` written by `builtin-sync`, `theme-service`, `admin/staff-management`, `auth/account-recovery` | 4 | the audit outlet covers `admin_audit_events` only; this is the legacy staff-audit table | extend the outlet to the second table, or declare it the staff module's own log |
-| plugin-domain tables (`plugin_installations` x3, `plugin_installs`, `plugin_operation_leases` x2, `plugin_task_execution_slots`, `core_processes`) | 8 | **granularity artifact** — one domain split across `core/admin/extension-installer`, `core/admin/plugin-management`, `core/plugins`, `core/storage` | resolved by the deferred move of `core/admin/extension-installer` → `core/extensions/extension-installer` (blocked on P-3) |
-| `system_settings` written by `auth/api-token`, `install`, `admin/extension-installer/plugin-registry-version` | 3 | small — the settings module owns the table, these three write it directly | route through `core/settings` (small batch) |
-| `admin_audit_events` written by `admin/extension-installer/plugin-migration-executor` | 1 | **legitimate exception** — raw SQL inside a manual `pg` transaction that provisions a plugin schema; a Prisma-based outlet cannot join it | keep registered |
-| `product_variants` written by `inventory` | 1 | **column-level ownership split** — the product domain owns the variant row, the inventory domain owns the `stock` column; a table-level owner map cannot express that | either accept the split explicitly or give the stock column its own owner |
-| `notifications` written by `admin/notifications` | 1 | small — two writers of the notifications table | route the admin module through `core/notifications` (small batch) |
-| `auth_tokens` written by `admin/staff-management` | 1 | **architecture decision** — token revocation bypasses the auth module that owns the table | part of the same decision as `users` (§8 Q1) |
+| # | File | Table | Nature | Owner / next step |
+|---|---|---|---|---|
+| 1 | `admin/extension-installer/plugin-migration-gate.ts` | `plugin_operation_leases` | the installer writes a lease table owned by `core/storage` | route through the storage lease API |
+| 2 | `admin/extension-installer/plugin-recovery.ts` | `plugin_operation_leases` | same | same |
+| 3 | `admin/extension-installer/plugin-recovery.ts` | `core_processes` | the installer writes the process registry owned by `core/infra` | route through the infra process API |
+| 4 | `admin/extension-installer/plugin-migration-executor.ts` | `admin_audit_events` | **legitimate exception** — raw SQL inside a manual `pg` transaction that provisions a plugin schema; a Prisma-based outlet cannot join it | keep registered |
+| 5 | `inventory/service.ts` | `product_variants` | **column-level ownership split** — the product domain owns the variant row, the inventory domain owns the `stock` column; a table-level owner map cannot express that | either accept the split explicitly or give the stock column its own owner |
+
+Items 1–3 are the same shape as the work already done: three stray writers of a table that
+another module owns. They are a short batch of the same kind as B-BOUND-E1/E2 and can be closed
+without a decision.
+
+Item 5 is the one remaining **decision**: does the `stock` column belong to the product domain or
+to the inventory domain? The current code and the guard both put the row in the product domain and
+the column in the inventory domain. **Recommendation: keep the split and record it in the guard's
+owner map as a column-level exception**, because the inventory module is the only writer of
+`stock` and the product module is the only writer of the rest of the row, and both behaviours are
+correct.
 
 **Nothing is untracked.** Every remaining violation is in the guard with a reason and an owner, so
 it is visible in CI and cannot silently grow.
+
+## 5h. Handover evidence — B-BOUND-E1 (one public owner for `users` and `auth_tokens`)
+
+**Commit:** `41d30671c`.
+
+**Decision taken, and the change from the earlier recommendation.** The ledger previously
+recommended a new `core/user` module. The guard's own `TABLE_OWNERS` already declared
+`users: 'auth'` and `auth_tokens: 'auth'` — the auth module is where identity, credentials and
+sessions already live. Creating a separate `core/user` module would have meant relocating the
+most security-sensitive writes in the repository (login, registration, email verification,
+password reset, token issuance) for a naming benefit only, with no change in the number of
+modules or in the single-owner rule. The smaller, safer change that satisfies the same rule was
+taken instead: **`core/auth` is the one public owner**, and it now exposes the row operations the
+other modules need.
+
+- new `apps/api/src/core/auth/identity-service.ts` → `AuthIdentityService` with
+  `updateProfile`, `removeAvatar`, `changeEmail`, `deactivateCustomer`, `createCustomer`,
+  `updateCustomer`, `deleteCustomer`, `createStaff`, `removeStaff`, `reinviteStaff`,
+  `revokeStaffInvites`, `createBootstrapAdmin` — each performing exactly the Prisma write it
+  replaces.
+- `core/account`, `core/admin/user-management`, `core/admin/staff-management` and `core/install`
+  call that API. Every `where` guard is preserved (customer update and delete stay scoped to
+  `role: 'USER'`, staff token revocation stays scoped to the `STAFF_INVITE` purpose).
+- `core/auth`'s own flows are unchanged.
+
+**Orchestrator-verified:** after the change, the only modules writing `users` or `auth_tokens` are
+under `core/auth/**`. The guard's known-violations list lost five entries (23 → 18).
+
+**Gate:** API PASS (80.40s), Admin PASS, Shop PASS; exit code 0.
+
+## 5i. Handover evidence — B-BOUND-E2 (the last three table owners)
+
+**Commit:** `ede8a7f3b`.
+
+- `system_settings` → owned by `core/settings`. The api-token module and the installer now call
+  public settings operations; the api-token read-modify-write on the settings blob (including its
+  `JSON.stringify` and the cache invalidation that follows) is preserved exactly.
+- `notifications` → owned by `core/notifications`. The admin **resend** operation moved into the
+  notifications module as a public method that performs the same create + dedup-key update in the
+  same order; the route's HTTP behaviour is unchanged.
+- `admin_staff_audit_logs` → owned by `core/audit`. The audit outlet now covers the legacy staff
+  audit table as well, and the four writers that reached around it (builtin sync, theme service,
+  staff management, account recovery) call the outlet. Each call site keeps writing exactly the
+  fields it wrote before — the admin audit API unions the two tables, so a renamed field would
+  change the admin history. The two tables are not merged.
+
+**Orchestrator-verified:** `system_settings` is written only by `core/settings/service.ts`,
+`notifications` only by `core/notifications/service.ts`, `admin_staff_audit_logs` only by
+`core/audit/service.ts`. The guard's known-violations list lost eight entries (18 → 10).
+
+**Gate:** API PASS (96.46s), Admin PASS, Shop PASS; exit code 0.
+
+## 5j. Handover evidence — B-BOUND-E3 (the guard becomes domain-aware)
+
+**Commit:** the last commit on `codex/lane-orders`.
+
+The guard's owner map gave every table one owning module. That is right for the commerce domain
+and wrong for the extension domain, which is deliberately split across the installer, plugin
+management and the durable task engine — producing eight known violations that were a granularity
+mismatch, not defects.
+
+- `TABLE_OWNERS` may now name a **domain**. `DOMAIN_MEMBERS.extensions` = the three extension
+  modules; `DOMAIN_TABLES.extensions` records which tables the domain owns, so it cannot silently
+  acquire a table it does not own.
+- `plugin_installations`, `plugin_installs` and `plugin_task_execution_slots` are now owned by the
+  domain. `plugin_operation_leases` stays owned by `storage` and `core_processes` by `infra`:
+  their remaining cross-module writers are **real** violations, so they keep a module owner and
+  stay registered.
+- A new assertion, `keeps the domain model safe and free of loopholes`, fails the guard if a
+  domain has no members, if a member is not a real module, if a member is a commerce module, if a
+  table is assigned to a domain it does not declare, if a declared table is owned by something
+  else, or if a domain member writes a table the domain does not own.
+
+**Orchestrator-verified non-vacuous twice** (temporary probe files, removed afterwards):
+a cart write from the order module, and an order write from the `plugins` domain member, were
+both rejected with the owning module named — the second one by the write check **and** by the new
+loophole assertion.
+
+**Gate:** API PASS (5.90s); exit code 0.
 
 ## 5. Handover evidence — B-BOUND-A
 
@@ -386,16 +477,21 @@ registered.
    extract its draft to `codex/lane-plugins` before either side commits.
 4. **Shop gate fix.** The failing `checkout-contract.test.ts` classification is B-P3P4's; it blocks
    a green Shop step for **both** sides until fixed.
-5. **The `users` / `auth_tokens` owner (Q1).** The boundary guard registers four writers of the
+5. **The `users` / `auth_tokens` owner (Q1) — RESOLVED.** The guard registered four writers of the
    `users` table and one writer of `auth_tokens`. The AGENTS.md rule says each of those tables has
-   exactly one owning module. The owner has to be decided: `core/auth` (it owns identity and
-   session state) or a new `core/user` (it would own the customer profile and the staff rows).
-   This is a product/architecture decision, not a mechanical refactor, so it was not forced into a
-   batch. **Recommendation: a new `core/user` module that owns `users` and `auth_tokens`, with
-   `core/auth` owning the session/credential flows on top of it.**
-6. **Three small mechanical residuals** could be closed in one short batch without a decision:
-   `system_settings` (3 writers), `notifications` (2 writers), and the plugin-domain table
-   granularity (which needs the deferred extension-installer move first).
+   exactly one owning module. **Decision taken: `core/auth` is the single public owner** of both
+   tables, and it now exposes the row operations the other modules need
+   (`core/auth/identity-service.ts`). The earlier suggestion of a separate `core/user` module was
+   **not** taken: it would have relocated the most security-sensitive writes in the repository
+   (login, registration, email verification, password reset, token issuance) for a naming benefit
+   only, without changing the number of modules or the single-owner rule. If the owner prefers the
+   separate module, that is a separate reviewed batch over the identity flows.
+6. **Three stray plugin-domain writers (Q6).** `plugin_operation_leases` is owned by
+   `core/storage` and `core_processes` by `core/infra`, but the extension installer writes them in
+   three places. Same shape as the work already done — a short batch, no decision needed.
+7. **The `stock` column split (Q7).** `product_variants` is owned by the product domain, but the
+   `stock` column is written only by the inventory domain. **Recommendation: keep the split and
+   record it as a column-level exception in the guard's owner map.**
 
 ## 9. Extraction record — B-BOUND-A
 
