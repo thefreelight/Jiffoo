@@ -66,7 +66,7 @@ export function StorefrontCodeLoader({ slots, libraryOverrides }: {
     const codeDocument = document as CodeDocument;
     if (codeDocument.jiffooStorefrontCodeStarted) return;
     codeDocument.jiffooStorefrontCodeStarted = true;
-    // Match next/script lazyOnload timing, including its idle callback fallback.
+    // Prefer idle time, but do not starve merchant initialization in busy or background pages.
     const requestIdleCallback = window.requestIdleCallback?.bind(window) || ((callback: IdleRequestCallback) => {
       const start = Date.now();
       return window.setTimeout(() => {
@@ -81,7 +81,7 @@ export function StorefrontCodeLoader({ slots, libraryOverrides }: {
         initializeProviders(slots, libraryOverrides);
         documentTracking().initialized(slots);
         void injectCode(slots);
-      });
+      }, { timeout: 1000 });
     };
     if (document.readyState === 'complete') startInjection();
     else window.addEventListener('load', startInjection);
