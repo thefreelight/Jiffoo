@@ -60,7 +60,7 @@ describe('native Bokmoo Connect adapter', () => {
     expect(query).toHaveBeenCalledTimes(3);
   });
 
-  it('returns only MID in the card list and exposes hardware identifiers in detail', async () => {
+  it('exposes hardware identifiers to the owner in both the card list and detail', async () => {
     isNativePluginEnabled.mockResolvedValue(true);
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com' });
     const card = { id: 'card-1', mid: '88888000000000000001', eid: 'EID-1', iccid: 'ICCID-1', status: 'bound', verification_status: 'verified', user_id: 'user-1', bound_at: null, verified_at: null, last_seen_at: null, created_at: '2026-09-03T00:00:00.000Z', updated_at: '2026-09-03T00:00:00.000Z' };
@@ -69,8 +69,7 @@ describe('native Bokmoo Connect adapter', () => {
       { DB: { prepare: vi.fn(() => statement(null, [card])) } } as never,
     );
     const listPayload = await listResponse?.json() as any;
-    expect(listPayload.data.items[0]).toMatchObject({ mid: card.mid, displayCardId: '8888 8000 0000 0000 0001' });
-    expect(listPayload.data.items[0].iccid).toBeUndefined();
+    expect(listPayload.data.items[0]).toMatchObject({ mid: card.mid, displayCardId: '8888 8000 0000 0000 0001', eid: card.eid, iccid: card.iccid });
 
     const detailResponse = await tryNativeBokmooConnect(
       new Request('https://api.example/api/v1/cards/card-1'),
