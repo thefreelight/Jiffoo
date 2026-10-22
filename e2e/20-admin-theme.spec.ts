@@ -47,6 +47,12 @@ test('C1a activates Admin assets on every auth screen and restores the default',
       }
     } finally { await fresh.close(); }
   }
+  // Signing out in either context revokes every session for this principal.
+  await expect(page.getByRole('heading', { name: 'Sign in to Admin', exact: true })).toBeVisible();
+  await login(page, ownerEmail, 'FinalOwnerPassword123!');
+  await page.getByRole('link', { name: 'Themes', exact: true }).click();
+  await page.getByRole('tab', { name: 'Admin themes', exact: true }).click();
+  await expect(page.getByRole('article', { name: 'Active', exact: true }).getByRole('heading', { name: 'E2E Admin Theme', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'More actions: E2E Admin Theme', exact: true }).click(); await page.getByRole('menuitem', { name: 'Restore previous theme', exact: true }).click();
   await expect(page.getByRole('article', { name: 'Active', exact: true }).getByRole('heading', { name: 'Default Admin', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'More actions: E2E Admin Theme', exact: true }).click(); await page.getByRole('menuitem', { name: 'Uninstall', exact: true }).click(); await expect(page.getByRole('article', { name: 'E2E Admin Theme', exact: true })).toHaveCount(0);
