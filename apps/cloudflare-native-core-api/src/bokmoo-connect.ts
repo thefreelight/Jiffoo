@@ -112,7 +112,10 @@ async function listCards(request: Request, env: Env): Promise<Response> {
   const rows = await env.DB.prepare(
     'SELECT * FROM native_bokmoo_cards WHERE user_id = ?1 ORDER BY created_at DESC',
   ).bind(user.id).all<CardRow>();
-  const items = rows.results.map((row) => publicCard(row));
+  // The list is already scoped to the caller's own cards, so the EID must
+  // come back — the apps match a detected card against the bound EID to
+  // show "verified"; without it every card reads as 待确认.
+  const items = rows.results.map((row) => publicCard(row, true));
   return response({ items, page: 1, limit: items.length, total: items.length });
 }
 
