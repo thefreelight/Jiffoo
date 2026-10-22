@@ -27,3 +27,37 @@
 - Visual captures run opt-in with `pnpm visual:capture`; `pnpm visual:compare` captures the current tree and compares it with the ignored baseline in `e2e/visual-results/baseline`. Set `VISUAL_CAPTURE_SET` to `baseline`, `current`, `noise-1`, or `noise-2` for an explicit capture set. Run two unchanged-code captures to measure noise before interpreting a baseline comparison.
 - In `e2e/visual.spec.ts`, read-only `page.evaluate` may inspect `document.fonts.ready` and computed CSS. UI interaction still uses accessible locators and Playwright keyboard actions; do not use evaluate to click, fill, navigate, or mutate the page.
 - On an E2E failure, preserve `e2e/test-results` service logs and the notification/Redis lock evidence dump. The E2E runner archives an existing service log before opening its current log path.
+
+## Architecture Guardrails
+
+These rules are binding on every agent that writes code in this repository. They restate the Core/extension split of `docs/agentra-001-core-v1-product-charter.md` and `docs/agentra-004-plugin-pages-and-services.md` as concrete, checkable constraints.
+
+### 1. Keep the Core/extension boundary
+
+- Generic commerce semantics (`cart`, `checkout`, `order`, `inventory`, `payment`, `account`, `admin`) live in `apps/api/src/core/`. Extension capabilities and third-party integrations enter only through `packages/plugin-sdk` and the isolated Fastify gateway in `apps/api/src/core/admin/extension-installer/plugin-runtime.ts`.
+- Never hardcode a plugin slug, a plugin's manifest fields, or a plugin's business rules inside `apps/api/src/core/` outside the extension-installer and plugin-management domains. Core calls a plugin only through a versioned capability contract (`payment` v2, `shipping` v1, `tax` v1, `fulfillment` v1, `notification` v1) via `callContract(...)`, and only through the public contract declarations in `packages/shared/src/extensions/plugin-contract.ts`.
+- Plugin code never registers routes on the Core Fastify instance. Plugin HTTP routes and contract endpoints are served by a per-installation isolated Fastify instance reached through `inject()`.
+- A plugin's declared `PluginContext` surface (`plugin`, `config`, `database`, `logger`, `http`, `events`, `contracts`) is the whole contract. Core never hands a plugin `prisma`, a Core service instance, or a Core secret.
+- Themes are presentation data only. A theme package never carries executable server code, browser JavaScript, or a Core-page injection point.
+
+### 2. Modules talk only through public contracts
+
+- Under `apps/api/src/core/`, one module may only call another module's **publicly exported service or type**. Internal helper files of a module (for example `core/order/transition.ts`, `core/order/status-history.ts`, `core/order/catalog-snapshot.ts`, `core/order/current-pricing.ts`) are private to that module.
+- Never mutate another domain's database tables directly. `prisma.order`, `prisma.payment`, `prisma.cart`, `prisma.productVariant`, `prisma.user` and their siblings have exactly one owning module, and only that module may write them. Cross-domain effects are expressed as a call to the owning module's public service inside the caller's existing `prisma.$transaction`.
+- A module that owns a cross-domain side effect (for example cancelling pending payments when an order is cancelled) exposes that side effect as a public method on the owning module, with the owning module keeping its own state machine and allow-lists.
+- A module that needs shared infrastructure that is not its own (row locks, money conversion, pricing rules) must not reach into another domain's folder for it; that infrastructure belongs in a neutral shared location.
+- Keep public read projections explicit. A module that needs order data for a notification or an event payload consumes a documented projection method instead of reading the order table itself.
+
+### 3. Money and stock writes are idempotent and transactional
+
+- Every order-placement, redemption, stock-deduction and payment-callback path must be concurrency-idempotent: a database unique constraint, an optimistic-lock predicate, a PostgreSQL advisory lock, or a Redis idempotency key. A replayed request must return the original result and must not create a second effect.
+- Multi-table writes belong in one `prisma.$transaction`. Never leave a half-applied write behind on crash, and never let two concurrent transactions produce oversell, double capture, or a paid-but-unrecorded order.
+- Cross-instance correctness comes from the database, not from process memory. Use the existing locks and leases (`core/payment/locks.ts`, `core/payment/lease.ts`, `core/notifications/lease.ts`) and the transactional outbox instead of in-process coordination.
+- Read-modify-write of a shared monetary or stock field must be expressed as a conditional update whose predicate includes the expected prior value.
+
+### 4. Plugin and external calls degrade, never block the core flow
+
+- Every plugin invocation (`inject()`, a capability contract call, and the G4 service call when it lands) and every external HTTP call carries an explicit timeout, and the surrounding code path treats timeout, breaker-open and provider-error as an expected, recorded outcome rather than an unhandled rejection.
+- Non-core actions (notifications, statistics, audit side effects, reconciliation sweeps) run asynchronously through `apps/api/src/jobs/` and the durable outbox/lease machinery, with retry, backoff and failure recording. They never block or roll back the core commerce transaction.
+- A failed or unavailable extension must degrade gracefully: the core transaction still completes and the failure is recorded with its originating extension. Never let an extension failure abort an order, a payment capture, or a stock deduction.
+- Plugin-owned durable tasks (G1) and Core-mediated plugin services (G4) are specified in `docs/agentra-004-plugin-pages-and-services.md` and are not implemented in this worktree yet. Until they land, the equivalent Core-side behaviour uses the existing job, lease and outbox paths; do not introduce a second queueing mechanism.

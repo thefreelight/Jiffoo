@@ -1,0 +1,27 @@
+{
+  "subagents": {
+    "projectRootResolution": "git-root",
+    "defaultProvider": "minimax",
+    "defaultModel": "minimax/MiniMax-M3.1-Flash",
+    "defaultThinking": "medium",
+    "maxThinking": "high",
+    "agentOverrides": {
+      "scout": {
+        "model": "minimax/MiniMax-M3.1-Flash",
+        "thinking": "low"
+      },
+      "worker": {
+        "model": "minimax/MiniMax-M3.1-Flash",
+        "thinking": "medium"
+      },
+      "reviewer": {
+        "model": "minimax/MiniMax-M3.1-Flash",
+        "thinking": "medium"
+      },
+      "oracle": {
+        "model": "minimax/MiniMax-M3.1-Flash",
+        "thinking": "high"
+      }
+    }
+  }
+}
