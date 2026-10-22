@@ -107,7 +107,8 @@ for (const surface of ['shop', 'admin'] as const) test(`${surface}: dedicated sh
         await expect(customer.getByRole('heading', { name: 'Local payment provider', exact: true })).toBeVisible();
         await expect(customer.getByRole('document', { name: title, exact: true })).toHaveCount(0);
         await customer.getByRole('button', { name: 'Confirm provider payment', exact: true }).click();
-        await expect(customer).toHaveURL(/\/en\/checkout\/complete\?order=/);
+        await expect(customer).toHaveURL(/\/en\/checkout\/return\?order=/);
+        await expect(customer.getByRole('heading', { name: 'Order placed, payment successful', exact: true })).toBeVisible();
         await expect(customer.getByRole('document', { name: title, exact: true })).toHaveCount(0);
         await customer.getByRole('link', { name: 'Return to plugin: Studio', exact: true }).click();
         await expect(customerFrame.getByRole('status', { name: 'Page identity', exact: true })).toHaveText(email);
@@ -135,8 +136,12 @@ for (const surface of ['shop', 'admin'] as const) test(`${surface}: dedicated sh
     }
   } finally {
     if (installed) {
-      if (!removed) expect((await request.delete(`${api}/extensions/plugin/${slug}`, { headers: { authorization } })).ok()).toBe(true);
-      expect((await request.delete(`${api}/extensions/plugin/${slug}/purge`, { headers: { authorization }, data: { confirmationSlug: slug } })).ok()).toBe(true);
+      if (!removed) {
+        const uninstall = await request.delete(`${api}/extensions/plugin/${slug}`, { headers: { authorization } });
+        expect.soft(uninstall.ok(), await uninstall.text()).toBe(true);
+      }
+      const purge = await request.delete(`${api}/extensions/plugin/${slug}/purge`, { headers: { authorization }, data: { confirmationSlug: slug } });
+      expect.soft(purge.ok(), await purge.text()).toBe(true);
     }
     await fixture.cleanup();
   }

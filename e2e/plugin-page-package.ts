@@ -170,8 +170,9 @@ document.body.append(main);
         }
       });
       ctx.http.route({method:'GET',path:'/pay/:id',handler:async (request,reply) => {
-        const row = (await ctx.database.query('SELECT fact FROM bridge_payments WHERE "sessionId"=$1',[request.params.id])).rows[0];
+        const row = (await ctx.database.query('SELECT fact,"returnUrl" FROM bridge_payments WHERE "sessionId"=$1',[request.params.id])).rows[0];
         if (!row) return reply.code(404).send();
+        reply.header('Content-Security-Policy', "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self' " + new URL(row.returnUrl).origin);
         return reply.type('text/html').send('<!doctype html><html lang="en"><title>Local payment provider</title><h1>Local payment provider</h1><form method="post" enctype="text/plain"><button type="submit">Confirm provider payment</button></form></html>');
       }});
       ctx.http.route({method:'POST',path:'/pay/:id',handler:async (request,reply) => {
