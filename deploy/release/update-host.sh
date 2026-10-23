@@ -171,6 +171,12 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' HUP INT TERM
 verify "$current" "$current_commit"; verify "$target" "$commit"
+# Obtain the exact source inventory from its verified immutable backend, not its manifest.
+docker run --rm --label "com.docker.compose.project=$project" --label io.jiffoo.host-helper=true --network none --read-only \
+  --user "$(id -u):$(id -g)" --cap-drop ALL --security-opt no-new-privileges --entrypoint node "$image" --input-type=module -e '
+    import { deploymentFiles } from "/app/deploy/release/identity.mjs";
+    console.log(JSON.stringify({ sourceCommit: process.env.BUILD_SHA, verifierImage: process.argv[1], deploymentFiles }));
+  ' "$image" > "$work/current-release-policy.json"
 state
 paths() {
   docker run --rm --label "com.docker.compose.project=$project" --label io.jiffoo.host-helper=true --network none --read-only \

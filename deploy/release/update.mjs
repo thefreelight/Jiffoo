@@ -4,7 +4,7 @@ import { readFileSync, readdirSync, lstatSync, realpathSync, writeFileSync, open
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { assertManifest, assertDeployment, sha256 } from './identity.mjs';
+import { assertManifest, assertDeployment, sourceDeploymentPolicy, sha256 } from './identity.mjs';
 import { serviceRoles, guardState, verifyBackup } from './backup.mjs';
 import { readCoreMigrations, assertCorePrefix, executeCoreMigrations, coreHistorySql } from './core-migrations.mjs';
 import { proveDatabaseQuiescence } from './maintenance-proof.mjs';
@@ -67,9 +67,9 @@ export function assertNoMigrations(history, target) {
   need(history.length === target.length, 'Target needs a migration-capable update (B16c2); pending Core migrations are not supported');
 }
 
-function release(directory, mode) {
+function release(directory, mode, expectedDeploymentFiles) {
   const result = json(resolve(directory, 'release.json'));
-  assertManifest(result, result.sourceCommit, mode === 'acceptance'); assertDeployment(result, directory);
+  assertManifest(result, result.sourceCommit, mode === 'acceptance', expectedDeploymentFiles); assertDeployment(result, directory);
   return result;
 }
 
@@ -283,7 +283,8 @@ async function restoreSnapshot(client, snap) {
 async function main() {
   require('module-alias')('/app/apps/api');
   const [command, project, mode, phase = ''] = process.argv.slice(2);
-  const source = release('/current', mode), target = release('/target', mode);
+  const sourceFiles = sourceDeploymentPolicy(json('/work/current-release-policy.json'), json('/current/release.json'));
+  const source = release('/current', mode, sourceFiles), target = release('/target', mode);
   const containers = json('/work/state.json');
   if (command === 'plan') {
     configureRuntime(containers);
@@ -415,7 +416,8 @@ async function main() {
         const journal = json('/state/journal.json'); journal.auditHash = hash(report);
         if (existsSync('/backup/backup.sha256')) {
           journal.backupHash = readFileSync('/backup/backup.sha256', 'utf8').trim();
-          const backup = verifyBackup('/backup',journal.backupHash,mode);
+          const backup = verifyBackup('/backup',journal.backupHash,mode,sourceFiles);
+          need(backup.sourceCommit === source.sourceCommit && backup.verifierImage === source.verifierImage, 'Backup differs from the verified source release');
           need(backup.sourceCommit === plan.currentCommit && backup.project === project, 'Backup identity differs from the confirmed update');
         }
         durableJson('/state/journal.json', journal); record({ kind: 'audit', auditHash: journal.auditHash, backupHash: journal.backupHash ?? null });

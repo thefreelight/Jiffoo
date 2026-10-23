@@ -61,6 +61,25 @@ test('confirmation anchors required inventory, release identity and all streamed
   writeFileSync(join(directory, '.env'), 'changed-secret-value');
   assert.throws(() => verifyBackup(directory, hash, 'acceptance'), /checksum/);
 }));
+
+test('update verifies a different source inventory without weakening default backup checks', () => fixture(directory => {
+  const path = 'deploy/release/source-only.json', bytes = Buffer.from('source version');
+  writeFileSync(join(directory, 'release', path), bytes);
+  const releasePath = join(directory, 'release/release.json');
+  const release = JSON.parse(readFileSync(releasePath));
+  release.deployment.push({ path, size: bytes.length, sha256: sha256(bytes) });
+  writeFileSync(releasePath, JSON.stringify(release));
+  const backupPath = join(directory, 'backup.json'), backup = JSON.parse(readFileSync(backupPath));
+  for (const member of backup.files) if (member.path === 'release/release.json') { member.size = readFileSync(releasePath).length; member.sha256 = fileHash(releasePath); }
+  backup.files.push({ path: 'release/' + path, size: bytes.length, sha256: sha256(bytes) });
+  writeFileSync(backupPath, JSON.stringify(backup));
+  const hash = fileHash(backupPath); writeFileSync(join(directory, 'backup.sha256'), hash);
+  assert.throws(() => verifyBackup(directory, hash, 'acceptance'), /inventory/);
+  const policy = [...deploymentFiles, path];
+  verifyBackup(directory, hash, 'acceptance', policy);
+  writeFileSync(join(directory, 'release', path), 'tampered');
+  assert.throws(() => verifyBackup(directory, hash, 'acceptance', policy), /checksum/);
+}));
 test('missing data, missing TLS, altered manifest and a rehashed incomplete inventory cannot restore', () => {
   for (const path of ['database.sql', 'silo.tar', 'tls/key.pem', 'release/release.json']) fixture((directory, hash) => {
     rmSync(join(directory, path)); assert.throws(() => verifyBackup(directory, hash, 'acceptance'));

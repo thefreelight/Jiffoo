@@ -83,7 +83,7 @@ async function main() {
     logs: async service => (await compose(['logs','--no-color','--no-log-prefix', ...(service ? [service] : [])], { quiet: true })).output,
     save: async (name, output) => writeFileSync(join(evidence, name), output), secrets });
   const updateArgs = (name, release = target) => ['update','--project',project,'--current-release',old,'--target-release',release,'--target-commit',commit,'--state-dir',directory + '/' + name,'--backup-dir',directory + '/' + name + '-backup','--actor',actor];
-  const host = (args, options) => run('sh', [old + '/bin/jiffoo-host', ...args, '--acceptance'], options);
+  const host = (args, options) => run('sh', [(args[0] === 'update' ? target : old) + '/bin/jiffoo-host', ...args, '--acceptance'], options);
   const managed = async () => {
     const result = await compose(['exec','-T','api-1','node','/app/deploy/compose/update-scenario.mjs','managed']);
     const line = result.stdout.split('\n').find(line => line.startsWith('UPDATE_MANAGED ')); assert.ok(line);
@@ -165,7 +165,15 @@ async function main() {
       const signedTag=project+'-signed-backend';tags.push(signedTag);
       writeFileSync(join(signingContext,'Dockerfile'),'FROM '+project+'-old-backend\nENV EXTENSION_TEST_SIGNING_MODE=true JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY='+keys.root.publicKey+'\nCOPY keys.json /app/deploy/compose/update-fixture-keys.json\n');
       await docker(['build','--platform','linux/amd64','-t',signedTag,signingContext]);
-      writeFileSync(join(inspections,'backend.json'),(await docker(['image','inspect',signedTag],{quiet:true})).stdout);
+      // Give the source version its own exact inventory before generating its release fixture.
+      const sourceMember = 'deploy/release/source-inventory-fixture.json', sourceBytes = Buffer.from('{"version":"source"}\n');
+      const sourceIdentity = readFileSync('deploy/release/identity.mjs', 'utf8').replace('export const roles =', 'deploymentFiles.push(' + JSON.stringify(sourceMember) + ');\nexport const roles =');
+      writeFileSync(join(signingContext, 'identity.mjs'), sourceIdentity);
+      writeFileSync(join(signingContext, 'source-inventory-fixture.json'), sourceBytes);
+      writeFileSync(join(signingContext, 'Dockerfile-source'), 'FROM ' + signedTag + '\nCOPY identity.mjs /app/deploy/release/identity.mjs\nCOPY source-inventory-fixture.json /app/' + sourceMember + '\n');
+      const sourceTag = project + '-source-backend'; tags.push(sourceTag);
+      await docker(['build', '--platform', 'linux/amd64', '-f', join(signingContext, 'Dockerfile-source'), '-t', sourceTag, signingContext]);
+      writeFileSync(join(inspections,'backend.json'),(await docker(['image','inspect',sourceTag],{quiet:true})).stdout);
       const yaml = readFileSync('deploy/compose/compose.yml','utf8');
       for (const role of ['postgres','redis','silo','nginx']) {
         const reference = yaml.match(new RegExp('image: (' + (role === 'silo' ? 'pgsty/silo' : role) + ':[^\\s]+@sha256:[a-f0-9]{64})'))[1];
@@ -182,6 +190,9 @@ async function main() {
         writeFileSync(join(bundle,'release.json'), JSON.stringify(manifest,null,2) + '\n');
       };
       const bundle = join(native,'old'); manifests.old = makeRelease({ root: process.cwd(), output: bundle, inspections, commit, version, mode:'acceptance' }); adjust(bundle,manifests.old);
+      writeFileSync(join(bundle, sourceMember), sourceBytes);
+      manifests.old.deployment.push({ path: sourceMember, size: sourceBytes.length, sha256: sha256(sourceBytes) });
+      writeFileSync(join(bundle, 'release.json'), JSON.stringify(manifests.old, null, 2) + '\n');
       const fixtureTime=new Date(Math.max(Date.now(),Date.UTC(2026,9,10,16,18,3)+60000));
       const fixtureNames=[0,1,2].map(index=>new Date(fixtureTime.getTime()+index*60000).toISOString().replace(/[-:T]/g,'').slice(0,14)+'_b16c2_'+(index+1));
       const generations=[['target',version+'-update'],['failure',version+'-failure'],['migration',version+'-migration'],['migration-health',version+'-migration-health'],...(profile==='full'?[['migration-failure',version+'-migration-failure'],['migration-crash',version+'-migration-crash']]:[])];

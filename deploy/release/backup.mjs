@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync, lstatSync, readdirSync, chmodSy
 import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assertManifest, assertDeployment, deploymentFiles, roles } from './identity.mjs';
+import { assertManifest, assertDeployment, assertDeploymentPolicy, deploymentFiles, roles } from './identity.mjs';
 
 export const serviceRoles = {
   postgres: 'postgres', redis: 'redis', silo: 'silo', 'silo-init': 'silo',
@@ -10,7 +10,8 @@ export const serviceRoles = {
   'worker-1': 'backend', 'worker-2': 'backend', admin: 'admin', shop: 'shop', edge: 'nginx', 'api-lb': 'nginx',
 };
 const dataVolumes = ['postgres-data', 'silo-data', 'redis-data'];
-const fixedFiles = ['database.sql', 'silo.tar', 'config.json', '.env', 'tls/cert.pem', 'tls/key.pem', 'release/release.json', ...deploymentFiles.map(path => 'release/' + path)];
+const backupFiles = paths => ['database.sql', 'silo.tar', 'config.json', '.env', 'tls/cert.pem', 'tls/key.pem', 'release/release.json', ...assertDeploymentPolicy(paths).map(path => 'release/' + path)];
+const fixedFiles = backupFiles(deploymentFiles);
 const safeName = /^[a-z0-9][a-z0-9_-]{0,200}$/;
 function requireThat(value, message) { if (!value) throw new Error(message); }
 export function assertProject(project) { requireThat(safeName.test(project), 'Invalid project name'); }
@@ -27,9 +28,9 @@ export function fileHash(path) {
   finally { closeSync(descriptor); }
   return hash.digest('hex');
 }
-function releaseAt(directory, mode) {
+function releaseAt(directory, mode, expectedDeploymentFiles = deploymentFiles) {
   const release = JSON.parse(readFileSync(resolve(directory, 'release.json'), 'utf8'));
-  assertManifest(release, release.sourceCommit, mode === 'acceptance'); assertDeployment(release, directory);
+  assertManifest(release, release.sourceCommit, mode === 'acceptance', expectedDeploymentFiles); assertDeployment(release, directory);
   return release;
 }
 export function guardState(containers, project, operation) {
@@ -99,7 +100,8 @@ export function sealBackup(directory, project, oldVolumes, mode) {
   writeFileSync(resolve(directory, 'backup.sha256'), hash + '\n', { mode: 0o600 });
   return { hash, size: files.reduce((sum, file) => sum + file.size, 0) + lstatSync(resolve(directory, 'backup.json')).size + lstatSync(resolve(directory, 'backup.sha256')).size };
 }
-export function verifyBackup(directory, confirmation, mode) {
+export function verifyBackup(directory, confirmation, mode, expectedDeploymentFiles = deploymentFiles) {
+  const fixedFiles = backupFiles(expectedDeploymentFiles);
   const manifestFile = plainFile(directory, 'backup.json'), expected = readFileSync(plainFile(directory, 'backup.sha256'), 'utf8').trim();
   const hash = fileHash(manifestFile);
   requireThat(/^[a-f0-9]{64}$/.test(expected) && expected === hash, 'Backup manifest checksum mismatch');
@@ -123,7 +125,7 @@ export function verifyBackup(directory, confirmation, mode) {
     const file = plainFile(directory, member.path);
     requireThat(Number.isSafeInteger(member.size) && member.size >= 0 && /^[a-f0-9]{64}$/.test(member.sha256) && lstatSync(file).size === member.size && fileHash(file) === member.sha256, 'Backup file checksum mismatch');
   }
-  const release = releaseAt(resolve(directory, 'release'), mode);
+  const release = releaseAt(resolve(directory, 'release'), mode, expectedDeploymentFiles);
   requireThat(release.sourceCommit === manifest.sourceCommit && release.verifierImage === manifest.verifierImage, 'Backup release identity mismatch');
   requireThat(Object.keys(manifest.oldVolumes).sort().join() === [...dataVolumes].sort().join() && Object.values(manifest.oldVolumes).every(name => safeName.test(name)), 'Invalid previous volume inventory');
   return manifest;

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
-import { assertManifest, assertDeployment, assertImage, assertSuccessfulCi, deploymentFiles, roles, requiredJobs, sha256 } from '../deploy/release/identity.mjs';
+import { assertManifest, assertDeployment, assertImage, assertSuccessfulCi, sourceDeploymentPolicy, deploymentFiles, roles, requiredJobs, sha256 } from '../deploy/release/identity.mjs';
 
 const commit = 'a'.repeat(40), digest = 'sha256:' + 'b'.repeat(64);
 function fixture() {
@@ -18,6 +18,20 @@ test('release schema rejects unknown fields, mismatched source and production us
   }
   assert.throws(() => assertManifest(fixture(), commit, false), /Local acceptance/);
 });
+test('source inventory is bound to its verified image and stays exact across versions', () => {
+  const manifest = fixture();
+  const paths = [...deploymentFiles, 'deploy/release/source-only.json'];
+  manifest.deployment.push({ path: paths.at(-1), size: 1, sha256: sha256(Buffer.from('x')) });
+  const policy = { sourceCommit: commit, verifierImage: digest, deploymentFiles: paths };
+  assertManifest(manifest, commit, true, sourceDeploymentPolicy(policy, manifest));
+  assert.throws(() => assertManifest(manifest, commit, true), /inventory/);
+  for (const changed of [{ ...policy, sourceCommit: 'c'.repeat(40) }, { ...policy, verifierImage: 'sha256:' + 'd'.repeat(64) }, ...[[], [...paths, paths[0]], ['../escape'], ['/absolute'], ['a\\b']].map(deploymentFiles => ({ ...policy, deploymentFiles }))]) assert.throws(() => sourceDeploymentPolicy(changed, manifest));
+  manifest.deployment.pop();
+  assert.throws(() => assertManifest(manifest, commit, true, paths), /inventory/);
+  manifest.deployment.push(manifest.deployment[0]);
+  assert.throws(() => assertManifest(manifest, commit, true, paths), /inventory/);
+});
+
 test('deployment checks catch modified bytes without trusting supplied checksums or unsafe paths', () => {
   const directory = mkdtempSync(join(tmpdir(), 'release-integrity-'));
   try {
