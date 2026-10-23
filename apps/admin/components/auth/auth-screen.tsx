@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SessionLoading } from './session-loading';
 
 export const authInputClass = 'h-9 rounded-[7px] border-border bg-transparent px-2.5 text-[13px] shadow-none';
 export const authButtonClass = 'h-9 w-full rounded-[7px] text-[13px] font-medium shadow-none';
@@ -109,6 +110,10 @@ export function AuthScreen({ mode }: { mode: 'login' | 'forgot' | 'reset' | 'inv
 
   const link = (href: string, label: string, primary = false) => <Link href={href} className={primary ? 'flex h-9 items-center justify-center rounded-[7px] bg-foreground font-medium text-ground focus-visible:outline-2 focus-visible:outline-offset-2' : 'self-center text-muted-foreground underline underline-offset-[3px]'}>{label}</Link>;
   const back = link(loginPath, text('back'));
+  if (mode === 'login' && authError) return <AuthFrame title={text('failed')}>
+    <Button type="button" onClick={() => void checkAuth()} className={authButtonClass}>{text('retry')}</Button>
+  </AuthFrame>;
+  if (mode === 'login' && (!restored || isLoading || isChecking || isAuthenticated)) return <SessionLoading />;
   if (mode === 'invite' || mode === 'reset') {
     if (linkState === 'loading') return <AuthFrame title={text('loading')} />;
     if (linkState === 'failed') return <AuthFrame title={text('failed')} />;

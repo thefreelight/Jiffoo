@@ -13,6 +13,7 @@ import { apiClient } from '@/lib/api'
 import { useQueryClient } from '@tanstack/react-query'
 import { hasAdminWorkspaceAccess } from '@/lib/admin-access'
 import { Loader2 } from 'lucide-react'
+import { SessionLoading } from './session-loading'
 import { useT, useLocale } from 'shared/src/i18n/react'
 
 interface ProtectedRouteProps {
@@ -106,13 +107,7 @@ export default function ProtectedRoute({
 
   // Keep the target URL while the server establishes identity and current access.
   if (!hasInitialized || isLoading || isChecking) {
-    return (
-      <div role="status" aria-label={getText('common.loading', 'Loading...')} className="min-h-dvh flex items-center justify-center bg-ground">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-        </div>
-      </div>
-    )
+    return <SessionLoading />
   }
 
   // After authentication check is complete, show redirect prompt if not authenticated

@@ -20,6 +20,11 @@ export function proxy(request: Parameters<typeof proxyHandler>[0]) {
   }
   if (request.nextUrl.pathname.startsWith('/plugin-downloads/')) return NextResponse.next();
   const locale = getLocaleFromPathname(request.nextUrl.pathname, LOCALES);
+  if (request.nextUrl.pathname === '/' || (locale && /^\/[^/]+\/?$/.test(request.nextUrl.pathname))) {
+    const destination = new URL(request.url);
+    destination.pathname = `/${locale || DEFAULT_LOCALE}/dashboard`;
+    return NextResponse.redirect(destination);
+  }
   if (locale) {
     const headers = new Headers(request.headers);
     headers.set('x-admin-locale', locale);

@@ -50,3 +50,17 @@ it('does not restart restoration or replace mounted content when only the pathna
     expect(state.checkAuth).toHaveBeenCalledTimes(1); expect(container.querySelector('p')).toBe(paragraph);
   } finally { await act(async () => root.unmount()); client.clear(); vi.unstubAllGlobals(); }
 });
+it('shows only a neutral workspace placeholder until current identity is verified', async () => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+  let finish!: () => void;
+  state.checkAuth.mockReturnValueOnce(new Promise<void>(resolve => { finish = resolve; }));
+  const client = new QueryClient(), container = document.createElement('div'), root = createRoot(container);
+  try {
+    await act(async () => root.render(<QueryClientProvider client={client}><ProtectedRoute requireAdmin><p>Private content</p></ProtectedRoute></QueryClientProvider>));
+    expect(container.textContent).not.toContain('Private content');
+    expect(container.querySelector('[role="status"]')).not.toBeNull();
+    expect(container.querySelector('.animate-spin')).toBeNull();
+    await act(async () => finish());
+    expect(container.textContent).toContain('Private content');
+  } finally { await act(async () => root.unmount()); client.clear(); vi.unstubAllGlobals(); }
+});

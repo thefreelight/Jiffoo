@@ -5,7 +5,10 @@ import { proxy } from '../proxy';
 
 describe('Admin locale proxy with the installed Next runtime', () => {
   it.each([
-    ['/', '/en'],
+    ['/', '/en/dashboard'],
+    ['/en?source=bookmark', '/en/dashboard?source=bookmark'],
+    ['/zh-Hans/', '/zh-Hans/dashboard'],
+    ['/zh-Hant', '/zh-Hant/dashboard'],
     ['/products?search=widget', '/en/products?search=widget'],
     ['/auth/login?next=%2Fen%2Forders', '/en/auth/login?next=%2Fen%2Forders'],
   ])('redirects %s while preserving its query', async (pathname, destination) => {

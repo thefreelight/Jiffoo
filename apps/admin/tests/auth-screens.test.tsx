@@ -68,8 +68,11 @@ describe('Admin public account screens', () => {
     let finish!: () => void;
     mocks.checkAuth.mockReturnValueOnce(new Promise<void>(resolve => { finish = resolve; }));
     await render('login'); expect(mocks.replace).not.toHaveBeenCalled();
+    expect(container.querySelector('form')).toBeNull();
+    expect(container.querySelector('[role="status"]')).not.toBeNull();
     await act(async () => finish());
     expect(mocks.replace).toHaveBeenCalledExactlyOnceWith('/en/dashboard');
+    expect(container.querySelector('form')).toBeNull();
     await render('login');
     expect(mocks.replace).toHaveBeenCalledTimes(1); expect(mocks.push).not.toHaveBeenCalled();
   });
