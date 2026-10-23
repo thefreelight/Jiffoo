@@ -51,6 +51,35 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
   );
   const profile = React.useMemo(() => getBokmooTravelProfile(normalizedProduct), [normalizedProduct]);
   const isGoodsProduct = normalizedProduct?.productKind === 'goods';
+  // Only claim Bluetooth/app-profile management when the catalog copy itself
+  // describes it; the basic card ships with generic physical-card copy.
+  const isBluetoothCard = isGoodsProduct && /bluetooth|蓝牙/i.test(normalizedProduct?.description || '');
+  const goodsSubtitle = isBluetoothCard
+    ? { en: 'Physical Bluetooth card — manage multiple eSIM profiles with the BOKMOO app', hans: '实体蓝牙卡，搭配 BOKMOO App 管理多个 eSIM 套餐', hant: '實體藍牙卡，搭配 BOKMOO App 管理多個 eSIM 設定檔' }
+    : { en: 'Physical card — works with the BOKMOO app', hans: '实体卡，搭配 BOKMOO App 使用', hant: '實體卡，搭配 BOKMOO App 使用' };
+  const goodsSpecCards = isBluetoothCard
+    ? [
+        { label: pickCopy(locale, { en: 'Type', hans: '类型', hant: '類型' }), value: pickCopy(locale, { en: 'Physical eSIM card', hans: 'eSIM 实体卡', hant: 'eSIM 實體卡' }) },
+        { label: pickCopy(locale, { en: 'Connection', hans: '连接', hant: '連線' }), value: pickCopy(locale, { en: 'Bluetooth', hans: '蓝牙', hant: '藍牙' }) },
+        { label: pickCopy(locale, { en: 'Management', hans: '管理', hant: '管理' }), value: 'BOKMOO App' },
+      ]
+    : [
+        { label: pickCopy(locale, { en: 'Type', hans: '类型', hant: '類型' }), value: pickCopy(locale, { en: 'Physical card', hans: '实体卡', hant: '實體卡' }) },
+        { label: pickCopy(locale, { en: 'Compatibility', hans: '兼容', hant: '相容' }), value: 'iPhone / Android' },
+        { label: pickCopy(locale, { en: 'Management', hans: '管理', hant: '管理' }), value: 'BOKMOO App' },
+      ];
+  const goodsBullets = isBluetoothCard
+    ? [
+        { en: 'Manage multiple eSIM profiles over Bluetooth', hans: '通过蓝牙管理多个 eSIM 套餐', hant: '透過藍牙管理多個 eSIM 設定檔' },
+        { en: 'Set up and switch profiles in the BOKMOO app', hans: '在 BOKMOO App 内启用与切换套餐', hant: '在 BOKMOO App 內啟用與切換設定檔' },
+      ]
+    : [
+        { en: 'Works with the BOKMOO app', hans: '搭配 BOKMOO App 使用', hant: '搭配 BOKMOO App 使用' },
+      ];
+  const goodsSetupLabel = pickCopy(locale, { en: 'Setup', hans: '使用方式', hant: '使用方式' });
+  const goodsSetupValue = isBluetoothCard
+    ? pickCopy(locale, { en: 'Connects to the BOKMOO app over Bluetooth', hans: '蓝牙连接 BOKMOO App 管理', hant: '藍牙連線 BOKMOO App 管理' })
+    : pickCopy(locale, { en: 'Works with the BOKMOO app', hans: '搭配 BOKMOO App 使用', hant: '搭配 BOKMOO App 使用' });
 
   // SSR metadata still carries the raw catalog name until the next worker
   // deploy; keep the visible tab title on the cleaned storefront name.
@@ -189,13 +218,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                     {normalizedProduct.name}
                   </h1>
                   <p className="mt-2 text-lg text-[var(--bokmoo-copy)]">
-                    {isGoodsProduct
-                      ? pickCopy(locale, {
-                          en: 'Physical Bluetooth card — manage multiple eSIM profiles with the BOKMOO app',
-                          hans: '实体蓝牙卡，搭配 BOKMOO App 管理多个 eSIM 套餐',
-                          hant: '實體藍牙卡，搭配 BOKMOO App 管理多個 eSIM 設定檔',
-                        })
-                      : profile.networkLabel}
+                    {isGoodsProduct ? pickCopy(locale, goodsSubtitle) : profile.networkLabel}
                   </p>
                 </div>
                 <div className="sm:text-right">
@@ -207,11 +230,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 {(isGoodsProduct
-                  ? [
-                      { label: pickCopy(locale, { en: 'Type', hans: '类型', hant: '類型' }), value: pickCopy(locale, { en: 'Physical eSIM card', hans: 'eSIM 实体卡', hant: 'eSIM 實體卡' }) },
-                      { label: pickCopy(locale, { en: 'Connection', hans: '连接', hant: '連線' }), value: pickCopy(locale, { en: 'Bluetooth', hans: '蓝牙', hant: '藍牙' }) },
-                      { label: pickCopy(locale, { en: 'Management', hans: '管理', hant: '管理' }), value: 'BOKMOO App' },
-                    ]
+                  ? goodsSpecCards
                   : [
                       { label: pickCopy(locale, { en: 'Data', hans: '数据', hant: '數據' }), value: profile.planLabel },
                       { label: pickCopy(locale, { en: 'Validity', hans: '有效期', hant: '有效期' }), value: profile.durationLabel },
@@ -230,10 +249,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 
               <div className="mt-6 space-y-3">
                 {(isGoodsProduct
-                  ? [
-                      { en: 'Manage multiple eSIM profiles over Bluetooth', hans: '通过蓝牙管理多个 eSIM 套餐', hant: '透過藍牙管理多個 eSIM 設定檔' },
-                      { en: 'Set up and switch profiles in the BOKMOO app', hans: '在 BOKMOO App 内启用与切换套餐', hant: '在 BOKMOO App 內啟用與切換設定檔' },
-                    ]
+                  ? goodsBullets
                   : [
                       { en: 'High-speed 4G/5G data', hans: '高速 4G/5G 数据', hant: '高速 4G/5G 數據' },
                       { en: 'Stay connected in major cities and more', hans: '主要城市及更多地区保持连接', hant: '主要城市及更多地區保持連線' },
@@ -269,11 +285,9 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                   {[
                     {
                       icon: Signal,
-                      label: isGoodsProduct
-                        ? pickCopy(locale, { en: 'Setup', hans: '使用方式', hant: '使用方式' })
-                        : pickCopy(locale, { en: 'Activation', hans: '激活方式', hant: '啟用方式' }),
+                      label: isGoodsProduct ? goodsSetupLabel : pickCopy(locale, { en: 'Activation', hans: '激活方式', hant: '啟用方式' }),
                       value: isGoodsProduct
-                        ? pickCopy(locale, { en: 'Connects to the BOKMOO app over Bluetooth', hans: '蓝牙连接 BOKMOO App 管理', hant: '藍牙連線 BOKMOO App 管理' })
+                        ? goodsSetupValue
                         : pickCopy(locale, { en: 'Instant via QR', hans: '扫码即时激活', hant: '掃碼即時啟用' }),
                     },
                     { icon: Smartphone, label: pickCopy(locale, { en: 'Compatibility', hans: '设备兼容', hant: '裝置相容' }), value: profile.compatibilityLabel },
