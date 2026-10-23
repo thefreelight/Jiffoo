@@ -824,6 +824,64 @@ clean-up cycle (processes terminated gracefully, then forcibly, and the lane's o
 by id). And the coordinator's own mistake: a pre-flight gate over the same tree as the real gate
 wasted half an hour and is now forbidden by name.
 
+## 5r. The merge attempt into the main line — what happened, what is preserved, what is next
+
+**Status: the merge is prepared but NOT completed, and nothing was pushed.** The main line is back at
+`8893e9504` with a clean tree, and the P-3/P-4 main line's own in-flight work is preserved in
+`stash@{0}` (`mainline-wip-2026-10-24T00:35`, 26 files) with a second copy in
+`%TEMP%\mainline-wip-2026-10-24.patch`.
+
+**What was done.** `git merge --no-ff codex/lane-orders` into `codex/core-extension-boundary` produced
+**seven** conflicting files (not the sixteen the changed-file intersection suggested, because the main
+line's own edits to those files were one to twenty-one lines each). All nine conflict hunks were
+resolved, with the rule that the main line's product behaviour and the boundary line's ownership
+changes both survive. The three resolutions that matter were checked by hand: the account service now
+does `AuthIdentityService.deactivateCustomer` **and** keeps the main line's
+`PluginPageService.revokePrincipalSessions`; the recovery path writes the staff audit row through
+`AuditService.writeStaffAudit` and keeps the main line's session revocation; the script-test
+catalogue keeps both entries. One type repair was needed on top: `core/shared/locks.ts` required
+`LockClient` to be `Pick<Prisma.TransactionClient, '$queryRaw'>`, which the boundary line's own
+transaction surface does not satisfy, so the requirement is now structural
+(`{ $queryRaw: (...args: any[]) => Promise<any> }`) and both callers type-check. The merged tree then
+type-checked clean (2 of 2 tasks).
+
+**The gate on the merged tree.** `pnpm verify:quick --shards=4` ran the whole thing with the local
+sharded gate: **168 of 168 catalogue files covered**, every container removed by id, cleanup `PASS` —
+and **5 test files failed** (15 tests): the boundary guard, the new inventory-ledger test, the plugin
+installer test, the order state machine test and the theme runtime test. The guard failure is expected
+and mechanical: it was calibrated on the boundary branch, and the main line's own new modules add
+module edges, so its edge and cycle registers have to be recalculated for the merged tree. The other
+four are merge artefacts, where the main line's new behaviour and the boundary line's refactored
+behaviour have to be reconciled rather than one side winning.
+
+**Why it was not finished.** A worker was dispatched to fix the five files; it rewrote parts of two
+test files (adding concurrency coverage for the main line's new row locks) and changed nine files in
+total, but its verification run crashed and the re-run was still unverified when it ran out of budget.
+Meanwhile **the P-3/P-4 main line's own session became active in that worktree again**. Continuing to
+write in a tree another agent is working in violates the occupancy rule in §2, and pushing a merge
+whose suite has never been observed green would violate the rule that a push needs a green local
+check. So the merge was rolled back and nothing was pushed.
+
+**What is preserved, and where.**
+- The boundary branch itself is complete and green: `codex/lane-orders` at `88ccdb0e7`, 29 commits ahead
+  of `49dc5ff1a`, working tree clean, and the last scoped gate on it was green.
+- The merged tree, exactly as it stood: `%TEMP%\merge-attempt-2026-10-24T0300-merged-tree.patch`
+  (the whole merge result against the old main-line tip).
+- The worker's follow-up changes on top of that: `%TEMP%\merge-attempt-2026-10-24T0300-worker-unstaged.patch`.
+- The file-by-file state of the merge: `%TEMP%\merge-attempt-2026-10-24T0300-status.txt`.
+- The main line's in-flight work: `stash@{0}` in the main tree, plus
+  `%TEMP%\mainline-wip-2026-10-24.patch`.
+
+**The next step, in order.**
+1. Recalibrate the guard for the merged tree (edge and cycle registers) — mechanical, and the
+   recalculation is the same procedure the boundary branch used.
+2. Reconcile the four remaining test files as merge artefacts, keeping both sides' behaviour.
+3. Re-run `pnpm verify:quick --shards=4` in the main tree until it is green.
+4. Commit the merge, push `codex/core-extension-boundary`, and let the four CI shards run.
+5. Only then re-apply `stash@{0}` on top of the merged tree, and settle the overlaps by hand.
+
+This needs a **coordinated window** on the main tree, because the P-3/P-4 line works there.
+
 ## 5. Handover evidence — B-BOUND-A
 
 **Diff:** 4 files, +333 / −64.
