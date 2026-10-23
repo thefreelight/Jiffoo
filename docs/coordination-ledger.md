@@ -60,6 +60,7 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | **B-BOUND-F** — guard blind spot + stale references (WP-F1) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `c9fdf14d8` | `apps/api/tests/core/module-boundary-audit.test.ts`, `apps/api/src/core/storage/plugin-operation-lease.ts`, `apps/api/src/core/admin/extension-installer/{plugin-migration-executor,plugin-migration-gate,plugin-recovery}.ts`, `apps/api/src/infra/core-process.ts`, `apps/api/src/core/payment/reconciliation.ts`, `apps/api/src/core/cart/service.ts`, `apps/api/src/core/extensions/registry/service.ts`, `docs/coordination-ledger.md`, `AGENTS.md` | `jiffoo_core_test_orders` | `wp-f1-guard-blind-spot` (pi session —, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed `eddea4a9e`, merge-ready** (lane gate green, §5k) | §5k |
 | **B-BOUND-G** — plugin marker reclaim through the owning modules | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `c9fdf14d8` | `apps/api/src/core/admin/extension-installer/plugin-marker-reclaim.ts`, `apps/api/src/core/storage/plugin-operation-lease.ts`, `apps/api/src/infra/core-process.ts`, `apps/api/src/core/audit/service.ts` | `jiffoo_core_test_orders` | not assigned | **withdrawn** — its premise is void since B-BOUND-H: the marker reclaim writes into the plugin's own namespace schema, which is not a Core table, so those three writes were never violations (§5g, §5m) | §5g |
 | **B-BOUND-H** — Tier 2 cleanup: wrappers, dead inputs, one contract catalogue (WP-F2) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `eddea4a9e` | `apps/api/src/core/extensions/registry/service.ts`, `apps/api/src/core/{checkout,order,notifications,payment,inventory,audit,settings}/**`, `apps/api/src/core/admin/{extension-installer,product-management,order-management,plugin-management}/**` (+ the deleted `apps/api/src/core/admin/extension-installer/plugin-registry-version.ts`), `packages/shared/src/extensions/plugin-contract.ts`, `apps/api/tests/core/{module-boundary-audit,order-service,payment-routes,startup-plugin-prewarm}.test.ts`, `docs/coordination-ledger.md` | `jiffoo_core_test_orders` | `wp-f2-slop` (pi session `2026-10-23T02-46-35-836Z_01a166a7-323b-70d9-9d8e-76bb06ac8c1`, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed `7a95368e1`, merge-ready** (lane gate green, §5m) | §5m |
+| **B-BOUND-I** — step 1 review follow-up: registry projections, dead shims, cycle detection (WP-F3) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `b133c416f` | `apps/api/src/core/extensions/registry/service.ts`, `apps/api/src/core/{checkout,order,notifications,payment}/**`, `apps/api/src/core/admin/{extension-installer,plugin-management,order-management,product-management,user-management}/**` (+ 12 deleted files), `apps/api/tests/**`, `docs/coordination-ledger.md` | `jiffoo_core_test_orders` | `wp-f3` (two pi subagent runs: `worker` for the source side, `worker` for the guard) | **committed `76b4aa807`, merge-ready** (lane gate green, §5n) | §5n |
 | **B-BOUND-B** — order domain single owner (WP-B) | Boundary-remediation line | `codex/lane-orders` | `49dc5ff1a` + B-BOUND-A | `apps/api/src/core/order/**`, `apps/api/src/core/payment/{reconciliation,session,order-paid-event}.ts`, `apps/api/src/core/admin/order-management/**`, `apps/api/src/core/notifications/service.ts` | `jiffoo_core_test_orders` | `wp-b-order-domain` | **superseded** — the batch ran as `wp-b-order-domain`, **committed `6a99ec298`**; the executed row is above | §5b |
 | **B-BOUND-C** — neutral layer + directory re-layering (WP-C) | Boundary-remediation line | `codex/lane-orders` | `6a99ec298` | new `apps/api/src/core/shared/**`; move `core/admin/system-settings`→`core/settings`, `core/admin/plugin-management`+`extension-installer`→`core/extensions`; retarget imports in `core/storage/**`, `core/plugin-pages/asset-routes.ts` | `jiffoo_core_test_orders` | `wp-c-neutral-layer` | **superseded** — the batch ran as `wp-c-neutral-layer`, **committed `add8de45b`**; the executed row is above | §5c |
 | **B-BOUND-D** — audit outlet, dead code, boundary guard, plugin risk register (WP-D) | Boundary-remediation line | `codex/lane-orders` | `add8de45b` | new `apps/api/src/core/audit/service.ts` + 9 audit call sites; delete `apps/api/src/core/user/`, `apps/api/src/core/order/hooks.ts`; new `apps/api/tests/core/module-boundary-audit.test.ts`; `docs/agentra-001-core-v1-product-charter.md`; `packages/shared/src/extensions/plugin-contract.ts`; `BUILTIN_PLUGIN_SLUGS` → `@jiffoo/shared` | `jiffoo_core_test_orders` | `wp-d1-audit-outlet`, `wp-d2-boundary-guard`, `wp-d3-audit-gap` | **superseded** — the batch ran as three executors, **committed `a65695b70` / `2c2a40e24` / `b55714018`**; the executed rows are above | §5d, §5e, §5f |
@@ -567,6 +568,137 @@ there is mechanical (the import of the deleted module and its call sites), not a
 **7 — what is still open.** The notifications module still reads the `users` table for the
 recipient **locale** (`createNotification`). That is a read and not a write, so the guard does not
 see it; routing it through a public auth projection is a follow-up, not part of this batch.
+
+## 5n. Handover evidence — B-BOUND-I (the step 1 review follow-up: projections, dead shims, cycles)
+
+**Commit:** `76b4aa807`. **State:** committed on `codex/lane-orders`, **not pushed**.
+
+**1 — where this batch came from.** A read-only review of the whole branch
+(`git diff 49dc5ff1a..HEAD`, the "step 1 architecture review") produced a four-item acceptance table:
+0 FAIL, 3 WARN, 1 PASS. This batch applies the part that is safe to do now — the registry stops
+publishing database rows, the contract catalogue is no longer repeated at the call sites, the dead
+relocation shims are gone, and the guard can see a module dependency cycle. The rest is registered as
+the open debt in §5o.
+
+**2 — what was applied** (73 files, +495/−230).
+
+- `core/extensions/registry` publishes explicit projections (`ProviderProjection`,
+  `PluginPackageProjection`, `InstalledPluginPackageProjection`, `PluginInstanceProjection`). Every
+  query names its fields in a `select` instead of pulling the row with `include: { plugin: true }`,
+  and no Prisma entity type appears in a public signature. The admin installer listing reads its own
+  projection through the new `listInstalledPluginPackages`, so the commerce readers keep the narrow
+  one. The filter, the order, the `includeDeleted` and the `null` semantics are unchanged, and the
+  projection still happens after the contract test.
+- The twelve `callContract` call sites take their version from `PLUGIN_CONTRACT_VERSIONS`, and
+  `callContract` is generic over the contract name, so a call that passes the wrong version for its
+  contract does not compile.
+- `checkout` and the payment routes use `declaresContract` instead of repeating the contract test.
+- Twelve dead files are gone: the relocation shims under `core/admin/extension-installer`,
+  `core/admin/system-settings`, `core/payment` and `core/order`, plus `core/order/hooks.ts`, which no
+  production code imported. The call sites now import the real module.
+- `PluginManagementService` no longer re-exports the four reads that `core/extensions/registry`
+  already publishes.
+- The guard registers the three new module edges and drops the three the relocation removed, and it
+  now detects module dependency cycles. **There are twenty-three cycles in the tree**, in the
+  commerce family and in the extension family; every one of them is registered with a reason, and a
+  registration that no longer matches the tree fails as well. The assertion therefore catches a *new*
+  cycle, not the existing ones.
+
+**3 — the gate.** (lane `orders`, `jiffoo_core_test_orders`, Redis DB 12)
+
+```
+=== Final test summary ===
+Scope: default
+Lane: orders
+Database: jiffoo_core_test_orders
+Run API tests:
+   Start at  17:23:47
+ Test Files  28 passed (28)
+      Tests  587 passed | 2 skipped (589)
+Run Admin tests:
+   Start at  17:27:02
+ Test Files  3 passed (3)
+      Tests  26 passed (26)
+Run Shop tests:
+   Start at  17:27:04
+ Test Files  2 passed (2)
+      Tests  3 passed (3)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 10.43s |
+| Lint Shop | PASS | 5.76s |
+| Reset test database | PASS | 3.25s |
+| Run API tests | PASS | 195.08s |
+| Run Admin tests | PASS | 2.23s |
+| Run Shop tests | PASS | 1.67s |
+```
+
+Exit code 0. A wider affected-suite run (`vitest --changed`, 117 files) ran before it and caught one
+real regression: the payment routes read the declared contract through `declaresContract` now, and
+the registry mock in the payment routes test did not provide it, so the route answered 500. The mock
+keeps the real implementation now, so the declared contract of the package is still checked.
+
+**4 — the merge hazard grew.** This batch deletes twelve modules that the P-3/P-4 main line still
+imports: `core/admin/extension-installer/{utils,errors,types,security,version-utils}`,
+`core/admin/system-settings/service`, `core/payment/{locks,minor-units}`, `core/order/current-pricing`,
+`core/order/hooks` and `core/admin/audit-events/records` — about **43 import sites** in roughly thirty
+files on that branch. Those call sites must be repointed at the real modules during the merge, exactly
+like the `plugin-registry-version` import of §5m. The main line also still uses the `admin/system-settings`
+shim in eighteen places, so that path disappears with this batch.
+
+**5 — the gate is too long, and now we know why.** The API suite is 164 files / 2376 tests and takes
+about 38 minutes locally, while `apps/api/vitest.config.ts` runs it with `singleFork: true` and
+`fileParallelism: false` — one file at a time, because the files share one PostgreSQL database. CI
+already solves this with infrastructure: `.github/workflows/ci.yml` runs the same suite as four
+parallel matrix jobs, each with its own PostgreSQL and Redis service and `vitest --shard=N/4`. So the
+local full-suite run is the only place that pays the serial price, and it pays it again on every
+commit. The scoped gate for this batch took **195 seconds** against **2328 seconds** for the full
+suite. §5p records the decision.
+
+## 5o. The open debt of the step 1 review — what this branch does NOT fix
+
+These are the review findings that stay open on purpose. They are registered here so that they are
+not mistaken for done work.
+
+| # | Finding | Why it stays open |
+|---|---|---|
+| 1 | **W2 — the gateway still lives in the admin layer.** `callContract`, `ContractCallError`, `getPluginTimeoutMs` and `recordPluginFailure` are still imported from `core/admin/extension-installer/**` by `order`, `checkout`, `payment`, `notifications` and `storage`, although `core/extensions/**` exists as the neutral home. | Moving the gateway is a cross-batch change: it moves the plugin runtime's public surface and touches the P-3/P-4 line's plugin pages. It needs its own batch and the main line's agreement. |
+| 2 | **W4 — cross-domain reads still bypass the owning module.** `core/notifications/service.ts` reads the `users` table for the recipient locale, `core/order/service.ts` reads `user.email` and `user.locale` through the order relation, and `plugin-pages/asset-routes.ts` reads `plugin_installations` directly. | The guard binds writes, not reads (by design, §5g). Routing the reads through public projections of `core/auth` and `core/extensions/registry` is a design decision, not a cleanup. |
+| 3 | **W5 — the guard only scans `src/core`.** `src/infra/**` and `src/jobs/**` are outside it, and `infra/core-process.ts`, `infra/shared-protection.ts` and `infra/events/delivery.ts` depend on `core/admin/extension-installer/**` — including the platform circuit-breaker configuration that reuses the plugin gateway's constants. | The infrastructure layer is not in the boundary's scope, and those files are outside every batch's allowed set. The platform breaker configuration belongs in `core/shared` or `src/infra/config`; that is a follow-up. |
+| 4 | **The inventory ledger is invisible on the order path.** `InventoryService.decrementStock` and `incrementStock` write the stock column but no `inventory_adjustments` row, while `applyDesiredStock`, `adjustStock` and `setStockById` do write one. | Pre-existing behaviour, not introduced by this branch — the same code path existed before the boundary work. It is an observability gap, not a boundary violation. |
+| 5 | **`core/shared/money.ts` throws the native `Error`.** `decimalToMinor` and `minorToDecimal` are called from the order and checkout main flows, so a bad amount escapes as a 500 instead of a 4xx. | A behaviour change on the money path needs its own decision on the error contract, not a silent fix inside a cleanup batch. |
+| 6 | **`core/upload/service.ts` takes a Fastify `MultipartFile`.** A framework type reaches the business layer. | The neutral input shape belongs to the upload service's own API change; the adapter belongs in the route layer. |
+| 7 | **Twenty-three module cycles.** The guard now sees them and registers them, but they are not removed. | They are real and they are documented; removing them means restructuring the commerce and extension families, which is larger than a cleanup batch. |
+
+## 5p. The local gate decision — scope locally, full suite in CI
+
+**Measured on this branch** (lane `orders`, `jiffoo_core_test_orders`):
+
+| Gate | Scope | Wall clock |
+|---|---|---|
+| `pnpm verify:quick` with `--test-files` | 17 affected suites + the planner's mandatory suites | **195 s** (API 28 files / 587 tests) |
+| `pnpm verify:quick` without `--test-files` | `vitest --changed` | 1872 s (117 files / 1951 tests) |
+| `pnpm verify:quick` with the full selection | 164 files / 2376 tests | **2329 s** (38.8 min) |
+| the same suite in CI | four parallel shards, own PostgreSQL and Redis per shard | ~10 min per shard, in parallel |
+
+The full local run is the only place that pays the serial price, and it pays it on every commit. The
+decision for this lane:
+
+1. **The local pre-commit gate is the scoped one.** `AGENTS.md` already says the scope and the
+   `--test-files` selection come from the lane advisor; that is the default, and a batch records the
+   scope it used in its handover section.
+2. **The full suite belongs to CI**, which already runs it sharded and in parallel with isolated
+   services. A lane that does not push gets its full-suite evidence at integration time.
+3. **A local full-suite run stays possible** for the batches that want it (a risky batch, a release
+   candidate), and the ledger records that it happened.
+
+**Still open:** the suite itself is serial because the files share one database, so a local full-suite
+run stays 38 minutes. The fix is a local sharded gate — four parallel shards, each with its own
+database and Redis — which needs a shard-aware lane configuration (`scripts/lane-config.*` is on the
+serial overlap set, §4) and a Redis database allocation per shard. That is a separate batch with the
+P-3/P-4 main line.
 
 ## 5. Handover evidence — B-BOUND-A
 
