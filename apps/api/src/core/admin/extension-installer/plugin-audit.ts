@@ -24,9 +24,7 @@ export async function writePluginAudit(
       process.on('message', receive);
     });
   }
-  await AuditService.write(tx, {
-    // The deterministic id is inserted, never merged: a duplicate id fails the
-    // write so the surrounding transaction rolls back.
-    ...(id ? { id, failOnDuplicateId: true } : {}), actorId, action, targetType: 'plugin', targetId: slug, summary,
+  await AuditService.writeExclusive(tx, {
+    ...(id ? { id } : {}), actorId, action, targetType: 'plugin', targetId: slug, summary,
   });
 }

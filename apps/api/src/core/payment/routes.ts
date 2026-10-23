@@ -12,7 +12,7 @@ import { FastifyInstance, FastifyReply } from 'fastify';
 import { authMiddleware } from '@/core/auth/middleware';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
-import { PluginManagementService } from '@/core/extensions/registry';
+import { getAllPluginPackages, getDefaultInstance } from '@/core/extensions/registry';
 import { systemSettingsService } from '@/core/settings/service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { paymentSchemas } from './schemas';
@@ -79,12 +79,12 @@ function isLiveMode(config: Record<string, unknown>): boolean {
 }
 
 async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
-  const packages = await PluginManagementService.getAllPluginPackages();
+  const packages = await getAllPluginPackages();
   const paymentPackages = packages.filter((pkg) => String(pkg.category || '').toLowerCase() === 'payment');
 
   const methods: PaymentMethodDescriptor[] = [];
   for (const pkg of paymentPackages) {
-    const defaultInstance = await PluginManagementService.getDefaultInstance(pkg.slug);
+    const defaultInstance = await getDefaultInstance(pkg.slug);
     if (!defaultInstance || !defaultInstance.enabled || defaultInstance.deletedAt) {
       continue;
     }

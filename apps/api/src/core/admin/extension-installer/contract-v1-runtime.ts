@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ApiError } from '@/utils/api-errors';
-import { fulfillmentV1Methods, notificationV1Methods, paymentV2Methods, shippingV1Methods, taxV1Methods, isEventKey, type PluginContext, type PluginEntryModule, type EventSubscription, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
+import { fulfillmentV1Methods, notificationV1Methods, paymentV2Methods, shippingV1Methods, taxV1Methods, isEventKey, PLUGIN_CONTRACT_VERSIONS, type PluginContext, type PluginEntryModule, type EventSubscription, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 import { redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { decodePaymentWebhook, PAYMENT_WEBHOOK_WIRE_LIMIT } from './payment-webhook-wire';
 import { createPluginDatabase, withPluginDatabaseHandler } from './plugin-database';
@@ -62,7 +62,7 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
       handlers.set(key, event => withInstallationTaskHandler(options.installationId, options.generation, options.zipHash, () => withPluginDatabaseHandler(options.slug, options.installationId, () => handler(event as any))));
     } },
     contracts: { implement: (name, version, implementation) => {
-      if (!(name in contractMethods) || version !== (name === 'payment' ? 2 : 1)) throw new Error(`Unsupported contract ${name} v${version}`);
+      if (!(name in contractMethods) || version !== (PLUGIN_CONTRACT_VERSIONS as Record<string, number | undefined>)[name]) throw new Error(`Unsupported contract ${name} v${version}`);
       if (!options.declaredContracts.some((contract) => contract.name === name && contract.version === version)) throw new Error(`Plugin implements undeclared contract ${name} v${version}`);
       const methods = contractMethods[name as keyof typeof contractMethods];
       for (const method of requiredMethods[name as keyof typeof contractMethods]) {

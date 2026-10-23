@@ -654,8 +654,6 @@ export class AdminProductService {
               }
             });
 
-            // The inventory module owns the stock column, so the desired level is applied
-            // through it. The surrounding product update publishes the product change.
             await InventoryService.applyDesiredStock(tx, variant.id, normalizedStock, {
               type: 'correction',
               reason: 'product_updated',
@@ -676,8 +674,6 @@ export class AdminProductService {
               }
             });
 
-            // The inventory module owns the stock column, so the desired level is applied
-            // through it. The surrounding product update publishes the product change.
             await InventoryService.applyDesiredStock(tx, createdVariant.id, normalizedStock, {
               type: 'initial',
               reason: 'product_updated',

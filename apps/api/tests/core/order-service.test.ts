@@ -86,7 +86,7 @@ vi.mock('@/core/checkout/service', () => ({
 }));
 
 vi.mock('@/core/extensions/registry', () => ({
-  PluginManagementService: { resolveSingleProvider: vi.fn() },
+  resolveSingleProvider: vi.fn(),
 }));
 
 vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
@@ -104,7 +104,7 @@ import { prisma } from '@/config/database';
 import { getOrderHooks } from '@/core/order/hooks';
 import { InventoryService } from '@/core/inventory/service';
 import { CheckoutService } from '@/core/checkout/service';
-import { PluginManagementService } from '@/core/extensions/registry';
+import { resolveSingleProvider } from '@/core/extensions/registry';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
 // ---------------------------------------------------------------------------
@@ -199,7 +199,7 @@ describe('OrderService', () => {
       shippingOptions: [{ id: 'free-shipping:free', providerSlug: 'free-shipping', label: 'Free shipping', amountMinor: 0 }],
       paymentMethods: [{ providerSlug: 'manual-payment' }],
     });
-    (PluginManagementService.resolveSingleProvider as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (resolveSingleProvider as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     (callContract as ReturnType<typeof vi.fn>).mockResolvedValue({ unpaidTimeoutMinutes: 4320, supportedCurrencies: ['USD'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } });
     (mockPrisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
       (fn: (tx: unknown) => unknown) => fn(mockPrisma)

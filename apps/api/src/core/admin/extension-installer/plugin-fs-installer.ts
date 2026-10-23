@@ -36,7 +36,7 @@ import {
   spoolStreamToTempFileAndHash,
 } from './utils';
 import { pluginPackageStore, type PluginPackageDeployment } from '@/core/storage/plugin-package-store';
-import { incrementPluginRegistryVersion } from './plugin-registry-version';
+import { systemSettingsService } from '@/core/settings/service';
 import {
   deriveTrustLevel,
 } from './trust-level';
@@ -232,7 +232,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           });
           await writePluginInstallAudit(tx, options!.actorUserId!, 'PLUGIN_INSTALLED', inspection!, operation, existingByHash.version, options?.source ?? 'local-zip');
           await publishPluginMigrationOperation(tx, options?.operationId);
-          await incrementPluginRegistryVersion(tx);
+          await systemSettingsService.incrementPluginRegistryVersion(tx);
         });
       }
       if (options?.operationId) await recoveryTestBarrier('publication-committed', options.operationId);
@@ -361,7 +361,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             });
             if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, operation === 'upgrade' ? 'PLUGIN_UPGRADED' : 'PLUGIN_INSTALLED', inspection, operation, existingBySlug.version, options?.source ?? 'local-zip');
             await publishPluginMigrationOperation(tx, options?.operationId);
-            await incrementPluginRegistryVersion(tx);
+            await systemSettingsService.incrementPluginRegistryVersion(tx);
             return updatedInstall;
           });
 
@@ -474,7 +474,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             await syncEventSubscriptions(tx, manifest.slug, manifest.subscriptions);
             if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, 'PLUGIN_INSTALLED', inspection, operation, null, options?.source ?? 'local-zip');
             await publishPluginMigrationOperation(tx, options?.operationId);
-            await incrementPluginRegistryVersion(tx);
+            await systemSettingsService.incrementPluginRegistryVersion(tx);
 
             return install;
           });

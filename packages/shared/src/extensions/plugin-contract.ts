@@ -59,6 +59,24 @@ export type PluginTrustLevel = 'builtin' | 'signed' | 'unsigned';
 export type PluginCategory = (typeof PLUGIN_CATEGORIES)[number];
 export type LifecycleHookName = (typeof PLUGIN_LIFECYCLE_HOOKS)[number];
 
+/**
+ * The capability contracts the Core publishes, with the version of each.
+ *
+ * This catalogue is the single source of truth: the manifest validation, the
+ * extension registry and the contract runtime all read the version of a
+ * contract from here instead of repeating the rule.
+ */
+export const PLUGIN_CONTRACT_VERSIONS = {
+  payment: 2,
+  shipping: 1,
+  tax: 1,
+  fulfillment: 1,
+  notification: 1,
+} as const;
+
+/** The name of a published capability contract. */
+export type PluginContractName = keyof typeof PLUGIN_CONTRACT_VERSIONS;
+
 export type PluginContractDeclaration = { name: 'payment'; version: 2 }
   | { name: 'shipping' | 'tax' | 'fulfillment' | 'notification'; version: 1 };
 
@@ -605,7 +623,9 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
       pushIssue(issues, 'contracts', 'contracts must be an array', 'INVALID_CONTRACTS');
     } else {
       manifest.contracts.forEach((contract, index) => {
-        if (!isRecord(contract) || !['payment', 'shipping', 'tax', 'fulfillment', 'notification'].includes(String(contract.name)) || contract.version !== (contract.name === 'payment' ? 2 : 1)) {
+        const contractName = isRecord(contract) ? String(contract.name) : '';
+        const contractVersion = (PLUGIN_CONTRACT_VERSIONS as Record<string, number | undefined>)[contractName];
+        if (!isRecord(contract) || contractVersion === undefined || contract.version !== contractVersion) {
           pushIssue(issues, `contracts[${index}]`, 'payment requires version 2; other contracts require version 1', 'INVALID_CONTRACTS');
         } else {
           rejectUnknown(issues, contract, new Set(['name', 'version']), `contracts[${index}]`);
@@ -616,8 +636,9 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
 
   const contracts = Array.isArray(manifest.contracts) ? manifest.contracts : [];
   const category = typeof manifest.category === 'string' ? manifest.category : undefined;
-  if (category && ['payment', 'shipping', 'tax', 'fulfillment', 'notification'].includes(category) && !contracts.some((contract) => isRecord(contract) && contract.name === category && contract.version === (category === 'payment' ? 2 : 1))) {
-    pushIssue(issues, 'contracts', `${category} category requires its version ${category === 'payment' ? 2 : 1} contract`, 'MISSING_CATEGORY_CONTRACT');
+  const categoryVersion = category ? (PLUGIN_CONTRACT_VERSIONS as Record<string, number | undefined>)[category] : undefined;
+  if (category && categoryVersion !== undefined && !contracts.some((contract) => isRecord(contract) && contract.name === category && contract.version === categoryVersion)) {
+    pushIssue(issues, 'contracts', `${category} category requires its version ${categoryVersion} contract`, 'MISSING_CATEGORY_CONTRACT');
   }
   if (manifest.category && manifest.category !== 'integration' && contracts.length === 0) {
     pushIssue(issues, 'contracts', `${manifest.category} category requires a contract declaration`, 'MISSING_CATEGORY_CONTRACT');

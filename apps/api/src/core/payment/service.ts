@@ -1,6 +1,6 @@
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
-import { AuditService } from '@/core/audit/service';
+import { AuditService, type AuditTx } from '@/core/audit/service';
 
 /**
  * Payment Service
@@ -33,11 +33,13 @@ export type PaymentWriteTx = {
   refundLedger: {
     create(args: any): Promise<any>;
   };
-  adminAuditEvent: {
-    create(args: any): Promise<any>;
-    upsert(args: any): Promise<any>;
-  };
 };
+
+/**
+ * The transaction surface of a refund that also records an audit event: the
+ * payment tables plus the audit write outlet.
+ */
+export type PaymentAuditTx = PaymentWriteTx & AuditTx;
 
 /** Latest payment of an order plus whether a refund is still required. */
 export type OrderPaymentSummary = {
@@ -84,6 +86,23 @@ export class PaymentService {
   }
 
   /**
+   * The refund that already covers a capture.
+   *
+   * The idempotency key wins: a key that points at another capture is a
+   * PAYMENT_IDEMPOTENCY_CONFLICT, a key that points at this capture returns
+   * its refund. Without a keyed refund the completed refund of the capture is
+   * the existing one.
+   */
+  private static async findExistingRefund(tx: PaymentWriteTx, idempotencyKey: string, captureId: string): Promise<string | null> {
+    const keyed = await tx.refund.findUnique({ where: { idempotencyKey } });
+    if (keyed && keyed.paymentLedgerId !== captureId) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
+    if (keyed) return keyed.id;
+
+    const completed = await tx.refund.findFirst({ where: { paymentLedgerId: captureId, status: 'COMPLETED' } });
+    return completed ? completed.id : null;
+  }
+
+  /**
    * Create the refund, the refund ledger entry and the REFUNDED payment ledger
    * entry of an accepted capture.
    *
@@ -102,8 +121,6 @@ export class PaymentService {
     reason?: string | null;
     reference: string;
     idempotencyKey: string;
-    actorId: string;
-    actorType: string;
     metadata?: Record<string, unknown>;
   }): Promise<{ refundId: string; created: boolean }> {
     const capture = await tx.paymentLedger.findFirst({
@@ -116,12 +133,8 @@ export class PaymentService {
     });
     if (!capture) throw new ApiError('VALIDATION_ERROR');
 
-    const keyed = await tx.refund.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
-    if (keyed && keyed.paymentLedgerId !== capture.id) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
-    if (keyed) return { refundId: keyed.id, created: false };
-
-    const completed = await tx.refund.findFirst({ where: { paymentLedgerId: capture.id, status: 'COMPLETED' } });
-    if (completed) return { refundId: completed.id, created: false };
+    const existing = await PaymentService.findExistingRefund(tx, input.idempotencyKey, capture.id);
+    if (existing) return { refundId: existing, created: false };
 
     const refund = await tx.refund.create({
       data: {
@@ -175,7 +188,7 @@ export class PaymentService {
    * second resolution of the same capture returns the existing refund without a
    * second effect.
    */
-  static async resolveRefundRequiredPayment(tx: PaymentWriteTx, input: {
+  static async resolveRefundRequiredPayment(tx: PaymentAuditTx, input: {
     orderId: string;
     paymentId: string;
     providerPaymentId: string;
@@ -196,12 +209,8 @@ export class PaymentService {
     });
     if (!success) throw new ApiError('VALIDATION_ERROR');
 
-    const keyed = await tx.refund.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
-    if (keyed && keyed.paymentLedgerId !== success.id) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
-    if (keyed) return { refundId: keyed.id, created: false };
-
-    const completed = await tx.refund.findFirst({ where: { paymentLedgerId: success.id, status: 'COMPLETED' } });
-    if (completed) return { refundId: completed.id, created: false };
+    const existing = await PaymentService.findExistingRefund(tx, input.idempotencyKey, success.id);
+    if (existing) return { refundId: existing, created: false };
 
     const refund = await tx.refund.create({
       data: {

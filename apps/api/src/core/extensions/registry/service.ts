@@ -9,12 +9,11 @@
 
 import { prisma } from '@/config/database';
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
+import { PLUGIN_CONTRACT_VERSIONS, type PluginContractName } from '@jiffoo/shared';
 
-type ProviderContract = 'payment' | 'shipping' | 'tax' | 'fulfillment' | 'notification';
-
-export function declaresContract(manifestJson: unknown, contract: ProviderContract): boolean {
+export function declaresContract(manifestJson: unknown, contract: PluginContractName): boolean {
   return Array.isArray((manifestJson as { contracts?: unknown[] } | null)?.contracts)
-    && (manifestJson as { contracts: Array<{ name?: unknown; version?: unknown }> }).contracts.some((declaration) => declaration.name === contract && declaration.version === (contract === 'payment' ? 2 : 1));
+    && (manifestJson as { contracts: Array<{ name?: unknown; version?: unknown }> }).contracts.some((declaration) => declaration.name === contract && declaration.version === PLUGIN_CONTRACT_VERSIONS[contract]);
 }
 
 export async function listProviders(contract: 'payment' | 'shipping'): Promise<PluginInstallation[]> {
@@ -53,32 +52,4 @@ export async function getDefaultInstance(slug: string): Promise<PluginInstallati
       },
     },
   });
-}
-
-/**
- * Read-only extension registry surface.
- *
- * This `PluginManagementService` is deliberately NOT the admin
- * `PluginManagementService` from `core/admin/plugin-management/service`:
- * that one owns the installation lifecycle (install / uninstall / restore /
- * purge / audit), while this one only exposes the read side that commerce
- * modules need. The two objects intentionally share a name so that callers
- * keep the same call syntax; only the module path differs.
- */
-export class PluginManagementService {
-  static listProviders(contract: 'payment' | 'shipping'): Promise<PluginInstallation[]> {
-    return listProviders(contract);
-  }
-
-  static resolveSingleProvider(contract: 'tax' | 'fulfillment' | 'notification'): Promise<PluginInstallation | null> {
-    return resolveSingleProvider(contract);
-  }
-
-  static getAllPluginPackages(options?: { includeDeleted?: boolean }): Promise<PluginInstall[]> {
-    return getAllPluginPackages(options);
-  }
-
-  static getDefaultInstance(slug: string): Promise<PluginInstallation | null> {
-    return getDefaultInstance(slug);
-  }
 }

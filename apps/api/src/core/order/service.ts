@@ -29,7 +29,7 @@ import {
   countryRequiresStatePostal,
   normalizeCountryCode,
 } from './types';
-import { recordOrderStatusHistory } from './status-history';
+import { recordOrderStatusHistory, type OrderStatusHistoryWriter } from './status-history';
 import { assertOrderTransition } from './transition';
 import { lockOrder } from '@/core/shared/locks';
 import { CartService } from '@/core/cart/service';
@@ -41,7 +41,7 @@ import { LoggerService } from '@/core/logger/unified-logger';
 import { InventoryService } from '@/core/inventory/service';
 import { emitEvent, type EventTransaction } from '@/infra/events/emit';
 import { CheckoutService } from '@/core/checkout/service';
-import { PluginManagementService } from '@/core/extensions/registry';
+import { resolveSingleProvider } from '@/core/extensions/registry';
 import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
 import { decimalToMinor, minorToDecimal } from '@/core/shared/money';
 import { currentLinePrice } from '@/core/shared/pricing';
@@ -63,17 +63,19 @@ export type OrderWriteTx = {
     update(args: any): Promise<any>;
     updateMany(args: any): Promise<{ count: number }>;
   };
-  orderStatusHistory: {
-    create(args: any): Promise<any>;
-  };
   shipment: {
-    create(args: any): Promise<any>;
-  };
-  eventRecord: {
     create(args: any): Promise<any>;
   };
   $queryRaw: (...args: any[]) => Promise<any>;
 };
+
+/**
+ * The transaction surface of the order state machine.
+ *
+ * Every transition writes the status history of the order, so the transition
+ * operations need the status-history writer next to the order rows.
+ */
+export type OrderTransitionTx = OrderWriteTx & OrderStatusHistoryWriter;
 
 /** Read surface of the order module used by the public projections. */
 export type OrderReadTx = {
@@ -352,7 +354,7 @@ export class OrderService {
       throw error;
     }
     if (!description.supportedCurrencies.includes(currency)) throw new ApiError('BAD_REQUEST');
-    const taxProvider = await PluginManagementService.resolveSingleProvider('tax');
+    const taxProvider = await resolveSingleProvider('tax');
     const taxLines = orderItems.map((item, index) => ({ lineId: String(index), productId: item.productId, variantId: item.variantId, quantity: item.quantity, amountMinor: decimalToMinor(item.unitPrice * item.quantity, currency) }));
     const shippingMinor = selectedShipping.amountMinor;
     const tax = taxProvider
@@ -508,10 +510,8 @@ export class OrderService {
     for (const product of catalog.values()) {
       for (const variant of product.variants) known.add(`${product.id}:${variant.id}`);
     }
-    const pairs = new Set(orderItems.map(item => `${item.productId}:${item.variantId}`));
-    let count = 0;
-    for (const pair of pairs) if (known.has(pair)) count += 1;
-    return count;
+    const requested = [...new Set(orderItems.map(item => `${item.productId}:${item.variantId}`))];
+    return requested.filter(pair => known.has(pair)).length;
   }
 
   /**
@@ -760,7 +760,7 @@ export class OrderService {
    * history and returns the decision so the payment module can record the
    * matching payment ledger entry.
    */
-  static async applyPaymentSucceeded(tx: OrderWriteTx, input: {
+  static async applyPaymentSucceeded(tx: OrderTransitionTx, input: {
     orderId: string;
     reason?: string;
     actorType: string;
@@ -829,7 +829,7 @@ export class OrderService {
    * only the payment status moves to FAILED when the order is not paid or
    * refunded yet.
    */
-  static async applyPaymentFailed(tx: OrderWriteTx, input: {
+  static async applyPaymentFailed(tx: OrderTransitionTx, input: {
     orderId: string;
     actorType: string;
     actorId?: string;
@@ -885,7 +885,7 @@ export class OrderService {
    * Order side of a refund: the order becomes refunded and the status history
    * records the refund.
    */
-  static async markRefunded(tx: OrderWriteTx, input: {
+  static async markRefunded(tx: OrderTransitionTx, input: {
     orderId: string;
     reason?: string;
     actorId: string;
@@ -920,7 +920,7 @@ export class OrderService {
    * Ship the order: create the shipment with its items, move the order to
    * SHIPPED, write the status history and emit order.fulfilled.
    */
-  static async shipOrder(tx: OrderWriteTx, input: {
+  static async shipOrder(tx: OrderTransitionTx, input: {
     orderId: string;
     carrier: string;
     trackingNumber: string;
@@ -979,7 +979,7 @@ export class OrderService {
   }
 
   /** Deliver the order: move it to DELIVERED and write the status history. */
-  static async deliverOrder(tx: OrderWriteTx, input: { orderId: string }): Promise<void> {
+  static async deliverOrder(tx: OrderTransitionTx, input: { orderId: string }): Promise<void> {
     const order = await tx.order.findUnique({
       where: { id: input.orderId },
       select: { status: true, paymentStatus: true },
@@ -1005,7 +1005,7 @@ export class OrderService {
    * Cancel the order on behalf of an administrator: move it to CANCELLED,
    * write the status history and emit order.cancelled.
    */
-  static async cancelOrderByAdmin(tx: OrderWriteTx, input: {
+  static async cancelOrderByAdmin(tx: OrderTransitionTx, input: {
     orderId: string;
     cancelReason: string;
   }): Promise<void> {
@@ -1066,6 +1066,29 @@ export class OrderService {
         fulfillmentData: item.fulfillmentData ?? null,
         catalogSnapshot: item.catalogSnapshot,
       })),
+    };
+  }
+
+  /**
+   * The recipient of an order notification: the order's own contact address
+   * and the address of the customer account behind it.
+   *
+   * The `users` table belongs to the auth module, so the notifications module
+   * consumes this projection instead of reading the user row itself.
+   */
+  static async getOrderRecipient(tx: OrderReadTx, orderId: string): Promise<{
+    userId: string;
+    orderNumber: string;
+    customerEmail: string | null;
+    accountEmail: string | null;
+  } | null> {
+    const order = await tx.order.findUnique({ where: { id: orderId }, include: { user: { select: { email: true } } } });
+    if (!order) return null;
+    return {
+      userId: order.userId,
+      orderNumber: order.orderNumber,
+      customerEmail: order.customerEmail ?? null,
+      accountEmail: order.user?.email ?? null,
     };
   }
 

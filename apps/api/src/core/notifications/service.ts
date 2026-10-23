@@ -208,10 +208,9 @@ export async function createOrderNotification(
   values: { instructions?: string; reason?: string } = {},
   options: { dedupKey?: string } = {},
 ): Promise<void> {
-  const order = await OrderService.getOrderProjection(tx, orderId);
+  const order = await OrderService.getOrderRecipient(tx, orderId);
   if (!order) throw new ApiError('NOT_FOUND');
-  const user = await tx.user.findUnique({ where: { id: order.userId }, select: { email: true } });
-  await createNotification(tx, type, order.userId, order.customerEmail || user?.email || '', {
+  await createNotification(tx, type, order.userId, order.customerEmail || order.accountEmail || '', {
     orderId: order.orderNumber, ...values,
   }, { relatedType: 'order', relatedId: orderId, dedupKey: options.dedupKey });
 }

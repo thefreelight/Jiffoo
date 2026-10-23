@@ -1,7 +1,7 @@
 import { ApiError } from '@/utils/api-errors';
 import { CartService } from '@/core/cart/service';
 import { systemSettingsService } from '@/core/settings/service';
-import { PluginManagementService } from '@/core/extensions/registry';
+import { getAllPluginPackages, getDefaultInstance, listProviders, resolveSingleProvider } from '@/core/extensions/registry';
 import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
 import { recordPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
 import { decimalToMinor, minorToDecimal } from '@/core/shared/money';
@@ -37,7 +37,7 @@ export class CheckoutService {
     allowUnavailableForOrder = false,
   ) {
     const subtotalMinor = items.reduce((total, item) => total + item.unitPriceMinor * item.quantity, 0);
-    const shippingProviders = await PluginManagementService.listProviders('shipping');
+    const shippingProviders = await listProviders('shipping');
     const failedShippingSlugs = new Set<string>();
     const shippingOptions = (await Promise.all(shippingProviders.map(async (provider) => {
       let result: { options: Array<{ id: string; label: string; amountMinor: number; estimatedDays?: { min: number; max: number } }> };
@@ -50,9 +50,9 @@ export class CheckoutService {
       }
       return result.options.map((option) => ({ id: `${provider.pluginSlug}:${option.id}`, providerSlug: provider.pluginSlug, label: option.label, amount: minorToDecimal(option.amountMinor, currency), amountMinor: option.amountMinor, estimatedDays: option.estimatedDays }));
     }))).flat();
-    const paymentPackages = await PluginManagementService.getAllPluginPackages();
+    const paymentPackages = await getAllPluginPackages();
     const paymentMethods = (await Promise.all(paymentPackages.map(async (pkg) => {
-      const instance = await PluginManagementService.getDefaultInstance(pkg.slug);
+      const instance = await getDefaultInstance(pkg.slug);
       if (!instance?.enabled || !Array.isArray((pkg.manifestJson as { contracts?: unknown[] }).contracts) || !(pkg.manifestJson as { contracts: Array<{ name: string; version: number }> }).contracts.some((contract) => contract.name === 'payment' && contract.version === 2)) return null;
       let description: { displayName: string; requiresManualConfirmation: boolean; supportedCurrencies: string[] };
       try {
@@ -71,7 +71,7 @@ export class CheckoutService {
         return { currency, subtotal: minorToDecimal(subtotalMinor, currency), shippingOptions, paymentMethods };
       throw new ApiError('SHIPPING_OPTION_UNAVAILABLE');
     }
-    const taxProvider = await PluginManagementService.resolveSingleProvider('tax');
+    const taxProvider = await resolveSingleProvider('tax');
     if (!taxProvider) return { currency, subtotal: minorToDecimal(subtotalMinor, currency), shippingOptions, paymentMethods, tax: '0', taxInclusive: false, total: minorToDecimal(subtotalMinor + selected.amountMinor, currency) };
     const lines = items.map((item, index) => ({ lineId: String(index), productId: item.productId, variantId: item.variantId, quantity: item.quantity, amountMinor: item.unitPriceMinor * item.quantity }));
     const tax = await callContract(taxProvider.pluginSlug, 'tax', 1, 'calculate', { currency, lines, shippingAmountMinor: selected.amountMinor, address: contractAddress(input.shippingAddress) }) as { totalTaxMinor: number; pricesIncludeTax: boolean };

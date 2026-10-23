@@ -561,8 +561,6 @@ export class AdminOrderService {
         reason: data.reason,
         reference,
         idempotencyKey: data.idempotencyKey,
-        actorId: data.actorId,
-        actorType: 'admin',
       });
       if (!refund.created) return;
 

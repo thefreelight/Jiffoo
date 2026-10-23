@@ -35,10 +35,8 @@ vi.mock('@/config/database', () => ({
 }));
 
 vi.mock('@/core/extensions/registry', () => ({
-  PluginManagementService: {
-    getAllPluginPackages: vi.fn(),
-    getDefaultInstance: vi.fn(),
-  },
+  getAllPluginPackages: vi.fn(),
+  getDefaultInstance: vi.fn(),
 }));
 
 vi.mock('@/core/settings/service', () => ({
@@ -86,7 +84,7 @@ vi.mock('@/core/payment/observations', () => ({ observePaymentFact: vi.fn() }));
 
 import { paymentRoutes } from '@/core/payment/routes';
 import { prisma } from '@/config/database';
-import { PluginManagementService } from '@/core/extensions/registry';
+import { getAllPluginPackages, getDefaultInstance } from '@/core/extensions/registry';
 import { systemSettingsService } from '@/core/settings/service';
 import { CacheService } from '@/core/cache/service';
 import { authMiddleware } from '@/core/auth/middleware';
@@ -128,10 +126,10 @@ function setupDefaultMocks() {
   (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (CacheService.set as ReturnType<typeof vi.fn>).mockResolvedValue(true);
   (systemSettingsService.getShopCurrency as ReturnType<typeof vi.fn>).mockResolvedValue('USD');
-  (PluginManagementService.getAllPluginPackages as ReturnType<typeof vi.fn>).mockResolvedValue([
+  (getAllPluginPackages as ReturnType<typeof vi.fn>).mockResolvedValue([
     TEST_GATEWAY_PACKAGE,
   ]);
-  (PluginManagementService.getDefaultInstance as ReturnType<typeof vi.fn>).mockResolvedValue(
+  (getDefaultInstance as ReturnType<typeof vi.fn>).mockResolvedValue(
     ENABLED_INSTANCE,
   );
   (callContract as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -189,7 +187,7 @@ describe('Payment Routes', () => {
       (CacheService.getPluginVersion as ReturnType<typeof vi.fn>).mockResolvedValue('1');
       (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       (CacheService.set as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-      (PluginManagementService.getAllPluginPackages as ReturnType<typeof vi.fn>).mockResolvedValue(
+      (getAllPluginPackages as ReturnType<typeof vi.fn>).mockResolvedValue(
         [],
       );
 
@@ -215,7 +213,7 @@ describe('Payment Routes', () => {
       (CacheService.getPluginVersion as ReturnType<typeof vi.fn>).mockResolvedValue('1');
       (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       (CacheService.set as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-      (PluginManagementService.getAllPluginPackages as ReturnType<typeof vi.fn>).mockResolvedValue(
+      (getAllPluginPackages as ReturnType<typeof vi.fn>).mockResolvedValue(
         [],
       );
       (systemSettingsService.getShopCurrency as ReturnType<typeof vi.fn>).mockResolvedValue('USD');
@@ -238,7 +236,7 @@ describe('Payment Routes', () => {
       (CacheService.getPluginVersion as ReturnType<typeof vi.fn>).mockResolvedValue('1');
       (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       (CacheService.set as ReturnType<typeof vi.fn>).mockResolvedValue(true);
-      (PluginManagementService.getAllPluginPackages as ReturnType<typeof vi.fn>).mockResolvedValue(
+      (getAllPluginPackages as ReturnType<typeof vi.fn>).mockResolvedValue(
         [],
       );
 

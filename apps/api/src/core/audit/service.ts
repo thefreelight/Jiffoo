@@ -3,8 +3,9 @@ import type { Prisma } from '@prisma/client';
 /**
  * The single write outlet for audit events.
  *
- * Every module writes audit rows through {@link AuditService.write}; no module
- * calls `adminAuditEvent.create` / `adminAuditEvent.upsert` directly.
+ * Every module writes audit rows through this outlet ({@link AuditService.write}
+ * or {@link AuditService.writeExclusive}); no module calls
+ * `adminAuditEvent.create` / `adminAuditEvent.upsert` directly.
  */
 export type AuditTx = {
   adminAuditEvent: {
@@ -21,12 +22,6 @@ export type AuditEntry = {
   summary?: Prisma.InputJsonValue;
   /** Deterministic id: the row is created when absent and never updated. */
   id?: string;
-  /**
-   * Insert the row with `id` even when that id is already taken: a duplicate id
-   * fails the write instead of being swallowed. Without it the row is created
-   * only when absent.
-   */
-  failOnDuplicateId?: boolean;
 };
 
 /**
@@ -66,14 +61,27 @@ export class AuditService {
       ...(summary !== undefined ? { summary } : {}),
     };
     if (id !== undefined) {
-      if (entry.failOnDuplicateId) {
-        await tx.adminAuditEvent.create({ data: { id, ...data } });
-        return;
-      }
       await tx.adminAuditEvent.upsert({ where: { id }, update: {}, create: { id, ...data } });
       return;
     }
     await tx.adminAuditEvent.create({ data });
+  }
+
+  /**
+   * Write one audit event with a deterministic id: the row is inserted, never
+   * merged. A duplicate id fails the write instead of being swallowed, so the
+   * surrounding transaction rolls back.
+   */
+  static async writeExclusive(tx: AuditTx, entry: AuditEntry): Promise<void> {
+    const { id, actorId, action, targetType, targetId, summary } = entry;
+    const data = {
+      actorId,
+      action,
+      targetType,
+      targetId,
+      ...(summary !== undefined ? { summary } : {}),
+    };
+    await tx.adminAuditEvent.create({ data: { ...(id !== undefined ? { id } : {}), ...data } });
   }
 
   /** Write one legacy staff-audit row. */

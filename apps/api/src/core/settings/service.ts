@@ -11,11 +11,6 @@ import { isStoreTimezone } from 'shared';
 import { AuditService } from '@/core/audit/service';
 
 /**
- * The transaction handle the settings module accepts for its writes.
- */
-export type SettingsTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
-
-/**
  * The minimal client surface the settings module needs for a column bump.
  */
 export type SettingsClient = {
@@ -148,24 +143,21 @@ export class SystemSettingsService {
     /**
      * Mark the platform as installed and store the installation settings.
      */
-    async completeInstallation(tx: SettingsTransaction, installation: {
+    async completeInstallation(tx: SettingsClient, installation: {
         installedBy: string;
         siteDescription?: string;
         settings: Record<string, any>;
         version: string;
     }): Promise<void> {
+        const data = {
+            isInstalled: true, installedAt: new Date(),
+            installedBy: installation.installedBy, siteDescription: installation.siteDescription,
+            settings: installation.settings, version: installation.version,
+        };
         await tx.systemSettings.upsert({
             where: { id: SYSTEM_ID },
-            create: {
-                id: SYSTEM_ID, isInstalled: true, installedAt: new Date(),
-                installedBy: installation.installedBy, siteDescription: installation.siteDescription,
-                settings: installation.settings, version: installation.version,
-            },
-            update: {
-                isInstalled: true, installedAt: new Date(),
-                installedBy: installation.installedBy, siteDescription: installation.siteDescription,
-                settings: installation.settings, version: installation.version,
-            },
+            create: { id: SYSTEM_ID, ...data },
+            update: data,
         });
     }
 

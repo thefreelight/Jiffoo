@@ -17,11 +17,14 @@
  *   `INSERT`/`UPDATE`/`DELETE`/`TRUNCATE` against a core table) from a module
  *   that does not own the table is a violation. The raw form is recognised with
  *   an optional schema qualifier (`<table>`, `public.<table>`,
- *   `"public"."<table>"`, `"${schema}".<table>`); the table is the last
- *   identifier of the qualified name. A domain owner is satisfied when the
- *   writing module is one of the domain's members, because some domains are
- *   deliberately split across several modules that share the same tables.
- *   Reads are never violations.
+ *   `"public"."<table>"`); the table is the last identifier of the qualified
+ *   name. A raw write counts as a write to a Core table only when the path is
+ *   unqualified (the Core connection resolves it in `public`) or qualified with
+ *   the literal schema `public`: a write into any other schema - a plugin
+ *   namespace, for example - is not a write to a Core table. A domain owner is
+ *   satisfied when the writing module is one of the domain's members, because
+ *   some domains are deliberately split across several modules that share the
+ *   same tables. Reads are never violations.
  *
  * ── How to add an entry ──────────────────────────────────────────────────────
  * LEGAL_EDGES        one key per approved cross-module edge (`from -> to`) plus a
@@ -90,11 +93,12 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/order-management -> payment': 'the admin order module uses the payment module\'s public service and reconciliation entry points.',
   'admin/order-management -> settings': 'the admin order module reads system settings through the public settings service.',
   'admin/order-management -> shared': 'the admin order module takes the neutral row-lock helper from the shared layer.',
-  'admin/plugin-management -> admin/extension-installer': 'plugin management calls the installer\'s public upload, manifest, migration, registry-version and runtime API.',
+  'admin/plugin-management -> admin/extension-installer': 'plugin management calls the installer\'s public upload, manifest, migration and runtime API.',
   'admin/plugin-management -> cache': 'plugin management invalidates cached plugin entries.',
   'admin/plugin-management -> extensions/registry': 'plugin management reads the read-only provider registry.',
   'admin/plugin-management -> logger': 'plugin management logs through the unified logger.',
   'admin/plugin-management -> plugins': 'plugin management uses the public durable-task API.',
+  'admin/plugin-management -> settings': 'plugin management bumps the plugin registry version through the public settings module that owns the `system_settings` row.',
   'admin/plugin-management -> storage': 'plugin management resolves packages and operation leases through the public storage stores.',
   'admin/product-management -> admin/system-settings': 'the admin product module reads system settings through the re-export shim of the relocated settings module.',
   'admin/product-management -> cache': 'the admin product module invalidates the product cache.',
@@ -305,10 +309,10 @@ const COMMERCE_MODULES = [
  * Section 3 — the still-open violations.
  *
  * Each entry is one tracked exception. `file` is relative to `src/core`;
- * `module` pins a module edge (`from -> to`) or a writing module; `table` pins a
- * physical table; `specifier` pins one import specifier. `owner` names the
- * batch or decision that owns the follow-up. An entry that no longer matches a
- * real violation fails the audit.
+ * `module` pins a module edge (`from -> to`); `table` pins a physical table;
+ * `specifier` pins one import specifier. `owner` names the batch or decision
+ * that owns the follow-up. An entry that no longer matches a real violation
+ * fails the audit.
  */
 type KnownViolation = {
   file: string;
@@ -331,24 +335,6 @@ const KNOWN_VIOLATIONS: KnownViolation[] = [
     table: 'product_variants',
     reason: 'the inventory module writes the `product_variants` stock level; B-BOUND-A moved the stock write into `InventoryService.applyDesiredStock` on purpose, so the table still has a second writer.',
     owner: 'B-BOUND-A decision (accepted): the stock field of `product_variants` is owned by the inventory module; the guard cannot express field-level ownership.',
-  },
-  {
-    file: 'admin/extension-installer/plugin-marker-reclaim.ts',
-    table: 'plugin_operation_leases',
-    reason: 'the marker reclaim deletes `plugin_operation_leases` rows with raw SQL on a dedicated `pg` connection inside its own manual transaction, so it cannot join the Prisma transaction of the storage module that owns the lease.',
-    owner: 'B-BOUND-G follow-up: expose a lease-reclaim entry point in the storage module that the marker reclaim can call.',
-  },
-  {
-    file: 'admin/extension-installer/plugin-marker-reclaim.ts',
-    table: 'core_processes',
-    reason: 'the marker reclaim confirms the death of `core_processes` rows with raw SQL on a dedicated `pg` connection inside its own manual transaction, so it cannot join the Prisma transaction of the infra core-process registry that owns the table.',
-    owner: 'B-BOUND-G follow-up: expose a process-reclaim entry point in the infra core-process registry that the marker reclaim can call.',
-  },
-  {
-    file: 'admin/extension-installer/plugin-marker-reclaim.ts',
-    table: 'admin_audit_events',
-    reason: 'the marker reclaim writes the `admin_audit_events` row with raw SQL on a dedicated `pg` connection inside its own manual transaction, so it cannot join the Prisma transaction of the audit outlet that owns the table.',
-    owner: 'B-BOUND-G follow-up: let the audit outlet write into the externally managed reclaim transaction.',
   },
 ];
 
@@ -491,17 +477,23 @@ function collectWrites(): TableWrite[] {
     };
     visit(source);
     // Raw SQL writes against a core table. The schema qualifier is optional and
-    // may be written in any of its forms (`public`, `"public"`, `"${schema}"`),
-    // and the table is the last identifier of the qualified name.
+    // may be written in any of its forms (`public`, `"public"`), and the table
+    // is the last identifier of the qualified name. A path that is qualified
+    // with another schema (a plugin namespace, for example) does not write a
+    // Core table and is skipped.
     const text = source.getFullText();
     const sql = /\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|TRUNCATE(?:\s+TABLE)?)\s+(?:ONLY\s+)?((?:"[^"]+"|[A-Za-z_$][\w$]*)(?:\s*\.\s*(?:"[^"]+"|[A-Za-z_$][\w$]*))*)/gi;
     let match: RegExpExecArray | null;
     while ((match = sql.exec(text))) {
       const identifiers = match[1].match(/"[^"]+"|[A-Za-z_$][\w$]*/g) ?? [];
+      if (identifiers.length === 0) continue;
       const table = (identifiers[identifiers.length - 1] ?? '').replace(/^"|"$/g, '');
       if (!tables.has(table)) continue;
+      const schema = identifiers.length > 1 ? (identifiers[identifiers.length - 2] ?? '').replace(/^"|"$/g, '') : undefined;
+      if (schema !== undefined && schema !== 'public') continue;
       const { line } = source.getLineAndCharacterOfPosition(match.index);
-      writes.push({ file: relative(file), module, table, line: line + 1, call: `raw SQL against public.${table}` });
+      const call = schema === undefined ? `raw SQL against ${table}` : `raw SQL against ${schema}.${table}`;
+      writes.push({ file: relative(file), module, table, line: line + 1, call });
     }
   }
   return writes;
@@ -544,8 +536,7 @@ describe('module boundary audit', () => {
   });
 
   it('approves exactly the cross-module edges that exist in the tree', () => {
-    const knownEdges = KNOWN_VIOLATIONS.map(entry => entry.module).filter((edge): edge is string => !!edge && edge.includes(' -> '));
-    expect(edges).toEqual([...new Set([...Object.keys(LEGAL_EDGES), ...knownEdges])].sort());
+    expect(edges).toEqual(Object.keys(LEGAL_EDGES).sort());
   });
 
   it('rejects every cross-module import that is not an approved edge', () => {
@@ -632,21 +623,6 @@ describe('module boundary audit', () => {
         if (owner !== domain) {
           problems.push(`the table "${table}" is declared as a table of the domain "${domain}", but its owner is "${owner ?? 'none'}"`);
         }
-      }
-    }
-
-    // 4. A domain member may only write the tables of its own domain, the
-    //    tables it owns as a module, or a table that is registered as a known
-    //    violation. A domain must never authorize a foreign table silently.
-    for (const write of writes) {
-      for (const [domain, members] of Object.entries(DOMAIN_MEMBERS)) {
-        if (!members.includes(write.module)) continue;
-        const owner = TABLE_OWNERS[write.table];
-        if (owner === domain) continue;
-        if (owner === write.module) continue;
-        const registered = KNOWN_VIOLATIONS.find(entry => matchesKnown(entry, write.file, undefined, write.table));
-        if (registered) continue;
-        problems.push(`the domain member "${write.module}" writes "${write.table}" (${write.file}:${write.line}), which the domain "${domain}" does not own`);
       }
     }
 

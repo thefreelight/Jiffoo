@@ -17,7 +17,7 @@ import { assertPluginSigningAllowed } from '@/core/admin/extension-installer/plu
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
 import { assertPluginOperationAvailable } from '@/core/admin/extension-installer/plugin-migration-gate';
-import { incrementPluginRegistryVersion } from '@/core/admin/extension-installer/plugin-registry-version';
+import { systemSettingsService } from '@/core/settings/service';
 import { assertPluginConfigReadyForEnable } from '@/core/admin/extension-installer/config-readiness';
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
 import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
@@ -416,7 +416,7 @@ async function updateInstance(
     }
     if (updates.enabled !== undefined || updates.config !== undefined) updateData.protectionGeneration = { increment: 1 };
     const next = await tx.pluginInstallation.update({ where: { id: installationId }, data: updateData });
-    await incrementPluginRegistryVersion(tx);
+    await systemSettingsService.incrementPluginRegistryVersion(tx);
     return next;
   });
 
@@ -572,7 +572,7 @@ export async function uninstallPlugin(slug: string, actorId = 'system'): Promise
       },
       data: { enabled: false, protectionGeneration: { increment: 1 } },
     });
-    await incrementPluginRegistryVersion(tx);
+    await systemSettingsService.incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_UNINSTALLED', slug, { slug, version: pluginPackage.version });
   });
 
@@ -653,7 +653,7 @@ export async function restorePlugin(slug: string, actorId = 'system'): Promise<v
         },
       });
     }
-    await incrementPluginRegistryVersion(tx);
+    await systemSettingsService.incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_RESTORED', slug, { slug, version: pluginPackage.version, enabled: false });
   });
 
@@ -708,7 +708,7 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
     }
     await pluginPackageBlobStore.deleteAll(tx, slug);
     await tx.pluginInstall.delete({ where: { slug } });
-    await incrementPluginRegistryVersion(tx);
+    await systemSettingsService.incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_PURGED', slug, { slug, version: pluginPackage.version });
   });
 
@@ -729,9 +729,8 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
  * Admin plugin-management service.
  *
  * This is the LIFECYCLE service (install / uninstall / restore / purge / audit).
- * The read-only provider registry at `@/core/extensions/registry` exposes a
- * separate `PluginManagementService` with the same call syntax but only the
- * read members; the four read members below are re-exported from it so the
+ * The read-only provider registry at `@/core/extensions/registry` exposes the
+ * same four read members as plain functions; they are re-exported here so the
  * admin callers keep working unchanged.
  */
 export const PluginManagementService = {

@@ -1,5 +1,5 @@
 import { prisma } from '@/config/database';
-import { PluginManagementService } from '@/core/extensions/registry';
+import { resolveSingleProvider } from '@/core/extensions/registry';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { observeWorkerShutdownForTest } from '@/infra/worker-shutdown';
@@ -37,7 +37,7 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
     let providerSlug: string | undefined;
     try {
       if (releaseRemainder || options.isStopping?.()) { await releaseUnstartedNotification(client, notification); continue; }
-      const provider = await PluginManagementService.resolveSingleProvider('notification');
+      const provider = await resolveSingleProvider('notification');
       if (!provider) throw new Error('No enabled notification provider');
       providerSlug = provider.pluginSlug;
       const secrets = notification.secretJson && typeof notification.secretJson === 'object' && !Array.isArray(notification.secretJson)

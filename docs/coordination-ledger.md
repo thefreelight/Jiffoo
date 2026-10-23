@@ -248,29 +248,30 @@ charter §3, stating the accepted in-process model and pointing at the concrete 
 
 ## 5g. The boundary audit result — what is still open
 
-**State after batches B-BOUND-A … B-BOUND-E3: 23 known violations → 5.** The five were the ones
-the guard could see. B-BOUND-F (§5k) closed the three stray writers among them and, in the same
-batch, removed the guard's blind spot — so the list is now **5 registered violations again, but a
-different five**, and every one of them is real, registered, and anchored to a file and a table.
+**State after batches B-BOUND-A … B-BOUND-E3 and the Tier 2 cleanup (WP-F2): 23 known violations → 2.** The five that were registered after B-BOUND-F were the ones the guard could see. B-BOUND-F (§5k) closed the three stray writers among them and, in the same batch, removed the guard's blind spot — so the list became **5 registered violations again, but a different five**, and every one of them was real, registered, and anchored to a file and a table.
+
+The Tier 2 cleanup (WP-F2) corrected that raw-SQL pattern once more. A raw write is a write to a **Core** table only when the matched path is unqualified (the Core connection resolves it in `public`) or qualified with the literal schema `public`. A path qualified with any other schema — the marker reclaim writes into the plugin's own namespace schema — is a write into that namespace, not into a Core table, so those entries were never violations. The list is now **2 registered violations**, and both of them are real, registered, and anchored to a file and a table.
 
 | # | File | Table | Nature | Owner / next step |
 |---|---|---|---|---|
 | 1 | `admin/extension-installer/plugin-migration-executor.ts` | `admin_audit_events` | **legitimate exception** — raw SQL inside a manual `pg` transaction that provisions a plugin schema; a Prisma-based outlet cannot join it | keep registered |
 | 2 | `inventory/service.ts` | `product_variants` | **column-level ownership split** — the product domain owns the variant row, the inventory domain owns the `stock` column; a table-level owner map cannot express that | either accept the split explicitly or give the stock column its own owner |
-| 3 | `admin/extension-installer/plugin-marker-reclaim.ts` | `plugin_operation_leases` | **legitimate exception** — the marker reclaim is an operator-driven recovery that runs on a dedicated `pg` connection in its own manual transaction, so it cannot join the Prisma transaction of the storage module that owns the lease | B-BOUND-G: expose a lease-reclaim entry point in the storage module |
-| 4 | `admin/extension-installer/plugin-marker-reclaim.ts` | `core_processes` | same shape — the reclaim confirms the death of the process rows on its own connection | B-BOUND-G: expose a process-reclaim entry point in the infra core-process registry |
-| 5 | `admin/extension-installer/plugin-marker-reclaim.ts` | `admin_audit_events` | same shape — the reclaim writes its audit row on its own connection | B-BOUND-G: let the audit outlet write into the externally managed reclaim transaction |
 
 Items 1–3 of the old list (the migration gate, the recovery sweep and the migration executor
 writing `plugin_operation_leases` and `core_processes` directly) were the same shape as the work
 already done and **are closed in B-BOUND-F**: the three writes now go through the storage lease
 API and the infra process registry.
 
-Items 3–5 of the new list were **invisible to the old guard**. Its raw-SQL pattern required the
+Items 3–5 of the B-BOUND-F list were **invisible to the old guard**. Its raw-SQL pattern required the
 table to be spelled `public.<table>`, so an unqualified `UPDATE plugin_operation_leases …` and a
 schema given as a template variable (`DELETE FROM "${schema}".plugin_operation_leases`) were never
-reported. The claim "nothing is untracked" was therefore wrong; B-BOUND-F fixed the pattern and
-registered what it found.
+reported. B-BOUND-F broadened the pattern to take the last identifier of any qualified path, which
+registered those three entries — but the broadened pattern also reported writes into a plugin's own
+namespace schema as writes to a Core table. They are not: the marker reclaim deletes the lease rows
+and confirms the dead process rows of the **plugin namespace**, and the charter explicitly allows
+that ("the package-derived default schema is a naming convention, not a permission boundary"). The
+corrected pattern skips every path that is qualified with a schema other than `public`, so those
+three entries are withdrawn and the two entries above are what remains.
 
 Item 2 is the one remaining **decision**: does the `stock` column belong to the product domain or
 to the inventory domain? The current code and the guard both put the row in the product domain and
@@ -280,9 +281,9 @@ owner map as a column-level exception**, because the inventory module is the onl
 correct.
 
 **What is tracked now.** Every remaining violation is in the guard with a reason and an owner, so
-it is visible in CI and cannot silently grow. The pattern now also sees the unqualified and
-schema-qualified raw writes, so a new stray writer of either shape fails the guard instead of
-slipping through.
+it is visible in CI and cannot silently grow. The pattern now sees the unqualified and the
+`public`-qualified raw writes and skips the writes into a plugin namespace schema, so a new stray
+writer of either shape fails the guard instead of slipping through.
 
 ## 5h. Handover evidence — B-BOUND-E1 (one public owner for `users` and `auth_tokens`)
 

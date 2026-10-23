@@ -29,15 +29,6 @@ export type InventoryLedgerTx = {
   inventoryAdjustment: {
     create(args: any): Promise<any>;
   };
-  product: {
-    findUniqueOrThrow(args: any): Promise<any>;
-  };
-  eventRecord: {
-    create(args: any): Promise<any>;
-  };
-  eventDelivery: {
-    createMany(args: any): Promise<any>;
-  };
   $queryRaw: (...args: any[]) => Promise<any>;
 };
 
