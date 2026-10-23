@@ -17555,7 +17555,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.33",
+      version: "1.1.34",
       target: "shop"
     }
   };
