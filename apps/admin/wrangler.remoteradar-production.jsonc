@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "remoteradar-production-admin",
+  "account_id": "b2da93ccbca8c78973eb85e536a1d51f",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-03",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "remoteradar-production-admin-cache" }],
+  "vars": {
+    "API_SERVICE_URL": "https://api.remoteradar.cc",
+    "NEXT_PUBLIC_API_URL": "/api",
+    "THEME_APP_PROXY_DISABLED": "1"
+  }
+}

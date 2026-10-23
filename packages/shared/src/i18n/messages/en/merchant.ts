@@ -862,8 +862,28 @@ export const merchant = {
   },
 
   // Auth
+  // Auth
   auth: {
     forgotPassword: 'Forgot password?',
+    resetTitleEmail: 'Forgot your password?',
+    resetTitleReset: 'Check your email',
+    resetTitleDone: 'Password updated',
+    resetEmailHint: 'Enter the admin account email and we will send a six-digit reset code.',
+    resetCodeHint: 'Enter the six-digit code and choose a new password.',
+    resetDoneHint: 'Your password has been changed. Sign in with the new password.',
+    resetSendCode: 'Send reset code',
+    resetCodePlaceholder: 'Six-digit code',
+    resetNewPasswordPlaceholder: 'New password (8+ characters)',
+    resetConfirmPlaceholder: 'Confirm new password',
+    resetSubmit: 'Reset password',
+    resetBackToSignIn: 'Back to sign in',
+    resetNoticeSent: 'If an admin account exists for this email, a six-digit reset code is on its way. It expires in 10 minutes.',
+    resetErrorEmail: 'Enter a valid email address',
+    resetErrorCode: 'Enter the six-digit code from the email',
+    resetErrorPassword: 'The new password must be at least 8 characters',
+    resetErrorConfirm: 'The passwords do not match',
+    resetErrorSend: 'Could not send the reset code. Try again in a moment.',
+    resetErrorReset: 'Could not reset the password. Check the code and try again.',
     login: {
       title: 'Merchant Login',
       subtitle: 'Sign in to manage your store',
