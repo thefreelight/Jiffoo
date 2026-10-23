@@ -57,6 +57,16 @@ export function generateCanonicalUrl(path: string, baseUrl?: string): string {
   return `${base}${cleanPath}`;
 }
 
+// Odoo-synced catalog names carry an internal "[SKU] " prefix (and sometimes a
+// trailing version token) that must never reach storefront metadata.
+export function displayProductTitle(name: string | null | undefined): string {
+  const cleaned = String(name || '')
+    .replace(/^\[[^\]]*\]\s*/, '')
+    .replace(/\s+V\d+$/i, '')
+    .trim();
+  return cleaned || String(name || '');
+}
+
 /**
  * Generate meta tags for a product
  * @param options - Product meta options
@@ -73,7 +83,7 @@ export function generateProductMetaTags(options: ProductMetaOptions): MetaTags {
     seoMetadata,
   } = options;
 
-  const title = seoMetadata?.metaTitle || name;
+  const title = seoMetadata?.metaTitle || displayProductTitle(name);
   const desc = seoMetadata?.metaDescription || description;
   const canonical = seoMetadata?.canonicalUrl || generateCanonicalUrl(`/products/${slug}`, baseUrl);
 
@@ -180,7 +190,7 @@ export function generateProductStructuredData(product: {
   const structuredData: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name,
+    name: displayProductTitle(name),
     description,
     url: generateCanonicalUrl(`/products/${slug}`, baseUrl),
   };

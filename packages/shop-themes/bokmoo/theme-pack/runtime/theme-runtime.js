@@ -12324,7 +12324,7 @@
     const esim = variant.attributes?.esim;
     return {
       id: variant.id,
-      name: variant.name,
+      name: displayProductTitle(variant.name),
       value: buildEsimSummary(esim),
       type: "STYLE",
       price: variant.salePrice,
@@ -12356,6 +12356,7 @@
       description: product.description || `${displayProductTitle(product.name)} travel connectivity package`,
       price: sellablePrice,
       sku: product.slug || product.id,
+      productKind: product.productKind,
       category: {
         id: esim?.region || "esim",
         name: esim?.region || "eSIM Plans",
@@ -17037,6 +17038,11 @@
       [product, remoteProduct]
     );
     const profile = react_default.useMemo(() => getBokmooTravelProfile(normalizedProduct), [normalizedProduct]);
+    const isGoodsProduct = normalizedProduct?.productKind === "goods";
+    react_default.useEffect(() => {
+      if (!normalizedProduct?.name) return;
+      document.title = `${normalizedProduct.name} | ${site.brandName}`;
+    }, [normalizedProduct?.name, site.brandName]);
     const effectiveSelectedVariant = selectedVariant || normalizedProduct?.variants?.[0]?.id || null;
     const currentVariant = react_default.useMemo(() => {
       if (!normalizedProduct?.variants?.length || !effectiveSelectedVariant) return null;
@@ -17142,18 +17148,26 @@
           /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4", children: [
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsx("h1", { className: "text-[clamp(2.2rem,4vw,3.4rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: normalizedProduct.name }),
-              /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg text-[var(--bokmoo-copy)]", children: profile.networkLabel })
+              /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg text-[var(--bokmoo-copy)]", children: isGoodsProduct ? pickCopy(locale, {
+                en: "Physical Bluetooth card \u2014 manage multiple eSIM profiles with the BOKMOO app",
+                hans: "\u5B9E\u4F53\u84DD\u7259\u5361\uFF0C\u642D\u914D BOKMOO App \u7BA1\u7406\u591A\u4E2A eSIM \u5957\u9910",
+                hant: "\u5BE6\u9AD4\u85CD\u7259\u5361\uFF0C\u642D\u914D BOKMOO App \u7BA1\u7406\u591A\u500B eSIM \u8A2D\u5B9A\u6A94"
+              }) : profile.networkLabel })
             ] }),
             /* @__PURE__ */ jsx("div", { className: "sm:text-right", children: /* @__PURE__ */ jsxs("p", { className: "text-[2.3rem] font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]", children: [
               "$",
               priceValue.toFixed(2)
             ] }) })
           ] }),
-          /* @__PURE__ */ jsx("div", { className: "mt-5 grid gap-3 sm:grid-cols-3", children: [
+          /* @__PURE__ */ jsx("div", { className: "mt-5 grid gap-3 sm:grid-cols-3", children: (isGoodsProduct ? [
+            { label: pickCopy(locale, { en: "Type", hans: "\u7C7B\u578B", hant: "\u985E\u578B" }), value: pickCopy(locale, { en: "Physical eSIM card", hans: "eSIM \u5B9E\u4F53\u5361", hant: "eSIM \u5BE6\u9AD4\u5361" }) },
+            { label: pickCopy(locale, { en: "Connection", hans: "\u8FDE\u63A5", hant: "\u9023\u7DDA" }), value: pickCopy(locale, { en: "Bluetooth", hans: "\u84DD\u7259", hant: "\u85CD\u7259" }) },
+            { label: pickCopy(locale, { en: "Management", hans: "\u7BA1\u7406", hant: "\u7BA1\u7406" }), value: "BOKMOO App" }
+          ] : [
             { label: pickCopy(locale, { en: "Data", hans: "\u6570\u636E", hant: "\u6578\u64DA" }), value: profile.planLabel },
             { label: pickCopy(locale, { en: "Validity", hans: "\u6709\u6548\u671F", hant: "\u6709\u6548\u671F" }), value: profile.durationLabel },
             { label: pickCopy(locale, { en: "Network", hans: "\u7F51\u7EDC", hant: "\u7DB2\u8DEF" }), value: profile.networkLabel }
-          ].map((item) => /* @__PURE__ */ jsxs(
+          ]).map((item) => /* @__PURE__ */ jsxs(
             "div",
             {
               className: "rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-4",
@@ -17164,27 +17178,34 @@
             },
             item.label
           )) }),
-          /* @__PURE__ */ jsx("div", { className: "mt-6 space-y-3", children: [
+          /* @__PURE__ */ jsx("div", { className: "mt-6 space-y-3", children: (isGoodsProduct ? [
+            { en: "Manage multiple eSIM profiles over Bluetooth", hans: "\u901A\u8FC7\u84DD\u7259\u7BA1\u7406\u591A\u4E2A eSIM \u5957\u9910", hant: "\u900F\u904E\u85CD\u7259\u7BA1\u7406\u591A\u500B eSIM \u8A2D\u5B9A\u6A94" },
+            { en: "Set up and switch profiles in the BOKMOO app", hans: "\u5728 BOKMOO App \u5185\u542F\u7528\u4E0E\u5207\u6362\u5957\u9910", hant: "\u5728 BOKMOO App \u5167\u555F\u7528\u8207\u5207\u63DB\u8A2D\u5B9A\u6A94" }
+          ] : [
             { en: "High-speed 4G/5G data", hans: "\u9AD8\u901F 4G/5G \u6570\u636E", hant: "\u9AD8\u901F 4G/5G \u6578\u64DA" },
             { en: "Stay connected in major cities and more", hans: "\u4E3B\u8981\u57CE\u5E02\u53CA\u66F4\u591A\u5730\u533A\u4FDD\u6301\u8FDE\u63A5", hant: "\u4E3B\u8981\u57CE\u5E02\u53CA\u66F4\u591A\u5730\u5340\u4FDD\u6301\u9023\u7DDA" },
             { en: "No roaming charges", hans: "\u65E0\u6F2B\u6E38\u8D39\u7528", hant: "\u7121\u6F2B\u904A\u8CBB\u7528" }
-          ].map((item) => /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 text-sm text-[var(--bokmoo-copy)]", children: [
+          ]).map((item) => /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 text-sm text-[var(--bokmoo-copy)]", children: [
             /* @__PURE__ */ jsx(Check, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
             /* @__PURE__ */ jsx("span", { children: pickCopy(locale, item) })
           ] }, item.en)) }),
-          /* @__PURE__ */ jsx("div", { className: "mt-6 rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
+          !isGoodsProduct ? /* @__PURE__ */ jsx("div", { className: "mt-6 rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Coverage", hans: "\u8986\u76D6\u8303\u56F4", hant: "\u8986\u84CB\u7BC4\u570D" }) }),
               /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: profile.coverageLabel })
             ] }),
             /* @__PURE__ */ jsx("button", { className: "text-sm text-[var(--bokmoo-gold)]", type: "button", children: pickCopy(locale, { en: "View Details", hans: "\u67E5\u770B\u8BE6\u60C5", hant: "\u67E5\u770B\u8A73\u60C5" }) })
-          ] }) })
+          ] }) }) : null
         ] }),
         /* @__PURE__ */ jsxs("aside", { className: "space-y-4", children: [
           /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
             /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--bokmoo-ink)]", children: pickCopy(locale, { en: "Quick Facts", hans: "\u5FEB\u901F\u4FE1\u606F", hant: "\u5FEB\u901F\u8CC7\u8A0A" }) }),
             /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-3", children: [
-              { icon: Signal, label: pickCopy(locale, { en: "Activation", hans: "\u6FC0\u6D3B\u65B9\u5F0F", hant: "\u555F\u7528\u65B9\u5F0F" }), value: pickCopy(locale, { en: "Instant via QR", hans: "\u626B\u7801\u5373\u65F6\u6FC0\u6D3B", hant: "\u6383\u78BC\u5373\u6642\u555F\u7528" }) },
+              {
+                icon: Signal,
+                label: isGoodsProduct ? pickCopy(locale, { en: "Setup", hans: "\u4F7F\u7528\u65B9\u5F0F", hant: "\u4F7F\u7528\u65B9\u5F0F" }) : pickCopy(locale, { en: "Activation", hans: "\u6FC0\u6D3B\u65B9\u5F0F", hant: "\u555F\u7528\u65B9\u5F0F" }),
+                value: isGoodsProduct ? pickCopy(locale, { en: "Connects to the BOKMOO app over Bluetooth", hans: "\u84DD\u7259\u8FDE\u63A5 BOKMOO App \u7BA1\u7406", hant: "\u85CD\u7259\u9023\u7DDA BOKMOO App \u7BA1\u7406" }) : pickCopy(locale, { en: "Instant via QR", hans: "\u626B\u7801\u5373\u65F6\u6FC0\u6D3B", hant: "\u6383\u78BC\u5373\u6642\u555F\u7528" })
+              },
               { icon: Smartphone, label: pickCopy(locale, { en: "Compatibility", hans: "\u8BBE\u5907\u517C\u5BB9", hant: "\u88DD\u7F6E\u76F8\u5BB9" }), value: profile.compatibilityLabel },
               { icon: ShieldCheck, label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), value: pickCopy(locale, { en: "24/7 Global Team", hans: "24/7 \u5168\u7403\u56E2\u961F", hant: "24/7 \u5168\u7403\u5718\u968A" }) }
             ].map(({ icon: Icon2, label, value }) => /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
@@ -17272,7 +17293,7 @@
           ),
           /* @__PURE__ */ jsx("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 text-sm text-[var(--bokmoo-copy)]", children: [
             /* @__PURE__ */ jsx(Star, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
-            pickCopy(locale, { en: "4.9 average traveler satisfaction", hans: "4.9 \u65C5\u884C\u8005\u5E73\u5747\u6EE1\u610F\u5EA6", hant: "4.9 \u65C5\u4EBA\u5E73\u5747\u6EFF\u610F\u5EA6" })
+            isGoodsProduct ? pickCopy(locale, { en: "Official BOKMOO product", hans: "BOKMOO \u5B98\u65B9\u51FA\u54C1", hant: "BOKMOO \u5B98\u65B9\u51FA\u54C1" }) : pickCopy(locale, { en: "4.9 average traveler satisfaction", hans: "4.9 \u65C5\u884C\u8005\u5E73\u5747\u6EE1\u610F\u5EA6", hant: "4.9 \u65C5\u4EBA\u5E73\u5747\u6EFF\u610F\u5EA6" })
           ] }) })
         ] })
       ] }) })
@@ -17526,7 +17547,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.29",
+      version: "1.1.30",
       target: "shop"
     }
   };
