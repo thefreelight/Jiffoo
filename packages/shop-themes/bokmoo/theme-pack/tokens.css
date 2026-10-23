@@ -84,7 +84,7 @@ h6 {
    arbitrary utilities only exist in the host app's compiled CSS, and theme
    versions ship independently of worker rebuilds. */
 .bokmoo-pdp-title {
-  font-size: clamp(2.1rem, 3.2vw, 2.65rem);
+  font-size: clamp(2.1rem, 3.2vw, 2.35rem);
   line-height: 1.08;
 }
 
