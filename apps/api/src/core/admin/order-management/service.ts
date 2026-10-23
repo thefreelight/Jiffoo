@@ -18,6 +18,7 @@ import { recordPaymentNotCharged, recordPaymentSucceeded } from '@/core/payment/
 import { PaymentService } from '@/core/payment/service';
 import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
 import { orderWhere, orderSort, type OrderFilter, type OrderSort } from './list-query';
 
 function codedError(code: import('@/utils/api-errors').ErrorCode, _message: string): ApiError {
@@ -360,7 +361,7 @@ export class AdminOrderService {
 
     const latestPayment = await prisma.payment.findFirst({ where: { orderId }, orderBy: { attemptNumber: 'desc' }, select: { status: true } });
     const canRecordManualPayment = !['UNKNOWN', 'REQUIRES_REVIEW'].includes(latestPayment?.status || '') && ['PENDING','CANCELLED'].includes(order.status) && order.paymentStatus !== 'PAID' && order.paymentMethod
-      ? await callContract(order.paymentMethod, 'payment', 2, 'describe', {
+      ? await callContract(order.paymentMethod, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', {
         storeCurrency: await systemSettingsService.getShopCurrency(),
       }).then((description: { requiresManualConfirmation: boolean }) => description.requiresManualConfirmation).catch(() => false)
       : false;
@@ -464,7 +465,7 @@ export class AdminOrderService {
     if (installation && (!installation.enabled || installation.deletedAt || installation.plugin.deletedAt)) {
       throw codedError('PAYMENT_PROVIDER_DISABLED', 'Payment provider is disabled; manual confirmation is unavailable.');
     }
-    const description = await callContract(order.paymentMethod, 'payment', 2, 'describe', {
+    const description = await callContract(order.paymentMethod, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', {
       storeCurrency: await systemSettingsService.getShopCurrency(),
     }) as { requiresManualConfirmation: boolean };
     if (!description.requiresManualConfirmation) {

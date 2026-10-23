@@ -1,5 +1,6 @@
 import { prisma } from '@/config/database';
 import { resolveSingleProvider } from '@/core/extensions/registry';
+import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { observeWorkerShutdownForTest } from '@/infra/worker-shutdown';
@@ -47,7 +48,7 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
         await releaseUnstartedNotification(client, notification);
         continue;
       }
-      const result = await callContract(providerSlug, 'notification', 1, 'send', {
+      const result = await callContract(providerSlug, 'notification', PLUGIN_CONTRACT_VERSIONS.notification, 'send', {
         channel: 'email', to: notification.toAddress, subject: notification.subject,
         html: substitute(notification.html, secrets), text: substitute(notification.text, secrets),
         locale: notification.locale, idempotencyKey: notification.id,

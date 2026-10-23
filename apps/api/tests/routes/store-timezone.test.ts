@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken } from '../helpers/auth';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { renderNotification } from '@/core/notifications/service';
 let app: FastifyInstance, admin: Awaited<ReturnType<typeof createAdminWithToken>>;
 beforeAll(async () => { app = await createTestApp(); admin = await createAdminWithToken(); });

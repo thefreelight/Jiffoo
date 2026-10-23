@@ -3,6 +3,7 @@ import path from 'path';
 import { prisma } from '@/config/database';
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { getDefaultInstance } from '@/core/extensions/registry';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { packBuiltinPlugin } from './builtin-package';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
@@ -30,7 +31,7 @@ export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
       const wasInstalled = Boolean(installed);
       await pluginFsInstaller.installFromDirectory(directory, { source: 'builtin' });
       if (!wasInstalled) {
-        const instance = await PluginManagementService.getDefaultInstance(manifest.slug);
+        const instance = await getDefaultInstance(manifest.slug);
         if (!instance) throw new Error(`Builtin plugin "${manifest.slug}" has no default installation`);
         await PluginManagementService.updateInstance(instance.id, { enabled: true });
         await AuditService.writeStaffAudit(prisma, {

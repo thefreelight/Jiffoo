@@ -6,6 +6,7 @@ import { emitOrderPaidEvent } from './order-paid-event';
 import { emitEvent } from '@/infra/events/emit';
 import { type NotificationTransaction } from '@/core/notifications/service';
 import { Prisma } from '@prisma/client';
+import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
 import { ApiError } from '@/utils/api-errors';
 import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { paymentNow, PAYMENT_SESSION_LIFETIME_MS } from './clock';
@@ -152,7 +153,7 @@ export async function queryPaymentByRequestKey(paymentId: string, claimToken?: s
   const account = { namespace: payment.providerAccount.namespace, merchantAccount: payment.providerAccount.merchantAccount,
     environment: payment.providerAccount.environment as 'live' | 'test' };
   const captures = await prisma.paymentLedger.findMany({ where: { paymentId, eventType: 'SUCCEEDED' } });
-  const fact = await callContract(payment.paymentMethod, 'payment', 2, 'queryByRequestKey', { requestKey: payment.idempotencyKey!, account,
+  const fact = await callContract(payment.paymentMethod, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'queryByRequestKey', { requestKey: payment.idempotencyKey!, account,
     request: { orderId: payment.orderId, amountMinor: decimalToMinor(payment.amount.toString(), payment.currency), currency: payment.currency,
       createdAt: payment.createdAt.toISOString(), expiresAt: new Date(payment.createdAt.getTime() + PAYMENT_SESSION_LIFETIME_MS).toISOString(),
       knownCaptures: captures.map(capture => ({ account, requestKey: payment.idempotencyKey!, sessionId: payment.sessionId!, providerPaymentId: capture.providerPaymentId!,

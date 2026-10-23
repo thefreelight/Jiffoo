@@ -3,7 +3,7 @@ import { merchantSectionSchemas, SECTION_TYPES, type ThemeManifest } from '@jiff
 import { prisma } from '@/config/database';
 import type { ThemeFiles } from '@/core/storage/current-theme-package';
 import { readMediaFile } from '@/core/storage/uploaded-media-set';
-import { ExtensionInstallerError } from './errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 
 export type HomeSection = { id: string; type: string; settings: Record<string, unknown> };
 const validators = Object.fromEntries(Object.entries(merchantSectionSchemas)

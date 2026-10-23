@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { csvCell } from '@/utils/csv';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken } from '../helpers/auth';

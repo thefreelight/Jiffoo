@@ -13,10 +13,11 @@ import { sendSuccess, sendError } from '@/utils/response';
 import { extensionInstallerSchemas } from './schemas';
 import { errorResponseSchema } from '@/utils/schema-helpers';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { getDefaultInstance } from '@/core/extensions/registry';
 import { handlePluginGateway, PluginGatewayError } from './plugin-runtime';
 import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
 import { InvalidStoredManifestError, readStoredPluginManifest } from './stored-manifest';
-import { ExtensionInstallerError } from './errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { themeManagementRoutes } from './theme-routes';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
@@ -25,7 +26,7 @@ import { PluginPackageResolutionError } from '@/core/storage/current-plugin-pack
 import { PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 import { fetchMarketplaceCatalog, marketplaceUrl, MarketplaceError } from './marketplace-catalog';
 import { checkPluginApiCompatibility, PluginLoaderError } from './plugin-compatibility';
-import { compareVersions } from './version-utils';
+import { compareVersions } from '@/core/extensions/shared/version-utils';
 import { listPluginRecovery } from './plugin-recovery';
 import { pluginDatabaseAuditRoutes } from './plugin-database-audit-routes';
 import { installMarketplacePlugin, previewMarketplacePlugin } from './marketplace-install';
@@ -217,7 +218,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { slug } = request.params;
-      const installation = await PluginManagementService.getDefaultInstance(slug);
+      const installation = await getDefaultInstance(slug);
       const plugin = await prisma.pluginInstall.findUnique({ where: { slug } });
       if (plugin && installation && (plugin.deletedAt || installation.deletedAt || !installation.enabled)) {
         return reply.send('disabled');
@@ -250,7 +251,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { slug } = request.params;
-      const installation = await PluginManagementService.getDefaultInstance(slug);
+      const installation = await getDefaultInstance(slug);
       const plugin = await prisma.pluginInstall.findUnique({ where: { slug } });
       if (plugin && installation && (plugin.deletedAt || installation.deletedAt || !installation.enabled)) {
         return reply.send(JSON.stringify(readStoredPluginManifest(plugin)));

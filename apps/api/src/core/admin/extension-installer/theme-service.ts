@@ -8,7 +8,7 @@ import { themePackageBlobStore } from '@/core/storage/theme-package-blob-store';
 import { resolveThemePackage, ThemePackageResolutionError } from '@/core/storage/current-theme-package';
 import { withThemeLeases, fenceThemeLeases } from '@/core/storage/theme-operation-lease';
 import { packBuiltinPlugin } from './builtin-package';
-import { ExtensionInstallerError } from './errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { validateThemeFiles, validateThemeZip, validateThemeManifest } from './theme-validator';
 import { audit } from './theme-runtime';
 import { AuditService } from '@/core/audit/service';

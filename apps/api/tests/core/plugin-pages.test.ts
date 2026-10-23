@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { getPluginManifestIssues } from 'shared';
 import { buildPluginUiAssetIndex, readPluginZipEntries } from 'shared/plugin-signing';
 import { mapApiError } from '@/utils/api-errors';
-import { validatePluginManifest } from '@/core/admin/extension-installer/utils';
+import { validatePluginManifest } from '@/core/extensions/shared/utils';
 import { pageManifest, pageFiles, symlinkDirectoryZip } from '../fixtures/plugin-pages';
 
 describe('P-1 plugin page, task and service declarations', () => {

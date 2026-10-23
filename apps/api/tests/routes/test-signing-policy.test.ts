@@ -10,6 +10,7 @@ import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-clean
 import { CERT_PATH, SIGNATURE_PATH, issuePublisherCertificate, signPackage, trustedRootKeys, OFFICIAL_ROOT_PUBLIC_KEY } from 'shared/plugin-signing';
 import { prisma } from '@/config/database';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { getDefaultInstance } from '@/core/extensions/registry';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { resetPluginState } from '@/core/admin/extension-installer/plugin-state';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
@@ -107,7 +108,7 @@ async function install(slug: string, root: 'official' | 'test' | 'unsigned', sou
 async function installed(slug: string, root: 'official' | 'test' | 'unsigned') {
   const result = await install(slug, root);
   expect(result.statusCode).toBe(200);
-  await PluginManagementService.updateInstance((await PluginManagementService.getDefaultInstance(slug))!.id, { enabled: true });
+  await PluginManagementService.updateInstance((await getDefaultInstance(slug))!.id, { enabled: true });
 }
 
 async function child(action: 'off' | 'on' | 'cached', slug: string, officialSlug: string) {

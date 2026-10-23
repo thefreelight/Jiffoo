@@ -10,7 +10,7 @@ import { assertTaskPolicy, lockTaskScheduler, transitionInstallationTasks } from
 import { ApiError } from '@/utils/api-errors';
 import { CacheService } from '@/core/cache/service';
 import type { PluginMeta, PluginState, PluginConfig, InstalledPluginsResponse } from './types';
-import { validateInstanceConfig, validateInstanceKeyFormat } from '@/core/admin/extension-installer/utils';
+import { validateInstanceConfig, validateInstanceKeyFormat } from '@/core/extensions/shared/utils';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { resolveCurrentPluginPackage, PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
 import { assertPluginSigningAllowed } from '@/core/admin/extension-installer/plugin-signing-policy';
@@ -25,12 +25,12 @@ import { mergeSecretConfigForUpdate } from './config-secrets';
 import { decryptPluginConfig, encryptPluginConfig, redactPluginText, PluginConfigDecryptionError } from './config-crypto';
 import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
 import { getPluginManifestIssues, parsePluginConfigSchema, validatePluginConfig } from '@jiffoo/shared';
-import { ExtensionInstallerError } from '@/core/admin/extension-installer/errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { writePluginAudit } from '@/core/admin/extension-installer/plugin-audit';
 import { inspectPluginUpload } from '@/core/admin/extension-installer/plugin-upload';
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
-import { declaresContract, getAllPluginPackages, getDefaultInstance, listProviders, resolveSingleProvider } from '@/core/extensions/registry';
+import { declaresContract, getDefaultInstance, type PluginInstanceProjection } from '@/core/extensions/registry';
 
 type UpdatedInstance = PluginInstallation & { replacedPlugins: string[] };
 
@@ -447,7 +447,7 @@ export async function isPluginEnabled(
   slug: string,
   instanceKeyOrId: string
 ): Promise<boolean> {
-  let instance: PluginInstallation | null = null;
+  let instance: PluginInstallation | PluginInstanceProjection | null = null;
 
   if (instanceKeyOrId === 'default') {
     instance = await getDefaultInstance(slug);
@@ -485,7 +485,7 @@ export async function getInstanceConfig(
   slug: string,
   instanceKeyOrId: string
 ): Promise<Record<string, unknown> | null> {
-  let instance: PluginInstallation | null = null;
+  let instance: PluginInstallation | PluginInstanceProjection | null = null;
 
   if (instanceKeyOrId === 'default') {
     instance = await getDefaultInstance(slug);
@@ -729,22 +729,18 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
  * Admin plugin-management service.
  *
  * This is the LIFECYCLE service (install / uninstall / restore / purge / audit).
- * The read-only provider registry at `@/core/extensions/registry` exposes the
- * same four read members as plain functions; they are re-exported here so the
- * admin callers keep working unchanged.
+ * The read-only provider registry at `@/core/extensions/registry` is the single
+ * implementation of the provider reads; callers import those functions from
+ * the registry directly.
  */
 export const PluginManagementService = {
   // Instance-level API (Only API)
   getPluginPackage,
-  getAllPluginPackages,
   getInstanceById,
   getInstanceByKey,
-  getDefaultInstance,
   getPluginInstances,
   createDefaultInstance,
   updateInstance,
-  listProviders,
-  resolveSingleProvider,
   getInstanceConfig,
   isPluginEnabled,
   uninstallPlugin,

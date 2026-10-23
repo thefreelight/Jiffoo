@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { sendError, sendSuccess } from '@/utils/response';
 import { errorResponseSchema } from '@/utils/schema-helpers';
-import { ExtensionInstallerError } from './errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { installTheme, readThemeAsset, uninstallTheme } from './theme-service';
 import { activateTheme, getThemeConfig, restorePreviousTheme, restoreThemeConfig, saveThemeConfig } from './theme-runtime';
 import { resolveTheme } from './theme-resolver';

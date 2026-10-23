@@ -17,14 +17,14 @@ import { packBuiltinPlugin } from './builtin-package';
 import path from 'path';
 import { prisma } from '@/config/database';
 import { assertTaskPolicy, lockTaskScheduler, transitionInstallationTasks } from '@/core/plugins/tasks';
-import { ExtensionInstallerError } from './errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import {
   IPluginInstaller,
   InstalledPlugin,
   PluginManifest,
   type PluginInstallOptions,
   type ExtensionSource,
-} from './types';
+} from '@/core/extensions/shared/types';
 import { CacheService } from '@/core/cache/service';
 import { BUILTIN_PLUGIN_SLUGS as RESERVED_PLUGIN_SLUGS } from '@jiffoo/shared';
 import {
@@ -34,7 +34,7 @@ import {
   validatePluginManifest,
   resolveExtractedPackageRoot,
   spoolStreamToTempFileAndHash,
-} from './utils';
+} from '@/core/extensions/shared/utils';
 import { pluginPackageStore, type PluginPackageDeployment } from '@/core/storage/plugin-package-store';
 import { systemSettingsService } from '@/core/settings/service';
 import {

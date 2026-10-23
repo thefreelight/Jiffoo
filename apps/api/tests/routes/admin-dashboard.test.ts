@@ -12,7 +12,7 @@ import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { getTodayAndYesterdayRangeUtc, getStoreCalendarDays } from '@/utils/timezone';
 import { adminDashboardSchemas } from '@/core/admin/dashboard/schemas';
 import { createTestApp } from '../helpers/create-test-app';

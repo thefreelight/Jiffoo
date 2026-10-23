@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Prisma, type Payment } from '@prisma/client';
-import type { PaymentFact, PaymentV2Output } from '@jiffoo/shared';
+import { PLUGIN_CONTRACT_VERSIONS, type PaymentFact, type PaymentV2Output } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
@@ -68,7 +68,7 @@ export async function createPaymentSession(input: SessionInput) {
   await observePaymentReservationForTest(reservation.payment.id);
   let fact: PaymentFact;
   try {
-    fact = await callContract(input.pluginSlug, 'payment', 2, 'createSession', {
+    fact = await callContract(input.pluginSlug, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'createSession', {
       orderId: reservation.order.id, amountMinor: decimalToMinor(reservation.payment.amount.toString(), reservation.payment.currency), currency: reservation.payment.currency,
       account: accountIdentity, customer: { id: input.userId, email: input.email }, returnUrl: input.returnUrl, cancelUrl: input.cancelUrl, idempotencyKey: requestKey,
     }) as PaymentFact;

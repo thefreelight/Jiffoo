@@ -1,5 +1,5 @@
 import { prisma } from '@/config/database';
-import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { getDefaultInstance } from '@/core/extensions/registry';
 import { resetPluginState } from './plugin-state';
 import { warmPluginInstanceRuntime } from './plugin-runtime';
 import { recordPluginFailure } from './plugin-failure';
@@ -8,7 +8,7 @@ import { PluginPackageResolutionError } from '@/core/storage/current-plugin-pack
 
 export async function reconcilePluginState(slug: string): Promise<void> {
   const pluginPackage = await prisma.pluginInstall.findUnique({ where: { slug } });
-  const installation = await PluginManagementService.getDefaultInstance(slug);
+  const installation = await getDefaultInstance(slug);
   await resetPluginState(slug);
   if (!pluginPackage || pluginPackage.deletedAt || !installation || installation.deletedAt || !installation.enabled) return;
   try {
@@ -44,7 +44,7 @@ export async function reconcileAllPluginState(): Promise<Map<string, unknown>> {
 export async function loadEnabledPluginRuntimes(): Promise<void> {
   const packages = await prisma.pluginInstall.findMany({ where: { deletedAt: null }, select: { slug: true } });
   for (const pluginPackage of packages) {
-    const installation = await PluginManagementService.getDefaultInstance(pluginPackage.slug);
+    const installation = await getDefaultInstance(pluginPackage.slug);
     if (!installation?.enabled || installation.deletedAt) continue;
     try {
       await warmPluginInstanceRuntime(pluginPackage.slug, installation.id);

@@ -5,7 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { redisCache } from '@/core/cache/redis';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken } from '../helpers/auth';
 import { createTestProduct, createTestOrder, createTestOrderItem } from '../helpers/fixtures';

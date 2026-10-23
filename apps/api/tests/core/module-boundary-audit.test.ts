@@ -11,6 +11,12 @@
  *   (`from -> to`) and must bind to a *publicly exported* symbol of the target
  *   module. Reaching into another module's private helper file is a violation.
  *
+ * Check 1b — module dependency cycles
+ *   The cross-module import graph must not contain a directed cycle. A cycle
+ *   (a ring of modules that import each other) is a violation even when every
+ *   single edge of the ring is an approved edge, so the ring itself has to be
+ *   registered in KNOWN_CYCLES with a reason.
+ *
  * Check 2 — cross-domain table writes
  *   Every table has exactly one owner. The owner is either a module or a
  *   domain. A write (`prisma.<model>.<write>`, `tx.<model>.<write>` or a raw
@@ -31,6 +37,15 @@
  *                    one-line reason saying why the dependency is legitimate.
  *                    A new cross-module import fails the audit until its edge is
  *                    added here with a reason.
+ * KNOWN_CYCLES       one entry per known module dependency cycle. `modules` is
+ *                    the module sequence of the cycle, rotated so that the
+ *                    lexicographically smallest module comes first (the first
+ *                    module is not repeated at the end); `reason` says why the
+ *                    mutual dependency is accepted. A new cycle fails the audit
+ *                    until it is registered here, and a registered cycle that
+ *                    no longer exists fails the audit too, so the list cannot
+ *                    go stale. When a new cross-module edge forms a new ring,
+ *                    the ring must be registered here as well.
  * TABLE_OWNERS       one owner per table — a module or a domain. A table that is
  *                    written from a second module fails the audit until that
  *                    module is either removed as a writer or the table is
@@ -74,6 +89,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/extension-installer -> audit': 'the installer records audit events through the single audit write outlet.',
   'admin/extension-installer -> auth': 'the installer routes authenticate through the public auth middleware.',
   'admin/extension-installer -> cache': 'the installer invalidates cache entries through the public cache service.',
+  'admin/extension-installer -> extensions/registry': 'the installer reads the default plugin instance and the installed package list through the read-only provider registry instead of the plugin-management facade.',
   'admin/extension-installer -> extensions/shared': 'the installer re-exports the neutral extension helpers that B-BOUND-C moved out of this module.',
   'admin/extension-installer -> plugin-pages': 'the plugin runtime enforces the public plugin-page origin policy.',
   'admin/extension-installer -> plugins': 'the installer uses the public durable-task API (`assertTaskClaim`, `withTaskScope`, task policy).',
@@ -85,7 +101,6 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/notifications -> auth': 'the admin notification routes resolve recipients through the public email-verification service.',
   'admin/notifications -> notifications': 'the admin notification routes write the resend copy through the public notification service that owns the `notifications` table.',
   'admin/order-management -> admin/extension-installer': 'the admin order module reads the public plugin runtime state.',
-  'admin/order-management -> admin/system-settings': 'the admin order export reads system settings through the re-export shim of the relocated settings module.',
   'admin/order-management -> audit': 'the admin order module records audit events through the audit outlet.',
   'admin/order-management -> cache': 'the admin order module invalidates cached catalog and order entries.',
   'admin/order-management -> inventory': 'the admin order module reads stock through the public inventory service.',
@@ -96,11 +111,11 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/plugin-management -> admin/extension-installer': 'plugin management calls the installer\'s public upload, manifest, migration and runtime API.',
   'admin/plugin-management -> cache': 'plugin management invalidates cached plugin entries.',
   'admin/plugin-management -> extensions/registry': 'plugin management reads the read-only provider registry.',
+  'admin/plugin-management -> extensions/shared': 'plugin management validates instance configuration and reports installer errors through the neutral extension helpers.',
   'admin/plugin-management -> logger': 'plugin management logs through the unified logger.',
   'admin/plugin-management -> plugins': 'plugin management uses the public durable-task API.',
   'admin/plugin-management -> settings': 'plugin management bumps the plugin registry version through the public settings module that owns the `system_settings` row.',
   'admin/plugin-management -> storage': 'plugin management resolves packages and operation leases through the public storage stores.',
-  'admin/product-management -> admin/system-settings': 'the admin product module reads system settings through the re-export shim of the relocated settings module.',
   'admin/product-management -> cache': 'the admin product module invalidates the product cache.',
   'admin/product-management -> inventory': 'the admin product module sets variant stock through the public inventory service.',
   'admin/product-management -> order': 'the admin product module asks the order module whether a product is referenced by an order item.',
@@ -110,10 +125,10 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/staff-management -> auth': 'the staff module uses the public account-recovery and email-verification services.',
   'admin/storefront-code -> audit': 'the storefront-code module records audit events through the single audit write outlet.',
   'admin/system-settings -> settings': 'the old admin path is a pure re-export shim of the relocated settings module.',
-  'admin/user-management -> admin/system-settings': 'the admin user module reads system settings through the re-export shim of the relocated settings module.',
   'admin/user-management -> audit': 'the admin user module records audit events through the audit outlet.',
   'admin/user-management -> auth': 'the admin user module issues password-reset links through the public auth account-recovery service.',
   'admin/user-management -> cache': 'the admin user module invalidates cached user entries.',
+  'admin/user-management -> settings': 'the admin user module reads system settings through the public settings service.',
   'auth -> audit': 'the auth module records staff-audit rows through the single audit write outlet.',
   'auth -> cache': 'the auth module caches token and settings entries.',
   'auth -> logger': 'the auth module logs through the shared logger.',
@@ -170,6 +185,128 @@ const LEGAL_EDGES: Record<string, string> = {
   'store -> settings': 'the storefront routes read system settings through the public settings service.',
   'upload -> storage': 'the upload service publishes media through the public uploaded-media set store.',
 };
+
+/**
+ * Section 1b — known module dependency cycles.
+ *
+ * A cycle is a directed ring in the module dependency graph: a set of modules
+ * that import each other in a circle. Every edge of such a ring can be an
+ * approved edge on its own while the ring as a whole is still a violation, so
+ * the ring itself has to be registered here.
+ *
+ * `modules` is the module sequence of the cycle, rotated so that the
+ * lexicographically smallest module comes first and the first module is not
+ * repeated at the end (`order -> payment` is the `order`/`payment` ring).
+ * `reason` says in one sentence why the mutual dependency is accepted.
+ *
+ * A cycle that exists in the tree but is not registered here fails the audit.
+ * A registered cycle that no longer exists in the tree fails the audit too, so
+ * the list cannot go stale.
+ */
+type KnownCycle = {
+  modules: string[];
+  reason: string;
+};
+
+const KNOWN_CYCLES: KnownCycle[] = [
+  // The commerce ring: the order service drives the payment module, and the
+  // payment module reports payment outcomes back into the order module.
+  {
+    modules: ['order', 'payment'],
+    reason: 'the order service drives the payment module through its public service, and the payment module reports payment outcomes back through the public `OrderService` methods (`applyPaymentSucceeded`, `applyPaymentFailed`, `recordPaymentAttempt`, `getOrderRecipient`); the two modules share no internal helper file.',
+  },
+  {
+    modules: ['notifications', 'order', 'payment'],
+    reason: 'the notification service reads the order through the order module\'s public projection and the payment module emits notifications through the public notification service.',
+  },
+  {
+    modules: ['auth', 'notifications', 'order'],
+    reason: 'the auth module sends verification and recovery notifications through the public notification service, and the notification service reads the order through the order module\'s public projection, whose routes authenticate through the public auth middleware.',
+  },
+  {
+    modules: ['auth', 'notifications', 'order', 'cart'],
+    reason: 'the auth module sends verification and recovery notifications through the public notification service, the notification service reads the order through the order module\'s public projection, and the order service consumes purchased cart lines through the public cart service, whose routes authenticate through the public auth middleware.',
+  },
+  {
+    modules: ['auth', 'notifications', 'order', 'checkout'],
+    reason: 'the auth module sends verification and recovery notifications through the public notification service, the notification service reads the order through the order module\'s public projection, and the order service re-quotes the purchased lines through the public checkout service, whose routes authenticate through the public auth middleware.',
+  },
+  {
+    modules: ['auth', 'notifications', 'order', 'checkout', 'cart'],
+    reason: 'the auth module sends verification and recovery notifications through the public notification service, the notification service reads the order through the order module\'s public projection, and the order service reaches the checkout and cart modules, whose routes authenticate through the public auth middleware.',
+  },
+  {
+    modules: ['auth', 'notifications', 'order', 'payment'],
+    reason: 'the auth module sends verification and recovery notifications through the public notification service, the notification service reads the order through the order module\'s public projection, and the order service drives the payment module through its public service, whose routes authenticate through the public auth middleware.',
+  },
+  // The extension ring: the installer, plugin management, the storage stores,
+  // the durable-task engine and the plugin-page routes all call each other
+  // through public exports only.
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management'],
+    reason: 'the installer calls the plugin-management module\'s public service, config crypto and lifecycle hooks, and plugin management calls the installer\'s public upload, manifest, migration and runtime API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'storage'],
+    reason: 'the installer and plugin management reach each other through their public services, and both resolve packages and operation leases through the public storage stores, which expose the installer\'s public recovery test control.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugins'],
+    reason: 'the installer and plugin management reach each other through their public services, and both use the public durable-task API, whose worker invokes plugin tasks through the public plugin runtime.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'extensions/shared', 'storage'],
+    reason: 'the installer and plugin management reach each other through their public services, plugin management validates configuration through the neutral extension helpers, and those helpers resolve package roots through the public storage stores.',
+  },
+  {
+    modules: ['admin/extension-installer', 'extensions/shared', 'storage'],
+    reason: 'the installer re-exports the neutral extension helpers, and those helpers resolve package roots through the public storage stores, which expose the installer\'s public recovery test control.',
+  },
+  {
+    modules: ['extensions/shared', 'storage'],
+    reason: 'the neutral extension helpers resolve package roots through the public plugin package store, and the storage module uses the neutral extension types and helpers.',
+  },
+  {
+    modules: ['admin/extension-installer', 'storage'],
+    reason: 'the installer resolves package blobs through the public storage stores, and the storage module validates theme packages and exposes the installer\'s public recovery test control.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugins'],
+    reason: 'the installer uses the public durable-task API, and the task worker invokes plugin tasks through the public plugin runtime.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages'],
+    reason: 'the plugin runtime enforces the public plugin-page origin policy, and the plugin-page asset routes use the installer\'s public migration gate and signing policy.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'storage'],
+    reason: 'the plugin runtime enforces the public plugin-page origin policy, the plugin-page asset routes use the installer\'s public migration gate and signing policy, and they read package blobs through the public storage stores.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications'],
+    reason: 'the installer routes authenticate through the public auth middleware, and the auth module sends verification and recovery notifications through the public notification service, which calls plugins through the public plugin runtime.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages'],
+    reason: 'the installer routes authenticate through the public auth middleware, and the auth middleware enforces the public plugin-page origin policy that the plugin runtime applies.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'storage'],
+    reason: 'the installer routes authenticate through the public auth middleware, the auth middleware enforces the public plugin-page origin policy, and the plugin-page asset routes read package blobs through the public storage stores.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'order'],
+    reason: 'the installer routes authenticate through the public auth middleware, the auth module sends verification and recovery notifications through the public notification service, and the notification service reads the order through the order module\'s public projection, which calls plugin contracts through the public plugin runtime.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'order', 'checkout'],
+    reason: 'the installer routes authenticate through the public auth middleware, the auth module sends verification and recovery notifications through the public notification service, the notification service reads the order through the order module\'s public projection, and the checkout service records plugin failures and calls plugin contracts through the public plugin runtime.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'order', 'payment'],
+    reason: 'the installer routes authenticate through the public auth middleware, the auth module sends verification and recovery notifications through the public notification service, the notification service reads the order through the order module\'s public projection, and the payment module calls plugin contracts through the public plugin runtime.',
+  },
+];
 
 /**
  * Section 2 — table ownership.
@@ -504,6 +641,55 @@ const crossModuleImports = importSites.filter(site => site.from !== site.to);
 const edges = [...new Set(crossModuleImports.map(site => `${site.from} -> ${site.to}`))].sort();
 const writes = collectWrites();
 
+/** Rotate a cycle so that its lexicographically smallest module comes first. */
+function canonicalCycle(modules: string[]): string[] {
+  if (modules.length === 0) return modules;
+  let smallest = 0;
+  for (let index = 1; index < modules.length; index += 1) {
+    if (modules[index] < modules[smallest]) smallest = index;
+  }
+  return [...modules.slice(smallest), ...modules.slice(0, smallest)];
+}
+
+/**
+ * Every directed cycle of the module dependency graph.
+ *
+ * The nodes are the modules of `src/core`, the edges are the approved
+ * cross-module imports. The search starts at every module and only walks to
+ * modules that sort after the start module, so each cycle is found exactly
+ * once, rotated so that its smallest module comes first.
+ */
+function findModuleCycles(): string[][] {
+  const adjacency = new Map<string, string[]>();
+  for (const edge of edges) {
+    const [from, to] = edge.split(' -> ');
+    const targets = adjacency.get(from) ?? [];
+    targets.push(to);
+    adjacency.set(from, targets);
+  }
+  const cycles: string[][] = [];
+  for (const start of [...adjacency.keys()].sort()) {
+    const path = [start];
+    const onPath = new Set<string>([start]);
+    const walk = (from: string) => {
+      for (const next of adjacency.get(from) ?? []) {
+        if (next === start) {
+          cycles.push(canonicalCycle([...path]));
+          continue;
+        }
+        if (next < start || onPath.has(next)) continue;
+        onPath.add(next);
+        path.push(next);
+        walk(next);
+        path.pop();
+        onPath.delete(next);
+      }
+    };
+    walk(start);
+  }
+  return cycles;
+}
+
 const knownList = KNOWN_VIOLATIONS
   .map(entry => `  - ${entry.file}${entry.table ? ` [${entry.table}]` : ''}${entry.module ? ` [${entry.module}]` : ''}: ${entry.reason} (owner: ${entry.owner})`)
   .join('\n');
@@ -537,6 +723,23 @@ describe('module boundary audit', () => {
 
   it('approves exactly the cross-module edges that exist in the tree', () => {
     expect(edges).toEqual(Object.keys(LEGAL_EDGES).sort());
+  });
+
+  it('rejects every module dependency cycle that is not registered', () => {
+    const known = new Map(KNOWN_CYCLES.map(entry => [canonicalCycle(entry.modules).join(' -> '), entry]));
+    const cycles = findModuleCycles();
+    const unregistered: string[] = [];
+    for (const cycle of cycles) {
+      const key = cycle.join(' -> ');
+      if (known.has(key)) continue;
+      const traversed = cycle.map((module, index) => `${module} -> ${cycle[(index + 1) % cycle.length]}`);
+      unregistered.push(`${key} (${traversed.join(', ')})`);
+    }
+    expect(unregistered, `Unregistered module dependency cycles:\n${unregistered.join('\n')}`).toEqual([]);
+
+    const found = new Set(cycles.map(cycle => cycle.join(' -> ')));
+    const stale = [...known.keys()].filter(key => !found.has(key));
+    expect(stale, `Known cycles that no longer exist in the tree:\n${stale.join('\n')}`).toEqual([]);
   });
 
   it('rejects every cross-module import that is not an approved edge', () => {

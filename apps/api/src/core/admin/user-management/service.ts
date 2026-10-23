@@ -12,7 +12,7 @@ import { Prisma } from '@prisma/client';
 import { customerList, customerNeighbors, customerBase, customerItem, type CustomerQuery, type CustomerRow } from './list-query';
 import { AuditService } from '@/core/audit/service';
 import { AuthIdentityService } from '@/core/auth/identity-service';
-import { systemSettingsService } from '../system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 
 function calculateTrendPercent(current: number, previous: number): number {
   if (previous === 0) {

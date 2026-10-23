@@ -50,13 +50,6 @@ vi.mock('@/core/settings/service', () => ({
   },
 }));
 
-vi.mock('@/core/order/hooks', () => ({
-  getOrderHooks: vi.fn().mockReturnValue({
-    onOrderCompleted: vi.fn().mockResolvedValue(undefined),
-    onOrderRefunded: vi.fn().mockResolvedValue(undefined),
-  }),
-}));
-
 vi.mock('@/core/order/status-history', () => ({
   recordOrderStatusHistory: vi.fn().mockResolvedValue(undefined),
 }));
@@ -101,7 +94,6 @@ vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
 import { OrderService } from '@/core/order/service';
 import { systemSettingsService } from '@/core/settings/service';
 import { prisma } from '@/config/database';
-import { getOrderHooks } from '@/core/order/hooks';
 import { InventoryService } from '@/core/inventory/service';
 import { CheckoutService } from '@/core/checkout/service';
 import { resolveSingleProvider } from '@/core/extensions/registry';
@@ -128,7 +120,6 @@ const mockPrisma = prisma as unknown as {
   $transaction: ReturnType<typeof vi.fn>;
 };
 
-const mockGetOrderHooks = getOrderHooks as ReturnType<typeof vi.fn>;
 const mockInventory = InventoryService as unknown as {
   getAvailableStockByVariantIds: ReturnType<typeof vi.fn>;
   decrementStock: ReturnType<typeof vi.fn>;

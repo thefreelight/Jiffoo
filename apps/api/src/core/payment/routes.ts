@@ -12,7 +12,8 @@ import { FastifyInstance, FastifyReply } from 'fastify';
 import { authMiddleware } from '@/core/auth/middleware';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
-import { getAllPluginPackages, getDefaultInstance } from '@/core/extensions/registry';
+import { declaresContract, getAllPluginPackages, getDefaultInstance } from '@/core/extensions/registry';
+import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
 import { systemSettingsService } from '@/core/settings/service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { paymentSchemas } from './schemas';
@@ -89,9 +90,9 @@ async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
       continue;
     }
 
-    if (!(pkg.manifestJson as any)?.contracts?.some((contract: any) => contract?.name === 'payment' && contract?.version === 2)) continue;
+    if (!declaresContract(pkg.manifestJson, 'payment')) continue;
     try {
-      const description = await callContract(pkg.slug, 'payment', 2, 'describe', { storeCurrency: await systemSettingsService.getShopCurrency() }) as any;
+      const description = await callContract(pkg.slug, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', { storeCurrency: await systemSettingsService.getShopCurrency() }) as any;
     methods.push({
       pluginSlug: pkg.slug,
       name: pkg.slug,

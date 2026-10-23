@@ -34,10 +34,17 @@ vi.mock('@/config/database', () => ({
   },
 }));
 
-vi.mock('@/core/extensions/registry', () => ({
-  getAllPluginPackages: vi.fn(),
-  getDefaultInstance: vi.fn(),
-}));
+// The registry mock keeps the real `declaresContract`: the payment routes read
+// the declared contract of the installed package, and that check must stay a
+// real one instead of a stub that always agrees.
+vi.mock('@/core/extensions/registry', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/core/extensions/registry')>();
+  return {
+    ...actual,
+    getAllPluginPackages: vi.fn(),
+    getDefaultInstance: vi.fn(),
+  };
+});
 
 vi.mock('@/core/settings/service', () => ({
   systemSettingsService: {

@@ -2,8 +2,8 @@ import os from 'os';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { describe, expect, it } from 'vitest';
-import { ExtensionInstallerError } from '../../src/core/admin/extension-installer/errors';
-import { validateDirectoryFiles, validateFileExtension } from '../../src/core/admin/extension-installer/security';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
+import { validateDirectoryFiles, validateFileExtension } from '@/core/extensions/shared/security';
 
 describe('extension installer security', () => {
   it('allows TypeScript declaration files in executable plugin packages', () => {

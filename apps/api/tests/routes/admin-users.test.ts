@@ -23,7 +23,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { getTestPrisma } from '../helpers/db';
 import { hashAuthToken } from '@/core/auth/auth-token';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { adminUserSchemas } from '@/core/admin/user-management/schemas';
 
 describe('Admin Users Endpoints', () => {

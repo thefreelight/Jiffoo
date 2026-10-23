@@ -4,7 +4,7 @@ import {
   themeManifestSchema, type ThemeManifest, CORE_LENGTH_ROLES, SHOP_EXTRA_LENGTH_ROLES,
   CORE_FONT_ROLES, themeTokenKind, SECTION_TYPES, themeSectionSchemas, builtinFontStacks,
 } from '@jiffoo/shared';
-import { ExtensionInstallerError } from './errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 
 const MAX_PACKAGE = 20 * 1024 * 1024;
 const MAX_IMAGE = 5 * 1024 * 1024;

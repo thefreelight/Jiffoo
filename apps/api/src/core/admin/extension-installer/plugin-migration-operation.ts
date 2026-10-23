@@ -10,15 +10,15 @@ import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOp
 import { decryptPluginConfig } from '@/core/admin/plugin-management/config-crypto';
 import type { PluginMigrationDeclaration } from '@jiffoo/shared';
 import { assertUploadPreview, inspectPluginUpload, uploadSnapshot, uploadOperation, writePluginInstallAudit, assertPluginPackageHistory } from './plugin-upload';
-import { compareVersions } from './version-utils';
+import { compareVersions } from '@/core/extensions/shared/version-utils';
 import { AuditService } from '@/core/audit/service';
 import { checkPluginApiCompatibility } from './plugin-compatibility';
-import { extractZipToTemp, cleanupTemp, resolveExtractedPackageRoot } from './utils';
+import { extractZipToTemp, cleanupTemp, resolveExtractedPackageRoot } from '@/core/extensions/shared/utils';
 import { loadPluginEntryModule } from './plugin-module-loader';
 import { isContractV1Runtime } from './contract-v1-runtime';
 import { claimPluginNamespace, executePluginMigrationFiles, migrationPlan, renewPluginMigrationLease, namespaceProvisioningConfirmed, PLUGIN_MIGRATION_DEADLINE_MS, type PluginMigrationObserver } from './plugin-migration-executor';
 import { INCOMPLETE_PLUGIN_OPERATION_PHASES, updateOwnedPluginMigrationOperation, updateOwnedPluginMigrationAttempt } from './plugin-migration-gate';
-import type { InstalledPlugin, PluginInstallOptions } from './types';
+import type { InstalledPlugin, PluginInstallOptions } from '@/core/extensions/shared/types';
 import { PluginDatabaseQueue } from './plugin-database-queue';
 import { pluginDatabaseBeforeMigrationRun, pluginDatabaseLimit } from './plugin-database-test-control';
 import { ensureCoreProcess } from '@/infra/core-process';

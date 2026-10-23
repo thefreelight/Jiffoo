@@ -6,7 +6,7 @@ import { loadPluginEntryModule } from '@/core/admin/extension-installer/plugin-m
 import type { LifecycleHookName, PluginManifest } from '@jiffoo/shared';
 import { recordPluginFailure, redactPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
 import { assertPluginSigningAllowed } from '@/core/admin/extension-installer/plugin-signing-policy';
-import { ExtensionInstallerError } from '@/core/admin/extension-installer/errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 
 export interface LifecycleContext {
   installationId: string;

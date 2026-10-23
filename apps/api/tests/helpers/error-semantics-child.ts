@@ -14,7 +14,7 @@ import { AccountService } from '@/core/account/service';
 import { UploadService } from '@/core/upload/service';
 import { AdminUserService } from '@/core/admin/user-management/service';
 import { InventoryService } from '@/core/inventory/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { OrderService } from '@/core/order/service';
 import { AdminDashboardService } from '@/core/admin/dashboard/service';
 import { HealthMonitoringService } from '@/core/admin/health-monitoring/service';

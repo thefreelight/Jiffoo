@@ -16,7 +16,7 @@ import { OrderService } from '@/core/order/service';
 import { deliverCoreEvents } from '../helpers/core-events';
 import { AdminOrderService } from '@/core/admin/order-management/service';
 import { EventDeliveryEngine } from '@/infra/events/delivery';
-import { withOrderLockTestControl } from '@/core/payment/locks';
+import { withOrderLockTestControl } from '@/core/shared/locks';
 import type { PaymentFact } from '@jiffoo/shared';
 import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';

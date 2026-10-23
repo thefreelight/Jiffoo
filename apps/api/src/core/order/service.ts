@@ -42,6 +42,7 @@ import { InventoryService } from '@/core/inventory/service';
 import { emitEvent, type EventTransaction } from '@/infra/events/emit';
 import { CheckoutService } from '@/core/checkout/service';
 import { resolveSingleProvider } from '@/core/extensions/registry';
+import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
 import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
 import { decimalToMinor, minorToDecimal } from '@/core/shared/money';
 import { currentLinePrice } from '@/core/shared/pricing';
@@ -346,7 +347,7 @@ export class OrderService {
     }
     let description: { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
     try {
-      description = await callContract(data.paymentMethod, 'payment', 2, 'describe', { storeCurrency: currency }) as { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
+      description = await callContract(data.paymentMethod, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', { storeCurrency: currency }) as { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
     } catch (error) {
       if (error instanceof ContractCallError) {
         throw new ApiError('PAYMENT_METHOD_UNAVAILABLE');
@@ -358,7 +359,7 @@ export class OrderService {
     const taxLines = orderItems.map((item, index) => ({ lineId: String(index), productId: item.productId, variantId: item.variantId, quantity: item.quantity, amountMinor: decimalToMinor(item.unitPrice * item.quantity, currency) }));
     const shippingMinor = selectedShipping.amountMinor;
     const tax = taxProvider
-      ? await callContract(taxProvider.pluginSlug, 'tax', 1, 'calculate', { currency, lines: taxLines, shippingAmountMinor: shippingMinor, address: { country: normalizedShippingAddress.country, region: normalizedShippingAddress.state, city: normalizedShippingAddress.city, postalCode: normalizedShippingAddress.postalCode, line1: normalizedShippingAddress.addressLine1, line2: normalizedShippingAddress.addressLine2 } }) as { pricesIncludeTax: boolean; lines: Array<{ lineId: string; taxMinor: number }>; totalTaxMinor: number }
+      ? await callContract(taxProvider.pluginSlug, 'tax', PLUGIN_CONTRACT_VERSIONS.tax, 'calculate', { currency, lines: taxLines, shippingAmountMinor: shippingMinor, address: { country: normalizedShippingAddress.country, region: normalizedShippingAddress.state, city: normalizedShippingAddress.city, postalCode: normalizedShippingAddress.postalCode, line1: normalizedShippingAddress.addressLine1, line2: normalizedShippingAddress.addressLine2 } }) as { pricesIncludeTax: boolean; lines: Array<{ lineId: string; taxMinor: number }>; totalTaxMinor: number }
       : { pricesIncludeTax: false, lines: taxLines.map((line) => ({ lineId: line.lineId, taxMinor: 0 })), totalTaxMinor: 0 };
     const subtotalAmount = totalAmount;
     const shippingAmount = Number(minorToDecimal(shippingMinor, currency));

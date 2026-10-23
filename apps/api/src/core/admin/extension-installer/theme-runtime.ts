@@ -6,7 +6,7 @@ import { resolveThemePackage, type ThemeFiles } from '@/core/storage/current-the
 import { withThemeLeases, fenceThemeLeases, type ThemeLease } from '@/core/storage/theme-operation-lease';
 import { readMediaFile } from '@/core/storage/uploaded-media-set';
 import { AuditService, type AuditTx } from '@/core/audit/service';
-import { ExtensionInstallerError } from './errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { validateThemeManifest } from './theme-validator';
 import { defaultHomeSections, validateHomeSections } from './theme-home-sections';
 import { themePackageState } from './theme-package-state';
