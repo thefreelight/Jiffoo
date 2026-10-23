@@ -26,6 +26,11 @@ test('dashboard keeps document within the viewport and scrolls all content insid
     const image = await page.screenshot({ fullPage: true, animations: 'disabled' });
     expect(image.readUInt32BE(20), 'Document must not have a second vertical scroll range').toBe(height);
     await main.focus(); await page.keyboard.press('Control+End');
+    // Keyboard scrolling is animated by the browser; assert the settled geometry.
+    await expect.poll(async () => {
+      const bounds = await page.getByRole('region', { name: 'Recent orders', exact: true }).boundingBox();
+      return bounds!.y + bounds!.height;
+    }).toBeLessThanOrEqual(height);
     const recent = await page.getByRole('region', { name: 'Recent orders', exact: true }).boundingBox();
     expect(recent!.y + recent!.height).toBeGreaterThan(0); expect(recent!.y + recent!.height).toBeLessThanOrEqual(height);
     expect(await main.boundingBox()).toEqual(before);
