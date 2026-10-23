@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { assertNoMigrations, durableJson, planDigest, installedBindings } from '../deploy/release/update.mjs';
 import { updateProfile, guardUpdateDatabase, updateStep, bumpThemePatch } from './verify-update.mjs';
 import { ciSteps } from './verify-steps.mjs';
+import './maintenance-proof.test.mjs';
 
 test('theme update fixtures advance the current manifest patch across major versions', () => {
   for (const [current, expected] of [['1.1.0', '1.1.1'], ['2.0.0', '2.0.1'], ['3.7.9', '3.7.10']])

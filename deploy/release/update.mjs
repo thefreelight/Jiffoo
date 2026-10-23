@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { assertManifest, assertDeployment, sha256 } from './identity.mjs';
 import { serviceRoles, guardState, verifyBackup } from './backup.mjs';
 import { readCoreMigrations, assertCorePrefix, executeCoreMigrations, coreHistorySql } from './core-migrations.mjs';
+import { proveDatabaseQuiescence } from './maintenance-proof.mjs';
 
 const require = createRequire('/app/apps/api/package.json');
 const limit = 128 * 1024 * 1024;
@@ -203,9 +204,12 @@ async function maintenance(client, containers, project, expectedBoots, owned) {
   need(expectedBoots.every(row => rows.some(item => item.bootNonce === row.bootNonce)), 'Recorded Core boot disappeared during maintenance');
   const visibility = (await client.query("SELECT rolsuper OR pg_has_role(current_user,'pg_read_all_stats','MEMBER') AS visible FROM pg_roles WHERE rolname=current_user")).rows[0];
   need(visibility?.visible, 'Insufficient database session visibility');
-  const sessions = (await client.query('SELECT pid, application_name,usename FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid()')).rows;
   const executorRole = owned && rows.find(row => row.bootNonce === owned.bootNonce && row.state === 'LIVE')?.databaseRole;
-  need(sessions.every(row => owned && executorRole && row.usename === executorRole && row.application_name.startsWith(owned.applicationPrefix)), 'Database sessions still hold unknown work; maintenance is not proven');
+  const sessions = await proveDatabaseQuiescence(
+    async () => (await client.query('SELECT pid, application_name,usename,state FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid()')).rows,
+    owned && executorRole ? { databaseRole: executorRole, applicationPrefix: owned.applicationPrefix } : undefined,
+  );
+  if (sessions.checks > 1) console.info('Maintenance waited for database sessions to exit: ' + JSON.stringify(sessions));
   need(Number((await client.query('SELECT count(*) FROM pg_prepared_xacts WHERE database=current_database()')).rows[0].count) === 0, 'Prepared database transactions block maintenance');
   const leases=(await client.query('SELECT slug,token,"ownerBootNonce" FROM public.plugin_operation_leases')).rows;
   need(leases.every(row=>owned && row.slug===owned.slug && row.token===owned.leaseToken && row.ownerBootNonce===owned.bootNonce), 'In-flight plugin markers or operation leases block maintenance');
@@ -213,7 +217,7 @@ async function maintenance(client, containers, project, expectedBoots, owned) {
   need(operations.every(row=>owned && row.id===owned.operationId && row.phase==='MIGRATING' && row.ownerBootNonce===owned.bootNonce), 'Incomplete plugin operations block maintenance');
   const attempts=(await client.query("SELECT id FROM public.plugin_migration_attempts WHERE status='UNKNOWN'")).rows;
   need(attempts.every(row=>owned && row.id===owned.attemptId), 'Unknown plugin attempts block maintenance');
-  return { proven: true, at: new Date().toISOString(), boots: rows, containers: own.map(c => ({ id: c.Id, service: c.Config.Labels['com.docker.compose.service'], state: c.State.Status })) };
+  return { proven: true, at: new Date().toISOString(), boots: rows, sessions, containers: own.map(c => ({ id: c.Id, service: c.Config.Labels['com.docker.compose.service'], state: c.State.Status })) };
 }
 
 async function proveRollback(client,containers,project,plan,journal,stopped) {
