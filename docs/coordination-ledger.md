@@ -60,6 +60,7 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | **B-BOUND-F** — guard blind spot + stale references (WP-F1) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `c9fdf14d8` | `apps/api/tests/core/module-boundary-audit.test.ts`, `apps/api/src/core/storage/plugin-operation-lease.ts`, `apps/api/src/core/admin/extension-installer/{plugin-migration-executor,plugin-migration-gate,plugin-recovery}.ts`, `apps/api/src/infra/core-process.ts`, `apps/api/src/core/payment/reconciliation.ts`, `apps/api/src/core/cart/service.ts`, `apps/api/src/core/extensions/registry/service.ts`, `docs/coordination-ledger.md`, `AGENTS.md` | `jiffoo_core_test_orders` | `wp-f1-guard-blind-spot` (pi session —, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed `eddea4a9e`, merge-ready** (lane gate green, §5k) | §5k |
 | **B-BOUND-G** — plugin marker reclaim through the owning modules | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `c9fdf14d8` | `apps/api/src/core/admin/extension-installer/plugin-marker-reclaim.ts`, `apps/api/src/core/storage/plugin-operation-lease.ts`, `apps/api/src/infra/core-process.ts`, `apps/api/src/core/audit/service.ts` | `jiffoo_core_test_orders` | not assigned | **withdrawn** — its premise is void since B-BOUND-H: the marker reclaim writes into the plugin's own namespace schema, which is not a Core table, so those three writes were never violations (§5g, §5m) | §5g |
 | **B-BOUND-H** — Tier 2 cleanup: wrappers, dead inputs, one contract catalogue (WP-F2) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `eddea4a9e` | `apps/api/src/core/extensions/registry/service.ts`, `apps/api/src/core/{checkout,order,notifications,payment,inventory,audit,settings}/**`, `apps/api/src/core/admin/{extension-installer,product-management,order-management,plugin-management}/**` (+ the deleted `apps/api/src/core/admin/extension-installer/plugin-registry-version.ts`), `packages/shared/src/extensions/plugin-contract.ts`, `apps/api/tests/core/{module-boundary-audit,order-service,payment-routes,startup-plugin-prewarm}.test.ts`, `docs/coordination-ledger.md` | `jiffoo_core_test_orders` | `wp-f2-slop` (pi session `2026-10-23T02-46-35-836Z_01a166a7-323b-70d9-9d8e-76bb06ac8c1`, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed `7a95368e1`, merge-ready** (lane gate green, §5m) | §5m |
+| **B-BOUND-J** — the step 1 review follow-up: neutral layer, cross-domain reads, inventory ledger, sharded local gate (WP-F5) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `0fd920f37` | `apps/api/src/core/{extensions,shared,auth,inventory,order,checkout,payment,notifications,upload,plugins,storage}/**`, `apps/api/src/core/admin/**`, `apps/api/src/infra/**`, `apps/api/src/routes/multipart-content.ts`, `apps/api/tests/core/**`, `scripts/verify-lane-shards.*`, `AGENTS.md`, `package.json`, `docs/coordination-ledger.md` | `jiffoo_core_test_orders` | `wp-f5` (two independent pi reviews, five worker runs, one lane workflow) | **committed `f58c6b49b`, merge-ready** (lane gate green, §5q) | §5q |
 | **B-BOUND-I** — step 1 review follow-up: registry projections, dead shims, cycle detection (WP-F3) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `b133c416f` | `apps/api/src/core/extensions/registry/service.ts`, `apps/api/src/core/{checkout,order,notifications,payment}/**`, `apps/api/src/core/admin/{extension-installer,plugin-management,order-management,product-management,user-management}/**` (+ 12 deleted files), `apps/api/tests/**`, `docs/coordination-ledger.md` | `jiffoo_core_test_orders` | `wp-f3` (two pi subagent runs: `worker` for the source side, `worker` for the guard) | **committed `76b4aa807`, merge-ready** (lane gate green, §5n) | §5n |
 | **B-BOUND-B** — order domain single owner (WP-B) | Boundary-remediation line | `codex/lane-orders` | `49dc5ff1a` + B-BOUND-A | `apps/api/src/core/order/**`, `apps/api/src/core/payment/{reconciliation,session,order-paid-event}.ts`, `apps/api/src/core/admin/order-management/**`, `apps/api/src/core/notifications/service.ts` | `jiffoo_core_test_orders` | `wp-b-order-domain` | **superseded** — the batch ran as `wp-b-order-domain`, **committed `6a99ec298`**; the executed row is above | §5b |
 | **B-BOUND-C** — neutral layer + directory re-layering (WP-C) | Boundary-remediation line | `codex/lane-orders` | `6a99ec298` | new `apps/api/src/core/shared/**`; move `core/admin/system-settings`→`core/settings`, `core/admin/plugin-management`+`extension-installer`→`core/extensions`; retarget imports in `core/storage/**`, `core/plugin-pages/asset-routes.ts` | `jiffoo_core_test_orders` | `wp-c-neutral-layer` | **superseded** — the batch ran as `wp-c-neutral-layer`, **committed `add8de45b`**; the executed row is above | §5c |
@@ -659,6 +660,9 @@ suite. §5p records the decision.
 
 ## 5o. The open debt of the step 1 review — what this branch does NOT fix
 
+**Status after B-BOUND-J (WP-F5):** items **2, 3, 5 and 6 are closed**; item **1 is partially closed**;
+items **4 and 7 stay open**. §5q carries the evidence.
+
 These are the review findings that stay open on purpose. They are registered here so that they are
 not mistaken for done work.
 
@@ -699,6 +703,123 @@ run stays 38 minutes. The fix is a local sharded gate — four parallel shards, 
 database and Redis — which needs a shard-aware lane configuration (`scripts/lane-config.*` is on the
 serial overlap set, §4) and a Redis database allocation per shard. That is a separate batch with the
 P-3/P-4 main line.
+
+## 5q. Handover evidence — B-BOUND-J (the step 1 review follow-up: neutral layer, cross-domain reads, inventory ledger, local sharded gate)
+
+**Commit:** `f58c6b49b`. **State:** committed on `codex/lane-orders`, **not pushed**; the merge is the
+P-3/P-4 main line's job.
+
+**1 — what this batch did.** Five blocks, all of them the "safe now" part of the step 1 review:
+
+- **The neutral layer grew.** The plugin gateway's leaf pieces moved out of
+  `core/admin/extension-installer/**` into `core/extensions/runtime/**` (contract errors, contract
+  versions, failure recording, gateway protection parameters); the platform-wide circuit-breaker
+  parameters moved into `core/shared/config.ts`; the plugin recovery test-control module moved into
+  `src/infra/recovery-test-control.ts`. Every admin-side path became a **re-export**, so the
+  P-3/P-4 main line's imports keep working and no export surface shrank. `src/infra/**` no longer
+  depends on `core/admin/**` except for one deliberate leftover (`deliverInstallationEvent`, which
+  belongs to the `callContract` batch).
+- **Cross-domain reads go through the owner.** `core/auth/identity-service.ts` gained a public
+  identity projection (`readProfile` / `requireProfile`, a neutral DTO, no Prisma entity type in the
+  signature); the order service and the notification service read the user through it instead of
+  reading `users` directly.
+- **The inventory ledger is visible on the order path.** `decrementStock` and `incrementStock` now
+  write an `inventory_adjustments` row with the same columns and the same signed-quantity convention
+  as the three paths that already wrote one, and the stock write itself is unchanged.
+- **The money module speaks a neutral error.** `core/shared/money.ts` throws `MoneyError` with a
+  diagnostic reason, and the API error boundary maps it to `VALIDATION_ERROR`. **This is a contract
+  change: an invalid amount answers 4xx where it used to answer 5xx.** It is registered here and
+  covered by `tests/core/money-error-mapping.test.ts`.
+- **A local sharded gate and the rules that go with it.** `scripts/verify-lane-shards.mjs` runs the
+  API suite in four parallel shards, each in its own PostgreSQL and Redis container on a
+  dynamically published port, with the same database name and Redis DB the lane configuration already
+  validates. It checks the executed file set against the catalogue, reports the test verdict and the
+  resource-cleanup verdict separately, and says in its own output that it is **not** wired into the
+  approved runner and that its result is **not** delivery evidence. `AGENTS.md` carries the gate
+  policy and a new `## Agent Orchestration` section. **The script is committed as work in progress:**
+  its own unit tests pass (50 cases), but its end-to-end run was still failing when this batch was
+  committed, so it is **not** usable yet — see the open items below.
+
+**2 — the review loop.** Two independent reviewers worked read-only over the whole diff, one on the
+horizontal contract and the vertical isolation, one on zero regression, cohesion and the gate tool.
+They returned no FAIL from the first and three blocking findings from the second; all three were
+fixed by the worker that owned the files (resume, not a new worker): the money contract change had
+no test and no registration, the inventory ledger had no behaviour test at all, and `AGENTS.md`
+contradicted both the current rules and the script's own behaviour. The medium findings were fixed
+too: four consumers still imported the relocated modules from the admin layer, the new transaction
+type used `any`, the upload helper was duplicated, the expected file set was the assigned subset
+rather than the catalogue, a single-shard run could report a pass, the catalogue was collected
+outside the shard environment, the upload storage containers were not identified, and the destructive
+migration ran without a `current_database()` check.
+
+**3 — the gate** (lane `orders`, `jiffoo_core_test_orders`, Redis DB 12):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: orders
+Database: jiffoo_core_test_orders
+Run API tests:
+   Start at  21:19:13
+ Test Files  59 passed (59)
+      Tests  1001 passed | 2 skipped (1003)
+Run Admin tests:
+   Start at  21:32:22
+ Test Files  3 passed (3)
+      Tests  26 passed (26)
+Run Shop tests:
+   Start at  21:32:24
+ Test Files  2 passed (2)
+      Tests  3 passed (3)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 10.93s |
+| Lint Shop | PASS | 8.12s |
+| Reset test database | PASS | 2.88s |
+| Run API tests | PASS | 788.97s |
+| Run Admin tests | PASS | 2.22s |
+| Run Shop tests | PASS | 2.21s |
+```
+
+Exit code 0. The selection was the fifty suites this batch touches; the planner expanded it to
+fifty-nine API files. The guard's ten assertions pass, including the module-cycle detection and the
+edge set. One known flake is recorded: `tests/core/plugin-recovery.test.ts` waits on a fifteen-second
+wall-clock deadline for a forked child, and it fails when the machine is loaded; it passes on an idle
+machine (measured: nine files, 115 tests, all green).
+
+**4 — what is still open, and who owns it.**
+
+| Item | Owner |
+|---|---|
+| `core/plugin-pages/asset-routes.ts` still reads `plugin_installations` directly. The neutral projection `getInstallationById` is in place; the file belongs to the P-3/P-4 main line and the two trees have diverged, so the one-line change is left to the main line. | main line |
+| `apps/api/src/server.ts` and `apps/api/src/worker-runtime.ts` still import `pluginSecretsKey` from the admin layer. Both are entry points on the serial overlap set (§4). | main line |
+| `callContract` itself did not move: the charter names `plugin-runtime.ts` as the gateway's home and it drags the runtime lifecycle with it. Commerce now depends on the admin layer for **that one symbol only**. | next batch |
+| The shard gate is **not** wired into the approved runner, and its own unit test is not registered in `scripts/verify-selection.mjs`'s `localScriptTests`, so no gate can run it yet. Both files are on the serial overlap set (§4). | both gate owners |
+| **The shard gate's end-to-end run is still red.** Its unit tests pass (50 cases) and it implements the six items the main line asked for (expected set against the full catalogue, the four coverage verdicts, the separate cleanup verdict, dynamic ports with container-id ownership, the catalogue from the same frozen environment, the `current_database()` check before the destructive migration, the upload storage identified by id, and a replay mode that reports itself as not a run). But its last end-to-end attempts covered **0 of 166 files** and reported a cleanup failure, so the failure is in the tool's own container/vitest pipeline, not in the product code. It is committed as work in progress and must not be used until a run is green. | next batch |
+| The inventory adjustment `type` vocabulary gained `sale`; the admin request enum was left unchanged. A database enum for that column would be a separate migration. | next batch |
+| The guard now registers **thirty-one** module cycles (twenty-three before this batch). They are real and documented, but the number grows as the neutral layer is introduced; reducing them is its own work. | next batch |
+| `core/auth/identity-service.ts` is on the serial overlap set (§4); this batch only added to it. | merge |
+
+**5 — what the P-3/P-4 main line asked for, and what it got.** The main line reviewed this material
+read-only and accepted the method with conditions. Its corrections are taken: the sharded gate is a
+tool rather than a delivery gate until both sides' gate owners agree; the script says so in its own
+output; the model tiers and tool budgets are written as runner-specific observations; "a serial full
+run buys nothing" was withdrawn as too absolute; "two gates are never a duplicate" became "the same
+scope over the same frozen input is never a duplicate". It also required the executed-file
+comparison, the separate resource-cleanup verdict, the timeout as an unfinished handover, and the
+catalogue from the same frozen snapshot with the same exclusions — all four are implemented and
+visible in the script's summary.
+
+**6 — the lessons that became rules, and the ones that cost time.** A workflow script that is
+malformed fails **silently at evaluation time** and starts no child at all: it is syntax-checked
+before dispatch. A subagent inherits a thirty-minute ceiling that can kill a half-written change:
+every dispatch sets an explicit `timeoutMs`. A running gate must not overlap source edits: an
+orphaned test process from a killed worker read the same database and crashed a run, which cost a
+clean-up cycle (processes terminated gracefully, then forcibly, and the lane's own containers removed
+by id). And the coordinator's own mistake: a pre-flight gate over the same tree as the real gate
+wasted half an hour and is now forbidden by name.
 
 ## 5. Handover evidence — B-BOUND-A
 
