@@ -43,8 +43,12 @@ export default function AdminForgotPasswordPage() {
     setError('')
     try {
       // ApiClient resolves every failure as { success: false } — the step only
-      // advances when the core actually accepted the request.
-      const sent = await authApi.forgotPassword(value)
+      // advances when the core actually accepted the request. The admin→core
+      // hop intermittently 522s (~1 in 15), so retry once before surfacing it.
+      let sent = await authApi.forgotPassword(value)
+      if (!sent.success) {
+        sent = await authApi.forgotPassword(value)
+      }
       if (!sent.success) {
         setError(sent.error?.message || getText('merchant.auth.resetErrorSend', 'Could not send the reset code. Try again in a moment.'))
         return
@@ -75,7 +79,13 @@ export default function AdminForgotPasswordPage() {
     setBusy(true)
     setError('')
     try {
-      const reset = await authApi.resetPassword({ email: email.trim().toLowerCase(), code: code.trim(), password })
+      let reset = await authApi.resetPassword({ email: email.trim().toLowerCase(), code: code.trim(), password })
+      if (!reset.success) {
+        // Same intermittent-hop retry as the code request; a code is consumed
+        // on success, so the retried call fails safe with an invalid-code
+        // error instead of double-applying.
+        reset = await authApi.resetPassword({ email: email.trim().toLowerCase(), code: code.trim(), password })
+      }
       if (!reset.success) {
         setError(reset.error?.message || getText('merchant.auth.resetErrorReset', 'Could not reset the password. Check the code and try again.'))
         return
