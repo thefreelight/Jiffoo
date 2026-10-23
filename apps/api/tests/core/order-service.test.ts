@@ -84,7 +84,6 @@ vi.mock('@/core/extensions/registry', () => ({
 
 vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
   callContract: vi.fn(),
-  ContractCallError: class ContractCallError extends Error {},
 }));
 
 // ---------------------------------------------------------------------------
@@ -235,11 +234,10 @@ describe('OrderService', () => {
 
       const result = await OrderService.createOrder('user-1', orderData);
 
-      // Verified user exists
-      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        select: { email: true },
-      });
+      // Verified user exists (read through the auth module's public identity projection)
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'user-1' } }),
+      );
 
       // Batch-fetched products
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith({
@@ -263,7 +261,8 @@ describe('OrderService', () => {
       expect(mockInventory.decrementStock).toHaveBeenCalledWith(
         mockPrisma,
         'var-1',
-        2
+        2,
+        expect.objectContaining({ type: expect.any(String) })
       );
 
       // Returns formatted response
@@ -336,7 +335,8 @@ describe('OrderService', () => {
       expect(mockInventory.incrementStock).toHaveBeenCalledWith(
         mockPrisma,
         'var-1',
-        2
+        2,
+        expect.objectContaining({ type: expect.any(String) })
       );
 
       // Updated order to CANCELLED

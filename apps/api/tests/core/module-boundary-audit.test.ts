@@ -90,10 +90,12 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/extension-installer -> auth': 'the installer routes authenticate through the public auth middleware.',
   'admin/extension-installer -> cache': 'the installer invalidates cache entries through the public cache service.',
   'admin/extension-installer -> extensions/registry': 'the installer reads the default plugin instance and the installed package list through the read-only provider registry instead of the plugin-management facade.',
+  'admin/extension-installer -> extensions/runtime': 'the installer takes the neutral contract errors, contract versions, failure recording, plugin state, gateway protection and stored manifest helpers from the neutral runtime module instead of keeping its own copies.',
   'admin/extension-installer -> extensions/shared': 'the installer re-exports the neutral extension helpers that B-BOUND-C moved out of this module.',
   'admin/extension-installer -> plugin-pages': 'the plugin runtime enforces the public plugin-page origin policy.',
   'admin/extension-installer -> plugins': 'the installer uses the public durable-task API (`assertTaskClaim`, `withTaskScope`, task policy).',
   'admin/extension-installer -> settings': 'the installer bumps the plugin registry version through the public settings module that owns the `system_settings` row.',
+  'admin/extension-installer -> shared': 'the installer re-exports the platform-wide circuit breaker parameters from the neutral shared configuration module.',
   'admin/extension-installer -> storage': 'the installer resolves package blobs, current packages and operation leases through the public storage stores.',
   'admin/health-monitoring -> admin/extension-installer': 'the health monitor reads the public plugin runtime state.',
   'admin/health-monitoring -> plugins': 'the health monitor reads the public plugin task health projection.',
@@ -137,35 +139,41 @@ const LEGAL_EDGES: Record<string, string> = {
   'auth -> settings': 'the auth module persists the API-token list through the public settings module that owns the `system_settings` row.',
   'cart -> auth': 'the cart routes authenticate through the public auth middleware.',
   'cart -> product': 'the cart service reads the sellable catalog through the product module\'s public projection.',
-  'checkout -> admin/extension-installer': 'the checkout service records plugin failures and calls plugin contracts through the public plugin runtime.',
+  'checkout -> admin/extension-installer': 'the checkout service calls plugin contracts through the public plugin runtime.',
   'checkout -> auth': 'the checkout routes authenticate through the public auth middleware.',
   'checkout -> cart': 'the checkout service consumes the cart through the public cart service.',
   'checkout -> extensions/registry': 'the checkout service resolves payment providers through the read-only registry.',
+  'checkout -> extensions/runtime': 'the checkout service names the contract error and records the plugin failure through the neutral runtime helpers instead of the admin layer.',
   'checkout -> settings': 'the checkout service reads system settings through the public settings service.',
   'checkout -> shared': 'the checkout service uses the neutral money helper.',
+  'extensions/runtime -> extensions/shared': 'the neutral runtime helpers decrypt the stored plugin configuration through the neutral extension helpers.',
   'extensions/shared -> storage': 'the neutral extension helpers resolve package roots through the public plugin package store.',
   'install -> auth': 'the installer creates the bootstrap administrator through the public auth identity service.',
   'install -> settings': 'the installer writes the installation row through the public settings module that owns the `system_settings` row.',
   'inventory -> cache': 'the inventory service bumps the product cache version.',
-  'notifications -> admin/extension-installer': 'the notification delivery calls plugins through the public plugin runtime and gateway-protection helpers.',
+  'notifications -> admin/extension-installer': 'the notification delivery calls plugins through the public plugin runtime.',
+  'notifications -> auth': 'the notification service reads the recipient locale through the auth module\'s public identity projection instead of the `users` table.',
   'notifications -> extensions/registry': 'the notification delivery resolves the notification provider through the read-only registry.',
+  'notifications -> extensions/runtime': 'the notification delivery takes the plugin timeout from the neutral runtime gateway protection helpers.',
   'notifications -> order': 'the notification service reads the order through the order module\'s public projection.',
-  'order -> admin/extension-installer': 'the order service calls plugin contracts and records plugin failures through the public plugin runtime.',
-  'order -> auth': 'the order routes authenticate through the public auth middleware.',
+  'order -> admin/extension-installer': 'the order service calls plugin contracts through the public plugin runtime.',
+  'order -> auth': 'the order routes authenticate through the public auth middleware and read the account through the auth module\'s public identity projection.',
   'order -> cart': 'the order service consumes purchased cart lines through the public cart service (`CartService.consumePurchasedItems`).',
   'order -> checkout': 'the order service re-quotes the purchased lines through the public checkout service.',
   'order -> extensions/registry': 'the order service resolves payment providers through the read-only registry.',
+  'order -> extensions/runtime': 'the order service names the contract error through the neutral runtime helpers instead of the admin layer.',
   'order -> inventory': 'the order service checks and reserves stock through the public inventory service.',
   'order -> logger': 'the order service logs through the unified logger.',
   'order -> payment': 'the order service drives the payment module through its public service.',
   'order -> product': 'the order service reads the sellable catalog through the product module\'s public projection.',
   'order -> settings': 'the order service reads system settings through the public settings service.',
   'order -> shared': 'the order module uses the neutral money, pricing and row-lock helpers.',
-  'payment -> admin/extension-installer': 'the payment module calls plugin contracts and uses the public gateway-protection and plugin-runtime helpers.',
+  'payment -> admin/extension-installer': 'the payment module calls plugin contracts through the public plugin runtime.',
   'payment -> audit': 'the payment module records audit events through the audit outlet.',
   'payment -> auth': 'the payment routes authenticate through the public auth middleware.',
   'payment -> cache': 'the payment routes invalidate cached entries.',
   'payment -> extensions/registry': 'the payment module resolves providers through the read-only registry.',
+  'payment -> extensions/runtime': 'the payment module takes the plugin timeout from the neutral runtime gateway protection helpers instead of the admin layer.',
   'payment -> logger': 'the payment routes log through the unified logger.',
   'payment -> notifications': 'the payment module emits notifications through the public notification service.',
   'payment -> order': 'the payment module reports payment outcomes through the order module\'s public service.',
@@ -174,6 +182,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'plugin-pages -> admin/extension-installer': 'the plugin-page asset routes use the installer\'s public migration gate and signing policy.',
   'plugin-pages -> storage': 'the plugin-page asset routes read package blobs through the public storage stores.',
   'plugins -> admin/extension-installer': 'the task worker invokes plugin tasks through the public plugin runtime.',
+  'plugins -> extensions/runtime': 'the durable-task worker records the plugin failures through the neutral runtime helpers instead of the admin layer.',
   'plugins -> audit': 'the task module records audit events through the audit outlet.',
   'product -> cache': 'the product module reads and invalidates cached catalog entries.',
   'product -> inventory': 'the product projection reads stock through the public inventory service.',
@@ -238,6 +247,38 @@ const KNOWN_CYCLES: KnownCycle[] = [
   {
     modules: ['auth', 'notifications', 'order', 'payment'],
     reason: 'the auth module sends verification and recovery notifications through the public notification service, the notification service reads the order through the order module\'s public projection, and the order service drives the payment module through its public service, whose routes authenticate through the public auth middleware.',
+  },
+  {
+    modules: ['auth', 'notifications'],
+    reason: 'the auth module sends verification and recovery notifications through the public notification service, and the notification service reads the recipient locale through the auth module\'s public identity projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the installer takes the neutral runtime helpers, those helpers decrypt the stored plugin configuration through the neutral extension helpers, and the extension helpers resolve package roots through the public storage stores, which expose the installer\'s public recovery test control.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the installer routes authenticate through the public auth middleware, the auth module sends verification and recovery notifications through the public notification service, the notification delivery takes the plugin timeout from the neutral runtime helpers, those helpers decrypt the stored configuration through the neutral extension helpers, and the extension helpers resolve package roots through the public storage stores.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the installer routes authenticate through the public auth middleware, the auth module sends verification and recovery notifications through the public notification service, the notification service reads the order through the order module\'s public projection and takes the plugin timeout from the neutral runtime helpers, those helpers decrypt the stored configuration through the neutral extension helpers, and the extension helpers resolve package roots through the public storage stores.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the installer routes authenticate through the public auth middleware, the auth module sends verification and recovery notifications through the public notification service, the notification service reads the order through the order module\'s public projection, the order service re-quotes the purchased lines through the public checkout service, the notification delivery takes the plugin timeout from the neutral runtime helpers, those helpers decrypt the stored configuration through the neutral extension helpers, and the extension helpers resolve package roots through the public storage stores.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the installer uses the public durable-task API, the task worker records the plugin failures through the neutral runtime helpers, those helpers decrypt the stored configuration through the neutral extension helpers, and the extension helpers resolve package roots through the public storage stores, which expose the installer\'s public recovery test control.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the installer and plugin management reach each other through their public services, both use the public durable-task API, the task worker records the plugin failures through the neutral runtime helpers, those helpers decrypt the stored configuration through the neutral extension helpers, and the extension helpers resolve package roots through the public storage stores.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the installer routes authenticate through the public auth middleware, the auth module sends verification and recovery notifications through the public notification service, the notification service reads the order through the order module\'s public projection, the order service drives the payment module through its public service, the payment module takes the plugin timeout from the neutral runtime helpers, those helpers decrypt the stored configuration through the neutral extension helpers, and the extension helpers resolve package roots through the public storage stores.',
   },
   // The extension ring: the installer, plugin management, the storage stores,
   // the durable-task engine and the plugin-page routes all call each other
@@ -402,10 +443,11 @@ const TABLE_OWNERS: Record<string, string> = {
  * failures.
  */
 const DOMAIN_MEMBERS: Record<string, string[]> = {
-  // The extension domain spans three modules on purpose: the installer owns
+  // The extension domain spans four modules on purpose: the installer owns
   // installation and packaging, plugin management owns the registry and the
-  // lifecycle, and the task engine owns the durable task rows.
-  extensions: ['admin/extension-installer', 'admin/plugin-management', 'plugins'],
+  // lifecycle, the task engine owns the durable task rows, and the neutral
+  // runtime module records the plugin failures on the installation rows.
+  extensions: ['admin/extension-installer', 'admin/plugin-management', 'plugins', 'extensions/runtime'],
 };
 
 /**

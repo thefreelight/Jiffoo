@@ -3,7 +3,7 @@ import { Prisma, type PluginMigrationOperation } from '@prisma/client';
 import { isDeepStrictEqual } from 'node:util';
 import { INCOMPLETE_PLUGIN_OPERATION_PHASES } from './plugin-migration-gate';
 import { pruneCoreProcesses } from '@/infra/core-process';
-import { recoveryLimit, observeRecovery } from './plugin-recovery-test-control';
+import { recoveryLimit, observeRecovery } from '@/infra/recovery-test-control';
 import { createHash } from 'node:crypto';
 import { AuditService } from '@/core/audit/service';
 import { releasePluginOperationLeaseWith } from '@/core/storage/plugin-operation-lease';

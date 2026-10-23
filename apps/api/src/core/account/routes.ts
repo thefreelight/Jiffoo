@@ -15,6 +15,7 @@ import {
   createTypedUpdateResponses,
   errorResponseSchema,
 } from '@/types/common-dto';
+import { readUploadContent } from '@/routes/multipart-content';
 
 const userProfileSchema = {
   type: 'object',
@@ -214,7 +215,9 @@ export async function accountRoutes(fastify: FastifyInstance) {
         return sendError(reply, 400, 'BAD_REQUEST', 'No file uploaded');
       }
 
-      const result = await UploadService.uploadAvatar(data);
+      UploadService.assertAllowedType(data.mimetype);
+      const content = await readUploadContent(data);
+      const result = await UploadService.uploadAvatar({ filename: data.filename, mimetype: data.mimetype, content });
       await AccountService.updateProfile(request.user!.id, { avatar: result.url });
       return sendSuccess(reply, result);
     } catch (error) {

@@ -6,6 +6,21 @@
 
 - Local verification must use the database assigned to the current lane. Accept only jiffoo_core_test for the integration worktree (no LANE_ID) or jiffoo_core_test_<lane> for a lane registered in scripts/lane-config.mjs with matching LANE_ID. Never use jiffoo_core or another lane's database. Before destructive cleanup, verify that current_database() exactly matches the configured name.
 - Before every commit, run pnpm verify:quick with the scope and --test-files selected by the lane advisor in the task. API contract, shared-package, authentication and database changes automatically add the mandatory suites printed by the verification planner. Commit and push only after all required local checks exit with code 0. Lane work does not run browser E2E locally (the E2E runner refuses when LANE_ID is set); lane E2E runs in GitHub Actions only.
+- **The scoped gate is the local default.** The scope and the `--test-files` selection come from the lane advisor; name them in the handover and record the result. A batch that touches shared packages, API contracts, authentication or the schema must let the planner expand the selection and must not narrow it back.
+- **The full suite belongs to CI.** GitHub Actions already runs the API suite as four parallel shards, each with its own PostgreSQL and Redis service. A local **serial** full run costs about 38 minutes, because `apps/api/vitest.config.ts` runs one file at a time (`singleFork`, `fileParallelism: false`) while the files share one database. A serial full run still diagnoses cross-file state pollution that a scoped run cannot see, so run it when the batch's risk warrants it — but do not run it *instead of* a scoped gate on the same input.
+- **A local full-suite run is `pnpm verify:shards`** — a proposed approved verification script, and
+  **not yet part of the approved runner**. It runs the API suite's local catalogue (the files the
+  local quick gate selects, with the same exclusions) as four parallel shards, each shard in its own
+  PostgreSQL and Redis container, with the same database name and Redis DB the lane configuration
+  already validates. It covers the **API suite only**: the complete gate (type check, drift, planner
+  suites, admin and shop) stays `pnpm verify` and CI. It runs `prisma migrate reset` against the
+  containers it created, which the rule "no migrate reset outside the approved runner" does not yet
+  allow — **until both sides' gate owners agree on the integration and on that policy change, this
+  script is a tool and its result is not delivery evidence.**
+- **A verification result only covers the input it ran against.** Do not edit source, tests, dependencies, generated inputs or configuration while a gate runs. When the tracked diff or the untracked input set changes during a run, the result does not cover the tree you are about to commit, so run it again. A gate and a worker must not overlap: an orphaned test process from a killed worker will read the same database and crash the run.
+- **A partial result is never a pass.** One shard, an empty shard, or a subset of the catalogue never counts as the full suite. A run that covered only part of the catalogue must say so in its own output, and the shard gate checks the executed test files against the catalogue it planned and fails when they do not match; report the executed set, not just the exit code.
+- **A change that alters an HTTP status, an error code, a response shape or a route contract is a contract change.** Register it in the coordination ledger and cover it with a test; a "cleanup" or "refactor" batch that silently moves a 500 to a 400 has changed the contract and must be reviewed as one.
+- **One gate per decision point.** Do not repeat the same gate over the same frozen input. A scoped run and a full run cover different sets, so running both is not a duplicate; running the same scope twice over an unchanged tree is.
 - Audited database-free and container-free script tests under scripts/ can be selected with --test-files and run with node --test through pnpm verify:quick only. CI-only and unaudited script tests are rejected locally.
 - GitHub Actions must run the complete verification gate on every push to codex/core-extension-boundary and codex/lane-*. Fix failed CI with new commits; never amend or rebase pushed commits. Local scoping never weakens CI job selection, catalogue reconciliation or API shard file coverage. Every CI job uses isolated PostgreSQL and Redis services and exactly jiffoo_core_test without LANE_ID.
 - Before any development-database upgrade or release step, the most recent pushed commit must have a successful CI run on GitHub Actions.
@@ -15,6 +30,75 @@
 - Every Prisma schema change must include a new migration; use the current lane's validated test URL on both sides of the documented migration diff command; never edit an existing migration; a lane's new migration timestamp must sort after every existing migration, and lane advisors coordinate migration timestamps through the integration advisor before creating one.
 - Never run prisma migrate dev, migrate deploy, migrate reset, db push or db execute outside the approved verification scripts. Run pnpm verify:quick so the current lane's test database is at the current migrations, validate DATABASE_URL_TEST through scripts/lane-config.mjs, then generate SQL with `$env:DATABASE_URL=$env:DATABASE_URL_TEST; pnpm --filter api exec prisma migrate diff --from-url $env:DATABASE_URL_TEST --to-schema-datamodel prisma/schema --script` and write it into a new migration folder with your file tool (UTF-8, no BOM).
 - Use the current UTC time for a new migration; if that would sort before the latest existing migration, use the latest migration's timestamp plus one minute.
+
+## Agent Orchestration
+
+These rules bind every session that writes code in this repository, whoever runs it. They exist because
+the measured cost of this repository's verification is high enough that discipline pays for itself.
+
+### 1. Delegate the code, keep the context
+
+- **The coordinator does not edit business source.** `apps/**`, `packages/**` and `scripts/**` are the
+  workers' files. The coordinator may edit `AGENTS.md`, `CLAUDE.md`, `.pi/settings.json` and the
+  coordination ledger itself.
+- **Record the selection basis.** A local gate must record the baseline SHA, the changed inputs, the
+  selected test files and why they were selected. The planner's mandatory set may grow; it is never
+  narrowed. When the affected set is unclear, widen to the full API verification instead of guessing.
+  A change to a public interface, a module export, a moved or deleted module or a test mock must
+  cover the **reverse consumers** of that interface and the tests that mock it: search `vi.mock`,
+  `vi.doMock` and the old path as a string, including barrels and aliases.
+- **Model tiers, when the runner supports them.** Scouting (finding where something is) runs at the
+  lowest reasoning level with a small tool budget: `model: "<current model>:low"` and
+  `options: { toolBudget: { soft: 10, hard: 16 } }`. Implementation and review run at the standard
+  level: `model: "<current model>:medium"`. **Never set a hard tool budget on a worker** — it
+  interrupts a half-written change; constrain a worker with its file list and its gate instead.
+  These knobs are runner-specific: use what the runner in front of you actually offers.
+- **Scout first when the path is unknown.** If a finding does not name a file and a line, dispatch a
+  scout to locate it, then hand the worker the exact paths.
+
+### 2. Packages, file scopes and parallelism
+
+- **Group by cohesion.** Two to four related fixes in one module belong to one worker, so the files
+  are read once. Do not fragment a module across workers.
+- **Parallel workers need disjoint file sets.** Before dispatching in parallel, write the file
+  whitelist of each package and check that the lists do not overlap. A shared file is a serial step,
+  not a race.
+- **In a shared workspace, workers never touch git.** No `git add`, `git commit`, `git stash`,
+  `git checkout` or `git restore` in a worker. The coordinator commits, one batch at a time.
+- **Serialize the shared contracts first.** When several fixes depend on the same contract file,
+  base class, shared configuration or schema, one worker lands that contract and passes the type
+  check before the consumers are dispatched.
+
+### 3. Reuse the hot context, then drop it
+
+- **Same files, same module: resume the child.** A follow-up on the files a worker just changed —
+  a failing test, a review finding, a small correction — should reuse that worker
+  (`subagent({ action: "resume", id: "<runId>", message: "<the delta>" })`) instead of starting a
+  stranger: the retained child still has the code in its context. Where the runner has no resume,
+  hand the next worker the diff summary instead.
+- **A different module: start fresh.** When a package is accepted and the next one touches unrelated
+  files, discard the old run id and open a new fresh-context session. Do not `fork` the coordinator's
+  transcript into a worker; give it a 150-300 word brief with the paths and the requirements.
+- **Stop reusing a child when its context stops paying.** Two or three resumes, or roughly twenty-five
+  tool calls, are **observation thresholds, not a rule**: decide from the context quality, the module
+  boundary and whether the same failure repeats. When it is time to hand over, extract the current diff
+  summary and finish with a fresh worker.
+- **Give every child an explicit execution budget.** A default ceiling can kill a half-written
+  change; set the timeout the runner supports and treat a timeout as a handover, never as a completed
+  or a failed task.
+
+### 4. The gate and the review loop
+
+- **Every package passes a gate.** A worker package is done when its type check and its tests are
+  green, through the approved runner.
+- **Every wave gets an independent reviewer.** The reviewer compares the diff against the goals of
+  the change, not against the implementation, and reports findings with file and line.
+- **Fix with the same worker.** A finding goes back to the worker that owns the file, through
+  `resume`. Review again after the fix. A wave is done when the review is clean and the gate is green.
+- **Long output is a pointer.** Reports go to a file (`output: "tmp/reports/<name>.md"`,
+  `options: { outputMode: "file-only" }`); the session receives the path, not the body.
+- **Keep the terminal quiet.** Read long files with `cut -c1-N`. The "Planner added suites" line of
+  `verify-summary.txt` is one very long line and freezes a terminal that prints it whole.
 
 ## E2E
 

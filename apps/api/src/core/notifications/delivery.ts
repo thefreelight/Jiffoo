@@ -4,7 +4,7 @@ import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { observeWorkerShutdownForTest } from '@/infra/worker-shutdown';
-import { getPluginTimeoutMs } from '@/core/admin/extension-installer/gateway-protection';
+import { getPluginTimeoutMs } from '@/core/extensions/runtime/gateway-protection';
 import { pluginDatabaseLimit } from '@/core/admin/extension-installer/plugin-database-test-control';
 import { claimNotifications, reclaimNotificationLeases, completeNotification, failNotification, releaseUnstartedNotification, notificationClaimLimit, notificationLeaseAllowsSend, type NotificationLeaseClient } from './lease';
 

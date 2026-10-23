@@ -3,8 +3,9 @@ import { CartService } from '@/core/cart/service';
 import { systemSettingsService } from '@/core/settings/service';
 import { declaresContract, getAllPluginPackages, getDefaultInstance, listProviders, resolveSingleProvider } from '@/core/extensions/registry';
 import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
-import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
-import { recordPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
+import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { ContractCallError } from '@/core/extensions/runtime/contract-errors';
+import { recordPluginFailure } from '@/core/extensions/runtime/failure';
 import { decimalToMinor, minorToDecimal } from '@/core/shared/money';
 
 type Address = { country: string; state?: string; city?: string; postalCode?: string; addressLine1?: string; addressLine2?: string };

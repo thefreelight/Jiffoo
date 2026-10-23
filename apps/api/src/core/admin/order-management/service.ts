@@ -588,7 +588,13 @@ export class AdminOrderService {
 
       if (order.status === OrderStatus.PROCESSING) {
         for (const item of order.items) {
-          await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity), { notFound: 'NOT_FOUND' });
+          await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity, {
+            type: 'return',
+            reason: 'order_refunded',
+            referenceId: order.id,
+            userId: data.actorId,
+            metadata: { orderNumber: order.orderNumber, refundId: refund.refundId },
+          }), { notFound: 'NOT_FOUND' });
         }
       }
     });
@@ -636,7 +642,12 @@ export class AdminOrderService {
       await OrderService.cancelOrderByAdmin(tx, { orderId, cancelReason: data.cancelReason });
 
       for (const item of order.items) {
-        await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity), { notFound: 'NOT_FOUND' });
+        await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity, {
+          type: 'return',
+          reason: 'order_cancelled',
+          referenceId: order.id,
+          metadata: { orderNumber: order.orderNumber },
+        }), { notFound: 'NOT_FOUND' });
       }
     });
 

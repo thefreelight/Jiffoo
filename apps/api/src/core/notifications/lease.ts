@@ -1,5 +1,5 @@
 import type { Notification } from '@prisma/client';
-import { getPluginTimeoutMs } from '@/core/admin/extension-installer/gateway-protection';
+import { getPluginTimeoutMs } from '@/core/extensions/runtime/gateway-protection';
 
 export const NOTIFICATION_LEASE_MS = 60_000;
 export const NOTIFICATION_MAX_ATTEMPTS = 5;

@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { ensureCoreProcess } from '@/infra/core-process';
-import { recoveryLimit } from '@/core/admin/extension-installer/plugin-recovery-test-control';
+import { recoveryLimit } from '@/infra/recovery-test-control';
 
 type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 

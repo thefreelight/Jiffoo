@@ -1,12 +1,14 @@
 import type { Prisma } from '@prisma/client';
 
 /**
- * Auth Identity Service — the public write API of the auth module for the
+ * Auth Identity Service — the public API of the auth module for the
  * `users` and `auth_tokens` tables.
  *
  * The auth module owns identity. Every other module that has to create,
  * update or revoke an identity row goes through this service instead of
- * writing the tables itself (see the module boundary audit).
+ * writing the tables itself (see the module boundary audit). A module that
+ * only needs to read the identity of an account uses the read projection
+ * below, so it never reads the `users` table itself.
  *
  * The transaction parameter is deliberately structural: a plain Prisma
  * transaction client satisfies `AuthIdentityTx`, so a caller never has to
@@ -41,6 +43,42 @@ export type AuthIdentityCredentials = {
   email: string;
   password: string;
   username: string;
+};
+
+/**
+ * The identity fields another module may read from an account.
+ *
+ * This is the neutral projection of an account: it carries the fields a
+ * consumer needs and never the stored user row, so the auth module keeps the
+ * ownership of the `users` table.
+ */
+export type AuthIdentityProfile = {
+  /** The address of the account. */
+  email: string;
+  /** The locale of the account, or null when the account has none. */
+  locale: string | null;
+};
+
+/**
+ * The client surface the identity projection reads through.
+ *
+ * The caller passes its own client or transaction client, so the read stays
+ * inside the caller's transaction.
+ */
+export type AuthIdentityReadTx = {
+  user: {
+    findUnique(args: any): Promise<any>;
+  };
+};
+
+/**
+ * The client surface the identity projection reads through when the account
+ * has to exist.
+ */
+export type AuthIdentityRequireTx = {
+  user: {
+    findUniqueOrThrow(args: any): Promise<any>;
+  };
 };
 
 export class AuthIdentityService {
@@ -233,5 +271,35 @@ export class AuthIdentityService {
       },
     });
     return created as Prisma.UserGetPayload<{}>;
+  }
+
+  /**
+   * The identity projection of an account.
+   *
+   * The auth module owns the `users` table, so a module that needs the
+   * address or the locale of an account reads them here instead of reading
+   * the table itself. The projection names the fields a consumer needs and
+   * never the stored row.
+   *
+   * @param client the reader of the `users` table (a Prisma client or a
+   *   transaction client of the caller)
+   * @param userId the account to read
+   * @returns the projection, or null when the account does not exist
+   */
+  static async readProfile(client: AuthIdentityReadTx, userId: string): Promise<AuthIdentityProfile | null> {
+    const user = await client.user.findUnique({ where: { id: userId }, select: { email: true, locale: true } });
+    if (!user) return null;
+    return { email: user.email, locale: user.locale ?? null };
+  }
+
+  /**
+   * The identity projection of an account that has to exist.
+   *
+   * The read fails exactly like a direct `findUniqueOrThrow` read fails, so
+   * a caller that requires the account keeps its current behaviour.
+   */
+  static async requireProfile(client: AuthIdentityRequireTx, userId: string): Promise<AuthIdentityProfile> {
+    const user = await client.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, locale: true } });
+    return { email: user.email, locale: user.locale ?? null };
   }
 }

@@ -75,6 +75,34 @@ export interface ProviderProjection {
   pluginSlug: string;
 }
 
+/**
+ * The package of an installed plugin, reduced to the fields the package
+ * readers use: its identity, its packaging metadata and its trust state.
+ */
+export interface PluginPackageInstallProjection {
+  slug: string;
+  version: string;
+  zipHash: string | null;
+  manifestJson: unknown;
+  trustLevel: PluginTrustLevel;
+  signingRoot: string | null;
+  deletedAt: Date | null;
+}
+
+/**
+ * An installed plugin instance with the package it points at, reduced to the
+ * fields the installation readers use.
+ */
+export interface PluginInstallationProjection {
+  id: string;
+  pluginSlug: string;
+  instanceKey: string;
+  enabled: boolean;
+  deletedAt: Date | null;
+  protectionGeneration: bigint;
+  package: PluginPackageInstallProjection;
+}
+
 export function declaresContract(manifestJson: unknown, contract: PluginContractName): boolean {
   return Array.isArray((manifestJson as { contracts?: unknown[] } | null)?.contracts)
     && (manifestJson as { contracts: Array<{ name?: unknown; version?: unknown }> }).contracts.some((declaration) => declaration.name === contract && declaration.version === PLUGIN_CONTRACT_VERSIONS[contract]);
@@ -185,5 +213,60 @@ export async function getDefaultInstance(slug: string): Promise<PluginInstancePr
     deletedAt: installation.deletedAt,
     configJson: installation.configJson,
     protectionGeneration: installation.protectionGeneration,
+  };
+}
+
+/**
+ * Read an installed plugin instance by its installation id.
+ *
+ * The read is the registry's view of the `plugin_installations` table: only an
+ * enabled instance of a live package with the expected package hash is found,
+ * and the reader receives a projection instead of the stored rows. A missing
+ * instance is reported as `null`, never as an error.
+ *
+ * @param installationId Identity of the installed instance
+ * @param zipHash Hash of the package the instance has to serve
+ */
+export async function getInstallationById(installationId: string, zipHash: string): Promise<PluginInstallationProjection | null> {
+  const installation = await prisma.pluginInstallation.findFirst({
+    where: { id: installationId, enabled: true, deletedAt: null, plugin: { deletedAt: null, zipHash } },
+    select: {
+      id: true,
+      pluginSlug: true,
+      instanceKey: true,
+      enabled: true,
+      deletedAt: true,
+      protectionGeneration: true,
+      plugin: {
+        select: {
+          slug: true,
+          version: true,
+          zipHash: true,
+          manifestJson: true,
+          trustLevel: true,
+          signingRoot: true,
+          deletedAt: true,
+        },
+      },
+    },
+  });
+
+  if (!installation) return null;
+  return {
+    id: installation.id,
+    pluginSlug: installation.pluginSlug,
+    instanceKey: installation.instanceKey,
+    enabled: installation.enabled,
+    deletedAt: installation.deletedAt,
+    protectionGeneration: installation.protectionGeneration,
+    package: {
+      slug: installation.plugin.slug,
+      version: installation.plugin.version,
+      zipHash: installation.plugin.zipHash,
+      manifestJson: installation.plugin.manifestJson,
+      trustLevel: installation.plugin.trustLevel,
+      signingRoot: installation.plugin.signingRoot,
+      deletedAt: installation.plugin.deletedAt,
+    },
   };
 }

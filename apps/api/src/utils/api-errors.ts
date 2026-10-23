@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 import { PackageVerificationError, PluginMigrationValidationError, PluginUiValidationError } from 'shared/plugin-signing';
 import { errorCodes, type FastifyReply } from 'fastify';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
+import { MoneyError } from '@/core/shared/money';
 
 export const errorCatalog = {
   [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_INVALID]: { status: 422, message: 'Invalid task principal.' },
@@ -347,11 +348,12 @@ export function mapApiError(error: unknown) {
   const known = error instanceof ApiError && Object.hasOwn(errorCatalog, error.code) ? error
     : error instanceof PackageVerificationError || error instanceof PluginMigrationValidationError || error instanceof PluginUiValidationError ? catalogError(error.code)
     : error instanceof ZodError ? new ApiError('VALIDATION_ERROR', { issues: error.issues.map(issue => ({ path: issue.path.join('.'), code: issue.code })) })
-    : error instanceof SharedProtectionUnavailable ? new ApiError('SHARED_PROTECTION_UNAVAILABLE')
-      : isDatabaseUnavailable(error) ? new ApiError('DATABASE_UNAVAILABLE')
-        : error instanceof errorCodes.FST_ERR_CTP_BODY_TOO_LARGE ? new ApiError('PAYLOAD_TOO_LARGE')
-          : error instanceof errorCodes.FST_ERR_CTP_INVALID_JSON_BODY ? new ApiError('BAD_REQUEST')
-            : error instanceof errorCodes.FST_ERR_CTP_INVALID_MEDIA_TYPE ? new ApiError('UNSUPPORTED_MEDIA_TYPE') : new ApiError('INTERNAL_SERVER_ERROR');
+      : error instanceof MoneyError ? new ApiError('VALIDATION_ERROR')
+        : error instanceof SharedProtectionUnavailable ? new ApiError('SHARED_PROTECTION_UNAVAILABLE')
+          : isDatabaseUnavailable(error) ? new ApiError('DATABASE_UNAVAILABLE')
+            : error instanceof errorCodes.FST_ERR_CTP_BODY_TOO_LARGE ? new ApiError('PAYLOAD_TOO_LARGE')
+              : error instanceof errorCodes.FST_ERR_CTP_INVALID_JSON_BODY ? new ApiError('BAD_REQUEST')
+                : error instanceof errorCodes.FST_ERR_CTP_INVALID_MEDIA_TYPE ? new ApiError('UNSUPPORTED_MEDIA_TYPE') : new ApiError('INTERNAL_SERVER_ERROR');
   const details = detailsFor(known);
   const definition = errorCatalog[known.code];
   return { status: definition.status, body: { success: false as const, error: { code: known.code, message: definition.message, ...(details !== undefined ? { details } : {}) } } };

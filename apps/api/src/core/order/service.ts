@@ -43,7 +43,9 @@ import { emitEvent, type EventTransaction } from '@/infra/events/emit';
 import { CheckoutService } from '@/core/checkout/service';
 import { resolveSingleProvider } from '@/core/extensions/registry';
 import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
-import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { ContractCallError } from '@/core/extensions/runtime/contract-errors';
+import { AuthIdentityService, type AuthIdentityReadTx } from '@/core/auth/identity-service';
 import { decimalToMinor, minorToDecimal } from '@/core/shared/money';
 import { currentLinePrice } from '@/core/shared/pricing';
 import { createCatalogSnapshot, readCatalogSnapshot, snapshotProductName, isOrderItemCatalogRestriction } from './catalog-snapshot';
@@ -84,6 +86,15 @@ export type OrderReadTx = {
     findUnique(args: any): Promise<any>;
   };
 };
+
+/**
+ * Read surface of the recipient projection.
+ *
+ * The recipient carries the address of the account behind the order, so the
+ * projection also reads the `users` table through the auth identity
+ * projection.
+ */
+export type OrderRecipientReadTx = OrderReadTx & AuthIdentityReadTx;
 
 export function parseJsonRecord(value: unknown): JsonRecord | null {
   if (!value) return null;
@@ -131,7 +142,7 @@ const shipmentSelect = {
 } as const;
 
 function orderResponseInclude() {
-  return { shippingAddress: true, user: { select: { locale: true } }, items: true } as const;
+  return { shippingAddress: true, items: true } as const;
 }
 
 export class OrderService {
@@ -220,11 +231,8 @@ export class OrderService {
       ? this.normalizeShippingAddress(data.shippingAddress as any)
       : undefined;
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true },
-    });
-    if (!user) {
+    const identity = await AuthIdentityService.readProfile(prisma, userId);
+    if (!identity) {
       throw new ApiError('BAD_REQUEST');
     }
     const currency = await systemSettingsService.getShopCurrency();
@@ -233,7 +241,7 @@ export class OrderService {
     const requestFingerprint = orderRequestFingerprint(data);
     // A replay must return the original order before any pricing or provider work runs.
     const replay = await this.findOrderByIdempotencyKey(idempotencyKey, userId, requestFingerprint);
-    if (replay) return { order: this.formatOrderResponse(replay.order, currency), replayed: true };
+    if (replay) return { order: this.formatOrderResponse(replay.order, currency, identity.locale), replayed: true };
 
     // Verify products and calculate total amount
     let totalAmount = 0;
@@ -383,7 +391,7 @@ export class OrderService {
         data: {
           ...await allocateOrderNumber(tx),
           user: { connect: { id: userId } },
-          customerEmail: data.customerEmail?.trim() || user.email,
+          customerEmail: data.customerEmail?.trim() || identity.email,
           idempotencyKey,
           idempotencyFingerprint: requestFingerprint,
           status: OrderStatus.PENDING,
@@ -443,13 +451,18 @@ export class OrderService {
         },
         include: {
           shippingAddress: true,
-          user: { select: { locale: true } },
           items: true
         }
       });
 
       for (const item of orderItems) {
-        await InventoryService.decrementStock(tx, item.variantId, item.quantity);
+        await InventoryService.decrementStock(tx, item.variantId, item.quantity, {
+          type: 'sale',
+          reason: 'order_placed',
+          referenceId: created.id,
+          userId,
+          metadata: { orderNumber: created.orderNumber },
+        });
       }
       await CartService.consumePurchasedItems(tx, userId, orderItems);
 
@@ -496,7 +509,7 @@ export class OrderService {
       throw error;
     });
 
-    return { order: this.formatOrderResponse(result.order, currency), replayed: result.replayed };
+    return { order: this.formatOrderResponse(result.order, currency, identity.locale), replayed: result.replayed };
   }
 
   /**
@@ -573,7 +586,6 @@ export class OrderService {
         orderBy: { createdAt: 'desc' },
         include: {
           shippingAddress: true,
-          user: { select: { locale: true } },
           shipments: {
             select: shipmentSelect
           },
@@ -584,8 +596,9 @@ export class OrderService {
     ]);
 
     const currency = await systemSettingsService.getShopCurrency();
+    const locale = await this.readAccountLocale(userId);
     return {
-      items: orders.map(order => this.formatOrderResponse(order, currency)),
+      items: orders.map(order => this.formatOrderResponse(order, currency, locale)),
       page,
       limit,
       total,
@@ -617,7 +630,6 @@ export class OrderService {
       where,
       include: {
         shippingAddress: true,
-        user: { select: { locale: true } },
         shipments: {
           select: shipmentSelect
         },
@@ -630,9 +642,10 @@ export class OrderService {
     }
 
     const currency = await systemSettingsService.getShopCurrency();
+    const locale = await this.readAccountLocale(order.userId);
     const summary = await PaymentService.getOrderPaymentSummary(order.id);
     const payment = summary.payment;
-    const response = this.formatOrderResponse(order, currency);
+    const response = this.formatOrderResponse(order, currency, locale);
     const action = payment?.actionJson as Prisma.JsonValue | undefined | null;
     response.paymentInstructions = order.paymentStatus === PaymentStatus.PENDING &&
       order.status !== OrderStatus.CANCELLED && action && typeof action === 'object' &&
@@ -674,7 +687,13 @@ export class OrderService {
       if (!order) throw new ApiError('NOT_FOUND');
       assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
       for (const item of order.items) {
-        await InventoryService.incrementStock(tx, item.variantId, item.quantity);
+        await InventoryService.incrementStock(tx, item.variantId, item.quantity, {
+          type: 'return',
+          reason: 'order_cancelled',
+          referenceId: order.id,
+          userId: userId || undefined,
+          metadata: { orderNumber: order.orderNumber },
+        });
       }
       await PaymentService.cancelPendingForOrder(tx, orderId);
 
@@ -687,7 +706,6 @@ export class OrderService {
         },
         include: {
           shippingAddress: true,
-          user: { select: { locale: true } },
           items: true
         }
       });
@@ -710,7 +728,8 @@ export class OrderService {
     });
 
     const currency = await systemSettingsService.getShopCurrency();
-    return this.formatOrderResponse(updatedOrder, currency);
+    const locale = await this.readAccountLocale(updatedOrder.userId);
+    return this.formatOrderResponse(updatedOrder, currency, locale);
   }
 
   static async cancelExpiredUnpaidOrders(limit = 100): Promise<number> {
@@ -729,7 +748,12 @@ export class OrderService {
           data: { status: OrderStatus.CANCELLED, cancelReason: 'unpaid timeout', cancelledAt: new Date() },
         });
         if (result.count === 0) continue;
-        for (const item of order.items) await InventoryService.incrementStock(tx, item.variantId, item.quantity);
+        for (const item of order.items) await InventoryService.incrementStock(tx, item.variantId, item.quantity, {
+          type: 'return',
+          reason: 'order_cancelled_unpaid',
+          referenceId: order.id,
+          metadata: { orderNumber: order.orderNumber },
+        });
         await PaymentService.cancelPendingForOrder(tx, order.id);
         await recordOrderStatusHistory(tx, {
           orderId: order.id,
@@ -1071,25 +1095,37 @@ export class OrderService {
   }
 
   /**
+   * The locale of the account behind an order.
+   *
+   * The `users` table belongs to the auth module, so the order module reads
+   * the account through the auth identity projection instead of the table.
+   */
+  private static async readAccountLocale(userId: string): Promise<string | null> {
+    const identity = await AuthIdentityService.readProfile(prisma, userId);
+    return identity?.locale ?? null;
+  }
+
+  /**
    * The recipient of an order notification: the order's own contact address
    * and the address of the customer account behind it.
    *
    * The `users` table belongs to the auth module, so the notifications module
    * consumes this projection instead of reading the user row itself.
    */
-  static async getOrderRecipient(tx: OrderReadTx, orderId: string): Promise<{
+  static async getOrderRecipient(tx: OrderRecipientReadTx, orderId: string): Promise<{
     userId: string;
     orderNumber: string;
     customerEmail: string | null;
     accountEmail: string | null;
   } | null> {
-    const order = await tx.order.findUnique({ where: { id: orderId }, include: { user: { select: { email: true } } } });
+    const order = await tx.order.findUnique({ where: { id: orderId } });
     if (!order) return null;
+    const identity = await AuthIdentityService.readProfile(tx, order.userId);
     return {
       userId: order.userId,
       orderNumber: order.orderNumber,
       customerEmail: order.customerEmail ?? null,
-      accountEmail: order.user?.email ?? null,
+      accountEmail: identity?.email ?? null,
     };
   }
 
@@ -1155,9 +1191,11 @@ export class OrderService {
    *
    * @param order Raw order object from Prisma with includes
    * @param currency Currency code for the order
+   * @param locale Locale of the account behind the order, read through the
+   *   auth identity projection
    * @returns Formatted order response object
    */
-  private static formatOrderResponse(order: any, currency: string): OrderResponse {
+  private static formatOrderResponse(order: any, currency: string, locale: string | null): OrderResponse {
     return {
       orderNumber: order.orderNumber,
       id: order.id,
@@ -1195,7 +1233,7 @@ export class OrderService {
       items: order.items.map((item) => ({
         id: item.id,
         productId: item.productId,
-        productName: snapshotProductName(readCatalogSnapshot(item.catalogSnapshot), order.user?.locale),
+        productName: snapshotProductName(readCatalogSnapshot(item.catalogSnapshot), locale),
         productImages: readCatalogSnapshot(item.catalogSnapshot).productImages,
         variantId: item.variantId,
         variantName: readCatalogSnapshot(item.catalogSnapshot).variantName,

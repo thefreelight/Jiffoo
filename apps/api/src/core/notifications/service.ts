@@ -4,6 +4,7 @@ import { prisma } from '@/config/database';
 import { formatStoreDate } from 'shared';
 import { ApiError } from '@/utils/api-errors';
 import { OrderService } from '@/core/order/service';
+import { AuthIdentityService } from '@/core/auth/identity-service';
 
 export type NotificationTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -130,13 +131,13 @@ export async function createNotification(
   values: { name?: string; orderId?: string; instructions?: string; reason?: string },
   options: { secret?: { link?: string; code?: string }; relatedType?: string; relatedId?: string; resentFromId?: string; dedupKey?: string } = {},
 ) {
-  const [user, system] = await Promise.all([
-    tx.user.findUniqueOrThrow({ where: { id: recipientUserId }, select: { locale: true } }),
+  const [identity, system] = await Promise.all([
+    AuthIdentityService.requireProfile(tx, recipientUserId),
     tx.systemSettings.findUnique({ where: { id: 'system' }, select: { settings: true } }),
   ]);
   const settings = system?.settings && typeof system.settings === 'object' && !Array.isArray(system.settings)
     ? system.settings as Record<string, unknown> : {};
-  const locale = normalizeNotificationLocale(user.locale)
+  const locale = normalizeNotificationLocale(identity.locale)
     || normalizeNotificationLocale(settings['localization.locale']) || 'en';
   const storeName = typeof settings['branding.platform_name'] === 'string' && settings['branding.platform_name'].trim()
     ? settings['branding.platform_name'] : 'Jiffoo Mall';

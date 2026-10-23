@@ -1,4 +1,3 @@
-import { MultipartFile } from '@fastify/multipart';
 import { publishMediaSet, type MediaFile } from '@/core/storage/uploaded-media-set';
 
 export class UploadValidationError extends Error {
@@ -10,24 +9,25 @@ export class UploadValidationError extends Error {
 
 export interface UploadResult { filename: string; originalName: string; size: number; mimetype: string; url: string }
 
+/** Framework-neutral upload payload. Multipart parsing and stream reading stay in the route layer. */
+export interface UploadInput { filename: string; mimetype: string; content: Buffer }
+
 export class UploadService {
-  private static readonly MAX_FILE_SIZE = 5 * 1024 * 1024;
+  static readonly MAX_FILE_SIZE = 5 * 1024 * 1024;
   private static readonly ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
   private static sharpModule: any | null | undefined;
 
   private static invalidType(): UploadValidationError {
     return new UploadValidationError('INVALID_TYPE', { allowedTypes: [...this.ALLOWED_TYPES] });
   }
-  private static async readImageBuffer(file: MultipartFile): Promise<Buffer> {
-    if (!this.ALLOWED_TYPES.includes(file.mimetype)) throw this.invalidType();
-    let buffer: Buffer;
-    try { buffer = await file.toBuffer(); }
-    catch (error) {
-      if (file.file.truncated) throw new UploadValidationError('TOO_LARGE', { maxBytes: this.MAX_FILE_SIZE });
-      throw error;
-    }
-    if (file.file.truncated || buffer.length > this.MAX_FILE_SIZE) throw new UploadValidationError('TOO_LARGE', { maxBytes: this.MAX_FILE_SIZE });
-    return buffer;
+  /** Rejects a MIME type before the route consumes the multipart stream, exactly as the upload path always did. */
+  static assertAllowedType(mimetype: string): void {
+    if (!this.ALLOWED_TYPES.includes(mimetype)) throw this.invalidType();
+  }
+  private static async readImageBuffer(input: UploadInput): Promise<Buffer> {
+    if (!this.ALLOWED_TYPES.includes(input.mimetype)) throw this.invalidType();
+    if (input.content.length > this.MAX_FILE_SIZE) throw new UploadValidationError('TOO_LARGE', { maxBytes: this.MAX_FILE_SIZE });
+    return input.content;
   }
   private static getSharp(): any | null {
     if (this.sharpModule !== undefined) return this.sharpModule;
@@ -44,8 +44,8 @@ export class UploadService {
     if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return { extension: 'webp', mime: 'image/webp' };
     throw this.invalidType();
   }
-  private static async upload(file: MultipartFile, kind: 'products' | 'avatars'): Promise<UploadResult> {
-    const buffer = await this.readImageBuffer(file);
+  private static async upload(input: UploadInput, kind: 'products' | 'avatars'): Promise<UploadResult> {
+    const buffer = await this.readImageBuffer(input);
     const detected = this.detect(buffer);
     const sharp = this.getSharp();
     const sizes = kind === 'avatars' ? [{ name: 'original', width: 200, height: 200 }]
@@ -73,9 +73,9 @@ export class UploadService {
     }
     const hash = await publishMediaSet(kind, files);
     const original = files[0];
-    return { filename: original.name, originalName: file.filename || 'unknown', size: original.content.length,
+    return { filename: original.name, originalName: input.filename || 'unknown', size: original.content.length,
       mimetype: original.mime, url: `/uploads/${kind}/${hash}/${original.name}` };
   }
-  static uploadProductImage(file: MultipartFile): Promise<UploadResult> { return this.upload(file, 'products'); }
-  static uploadAvatar(file: MultipartFile): Promise<UploadResult> { return this.upload(file, 'avatars'); }
+  static uploadProductImage(input: UploadInput): Promise<UploadResult> { return this.upload(input, 'products'); }
+  static uploadAvatar(input: UploadInput): Promise<UploadResult> { return this.upload(input, 'avatars'); }
 }

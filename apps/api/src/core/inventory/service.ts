@@ -1,6 +1,7 @@
 import { prisma } from '@/config/database';
 import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 import { CacheService } from '@/core/cache/service';
+import type { Prisma } from '@prisma/client';
 import type { InventoryListItem } from './types';
 import { emitEvent, type EventTransaction } from '@/infra/events/emit';
 import { productSnapshot } from '@/infra/events/snapshots';
@@ -9,6 +10,40 @@ export type InventoryStockTx = {
   productVariant: {
     update(args: any): Promise<any>;
     updateMany(args: any): Promise<{ count: number }>;
+  };
+};
+
+/**
+ * Transaction shape required by a stock move that is recorded in the ledger.
+ *
+ * The members are named one by one: the stock move writes the `product_variants`
+ * stock level and the `inventory_adjustments` ledger row inside the caller's
+ * transaction, and both writes use the same variant and the same quantity.
+ */
+export type InventoryLedgerStockTx = {
+  productVariant: {
+    update(args: {
+      where: { id: string };
+      data: { stock: { increment: number } };
+    }): Promise<{ id: string }>;
+    updateMany(args: {
+      where: { id: string; stock: { gte: number } };
+      data: { stock: { decrement: number } };
+    }): Promise<{ count: number }>;
+  };
+  inventoryAdjustment: {
+    create(args: {
+      data: {
+        variantId: string;
+        quantity: number;
+        type: string;
+        reason?: string;
+        notes?: string;
+        userId?: string;
+        referenceId?: string;
+        metadata?: Prisma.InputJsonValue;
+      };
+    }): Promise<{ id: string; variantId: string; quantity: number; type: string }>;
   };
 };
 
@@ -39,7 +74,7 @@ export type InventoryAdjustmentDetails = {
   notes?: string;
   userId?: string;
   referenceId?: string;
-  metadata?: unknown;
+  metadata?: Prisma.InputJsonValue;
 };
 
 export class InventoryService {
@@ -81,19 +116,48 @@ export class InventoryService {
     return variants.map((variant) => variant.id);
   }
 
-  static async decrementStock(tx: InventoryStockTx, variantId: string, quantity: number): Promise<void> {
+  /**
+   * Take stock out of the sellable level and record the movement in the ledger.
+   *
+   * The stock write itself is unchanged: the same conditional update with the same
+   * optimistic lock predicate and the same error when the level is not sufficient.
+   * The ledger row is an additional side effect of the move, written in the
+   * caller's transaction, with the same columns and the same signed quantity
+   * convention as the other ledger paths: a stock decrease is a negative quantity.
+   *
+   * @param tx Transaction client owned by the caller
+   * @param variantId Variant whose stock level is decreased
+   * @param quantity Amount taken out of the sellable level
+   * @param details Ledger details of the movement
+   */
+  static async decrementStock(tx: InventoryLedgerStockTx, variantId: string, quantity: number, details: InventoryAdjustmentDetails): Promise<void> {
     const result = await tx.productVariant.updateMany({
       where: { id: variantId, stock: { gte: quantity } },
       data: { stock: { decrement: quantity } },
     });
     if (result.count === 0) throw new ApiError('BAD_REQUEST');
+    await tx.inventoryAdjustment.create({ data: { variantId, quantity: -quantity, ...details } });
   }
 
-  static async incrementStock(tx: InventoryStockTx, variantId: string, quantity: number): Promise<void> {
+  /**
+   * Put stock back into the sellable level and record the movement in the ledger.
+   *
+   * The stock write itself is unchanged: the same absolute update on the same
+   * column. The ledger row is an additional side effect of the move, written in
+   * the caller's transaction, with the same columns and the same signed quantity
+   * convention as the other ledger paths: a stock increase is a positive quantity.
+   *
+   * @param tx Transaction client owned by the caller
+   * @param variantId Variant whose stock level is increased
+   * @param quantity Amount put back into the sellable level
+   * @param details Ledger details of the movement
+   */
+  static async incrementStock(tx: InventoryLedgerStockTx, variantId: string, quantity: number, details: InventoryAdjustmentDetails): Promise<void> {
     await tx.productVariant.update({
       where: { id: variantId },
       data: { stock: { increment: quantity } },
     });
+    await tx.inventoryAdjustment.create({ data: { variantId, quantity, ...details } });
   }
 
   static async setStock(tx: InventoryStockTx, variantId: string, quantity: number): Promise<void> {

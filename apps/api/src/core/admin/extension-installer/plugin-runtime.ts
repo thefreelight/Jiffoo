@@ -39,18 +39,20 @@ import {
 import { withPluginMigrationGate, assertPluginNotPaused } from './plugin-migration-gate';
 import { withPluginDatabaseInvocation, withPluginDatabaseHandler, isPluginDatabaseError } from './plugin-database';
 import { pluginDatabaseLimit } from './plugin-database-test-control';
-import { registerPluginStateReset } from './plugin-state';
-import { recordPluginFailure, redactPluginFailure } from './plugin-failure';
-import { readStoredPluginManifest } from './stored-manifest';
+import { registerPluginStateReset } from '@/core/extensions/runtime/plugin-state';
+import { recordPluginFailure, redactPluginFailure } from '@/core/extensions/runtime/failure';
+import { readStoredPluginManifest } from '@/core/extensions/runtime/stored-manifest';
 import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, type PluginContractName, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
-import { getPluginTimeoutMs, MAX_RESPONSE_SIZE_BYTES } from './gateway-protection';
-import { ApiError, sendMappedError, isDatabaseUnavailable, type ErrorCode } from '@/utils/api-errors';
+import { getPluginTimeoutMs, MAX_RESPONSE_SIZE_BYTES } from '@/core/extensions/runtime/gateway-protection';
+import { ContractCallError, PluginGatewayError, contractGatewayError, type PluginGatewayErrorCode } from '@/core/extensions/runtime/contract-errors';
+import { type ContractName, type PluginContractVersion } from '@/core/extensions/runtime/contract-versions';
+import { ApiError, sendMappedError, isDatabaseUnavailable } from '@/utils/api-errors';
 import { observeWorkerShutdownForTest } from '@/infra/worker-shutdown';
 import { sharedProtection, pluginProtectionScope, SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
-import { decryptPluginConfig, redactPluginText } from '@/core/admin/plugin-management/config-crypto';
+import { decryptPluginConfig, redactPluginText } from '@/core/extensions/shared/config-crypto';
 import { pluginSigningError } from './plugin-signing-policy';
 import { encodePaymentWebhook } from './payment-webhook-wire';
 import { pluginPageAdmission } from '@/core/plugin-pages/origin-policy';
@@ -99,27 +101,9 @@ const FORBIDDEN_HEADER_PREFIXES = [
   'x-locale',        // Single header, not a prefix
 ];
 
-export type PluginGatewayErrorCode =
-  | 'PLUGIN_NOT_FOUND'
-  | 'PLUGIN_MANIFEST_MISMATCH'
-  | 'PLUGIN_DISABLED'
-  | 'INSTANCE_NOT_FOUND'
-  | 'INSTANCE_DISABLED'
-  | 'PLUGIN_INVALID_MANIFEST'
-  | 'PLUGIN_LOAD_FAILED'
-  | 'PLUGIN_PACKAGE_UNAVAILABLE'
-  | 'PLUGIN_REINSTALL_REQUIRED'
-  | 'PLUGIN_TEST_SIGNING_DISABLED'
-  | 'PLUGIN_TIMEOUT'
-  | 'INVALID_SLUG'
-  | 'INVALID_INSTANCE_KEY';
-
-export class PluginGatewayError extends ApiError {
-  constructor(message: string, code: PluginGatewayErrorCode, statusCode: number) {
-    super(code);
-    this.message = message;
-  }
-}
+export type { PluginGatewayErrorCode } from '@/core/extensions/runtime/contract-errors';
+export { ContractCallError, PluginGatewayError } from '@/core/extensions/runtime/contract-errors';
+export type { PluginContractVersion } from '@/core/extensions/runtime/contract-versions';
 
 type InternalRuntime = {
   taskHandlers: ReadonlyMap<string, { handler: Parameters<PluginTasks['handle']>[2]; options: TaskHandlerOptions }>;
@@ -736,27 +720,7 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
   return false;
 }
 
-export class ContractCallError extends ApiError {
-  constructor(code: ErrorCode, internalMessage: string) { super(code); this.message = internalMessage; }
-}
-
-function contractGatewayError(error: PluginGatewayError): ContractCallError {
-  const code = error.code === 'PLUGIN_NOT_FOUND' || error.code === 'INSTANCE_NOT_FOUND' ? 'PLUGIN_NOT_FOUND'
-    : error.code === 'INSTANCE_DISABLED' ? 'PLUGIN_DISABLED'
-      : error.code === 'PLUGIN_TIMEOUT' ? 'PLUGIN_TIMEOUT' : 'CONTRACT_CALL_FAILED';
-  return new ContractCallError(code, error.message);
-}
-
 const contractMethods = { payment: paymentV2Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
-type ContractName = PluginContractName;
-
-/**
- * The published version of a capability contract.
- *
- * The version is bound to the contract name, so a call that passes the wrong
- * version for a contract does not compile.
- */
-export type PluginContractVersion<C extends PluginContractName> = (typeof PLUGIN_CONTRACT_VERSIONS)[C];
 
 function isValidTaxResult(input: unknown, output: unknown): boolean {
   if (!input || typeof input !== 'object' || !output || typeof output !== 'object') return false;

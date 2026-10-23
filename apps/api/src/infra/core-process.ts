@@ -1,7 +1,7 @@
 import { prisma } from '@/config/database';
 import type { Prisma } from '@prisma/client';
 import { coreProcessIdentity, PROCESS_REGISTRATION_LOCK_CLASS, PROCESS_REGISTRATION_LOCK_KEY } from './core-process-identity';
-import { recoveryLimit, observeRecovery } from '@/core/admin/extension-installer/plugin-recovery-test-control';
+import { recoveryLimit, observeRecovery } from './recovery-test-control';
 import { ApiError } from '@/utils/api-errors';
 import { flushCompletedPluginMarkers } from '@/core/storage/completed-plugin-markers';
 
