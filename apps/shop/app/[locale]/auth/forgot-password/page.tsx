@@ -41,7 +41,12 @@ function ForgotPasswordContent() {
     }
     setBusy(true);
     try {
-      await authApi.forgotPassword(normalized);
+      // ApiClient resolves every failure as { success: false } — surface the
+      // server message instead of advancing on a failed request.
+      const sent = await authApi.forgotPassword(normalized);
+      if (!sent.success) {
+        throw new Error(sent.error?.message || 'Could not send the reset code. Try again in a moment.');
+      }
       setEmail(normalized);
       setStep('reset');
       setNotice(`If an account exists for ${normalized}, a six-digit reset code is on its way. It expires in 10 minutes.`);
@@ -59,7 +64,10 @@ function ForgotPasswordContent() {
     }
     setBusy(true);
     try {
-      await authApi.resetPassword({ email: input.email.trim().toLowerCase(), code: input.code.trim(), password: input.password });
+      const reset = await authApi.resetPassword({ email: input.email.trim().toLowerCase(), code: input.code.trim(), password: input.password });
+      if (!reset.success) {
+        throw new Error(reset.error?.message || 'Could not reset the password. Check the code and try again.');
+      }
       setStep('done');
     } finally {
       setBusy(false);
