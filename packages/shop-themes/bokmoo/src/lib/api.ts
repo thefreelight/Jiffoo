@@ -53,6 +53,7 @@ export interface BokmooApiProduct {
   description?: string;
   price: number;
   currency?: string;
+  productKind?: string;
   image?: string;
   // Storefront product DTOs and the native catalog sync expose plain URL
   // strings; the client cards API may return rich objects.
@@ -436,7 +437,7 @@ function mapVariant(variant: BokmooApiVariant): ThemeProductVariant {
   const esim = variant.attributes?.esim;
   return {
     id: variant.id,
-    name: variant.name,
+    name: displayProductTitle(variant.name),
     value: buildEsimSummary(esim),
     type: 'STYLE',
     price: variant.salePrice,
@@ -486,6 +487,7 @@ export function mapBokmooApiProductToThemeProduct(product: BokmooApiProduct): Th
     description: product.description || `${displayProductTitle(product.name)} travel connectivity package`,
     price: sellablePrice,
     sku: product.slug || product.id,
+    productKind: product.productKind,
     category: {
       id: esim?.region || 'esim',
       name: esim?.region || 'eSIM Plans',
