@@ -103,6 +103,7 @@ async function main() {
   const migrationArgs = (name,generation='migration') => [...updateArgs(name,directory+'/'+generation),'--plugin-packages',directory+'/packages'];
   const confirmed = async (name,generation='migration') => {
     const args=migrationArgs(name,generation), result=await host([...args,'--plan'],{quiet:true});
+    assert.match(result.output, /"environmentAdditions":\[\{"keys":\["JIFFOO_UPDATE_ACCEPTANCE_ADDITION"\]/);
     const hash=result.stdout.match(/Update plan: ([a-f0-9]{64})/)[1];
     return [...args,'--confirm',hash];
   };
@@ -182,7 +183,7 @@ async function main() {
       }
       const adjust = (bundle, manifest) => {
         const path = join(bundle,'deploy/compose/compose.release.yml'); let content = readFileSync(path,'utf8');
-        for (const service of ['api-1','api-2','worker-1','worker-2','db-init','silo-volume-init']) content = content.replace('  ' + service + ':\n', '  ' + service + ':\n    environment:\n      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/jiffoo_core_test\n');
+        for (const service of ['api-1','api-2','worker-1','worker-2','db-init','silo-volume-init']) content = content.replace('  ' + service + ':\n', '  ' + service + ':\n    environment:\n      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/jiffoo_core_test\n' + (bundle.includes('migration') ? '      JIFFOO_UPDATE_ACCEPTANCE_ADDITION: ${JIFFOO_UPDATE_ACCEPTANCE_ADDITION:?Set target-only configuration}\n' : ''));
         content += '\n  postgres:\n    image: '+manifest.images.postgres.reference+'\n    environment:\n      POSTGRES_DB: jiffoo_core_test\n';
         for(const [role,services] of [['redis',['redis']],['silo',['silo','silo-init']],['nginx',['edge','api-lb']]])for(const service of services)content+='\n  '+service+':\n    image: '+manifest.images[role].reference+'\n';
         writeFileSync(path,content);
@@ -225,6 +226,7 @@ async function main() {
         STOREFRONT_URL:'https://update-shop.test', ADMIN_URL:'https://update-admin.test', EDGE_PORT:'0', TLS_CERT_FILE:old + '/cert.pem', TLS_KEY_FILE:old + '/key.pem' };
       secrets = [env.JWT_SECRET,env.PLUGIN_SECRETS_KEY,env.PLUGIN_PAGE_TOKEN_SECRET, env.PLUGIN_FILE_URL_SECRET,env.MINIO_ROOT_USER,env.MINIO_ROOT_PASSWORD,env.SILO_APP_ACCESS_KEY_ID,env.SILO_APP_SECRET_ACCESS_KEY];
       writeFileSync(join(native,'old/deploy/compose/.env'),Object.entries(env).map(([key,value]) => key + '=' + value).join('\n') + '\n',{mode:0o600});
+      for (const [generation] of generations) writeFileSync(join(native, generation, 'deploy/compose/.env'), readFileSync(join(native, 'old/deploy/compose/.env'), 'utf8') + (generation.startsWith('migration') ? 'JIFFOO_UPDATE_ACCEPTANCE_ADDITION=confirmed-target-setting\n' : ''), { mode: 0o600 });
       for (const generation of ['old',...generations.map(([name])=>name)]) {
         const to = directory + '/' + generation; await run('cp',['-R',emulator ? '/input/' + generation : join(native,generation),to]);
         await run('chmod',['-R','u=rwX,go=',to]);

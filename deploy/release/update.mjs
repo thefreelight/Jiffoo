@@ -26,9 +26,10 @@ export function planDigest(plan) {
   const { token, confirmation, ...stablePaths } = paths;
   return sha256(Buffer.from(canonicalJson({ ...stable, paths: stablePaths })));
 }
-function confirmedPlan(plan) {
+export function confirmedPlan(plan) {
   need(plan.digest===planDigest(plan),'Plan digest mismatch');
   need(!plan.migrations.length && !plan.packages.some(item=>item.pending.length || item.provisionNamespace) || plan.paths.confirmation===plan.digest,'Migration confirmation must equal PLAN_SHA256; use --confirm');
+  need(!plan.environmentAdditions.length || plan.paths.confirmation===plan.digest,'Added environment confirmation must equal PLAN_SHA256; use --confirm');
 }
 const migrationInventory = () => readCoreMigrations('/app/apps/api/prisma/migrations');
 const identities = sources => sources.map(({ name, checksum }) => ({ name, checksum }));
@@ -136,7 +137,13 @@ async function pluginPlan(client, packages) {
   return { installed, packages: [...targets.values()].sort((a, b) => a.manifest.slug.localeCompare(b.manifest.slug)), pluginSlugs: [...new Set([...builtins.map(row => row.slug), ...targets.keys()])].sort(), themeSlugs: builtinManifests('/app/apps/api/builtin-themes', 'theme.json').map(row => row.slug).sort() };
 }
 
+export function assertEnvironmentUpgrade(current = {}, target = {}) {
+  need(Object.entries(current).every(([key, value]) => Object.hasOwn(target, key) && target[key] === value), 'Existing application environment cannot be changed or removed during update');
+  return Object.keys(target).filter(key => !Object.hasOwn(current, key)).sort();
+}
+
 function assertConfiguration(current, target, source, destination, containers, project) {
+  const environmentAdditions = [];
   need(current.name === project && target.name === project, 'Compose project identity mismatch');
   need(Object.keys(current.services).sort().join() === Object.keys(serviceRoles).sort().join() && Object.keys(target.services).sort().join() === Object.keys(serviceRoles).sort().join(), 'Unsupported service inventory');
   need(hash(current.volumes) === hash(target.volumes) && hash(current.networks) === hash(target.networks), 'Base volume or network changes are not supported');
@@ -150,11 +157,18 @@ function assertConfiguration(current, target, source, destination, containers, p
     else need(target.services[name].image === service.image, 'Base service image reference changes are not supported: ' + name);
     const left = structuredClone(service), right = structuredClone(target.services[name]);
     delete left.build; delete right.build; delete left.image; delete right.image;
+    if (['backend', 'admin', 'shop'].includes(role)) {
+      const keys = assertEnvironmentUpgrade(left.environment, right.environment);
+      if (keys.length) environmentAdditions.push({ service: name, keys });
+      for (const key of keys) delete right.environment[key];
+      if (!left.environment) delete right.environment;
+    }
     for (const config of [left, right]) for (const volume of config.volumes ?? []) if (volume.type === 'bind') {
       for (const root of ['/current/', '/target/']) if (volume.source.startsWith(root)) volume.source = '@release/' + volume.source.slice(root.length);
     }
     need(hash(left) === hash(right), 'Application configuration changes are not supported: ' + name);
   }
+  return environmentAdditions;
 }
 
 /** Resolve logical resources to the currently installed bindings, including restored stacks. */
@@ -294,7 +308,7 @@ async function main() {
     for (const config of [current, next]) for (const service of Object.values(config.services)) for (const volume of service.volumes ?? []) if (volume.type === 'bind') {
       for (const [native, alias] of [[paths.current, '/current'], [paths.target, '/target']]) if (volume.source.startsWith(native + '/')) volume.source = alias + volume.source.slice(native.length);
     }
-    assertConfiguration(current, next, source, target, containers.filter(c => c.Config.Labels?.['io.jiffoo.host-helper'] !== 'true'), project);
+    const environmentAdditions = assertConfiguration(current, next, source, target, containers.filter(c => c.Config.Labels?.['io.jiffoo.host-helper'] !== 'true'), project);
     const bindings=installedBindings(current,containers,json('/work/volumes.json'),project);
     const targetSources = migrationInventory(), targetInventory = identities(targetSources);
     const { validateCoreMigrationSql } = require('/app/packages/shared/dist/shared/src/core-migration-sql.js');
@@ -313,6 +327,7 @@ async function main() {
     });
     plan.strippedWrappers = targetSources.filter(item => validateCoreMigrationSql(item.sql).wrapperStripped).map(item => item.name);
     plan.currentVersion = source.version; plan.targetVersion = target.version;
+    plan.environmentAdditions = environmentAdditions;
     plan.bindings=bindings;
     plan.digest = planDigest(plan);
     durableJson('/work/plan.json', plan);
@@ -323,7 +338,7 @@ async function main() {
     } } return config; };
     durableJson('/work/prior-config.json', clean(current)); durableJson('/work/next-config.json', clean(next));
     const displayed={currentCommit:plan.currentCommit,currentVersion:plan.currentVersion,currentImages:plan.currentImages,targetCommit:plan.targetCommit,targetVersion:plan.targetVersion,images:plan.images,migrations:plan.migrations,strippedWrappers:plan.strippedWrappers,
-      plugins:plan.packages.map(item=>({slug:item.manifest.slug,currentVersion:plan.installed.find(row=>row.slug===item.manifest.slug).version,targetVersion:item.manifest.version,hash:item.hash,manifestDigest:item.manifestDigest,applied:item.applied,pending:item.pending,provisionNamespace:item.provisionNamespace})),backup:paths.backup,rollbackPolicy:plan.rollbackPolicy};
+      plugins:plan.packages.map(item=>({slug:item.manifest.slug,currentVersion:plan.installed.find(row=>row.slug===item.manifest.slug).version,targetVersion:item.manifest.version,hash:item.hash,manifestDigest:item.manifestDigest,applied:item.applied,pending:item.pending,provisionNamespace:item.provisionNamespace})),environmentAdditions:plan.environmentAdditions,backup:paths.backup,rollbackPolicy:plan.rollbackPolicy};
     console.info(`Update plan: ${plan.digest}\nCurrent commit: ${source.sourceCommit}\nTarget commit: ${target.sourceCommit}\nPending Core migrations: ${plan.migrations.length}\nPending plugin migrations: ${plan.packages.reduce((n, item) => n + item.pending.length + Number(item.provisionNamespace), 0)}\nBackup: ${paths.backup}\n${plan.rollbackPolicy}\nPlan details: ${canonicalJson(displayed)}`);
   } else if (command === 'image-plan') {
     for (const [kind, manifest] of [['current', source], ['target', target]]) for (const [role, image] of Object.entries(manifest.images)) console.info(`${kind}\t${role}\t${image.reference}`);
@@ -339,7 +354,7 @@ async function main() {
     confirmedPlan(plan);
     for (const file of ['plan.json','prior-config.json','next-config.json']) durableJson('/state/' + file, json('/work/' + file));
     mkdirSync('/state/deployment/release', { recursive: true, mode: 0o700 }); cpSync('/target', '/state/deployment/release', { recursive: true });
-    cpSync('/current/deploy/compose/.env', '/state/deployment/release/deploy/compose/.env');
+    cpSync('/target/deploy/compose/.env', '/state/deployment/release/deploy/compose/.env');
     durableJson('/state/journal.json', { version: 2, operationId: randomUUID(), project, phase: 'prepared', result: null, events: [], strippedWrappers: plan.strippedWrappers, planHash: plan.digest, priorConfigHash: hash(json('/state/prior-config.json')), nextConfigHash: hash(json('/state/next-config.json')), token: plan.paths.token, paths: plan.paths });
   } else if (command === 'journal') {
     const journal = json('/state/journal.json'); journal.phase = phase; journal.updatedAt = new Date().toISOString();

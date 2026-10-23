@@ -7,6 +7,27 @@ import { guardState, sealBackup, verifyBackup, fileHash, space } from '../deploy
 import { deploymentFiles, roles, sha256 } from '../deploy/release/identity.mjs';
 import { guardBackupDatabase } from './verify-backup.mjs';
 import { businessRowsHash, paymentRuntimeFields } from '../deploy/compose/backup-snapshot.mjs';
+import { assertEnvironmentUpgrade, confirmedPlan, planDigest } from '../deploy/release/update.mjs';
+
+test('application environment upgrades allow only explicit additions and preserve every existing value', () => {
+  const current = { JWT_SECRET: 'original', ADMIN_URL: 'https://admin.example:8443' };
+  assert.deepEqual(assertEnvironmentUpgrade(current, { ...current }), []);
+  assert.deepEqual(assertEnvironmentUpgrade(current, { ...current, PLUGIN_FILE_URL_SECRET: 'independent' }), ['PLUGIN_FILE_URL_SECRET']);
+  assert.deepEqual(assertEnvironmentUpgrade(undefined, { NEW_SETTING: 'value' }), ['NEW_SETTING']);
+  for (const target of [{}, { ...current, JWT_SECRET: 'changed' }, { ...current, ADMIN_URL: 'https://other.example' }]) assert.throws(() => assertEnvironmentUpgrade(current, target), /cannot be changed or removed/);
+});
+
+test('new application environment requires the exact plan confirmation even without migrations', () => {
+  const plan = { paths: { confirmation: '' }, migrations: [], packages: [], environmentAdditions: [{ service: 'api-1', keys: ['NEW_SETTING'] }], configurationHash: 'original' };
+  plan.digest = planDigest(plan);
+  assert.throws(() => confirmedPlan(plan), /Added environment confirmation/);
+  plan.paths.confirmation = '0'.repeat(64);
+  assert.throws(() => confirmedPlan(plan), /Added environment confirmation/);
+  plan.paths.confirmation = plan.digest;
+  confirmedPlan(plan);
+  plan.configurationHash = 'changed';
+  assert.throws(() => confirmedPlan(plan), /Plan digest mismatch/);
+});
 
 test('payment snapshots allow lease renewal but still detect financial, identity and business timestamp changes', () => {
   const original = { id: 'payment', orderId: 'order', amount: '12.50', currency: 'USD', status: 'SUCCEEDED',
