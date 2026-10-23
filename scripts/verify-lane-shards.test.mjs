@@ -675,11 +675,26 @@ test('the cleanup rows of an upload storage carry the real ids and never a place
       volumes: ['jiffoo-upload-934a6025-b836-48c2-a6c9-f7ecd36236ca-data'],
       cleanup: { status: 'removed', detail: 'reclaimed by the upload test storage helper of this run' },
     },
-  }, { containerExists: () => false, volumeExists: () => false });
+  }, { container: false, volumes: { 'jiffoo-upload-934a6025-b836-48c2-a6c9-f7ecd36236ca-data': false } });
   assert.deepEqual(rows.map(row => row.id), ['3871701a536f', 'jiffoo-upload-934a6025-b836-48c2-a6c9-f7ecd36236ca-data']);
   assert.deepEqual(rows.map(row => row.status), ['removed', 'removed']);
   assert.match(rows[0].detail, /reclaimed by the upload test storage helper/);
   assert.doesNotMatch(rows.map(row => row.name).join(' '), /unidentified/);
+});
+
+test('the cleanup rows of an upload storage need no docker call and no presence measurement', () => {
+  const rows = uploadStorageCleanupRows({
+    shard: 3,
+    uploadStorage: {
+      id: '3871701a536f',
+      name: 'jiffoo-upload-934a6025-b836-48c2-a6c9-f7ecd36236ca',
+      volumes: ['jiffoo-upload-934a6025-b836-48c2-a6c9-f7ecd36236ca-data'],
+      cleanup: { status: 'removed' },
+    },
+  });
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map(row => row.status), ['removed', 'removed']);
+  assert.deepEqual(uploadStorageCleanupRows({ shard: 1 }), []);
 });
 
 test('an upload storage that could not be identified fails the cleanup instead of using a placeholder name', () => {
@@ -691,7 +706,7 @@ test('an upload storage that could not be identified fails the cleanup instead o
       volumes: [],
       cleanup: { status: 'failed', detail: 'the upload storage container could not be identified' },
     },
-  }, { containerExists: () => false, volumeExists: () => false });
+  }, { container: false, volumes: {} });
   assert.equal(rows.length, 1);
   assert.equal(rows[0].status, 'failed');
   assert.equal(rows[0].name, 'not identified');

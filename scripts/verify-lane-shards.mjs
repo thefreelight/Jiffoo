@@ -934,15 +934,14 @@ export function uploadStorageResourceStatus(cleanupStatus, stillPresent) {
 // The cleanup rows of the upload storage of a shard. A shard whose process is still alive keeps
 // its upload storage; a storage that could not be removed is a cleanup failure, not a PASS. The
 // rows always carry the real resource id; a container that could not be identified is reported as
-// "not identified" and fails the cleanup, because its removal cannot be confirmed.
-export function uploadStorageCleanupRows(outcome, options = {}) {
-  const containerExists = options.containerExists ?? containerExistsById;
-  const volumeExists = options.volumeExists ?? volumeExists;
+// "not identified" and fails the cleanup, because its removal cannot be confirmed. The presence of
+// the resources is measured by the caller and handed in, so this function stays pure.
+export function uploadStorageCleanupRows(outcome, presence = {}) {
   const storage = outcome?.uploadStorage;
   if (!storage) return [];
   const cleanup = storage.cleanup ?? {};
   const rows = [];
-  const containerPresent = storage.id ? containerExists(storage.id) : false;
+  const containerPresent = presence.container ?? false;
   const containerStatus = uploadStorageResourceStatus(cleanup.status, containerPresent);
   const containerDetail = cleanup.status === 'retained'
     ? cleanup.detail ?? 'the shard process is still alive'
@@ -953,7 +952,7 @@ export function uploadStorageCleanupRows(outcome, options = {}) {
         : 'reclaimed by the upload test storage helper of this run (the test removed the container itself)';
   rows.push({ id: storage.id, name: storage.name, role: 'upload-storage', shard: outcome.shard, status: containerStatus, detail: containerDetail });
   for (const volume of storage.volumes ?? []) {
-    const volumePresent = volumeExists(volume);
+    const volumePresent = presence.volumes?.[volume] ?? false;
     const volumeStatus = uploadStorageResourceStatus(cleanup.status, volumePresent);
     const volumeDetail = cleanup.status === 'retained'
       ? cleanup.detail ?? 'the shard process is still alive'
@@ -1284,7 +1283,16 @@ async function main() {
       return { ...container, ...removeContainer(container.id) };
     });
     // The upload storage container and its volume of every shard belong to the cleanup inventory.
-    const uploadRows = outcomes.flatMap(outcome => uploadStorageCleanupRows(outcome));
+    // Their presence is measured here, after the shards finished, so the conclusion says whether
+    // the resource is really gone.
+    const uploadRows = outcomes.flatMap(outcome => {
+      const storage = outcome?.uploadStorage;
+      if (!storage) return [];
+      return uploadStorageCleanupRows(outcome, {
+        container: storage.id ? containerExistsById(storage.id) : false,
+        volumes: Object.fromEntries((storage.volumes ?? []).map(volume => [volume, volumeExists(volume)])),
+      });
+    });
     cleanupDone = true;
     const cleanup = buildCleanupReport([...cleanupContainers, ...uploadRows], {
       ownership: target.laneId ? `the operator of lane ${target.laneId}` : 'the operator of this integration run',
