@@ -223,6 +223,10 @@ fi
 [ ! -e "$state_dir" ] && [ ! -e "$backup_dir" ] || fail 'State and backup destinations must be new directories'
 phase=compatibility
 docker compose --project-name "$project" --env-file "$current/deploy/compose/.env" -f "$current/deploy/compose/compose.yml" -f "$current/deploy/compose/compose.release.yml" config --format json > "$work/current-config.json" 2>/dev/null
+helper config-image-plan > "$work/config-images.tsv"
+while IFS="$(printf '\t')" read -r name reference; do
+  docker image inspect "$reference" > "$work/config-$name.json"
+done < "$work/config-images.tsv"
 docker compose --project-name "$project" --env-file "$target/deploy/compose/.env" -f "$target/deploy/compose/compose.yml" -f "$target/deploy/compose/compose.release.yml" config --format json > "$work/target-config.json" 2>/dev/null
 helper plan
 [ "$action" != plan ] || { success=1; exit 0; }

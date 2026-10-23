@@ -7,8 +7,16 @@ import { guardState, sealBackup, verifyBackup, fileHash, space } from '../deploy
 import { deploymentFiles, roles, sha256 } from '../deploy/release/identity.mjs';
 import { guardBackupDatabase } from './verify-backup.mjs';
 import { businessRowsHash, paymentRuntimeFields } from '../deploy/compose/backup-snapshot.mjs';
-import { assertEnvironmentUpgrade, confirmedPlan, planDigest } from '../deploy/release/update.mjs';
+import { assertEnvironmentUpgrade, assertInstalledImage, confirmedPlan, planDigest } from '../deploy/release/update.mjs';
 import { auditDatabase } from '../deploy/release/audit-policy.mjs';
+
+test('restored image references must resolve to the same verified immutable running image', () => {
+  const expected = 'sha256:' + 'a'.repeat(64), wrong = 'sha256:' + 'b'.repeat(64);
+  const container = { Image: expected, Config: { Image: expected } };
+  assertInstalledImage(container, [{ Id: expected, RepoDigests: ['nginx@' + expected] }], expected);
+  for (const configured of [[], [{ Id: wrong }], [{ Id: expected }, { Id: expected }]]) assert.throws(() => assertInstalledImage(container, configured, expected), /Installed image differs/);
+  assert.throws(() => assertInstalledImage({ Image: wrong, Config: { Image: expected } }, [{ Id: expected }], expected), /Installed image differs/);
+});
 
 test('host audit binds local trial and CI databases to the installed project instead of its name', () => {
   const project = 'merchant-selected-project';

@@ -142,6 +142,10 @@ export function assertEnvironmentUpgrade(current = {}, target = {}) {
   return Object.keys(target).filter(key => !Object.hasOwn(current, key)).sort();
 }
 
+export function assertInstalledImage(container, configuredImage, expected) {
+  need(/^sha256:[a-f0-9]{64}$/.test(expected) && container.Image === expected && Array.isArray(configuredImage) && configuredImage.length === 1 && configuredImage[0].Id === expected, 'Installed image differs from the current release');
+}
+
 function assertConfiguration(current, target, source, destination, containers, project) {
   const environmentAdditions = [];
   need(current.name === project && target.name === project, 'Compose project identity mismatch');
@@ -152,7 +156,7 @@ function assertConfiguration(current, target, source, destination, containers, p
     const matches = containers.filter(c => c.Config.Labels['com.docker.compose.service'] === name && c.Config.Labels['com.docker.compose.oneoff'] !== 'True');
     need(matches.length === 1, 'Installed service inventory is ambiguous: ' + name);
     const role = serviceRoles[name], expected = json('/work/current-' + role + '.json')[0].Id;
-    need(matches[0].Image === expected && matches[0].Config.Image === service.image, 'Installed image differs from the current release: ' + name);
+    assertInstalledImage(matches[0], json('/work/config-' + name + '.json'), expected);
     if (['backend','admin','shop'].includes(role)) need(target.services[name].image === destination.images[role].reference, 'Target application image differs from the verified release');
     else need(target.services[name].image === service.image, 'Base service image reference changes are not supported: ' + name);
     const left = structuredClone(service), right = structuredClone(target.services[name]);
@@ -340,6 +344,13 @@ async function main() {
     const displayed={currentCommit:plan.currentCommit,currentVersion:plan.currentVersion,currentImages:plan.currentImages,targetCommit:plan.targetCommit,targetVersion:plan.targetVersion,images:plan.images,migrations:plan.migrations,strippedWrappers:plan.strippedWrappers,
       plugins:plan.packages.map(item=>({slug:item.manifest.slug,currentVersion:plan.installed.find(row=>row.slug===item.manifest.slug).version,targetVersion:item.manifest.version,hash:item.hash,manifestDigest:item.manifestDigest,applied:item.applied,pending:item.pending,provisionNamespace:item.provisionNamespace})),environmentAdditions:plan.environmentAdditions,backup:paths.backup,rollbackPolicy:plan.rollbackPolicy};
     console.info(`Update plan: ${plan.digest}\nCurrent commit: ${source.sourceCommit}\nTarget commit: ${target.sourceCommit}\nPending Core migrations: ${plan.migrations.length}\nPending plugin migrations: ${plan.packages.reduce((n, item) => n + item.pending.length + Number(item.provisionNamespace), 0)}\nBackup: ${paths.backup}\n${plan.rollbackPolicy}\nPlan details: ${canonicalJson(displayed)}`);
+  } else if (command === 'config-image-plan') {
+    const config = json('/work/current-config.json');
+    need(Object.keys(config.services).sort().join() === Object.keys(serviceRoles).sort().join(), 'Unsupported service inventory');
+    for (const [name, service] of Object.entries(config.services)) {
+      need(typeof service.image === 'string' && /^(?:sha256:[a-f0-9]{64}|[A-Za-z0-9./:-]+@sha256:[a-f0-9]{64})$/.test(service.image), 'Configured images must have immutable references');
+      console.info(`${name}\t${service.image}`);
+    }
   } else if (command === 'image-plan') {
     for (const [kind, manifest] of [['current', source], ['target', target]]) for (const [role, image] of Object.entries(manifest.images)) console.info(`${kind}\t${role}\t${image.reference}`);
   } else if (command === 'paths') {

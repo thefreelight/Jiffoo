@@ -185,7 +185,7 @@ async function main() {
         const path = join(bundle,'deploy/compose/compose.release.yml'); let content = readFileSync(path,'utf8');
         for (const service of ['api-1','api-2','worker-1','worker-2','db-init','silo-volume-init']) content = content.replace('  ' + service + ':\n', '  ' + service + ':\n    environment:\n      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/jiffoo_core_test\n' + (bundle.includes('migration') ? '      JIFFOO_UPDATE_ACCEPTANCE_ADDITION: ${JIFFOO_UPDATE_ACCEPTANCE_ADDITION:?Set target-only configuration}\n' : ''));
         content += '\n  postgres:\n    image: '+manifest.images.postgres.reference+'\n    environment:\n      POSTGRES_DB: jiffoo_core_test\n';
-        for(const [role,services] of [['redis',['redis']],['silo',['silo','silo-init']],['nginx',['edge','api-lb']]])for(const service of services)content+='\n  '+service+':\n    image: '+manifest.images[role].reference+'\n';
+        // Keep the source's pinned distribution references; restore uses local immutable IDs.
         writeFileSync(path,content);
         const member = manifest.deployment.find(row => row.path.endsWith('compose.release.yml')), bytes = readFileSync(path); member.sha256 = sha256(bytes); member.size = bytes.length;
         writeFileSync(join(bundle,'release.json'), JSON.stringify(manifest,null,2) + '\n');
