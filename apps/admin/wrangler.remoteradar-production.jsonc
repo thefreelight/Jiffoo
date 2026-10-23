@@ -8,7 +8,7 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "remoteradar-production-admin-cache" }],
   "vars": {
-    "API_SERVICE_URL": "https://api.remoteradar.cc",
+    "API_SERVICE_URL": "https://remoteradar-production-api.q624263170.workers.dev",
     "NEXT_PUBLIC_API_URL": "/api",
     "THEME_APP_PROXY_DISABLED": "1"
   }
