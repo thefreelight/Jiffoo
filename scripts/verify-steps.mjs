@@ -50,6 +50,22 @@ return quick
     ];
 }
 
+// Shard mode of the approved runner: `pnpm verify:quick --shards=N` keeps every step of the
+// quick gate and replaces the API suite with the sharded API run of scripts/verify-lane-shards.mjs.
+// The step list is built here, the sharded run itself is executed by the shard script.
+export function localShardSteps(databaseUrl, shardCount, options = {}) {
+  return [
+    ['Prisma generate', [['--filter', 'api', 'exec', 'prisma', 'generate']]],
+    ['Type-check API, Admin, Shop and shared', [['--filter', 'shared', 'build'], ['exec', 'turbo', 'run', 'type-check', '--filter=api', '--filter=admin', '--filter=shop', '--filter=shared']]],
+    ['Lint Shop', [['--filter', 'shop', 'lint']]],
+    ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
+    ...(options.drift ? [['Check Prisma migration drift', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'diff', '--from-url', databaseUrl, '--to-schema-datamodel', 'prisma/schema', '--exit-code']]]] : []),
+    [`Run API tests in ${shardCount} shards`, [['__lane_shards__', `--shards=${shardCount}`]]],
+    ['Run Admin tests', [['--filter', 'admin', 'exec', 'vitest', 'run']]],
+    ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
+  ];
+}
+
 export function ciSteps(databaseUrl, group, shard) {
   if (process.env.GITHUB_ACTIONS !== 'true') throw new Error('CI selection requires GITHUB_ACTIONS === true.');
   if (!['api', 'quality', 'e2e', 'compose', 'release-verify', 'backup', 'update-no-migration', 'update-migration'].includes(group)) throw new Error('Unknown CI group.');

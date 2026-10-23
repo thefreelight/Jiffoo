@@ -2,12 +2,14 @@
 // PostgreSQL and Redis container.
 //
 // Positioning - read this before trusting a result:
-// - This script is a STANDALONE TOOL. It is not wired into the approved `pnpm verify` /
-//   `pnpm verify:quick` runner chain, and it does not run the type check, the Prisma drift
-//   check, the planner-mandated suites, the admin or shop suites, or the browser E2E.
-// - It covers the API Vitest suite only.
-// - Until the gate owners of both sides agree on how it is wired in, the result of this script
-//   is NOT delivery evidence. The delivery gate stays `pnpm verify` plus GitHub Actions.
+// - This script runs the API Vitest suite in parallel shards. It is the API step of the approved
+//   runner when the runner invokes it (`pnpm verify:quick --shards=N`), and it does not run the
+//   type check, the Prisma drift check, the planner-mandated suites, the admin or shop suites,
+//   or the browser E2E.
+// - It covers the API Vitest suite only. A result of this script is therefore never a complete
+//   gate: the runner adds its own steps and the browser E2E stays with `pnpm verify` and CI.
+// - A standalone invocation of this script (for example `pnpm verify:shards`) stays a tool: on
+//   its own its result is not delivery evidence.
 //
 // Isolation contract:
 // - every shard starts its own PostgreSQL and Redis container; Docker allocates the host port
@@ -1340,9 +1342,10 @@ async function main() {
       `Total wall clock: ${wallClock}`,
       '',
       '--- Positioning (read before trusting this result) ---',
-      'This script is a standalone tool and is NOT wired into the approved `pnpm verify` / `pnpm verify:quick` runner chain.',
-      'It covers the API Vitest suite only.',
-      'Until the gate owners of both sides agree on the integration, the result of this run is NOT delivery evidence; the delivery gate stays `pnpm verify` plus CI.',
+      'This script runs the API Vitest suite in parallel shards.',
+      'It is the API step of the approved runner when the runner invokes it (`pnpm verify:quick --shards=N`);',
+      'a standalone invocation (for example `pnpm verify:shards`) stays a tool whose result is not delivery evidence on its own.',
+      'It covers the API Vitest suite only, so it is never a complete gate on its own.',
       'Steps this script does not run:',
       ...stepsNotCovered.map(step => `  - ${step}`),
       '',
