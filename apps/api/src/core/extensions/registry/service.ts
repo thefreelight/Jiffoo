@@ -9,7 +9,6 @@
 
 import { prisma } from '@/config/database';
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
-import { validateInstanceKeyFormat } from '@/core/extensions/shared/utils';
 
 type ProviderContract = 'payment' | 'shipping' | 'tax' | 'fulfillment' | 'notification';
 
@@ -46,7 +45,6 @@ export async function getAllPluginPackages(options?: { includeDeleted?: boolean 
  * Get default instance for a plugin
  */
 export async function getDefaultInstance(slug: string): Promise<PluginInstallation | null> {
-  validateInstanceKeyFormat('default');
   return prisma.pluginInstallation.findUnique({
     where: {
       pluginSlug_instanceKey: {

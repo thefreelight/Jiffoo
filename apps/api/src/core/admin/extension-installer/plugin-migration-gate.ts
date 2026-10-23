@@ -2,7 +2,7 @@ import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { randomUUID } from 'node:crypto';
 import type { Prisma, PluginMigrationOperation } from '@prisma/client';
-import { fencePluginOperationLease } from '@/core/storage/plugin-operation-lease';
+import { fencePluginOperationLease, insertPluginOperationLease, releasePluginOperationLeaseWith } from '@/core/storage/plugin-operation-lease';
 import { ensureCoreProcess } from '@/infra/core-process';
 import { rememberCompletedPluginMarker } from '@/core/storage/completed-plugin-markers';
 
@@ -29,8 +29,8 @@ export async function updateOwnedPluginMigrationOperation(operation: OperationOw
       await tx.pluginMigrationOperation.updateMany({ where: { slug: operation.slug, id: { not: operation.id }, phase: { in: ['FAILED', 'NEEDS_RECOVERY'] } }, data: { phase: 'RECOVERED', artifactBytes: null, recoveryState: `RECOVERED_BY:${operation.id}` } });
     }
     if (releaseLease) {
-      const released = await tx.pluginOperationLease.deleteMany({ where: { slug: operation.slug, token: operation.leaseToken } });
-      if (released.count !== 1) throw new ApiError('PLUGIN_OPERATION_LEASE_LOST');
+      const released = await releasePluginOperationLeaseWith(tx, operation.slug, operation.leaseToken);
+      if (released !== 1) throw new ApiError('PLUGIN_OPERATION_LEASE_LOST');
     }
   });
 }
@@ -74,11 +74,11 @@ export async function withPluginMigrationGate<T>(slug: string, invoke: () => Pro
       if (!lock[0]?.acquired) throw new ApiError('PLUGIN_MAINTENANCE');
     }
     if (await paused()) throw new ApiError('PLUGIN_MAINTENANCE');
-    await tx.$executeRaw`INSERT INTO public.plugin_operation_leases (slug, token, operation, "acquiredAt", "expiresAt", "ownerBootNonce") VALUES (${marker}, ${token}, ${`plugin-invocation:${slug}`}, clock_timestamp() AT TIME ZONE 'UTC', (clock_timestamp() AT TIME ZONE 'UTC') + interval '15 minutes', ${ownerBootNonce}::uuid)`;
+    await insertPluginOperationLease(tx, { slug: marker, token, operation: `plugin-invocation:${slug}`, ownerBootNonce });
   }, { maxWait: 5_000, timeout: 5_000 });
   try { return await invoke(); }
   finally {
-    try { await prisma.pluginOperationLease.deleteMany({ where: { slug: marker, token, ownerBootNonce } }); }
+    try { await releasePluginOperationLeaseWith(prisma, marker, token, ownerBootNonce); }
     catch (error) { rememberCompletedPluginMarker({ slug: marker, token, ownerBootNonce }); throw error; }
   }
 }

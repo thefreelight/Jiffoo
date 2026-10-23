@@ -318,7 +318,8 @@ export class CartService {
       } else {
         const catalog = await ProductService.getSellableCatalog(prisma, [item.productId]);
         const variant = catalog.get(item.productId)?.variants.find((entry) => entry.id === item.variantId);
-        const availableQuantity = variant?.stock ?? 0;
+        if (!variant) throw new ApiError('NOT_FOUND');
+        const availableQuantity = variant.stock;
         if (quantity > availableQuantity) throw new InsufficientCartStockError(availableQuantity);
         await prisma.cartItem.update({
           where: { id: itemId },
@@ -470,12 +471,13 @@ export class CartService {
     const items: CartItem[] = cart.items.map(item => {
       const product = catalog.get(item.productId);
       const variant = product?.variants.find((entry) => entry.id === item.variantId);
+      if (!variant) throw new ApiError('NOT_FOUND');
       const typeData = parseJsonRecord(product?.typeData);
       const images = Array.isArray(typeData?.images)
         ? typeData?.images.filter((image): image is string => typeof image === 'string')
         : [];
-      const availableStock = variant?.stock ?? 0;
-      const unitPrice = variant?.salePrice ?? 0;
+      const availableStock = variant.stock;
+      const unitPrice = variant.salePrice;
       return {
         id: item.id,
         productId: item.productId,

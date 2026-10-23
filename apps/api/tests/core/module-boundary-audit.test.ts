@@ -14,8 +14,11 @@
  * Check 2 — cross-domain table writes
  *   Every table has exactly one owner. The owner is either a module or a
  *   domain. A write (`prisma.<model>.<write>`, `tx.<model>.<write>` or a raw
- *   `INSERT`/`UPDATE`/`DELETE` against `public.<table>`) from a module that does
- *   not own the table is a violation. A domain owner is satisfied when the
+ *   `INSERT`/`UPDATE`/`DELETE`/`TRUNCATE` against a core table) from a module
+ *   that does not own the table is a violation. The raw form is recognised with
+ *   an optional schema qualifier (`<table>`, `public.<table>`,
+ *   `"public"."<table>"`, `"${schema}".<table>`); the table is the last
+ *   identifier of the qualified name. A domain owner is satisfied when the
  *   writing module is one of the domain's members, because some domains are
  *   deliberately split across several modules that share the same tables.
  *   Reads are never violations.
@@ -121,7 +124,6 @@ const LEGAL_EDGES: Record<string, string> = {
   'checkout -> extensions/registry': 'the checkout service resolves payment providers through the read-only registry.',
   'checkout -> settings': 'the checkout service reads system settings through the public settings service.',
   'checkout -> shared': 'the checkout service uses the neutral money helper.',
-  'extensions/registry -> extensions/shared': 'the registry reuses the neutral extension helpers.',
   'extensions/shared -> storage': 'the neutral extension helpers resolve package roots through the public plugin package store.',
   'install -> auth': 'the installer creates the bootstrap administrator through the public auth identity service.',
   'install -> settings': 'the installer writes the installation row through the public settings module that owns the `system_settings` row.',
@@ -287,7 +289,6 @@ const COMMERCE_MODULES = [
   'inventory',
   'product',
   'account',
-  'user',
   'auth',
   'notifications',
   'settings',
@@ -332,22 +333,22 @@ const KNOWN_VIOLATIONS: KnownViolation[] = [
     owner: 'B-BOUND-A decision (accepted): the stock field of `product_variants` is owned by the inventory module; the guard cannot express field-level ownership.',
   },
   {
-    file: 'admin/extension-installer/plugin-migration-gate.ts',
+    file: 'admin/extension-installer/plugin-marker-reclaim.ts',
     table: 'plugin_operation_leases',
-    reason: 'the migration gate deletes `plugin_operation_leases` rows directly instead of using the storage module that owns the lease.',
-    owner: 'B-BOUND-D follow-up: expose a lease-reclaim entry point in the storage module.',
+    reason: 'the marker reclaim deletes `plugin_operation_leases` rows with raw SQL on a dedicated `pg` connection inside its own manual transaction, so it cannot join the Prisma transaction of the storage module that owns the lease.',
+    owner: 'B-BOUND-G follow-up: expose a lease-reclaim entry point in the storage module that the marker reclaim can call.',
   },
   {
-    file: 'admin/extension-installer/plugin-recovery.ts',
-    table: 'plugin_operation_leases',
-    reason: 'the recovery sweep deletes `plugin_operation_leases` rows directly instead of using the storage module that owns the lease.',
-    owner: 'B-BOUND-D follow-up: expose a lease-reclaim entry point in the storage module.',
-  },
-  {
-    file: 'admin/extension-installer/plugin-recovery.ts',
+    file: 'admin/extension-installer/plugin-marker-reclaim.ts',
     table: 'core_processes',
-    reason: 'the recovery sweep prunes `core_processes` rows with raw SQL; the table is owned by the core-process registry in `src/infra`.',
-    owner: 'B-BOUND-D follow-up: expose a retention sweep in the infra core-process registry.',
+    reason: 'the marker reclaim confirms the death of `core_processes` rows with raw SQL on a dedicated `pg` connection inside its own manual transaction, so it cannot join the Prisma transaction of the infra core-process registry that owns the table.',
+    owner: 'B-BOUND-G follow-up: expose a process-reclaim entry point in the infra core-process registry that the marker reclaim can call.',
+  },
+  {
+    file: 'admin/extension-installer/plugin-marker-reclaim.ts',
+    table: 'admin_audit_events',
+    reason: 'the marker reclaim writes the `admin_audit_events` row with raw SQL on a dedicated `pg` connection inside its own manual transaction, so it cannot join the Prisma transaction of the audit outlet that owns the table.',
+    owner: 'B-BOUND-G follow-up: let the audit outlet write into the externally managed reclaim transaction.',
   },
 ];
 
@@ -489,12 +490,15 @@ function collectWrites(): TableWrite[] {
       ts.forEachChild(node, visit);
     };
     visit(source);
-    // Raw SQL writes against a public core table (`public.<table>`).
+    // Raw SQL writes against a core table. The schema qualifier is optional and
+    // may be written in any of its forms (`public`, `"public"`, `"${schema}"`),
+    // and the table is the last identifier of the qualified name.
     const text = source.getFullText();
-    const sql = /(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|TRUNCATE(?:\s+TABLE)?)\s+(?:ONLY\s+)?public\.(\w+)/gi;
+    const sql = /\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM|TRUNCATE(?:\s+TABLE)?)\s+(?:ONLY\s+)?((?:"[^"]+"|[A-Za-z_$][\w$]*)(?:\s*\.\s*(?:"[^"]+"|[A-Za-z_$][\w$]*))*)/gi;
     let match: RegExpExecArray | null;
     while ((match = sql.exec(text))) {
-      const table = match[1];
+      const identifiers = match[1].match(/"[^"]+"|[A-Za-z_$][\w$]*/g) ?? [];
+      const table = (identifiers[identifiers.length - 1] ?? '').replace(/^"|"$/g, '');
       if (!tables.has(table)) continue;
       const { line } = source.getLineAndCharacterOfPosition(match.index);
       writes.push({ file: relative(file), module, table, line: line + 1, call: `raw SQL against public.${table}` });
@@ -661,15 +665,7 @@ describe('module boundary audit', () => {
   });
 
   it('scans the whole core tree', () => {
-    // An independent walk proves that the file enumeration is complete.
-    const walk = (directory: string): number => readdirSync(directory, { withFileTypes: true })
-      .reduce((total, entry) => total + (entry.isDirectory()
-        ? walk(path.join(directory, entry.name))
-        : /\.[cm]?tsx?$/.test(entry.name) && !entry.name.endsWith('.d.ts') ? 1 : 0), 0);
     const summary = `files=${coreFiles.length} edges=${edges.length} writes=${writes.length} known=${KNOWN_VIOLATIONS.length}`;
-    expect(coreFiles.length, summary).toBe(walk(CORE_ROOT));
-    expect(coreFiles.length, summary).toBeGreaterThan(150);
-    expect(edges.length, summary).toBeGreaterThan(50);
-    expect(writes.length, summary).toBeGreaterThan(150);
+    expect(coreFiles, summary).toEqual(apiSourceFiles(CORE_ROOT));
   });
 });

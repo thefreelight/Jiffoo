@@ -52,7 +52,7 @@ These rules are binding on every agent that writes code in this repository. They
 
 - Every order-placement, redemption, stock-deduction and payment-callback path must be concurrency-idempotent: a database unique constraint, an optimistic-lock predicate, a PostgreSQL advisory lock, or a Redis idempotency key. A replayed request must return the original result and must not create a second effect.
 - Multi-table writes belong in one `prisma.$transaction`. Never leave a half-applied write behind on crash, and never let two concurrent transactions produce oversell, double capture, or a paid-but-unrecorded order.
-- Cross-instance correctness comes from the database, not from process memory. Use the existing locks and leases (`core/payment/locks.ts`, `core/payment/lease.ts`, `core/notifications/lease.ts`) and the transactional outbox instead of in-process coordination.
+- Cross-instance correctness comes from the database, not from process memory. Use the existing locks and leases (`core/shared/locks.ts`, `core/payment/lease.ts`, `core/notifications/lease.ts`) and the transactional outbox instead of in-process coordination.
 - Read-modify-write of a shared monetary or stock field must be expressed as a conditional update whose predicate includes the expected prior value.
 
 ### 4. Plugin and external calls degrade, never block the core flow

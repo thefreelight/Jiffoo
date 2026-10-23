@@ -12,6 +12,7 @@ import { processDatabaseUrl } from '@/infra/core-process-identity';
 import { recoveryLimit } from './plugin-recovery-test-control';
 import { databaseNowMs } from '@/infra/database-clock';
 import { AuditService } from '@/core/audit/service';
+import { renewPluginOperationLease } from '@/core/storage/plugin-operation-lease';
 
 export const PLUGIN_MIGRATION_LOCK_TIMEOUT_MS = 5_000;
 export const PLUGIN_MIGRATION_STATEMENT_TIMEOUT_MS = 600_000;
@@ -59,8 +60,7 @@ export async function claimPluginNamespace(operation: PluginMigrationOperation, 
 
 export async function renewPluginMigrationLease(slug: string, token: string): Promise<void> {
   const leaseMs = recoveryLimit('leaseMs', 15 * 60_000);
-  const count = await prisma.$executeRaw`UPDATE plugin_operation_leases SET "expiresAt" = (clock_timestamp() AT TIME ZONE 'UTC') + ${leaseMs} * interval '1 millisecond'
-    WHERE slug = ${slug} AND token = ${token} AND "expiresAt" > clock_timestamp() AT TIME ZONE 'UTC'`;
+  const count = await renewPluginOperationLease(prisma, slug, token, leaseMs);
   if (count !== 1) throw new ApiError('PLUGIN_OPERATION_LEASE_LOST');
 }
 

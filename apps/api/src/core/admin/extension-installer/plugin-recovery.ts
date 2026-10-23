@@ -2,10 +2,11 @@ import { prisma } from '@/config/database';
 import { Prisma, type PluginMigrationOperation } from '@prisma/client';
 import { isDeepStrictEqual } from 'node:util';
 import { INCOMPLETE_PLUGIN_OPERATION_PHASES } from './plugin-migration-gate';
-import { CORE_PROCESS_RETENTION_DAYS } from '@/infra/core-process';
+import { pruneCoreProcesses } from '@/infra/core-process';
 import { recoveryLimit, observeRecovery } from './plugin-recovery-test-control';
 import { createHash } from 'node:crypto';
 import { AuditService } from '@/core/audit/service';
+import { releasePluginOperationLeaseWith } from '@/core/storage/plugin-operation-lease';
 
 export const RECOVERY_SWEEP_MS = 60_000;
 export const RECOVERY_SWEEP_BATCH = 50;
@@ -54,7 +55,7 @@ export async function recoverPluginOperation(id: string): Promise<void> {
           await tx.pluginMigrationAttempt.updateMany({ where: { id: attempt.id, status: 'UNKNOWN' }, data: { status: 'SUCCESS', resolution: schemaProof ? 'NAMESPACE_CONFIRMED' : 'LEDGER_CONFIRMED', endedAt: new Date() } });
         }
       }
-      await tx.pluginOperationLease.deleteMany({ where: { slug: operation.slug, token: operation.leaseToken } });
+      await releasePluginOperationLeaseWith(tx, operation.slug, operation.leaseToken);
       await AuditService.write(tx, { actorId: 'system', action: published ? 'PLUGIN_PUBLICATION_RECOVERED' : 'PLUGIN_RECOVERY_REQUIRED', targetType: 'plugin', targetId: operation.slug, summary: { operationId: id, priorPhase: operation.phase, reason } });
       observeRecovery(published ? 'published-recovered' : 'needs-recovery', id);
     }, { maxWait: 1_000, timeout: 5_000 });
@@ -72,7 +73,7 @@ export async function sweepPluginRecovery(): Promise<{ inspected: number; pruned
   for (const row of rows) { if (performance.now() >= deadline) break; await recoverPluginOperation(row.id); cursor = row.id; inspected++; }
   if (inspected === rows.length && rows.length < RECOVERY_SWEEP_BATCH) cursor = undefined;
   await prisma.$executeRaw`DELETE FROM public.plugin_task_execution_slots WHERE id IN (SELECT id FROM public.plugin_task_execution_slots WHERE state = 'RELEASED' AND "releasedAt" < clock_timestamp() - interval '30 days' ORDER BY "releasedAt",id LIMIT ${RECOVERY_SWEEP_BATCH})`;
-  const pruned = await prisma.$executeRaw`DELETE FROM public.core_processes p WHERE p."bootNonce" IN (SELECT c."bootNonce" FROM public.core_processes c WHERE c.state IN ('QUIESCENT','DEAD_CONFIRMED') AND coalesce(c."deathConfirmedAt", c."drainedAt") < (clock_timestamp() AT TIME ZONE 'UTC') - ${CORE_PROCESS_RETENTION_DAYS} * interval '1 day' AND NOT EXISTS(SELECT 1 FROM public.plugin_operation_leases l WHERE l."ownerBootNonce" = c."bootNonce") AND NOT EXISTS(SELECT 1 FROM public.plugin_migration_operations o WHERE o."ownerBootNonce" = c."bootNonce") AND NOT EXISTS(SELECT 1 FROM public.plugin_tasks t WHERE t."claimedByBootNonce" = c."bootNonce") AND NOT EXISTS(SELECT 1 FROM public.plugin_task_execution_slots s WHERE s."bootNonce" = c."bootNonce") ORDER BY c."bootNonce" LIMIT ${RECOVERY_SWEEP_BATCH})`;
+  const pruned = await pruneCoreProcesses(prisma, RECOVERY_SWEEP_BATCH);
   return { inspected, pruned };
 }
 export function startPluginRecoverySweeper() {

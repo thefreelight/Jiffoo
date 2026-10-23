@@ -85,8 +85,11 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
           paymentId: payment.id, paymentMethod: payment.paymentMethod, paymentIntentId: input.paymentIntentId || payment.paymentIntentId,
           sessionId: payment.sessionId, providerEventId: input.providerEventId, metadata: (payment.metadata || {}) as Record<string, unknown>, actorId: input.actorId,
         });
+        // A paid order always has an order row; a missing one is a real error and
+        // must not degrade into a payload without a user.
+        if (!paid) throw new ApiError('NOT_FOUND');
         await emitEvent(tx, 'payment.succeeded', 1, payment.id, {
-          paymentId: payment.id, orderId: identity.orderId, userId: paid?.userId ?? '', amount: Number(payment.amount), currency: payment.currency, metadata: payment.metadata || {},
+          paymentId: payment.id, orderId: identity.orderId, userId: paid.userId, amount: Number(payment.amount), currency: payment.currency, metadata: payment.metadata || {},
         }, { actorId: input.actorId });
       }
       return true;
