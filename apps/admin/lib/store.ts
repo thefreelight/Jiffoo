@@ -5,6 +5,8 @@ import { apiClient, authApi, dashboardApi, unwrapApiResponse } from './api'
 import { type UserProfile } from 'shared'
 
 type AppUser = UserProfile
+let restoration: Promise<void> | null = null;
+let identityRevision = 0;
 
 // Auth Store
 interface AuthState {
@@ -12,6 +14,7 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   isChecking: boolean
+  authError: boolean
   sessionNotice: boolean
   login: (identifier: string, password: string) => Promise<void>
   logout: (reason?: 'expired') => Promise<void>
@@ -25,10 +28,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: true,
   isChecking: false,
+  authError: false,
   sessionNotice: false,
 
   login: async (identifier: string, password: string) => {
-    set({ isLoading: true })
+    identityRevision++;
+    restoration = null;
+    set({ isLoading: true, authError: false })
     try {
       const response = await authApi.login(identifier, password);
       const loginData = unwrapApiResponse(response);
@@ -83,6 +89,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async (reason) => {
+    identityRevision++;
+    restoration = null;
     if (reason === 'expired') {
       window.dispatchEvent(new Event('jiffoo:identity-changing'));
       apiClient.clearAuth();
@@ -92,23 +100,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_status');
     }
-    set({ user: null, isAuthenticated: false, isLoading: false, isChecking: false, sessionNotice: reason === 'expired' })
+    set({ user: null, isAuthenticated: false, isLoading: false, isChecking: false, authError: false, sessionNotice: reason === 'expired' })
   },
 
-  checkAuth: async () => {
-    const currentState = get()
-    if (currentState.isChecking) return
+  checkAuth: () => {
+    // Every caller awaits the same restoration, including Strict Mode remounts.
+    if (restoration) return restoration;
+    const revision = identityRevision;
+    const task = (async () => {
 
     if (!apiClient.isAuthenticated()) {
-      set({ isAuthenticated: false, isLoading: false, isChecking: false })
+      set({ user: null, isAuthenticated: false, isLoading: false, isChecking: false, authError: false })
       return
     }
 
-    set({ isLoading: true, isChecking: true })
+    set({ isLoading: true, isChecking: true, authError: false })
 
     try {
       const response = await authApi.me();
       const userData = unwrapApiResponse(response);
+      if (revision !== identityRevision) return;
 
       const user = {
         id: userData.id,
@@ -123,13 +134,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         updatedAt: userData.updatedAt,
         lastLoginAt: userData.lastLoginAt || new Date().toISOString()
       }
-      set({ user, isAuthenticated: true, isLoading: false, isChecking: false })
+      set({ user, isAuthenticated: true, isLoading: false, isChecking: false, authError: false })
     } catch (error) {
+      if (revision !== identityRevision) return;
       console.warn('Auth check failed:', error)
+      const failure = error as { code?: string; status?: number };
+      const rejected = failure.status === 401 || failure.status === 403;
+      if (!rejected) {
+        // An unavailable server leaves identity unknown; it does not prove logout.
+        set({ isLoading: false, isChecking: false, authError: true });
+        return;
+      }
       apiClient.clearAuth()
-      set({ user: null, isAuthenticated: false, isLoading: false, isChecking: false,
+      set({ user: null, isAuthenticated: false, isLoading: false, isChecking: false, authError: false,
         sessionNotice: ['SESSION_REVOKED', 'UNAUTHORIZED', 'INVALID_TOKEN', 'REFRESH_FAILED'].includes((error as { code?: string })?.code ?? '') })
     }
+    })();
+    restoration = task;
+    void task.finally(() => { if (restoration === task) restoration = null; });
+    return task;
   },
 
   updateUser: (user: AppUser) => {

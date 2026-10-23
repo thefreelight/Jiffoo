@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { randomUUID, createHash } from 'node:crypto';
 import { request as httpsRequest } from 'node:https';
+import { request as httpRequest } from 'node:http';
 import { resolve } from 'node:path';
 import { AcceptanceChecks, scenarioPlans } from './checks.mjs';
 
@@ -109,8 +110,14 @@ async function state() {
         assert.ok(response.body.includes('Compose page probe'));
         assert.ok(response.headers['content-security-policy'].includes(`script-src ${origin.origin};`));
         for (const base of bases) {
-          const direct = await fetch(base + path, { headers: { host: origin.host }, signal: AbortSignal.timeout(30000) });
-          assert.equal(direct.status, 200); await direct.body?.cancel();
+          // fetch() reserves Host; use the HTTP transport to exercise actual authority.
+          const status = await new Promise((done, reject) => {
+            const request = httpRequest(base + path, { headers: { host: origin.host }, signal: AbortSignal.timeout(30000) }, response => {
+              response.resume(); response.once('end', () => done(response.statusCode));
+            });
+            request.once('error', reject); request.end();
+          });
+          assert.equal(status, 200, `${base} must serve the configured authority ${origin.host}`);
         }
       }
       for (const authority of [shop.hostname, shop.hostname + ':9443', 'evil.example', shop.host + '.evil.example']) {

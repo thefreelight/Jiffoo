@@ -76,6 +76,7 @@ async function main() {
     });
     await checks.run('Generate local acceptance release', ['Build local release images'], () => {
       bundle = join(temporary, 'bundle'); manifest = makeRelease({ root: process.cwd(), output: bundle, inspections, commit, version, mode: 'acceptance' });
+      writeFileSync(join(evidence, 'release-acceptance.json'), JSON.stringify(manifest, null, 2) + '\n');
     });
     await checks.run('Verify complete local release', ['Generate local acceptance release'], async () => {
       const result = await verify(bundle); assert.equal(result.code, 0, result.output); assert.match(result.output, /Release verification passed/);

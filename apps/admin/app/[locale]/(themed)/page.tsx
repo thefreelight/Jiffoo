@@ -6,5 +6,5 @@ interface Props {
 
 export default async function LocaleEntryPage({ params }: Props) {
   const { locale } = await params
-  redirect(`/${locale}/auth/login`)
+  redirect(`/${locale}/dashboard`)
 }

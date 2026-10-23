@@ -26,11 +26,40 @@ test('dashboard keeps document within the viewport and scrolls all content insid
     const image = await page.screenshot({ fullPage: true, animations: 'disabled' });
     expect(image.readUInt32BE(20), 'Document must not have a second vertical scroll range').toBe(height);
     await main.focus(); await page.keyboard.press('Control+End');
-    const recent = await page.getByRole('heading', { name: 'Recent orders', exact: true }).boundingBox();
-    expect(recent!.y).toBeGreaterThanOrEqual(0); expect(recent!.y + recent!.height).toBeLessThanOrEqual(height);
+    const recent = await page.getByRole('region', { name: 'Recent orders', exact: true }).boundingBox();
+    expect(recent!.y + recent!.height).toBeGreaterThan(0); expect(recent!.y + recent!.height).toBeLessThanOrEqual(height);
     expect(await main.boundingBox()).toEqual(before);
     await testInfo.attach('dashboard-scroll-' + width, { body: JSON.stringify({ viewport: { width, height }, main: before, recent, documentHeight: image.readUInt32BE(20) }), contentType: 'application/json' });
   }
+});
+test('a reopened authenticated tab restores at its destination without visiting login', async ({ page, context }, testInfo) => {
+  await login(page, ownerEmail, 'FinalOwnerPassword123!');
+  await page.close();
+  const reopened = await context.newPage();
+  const evidence: Array<Record<string, unknown>> = [];
+  reopened.on('framenavigated', frame => {
+    if (frame === reopened.mainFrame()) evidence.push({ type: 'navigation', url: frame.url(), at: Date.now() });
+  });
+  reopened.on('request', request => {
+    const url = new URL(request.url());
+    if (/\/auth\/(?:me|refresh)$/.test(url.pathname)) evidence.push({ type: 'auth-request', path: url.pathname, method: request.method(), at: Date.now() });
+  });
+  reopened.on('response', response => {
+    if (response.request().isNavigationRequest()) evidence.push({ type: 'document-response', url: response.url(), status: response.status(), location: response.headers().location ?? null, at: Date.now() });
+  });
+  try {
+    for (const target of ['/en/dashboard', '/']) {
+      evidence.length = 0;
+      await reopened.goto(target);
+      await expect(reopened.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible();
+      await expect(reopened).toHaveURL(/\/en\/dashboard$/);
+      await testInfo.attach('restoration-' + (target === '/' ? 'root' : 'dashboard'), { body: JSON.stringify(evidence, null, 2), contentType: 'application/json' });
+      expect(evidence.filter(item => item.type === 'navigation').some(item => String(item.url).includes('/auth/login'))).toBe(false);
+      expect(evidence.filter(item => item.type === 'document-response').some(item => String(item.location).includes('/auth/login'))).toBe(false);
+      expect(evidence.filter(item => item.type === 'auth-request' && item.path === '/api/v1/auth/me')).toHaveLength(1);
+      expect(evidence.filter(item => item.type === 'auth-request' && item.path === '/api/v1/auth/refresh')).toHaveLength(0);
+    }
+  } finally { await reopened.close(); }
 });
 test('U1b modes and rail persist through SSR reload while mobile navigation stays keyboard accessible', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });

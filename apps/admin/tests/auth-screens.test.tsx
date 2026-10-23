@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   token: 'token', push: vi.fn(), replace: vi.fn(), login: vi.fn(), checkAuth: vi.fn(),
   invite: vi.fn(), inspectReset: vi.fn(), forgotPassword: vi.fn(), resetPassword: vi.fn(), acceptInvite: vi.fn(),
   sessionNotice: false,
+  authenticated: false,
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push, replace: mocks.replace }), usePathname: () => '/en/auth/login', useSearchParams: () => new URLSearchParams({ token: mocks.token }) }));
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string, params?: Record<string, string>) => {
@@ -19,13 +20,13 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (ke
   for (const [name, item] of Object.entries(params ?? {})) value = value.replace('{' + name + '}', item);
   return value;
 } }));
-vi.mock('@/lib/store', () => ({ useAuthStore: () => ({ login: mocks.login, checkAuth: mocks.checkAuth, sessionNotice: mocks.sessionNotice, isAuthenticated: false, isLoading: false }) }));
+vi.mock('@/lib/store', () => ({ useAuthStore: () => ({ login: mocks.login, checkAuth: mocks.checkAuth, sessionNotice: mocks.sessionNotice, isAuthenticated: mocks.authenticated, isLoading: false }) }));
 vi.mock('@/lib/api', () => ({ authApi: mocks, unwrapApiResponse: (response: { success: boolean; data?: unknown; error?: unknown }) => { if (!response.success) throw response.error; return response.data; } }));
 
 describe('Admin public account screens', () => {
   let container: HTMLDivElement, root: Root;
   beforeEach(() => {
-    vi.resetAllMocks(); mocks.token = 'token'; mocks.sessionNotice = false;
+    vi.resetAllMocks(); mocks.token = 'token'; mocks.sessionNotice = false; mocks.authenticated = false;
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
     container = document.createElement('div'); document.body.append(container); root = createRoot(container);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ isInstalled: true }) }));
@@ -61,6 +62,16 @@ describe('Admin public account screens', () => {
   it('shows the server-session notice from auth state', async () => {
     await render('login'); expect(container.querySelector('[role="status"]')).toBeNull();
     mocks.sessionNotice = true; await render('login'); expect(container.querySelector('[role="status"]')?.textContent).toBe(adminAuthMessages.en.signedOut);
+  });
+  it('awaits restoration before replacing login once, including repeated renders', async () => {
+    mocks.authenticated = true;
+    let finish!: () => void;
+    mocks.checkAuth.mockReturnValueOnce(new Promise<void>(resolve => { finish = resolve; }));
+    await render('login'); expect(mocks.replace).not.toHaveBeenCalled();
+    await act(async () => finish());
+    expect(mocks.replace).toHaveBeenCalledExactlyOnceWith('/en/dashboard');
+    await render('login');
+    expect(mocks.replace).toHaveBeenCalledTimes(1); expect(mocks.push).not.toHaveBeenCalled();
   });
   it('shows a neutral acknowledgement after a reset request', async () => {
     mocks.forgotPassword.mockResolvedValueOnce({ success: true }); await render('forgot'); await enter('identifier', 'owner@example.com'); await submit();

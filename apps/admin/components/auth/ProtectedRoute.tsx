@@ -26,7 +26,7 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated, isLoading, isChecking, user, checkAuth } = useAuthStore()
+  const { isAuthenticated, isLoading, isChecking, authError, user, checkAuth } = useAuthStore()
   const [hasInitialized, setHasInitialized] = useState(false)
   const t = useT()
   const locale = useLocale()
@@ -65,11 +65,11 @@ export default function ProtectedRoute({
     }
 
     void initAuth()
-  }, [checkAuth, pathname])
+  }, [checkAuth])
 
   useEffect(() => {
     // Only perform redirect judgment when initialization is complete and not in loading state
-    if (hasInitialized && !isLoading && !isChecking) {
+    if (hasInitialized && !isLoading && !isChecking && !authError) {
       if (!isAuthenticated) {
         // Save current path for redirect after login
         if (pathname !== `/${locale}/auth/login` && pathname !== '/' && pathname !== `/${locale}`) {
@@ -87,6 +87,7 @@ export default function ProtectedRoute({
     }
   }, [
     hasAdminAccess,
+    authError,
     hasInitialized,
     isAuthenticated,
     isChecking,
@@ -98,13 +99,17 @@ export default function ProtectedRoute({
     user,
   ])
 
-  // Show loading state: initializing or checking authentication
+  if (authError) return <div role="alert" className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-ground text-foreground">
+    <p>{getText('merchant.authFlow.failed', 'Unable to restore your session.')}</p>
+    <button type="button" onClick={() => void checkAuth()}>{getText('merchant.authFlow.retry', 'Retry')}</button>
+  </div>;
+
+  // Keep the target URL while the server establishes identity and current access.
   if (!hasInitialized || isLoading || isChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div role="status" aria-label={getText('common.loading', 'Loading...')} className="min-h-dvh flex items-center justify-center bg-ground">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-foreground">{getText('merchant.auth.verifyingIdentity', 'Verifying identity...')}</p>
         </div>
       </div>
     )

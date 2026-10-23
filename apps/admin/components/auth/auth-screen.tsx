@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useT } from 'shared/src/i18n/react';
@@ -48,13 +48,20 @@ export function AuthAlert({ children }: { children: ReactNode }) {
 
 export function AuthScreen({ mode }: { mode: 'login' | 'forgot' | 'reset' | 'invite' }) {
   const locale = useLocale(), router = useRouter(), params = useSearchParams(), text = useAuthCopy();
-  const { login, checkAuth, isAuthenticated, isLoading, sessionNotice } = useAuthStore();
+  const { login, checkAuth, isAuthenticated, isLoading, isChecking, authError, sessionNotice } = useAuthStore();
+  const redirected = useRef(false);
+  const [restored, setRestored] = useState(false);
   const [identifier, setIdentifier] = useState(''), [password, setPassword] = useState(''), [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [mismatch, setMismatch] = useState(false);
   const [done, setDone] = useState(false), [linkState, setLinkState] = useState<'loading' | 'valid' | 'invalid' | 'failed'>('loading');
   const [invitation, setInvitation] = useState<{ email: string; storeName: string } | null>(null);
   const token = params.get('token') || '', loginPath = '/' + locale + '/auth/login';
-  useEffect(() => { if (mode === 'login') void checkAuth(); }, [mode, checkAuth]);
+  useEffect(() => {
+    if (mode !== 'login') return;
+    let active = true;
+    void (async () => { await checkAuth(); if (active) setRestored(true); })();
+    return () => { active = false; };
+  }, [mode, checkAuth]);
   useEffect(() => {
     if (mode !== 'login') return;
     let active = true;
@@ -63,11 +70,12 @@ export function AuthScreen({ mode }: { mode: 'login' | 'forgot' | 'reset' | 'inv
     return () => { active = false; };
   }, [mode, locale, router]);
   useEffect(() => {
-    if (mode !== 'login' || !isAuthenticated) return;
+    if (mode !== 'login' || !restored || !isAuthenticated || isLoading || isChecking || authError || redirected.current) return;
+    redirected.current = true;
     const redirect = sessionStorage.getItem('redirectPath');
     sessionStorage.removeItem('redirectPath');
-    router.push(redirect?.startsWith('/' + locale + '/') && redirect !== loginPath ? redirect : '/' + locale + '/dashboard');
-  }, [mode, isAuthenticated, locale, loginPath, router]);
+    router.replace(redirect?.startsWith('/' + locale + '/') && redirect !== loginPath ? redirect : '/' + locale + '/dashboard');
+  }, [mode, restored, isAuthenticated, isLoading, isChecking, authError, locale, loginPath, router]);
   useEffect(() => {
     if (mode !== 'invite' && mode !== 'reset') return;
     let active = true;
