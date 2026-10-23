@@ -26,6 +26,7 @@ process.env.JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY = 'MCowBQYDK2VwAyEAGnrSfwlHnHXdd6
 process.env.EXTENSION_TEST_SIGNING_MODE = 'true';
 process.env.PLUGIN_SECRETS_KEY = Buffer.alloc(32, 17).toString('base64');
 process.env.PLUGIN_PAGE_TOKEN_SECRET = Buffer.from(Array.from({ length: 32 }, (_, index) => index + 1)).toString('base64');
+process.env.PLUGIN_FILE_URL_SECRET = Buffer.from(Array.from({ length: 32 }, (_, index) => index + 65)).toString('base64');
 process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
 
 // Global setup - runs once before all tests

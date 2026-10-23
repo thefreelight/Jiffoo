@@ -7,6 +7,7 @@ const methods = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 const allowedHeaders = ['Authorization', 'Content-Type', 'Idempotency-Key'];
 const tokenRoutes = /^\/api\/v1\/(?:extensions\/plugin\/([a-z][a-z0-9-]*)\/api(?:\/.*)?|plugin-storage\/([a-z][a-z0-9-]*)\/.+)$/;
 const assetRoutes = /^\/api\/v1\/plugin-assets\/[^/]+\/[a-f0-9]{64}\/.+$/;
+const privateFileRoutes = /^\/api\/v1\/plugin-files\/[a-f0-9-]{36}$/;
 
 /** P-3 supplies authoritative signature, session, identity and lifecycle verification. */
 export interface PluginPageAdmission {
@@ -55,6 +56,10 @@ export async function registerOriginPolicy(app: FastifyInstance, options: {
     const origin = request.headers.origin;
     if (isPluginAssetRequest(request)) return;
     const path = request.url.split('?')[0];
+    if (['GET', 'HEAD'].includes(request.method) && privateFileRoutes.test(path)) {
+      request[opaquePluginResponse] = origin === 'null';
+      return;
+    }
     const match = tokenRoutes.exec(path);
     const token = request.headers.authorization?.match(/^Bearer ([^\s]+)$/)?.[1];
     const pluginToken = token ? isPluginPageToken(token) : false;

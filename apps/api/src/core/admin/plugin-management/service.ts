@@ -1,4 +1,5 @@
 import { PluginPageService } from "@/core/plugin-pages/service";
+import { PluginStorageService } from '@/core/plugin-storage/service';
 /**
  * Plugin Management Service
  *
@@ -742,6 +743,7 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
     for (const instance of taskInstallations) {
       await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${instance.id} FOR UPDATE`;
       await transitionInstallationTasks(tx, instance.id, 'CANCEL', 'PURGED');
+      await PluginStorageService.purgeInstallation(tx, instance.id, actorId);
     }
     const pending = await tx.payment.count({ where: { paymentMethod: slug, status: { in: ['CREATING','PENDING','UNKNOWN','REQUIRES_REVIEW'] } } });
     if (pending) {

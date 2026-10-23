@@ -377,6 +377,7 @@ model PluginInstallation {
   tasks                PluginTask[]
   pageSessions         PluginPageSession[]
   purchaseOrigins      PluginPurchaseOrigin[]
+  storageQuotas        PluginStorageQuota[]
 
   @@unique([pluginSlug, instanceKey])
   @@index([pluginSlug])

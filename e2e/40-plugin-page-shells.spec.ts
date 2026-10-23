@@ -1,6 +1,25 @@
 import { expect, test } from './local-requests';
 import { pluginPagePackage } from './plugin-page-package';
 import { finalOwnerPassword, login, ownerEmail } from './helpers';
+import { promises as fs } from 'node:fs';
+import sharp from 'sharp';
+import type { Page } from '@playwright/test';
+
+async function privateFileProof(page: Page, title: string) {
+  const bytes = await sharp({ create: { width: 16, height: 12, channels: 3, background: '#345678' } }).png().toBuffer();
+  const frame = page.getByRole('document', { name: title, exact: true }).contentFrame();
+  await frame.getByLabel('Private image', { exact: true }).setInputFiles({ name: 'private.png', mimeType: 'image/png', buffer: bytes });
+  await frame.getByRole('button', { name: 'Upload and process private image', exact: true }).click();
+  await expect(frame.getByRole('status', { name: 'Action result', exact: true })).toHaveText('Private image displayed');
+  await expect(frame.getByRole('img', { name: 'Private generated result', exact: true })).toBeVisible();
+  await frame.getByRole('button', { name: 'Save private result', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Download this plugin file?', exact: true })).toBeVisible();
+  const downloaded = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save file', exact: true }).click();
+  const file = await downloaded;
+  expect(file.suggestedFilename()).toMatch(/^[a-f0-9-]{36}\.png$/);
+  expect(await fs.readFile((await file.path())!)).toEqual(bytes);
+}
 
 for (const surface of ['shop', 'admin'] as const) test(`${surface}: dedicated shell binds the bridge and revokes after API uninstall`, async ({ page, request, newObservedContext }) => {
   test.setTimeout(180_000);
@@ -56,6 +75,7 @@ for (const surface of ['shop', 'admin'] as const) test(`${surface}: dedicated sh
     if (surface === 'admin') {
       await expect(page.getByRole('dialog', { name: 'Download this plugin file?', exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await privateFileProof(page, title);
     } else {
       await expect(frame.getByRole('status', { name: 'Action result', exact: true })).toHaveText('Action refused');
       await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -85,6 +105,7 @@ for (const surface of ['shop', 'admin'] as const) test(`${surface}: dedicated sh
         await customer.goto(canonical);
         const customerFrame = customer.getByRole('document', { name: title, exact: true }).contentFrame();
         await expect(customerFrame.getByRole('status', { name: 'Page identity', exact: true })).toHaveText(email);
+        await privateFileProof(customer, title);
         await customerFrame.getByLabel('Variant ID', { exact: true }).fill(variantId);
         await customerFrame.getByRole('button', { name: 'Add selected variant', exact: true }).click();
         await expect(customerFrame.getByRole('status', { name: 'Action result', exact: true })).toHaveText('Product added');

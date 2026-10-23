@@ -37,6 +37,8 @@ export const envSchema = z.object({
   REDIS_URL: z.string().default('redis://localhost:6379'),
   PLUGIN_SECRETS_KEY: z.string().optional(),
   PLUGIN_PAGE_TOKEN_SECRET: z.string().optional(),
+  PLUGIN_FILE_URL_SECRET: z.string().optional(),
+  PLUGIN_UPLOAD_MAX_BYTES: z.coerce.number().int().min(1).max(104857600).default(10485760),
   PRISMA_LOG_QUERY: z.string().transform((v) => v === 'true').default('false'),
 
   // Server

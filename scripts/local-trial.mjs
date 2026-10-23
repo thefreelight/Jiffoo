@@ -102,6 +102,7 @@ export class LocalTrial {
     const values = { COMPOSE_PROJECT_NAME: this.project, REVISION: manifest.sourceCommit, POSTGRES_PASSWORD: secret(), JWT_SECRET: secret(),
       PLUGIN_SECRETS_KEY: randomBytes(32).toString('base64'), MINIO_ROOT_USER: secret(), MINIO_ROOT_PASSWORD: secret(),
       PLUGIN_PAGE_TOKEN_SECRET: randomBytes(32).toString('base64'),
+      PLUGIN_FILE_URL_SECRET: randomBytes(32).toString('base64'),
       SILO_APP_ACCESS_KEY_ID: secret(), SILO_APP_SECRET_ACCESS_KEY: secret(), UPLOAD_S3_BUCKET: 'jiffoo-uploads',
       STOREFRONT_URL: `https://shop.localhost:${this.port}`, ADMIN_URL: `https://admin.localhost:${this.port}`, EDGE_PORT: this.port,
       TLS_CERT_FILE: this.directory + '/tls/cert.pem', TLS_KEY_FILE: this.directory + '/tls/key.pem' };

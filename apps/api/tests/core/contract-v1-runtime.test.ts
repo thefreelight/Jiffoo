@@ -16,7 +16,7 @@ describe('contract v1 plugin runtime', () => {
       keys = Object.keys(ctx).sort();
       ctx.contracts.implement('payment', 2, { describe: () => ({ displayName: 'Test', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } }), createSession: () => ({ sessionId: 'session-1', action: { type: 'redirect', url: 'https://pay.example/session-1' } }), queryByRequestKey: () => ({ status: 'pending' }) });
     } }, { slug: 'test-plugin', installationId: 'install-1', generation:0n, zipHash:'fixture', version: '1.0.0', config: {}, declaredContracts: [{ name: 'payment', version: 2 }], subscriptions: [] });
-    await app.ready(); expect(keys).toEqual(['config', 'contracts', 'database', 'events', 'http', 'logger', 'plugin', 'tasks']);
+    await app.ready(); expect(keys).toEqual(['config', 'contracts', 'database', 'events', 'http', 'logger', 'plugin', 'storage', 'tasks']);
     expect((await app.inject({ method: 'POST', url: '/__contracts/payment/v2/describe', payload: {} })).statusCode).toBe(200);
     expect((await app.inject({ method: 'POST', url: '/__contracts/payment/v1/describe', payload: {} })).statusCode).toBe(404); await app.close();
   });

@@ -5,6 +5,7 @@ import { redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { decodePaymentWebhook, PAYMENT_WEBHOOK_WIRE_LIMIT } from './payment-webhook-wire';
 import { createPluginDatabase, withPluginDatabaseHandler } from './plugin-database';
 import { createTaskApi, withInstallationTaskHandler } from '@/core/plugins/tasks';
+import { createStorageApi } from '@/core/plugin-storage/service';
 import type { PluginTaskDeclaration, PluginTasks, TaskHandlerOptions } from '@jiffoo/shared';
 
 type JsonObject = Record<string, unknown>;
@@ -40,6 +41,7 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
   const implemented = new Set<string>();
   const redact = (value: unknown) => redactPluginText(typeof value === 'string' ? value : JSON.stringify(value) ?? String(value), options.config, options);
   const context: PluginContext = {
+    storage: createStorageApi(options.installationId),
     plugin: { slug: options.slug, installationId: options.installationId, version: options.version }, config: Object.freeze({ ...options.config }),
     database: createPluginDatabase(options.slug, options.installationId),
     tasks: createTaskApi(options.installationId, (name, version, handler, policy) => {

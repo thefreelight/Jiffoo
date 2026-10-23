@@ -1,15 +1,17 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { S3Client, HeadBucketCommand, HeadObjectCommand, GetObjectCommand, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, HeadBucketCommand, HeadObjectCommand, GetObjectCommand, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { env } from '@/config/env';
 import { ApiError } from '@/utils/api-errors';
 
 export interface UploadedObjectStore {
   initialize(): Promise<void>;
-  put(key: string, content: Buffer, contentType: string): Promise<void>;
+  put(key: string, content: Buffer, contentType: string, signal?: AbortSignal): Promise<void>;
   get(key: string): Promise<Buffer | null>;
-  head(key: string): Promise<{ size: number } | null>;
+  read(key: string, maxBytes: number, signal: AbortSignal): Promise<Buffer | null>;
+  delete(key: string, signal: AbortSignal): Promise<void>;
+  head(key: string, signal?: AbortSignal): Promise<{ size: number } | null>;
   list(prefix: string): Promise<string[]>;
 }
 
@@ -32,12 +34,13 @@ export class LocalUploadedObjectStore implements UploadedObjectStore {
     return target;
   }
   initialize() { return available(async () => { await fs.mkdir(this.root, { recursive: true }); await fs.access(this.root, fs.constants.R_OK | fs.constants.W_OK); }); }
-  put(key: string, content: Buffer, _contentType: string) {
+  put(key: string, content: Buffer, _contentType: string, signal?: AbortSignal) {
     return available(async () => {
+      signal?.throwIfAborted();
       const target = this.target(key);
       await fs.mkdir(path.dirname(target), { recursive: true });
       const temporary = `${target}.${randomUUID()}.tmp`;
-      try { await fs.writeFile(temporary, content, { flag: 'wx' }); await fs.rename(temporary, target); }
+      try { await fs.writeFile(temporary, content, { flag: 'wx', signal }); signal?.throwIfAborted(); await fs.rename(temporary, target); }
       finally { await fs.rm(temporary, { force: true }); }
     });
   }
@@ -46,8 +49,50 @@ export class LocalUploadedObjectStore implements UploadedObjectStore {
       try { return await fs.readFile(this.target(key)); } catch (error) { if (missing(error)) return null; throw error; }
     });
   }
-  head(key: string) {
+  read(key: string, maxBytes: number, signal: AbortSignal) {
     return available(async () => {
+      signal.throwIfAborted();
+      let handle;
+      try { handle = await fs.open(this.target(key), 'r'); }
+      catch (error) { if (missing(error)) return null; throw error; }
+      try {
+        const size = (await handle.stat()).size;
+        if (!Number.isSafeInteger(maxBytes) || maxBytes < 0 || size > maxBytes) throw new ApiError('UPLOAD_STORAGE_CORRUPT');
+        const content = Buffer.alloc(size);
+        let offset = 0;
+        while (offset < size) {
+          signal.throwIfAborted();
+          const { bytesRead } = await handle.read(content, offset, Math.min(65_536, size - offset), offset);
+          if (!bytesRead) throw new ApiError('UPLOAD_STORAGE_CORRUPT');
+          offset += bytesRead;
+        }
+        if ((await handle.read(Buffer.alloc(1), 0, 1, size)).bytesRead) throw new ApiError('UPLOAD_STORAGE_CORRUPT');
+        signal.throwIfAborted();
+        return content;
+      } finally { await handle.close(); }
+    });
+  }
+  delete(key: string, signal: AbortSignal) {
+    return available(async () => {
+      signal.throwIfAborted();
+      const target = this.target(key), directory = path.dirname(target), prefix = path.basename(target) + '.';
+      await fs.rm(target, { force: true });
+      let entries;
+      try { entries = await fs.opendir(directory); }
+      catch (error) { if (missing(error)) return; throw error; }
+      for await (const entry of entries) {
+        signal.throwIfAborted();
+        if (entry.isFile() && entry.name.startsWith(prefix)
+          && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}\.tmp$/.test(entry.name.slice(prefix.length))) {
+          await fs.rm(path.join(directory, entry.name), { force: true });
+        }
+      }
+      signal.throwIfAborted();
+    });
+  }
+  head(key: string, signal?: AbortSignal) {
+    return available(async () => {
+      signal?.throwIfAborted();
       try { const stat = await fs.stat(this.target(key)); return stat.isFile() ? { size: stat.size } : null; }
       catch (error) { if (missing(error)) return null; throw error; }
     });
@@ -77,8 +122,8 @@ export class S3UploadedObjectStore implements UploadedObjectStore {
     });
   }
   initialize() { return available(async () => { await this.client.send(new HeadBucketCommand({ Bucket: this.bucket })); }); }
-  put(key: string, content: Buffer, contentType: string) {
-    return available(async () => { await this.client.send(new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: content, ContentType: contentType, ContentLength: content.length })); });
+  put(key: string, content: Buffer, contentType: string, signal?: AbortSignal) {
+    return available(async () => { await this.client.send(new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: content, ContentType: contentType, ContentLength: content.length }), { abortSignal: signal }); });
   }
   get(key: string) {
     return available(async () => {
@@ -89,9 +134,36 @@ export class S3UploadedObjectStore implements UploadedObjectStore {
       } catch (error) { if (missing(error)) return null; throw error; }
     });
   }
-  head(key: string) {
+  read(key: string, maxBytes: number, signal: AbortSignal) {
     return available(async () => {
-      try { const object = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key })); return { size: object.ContentLength ?? 0 }; }
+      if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) throw new ApiError('UPLOAD_STORAGE_CORRUPT');
+      try {
+        const object = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }), { abortSignal: signal });
+        const body = object.Body as (AsyncIterable<Uint8Array> & { destroy(): void }) | undefined;
+        if (!body) throw new ApiError('UPLOAD_STORAGE_CORRUPT');
+        try {
+          if (object.ContentLength === undefined || object.ContentLength > maxBytes) throw new ApiError('UPLOAD_STORAGE_CORRUPT');
+          const chunks: Buffer[] = [];
+          let size = 0;
+          for await (const chunk of body) {
+            signal.throwIfAborted();
+            size += chunk.byteLength;
+            if (size > maxBytes) throw new ApiError('UPLOAD_STORAGE_CORRUPT');
+            chunks.push(Buffer.from(chunk));
+          }
+          if (size !== object.ContentLength) throw new ApiError('UPLOAD_STORAGE_CORRUPT');
+          signal.throwIfAborted();
+          return Buffer.concat(chunks, size);
+        } finally { body.destroy(); }
+      } catch (error) { if (missing(error)) return null; throw error; }
+    });
+  }
+  delete(key: string, signal: AbortSignal) {
+    return available(async () => { await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }), { abortSignal: signal }); });
+  }
+  head(key: string, signal?: AbortSignal) {
+    return available(async () => {
+      try { const object = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }), { abortSignal: signal }); return { size: object.ContentLength ?? 0 }; }
       catch (error) { if (missing(error)) return null; throw error; }
     });
   }

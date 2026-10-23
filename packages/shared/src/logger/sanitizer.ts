@@ -86,6 +86,14 @@ export const DEFAULT_SANITIZE_RULES: SanitizeRule[] = [
     strategy: 'full',
     description: 'Full masking for password and credential fields'
   },
+  // Signed file capabilities must not survive inside access-log URLs.
+  {
+    id: 'url-token', name: 'URL bearer capability', type: 'pattern', enabled: true, priority: 99,
+    valuePattern: /[?&]token=|\/(?:api\/v1\/plugin-files|plugin-downloads)\/[^?\s]+\?/gi, strategy: 'custom',
+    customHandler: (value: string) => value.replace(/(\/(?:api\/v1\/plugin-files|plugin-downloads)\/[^?\s]+\?)[^\s]+/gi, '$1[REDACTED]')
+      .replace(/([?&]token=)[^&#\s]+/gi, '$1[REDACTED]'),
+    description: 'Remove bearer query tokens from URLs and error strings'
+  },
   // Token and API Keys
   {
     id: 'token',

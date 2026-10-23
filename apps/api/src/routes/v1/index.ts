@@ -37,6 +37,7 @@ import { extensionInstallerRoutes } from '@/core/admin/extension-installer/route
 import { publicThemeAssetRoutes } from '@/core/admin/extension-installer/theme-routes';
 import { pluginAssetRoutes } from '@/core/plugin-pages/asset-routes';
 import { adminPluginPageRoutes, pluginPageRoutes } from '@/core/plugin-pages/routes';
+import { pluginStorageRoutes } from '@/core/plugin-storage/routes';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 // Store routes
 import { storeRoutes } from '@/core/store/routes';
@@ -46,6 +47,7 @@ import { storeRoutes } from '@/core/store/routes';
  * Note: Parent router adds /api/v1 prefix, so routes here are relative to that
  */
 export async function registerV1Routes(fastify: FastifyInstance) {
+  await fastify.register(pluginStorageRoutes);
   // Authentication routes
   await fastify.register(authRoutes, { prefix: '/auth' });
 

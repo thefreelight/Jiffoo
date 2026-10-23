@@ -8,6 +8,16 @@ type Entry = { category: 1 | 2 | 3; reason: string; rebuild?: { file: string; fu
 
 // Every entry is explicit: new names, including persistent class fields, require review.
 const codeConstants = [
+  'core/plugin-pages/origin-policy.ts:privateFileRoutes',
+  'core/plugin-storage/content.ts:fileTypes',
+  'core/plugin-storage/grants.ts:claimsSchema',
+  'core/plugin-storage/routes.ts:string',
+  'core/plugin-storage/routes.ts:id',
+  'core/plugin-storage/routes.ts:slug',
+  'core/plugin-storage/routes.ts:params',
+  'core/plugin-storage/routes.ts:fileParams',
+  'core/plugin-storage/routes.ts:resultSchema',
+  'core/plugin-storage/service.ts:uuid',
   'core/plugin-pages/routes.ts:string',
   'core/plugin-pages/routes.ts:title',
   'core/plugin-pages/routes.ts:pageSchema',
@@ -272,6 +282,7 @@ const codeConstants = [
   'utils/schema-helpers.ts:successResponseSchema',
 ] as const;
 const runtimeHandles = [
+  'core/plugin-storage/service.ts:pluginStorage',
   'config/database.ts:prisma',
   'core/admin/extension-installer/plugin-database-audit.ts:testLimits',
   'core/admin/extension-installer/plugin-database-audit.ts:testMigrationRoot',

@@ -26,7 +26,8 @@ async function proxyToCore(request: NextRequest): Promise<Response> {
   // The gateway and plugin-storage paths keep their null-origin exception; only Core decides
   // whether such an operation is admitted, exactly as the deployment edge routing /api/ does.
   const gatewayRequest = /^\/api\/v1\/(?:extensions\/plugin\/[^/]+\/api(?:\/.*)?|plugin-storage\/[^/]+\/.+)$/.test(incomingUrl.pathname)
-  if (request.headers.get('origin') === 'null' && !assetRequest && !gatewayRequest) {
+  const privateFileRequest = ['GET', 'HEAD'].includes(request.method) && /^\/api\/v1\/plugin-files\/[a-f0-9-]{36}$/.test(incomingUrl.pathname)
+  if (request.headers.get('origin') === 'null' && !assetRequest && !gatewayRequest && !privateFileRequest) {
     return Response.json({ success: false, error: { code: 'FORBIDDEN', message: 'Request origin is forbidden' } }, { status: 403 });
   }
   const apiServiceUrl = process.env.API_SERVICE_URL
@@ -50,7 +51,7 @@ async function proxyToCore(request: NextRequest): Promise<Response> {
   }
   HOP_BY_HOP_HEADERS.forEach((name) => headers.delete(name))
   headers.delete('host')
-  if (assetRequest) {
+  if (assetRequest || privateFileRequest) {
     headers.delete('cookie')
     headers.delete('authorization')
     headers.delete('x-forwarded-host')

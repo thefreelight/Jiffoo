@@ -9,11 +9,12 @@ export function proxy(request: NextRequest) {
   // The gateway and plugin-storage paths keep their null-origin exception; only Core decides
   // whether such an operation is admitted, exactly as the deployment edge routing /api/ does.
   const gatewayRequest = /^\/api\/v1\/(?:extensions\/plugin\/[^/]+\/api(?:\/.*)?|plugin-storage\/[^/]+\/.+)$/.test(request.nextUrl.pathname);
-  if (request.headers.get('origin') === 'null' && !assetRequest && !gatewayRequest) {
+  const privateFileRequest = ['GET', 'HEAD'].includes(request.method) && /^\/api\/v1\/plugin-files\/[a-f0-9-]{36}$/.test(request.nextUrl.pathname);
+  if (request.headers.get('origin') === 'null' && !assetRequest && !gatewayRequest && !privateFileRequest) {
     return NextResponse.json({ success: false, error: { code: 'INVALID_ORIGIN', message: 'Invalid request origin' } }, { status: 403 });
   }
   const headers = new Headers(request.headers);
-  if (assetRequest) {
+  if (assetRequest || privateFileRequest) {
     headers.delete('cookie');
     headers.delete('authorization');
   }

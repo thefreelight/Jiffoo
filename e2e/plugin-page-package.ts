@@ -136,6 +136,23 @@ button('Attempt Core API', async () => {
 });
 button('Unsafe navigation', async () => { await bridge.request('navigate', { path: '//evil.example' }); return 'Unexpected navigation'; });
 button('Request file', async () => { await bridge.request('file.download', { reference: 'file-reference' }); return 'Prompt requested'; });
+let privateReference;
+const fileLabel = document.createElement('label'); fileLabel.textContent = 'Private image';
+const fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'image/png,image/jpeg,image/webp'; fileLabel.append(fileInput); main.append(fileLabel);
+const privateImage = document.createElement('img'); privateImage.alt = 'Private generated result'; privateImage.crossOrigin = 'anonymous'; main.append(privateImage);
+button('Upload and process private image', async () => {
+  const body = new FormData(); body.append('file', fileInput.files[0]);
+  const uploaded = await fetch('/api/v1/plugin-storage/${slug}/files', { method: 'POST', credentials: 'omit', redirect: 'error', headers: { Authorization: 'Bearer ' + await bridge.token() }, body });
+  if (!uploaded.ok) throw new Error('Upload failed');
+  const reference = (await uploaded.json()).data.reference;
+  const processed = await fetch('/api/v1/extensions/plugin/${slug}/api/copy-file', { method: 'POST', credentials: 'omit', redirect: 'error',
+    headers: { Authorization: 'Bearer ' + await bridge.token(), 'Content-Type': 'application/json' }, body: JSON.stringify({ reference }) });
+  if (!processed.ok) throw new Error('Processing failed');
+  const generated = await processed.json(); privateReference = generated.reference;
+  await new Promise((resolve, reject) => { privateImage.onload = resolve; privateImage.onerror = reject; privateImage.src = generated.url; });
+  return 'Private image displayed';
+});
+button('Save private result', async () => { await bridge.request('file.download', { reference: privateReference }); return 'Private save requested'; });
 button('Resize page', async () => { await bridge.request('frame.resize', { height: 800 }); return 'Page resized'; });
 const variantLabel = document.createElement('label'); variantLabel.textContent = 'Variant ID';
 const variantInput = document.createElement('input'); variantLabel.append(variantInput); main.append(variantLabel);
@@ -194,6 +211,12 @@ document.body.append(main);
       } });
       ctx.http.route({ method: 'GET', path: '/proof-executions', handler: () => ({ executions: checkExecutions }) });
       ctx.http.route({ method: 'POST', path: '/check', handler: () => ({ executed: true, executions: ++checkExecutions }) });
+      ctx.http.route({ method: 'POST', path: '/copy-file', handler: async request => {
+        const bytes = await ctx.storage.get(request.body.reference);
+        const generated = await ctx.storage.put({ content: bytes, contentType: 'image/png' });
+        const grant = await ctx.storage.readUrl(generated.reference);
+        return { reference: generated.reference, url: grant.url };
+      } });
     } };`);
     const certificate = path.join(directory, 'certificate.json'), key = path.join(directory, 'publisher.pem');
     await fs.writeFile(certificate, JSON.stringify(issuePublisherCertificate('page-proof-publisher', 'Page proof publisher', testPublisher.publicKey, testRoot.privateKey)));

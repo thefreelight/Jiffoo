@@ -50,6 +50,7 @@ export function generateSnapshot() {
   lines.push('}', 'declare const eventRegistry: { readonly [K in keyof EventPayloadMap]: { _output: EventPayloadMap[K] } };',
     'export type EventKey = keyof typeof eventRegistry;', "export type EventPayload<K extends EventKey> = (typeof eventRegistry)[K]['_output'];");
   for (const name of ['EventSubscription', 'PluginEvent', 'PluginEventHandler']) lines.push(declaration(eventSource, name).getText());
+  for (const name of ['PluginFileReference', 'PluginStorageOptions', 'PluginStorage']) lines.push(declaration(files[0], name).getFullText().trim());
   for (const name of ['TaskPrincipal', 'TaskInput', 'TaskFinalFailureInput', 'TaskHandlerOptions', 'TaskStatus', 'PluginTasks', 'PluginDatabaseJson', 'PluginDatabaseParameter', 'PluginDatabaseOptions', 'PluginDatabaseResult', 'PluginDatabaseTransaction', 'PluginDatabase', 'PluginContext', 'PluginEntryModule', 'PluginBusinessErrorResponse', 'PluginMigrationDeclaration', 'PluginDatabaseDeclaration']) lines.push(declaration(files[0], name).getFullText().trim());
   lines.push('export declare class TaskPermanentError extends Error { readonly code: string; constructor(code: string, message: string); }');
   lines.push('export declare function drainPluginTasks(options: { installationIds: string[]; deadlineMs: number; includeFinalFailure: true; advanceDueTo?: string }): Promise<{ completed: number; failed: number; cancelled: number; pending: number; future: number; unknownHooks: number }>;');

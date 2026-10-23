@@ -28,6 +28,8 @@ import { assertThemeTestHooks } from './core/storage/theme-test-hooks';
 import { uploadedObjectStore } from './core/storage/uploaded-object-store';
 import path from 'node:path';
 import { PluginTaskWorker } from '@/core/plugins/task-worker';
+import { fileUrlSecret } from '@/core/plugin-storage/service';
+import { cleanPluginFiles } from '@/jobs/plugin-file-cleanup';
 import { validateDatabaseUrl, validateRedisUrl } from '@/config/test-lane';
 
 export async function startWorkerRuntime(options: { redisUrl?: string; healthPort?: number } = {}) {
@@ -38,6 +40,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
   assertTestRootEnvironment(env.EXTENSION_TEST_SIGNING_MODE);
   if (env.EXTENSION_TEST_SIGNING_MODE) console.warn('Test signing mode is enabled for the worker');
   pluginSecretsKey();
+  fileUrlSecret();
   const instanceId = coreProcessIdentity.instanceId;
   let recovery: ReturnType<typeof startPluginRecoverySweeper> | undefined;
   const startedAt = new Date().toISOString();
@@ -59,6 +62,8 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
   });
   let notificationTimer: NodeJS.Timeout | null = null;
   let unpaidTimer: NodeJS.Timeout | null = null;
+  let privateFilesTimer: NodeJS.Timeout | null = null;
+  let privateFilesRunning = false;
   const redisConnections: Array<{ name: string; client: { status: string } }> = [];
   const pending = new Set<Promise<void>>();
   const pendingLabels = new Map<Promise<void>, string>();
@@ -88,6 +93,7 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
       paymentReconciliation: PaymentReconciliationJob.getStatus().hasScheduledUpdates,
       pluginRecovery: recovery?.isRunning() ?? false,
       pluginTasks: !stopping,
+      privateFiles: privateFilesTimer !== null,
     },
     eventHandlerTimeoutMs: eventDelivery.timeoutMs,
     redisConnected: redisCache.getConnectionStatus(),
@@ -107,6 +113,8 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     const healthClosed = trackDrain('worker-health-close', healthServer.listening ? new Promise<void>((resolve, reject) => healthServer.close((error) => error ? reject(error) : resolve())) : Promise.resolve());
     if (notificationTimer) clearInterval(notificationTimer);
     if (unpaidTimer) clearInterval(unpaidTimer);
+    if (privateFilesTimer) clearInterval(privateFilesTimer);
+    privateFilesTimer = null;
     notificationTimer = unpaidTimer = null;
     PaymentReconciliationJob.stop();
     if (cleanupTimer) clearInterval(cleanupTimer);
@@ -174,6 +182,13 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     await recovery.run();
     await eventDelivery.start();
     pluginTasks.start();
+    const cleanPrivateFiles = async () => {
+      if (privateFilesRunning || stopping) return;
+      privateFilesRunning = true;
+      try { await cleanPluginFiles(() => stopping); } finally { privateFilesRunning = false; }
+    };
+    void run(cleanPrivateFiles, 'Private file cleanup failed');
+    privateFilesTimer = setInterval(() => void run(cleanPrivateFiles, 'Private file cleanup failed'), 10_000);
     await run(cleanupEvents, 'Event cleanup failed');
     cleanupTimer = setInterval(() => void run(cleanupEvents, 'Event cleanup failed'), EVENT_CLEANUP_INTERVAL_MS);
     await run(() => OrderService.cancelExpiredUnpaidOrders(), 'Unpaid order timeout failed');

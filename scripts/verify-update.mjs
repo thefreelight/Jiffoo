@@ -209,9 +209,10 @@ async function main() {
       }
       const env = { COMPOSE_PROJECT_NAME:project, REVISION:commit, POSTGRES_PASSWORD:'postgres', JWT_SECRET:randomBytes(48).toString('base64url'), PLUGIN_SECRETS_KEY:randomBytes(32).toString('base64'),
         PLUGIN_PAGE_TOKEN_SECRET: randomBytes(32).toString('base64'),
+        PLUGIN_FILE_URL_SECRET: randomBytes(32).toString('base64'),
         MINIO_ROOT_USER:'update-' + randomUUID(), MINIO_ROOT_PASSWORD:generateStorageSecret(), UPLOAD_S3_BUCKET:'update-' + randomUUID(), SILO_APP_ACCESS_KEY_ID:'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY:generateStorageSecret(),
         STOREFRONT_URL:'https://update-shop.test', ADMIN_URL:'https://update-admin.test', EDGE_PORT:'0', TLS_CERT_FILE:old + '/cert.pem', TLS_KEY_FILE:old + '/key.pem' };
-      secrets = [env.JWT_SECRET,env.PLUGIN_SECRETS_KEY,env.PLUGIN_PAGE_TOKEN_SECRET,env.MINIO_ROOT_USER,env.MINIO_ROOT_PASSWORD,env.SILO_APP_ACCESS_KEY_ID,env.SILO_APP_SECRET_ACCESS_KEY];
+      secrets = [env.JWT_SECRET,env.PLUGIN_SECRETS_KEY,env.PLUGIN_PAGE_TOKEN_SECRET, env.PLUGIN_FILE_URL_SECRET,env.MINIO_ROOT_USER,env.MINIO_ROOT_PASSWORD,env.SILO_APP_ACCESS_KEY_ID,env.SILO_APP_SECRET_ACCESS_KEY];
       writeFileSync(join(native,'old/deploy/compose/.env'),Object.entries(env).map(([key,value]) => key + '=' + value).join('\n') + '\n',{mode:0o600});
       for (const generation of ['old',...generations.map(([name])=>name)]) {
         const to = directory + '/' + generation; await run('cp',['-R',emulator ? '/input/' + generation : join(native,generation),to]);

@@ -6,6 +6,8 @@ import { errorCodes, type FastifyReply } from 'fastify';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 
 export const errorCatalog = {
+  [ApiErrorCodes.PLUGIN_FILE_NOT_FOUND]: { status: 404, message: 'Private plugin file not found.' },
+  [ApiErrorCodes.PLUGIN_STORAGE_QUOTA_EXCEEDED]: { status: 413, message: 'Private plugin storage quota exceeded.' },
   [ApiErrorCodes.PLUGIN_PAGE_ORIGIN_FORBIDDEN]: { status: 403, message: 'The plugin page shell origin is forbidden.' },
   [ApiErrorCodes.PLUGIN_PAGE_SESSION_REVOKED]: { status: 401, message: 'The plugin page session is no longer valid.' },
   [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_INVALID]: { status: 422, message: 'Invalid task principal.' },

@@ -111,6 +111,23 @@ export class TaskPermanentError extends Error {
   }
 }
 
+export interface PluginFileReference {
+  readonly reference: string;
+  readonly contentType: 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf' | 'text/plain';
+  readonly size: number;
+  readonly sha256: string;
+}
+export interface PluginStorageOptions {
+  /** Only an unbound, live repair task may select a validated installation principal. */
+  readonly owner?: TaskPrincipal;
+  readonly signal?: AbortSignal;
+}
+export interface PluginStorage {
+  put(input: PluginStorageOptions & { content: Uint8Array | AsyncIterable<Uint8Array>; contentType: PluginFileReference['contentType'] }): Promise<PluginFileReference>;
+  get(reference: string, options?: PluginStorageOptions): Promise<Uint8Array>;
+  readUrl(reference: string, options?: PluginStorageOptions): Promise<{ url: string; expiresAt: string }>;
+}
+
 export interface PluginContext {
   plugin: { slug: string; installationId: string; version: string };
   config: Readonly<Record<string, unknown>>;
@@ -122,6 +139,7 @@ export interface PluginContext {
    */
   readonly database: PluginDatabase;
   readonly tasks: PluginTasks;
+  readonly storage: PluginStorage;
   logger: { info(message: string, data?: unknown): void; warn(message: string, data?: unknown): void; error(message: string, data?: unknown): void };
   http: { route(route: { method: string; path: string; handler: (...args: any[]) => unknown }): void };
   events: { subscribe<K extends EventKey>(eventType: K, version: 1, handler: (event: PluginEvent<K>) => Promise<unknown> | unknown): void };

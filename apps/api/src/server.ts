@@ -25,6 +25,7 @@ import { parseTrustedProxies } from 'shared/trusted-proxies';
 import Fastify, { type FastifyInstance, type FastifyPluginAsync } from 'fastify';
 import { registerOriginPolicy } from '@/core/plugin-pages/origin-policy';
 import { pageTokenSecret, verifyPluginPageToken } from '@/core/plugin-pages/sessions';
+import { fileUrlSecret } from '@/core/plugin-storage/service';
 import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
 import cookie from '@fastify/cookie';
@@ -401,6 +402,7 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
     if (env.EXTENSION_TEST_SIGNING_MODE) console.warn('Test signing mode is enabled for the API');
     pluginSecretsKey();
     pageTokenSecret();
+    fileUrlSecret();
     const app = await buildApp();
 
     await prisma.$connect();

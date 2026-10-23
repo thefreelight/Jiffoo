@@ -124,7 +124,7 @@ export async function authorizeShellSession(request: FastifyRequest, slug: strin
   });
 }
 
-export async function verifyPluginPageToken(token: string, _request: FastifyRequest, slug: string): Promise<PluginPageAdmission | null> {
+export async function verifyPluginPageToken(token: string, _request: FastifyRequest, slug: string, transaction?: PageTransaction): Promise<PluginPageAdmission | null> {
   let claims: jwt.JwtPayload;
   try {
     const decoded = jwt.verify(token, pageTokenSecret(), { algorithms: ['HS256'], issuer: 'jiffoo-plugin-pages', audience: 'jiffoo-plugin-gateway', clockTolerance: 5, complete: true });
@@ -133,14 +133,22 @@ export async function verifyPluginPageToken(token: string, _request: FastifyRequ
   } catch (error) { if (error instanceof jwt.JsonWebTokenError) return null; throw error; }
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
   if (claims.aud !== 'jiffoo-plugin-gateway' || typeof claims.sid !== 'string' || !uuid.test(claims.sid) || typeof claims.jti !== 'string' || !uuid.test(claims.jti) || !Number.isSafeInteger(claims.iat) || !Number.isSafeInteger(claims.exp) || claims.exp! - claims.iat! !== 120 || claims.iat! > Math.floor(Date.now()/1000)+5 || claims.slug !== slug) return null;
-  return prisma.$transaction(async tx => {
-    const session = await tx.pluginPageSession.findUnique({ where: { id: claims.sid } });
+  const verify = async (tx: PageTransaction): Promise<PluginPageAdmission | null> => {
+    let session = await tx.pluginPageSession.findUnique({ where: { id: claims.sid } });
     if (!session) return null;
+    if (transaction) {
+      await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${session.installationId} FOR SHARE`;
+      if (session.principalId) await tx.$queryRaw`SELECT id FROM public.users WHERE id = ${session.principalId} FOR SHARE`;
+      await tx.$queryRaw`SELECT id FROM public.plugin_page_sessions WHERE id = ${session.id} FOR SHARE`;
+      session = await tx.pluginPageSession.findUnique({ where: { id: claims.sid } });
+      if (!session) return null;
+    }
     if (claims.exp! * 1000 > session.expiresAt.getTime()) return null;
     const { user, installation } = await validateSession(tx, session);
     const expectedScopes = session.principalType === 'GUEST' ? ['gateway:invoke'] : ['gateway:invoke', 'storage:upload', 'storage:read'];
     if (installation.pluginSlug !== slug || claims.installationId !== session.installationId || claims.zipHash !== session.zipHash || claims.generation !== session.generation.toString() || claims.surface !== session.surface || claims.pageId !== session.pageId || claims.sub !== (session.principalId ?? `guest:${session.id}`) || claims.role !== session.principalType || claims.sv !== session.sessionVersion || JSON.stringify(claims.scopes) !== JSON.stringify(expectedScopes)) return null;
     return { slug, installationId: session.installationId, zipHash: session.zipHash, generation: session.generation.toString(), surface: session.surface as PageSurface, pageId: session.pageId, user: user ? { id:user.id,userId:user.id,email:user.email,username:user.username || user.email.split('@')[0],role:user.role,emailVerified:user.emailVerified,roles:[user.role] } : null };
-  });
+  };
+  return transaction ? verify(transaction) : prisma.$transaction(verify);
 }
 
