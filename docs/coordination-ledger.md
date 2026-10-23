@@ -736,10 +736,12 @@ P-3/P-4 main line's job.
   validates. It checks the executed file set against the catalogue, reports the test verdict and the
   resource-cleanup verdict separately, and says in its own output that it is **not** wired into the
   approved runner and that its result is **not** delivery evidence. `AGENTS.md` carries the gate
-  policy and a new `## Agent Orchestration` section. **Its end-to-end run is green**: four shards,
-  166 of 166 catalogue files covered, 2389 tests, 443 suites, both verdicts `PASS`
-  (`API PASS / cleanup PASS`), and every container it created removed by id. It is still **not a
-  delivery gate** until both sides' gate owners agree on the runner integration — see the open items.
+  policy and a new `## Agent Orchestration` section. **The gate owners of both sides approved the
+  integration**, so the sharded run is now part of the approved runner: `pnpm verify:quick --shards=N`
+  keeps every step of the quick gate (type check, lint, database reset, the admin and shop suites)
+  and replaces only the API suite step with the sharded run. The end-to-end measurement: four shards,
+  166 of 166 catalogue files covered, 2389 tests, 443 suites, `API PASS / cleanup PASS`, and every
+  container it created removed by id.
 
 **2 — the review loop.** Two independent reviewers worked read-only over the whole diff, one on the
 horizontal contract and the vertical isolation, one on zero regression, cohesion and the gate tool.
@@ -797,8 +799,7 @@ machine (measured: nine files, 115 tests, all green).
 | `core/plugin-pages/asset-routes.ts` still reads `plugin_installations` directly. The neutral projection `getInstallationById` is in place; the file belongs to the P-3/P-4 main line and the two trees have diverged, so the one-line change is left to the main line. | main line |
 | `apps/api/src/server.ts` and `apps/api/src/worker-runtime.ts` still import `pluginSecretsKey` from the admin layer. Both are entry points on the serial overlap set (§4). | main line |
 | `callContract` itself did not move: the charter names `plugin-runtime.ts` as the gateway's home and it drags the runtime lifecycle with it. Commerce now depends on the admin layer for **that one symbol only**. | next batch |
-| The shard gate is **not** wired into the approved runner, and its own unit test is not registered in `scripts/verify-selection.mjs`'s `localScriptTests`, so no gate can run it yet. Both files are on the serial overlap set (§4). | both gate owners |
-| **The shard gate's end-to-end run is green, but it is still not a gate.** Measured: four shards, 166 of 166 catalogue files covered, 2389 tests, 443 suites, `API PASS / cleanup PASS`, every created container removed by id. Two things keep it from being usable as a gate: it is not wired into the approved runner, and its own unit test is not registered in `scripts/verify-selection.mjs`'s `localScriptTests`, so no gate can run it. Both files are on the serial overlap set (§4). | both gate owners |
+| **The sharded gate is approved and wired into the runner.** `pnpm verify:quick --shards=N` keeps the whole quick gate and replaces only the API suite step; `--shards` and `--test-files` are mutually exclusive; the no-argument mode and the `--test-files` mode behave exactly as before, and CI's own path (`ciSteps`, the four shards, the `jiffoo_core_test` guard, the isolated-service preflight) is unchanged. The script's own unit test is registered in `scripts/verify-selection.mjs`, so a gate can run it. | closed |
 | **The shards are not balanced.** The split is by file count, not by measured time: the four shards took 428 s, 928 s, 725 s and 684 s, so the wall clock is the slowest shard, about 928 s against 2328 s serial — 2.5×, not 4×. Splitting by the historical duration of each test file is the next lever, and it is the item the main line already asked for. | next batch |
 | The inventory adjustment `type` vocabulary gained `sale`; the admin request enum was left unchanged. A database enum for that column would be a separate migration. | next batch |
 | The guard now registers **thirty-one** module cycles (twenty-three before this batch). They are real and documented, but the number grows as the neutral layer is introduced; reducing them is its own work. | next batch |
