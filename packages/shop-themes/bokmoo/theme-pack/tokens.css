@@ -80,6 +80,14 @@ h6 {
   font-weight: 700;
 }
 
+/* PDP display title — sized here rather than via runtime Tailwind classes:
+   arbitrary utilities only exist in the host app's compiled CSS, and theme
+   versions ship independently of worker rebuilds. */
+.bokmoo-pdp-title {
+  font-size: clamp(2.1rem, 3.2vw, 2.65rem);
+  line-height: 1.08;
+}
+
 ::selection {
   background: color-mix(in oklab, var(--bokmoo-gold) 38%, transparent);
   color: var(--bokmoo-ink);

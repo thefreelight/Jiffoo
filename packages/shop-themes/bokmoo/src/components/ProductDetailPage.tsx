@@ -214,7 +214,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div>
-                  <h1 className="text-[clamp(2.1rem,3.2vw,2.65rem)] font-semibold leading-[1.08] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
+                  <h1 className="bokmoo-pdp-title font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
                     {normalizedProduct.name}
                   </h1>
                   <p className="mt-2 text-lg text-[var(--bokmoo-copy)]">
