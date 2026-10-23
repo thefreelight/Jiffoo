@@ -57,8 +57,9 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | **B-BOUND-E1** — one public owner for `users` and `auth_tokens` (WP-E1) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `b55714018` | new `apps/api/src/core/auth/identity-service.ts` + the `core/account`, `core/admin/user-management`, `core/admin/staff-management` and `core/install` call sites | `jiffoo_core_test_orders` | `wp-e1-user-owner` (pi session `01a163e5-…`) | **committed `41d30671c`, merge-ready** (lane gate green, §5h) | §5h |
 | **B-BOUND-E2** — the last three table owners (WP-E2) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `41d30671c` | `apps/api/src/core/settings/**`, `apps/api/src/core/notifications/**`, `apps/api/src/core/audit/**` + their call sites | `jiffoo_core_test_orders` | `wp-e2-table-owners` (pi session `01a163f7-…`) | **committed `ede8a7f3b`, merge-ready** (lane gate green, §5i) | §5i |
 | **B-BOUND-E3** — the guard becomes domain-aware (WP-E3) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `ede8a7f3b` | `apps/api/tests/core/module-boundary-audit.test.ts` | `jiffoo_core_test_orders` | `wp-e3-domain-guard` (pi session `01a1640a-…`) | **committed `ac2fa9b1a`, merge-ready** (lane gate green, §5j) | §5j |
-| **B-BOUND-F** — guard blind spot + stale references (WP-F1) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `c9fdf14d8` | `apps/api/tests/core/module-boundary-audit.test.ts`, `apps/api/src/core/storage/plugin-operation-lease.ts`, `apps/api/src/core/admin/extension-installer/{plugin-migration-executor,plugin-migration-gate,plugin-recovery}.ts`, `apps/api/src/infra/core-process.ts`, `apps/api/src/core/payment/reconciliation.ts`, `apps/api/src/core/cart/service.ts`, `apps/api/src/core/extensions/registry/service.ts`, `docs/coordination-ledger.md`, `AGENTS.md` | `jiffoo_core_test_orders` | `wp-f1-guard-blind-spot` (pi session —, model `minimax/MiniMax-M3.1-Flash:medium`) | **draft, uncommitted** (lane gate green, §5k) | §5k |
-| **B-BOUND-G** — plugin marker reclaim through the owning modules | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `c9fdf14d8` | `apps/api/src/core/admin/extension-installer/plugin-marker-reclaim.ts`, `apps/api/src/core/storage/plugin-operation-lease.ts`, `apps/api/src/infra/core-process.ts`, `apps/api/src/core/audit/service.ts` | `jiffoo_core_test_orders` | not assigned | **registered, not started** | §5g |
+| **B-BOUND-F** — guard blind spot + stale references (WP-F1) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `c9fdf14d8` | `apps/api/tests/core/module-boundary-audit.test.ts`, `apps/api/src/core/storage/plugin-operation-lease.ts`, `apps/api/src/core/admin/extension-installer/{plugin-migration-executor,plugin-migration-gate,plugin-recovery}.ts`, `apps/api/src/infra/core-process.ts`, `apps/api/src/core/payment/reconciliation.ts`, `apps/api/src/core/cart/service.ts`, `apps/api/src/core/extensions/registry/service.ts`, `docs/coordination-ledger.md`, `AGENTS.md` | `jiffoo_core_test_orders` | `wp-f1-guard-blind-spot` (pi session —, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed `eddea4a9e`, merge-ready** (lane gate green, §5k) | §5k |
+| **B-BOUND-G** — plugin marker reclaim through the owning modules | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `c9fdf14d8` | `apps/api/src/core/admin/extension-installer/plugin-marker-reclaim.ts`, `apps/api/src/core/storage/plugin-operation-lease.ts`, `apps/api/src/infra/core-process.ts`, `apps/api/src/core/audit/service.ts` | `jiffoo_core_test_orders` | not assigned | **withdrawn** — its premise is void since B-BOUND-H: the marker reclaim writes into the plugin's own namespace schema, which is not a Core table, so those three writes were never violations (§5g, §5m) | §5g |
+| **B-BOUND-H** — Tier 2 cleanup: wrappers, dead inputs, one contract catalogue (WP-F2) | Boundary-remediation line | `codex/lane-orders` / `worktrees/jiffoo-lane-orders` | `eddea4a9e` | `apps/api/src/core/extensions/registry/service.ts`, `apps/api/src/core/{checkout,order,notifications,payment,inventory,audit,settings}/**`, `apps/api/src/core/admin/{extension-installer,product-management,order-management,plugin-management}/**` (+ the deleted `apps/api/src/core/admin/extension-installer/plugin-registry-version.ts`), `packages/shared/src/extensions/plugin-contract.ts`, `apps/api/tests/core/{module-boundary-audit,order-service,payment-routes,startup-plugin-prewarm}.test.ts`, `docs/coordination-ledger.md` | `jiffoo_core_test_orders` | `wp-f2-slop` (pi session `2026-10-23T02-46-35-836Z_01a166a7-323b-70d9-9d8e-76bb06ac8c1`, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed `7a95368e1`, merge-ready** (lane gate green, §5m) | §5m |
 | **B-BOUND-B** — order domain single owner (WP-B) | Boundary-remediation line | `codex/lane-orders` | `49dc5ff1a` + B-BOUND-A | `apps/api/src/core/order/**`, `apps/api/src/core/payment/{reconciliation,session,order-paid-event}.ts`, `apps/api/src/core/admin/order-management/**`, `apps/api/src/core/notifications/service.ts` | `jiffoo_core_test_orders` | `wp-b-order-domain` | **superseded** — the batch ran as `wp-b-order-domain`, **committed `6a99ec298`**; the executed row is above | §5b |
 | **B-BOUND-C** — neutral layer + directory re-layering (WP-C) | Boundary-remediation line | `codex/lane-orders` | `6a99ec298` | new `apps/api/src/core/shared/**`; move `core/admin/system-settings`→`core/settings`, `core/admin/plugin-management`+`extension-installer`→`core/extensions`; retarget imports in `core/storage/**`, `core/plugin-pages/asset-routes.ts` | `jiffoo_core_test_orders` | `wp-c-neutral-layer` | **superseded** — the batch ran as `wp-c-neutral-layer`, **committed `add8de45b`**; the executed row is above | §5c |
 | **B-BOUND-D** — audit outlet, dead code, boundary guard, plugin risk register (WP-D) | Boundary-remediation line | `codex/lane-orders` | `add8de45b` | new `apps/api/src/core/audit/service.ts` + 9 audit call sites; delete `apps/api/src/core/user/`, `apps/api/src/core/order/hooks.ts`; new `apps/api/tests/core/module-boundary-audit.test.ts`; `docs/agentra-001-core-v1-product-charter.md`; `packages/shared/src/extensions/plugin-contract.ts`; `BUILTIN_PLUGIN_SLUGS` → `@jiffoo/shared` | `jiffoo_core_test_orders` | `wp-d1-audit-outlet`, `wp-d2-boundary-guard`, `wp-d3-audit-gap` | **superseded** — the batch ran as three executors, **committed `a65695b70` / `2c2a40e24` / `b55714018`**; the executed rows are above | §5d, §5e, §5f |
@@ -273,6 +274,11 @@ that ("the package-derived default schema is a naming convention, not a permissi
 corrected pattern skips every path that is qualified with a schema other than `public`, so those
 three entries are withdrawn and the two entries above are what remains.
 
+**B-BOUND-G is withdrawn with them.** That registered follow-up batch existed to route the three
+marker-reclaim writes through their owning modules. They were never violations — they write into
+the plugin's own namespace schema — so there is nothing left for the batch to do. It is closed
+without ever being started (§3, §5m).
+
 Item 2 is the one remaining **decision**: does the `stock` column belong to the product domain or
 to the inventory domain? The current code and the guard both put the row in the product domain and
 the column in the inventory domain. **Recommendation: keep the split and record it in the guard's
@@ -366,8 +372,11 @@ loophole assertion.
 
 ## 5k. Handover evidence — B-BOUND-F (the guard's blind spot and the stale references)
 
-**State:** draft, **uncommitted** in `worktrees/jiffoo-lane-orders` on `codex/lane-orders`. This
-batch may not commit; the working tree carries the whole change.
+**State:** committed as `eddea4a9e` on `codex/lane-orders` (lane gate green, §5k).
+
+**Superseded in part.** The raw-SQL pattern described in §1 below was corrected again by
+B-BOUND-H (§5m): a write into a plugin namespace schema is not a write to a Core table. §5g
+carries the current list.
 
 **1 — the guard's blind spot (`apps/api/tests/core/module-boundary-audit.test.ts`).**
 The raw-SQL pattern required the table to be spelled `public.<table>`, so an unqualified
@@ -458,6 +467,106 @@ admin/extension-installer/plugin-recovery.ts:76 writes "core_processes" (raw SQL
 ```
 
 The first line is the write that the old pattern could not see at all.
+
+## 5m. Handover evidence — B-BOUND-H (the Tier 2 cleanup: wrappers, dead inputs, one contract catalogue)
+
+**Commit:** `7a95368e1`. **State:** committed on `codex/lane-orders`, **not pushed**. The merge is
+the P-3/P-4 main line's job.
+
+**1 — where this batch came from.** Two fresh-context, read-only reviewers ran over
+`git diff 49dc5ff1a..HEAD` of this branch: a **deslop** pass (15 findings) and a **verbosity**
+pass (13 findings). The decision was to apply only the findings worth doing now — Tier 1 and
+Tier 2 — and to leave the optional ones alone. The batch below is exactly that set; the
+executor's task book was `tmp/wp-f2-task.md` (F2-1 … F2-13).
+
+**2 — what was applied.**
+
+| # | Change | Where |
+|---|---|---|
+| 1 | The registry publishes its four reads once: the `PluginManagementService` class that only delegated to the four module functions is gone, and the four commerce callers import the functions | `core/extensions/registry/service.ts`, `core/{checkout,order,notifications,payment}/**` |
+| 2 | The one-line `incrementPluginRegistryVersion` wrapper is deleted; its call sites call the settings service that owns the `system_settings` row | `core/admin/extension-installer/plugin-registry-version.ts` (deleted), `plugin-fs-installer.ts`, `admin/plugin-management/service.ts`, `tests/core/startup-plugin-prewarm.test.ts` |
+| 3 | The notifications module no longer reads the `users` table for the recipient address; it consumes the order module's `getOrderRecipient` projection, which keeps the `customerEmail → account email → ''` precedence | `core/notifications/service.ts`, `core/order/service.ts` |
+| 4 | The capability-contract catalogue is published once, from the shared package; the registry and the contract runtime read the version from it | `packages/shared/src/extensions/plugin-contract.ts`, `core/extensions/registry/service.ts`, `core/admin/extension-installer/contract-v1-runtime.ts` |
+| 5 | The copy-pasted refund idempotency preamble is one private helper | `core/payment/service.ts` |
+| 6 | The two dead inputs of `refundOrder` are gone; the audit metadata that is written is unchanged | `core/payment/service.ts`, `core/admin/order-management/service.ts` |
+| 7 | The dead members of the structural transaction types are gone; the two that are used became their own intersection type (`OrderTransitionTx`, `PaymentAuditTx`), so the member list still catches a typo | `core/{order,payment,inventory}/service.ts` |
+| 8 | The audit outlet has two methods instead of a control flag inside the data type | `core/audit/service.ts`, `core/admin/extension-installer/plugin-audit.ts` |
+| 9 | The comment that was repeated three times is kept once | `core/admin/product-management/service.ts` |
+| 10 | The settings payload is built once, and the single-use transaction type is replaced by the module's own client type | `core/settings/service.ts` |
+| 11 | The single-use helper with the hand-rolled count is one expression | `core/order/service.ts` |
+| 12 | The guard drops the check that another check already makes, the dead `knownEdges` list and the doc comment that did not match the code | `tests/core/module-boundary-audit.test.ts` |
+| 13 | The raw-SQL pattern no longer reports a plugin-namespace write as a Core write; the three entries it had registered for the marker reclaim are withdrawn | `tests/core/module-boundary-audit.test.ts`, §5g |
+
+**3 — what was deliberately NOT applied, and why.**
+
+| Finding | Disposition |
+|---|---|
+| the `getVariantStockMap` helper is a one-line pass-through | **rejected — factually wrong**: the helper has four call sites, so inlining it removes nothing |
+| replace the `args: any` transaction bags with `Pick<Prisma.TransactionClient, …>` | **deferred — it does not compile**: Prisma's `InternalArgs` and `DefaultArgs` do not match the extended client |
+| one catalog query instead of two | **deferred — blocked**: `tests/core/order-service.test.ts:254` asserts the exact `findMany({ include: { variants: true } })` shape |
+| the parity test's literal slug list | **intentional**: the literal list is the test's independent oracle; a shared constant would make the assertion tautological |
+| the deeper type remedy, the commit-message length, the charter/comment duplication | **declined as optional** |
+
+**4 — the guard's state.** Two registered violations remain (§5g): the raw-SQL `admin_audit_events`
+write in `plugin-migration-executor.ts` and the `product_variants` stock-column split in
+`inventory/service.ts`. The ownership check is unchanged: every table has exactly one writing
+module, and `product_variants` has the two that the recorded column-level decision allows.
+
+**5 — the gate** (lane `orders`, `jiffoo_core_test_orders`, Redis DB 12):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: orders
+Database: jiffoo_core_test_orders
+Run API tests:
+   Start at  13:38:29
+ Test Files  164 passed (164)
+      Tests  2374 passed | 2 skipped (2376)
+Run Admin tests:
+   Start at  14:17:17
+ Test Files  58 passed (58)
+      Tests  570 passed (570)
+Run Shop tests:
+   Start at  14:17:45
+ Test Files  32 passed (32)
+      Tests  240 passed (240)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 3.44s |
+| Lint Shop | PASS | 9.87s |
+| Reset test database | PASS | 3.89s |
+| Run API tests | PASS | 2328.54s |
+| Run Admin tests | PASS | 28.36s |
+| Run Shop tests | PASS | 27.13s |
+```
+
+Exit code 0. The planner expanded the selection because `packages/shared` changed, so the API
+suite ran in full (164 files) next to the admin and shop suites.
+
+**Two earlier attempts failed on one timing-sensitive fixture, not on a defect.**
+`tests/core/plugin-recovery.test.ts` waits with a 15-second wall-clock deadline for a forked child
+process to reach a migration barrier. Both failures were that deadline
+(`Recovery fixture timed out waiting for plugin-migration-barrier`), and both happened while the
+P-3/P-4 integration tree was running its own `verify.mjs --quick` on the same machine
+(12:51–13:37). The third attempt, on an idle machine, passed the whole suite. **Do not run the
+two gates at the same time**; this fixture needs the machine.
+
+**6 — one integration hazard.** This batch deletes
+`apps/api/src/core/admin/extension-installer/plugin-registry-version.ts` and repoints its call
+sites to `systemSettingsService.incrementPluginRegistryVersion(tx)`. The P-3/P-4 main line still
+imports that module in `plugin-fs-installer.ts`, `admin/plugin-management/service.ts` and
+`tests/core/startup-plugin-prewarm.test.ts`, so those three files must be repointed the same way
+during the merge — otherwise the merged tree does not compile. That is also why this batch touches
+`apps/api/src/core/admin/plugin-management/service.ts` and
+`apps/api/tests/core/startup-plugin-prewarm.test.ts`, which are otherwise P-3's files: the change
+there is mechanical (the import of the deleted module and its call sites), not a design change.
+
+**7 — what is still open.** The notifications module still reads the `users` table for the
+recipient **locale** (`createNotification`). That is a read and not a write, so the guard does not
+see it; routing it through a public auth projection is a follow-up, not part of this batch.
 
 ## 5. Handover evidence — B-BOUND-A
 
