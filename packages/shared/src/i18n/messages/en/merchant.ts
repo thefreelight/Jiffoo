@@ -863,6 +863,7 @@ export const merchant = {
 
   // Auth
   auth: {
+    forgotPassword: 'Forgot password?',
     login: {
       title: 'Merchant Login',
       subtitle: 'Sign in to manage your store',
