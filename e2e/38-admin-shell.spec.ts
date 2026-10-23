@@ -13,6 +13,25 @@ async function chooseMode(page: import('@playwright/test').Page, mode: string) {
   await page.keyboard.press('ArrowRight');
   await page.getByRole('menuitemradio', { name: mode, exact: true }).click();
 }
+test('dashboard keeps document within the viewport and scrolls all content inside main', async ({ page }, testInfo) => {
+  await login(page, ownerEmail, 'FinalOwnerPassword123!');
+  for (const [width, height] of [[1440, 900], [390, 844]]) {
+    await page.setViewportSize({ width, height });
+    const main = page.getByRole('main');
+    await expect(main).toHaveCSS('position', 'relative');
+    await expect(main).toHaveCSS('overflow-y', 'auto');
+    await expect(main).toHaveCSS('box-sizing', 'border-box');
+    const before = await main.boundingBox();
+    expect(before?.y).toBe(0); expect(before?.height).toBe(height);
+    const image = await page.screenshot({ fullPage: true, animations: 'disabled' });
+    expect(image.readUInt32BE(20), 'Document must not have a second vertical scroll range').toBe(height);
+    await main.focus(); await page.keyboard.press('Control+End');
+    const recent = await page.getByRole('heading', { name: 'Recent orders', exact: true }).boundingBox();
+    expect(recent!.y).toBeGreaterThanOrEqual(0); expect(recent!.y + recent!.height).toBeLessThanOrEqual(height);
+    expect(await main.boundingBox()).toEqual(before);
+    await testInfo.attach('dashboard-scroll-' + width, { body: JSON.stringify({ viewport: { width, height }, main: before, recent, documentHeight: image.readUInt32BE(20) }), contentType: 'application/json' });
+  }
+});
 test('U1b modes and rail persist through SSR reload while mobile navigation stays keyboard accessible', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await login(page, ownerEmail, 'FinalOwnerPassword123!');

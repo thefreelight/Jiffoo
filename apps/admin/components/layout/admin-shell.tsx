@@ -32,7 +32,7 @@ export function AdminShell({ children, logo = null, loginBackground = null, stor
           <SheetTitle className="sr-only">{copy.navigation}</SheetTitle><SheetDescription className="sr-only">{storeName || copy.store}</SheetDescription>
           <AdminNavigation {...navigation} mobile onNavigate={() => setMobileOpen(false)} />
         </SheetContent></Sheet>
-        <main id="main" tabIndex={-1} className="admin-main min-w-0 flex-1 overflow-y-auto bg-ground"><div className={editorLayout ? 'group/admin-content min-h-full' : 'mx-auto min-h-full max-w-[1120px] px-8 pt-10 pb-8'}>{operationLayout ? pathname.endsWith("/settings") ? <TestSigningBanner framed /> : <div className="mx-auto max-w-[1120px] px-4 pt-16 min-[769px]:pt-10 sm:px-8"><TestSigningBanner /></div> : pluginLayout ? <TestSigningBanner framed /> : editorLayout ? <div className="mx-auto max-w-[1120px] px-8 pt-10"><TestSigningBanner /></div> : <TestSigningBanner />}{children}</div></main>
+        <main id="main" tabIndex={-1} className="admin-main relative min-h-0 min-w-0 flex-1 overflow-y-auto bg-ground"><div className={editorLayout ? 'group/admin-content min-h-full' : 'mx-auto min-h-full max-w-[1120px] px-8 pt-10 pb-8'}>{operationLayout ? pathname.endsWith("/settings") ? <TestSigningBanner framed /> : <div className="mx-auto max-w-[1120px] px-4 pt-16 min-[769px]:pt-10 sm:px-8"><TestSigningBanner /></div> : pluginLayout ? <TestSigningBanner framed /> : editorLayout ? <div className="mx-auto max-w-[1120px] px-8 pt-10"><TestSigningBanner /></div> : <TestSigningBanner />}{children}</div></main>
       </div>
     </TooltipProvider></ProtectedRoute>}
   </ThemeAssets.Provider>;
