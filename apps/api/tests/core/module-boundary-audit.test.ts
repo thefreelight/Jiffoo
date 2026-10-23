@@ -180,6 +180,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'payment -> settings': 'the payment routes read system settings through the public settings service.',
   'payment -> shared': 'the payment module uses the neutral money and row-lock helpers.',
   'plugin-pages -> admin/extension-installer': 'the plugin-page asset routes use the installer\'s public migration gate and signing policy.',
+  'plugin-pages -> extensions/registry': 'the plugin-page asset routes read the plugin instance through the read-only registry\'s public installation projection instead of querying the plugin domain\'s tables directly.',
   'plugin-pages -> storage': 'the plugin-page asset routes read package blobs through the public storage stores.',
   'plugins -> admin/extension-installer': 'the task worker invokes plugin tasks through the public plugin runtime.',
   'plugins -> extensions/runtime': 'the durable-task worker records the plugin failures through the neutral runtime helpers instead of the admin layer.',

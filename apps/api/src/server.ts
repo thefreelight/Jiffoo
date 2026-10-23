@@ -61,7 +61,7 @@ import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plug
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { syncBuiltinThemes } from '@/core/admin/extension-installer/builtin-theme-sync';
 import { registerPluginProcessFailureHandlers } from '@/core/admin/extension-installer/plugin-process-failure';
-import { pluginSecretsKey } from '@/core/admin/plugin-management/config-crypto';
+import { pluginSecretsKey } from '@/core/extensions/shared/config-crypto';
 import { assertTestRootEnvironment } from 'shared/plugin-signing';
 
 const trustedProxies = parseTrustedProxies(process.env.TRUSTED_PROXIES);
