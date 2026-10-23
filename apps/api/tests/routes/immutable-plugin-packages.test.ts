@@ -298,7 +298,8 @@ describe('immutable plugin package deployment', () => {
       expect((await released).slug).toBe(id);
       expect(await check(child.base, id)).toMatchObject({ status: 200, body: { tag: 'late' } });
     } finally { await closeIsolated(child); }
-  }, 20_000);
+  // Allow process startup and cleanup independently of the request's 12-second bound.
+  }, 60_000);
 
   it('G only two different hashes enter materialization concurrently', async () => {
     const ids = [own(), own(), own()];

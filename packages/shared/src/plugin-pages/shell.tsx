@@ -23,6 +23,7 @@ function exact(value: Record<string, Plain>, keys: string[]) {
 /** The frame exists only within this dedicated page component. */
 export function PluginPageShell(props: Props) {
   const frame = useRef<HTMLIFrameElement>(null);
+  const downloadDialog = useRef<HTMLDialogElement>(null);
   const [session, setSession] = useState<ShellSession | null>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -201,6 +202,12 @@ export function PluginPageShell(props: Props) {
   }, [props.slug, props.pageId, props.surface, attempt]);
 
   useEffect(() => { control.current?.changed(); }, [props.locale, props.currency, props.store]);
+  useEffect(() => {
+    const dialog = downloadDialog.current;
+    if (!dialog || !prompt || prompt.sessionId !== session?.sessionId) return;
+    dialog.showModal();
+    return () => dialog.close();
+  }, [prompt, session?.sessionId]);
 
   return <section aria-label={props.title}>
     <h1>{props.title}</h1>
@@ -209,9 +216,12 @@ export function PluginPageShell(props: Props) {
         : <iframe ref={frame} role="document" aria-label={props.title} title={props.title} src={session.frameUrl} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer"
           onLoad={() => control.current?.loaded()} style={{ width: '100%', height, border: 0 }} />}
     {notice && <p role="status">{notice}</p>}
-    {prompt && prompt.sessionId === session?.sessionId && <div role="dialog" aria-label={props.labels.download}>
-      <p>{props.labels.download}</p><button type="button" onClick={() => void control.current?.save(prompt.reference).catch(() => { setPrompt(null); setNotice(props.labels.unavailable); })}>{props.labels.save}</button>
-      <button type="button" onClick={() => setPrompt(null)}>{props.labels.cancel}</button>
-    </div>}
+    {prompt && prompt.sessionId === session?.sessionId && <dialog ref={downloadDialog} aria-label={props.labels.download}
+      onCancel={() => setPrompt(null)} style={{ maxWidth: 'min(28rem, calc(100vw - 2rem))', padding: 24, borderRadius: 8, background: 'Canvas', color: 'CanvasText' }}>
+      <p>{props.labels.download}</p><div style={{ display: 'flex', gap: 16, justifyContent: 'flex-end', marginTop: 16 }}>
+        <button type="button" onClick={() => void control.current?.save(prompt.reference).catch(() => { setPrompt(null); setNotice(props.labels.unavailable); })}>{props.labels.save}</button>
+        <button type="button" onClick={() => setPrompt(null)}>{props.labels.cancel}</button>
+      </div>
+    </dialog>}
   </section>;
 }
