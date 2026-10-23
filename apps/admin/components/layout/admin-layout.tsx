@@ -60,7 +60,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   // Public routes that don't need authentication
-  const publicRoutes = ['/auth/login', '/auth/register']
+  const publicRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password']
   const isPublicRoute = publicRoutes.some(route => pathname.includes(route))
 
   if (isPublicRoute) {

@@ -866,6 +866,7 @@ export const merchant = {
 
   // Auth
   auth: {
+    forgotPassword: '忘記密碼？',
     login: {
       title: '商家登入',
       subtitle: '登入以管理您的商店',

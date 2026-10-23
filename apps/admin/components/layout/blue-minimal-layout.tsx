@@ -83,7 +83,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
   }
 
   // Public routes that don't need authentication
-  const publicRoutes = ['/auth/login', '/auth/register', '/install']
+  const publicRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password', '/install']
   const isPublicRoute = publicRoutes.some(route => pathname.includes(route))
 
   // ⌘K / Ctrl+K focuses global search.
