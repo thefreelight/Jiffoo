@@ -736,9 +736,10 @@ P-3/P-4 main line's job.
   validates. It checks the executed file set against the catalogue, reports the test verdict and the
   resource-cleanup verdict separately, and says in its own output that it is **not** wired into the
   approved runner and that its result is **not** delivery evidence. `AGENTS.md` carries the gate
-  policy and a new `## Agent Orchestration` section. **The script is committed as work in progress:**
-  its own unit tests pass (50 cases), but its end-to-end run was still failing when this batch was
-  committed, so it is **not** usable yet — see the open items below.
+  policy and a new `## Agent Orchestration` section. **Its end-to-end run is green**: four shards,
+  166 of 166 catalogue files covered, 2389 tests, 443 suites, both verdicts `PASS`
+  (`API PASS / cleanup PASS`), and every container it created removed by id. It is still **not a
+  delivery gate** until both sides' gate owners agree on the runner integration — see the open items.
 
 **2 — the review loop.** Two independent reviewers worked read-only over the whole diff, one on the
 horizontal contract and the vertical isolation, one on zero regression, cohesion and the gate tool.
@@ -797,7 +798,8 @@ machine (measured: nine files, 115 tests, all green).
 | `apps/api/src/server.ts` and `apps/api/src/worker-runtime.ts` still import `pluginSecretsKey` from the admin layer. Both are entry points on the serial overlap set (§4). | main line |
 | `callContract` itself did not move: the charter names `plugin-runtime.ts` as the gateway's home and it drags the runtime lifecycle with it. Commerce now depends on the admin layer for **that one symbol only**. | next batch |
 | The shard gate is **not** wired into the approved runner, and its own unit test is not registered in `scripts/verify-selection.mjs`'s `localScriptTests`, so no gate can run it yet. Both files are on the serial overlap set (§4). | both gate owners |
-| **The shard gate's end-to-end run is still red.** Its unit tests pass (50 cases) and it implements the six items the main line asked for (expected set against the full catalogue, the four coverage verdicts, the separate cleanup verdict, dynamic ports with container-id ownership, the catalogue from the same frozen environment, the `current_database()` check before the destructive migration, the upload storage identified by id, and a replay mode that reports itself as not a run). But its last end-to-end attempts covered **0 of 166 files** and reported a cleanup failure, so the failure is in the tool's own container/vitest pipeline, not in the product code. It is committed as work in progress and must not be used until a run is green. | next batch |
+| **The shard gate's end-to-end run is green, but it is still not a gate.** Measured: four shards, 166 of 166 catalogue files covered, 2389 tests, 443 suites, `API PASS / cleanup PASS`, every created container removed by id. Two things keep it from being usable as a gate: it is not wired into the approved runner, and its own unit test is not registered in `scripts/verify-selection.mjs`'s `localScriptTests`, so no gate can run it. Both files are on the serial overlap set (§4). | both gate owners |
+| **The shards are not balanced.** The split is by file count, not by measured time: the four shards took 428 s, 928 s, 725 s and 684 s, so the wall clock is the slowest shard, about 928 s against 2328 s serial — 2.5×, not 4×. Splitting by the historical duration of each test file is the next lever, and it is the item the main line already asked for. | next batch |
 | The inventory adjustment `type` vocabulary gained `sale`; the admin request enum was left unchanged. A database enum for that column would be a separate migration. | next batch |
 | The guard now registers **thirty-one** module cycles (twenty-three before this batch). They are real and documented, but the number grows as the neutral layer is introduced; reducing them is its own work. | next batch |
 | `core/auth/identity-service.ts` is on the serial overlap set (§4); this batch only added to it. | merge |
