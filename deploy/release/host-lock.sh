@@ -37,23 +37,21 @@ host_lock_release() {
 
 # The verified host controller supplies its audit program even when restoring an older image.
 host_audit_program() {
+  cp "$(dirname "$0")/audit-policy.mjs" "$work/audit-policy.mjs"
   cat > "$work/host-audit.mjs" <<'JIFFOO_HOST_AUDIT'
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { basename } from 'node:path';
 import assert from 'node:assert/strict';
+import { auditDatabase } from '/work/audit-policy.mjs';
 
 const json = path => JSON.parse(readFileSync(path, 'utf8'));
 const [operation, project, mode, actor, outcome, runKind = 'update'] = process.argv.slice(2);
 assert.ok(actor, 'Audit actor is required');
 const rows = json('/work/state.json');
-assert.ok(rows.every(row => row.Config.Labels['com.docker.compose.project'] === project));
-const api = rows.find(row => row.Config.Labels['com.docker.compose.service'] === 'api-1');
-assert.ok(api, 'Installed API identity is required for audit');
-const entry = api.Config.Env.find(value => value.startsWith('DATABASE_URL='));
-const url = new URL(entry.slice(13)); url.hostname = '127.0.0.1'; url.port = '5432';
-if (mode === 'acceptance') assert.equal(url.pathname, project === 'jiffoo-trial' ? '/jiffoo_core' : '/jiffoo_core_test');
+const { url, database } = auditDatabase(rows, project, mode);
+url.hostname = '127.0.0.1'; url.port = '5432';
 for (const key of ['schema', 'connection_limit', 'pool_timeout']) url.searchParams.delete(key);
 url.searchParams.set('application_name', 'jiffoo-host-audit');
 const require = createRequire('/app/apps/api/package.json');
@@ -62,6 +60,7 @@ const client = new Client({ connectionString: url.toString(), connectionTimeoutM
 client.on('error', () => undefined);
 try {
   await client.connect();
+  assert.equal((await client.query('SELECT current_database() AS name')).rows[0].name, database, 'Connected audit database identity mismatch');
   let summary, action, operationId;
   if (operation === 'update') {
     const source = json('/current/release.json'), target = json('/target/release.json');

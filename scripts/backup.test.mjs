@@ -8,6 +8,24 @@ import { deploymentFiles, roles, sha256 } from '../deploy/release/identity.mjs';
 import { guardBackupDatabase } from './verify-backup.mjs';
 import { businessRowsHash, paymentRuntimeFields } from '../deploy/compose/backup-snapshot.mjs';
 import { assertEnvironmentUpgrade, confirmedPlan, planDigest } from '../deploy/release/update.mjs';
+import { auditDatabase } from '../deploy/release/audit-policy.mjs';
+
+test('host audit binds local trial and CI databases to the installed project instead of its name', () => {
+  const project = 'merchant-selected-project';
+  const fixture = name => [
+    { Config: { Labels: { 'com.docker.compose.project': project, 'com.docker.compose.service': 'api-1' }, Env: ['DATABASE_URL=postgresql://user:secret@postgres:5432/' + name] } },
+    { Config: { Labels: { 'com.docker.compose.project': project, 'com.docker.compose.service': 'postgres' }, Env: ['POSTGRES_DB=' + name] } },
+  ];
+  for (const database of ['jiffoo_core', 'jiffoo_core_test']) assert.equal(auditDatabase(fixture(database), project, 'acceptance').database, database);
+  const rows = fixture('jiffoo_core_test');
+  for (const altered of [[], rows.slice(0, 1), [...rows, rows[0]], [...rows, rows[1]]]) assert.throws(() => auditDatabase(altered, project, 'acceptance'));
+  assert.throws(() => auditDatabase(rows, 'other-project', 'acceptance'), /foreign project/);
+  assert.throws(() => auditDatabase(fixture('jiffoo_core_test_orders'), project, 'acceptance'), /Unsupported acceptance database/);
+  rows[1].Config.Env = ['POSTGRES_DB=jiffoo_core'];
+  assert.throws(() => auditDatabase(rows, project, 'acceptance'), /differs from/);
+  rows[1].Config.Env = ['POSTGRES_DB=jiffoo_core_test', 'POSTGRES_DB=jiffoo_core_test'];
+  assert.throws(() => auditDatabase(rows, project, 'acceptance'), /unambiguous/);
+});
 
 test('application environment upgrades allow only explicit additions and preserve every existing value', () => {
   const current = { JWT_SECRET: 'original', ADMIN_URL: 'https://admin.example:8443' };
