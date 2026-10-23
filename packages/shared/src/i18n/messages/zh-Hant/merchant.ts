@@ -865,8 +865,28 @@ export const merchant = {
   },
 
   // Auth
+  // Auth
   auth: {
     forgotPassword: '忘記密碼？',
+    resetTitleEmail: '忘記密碼？',
+    resetTitleReset: '查收郵件',
+    resetTitleDone: '密碼已更新',
+    resetEmailHint: '輸入管理員帳號郵箱，我們將發送 6 位重置驗證碼。',
+    resetCodeHint: '輸入 6 位驗證碼並設定新密碼。',
+    resetDoneHint: '密碼已修改。請使用新密碼登入。',
+    resetSendCode: '發送重置驗證碼',
+    resetCodePlaceholder: '6 位數字',
+    resetNewPasswordPlaceholder: '新密碼（至少 8 位）',
+    resetConfirmPlaceholder: '確認新密碼',
+    resetSubmit: '重置密碼',
+    resetBackToSignIn: '返回登入',
+    resetNoticeSent: '如果該郵箱對應的管理員帳號存在，重置驗證碼已發出，10 分鐘內有效。',
+    resetErrorEmail: '請輸入有效的郵箱地址',
+    resetErrorCode: '請輸入郵件中的 6 位驗證碼',
+    resetErrorPassword: '新密碼至少 8 位字符',
+    resetErrorConfirm: '兩次輸入的密碼不一致',
+    resetErrorSend: '驗證碼發送失敗，請稍後重試',
+    resetErrorReset: '重置失敗，請檢查驗證碼後重試',
     login: {
       title: '商家登入',
       subtitle: '登入以管理您的商店',
