@@ -1,8 +1,34 @@
 import { afterEach, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
 import { proxyPrivateDownload } from '../../../packages/shared/src/plugin-pages/download-proxy';
+vi.mock('server-only', () => ({}));
+vi.mock('../lib/core-transport', () => ({ shopApi: vi.fn() }));
+import { shopApi } from '../lib/core-transport';
+import { POST } from '../app/bff/[...path]/route';
+import { allowedBffRoute } from '../lib/auth-contract';
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.resetAllMocks(); });
 const id = '12345678-1234-4123-8123-123456789abc';
+
+it('forwards a same-origin Core Save grant request with the customer cookie authority and configured origin', async () => {
+  const origin = 'https://shop.example';
+  const path = `/plugin-pages/studio/sessions/${id}/download`;
+  const url = `/plugin-downloads/${id}?token=signed`;
+  vi.stubEnv('STOREFRONT_URL', origin);
+  vi.mocked(shopApi).mockResolvedValue(Response.json({ success: true, data: { url } }));
+  const response = await POST(new NextRequest(`${origin}/bff${path}`, { method: 'POST',
+    headers: { Origin: origin, Cookie: 'shop_access=customer-token', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reference: id }),
+  }), { params: Promise.resolve({ path: path.slice(1).split('/') }) });
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ success: true, data: { url } });
+  expect(response.headers.get('cache-control')).toBe('no-store');
+  expect(shopApi).toHaveBeenCalledExactlyOnceWith(path, 'customer-token', {
+    method: 'POST', body: JSON.stringify({ reference: id }), headers: { 'Content-Type': 'application/json', Origin: origin },
+  });
+  for (const method of ['GET', 'HEAD', 'PUT', 'DELETE']) expect(allowedBffRoute(method, path)).toBe(false);
+  for (const suffix of ['/more', '%2fmore', '/../download']) expect(allowedBffRoute('POST', path + suffix)).toBe(false);
+});
 
 it('proxies only a bound attachment and never forwards browser credentials or a target URL', async () => {
   const fetch = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => new Response('private bytes', { headers: { 'content-type': 'image/png', 'content-disposition': `attachment; filename="${id}.png"`, 'set-cookie': 'must-not-escape=1' } }));

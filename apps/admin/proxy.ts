@@ -18,6 +18,7 @@ export function proxy(request: Parameters<typeof proxyHandler>[0]) {
   if (request.headers.get('origin') === 'null') {
     return NextResponse.json({ success: false, error: { code: 'FORBIDDEN', message: 'Request origin is forbidden' } }, { status: 403 });
   }
+  if (request.nextUrl.pathname.startsWith('/plugin-downloads/')) return NextResponse.next();
   const locale = getLocaleFromPathname(request.nextUrl.pathname, LOCALES);
   if (locale) {
     const headers = new Headers(request.headers);

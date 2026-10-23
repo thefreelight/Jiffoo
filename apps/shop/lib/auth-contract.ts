@@ -56,7 +56,7 @@ export function allowedBffRoute(method: string, path: string): boolean {
   if (/(?:%|\\|\/\/|\.\.)/i.test(path)) return false;
   if (path === '/plugin-pages') return method === 'GET';
   if (/^\/plugin-pages\/[a-z][a-z0-9-]*\/(?:session|purchase-origins)$/.test(path)) return method === 'POST';
-  if (/^\/plugin-pages\/[a-z][a-z0-9-]*\/sessions\/[0-9a-f-]{36}\/(?:refresh|cart)$/.test(path)) return method === 'POST';
+  if (/^\/plugin-pages\/[a-z][a-z0-9-]*\/sessions\/[0-9a-f-]{36}\/(?:refresh|cart|download)$/.test(path)) return method === 'POST';
   if (/^\/plugin-pages\/[a-z][a-z0-9-]*\/sessions\/[0-9a-f-]{36}$/.test(path)) return method === 'DELETE';
   if (/^\/cart\/items\/c[a-z0-9]{24}$/.test(path)) return ['PUT', 'DELETE'].includes(method);
   if (/^\/orders\/c[a-z0-9]{24}$/.test(path)) return method === 'GET';

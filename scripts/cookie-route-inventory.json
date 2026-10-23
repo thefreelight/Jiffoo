@@ -5,6 +5,7 @@
     ["GET", "/plugin-pages"], ["POST", "/plugin-pages/studio/session"], ["POST", "/plugin-pages/studio/purchase-origins"],
     ["POST", "/plugin-pages/studio/sessions/00000000-0000-4000-8000-000000000000/refresh"],
     ["POST", "/plugin-pages/studio/sessions/00000000-0000-4000-8000-000000000000/cart"],
+    ["POST", "/plugin-pages/studio/sessions/00000000-0000-4000-8000-000000000000/download"],
     ["DELETE", "/plugin-pages/studio/sessions/00000000-0000-4000-8000-000000000000"],
     ["POST", "/auth/login"], ["POST", "/auth/register"], ["POST", "/auth/refresh"],
     ["POST", "/auth/logout"], ["POST", "/auth/forgot-password"], ["POST", "/auth/reset-password"],

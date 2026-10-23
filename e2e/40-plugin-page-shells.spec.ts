@@ -14,9 +14,10 @@ async function privateFileProof(page: Page, title: string) {
   await expect(frame.getByRole('img', { name: 'Private generated result', exact: true })).toBeVisible();
   await frame.getByRole('button', { name: 'Save private result', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Download this plugin file?', exact: true })).toBeVisible();
-  const downloaded = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save file', exact: true }).click();
-  const file = await downloaded;
+  const [file] = await Promise.all([
+    page.waitForEvent('download', { timeout: 15_000 }),
+    page.getByRole('button', { name: 'Save file', exact: true }).click(),
+  ]);
   expect(file.suggestedFilename()).toMatch(/^[a-f0-9-]{36}\.png$/);
   expect(await fs.readFile((await file.path())!)).toEqual(bytes);
 }

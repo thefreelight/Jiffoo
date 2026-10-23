@@ -26,4 +26,14 @@ describe('Admin locale proxy with the installed Next runtime', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('location')).toBeNull();
   });
+
+  it.each(['GET', 'HEAD'])('keeps a signed %s download outside locale routing and rejects opaque origins', async method => {
+    const url = 'http://admin.local/plugin-downloads/12345678-1234-4123-8123-123456789abc?token=signed';
+    const response = await proxy(new NextRequest(url, { method }));
+    expect(response.headers.get('x-middleware-next')).toBe('1');
+    expect(response.headers.get('location')).toBeNull();
+    const opaque = await proxy(new NextRequest(url, { method, headers: { Origin: 'null', Cookie: 'session=private' } }));
+    expect(opaque.status).toBe(403);
+    expect(opaque.headers.get('x-middleware-next')).toBeNull();
+  });
 });
