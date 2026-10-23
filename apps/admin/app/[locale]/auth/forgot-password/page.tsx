@@ -42,7 +42,13 @@ export default function AdminForgotPasswordPage() {
     setBusy(true)
     setError('')
     try {
-      await authApi.forgotPassword(value)
+      // ApiClient resolves every failure as { success: false } — the step only
+      // advances when the core actually accepted the request.
+      const sent = await authApi.forgotPassword(value)
+      if (!sent.success) {
+        setError(sent.error?.message || getText('merchant.auth.resetErrorSend', 'Could not send the reset code. Try again in a moment.'))
+        return
+      }
       setStep('reset')
       setNotice(getText('merchant.auth.resetNoticeSent', 'If an admin account exists for this email, a six-digit reset code is on its way. It expires in 10 minutes.'))
     } catch (caught: any) {
@@ -69,7 +75,11 @@ export default function AdminForgotPasswordPage() {
     setBusy(true)
     setError('')
     try {
-      await authApi.resetPassword({ email: email.trim().toLowerCase(), code: code.trim(), password })
+      const reset = await authApi.resetPassword({ email: email.trim().toLowerCase(), code: code.trim(), password })
+      if (!reset.success) {
+        setError(reset.error?.message || getText('merchant.auth.resetErrorReset', 'Could not reset the password. Check the code and try again.'))
+        return
+      }
       setStep('done')
     } catch (caught: any) {
       setError(caught?.message || getText('merchant.auth.resetErrorReset', 'Could not reset the password. Check the code and try again.'))
