@@ -97,7 +97,12 @@ test('edge renders only derived hostname variables and preserves nginx request v
   assert.ok(!template.includes('shop.local') && !template.includes('admin.local'));
   assert.ok(template.includes('server_name ${EDGE_SHOP_HOST};'));
   assert.ok(template.includes('server_name ${EDGE_ADMIN_HOST};'));
-  assert.ok(template.includes('$host') && template.includes('$remote_addr'));
+  assert.ok(template.includes('$http_host') && template.includes('$remote_addr'));
+  assert.equal((template.match(/proxy_set_header Host \$http_host;/g) ?? []).length, 2);
+  assert.equal((template.match(/proxy_set_header X-Forwarded-Host "";/g) ?? []).length, 2);
+  const balancer = readFileSync(new URL('../deploy/compose/api-lb.conf', import.meta.url), 'utf8');
+  assert.match(balancer, /proxy_set_header Host \$http_host;/);
+  assert.ok(!/proxy_set_header Host \$host;/.test(template + balancer));
   const compose = readFileSync(new URL('../deploy/compose/compose.yml', import.meta.url), 'utf8');
   assert.match(compose, /NGINX_ENVSUBST_FILTER: 'EDGE_\(SHOP\|ADMIN\)_HOST'/);
   assert.match(compose, /edge\.conf\.template:\/etc\/nginx\/templates\/nginx\.conf\.template:ro/);

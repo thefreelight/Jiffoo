@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { request as httpsRequest } from 'node:https';
 import { resolve } from 'node:path';
 import { AcceptanceChecks, scenarioPlans } from './checks.mjs';
@@ -21,13 +21,13 @@ async function http(base, path, method = 'GET', body, token, expected = 200) {
   assert.equal(response.status, expected, `${method} ${path}: ${text}`);
   return text ? JSON.parse(text) : undefined;
 }
-async function edge(path, headers = {}, host = new URL(process.env.STOREFRONT_URL).hostname) {
+async function edge(path, headers = {}, host = new URL(process.env.STOREFRONT_URL).host) {
   const ca = await readFile('/tls/cert.pem');
   return new Promise((done, reject) => {
-    const req = httpsRequest({ hostname: 'edge', port: 8443, servername: host, ca, path, headers: { host, ...headers } }, response => {
+    const req = httpsRequest({ hostname: 'edge', port: 8443, servername: new URL('https://' + host).hostname, ca, path, headers: { host, ...headers } }, response => {
       const chunks = [];
       response.on('data', bytes => chunks.push(bytes));
-      response.once('end', () => done({ status: response.statusCode, body: Buffer.concat(chunks).toString() }));
+      response.once('end', () => done({ status: response.statusCode, headers: response.headers, body: Buffer.concat(chunks).toString() }));
     });
     req.setTimeout(30000, () => req.destroy(new Error('HTTPS request timed out')));
     req.once('error', reject); req.end();
@@ -78,7 +78,8 @@ async function state() {
     await checks.run('Plugin disable and enable propagation', ['Owner installation and login'], async () => {
       const slug = 'compose-probe';
       const manifest = { schemaVersion: 1, slug, name: slug, version: '1.0.0', description: 'Compose propagation probe', category: 'shipping', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1', entryModule: 'server/index.js', permissions: [], contracts: [{ name: 'shipping', version: 1 }], subscriptions: [] };
-      const bytes = await zip({ 'manifest.json': JSON.stringify(manifest), 'server/index.js': "module.exports = { register(ctx) { ctx.http.route({ method: 'GET', path: '/probe', handler: () => ({ serving: true }) }); ctx.contracts.implement('shipping', 1, { quote: () => ({ options: [{ id: 'standard', label: 'Compose shipping', amountMinor: 0 }] }) }); } };" });
+      manifest.ui = { bridgeVersion: 1, assetDirectory: 'ui', storefrontPages: [{ id: 'probe', path: '/probe', entry: 'index.html', title: { en: 'Probe', 'zh-Hans': 'Probe', 'zh-Hant': 'Probe' }, placements: ['header-nav'], requiresLogin: false }], adminPages: [] };
+      const bytes = await zip({ 'manifest.json': JSON.stringify(manifest), 'ui/index.html': '<!doctype html><html><body>Compose page probe</body></html>', 'server/index.js': "module.exports = { register(ctx) { ctx.http.route({ method: 'GET', path: '/probe', handler: () => ({ serving: true }) }); ctx.contracts.implement('shipping', 1, { quote: () => ({ options: [{ id: 'standard', label: 'Compose shipping', amountMinor: 0 }] }) }); } };" });
       const preview = (await http(bases[0], '/api/v1/extensions/plugin/preview', 'POST', form(bytes, 'plugin.zip'), owner)).data;
       const operation = (await http(bases[0], '/api/v1/extensions/plugin/install', 'POST', form(bytes, 'plugin.zip', { previewToken: preview.previewToken, confirmUnsigned: 'true', confirmationSlug: slug,
         ...(preview.migrationPlan.changesDatabase ? { confirmMigrations: 'true' } : {}) }), owner, 202)).data;
@@ -97,6 +98,28 @@ async function state() {
       for (const base of bases) assert.equal((await http(base, `/api/v1/extensions/plugin/${slug}/api/probe`, 'GET', undefined, undefined, 503)).error.code, 'PLUGIN_DISABLED');
       await toggle(true);
       for (const base of bases) assert.equal((await http(base, `/api/v1/extensions/plugin/${slug}/api/probe`)).serving, true);
+      return `/api/v1/plugin-assets/${instance.id}/${createHash('sha256').update(bytes).digest('hex')}/index.html`;
+    });
+    await checks.run('Plugin HTML authority across both proxies', ['Plugin disable and enable propagation'], async () => {
+      const path = checks.value('Plugin disable and enable propagation');
+      const shop = new URL(process.env.STOREFRONT_URL), admin = new URL(process.env.ADMIN_URL);
+      for (const origin of [shop, admin]) {
+        const response = await edge(path, {}, origin.host);
+        assert.equal(response.status, 200, response.body);
+        assert.ok(response.body.includes('Compose page probe'));
+        assert.ok(response.headers['content-security-policy'].includes(`script-src ${origin.origin};`));
+        for (const base of bases) {
+          const direct = await fetch(base + path, { headers: { host: origin.host }, signal: AbortSignal.timeout(30000) });
+          assert.equal(direct.status, 200); await direct.body?.cancel();
+        }
+      }
+      for (const authority of [shop.hostname, shop.hostname + ':9443', 'evil.example', shop.host + '.evil.example']) {
+        const response = await edge(path, { host: authority, 'x-forwarded-host': shop.host, 'x-forwarded-port': '8443', 'x-forwarded-proto': 'https', forwarded: `host=${shop.host};proto=https` });
+        assert.equal(response.status, 404, response.body);
+      }
+      const spoofed = await edge(path, { 'x-forwarded-host': 'evil.example', 'x-forwarded-port': '9443', 'x-forwarded-proto': 'http' });
+      assert.equal(spoofed.status, 200);
+      assert.ok(spoofed.headers['content-security-policy'].includes(`script-src ${shop.origin};`));
     });
     await checks.run('Warm theme switch across APIs', ['Owner installation and login'], async () => {
 

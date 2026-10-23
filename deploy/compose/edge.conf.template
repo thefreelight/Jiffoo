@@ -15,7 +15,9 @@ http {
     ssl_certificate_key /etc/nginx/tls/key.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     client_max_body_size 25m;
-    proxy_set_header Host $host;
+    # Preserve the public port; Core still requires an exact configured origin.
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Host "";
     proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Real-IP "";
     proxy_set_header Forwarded "";
@@ -33,7 +35,9 @@ http {
     ssl_certificate_key /etc/nginx/tls/key.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     client_max_body_size 25m;
-    proxy_set_header Host $host;
+    # Preserve the public port; Core still requires an exact configured origin.
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Host "";
     proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Real-IP "";
     proxy_set_header Forwarded "";

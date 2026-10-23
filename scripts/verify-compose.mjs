@@ -44,7 +44,7 @@ async function verify() {
     PLUGIN_FILE_URL_SECRET: randomBytes(32).toString('base64'),
     MINIO_ROOT_USER: 'compose-' + randomUUID(), MINIO_ROOT_PASSWORD: generateStorageSecret(), UPLOAD_S3_BUCKET: 'compose-' + randomUUID(),
     SILO_APP_ACCESS_KEY_ID: 'app-' + randomUUID(), SILO_APP_SECRET_ACCESS_KEY: generateStorageSecret(),
-    STOREFRONT_URL: 'https://compose-shop.test', ADMIN_URL: 'https://compose-admin.test', EDGE_PORT: '0',
+    STOREFRONT_URL: 'https://compose-shop.test:8443', ADMIN_URL: 'https://compose-admin.test', EDGE_PORT: '0',
     TLS_CERT_FILE: join(certificateDirectory, 'cert.pem'), TLS_KEY_FILE: join(certificateDirectory, 'key.pem'),
   };
   const args = ['compose', '--project-name', project, '-f', 'deploy/compose/compose.yml', '-f', 'deploy/compose/compose.acceptance.yml'];
