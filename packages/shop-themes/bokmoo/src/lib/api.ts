@@ -484,7 +484,7 @@ export function mapBokmooApiProductToThemeProduct(product: BokmooApiProduct): Th
   return {
     id: product.id,
     name: displayProductTitle(product.name),
-    description: product.description || `${displayProductTitle(product.name)} travel connectivity package`,
+    description: product.description ?? '',
     price: sellablePrice,
     sku: product.slug || product.id,
     productKind: product.productKind,

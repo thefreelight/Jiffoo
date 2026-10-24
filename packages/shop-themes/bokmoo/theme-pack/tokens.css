@@ -88,6 +88,15 @@ h6 {
   line-height: 1.08;
 }
 
+/* Admin/ODoo-managed storefront description, rendered verbatim on the PDP. */
+.bokmoo-pdp-description {
+  margin-top: 0.7rem;
+  max-width: 52ch;
+  font-size: 0.925rem;
+  line-height: 1.65;
+  color: var(--bokmoo-copy);
+}
+
 ::selection {
   background: color-mix(in oklab, var(--bokmoo-gold) 38%, transparent);
   color: var(--bokmoo-ink);

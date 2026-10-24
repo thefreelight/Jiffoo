@@ -161,8 +161,30 @@ export function useCreateProduct() {
   });
 }
 
-export function useUpdateProduct() {
+export function useUpdateProductDescription() {
   const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ id, description }: { id: string; description: string }) => {
+      const response = await productsApi.updateDescription(id, description);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.products,
+        exact: false
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.product(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.productStats });
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useUpdateProduct() {  const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
 
   return useMutation({

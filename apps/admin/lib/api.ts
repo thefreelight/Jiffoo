@@ -458,6 +458,11 @@ export const productsApi = {
 
   update: (id: string, data: Partial<ProductForm>): Promise<ApiResponse<AdminProductDetailDTO>> => apiClient.put(`/admin/products/${id}`, data),
 
+  // Native instances: storefront copy is admin-owned. Saves into the copy
+  // override store; an empty string resets to the synced (Odoo) description.
+  updateDescription: (id: string, description: string): Promise<ApiResponse<AdminProductDetailDTO>> =>
+    apiClient.put(`/admin/products/${id}/description`, { description }),
+
   delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/products/${id}`),
 
   getCategories: (page = 1, limit = 20): Promise<ApiResponse<PageResult<any>>> =>
