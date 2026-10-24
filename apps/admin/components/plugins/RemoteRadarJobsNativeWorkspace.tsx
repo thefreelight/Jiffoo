@@ -58,17 +58,29 @@ export function RemoteRadarJobsNativeWorkspace(props: { installationId: string; 
         apiClient.get('/jobs/stats'),
       ]);
       // The jobs admin proxy returns the upstream payload as-is (bare
-      // { connectors } / { sources } envelopes), so read it without the
-      // standard success/data unwrap.
-      const connectorData = connectorResponse as unknown as { connectors?: ConnectorDefinition[]; error?: string };
-      const sourceData = sourceResponse as unknown as { sources?: SourceRow[]; error?: string };
-      const statsData = statsResponse as unknown as StatsRow & { error?: string };
-      if (connectorData.error || sourceData.error) {
-        throw new Error(connectorData.error || sourceData.error || 'Failed to load');
+      // { connectors } / { sources } envelopes), but the shared apiClient
+      // normalizes bodies without an explicit `success` field into
+      // { success, data } — so accept BOTH shapes or the page renders
+      // empty forever (observed live: the lists never populated).
+      const unwrap = <T,>(response: unknown): (T & { error?: { message?: string } }) | undefined => {
+        const envelope = response as { success?: boolean; data?: T; error?: { message?: string } };
+        if (envelope && typeof envelope === 'object' && envelope.success === true && envelope.data) {
+          return envelope.data as (T & { error?: { message?: string } });
+        }
+        if (envelope && typeof envelope === 'object' && envelope.success === false) {
+          return { error: envelope.error } as (T & { error?: { message?: string } });
+        }
+        return response as (T & { error?: { message?: string } });
+      };
+      const connectorData = unwrap<{ connectors?: ConnectorDefinition[] }>(connectorResponse);
+      const sourceData = unwrap<{ sources?: SourceRow[] }>(sourceResponse);
+      const statsData = unwrap<StatsRow>(statsResponse);
+      if (!connectorData?.connectors || !sourceData?.sources) {
+        throw new Error(connectorData?.error?.message || sourceData?.error?.message || 'Failed to load job sources');
       }
       setConnectors(connectorData.connectors || []);
       setSources(sourceData.sources || []);
-      setStats(statsData.activeTotal != null ? statsData : null);
+      setStats(statsData?.activeTotal != null ? statsData : null);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load RemoteRadar jobs administration.';
       toast.error(message);
