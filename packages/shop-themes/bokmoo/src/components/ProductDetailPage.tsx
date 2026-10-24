@@ -220,6 +220,9 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                   <p className="mt-2 text-lg text-[var(--bokmoo-copy)]">
                     {isGoodsProduct ? pickCopy(locale, goodsSubtitle) : profile.networkLabel}
                   </p>
+                  {normalizedProduct.description ? (
+                    <p className="bokmoo-pdp-description">{normalizedProduct.description}</p>
+                  ) : null}
                 </div>
                 <div className="sm:text-right">
                   <p className="text-[2.3rem] font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]">
