@@ -17163,13 +17163,23 @@
       ),
       /* @__PURE__ */ jsx("div", { className: "mt-5 rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] p-3 shadow-[var(--bokmoo-shadow)] sm:rounded-[1.55rem] sm:p-5", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-6 lg:grid-cols-[minmax(0,0.96fr)_22rem]", children: [
         /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("div", { className: "overflow-hidden rounded-[1.05rem] border border-[var(--bokmoo-line)] sm:rounded-[1.2rem]", children: image ? /* @__PURE__ */ jsx("img", { src: image, alt: normalizedProduct.name, className: "aspect-[1.28/1] h-full w-full object-cover sm:aspect-[1.6/1]" }) : /* @__PURE__ */ jsx("div", { className: "aspect-[1.28/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)] sm:aspect-[1.6/1]" }) }),
+          /* @__PURE__ */ jsx("div", { className: "overflow-hidden rounded-[1.05rem] border border-[var(--bokmoo-line)] sm:rounded-[1.2rem]", children: image ? /* @__PURE__ */ jsx(
+            "img",
+            {
+              src: image,
+              alt: normalizedProduct.name,
+              className: cn2(
+                "object-cover",
+                isGoodsProduct ? "bokmoo-pdp-media-goods" : "aspect-[1.28/1] h-full w-full sm:aspect-[1.6/1]"
+              )
+            }
+          ) : /* @__PURE__ */ jsx("div", { className: "aspect-[1.28/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)] sm:aspect-[1.6/1]" }) }),
           /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4", children: [
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsx("h1", { className: "bokmoo-pdp-title font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: normalizedProduct.name }),
               normalizedProduct.description ? /* @__PURE__ */ jsx("p", { className: "bokmoo-pdp-description", children: normalizedProduct.description }) : /* @__PURE__ */ jsx("p", { className: "mt-2 text-lg text-[var(--bokmoo-copy)]", children: isGoodsProduct ? pickCopy(locale, goodsSubtitle) : profile.networkLabel })
             ] }),
-            /* @__PURE__ */ jsx("div", { className: "sm:text-right", children: /* @__PURE__ */ jsxs("p", { className: "text-[2.3rem] font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]", children: [
+            /* @__PURE__ */ jsx("div", { className: "sm:text-right", children: /* @__PURE__ */ jsxs("p", { className: "bokmoo-pdp-price font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]", children: [
               "$",
               priceValue.toFixed(2)
             ] }) })
@@ -17555,7 +17565,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.36",
+      version: "1.1.37",
       target: "shop"
     }
   };

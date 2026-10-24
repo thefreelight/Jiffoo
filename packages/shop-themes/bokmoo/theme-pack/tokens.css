@@ -82,10 +82,26 @@ h6 {
 
 /* PDP display title — sized here rather than via runtime Tailwind classes:
    arbitrary utilities only exist in the host app's compiled CSS, and theme
-   versions ship independently of worker rebuilds. */
+   versions ship independently of worker rebuilds. Cap fits the one-line
+   "Bokmoo Bluetooth Card" in the 413px title column (measured 40.7px max). */
 .bokmoo-pdp-title {
-  font-size: clamp(2.1rem, 3.2vw, 2.35rem);
+  font-size: clamp(2.1rem, 3.2vw, 2.45rem);
   line-height: 1.08;
+}
+
+/* Price keeps its own tight line box so it aligns with the title baseline
+   instead of sinking on the inherited 1.6 body leading. */
+.bokmoo-pdp-price {
+  font-size: 2.3rem;
+  line-height: 1.05;
+}
+
+/* Goods (physical cards) ship portrait photography — 3:4 shows the full card
+   art; the eSIM landscape box would crop it to a middle slice. */
+.bokmoo-pdp-media-goods {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
 }
 
 /* Admin/Odoo-managed storefront description — the single lead line under the
