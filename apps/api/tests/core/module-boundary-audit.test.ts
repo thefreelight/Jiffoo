@@ -94,6 +94,7 @@ const SCAN_ROOTS = [CORE_ROOT, INFRA_ROOT, JOBS_ROOT];
 const LEGAL_EDGES: Record<string, string> = {
   'account -> admin/staff-management': 'the account routes translate the public `StaffManagementError` of the staff module into the shared error shape.',
   'account -> auth': 'the account module uses the auth module\'s public middleware and email-verification service.',
+  'account -> plugin-pages': 'the account service revokes the plugin-page sessions of a deleted account through the public plugin-page session service.',
   'account -> upload': 'the account routes publish profile media through the public upload service.',
   'admin/audit-events -> audit': 'the admin audit-events routes read the audit module\'s public record projection.',
   'admin/dashboard -> admin/order-management': 'the dashboard reuses the order-management module\'s public `paymentReviewWhere` filter builder.',
@@ -114,6 +115,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/extension-installer -> infra/shared-protection': 'the plugin runtime applies the shared protection through the public protection helpers.',
   'admin/extension-installer -> infra/worker-shutdown': 'the plugin runtime observes the worker shutdown through the public shutdown helper.',
   'admin/extension-installer -> plugin-pages': 'the plugin runtime enforces the public plugin-page origin policy.',
+  'admin/extension-installer -> plugin-storage': 'the contract runtime hands the private plugin files to a plugin through the public plugin-storage service.',
   'admin/extension-installer -> plugins': 'the installer uses the public durable-task API (`assertTaskClaim`, `withTaskScope`, task policy).',
   'admin/extension-installer -> settings': 'the installer bumps the plugin registry version through the public settings module that owns the `system_settings` row.',
   'admin/extension-installer -> shared': 'the installer re-exports the platform-wide circuit breaker parameters from the neutral shared configuration module.',
@@ -138,6 +140,8 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/plugin-management -> extensions/registry': 'plugin management reads the read-only provider registry.',
   'admin/plugin-management -> extensions/shared': 'plugin management validates instance configuration and reports installer errors through the neutral extension helpers.',
   'admin/plugin-management -> logger': 'plugin management logs through the unified logger.',
+  'admin/plugin-management -> plugin-pages': 'plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service.',
+  'admin/plugin-management -> plugin-storage': 'plugin management purges the private files of an uninstalled installation through the public plugin-storage service.',
   'admin/plugin-management -> plugins': 'plugin management uses the public durable-task API.',
   'admin/plugin-management -> settings': 'plugin management bumps the plugin registry version through the public settings module that owns the `system_settings` row.',
   'admin/plugin-management -> storage': 'plugin management resolves packages and operation leases through the public storage stores.',
@@ -150,6 +154,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/product-management -> upload': 'the admin product routes publish product media through the public upload service.',
   'admin/staff-management -> audit': 'the staff module records staff-audit rows through the single audit write outlet.',
   'admin/staff-management -> auth': 'the staff module uses the public account-recovery and email-verification services.',
+  'admin/staff-management -> plugin-pages': 'the staff module revokes the plugin-page sessions of a removed staff member through the public plugin-page session service.',
   'admin/storefront-code -> audit': 'the storefront-code module records audit events through the single audit write outlet.',
   'admin/system-settings -> settings': 'the old admin path is a pure re-export shim of the relocated settings module.',
   'admin/user-management -> audit': 'the admin user module records audit events through the audit outlet.',
@@ -157,6 +162,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/user-management -> cache': 'the admin user module invalidates cached user entries.',
   'admin/user-management -> infra/events/emit': 'the admin user module publishes its events through the public outbox.',
   'admin/user-management -> infra/events/snapshots': 'the admin user module builds its event payload through the public outbox snapshot helpers.',
+  'admin/user-management -> plugin-pages': 'the admin user module revokes the plugin-page sessions of a removed account through the public plugin-page session service.',
   'admin/user-management -> settings': 'the admin user module reads system settings through the public settings service.',
   'auth -> audit': 'the auth module records staff-audit rows through the single audit write outlet.',
   'auth -> cache': 'the auth module caches token and settings entries.',
@@ -201,6 +207,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'inventory -> infra/events/snapshots': 'the inventory module builds its event payload through the public outbox snapshot helpers.',
   'jobs/payment-reconciliation -> logger': 'the reconciliation job logs through the unified logger.',
   'jobs/payment-reconciliation -> payment': 'the reconciliation job drives the payment module through its public reconciliation entry points.',
+  'jobs/plugin-file-cleanup -> plugin-storage': 'the cleanup job runs the private file cleanup through the public plugin-storage service.',
   'notifications -> admin/extension-installer': 'the notification delivery calls plugins through the public plugin runtime.',
   'notifications -> auth': 'the notification service reads the recipient locale through the auth module\'s public identity projection instead of the `users` table.',
   'notifications -> extensions/registry': 'the notification delivery resolves the notification provider through the read-only registry.',
@@ -219,6 +226,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'order -> inventory': 'the order service checks and reserves stock through the public inventory service.',
   'order -> logger': 'the order service logs through the unified logger.',
   'order -> payment': 'the order service drives the payment module through its public service.',
+  'order -> plugin-pages': 'the order service binds the purchase origin and reads the purchase return target through the public plugin-page service.',
   'order -> product': 'the order service reads the sellable catalog through the product module\'s public projection.',
   'order -> settings': 'the order service reads system settings through the public settings service.',
   'order -> shared': 'the order module uses the neutral money, pricing and row-lock helpers.',
@@ -237,8 +245,18 @@ const LEGAL_EDGES: Record<string, string> = {
   'payment -> settings': 'the payment routes read system settings through the public settings service.',
   'payment -> shared': 'the payment module uses the neutral money and row-lock helpers.',
   'plugin-pages -> admin/extension-installer': 'the plugin-page asset routes use the installer\'s public migration gate and signing policy.',
+  'plugin-pages -> cart': 'the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
   'plugin-pages -> extensions/registry': 'the plugin-page asset routes read the plugin instance through the read-only registry\'s public installation projection instead of querying the plugin domain\'s tables directly.',
+  'plugin-pages -> infra/shared-protection': 'the plugin-page routes apply the shared protection through the public protection helpers.',
+  'plugin-pages -> plugins': 'the plugin-page session records its task principal through the public durable-task API.',
+  'plugin-pages -> product': 'the plugin-page routes read the sellable catalog through the public product projection.',
   'plugin-pages -> storage': 'the plugin-page asset routes read package blobs through the public storage stores.',
+  'plugin-storage -> admin/audit-events': 'the plugin-storage service records its audit rows through the public admin audit writer.',
+  'plugin-storage -> admin/extension-installer': 'the plugin-storage service admits a file through the public storage admission service of the installer.',
+  'plugin-storage -> infra/shared-protection': 'the plugin-storage routes apply the shared protection through the public protection helpers.',
+  'plugin-storage -> plugin-pages': 'the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service.',
+  'plugin-storage -> plugins': 'the plugin-storage service claims its durable-task operation through the public durable-task API.',
+  'plugin-storage -> storage': 'the plugin-storage service keeps the file blobs through the public uploaded-object store.',
   'plugins -> admin/extension-installer': 'the task worker invokes plugin tasks through the public plugin runtime.',
   'plugins -> extensions/runtime': 'the durable-task worker records the plugin failures through the neutral runtime helpers instead of the admin layer.',
   'plugins -> audit': 'the task module records audit events through the audit outlet.',
@@ -664,6 +682,1425 @@ const KNOWN_CYCLES: KnownCycle[] = [
     modules: ['infra/events/core-subscribers', 'notifications', 'order', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit'],
     reason: 'the core subscriber of the outbox writes the notification through the public notification service, the notification service reads the order through the order module\'s public projection, the order service reads the sellable catalog through the product module\'s public projection, the product projection reads stock through the public inventory service, the inventory module builds its event payload through the public outbox snapshot helpers, the snapshot helpers reuse the outbox transaction type, and the outbox hands the core events to the core subscribers.',
   },
+
+  // The rings of the plugin-page and the private plugin-file surface (WP-F9).
+  // The plugin pages and the private files are called back by the account, the
+  // order, the admin and the job modules, and they read the cart, the catalog,
+  // the durable-task API, the shared protection and the storage stores back, so
+  // every combination of those edges closes a ring of approved edges. Each
+  // ring below names the edges that close it.
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'notifications'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'notifications', 'order'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> cart): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> plugins): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> plugins): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> plugins): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages, plugin-pages -> product): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-pages', 'storage'],
+    reason: 'the plugin-page ring (admin/plugin-management -> plugin-pages): plugin management revokes the plugin-page sessions of a disabled or uninstalled installation through the public plugin-page session service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage'],
+    reason: 'the plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> admin/extension-installer): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage service admits a file through the public storage admission service of the installer.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> plugins): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> plugins): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> plugins): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugin-pages', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugin-pages): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugins'],
+    reason: 'the plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugins): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage service claims its durable-task operation through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugins): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage service claims its durable-task operation through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> plugins): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage service claims its durable-task operation through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'admin/plugin-management', 'plugin-storage', 'storage'],
+    reason: 'the plugin-file ring (admin/plugin-management -> plugin-storage, plugin-storage -> storage): plugin management purges the private files of an uninstalled installation through the public plugin-storage service and the plugin-storage service keeps the file blobs through the public uploaded-object store.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages'],
+    reason: 'the plugin-page ring (order -> plugin-pages): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages'],
+    reason: 'the plugin-page ring (order -> plugin-pages): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'order', 'plugin-pages'],
+    reason: 'the plugin-page ring (order -> plugin-pages): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'order', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'order', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'order', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'notifications', 'order', 'plugin-pages', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'auth', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'auth', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'auth', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'auth', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'auth', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'auth', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'cart', 'auth', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'cart', 'auth', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'cart', 'auth', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'auth', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'auth', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'auth', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'cart', 'auth', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'cart', 'auth', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'cart', 'auth', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'auth', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'auth', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'auth', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages'],
+    reason: 'the plugin-page ring (order -> plugin-pages): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> plugins): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'storage'],
+    reason: 'the plugin-page ring (order -> plugin-pages): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> plugins): the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage'],
+    reason: 'the plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> admin/extension-installer): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage service admits a file through the public storage admission service of the installer.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'auth', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> cart): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'plugins'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> plugins): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> plugins): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> plugins): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page session records its task principal through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages, plugin-pages -> product): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugin-pages', 'storage'],
+    reason: 'the plugin-page and plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugin-pages): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage routes take the storage and download authority of the current plugin-page session through the public plugin-page service.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugins'],
+    reason: 'the plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugins): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage service claims its durable-task operation through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugins', 'extensions/runtime', 'extensions/shared', 'storage'],
+    reason: 'the plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugins): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage service claims its durable-task operation through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'plugins', 'infra/core-process', 'storage'],
+    reason: 'the plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> plugins): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage service claims its durable-task operation through the public durable-task API.',
+  },
+  {
+    modules: ['admin/extension-installer', 'plugin-storage', 'storage'],
+    reason: 'the plugin-file ring (admin/extension-installer -> plugin-storage, plugin-storage -> storage): the contract runtime hands the private plugin files to a plugin through the public plugin-storage service and the plugin-storage service keeps the file blobs through the public uploaded-object store.',
+  },
+  {
+    modules: ['auth', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'cart'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> cart): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'cart'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> cart): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'notifications', 'order', 'plugin-pages', 'cart'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> cart): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'cart'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> cart): the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'cart'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'cart'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'cart'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'checkout', 'cart'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['auth', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'payment'],
+    reason: 'the plugin-page ring (plugin-pages -> product): the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['cart', 'product', 'inventory', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> cart): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['cart', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit', 'infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> cart): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page routes add a product to the cart of the signed-in principal through the public cart service.',
+  },
+  {
+    modules: ['infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'product', 'inventory', 'infra/events/emit'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> product): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
+  {
+    modules: ['infra/events/core-subscribers', 'notifications', 'order', 'plugin-pages', 'product', 'inventory', 'infra/events/snapshots', 'infra/events/emit'],
+    reason: 'the plugin-page ring (order -> plugin-pages, plugin-pages -> product): the order service binds the purchase origin and reads the purchase return target through the public plugin-page service and the plugin-page routes read the sellable catalog through the public product projection.',
+  },
 ];
 
 /**
@@ -739,6 +2176,12 @@ const TABLE_OWNERS: Record<string, string> = {
   plugin_task_execution_slots: 'extensions',
   plugin_task_scheduler: 'plugins',
   plugin_task_fairness: 'plugins',
+  // plugin pages and the private plugin files
+  plugin_page_sessions: 'plugin-pages',
+  plugin_purchase_origins: 'plugin-pages',
+  plugin_files: 'plugin-storage',
+  plugin_storage_quotas: 'plugin-storage',
+  plugin_file_cleanup: 'plugin-storage',
   // written outside apps/api/src/core
   event_records: 'infra',
   event_deliveries: 'infra',
@@ -838,6 +2281,12 @@ const KNOWN_VIOLATIONS: KnownViolation[] = [
     table: 'product_variants',
     reason: 'the inventory module writes the `product_variants` stock level; B-BOUND-A moved the stock write into `InventoryService.applyDesiredStock` on purpose, so the table still has a second writer.',
     owner: 'B-BOUND-A decision (accepted): the stock field of `product_variants` is owned by the inventory module; the guard cannot express field-level ownership.',
+  },
+  {
+    file: 'admin/audit-events/service.ts',
+    table: 'admin_audit_events',
+    reason: 'the admin audit-events module writes the `admin_audit_events` row itself instead of going through the single audit write outlet of the `audit` module; the private plugin storage records its rows through that second outlet.',
+    owner: 'WP-F9 finding (open): the coordinator decides whether the admin audit-events module keeps its own write outlet or the plugin storage records its rows through the `audit` module.',
   },
   {
     file: 'infra/events/delivery.ts',
