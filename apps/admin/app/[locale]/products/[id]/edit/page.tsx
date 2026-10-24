@@ -30,6 +30,7 @@ import { toast } from 'sonner'
 import {
   useProduct,
   useUpdateProduct,
+  useUpdateProductDescription,
   useUploadProductImage,
   useCategories,
   useProductExternalSource,
@@ -75,6 +76,7 @@ export default function EditProductPage() {
   } = useProductExternalSource(productId)
   const { data: categories = [] } = useCategories()
   const updateProductMutation = useUpdateProduct()
+  const updateDescriptionMutation = useUpdateProductDescription()
   const acknowledgeProductSourceMutation = useAcknowledgeProductSourceChanges()
   const acknowledgeVariantSourceMutation = useAcknowledgeVariantSourceChange()
   const uploadImageMutation = useUploadProductImage()
@@ -165,6 +167,17 @@ export default function EditProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     if (e) e.preventDefault()
     try {
+      // Native instances (Odoo-synced catalog) only accept storefront copy
+      // edits from the console: name/price/stock/variants stay sync-owned.
+      // The native detail DTO carries odooDescription/descriptionOverridden.
+      if (isNativeCatalog) {
+        await updateDescriptionMutation.mutateAsync({ id: productId, description: formData.description })
+        setSuccessMode(true)
+        refetch()
+        toast.success('Storefront description saved — live on the storefront within seconds')
+        setTimeout(() => setSuccessMode(false), 3000)
+        return
+      }
       const productData = {
         name: formData.name,
         description: formData.description,
@@ -216,6 +229,10 @@ export default function EditProductPage() {
   }
 
   const hasExternalSource = !!externalSource?.linked
+  // Native catalog instances (Odoo sync) project odooDescription/descriptionOverridden
+  // in the detail DTO; on managed (K8s-origin) deployments the field is absent.
+  const isNativeCatalog = !!product && 'odooDescription' in (product as unknown as Record<string, unknown>)
+  const isDescriptionOverridden = !!(product as unknown as Record<string, unknown> | null)?.descriptionOverridden
   const hasPendingProductChange = !!externalSource?.product?.hasPendingChange
   const pendingVariantCount = Array.isArray(externalSource?.variants)
     ? externalSource.variants.filter((variant: any) => variant.hasPendingChange).length
@@ -235,11 +252,11 @@ export default function EditProductPage() {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={updateProductMutation.isPending}
+            disabled={updateProductMutation.isPending || updateDescriptionMutation.isPending}
             className={`text-sm font-semibold px-4 sm:px-6 h-9 rounded-lg transition-all active:scale-95 ${successMode ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
           >
-            {updateProductMutation.isPending ? 'Saving...' : successMode ? 'Updated' : 'Save Changes'}
+            {updateProductMutation.isPending || updateDescriptionMutation.isPending ? 'Saving...' : successMode ? 'Updated' : 'Save Changes'}
           </Button>
         </>
       }
@@ -425,7 +442,18 @@ export default function EditProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Description</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Description</Label>
+                    {isNativeCatalog && isDescriptionOverridden && (
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('description', (product as unknown as Record<string, unknown>).odooDescription as string ?? '')}
+                        className="text-[10px] font-bold uppercase tracking-widest text-blue-600 hover:text-blue-700"
+                      >
+                        Reset to synced copy
+                      </button>
+                    )}
+                  </div>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
@@ -433,6 +461,13 @@ export default function EditProductPage() {
                     className="border-gray-100 rounded-xl p-4 leading-relaxed text-sm font-medium text-gray-700 bg-gray-50/50 resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all"
                     placeholder="Write a compelling product description..."
                   />
+                  {isNativeCatalog && (
+                    <p className="text-[10px] font-medium text-gray-400 leading-relaxed">
+                      {isDescriptionOverridden
+                        ? 'Storefront shows this admin copy. "Reset to synced copy" falls back to the Odoo description.'
+                        : 'Storefront shows the synced Odoo description. Edit and save to override it — sync will not overwrite your copy.'}
+                    </p>
+                  )}
                 </div>
               </div>
             </section>
