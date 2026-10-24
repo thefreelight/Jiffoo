@@ -206,7 +206,14 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
             <div>
               <div className="overflow-hidden rounded-[1.05rem] border border-[var(--bokmoo-line)] sm:rounded-[1.2rem]">
                 {image ? (
-                  <img src={image} alt={normalizedProduct.name} className="aspect-[1.28/1] h-full w-full object-cover sm:aspect-[1.6/1]" />
+                  <img
+                    src={image}
+                    alt={normalizedProduct.name}
+                    className={cn(
+                      'object-cover',
+                      isGoodsProduct ? 'bokmoo-pdp-media-goods' : 'aspect-[1.28/1] h-full w-full sm:aspect-[1.6/1]',
+                    )}
+                  />
                 ) : (
                   <div className="aspect-[1.28/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)] sm:aspect-[1.6/1]" />
                 )}
@@ -226,7 +233,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                   )}
                 </div>
                 <div className="sm:text-right">
-                  <p className="text-[2.3rem] font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]">
+                  <p className="bokmoo-pdp-price font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]">
                     ${priceValue.toFixed(2)}
                   </p>
                 </div>
