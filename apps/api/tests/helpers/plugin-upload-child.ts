@@ -4,7 +4,7 @@ import { prisma } from '@/config/database';
 import { redisCache } from '@/core/cache/redis';
 import { pluginFsInstaller } from '@/core/admin/extension-installer/plugin-fs-installer';
 import { resetPluginState } from '@/core/admin/extension-installer/plugin-state';
-import type { PluginInstallOptions } from '@/core/admin/extension-installer/types';
+import type { PluginInstallOptions } from '@/core/extensions/shared/types';
 import { installMarketplacePlugin, previewMarketplacePlugin } from '@/core/admin/extension-installer/marketplace-install';
 import { waitPluginInstallOperation } from '@/core/admin/extension-installer/plugin-migration-operation';
 

@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import {
   createUserWithToken,
   createAdminWithToken,

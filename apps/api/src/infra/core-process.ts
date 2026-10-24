@@ -1,6 +1,7 @@
 import { prisma } from '@/config/database';
+import type { Prisma } from '@prisma/client';
 import { coreProcessIdentity, PROCESS_REGISTRATION_LOCK_CLASS, PROCESS_REGISTRATION_LOCK_KEY } from './core-process-identity';
-import { recoveryLimit, observeRecovery } from '@/core/admin/extension-installer/plugin-recovery-test-control';
+import { recoveryLimit, observeRecovery } from './recovery-test-control';
 import { ApiError } from '@/utils/api-errors';
 import { flushCompletedPluginMarkers } from '@/core/storage/completed-plugin-markers';
 
@@ -54,4 +55,14 @@ export function stopCoreProcessHeartbeat(): void {
 export async function drainCoreProcessHeartbeat(): Promise<void> {
   stopCoreProcessHeartbeat();
   await pending;
+}
+
+/**
+ * Prune the process rows that outlived their retention window and that no live
+ * plugin work still references. The write happens on the client the caller
+ * passes, so it stays inside the caller's transaction. The core-process
+ * registry owns the `core_processes` table.
+ */
+export async function pruneCoreProcesses(client: { $executeRaw: Prisma.TransactionClient['$executeRaw'] }, limit: number): Promise<number> {
+  return client.$executeRaw`DELETE FROM public.core_processes p WHERE p."bootNonce" IN (SELECT c."bootNonce" FROM public.core_processes c WHERE c.state IN ('QUIESCENT','DEAD_CONFIRMED') AND coalesce(c."deathConfirmedAt", c."drainedAt") < (clock_timestamp() AT TIME ZONE 'UTC') - ${CORE_PROCESS_RETENTION_DAYS} * interval '1 day' AND NOT EXISTS(SELECT 1 FROM public.plugin_operation_leases l WHERE l."ownerBootNonce" = c."bootNonce") AND NOT EXISTS(SELECT 1 FROM public.plugin_migration_operations o WHERE o."ownerBootNonce" = c."bootNonce") AND NOT EXISTS(SELECT 1 FROM public.plugin_tasks t WHERE t."claimedByBootNonce" = c."bootNonce") AND NOT EXISTS(SELECT 1 FROM public.plugin_task_execution_slots s WHERE s."bootNonce" = c."bootNonce") ORDER BY c."bootNonce" LIMIT ${limit})`;
 }

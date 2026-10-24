@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import type { prisma } from '@/config/database';
+import { AuditService } from '@/core/audit/service';
 
 type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -23,7 +24,7 @@ export async function writePluginAudit(
       process.on('message', receive);
     });
   }
-  await tx.adminAuditEvent.create({
-    data: { ...(id ? { id } : {}), actorId, action, targetType: 'plugin', targetId: slug, summary },
+  await AuditService.writeExclusive(tx, {
+    ...(id ? { id } : {}), actorId, action, targetType: 'plugin', targetId: slug, summary,
   });
 }

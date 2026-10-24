@@ -16,7 +16,7 @@ import {
   PluginLoaderError,
   type VersionCheckResult
 } from '@/core/admin/extension-installer/plugin-compatibility';
-import type { PluginManifest } from '@/core/admin/extension-installer/types';
+import type { PluginManifest } from '@/core/extensions/shared/types';
 
 // Mock the API version configuration
 vi.mock('@/config/api-versions', () => ({

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, it } from 'vitest';
 import { prisma } from '@/config/database';
 import { allocateOrderNumber, formatOrderNumber, orderNumberDay } from '@/core/order/number';
 import { createUserWithToken } from '../helpers/auth';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { createOrderNotification } from '@/core/notifications/service';
 
 let userId: string;

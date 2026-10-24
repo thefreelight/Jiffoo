@@ -49,7 +49,7 @@ vi.mock('@/core/inventory/service', () => ({
   },
 }));
 
-vi.mock('@/core/admin/system-settings/service', () => ({
+vi.mock('@/core/settings/service', () => ({
   systemSettingsService: { getShopLocale: vi.fn().mockResolvedValue('en') },
 }));
 

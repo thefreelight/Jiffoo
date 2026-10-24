@@ -310,6 +310,21 @@ table, or SQL permission boundary. Package authors are responsible for the
 safety of their migrations and collision-safe naming when a package writes
 outside the default schema.
 
+### Plugin Trust Model in V1
+
+Plugin code runs in-process in the Core process. The SDK database path applies a
+schema `search_path` default that points at the plugin's own schema, but it
+applies no table-level boundary: a schema-qualified statement can still reach
+Core tables, and a package may also reach Core tables through Node module
+resolution inside the Core process. This is publisher accountability under §4,
+not technical isolation, and it is an accepted V1 limitation. The concrete
+locations are `apps/api/src/core/admin/extension-installer/plugin-database.ts`
+(the plugin transaction and its `search_path` default),
+`apps/api/src/core/admin/extension-installer/plugin-database-sql.ts` (the SQL
+admission rules) and
+`apps/api/src/core/admin/extension-installer/plugin-module-loader.ts` (the
+in-process module loader).
+
 ### Event Layer
 
 Extensions may also extend Core by subscribing to versioned Core events and

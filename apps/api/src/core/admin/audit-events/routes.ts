@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { listAuditRecords, auditRecordFilters } from './records';
+import { listAuditRecords, auditRecordFilters } from '@/core/audit/records';
 import { prisma } from '@/config/database';
 import { sendError, sendSuccess } from '@/utils/response';
 import { filtersSchema, pageSchema, querySchema, responses, strictQueryValidator } from './schemas';

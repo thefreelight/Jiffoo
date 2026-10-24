@@ -10,8 +10,8 @@ import {
   validateVersionFormat,
   satisfiesRange,
   validateVersionRange,
-} from '@/core/admin/extension-installer/version-utils';
-import { ExtensionInstallerError } from '@/core/admin/extension-installer/errors';
+} from '@/core/extensions/shared/version-utils';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 
 describe('Version Utilities', () => {
   // ── compareVersions ──────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { parsePluginConfigSchema, validatePluginConfig } from '@jiffoo/shared';
-import { ExtensionInstallerError } from './errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { decryptPluginConfig, PluginConfigDecryptionError } from '@/core/admin/plugin-management/config-crypto';
 
 function manifestRecord(value: unknown): Record<string, unknown> | null {

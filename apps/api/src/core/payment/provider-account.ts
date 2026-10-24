@@ -1,4 +1,4 @@
-import type { PaymentAccountIdentity, PaymentV2Output } from '@jiffoo/shared';
+import { PLUGIN_CONTRACT_VERSIONS, type PaymentAccountIdentity, type PaymentV2Output } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { ApiError } from '@/utils/api-errors';
@@ -7,7 +7,7 @@ export function samePaymentAccount(first: PaymentAccountIdentity, second: Paymen
   return first.namespace === second.namespace && first.merchantAccount === second.merchantAccount && first.environment === second.environment;
 }
 export async function bindPaymentProviderAccount(slug: string, currency: string) {
-  const description = await callContract(slug, 'payment', 2, 'describe', { storeCurrency: currency }) as PaymentV2Output<'describe'>;
+  const description = await callContract(slug, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', { storeCurrency: currency }) as PaymentV2Output<'describe'>;
   const installation = await prisma.pluginInstallation.findUnique({ where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } } });
   if (!installation || !installation.enabled || installation.deletedAt) throw new ApiError('PLUGIN_DISABLED');
   const account = await prisma.paymentProviderAccount.upsert({

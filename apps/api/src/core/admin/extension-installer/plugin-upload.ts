@@ -6,12 +6,13 @@ import { prisma } from '@/config/database';
 import { assertTaskPolicy, lockTaskScheduler } from '@/core/plugins/tasks';
 import { env } from '@/config/env';
 import { PLUGIN_MAX_ZIP_SIZE, readPluginZipEntries, verifyPluginZip, validatePluginMigrations, buildPluginUiAssetIndex } from 'shared/plugin-signing';
+import { BUILTIN_PLUGIN_SLUGS } from '@jiffoo/shared';
 import { migrationPlan } from './plugin-migration-executor';
-import { validateFileExtension, validateFileSize } from './security';
-import { validatePluginManifest } from './utils';
+import { validateFileExtension, validateFileSize } from '@/core/extensions/shared/security';
+import { validatePluginManifest } from '@/core/extensions/shared/utils';
 import { checkPluginApiCompatibility } from './plugin-compatibility';
-import { compareVersions } from './version-utils';
-import type { PluginManifest } from './types';
+import { compareVersions } from '@/core/extensions/shared/version-utils';
+import type { PluginManifest } from '@/core/extensions/shared/types';
 import { writePluginAudit } from './plugin-audit';
 
 export class PluginUploadError extends ApiError {
@@ -59,7 +60,7 @@ export async function inspectPluginUpload(bytes: Buffer) {
     validateFileExtension(entry.path, 'plugin');
     validateFileSize(entry.path, entry.content.length, 'plugin');
   }
-  if (['manual-payment', 'free-shipping', 'zero-tax', 'manual-fulfillment', 'console-email'].includes(manifest.slug))
+  if ((BUILTIN_PLUGIN_SLUGS as readonly string[]).includes(manifest.slug))
     throw new PluginUploadError('SLUG_RESERVED', 400);
   return { manifest, files, assetIndex, manifestDigest: createHash('sha256').update(manifestEntry.content).digest('hex'), publisher, hash: createHash('sha256').update(bytes).digest('hex'), trust: publisher ? 'signed' as const : 'unsigned' as const };
 }

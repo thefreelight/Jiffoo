@@ -25,7 +25,8 @@ import { randomUUID } from 'crypto';
 import { assertTaskClaim, recordTaskPrincipal, withTaskScope, type TaskClaim } from '@/core/plugins/tasks';
 import type { TaskInput, PluginTasks, TaskHandlerOptions } from '@jiffoo/shared';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
-import type { PluginManifest } from './types';
+import { getDefaultInstance } from '@/core/extensions/registry';
+import type { PluginManifest } from '@/core/extensions/shared/types';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { resolveCurrentPluginPackage, PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
 import { loadPluginEntryModule } from './plugin-module-loader';
@@ -38,18 +39,20 @@ import {
 import { withPluginMigrationGate, assertPluginNotPaused } from './plugin-migration-gate';
 import { withPluginDatabaseInvocation, withPluginDatabaseHandler, isPluginDatabaseError } from './plugin-database';
 import { pluginDatabaseLimit } from './plugin-database-test-control';
-import { registerPluginStateReset } from './plugin-state';
-import { recordPluginFailure, redactPluginFailure } from './plugin-failure';
-import { readStoredPluginManifest } from './stored-manifest';
-import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV2Methods, shippingV1Methods, taxV1Methods, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
+import { registerPluginStateReset } from '@/core/extensions/runtime/plugin-state';
+import { recordPluginFailure, redactPluginFailure } from '@/core/extensions/runtime/failure';
+import { readStoredPluginManifest } from '@/core/extensions/runtime/stored-manifest';
+import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, type PluginContractName, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
-import { getPluginTimeoutMs, MAX_RESPONSE_SIZE_BYTES } from './gateway-protection';
-import { ApiError, sendMappedError, isDatabaseUnavailable, type ErrorCode } from '@/utils/api-errors';
+import { getPluginTimeoutMs, MAX_RESPONSE_SIZE_BYTES } from '@/core/extensions/runtime/gateway-protection';
+import { ContractCallError, PluginGatewayError, contractGatewayError, type PluginGatewayErrorCode } from '@/core/extensions/runtime/contract-errors';
+import { type ContractName, type PluginContractVersion } from '@/core/extensions/runtime/contract-versions';
+import { ApiError, sendMappedError, isDatabaseUnavailable } from '@/utils/api-errors';
 import { observeWorkerShutdownForTest } from '@/infra/worker-shutdown';
 import { sharedProtection, pluginProtectionScope, SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
-import { decryptPluginConfig, redactPluginText } from '@/core/admin/plugin-management/config-crypto';
+import { decryptPluginConfig, redactPluginText } from '@/core/extensions/shared/config-crypto';
 import { pluginSigningError } from './plugin-signing-policy';
 import { encodePaymentWebhook } from './payment-webhook-wire';
 import { pluginPageAdmission } from '@/core/plugin-pages/origin-policy';
@@ -98,27 +101,9 @@ const FORBIDDEN_HEADER_PREFIXES = [
   'x-locale',        // Single header, not a prefix
 ];
 
-export type PluginGatewayErrorCode =
-  | 'PLUGIN_NOT_FOUND'
-  | 'PLUGIN_MANIFEST_MISMATCH'
-  | 'PLUGIN_DISABLED'
-  | 'INSTANCE_NOT_FOUND'
-  | 'INSTANCE_DISABLED'
-  | 'PLUGIN_INVALID_MANIFEST'
-  | 'PLUGIN_LOAD_FAILED'
-  | 'PLUGIN_PACKAGE_UNAVAILABLE'
-  | 'PLUGIN_REINSTALL_REQUIRED'
-  | 'PLUGIN_TEST_SIGNING_DISABLED'
-  | 'PLUGIN_TIMEOUT'
-  | 'INVALID_SLUG'
-  | 'INVALID_INSTANCE_KEY';
-
-export class PluginGatewayError extends ApiError {
-  constructor(message: string, code: PluginGatewayErrorCode, statusCode: number) {
-    super(code);
-    this.message = message;
-  }
-}
+export type { PluginGatewayErrorCode } from '@/core/extensions/runtime/contract-errors';
+export { ContractCallError, PluginGatewayError } from '@/core/extensions/runtime/contract-errors';
+export type { PluginContractVersion } from '@/core/extensions/runtime/contract-versions';
 
 type InternalRuntime = {
   taskHandlers: ReadonlyMap<string, { handler: Parameters<PluginTasks['handle']>[2]; options: TaskHandlerOptions }>;
@@ -539,7 +524,7 @@ async function resolveGatewayContext(
     }
   } else {
     // Default instance
-    instance = await PluginManagementService.getDefaultInstance(slug);
+    instance = await getDefaultInstance(slug);
     if (!instance) {
       throw new PluginGatewayError(
         `Default instance not found for plugin "${slug}"`,
@@ -735,19 +720,7 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
   return false;
 }
 
-export class ContractCallError extends ApiError {
-  constructor(code: ErrorCode, internalMessage: string) { super(code); this.message = internalMessage; }
-}
-
-function contractGatewayError(error: PluginGatewayError): ContractCallError {
-  const code = error.code === 'PLUGIN_NOT_FOUND' || error.code === 'INSTANCE_NOT_FOUND' ? 'PLUGIN_NOT_FOUND'
-    : error.code === 'INSTANCE_DISABLED' ? 'PLUGIN_DISABLED'
-      : error.code === 'PLUGIN_TIMEOUT' ? 'PLUGIN_TIMEOUT' : 'CONTRACT_CALL_FAILED';
-  return new ContractCallError(code, error.message);
-}
-
 const contractMethods = { payment: paymentV2Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
-type ContractName = keyof typeof contractMethods;
 
 function isValidTaxResult(input: unknown, output: unknown): boolean {
   if (!input || typeof input !== 'object' || !output || typeof output !== 'object') return false;
@@ -759,15 +732,17 @@ function isValidTaxResult(input: unknown, output: unknown): boolean {
   return result.totalTaxMinor === result.shippingTaxMinor + result.lines.reduce((sum, line) => sum + line.taxMinor, 0);
 }
 
-export async function callContract(
+export async function callContract<C extends PluginContractName>(
   slug: string,
-  contractName: ContractName,
-  version: 1 | 2,
+  contractName: C,
+  version: PluginContractVersion<C>,
   method: string,
   input: unknown,
   invocationLabel?: { kind: string; id: string },
 ): Promise<unknown> {
-  if (version !== (contractName === 'payment' ? 2 : 1) || !(contractName in contractMethods) || !(method in contractMethods[contractName])) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractName} v${version}/${method}`);
+  const contractKey = contractName as ContractName;
+  const contractVersion = version as number;
+  if (contractVersion !== PLUGIN_CONTRACT_VERSIONS[contractKey] || !(contractKey in contractMethods) || !(method in contractMethods[contractKey])) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractKey} v${contractVersion}/${method}`);
   await assertPluginNotPaused(slug);
   try {
     await ensurePluginRegistryFresh(slug);
@@ -778,7 +753,7 @@ export async function callContract(
     throw error;
   }
   const pkg = await PluginManagementService.getPluginPackage(slug);
-  const instance = await PluginManagementService.getDefaultInstance(slug);
+  const instance = await getDefaultInstance(slug);
   if (!pkg || !instance) throw new ContractCallError('PLUGIN_NOT_FOUND', `Plugin ${slug} is not installed`);
   if (!instance.enabled || instance.deletedAt) throw new ContractCallError('PLUGIN_DISABLED', `Plugin ${slug} is not enabled`);
   const signingError = pluginSigningError(pkg);
@@ -791,7 +766,7 @@ export async function callContract(
     if (error instanceof SyntaxError) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} manifest is invalid`);
     throw error;
   }
-  if (!manifest.contracts?.some((contract) => contract.name === contractName && contract.version === version)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} does not declare ${contractName} v${version}`);
+  if (!manifest.contracts?.some((declaration) => declaration.name === contractKey && declaration.version === contractVersion)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} does not declare ${contractKey} v${contractVersion}`);
   const permit = await sharedProtection.breaker(pluginProtectionScope(instance.id, instance.protectionGeneration));
   if (!permit) throw new ContractCallError('PLUGIN_CIRCUIT_OPEN', `Plugin ${slug} circuit breaker is open`);
   const config = decryptPluginConfig(manifest, parseJsonObject(instance.configJson));
@@ -809,11 +784,11 @@ export async function callContract(
     if (!latest?.enabled || latest.deletedAt || latest.protectionGeneration !== instance.protectionGeneration) {
       throw new ContractCallError('PLUGIN_DISABLED', 'Plugin is disabled');
     }
-    const webhook = contractName === 'payment' && method === 'handleWebhook';
+    const webhook = contractKey === 'payment' && method === 'handleWebhook';
     const databaseAbort = new AbortController();
-    const invocation = withPluginMigrationGate(slug, () => withPluginDatabaseInvocation(slug, instance.id, async () => runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: webhook ? encodePaymentWebhook(input) : input as Record<string, unknown> }), databaseAbort.signal));
+    const invocation = withPluginMigrationGate(slug, () => withPluginDatabaseInvocation(slug, instance.id, async () => runtime.app.inject({ method: 'POST', url: `/__contracts/${contractKey}/v${contractVersion}/${method}`, payload: webhook ? encodePaymentWebhook(input) : input as Record<string, unknown> }), databaseAbort.signal));
     const invocationKey = Symbol();
-    contractInvocations.set(invocationKey, { ...invocationLabel ?? { kind: `contract-${contractName}`, id: instance.id }, installationId: instance.id, promise: invocation });
+    contractInvocations.set(invocationKey, { ...invocationLabel ?? { kind: `contract-${contractKey}`, id: instance.id }, installationId: instance.id, promise: invocation });
     void invocation.finally(() => contractInvocations.delete(invocationKey)).catch(() => undefined);
     injected = true;
     void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
@@ -822,7 +797,7 @@ export async function callContract(
       invocation,
       new Promise<never>((_, reject) => { timeout = setTimeout(() => {
         databaseAbort.abort();
-        observeWorkerShutdownForTest('contract-timeout', invocationLabel ?? { kind: `contract-${contractName}`, id: instance.id });
+        observeWorkerShutdownForTest('contract-timeout', invocationLabel ?? { kind: `contract-${contractKey}`, id: instance.id });
         reject(new ContractCallError('PLUGIN_TIMEOUT', 'Contract call timed out'));
       }, pluginDatabaseLimit('invocationMs', getPluginTimeoutMs())); }),
     ]).finally(() => clearTimeout(timeout));
@@ -835,9 +810,9 @@ export async function callContract(
     if (webhook) {
       try { responseBody = response.json(); } catch { throw new ContractCallError('PLUGIN_ERROR', 'Contract response is not JSON'); }
     } else responseBody = response.json();
-    const parsed = (contractMethods[contractName][method as keyof typeof contractMethods[typeof contractName]] as { output: { safeParse(value: unknown): { success: boolean; data?: unknown; error?: { message: string } } } }).output.safeParse(responseBody);
-    if (!parsed.success || (contractName === 'tax' && !isValidTaxResult(input, parsed.data))) {
-      const error = new ContractCallError(webhook ? 'PLUGIN_ERROR' : 'CONTRACT_RESPONSE_INVALID', `Invalid ${contractName} v${version} ${method} response: ${parsed.success ? 'tax totals or lines are inconsistent' : parsed.error?.message}`);
+    const parsed = (contractMethods[contractKey][method as keyof typeof contractMethods[typeof contractKey]] as { output: { safeParse(value: unknown): { success: boolean; data?: unknown; error?: { message: string } } } }).output.safeParse(responseBody);
+    if (!parsed.success || (contractKey === 'tax' && !isValidTaxResult(input, parsed.data))) {
+      const error = new ContractCallError(webhook ? 'PLUGIN_ERROR' : 'CONTRACT_RESPONSE_INVALID', `Invalid ${contractKey} v${contractVersion} ${method} response: ${parsed.success ? 'tax totals or lines are inconsistent' : parsed.error?.message}`);
       throw error;
     }
     await sharedProtection.result(permit, true);

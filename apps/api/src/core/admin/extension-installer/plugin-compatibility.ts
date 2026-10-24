@@ -2,7 +2,7 @@ import { isVersionCompatible } from '@jiffoo/shared/versioning/compatibility-che
 import { isValidVersion } from '@jiffoo/shared/versioning/version-parser';
 import { apiVersionConfig } from '@/config/api-versions';
 import { ApiError } from '@/utils/api-errors';
-import type { PluginManifest } from './types';
+import type { PluginManifest } from '@/core/extensions/shared/types';
 
 export type PluginLoaderErrorCode = 'INCOMPATIBLE_API_VERSION' | 'INVALID_VERSION_FORMAT' | 'VERSION_CHECK_FAILED';
 

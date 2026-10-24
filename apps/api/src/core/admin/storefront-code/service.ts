@@ -1,5 +1,5 @@
 import { prisma } from '@/config/database';
-import { audit } from '@/core/admin/extension-installer/theme-runtime';
+import { AuditService } from '@/core/audit/service';
 
 export const STOREFRONT_CODE_ID = 'system';
 export const codeDefaults = {
@@ -85,10 +85,16 @@ export async function mutateCode(actorId: string, mutation: Mutation) {
     });
     const auditFields = mutation.action === 'switch' ? fields : editableFields;
     const changedFields = auditFields.filter((field) => (current ?? codeDefaults)[field] !== nextValues[field]);
-    await audit(tx, actorId, `storefront-code.${mutation.action}`, STOREFRONT_CODE_ID, {
-      fromRevision, toRevision: revision, changedFields,
-      ...(mutation.action === 'restore' ? { restoredFromRevision } : {}),
-    }, 'storefront-code');
+    await AuditService.write(tx, {
+      actorId,
+      action: `storefront-code.${mutation.action}`,
+      targetType: 'storefront-code',
+      targetId: STOREFRONT_CODE_ID,
+      summary: {
+        fromRevision, toRevision: revision, changedFields,
+        ...(mutation.action === 'restore' ? { restoredFromRevision } : {}),
+      },
+    });
     return data;
   });
 }

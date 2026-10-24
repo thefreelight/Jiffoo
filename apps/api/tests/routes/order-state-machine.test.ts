@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -11,6 +11,39 @@ import { deliverCoreEvents } from '../helpers/core-events';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { loadOpenApiSpec } from '../helpers/openapi';
 import { OrderService } from '@/core/order/service';
+import { lockOrder } from '@/core/shared/locks';
+import type { Prisma } from '@prisma/client';
+import { CartService } from '@/core/cart/service';
+
+function barrier() {
+  let release!: () => void;
+  const promise = new Promise<void>(resolve => { release = resolve; });
+  return { promise, release };
+}
+
+// Signal either the lock attempt or the completed read, including an unlocked
+// implementation, so the regression fails on effects rather than timing out.
+function observeTransitionStart(tx: Prisma.TransactionClient, started: ReturnType<typeof barrier>) {
+  return new Proxy(tx, {
+    get(target, key) {
+      if (key === '$queryRaw') return (...args: any[]) => {
+        started.release();
+        return (target.$queryRaw as any)(...args);
+      };
+      if (key === 'order') return new Proxy(target.order, {
+        get(delegate, method) {
+          if (method === 'findUnique') return async (args: any) => {
+            const result = await delegate.findUnique(args);
+            started.release();
+            return result;
+          };
+          return Reflect.get(delegate, method);
+        },
+      });
+      return Reflect.get(target, key);
+    },
+  });
+}
 
 describe('ORD-1 order state machine routes', () => {
   let app: FastifyInstance;
@@ -90,6 +123,140 @@ describe('ORD-1 order state machine routes', () => {
     await deleteAllTestProducts();
     await deleteAllTestUsers();
     await app.close();
+  });
+
+  it('serializes competing shipments into one shipment, history entry and outbox event', async () => {
+    const id = await createOrder();
+    await pay(id);
+    const read = barrier();
+    const release = barrier();
+    const started = barrier();
+    const input = { orderId: id, carrier: 'Test', trackingNumber: `race-${id}` };
+    const first = prisma.$transaction(async tx => {
+      const controlled = new Proxy(tx, {
+        get(target, key) {
+          if (key === 'order') return new Proxy(target.order, {
+            get(delegate, method) {
+              if (method === 'findUnique') return async (args: any) => {
+                const result = await delegate.findUnique(args);
+                read.release();
+                await release.promise;
+                return result;
+              };
+              return Reflect.get(delegate, method);
+            },
+          });
+          return Reflect.get(target, key);
+        },
+      });
+      await OrderService.shipOrder(controlled, input);
+    });
+    let second: Promise<void> | undefined;
+    try {
+      await read.promise;
+      second = prisma.$transaction(tx => OrderService.shipOrder(observeTransitionStart(tx, started), input));
+      const results = Promise.allSettled([first, second]);
+      await started.promise;
+      release.release();
+      const settled = await results;
+      expect(settled.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+      expect(settled.filter(result => result.status === 'rejected')).toHaveLength(1);
+      expect(await prisma.shipment.count({ where: { orderId: id } })).toBe(1);
+      expect(await prisma.orderStatusHistory.count({ where: { orderId: id, toStatus: 'SHIPPED' } })).toBe(1);
+      expect(await prisma.eventRecord.count({ where: { aggregateId: id, type: 'order.fulfilled' } })).toBe(1);
+    } finally {
+      release.release();
+      await Promise.allSettled([first, ...(second ? [second] : [])]);
+    }
+  });
+
+  it.each(['ship', 'deliver'] as const)('does not let a waiting %s overwrite a committed refund', async action => {
+    const id = await createOrder();
+    await pay(id);
+    if (action === 'deliver') await ship(id);
+    const held = barrier();
+    const release = barrier();
+    const started = barrier();
+    const shipmentCount = await prisma.shipment.count({ where: { orderId: id } });
+    const eventCount = await prisma.eventRecord.count({ where: { aggregateId: id, type: 'order.fulfilled' } });
+    const refund = prisma.$transaction(async tx => {
+      await lockOrder(tx, id);
+      held.release();
+      await release.promise;
+      await OrderService.markRefunded(tx, { orderId: id, actorId: 'race-test' });
+    });
+    let transition: Promise<void> | undefined;
+    try {
+      await held.promise;
+      transition = prisma.$transaction(tx => action === 'ship'
+        ? OrderService.shipOrder(observeTransitionStart(tx, started), { orderId: id, carrier: 'Test', trackingNumber: id })
+        : OrderService.deliverOrder(observeTransitionStart(tx, started), { orderId: id }));
+      const results = Promise.allSettled([refund, transition]);
+      await started.promise;
+      release.release();
+      const settled = await results;
+      expect(settled[0].status).toBe('fulfilled');
+      expect(settled[1]).toMatchObject({ status: 'rejected', reason: { code: 'INVALID_ORDER_TRANSITION' } });
+      expect(await prisma.order.findUniqueOrThrow({ where: { id } })).toMatchObject({ status: 'REFUNDED', paymentStatus: 'REFUNDED' });
+      expect(await prisma.shipment.count({ where: { orderId: id } })).toBe(shipmentCount);
+      expect(await prisma.eventRecord.count({ where: { aggregateId: id, type: 'order.fulfilled' } })).toBe(eventCount);
+      expect(await prisma.orderStatusHistory.count({ where: { orderId: id, toStatus: action === 'ship' ? 'SHIPPED' : 'DELIVERED' } })).toBe(0);
+    } finally {
+      release.release();
+      await Promise.allSettled([refund, ...(transition ? [transition] : [])]);
+    }
+  });
+
+  it.each([1, 0])('commits a complete order when a concurrent cart edit sets quantity to %s', async quantity => {
+    const items = [{ productId: product.id, variantId: product.variants[0].id, quantity: 2 }];
+    const expectedTotal = await checkoutTotal(app, customer, items, address, 'free-shipping:free');
+    // The quote helper clears the cart and adds the ordered lines again, so
+    // the concurrent edit has to address the cart item the checkout consumes.
+    const cart = await CartService.getCart(userId);
+    const itemId = cart.items[0].id;
+    const read = barrier();
+    const release = barrier();
+    const consume = CartService.consumePurchasedItems.bind(CartService);
+    const spy = vi.spyOn(CartService, 'consumePurchasedItems').mockImplementation((tx, id, lines) => {
+      const controlled = new Proxy(tx, {
+        get(target, key) {
+          if (key === 'cart') return new Proxy(target.cart, {
+            get(delegate, method) {
+              if (method === 'findUnique') return async (args: any) => {
+                const result = await delegate.findUnique(args);
+                read.release();
+                await release.promise;
+                return result;
+              };
+              return Reflect.get(delegate, method);
+            },
+          });
+          return Reflect.get(target, key);
+        },
+      });
+      return consume(controlled, id, lines);
+    });
+    const request = app.inject({
+      method: 'POST', url: '/api/v1/orders/', headers: auth(customer),
+      payload: { items, shippingAddress: address, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal, idempotencyKey: randomUUID() },
+    }).then(response => response);
+    try {
+      await read.promise;
+      await CartService.updateCartItem(userId, itemId, quantity);
+      release.release();
+      const response = await request;
+      expect(response.statusCode).toBe(201);
+      const order = await prisma.order.findUniqueOrThrow({ where: { id: response.json().data.id }, include: { items: true } });
+      expect(order.items).toHaveLength(1);
+      expect(order.items[0].quantity).toBe(2);
+      expect(await prisma.order.count({ where: { userId } })).toBe(1);
+      expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: product.variants[0].id } })).stock).toBe(3);
+      expect(await prisma.cartItem.findUnique({ where: { id: itemId } })).toBeNull();
+    } finally {
+      release.release();
+      await request;
+      spy.mockRestore();
+    }
   });
 
   const edges = [

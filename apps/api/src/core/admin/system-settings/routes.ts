@@ -4,9 +4,9 @@ import { sendMappedError } from '@/utils/api-errors';
  * API endpoints for managing platform settings
  */
 import { FastifyPluginAsync } from 'fastify';
-import { systemSettingsService } from './service';
+import { systemSettingsService } from '@/core/settings/service';
 import { sendSuccess, sendError } from '@/utils/response';
-import { adminSettingsSchemas } from './schemas';
+import { adminSettingsSchemas } from '@/core/settings/schemas';
 import { sendKnownError } from '@/utils/api-errors';
 
 const systemSettingsRoutes: FastifyPluginAsync = async (fastify) => {

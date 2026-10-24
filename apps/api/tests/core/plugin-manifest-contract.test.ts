@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { getPluginManifestIssues } from '@jiffoo/shared';
-import { validatePluginManifest } from '../../src/core/admin/extension-installer/utils';
+import { validatePluginManifest } from '@/core/extensions/shared/utils';
 
 const inProcessManifest = {
   schemaVersion: 1,

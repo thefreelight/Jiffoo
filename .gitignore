@@ -126,5 +126,7 @@ logs/security/
 
 .codex-worktrees/
 tmp/
+.pi/*
+!.pi/settings.json
 .env.bak
 apps/api/openapi.json

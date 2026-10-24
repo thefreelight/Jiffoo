@@ -18,15 +18,16 @@ import { packBuiltinPlugin } from './builtin-package';
 import path from 'path';
 import { prisma } from '@/config/database';
 import { assertTaskPolicy, lockTaskScheduler, transitionInstallationTasks } from '@/core/plugins/tasks';
-import { ExtensionInstallerError } from './errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import {
   IPluginInstaller,
   InstalledPlugin,
   PluginManifest,
   type PluginInstallOptions,
   type ExtensionSource,
-} from './types';
+} from '@/core/extensions/shared/types';
 import { CacheService } from '@/core/cache/service';
+import { BUILTIN_PLUGIN_SLUGS as RESERVED_PLUGIN_SLUGS } from '@jiffoo/shared';
 import {
   extractZipToTemp,
   cleanupTemp,
@@ -34,9 +35,9 @@ import {
   validatePluginManifest,
   resolveExtractedPackageRoot,
   spoolStreamToTempFileAndHash,
-} from './utils';
+} from '@/core/extensions/shared/utils';
 import { pluginPackageStore, type PluginPackageDeployment } from '@/core/storage/plugin-package-store';
-import { incrementPluginRegistryVersion } from './plugin-registry-version';
+import { systemSettingsService } from '@/core/settings/service';
 import {
   deriveTrustLevel,
 } from './trust-level';
@@ -88,13 +89,9 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
-const BUILTIN_PLUGIN_SLUGS = new Set([
-  'manual-payment',
-  'free-shipping',
-  'zero-tax',
-  'manual-fulfillment',
-  'console-email',
-]);
+// The reserved builtin slugs come from the shared contract; this module only
+// keeps the lookup set it uses for the reserved-slug check.
+const BUILTIN_PLUGIN_SLUGS = new Set<string>(RESERVED_PLUGIN_SLUGS as readonly string[]);
 
 /**
  * Plugin file system installer implementation
@@ -237,7 +234,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           await PluginPageService.revokePluginSessions(tx, manifest.slug);
           await writePluginInstallAudit(tx, options!.actorUserId!, 'PLUGIN_INSTALLED', inspection!, operation, existingByHash.version, options?.source ?? 'local-zip');
           await publishPluginMigrationOperation(tx, options?.operationId);
-          await incrementPluginRegistryVersion(tx);
+          await systemSettingsService.incrementPluginRegistryVersion(tx);
         });
       }
       if (options?.operationId) await recoveryTestBarrier('publication-committed', options.operationId);
@@ -311,6 +308,7 @@ export class PluginFsInstaller implements IPluginInstaller {
 
           // All instances warmed successfully - proceed with DB update
           // CRITICAL: Set deletedAt=null to restore visibility (in case of re-install after soft delete)
+          const bytes = await fs.readFile(zipFilePath);
           const pluginInstall = await prisma.$transaction(async (tx) => {
             const scheduler = await lockTaskScheduler(tx);
             assertTaskPolicy(manifest.tasks ?? [], scheduler.policy);
@@ -322,7 +320,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
             if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
             {
-              await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, await fs.readFile(zipFilePath));
+              await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, bytes);
               await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
             }
             const updatedInstall = await tx.pluginInstall.update({
@@ -367,7 +365,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             await PluginPageService.revokePluginSessions(tx, manifest.slug);
             if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, operation === 'upgrade' ? 'PLUGIN_UPGRADED' : 'PLUGIN_INSTALLED', inspection, operation, existingBySlug.version, options?.source ?? 'local-zip');
             await publishPluginMigrationOperation(tx, options?.operationId);
-            await incrementPluginRegistryVersion(tx);
+            await systemSettingsService.incrementPluginRegistryVersion(tx);
             return updatedInstall;
           });
 
@@ -437,6 +435,7 @@ export class PluginFsInstaller implements IPluginInstaller {
       } else {
         // NEW INSTALL: Create a disabled instance; enablement is a separate transition.
         try {
+          const bytes = await fs.readFile(zipFilePath);
           const result = await prisma.$transaction(async (tx) => {
             if (lease) await fencePluginOperationLease(tx, lease.slug, lease.token);
             if (snapshot !== undefined) await assertUploadSnapshot(tx, manifest.slug, snapshot);
@@ -463,7 +462,7 @@ export class PluginFsInstaller implements IPluginInstaller {
               },
             });
             {
-              await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, await fs.readFile(zipFilePath));
+              await pluginPackageBlobStore.put(tx, manifest.slug, zipHash, bytes);
               await pluginPackageBlobStore.deleteExcept(tx, manifest.slug, zipHash);
             }
 
@@ -480,7 +479,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             await syncEventSubscriptions(tx, manifest.slug, manifest.subscriptions);
             if (inspection && options?.actorUserId) await writePluginInstallAudit(tx, options.actorUserId, 'PLUGIN_INSTALLED', inspection, operation, null, options?.source ?? 'local-zip');
             await publishPluginMigrationOperation(tx, options?.operationId);
-            await incrementPluginRegistryVersion(tx);
+            await systemSettingsService.incrementPluginRegistryVersion(tx);
 
             return install;
           });

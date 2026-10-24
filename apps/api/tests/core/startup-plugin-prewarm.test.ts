@@ -10,7 +10,7 @@ import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { emitEvent } from '@/infra/events/emit';
-import { incrementPluginRegistryVersion } from '@/core/admin/extension-installer/plugin-registry-version';
+import { systemSettingsService } from '@/core/settings/service';
 import { pluginFsInstaller } from '@/core/admin/extension-installer/plugin-fs-installer';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
@@ -219,7 +219,7 @@ describe('startup plugin package prewarm', () => {
         data: { bytes: Buffer.from('corrupt') },
       });
       const item = await start('api');
-      await prisma.$transaction((tx) => incrementPluginRegistryVersion(tx));
+      await prisma.$transaction((tx) => systemSettingsService.incrementPluginRegistryVersion(tx));
       const good = await fetch(`${item.base}/api/v1/extensions/plugin/${healthy}/api/status`, { headers: { connection: 'close' } });
       expect(good.status).toBe(200);
       expect(await good.json()).toMatchObject({ tag: 'healthy' });

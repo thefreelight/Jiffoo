@@ -43,18 +43,11 @@ vi.mock('@/config/database', () => ({
   },
 }));
 
-vi.mock('@/core/admin/system-settings/service', () => ({
+vi.mock('@/core/settings/service', () => ({
   systemSettingsService: {
     getShopCurrency: vi.fn().mockResolvedValue('USD'),
     getCheckoutCountriesRequireStatePostal: vi.fn().mockResolvedValue(['US', 'CA']),
   },
-}));
-
-vi.mock('@/core/order/hooks', () => ({
-  getOrderHooks: vi.fn().mockReturnValue({
-    onOrderCompleted: vi.fn().mockResolvedValue(undefined),
-    onOrderRefunded: vi.fn().mockResolvedValue(undefined),
-  }),
 }));
 
 vi.mock('@/core/order/status-history', () => ({
@@ -85,13 +78,12 @@ vi.mock('@/core/checkout/service', () => ({
   CheckoutService: { quoteItems: vi.fn() },
 }));
 
-vi.mock('@/core/admin/plugin-management/service', () => ({
-  PluginManagementService: { resolveSingleProvider: vi.fn() },
+vi.mock('@/core/extensions/registry', () => ({
+  resolveSingleProvider: vi.fn(),
 }));
 
 vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
   callContract: vi.fn(),
-  ContractCallError: class ContractCallError extends Error {},
 }));
 
 // ---------------------------------------------------------------------------
@@ -99,12 +91,11 @@ vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
 // ---------------------------------------------------------------------------
 
 import { OrderService } from '@/core/order/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { prisma } from '@/config/database';
-import { getOrderHooks } from '@/core/order/hooks';
 import { InventoryService } from '@/core/inventory/service';
 import { CheckoutService } from '@/core/checkout/service';
-import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { resolveSingleProvider } from '@/core/extensions/registry';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
 // ---------------------------------------------------------------------------
@@ -128,7 +119,6 @@ const mockPrisma = prisma as unknown as {
   $transaction: ReturnType<typeof vi.fn>;
 };
 
-const mockGetOrderHooks = getOrderHooks as ReturnType<typeof vi.fn>;
 const mockInventory = InventoryService as unknown as {
   getAvailableStockByVariantIds: ReturnType<typeof vi.fn>;
   decrementStock: ReturnType<typeof vi.fn>;
@@ -199,7 +189,7 @@ describe('OrderService', () => {
       shippingOptions: [{ id: 'free-shipping:free', providerSlug: 'free-shipping', label: 'Free shipping', amountMinor: 0 }],
       paymentMethods: [{ providerSlug: 'manual-payment' }],
     });
-    (PluginManagementService.resolveSingleProvider as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (resolveSingleProvider as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     (callContract as ReturnType<typeof vi.fn>).mockResolvedValue({ unpaidTimeoutMinutes: 4320, supportedCurrencies: ['USD'], account: { namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } });
     (mockPrisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
       (fn: (tx: unknown) => unknown) => fn(mockPrisma)
@@ -244,11 +234,10 @@ describe('OrderService', () => {
 
       const result = await OrderService.createOrder('user-1', orderData);
 
-      // Verified user exists
-      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        select: { email: true },
-      });
+      // Verified user exists (read through the auth module's public identity projection)
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'user-1' } }),
+      );
 
       // Batch-fetched products
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith({
@@ -272,7 +261,8 @@ describe('OrderService', () => {
       expect(mockInventory.decrementStock).toHaveBeenCalledWith(
         mockPrisma,
         'var-1',
-        2
+        2,
+        expect.objectContaining({ type: expect.any(String) })
       );
 
       // Returns formatted response
@@ -345,7 +335,8 @@ describe('OrderService', () => {
       expect(mockInventory.incrementStock).toHaveBeenCalledWith(
         mockPrisma,
         'var-1',
-        2
+        2,
+        expect.objectContaining({ type: expect.any(String) })
       );
 
       // Updated order to CANCELLED

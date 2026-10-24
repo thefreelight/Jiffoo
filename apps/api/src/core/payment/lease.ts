@@ -1,6 +1,6 @@
 import type { Payment } from '@prisma/client';
 import { paymentClockOffsetMs } from './clock';
-import { getPluginTimeoutMs } from '@/core/admin/extension-installer/gateway-protection';
+import { getPluginTimeoutMs } from '@/core/extensions/runtime/gateway-protection';
 import { pluginDatabaseLimit } from '@/core/admin/extension-installer/plugin-database-test-control';
 
 export const PAYMENT_RECONCILIATION_LEASE_MS = 60_000;

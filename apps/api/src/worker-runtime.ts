@@ -19,7 +19,7 @@ import { hostname } from 'node:os';
 import { createServer } from 'node:http';
 import { env } from './config/env';
 import { WORKER_HEARTBEAT_PREFIX, WORKER_HEARTBEAT_TTL_SECONDS, WORKER_HEARTBEAT_INTERVAL_MS, WORKER_LAST_BEAT_PREFIX, WORKER_LAST_BEAT_TTL_SECONDS, WORKER_TASKS } from './infra/worker-health';
-import { pluginSecretsKey } from './core/admin/plugin-management/config-crypto';
+import { pluginSecretsKey } from '@/core/extensions/shared/config-crypto';
 import { assertTestRootEnvironment } from 'shared/plugin-signing';
 import { syncBuiltinPlugins } from './core/admin/extension-installer/builtin-sync';
 import { prewarmPluginPackages } from './core/storage/prewarm-plugin-packages';

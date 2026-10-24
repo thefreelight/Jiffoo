@@ -3,9 +3,19 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { ensureCoreProcess } from '@/infra/core-process';
-import { recoveryLimit } from '@/core/admin/extension-installer/plugin-recovery-test-control';
+import { recoveryLimit } from '@/infra/recovery-test-control';
 
 type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/**
+ * The client surface the lease owner needs. A Prisma transaction client and
+ * the Prisma client itself both satisfy it, so a caller can hand over the
+ * transaction it already owns and keep the write inside that transaction.
+ */
+export type PluginOperationLeaseClient = {
+  $executeRaw: Transaction['$executeRaw'];
+  pluginOperationLease: Pick<Transaction['pluginOperationLease'], 'deleteMany'>;
+};
 
 function conflict(code: 'PLUGIN_OPERATION_IN_PROGRESS' | 'PLUGIN_OPERATION_LEASE_LOST'): Error {
   return new ApiError(code);
@@ -42,4 +52,33 @@ export async function fencePluginOperationLease(tx: Transaction, slug: string, t
 
 export async function releasePluginOperationLease(slug: string, token: string): Promise<void> {
   await prisma.pluginOperationLease.deleteMany({ where: { slug, token } });
+}
+
+/**
+ * Extend the lease of an operation the caller already owns. The write happens
+ * on the client the caller passes, so it stays inside the caller's transaction.
+ */
+export async function renewPluginOperationLease(client: PluginOperationLeaseClient, slug: string, token: string, leaseMs: number): Promise<number> {
+  return client.$executeRaw`UPDATE plugin_operation_leases SET "expiresAt" = (clock_timestamp() AT TIME ZONE 'UTC') + ${leaseMs} * interval '1 millisecond'
+    WHERE slug = ${slug} AND token = ${token} AND "expiresAt" > clock_timestamp() AT TIME ZONE 'UTC'`;
+}
+
+/**
+ * Register a marker lease for an operation that does not take the lease table
+ * through `acquirePluginOperationLease`. The write happens on the client the
+ * caller passes, so it stays inside the caller's transaction.
+ */
+export async function insertPluginOperationLease(client: PluginOperationLeaseClient, lease: { slug: string; token: string; operation: string; ownerBootNonce: string }): Promise<void> {
+  await client.$executeRaw`INSERT INTO public.plugin_operation_leases (slug, token, operation, "acquiredAt", "expiresAt", "ownerBootNonce") VALUES (${lease.slug}, ${lease.token}, ${lease.operation}, clock_timestamp() AT TIME ZONE 'UTC', (clock_timestamp() AT TIME ZONE 'UTC') + interval '15 minutes', ${lease.ownerBootNonce}::uuid)`;
+}
+
+/**
+ * Drop the lease rows of an operation the caller already owns. The write
+ * happens on the client the caller passes, so it stays inside the caller's
+ * transaction. The owner boot nonce narrows the release to the marker that
+ * this process registered.
+ */
+export async function releasePluginOperationLeaseWith(client: PluginOperationLeaseClient, slug: string, token: string, ownerBootNonce?: string): Promise<number> {
+  const released = await client.pluginOperationLease.deleteMany({ where: ownerBootNonce === undefined ? { slug, token } : { slug, token, ownerBootNonce } });
+  return released.count;
 }

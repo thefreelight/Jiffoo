@@ -8,18 +8,18 @@ import { prisma } from '@/config/database';
 import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
 import { CacheService } from '@/core/cache/service';
 import { InventoryService } from '@/core/inventory/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { emitEvent } from '@/infra/events/emit';
 import { productSnapshot } from '@/infra/events/snapshots';
 import { Prisma } from '@prisma/client';
-import { isOrderItemCatalogRestriction } from '@/core/order/catalog-snapshot';
+import { OrderService } from '@/core/order/service';
 import { resolveProductCode, withProductCodeRetry } from './codes';
 import { productIds, productCount } from './list-query';
 
 async function protectOrderedCatalog<T>(operation: () => Promise<T>, references: () => Prisma.OrderItemWhereInput): Promise<T> {
   try { return await operation(); }
   catch (error) {
-    if (isOrderItemCatalogRestriction(error)) throw new ApiError('PRODUCT_HAS_ORDERS');
+    if (OrderService.isOrderItemCatalogRestriction(error)) throw new ApiError('PRODUCT_HAS_ORDERS');
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
       // Prisma can omit the PostgreSQL constraint name. Confirm the order reference after rollback.
       if (await prisma.orderItem.count({ where: references() })) throw new ApiError('PRODUCT_HAS_ORDERS');
@@ -527,7 +527,6 @@ export class AdminProductService {
           data: {
             productId: created.id,
             name: variant.name,
-            stock: normalizedStock,
             salePrice,
             ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
             skuCode,
@@ -538,6 +537,13 @@ export class AdminProductService {
           select: { id: true },
         });
 
+        // The inventory module owns the stock column, so the desired level is applied
+        // through it. The surrounding product creation publishes the product change.
+        await InventoryService.applyDesiredStock(tx, createdVariant.id, normalizedStock, {
+          type: 'initial',
+          reason: 'product_created',
+          referenceId: created.id,
+        }, { publishProductChange: false });
       }
 
       await emitEvent(tx, 'product.created', 1, created.id, await productSnapshot(tx, created.id));
@@ -640,7 +646,6 @@ export class AdminProductService {
               where: { id: variant.id },
               data: {
                 name: variant.name,
-                stock: normalizedStock,
                 salePrice,
                 ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
                 skuCode,
@@ -649,13 +654,18 @@ export class AdminProductService {
               }
             });
 
+            await InventoryService.applyDesiredStock(tx, variant.id, normalizedStock, {
+              type: 'correction',
+              reason: 'product_updated',
+              referenceId: productId,
+            }, { publishProductChange: false });
+
           } else {
             // Create
             const createdVariant = await tx.productVariant.create({
               data: {
                 productId,
                 name: variant.name,
-                stock: normalizedStock,
                 salePrice,
                 ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
                 skuCode,
@@ -664,6 +674,11 @@ export class AdminProductService {
               }
             });
 
+            await InventoryService.applyDesiredStock(tx, createdVariant.id, normalizedStock, {
+              type: 'initial',
+              reason: 'product_updated',
+              referenceId: productId,
+            }, { publishProductChange: false });
           }
         }
       }

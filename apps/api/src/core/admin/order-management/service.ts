@@ -5,19 +5,20 @@ import { ApiError, knownPrismaOperation } from '@/utils/api-errors';
  */
 
 import { prisma } from '@/config/database';
-import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus, type Prisma } from '@prisma/client';
-import { systemSettingsService } from '../system-settings/service';
+import { OrderStatus as PrismaOrderStatus, type Prisma } from '@prisma/client';
+import { systemSettingsService } from '@/core/settings/service';
 import { CacheService } from '@/core/cache/service';
 import { getTodayAndYesterdayRangeUtc } from '@/utils/timezone';
-import { OrderStatus, OrderStatusType, PaymentStatus } from '@/core/order/types';
-import { recordOrderStatusHistory } from '@/core/order/status-history';
-import { assertOrderTransition } from '@/core/order/transition';
+import { OrderStatus, PaymentStatus } from '@/core/order/types';
+import { AuditService } from '@/core/audit/service';
+import { OrderService } from '@/core/order/service';
 import { InventoryService } from '@/core/inventory/service';
 import { emitEvent } from '@/infra/events/emit';
-import { recordPaymentSucceeded } from '@/core/payment/reconciliation';
-import { lockOrder, lockPayment } from '@/core/payment/locks';
+import { recordPaymentNotCharged, recordPaymentSucceeded } from '@/core/payment/reconciliation';
+import { PaymentService } from '@/core/payment/service';
+import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
-import { readCatalogSnapshot, snapshotProductName } from '@/core/order/catalog-snapshot';
+import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
 import { orderWhere, orderSort, type OrderFilter, type OrderSort } from './list-query';
 
 function codedError(code: import('@/utils/api-errors').ErrorCode, _message: string): ApiError {
@@ -61,16 +62,12 @@ export class AdminOrderService {
         }, tx);
         if (!changed) throw new ApiError('PAYMENT_REVIEW_ALREADY_RESOLVED');
       } else {
-        await tx.payment.update({ where: { id: paymentId }, data: {
-          status: 'FAILED', failureReason: 'admin_confirmed_not_charged', reviewResolution: 'NOT_CHARGED',
-          reviewResolvedAt: new Date(), reviewResolvedBy: actorId, reviewReference: reference,
-          claimToken: null, claimedBy: null, leaseUntil: null,
-        } });
+        await recordPaymentNotCharged({ paymentId, actorId, reference }, tx);
       }
-      await tx.adminAuditEvent.create({ data: { actorId,
+      await AuditService.write(tx, { actorId,
         action: outcome === 'PAID' ? 'PAYMENT_REVIEW_CONFIRMED_PAID' : 'PAYMENT_REVIEW_CLOSED_NOT_CHARGED',
         targetType: 'payment', targetId: paymentId, summary: { paymentId, orderId, reference, outcome },
-      } });
+      });
     });
     await CacheService.incrementOrderVersion();
     return this.getOrderById(orderId);
@@ -364,7 +361,7 @@ export class AdminOrderService {
 
     const latestPayment = await prisma.payment.findFirst({ where: { orderId }, orderBy: { attemptNumber: 'desc' }, select: { status: true } });
     const canRecordManualPayment = !['UNKNOWN', 'REQUIRES_REVIEW'].includes(latestPayment?.status || '') && ['PENDING','CANCELLED'].includes(order.status) && order.paymentStatus !== 'PAID' && order.paymentMethod
-      ? await callContract(order.paymentMethod, 'payment', 2, 'describe', {
+      ? await callContract(order.paymentMethod, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', {
         storeCurrency: await systemSettingsService.getShopCurrency(),
       }).then((description: { requiresManualConfirmation: boolean }) => description.requiresManualConfirmation).catch(() => false)
       : false;
@@ -418,19 +415,22 @@ export class AdminOrderService {
         username: order.user?.username || null
       },
       shippingAddress: shippingAddr,
-      items: order.items.map(item => ({
-        id: item.id,
-        quantity: item.quantity,
-        unitPrice: Number(item.unitPrice),
-        totalPrice: Number(item.lineTotal),
-        productId: item.productId,
-        productName: snapshotProductName(readCatalogSnapshot(item.catalogSnapshot), order.user?.locale),
-        productImages: readCatalogSnapshot(item.catalogSnapshot).productImages,
-        variantId: item.variantId,
-        skuCode: readCatalogSnapshot(item.catalogSnapshot).skuCode,
-        variantName: readCatalogSnapshot(item.catalogSnapshot).variantName,
-        fulfillmentStatus: item.fulfillmentStatus
-      })),
+      items: order.items.map(item => {
+        const snapshot = OrderService.catalogSnapshotView(item.catalogSnapshot, order.user?.locale);
+        return {
+          id: item.id,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          totalPrice: Number(item.lineTotal),
+          productId: item.productId,
+          productName: snapshot.productName,
+          productImages: snapshot.productImages,
+          variantId: item.variantId,
+          skuCode: snapshot.skuCode,
+          variantName: snapshot.variantName,
+          fulfillmentStatus: item.fulfillmentStatus
+        };
+      }),
       shipments: order.shipments.map(s => ({
         id: s.id,
         carrier: s.carrier || '',
@@ -465,7 +465,7 @@ export class AdminOrderService {
     if (installation && (!installation.enabled || installation.deletedAt || installation.plugin.deletedAt)) {
       throw codedError('PAYMENT_PROVIDER_DISABLED', 'Payment provider is disabled; manual confirmation is unavailable.');
     }
-    const description = await callContract(order.paymentMethod, 'payment', 2, 'describe', {
+    const description = await callContract(order.paymentMethod, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', {
       storeCurrency: await systemSettingsService.getShopCurrency(),
     }) as { requiresManualConfirmation: boolean };
     if (!description.requiresManualConfirmation) {
@@ -508,65 +508,12 @@ export class AdminOrderService {
     trackingNumber: string;
     items?: Array<{ orderItemId: string; quantity: number }>;
   }) {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: { items: true },
-    });
-
-    if (!order) {
-      throw new ApiError('NOT_FOUND');
-    }
-
-    assertOrderTransition(order.status, OrderStatus.SHIPPED, order.paymentStatus);
-
     await prisma.$transaction(async (tx) => {
-      // Create shipment record
-      const shipment = await tx.shipment.create({
-        data: {
-          orderId,
-          carrier: data.carrier,
-          trackingNumber: data.trackingNumber,
-          status: 'SHIPPED',
-          shippedAt: new Date(),
-          items: data.items ? {
-            create: data.items.map(item => ({
-              orderItemId: item.orderItemId,
-              quantity: item.quantity,
-            })),
-          } : undefined,
-        },
-        include: { items: true },
-      });
-
-      // Update order status to SHIPPED
-      const updated = await knownPrismaOperation(() => tx.order.update({
-        where: { id: orderId },
-        data: { status: OrderStatus.SHIPPED }
-      }), { notFound: 'NOT_FOUND' });
-      await emitEvent(tx, 'order.fulfilled', 1, orderId, {
-        id: updated.id, orderNumber: updated.orderNumber, userId: updated.userId, status: 'SHIPPED',
-        subtotalAmount: Number(updated.subtotalAmount), shippingAmount: Number(updated.shippingAmount),
-        taxAmount: Number(updated.taxAmount), totalAmount: Number(updated.totalAmount), currency: updated.currency,
-        items: order.items.map((item) => ({
-          id: item.id, productId: item.productId, variantId: item.variantId,
-          quantity: item.quantity, unitPrice: Number(item.unitPrice),
-          fulfillmentData: item.fulfillmentData && typeof item.fulfillmentData === 'object' && !Array.isArray(item.fulfillmentData)
-            ? item.fulfillmentData as Record<string, string | number | boolean | null> : null,
-        })),
-        shipment: {
-          id: shipment.id, carrier: shipment.carrier, trackingNumber: shipment.trackingNumber,
-          shippedAt: shipment.shippedAt?.toISOString() ?? null,
-          items: shipment.items.map(({ orderItemId, quantity }) => ({ orderItemId, quantity })),
-        },
-      });
-      await recordOrderStatusHistory(tx, {
-        orderId: updated.id,
-        fromStatus: order.status as PrismaOrderStatus,
-        toStatus: updated.status as PrismaOrderStatus,
-        fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-        toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
-        reason: 'admin_ship_order',
-        actorType: 'admin',
+      await OrderService.shipOrder(tx, {
+        orderId,
+        carrier: data.carrier,
+        trackingNumber: data.trackingNumber,
+        items: data.items,
       });
     });
 
@@ -577,23 +524,8 @@ export class AdminOrderService {
   }
 
   static async deliverOrder(orderId: string) {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      select: { status: true, paymentStatus: true },
-    });
-    if (!order) throw new ApiError('NOT_FOUND');
-    assertOrderTransition(order.status, OrderStatus.DELIVERED, order.paymentStatus);
-
     await prisma.$transaction(async (tx) => {
-      const updated = await knownPrismaOperation(() => tx.order.update({
-        where: { id: orderId },
-        data: { status: OrderStatus.DELIVERED },
-      }), { notFound: 'NOT_FOUND' });
-      await recordOrderStatusHistory(tx, {
-        orderId, fromStatus: order.status, toStatus: updated.status,
-        fromPaymentStatus: order.paymentStatus, toPaymentStatus: updated.paymentStatus,
-        reason: 'admin_deliver_order', actorType: 'admin',
-      });
+      await OrderService.deliverOrder(tx, { orderId });
     });
     await CacheService.incrementOrderVersion();
     return this.getOrderById(orderId);
@@ -612,101 +544,59 @@ export class AdminOrderService {
     if (!reference) throw new ApiError('PAYMENT_REFERENCE_REQUIRED');
     await prisma.$transaction(async (tx) => {
       await lockOrder(tx, orderId);
-      const order = await tx.order.findUnique({ where: { id: orderId }, include: {
-        payments: { where: { ledger: { some: { eventType: 'SUCCEEDED', refundRequired: false } } }, orderBy: { createdAt: 'asc' }, take: 1 }, items: true,
-      } });
+      const order = await OrderService.getOrderProjection(tx, orderId);
       if (!order) throw new ApiError('NOT_FOUND');
-      const payment = order.payments[0];
       if (order.paymentStatus !== PaymentStatus.PAID && order.paymentStatus !== PaymentStatus.REFUNDED) throw new ApiError('INVALID_ORDER_TRANSITION');
+      const payment = await tx.payment.findFirst({
+        where: { orderId, ledger: { some: { eventType: 'SUCCEEDED', refundRequired: false } } },
+        orderBy: { createdAt: 'asc' },
+      });
       if (!payment) throw new ApiError('VALIDATION_ERROR');
       await lockPayment(tx, payment.id);
-      const keyed = await tx.refund.findUnique({ where: { idempotencyKey: data.idempotencyKey } });
-      const capture = await tx.paymentLedger.findFirst({ where: { paymentId: payment.id, eventType: 'SUCCEEDED', refundRequired: false } });
-      if (!capture) throw new ApiError('VALIDATION_ERROR');
-      if (keyed && keyed.paymentLedgerId !== capture.id) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
-      if (keyed) return;
-      if (await tx.refund.findFirst({ where: { paymentLedgerId: capture.id, status: 'COMPLETED' } })) return;
-      assertOrderTransition(order.status, OrderStatus.REFUNDED, order.paymentStatus);
-      if (order.paymentStatus !== PaymentStatus.PAID) throw new ApiError('INVALID_ORDER_TRANSITION');
-      const refundAmount = order.totalAmount;
-        const refund = await tx.refund.create({
-          data: {
-            paymentId: payment.id,
-            paymentLedgerId: capture.id,
-            orderId,
-            amount: refundAmount,
-            currency: payment.currency,
-            status: 'COMPLETED',
-            reason: data.reason, reference,
-            provider: payment.paymentMethod.toUpperCase(),
-            idempotencyKey: data.idempotencyKey,
-          },
-        });
+      const refund = await PaymentService.refundOrder(tx, {
+        orderId,
+        paymentId: payment.id,
+        amount: String(order.totalAmount),
+        currency: payment.currency,
+        provider: payment.paymentMethod,
+        reason: data.reason,
+        reference,
+        idempotencyKey: data.idempotencyKey,
+      });
+      if (!refund.created) return;
 
-        await tx.refundLedger.create({
-          data: {
-            refundId: refund.id,
-            paymentId: payment.id,
-            orderId,
-            eventType: 'SUCCEEDED',
-            amount: refundAmount,
-            currency: payment.currency,
-            provider: payment.paymentMethod,
-            idempotencyKey: data.idempotencyKey,
-          },
-        });
+      await emitEvent(tx, 'order.refunded', 1, order.id, {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        orderId: order.id,
+        refundId: refund.refundId,
+        userId: order.userId,
+        paymentId: payment.id,
+        amount: order.totalAmount,
+        currency: payment.currency,
+        fullyRefunded: true,
+        reason: data.reason ?? undefined,
+        items: order.items.map((item) => ({ orderItemId: item.id, quantity: item.quantity })),
+      });
 
-        await tx.paymentLedger.create({
-          data: {
-            paymentId: payment.id,
-            orderId,
-            eventType: 'REFUNDED',
-            amount: refundAmount,
-            currency: payment.currency,
-            provider: payment.paymentMethod,
-            providerEventId: `refund:${refund.id}`,
-            idempotencyKey: data.idempotencyKey,
-          },
-        });
+      await OrderService.markRefunded(tx, {
+        orderId,
+        reason: data.reason,
+        actorId: data.actorId,
+        metadata: { refundId: refund.refundId },
+      });
 
-        await emitEvent(tx, 'order.refunded', 1, order.id, {
-          id: order.id,
-          orderNumber: order.orderNumber,
-          orderId: order.id,
-          refundId: refund.id,
-          userId: order.userId,
-          paymentId: payment.id,
-          amount: Number(refund.amount),
-          currency: refund.currency,
-          fullyRefunded: true,
-          reason: refund.reason ?? undefined,
-          items: order.items.map((item) => ({ orderItemId: item.id, quantity: item.quantity })),
-        });
-
-        const updated = await knownPrismaOperation(() => tx.order.update({
-          where: { id: orderId },
-          data: {
-            paymentStatus: PaymentStatus.REFUNDED,
-            status: OrderStatus.REFUNDED,
-          },
-        }), { notFound: 'NOT_FOUND' });
-        await recordOrderStatusHistory(tx, {
-          orderId: updated.id,
-          fromStatus: order.status as PrismaOrderStatus,
-          toStatus: updated.status as PrismaOrderStatus,
-          fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-          toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
-          reason: data.reason ?? 'admin_refund',
-          actorType: 'admin',
-          actorId: data.actorId,
-          metadata: { refundId: refund.id },
-        });
-
-        if (order.status === OrderStatus.PROCESSING) {
-          for (const item of order.items) {
-            await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity), { notFound: 'NOT_FOUND' });
-          }
+      if (order.status === OrderStatus.PROCESSING) {
+        for (const item of order.items) {
+          await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity, {
+            type: 'return',
+            reason: 'order_refunded',
+            referenceId: order.id,
+            userId: data.actorId,
+            metadata: { orderNumber: order.orderNumber, refundId: refund.refundId },
+          }), { notFound: 'NOT_FOUND' });
         }
+      }
     });
 
     // Invalidate list cache
@@ -725,33 +615,17 @@ export class AdminOrderService {
     if (!reference) throw new ApiError('PAYMENT_REFERENCE_REQUIRED');
     await prisma.$transaction(async tx => {
       await lockOrder(tx, orderId);
-      const order = await tx.order.findUnique({ where: { id: orderId } });
+      const order = await OrderService.getOrderProjection(tx, orderId);
       if (!order) throw new ApiError('NOT_FOUND');
       await lockPayment(tx, data.paymentId);
-      const payment = await tx.payment.findUnique({ where: { id: data.paymentId } });
-      if (!payment || payment.orderId !== orderId) throw new ApiError('NOT_FOUND');
-      const success = await tx.paymentLedger.findFirst({ where: { paymentId: payment.id, providerPaymentId: data.providerPaymentId, eventType: 'SUCCEEDED', refundRequired: true } });
-      if (!success) throw new ApiError('VALIDATION_ERROR');
-      const keyed = await tx.refund.findUnique({ where: { idempotencyKey: data.idempotencyKey } });
-      if (keyed && keyed.paymentLedgerId !== success.id) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
-      if (keyed || await tx.refund.findFirst({ where: { paymentLedgerId: success.id, status: 'COMPLETED' } })) return;
-      const refund = await tx.refund.create({ data: {
-        orderId, paymentId: payment.id, paymentLedgerId: success.id, amount: success.amount, currency: success.currency, status: 'COMPLETED',
-        reference, reason: success.refundReason, provider: payment.paymentMethod, idempotencyKey: data.idempotencyKey,
-        metadata: { actorId: data.actorId, actorType: 'admin', refundRequiredResolution: true },
-      } });
-      await tx.refundLedger.create({ data: {
-        refundId: refund.id, paymentId: payment.id, orderId, eventType: 'SUCCEEDED', amount: success.amount,
-        currency: success.currency, provider: payment.paymentMethod, idempotencyKey: data.idempotencyKey,
-        metadata: { actorId: data.actorId, actorType: 'admin' },
-      } });
-      await tx.paymentLedger.create({ data: {
-        paymentId: payment.id, orderId, eventType: 'REFUNDED', amount: success.amount, currency: success.currency,
-        provider: payment.paymentMethod, providerEventId: `refund:${refund.id}`, idempotencyKey: data.idempotencyKey,
-        actorType: 'admin', manualReference: reference, metadata: { actorId: data.actorId, refundRequiredResolution: true },
-      } });
-      await tx.adminAuditEvent.create({ data: { actorId: data.actorId, action: 'PAYMENT_REFUND_REQUIRED_RESOLVED', targetType: 'payment', targetId: payment.id,
-        summary: { refundId: refund.id, providerPaymentId: success.providerPaymentId, reference } } });
+      await PaymentService.resolveRefundRequiredPayment(tx, {
+        orderId,
+        paymentId: data.paymentId,
+        providerPaymentId: data.providerPaymentId,
+        reference,
+        idempotencyKey: data.idempotencyKey,
+        actorId: data.actorId,
+      });
     });
     await CacheService.incrementOrderVersion();
     return this.getOrderById(orderId);
@@ -762,41 +636,18 @@ export class AdminOrderService {
   }) {
     await prisma.$transaction(async (tx) => {
       await lockOrder(tx, orderId);
-      const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true } });
+      const order = await OrderService.getOrderProjection(tx, orderId);
       if (!order) throw new ApiError('NOT_FOUND');
-      assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
-      await tx.payment.updateMany({
-        where: { orderId, status: { in: ['CREATING','PENDING'] } },
-        data: { status: 'CANCELLED', claimToken: null, claimedBy: null, leaseUntil: null },
-      });
-      const updated = await knownPrismaOperation(() => tx.order.update({
-        where: { id: orderId },
-        data: {
-          status: OrderStatus.CANCELLED,
-          cancelReason: data.cancelReason,
-          cancelledAt: new Date(),
-        }
-      }), { notFound: 'NOT_FOUND' });
-      await emitEvent(tx, 'order.cancelled', 1, updated.id, {
-        id: updated.id,
-        orderNumber: updated.orderNumber,
-        orderId: updated.id,
-        userId: updated.userId,
-        reason: data.cancelReason,
-      });
-
-      await recordOrderStatusHistory(tx, {
-        orderId: updated.id,
-        fromStatus: order.status as PrismaOrderStatus,
-        toStatus: updated.status as PrismaOrderStatus,
-        fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-        toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
-        reason: data.cancelReason,
-        actorType: 'admin',
-      });
+      await PaymentService.cancelPendingForOrder(tx, orderId);
+      await OrderService.cancelOrderByAdmin(tx, { orderId, cancelReason: data.cancelReason });
 
       for (const item of order.items) {
-        await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity), { notFound: 'NOT_FOUND' });
+        await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity, {
+          type: 'return',
+          reason: 'order_cancelled',
+          referenceId: order.id,
+          metadata: { orderNumber: order.orderNumber },
+        }), { notFound: 'NOT_FOUND' });
       }
     });
 

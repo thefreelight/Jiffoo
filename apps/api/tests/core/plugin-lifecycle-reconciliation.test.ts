@@ -9,6 +9,7 @@ import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { pageZip } from '../fixtures/plugin-pages';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { listProviders, resolveSingleProvider } from '@/core/extensions/registry';
 import { warmPluginInstanceRuntime } from '@/core/admin/extension-installer/plugin-runtime';
 import { callContract, handlePluginGateway } from '@/core/admin/extension-installer/plugin-runtime';
 import Fastify from 'fastify';
@@ -251,11 +252,11 @@ module.exports = { register(ctx) {
     await createPlugin(shippingOneSlug, 'module.exports = { register() {} };', true, [{ name: 'shipping', version: 1 }]);
     await createPlugin(shippingTwoSlug, 'module.exports = { register() {} };', true, [{ name: 'shipping', version: 1 }]);
 
-    expect((await PluginManagementService.resolveSingleProvider('fulfillment'))?.pluginSlug).toBe(fulfillmentSlug);
-    const taxProviders = (await PluginManagementService.listProviders('tax')).map((provider) => provider.pluginSlug);
+    expect((await resolveSingleProvider('fulfillment'))?.pluginSlug).toBe(fulfillmentSlug);
+    const taxProviders = (await listProviders('tax')).map((provider) => provider.pluginSlug);
     expect(taxProviders).toContain(taxSlug);
-    expect(taxProviders).toContain((await PluginManagementService.resolveSingleProvider('tax'))?.pluginSlug);
-    expect((await PluginManagementService.listProviders('shipping')).map((provider) => provider.pluginSlug)).toEqual(expect.arrayContaining([shippingOneSlug, shippingTwoSlug]));
+    expect(taxProviders).toContain((await resolveSingleProvider('tax'))?.pluginSlug);
+    expect((await listProviders('shipping')).map((provider) => provider.pluginSlug)).toEqual(expect.arrayContaining([shippingOneSlug, shippingTwoSlug]));
   });
 
   it('dispatches shipping quotes and rejects invalid shipping output', async () => {

@@ -10,7 +10,49 @@ import { prisma } from '@/config/database';
 import { Locale, DEFAULT_LOCALE } from '@/utils/i18n';
 import { CacheService } from '@/core/cache/service';
 import { InventoryService } from '@/core/inventory/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
+
+/**
+ * Read surface of a product variant used by the sellable catalog projection.
+ */
+export interface CatalogVariantProjection {
+  id: string;
+  productId: string;
+  name: string;
+  salePrice: number;
+  isActive: boolean;
+  attributes: unknown;
+  skuCode: string | null;
+  stock: number;
+}
+
+/**
+ * Read surface of a product used by the sellable catalog projection.
+ */
+export interface CatalogProductProjection {
+  id: string;
+  name: string;
+  productType: string;
+  isActive: boolean;
+  requiresShipping: boolean;
+  typeData: unknown;
+  /** The localized product names the product domain owns. */
+  translations: Array<{ locale: string; name: string }>;
+  /** Every variant of the product, ordered by sort order. */
+  variants: CatalogVariantProjection[];
+  /** The variants that may be sold: the active ones, in the same order. */
+  sellableVariants: CatalogVariantProjection[];
+}
+
+/**
+ * Transaction surface required by the catalog projection. Both the plain Prisma
+ * client and a transaction client satisfy it.
+ */
+export type CatalogReadTx = {
+  product: {
+    findMany(args: any): Promise<any>;
+  };
+};
 
 interface ProductSearchFilters {
   search?: string;
@@ -114,6 +156,91 @@ export class ProductService {
 
   private static async getVariantStockMap(variantIds: string[]): Promise<Map<string, number>> {
     return InventoryService.getAvailableStockByVariantIds(variantIds);
+  }
+
+  /**
+   * Read projection for the sellable catalog.
+   *
+   * The product domain owns the catalog tables, so every module that has to decide
+   * whether a variant may be sold and at which price reads it through this single
+   * projection instead of querying `products` and `product_variants` directly. The
+   * projection returns the requested products with all their variants, the variants
+   * that may be sold and the current stock level, which the inventory module owns
+   * and therefore exposes through its own public service.
+   *
+   * @param tx Transaction client (or the plain client) the caller reads through
+   * @param productIds Identifiers of the requested products
+   * @returns Map of product identifier to its catalog projection
+   */
+  static async getSellableCatalog(
+    tx: CatalogReadTx,
+    productIds: string[]
+  ): Promise<Map<string, CatalogProductProjection>> {
+    const catalog = new Map<string, CatalogProductProjection>();
+    const requestedIds = Array.from(new Set(productIds.filter((id) => Boolean(id))));
+    if (requestedIds.length === 0) return catalog;
+
+    const products = await tx.product.findMany({
+      where: { id: { in: requestedIds } },
+      include: { variants: true },
+    }) as Array<{
+      id: string;
+      name: string;
+      productType: string;
+      isActive: boolean;
+      requiresShipping: boolean;
+      typeData: unknown;
+      variants: Array<{
+        id: string;
+        productId: string;
+        name: string;
+        salePrice: unknown;
+        isActive: boolean;
+        attributes: unknown;
+        skuCode: string | null;
+        sortOrder: number;
+        createdAt: Date | string;
+      }>;
+    }>;
+
+    const translated = await tx.product.findMany({
+      where: { id: { in: requestedIds } },
+      select: { id: true, translations: true },
+    }) as Array<{ id: string; translations: Array<{ locale: string; name: string }> }>;
+    const translationsByProduct = new Map(translated.map(product => [product.id, product.translations ?? []]));
+
+    const stockMap = await this.getVariantStockMap(
+      products.flatMap((product) => product.variants.map((variant) => variant.id))
+    );
+
+    for (const product of products) {
+      const variants: CatalogVariantProjection[] = [...product.variants]
+        .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0)
+          || new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime())
+        .map((variant) => ({
+        id: variant.id,
+        productId: variant.productId,
+        name: variant.name,
+        salePrice: Number(variant.salePrice),
+        isActive: variant.isActive,
+        attributes: variant.attributes,
+        skuCode: variant.skuCode ?? null,
+        stock: stockMap.get(variant.id) ?? 0,
+      }));
+      catalog.set(product.id, {
+        id: product.id,
+        name: product.name,
+        productType: product.productType,
+        isActive: product.isActive,
+        requiresShipping: product.requiresShipping,
+        typeData: product.typeData,
+        translations: translationsByProduct.get(product.id) ?? [],
+        variants,
+        sellableVariants: variants.filter((variant) => variant.isActive),
+      });
+    }
+
+    return catalog;
   }
 
   /**

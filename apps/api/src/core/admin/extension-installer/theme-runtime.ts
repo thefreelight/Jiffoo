@@ -5,7 +5,8 @@ import { prisma } from '@/config/database';
 import { resolveThemePackage, type ThemeFiles } from '@/core/storage/current-theme-package';
 import { withThemeLeases, fenceThemeLeases, type ThemeLease } from '@/core/storage/theme-operation-lease';
 import { readMediaFile } from '@/core/storage/uploaded-media-set';
-import { ExtensionInstallerError } from './errors';
+import { AuditService, type AuditTx } from '@/core/audit/service';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { validateThemeManifest } from './theme-validator';
 import { defaultHomeSections, validateHomeSections } from './theme-home-sections';
 import { themePackageState } from './theme-package-state';
@@ -22,10 +23,8 @@ function fail(code: import('@/utils/api-errors').ErrorCode, _statusCode: number,
   throw new ExtensionInstallerError(`${code}: ${path}`, { code, details: { path } });
 }
 
-export async function audit(tx: { adminAuditEvent: { create: (args: any) => Promise<unknown> } }, actorId: string, action: string, targetId: string, summary: object = {}, targetType = 'theme') {
-  await tx.adminAuditEvent.create({
-    data: { actorId, action, targetType, targetId, summary },
-  });
+export async function audit(tx: AuditTx, actorId: string, action: string, targetId: string, summary: object = {}, targetType = 'theme') {
+  await AuditService.write(tx, { actorId, action, targetType, targetId, summary: summary as Prisma.InputJsonValue });
 }
 
 export async function validateConfig(manifest: ThemeManifest, values: Record<string, unknown>, pkg: ThemeFiles): Promise<void> {
@@ -162,15 +161,31 @@ export async function restoreThemeConfig(slug: string, actorId: string) {
   const theme = await prisma.theme.findUnique({ where: { slug } });
   if (!theme) fail('THEME_NOT_FOUND', 404, slug);
   const pkg = await resolveThemePackage(slug, theme.packageHash);
+  const candidateCurrent = await prisma.themeConfiguration.findUnique({ where: { slug } });
+  if (!candidateCurrent) fail('THEME_CONFIG_NO_PREVIOUS', 409, slug);
+  const candidatePrior = await prisma.themeConfigRevision.findFirst({
+    where: { slug, revision: { lt: candidateCurrent.revision } }, orderBy: { revision: 'desc' },
+  });
+  if (!candidatePrior) fail('THEME_CONFIG_NO_PREVIOUS', 409, slug);
+  await validateConfig(theme.manifestJson as unknown as ThemeManifest, candidatePrior.values as Record<string, unknown>, pkg);
   return prisma.$transaction(async (tx) => {
     await fenceThemeLeases(tx, leases);
+    const currentTheme = await tx.theme.findUnique({ where: { slug } });
+    if (!currentTheme) fail('THEME_NOT_FOUND', 404, slug);
+    if (currentTheme.packageHash !== theme.packageHash
+      || JSON.stringify(currentTheme.manifestJson) !== JSON.stringify(theme.manifestJson))
+      fail('THEME_CONFIG_CONFLICT', 409, '/expectedRevision');
     const current = await tx.themeConfiguration.findUnique({ where: { slug } });
     if (!current) fail('THEME_CONFIG_NO_PREVIOUS', 409, slug);
+    if (current.revision !== candidateCurrent.revision)
+      fail('THEME_CONFIG_CONFLICT', 409, '/expectedRevision');
     const prior = await tx.themeConfigRevision.findFirst({
       where: { slug, revision: { lt: current.revision } }, orderBy: { revision: 'desc' },
     });
     if (!prior) fail('THEME_CONFIG_NO_PREVIOUS', 409, slug);
-    await validateConfig(theme.manifestJson as unknown as ThemeManifest, prior.values as Record<string, unknown>, pkg);
+    if (prior.revision !== candidatePrior.revision
+      || JSON.stringify(prior.values) !== JSON.stringify(candidatePrior.values))
+      fail('THEME_CONFIG_CONFLICT', 409, '/expectedRevision');
     const revision = current.revision + 1;
     const saved = await tx.themeConfiguration.update({ where: { slug }, data: { revision, values: prior.values as Prisma.InputJsonValue } });
     await tx.themeConfigRevision.create({ data: { slug, revision, values: prior.values as Prisma.InputJsonValue } });

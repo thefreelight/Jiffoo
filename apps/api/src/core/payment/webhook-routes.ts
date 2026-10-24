@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { PaymentWebhookInput, WebhookOutcome } from '@jiffoo/shared';
+import { PLUGIN_CONTRACT_VERSIONS, type PaymentWebhookInput, type WebhookOutcome } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { ApiError, sendMappedError } from '@/utils/api-errors';
@@ -63,7 +63,7 @@ export async function paymentWebhookRoutes(app: FastifyInstance): Promise<void> 
         contentType: headers['content-type'][0], headers,
         query: request.query as PaymentWebhookInput['query'],
       };
-      const result = await callContract(provider, 'payment', 2, 'handleWebhook', input) as WebhookOutcome;
+      const result = await callContract(provider, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'handleWebhook', input) as WebhookOutcome;
       if (result.verification === 'rejected') {
         if (result.response) {
           return reply.code(401).header('X-Jiffoo-Error-Code', 'PAYMENT_WEBHOOK_AUTHENTICATION_FAILED')

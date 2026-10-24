@@ -5,7 +5,7 @@
 
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { getTodayAndYesterdayRangeUtc, getStoreCalendarDays, normalizeTimezone } from '@/utils/timezone';
 import { paymentReviewWhere } from '../order-management/service';
 

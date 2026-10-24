@@ -1,9 +1,10 @@
 import { prisma } from '@/config/database';
-import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { resolveSingleProvider } from '@/core/extensions/registry';
+import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { observeWorkerShutdownForTest } from '@/infra/worker-shutdown';
-import { getPluginTimeoutMs } from '@/core/admin/extension-installer/gateway-protection';
+import { getPluginTimeoutMs } from '@/core/extensions/runtime/gateway-protection';
 import { pluginDatabaseLimit } from '@/core/admin/extension-installer/plugin-database-test-control';
 import { claimNotifications, reclaimNotificationLeases, completeNotification, failNotification, releaseUnstartedNotification, notificationClaimLimit, notificationLeaseAllowsSend, type NotificationLeaseClient } from './lease';
 
@@ -37,7 +38,7 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
     let providerSlug: string | undefined;
     try {
       if (releaseRemainder || options.isStopping?.()) { await releaseUnstartedNotification(client, notification); continue; }
-      const provider = await PluginManagementService.resolveSingleProvider('notification');
+      const provider = await resolveSingleProvider('notification');
       if (!provider) throw new Error('No enabled notification provider');
       providerSlug = provider.pluginSlug;
       const secrets = notification.secretJson && typeof notification.secretJson === 'object' && !Array.isArray(notification.secretJson)
@@ -47,7 +48,7 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
         await releaseUnstartedNotification(client, notification);
         continue;
       }
-      const result = await callContract(providerSlug, 'notification', 1, 'send', {
+      const result = await callContract(providerSlug, 'notification', PLUGIN_CONTRACT_VERSIONS.notification, 'send', {
         channel: 'email', to: notification.toAddress, subject: notification.subject,
         html: substitute(notification.html, secrets), text: substitute(notification.text, secrets),
         locale: notification.locale, idempotencyKey: notification.id,

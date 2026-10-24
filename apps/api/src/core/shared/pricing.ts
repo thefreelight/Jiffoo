@@ -1,4 +1,4 @@
-import { decimalToMinor } from '@/core/payment/minor-units';
+import { decimalToMinor } from '@/core/shared/money';
 
 export function currentLinePrice(
   variant: { salePrice: { toString(): string } },

@@ -2,7 +2,7 @@ import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { AdminProductService } from './service';
 import { productCount, productIds, type ProductSelection, type ProductSort } from './list-query';
-import { systemSettingsService } from '../system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { getAllMessages } from 'shared/src/i18n';
 import type { Locale } from 'shared/src/i18n/config';
 import { csvFilename, csvRow, csvStream, csvTimestamp } from '@/utils/csv';

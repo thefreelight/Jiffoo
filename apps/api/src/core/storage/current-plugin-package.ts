@@ -4,8 +4,8 @@ import { createReadStream, promises as fs } from 'node:fs';
 import { prisma } from '@/config/database';
 import { pluginPackageBlobStore } from './plugin-package-blob-store';
 import { pluginPackageStore, type PluginPackage } from './plugin-package-store';
-import { extractZipToTemp, cleanupTemp, readJsonFile, resolveExtractedPackageRoot, validatePluginManifest } from '@/core/admin/extension-installer/utils';
-import type { PluginManifest } from '@/core/admin/extension-installer/types';
+import { extractZipToTemp, cleanupTemp, readJsonFile, resolveExtractedPackageRoot, validatePluginManifest } from '@/core/extensions/shared/utils';
+import type { PluginManifest } from '@/core/extensions/shared/types';
 import { PLUGIN_MAX_ZIP_SIZE, readPluginZipEntries, buildPluginUiAssetIndex } from 'shared/plugin-signing';
 
 type ResolutionCode = 'PLUGIN_PACKAGE_UNAVAILABLE' | 'PLUGIN_PACKAGE_CORRUPT' | 'PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT'

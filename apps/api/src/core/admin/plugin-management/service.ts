@@ -12,14 +12,14 @@ import { assertTaskPolicy, lockTaskScheduler, transitionInstallationTasks } from
 import { ApiError } from '@/utils/api-errors';
 import { CacheService } from '@/core/cache/service';
 import type { PluginMeta, PluginState, PluginConfig, InstalledPluginsResponse } from './types';
-import { validateInstanceConfig, validateInstanceKeyFormat } from '@/core/admin/extension-installer/utils';
+import { validateInstanceConfig, validateInstanceKeyFormat } from '@/core/extensions/shared/utils';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { resolveCurrentPluginPackage, PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
 import { assertPluginSigningAllowed } from '@/core/admin/extension-installer/plugin-signing-policy';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
 import { assertPluginOperationAvailable } from '@/core/admin/extension-installer/plugin-migration-gate';
-import { incrementPluginRegistryVersion } from '@/core/admin/extension-installer/plugin-registry-version';
+import { systemSettingsService } from '@/core/settings/service';
 import { assertPluginConfigReadyForEnable } from '@/core/admin/extension-installer/config-readiness';
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
 import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
@@ -27,13 +27,13 @@ import { mergeSecretConfigForUpdate } from './config-secrets';
 import { decryptPluginConfig, encryptPluginConfig, redactPluginText, PluginConfigDecryptionError } from './config-crypto';
 import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
 import { getPluginManifestIssues, parsePluginConfigSchema, validatePluginConfig } from '@jiffoo/shared';
-import { ExtensionInstallerError } from '@/core/admin/extension-installer/errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { writePluginAudit } from '@/core/admin/extension-installer/plugin-audit';
 import { inspectPluginUpload } from '@/core/admin/extension-installer/plugin-upload';
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
+import { declaresContract, getDefaultInstance, type PluginInstanceProjection } from '@/core/extensions/registry';
 
-type ProviderContract = 'payment' | 'shipping' | 'tax' | 'fulfillment' | 'notification';
 type UpdatedInstance = PluginInstallation & { replacedPlugins: string[] };
 
 // slug validation regex: ^[a-z][a-z0-9-]{0,30}[a-z0-9]$
@@ -105,21 +105,6 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
-function declaresContract(manifestJson: unknown, contract: ProviderContract): boolean {
-  return Array.isArray((manifestJson as { contracts?: unknown[] } | null)?.contracts)
-    && (manifestJson as { contracts: Array<{ name?: unknown; version?: unknown }> }).contracts.some((declaration) => declaration.name === contract && declaration.version === (contract === 'payment' ? 2 : 1));
-}
-
-async function listProviders(contract: 'payment' | 'shipping'): Promise<PluginInstallation[]> {
-  const installations = await prisma.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } }, include: { plugin: true } });
-  return installations.filter((installation) => declaresContract(installation.plugin.manifestJson, contract));
-}
-
-async function resolveSingleProvider(contract: 'tax' | 'fulfillment' | 'notification'): Promise<PluginInstallation | null> {
-  const installations = await prisma.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } }, include: { plugin: true } });
-  return installations.find((installation) => declaresContract(installation.plugin.manifestJson, contract)) ?? null;
-}
-
 async function assertNotLastEnabledProvider(pluginSlug: string, enabled: boolean, manifestJson: unknown, database: Pick<typeof prisma, 'pluginInstallation'> = prisma): Promise<void> {
   if (!enabled || getPluginManifestIssues(manifestJson).length > 0) return;
   const contracts = (['payment', 'shipping', 'tax', 'fulfillment', 'notification'] as const)
@@ -160,20 +145,6 @@ async function getPluginPackage(slug: string): Promise<PluginInstall | null> {
   return plugin;
 }
 
-/**
- * Get all plugin packages.
- * By default excludes soft-deleted packages unless includeDeleted=true.
- */
-async function getAllPluginPackages(options?: { includeDeleted?: boolean }): Promise<PluginInstall[]> {
-  const includeDeleted = options?.includeDeleted ?? false;
-  const rows = await prisma.pluginInstall.findMany({
-    where: includeDeleted ? undefined : { deletedAt: null },
-    orderBy: { installedAt: 'desc' },
-  });
-
-  return rows;
-}
-
 // ============================================================================
 // Plugin Instance Operations (PluginInstallation table)
 // ============================================================================
@@ -200,13 +171,6 @@ async function getInstanceByKey(slug: string, instanceKey: string): Promise<Plug
       },
     },
   });
-}
-
-/**
- * Get default instance for a plugin
- */
-async function getDefaultInstance(slug: string): Promise<PluginInstallation | null> {
-  return getInstanceByKey(slug, 'default');
 }
 
 /**
@@ -454,10 +418,10 @@ async function updateInstance(
     }
     if (updates.enabled !== undefined || updates.config !== undefined) updateData.protectionGeneration = { increment: 1 };
     const next = await tx.pluginInstallation.update({ where: { id: installationId }, data: updateData });
+    await systemSettingsService.incrementPluginRegistryVersion(tx);
     if (updates.enabled !== undefined || updates.config !== undefined) {
       await PluginPageService.revokeInstallationSessions(tx, installationId);
     }
-    await incrementPluginRegistryVersion(tx);
     return next;
   });
 
@@ -488,7 +452,7 @@ export async function isPluginEnabled(
   slug: string,
   instanceKeyOrId: string
 ): Promise<boolean> {
-  let instance: PluginInstallation | null = null;
+  let instance: PluginInstallation | PluginInstanceProjection | null = null;
 
   if (instanceKeyOrId === 'default') {
     instance = await getDefaultInstance(slug);
@@ -526,7 +490,7 @@ export async function getInstanceConfig(
   slug: string,
   instanceKeyOrId: string
 ): Promise<Record<string, unknown> | null> {
-  let instance: PluginInstallation | null = null;
+  let instance: PluginInstallation | PluginInstanceProjection | null = null;
 
   if (instanceKeyOrId === 'default') {
     instance = await getDefaultInstance(slug);
@@ -613,8 +577,8 @@ export async function uninstallPlugin(slug: string, actorId = 'system'): Promise
       },
       data: { enabled: false, protectionGeneration: { increment: 1 } },
     });
+    await systemSettingsService.incrementPluginRegistryVersion(tx);
     await PluginPageService.revokePluginSessions(tx, slug);
-    await incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_UNINSTALLED', slug, { slug, version: pluginPackage.version });
   });
 
@@ -695,7 +659,7 @@ export async function restorePlugin(slug: string, actorId = 'system'): Promise<v
         },
       });
     }
-    await incrementPluginRegistryVersion(tx);
+    await systemSettingsService.incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_RESTORED', slug, { slug, version: pluginPackage.version, enabled: false });
   });
 
@@ -751,7 +715,7 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
     }
     await pluginPackageBlobStore.deleteAll(tx, slug);
     await tx.pluginInstall.delete({ where: { slug } });
-    await incrementPluginRegistryVersion(tx);
+    await systemSettingsService.incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_PURGED', slug, { slug, version: pluginPackage.version });
   });
 
@@ -768,18 +732,22 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
 // Export Service Object
 // ============================================================================
 
+/**
+ * Admin plugin-management service.
+ *
+ * This is the LIFECYCLE service (install / uninstall / restore / purge / audit).
+ * The read-only provider registry at `@/core/extensions/registry` is the single
+ * implementation of the provider reads; callers import those functions from
+ * the registry directly.
+ */
 export const PluginManagementService = {
   // Instance-level API (Only API)
   getPluginPackage,
-  getAllPluginPackages,
   getInstanceById,
   getInstanceByKey,
-  getDefaultInstance,
   getPluginInstances,
   createDefaultInstance,
   updateInstance,
-  listProviders,
-  resolveSingleProvider,
   getInstanceConfig,
   isPluginEnabled,
   uninstallPlugin,

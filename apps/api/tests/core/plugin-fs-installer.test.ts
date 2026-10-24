@@ -2,7 +2,8 @@ import archiver from 'archiver';
 import { createReadStream, promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { prisma as applicationPrisma } from '@/config/database';
 import { PluginFsInstaller } from '@/core/admin/extension-installer/plugin-fs-installer';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
@@ -12,6 +13,18 @@ import { getTestPrisma } from '../helpers/db';
 import { localUploadOptions } from '../helpers/plugin-upload';
 import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { createHash, randomUUID } from 'node:crypto';
+
+/**
+ * The application Prisma client is an extended client (`prisma.$extends(...)`).
+ * Its own property descriptors report `undefined`, so `vi.spyOn` refuses to
+ * patch it. Overriding the property directly intercepts the call the product
+ * code makes on the client and restores the previous value afterwards.
+ */
+function overridePrismaMethod(target: object, key: string, implementation: (...args: any[]) => any): () => void {
+  const original = (target as Record<string, unknown>)[key];
+  Object.defineProperty(target, key, { value: implementation, writable: true, configurable: true, enumerable: true });
+  return () => { Object.defineProperty(target, key, { value: original, writable: true, configurable: true, enumerable: true }); };
+}
 
 async function createPluginArchive(
   slug: string,
@@ -102,6 +115,38 @@ describe('PluginFsInstaller unsigned packages', () => {
     expect(audit?.summary).toMatchObject({ version: '1.0.0', source: 'local-zip' });
     const registryAfter = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
     expect(registryAfter?.pluginRegistryVersion).toBe((registryBefore?.pluginRegistryVersion ?? 0) + 1);
+  });
+
+  it('reads package archives outside publication transactions for installs and upgrades', async () => {
+    const packageSlug = `archive-io-${randomUUID().slice(0, 12)}`;
+    const first = await createPluginArchive(packageSlug);
+    const second = await createPluginArchive(packageSlug, { version: '2.0.0' });
+    const transaction = applicationPrisma.$transaction.bind(applicationPrisma);
+    const readFile = fs.readFile.bind(fs);
+    let inTransaction = false;
+    const archiveReads: boolean[] = [];
+    const restoreTransaction = overridePrismaMethod(applicationPrisma, '$transaction', async (callback: any, options: any) =>
+      transaction(async (tx: any) => {
+        inTransaction = true;
+        try { return await callback(tx); } finally { inTransaction = false; }
+      }, options));
+    const readSpy = vi.spyOn(fs, 'readFile').mockImplementation((async (...args: any[]) => {
+      if (String(args[0]).endsWith('.zip')) archiveReads.push(inTransaction);
+      return (readFile as any)(...args);
+    }) as any);
+    try {
+      await installer.install(createReadStream(first.archivePath), { source: 'builtin' });
+      await installer.install(createReadStream(second.archivePath), { source: 'builtin' });
+      expect(archiveReads.length).toBeGreaterThanOrEqual(2);
+      expect(archiveReads.every(value => !value)).toBe(true);
+      expect((await prisma.pluginInstall.findUniqueOrThrow({ where: { slug: packageSlug } })).version).toBe('2.0.0');
+    } finally {
+      readSpy.mockRestore(); restoreTransaction();
+      await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: packageSlug } });
+      await prisma.pluginInstall.deleteMany({ where: { slug: packageSlug } });
+      await clearTestPluginCache(packageSlug);
+      await first.cleanup(); await second.cleanup();
+    }
   });
 
   it('runs onUpgrade on a version-changing upload and onUninstall on package delete', async () => {

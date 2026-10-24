@@ -1,5 +1,5 @@
 import { prisma } from '@/config/database';
-import { systemSettingsService } from '../system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { csvCell, csvTimestamp, csvFilename, csvStream } from '@/utils/csv';
 import { getAllMessages } from 'shared/src/i18n';
 import type { Locale } from 'shared/src/i18n/config';

@@ -22,7 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { prisma } from '@/config/database';
-import { decimalToMinor } from '@/core/payment/minor-units';
+import { decimalToMinor } from '@/core/shared/money';
 import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin, verifiedPaymentFixtureFact } from '../helpers/fixture-plugin';
 import { OrderService } from '@/core/order/service';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';

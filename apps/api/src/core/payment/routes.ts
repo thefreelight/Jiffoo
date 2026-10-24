@@ -12,8 +12,9 @@ import { FastifyInstance, FastifyReply } from 'fastify';
 import { authMiddleware } from '@/core/auth/middleware';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
-import { PluginManagementService } from '@/core/admin/plugin-management/service';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { declaresContract, getAllPluginPackages, getDefaultInstance } from '@/core/extensions/registry';
+import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
+import { systemSettingsService } from '@/core/settings/service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { paymentSchemas } from './schemas';
 import { CacheService } from '@/core/cache/service';
@@ -79,19 +80,19 @@ function isLiveMode(config: Record<string, unknown>): boolean {
 }
 
 async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
-  const packages = await PluginManagementService.getAllPluginPackages();
+  const packages = await getAllPluginPackages();
   const paymentPackages = packages.filter((pkg) => String(pkg.category || '').toLowerCase() === 'payment');
 
   const methods: PaymentMethodDescriptor[] = [];
   for (const pkg of paymentPackages) {
-    const defaultInstance = await PluginManagementService.getDefaultInstance(pkg.slug);
+    const defaultInstance = await getDefaultInstance(pkg.slug);
     if (!defaultInstance || !defaultInstance.enabled || defaultInstance.deletedAt) {
       continue;
     }
 
-    if (!(pkg.manifestJson as any)?.contracts?.some((contract: any) => contract?.name === 'payment' && contract?.version === 2)) continue;
+    if (!declaresContract(pkg.manifestJson, 'payment')) continue;
     try {
-      const description = await callContract(pkg.slug, 'payment', 2, 'describe', { storeCurrency: await systemSettingsService.getShopCurrency() }) as any;
+      const description = await callContract(pkg.slug, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', { storeCurrency: await systemSettingsService.getShopCurrency() }) as any;
     methods.push({
       pluginSlug: pkg.slug,
       name: pkg.slug,

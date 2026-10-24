@@ -9,6 +9,7 @@ export const localScriptTests = new Set([
   'scripts/storage-secret.test.mjs',
   'scripts/plugin-sdk-standalone.test.mjs',
   'scripts/maintenance-proof.test.mjs',
+  'scripts/verify-lane-shards.test.mjs',
 ]);
 export const ciOnlyScriptTests = new Set(['scripts/verify-ci.test.mjs', 'scripts/update.test.mjs', 'scripts/local-trial.test.mjs']);
 export const ciOnlyVitestWrappers = new Set([

@@ -4,7 +4,7 @@ import { prisma } from '@/config/database';
 import { parseEventPayload, type EventKey, type PluginEvent } from '@jiffoo/shared';
 import { deliverInstallationEvent } from '@/core/admin/extension-installer/plugin-runtime';
 import type { EventTransaction } from './emit';
-import { redactPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
+import { redactPluginFailure } from '@/core/extensions/runtime/failure';
 import { observeWorkerShutdownForTest } from '../worker-shutdown';
 import { CORE_EVENT_TARGET, coreSubscriberFor } from './core-subscribers';
 

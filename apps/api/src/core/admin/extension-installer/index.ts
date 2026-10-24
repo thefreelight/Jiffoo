@@ -13,7 +13,7 @@ import {
   InstallResult,
   UninstallResult,
   InstalledExtensionMeta,
-} from './types';
+} from '@/core/extensions/shared/types';
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { createHash } from 'node:crypto';
@@ -21,11 +21,11 @@ import { pluginPackageBlobStore, type PluginPackageBlobMetadata } from '@/core/s
 import { readPluginZipEntries, PLUGIN_MAX_ZIP_SIZE } from 'shared/plugin-signing';
 import { prisma } from '@/config/database';
 import { redactPluginFailure } from './plugin-failure';
-import { InvalidStoredManifestError, readStoredPluginManifest } from './stored-manifest';
-import type { PluginInstall } from '@prisma/client';
+import { getPluginManifestIssues, isPluginManifest } from '@jiffoo/shared';
+import { listInstalledPluginPackages, type InstalledPluginPackageProjection } from '@/core/extensions/registry';
 
 // Re-export types
-export * from './types';
+export * from '@/core/extensions/shared/types';
 
 function parseJsonArray(value: unknown): string[] {
   if (!value) return [];
@@ -45,18 +45,15 @@ function parseJsonArray(value: unknown): string[] {
   return [];
 }
 
-function getManifestResponse(pkg: PluginInstall) {
-  try {
-    return { manifestJson: readStoredPluginManifest(pkg) };
-  } catch (error) {
-    if (error instanceof InvalidStoredManifestError) {
-      return { manifestError: { issues: error.issues } };
-    }
-    throw error;
+function getManifestResponse(pkg: InstalledPluginPackageProjection) {
+  const issues = getPluginManifestIssues(pkg.manifestJson);
+  if (issues.length > 0 || !isPluginManifest(pkg.manifestJson)) {
+    return { manifestError: { issues } };
   }
+  return { manifestJson: pkg.manifestJson };
 }
 
-async function packageState(pkg: PluginInstall): Promise<InstalledExtensionMeta['packageState']> {
+async function packageState(pkg: InstalledPluginPackageProjection): Promise<InstalledExtensionMeta['packageState']> {
   if ('manifestError' in getManifestResponse(pkg)) return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
   if (!pkg.zipHash) return { status: 'unavailable', code: 'PLUGIN_PACKAGE_UNAVAILABLE' };
   if (!/^[a-f0-9]{64}$/.test(pkg.zipHash)) return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
@@ -78,7 +75,7 @@ async function packageState(pkg: PluginInstall): Promise<InstalledExtensionMeta[
   }
 }
 
-async function listedPackageState(pkg: PluginInstall, metadata: Map<string, PluginPackageBlobMetadata>): Promise<InstalledExtensionMeta['packageState']> {
+async function listedPackageState(pkg: InstalledPluginPackageProjection, metadata: Map<string, PluginPackageBlobMetadata>): Promise<InstalledExtensionMeta['packageState']> {
   if ('manifestError' in getManifestResponse(pkg)) return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
   if (!pkg.zipHash) return { status: 'unavailable', code: 'PLUGIN_PACKAGE_UNAVAILABLE' };
   if (!/^[a-f0-9]{64}$/.test(pkg.zipHash)) return { status: 'corrupt', code: 'PLUGIN_PACKAGE_CORRUPT' };
@@ -115,7 +112,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
    * 2. Read and validate manifest.json
    * 3. Save metadata - .installed.json
    */
-  async installFromZip(kind: ExtensionKind, zipStream: Readable, options?: import('./types').PluginInstallOptions): Promise<InstallResult> {
+  async installFromZip(kind: ExtensionKind, zipStream: Readable, options?: import('@/core/extensions/shared/types').PluginInstallOptions): Promise<InstallResult> {
     switch (kind) {
       case 'plugin': {
         const plugin = await pluginFsInstaller.install(zipStream, options);
@@ -164,8 +161,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
     switch (kind) {
       case 'plugin': {
         // Read from DB instead of disk scan (exclude soft-uninstalled packages from admin list)
-        const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
-        const packages = (await PluginManagementService.getAllPluginPackages({ includeDeleted: state === 'removed' }))
+        const packages = (await listInstalledPluginPackages({ includeDeleted: state === 'removed' }))
           .filter((pkg) => state === 'removed' ? Boolean(pkg.deletedAt) : !pkg.deletedAt);
         const metadata = new Map((await pluginPackageBlobStore.headMany(packages
           .filter(pkg => pkg.source !== 'builtin' && /^[a-f0-9]{64}$/.test(pkg.zipHash ?? ''))

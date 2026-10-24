@@ -5,6 +5,8 @@ import { prisma } from '@/config/database';
 import { EmailVerificationService } from '@/core/auth/email-verification.service';
 import { sendError, sendSuccess } from '@/utils/response';
 import { createTypedCreateResponses, createTypedReadResponses, errorResponseSchema } from '@/types/common-dto';
+import { AuditService } from '@/core/audit/service';
+import { resendNotification } from '@/core/notifications/service';
 
 const statusValues = ['PENDING', 'SENDING', 'SENT', 'FAILED'] as const;
 const detailSchema = {
@@ -115,23 +117,20 @@ export async function adminNotificationRoutes(fastify: FastifyInstance) {
         if (!original.recipientUserId) throw new ApiError('RECIPIENT_MISSING');
         const user = await tx.user.findUnique({ where: { id: original.recipientUserId } });
         if (!user) throw new ApiError('RECIPIENT_MISSING');
-        if (original.type === 'staff_invite') await EmailVerificationService.createStaffInvitation(tx, user.id, user.email, user.username, original.id);
-        else await EmailVerificationService.createVerification(tx, user.id, user.email, user.username, original.id);
-        const created = await tx.notification.findFirstOrThrow({ where: { resentFromId: original.id }, orderBy: { createdAt: 'desc' } });
-        await tx.notification.update({ where: { id: created.id }, data: { dedupKey } });
-        createdId = created.id;
+        createdId = await resendNotification(tx, original, {
+          dedupKey,
+          createCopy: async copyTx => {
+            if (original.type === 'staff_invite') await EmailVerificationService.createStaffInvitation(copyTx, user.id, user.email, user.username, original.id);
+            else await EmailVerificationService.createVerification(copyTx, user.id, user.email, user.username, original.id);
+          },
+        });
       } else {
-        const created = await tx.notification.create({ data: {
-          type: original.type, channel: original.channel, recipientUserId: original.recipientUserId, toAddress: original.toAddress,
-          locale: original.locale, subject: original.subject, html: original.html, text: original.text,
-          relatedType: original.relatedType, relatedId: original.relatedId, resentFromId: original.id, dedupKey,
-        } });
-        createdId = created.id;
+        createdId = await resendNotification(tx, original, { dedupKey });
       }
-      await tx.adminAuditEvent.create({ data: {
+      await AuditService.write(tx, {
         actorId: request.user!.id, action: 'NOTIFICATION_RESENT', targetType: 'notification', targetId: original.id,
         summary: { resentId: createdId, idempotencyKey },
-      } });
+      });
       return createdId;
     });
     const resent = await prisma.notification.findUniqueOrThrow({ where: { id: resentId }, select: publicFields });

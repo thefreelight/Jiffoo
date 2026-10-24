@@ -2,6 +2,9 @@ import { Prisma } from '@prisma/client';
 import { env } from '@/config/env';
 import { prisma } from '@/config/database';
 import { formatStoreDate } from 'shared';
+import { ApiError } from '@/utils/api-errors';
+import { OrderService } from '@/core/order/service';
+import { AuthIdentityService } from '@/core/auth/identity-service';
 
 export type NotificationTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -128,13 +131,13 @@ export async function createNotification(
   values: { name?: string; orderId?: string; instructions?: string; reason?: string },
   options: { secret?: { link?: string; code?: string }; relatedType?: string; relatedId?: string; resentFromId?: string; dedupKey?: string } = {},
 ) {
-  const [user, system] = await Promise.all([
-    tx.user.findUniqueOrThrow({ where: { id: recipientUserId }, select: { locale: true } }),
+  const [identity, system] = await Promise.all([
+    AuthIdentityService.requireProfile(tx, recipientUserId),
     tx.systemSettings.findUnique({ where: { id: 'system' }, select: { settings: true } }),
   ]);
   const settings = system?.settings && typeof system.settings === 'object' && !Array.isArray(system.settings)
     ? system.settings as Record<string, unknown> : {};
-  const locale = normalizeNotificationLocale(user.locale)
+  const locale = normalizeNotificationLocale(identity.locale)
     || normalizeNotificationLocale(settings['localization.locale']) || 'en';
   const storeName = typeof settings['branding.platform_name'] === 'string' && settings['branding.platform_name'].trim()
     ? settings['branding.platform_name'] : 'Jiffoo Mall';
@@ -151,6 +154,54 @@ export async function createNotification(
   return dedupKey ? tx.notification.upsert({ where: { dedupKey }, create: data, update: {} }) : tx.notification.create({ data });
 }
 
+/**
+ * The notification fields a resend copies from the original row.
+ */
+export interface ResendableNotification {
+  id: string;
+  type: string;
+  channel: string;
+  recipientUserId: string | null;
+  toAddress: string;
+  locale: string;
+  subject: string;
+  html: string;
+  text: string;
+  relatedType: string | null;
+  relatedId: string | null;
+}
+
+/**
+ * Resend a notification: write the copy of the original row and stamp the
+ * idempotency key on it.
+ *
+ * The copy of a verification-style notification (email verification, staff
+ * invitation) is created by the auth module that owns the verification mail;
+ * `createCopy` performs that creation, this method then finds the created row
+ * and writes its dedup key. Every other notification is copied here.
+ */
+export async function resendNotification(
+  tx: NotificationTransaction,
+  original: ResendableNotification,
+  options: {
+    dedupKey: string;
+    createCopy?: (tx: NotificationTransaction) => Promise<void>;
+  },
+): Promise<string> {
+  if (options.createCopy) {
+    await options.createCopy(tx);
+    const created = await tx.notification.findFirstOrThrow({ where: { resentFromId: original.id }, orderBy: { createdAt: 'desc' } });
+    await tx.notification.update({ where: { id: created.id }, data: { dedupKey: options.dedupKey } });
+    return created.id;
+  }
+  const created = await tx.notification.create({ data: {
+    type: original.type, channel: original.channel, recipientUserId: original.recipientUserId, toAddress: original.toAddress,
+    locale: original.locale, subject: original.subject, html: original.html, text: original.text,
+    relatedType: original.relatedType, relatedId: original.relatedId, resentFromId: original.id, dedupKey: options.dedupKey,
+  } });
+  return created.id;
+}
+
 export async function createOrderNotification(
   tx: NotificationTransaction,
   type: Extract<NotificationType, 'order_confirmation' | 'payment_received' | 'shipped' | 'cancelled' | 'refunded'>,
@@ -158,11 +209,9 @@ export async function createOrderNotification(
   values: { instructions?: string; reason?: string } = {},
   options: { dedupKey?: string } = {},
 ): Promise<void> {
-  const order = await tx.order.findUniqueOrThrow({
-    where: { id: orderId },
-    select: { orderNumber: true, userId: true, customerEmail: true, user: { select: { email: true } } },
-  });
-  await createNotification(tx, type, order.userId, order.customerEmail || order.user.email, {
+  const order = await OrderService.getOrderRecipient(tx, orderId);
+  if (!order) throw new ApiError('NOT_FOUND');
+  await createNotification(tx, type, order.userId, order.customerEmail || order.accountEmail || '', {
     orderId: order.orderNumber, ...values,
   }, { relatedType: 'order', relatedId: orderId, dedupKey: options.dedupKey });
 }

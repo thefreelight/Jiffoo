@@ -7,6 +7,7 @@ import { issueAuthToken, consumeAuthToken, hashAuthToken } from './auth-token';
 import { createNotification } from '@/core/notifications/service';
 import { PasswordUtils } from '@/utils/password';
 import { normalizeNotificationLocale } from '@/core/notifications/service';
+import { AuditService } from '@/core/audit/service';
 import { setTimeout as delay } from 'node:timers/promises';
 
 export function passwordResetLink(token: string, app: 'storefront' | 'admin' = 'storefront', locale?: string | null): string {
@@ -79,8 +80,8 @@ export async function acceptStaffInvite(token: string, passwordInput: string): P
     if (passwordInput.length < 8) throw new ApiError('VALIDATION_ERROR');
     await tx.user.update({ where: { id: row.userId, role: 'ADMIN' }, data: { password, emailVerified: true, isActive: true, sessionVersion: { increment: 1 } } });
     await PluginPageService.revokePrincipalSessions(tx, row.userId);
-    await tx.adminStaffAuditLog.create({ data: { staffUserId: user.id, staffEmail: user.email, staffUsername: user.username,
-      actorUserId: user.id, actorEmail: user.email, actorUsername: user.username, action: 'ADMIN_INVITE_ACCEPTED' } });
+    await AuditService.writeStaffAudit(tx, { staffUserId: user.id, staffEmail: user.email, staffUsername: user.username,
+      actorUserId: user.id, actorEmail: user.email, actorUsername: user.username, action: 'ADMIN_INVITE_ACCEPTED' });
   });
 }
 
@@ -91,12 +92,10 @@ export class AccountRecoveryService {
       if (user.role === 'ADMIN') throw new ApiError('NOT_FOUND');
       const actor = await knownPrismaOperation(() => tx.user.findUniqueOrThrow({ where: { id: actorUserId } }), { notFound: 'NOT_FOUND' });
       const token = await issueAuthToken(tx, user.id, 'PASSWORD_RESET');
-      await tx.adminStaffAuditLog.create({
-        data: {
-          staffUserId: user.id, staffEmail: user.email, staffUsername: user.username,
-          actorUserId: actor.id, actorEmail: actor.email, actorUsername: actor.username,
-          action: 'CUSTOMER_PASSWORD_RESET_LINK_GENERATED',
-        },
+      await AuditService.writeStaffAudit(tx, {
+        staffUserId: user.id, staffEmail: user.email, staffUsername: user.username,
+        actorUserId: actor.id, actorEmail: actor.email, actorUsername: actor.username,
+        action: 'CUSTOMER_PASSWORD_RESET_LINK_GENERATED',
       });
       return passwordResetLink(token, 'storefront', user.locale);
     });

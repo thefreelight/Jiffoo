@@ -5,13 +5,19 @@ import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { startUploadTestStorage } from './upload-test-storage.mjs';
 import { resetTestPluginSchemas } from './reset-test-plugin-schemas.mjs';
-import { localSteps, ciSteps } from './verify-steps.mjs';
+import { localSteps, ciSteps, localShardSteps } from './verify-steps.mjs';
+import { parseShardArgs } from './verify-lane-shards.mjs';
 import { laneConfig, validateDatabaseUrl, validateRedisUrl } from './lane-config.mjs';
 import { parseSelection, mandatorySuites, quickRequirements } from './verify-selection.mjs';
 
 const databaseUrl = process.env.DATABASE_URL_TEST;
 const quick = process.argv.includes('--quick');
 const selectedArgument = process.argv.slice(2).filter(value => value.startsWith('--test-files='));
+// The optional local shard mode: `pnpm verify:quick --shards=N` replaces the API suite step of
+// the approved runner with the sharded API run of scripts/verify-lane-shards.mjs. It is explicit
+// and it is mutually exclusive with the explicit file selection.
+const laneShardArguments = process.argv.slice(2).filter(value => value.startsWith('--shards='));
+const shardMode = laneShardArguments.length > 0;
 const ciArguments = process.argv.slice(2).filter(value => value.startsWith('--ci-'));
 const groupArguments = ciArguments.filter(value => value.startsWith('--ci-group='));
 const shardArguments = ciArguments.filter(value => value.startsWith('--ci-shard='));
@@ -25,6 +31,35 @@ const plannedSteps = group ? ciSteps(databaseUrl, group, shard) : undefined;
 if (selectedArgument.length > 1 || selectedArgument.length && !quick) {
   console.error('--test-files is supported exactly once and only with --quick; full verification always runs every step.');
   process.exit(1);
+}
+if (laneShardArguments.length > 1) {
+  console.error('--shards is supported exactly once.');
+  process.exit(1);
+}
+if (shardMode && selectedArgument.length) {
+  console.error('--shards and --test-files are mutually exclusive: --shards=N runs the whole API suite in shards, --test-files selects individual files. Use one of them.');
+  process.exit(1);
+}
+if (shardMode && !quick) {
+  console.error('--shards is supported only with --quick (pnpm verify:quick --shards=N); the full verification always runs every step.');
+  process.exit(1);
+}
+if (shardMode && group) {
+  console.error('--shards cannot be combined with the CI group selection.');
+  process.exit(1);
+}
+if (shardMode && process.argv.slice(2).some(value => value.startsWith('--scope='))) {
+  console.error('--shards cannot be combined with --scope: the shard mode runs the full API, Admin and Shop suites.');
+  process.exit(1);
+}
+let shardCount = null;
+if (shardMode) {
+  try {
+    shardCount = parseShardArgs(laneShardArguments).shards;
+  } catch (error) {
+    console.error(`Invalid --shards argument: ${error.message}`);
+    process.exit(1);
+  }
 }
 const selection = parseSelection(process.argv.slice(2), file => existsSync(resolve(file)));
 if (group && selection.scopes.length) throw new Error('CI cannot use local scope selection.');
@@ -46,7 +81,10 @@ function sharedConsumers() {
   }
   return [...consumers];
 }
-const added = mandatorySuites(changed, selection.scopes, catalogue, sharedConsumers()).filter(({ file }) => {
+const plannedSuites = mandatorySuites(changed, selection.scopes, catalogue, sharedConsumers());
+// The shard mode runs the whole API catalogue and the whole Admin and Shop suites, so the
+// planner's mandatory suites are covered by those runs and nothing is added to a selection.
+const added = shardMode ? [] : plannedSuites.filter(({ file }) => {
   const [, app, ...parts] = file.split('/');
   return !selectedFiles[app].includes(parts.join('/'));
 });
@@ -55,8 +93,9 @@ for (const { file, reason } of added) {
   selectedFiles[app].push(parts.join('/'));
   console.log(`Mandatory suite added: ${file} (${reason})`);
 }
+if (shardMode) console.log(`Shard mode covers ${plannedSuites.length} planner-mandated suite(s) through the full API, Admin and Shop runs.`);
 const requirements = quickRequirements(selection);
-const scoped = quick && (selection.scopes.length || selectedFiles.scripts.length || added.length);
+const scoped = !shardMode && quick && (selection.scopes.length || selectedFiles.scripts.length || added.length);
 const needsDatabase = !scoped || requirements.database;
 const pnpmExecPath = process.env.npm_execpath;
 const pnpm = process.platform === 'win32' && pnpmExecPath ? process.execPath : process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
@@ -187,14 +226,43 @@ function runPrismaGenerate() {
 }
 
 const stepOptions = scoped ? { ...requirements, drift: changed.some(file => file.startsWith('apps/api/prisma/')) } : undefined;
-let steps = plannedSteps ?? localSteps(databaseUrl, quick, added.length ? ['mandatory'] : selectedArgument, selectedFiles, stepOptions);
-if (quick && !selection.explicit && added.length) {
+let steps = plannedSteps ?? (shardMode
+  ? localShardSteps(databaseUrl, shardCount, { drift: changed.some(file => file.startsWith('apps/api/prisma/')) })
+  : localSteps(databaseUrl, quick, added.length ? ['mandatory'] : selectedArgument, selectedFiles, stepOptions));
+if (!shardMode && quick && !selection.explicit && added.length) {
   // Mandatory suites augment the existing default changed-API and full-Shop invocation.
   steps = selection.scopes.length
     ? localSteps(databaseUrl, true, [], { api: [], admin: [], shop: [], scripts: [] }, stepOptions)
     : localSteps(databaseUrl, true);
   if (stepOptions.drift && !steps.some(([name]) => name === 'Check Prisma migration drift')) steps.splice(4, 0, ...localSteps(databaseUrl, true, ['mandatory'], selectedFiles, stepOptions).filter(([name]) => name === 'Check Prisma migration drift'));
   steps.push(...localSteps(databaseUrl, true, ['mandatory'], selectedFiles, stepOptions).filter(([name]) => name.startsWith('Run ')));
+}
+
+function readShardSummary() {
+  const path = resolve('tmp', 'lane-shards', 'summary.txt');
+  return existsSync(path) ? readFileSync(path, 'utf8') : '';
+}
+
+// The shard summary carries the shard count, the per-shard Test Files / Tests and the coverage
+// verdict. Only these parts are copied into the gate summary.
+function shardSummaryLines(text) {
+  const lines = String(text ?? '').replace(/\x1b\[[0-9;]*m/g, '').split(/\r?\n/);
+  const picked = [];
+  for (const header of ['Shards:', 'Run scope:', 'Scope coverage:', 'Totals:', 'Test conclusion:', 'Cleanup conclusion:', 'Delivery status:']) {
+    const line = lines.find(candidate => candidate.trimStart().startsWith(header));
+    if (line) picked.push(line.trim());
+  }
+  for (const [title, keep] of [['--- File coverage ---', line => true], ['--- Shard results ---', line => line.trimStart().startsWith('|')]]) {
+    const start = lines.indexOf(title);
+    if (start < 0) continue;
+    const body = [];
+    for (const line of lines.slice(start + 1)) {
+      if (line.trimStart().startsWith('--- ')) break;
+      if (line.trim() && keep(line)) body.push(line.trimEnd());
+    }
+    picked.push(title, ...body);
+  }
+  return picked;
 }
 
 const results = [];
@@ -227,6 +295,17 @@ for (const [name, commands] of steps) {
       const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
       process.stdout.write(output);
       testOutputs.push({ name, kind: 'node', output: `Node test start time: ${started}\n${output}` });
+      if (result.status !== 0) { succeeded = false; break; }
+      continue;
+    }
+    if (args[0] === '__lane_shards__') {
+      const started = new Date().toISOString();
+      const result = spawnSync(process.execPath, [resolve('scripts', 'verify-lane-shards.mjs'), ...args.slice(1)], {
+        cwd: process.cwd(), env: childEnv, encoding: 'utf8', maxBuffer: 128 * 1024 * 1024,
+      });
+      const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+      process.stdout.write(output);
+      testOutputs.push({ name, kind: 'shards', output: `Shard run start time: ${started}\n${output}`, detail: readShardSummary() });
       if (result.status !== 0) { succeeded = false; break; }
       continue;
     }
@@ -294,9 +373,19 @@ uploadStorage?.stop();
 
 function printSummary(summary, outputs) {
   const lines = ['=== Final test summary ==='];
-  if (!group) lines.push(`Scope: ${selection.scopes.join(',') || (requirements.scriptOnly ? 'scripts' : 'default')}`, `Lane: ${config.laneId || 'integration'}`, `Database: ${needsDatabase ? databaseName : 'not used'}`, `Planner added suites: ${added.map(item => `${item.file} (${item.reason})`).join('; ') || 'none'}`);
+  if (!group) {
+    const plannerLine = shardMode
+      ? `not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering ${plannedSuites.length} planner-mandated suite(s))`
+      : added.map(item => `${item.file} (${item.reason})`).join('; ') || 'none';
+    lines.push(`Scope: ${selection.scopes.join(',') || (requirements.scriptOnly ? 'scripts' : 'default')}`, `Lane: ${config.laneId || 'integration'}`, `Database: ${needsDatabase ? databaseName : 'not used'}`, `Planner added suites: ${plannerLine}`);
+    if (shardMode) {
+      lines.push(`Mode: shard mode (--shards=${shardCount})`,
+        'Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.',
+        'Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.');
+    }
+  }
   let valid = true;
-  for (const { name, kind, output } of outputs) {
+  for (const { name, kind, output, detail } of outputs) {
     lines.push(`${name}:`);
     const outputLines = output.replace(/\x1b\[[0-9;]*m/g, '').split(/\r?\n/);
     if (name === 'Run changed API tests' && outputLines.some((line) => line.includes('No test files found'))) {
@@ -305,6 +394,18 @@ function printSummary(summary, outputs) {
     }
     if (kind === 'node') {
       lines.push(...outputLines.filter(line => /^(Node test start time:|# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) |\u2139 (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) )/.test(line)));
+      continue;
+    }
+    if (kind === 'shards') {
+      const shardLines = shardSummaryLines(detail || output);
+      const complete = shardLines.some(line => line.startsWith('Shards:'))
+        && shardLines.some(line => line.startsWith('Coverage verdict:'))
+        && shardLines.some(line => /^\|\s*\d+\s*\|/.test(line));
+      if (!complete) {
+        console.error(`VERIFY SUMMARY ERROR: ${name} is missing its shard count, its per-shard results or its coverage verdict.`);
+        valid = false;
+      }
+      lines.push(...shardLines);
       continue;
     }
     const expected = kind === 'vitest'

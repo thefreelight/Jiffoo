@@ -4,7 +4,7 @@ import { Prisma, type PluginTask as StoredTask } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { ensureCoreProcess } from '@/infra/core-process';
 import { ApiError } from '@/utils/api-errors';
-import { recordPluginFailure, redactPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
+import { recordPluginFailure, redactPluginFailure } from '@/core/extensions/runtime/failure';
 import { assertTaskClaim, assertTaskPolicy, lockTaskScheduler, occupiedTaskSlots, principalForTask, taskDatabaseTime, taskJson, transitionInstallationTasks, validateTaskPrincipal, withTaskScope, type TaskClaim, type TaskTransaction } from './tasks';
 
 const RETRIES = [60_000, 300_000, 900_000, 3_600_000];

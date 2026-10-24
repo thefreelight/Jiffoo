@@ -8,9 +8,10 @@ import { themePackageBlobStore } from '@/core/storage/theme-package-blob-store';
 import { resolveThemePackage, ThemePackageResolutionError } from '@/core/storage/current-theme-package';
 import { withThemeLeases, fenceThemeLeases } from '@/core/storage/theme-operation-lease';
 import { packBuiltinPlugin } from './builtin-package';
-import { ExtensionInstallerError } from './errors';
+import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { validateThemeFiles, validateThemeZip, validateThemeManifest } from './theme-validator';
 import { audit } from './theme-runtime';
+import { AuditService } from '@/core/audit/service';
 
 function error(code: import('@/utils/api-errors').ErrorCode, message: string): never {
   throw new ExtensionInstallerError(message, { code });
@@ -61,11 +62,11 @@ export async function installTheme(archive: Buffer, options: { source: 'builtin'
         });
         await themePackageBlobStore.put(tx, manifest.slug, packageHash, archive);
         if (existing?.packageHash === packageHash) return saved;
-        if (actor) await tx.adminStaffAuditLog.create({ data: {
+        if (actor) await AuditService.writeStaffAudit(tx, {
           staffUserId: actor.id, staffEmail: actor.email, staffUsername: actor.username,
           actorUserId: actor.id, actorEmail: actor.email, actorUsername: actor.username,
           action: 'THEME_UNSIGNED_INSTALL_CONFIRMED', metadata: { slug: manifest.slug, version: manifest.version, packageHash },
-        } });
+        });
         if ((await tx.themeActive.updateMany({ where: { slug: manifest.slug }, data: { packageHash } })).count) {
           await tx.themeActivation.create({ data: { target: manifest.target, slug: manifest.slug, packageHash, actorId: options.actorUserId ?? 'system' } });
         }

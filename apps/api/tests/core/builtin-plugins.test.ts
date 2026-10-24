@@ -4,6 +4,7 @@ import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { getDefaultInstance } from '@/core/extensions/registry';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { getTestPrisma } from '../helpers/db';
@@ -44,12 +45,12 @@ describe('Builtin plugins', () => {
 
   it('leaves matching builtin versions and merchant enable choices unchanged on a later sync', async () => {
     const before = (await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion;
-    const manual = await PluginManagementService.getDefaultInstance('manual-payment');
+    const manual = await getDefaultInstance('manual-payment');
     await prisma.pluginInstallation.update({ where: { id: manual!.id }, data: { enabled: false } });
     await syncBuiltinPlugins(builtinRoot);
     const after = (await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion;
     expect(after).toBe(before);
-    expect((await PluginManagementService.getDefaultInstance('manual-payment'))?.enabled).toBe(false);
+    expect((await getDefaultInstance('manual-payment'))?.enabled).toBe(false);
     await prisma.pluginInstallation.update({ where: { id: manual!.id }, data: { enabled: true } });
   });
 
@@ -112,7 +113,7 @@ describe('Builtin plugins', () => {
   it('rejects disabling the last enabled provider for every contract and allows one of two shipping providers to disable', async () => {
     const contracts = [['manual-payment', 'payment'], ['free-shipping', 'shipping'], ['zero-tax', 'tax'], ['manual-fulfillment', 'fulfillment'], ['console-email', 'notification']] as const;
     for (const [slug, contract] of contracts) {
-      const instance = await PluginManagementService.getDefaultInstance(slug);
+      const instance = await getDefaultInstance(slug);
       await expect(PluginManagementService.updateInstance(instance!.id, { enabled: false })).rejects.toMatchObject({ statusCode: 409, code: 'LAST_PROVIDER_REQUIRED', contract });
     }
     const secondSlug = 'shipping-second-provider';
@@ -125,7 +126,7 @@ describe('Builtin plugins', () => {
       const storedManifest = JSON.parse(await fs.readFile(storedPackage!.getEntryPath('manifest.json'), 'utf8'));
       await prisma.pluginInstall.create({ data: { slug: secondSlug, name: secondSlug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip', zipHash, manifestJson: storedManifest } });
       const second = await prisma.pluginInstallation.create({ data: { pluginSlug: secondSlug, instanceKey: 'default', enabled: true } });
-      const free = await PluginManagementService.getDefaultInstance('free-shipping');
+      const free = await getDefaultInstance('free-shipping');
       await expect(PluginManagementService.updateInstance(free!.id, { enabled: false })).resolves.toMatchObject({ enabled: false });
       await PluginManagementService.updateInstance(free!.id, { enabled: true });
       await PluginManagementService.updateInstance(second.id, { enabled: false });
@@ -134,7 +135,7 @@ describe('Builtin plugins', () => {
       await prisma.pluginInstall.deleteMany({ where: { slug: secondSlug } });
       await clearTestPluginCache(secondSlug);
       await fs.rm(source, { recursive: true, force: true });
-      const free = await PluginManagementService.getDefaultInstance('free-shipping');
+      const free = await getDefaultInstance('free-shipping');
       if (free && !free.enabled) await prisma.pluginInstallation.update({ where: { id: free.id }, data: { enabled: true } });
     }
   });

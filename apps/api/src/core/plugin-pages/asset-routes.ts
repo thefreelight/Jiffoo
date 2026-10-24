@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { IncomingHttpHeaders } from 'node:http';
 import { createHash } from 'node:crypto';
-import { prisma } from '@/config/database';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { readPluginZipEntries, buildPluginUiAssetIndex } from 'shared/plugin-signing';
 import { isPluginManifest, isPluginAssetPath } from '@jiffoo/shared';
@@ -9,6 +8,7 @@ import { pluginSigningError } from '@/core/admin/extension-installer/plugin-sign
 import { assertPluginNotPaused } from '@/core/admin/extension-installer/plugin-migration-gate';
 import { ApiError, sendMappedError } from '@/utils/api-errors';
 import { errorResponseSchema } from '@/utils/schema-helpers';
+import { getInstallationById } from '@/core/extensions/registry';
 
 export function exactPluginOrigin(value: string): URL {
   const url = new URL(value);
@@ -84,12 +84,9 @@ export async function pluginAssetRoutes(app: FastifyInstance) {
     try {
       const { installationId, zipHash, '*': path } = request.params;
       if (!/^[a-f0-9]{64}$/.test(zipHash) || !isPluginAssetPath(path)) return missing();
-      const current = () => prisma.pluginInstallation.findFirst({ where: {
-        id: installationId, enabled: true, deletedAt: null,
-        plugin: { deletedAt: null, zipHash },
-      }, include: { plugin: true } });
+      const current = () => getInstallationById(installationId, zipHash);
       const installation = await current();
-      if (!installation || pluginSigningError(installation.plugin)) return missing();
+      if (!installation || pluginSigningError(installation.package)) return missing();
       await assertPluginNotPaused(installation.pluginSlug);
       const blob = await pluginPackageBlobStore.get(installation.pluginSlug, zipHash);
       if (!blob) return missing();
@@ -103,7 +100,7 @@ export async function pluginAssetRoutes(app: FastifyInstance) {
       if (!entry) throw new ApiError('PLUGIN_PACKAGE_CORRUPT');
       const manifest: unknown = JSON.parse(entry.content.toString('utf8'));
       if (!isPluginManifest(manifest) || manifest.slug !== installation.pluginSlug
-        || manifest.version !== installation.plugin.version || !manifest.ui) return missing();
+        || manifest.version !== installation.package.version || !manifest.ui) return missing();
       // G4 supplies authoritative dependency admission; an unknown graph is not operational.
       if (manifest.serviceDependencies?.length) return missing();
       const root = entry.path.slice(0, -'manifest.json'.length);

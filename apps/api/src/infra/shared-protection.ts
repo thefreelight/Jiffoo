@@ -1,7 +1,7 @@
 import Redis from 'ioredis';
 import { randomUUID } from 'node:crypto';
 import { env } from '@/config/env';
-import { CIRCUIT_BREAKER_CONFIG } from '@/core/admin/extension-installer/gateway-protection';
+import { CIRCUIT_BREAKER_CONFIG } from '@/core/shared/config';
 
 export const PROTECTION_DEADLINE_MS = 1000;
 export const PROTECTION_RETRY_SECONDS = 5;

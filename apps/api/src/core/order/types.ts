@@ -103,6 +103,59 @@ export type CreateOrderRequest = z.infer<typeof CreateOrderSchema>;
 /** Result of an order creation attempt. A replay returns the original order. */
 export type OrderCreationResult = { order: OrderResponse; replayed: boolean };
 
+/**
+ * Read projection of an order. Other modules consume the order through this
+ * projection instead of reading the order table themselves.
+ */
+export interface OrderProjectionItem {
+  id: string;
+  productId: string;
+  variantId: string;
+  quantity: number;
+  unitPrice: number;
+  fulfillmentData: unknown;
+  catalogSnapshot: unknown;
+}
+
+export interface OrderProjection {
+  id: string;
+  orderNumber: string;
+  userId: string;
+  customerEmail: string | null;
+  status: OrderStatusType;
+  paymentStatus: PaymentStatusType;
+  totalAmount: number;
+  currency: string;
+  subtotalAmount: number;
+  shippingAmount: number;
+  taxAmount: number;
+  items: OrderProjectionItem[];
+}
+
+/** The order body of the order.paid event payload. */
+export interface OrderPaidPayloadItem {
+  id: string;
+  productId: string;
+  variantId: string;
+  productName: string;
+  variantName: string;
+  skuCode?: string;
+  quantity: number;
+  unitPrice: number;
+  fulfillmentData: Record<string, unknown> | null;
+  productTypeData: Record<string, unknown>;
+}
+
+export interface OrderPaidPayload {
+  id: string;
+  orderNumber: string;
+  userId: string;
+  customerEmail: string | null;
+  totalAmount: number;
+  currency: string;
+  items: OrderPaidPayloadItem[];
+}
+
 
 // Shipping Address Response
 export interface ShippingAddressResponse {

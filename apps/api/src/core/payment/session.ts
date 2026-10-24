@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { Prisma, type Payment } from '@prisma/client';
-import type { PaymentFact, PaymentV2Output } from '@jiffoo/shared';
+import { PLUGIN_CONTRACT_VERSIONS, type PaymentFact, type PaymentV2Output } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { createNotification } from '@/core/notifications/service';
-import { lockOrder, lockPayment } from './locks';
+import { OrderService } from '@/core/order/service';
+import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { paymentNow, PAYMENT_SESSION_LIFETIME_MS } from './clock';
-import { decimalToMinor } from './minor-units';
+import { decimalToMinor } from '@/core/shared/money';
 import { observePaymentReservationForTest } from './session-test-control';
 import { bindPaymentProviderAccount } from './provider-account';
 import { observePaymentFact } from './observations';
@@ -60,14 +61,14 @@ export async function createPaymentSession(input: SessionInput) {
       expiresAt: new Date(now.getTime() + PAYMENT_SESSION_LIFETIME_MS),
     } });
     await tx.paymentLedger.create({ data: { paymentId: payment.id, orderId: order.id, eventType: 'CREATED', amount: payment.amount, currency: payment.currency, provider: payment.paymentMethod, idempotencyKey: requestKey, createdAt: now } });
-    await tx.order.update({ where: { id: order.id }, data: { paymentAttempts: attemptNumber, lastPaymentAttemptAt: now, lastPaymentMethod: input.pluginSlug } });
+    await OrderService.recordPaymentAttempt(tx, { orderId: order.id, attemptNumber, at: now, method: input.pluginSlug });
     return { payment, order, owner: true };
   });
   if (!reservation.owner) return response(reservation.payment);
   await observePaymentReservationForTest(reservation.payment.id);
   let fact: PaymentFact;
   try {
-    fact = await callContract(input.pluginSlug, 'payment', 2, 'createSession', {
+    fact = await callContract(input.pluginSlug, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'createSession', {
       orderId: reservation.order.id, amountMinor: decimalToMinor(reservation.payment.amount.toString(), reservation.payment.currency), currency: reservation.payment.currency,
       account: accountIdentity, customer: { id: input.userId, email: input.email }, returnUrl: input.returnUrl, cancelUrl: input.cancelUrl, idempotencyKey: requestKey,
     }) as PaymentFact;

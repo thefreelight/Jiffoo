@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { formatStoreTimestamp, storeLocalToUtc } from 'shared';
-import { systemSettingsService } from '../system-settings/service';
+import { systemSettingsService } from '@/core/settings/service';
 
 export interface CustomerQuery {
   search?: string;

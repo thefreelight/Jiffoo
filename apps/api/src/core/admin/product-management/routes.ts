@@ -12,6 +12,7 @@ import { sendKnownError } from '@/utils/api-errors';
 import { bulkProducts, createProductExport, type ProductBulkRequest } from './batch';
 import { productNeighbors, type ProductSelection, type ProductSort, type ProductListFilter } from './list-query';
 import { getLocaleFromRequest } from '@/utils/i18n';
+import { readUploadContent } from '@/routes/multipart-content';
 
 export async function adminProductRoutes(fastify: FastifyInstance) {
   fastify.get('/:id/neighbors', { schema: { tags: ['admin-products'], summary: 'Get adjacent products in list order', security: [{ bearerAuth: [] }], ...adminProductSchemas.neighbors } }, async (request, reply) => {
@@ -155,7 +156,9 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
         return sendError(reply, 400, 'BAD_REQUEST', 'No file uploaded');
       }
 
-      const result = await UploadService.uploadProductImage(data);
+      UploadService.assertAllowedType(data.mimetype);
+      const content = await readUploadContent(data);
+      const result = await UploadService.uploadProductImage({ filename: data.filename, mimetype: data.mimetype, content });
       return sendSuccess(reply, result);
     } catch (error) {
       if (error instanceof UploadValidationError) {

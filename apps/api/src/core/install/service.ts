@@ -7,6 +7,8 @@ import path from 'node:path';
 import { prisma } from '@/config/database';
 import { Prisma } from '@prisma/client';
 import { ApiError } from '@/utils/api-errors';
+import { AuthIdentityService } from '@/core/auth/identity-service';
+import { systemSettingsService } from '@/core/settings/service';
 import bcrypt from 'bcryptjs';
 
 export interface InstallationStatus {
@@ -182,31 +184,16 @@ export class InstallService {
         if (existingAdmin) {
           throw new ApiError('INSTALL_EMAIL_IN_USE');
         }
-        const adminUser = await tx.user.create({
-          data: {
-            email,
-            username,
-            password: hashedPassword,
-            role: 'ADMIN',
-            isActive: true,
-          },
-        });
+        const adminUser = await AuthIdentityService.createBootstrapAdmin(tx, { email, username, password: hashedPassword });
         const installedSettings = {
           'branding.platform_name': data.siteName,
           'localization.locale': 'en',
         };
-        await tx.systemSettings.upsert({
-          where: { id: 'system' },
-          create: {
-            id: 'system', isInstalled: true, installedAt: new Date(),
-            installedBy: adminUser.id, siteDescription: data.siteDescription,
-            settings: installedSettings, version: runtimeVersion,
-          },
-          update: {
-            isInstalled: true, installedAt: new Date(),
-            installedBy: adminUser.id, siteDescription: data.siteDescription,
-            settings: installedSettings, version: runtimeVersion,
-          },
+        await systemSettingsService.completeInstallation(tx, {
+          installedBy: adminUser.id,
+          siteDescription: data.siteDescription,
+          settings: installedSettings,
+          version: runtimeVersion,
         });
         return { success: true, siteName: data.siteName, adminUsername: adminUser.username, adminEmail: adminUser.email, timezone: 'UTC' };
       });
@@ -229,9 +216,6 @@ export class InstallService {
     allowRegistration: boolean;
     requireEmailVerification: boolean;
   }>) {
-    return prisma.systemSettings.update({
-      where: { id: 'system' },
-      data
-    });
+    return systemSettingsService.updateInstallationSettings(data);
   }
 }

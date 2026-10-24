@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { prisma as applicationPrisma } from '@/config/database';
 import type { FastifyInstance } from 'fastify';
 import archiver from 'archiver';
 import { promises as fs } from 'fs';
@@ -11,6 +12,18 @@ import { clearTestThemeCache } from '../helpers/theme-cache';
 import { syncBuiltinThemes } from '@/core/admin/extension-installer/builtin-theme-sync';
 import { themeTokensToCss } from '@jiffoo/shared';
 import { themeFixture, themeFiles, zipTheme } from '../helpers/theme-package-fixture';
+
+/**
+ * The application Prisma client is an extended client (`prisma.$extends(...)`).
+ * Its own property descriptors report `undefined`, so `vi.spyOn` refuses to
+ * patch it. Overriding the property directly intercepts the call the product
+ * code makes on the client and restores the previous value afterwards.
+ */
+function overridePrismaMethod(target: object, key: string, implementation: (...args: any[]) => any): () => void {
+  const original = (target as Record<string, unknown>)[key];
+  Object.defineProperty(target, key, { value: implementation, writable: true, configurable: true, enumerable: true });
+  return () => { Object.defineProperty(target, key, { value: original, writable: true, configurable: true, enumerable: true }); };
+}
 
 const prisma = getTestPrisma();
 const suffix = Date.now().toString(36);
@@ -447,9 +460,70 @@ describe('T1b theme runtime', () => {
       manifest.settings = []; files.set('theme.json', Buffer.from(JSON.stringify(manifest))); files.delete('assets/hero.png');
       expect((await fixture.upload(fixture.primary, await zipTheme(files))).status).toBe(200);
       const before = await prisma.themeConfiguration.findUniqueOrThrow({ where: { slug: installed.slug } });
+      const revisionsBefore = await prisma.themeConfigRevision.count({ where: { slug: installed.slug } });
+      const auditBefore = await prisma.adminAuditEvent.count({ where: { targetId: installed.slug } });
       const restored = await fixture.mutate(fixture.primary, `${url}/restore-previous`, 'POST', {});
       expect(restored.status).toBe(400); expect(restored.json().error.code).toBe('THEME_CONFIG_INVALID');
       expect(await prisma.themeConfiguration.findUniqueOrThrow({ where: { slug: installed.slug } })).toEqual(before);
+      expect(await prisma.themeConfigRevision.count({ where: { slug: installed.slug } })).toBe(revisionsBefore);
+      expect(await prisma.adminAuditEvent.count({ where: { targetId: installed.slug } })).toBe(auditBefore);
     } finally { await fixture.close(); }
+  });
+
+  it('validates a restored category outside the fenced database transaction', async () => {
+    await own('restore-validation', async url => {
+      expect((await admin('PUT', url, { values: { category: categoryId }, expectedRevision: 0 })).statusCode).toBe(200);
+      expect((await admin('PUT', url, { values: { quantity: 2 }, expectedRevision: 1 })).statusCode).toBe(200);
+      const transaction = applicationPrisma.$transaction.bind(applicationPrisma);
+      const findCategory = applicationPrisma.category.findUnique.bind(applicationPrisma.category);
+      let inTransaction = false;
+      const validations: boolean[] = [];
+      const restoreTransaction = overridePrismaMethod(applicationPrisma, '$transaction', async (callback: any, options: any) =>
+        transaction(async (tx: any) => {
+          inTransaction = true;
+          try { return await callback(tx); } finally { inTransaction = false; }
+        }, options));
+      const restoreCategory = overridePrismaMethod(applicationPrisma.category, 'findUnique', (args: any) => {
+        validations.push(inTransaction);
+        return findCategory(args);
+      });
+      try {
+        const restored = await admin('POST', `${url}/restore-previous`);
+        expect(restored.statusCode, restored.body).toBe(200);
+        expect(restored.json().data).toMatchObject({ revision: 3, values: { category: categoryId } });
+        expect(validations).toEqual([false]);
+      } finally { restoreCategory(); restoreTransaction(); }
+    });
+  });
+
+  it.each(['revision', 'prior', 'package', 'manifest'] as const)('rejects a restore when its validated %s changes', async change => {
+    await own(`restore-${change}`, async (url, manifest) => {
+      expect((await admin('PUT', url, { values: { category: categoryId }, expectedRevision: 0 })).statusCode).toBe(200);
+      expect((await admin('PUT', url, { values: { quantity: 2 }, expectedRevision: 1 })).statusCode).toBe(200);
+      const before = await prisma.themeConfiguration.findUniqueOrThrow({ where: { slug: manifest.slug } });
+      const revisions = await prisma.themeConfigRevision.count({ where: { slug: manifest.slug } });
+      const audits = await prisma.adminAuditEvent.count({ where: { targetId: manifest.slug } });
+      const findCategory = applicationPrisma.category.findUnique.bind(applicationPrisma.category);
+      let intercepted = false;
+      const restoreCategory = overridePrismaMethod(applicationPrisma.category, 'findUnique', async (args: any) => {
+        if (intercepted) return findCategory(args);
+        intercepted = true;
+        if (change === 'revision') await prisma.themeConfiguration.update({ where: { slug: manifest.slug }, data: { revision: 4 } });
+        if (change === 'prior') await prisma.themeConfigRevision.updateMany({ where: { slug: manifest.slug, revision: 1 }, data: { values: { quantity: 8 } } });
+        if (change === 'package') await prisma.theme.update({ where: { slug: manifest.slug }, data: { packageHash: 'f'.repeat(64) } });
+        if (change === 'manifest') await prisma.theme.update({ where: { slug: manifest.slug }, data: { manifestJson: { ...manifest, settings: [] } } });
+        return findCategory(args);
+      });
+      try {
+        const restored = await admin('POST', `${url}/restore-previous`);
+        expect(restored.statusCode, restored.body).toBe(409);
+        expect(restored.json().error.code).toBe('THEME_CONFIG_CONFLICT');
+        const current = await prisma.themeConfiguration.findUniqueOrThrow({ where: { slug: manifest.slug } });
+        expect(current.values).toEqual(before.values);
+        expect(current.revision).toBe(change === 'revision' ? 4 : before.revision);
+        expect(await prisma.themeConfigRevision.count({ where: { slug: manifest.slug } })).toBe(revisions);
+        expect(await prisma.adminAuditEvent.count({ where: { targetId: manifest.slug } })).toBe(audits);
+      } finally { restoreCategory(); }
+    });
   });
 });

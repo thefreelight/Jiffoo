@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
-import { decimalToMinor, minorToDecimal } from '@/core/payment/minor-units';
+import { decimalToMinor, minorToDecimal } from '@/core/shared/money';
 import { isContractV1Runtime, registerContractV1Runtime } from '@/core/admin/extension-installer/contract-v1-runtime';
 
 vi.mock('@/config/database', () => ({ prisma: { $executeRawUnsafe: vi.fn(), $queryRawUnsafe: vi.fn(), $transaction: vi.fn() } }));

@@ -1,18 +1,5 @@
 import { emitEvent } from '@/infra/events/emit';
-import { readCatalogSnapshot } from '@/core/order/catalog-snapshot';
-
-function parseJsonRecord(value: unknown): Record<string, unknown> {
-  if (!value) return {};
-  if (typeof value === 'string') {
-    try {
-      const parsed = JSON.parse(value);
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
-    } catch {
-      return {};
-    }
-  }
-  return typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
+import { OrderService } from '@/core/order/service';
 
 type EmitOrderPaidInput = {
   paymentId?: string;
@@ -24,17 +11,18 @@ type EmitOrderPaidInput = {
   actorId?: string;
 };
 
+/**
+ * Emit the order.paid event.
+ *
+ * The payload body is produced by the order module, which owns the order table
+ * and the catalog snapshot captured with every order item.
+ */
 export async function emitOrderPaidEvent(
   tx: any,
   orderId: string,
   input: EmitOrderPaidInput = {},
 ) {
-  const order = await tx.order.findUnique({
-    where: { id: orderId },
-    include: {
-      items: true,
-    },
-  });
+  const order = await OrderService.getOrderPaidPayload(tx, orderId);
 
   if (!order) {
     return null;
@@ -43,26 +31,7 @@ export async function emitOrderPaidEvent(
   const payload = {
     orderId: order.id,
     userId: order.userId,
-    order: {
-      id: order.id,
-      orderNumber: order.orderNumber,
-      userId: order.userId,
-      customerEmail: order.customerEmail,
-      totalAmount: Number(order.totalAmount),
-      currency: order.currency,
-      items: order.items.map((item: any) => ({
-        id: item.id,
-        productId: item.productId,
-        variantId: item.variantId,
-        productName: readCatalogSnapshot(item.catalogSnapshot).productName,
-        variantName: readCatalogSnapshot(item.catalogSnapshot).variantName,
-        skuCode: readCatalogSnapshot(item.catalogSnapshot).skuCode ?? undefined,
-        quantity: item.quantity,
-        unitPrice: Number(item.unitPrice),
-        fulfillmentData: parseJsonRecord(item.fulfillmentData),
-        productTypeData: parseJsonRecord(readCatalogSnapshot(item.catalogSnapshot).productTypeData),
-      })),
-    },
+    order,
     payment: {
       paymentId: input.paymentId,
       paymentMethod: input.paymentMethod,
