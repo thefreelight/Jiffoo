@@ -28,6 +28,11 @@
 //   with the shard environment). The executed file set of every shard is read back from the Vitest
 //   JSON reporter. Missing files, extra files, empty shards and cross-shard duplicates all fail
 //   the run;
+// - the catalogue is split by the measured duration of the test files, not by the file count. The
+//   durations live in scripts/fixtures/api-test-durations.json and are refreshed from the results
+//   of the last sharded run with `node scripts/verify-lane-shards.mjs --record-durations`. The split
+//   is deterministic (the same catalogue always produces the same shard file lists) and the slowest
+//   shard stays within a factor of 1.15 of the theoretical lower bound.
 // - a single shard run (--shard=N) is never a PASS: the expected set stays the full catalogue, the
 //   files the shard does not run are counted as missing, the delivery status is PARTIAL and the
 //   run fails.
@@ -47,7 +52,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { laneConfig, validateDatabaseUrl, validateRedisUrl } from './lane-config.mjs';
 import { localQuickVitestExclusions } from './verify-selection.mjs';
@@ -72,6 +77,16 @@ export const processTerminationGraceMs = 20_000;
 export const shardLaunchDelayMs = 250;
 // Container prefix used when no LANE_ID is set; it never collides with a registered lane id.
 export const integrationContainerPrefix = 'integration';
+// The measured durations of the API test files. The file is refreshed from the results of the
+// last sharded run with `node scripts/verify-lane-shards.mjs --record-durations`.
+export const durationFixturePath = resolve(fileURLToPath(import.meta.url), '..', 'fixtures', 'api-test-durations.json');
+export const durationFixtureRelativePath = relative(repositoryRoot, durationFixturePath).split(sep).join('/');
+// The slowest shard of a duration balanced partition must stay within this factor of the
+// theoretical lower bound (the total duration divided by the number of shards).
+export const shardBalanceTolerance = 1.15;
+// A file without a measured duration is weighted with the median of the known durations, so an
+// unknown file never looks free.
+export const fallbackDurationWeight = 'median';
 // Host ports of the integration PostgreSQL and Redis services. A shard must never use them.
 export const hostServicePorts = Object.freeze([5432, 5498, 6379, 6398]);
 // The complete gate is `pnpm verify`; these are the steps this script does NOT run.
@@ -90,9 +105,16 @@ export function parseShardArgs(argv = []) {
   const shardArgument = argv.filter(arg => arg.startsWith('--shard='));
   if (shardsArgument.length > 1 || shardArgument.length > 1) throw new Error('Only one --shards and one --shard argument are accepted.');
   if (shardsArgument.length && shardArgument.length) throw new Error('--shard cannot be combined with --shards.');
-  const unknown = argv.filter(arg => arg !== '--keep' && arg !== '--replay' && !arg.startsWith('--shards=') && !arg.startsWith('--shard='));
+  const unknown = argv.filter(arg => arg !== '--keep' && arg !== '--replay' && arg !== '--record-durations' && !arg.startsWith('--shards=') && !arg.startsWith('--shard='));
   if (unknown.length) throw new Error(`Unknown argument: ${unknown[0]}`);
   const replay = argv.includes('--replay');
+  const recordDurations = argv.includes('--record-durations');
+  if (replay && recordDurations) {
+    throw new Error('--replay cannot be combined with --record-durations.');
+  }
+  if (recordDurations && (shardsArgument.length || shardArgument.length || argv.includes('--keep'))) {
+    throw new Error('--record-durations cannot be combined with --shards, --shard or --keep.');
+  }
   if (replay && (shardsArgument.length || shardArgument.length || argv.includes('--keep'))) {
     throw new Error('--replay cannot be combined with --shards, --shard or --keep.');
   }
@@ -106,7 +128,7 @@ export function parseShardArgs(argv = []) {
     shard = Number(shardArgument[0].slice('--shard='.length));
     if (!Number.isInteger(shard) || shard < 1 || shard > defaultShards) throw new Error(`--shard must be an integer between 1 and ${defaultShards}.`);
   }
-  return { shards, shard, keep: argv.includes('--keep'), replay };
+  return { shards, shard, keep: argv.includes('--keep'), replay, recordDurations };
 }
 
 // A Docker published port line looks like "127.0.0.1:18151"; several lines mean several mappings.
@@ -236,6 +258,213 @@ export function partitionFiles(files, shardCount) {
   const shards = Array.from({ length: shardCount }, () => []);
   sorted.forEach((file, offset) => shards[offset % shardCount].push(file));
   return shards;
+}
+
+// The duration table maps a repository relative test file to its measured duration in
+// milliseconds. Only finite, non-negative numbers are accepted; everything else is dropped.
+export function normalizeDurationTable(raw) {
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const table = {};
+  for (const [file, value] of Object.entries(source)) {
+    const duration = Number(value);
+    if (!Number.isFinite(duration) || duration < 0) continue;
+    table[String(file).split(sep).join('/')] = Math.round(duration);
+  }
+  return table;
+}
+
+// The weight of a file: its measured duration, or the median of the known durations when the
+// file was never measured. An unknown file therefore never looks free.
+export function durationWeights(files, durations) {
+  const table = normalizeDurationTable(durations);
+  const known = Object.values(table).sort((left, right) => left - right);
+  const fallback = median(known);
+  const weights = new Map();
+  for (const file of files ?? []) {
+    const measured = table[file];
+    weights.set(file, Number.isFinite(measured) ? measured : fallback);
+  }
+  return { weights, fallback, knownCount: known.length };
+}
+
+// The median of the known durations. An even number of measurements is averaged, so the fallback
+// of an unknown file is the middle of the measured durations and not one of the extremes.
+export function median(values) {
+  const sorted = [...(values ?? [])].filter(value => Number.isFinite(value)).sort((left, right) => left - right);
+  if (!sorted.length) return 0;
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) return sorted[middle];
+  return (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+// The duration balanced partition: the slowest file goes into the currently lightest shard
+// (longest processing time first), followed by a deterministic local improvement that moves or
+// swaps single files while that lowers the slowest shard. The result only depends on the input,
+// so the same catalogue always produces the same shard file lists.
+export function partitionFilesByDuration(files, shardCount, durations = {}) {
+  const count = Math.max(1, Number(shardCount) || 1);
+  const sorted = [...new Set(files ?? [])].sort();
+  const { weights, fallback } = durationWeights(sorted, durations);
+  const weight = file => weights.get(file) ?? fallback;
+  const shards = Array.from({ length: count }, () => []);
+  const totals = Array.from({ length: count }, () => 0);
+  const ordered = [...sorted].sort((left, right) => weight(right) - weight(left) || left.localeCompare(right));
+  for (const file of ordered) {
+    let target = 0;
+    for (let index = 1; index < count; index += 1) if (totals[index] < totals[target]) target = index;
+    shards[target].push(file);
+    totals[target] += weight(file);
+  }
+  balanceShards(shards, weight);
+  return shards.map(shard => [...shard].sort());
+}
+
+// The local improvement of a duration balanced partition. It only lowers the slowest shard and
+// never moves a file twice in the same round, so the outcome is reproducible.
+function balanceShards(shards, weight) {
+  const count = shards.length;
+  const totals = shards.map(shard => shard.reduce((sum, file) => sum + weight(file), 0));
+  for (let round = 0; round < 1000; round += 1) {
+    const slowest = Math.max(...totals);
+    const heaviest = totals.indexOf(slowest);
+    let applied = false;
+    const candidates = [...shards[heaviest]].sort((left, right) => weight(right) - weight(left) || left.localeCompare(right));
+    for (const file of candidates) {
+      for (let target = 0; target < count && !applied; target += 1) {
+        if (target === heaviest) continue;
+        const moved = [...totals];
+        moved[heaviest] -= weight(file);
+        moved[target] += weight(file);
+        if (Math.max(...moved) < slowest) {
+          shards[heaviest].splice(shards[heaviest].indexOf(file), 1);
+          shards[target].push(file);
+          totals.splice(0, totals.length, ...moved);
+          applied = true;
+        }
+      }
+      if (applied) break;
+    }
+    if (applied) continue;
+    for (const file of candidates) {
+      for (let target = 0; target < count && !applied; target += 1) {
+        if (target === heaviest) continue;
+        for (const other of [...shards[target]].sort((left, right) => weight(left) - weight(right) || left.localeCompare(right))) {
+          const swapped = [...totals];
+          swapped[heaviest] += weight(other) - weight(file);
+          swapped[target] += weight(file) - weight(other);
+          if (Math.max(...swapped) < slowest) {
+            shards[heaviest][shards[heaviest].indexOf(file)] = other;
+            shards[target][shards[target].indexOf(other)] = file;
+            totals.splice(0, totals.length, ...swapped);
+            applied = true;
+            break;
+          }
+        }
+      }
+      if (applied) break;
+    }
+    if (!applied) break;
+  }
+  return shards;
+}
+
+// The predicted balance of a partition: the slowest shard against the theoretical lower bound
+// (the total duration divided by the number of shards).
+export function shardBalance(shards, durations = {}) {
+  const files = (shards ?? []).flat();
+  const { weights, fallback } = durationWeights(files, durations);
+  const weight = file => weights.get(file) ?? fallback;
+  const shardTotals = (shards ?? []).map(shard => shard.reduce((sum, file) => sum + weight(file), 0));
+  const total = shardTotals.reduce((sum, value) => sum + value, 0);
+  const slowest = shardTotals.length ? Math.max(...shardTotals) : 0;
+  const bound = shardTotals.length ? total / shardTotals.length : 0;
+  const ratio = bound > 0 ? slowest / bound : 1;
+  return {
+    shardTotals,
+    total,
+    bound,
+    slowest,
+    ratio,
+    tolerance: shardBalanceTolerance,
+    hasMeasurements: total > 0,
+    balanced: total > 0 ? ratio <= shardBalanceTolerance : null,
+  };
+}
+
+// The partition of the catalogue. The duration table decides the split when it knows at least one
+// file of the catalogue; without measured durations the file count decides, as before.
+export function partitionCatalogue(files, shardCount, durations = {}) {
+  const sorted = [...new Set(files ?? [])].sort();
+  const table = normalizeDurationTable(durations);
+  const measured = sorted.filter(file => Object.hasOwn(table, file)).length;
+  if (!measured) return { shards: partitionFiles(sorted, shardCount), mode: 'file count', measured };
+  return { shards: partitionFilesByDuration(sorted, shardCount, table), mode: 'measured duration', measured };
+}
+
+// The measured durations of the test files of a stored Vitest JSON report.
+export function parseDurationEntries(payload) {
+  const parsed = typeof payload === 'string' ? JSON.parse(payload) : payload;
+  const results = Array.isArray(parsed?.testResults) ? parsed.testResults : [];
+  return results.map(item => {
+    const entry = typeof item === 'string' ? { name: item } : item;
+    const file = entry?.name ?? entry?.file;
+    if (!file) return null;
+    const asserted = Array.isArray(entry.assertionResults)
+      ? entry.assertionResults.reduce((sum, assertion) => sum + (Number(assertion?.duration) || 0), 0)
+      : 0;
+    const direct = Number(entry.duration);
+    const span = Number(entry.endTime) - Number(entry.startTime);
+    const duration = Number.isFinite(direct) && direct > 0
+      ? direct
+      : Number.isFinite(span) && span > 0
+        ? span
+        : asserted;
+    return { file: normalizeTestFilePath(file), durationMs: Math.max(0, Math.round(duration)) };
+  }).filter(Boolean);
+}
+
+// The durations of the last sharded run, read back from the stored per-shard results JSON.
+// A file that was measured more than once keeps its slowest measurement.
+export function collectDurationsFromResults(resultsDirectory) {
+  if (!existsSync(resultsDirectory)) return { durations: {}, shards: [] };
+  const files = readdirSync(resultsDirectory).filter(name => /^shard-\d+\.results\.json$/.test(name)).sort();
+  const durations = {};
+  const shards = [];
+  for (const file of files) {
+    const shard = Number(file.match(/^shard-(\d+)\.results\.json$/)[1]);
+    let entries = [];
+    try {
+      entries = parseDurationEntries(readFileSync(join(resultsDirectory, file), 'utf8'));
+    } catch {
+      entries = [];
+    }
+    for (const entry of entries) {
+      const previous = durations[entry.file] ?? 0;
+      durations[entry.file] = Math.max(previous, entry.durationMs);
+    }
+    shards.push({ shard, files: entries.length });
+  }
+  return { durations, shards };
+}
+
+// The duration table on disk, read back. A missing or unreadable table is an empty table, never
+// a crash of the gate.
+export function readDurationTable(path = durationFixturePath) {
+  if (!existsSync(path)) return {};
+  try {
+    return normalizeDurationTable(JSON.parse(readFileSync(path, 'utf8')));
+  } catch {
+    return {};
+  }
+}
+
+// The duration table on disk, written back in a stable order.
+export function writeDurationTable(path, durations) {
+  const table = normalizeDurationTable(durations);
+  const ordered = Object.fromEntries(Object.keys(table).sort().map(file => [file, table[file]]));
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(ordered, null, 2)}\n`, 'utf8');
+  return ordered;
 }
 
 export function normalizeTestFilePath(file, options = {}) {
@@ -1121,9 +1350,22 @@ function containerState(containerId) {
 async function main() {
   const startedAt = Date.now();
   const startedAtIso = new Date(startedAt).toISOString();
-  const { shards, shard, keep, replay } = parseShardArgs(process.argv.slice(2));
+  const { shards, shard, keep, replay, recordDurations } = parseShardArgs(process.argv.slice(2));
   const resultsDirectory = resolve('tmp', 'lane-shards');
   mkdirSync(resultsDirectory, { recursive: true });
+  if (recordDurations) {
+    // The duration table is refreshed from the results of the last sharded run. It never runs a
+    // test itself and never touches a container.
+    const collected = collectDurationsFromResults(resultsDirectory);
+    const durations = Object.fromEntries(Object.entries(collected.durations)
+      .filter(([file]) => existsSync(resolve(repositoryRoot, file))));
+    const written = writeDurationTable(durationFixturePath, durations);
+    const files = Object.keys(written);
+    const total = files.reduce((sum, file) => sum + written[file], 0);
+    console.log(`Recorded durations from ${collected.shards.length} stored shard result file(s): ${files.length} test files, ${(total / 1000).toFixed(1)}s in total.`);
+    console.log(`Duration table written to ${durationFixtureRelativePath}`);
+    return;
+  }
   if (replay) {
     // A replay only reads the stored shard results of an earlier run back. It is not a run: it
     // measures no duration and produces no run verdict.
@@ -1196,10 +1438,14 @@ async function main() {
     // as the shards that run against it.
     const catalogueEnvironment = catalogueSnapshotEnvironment(baseEnvironment, plan[0]);
     const catalogue = listExpectedApiFiles(resultsDirectory, catalogueEnvironment);
-    const partition = partitionFiles(catalogue, plan[0].shards);
-    for (const entry of plan) entry.files = partition[entry.index - 1] ?? [];
+    const durationTable = readDurationTable(durationFixturePath);
+    const partition = partitionCatalogue(catalogue, plan[0].shards, durationTable);
+    for (const entry of plan) entry.files = partition.shards[entry.index - 1] ?? [];
     const assigned = plan.flatMap(entry => entry.files);
+    const balance = shardBalance(partition.shards, durationTable);
     console.log(`Catalogue files: ${catalogue.length}; assigned to this run: ${assigned.length}`);
+    console.log(`Shard split by ${partition.mode} (${partition.measured} of ${catalogue.length} files have a measured duration).`);
+    console.log(`Predicted slowest shard: ${(balance.slowest / 1000).toFixed(1)}s; lower bound ${(balance.bound / 1000).toFixed(1)}s; ratio ${balance.ratio.toFixed(3)} (tolerance ${balance.tolerance}).`);
 
     const overallTimer = setTimeout(() => {
       stopping = true;
@@ -1355,6 +1601,15 @@ async function main() {
       '--- Shard results ---',
       aggregate.table,
       'The durations above are the measured wall clock of this run, per shard, from the measured start to the measured end of that shard.',
+      '',
+      '--- Shard balance (predicted from the measured file durations) ---',
+      `Split mode: ${partition.mode} (${partition.measured} of ${catalogue.length} catalogue files have a measured duration)`,
+      `Duration table: ${durationFixtureRelativePath} (refresh it with \`node scripts/verify-lane-shards.mjs --record-durations\`)`,
+      `Predicted slowest shard: ${(balance.slowest / 1000).toFixed(1)}s`,
+      `Theoretical lower bound (total / shards): ${(balance.bound / 1000).toFixed(1)}s`,
+      `Ratio: ${balance.ratio.toFixed(3)} (tolerance ${balance.tolerance})`,
+      `Balance verdict: ${balance.balanced === null ? 'no measured duration data available' : balance.balanced ? 'within tolerance' : 'OUTSIDE TOLERANCE'}`,
+      ...plan.map(entry => `Shard ${entry.index}: ${entry.files.length} files, predicted ${(balance.shardTotals[entry.index - 1] / 1000).toFixed(1)}s`),
       '',
       '--- Shard timing (measured by this run) ---',
       ...outcomes.map(outcome => `Shard ${outcome.shard}: ${outcome.startedAtIso ?? 'not started'} -> ${outcome.finishedAtIso ?? 'not finished'} (${outcome.duration})`),

@@ -3,7 +3,9 @@
 // scripts/verify-lane-shards.mjs run.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolve } from 'node:path';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { laneConfig } from './lane-config.mjs';
 import {
   aggregateShardResults,
@@ -16,11 +18,13 @@ import {
   buildReplaySummary,
   buildShardPlan,
   catalogueSnapshotEnvironment,
+  collectDurationsFromResults,
   computeCoverage,
   decideTimeoutHandoff,
   deliveryStatus,
   descendantProcessIds,
   describeRunScope,
+  durationWeights,
   formatCountSummary,
   formatMeasuredWallClock,
   formatStartTime,
@@ -28,16 +32,22 @@ import {
   identifyUploadStorageContainer,
   indexProcessTree,
   integrationContainerPrefix,
+  normalizeDurationTable,
   parseContainerTable,
   parseDatabaseNames,
+  parseDurationEntries,
   parsePublishedPorts,
   parseShardArgs,
   parseVitestListFiles,
   parseVitestShardReport,
   parseVolumeNames,
+  partitionCatalogue,
   partitionFiles,
+  partitionFilesByDuration,
   replaySummaryTitle,
   resolveShardTarget,
+  shardBalance,
+  shardBalanceTolerance,
   shardContainerNames,
   shardDatabaseUrl,
   shardEnvironment,
@@ -51,22 +61,26 @@ import {
   uploadStorageCleanupRows,
   uploadStorageContainerName,
   uploadStorageResourceStatus,
+  writeDurationTable,
 } from './verify-lane-shards.mjs';
 
 const apiFile = name => resolve('apps/api/tests', name);
 
 test('arguments accept one shard count or one shard index and reject anything else', () => {
-  assert.deepEqual(parseShardArgs([]), { shards: 4, shard: undefined, keep: false, replay: false });
-  assert.deepEqual(parseShardArgs(['--shards=4']), { shards: 4, shard: undefined, keep: false, replay: false });
-  assert.deepEqual(parseShardArgs(['--shards=1', '--keep']), { shards: 1, shard: undefined, keep: true, replay: false });
-  assert.deepEqual(parseShardArgs(['--shard=2']), { shards: 4, shard: 2, keep: false, replay: false });
-  assert.deepEqual(parseShardArgs(['--replay']), { shards: 4, shard: undefined, keep: false, replay: true });
+  assert.deepEqual(parseShardArgs([]), { shards: 4, shard: undefined, keep: false, replay: false, recordDurations: false });
+  assert.deepEqual(parseShardArgs(['--shards=4']), { shards: 4, shard: undefined, keep: false, replay: false, recordDurations: false });
+  assert.deepEqual(parseShardArgs(['--shards=1', '--keep']), { shards: 1, shard: undefined, keep: true, replay: false, recordDurations: false });
+  assert.deepEqual(parseShardArgs(['--shard=2']), { shards: 4, shard: 2, keep: false, replay: false, recordDurations: false });
+  assert.deepEqual(parseShardArgs(['--replay']), { shards: 4, shard: undefined, keep: false, replay: true, recordDurations: false });
+  assert.deepEqual(parseShardArgs(['--record-durations']), { shards: 4, shard: undefined, keep: false, replay: false, recordDurations: true });
   assert.throws(() => parseShardArgs(['--shards=4', '--shard=2']), /cannot be combined/);
   assert.throws(() => parseShardArgs(['--shards=0']), /between 1 and 8/);
   assert.throws(() => parseShardArgs(['--shards=9']), /between 1 and 8/);
   assert.throws(() => parseShardArgs(['--shard=0']), /between 1 and 4/);
   assert.throws(() => parseShardArgs(['--replay', '--shards=2']), /--replay cannot be combined/);
   assert.throws(() => parseShardArgs(['--replay', '--keep']), /--replay cannot be combined/);
+  assert.throws(() => parseShardArgs(['--replay', '--record-durations']), /--replay cannot be combined/);
+  assert.throws(() => parseShardArgs(['--record-durations', '--shards=2']), /--record-durations cannot be combined/);
   assert.throws(() => parseShardArgs(['--unknown']), /Unknown argument/);
 });
 
@@ -714,4 +728,138 @@ test('an upload storage that could not be identified fails the cleanup instead o
   const report = buildCleanupReport(rows);
   assert.equal(report.passed, false);
   assert.deepEqual(report.failures.map(row => row.id), ['not-identified']);
+});
+
+// The duration table of the API test files: a repository relative path and its measured duration
+// in milliseconds.
+const skewedDurations = () => {
+  const durations = { 'apps/api/tests/core/slow.test.ts': 30_000 };
+  for (let offset = 0; offset < 39; offset += 1) {
+    durations[`apps/api/tests/core/file-${offset}.test.ts`] = 1_000 + offset * 50;
+  }
+  return durations;
+};
+
+test('the catalogue is split by the measured duration and the slowest shard stays within the tolerance', () => {
+  const durations = skewedDurations();
+  const files = Object.keys(durations).sort();
+  const shards = partitionFilesByDuration(files, 4, durations);
+  const balance = shardBalance(shards, durations);
+  assert.equal(shards.length, 4);
+  assert.ok(balance.slowest <= balance.bound * shardBalanceTolerance, `slowest ${balance.slowest} exceeds ${balance.bound * shardBalanceTolerance}`);
+  assert.equal(balance.balanced, true);
+  assert.ok(balance.ratio <= shardBalanceTolerance);
+  // The slow file dominates one shard, the small files fill the others.
+  assert.ok(shards.some(shard => shard.includes('apps/api/tests/core/slow.test.ts')));
+});
+
+test('the duration partition keeps every file exactly once and does not change the file count', () => {
+  const durations = skewedDurations();
+  const files = Object.keys(durations).sort();
+  const shards = partitionFilesByDuration(files, 4, durations);
+  const flattened = shards.flat();
+  assert.equal(flattened.length, files.length);
+  assert.equal(new Set(flattened).size, files.length);
+  for (const file of files) assert.ok(flattened.includes(file));
+});
+
+test('the duration partition is stable: the same input always produces the same shard file lists', () => {
+  const durations = skewedDurations();
+  const files = Object.keys(durations).sort();
+  const first = partitionFilesByDuration(files, 4, durations);
+  const second = partitionFilesByDuration(files, 4, durations);
+  const shuffled = partitionFilesByDuration([...files].reverse(), 4, durations);
+  assert.deepEqual(second, first);
+  assert.deepEqual(shuffled, first);
+});
+
+test('the duration partition beats the file count partition on a skewed catalogue', () => {
+  const durations = skewedDurations();
+  const files = Object.keys(durations).sort();
+  const byCount = shardBalance(partitionFiles(files, 4), durations);
+  const byDuration = shardBalance(partitionFilesByDuration(files, 4, durations), durations);
+  assert.ok(byDuration.slowest < byCount.slowest);
+  assert.ok(byDuration.ratio <= byCount.ratio);
+});
+
+test('a file without a measured duration is weighted with the median of the known durations', () => {
+  const durations = { 'apps/api/tests/core/one.test.ts': 1_000, 'apps/api/tests/core/two.test.ts': 3_000 };
+  const { weights, fallback } = durationWeights(['apps/api/tests/core/one.test.ts', 'apps/api/tests/core/two.test.ts', 'apps/api/tests/core/unknown.test.ts'], durations);
+  assert.equal(fallback, 2_000);
+  assert.equal(weights.get('apps/api/tests/core/one.test.ts'), 1_000);
+  assert.equal(weights.get('apps/api/tests/core/unknown.test.ts'), 2_000);
+});
+
+test('the catalogue falls back to the file count when no duration is known', () => {
+  const files = Array.from({ length: 10 }, (_, offset) => `apps/api/tests/core/file-${offset}.test.ts`);
+  const withoutDurations = partitionCatalogue(files, 3, {});
+  assert.equal(withoutDurations.mode, 'file count');
+  assert.equal(withoutDurations.measured, 0);
+  assert.deepEqual(withoutDurations.shards.map(shard => shard.length), [4, 3, 3]);
+  const withDurations = partitionCatalogue(files, 3, { [files[0]]: 10_000 });
+  assert.equal(withDurations.mode, 'measured duration');
+  assert.equal(withDurations.measured, 1);
+  assert.equal(withDurations.shards.flat().length, files.length);
+});
+
+test('the duration table keeps only valid measurements', () => {
+  const table = normalizeDurationTable({
+    'apps/api/tests/core/one.test.ts': 1_234.6,
+    'apps/api/tests/core/two.test.ts': -5,
+    'apps/api/tests/core/three.test.ts': 'not a number',
+    'apps/api/tests/core/four.test.ts': Number.POSITIVE_INFINITY,
+  });
+  assert.deepEqual(table, { 'apps/api/tests/core/one.test.ts': 1_235 });
+  assert.deepEqual(normalizeDurationTable(null), {});
+  assert.deepEqual(normalizeDurationTable([1, 2]), {});
+});
+
+test('a duration is taken from the reported duration or from the measured span', () => {
+  const entries = parseDurationEntries({
+    testResults: [
+      { name: apiFile('core/one.test.ts'), startTime: 1_000, endTime: 4_000 },
+      { name: apiFile('core/two.test.ts'), duration: 900 },
+      { name: apiFile('core/three.test.ts'), assertionResults: [{ duration: 100 }, { duration: 250 }] },
+    ],
+  });
+  assert.deepEqual(entries, [
+    { file: 'apps/api/tests/core/one.test.ts', durationMs: 3_000 },
+    { file: 'apps/api/tests/core/two.test.ts', durationMs: 900 },
+    { file: 'apps/api/tests/core/three.test.ts', durationMs: 350 },
+  ]);
+});
+
+test('the durations of the last run are read back from the stored shard results', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'lane-shards-durations-'));
+  try {
+    writeFileSync(join(directory, 'shard-1.results.json'), JSON.stringify({
+      testResults: [{ name: apiFile('core/one.test.ts'), startTime: 1_000, endTime: 4_000 }],
+    }));
+    writeFileSync(join(directory, 'shard-2.results.json'), JSON.stringify({
+      testResults: [{ name: apiFile('core/two.test.ts'), startTime: 1_000, endTime: 2_500 }],
+    }));
+    const collected = collectDurationsFromResults(directory);
+    assert.deepEqual(collected.durations, {
+      'apps/api/tests/core/one.test.ts': 3_000,
+      'apps/api/tests/core/two.test.ts': 1_500,
+    });
+    assert.deepEqual(collected.shards.map(entry => entry.shard), [1, 2]);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('the duration table is written and read back in a stable order', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'lane-shards-table-'));
+  try {
+    const path = join(directory, 'api-test-durations.json');
+    const written = writeDurationTable(path, { 'apps/api/tests/core/b.test.ts': 2_000, 'apps/api/tests/core/a.test.ts': 1_000 });
+    assert.deepEqual(Object.keys(written), ['apps/api/tests/core/a.test.ts', 'apps/api/tests/core/b.test.ts']);
+    assert.deepEqual(JSON.parse(readFileSync(path, 'utf8')), {
+      'apps/api/tests/core/a.test.ts': 1_000,
+      'apps/api/tests/core/b.test.ts': 2_000,
+    });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
