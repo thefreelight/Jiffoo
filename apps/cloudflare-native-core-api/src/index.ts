@@ -367,7 +367,7 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (isNativeRead(nativeRequest, url)) return serveNativeRead(url, env, ctx);
     const postoryCompat = await tryPostoryCompat(nativeRequest, env);
     if (postoryCompat) return postoryCompat;
-    const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(nativeRequest, env));
+    const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(nativeRequest, env), (promise) => ctx.waitUntil(promise));
     if (nativeAuth) return nativeAuth;
     const nativeCart = await tryNativeCart(
       nativeRequest,

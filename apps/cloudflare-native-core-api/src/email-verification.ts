@@ -136,25 +136,43 @@ function passwordResetEmailHtml(siteName: string, username: string, value: strin
 
 // Password reset reuses the verification-code columns, but unlike email
 // verification it must NEVER touch email_verified.
-export async function sendNativePasswordResetCode(
+
+/** Writes the hashed reset code synchronously so it is valid the moment the client is told "sent". */
+export async function stageNativePasswordResetCode(
   env: NativeAuthEnv,
   user: { id: string; email: string; username: string },
-): Promise<void> {
+): Promise<string> {
   const value = code();
   const secret = await getNativeJwtSecret(env);
   const expiresAt = new Date(Date.now() + CODE_TTL_SECONDS * 1000).toISOString();
-  const siteName = await nativeSiteName(env);
   await env.DB.prepare(
     `UPDATE native_users SET verification_code_hash = ?1, verification_expires_at = ?2,
       verification_attempts = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?3`,
   ).bind(await digest(secret, user.id, value), expiresAt, user.id).run();
+  return value;
+}
 
+/** Sends the staged code. Slow SMTP relays must not block the HTTP response — run via waitUntil. */
+export async function deliverNativePasswordResetCode(
+  env: NativeAuthEnv,
+  user: { id: string; email: string; username: string },
+  value: string,
+): Promise<void> {
+  const siteName = await nativeSiteName(env);
   await sendSmtpEmail(env, {
     to: user.email,
     subject: `${siteName} password reset code: ${value}`,
     text: `Hi ${user.username},\n\nYour ${siteName} password reset code is ${value}. It expires in 10 minutes.\n\nIf you didn't request a password reset, ignore this email — your password stays unchanged.`,
     html: passwordResetEmailHtml(siteName, user.username, value),
   });
+}
+
+export async function sendNativePasswordResetCode(
+  env: NativeAuthEnv,
+  user: { id: string; email: string; username: string },
+): Promise<void> {
+  const value = await stageNativePasswordResetCode(env, user);
+  await deliverNativePasswordResetCode(env, user, value);
 }
 
 export async function verifyNativePasswordResetCode(

@@ -1,4 +1,4 @@
-import { clearNativePasswordResetCode, sendNativePasswordResetCode, sendNativeVerificationCode, verifyNativeEmailCode, verifyNativePasswordResetCode } from './email-verification';
+import { clearNativePasswordResetCode, deliverNativePasswordResetCode, sendNativeVerificationCode, stageNativePasswordResetCode, verifyNativeEmailCode, verifyNativePasswordResetCode } from './email-verification';
 import { consumeVerificationRateLimit, requestIp } from './auth-rate-limit';
 import { recordNativeSecurityEvent, recordLoginAudit, recordNativeLoginSuccess } from './security-audit';
 
@@ -342,6 +342,7 @@ export async function tryNativeAuth(
   request: Request,
   env: NativeAuthEnv,
   proxyRequest: () => Promise<Response>,
+  waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<Response | null> {
   let path = new URL(request.url).pathname;
 
@@ -648,7 +649,22 @@ export async function tryNativeAuth(
       );
     }
     try {
-      await sendNativePasswordResetCode(env, nativePublicUser(user));
+      // Stage the hashed code synchronously, then deliver over SMTP. Slow
+      // relays must not hold the response open (a killed connection reads as
+      // "sending failed" to the client while the email still goes out), so
+      // when a waitUntil context exists the delivery runs detached.
+      const value = await stageNativePasswordResetCode(env, nativePublicUser(user));
+      const deliver = deliverNativePasswordResetCode(env, nativePublicUser(user), value);
+      if (waitUntil) {
+        waitUntil(deliver.catch((error) => {
+          console.error(JSON.stringify({
+            message: 'Password reset email delivery failed',
+            error: error instanceof Error ? error.message : 'unknown',
+          }));
+        }));
+      } else {
+        await deliver;
+      }
     } catch (error) {
       return Response.json(
         { success: false, error: { code: 'EMAIL_UNAVAILABLE', message: error instanceof Error ? error.message : 'Password reset email could not be sent' } },

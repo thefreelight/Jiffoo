@@ -198,6 +198,56 @@ describe('password security audit trail', () => {
     expect(event?.values).toContain('203.0.113.9');
   });
 
+  it('does not block the response on SMTP delivery when waitUntil is available', async () => {
+    smtp.sendSmtpEmail.mockReset().mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 10_000)));
+    const { db, statements } = emailDb({
+      existing: {
+        id: 'u1', email: 'user@example.com', username: 'Jordan', role: 'USER', is_active: 1,
+        email_verified: 1, verification_code_hash: null, verification_expires_at: null, verification_attempts: 0,
+      },
+    });
+    const waited: Array<Promise<unknown>> = [];
+    const started = Date.now();
+    const response = await tryNativeAuth(
+      new Request('https://api.example/api/v1/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'user@example.com' }),
+      }),
+      { DB: db, JWT_SECRET_VALUE: 'secret' } as never,
+      vi.fn(),
+      (promise) => { waited.push(promise); },
+    );
+    const elapsed = Date.now() - started;
+    expect(response?.status).toBe(200);
+    // The hashed code is staged synchronously, the slow SMTP send is detached.
+    expect(statements.some((statement) => statement.sql.includes('verification_code_hash = ?1'))).toBe(true);
+    expect(waited.length).toBe(1);
+    expect(elapsed).toBeLessThan(2_000);
+  });
+
+  it('keeps the blocking 503 path when no waitUntil context exists', async () => {
+    smtp.sendSmtpEmail.mockReset().mockRejectedValue(new Error('Mailcow SMTP is not configured'));
+    const { db } = emailDb({
+      existing: {
+        id: 'u1', email: 'user@example.com', username: 'Jordan', role: 'USER', is_active: 1,
+        email_verified: 1, verification_code_hash: null, verification_expires_at: null, verification_attempts: 0,
+      },
+    });
+    const response = await tryNativeAuth(
+      new Request('https://api.example/api/v1/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'user@example.com' }),
+      }),
+      { DB: db, JWT_SECRET_VALUE: 'secret' } as never,
+      vi.fn(),
+    );
+    expect(response?.status).toBe(503);
+    const payload = await response?.json() as { error?: { code?: string } };
+    expect(payload.error?.code).toBe('EMAIL_UNAVAILABLE');
+  });
+
   it('records password.reset when a valid code completes a reset', async () => {
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey('raw', encoder.encode('secret'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
