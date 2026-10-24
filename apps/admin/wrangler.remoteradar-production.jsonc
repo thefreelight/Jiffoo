@@ -7,6 +7,9 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "remoteradar-production-admin-cache" }],
+  "services": [
+    { "binding": "CORE_SERVICE", "service": "remoteradar-production-api", "environment": "production" }
+  ],
   "vars": {
     "API_SERVICE_URL": "https://remoteradar-production-api.q624263170.workers.dev",
     "NEXT_PUBLIC_API_URL": "/api",

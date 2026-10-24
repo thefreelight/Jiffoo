@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 const HOP_BY_HOP_HEADERS = new Set([
   'connection',
@@ -10,6 +11,24 @@ const HOP_BY_HOP_HEADERS = new Set([
   'transfer-encoding',
   'upgrade',
 ])
+
+/**
+ * The admin->core hop over a public URL (same-zone custom domain or even
+ * workers.dev) intermittently dies with edge 522s — observed live as
+ * per-request flakiness where the same browser, the same second, succeeds on
+ * one route and 522s on another while curl never fails. A service binding to
+ * the core worker removes the network hop entirely (in-account, in-colo
+ * invocation). Instances configure `CORE_SERVICE`; without the binding the
+ * URL-based fetch remains the fallback.
+ */
+function coreServiceBinding(): { fetch: (request: Request) => Promise<Response> } | null {
+  try {
+    const env = (getCloudflareContext() as unknown as { env?: Record<string, unknown> }).env
+    return (env?.CORE_SERVICE as { fetch: (request: Request) => Promise<Response> } | undefined) ?? null
+  } catch {
+    return null
+  }
+}
 
 async function proxyToCore(request: NextRequest): Promise<Response> {
   const apiServiceUrl = process.env.API_SERVICE_URL
@@ -31,12 +50,16 @@ async function proxyToCore(request: NextRequest): Promise<Response> {
     ? undefined
     : await request.arrayBuffer()
 
-  const upstream = await fetch(upstreamUrl, {
+  const init = {
     method: request.method,
     headers,
     body,
     redirect: 'manual',
-  })
+  } as const
+  const binding = coreServiceBinding()
+  const upstream = binding
+    ? await binding.fetch(new Request(upstreamUrl, init))
+    : await fetch(upstreamUrl, init)
 
   const responseHeaders = new Headers(upstream.headers)
   HOP_BY_HOP_HEADERS.forEach((name) => responseHeaders.delete(name))
