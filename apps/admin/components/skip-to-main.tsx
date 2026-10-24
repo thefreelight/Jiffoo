@@ -23,7 +23,10 @@ const SkipToMain = React.forwardRef<
       onClick={handleClick}
       className={cn(
         "sr-only absolute left-4 top-4 z-50 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors",
-        "focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+        // focus-visible, not focus: route changes programmatically focus this
+        // anchor (Next autofocus), which with the plain focus variant left the
+        // pill permanently rendered over the sidebar branding.
+        "focus-visible:not-sr-only focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className
       )}
       {...props}
