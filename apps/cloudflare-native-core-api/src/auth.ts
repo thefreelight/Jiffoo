@@ -624,7 +624,7 @@ export async function tryNativeAuth(
   }
 
   if (
-    (path === '/api/v1/auth/forgot-password' || path === '/api/v1/shop/auth/forgot-password') &&
+    (path === '/api/v1/auth/forgot-password' || path === '/api/v1/shop/auth/forgot-password' || path === '/api/v1/admin/auth/forgot-password') &&
     request.method === 'POST'
   ) {
     const body = await request.clone().json().catch(() => ({})) as { email?: string };
@@ -684,7 +684,7 @@ export async function tryNativeAuth(
   }
 
   if (
-    (path === '/api/v1/auth/reset-password' || path === '/api/v1/shop/auth/reset-password') &&
+    (path === '/api/v1/auth/reset-password' || path === '/api/v1/shop/auth/reset-password' || path === '/api/v1/admin/auth/reset-password') &&
     request.method === 'POST'
   ) {
     const body = await request.clone().json().catch(() => ({})) as { email?: string; code?: string; newPassword?: string; password?: string };
