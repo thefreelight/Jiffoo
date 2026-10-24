@@ -82,10 +82,10 @@ h6 {
 
 /* PDP display title — sized here rather than via runtime Tailwind classes:
    arbitrary utilities only exist in the host app's compiled CSS, and theme
-   versions ship independently of worker rebuilds. Cap fits the one-line
-   "Bokmoo Bluetooth Card" in the 413px title column (measured 40.7px max). */
+   versions ship independently of worker rebuilds. Cap keeps the name on one
+   line beside the price (39.2px + price overflows the shared flex row). */
 .bokmoo-pdp-title {
-  font-size: clamp(2.1rem, 3.2vw, 2.45rem);
+  font-size: clamp(2.1rem, 3.2vw, 2.35rem);
   line-height: 1.08;
 }
 
