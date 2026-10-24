@@ -41,7 +41,7 @@ export function applyProductCopyOverrides(payload: string, overrides: Map<string
   }
   const items = (data as { items?: unknown[] } | null)?.items;
   if (Array.isArray(items)) {
-    envelope.data = { ...data, items: items.map((item) => applyToProduct(item, overrides)) };
+    envelope.data = { ...(data as Record<string, unknown>), items: items.map((item) => applyToProduct(item, overrides)) };
     return JSON.stringify(envelope);
   }
   envelope.data = applyToProduct(data, overrides);
