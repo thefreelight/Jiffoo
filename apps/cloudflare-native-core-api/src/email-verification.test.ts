@@ -198,6 +198,32 @@ describe('password security audit trail', () => {
     expect(event?.values).toContain('203.0.113.9');
   });
 
+  it('handles the x-app-type admin remap of the forgot-password route (was self-recursive 522)', async () => {
+    smtp.sendSmtpEmail.mockReset().mockResolvedValue(undefined);
+    const { db, statements } = emailDb({
+      existing: {
+        id: 'u1', email: 'user@example.com', username: 'Jordan', role: 'USER', is_active: 1,
+        email_verified: 1, verification_code_hash: null, verification_expires_at: null, verification_attempts: 0,
+      },
+    });
+    // The admin app sends x-app-type: admin with a baseURL of /api, so the
+    // core remaps /api/v1/auth/forgot-password to /api/v1/admin/auth/
+    // forgot-password. That alias had NO handler: the request fell through to
+    // the CORE_ORIGIN proxy — the core fetching itself — and the edge killed
+    // the recursion with a 522 on every admin-app attempt.
+    const response = await tryNativeAuth(
+      new Request('https://api.example/api/v1/admin/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'user@example.com' }),
+      }),
+      { DB: db, JWT_SECRET_VALUE: 'secret' } as never,
+      vi.fn(() => { throw new Error('self-recursive proxy must not be reached'); }),
+    );
+    expect(response?.status).toBe(200);
+    expect(statements.some((statement) => statement.sql.includes('INTO native_user_security_events'))).toBe(true);
+  });
+
   it('does not block the response on SMTP delivery when waitUntil is available', async () => {
     smtp.sendSmtpEmail.mockReset().mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 10_000)));
     const { db, statements } = emailDb({
