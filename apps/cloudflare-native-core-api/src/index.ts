@@ -35,6 +35,7 @@ import { tryNativeSeoRedirects } from './seo-redirects';
 import { tryNativeMailBounces } from './mail-bounces';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
+import { applyProductCopyOverrides, loadProductCopyOverrides, productCopyPathKind } from './product-copy';
 import { authenticateNativeAdmin } from './auth';
 import { processNativeJobsSync, tryNativeJobsAdminProxy, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativeRemoteRadarApplications } from './remoteradar-applications';
@@ -155,6 +156,21 @@ async function readSnapshot(url: URL, env: WorkerEnv): Promise<Snapshot | null> 
   return fallback ?? null;
 }
 
+// Storefront copy overrides (admin-edited product descriptions) apply to the
+// served snapshot payload; the sync snapshot itself stays untouched.
+async function readSnapshotWithProductCopy(url: URL, env: WorkerEnv): Promise<Snapshot | null> {
+  const snapshot = await readSnapshot(url, env);
+  if (!snapshot || snapshot.status_code !== 200) return snapshot;
+  if (productCopyPathKind(url.pathname) === null) return snapshot;
+  try {
+    const overrides = await loadProductCopyOverrides(env.DB);
+    if (overrides.size === 0) return snapshot;
+    return { ...snapshot, payload: applyProductCopyOverrides(snapshot.payload, overrides) };
+  } catch {
+    return snapshot;
+  }
+}
+
 function snapshotResponse(snapshot: Snapshot): Response {
   return new Response(snapshot.payload, {
     status: snapshot.status_code,
@@ -183,7 +199,7 @@ function nativeSnapshotUnavailable(url: URL): Response {
 }
 
 async function serveNativeRead(url: URL, env: WorkerEnv, _ctx: ExecutionContext): Promise<Response> {
-  const snapshot = await readSnapshot(url, env);
+  const snapshot = await readSnapshotWithProductCopy(url, env);
   // Do not refresh CORE_ORIGIN from a customer request. This keeps the
   // public catalog/store/payment/shipping reads Cloudflare-native and makes
   // stale/missing imports visible instead of silently reintroducing K8s.
@@ -206,7 +222,7 @@ async function loadProduct(productId: string, env: WorkerEnv): Promise<ProductDe
   const url = new URL(`/api/v1/products/${encodeURIComponent(productId)}`, 'https://native.invalid');
   // Checkout/cart product resolution is also D1-authoritative. An explicit
   // import must populate this snapshot before the product can be purchased.
-  const snapshot = await readSnapshot(url, env);
+  const snapshot = await readSnapshotWithProductCopy(url, env);
   if (!snapshot || snapshot.status_code !== 200) return null;
   const envelope: unknown = JSON.parse(snapshot.payload);
   if (!envelope || typeof envelope !== 'object' || !('data' in envelope)) return null;

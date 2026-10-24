@@ -64,12 +64,17 @@ function fakeEnv(rows: Record<string, string>) {
           return rows.catalog ? { payload: rows.catalog } : null;
         }
         if (sql.includes('request_path = ?1 LIMIT 1')) {
-          const payload = rows[`/api/v1/products/${boundArgs[0]}`];
+          const payload = rows[String(boundArgs[0])];
           return payload ? { payload } : null;
         }
         return null;
       },
-      all: async () => ({ results: [] }),
+      all: async () => ({
+        results: sql.includes('native_product_copy_overrides') && rows.overridesJson
+          ? JSON.parse(rows.overridesJson) as Array<{ product_id: string; description: string }>
+          : [],
+      }),
+      run: async () => ({}),
     });
     return { ...statement([]), bind: (...args: unknown[]) => statement(args) };
   };
@@ -138,5 +143,98 @@ describe('tryNativeAdminProducts', () => {
     const env = fakeEnv({ catalog: CATALOG_SNAPSHOT });
     const response = await tryNativeAdminProducts(request('/api/v1/admin/products'), env);
     expect(response.status).toBe(401);
+  });
+
+  it('projects admin copy overrides into the list DTO', async () => {
+    const env = fakeEnv({
+      catalog: CATALOG_SNAPSHOT,
+      overridesJson: JSON.stringify([{ product_id: 'odoo-product-6', description: '管理员改过的描述' }]),
+    });
+    const response = await tryNativeAdminProducts(request('/api/v1/admin/products'), env);
+    const body = await response.json() as { data: { items: Array<{ id: string; description: string; odooDescription: string | null; descriptionOverridden: boolean }> } };
+    expect(body.data.items[0]).toMatchObject({ id: 'odoo-product-6', description: '管理员改过的描述', odooDescription: 'Bokmoo basic physical card.', descriptionOverridden: true });
+    expect(body.data.items[1]).toMatchObject({ id: 'odoo-product-7', description: null, descriptionOverridden: false });
+  });
+
+  it('projects admin copy overrides into the detail DTO', async () => {
+    const env = fakeEnv({
+      catalog: CATALOG_SNAPSHOT,
+      '/api/v1/products/odoo-product-6': DETAIL_SNAPSHOT,
+      overridesJson: JSON.stringify([{ product_id: 'odoo-product-6', description: '管理员改过的描述' }]),
+    });
+    const response = await tryNativeAdminProducts(request('/api/v1/admin/products/odoo-product-6'), env);
+    const body = await response.json() as { data: { description: string; odooDescription: string | null; descriptionOverridden: boolean } };
+    expect(body.data).toMatchObject({ description: '管理员改过的描述', odooDescription: 'Bokmoo basic physical card.', descriptionOverridden: true });
+  });
+
+  it('upserts a description override for a known product', async () => {
+    const executed: Array<{ sql: string; args: unknown[] }> = [];
+    const env = fakeEnv({ catalog: CATALOG_SNAPSHOT, '/api/v1/products/odoo-product-6': DETAIL_SNAPSHOT });
+    const originalPrepare = (env as { DB: { prepare: (sql: string) => unknown } }).DB.prepare;
+    (env as { DB: { prepare: (sql: string) => unknown } }).DB.prepare = (sql: string) => {
+      const statement = originalPrepare(sql) as { bind: (...args: unknown[]) => unknown };
+      return {
+        ...statement,
+        bind: (...args: unknown[]) => {
+          executed.push({ sql, args });
+          return statement.bind(...args);
+        },
+      };
+    };
+    const saveRequest = new Request('https://api.bokmoo.test/api/v1/admin/products/odoo-product-6/description', {
+      method: 'PUT',
+      headers: { authorization: 'Bearer test-token', 'content-type': 'application/json' },
+      body: JSON.stringify({ description: '  实体卡，搭配 BOKMOO App 使用  ' }),
+    });
+    const response = await tryNativeAdminProducts(saveRequest, env);
+    const body = await response.json() as { data: { description: string; descriptionOverridden: boolean } };
+    expect(body.data).toMatchObject({ description: '实体卡，搭配 BOKMOO App 使用', descriptionOverridden: true });
+    const insert = executed.find((call) => call.sql.includes('INSERT INTO native_product_copy_overrides'));
+    expect(insert?.args[0]).toBe('odoo-product-6');
+    expect(insert?.args[2]).toBe('admin-1');
+  });
+
+  it('deletes the override when the description is empty (reset to Odoo)', async () => {
+    const executed: string[] = [];
+    const env = fakeEnv({ catalog: CATALOG_SNAPSHOT, '/api/v1/products/odoo-product-6': DETAIL_SNAPSHOT });
+    const originalPrepare = (env as { DB: { prepare: (sql: string) => unknown } }).DB.prepare;
+    (env as { DB: { prepare: (sql: string) => unknown } }).DB.prepare = (sql: string) => {
+      const statement = originalPrepare(sql) as { bind: (...args: unknown[]) => unknown };
+      return {
+        ...statement,
+        bind: (...args: unknown[]) => {
+          executed.push(sql);
+          return statement.bind(...args);
+        },
+      };
+    };
+    const saveRequest = new Request('https://api.bokmoo.test/api/v1/admin/products/odoo-product-6/description', {
+      method: 'PUT',
+      headers: { authorization: 'Bearer test-token', 'content-type': 'application/json' },
+      body: JSON.stringify({ description: '' }),
+    });
+    const response = await tryNativeAdminProducts(saveRequest, env);
+    const body = await response.json() as { data: { descriptionOverridden: boolean; odooDescription: string | null } };
+    expect(body.data).toMatchObject({ descriptionOverridden: false, odooDescription: 'Bokmoo basic physical card.' });
+    expect(executed.some((sql) => sql.includes('DELETE FROM native_product_copy_overrides'))).toBe(true);
+  });
+
+  it('404s description saves for products outside the deployed catalog', async () => {
+    const env = fakeEnv({ catalog: CATALOG_SNAPSHOT });
+    const saveRequest = new Request('https://api.bokmoo.test/api/v1/admin/products/odoo-product-999/description', {
+      method: 'PUT',
+      headers: { authorization: 'Bearer test-token', 'content-type': 'application/json' },
+      body: JSON.stringify({ description: 'x' }),
+    });
+    const response = await tryNativeAdminProducts(saveRequest, env);
+    expect(response.status).toBe(404);
+  });
+
+  it('still rejects unrelated mutations as read-only', async () => {
+    const env = fakeEnv({ catalog: CATALOG_SNAPSHOT });
+    const response = await tryNativeAdminProducts(request('/api/v1/admin/products/odoo-product-6', 'PUT'), env);
+    expect(response.status).toBe(501);
+    const body = await response.json() as { error: { code: string } };
+    expect(body.error.code).toBe('NATIVE_CATALOG_READ_ONLY');
   });
 });
