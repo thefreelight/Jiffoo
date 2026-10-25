@@ -1019,6 +1019,10 @@ export function useOfficialCatalog() {
       return unwrapApiResponse(response);
     },
     staleTime: 60 * 1000,
+    // When the platform market is unreachable the catalog request fails slowly;
+    // three default retries keep the skeleton cards up for minutes.
+    retry: 1,
+    retryDelay: 2 * 1000,
   });
 }
 

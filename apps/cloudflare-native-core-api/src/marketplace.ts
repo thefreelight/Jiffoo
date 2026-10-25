@@ -16,11 +16,15 @@ function baseUrl(env: Env): string {
   return (env.PLATFORM_API_BASE_URL?.trim() || env.MARKET_API_URL?.trim() || 'https://platform-api.jiffoo.com/api').replace(/\/+$/, '');
 }
 
+// A dead platform origin (e.g. Cloudflare 522) can take ~20s per attempt before
+// failing; cap it so admin UIs see the offline state quickly instead of hanging.
+const PLATFORM_FETCH_TIMEOUT_MS = 10_000;
+
 async function platformCatalog(env: Env): Promise<NativeCatalogItem[]> {
   const target = `${baseUrl(env)}/marketplace/official/catalog`;
   const response = env.PLATFORM_API
-    ? await env.PLATFORM_API.fetch(new Request(target, { headers: { accept: 'application/json' } }))
-    : await fetch(target, { headers: { accept: 'application/json' } });
+    ? await env.PLATFORM_API.fetch(new Request(target, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(PLATFORM_FETCH_TIMEOUT_MS) }))
+    : await fetch(target, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(PLATFORM_FETCH_TIMEOUT_MS) });
   const body = await response.json().catch(() => null) as { data?: { items?: NativeCatalogItem[] }; error?: { message?: string } } | null;
   if (!response.ok || !Array.isArray(body?.data?.items)) {
     throw new Error(body?.error?.message || `Official marketplace request failed (${response.status})`);
