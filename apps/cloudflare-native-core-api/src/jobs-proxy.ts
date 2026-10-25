@@ -198,7 +198,14 @@ export async function tryNativeJobsProxy(
               job.title = translated;
             }
           }
-          if (substitutions.size > 0) responseHeaders.set('x-jiffoo-jobs-translated', locale);
+          if (substitutions.size > 0) {
+            responseHeaders.set('x-jiffoo-jobs-translated', locale);
+            // The payload varies by request language: a public shared cache
+            // without Vary would cross-serve one locale's titles to everyone
+            // within the max-age window. Browser-private caching only.
+            responseHeaders.set('vary', 'accept-language');
+            responseHeaders.set('cache-control', 'private, max-age=30');
+          }
         } catch {
           // Translation is best-effort: the original titles ship untranslated.
         }
