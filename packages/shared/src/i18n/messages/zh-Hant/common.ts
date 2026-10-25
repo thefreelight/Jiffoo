@@ -143,6 +143,7 @@ export const common = {
     productsUnavailable: '無法載入商品組件',
     checkoutUnavailable: '無法載入結帳組件',
     validation: '驗證錯誤',
+    bulkSelectionLimit: '每次最多處理 {limit} 件商品，目前符合條件的有 {matched} 件。請縮小篩選範圍或選取更少商品。',
     tryAgain: '請重試',
     error: '錯誤',
   },

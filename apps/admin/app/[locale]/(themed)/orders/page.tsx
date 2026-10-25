@@ -38,7 +38,7 @@ export default function OrdersPage() {
   useEffect(() => {
     if (data?.pagination?.page === page && page > Math.max(1, Math.ceil(total / pageSize))) update({ page: '1' });
   }, [data?.pagination?.page, page, pageSize, total]);
-  const selection = useListSelection(JSON.stringify(state), filter, orders.map(order => order.id), total);
+  const selection = useListSelection(JSON.stringify({ filter, invalidDates }), filter, orders.map(order => order.id), total);
   const [exporting, setExporting] = useState(false), [exportError, setExportError] = useState(false);
   const [retrySelected, setRetrySelected] = useState(false);
   const exportOrders = async (selected: boolean) => {

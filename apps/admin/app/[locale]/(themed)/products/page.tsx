@@ -35,7 +35,7 @@ export default function ProductsPage() {
   useEffect(() => {
     if (categories.data && state.category && state.category !== 'none' && !categories.data.some(category => category.id === state.category)) change({ category: '' });
   }, [categories.data, state.category]);
-  const selection = useListSelection(JSON.stringify(state), filter, products.map(product => product.id), total);
+  const selection = useListSelection(JSON.stringify(filter), filter, products.map(product => product.id), total);
   const [pending, setPending] = useState(false), [failure, setFailure] = useState(''), [message, setMessage] = useState('');
   const [preview, setPreview] = useState<ProductBulkResult | null>(null), [deleteSelection, setDeleteSelection] = useState<ProductSelection | null>(null);
   useEffect(() => { if (list.data?.pagination?.page === page && page > Math.max(1, Math.ceil(total / pageSize))) update({ page: '1' }); }, [list.data?.pagination?.page, page, pageSize, total]);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -23,6 +23,7 @@ export default function CustomerDetailPage() {
   const id = useParams().id as string, router = useRouter(), t = useT(), locale = useLocale(), { timezone } = useStoreDate();
   const text = (key: string, values?: Record<string, string | number>) => t('merchant.customers.workspace.' + key, values);
   const { data: customer, isLoading, error, refetch } = useUser(id), update = useUpdateUser();
+  const renameTrigger = useRef<HTMLButtonElement>(null);
   const [listUrl, setListUrl] = useState('/' + locale + '/customers');
   useEffect(() => { setListUrl(savedCustomerListUrl(locale, sessionStorage.getItem('customers-list:' + locale))); }, [locale]);
   const neighbors = useCustomerNeighbors(id, customerListQuery(listUrl));
@@ -57,13 +58,13 @@ export default function CustomerDetailPage() {
         <p className="border-t border-border px-4 py-2.5 text-xs text-faint">{text('recentNote')}</p>
       </section>
       <section aria-labelledby="customer-info" className={panel}><h2 id="customer-info" className={heading}>{text('info')}</h2><dl className="px-4 py-1">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border py-2.5"><dt className="w-24 text-muted-foreground">{text('name')}</dt><dd className="min-w-0 flex-[1_1_200px] break-words">{customer.username}</dd><Button variant="outline" size="sm" className="h-[26px] px-2 text-xs" onClick={() => { setName(customer.username); setRename(true); }}>{text('modify')}</Button></div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border py-2.5"><dt className="w-24 text-muted-foreground">{text('name')}</dt><dd className="min-w-0 flex-[1_1_200px] break-words">{customer.username}</dd><Button ref={renameTrigger} variant="outline" size="sm" className="h-[26px] px-2 text-xs" onClick={() => { setName(customer.username); setRename(true); }}>{text('modify')}</Button></div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border py-2.5"><dt className="w-24 text-muted-foreground">{text('email')}</dt><dd className="min-w-0 flex-[1_1_200px] break-all">{customer.email}<span className="ml-2 text-xs text-faint">{text(customer.emailVerified ? 'verified' : 'unverified')}</span></dd><CopyButton value={customer.email} name={text('copyEmail')} label={t('merchant.orders.detailView.copy')} /></div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 border-b border-border py-2.5"><dt className="w-24 text-muted-foreground">{text('language')}</dt><dd className="flex-[1_1_200px]">{language}</dd></div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 py-2.5"><dt className="w-24 text-muted-foreground">{text('address')}</dt><dd className="min-w-0 flex-[1_1_240px]">{address ? <><address className="whitespace-pre-line break-words not-italic leading-relaxed">{address}</address><Link href={'/' + locale + '/orders/' + customer.latestShippingAddress!.orderId} className="break-all font-mono text-xs text-faint hover:underline">{text('fromOrder', { id: customer.latestShippingAddress!.orderNumber })}</Link></> : text('none')}</dd>{address && <CopyButton value={address} name={t('merchant.orders.detailView.copyAddressAccessible')} label={t('merchant.orders.detailView.copyAddress')} />}</div>
       </dl></section>
     </div>
     <DeleteCustomerDialog customer={deleting ? customer : null} onClose={() => setDeleting(false)} onDeleted={() => router.push(listUrl)} />
-    <Dialog open={rename} onOpenChange={open => { if (!update.isPending) setRename(open); }}><DialogContent showCloseButton={false} overlayClassName="bg-overlay/30" className="top-[160px] max-w-[calc(100vw-32px)] translate-y-0 rounded-xl p-5 sm:max-w-[420px]"><DialogHeader><DialogTitle className="text-[15px]">{text('rename')}</DialogTitle></DialogHeader><form onSubmit={async event => { event.preventDefault(); try { await update.mutateAsync({ id, data: { username: name.trim() } }); setRename(false); } catch { /* Preserve the edited name and show the mapped mutation error. */ } }}><label className="block space-y-1.5">{text('name')}<Input value={name} onChange={event => setName(event.target.value)} required maxLength={100} /></label><DialogDescription className="mt-1.5 text-xs">{text('renameNote')}</DialogDescription><DialogFooter className="mt-4"><Button type="button" variant="outline" disabled={update.isPending} onClick={() => setRename(false)}>{t('merchant.customers.cancel')}</Button><Button type="submit" disabled={update.isPending || !name.trim() || name.trim() === customer.username}>{t('common.actions.save')}</Button></DialogFooter></form></DialogContent></Dialog>
+    <Dialog open={rename} onOpenChange={open => { if (!update.isPending) setRename(open); }}><DialogContent onCloseAutoFocus={event => { event.preventDefault(); renameTrigger.current?.focus(); }} showCloseButton={false} overlayClassName="bg-overlay/30" className="top-[160px] max-w-[calc(100vw-32px)] translate-y-0 rounded-xl p-5 sm:max-w-[420px]"><DialogHeader><DialogTitle className="text-[15px]">{text('rename')}</DialogTitle></DialogHeader><form onSubmit={async event => { event.preventDefault(); try { await update.mutateAsync({ id, data: { username: name.trim() } }); setRename(false); } catch { /* Preserve the edited name and show the mapped mutation error. */ } }}><label className="block space-y-1.5">{text('name')}<Input value={name} onChange={event => setName(event.target.value)} required maxLength={100} /></label><DialogDescription className="mt-1.5 text-xs">{text('renameNote')}</DialogDescription><DialogFooter className="mt-4"><Button type="button" variant="outline" disabled={update.isPending} onClick={() => setRename(false)}>{t('merchant.customers.cancel')}</Button><Button type="submit" disabled={update.isPending || !name.trim() || name.trim() === customer.username}>{t('common.actions.save')}</Button></DialogFooter></form></DialogContent></Dialog>
   </section>;
 }

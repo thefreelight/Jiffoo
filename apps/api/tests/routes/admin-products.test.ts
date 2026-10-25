@@ -21,6 +21,7 @@ import {
 import { createTestProduct, deleteAllTestProducts } from '../helpers/fixtures';
 import { getTestPrisma } from '../helpers/db';
 import { CacheService } from '@/core/cache/service';
+import { AdminProductService } from '@/core/admin/product-management/service';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Admin Products Endpoints', () => {
@@ -515,6 +516,62 @@ describe('Admin Products Endpoints', () => {
       });
 
       expect([404, 400]).toContain(response.statusCode);
+    });
+  });
+
+  describe('Category writes', () => {
+    it.each(['', 'Uppercase', 'two words', 'category/name', 'bad_slug', 'category%2Fname', '\u5546\u54c1', 'bad?slug', 'bad\n', 'bad\r'])('rejects invalid slug %j over HTTP and direct service calls', async (slug) => {
+      const db = getTestPrisma();
+      const category = await AdminProductService.createCategory({ name: 'Slug validation', slug: `slug-validation-${uuidv4()}` });
+      const headers = { authorization: `Bearer ${adminToken}` };
+      try {
+        const created = await app.inject({ method: 'POST', url: '/api/v1/admin/products/categories', headers, payload: { name: 'Rejected category', slug } });
+        expect(created.statusCode).toBe(400);
+        expect(created.json().error.code).toBe('VALIDATION_ERROR');
+        const updated = await app.inject({ method: 'PUT', url: `/api/v1/admin/products/categories/${category!.id}`, headers, payload: { slug } });
+        expect(updated.statusCode).toBe(400);
+        expect(updated.json().error.code).toBe('VALIDATION_ERROR');
+        await expect(AdminProductService.createCategory({ name: 'Rejected category', slug })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+        await expect(AdminProductService.updateCategory(category!.id, { slug })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+        expect(await AdminProductService.getCategoryById(category!.id)).toMatchObject({ slug: category!.slug });
+        expect(await db.category.count({ where: { name: 'Rejected category' } })).toBe(0);
+      } finally {
+        await AdminProductService.deleteCategory(category!.id);
+      }
+    });
+
+    it('creates and updates lowercase numeric hyphenated slugs', async () => {
+      const headers = { authorization: `Bearer ${adminToken}` };
+      const slug = `category-123-${uuidv4()}`;
+      const created = await app.inject({ method: 'POST', url: '/api/v1/admin/products/categories', headers, payload: { name: 'Valid category', slug } });
+      expect(created.statusCode).toBe(201);
+      const category = created.json().data;
+      try {
+        expect(category.slug).toBe(slug);
+        const updated = await app.inject({ method: 'PUT', url: `/api/v1/admin/products/categories/${category.id}`, headers, payload: { slug: `${slug}-updated` } });
+        expect(updated.statusCode).toBe(200);
+        expect(updated.json().data.slug).toBe(`${slug}-updated`);
+      } finally {
+        await AdminProductService.deleteCategory(category.id);
+      }
+    });
+
+    it('keeps existing invalid slugs readable and allows updates that omit slug', async () => {
+      const db = getTestPrisma();
+      const category = await db.category.create({ data: { name: 'Existing category', slug: `Existing Category ${uuidv4()}` } });
+      const headers = { authorization: `Bearer ${adminToken}` };
+      const url = `/api/v1/admin/products/categories/${category.id}`;
+      try {
+        const read = await app.inject({ method: 'GET', url, headers });
+        expect(read.statusCode).toBe(200);
+        expect(read.json().data.slug).toBe(category.slug);
+        const updated = await app.inject({ method: 'PUT', url, headers, payload: { name: 'Renamed existing category' } });
+        expect(updated.statusCode).toBe(200);
+        expect(updated.json().data).toMatchObject({ name: 'Renamed existing category', slug: category.slug });
+        await expect(AdminProductService.updateCategory(category.id, { description: 'Updated description' })).resolves.toMatchObject({ slug: category.slug, description: 'Updated description' });
+      } finally {
+        await AdminProductService.deleteCategory(category.id);
+      }
     });
   });
 

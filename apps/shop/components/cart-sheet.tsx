@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useEffectEvent } from 'react';
+import { useEffect, useEffectEvent, useRef } from 'react';
 import Link from 'next/link';
 import { ShoppingBag, Trash2 } from 'lucide-react';
 import type { Cart } from '@/lib/checkout-types';
@@ -27,6 +27,8 @@ export function CartSheet({ locale, currency, loggedIn, initial }: { locale: Sho
   const { open, setOpen, lastAdded } = useCartUI();
   const { cart, busy, error, setError, availability, refresh, change, blocked } = useCart(initial ?? null, locale);
   const t = storefrontMessages(locale);
+  const returnFocus = useRef<HTMLElement | null>(null), navigating = useRef(false);
+  const closeForNavigation = () => { navigating.current = true; setOpen(false); };
   const capture = useEffectEvent((error: unknown) => { if (!availability.capture(error)) setError(t.shop.error); });
   useEffect(() => {
     const read = () => { if (loggedIn) void refresh().then(() => setError('')).catch(capture); };
@@ -42,7 +44,7 @@ export function CartSheet({ locale, currency, loggedIn, initial }: { locale: Sho
     catch (error) { if (!availability.capture(error)) setError(t.shop.error); }
   }
   return <Sheet open={open && loggedIn} onOpenChange={setOpen}>
-    {open && loggedIn && <SheetContent closeLabel={t.shop.close} className="w-full gap-0 sm:max-w-[420px]">
+    {open && loggedIn && <SheetContent onOpenAutoFocus={() => { returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; navigating.current = false; }} onCloseAutoFocus={event => { event.preventDefault(); if (!navigating.current && returnFocus.current?.isConnected) returnFocus.current.focus(); }} closeLabel={t.shop.close} className="w-full gap-0 sm:max-w-[420px]">
       <div className="border-b border-line px-5 py-4"><SheetTitle className="text-base font-semibold">{t.shop.cartTitle.replace('{count}', String(cart?.itemCount ?? 0))}</SheetTitle>
         <SheetDescription className="sr-only">{t.shop.viewCart}</SheetDescription></div>
       <div className="flex-1 overflow-y-auto px-5">
@@ -65,8 +67,8 @@ export function CartSheet({ locale, currency, loggedIn, initial }: { locale: Sho
         <p className="flex justify-between"><span className="text-subtle">{t.checkout.subtotal}</span><strong>{formatPrice(cart?.subtotal ?? 0, locale, currency)}</strong></p>
         <p className="text-xs text-[var(--shop-core-faint)]">{t.shop.shippingAtCheckout}</p>
         {blocked ? <button disabled className="h-12 w-full rounded-md bg-action text-action-ink opacity-45">{t.checkout.checkout}</button>
-          : <Link href={`/${locale}/checkout`} onClick={() => setOpen(false)} className="flex h-12 items-center justify-center rounded-md bg-action text-action-ink">{t.checkout.checkout}</Link>}
-        <Link href={`/${locale}/cart`} onClick={() => setOpen(false)} className="flex h-10 items-center justify-center rounded-md border border-line">{t.shop.viewCart}</Link>
+          : <Link href={`/${locale}/checkout`} onClick={closeForNavigation} className="flex h-12 items-center justify-center rounded-md bg-action text-action-ink">{t.checkout.checkout}</Link>}
+        <Link href={`/${locale}/cart`} onClick={closeForNavigation} className="flex h-10 items-center justify-center rounded-md border border-line">{t.shop.viewCart}</Link>
       </div>
     </SheetContent>}
   </Sheet>;

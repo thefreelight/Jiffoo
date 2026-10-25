@@ -9,23 +9,23 @@ import { ProductForm } from '../components/products/ProductForm';
 import { merchant } from '../../../packages/shared/src/i18n/messages/en/merchant';
 import { merchant as hans } from '../../../packages/shared/src/i18n/messages/zh-Hans/merchant';
 import { merchant as hant } from '../../../packages/shared/src/i18n/messages/zh-Hant/merchant';
-import { productsApi } from '../lib/api';
-const state = vi.hoisted(() => ({ url: '', params: {} as any, replace: vi.fn(), update: vi.fn(), remove: vi.fn(), create: vi.fn() }));
+import { AdminApiError, productsApi } from '../lib/api';
+import { common } from '../../../packages/shared/src/i18n/messages/en/common';
+const state = vi.hoisted(() => ({ url: '', total: 3, params: {} as any, replace: vi.fn(), update: vi.fn(), remove: vi.fn(), create: vi.fn() }));
 vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (key: string, values?: Record<string, string | number>) => {
-  const value = key.split('.').slice(1).reduce<any>((v, k) => v?.[k], merchant);
+  const value = key.split('.').reduce<any>((v, k) => v?.[k], { merchant, common });
   return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, k) => String(values?.[k] ?? '{' + k + '}')) : key;
 } }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: state.replace, push: vi.fn() }), usePathname: () => '/en/products', useSearchParams: () => new URLSearchParams(state.url) }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: any) => <a {...props}>{children}</a> }));
 vi.mock('../components/products/ContentTranslations', () => ({ ContentTranslations: () => null, useStoreDefaultLocale: () => ({ data: 'en' }) }));
-vi.mock('../components/ui/dropdown-menu', () => ({ DropdownMenu: ({ children }: any) => children, DropdownMenuTrigger: ({ children }: any) => children, DropdownMenuContent: ({ children }: any) => children, DropdownMenuRadioGroup: ({ children }: any) => children, DropdownMenuRadioItem: ({ children, onSelect }: any) => <button type="button" onClick={onSelect}>{children}</button>, DropdownMenuItem: ({ children, onSelect, disabled, asChild }: any) => asChild ? children : <button type="button" disabled={disabled} onClick={onSelect}>{children}</button> }));
 vi.mock('../components/ui/dialog', () => ({ Dialog: ({ open, children }: any) => open ? children : null, DialogContent: ({ children }: any) => <div role="dialog">{children}</div>, DialogHeader: ({ children }: any) => children, DialogTitle: ({ children }: any) => <h2>{children}</h2>, DialogDescription: ({ children }: any) => <p>{children}</p>, DialogFooter: ({ children }: any) => children }));
 vi.mock('../lib/hooks/use-api', () => ({
   useProducts: (params: any) => { state.params = params; return { data: { data: [
     { id: 'a', name: 'Available', spuCode: 'K7M2Q9XA', hasOrders: true, updatedAt: '2026-10-14T00:00:00Z', isActive: true, stock: 3, variantsCount: 2, priceMin: 10, priceMax: 20, images: [] },
     { id: 'b', name: 'Hidden', hasOrders: false, updatedAt: '2026-10-14T00:00:00Z', isActive: false, stock: 0, variantsCount: 1, priceMin: 10, priceMax: 10, images: [] },
     { id: 'c', name: 'Empty', hasOrders: false, updatedAt: '2026-10-14T00:00:00Z', isActive: true, stock: 0, variantsCount: 1, priceMin: 10, priceMax: 10, images: [] },
-  ], pagination: { total: 3, totalPages: 1 } } }; },
+  ].map(product => params.page > 1 ? { ...product, id: product.id + '-page-' + params.page, name: product.name + ' page ' + params.page } : product), pagination: { total: state.total, totalPages: Math.ceil(state.total / params.limit) } } }; },
   useProductStats: () => ({ data: { statusCounts: { all: 3, active: 2, inactive: 1, outOfStock: 1 } } }),
   useCategories: () => ({ data: [{ id: 'real-category', name: 'Actual category' }] }),
   useProductNeighbors: () => ({ data: { position: 1, total: 1, previousId: null, nextId: null } }),
@@ -41,12 +41,21 @@ async function mount(element = <ProductsPage />) {
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const node = document.createElement('div'); document.body.append(node); root = createRoot(node); await act(async () => root.render(<QueryClientProvider client={queryClient}>{element}</QueryClientProvider>)); return node;
 }
-function button(name: string, scope: ParentNode = document) { const result = Array.from(scope.querySelectorAll<HTMLButtonElement>('button')).find(b => b.textContent?.trim() === name); if (!result) throw new Error('Missing button: ' + name); return result; }
+function button(name: string, scope: ParentNode = document) { const result = Array.from(scope.querySelectorAll<HTMLButtonElement>('button')).find(b => b.textContent?.trim() === name || b.getAttribute('aria-label') === name); if (!result) throw new Error('Missing button: ' + name); return result; }
+async function openMenu(label: string) {
+  await act(async () => button(label).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+}
+async function chooseFilter(label: string, text: string) {
+  await openMenu(label);
+  const option = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')).find(option => option.textContent === text);
+  if (!option) throw new Error('Missing option: ' + text);
+  await act(async () => option.click());
+}
 async function input(id: string, value: string) { const node = document.getElementById(id) as HTMLInputElement; await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(node, value); node.dispatchEvent(new Event('input', { bubbles: true })); }); }
 beforeEach(() => {
   sessionStorage.clear();
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
-  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); state.url = ''; state.update.mockReset().mockResolvedValue({}); state.remove.mockReset(); state.create.mockReset();
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); state.url = ''; state.total = 3; state.update.mockReset().mockResolvedValue({}); state.remove.mockReset(); state.create.mockReset();
   state.replace.mockReset().mockImplementation((url: string) => { state.url = url.split('?')[1] ?? ''; });
 });
 afterEach(async () => { if (root) await act(async () => root.unmount()); queryClient?.clear(); document.body.innerHTML = ''; vi.unstubAllGlobals(); vi.useRealTimers(); vi.restoreAllMocks(); });
@@ -61,25 +70,63 @@ it('restores product sorting, uncategorized, page size and pagination from the U
 });
 it('ignores invalid status and renders real categories, price ranges and the three status labels', async () => {
   state.url = 'status=unknown'; const node = await mount(); expect(state.params.status).toBeUndefined();
-  expect(node.textContent).toContain('Actual category'); expect(node.querySelector('select')).toBeNull();
   expect(node.querySelector('tbody')?.textContent).toContain('From $10.00');
   for (const status of ['Active', 'Inactive', 'Out of stock']) expect(node.querySelector('tbody')?.textContent).toContain(status);
+  await openMenu(merchant.catalog.category);
+  expect(Array.from(document.querySelectorAll('[role="menuitemradio"]')).map(option => option.textContent)).toContain('Actual category');
+  expect(node.querySelector('select')).toBeNull();
 });
 it('changes tabs and categories, debounces search and preserves other URL parameters', async () => {
   vi.useFakeTimers(); state.url = 'source=overview'; await mount();
   await act(async () => button('Active2').click()); expect(state.params.status).toBe('active');
-  await act(async () => button('Actual category').click());
+  await chooseFilter(merchant.catalog.category, 'Actual category');
   expect(state.params.categoryId).toBe('real-category');
   const search = document.querySelector('input')!; await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'boots'); search.dispatchEvent(new Event('input', { bubbles: true })); });
   expect(state.params.search).toBe(''); await act(async () => vi.advanceTimersByTime(300)); expect(state.params.search).toBe('boots');
   expect(state.replace.mock.lastCall?.[0]).toContain('source=overview');
 });
 it('disables sold-product deletion with its reason before a request can be made', async () => {
-  const bulk = vi.spyOn(productsApi, 'bulk'); const node = await mount();
-  const row = node.querySelector('tbody tr')!;
-  const disabled = Array.from(row.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent?.startsWith('Delete'))!;
-  expect(disabled.disabled).toBe(true); expect(disabled.textContent).toContain(merchant.catalog.soldReason);
+  const bulk = vi.spyOn(productsApi, 'bulk'); await mount();
+  await openMenu(merchant.catalog.more.replace('{name}', 'Available'));
+  const disabled = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(item => item.textContent?.startsWith('Delete'))!;
+  expect(disabled.getAttribute('aria-disabled')).toBe('true'); expect(disabled.textContent).toContain(merchant.catalog.soldReason);
   await act(async () => disabled.click()); expect(bulk).not.toHaveBeenCalled();
+});
+it('keeps all 10000 matching products and cross-page exclusions through paging, sorting and page-size changes', async () => {
+  state.total = 10000;
+  const bulk = vi.spyOn(productsApi, 'bulk').mockRejectedValue(new AdminApiError('PRIVATE_SQL', 'VALIDATION_ERROR', { limit: 5000, matched: 10000 }, 400));
+  const node = await mount();
+  const checkbox = (name: string) => node.querySelector<HTMLInputElement>('input[aria-label="' + name + '"]')!;
+  await act(async () => checkbox(merchant.catalog.selectPage).click());
+  await act(async () => button('Select all 10000 matching products').click());
+  expect(node.textContent).toContain('All 10000 products selected');
+  await act(async () => checkbox('Select product Available').click());
+  await act(async () => button('Next').click());
+  expect(state.params.page).toBe(2); expect(node.textContent).toContain('All 9999 products selected');
+  expect(checkbox('Select product Available page 2').checked).toBe(true);
+  await act(async () => checkbox('Select product Available page 2').click());
+  await act(async () => button('Previous').click());
+  expect(checkbox('Select product Available').checked).toBe(false);
+  expect(node.textContent).toContain('All 9998 products selected');
+  await act(async () => button(merchant.catalog.price).click());
+  await chooseFilter(merchant.orders.list.perPage, '50');
+  expect(state.params).toMatchObject({ page: 1, limit: 50, sortBy: 'price', sortOrder: 'asc' });
+  expect(node.textContent).toContain('All 9998 products selected');
+  const actions = node.querySelector('[role="region"][aria-label="Bulk actions"]')!;
+  await act(async () => button(merchant.catalog.activate, actions).click());
+  expect(bulk).toHaveBeenLastCalledWith('activate', { mode: 'filter', filter: { search: '', status: undefined, categoryId: undefined }, excludeIds: ['a', 'a-page-2'] }, {});
+  expect(node.querySelector('[role="alert"]')?.textContent).toContain('at most 5000 products');
+  expect(node.textContent).toContain('10000 products match'); expect(node.textContent).toContain('Narrow the filters or select fewer products');
+  expect(node.textContent).not.toContain('PRIVATE_SQL');
+});
+it.each(['status=active', 'category=real-category', 'search=boots'])('clears product selection when the effective filter changes: %s', async url => {
+  const node = await mount();
+  await act(async () => node.querySelector<HTMLInputElement>('input[aria-label="Select product Available"]')!.click());
+  expect(node.textContent).toContain('1 products selected');
+  state.url = url;
+  await act(async () => root.render(<QueryClientProvider client={queryClient}><ProductsPage /></QueryClientProvider>));
+  expect(node.querySelector('[role="region"][aria-label="Bulk actions"]')).toBeNull();
+  expect(node.querySelector<HTMLInputElement>('input[aria-label="Select product Available"]')!.checked).toBe(false);
 });
 it('tracks unsaved changes, guards unload only while dirty and sends product and variant visibility', async () => {
   const product = { id: 'p', name: 'Original', description: '', images: [], categoryId: 'real-category', isActive: true, variants: [{ id: 'v', name: 'Standard', salePrice: 12, stock: 2, skuCode: 'ONE', isActive: true }] } as any;
@@ -87,7 +134,7 @@ it('tracks unsaved changes, guards unload only while dirty and sends product and
   await mount(<ProductForm product={product} />); expect(document.body.textContent).not.toContain('Unsaved changes');
   await input('product-name', 'Edited'); expect(document.body.textContent).toContain('Unsaved changes');
   const dirty = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(dirty); expect(dirty.defaultPrevented).toBe(true);
-  await act(async () => button('Inactive').click());
+  await chooseFilter(merchant.catalog.productStatus, 'Inactive');
   await act(async () => (document.getElementById('variant-v-active') as HTMLButtonElement).click());
   await act(async () => document.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
   expect(state.update.mock.lastCall?.[0]).toMatchObject({ id: 'p', data: { name: 'Edited', isActive: false, categoryId: 'real-category', variants: [{ id: 'v', isActive: false }] } });

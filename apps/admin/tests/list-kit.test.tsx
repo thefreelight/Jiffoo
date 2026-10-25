@@ -21,7 +21,7 @@ it('evaluates inclusive calendar dates in a non-UTC zone across DST', () => {
   expect(() => listDateRange('custom', '2026-02-30', '2026-03-02', 'UTC')).toThrow();
   expect(() => listDateRange('custom', '2026-10-14', '2026-10-13', 'UTC')).toThrow();
 });
-it('selects a page, stores a filter with exclusions, and clears on every list-state change', async () => {
+it('selects a page, stores a filter with exclusions, and clears when its selection key changes', async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   const root = createRoot(document.createElement('div')); let model: ReturnType<typeof useListSelection<{ search: string }>>;
   const filter = { search: 'buyer' };
@@ -37,7 +37,7 @@ it('selects a page, stores a filter with exclusions, and clears on every list-st
     await act(async () => model.togglePage()); expect(model!.count).toBe(501);
     expect(model!.selection).toEqual({ mode: 'filter', filter, excludeIds: ['a', 'b'] });
     await act(async () => model.onlyPage()); expect(model!.count).toBe(2);
-    for (const stateKey of ['filter-changed', 'sort-changed', 'page-changed', 'page-size-changed', 'tab-changed', 'search-changed']) {
+    for (const stateKey of ['filter-changed', 'tab-changed', 'search-changed']) {
       await act(async () => root.render(<Probe stateKey={stateKey} />)); expect(model!.count).toBe(0);
       await act(async () => model.toggle('a')); expect(model!.count).toBe(1);
     }

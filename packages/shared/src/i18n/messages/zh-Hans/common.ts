@@ -143,6 +143,7 @@ export const common = {
     productsUnavailable: '无法载入商品组件',
     checkoutUnavailable: '无法载入结帐组件',
     validation: '验证错误',
+    bulkSelectionLimit: '每次最多处理 {limit} 件商品，当前匹配 {matched} 件。请缩小筛选范围或选择更少商品。',
     tryAgain: '请重试',
     error: '错误',
   },

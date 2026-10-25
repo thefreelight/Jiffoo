@@ -15,6 +15,32 @@ import { merchant as hansMerchant } from '../../../../packages/shared/src/i18n/m
 import { merchant as hantMerchant } from '../../../../packages/shared/src/i18n/messages/zh-Hant/merchant';
 
 describe('Typed localized client error contracts', () => {
+  it.each([en, hans, hant])('explains the validated bulk selection limit without exposing server text in locale %#', common => {
+    const translate = (key: string) => key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], { common }) as string;
+    const error = new AdminApiError('PRIVATE_SQL_SECRET', ApiErrorCodes.VALIDATION_ERROR, { limit: 5000, matched: 10000, secret: 'PRIVATE_DETAIL' }, 400);
+    expect(resolveApiErrorMessage(error, translate)).toBe(common.errors.bulkSelectionLimit.replace('{limit}', '5000').replace('{matched}', '10000'));
+    expect(resolveApiErrorMessage(error, key => key)).toBe('You can process at most 5000 products at once; 10000 products match. Narrow the filters or select fewer products.');
+  });
+  it.each([
+    undefined, null, [], 'PRIVATE_DETAIL', {},
+    { limit: '5000', matched: 10000 }, { limit: 5000, matched: '10000' },
+    { limit: 0, matched: 10000 }, { limit: -1, matched: 10000 },
+    { limit: 5000.5, matched: 10000 }, { limit: 5000, matched: 10000.5 },
+    { limit: NaN, matched: 10000 }, { limit: 5000, matched: Infinity },
+    { limit: 5000, matched: Number.MAX_SAFE_INTEGER + 1 },
+    { limit: 5000, matched: 0 }, { limit: 5000, matched: -1 }, { limit: 5000, matched: 5000 },
+  ])('keeps malformed bulk details on the safe validation fallback: %j', details => {
+    for (const common of [en, hans, hant]) {
+      const translate = (key: string) => key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], { common }) as string;
+      expect(resolveApiErrorMessage(new AdminApiError('PRIVATE_SQL_SECRET', ApiErrorCodes.VALIDATION_ERROR, details, 400), translate)).toBe(common.errors.validation);
+    }
+  });
+  it('requires a typed validation error before using numeric bulk details', () => {
+    const details = { limit: 5000, matched: 10000 };
+    expect(resolveApiErrorMessage({ code: ApiErrorCodes.VALIDATION_ERROR, message: 'PRIVATE', details }, key => key)).toBe('Validation Error');
+    expect(resolveApiErrorMessage(new AdminApiError('PRIVATE', ApiErrorCodes.INTERNAL_SERVER_ERROR, details, 500), key => key)).toBe('Server error. Please try again later.');
+    expect(resolveApiErrorMessage(new Error('PRIVATE'), key => key)).toBe('Something went wrong. Please try again.');
+  });
   it.each([enMerchant, hansMerchant, hantMerchant])('localizes code errors and interpolates the product name in locale %#', merchant => {
     const translate = (key: string) => key.split('.').reduce<unknown>((value, part) => (value as Record<string, unknown>)?.[part], { merchant }) as string;
     for (const [code, message] of [[ApiErrorCodes.SPU_CODE_TAKEN, merchant.catalog.spuCodeTaken], [ApiErrorCodes.SKU_CODE_TAKEN, merchant.catalog.skuCodeTaken]] as const) {

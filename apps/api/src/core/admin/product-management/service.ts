@@ -15,6 +15,13 @@ import { Prisma } from '@prisma/client';
 import { OrderService } from '@/core/order/service';
 import { resolveProductCode, withProductCodeRetry } from './codes';
 import { productIds, productCount } from './list-query';
+import { CATEGORY_SLUG_PATTERN } from './schemas';
+
+function validateCategorySlug(slug: string) {
+  if (typeof slug !== 'string' || !new RegExp(CATEGORY_SLUG_PATTERN).test(slug)) {
+    throw new ApiError('VALIDATION_ERROR');
+  }
+}
 
 async function protectOrderedCatalog<T>(operation: () => Promise<T>, references: () => Prisma.OrderItemWhereInput): Promise<T> {
   try { return await operation(); }
@@ -763,6 +770,7 @@ export class AdminProductService {
   }
 
   static async createCategory(data: { name: string; slug: string; description?: string; translations?: ContentTranslation[] }) {
+    validateCategorySlug(data.slug);
     await rejectDefaultLocaleTranslation(data.translations);
     const category = await prisma.category.create({
       data: {
@@ -776,6 +784,7 @@ export class AdminProductService {
   }
 
   static async updateCategory(id: string, data: { name?: string; slug?: string; description?: string; translations?: ContentTranslation[] }) {
+    if (data.slug !== undefined) validateCategorySlug(data.slug);
     await rejectDefaultLocaleTranslation(data.translations);
     await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
       await tx.category.update({
