@@ -6,6 +6,11 @@ import jwt from 'jsonwebtoken';
 import { ApiTokenService, type ApiTokenScope } from './api-token';
 import { isPluginAssetRequest, pluginPageAdmission } from '@/core/plugin-pages/origin-policy';
 
+const verifiedSessions = new WeakMap<FastifyRequest, Readonly<{ userId: string; sessionVersion: number }>>();
+export function verifiedRequestSession(request: FastifyRequest) {
+  return verifiedSessions.get(request);
+}
+
 /**
  * Auth Middleware
  * 
@@ -34,6 +39,7 @@ export async function authMiddleware(
     const payload = JwtUtils.verify(token);
     if (typeof payload.userId !== 'string' || payload.type === 'refresh') return sendError(reply, 401, 'INVALID_TOKEN', 'Invalid token claims');
     if (!Number.isSafeInteger(payload.sv)) return sendError(reply, 401, 'SESSION_REVOKED', 'Session revoked');
+    verifiedSessions.set(request, Object.freeze({ userId: payload.userId, sessionVersion: payload.sv! }));
 
     // Get user info from database
     const user = await findAuthIdentityById(payload.userId);
@@ -103,6 +109,7 @@ export async function optionalAuthMiddleware(
     const user = await findAuthIdentityById(payload.userId);
 
     if (user && user.isActive && payload.sv === user.sessionVersion) {
+      verifiedSessions.set(request, Object.freeze({ userId: payload.userId, sessionVersion: payload.sv! }));
       request.user = {
         id: user.id,
         userId: user.id,

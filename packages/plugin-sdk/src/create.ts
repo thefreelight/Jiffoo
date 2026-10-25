@@ -10,7 +10,14 @@ const reserved = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
 const taskRecipe = `import type { PluginContext } from '../types/index';
 
 // Declare repair.v1 with these exact limits in manifest.tasks, then call this
-// function from register(ctx) to opt in to the ordinary repair handler.
+// function from register(ctx) to register its handler without enqueueing work.
+// To authorize administrator unbound repair bootstrap, explicitly add this
+// top-level manifest field: "repairBootstrap": { "name": "repair", "version": 1 }.
+// It must exactly match a declared task. A repair.v1 task alone grants no access.
+// An administrator calls POST /api/v1/extensions/plugin/:slug/instances/:installationId/repair-bootstrap
+// with { idempotencyKey, reason }; reason is an uppercase code matching /^[A-Z][A-Z0-9_]{0,63}$/.
+// Core queues { reason } with principal: null and no schedule.
+// Do not enqueue repair work from register(ctx) or onEnable.
 export function registerRepairTask(ctx: PluginContext): void {
   ctx.tasks.handle('repair', 1, async ({ taskId, claimId, fence, signal, principal }) => {
     signal.throwIfAborted();

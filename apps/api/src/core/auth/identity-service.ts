@@ -142,7 +142,7 @@ export class AuthIdentityService {
   static async deactivateCustomer(tx: AuthIdentityTx, userId: string): Promise<void> {
     await tx.user.update({
       where: { id: userId, role: 'USER' },
-      data: { isActive: false },
+      data: { isActive: false, sessionVersion: { increment: 1 } },
     });
   }
 
@@ -180,6 +180,7 @@ export class AuthIdentityService {
       data: {
         ...(data.username !== undefined ? { username: data.username } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        ...(data.isActive === false ? { sessionVersion: { increment: 1 } } : {}),
       },
       select,
     });

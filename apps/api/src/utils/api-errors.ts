@@ -15,6 +15,7 @@ export const errorCatalog = {
   [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_OVERRIDE_FORBIDDEN]: { status: 403, message: 'The request principal cannot be replaced.' },
   [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED]: { status: 403, message: 'The task principal is not allowed for this installation.' },
   [ApiErrorCodes.PLUGIN_TASK_PRINCIPAL_REQUIRED]: { status: 403, message: 'A customer or administrator principal is required.' },
+  [ApiErrorCodes.PLUGIN_TASK_BOOTSTRAP_NOT_ALLOWED]: { status: 403, message: 'Repair bootstrap is not allowed.' },
   [ApiErrorCodes.PLUGIN_TASK_NOT_FOUND]: { status: 404, message: 'Plugin task not found.' },
   [ApiErrorCodes.PLUGIN_TASK_IDEMPOTENCY_CONFLICT]: { status: 409, message: 'The task key was used with different input.' },
   [ApiErrorCodes.PLUGIN_TASK_CLAIM_LOST]: { status: 409, message: 'The task execution claim is no longer valid.' },

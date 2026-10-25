@@ -713,6 +713,7 @@ const taskErrorMessages = {
   PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED: ['The task principal is not allowed for this installation.', '此安装不允许使用该任务身份。', '此安裝不允許使用此任務身分。'],
   PLUGIN_TASK_PRINCIPAL_REQUIRED: ['A customer or administrator principal is required.', '需要客户或管理员身份。', '需要客戶或管理員身分。'],
   PLUGIN_TASK_NOT_FOUND: ['Plugin task not found.', '未找到插件任务。', '找不到外掛任務。'],
+  PLUGIN_TASK_BOOTSTRAP_NOT_ALLOWED: ['Administrator repair bootstrap is not allowed for this task.', '此任务未授权管理员修复引导。', '此任務未授權管理員修復引導。'],
   PLUGIN_TASK_IDEMPOTENCY_CONFLICT: ['The task key was used with different input.', '任务键已用于不同的输入。', '任務鍵已用於不同的輸入。'],
   PLUGIN_TASK_CLAIM_LOST: ['The task execution claim is no longer valid.', '任务执行凭据已失效。', '任務執行憑據已失效。'],
   PLUGIN_TASK_LIMIT_CONFLICT: ['The task limits conflict with queued work or operator policy.', '任务限制与排队任务或运营策略冲突。', '任務限制與排隊任務或營運策略衝突。'],

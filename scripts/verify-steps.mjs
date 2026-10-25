@@ -2,6 +2,12 @@ import { localQuickVitestExclusions } from './verify-selection.mjs';
 
 export const apiBuildStep = ['Build API', [['--filter', 'api', 'build']]];
 
+// Keep pnpm's workspace environment while avoiding the Windows Vitest CMD shim.
+export function executableStepArgs(args, resolveVitestEntry, nodeExecutable = process.execPath) {
+  if (args[0] !== '--filter' || args[2] !== 'exec' || args[3] !== 'vitest') return args;
+  return [...args.slice(0, 3), nodeExecutable, resolveVitestEntry(args[1]), ...args.slice(4)];
+}
+
 export function localSteps(databaseUrl, quick = false, selectedArgument = [], selectedFiles = { api: [], admin: [], shop: [] }, options) {
 if (quick && options) {
   const { apps, database } = options;

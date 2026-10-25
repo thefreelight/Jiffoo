@@ -2,6 +2,7 @@
  * Extension Installer OpenAPI Schemas
  */
 
+import Ajv from 'ajv';
 import {
   createTypedReadResponses,
   createTypedCreateResponses,
@@ -88,6 +89,15 @@ const extensionMetaSchema = {
   },
   required: ['slug', 'name', 'version'],
 } as const;
+const repairBootstrapAjv = new Ajv({ coerceTypes: false, removeAdditional: false, allErrors: true });
+export const repairBootstrapValidator = ({ schema }: { schema: unknown }) => repairBootstrapAjv.compile(schema as object);
+export const repairBootstrapBodySchema = {
+  type: 'object', additionalProperties: false, required: ['idempotencyKey', 'reason'],
+  properties: {
+    idempotencyKey: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,96}$(?![\\s\\S])' },
+    reason: { type: 'string', pattern: '^[A-Z][A-Z0-9_]{0,63}$(?![\\s\\S])' },
+  },
+};
 
 // ============================================================================
 // Plugin Instance Schema

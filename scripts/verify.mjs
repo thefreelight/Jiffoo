@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
 import { startUploadTestStorage } from './upload-test-storage.mjs';
 import { resetTestPluginSchemas } from './reset-test-plugin-schemas.mjs';
-import { localSteps, ciSteps, localShardSteps } from './verify-steps.mjs';
+import { localSteps, ciSteps, localShardSteps, executableStepArgs } from './verify-steps.mjs';
 import { parseShardArgs } from './verify-lane-shards.mjs';
 import { laneConfig, validateDatabaseUrl, validateRedisUrl } from './lane-config.mjs';
 import { parseSelection, mandatorySuites, quickRequirements } from './verify-selection.mjs';
@@ -100,6 +100,11 @@ const needsDatabase = !scoped || requirements.database;
 const pnpmExecPath = process.env.npm_execpath;
 const pnpm = process.platform === 'win32' && pnpmExecPath ? process.execPath : process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const pnpmPrefix = process.platform === 'win32' && pnpmExecPath ? [pnpmExecPath] : [];
+function resolveVitestEntry(app) {
+  const workspaceRequire = createRequire(resolve('apps', app, 'package.json'));
+  const manifest = workspaceRequire.resolve('vitest/package.json');
+  return resolve(dirname(manifest), workspaceRequire(manifest).bin.vitest);
+}
 const summaryPath = resolve('verify-summary.txt');
 writeFileSync(summaryPath, '', 'utf8');
 const apiDirectory = resolve('apps/api');
@@ -311,7 +316,7 @@ for (const [name, commands] of steps) {
     }
     if (group === 'api' && name === 'Run API tests') {
       const listPath = join(ciDirectory, 'api-files.json');
-      const list = spawnSync(pnpm, [...pnpmPrefix, '--filter', 'api', 'exec', 'vitest', 'list', '--filesOnly', `--json=${listPath}`], {
+      const list = spawnSync(pnpm, [...pnpmPrefix, ...executableStepArgs(['--filter', 'api', 'exec', 'vitest', 'list', '--filesOnly', `--json=${listPath}`], resolveVitestEntry)], {
         cwd: process.cwd(), env: childEnv, stdio: 'inherit',
       });
       if (list.status !== 0) { succeeded = false; break; }
@@ -326,7 +331,7 @@ for (const [name, commands] of steps) {
       continue;
     }
     const capture = args.includes('vitest') || name === 'Run browser E2E';
-    const result = spawnSync(pnpm, [...pnpmPrefix, ...args], {
+    const result = spawnSync(pnpm, [...pnpmPrefix, ...executableStepArgs(args, resolveVitestEntry)], {
       cwd: process.cwd(),
       env: childEnv,
       ...(capture ? { encoding: 'utf8', maxBuffer: 128 * 1024 * 1024 } : { stdio: 'inherit' }),

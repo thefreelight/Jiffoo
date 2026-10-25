@@ -9,7 +9,7 @@ import { prisma } from '@/config/database';
 import { env } from '@/config/env';
 import { PluginStorageService, createStorageApi, type StorageAuthorization } from '@/core/plugin-storage/service';
 import { fileUrlSecret } from '@/core/plugin-storage/grants';
-import { createTaskApi, recordTaskPrincipal, withTaskScope } from '@/core/plugins/tasks';
+import { recordTaskPrincipal, withTaskScope } from '@/core/plugins/tasks';
 import { PluginTaskWorker } from '@/core/plugins/task-worker';
 import { LocalUploadedObjectStore, type UploadedObjectStore } from '@/core/storage/uploaded-object-store';
 import { createUserWithToken } from '../helpers/auth';
@@ -231,14 +231,24 @@ it('actual G1 claims bind storage, audit unbound repair owners and reject revoke
   const installed = await prisma.pluginInstall.findUniqueOrThrow({ where: { slug } });
   const manifest = JSON.parse(JSON.stringify(installed.manifestJson));
   manifest.tasks = [{ name: 'storage-proof', version: 1, concurrency: 1, maxAttempts: 1, maxRuntimeSeconds: 30 }];
-  await prisma.pluginInstall.update({ where: { slug }, data: { manifestJson: manifest } });
-  const tasks = createTaskApi(installationId, () => undefined);
-  const scope = { installationId, generation, zipHash, request: true, principal: null, actorId: 'test' };
-  // Internal fixture admission tests existing G1 execution, not a public repair bootstrap.
-  const task = await withTaskScope(scope, () => tasks.enqueue('storage-proof', 1, {}, { idempotencyKey: randomUUID() }));
+  manifest.repairBootstrap = { name: 'storage-proof', version: 1 };
+  const packageBytes = await pageZip(pageFiles(manifest));
+  const packageHash = createHash('sha256').update(packageBytes).digest('hex');
+  await prisma.pluginInstall.update({ where: { slug }, data: { manifestJson: manifest, zipHash: packageHash, packageBlobs: { create: { zipHash: packageHash, bytes: packageBytes, sizeBytes: packageBytes.length } } } });
+  const admitted = await app.inject({ method: 'POST', url: `/api/v1/extensions/plugin/${slug}/instances/${installationId}/repair-bootstrap`, headers: { authorization: `Bearer ${admin.token}` }, payload: { idempotencyKey: randomUUID(), reason: 'STORAGE_REPAIR' } });
+  expect(admitted.statusCode, admitted.body).toBe(200);
+  const task = admitted.json().data;
+  const unregistered = await createUserWithToken();
+  const foreignInstallation = await prisma.pluginInstallation.create({ data: { pluginSlug: slug, instanceKey: `other-${randomUUID().slice(0, 8)}`, enabled: true } });
   let completed = false;
   const worker = new PluginTaskWorker({ installationIds: [installationId], execute: async () => {
     const storage = createStorageApi(installationId);
+    await expect(storage.put({ content: Buffer.from('unregistered'), contentType: 'text/plain', owner: { type: 'customer', id: unregistered.user.id } })).rejects.toMatchObject({ code: 'PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED' });
+    await recordTaskPrincipal(foreignInstallation.id, unregistered.user);
+    await expect(storage.put({ content: Buffer.from('foreign installation'), contentType: 'text/plain', owner: { type: 'customer', id: unregistered.user.id } })).rejects.toMatchObject({ code: 'PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED' });
+    await prisma.user.update({ where: { id: other.user.id }, data: { isActive: false } });
+    try { await expect(storage.put({ content: Buffer.from('inactive'), contentType: 'text/plain', owner: { type: 'customer', id: other.user.id } })).rejects.toMatchObject({ code: 'PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED' }); }
+    finally { await prisma.user.update({ where: { id: other.user.id }, data: { isActive: true } }); }
     const owner = { type: 'customer' as const, id: customer.user.id };
     async function* content() { owner.id = other.user.id; yield Buffer.from('repair output'); }
     const file = await storage.put({ content: content(), contentType: 'text/plain', owner });
@@ -255,7 +265,9 @@ it('actual G1 claims bind storage, audit unbound repair owners and reject revoke
     await worker.drain();
     await prisma.pluginTaskExecutionSlot.deleteMany({ where: { installationId } });
     await prisma.pluginTask.deleteMany({ where: { installationId } });
-    await prisma.pluginInstall.update({ where: { slug }, data: { manifestJson: installed.manifestJson! } });
+    await prisma.pluginInstall.update({ where: { slug }, data: { manifestJson: installed.manifestJson!, zipHash: installed.zipHash } });
+    await prisma.pluginInstallation.delete({ where: { id: foreignInstallation.id } });
+    await prisma.user.delete({ where: { id: unregistered.user.id } });
   }
   expect(await prisma.adminAuditEvent.count({ where: { action: 'PLUGIN_STORAGE_PRINCIPAL_BOUND', targetId: task.id } })).toBeGreaterThan(0);
 });

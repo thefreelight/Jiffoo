@@ -10,12 +10,14 @@ import { PasswordUtils } from '@/utils/password';
 import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/core/auth/email-verification.service';
-import { findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './identity';
+import { findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier, findLockedRequestAdmin } from './identity';
 import { negotiateNotificationLocale, normalizeNotificationLocale } from '@/core/notifications/service';
 import { emitEvent } from '@/infra/events/emit';
 import { customerSnapshot } from '@/infra/events/snapshots';
 import { ApiError } from '@/utils/api-errors';
 import jwt from 'jsonwebtoken';
+import type { FastifyRequest } from 'fastify';
+import { verifiedRequestSession } from './middleware';
 
 export interface AuthResponse {
   user: {
@@ -52,6 +54,17 @@ const authUserSelect = {
 const missingUserPasswordHash = '$2a$12$tvMZ0tok6MvqBM6cMgH9jO73IL.rIqFJ3zrhh/6EYlVNMideO/1yK';
 
 export class AuthService {
+  static requestSessionSubject(request: FastifyRequest) {
+    const session = verifiedRequestSession(request);
+    return session ? { userId: session.userId } : null;
+  }
+  static async admitRequestAdmin(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], request: FastifyRequest): Promise<string> {
+    const session = verifiedRequestSession(request);
+    if (!session) throw new ApiError('UNAUTHORIZED');
+    const adminId = await findLockedRequestAdmin(tx, session);
+    if (!adminId) throw new ApiError('FORBIDDEN');
+    return adminId;
+  }
   /**
    * Register a new user account
    *

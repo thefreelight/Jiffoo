@@ -10,7 +10,7 @@ import { Readable } from 'stream';
 import { authMiddleware, requireAdmin, optionalAuthMiddleware } from '@/core/auth/middleware';
 import { extensionInstaller, type ExtensionKind } from './index';
 import { sendSuccess, sendError } from '@/utils/response';
-import { extensionInstallerSchemas } from './schemas';
+import { extensionInstallerSchemas, repairBootstrapBodySchema, repairBootstrapValidator } from './schemas';
 import { errorResponseSchema } from '@/utils/schema-helpers';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { getDefaultInstance } from '@/core/extensions/registry';
@@ -38,6 +38,7 @@ const packageUnavailableResponse = {
   ...errorResponseSchema,
   description: 'PLUGIN_PACKAGE_UNAVAILABLE or PLUGIN_PACKAGE_MATERIALIZATION_TIMEOUT',
 };
+const repairBootstrapErrors = new WeakMap<FastifyRequest, string>();
 const packageCorruptResponse = {
   ...errorResponseSchema,
   description: 'Includes PLUGIN_PACKAGE_CORRUPT',
@@ -264,6 +265,31 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   await fastify.register(async (admin) => {
     admin.addHook('onRequest', authMiddleware);
     admin.addHook('onRequest', requireAdmin);
+    admin.post<{ Params: { slug: string; installationId: string } }>('/plugin/:slug/instances/:installationId/repair-bootstrap', {
+      validatorCompiler: repairBootstrapValidator,
+      onSend: async (request, _reply, payload) => {
+        if (typeof payload === 'string') {
+          try {
+            const code = JSON.parse(payload)?.error?.code;
+            if (typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(code)) repairBootstrapErrors.set(request, code);
+          } catch { /* Non-JSON replies carry only their HTTP outcome. */ }
+        }
+        return payload;
+      },
+      schema: { tags: ['admin-plugins'], summary: 'Authorize an unbound repair task', security: [{ bearerAuth: [] }], body: repairBootstrapBodySchema,
+        params: { type: 'object', additionalProperties: false, required: ['slug', 'installationId'], properties: { slug: { type: 'string', minLength: 1, maxLength: 128 }, installationId: { type: 'string', minLength: 1, maxLength: 128 } } },
+        querystring: { type: 'object', additionalProperties: false, properties: {} },
+        response: { 200: { type: 'object', additionalProperties: false, required: ['success', 'data'], properties: { success: { type: 'boolean', enum: [true] }, data: { type: 'object', additionalProperties: true, required: ['id', 'status', 'paused', 'attempt'], properties: { id: { type: 'string' }, status: { type: 'string', enum: ['queued', 'running', 'succeeded', 'failed', 'cancelled'] }, paused: { type: 'boolean' }, attempt: { type: 'integer' } } } } },
+          400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 409: errorResponseSchema, 422: errorResponseSchema, 500: errorResponseSchema, 503: errorResponseSchema, 504: errorResponseSchema } },
+      onResponse: async (request, reply) => {
+        if (reply.statusCode < 400) return;
+        try { await PluginManagementService.recordRepairBootstrapRejection(request, request.params.installationId, repairBootstrapErrors.get(request) ?? `HTTP_${reply.statusCode}`); }
+        catch { request.log.error('Repair bootstrap rejection audit failed'); }
+      },
+    }, async (request, reply) => {
+      try { return sendSuccess(reply, await PluginManagementService.repairBootstrap(request.params.slug, request.params.installationId, request.body, request)); }
+      catch (error) { repairBootstrapErrors.set(request, mapApiError(error).body.error.code); return sendMappedError(reply, error); }
+    });
     await admin.register(themeManagementRoutes);
 
     admin.get('/marketplace/status', {

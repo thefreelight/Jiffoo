@@ -138,6 +138,9 @@ export function taskJson(value: unknown): Prisma.InputJsonValue | typeof Prisma.
   if (Buffer.byteLength(text) > 65_536) throw new ApiError('PAYLOAD_TOO_LARGE');
   return value === null ? Prisma.JsonNull : JSON.parse(text);
 }
+export function taskDeclarationIdentity(declaration: PluginTaskDeclaration): string {
+  return canonical(declaration);
+}
 export async function taskStatus(tx: TaskTransaction, task: PluginTask): Promise<TaskStatus> {
   const installation = await tx.pluginInstallation.findUnique({ where: { id: task.installationId }, include: { plugin: true } });
   const reason = !installation?.enabled || installation.deletedAt || installation.plugin.deletedAt ? 'plugin-disabled' : installation.taskDependencyUnavailable ? 'dependency-unavailable' : undefined;
@@ -149,6 +152,43 @@ export async function taskStatus(tx: TaskTransaction, task: PluginTask): Promise
     catch(error){if(!(error instanceof ApiError && error.code==='PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED'))throw error;lastError={code:error.code,message:error.message};}
   }
   return { id: task.id, status: statuses[task.status as keyof typeof statuses], paused: task.status === 'PENDING' && !!reason, ...(task.status === 'PENDING' && reason ? { pauseReason: reason } : {}), attempt: task.attemptsCharged + (task.status === 'RUNNING' ? 1 : 0), lastError, ...(task.result !== null ? { result: task.result as TaskStatus['result'] } : {}), ...(hook ? { finalFailure: { status: hook.status.toLowerCase() as NonNullable<TaskStatus['finalFailure']>['status'], ...(hook.safeError ? { lastError: hook.safeError as { code: string; message: string } } : {}), ...(hook.suppressionReason ? { suppressionReason: hook.suppressionReason } : {}) } } : {}) };
+}
+
+export const REPAIR_BOOTSTRAP_KEY_PREFIX = 'admin-repair-bootstrap:';
+
+/** Caller owns admission; all task writes use this transactional enqueue path. */
+export async function enqueueTaskInTransaction(tx: TaskTransaction, input: {
+  installationId: string; name: string; version: number; payload: unknown; principal: TaskPrincipal | null;
+  idempotencyKey: string; runAt: Date; schedule: Prisma.InputJsonObject; declaration?: PluginTaskDeclaration;
+  bootstrapIdentity?: string;
+}): Promise<{ task: PluginTask; replay: boolean }> {
+  const { policy, policyVersion } = await lockTaskScheduler(tx);
+  const { installationId, name, version, payload, principal, idempotencyKey, runAt, schedule } = input;
+  taskJson(payload);
+  const inputHash = createHash('sha256').update(canonical({ payload, principal, schedule, ...(input.bootstrapIdentity ? { bootstrapIdentity: input.bootstrapIdentity } : {}) })).digest('hex');
+  const previous = input.bootstrapIdentity
+    ? await tx.pluginTask.findFirst({ where: { installationId, idempotencyKey } })
+    : await tx.pluginTask.findUnique({ where: { installationId_name_version_idempotencyKey: { installationId, name, version, idempotencyKey } } });
+  if (previous) {
+    if (previous.inputHash !== inputHash || previous.name !== name || previous.version !== version) throw new ApiError('PLUGIN_TASK_IDEMPOTENCY_CONFLICT');
+    return { task: previous, replay: true };
+  }
+  const installation = await tx.pluginInstallation.findUniqueOrThrow({ where: { id: installationId }, include: { plugin: true } });
+  const declaration = input.declaration ?? (installation.plugin.manifestJson as unknown as { tasks?: PluginTaskDeclaration[] }).tasks?.find(d => d.name === name && d.version === version);
+  if (!declaration) throw new ApiError('PLUGIN_TASK_DECLARATION_INVALID');
+  assertTaskPolicy([declaration], policy);
+  if (input.bootstrapIdentity) {
+    const candidates = { installationId, OR: [{ name }, { idempotencyKey: { startsWith: REPAIR_BOOTSTRAP_KEY_PREFIX } }] };
+    const active = await tx.pluginTask.findFirst({ where: { ...candidates, OR: [
+      { AND: [{ OR: candidates.OR }, { status: { in: ['PENDING', 'RUNNING'] } }] },
+      { AND: [{ OR: candidates.OR }, { finalFailure: { status: { in: ['PENDING', 'RUNNING', 'UNKNOWN'] } } }] },
+    ] } });
+    const slots = await tx.pluginTaskExecutionSlot.findMany({ where: { installationId, state: { in: occupiedTaskSlots } }, select: { taskId: true } });
+    const occupied = slots.length ? await tx.pluginTask.findFirst({ where: { ...candidates, id: { in: slots.map(slot => slot.taskId) } } }) : null;
+    if (active || occupied) throw new ApiError('PLUGIN_TASK_LIMIT_CONFLICT');
+  }
+  const task = await tx.pluginTask.create({ data: { installationId, name, version, idempotencyKey, inputHash, scheduleRequest: schedule, payload: taskJson(payload), principalType: principal?.type.toUpperCase() ?? null, principalId: principal?.id ?? null, runAt, nextAttemptAt: runAt, maxAttempts: declaration.maxAttempts, maxRuntimeSeconds: declaration.maxRuntimeSeconds, declaredConcurrency: declaration.concurrency, policyVersion } });
+  return { task, replay: false };
 }
 
 export function createTaskApi(installationId: string, handle: PluginTasks['handle']): PluginTasks {
@@ -163,7 +203,7 @@ export function createTaskApi(installationId: string, handle: PluginTasks['handl
     enqueue: async (name, version, payload, options) => prisma.$transaction(async tx => {
       await lockTaskScheduler(tx);
       const scope = await assertTaskOperation(tx, installationId);
-      if (!options || typeof options !== 'object' || typeof options.idempotencyKey !== 'string' || !options.idempotencyKey || Buffer.byteLength(options.idempotencyKey) > 128 || Object.keys(options).some(k => !['idempotencyKey', 'runAt', 'delayMs', 'principal'].includes(k))) throw new ApiError('VALIDATION_ERROR');
+      if (!options || typeof options !== 'object' || typeof options.idempotencyKey !== 'string' || !options.idempotencyKey || options.idempotencyKey.startsWith(REPAIR_BOOTSTRAP_KEY_PREFIX) || Buffer.byteLength(options.idempotencyKey) > 128 || Object.keys(options).some(k => !['idempotencyKey', 'runAt', 'delayMs', 'principal'].includes(k))) throw new ApiError('VALIDATION_ERROR');
       let principal = scope.principal;
       if (Object.hasOwn(options, 'principal')) {
         if (scope.request) throw new ApiError('PLUGIN_TASK_PRINCIPAL_OVERRIDE_FORBIDDEN');
@@ -178,19 +218,8 @@ export function createTaskApi(installationId: string, handle: PluginTasks['handl
       const runAt = options.runAt === undefined ? new Date(now.getTime() + (options.delayMs ?? 0)) : new Date(options.runAt);
       if (!Number.isFinite(runAt.getTime()) || runAt.getTime() > now.getTime() + 30 * 86_400_000) throw new ApiError('VALIDATION_ERROR');
       const schedule = options.runAt !== undefined ? { runAt: runAt.toISOString() } : options.delayMs !== undefined ? { delayMs: options.delayMs } : {};
-      taskJson(payload);
-      const inputHash = createHash('sha256').update(canonical({ payload, principal, schedule })).digest('hex');
-      const previous = await tx.pluginTask.findUnique({ where: { installationId_name_version_idempotencyKey: { installationId, name, version, idempotencyKey: options.idempotencyKey } } });
-      if (previous) {
-        if (previous.inputHash !== inputHash) throw new ApiError('PLUGIN_TASK_IDEMPOTENCY_CONFLICT');
-        return taskStatus(tx, previous);
-      }
-      const installation = await tx.pluginInstallation.findUniqueOrThrow({ where: { id: installationId }, include: { plugin: true } });
-      const declaration = (installation.plugin.manifestJson as unknown as { tasks?: PluginTaskDeclaration[] }).tasks?.find(d => d.name === name && d.version === version);
-      if (!declaration) throw new ApiError('PLUGIN_TASK_DECLARATION_INVALID');
-      const { policy, policyVersion } = await lockTaskScheduler(tx);
-      assertTaskPolicy([declaration], policy);
-      const task = await tx.pluginTask.create({ data: { installationId, name, version, idempotencyKey: options.idempotencyKey, inputHash, scheduleRequest: schedule, payload: taskJson(payload), principalType: principal?.type.toUpperCase(), principalId: principal?.id, runAt, nextAttemptAt: runAt, maxAttempts: declaration.maxAttempts, maxRuntimeSeconds: declaration.maxRuntimeSeconds, declaredConcurrency: declaration.concurrency, policyVersion } });
+      const { task, replay } = await enqueueTaskInTransaction(tx, { installationId, name, version, payload, principal, schedule, runAt, idempotencyKey: options.idempotencyKey });
+      if (replay) return taskStatus(tx, task);
       await AuditService.write(tx, { actorId: scope.actorId, action: 'PLUGIN_TASK_PRINCIPAL_BOUND', targetType: 'plugin-task', targetId: task.id, summary: { installationId, principal, outcome: 'ALLOWED' } });
       return taskStatus(tx, task);
     }).catch(async error => {

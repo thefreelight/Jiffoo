@@ -11,7 +11,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
-import { createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
+import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { validateResponse } from '../helpers/openapi';
 import { getTestPrisma } from '../helpers/db';
 
@@ -246,6 +246,41 @@ describe('Account Endpoints', () => {
       expect(body.data.email).toBe(newEmail);
       expect(body.data.id).toBe(userId);
     });
+  });
+
+  it('keeps pre-deactivation access and refresh tokens revoked after an administrator reactivates a self-deactivated account', async () => {
+    const { user } = await createUserWithToken();
+    const admin = await createAdminWithToken();
+    const login = await app.inject({
+      method: 'POST', url: '/api/v1/auth/login',
+      payload: { email: user.email, password: user.password },
+    });
+    expect(login.statusCode).toBe(200);
+    const { access_token, refresh_token } = login.json().data;
+    expect(access_token).toEqual(expect.any(String));
+    expect(refresh_token).toEqual(expect.any(String));
+    const headers = { authorization: `Bearer ${access_token}` };
+    const before = await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } });
+    const removed = await app.inject({
+      method: 'DELETE', url: '/api/v1/account', headers,
+      payload: { currentPassword: user.password },
+    });
+    expect(removed.statusCode).toBe(200);
+    expect(await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({
+      isActive: false, sessionVersion: before.sessionVersion + 1,
+    });
+    const reactivated = await app.inject({
+      method: 'PUT', url: `/api/v1/admin/users/${user.id}`,
+      headers: { authorization: `Bearer ${admin.token}` }, payload: { isActive: true },
+    });
+    expect(reactivated.statusCode).toBe(200);
+    expect(await getTestPrisma().user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({
+      isActive: true, sessionVersion: before.sessionVersion + 1,
+    });
+    expect((await app.inject({ method: 'GET', url: '/api/v1/account/profile', headers })).statusCode).toBe(401);
+    expect((await app.inject({
+      method: 'POST', url: '/api/v1/auth/refresh', payload: { refresh_token },
+    })).statusCode).toBe(401);
   });
 
   it('I requires the current password to delete an account and leaves rejected accounts active', async () => {

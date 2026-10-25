@@ -2,9 +2,50 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { parseSelection, quickRequirements, mandatorySuites, ciOnlyScriptTests, ciOnlyVitestWrappers, localQuickVitestExclusions } from './verify-selection.mjs';
-import { localSteps } from './verify-steps.mjs';
+import { localSteps, executableStepArgs } from './verify-steps.mjs';
+
+test('Vitest execution uses the real Node executable and retains long selections verbatim', () => {
+  const files = Array.from({ length: 169 }, (_, index) => `tests/core/long-command-selection-with-workspace-spaces-${index}.test.ts`);
+  const args = ['--filter', 'api', 'exec', 'vitest', 'run', ...localQuickVitestExclusions('api'), ...files];
+  const original = [...args];
+  const node = 'C:\\Program Files\\nodejs\\node.exe';
+  const entry = 'C:\\workspace with spaces\\node_modules\\vitest\\vitest.mjs';
+  const command = executableStepArgs(args, app => { assert.equal(app, 'api'); return entry; }, node);
+  assert.ok(args.join(' ').length > 8192);
+  assert.deepEqual(command.slice(0, 5), ['--filter', 'api', 'exec', node, entry]);
+  assert.deepEqual(command.slice(5), args.slice(4));
+  assert.deepEqual(args, original);
+  assert.equal(command.includes('vitest'), false);
+  assert.equal(command.some(arg => /^(?:cmd(?:\.exe)?|vitest\.cmd)$/i.test(arg)), false);
+  assert.equal(executableStepArgs(args, () => entry)[3], process.execPath);
+});
+
+test('Vitest list uses the same launcher and preserves CI catalogue output arguments', () => {
+  const args = ['--filter', 'api', 'exec', 'vitest', 'list', '--filesOnly', '--json=C:\\workspace with spaces\\api-files.json'];
+  assert.deepEqual(executableStepArgs(args, () => 'vitest.mjs').slice(5), args.slice(4));
+  assert.equal(executableStepArgs(args, () => 'vitest.mjs')[4], 'vitest.mjs');
+});
+
+test('Vitest command accepts the real binary resolved from each workspace package', () => {
+  for (const app of ['api', 'admin', 'shop']) {
+    const workspaceRequire = createRequire(new URL(`../apps/${app}/package.json`, import.meta.url));
+    const manifest = workspaceRequire.resolve('vitest/package.json');
+    const entry = resolve(dirname(manifest), workspaceRequire(manifest).bin.vitest);
+    assert.equal(entry.endsWith('vitest.mjs'), true);
+    assert.match(readFileSync(entry, 'utf8'), /import '\.\/dist\/cli\.js'/);
+    const args = ['--filter', app, 'exec', 'vitest', 'run', 'tests/example with spaces.test.ts'];
+    assert.deepEqual(executableStepArgs(args, () => entry), ['--filter', app, 'exec', process.execPath, entry, ...args.slice(4)]);
+  }
+});
+
+test('non-Vitest verification commands remain unchanged', () => {
+  for (const args of [['--filter', 'api', 'exec', 'prisma', 'generate'], ['exec', 'turbo', 'run', 'type-check'], ['verify:e2e']]) {
+    assert.equal(executableStepArgs(args), args);
+  }
+});
 
 const select = args => parseSelection(['--quick', ...args], () => true);
 test('admin and shop scopes skip all API service steps, API keeps them', () => {

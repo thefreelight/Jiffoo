@@ -22,6 +22,41 @@ const inProcessManifest = {
 };
 
 describe('Plugin manifest contract', () => {
+  const repairTask = { name: 'repair', version: 1, concurrency: 1, maxAttempts: 3, maxRuntimeSeconds: 60 };
+
+  it('accepts explicit repair bootstrap for any exactly declared task identity', () => {
+    for (const task of [repairTask, { ...repairTask, name: 'reconcile-orders', version: 2 }]) {
+      expect(getPluginManifestIssues({ ...inProcessManifest, tasks: [task], repairBootstrap: { name: task.name, version: task.version } })).toEqual([]);
+    }
+  });
+
+  it('keeps ordinary repair task declarations valid without granting bootstrap opt-in', () => {
+    const manifest = { ...inProcessManifest, tasks: [repairTask] };
+    expect(getPluginManifestIssues(manifest)).toEqual([]);
+    expect(() => validatePluginManifest(manifest as never)).not.toThrow();
+    expect(manifest).not.toHaveProperty('repairBootstrap');
+  });
+
+  it.each([
+    null, true, [], 'repair', {}, { name: 'repair' }, { version: 1 },
+    { name: 'Repair', version: 1 }, { name: '', version: 1 },
+    { name: 'repair', version: 0 }, { name: 'repair', version: -1 },
+    { name: 'repair', version: 1.5 }, { name: 'repair', version: '1' },
+    { name: 'repair', version: Number.MAX_SAFE_INTEGER + 1 },
+    { name: 'repair', version: 1, enabled: true },
+    { name: 'other', version: 1 }, { name: 'repair', version: 2 },
+  ].map(repairBootstrap => ({ repairBootstrap })))('rejects invalid or nonmatching repair bootstrap %#', ({ repairBootstrap }) => {
+    expect(getPluginManifestIssues({ ...inProcessManifest, tasks: [repairTask], repairBootstrap }))
+      .toContainEqual(expect.objectContaining({ code: 'PLUGIN_TASK_DECLARATION_INVALID', path: expect.stringMatching(/^repairBootstrap(?:\.|$)/) }));
+  });
+
+  it('rejects repair bootstrap without tasks and identifies unknown nested fields', () => {
+    expect(getPluginManifestIssues({ ...inProcessManifest, repairBootstrap: { name: 'repair', version: 1 } }))
+      .toContainEqual(expect.objectContaining({ path: 'repairBootstrap', code: 'PLUGIN_TASK_DECLARATION_INVALID' }));
+    expect(getPluginManifestIssues({ ...inProcessManifest, tasks: [repairTask], repairBootstrap: { name: 'repair', version: 1, handler: 'legacy' } }))
+      .toContainEqual(expect.objectContaining({ path: 'repairBootstrap.handler', code: 'PLUGIN_TASK_DECLARATION_INVALID' }));
+  });
+
   it('accepts third-party in-process packages with lifecycle declarations', () => {
     const issues = getPluginManifestIssues({
       ...inProcessManifest,

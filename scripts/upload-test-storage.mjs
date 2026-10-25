@@ -59,10 +59,115 @@ export async function waitForUploadBuckets(client, buckets, timeoutMs = 30_000) 
   } finally { clearTimeout(timer); controller.abort(); }
 }
 
-function docker(args) {
-  const result = spawnSync('docker', args, { encoding: 'utf8', windowsHide: true, timeout: 60_000 });
-  if (result.status !== 0) throw new Error(`Upload storage Docker preflight failed: docker ${args.join(' ')}\n${result.stderr || result.error?.message || result.stdout}`);
+function dockerFailure(args, result) {
+  return Object.assign(new Error(`Upload storage Docker preflight failed: docker ${args.join(' ')}\n${result.stderr || result.error?.message || result.stdout}`, { cause: result.error }), {
+    status: result.status, error: result.error, signal: result.signal, stdout: result.stdout, stderr: result.stderr,
+  });
+}
+
+function docker(args, execute = spawnSync) {
+  const result = execute('docker', args, { encoding: 'utf8', windowsHide: true, timeout: 60_000 });
+  if (result.status !== 0 || result.error || result.signal) throw dockerFailure(args, result);
   return result.stdout.trim();
+}
+
+export function createUploadStorageCleanup(resources, execute = spawnSync) {
+  const remove = (args, missing) => {
+    const result = execute('docker', args, { encoding: 'utf8', windowsHide: true, timeout: 60_000 });
+    if (result.status === 0 && !result.error && !result.signal) return false;
+    // Only a complete daemon response for this exact owned resource is benign.
+    if (result.status === 1 && !result.error && !result.signal && !(result.stdout ?? '').trim()
+      && (result.stderr ?? '').trim() === missing) return true;
+    throw dockerFailure(args, result);
+  };
+  return () => {
+    const failures = [];
+    if (resources.container) {
+      try {
+        const missing = `Error response from daemon: No such container: ${resources.container}`;
+        if (!remove(['stop', '--time', '10', resources.container], missing)) {
+          remove(['rm', resources.container], missing);
+        }
+        resources.container = undefined;
+      } catch (error) { failures.push(error); }
+    }
+    if (resources.volumeCreated) {
+      try {
+        remove(['volume', 'rm', resources.volume], `Error response from daemon: get ${resources.volume}: no such volume`);
+        resources.volumeCreated = false;
+      } catch (error) { failures.push(error); }
+    }
+    if (failures.length === 1) throw failures[0];
+    if (failures.length > 1) throw new AggregateError(failures, 'Upload storage cleanup failed');
+  };
+}
+
+export function createOwnedUploadStorage({ name, accessKeyId, secretAccessKey }, execute = spawnSync) {
+  if (!/^jiffoo-upload-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(name)) {
+    throw new Error('Upload storage requires an invocation-specific UUID name');
+  }
+  const volume = `${name}-data`;
+  const owner = randomUUID();
+  const ownerLabel = 'jiffoo.upload-test-owner';
+  const resources = { volume, volumeCreated: false, container: undefined };
+  const stop = createUploadStorageCleanup(resources, execute);
+  let volumeAttempted = false;
+  let volumeInspectionAttempted = false;
+  const claimVolume = () => {
+    volumeInspectionAttempted = true;
+    const inspected = JSON.parse(docker(['volume', 'inspect', volume], execute));
+    if (!Array.isArray(inspected) || inspected.length !== 1 || inspected[0]?.Name !== volume
+      || inspected[0]?.Labels?.[ownerLabel] !== owner) {
+      throw new Error(`Upload storage volume ownership could not be verified for ${volume}`);
+    }
+    resources.volumeCreated = true;
+  };
+  let createAttempted = false;
+  try {
+    volumeAttempted = true;
+    docker(['volume', 'create', '--label', `${ownerLabel}=${owner}`, volume], execute);
+    // Docker volume create can also return an existing volume: success alone proves no ownership.
+    claimVolume();
+    createAttempted = true;
+    const container = docker(['create', '--pull=never', '--platform', 'linux/amd64', '--name', name,
+      '--label', `${ownerLabel}=${owner}`,
+      '-e', `MINIO_ROOT_USER=${accessKeyId}`, '-e', `MINIO_ROOT_PASSWORD=${secretAccessKey}`,
+      '-p', '127.0.0.1::9000', '-v', `${volume}:/data`, uploadTestImage, 'server', '/data'], execute);
+    if (!/^[a-f0-9]{64}$/.test(container)) throw new Error('Upload storage Docker create did not return a full container ID');
+    resources.container = container;
+    docker(['start', container], execute);
+    return { container, stop };
+  } catch (error) {
+    const failures = [error];
+    if (volumeAttempted && !volumeInspectionAttempted) {
+      try { claimVolume(); } catch (recoveryError) { failures.push(recoveryError); }
+    }
+    if (createAttempted && !resources.container) {
+      try {
+        // A lost create response is uncertain: recover only this invocation's exact identity.
+        const inspected = JSON.parse(docker(['container', 'inspect', name], execute));
+        if (!Array.isArray(inspected) || inspected.length !== 1
+          || inspected[0]?.Name !== `/${name}` || inspected[0]?.Config?.Labels?.[ownerLabel] !== owner
+          || !/^[a-f0-9]{64}$/.test(inspected[0]?.Id ?? '')) {
+          throw new Error(`Upload storage ownership could not be verified for ${name}`);
+        }
+        resources.container = inspected[0].Id;
+      } catch (recoveryError) { failures.push(recoveryError); }
+    }
+    const uncertainResources = {
+      volume: volumeAttempted && !resources.volumeCreated ? volume : undefined,
+      container: createAttempted && !resources.container ? name : undefined,
+      ownerLabel, owner,
+    };
+    try { stop(); } catch (cleanupError) { failures.push(cleanupError); }
+    if (failures.length > 1) {
+      throw Object.assign(new AggregateError(failures, `Upload storage startup or cleanup failed: ${name}; volume ${volume}`, { cause: error }), {
+        ownedResources: { ...resources },
+        uncertainResources,
+      });
+    }
+    throw Object.assign(error, { ownedResources: { ...resources }, uncertainResources });
+  }
 }
 
 export async function startUploadTestStorage() {
@@ -83,29 +188,11 @@ export async function startUploadTestStorage() {
   }
   console.log(`Upload storage image identity verified via ${identity}: linux/amd64 ${uploadTestImageDigest}`);
   const name = `jiffoo-upload-${randomUUID()}`;
-  const volume = `${name}-data`;
   const bucket = `${name}-api`;
   const accessKeyId = 'jiffoo-test-user';
   const secretAccessKey = randomUUID();
-  let container;
-  let volumeCreated = false;
-  const stop = () => {
-    if (container) {
-      docker(['stop', '--time', '10', container]);
-      docker(['rm', container]);
-      container = undefined;
-    }
-    if (volumeCreated) {
-      docker(['volume', 'rm', volume]);
-      volumeCreated = false;
-    }
-  };
+  const { container, stop } = createOwnedUploadStorage({ name, accessKeyId, secretAccessKey });
   try {
-    docker(['volume', 'create', volume]);
-    volumeCreated = true;
-    container = docker(['run', '--pull=never', '--platform', 'linux/amd64', '-d', '--name', name,
-      '-e', `MINIO_ROOT_USER=${accessKeyId}`, '-e', `MINIO_ROOT_PASSWORD=${secretAccessKey}`,
-      '-p', '127.0.0.1::9000', '-v', `${volume}:/data`, uploadTestImage, 'server', '/data']);
     const port = JSON.parse(docker(['inspect', container]))[0].NetworkSettings.Ports['9000/tcp'][0].HostPort;
     const endpoint = `http://127.0.0.1:${port}`;
     const client = new S3Client({ endpoint, region: 'us-east-1', credentials: { accessKeyId, secretAccessKey },
@@ -119,5 +206,9 @@ export async function startUploadTestStorage() {
       UPLOAD_S3_BUCKET: bucket, UPLOAD_S3_ACCESS_KEY_ID: accessKeyId, UPLOAD_S3_SECRET_ACCESS_KEY: secretAccessKey,
       UPLOAD_S3_FORCE_PATH_STYLE: 'true',
     } };
-  } catch (error) { stop(); throw error; }
+  } catch (error) {
+    try { stop(); }
+    catch (cleanupError) { throw new AggregateError([error, cleanupError], 'Upload storage startup and cleanup failed', { cause: error }); }
+    throw error;
+  }
 }

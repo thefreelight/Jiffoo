@@ -1,5 +1,10 @@
 import { prisma } from '@/config/database';
 
+export async function findLockedRequestAdmin(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], session: Readonly<{ userId: string; sessionVersion: number }>): Promise<string | null> {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM public.users WHERE id = ${session.userId} AND role = 'ADMIN' AND "isActive" AND "removedAt" IS NULL AND "sessionVersion" = ${session.sessionVersion} FOR SHARE`;
+  return rows[0]?.id ?? null;
+}
+
 export const authUserSelect = {
   id: true, email: true, username: true, password: true, role: true,
   isActive: true, removedAt: true, avatar: true, sessionVersion: true, emailVerified: true,

@@ -56,7 +56,7 @@ export function generateSnapshot() {
   lines.push('export declare function drainPluginTasks(options: { installationIds: string[]; deadlineMs: number; includeFinalFailure: true; advanceDueTo?: string }): Promise<{ completed: number; failed: number; cancelled: number; pending: number; future: number; unknownHooks: number }>;');
   for (const name of ['PluginRuntimeType', 'PluginHostProtocol', 'PluginCategory', 'PluginContractDeclaration'])
     lines.push(`export type ${name} = ${render(checker.getTypeAtLocation(declaration(files[0], name).name))};`);
-  for (const name of ['PluginPageDeclaration', 'PluginStorefrontPageDeclaration', 'PluginUiDeclaration', 'PluginTaskDeclaration',
+  for (const name of ['PluginPageDeclaration', 'PluginStorefrontPageDeclaration', 'PluginUiDeclaration', 'PluginTaskDeclaration', 'PluginRepairBootstrapDeclaration',
     'PluginServiceDeclaration', 'PluginServiceDependencyDeclaration', 'PluginApiVersionRange', 'PluginLifecycleDeclaration', 'PluginManifest'])
     lines.push(declaration(files[0], name).getFullText().trim());
   lines.push(`export type ApiErrorCode = ${render(checker.getTypeAtLocation(declaration(errorCodesPath, 'ApiErrorCode').name))};`);

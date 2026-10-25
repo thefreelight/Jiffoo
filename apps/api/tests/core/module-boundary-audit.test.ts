@@ -92,6 +92,8 @@ const SCAN_ROOTS = [CORE_ROOT, INFRA_ROOT, JOBS_ROOT];
  * `jobs/payment-reconciliation`).
  */
 const LEGAL_EDGES: Record<string, string> = {
+  'admin/plugin-management -> audit': 'G1 repair bootstrap records rejected and allowed admissions through the public AuditService; allowed admission audit and task enqueue commit atomically in the same transaction.',
+  'admin/plugin-management -> auth': 'G1 repair bootstrap re-admits the verified request as a trusted admin through the public AuthService inside the task transaction.',
   'account -> admin/staff-management': 'the account routes translate the public `StaffManagementError` of the staff module into the shared error shape.',
   'account -> auth': 'the account module uses the auth module\'s public middleware and email-verification service.',
   'account -> plugin-pages': 'the account service revokes the plugin-page sessions of a deleted account through the public plugin-page session service.',
@@ -297,6 +299,310 @@ type KnownCycle = {
 };
 
 const KNOWN_CYCLES: KnownCycle[] = [
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','order'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','order','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','order','payment'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','order','payment','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','order','plugin-pages'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> plugin-pages -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','order','plugin-pages','plugins'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> plugin-pages -> plugins -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','order','plugin-pages','plugins','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> plugin-pages -> plugins -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','order','plugin-pages','plugins','infra/core-process','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> plugin-pages -> plugins -> infra/core-process -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/emit','infra/events/core-subscribers','notifications','order','plugin-pages','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> plugin-pages -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','payment'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','payment','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','plugin-pages'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> plugin-pages -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','plugin-pages','plugins'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> plugin-pages -> plugins -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','plugin-pages','plugins','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> plugin-pages -> plugins -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','plugin-pages','plugins','infra/core-process','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> plugin-pages -> plugins -> infra/core-process -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','plugin-pages','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> plugin-pages -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','order'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> order -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','order','checkout'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> order -> checkout -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','order','checkout','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> order -> checkout -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','order','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> order -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','order','payment'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> order -> payment -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','order','payment','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> order -> payment -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','order','plugin-pages'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> order -> plugin-pages -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','order','plugin-pages','plugins'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> order -> plugin-pages -> plugins -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','order','plugin-pages','plugins','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> order -> plugin-pages -> plugins -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','order','plugin-pages','plugins','infra/core-process','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> order -> plugin-pages -> plugins -> infra/core-process -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','notifications','order','plugin-pages','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> notifications -> order -> plugin-pages -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order','payment'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order','payment','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','payment'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','cart','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','payment','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> cart -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','plugins'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> plugins -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','plugins','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> plugins -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','plugins','infra/core-process','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> plugins -> infra/core-process -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order','payment'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/emit','infra/events/core-subscribers','notifications','order','payment','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','checkout','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> checkout -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','payment'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','product','inventory','infra/events/snapshots','infra/events/emit','infra/events/core-subscribers','notifications','order','payment','extensions/runtime','extensions/shared','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> product -> inventory -> infra/events/snapshots -> infra/events/emit -> infra/events/core-subscribers -> notifications -> order -> payment -> extensions/runtime -> extensions/shared -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
+  {
+    modules: ['admin/extension-installer','admin/plugin-management','auth','plugin-pages','storage'],
+    reason: 'G1 repair-bootstrap admission ring (admin/extension-installer -> admin/plugin-management -> auth -> plugin-pages -> storage -> admin/extension-installer): plugin management re-admits the verified request through the public AuthService inside the task transaction; the existing public dependency path returns to plugin management.',
+  },
   // The commerce ring: the order service drives the payment module, and the
   // payment module reports payment outcomes back into the order module.
   {
