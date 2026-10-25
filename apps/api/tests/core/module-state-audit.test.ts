@@ -221,6 +221,7 @@ const codeConstants = [
   'core/order/types.ts:PaymentStatus',
   'core/order/types.ts:ShipmentStatus',
   'core/order/types.ts:ShippingAddressSchema',
+  'core/shared/fulfillment-policy.ts:policies',
   'core/shared/money.ts:CURRENCY_EXPONENTS',
   'core/payment/observations.ts:clearLease',
   'core/payment/reconciliation.ts:clearLease',

@@ -13,8 +13,7 @@ import { ApiError } from '@/utils/api-errors';
  */
 
 import { prisma } from '@/config/database';
-import { allocateOrderNumber } from './number';
-import { bindPurchaseOrigin, purchaseReturnTarget } from '@/core/plugin-pages/service';
+import { purchaseReturnTarget } from '@/core/plugin-pages/service';
 import { Prisma, OrderStatus as PrismaOrderStatus, OrderPaymentStatus as PrismaOrderPaymentStatus } from '@prisma/client';
 import {
   CreateOrderRequest,
@@ -27,30 +26,21 @@ import {
   OrderCreationResult,
   OrderProjection,
   OrderPaidPayload,
-  countryRequiresStatePostal,
-  normalizeCountryCode,
 } from './types';
 import { recordOrderStatusHistory, type OrderStatusHistoryWriter } from './status-history';
 import { assertOrderTransition } from './transition';
 import { lockOrder } from '@/core/shared/locks';
-import { CartService } from '@/core/cart/service';
-import { ProductService, type CatalogProductProjection } from '@/core/product/service';
 import { PaymentService } from '@/core/payment/service';
 
 import { systemSettingsService } from '@/core/settings/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { InventoryService } from '@/core/inventory/service';
 import { emitEvent, type EventTransaction } from '@/infra/events/emit';
-import { CheckoutService } from '@/core/checkout/service';
-import { resolveSingleProvider } from '@/core/extensions/registry';
-import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
-import { ContractCallError } from '@/core/extensions/runtime/contract-errors';
 import { AuthIdentityService, type AuthIdentityReadTx } from '@/core/auth/identity-service';
-import { decimalToMinor, minorToDecimal } from '@/core/shared/money';
-import { currentLinePrice } from '@/core/shared/pricing';
-import { createCatalogSnapshot, readCatalogSnapshot, snapshotProductName, isOrderItemCatalogRestriction } from './catalog-snapshot';
-import { normalizeOrderIdempotencyKey, orderRequestFingerprint } from './idempotency';
+import { readCatalogSnapshot, snapshotProductName, isOrderItemCatalogRestriction } from './catalog-snapshot';
+import { parseJsonRecord, runOrderPlacement } from '@/core/order/pipeline';
+
+export { parseJsonRecord };
 
 type JsonRecord = Record<string, unknown>;
 
@@ -97,25 +87,6 @@ export type OrderReadTx = {
  */
 export type OrderRecipientReadTx = OrderReadTx & AuthIdentityReadTx;
 
-export function parseJsonRecord(value: unknown): JsonRecord | null {
-  if (!value) return null;
-  if (typeof value === 'object' && !Array.isArray(value)) {
-    return value as JsonRecord;
-  }
-  if (typeof value !== 'string') return null;
-
-  try {
-    const parsed = JSON.parse(value);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as JsonRecord;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
 /** Parse a JSON value into an object, falling back to an empty object. */
 function parseJsonObject(value: unknown): JsonRecord {
   return parseJsonRecord(value) ?? {};
@@ -142,71 +113,10 @@ const shipmentSelect = {
   },
 } as const;
 
-function orderResponseInclude() {
-  return { shippingAddress: true, items: true } as const;
-}
-
 export class OrderService {
   /** Public predicate for the order-item catalog restriction (foreign key guard). */
   static isOrderItemCatalogRestriction(error: unknown): boolean {
     return isOrderItemCatalogRestriction(error);
-  }
-
-  private static async validateShippingAddress(address: NonNullable<CreateOrderRequest['shippingAddress']>) {
-    const requiredFields: Array<keyof NonNullable<CreateOrderRequest['shippingAddress']>> = [
-      'firstName',
-      'lastName',
-      'phone',
-      'addressLine1',
-      'city',
-      'country',
-    ];
-
-    for (const field of requiredFields) {
-      const value = (address[field] as unknown as string | undefined)?.trim();
-      if (!value) {
-        throw new ApiError('BAD_REQUEST');
-      }
-    }
-
-    const countriesRequireStatePostal = await systemSettingsService.getCheckoutCountriesRequireStatePostal();
-    const normalizedCountries = countriesRequireStatePostal.map((code) => normalizeCountryCode(code));
-
-    if (countryRequiresStatePostal(address.country, normalizedCountries)) {
-      if (!address.state || address.state.trim().length === 0) {
-        throw new ApiError('BAD_REQUEST');
-      }
-      if (!address.postalCode || address.postalCode.trim().length === 0) {
-        throw new ApiError('BAD_REQUEST');
-      }
-    }
-  }
-
-  private static normalizeShippingAddress(
-    address: NonNullable<CreateOrderRequest['shippingAddress']> & {
-      fullName?: string;
-      phone?: string;
-    }
-  ): NonNullable<CreateOrderRequest['shippingAddress']> {
-    const firstName = (address as any).firstName?.trim();
-    const lastName = (address as any).lastName?.trim();
-    const fullName = (address as any).fullName?.trim();
-    const nameParts = fullName ? fullName.split(/\s+/).filter(Boolean) : [];
-    const normalizedFirstName = firstName || nameParts[0] || '';
-    const normalizedLastName = lastName || nameParts.slice(1).join(' ') || normalizedFirstName;
-
-    return {
-      firstName: normalizedFirstName,
-      lastName: normalizedLastName,
-      phone: (address as any).phone?.trim() || 'N/A',
-      addressLine1: (address as any).addressLine1?.trim() || '',
-      addressLine2: (address as any).addressLine2?.trim() || undefined,
-      city: (address as any).city?.trim() || '',
-      state: (address as any).state?.trim() || undefined,
-      postalCode: (address as any).postalCode?.trim() || undefined,
-      country: (address as any).country?.trim() || '',
-      email: (address as any).email?.trim() || undefined,
-    };
   }
 
   /**
@@ -214,6 +124,10 @@ export class OrderService {
    *
    * Validates product availability, calculates total amount, deducts stock,
    * and emits an order.created event via the Outbox pattern.
+   *
+   * The placement itself is the order placement pipeline: the stages of the
+   * pipeline validate the request, price it, write the order and emit the
+   * order.created event.
    *
    * @param userId User ID creating the order
    * @param data Order creation request containing items and shipping address
@@ -228,331 +142,11 @@ export class OrderService {
     userId: string,
     data: CreateOrderRequest
   ): Promise<OrderCreationResult> {
-    const normalizedShippingAddress = data.shippingAddress
-      ? this.normalizeShippingAddress(data.shippingAddress as any)
-      : undefined;
-
-    const identity = await AuthIdentityService.readProfile(prisma, userId);
-    if (!identity) {
-      throw new ApiError('BAD_REQUEST');
-    }
-    const currency = await systemSettingsService.getShopCurrency();
-    const idempotencyKey = normalizeOrderIdempotencyKey(data.idempotencyKey);
-    if (!idempotencyKey) throw new ApiError('BAD_REQUEST');
-    const requestFingerprint = orderRequestFingerprint(data);
-    // A replay must return the original order before any pricing or provider work runs.
-    const replay = await this.findOrderByIdempotencyKey(idempotencyKey, userId, requestFingerprint);
-    if (replay) return { order: this.formatOrderResponse(replay.order, currency, identity.locale), replayed: true };
-
-    // Verify products and calculate total amount
-    let totalAmount = 0;
-    const orderItems: Array<{
-      productId: string;
-      variantId: string;
-      quantity: number;
-      unitPrice: number;
-    }> = [];
-    let requiresOrderShipping = false;
-
-    if (!data.items || data.items.length === 0) {
-      throw Object.assign(new ApiError('BAD_REQUEST'), { message: 'Order must contain at least one item' });
-    }
-
-    // Batch fetch all products to avoid N+1 query problem
-    const productIds = data.items.map(item => item.productId);
-    const catalog = await ProductService.getSellableCatalog(prisma, productIds);
-
-    // Create a map for O(1) lookup
-    const productMap = catalog;
-    const requestedQuantityByVariant = new Map<string, number>();
-    for (const item of data.items) {
-      if (!item.variantId) continue;
-      requestedQuantityByVariant.set(
-        item.variantId,
-        (requestedQuantityByVariant.get(item.variantId) || 0) + item.quantity
-      );
-    }
-
-    for (const item of data.items) {
-      const product = productMap.get(item.productId);
-
-      if (!product) {
-        throw new ApiError('BAD_REQUEST');
-      }
-
-      if (!product.isActive) {
-        throw new ApiError('BAD_REQUEST');
-      }
-
-      const variantId = item.variantId;
-
-      if (!variantId) {
-        throw new ApiError('BAD_REQUEST');
-      }
-
-      const variant = product.variants.find(v => v.id === variantId);
-      if (!variant) {
-        throw new ApiError('BAD_REQUEST');
-      }
-
-      if (!variant.isActive) {
-        throw new ApiError('BAD_REQUEST');
-      }
-
-      if (product.requiresShipping) {
-        requiresOrderShipping = true;
-      }
-
-      const unitPrice = currentLinePrice(variant, currency).unitPrice;
-      const requestedQuantity = requestedQuantityByVariant.get(variantId) ?? item.quantity;
-      const stock = variant.stock;
-
-      if (stock < requestedQuantity) {
-        throw Object.assign(new ApiError('BAD_REQUEST'), { message: `Insufficient stock for variant ${variant.name} of product: ${product.name}` });
-      }
-
-      totalAmount += unitPrice * item.quantity;
-      orderItems.push({
-        productId: item.productId,
-        variantId,
-        quantity: item.quantity,
-        unitPrice,
-      });
-    }
-
-    if (requiresOrderShipping && !data.shippingAddress) {
-      throw new ApiError('BAD_REQUEST');
-    }
-
-    if (normalizedShippingAddress) {
-      await this.validateShippingAddress(normalizedShippingAddress);
-    }
-
-    // Unified currency from settings
-    if (!normalizedShippingAddress) throw new ApiError('BAD_REQUEST');
-    const quote = await CheckoutService.quoteItems(currency, orderItems.map((item) => ({
-      productId: item.productId,
-      variantId: item.variantId,
-      quantity: item.quantity,
-      unitPriceMinor: decimalToMinor(item.unitPrice, currency),
-    })), {
-      shippingAddress: {
-        country: normalizedShippingAddress.country,
-        state: normalizedShippingAddress.state,
-        city: normalizedShippingAddress.city,
-        postalCode: normalizedShippingAddress.postalCode,
-        addressLine1: normalizedShippingAddress.addressLine1,
-        addressLine2: normalizedShippingAddress.addressLine2,
-      },
-      shippingOptionId: data.shippingOptionId,
-    }, true);
-    const selectedShipping = quote.shippingOptions.find((option) => option.id === data.shippingOptionId);
-    if (!selectedShipping) {
-      throw new ApiError('SHIPPING_METHOD_UNAVAILABLE');
-    }
-    const payment = quote.paymentMethods.find((method) => method.providerSlug === data.paymentMethod);
-    if (!payment) {
-      throw new ApiError('PAYMENT_METHOD_UNAVAILABLE');
-    }
-    let description: { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
-    try {
-      description = await callContract(data.paymentMethod, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', { storeCurrency: currency }) as { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
-    } catch (error) {
-      if (error instanceof ContractCallError) {
-        throw new ApiError('PAYMENT_METHOD_UNAVAILABLE');
-      }
-      throw error;
-    }
-    if (!description.supportedCurrencies.includes(currency)) throw new ApiError('BAD_REQUEST');
-    const taxProvider = await resolveSingleProvider('tax');
-    const taxLines = orderItems.map((item, index) => ({ lineId: String(index), productId: item.productId, variantId: item.variantId, quantity: item.quantity, amountMinor: decimalToMinor(item.unitPrice * item.quantity, currency) }));
-    const shippingMinor = selectedShipping.amountMinor;
-    const tax = taxProvider
-      ? await callContract(taxProvider.pluginSlug, 'tax', PLUGIN_CONTRACT_VERSIONS.tax, 'calculate', { currency, lines: taxLines, shippingAmountMinor: shippingMinor, address: { country: normalizedShippingAddress.country, region: normalizedShippingAddress.state, city: normalizedShippingAddress.city, postalCode: normalizedShippingAddress.postalCode, line1: normalizedShippingAddress.addressLine1, line2: normalizedShippingAddress.addressLine2 } }) as { pricesIncludeTax: boolean; lines: Array<{ lineId: string; taxMinor: number }>; totalTaxMinor: number }
-      : { pricesIncludeTax: false, lines: taxLines.map((line) => ({ lineId: line.lineId, taxMinor: 0 })), totalTaxMinor: 0 };
-    const subtotalAmount = totalAmount;
-    const shippingAmount = Number(minorToDecimal(shippingMinor, currency));
-    const taxAmount = Number(minorToDecimal(tax.totalTaxMinor, currency));
-    totalAmount = subtotalAmount + shippingAmount + (tax.pricesIncludeTax ? 0 : taxAmount);
-    if (decimalToMinor(data.expectedTotal, currency) !==
-      decimalToMinor(subtotalAmount, currency) + shippingMinor + (tax.pricesIncludeTax ? 0 : tax.totalTaxMinor)) {
-      throw new ApiError('QUOTE_CHANGED');
-    }
-    const unpaidExpiresAt = new Date(Date.now() + description.unpaidTimeoutMinutes * 60_000);
-
-    // Create order + deduct stock atomically
-    const result = await prisma.$transaction(async (tx) => {
-      const existing = await tx.order.findUnique({ where: { idempotencyKey }, include: orderResponseInclude() });
-      if (existing) {
-        this.assertIdempotentReplay(existing, userId, requestFingerprint);
-        return { order: existing, replayed: true };
-      }
-      const catalogMap = await ProductService.getSellableCatalog(tx, productIds);
-      const created = await tx.order.create({
-        data: {
-          ...await allocateOrderNumber(tx),
-          user: { connect: { id: userId } },
-          customerEmail: data.customerEmail?.trim() || identity.email,
-          idempotencyKey,
-          idempotencyFingerprint: requestFingerprint,
-          status: OrderStatus.PENDING,
-          paymentStatus: PaymentStatus.PENDING,
-          subtotalAmount,
-          shippingAmount,
-          shippingMethod: { providerSlug: selectedShipping.providerSlug, optionId: data.shippingOptionId.split(':').slice(1).join(':'), label: selectedShipping.label, amountMinor: shippingMinor },
-          taxAmount,
-          taxInclusive: tax.pricesIncludeTax,
-          totalAmount,
-          paymentMethod: data.paymentMethod,
-          unpaidExpiresAt,
-          // Create order address relation
-          shippingAddress: data.shippingAddress
-            ? {
-              create: {
-                firstName: normalizedShippingAddress!.firstName.trim(),
-                lastName: normalizedShippingAddress!.lastName.trim(),
-                phone: normalizedShippingAddress!.phone?.trim(),
-                addressLine1: normalizedShippingAddress!.addressLine1.trim(),
-                addressLine2: normalizedShippingAddress!.addressLine2?.trim() || undefined,
-                city: normalizedShippingAddress!.city.trim(),
-                state: normalizedShippingAddress!.state?.trim() || '',
-                country: normalizedShippingAddress!.country.trim(),
-                postalCode: normalizedShippingAddress!.postalCode?.trim() || '',
-                email: normalizedShippingAddress!.email?.trim() || undefined,
-              }
-            }
-            : undefined,
-          items: {
-            create: orderItems.map((item, index) => {
-              const product = catalogMap.get(item.productId);
-              const variant = product?.variants.find(variant => variant.id === item.variantId);
-              if (!product || !variant || !product.isActive || !variant.isActive) throw new ApiError('BAD_REQUEST');
-              return {
-                productId: item.productId,
-                variantId: item.variantId,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                catalogSnapshot: createCatalogSnapshot({
-                  id: product.id,
-                  name: product.name,
-                  productType: product.productType,
-                  typeData: product.typeData as Prisma.JsonValue,
-                  translations: product.translations,
-                }, {
-                  id: variant.id,
-                  name: variant.name,
-                  skuCode: variant.skuCode,
-                  attributes: variant.attributes as Prisma.JsonValue,
-                }),
-                lineTotal: new Prisma.Decimal(item.unitPrice).mul(item.quantity),
-                taxAmount: Number(minorToDecimal(tax.lines.find((line) => line.lineId === String(index))?.taxMinor ?? 0, currency)),
-              };
-            })
-          },
-        },
-        include: {
-          shippingAddress: true,
-          items: true
-        }
-      });
-
-      if (data.pluginPurchaseOriginId) await bindPurchaseOrigin(tx, data.pluginPurchaseOriginId, userId, created.id);
-      for (const item of orderItems) {
-        await InventoryService.decrementStock(tx, item.variantId, item.quantity, {
-          type: 'sale',
-          reason: 'order_placed',
-          referenceId: created.id,
-          userId,
-          metadata: { orderNumber: created.orderNumber },
-        });
-      }
-      await CartService.consumePurchasedItems(tx, userId, orderItems);
-
-      await recordOrderStatusHistory(tx, {
-        orderId: created.id,
-        fromStatus: null,
-        toStatus: created.status as PrismaOrderStatus,
-        fromPaymentStatus: null,
-        toPaymentStatus: created.paymentStatus as PrismaOrderPaymentStatus,
-        actorType: 'user',
-        actorId: userId,
-        reason: 'order_created',
-      });
-
-        await emitEvent(tx, 'order.created', 1, created.id, {
-          id: created.id,
-          orderNumber: created.orderNumber,
-          userId: created.userId,
-          totalAmount: Number(created.totalAmount),
-          currency,
-          items: created.items.map((item: any) => ({
-            id: item.id,
-            productId: item.productId,
-            variantId: item.variantId,
-            quantity: item.quantity,
-            unitPrice: Number(item.unitPrice),
-            fulfillmentData: parseJsonRecord(item.fulfillmentData),
-          }))
-        });
-
-      return { order: created, replayed: false };
-    }).catch(async error => {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        // A concurrent request with the same key won the unique index race.
-        const replay = await this.findOrderByIdempotencyKey(idempotencyKey, userId, requestFingerprint);
-        if (replay) return { order: replay.order, replayed: true };
-      }
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
-        if (/order_items_(productId|variantId)_fkey/.test(String(error.meta?.field_name)) ||
-            this.countCatalogVariants(catalog, orderItems) < new Set(orderItems.map(item => item.variantId)).size) {
-          throw new ApiError('BAD_REQUEST');
-        }
-      }
-      throw error;
-    });
-
-    return { order: this.formatOrderResponse(result.order, currency, identity.locale), replayed: result.replayed };
-  }
-
-  /**
-   * Number of requested order variants that the catalog projection knows.
-   * Mirrors the foreign key guard of the order items without a second query.
-   */
-  private static countCatalogVariants(
-    catalog: Map<string, CatalogProductProjection>,
-    orderItems: Array<{ productId: string; variantId: string }>,
-  ): number {
-    const known = new Set<string>();
-    for (const product of catalog.values()) {
-      for (const variant of product.variants) known.add(`${product.id}:${variant.id}`);
-    }
-    const requested = [...new Set(orderItems.map(item => `${item.productId}:${item.variantId}`))];
-    return requested.filter(pair => known.has(pair)).length;
-  }
-
-  /**
-   * Resolve an order that already owns the supplied idempotency key.
-   * Returns null when the key is unused and rejects a key that is reused with a different request.
-   */
-  private static async findOrderByIdempotencyKey(
-    idempotencyKey: string,
-    userId: string,
-    requestFingerprint: string,
-  ): Promise<{ order: any; replayed: true } | null> {
-    const existing = await prisma.order.findUnique({ where: { idempotencyKey }, include: orderResponseInclude() });
-    if (!existing) return null;
-    this.assertIdempotentReplay(existing, userId, requestFingerprint);
-    return { order: existing, replayed: true };
-  }
-
-  private static assertIdempotentReplay(
-    existing: { userId: string; idempotencyFingerprint: string | null },
-    userId: string,
-    requestFingerprint: string,
-  ): void {
-    if (existing.userId !== userId || existing.idempotencyFingerprint !== requestFingerprint) {
-      throw new ApiError('ORDER_IDEMPOTENCY_CONFLICT');
-    }
+    const placement = await runOrderPlacement(userId, data);
+    return {
+      order: this.formatOrderResponse(placement.order, placement.currency, placement.locale),
+      replayed: placement.replayed,
+    };
   }
 
   /**
