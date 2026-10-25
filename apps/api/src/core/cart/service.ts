@@ -1,6 +1,7 @@
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { ProductService } from '@/core/product/service';
+import { fulfillmentPolicyFor } from '@/core/shared/fulfillment-policy';
 
 /**
  * Transaction surface required to consume purchased cart lines. A Prisma
@@ -486,6 +487,11 @@ export class CartService {
         : [];
       const availableStock = variant.stock;
       const unitPrice = variant.salePrice;
+      // The shipping requirement of a cart line is the shipping flag of the
+      // product and the fulfilment policy of its product type, exactly as the
+      // order placement resolves it, so the cart and the order can never
+      // disagree about the address an order needs.
+      const fulfillmentPolicy = fulfillmentPolicyFor(product?.productType ?? '');
       return {
         id: item.id,
         productId: item.productId,
@@ -496,7 +502,7 @@ export class CartService {
         variantId: item.variantId,
         variantName: variant?.name || undefined,
         variantAttributes: parseJsonRecord(variant?.attributes),
-        requiresShipping: product?.requiresShipping ?? true,
+        requiresShipping: (product?.requiresShipping ?? true) && fulfillmentPolicy.requiresShippingAddress,
         maxQuantity: availableStock,
         subtotal: unitPrice * item.quantity,
       };

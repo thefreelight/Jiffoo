@@ -4,6 +4,7 @@ import { csvCell, csvTimestamp, csvFilename, csvStream } from '@/utils/csv';
 import { getAllMessages } from 'shared/src/i18n';
 import type { Locale } from 'shared/src/i18n/config';
 import { orderWhere, orderSort, type OrderExportSelection, type OrderSort } from './list-query';
+import { PaymentStatus } from '@/core/order/policy';
 
 export async function createOrderExport(selection: OrderExportSelection, sort: OrderSort, locale: Locale) {
   const filter = selection.mode === 'filter' ? orderWhere(selection.filter) : {};
@@ -28,7 +29,7 @@ export async function createOrderExport(selection: OrderExportSelection, sort: O
       });
       for (const order of batch) {
         const address = order.shippingAddress, shipment = order.shipments[0];
-        const paymentLabel = order.paymentStatus === 'PAID' ? orders.paid : order.paymentStatus === 'REFUNDED' ? orders.refunded : labels.unpaid;
+        const paymentLabel = order.paymentStatus === PaymentStatus.PAID ? orders.paid : order.paymentStatus === PaymentStatus.REFUNDED ? orders.refunded : labels.unpaid;
         yield [order.orderNumber, timestamp(order.createdAt), timezone, orders[order.status.toLowerCase()], paymentLabel,
           yesNo(order.payments.length > 0), order.user.email, order.user.username,
           order.items.length, order.items.reduce((sum, item) => sum + item.quantity, 0),

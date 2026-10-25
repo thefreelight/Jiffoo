@@ -6,6 +6,7 @@ import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { createNotification, type NotificationTransaction } from '@/core/notifications/service';
 import { OrderService } from '@/core/order/service';
+import { OrderStatus, PaymentStatus } from '@/core/order/policy';
 import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { paymentNow, PAYMENT_SESSION_LIFETIME_MS } from './clock';
 import { decimalToMinor } from '@/core/shared/money';
@@ -67,8 +68,8 @@ export async function createPaymentSession(input: SessionInput) {
     await lockOrder(tx, input.orderId);
     const order = await tx.order.findUnique({ where: { id: input.orderId } });
     if (!order || order.userId !== input.userId) throw new ApiError('NOT_FOUND');
-    if (order.paymentStatus === 'PAID' || order.paymentStatus === 'REFUNDED') throw new ApiError('ORDER_ALREADY_PAID');
-    if (order.status !== 'PENDING') throw new ApiError('ORDER_NOT_PAYABLE');
+    if (order.paymentStatus === PaymentStatus.PAID || order.paymentStatus === PaymentStatus.REFUNDED) throw new ApiError('ORDER_ALREADY_PAID');
+    if (order.status !== OrderStatus.PENDING) throw new ApiError('ORDER_NOT_PAYABLE');
     if (order.paymentMethod !== input.pluginSlug) throw new ApiError('PAYMENT_METHOD_MISMATCH');
     const existing = await tx.payment.findUnique({ where: { idempotencyKey: requestKey } });
     if (existing) {

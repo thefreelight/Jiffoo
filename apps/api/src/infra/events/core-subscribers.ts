@@ -15,7 +15,7 @@ export const CORE_EVENT_TARGET = 'core';
 export type CoreSubscriber = (data: any) => Promise<void>;
 
 /** One registration: the event version a subscriber reacts to and the subscriber itself. */
-type CoreSubscriberRegistration = { version: number; subscriber: CoreSubscriber };
+type CoreSubscriberRegistration = { version: 1; subscriber: CoreSubscriber };
 
 async function notifyOrder(tx: NotificationTransaction, orderId: string, type: 'shipped' | 'cancelled' | 'refunded' | 'payment_received', values: { reason?: string }, dedupKey: string) {
   const order = await tx.order.findUnique({ where: { id: orderId }, select: { id: true } });
@@ -24,21 +24,27 @@ async function notifyOrder(tx: NotificationTransaction, orderId: string, type: '
   await createOrderNotification(tx, type, orderId, values, { dedupKey });
 }
 
-async function notifyOrderCancelled(data: EventPayload<'order.cancelled'>) {
+/**
+ * The core subscribers of the order and payment events.
+ *
+ * They are exported so the registry binding is verifiable: the test asserts
+ * which subscriber belongs to which event type.
+ */
+export async function notifyOrderCancelled(data: EventPayload<'order.cancelled'>) {
   // The event carries the domain reason; the customer facing copy stays unchanged.
   const reason = data.reason === 'unpaid timeout' ? 'Cancelled for non-payment' : data.reason;
   await prisma.$transaction((tx) => notifyOrder(tx, data.orderId, 'cancelled', { reason }, `notification:cancelled:${data.orderId}`));
 }
 
-async function notifyOrderShipped(data: EventPayload<'order.fulfilled'>) {
+export async function notifyOrderShipped(data: EventPayload<'order.fulfilled'>) {
   await prisma.$transaction((tx) => notifyOrder(tx, data.id, 'shipped', {}, `notification:shipped:${data.id}`));
 }
 
-async function notifyOrderRefunded(data: EventPayload<'order.refunded'>) {
+export async function notifyOrderRefunded(data: EventPayload<'order.refunded'>) {
   await prisma.$transaction((tx) => notifyOrder(tx, data.orderId, 'refunded', {}, `notification:refunded:${data.refundId}`));
 }
 
-async function notifyPaymentSucceeded(data: EventPayload<'payment.succeeded'>) {
+export async function notifyPaymentSucceeded(data: EventPayload<'payment.succeeded'>) {
   await prisma.$transaction((tx) => notifyOrder(tx, data.orderId, 'payment_received', {}, `notification:payment_received:${data.orderId}`));
 }
 
@@ -66,7 +72,17 @@ export function coreSubscribersFor(type: string, version: number): CoreSubscribe
     .map(registration => registration.subscriber);
 }
 
-/** Resolve the core subscriber for an event, or null when the core ignores it. */
+/**
+ * The event types the core subscribes to, in registration order.
+ *
+ * A read only view of the registry keys: a new core subscriber is registered by
+ * adding one entry to the registry, and the list follows.
+ */
+export function coreSubscribedEventTypes(): string[] {
+  return Object.keys(coreSubscriberRegistry());
+}
+
+/** Resolve the first core subscriber of an event, or null when the core ignores it. */
 export function coreSubscriberFor(type: string, version: number): CoreSubscriber | null {
   return coreSubscribersFor(type, version)[0] || null;
 }

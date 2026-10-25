@@ -7,6 +7,7 @@ import archiver from 'archiver';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
+import { snapshotPluginRows, restoreBuiltinRows } from '../helpers/plugin-db-snapshot';
 import { CERT_PATH, SIGNATURE_PATH, issuePublisherCertificate, signPackage, trustedRootKeys, OFFICIAL_ROOT_PUBLIC_KEY } from 'shared/plugin-signing';
 import { prisma } from '@/config/database';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
@@ -44,6 +45,10 @@ let origin: string;
 let catalogBody: unknown;
 let packageBody: Buffer;
 const slugs = new Set<string>();
+// The builtin plugins the forked child needs for its checkout quote: the
+// shipping provider and the payment provider.
+const builtinSlugs = ['free-shipping', 'manual-payment'];
+let builtinRows: Awaited<ReturnType<typeof snapshotPluginRows>>;
 const own = () => { const slug = `signing-${randomUUID().slice(0, 12)}`; slugs.add(slug); return slug; };
 
 async function bytes(slug: string, root: 'official' | 'test' | 'unsigned') {
@@ -137,7 +142,20 @@ beforeAll(async () => {
   process.env.JIFFOO_TEST_OFFICIAL_ROOT_OVERRIDE = 'true';
   process.env.JIFFOO_TEST_OFFICIAL_ROOT_PUBLIC_KEY = untrustedRoot.publicKey;
   process.env.JIFFOO_TEST_MARKETPLACE_OVERRIDE = 'true';
+  // The builtin plugins are shared with the other test files of the shard:
+  // their rows are captured before the sync and restored afterwards.
+  builtinRows = await snapshotPluginRows(builtinSlugs);
   await syncBuiltinPlugins(path.resolve('builtin-plugins'));
+  // The sync only installs a builtin plugin that is missing or changed, so an
+  // already installed plugin keeps the enabled state of its default instance.
+  // The forked child needs an enabled shipping and payment provider, so the
+  // default instances are enabled here.
+  for (const slug of builtinSlugs) {
+    const instance = await getDefaultInstance(slug);
+    if (instance && !instance.enabled) {
+      await PluginManagementService.updateInstance(instance.id, { enabled: true });
+    }
+  }
   app = await createTestApp();
   token = (await createAdminWithToken()).token;
   base = await app.listen({ host: '127.0.0.1', port: 0 });
@@ -154,6 +172,8 @@ afterAll(async () => {
     await cleanupPluginMigrationFixture(slug);
     await clearTestPluginCache(slug);
   }
+  // The next test file of the shard must see the builtin rows it left.
+  await restoreBuiltinRows(builtinRows, builtinSlugs);
   await app?.close();
   server?.closeAllConnections();
   await new Promise<void>((resolve) => server?.close(() => resolve()));

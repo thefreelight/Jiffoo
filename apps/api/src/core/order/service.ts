@@ -19,14 +19,13 @@ import {
   CreateOrderRequest,
   OrderResponse,
   OrderListResponse,
-  OrderStatus,
-  PaymentStatus,
   OrderStatusType,
   PaymentStatusType,
   OrderCreationResult,
   OrderProjection,
   OrderPaidPayload,
 } from './types';
+import { OrderStatus, PaymentStatus } from './policy';
 import { recordOrderStatusHistory, type OrderStatusHistoryWriter } from './status-history';
 import { assertOrderTransition } from './transition';
 import { lockOrder } from '@/core/shared/locks';
@@ -332,7 +331,7 @@ export class OrderService {
   static async cancelExpiredUnpaidOrders(limit = 100): Promise<number> {
     return prisma.$transaction(async (tx) => {
       const locked = await tx.$queryRaw<Array<{ id: string }>>`
-        SELECT id FROM public.orders WHERE status = 'PENDING' AND "paymentStatus" = 'PENDING'
+        SELECT id FROM public.orders WHERE status = ${Prisma.raw(`'${OrderStatus.PENDING}'`)} AND "paymentStatus" = ${Prisma.raw(`'${PaymentStatus.PENDING}'`)}
           AND "unpaidExpiresAt" < clock_timestamp() AT TIME ZONE 'UTC'
         ORDER BY "unpaidExpiresAt", id LIMIT ${limit} FOR UPDATE SKIP LOCKED
       `;

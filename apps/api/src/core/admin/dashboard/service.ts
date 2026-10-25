@@ -8,7 +8,7 @@ import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { systemSettingsService } from '@/core/settings/service';
 import { getTodayAndYesterdayRangeUtc, getStoreCalendarDays, normalizeTimezone } from '@/utils/timezone';
-import { closedOrderStatuses, OrderStatus } from '@/core/order/policy';
+import { closedOrderStatuses, OrderStatus, PaymentStatus } from '@/core/order/policy';
 import { paymentReviewWhere } from '../order-management/service';
 
 function calculateTrendPercent(current: number, previous: number): number {
@@ -57,7 +57,7 @@ export class AdminDashboardService {
             prisma.order.aggregate({
                 _sum: { totalAmount: true },
                 where: {
-                    paymentStatus: 'PAID',
+                    paymentStatus: PaymentStatus.PAID,
                     status: { notIn: closedOrderStatuses() }
                 }
             }),
@@ -67,7 +67,7 @@ export class AdminDashboardService {
             prisma.order.aggregate({
                 _sum: { totalAmount: true },
                 where: {
-                    paymentStatus: 'PAID',
+                    paymentStatus: PaymentStatus.PAID,
                     status: { notIn: closedOrderStatuses() },
                     createdAt: { gte: startOfTodayUtc, lt: endUtc }
                 }
@@ -75,7 +75,7 @@ export class AdminDashboardService {
             prisma.order.aggregate({
                 _sum: { totalAmount: true },
                 where: {
-                    paymentStatus: 'PAID',
+                    paymentStatus: PaymentStatus.PAID,
                     status: { notIn: closedOrderStatuses() },
                     createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc }
                 }
@@ -101,11 +101,11 @@ export class AdminDashboardService {
             prisma.user.count({ where: { role: 'USER', createdAt: { gte: startOfTodayUtc, lt: endUtc } } }),
             prisma.user.count({ where: { role: 'USER', createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
             prisma.order.count({ where: { payments: { some: paymentReviewWhere() } } }),
-            prisma.order.count({ where: { status: OrderStatus.PROCESSING, paymentStatus: 'PAID' } }),
+            prisma.order.count({ where: { status: OrderStatus.PROCESSING, paymentStatus: PaymentStatus.PAID } }),
             // Prisma stores createdAt as a UTC timestamp without time zone.
             prisma.$queryRaw<Array<{ date: string; paidSales: unknown; orders: number }>>`
                 SELECT to_char((("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE ${normalizeTimezone(timezone)})::date, 'YYYY-MM-DD') AS date,
-                    COALESCE(SUM(CASE WHEN "paymentStatus" = 'PAID' AND status NOT IN (${Prisma.raw(closedStatusList)})
+                    COALESCE(SUM(CASE WHEN "paymentStatus" = ${Prisma.raw(`'${PaymentStatus.PAID}'`)} AND status NOT IN (${Prisma.raw(closedStatusList)})
                         THEN "totalAmount" ELSE 0 END), 0) AS "paidSales", COUNT(*)::integer AS orders
                 FROM public.orders
                 WHERE "createdAt" >= (${days[0].startUtc}::timestamptz AT TIME ZONE 'UTC')
@@ -185,9 +185,12 @@ export class AdminDashboardService {
         const [recentOrders] = await Promise.all(promises);
 
         const ordersByStatusRaw = await ordersByStatusPromise;
+        // The keys are the published order statuses, plus the two legacy keys
+        // the response shape keeps stable. The order status names come from
+        // the public order policy, the legacy keys stay as they are.
         const ordersByStatus: Record<string, number> = {
-            PENDING: 0, PAID: 0, PROCESSING: 0, COMPLETED: 0,
-            SHIPPED: 0, DELIVERED: 0, CANCELLED: 0, REFUNDED: 0
+            [OrderStatus.PENDING]: 0, PAID: 0, [OrderStatus.PROCESSING]: 0, COMPLETED: 0,
+            [OrderStatus.SHIPPED]: 0, [OrderStatus.DELIVERED]: 0, [OrderStatus.CANCELLED]: 0, [OrderStatus.REFUNDED]: 0
         };
         ordersByStatusRaw.forEach((item: any) => {
             const statusKey = item.status;

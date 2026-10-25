@@ -10,30 +10,33 @@ export type NotificationTransaction = Parameters<Parameters<typeof prisma.$trans
 
 export const notificationLocales = ['en', 'zh-Hans', 'zh-Hant'] as const;
 export type NotificationLocale = typeof notificationLocales[number];
-export type NotificationType =
-  | 'email_verification'
-  | 'password_reset'
-  | 'staff_invite'
-  | 'order_confirmation'
-  | 'payment_received'
-  | 'shipped'
-  | 'cancelled'
-  | 'refunded';
 
 type Copy = { subject: string; body: string; linkLabel?: string };
+
+/**
+ * The English copy of every notification type.
+ *
+ * This table is the source of truth of the notification vocabulary: the
+ * `NotificationType` union is derived from its keys, so a new type is added
+ * here, and a locale that misses a type of this table is a compile error.
+ */
+const englishCopy = {
+  email_verification: { subject: 'Verify your email', body: 'Hello {name}, verify your email with code {code}.', linkLabel: 'Verify email' },
+  password_reset: { subject: 'Reset your password', body: 'Hello {name}, use this link to reset your password.', linkLabel: 'Reset password' },
+  staff_invite: { subject: 'Staff invitation', body: 'Hello {name}, you have been invited to the staff team.', linkLabel: 'Activate account' },
+  order_confirmation: { subject: 'Order confirmation', body: 'Order {orderId} is confirmed. {instructions}' },
+  payment_received: { subject: 'Payment received', body: 'We received payment for order {orderId}.' },
+  shipped: { subject: 'Order shipped', body: 'Order {orderId} has shipped.' },
+  cancelled: { subject: 'Order cancelled', body: 'Order {orderId} was cancelled. {reason}' },
+  refunded: { subject: 'Order refunded', body: 'Order {orderId} was refunded.' },
+} satisfies Record<string, Copy>;
+
+export type NotificationType = keyof typeof englishCopy;
+
 type LocaleCopy = Record<NotificationType, Copy>;
 
 const translations: Record<NotificationLocale, LocaleCopy> = {
-  en: {
-    email_verification: { subject: 'Verify your email', body: 'Hello {name}, verify your email with code {code}.', linkLabel: 'Verify email' },
-    password_reset: { subject: 'Reset your password', body: 'Hello {name}, use this link to reset your password.', linkLabel: 'Reset password' },
-    staff_invite: { subject: 'Staff invitation', body: 'Hello {name}, you have been invited to the staff team.', linkLabel: 'Activate account' },
-    order_confirmation: { subject: 'Order confirmation', body: 'Order {orderId} is confirmed. {instructions}' },
-    payment_received: { subject: 'Payment received', body: 'We received payment for order {orderId}.' },
-    shipped: { subject: 'Order shipped', body: 'Order {orderId} has shipped.' },
-    cancelled: { subject: 'Order cancelled', body: 'Order {orderId} was cancelled. {reason}' },
-    refunded: { subject: 'Order refunded', body: 'Order {orderId} was refunded.' },
-  },
+  en: englishCopy,
   'zh-Hans': {
     email_verification: { subject: '验证邮箱', body: '{name}，请使用验证码 {code} 验证邮箱。', linkLabel: '验证邮箱' },
     password_reset: { subject: '重置密码', body: '{name}，请使用此链接重置密码。', linkLabel: '重置密码' },
@@ -59,12 +62,13 @@ const translations: Record<NotificationLocale, LocaleCopy> = {
 /**
  * The notification vocabulary.
  *
- * The copy table is the source of truth for the types a notification may have:
- * the keys of the English copy, in the order of the table. The `NotificationType`
- * union stays the compile time contract for the consumers of the copy.
+ * The English copy table is the source of truth for the types a notification may
+ * have: the keys of that table, in the order of the table. The `NotificationType`
+ * union is derived from the same table and stays the compile time contract for
+ * the consumers of the copy.
  */
 export function notificationTypes(): NotificationType[] {
-  return Object.keys(translations.en) as NotificationType[];
+  return Object.keys(englishCopy) as NotificationType[];
 }
 
 export function normalizeNotificationLocale(value: unknown): NotificationLocale | null {

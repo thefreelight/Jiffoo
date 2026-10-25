@@ -3,6 +3,7 @@ import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { formatStoreTimestamp, storeLocalToUtc } from 'shared';
 import { systemSettingsService } from '@/core/settings/service';
+import { closedOrderStatuses, PaymentStatus } from '@/core/order/policy';
 
 export interface CustomerQuery {
   search?: string;
@@ -57,11 +58,12 @@ export function customerSort(query: CustomerQuery) {
   return Prisma.sql`${columns[query.sortBy ?? 'createdAt']} ${direction} NULLS LAST, id ${direction}`;
 }
 export function customerBase(conditions: Prisma.Sql) {
+  const paidTotalFilter = Prisma.sql`o."paymentStatus" = ${Prisma.raw(`'${PaymentStatus.PAID}'`)} AND o.status NOT IN (${Prisma.raw(closedOrderStatuses().map(status => `'${status}'`).join(', '))})`;
   return Prisma.sql`SELECT u.id, u.email, u.username, u.avatar, u.locale, u."isActive", u."emailVerified", u."createdAt", u."updatedAt",
     COALESCE(a."orderCount", 0)::bigint AS "orderCount", COALESCE(a."paidTotal", 0) AS "paidTotal", a."lastOrderAt"
     FROM public.users u LEFT JOIN LATERAL (
       SELECT count(*) AS "orderCount", max(o."createdAt") AS "lastOrderAt",
-        sum(o."totalAmount") FILTER (WHERE o."paymentStatus" = 'PAID' AND o.status NOT IN ('CANCELLED', 'REFUNDED')) AS "paidTotal"
+        sum(o."totalAmount") FILTER (WHERE ${paidTotalFilter}) AS "paidTotal"
       FROM public.orders o WHERE o."userId" = u.id
     ) a ON true WHERE ${conditions}`;
 }

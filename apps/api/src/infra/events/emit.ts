@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { parseEventPayload, type EventKey, type EventPayload, type EventSubscription } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
-import { CORE_EVENT_TARGET, coreSubscriberFor } from './core-subscribers';
+import { CORE_EVENT_TARGET, coreSubscribersFor } from './core-subscribers';
 
 export type EventTransaction = Prisma.TransactionClient | Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'>;
 
@@ -28,7 +28,7 @@ export async function emitEvent<K extends EventKey>(
     data: installations.map(({ id }) => ({ eventId: event.id, installationId: id })),
   });
   // The core subscribes to its own events through the same outbox.
-  if (coreSubscriberFor(type, version)) {
+  if (coreSubscribersFor(type, version).length) {
     await tx.eventDelivery.create({ data: { eventId: event.id, installationId: CORE_EVENT_TARGET } });
   }
   return event;

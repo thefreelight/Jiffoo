@@ -66,6 +66,7 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | **B-BOUND-C** — neutral layer + directory re-layering (WP-C) | Boundary-remediation line | `codex/lane-orders` | `6a99ec298` | new `apps/api/src/core/shared/**`; move `core/admin/system-settings`→`core/settings`, `core/admin/plugin-management`+`extension-installer`→`core/extensions`; retarget imports in `core/storage/**`, `core/plugin-pages/asset-routes.ts` | `jiffoo_core_test_orders` | `wp-c-neutral-layer` | **superseded** — the batch ran as `wp-c-neutral-layer`, **committed `add8de45b`**; the executed row is above | §5c |
 | **B-BOUND-D** — audit outlet, dead code, boundary guard, plugin risk register (WP-D) | Boundary-remediation line | `codex/lane-orders` | `add8de45b` | new `apps/api/src/core/audit/service.ts` + 9 audit call sites; delete `apps/api/src/core/user/`, `apps/api/src/core/order/hooks.ts`; new `apps/api/tests/core/module-boundary-audit.test.ts`; `docs/agentra-001-core-v1-product-charter.md`; `packages/shared/src/extensions/plugin-contract.ts`; `BUILTIN_PLUGIN_SLUGS` → `@jiffoo/shared` | `jiffoo_core_test_orders` | `wp-d1-audit-outlet`, `wp-d2-boundary-guard`, `wp-d3-audit-gap` | **superseded** — the batch ran as three executors, **committed `a65695b70` / `2c2a40e24` / `b55714018`**; the executed rows are above | §5d, §5e, §5f |
 | **B-ORCH** — orchestration config + architecture guardrails | Boundary-remediation line | `codex/lane-orders` | `49dc5ff1a` | `.pi/settings.json`, `.gitignore`, `AGENTS.md`, `docs/coordination-ledger.md` | n/a | orchestrator session | **committed `6c838d865`** | §6 |
+| **B-ARCH-1** — step 2 remediation: order policy, order placement pipeline, fulfilment policy, event and notification registries | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `69e8056cb` | new `apps/api/src/core/order/{policy,pipeline}.ts`; new `apps/api/src/core/shared/fulfillment-policy.ts`; `apps/api/src/core/order/**`; `apps/api/src/core/shared/**`; `apps/api/src/core/cart/service.ts`; `apps/api/src/core/checkout/service.ts`; `apps/api/src/core/payment/{session,service}.ts`; `apps/api/src/core/notifications/service.ts`; `apps/api/src/infra/events/{core-subscribers,emit,delivery}.ts`; `apps/api/src/core/admin/{order-management,dashboard,user-management}/**`; `apps/api/src/core/admin/extension-installer/{routes,repair-bootstrap}.ts`; `apps/api/src/core/admin/plugin-management/service.ts`; `apps/api/tests/core/{order-policy,order-pipeline,core-subscriber-registry,module-boundary-audit,module-state-audit}.test.ts`; `docs/coordination-ledger.md` | `jiffoo_core_test` (integration) | `wp-pre`, `wp-0`, `wp-1`, `wp-2` (four pi worker runs, three pi reviewer runs, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed** (checkpoint `fa355244f`, fix `3f94cda2e`, policy `ed11de9da`, pipeline `52fc77c8c`, registries `e1102ce1a`) | §5t |
 
 ## 4. Serial overlap set — never edited by both sides at once
 
@@ -946,6 +947,56 @@ from that:
 - the **boundary guard** turns the architecture rules into a check that fails on the next commit;
 - the **ledger** and the **orchestration rules** keep two lines from stepping on each other, and every gate
   result is written down with the scope it covered.
+
+## 5t. Handover evidence — B-ARCH-1 (step 2 remediation: the orchestration and the extension seams)
+
+**Baseline:** `69e8056cb`. **Commits:** `fa355244f` (checkpoint of the inherited repair-bootstrap batch),
+`3f94cda2e` (two inherited red tests repaired), `ed11de9da` (order policy), `52fc77c8c` (order placement
+pipeline and fulfilment policy), `e1102ce1a` (event, payment status and notification registries).
+
+**No contract change.** The batch changed no HTTP status code, no error code, no message, no response
+shape and no route contract, so §4 needs no entry. The three independent reviews confirmed this.
+
+### What the batch delivers
+
+| Goal | Where |
+|---|---|
+| one published policy surface for the order vocabulary and the order status predicates | `apps/api/src/core/order/policy.ts`; the vocabulary is derived from the Prisma enums in `apps/api/src/core/order/types.ts` |
+| the order placement as ordered named stages | `apps/api/src/core/order/pipeline.ts` (14 stages); `OrderService.createOrder` is a thin runner |
+| a fulfilment policy strategy | `apps/api/src/core/shared/fulfillment-policy.ts`; the default policy reproduces the previous behaviour exactly |
+| explicit registries instead of hardcoded branches | `apps/api/src/infra/events/core-subscribers.ts`, `apps/api/src/core/payment/session.ts`, `apps/api/src/core/notifications/service.ts` |
+
+### The two inherited red tests, and why they were red
+
+- `apps/api/tests/core/module-boundary-audit.test.ts` failed three assertions because the inherited
+  batch had put the repair-bootstrap service into `admin/plugin-management`, which created the edges
+  `admin/plugin-management -> auth` and `admin/plugin-management -> audit` and about fifty unregistered
+  module rings. The two methods moved to `admin/extension-installer/repair-bootstrap.ts`, the module
+  that owns the route and already holds those two approved edges, so the edge set and the ring set are
+  unchanged and the registers stay untouched.
+- `apps/api/tests/routes/plugin-repair-bootstrap.test.ts` expected five rejection audit rows and found
+  four, because the row was written from the route `onResponse` hook, which Fastify runs after the reply
+  has already been flushed, so the last rejection committed its row after the caller could observe the
+  response. The audit now runs from the route `onSend` hook, before the payload leaves the process.
+
+### The verification economics, for the next batch
+
+While `packages/shared/**` was dirty the verification planner expanded every scoped gate to the whole
+api, admin and shop catalogue, so a worker's feedback loop was a thirty eight minute serial run. The
+checkpoint commit `fa355244f` makes `git diff HEAD` isolate the batch, and a scoped gate over two files
+then takes about 75 seconds. Two gates must never run against `jiffoo_core_test` at the same time: the
+database reset of one run corrupts the other. The workers of a parallel wave therefore verify with the
+type check and the lint only, and the coordinator runs one gate over the combined tree.
+
+### The open items the batch deliberately leaves
+
+- the fulfilment policy is authoritative for the order and the cart flow; the checkout quote path still
+  lists the shipping providers of the installed shipping plugins, and the per product type quote
+  requirement is enforced by the order placement;
+- a new order state still needs a Prisma enum change and a migration;
+- the shipment vocabulary is derived from Prisma but is not published by the policy module yet;
+- the payment session still decides the idempotent replay and the previous attempt rules with literal
+  payment statuses next to the new error table.
 
 ## 5. Handover evidence — B-BOUND-A
 

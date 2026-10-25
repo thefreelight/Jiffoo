@@ -9,7 +9,7 @@ import { OrderStatus as PrismaOrderStatus, type Prisma } from '@prisma/client';
 import { systemSettingsService } from '@/core/settings/service';
 import { CacheService } from '@/core/cache/service';
 import { getTodayAndYesterdayRangeUtc } from '@/utils/timezone';
-import { OrderStatus, canRefundOrder, closedOrderStatuses, restocksInventoryOnRefund } from '@/core/order/policy';
+import { OrderStatus, PaymentStatus, canRefundOrder, closedOrderStatuses, restocksInventoryOnRefund } from '@/core/order/policy';
 import { AuditService } from '@/core/audit/service';
 import { OrderService } from '@/core/order/service';
 import { InventoryService } from '@/core/inventory/service';
@@ -107,17 +107,17 @@ export class AdminOrderService {
       prisma.order.aggregate({
         _sum: { totalAmount: true },
         where: {
-          paymentStatus: 'PAID',
+          paymentStatus: PaymentStatus.PAID,
           status: { notIn: closedOrderStatuses() },
         },
       }),
-      prisma.order.count({ where: { paymentStatus: 'PAID' } }),
+      prisma.order.count({ where: { paymentStatus: PaymentStatus.PAID } }),
       prisma.order.count({ where: { status: OrderStatus.SHIPPED } }),
       prisma.order.count({ where: { status: OrderStatus.REFUNDED } }),
       prisma.order.count({ where: { createdAt: { gte: startOfTodayUtc } } }),
       prisma.order.count({ where: { createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
-      prisma.order.count({ where: { paymentStatus: 'PAID', createdAt: { gte: startOfTodayUtc } } }),
-      prisma.order.count({ where: { paymentStatus: 'PAID', createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
+      prisma.order.count({ where: { paymentStatus: PaymentStatus.PAID, createdAt: { gte: startOfTodayUtc } } }),
+      prisma.order.count({ where: { paymentStatus: PaymentStatus.PAID, createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
       prisma.order.count({ where: { status: OrderStatus.SHIPPED, createdAt: { gte: startOfTodayUtc } } }),
       prisma.order.count({ where: { status: OrderStatus.SHIPPED, createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
       prisma.order.count({ where: { status: OrderStatus.REFUNDED, createdAt: { gte: startOfTodayUtc } } }),
@@ -125,7 +125,7 @@ export class AdminOrderService {
       prisma.order.aggregate({
         _sum: { totalAmount: true },
         where: {
-          paymentStatus: 'PAID',
+          paymentStatus: PaymentStatus.PAID,
           status: { notIn: closedOrderStatuses() },
           createdAt: { gte: startOfTodayUtc },
         },
@@ -133,7 +133,7 @@ export class AdminOrderService {
       prisma.order.aggregate({
         _sum: { totalAmount: true },
         where: {
-          paymentStatus: 'PAID',
+          paymentStatus: PaymentStatus.PAID,
           status: { notIn: closedOrderStatuses() },
           createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc },
         },
@@ -360,7 +360,7 @@ export class AdminOrderService {
     } : null;
 
     const latestPayment = await prisma.payment.findFirst({ where: { orderId }, orderBy: { attemptNumber: 'desc' }, select: { status: true } });
-    const canRecordManualPayment = !['UNKNOWN', 'REQUIRES_REVIEW'].includes(latestPayment?.status || '') && ['PENDING','CANCELLED'].includes(order.status) && order.paymentStatus !== 'PAID' && order.paymentMethod
+    const canRecordManualPayment = !['UNKNOWN', 'REQUIRES_REVIEW'].includes(latestPayment?.status || '') && (order.status === OrderStatus.PENDING || order.status === OrderStatus.CANCELLED) && order.paymentStatus !== PaymentStatus.PAID && order.paymentMethod
       ? await callContract(order.paymentMethod, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', {
         storeCurrency: await systemSettingsService.getShopCurrency(),
       }).then((description: { requiresManualConfirmation: boolean }) => description.requiresManualConfirmation).catch(() => false)

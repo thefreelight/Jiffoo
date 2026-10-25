@@ -6,7 +6,7 @@ import { deliverInstallationEvent } from '@/core/admin/extension-installer/plugi
 import type { EventTransaction } from './emit';
 import { redactPluginFailure } from '@/core/extensions/runtime/failure';
 import { observeWorkerShutdownForTest } from '../worker-shutdown';
-import { CORE_EVENT_TARGET, coreSubscriberFor } from './core-subscribers';
+import { CORE_EVENT_TARGET, coreSubscribersFor } from './core-subscribers';
 
 export const EVENT_HANDLER_TIMEOUT_MS = 30_000;
 export const EVENT_LEASE_SECONDS = 60;
@@ -93,11 +93,12 @@ export async function recoverEventLeases(): Promise<number> {
   });
 }
 
-/** Run the core subscriber for an event. Returns a skip reason when the core ignores it. */
+/** Run the core subscribers of an event. Returns a skip reason when the core ignores it. */
 export async function deliverCoreEvent(event: PluginEvent): Promise<string | null> {
-  const subscriber = coreSubscriberFor(event.type, event.version);
-  if (!subscriber) return 'no_core_subscriber';
-  await subscriber(event.data);
+  const subscribers = coreSubscribersFor(event.type, event.version);
+  if (!subscribers.length) return 'no_core_subscriber';
+  // The subscribers run in registration order; a failing subscriber fails the delivery.
+  for (const subscriber of subscribers) await subscriber(event.data);
   return null;
 }
 

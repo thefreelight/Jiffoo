@@ -57,13 +57,16 @@ export function allowedOrderTransitions(from: OrderStatusType): readonly OrderSt
 /**
  * Guard of the order state machine. It throws the `InvalidOrderTransitionError`
  * of the order module when the transition is not allowed.
+ *
+ * The published transition table is the single source of the rule: the guard
+ * asks `allowedOrderTransitions` and never the raw table.
  */
 export function assertOrderTransition(
   from: OrderStatusType,
   to: OrderStatusType,
   paymentStatus: PaymentStatusType,
 ): void {
-  if (!allowed[from].includes(to)
+  if (!allowedOrderTransitions(from).includes(to)
     || (from === OrderStatus.CANCELLED && to === OrderStatus.REFUNDED && paymentStatus !== PaymentStatus.PAID)) {
     throw new InvalidOrderTransitionError(from, to);
   }
@@ -84,16 +87,6 @@ export function canRefundOrder(
 ): boolean {
   if (paymentStatus === PaymentStatus.PAID) return true;
   return options.allowAlreadyRefunded === true && paymentStatus === PaymentStatus.REFUNDED;
-}
-
-/** Whether an order may be shipped: it may transition to SHIPPED. */
-export function canShipOrder(status: OrderStatusType, paymentStatus: PaymentStatusType): boolean {
-  try {
-    assertOrderTransition(status, OrderStatus.SHIPPED, paymentStatus);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /** Whether a refund of the order restocks its inventory: only PROCESSING does. */

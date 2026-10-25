@@ -61,11 +61,6 @@ type ShippingOption = {
   amountMinor: number;
 };
 
-/** A payment method of the quote of the order. */
-type PaymentMethod = {
-  providerSlug: string;
-};
-
 /** The description of the payment provider of the order. */
 type PaymentMethodDescription = {
   unpaidTimeoutMinutes: number;
@@ -105,7 +100,6 @@ export type OrderPlacementContext = {
   requiresShipping: boolean;
   stockItems: StockItem[];
   fulfillmentPlan: OrderPlacementFulfillmentPlan;
-  quote: { shippingOptions: ShippingOption[]; paymentMethods: PaymentMethod[] };
   selectedShipping: ShippingOption | null;
   paymentMethodDescription: PaymentMethodDescription;
   shippingMinor: number;
@@ -458,7 +452,6 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
           },
           shippingOptionId: data.shippingOptionId,
         }, true);
-        context.quote = quote;
         const selectedShipping = quote.shippingOptions.find((option) => option.id === data.shippingOptionId);
         if (plan.requiresShippingQuote && !selectedShipping) {
           throw new ApiError('SHIPPING_METHOD_UNAVAILABLE');
@@ -711,7 +704,6 @@ function createOrderPlacementContext(userId: string, data: CreateOrderRequest): 
       requiresShippingQuote: false,
       tracksInventory: false,
     },
-    quote: { shippingOptions: [], paymentMethods: [] },
     selectedShipping: null,
     paymentMethodDescription: { unpaidTimeoutMinutes: 0, supportedCurrencies: [] },
     shippingMinor: 0,

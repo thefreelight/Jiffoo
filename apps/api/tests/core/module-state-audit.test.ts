@@ -199,6 +199,7 @@ const codeConstants = [
   'core/logger/logger.ts:productionFormat',
   'core/logger/unified-logger.ts:LoggerService',
   'core/notifications/delivery.ts:secretPattern',
+  'core/notifications/service.ts:englishCopy',
   'core/notifications/service.ts:notificationLocales',
   'core/notifications/service.ts:translations',
   'core/order/schemas.ts:fulfillmentStatusEnum',
@@ -221,7 +222,6 @@ const codeConstants = [
   'core/order/types.ts:PaymentStatus',
   'core/order/types.ts:ShipmentStatus',
   'core/order/types.ts:ShippingAddressSchema',
-  'core/shared/fulfillment-policy.ts:policies',
   'core/shared/money.ts:CURRENCY_EXPONENTS',
   'core/payment/observations.ts:clearLease',
   'core/payment/reconciliation.ts:clearLease',
@@ -374,6 +374,7 @@ const pluginState: Record<string, Entry> = {
   'core/storage/current-plugin-package.ts:registryVersion': { category: 1, reason: 'Registry-version reconciliation resets and rebuilds plugin-derived state.', rebuild: { file: 'core/storage/current-plugin-package.ts', functions: ["setPluginPackageRegistryVersion","corrupt.clear"] } },
   'core/admin/extension-installer/plugin-registry-freshness.ts:reconciledVersion': { category: 1, reason: 'Registry-version reconciliation resets and rebuilds plugin-derived state.', rebuild: { file: 'core/admin/extension-installer/plugin-registry-freshness.ts', functions: ["ensurePluginRegistryFresh","reconcileAllPluginState"] } },
   'core/admin/extension-installer/plugin-registry-freshness.ts:resetEpoch': { category: 1, reason: 'Registry-version reconciliation resets and rebuilds plugin-derived state.', rebuild: { file: 'core/admin/extension-installer/plugin-registry-freshness.ts', functions: ["resetPluginRegistryFreshness","reconciledVersion = null"] } },
+  'core/shared/fulfillment-policy.ts:policies': { category: 2, reason: 'Process wide runtime registry of the fulfilment policies of the product types; it holds the policy flags of a product type only, no user, IP, session or order payload, and a reset path clears it.' },
 };
 const allowlist: Record<string, Entry> = {
   ...Object.fromEntries(codeConstants.map(name => [name, { category: 3, reason: 'Code-defined schema, policy, validator, stateless service or immutable configuration; no retained request data.' }])),

@@ -11,6 +11,11 @@
  * The registry is the only module scope state of this module: it holds the
  * policies of the product types of the installation. It never holds request
  * data, only the policy flags of a product type.
+ *
+ * The checkout quote path always lists the shipping options of the installed
+ * shipping plugins, whatever the product type of a line is; the per product
+ * type quote requirement is enforced by the order placement, which asks the
+ * policy before it selects a shipping option.
  */
 
 export interface FulfillmentPolicy {
@@ -70,4 +75,14 @@ export function registerFulfillmentPolicy(productType: string, policy: Fulfillme
 /** The product types with a registered policy. */
 export function registeredFulfillmentPolicyTypes(): string[] {
   return [...policies.keys()];
+}
+
+/**
+ * Remove every registered policy.
+ *
+ * The registry is a process global, so a test or a shutdown path resets it
+ * with this function; the default policy applies again to every product type.
+ */
+export function clearFulfillmentPolicies(): void {
+  policies.clear();
 }

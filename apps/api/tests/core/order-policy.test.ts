@@ -4,7 +4,6 @@ import {
   allowedOrderTransitions,
   assertOrderTransition,
   canRefundOrder,
-  canShipOrder,
   closedOrderStatuses,
   isOrderClosed,
   orderStatusValues,
@@ -81,7 +80,12 @@ describe('the public order policy', () => {
   it('agrees with the shipping rule of the order module', () => {
     for (const status of orderStatusValues()) {
       for (const paymentStatus of paymentStatusValues()) {
-        expect(canShipOrder(status, paymentStatus)).toBe(allowedOrderTransitions(status).includes('SHIPPED'));
+        const shippable = allowedOrderTransitions(status).includes('SHIPPED');
+        if (shippable) {
+          expect(() => assertOrderTransition(status, 'SHIPPED', paymentStatus)).not.toThrow();
+        } else {
+          expect(() => assertOrderTransition(status, 'SHIPPED', paymentStatus)).toThrow(InvalidOrderTransitionError);
+        }
       }
     }
   });

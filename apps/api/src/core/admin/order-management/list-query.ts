@@ -1,5 +1,6 @@
 import type { OrderStatus, Prisma } from '@prisma/client';
 import { ApiError } from '@/utils/api-errors';
+import { PaymentStatus } from '@/core/order/policy';
 
 export interface OrderFilter {
   customerId?: string;
@@ -25,7 +26,7 @@ export function orderWhere(filter: OrderFilter): Prisma.OrderWhereInput {
   return {
     ...(filter.customerId ? { userId: filter.customerId } : {}),
     ...(filter.status ? { status: filter.status as OrderStatus } : {}),
-    ...(filter.paymentStatus ? { paymentStatus: filter.paymentStatus === 'UNPAID' ? { in: ['PENDING', 'FAILED'] } : filter.paymentStatus } : {}),
+    ...(filter.paymentStatus ? { paymentStatus: filter.paymentStatus === 'UNPAID' ? { in: [PaymentStatus.PENDING, PaymentStatus.FAILED] } : filter.paymentStatus } : {}),
     ...(filter.paymentReview ? { payments: { some: { status: 'REQUIRES_REVIEW', reviewResolution: null } } } : {}),
     ...(filter.createdFrom || filter.createdTo ? { createdAt: {
       ...(filter.createdFrom ? { gte: new Date(filter.createdFrom) } : {}),
