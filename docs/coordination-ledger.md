@@ -882,6 +882,71 @@ check. So the merge was rolled back and nothing was pushed.
 
 This needs a **coordinated window** on the main tree, because the P-3/P-4 line works there.
 
+## 5s. Convergence — the state of the boundary work and of the two branches
+
+This is the closing record of the boundary remediation line. It says what was delivered, what each
+branch holds now, and what is still open with an owner.
+
+### 1. What landed
+
+The boundary remediation line (`codex/lane-orders`, base `49dc5ff1a`) became the main line
+(`codex/core-extension-boundary`) in three merges, each with a green local gate and a green CI run:
+
+| Merge | Content |
+|---|---|
+| `d52120afd` | B-BOUND-A … B-BOUND-J: the table ownership model, the neutral layer, the extension leaf modules, the boundary guard, the auth read projection, the inventory ledger on the order path, the money error contract, the upload adapter, the local sharded gate, and the gate policy and orchestration rules in `AGENTS.md` |
+| `be29e4d79` | the shard gate balanced by measured duration, and the guard widened to `src/infra` and `src/jobs` |
+| `d97763dd3` | the guard's registers recalculated **for the tree it runs in** |
+
+Both branches are green on CI: `codex/lane-orders` at `4d6eb5356` and `codex/core-extension-boundary` at
+`d97763dd3`.
+
+### 2. What each branch is now
+
+- **`codex/core-extension-boundary`** is the integration branch and the **authoritative** copy: CI runs it,
+  and the boundary guard's registers are calibrated for it. The P-3/P-4 main line's own in-flight work sits
+  in its working tree, uncommitted, exactly as it was.
+- **`codex/lane-orders`** is the historical development branch. Its own guard registers are correct for the
+  lane tree but **not** for the main tree, so the lane branch must not be evolved further on its own: the next
+  boundary change goes on the main line, where the guard is calibrated. A later merge of the lane branch into
+  the main line would collide in the guard file; when it happens, take the main line's version and recalculate.
+
+### 3. The guard's registers are a fingerprint, not a filter
+
+With the scan widened to `src/infra` and `src/jobs`, the tree has **446 registered module cycles**. The
+cycle check therefore no longer means "the tree is acyclic"; it means **the module graph's cycle set may
+only change through an explicit registration with a reason** — a new cycle fails, and a registered cycle that
+disappears fails too. That is worth keeping, and it is also the honest description of what it is.
+
+The cycle count is the debt that grows whenever the scan widens. Reducing it is real work: the long rings
+reach for a shared piece, and that piece belongs in a neutral module rather than in one of the ring members.
+
+### 4. Open items, with their owner
+
+| Item | Owner |
+|---|---|
+| `callContract` itself did not move: the charter names `plugin-runtime.ts` as the gateway's home, and it drags the runtime lifecycle with it. Commerce now depends on the admin layer for that one symbol only. | next batch, with a charter decision |
+| `infra/events/delivery.ts` still reaches into `admin/extension-installer` for `deliverInstallationEvent` — the last infra-to-admin edge. | next batch, with the `callContract` move |
+| One real cross-domain table write was found by the widened scan. It is registered as a tracked exception, not as a legal edge. | next batch |
+| The known-cycle count is 446 and the guard's cycle check is a fingerprint rather than a filter. | next batch |
+| The shard gate is wired into the approved runner and its own unit test is registered, but the runners of both sides should agree on the policy before it becomes the default way to run the local full suite. | both gate owners |
+| The P-3/P-4 main line's in-flight work sits uncommitted in the integration tree; it overlaps with the merged tree in three places and needs a human pass. | P-3/P-4 main line |
+| The `plugin_installations` read in the plugin page asset route now goes through the registry's projection on this branch; the main line's own copy of that file was merged from the branch, so it needs the same change if it diverges again. | P-3/P-4 main line |
+
+### 5. What the method turned out to be
+
+The verification cost of this repository is dominated by one fact: the API suite's files share one
+database, so they run one at a time and a local full run takes about forty minutes. Everything else followed
+from that:
+
+- the **scoped** gate (the affected suites plus the planner's mandatory ones) is the local default — 195 s
+  against 2328 s;
+- the **sharded** gate makes a local full run four parallel shards with their own containers — 865 s, and
+  571 s for the slowest shard once the split follows the measured durations;
+- the **boundary guard** turns the architecture rules into a check that fails on the next commit;
+- the **ledger** and the **orchestration rules** keep two lines from stepping on each other, and every gate
+  result is written down with the scope it covered.
+
 ## 5. Handover evidence — B-BOUND-A
 
 **Diff:** 4 files, +333 / −64.

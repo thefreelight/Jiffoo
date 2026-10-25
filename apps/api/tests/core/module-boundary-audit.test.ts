@@ -22,6 +22,16 @@
  *   single edge of the ring is an approved edge, so the ring itself has to be
  *   registered in KNOWN_CYCLES with a reason.
  *
+ *   What this check is, now that the scan covers src/core, src/infra and
+ *   src/jobs: the tree has hundreds of cycles, so the register is a **graph
+ *   fingerprint**, not an acyclicity filter. It fails when a cycle appears
+ *   that is not registered, and it fails when a registered cycle disappears —
+ *   so the module graph's cycle set may only change through an explicit
+ *   registration with a reason. It does **not** claim the tree is acyclic, and
+ *   the count of registered cycles is a debt that grows whenever the scan
+ *   widens. Reducing it is real work: split the modules that form the long
+ *   rings, or move the shared piece they all reach for into a neutral module.
+ *
  * Check 2 — cross-domain table writes
  *   Every table has exactly one owner. The owner is either a module or a
  *   domain. A write (`prisma.<model>.<write>`, `tx.<model>.<write>` or a raw
