@@ -13,6 +13,7 @@ import { sendSuccess, sendError } from '@/utils/response';
 import { extensionInstallerSchemas, repairBootstrapBodySchema, repairBootstrapValidator } from './schemas';
 import { errorResponseSchema } from '@/utils/schema-helpers';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { recordRepairBootstrapRejection, repairBootstrap } from './repair-bootstrap';
 import { getDefaultInstance } from '@/core/extensions/registry';
 import { handlePluginGateway, PluginGatewayError } from './plugin-runtime';
 import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
@@ -267,12 +268,18 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     admin.addHook('onRequest', requireAdmin);
     admin.post<{ Params: { slug: string; installationId: string } }>('/plugin/:slug/instances/:installationId/repair-bootstrap', {
       validatorCompiler: repairBootstrapValidator,
-      onSend: async (request, _reply, payload) => {
+      onSend: async (request, reply, payload) => {
         if (typeof payload === 'string') {
           try {
             const code = JSON.parse(payload)?.error?.code;
             if (typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(code)) repairBootstrapErrors.set(request, code);
           } catch { /* Non-JSON replies carry only their HTTP outcome. */ }
+        }
+        // The rejection audit is written before the reply leaves the process: a
+        // response that is already on the wire cannot be audited afterwards.
+        if (reply.statusCode >= 400) {
+          try { await recordRepairBootstrapRejection(request, request.params.installationId, repairBootstrapErrors.get(request) ?? `HTTP_${reply.statusCode}`); }
+          catch (error) { request.log.error({ err: error }, 'Repair bootstrap rejection audit failed'); }
         }
         return payload;
       },
@@ -281,13 +288,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         querystring: { type: 'object', additionalProperties: false, properties: {} },
         response: { 200: { type: 'object', additionalProperties: false, required: ['success', 'data'], properties: { success: { type: 'boolean', enum: [true] }, data: { type: 'object', additionalProperties: true, required: ['id', 'status', 'paused', 'attempt'], properties: { id: { type: 'string' }, status: { type: 'string', enum: ['queued', 'running', 'succeeded', 'failed', 'cancelled'] }, paused: { type: 'boolean' }, attempt: { type: 'integer' } } } } },
           400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 409: errorResponseSchema, 422: errorResponseSchema, 500: errorResponseSchema, 503: errorResponseSchema, 504: errorResponseSchema } },
-      onResponse: async (request, reply) => {
-        if (reply.statusCode < 400) return;
-        try { await PluginManagementService.recordRepairBootstrapRejection(request, request.params.installationId, repairBootstrapErrors.get(request) ?? `HTTP_${reply.statusCode}`); }
-        catch { request.log.error('Repair bootstrap rejection audit failed'); }
-      },
     }, async (request, reply) => {
-      try { return sendSuccess(reply, await PluginManagementService.repairBootstrap(request.params.slug, request.params.installationId, request.body, request)); }
+      try { return sendSuccess(reply, await repairBootstrap(request.params.slug, request.params.installationId, request.body, request)); }
       catch (error) { repairBootstrapErrors.set(request, mapApiError(error).body.error.code); return sendMappedError(reply, error); }
     });
     await admin.register(themeManagementRoutes);
