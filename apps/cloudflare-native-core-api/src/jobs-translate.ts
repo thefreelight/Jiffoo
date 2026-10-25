@@ -77,7 +77,8 @@ async function translateTitles(
   const targetLanguage = locale === 'zh-Hant' ? 'Traditional Chinese' : 'Simplified Chinese';
   const lines = jobs.map((job, index) => `${index + 1}. ${job.title}`);
   try {
-    const result = await env.AI.run(model, {
+    const result = await Promise.race([
+      env.AI.run(model, {
       messages: [
         {
           role: 'system',
@@ -86,8 +87,13 @@ async function translateTitles(
         { role: 'user', content: lines.join('\n') },
       ],
       max_tokens: 1024,
-    }) as { response?: string };
-    const text = result?.response || '';
+    }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('AI translation timed out')), 8_000)),
+    ]) as { response?: unknown };
+    // Workers AI response shapes vary by model/SDK version: response can be a
+    // plain string or a nested object — normalize anything into text.
+    const raw = (result as { response?: unknown } | null)?.response ?? result;
+    const text = typeof raw === 'string' ? raw : JSON.stringify(raw ?? '');
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return translated;
     const parsed = JSON.parse(jsonMatch[0]) as { translations?: string[] };
@@ -96,8 +102,9 @@ async function translateTitles(
       const value = list[index];
       if (typeof value === 'string' && value.trim()) translated.set(job.jobId, value.trim());
     });
-  } catch {
+  } catch (error) {
     // Translation is best-effort: the original titles render on any failure.
+    console.error(JSON.stringify({ message: 'job title translation failed', error: error instanceof Error ? error.message : String(error).slice(0, 200) }));
   }
   return translated;
 }
@@ -125,6 +132,7 @@ export async function applyJobTitleTranslations(
   env: JobTitleTranslationEnv,
   jobs: TranslatableJob[],
   locale: string | null,
+  waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<Map<string, string>> {
   const substitutions = new Map<string, string>();
   if (!isTranslatableJobLocale(locale) || jobs.length === 0) return substitutions;
@@ -138,16 +146,24 @@ export async function applyJobTitleTranslations(
   for (const [jobId, title] of cached) substitutions.set(jobId, title);
   const misses = jobList.filter((job) => !cached.has(job.jobId));
   if (misses.length === 0) return substitutions;
-  // Translate every unseen title on this page in parallel batches of 12 —
-  // one-time cost, cached from then on.
-  const batches: TranslatableJob[][] = [];
-  for (let index = 0; index < misses.length; index += 12) batches.push(misses.slice(index, index + 12));
-  const settled = await Promise.all(batches.map((batch) => translateTitles(env, locale, batch)));
-  const fresh = new Map<string, string>();
-  for (const batch of settled) for (const [jobId, title] of batch) fresh.set(jobId, title);
-  if (fresh.size > 0) {
-    for (const [jobId, title] of fresh) substitutions.set(jobId, title);
-    await cacheTitles(env, locale, fresh);
+  // Inline the first batch (bounded by the AI timeout) so the response stays
+  // fast; translate the rest detached via waitUntil — the next request finds
+  // them cached. Without a waitUntil context (tests) everything runs inline.
+  const inline = misses.slice(0, 12);
+  const rest = misses.slice(12);
+  const fresh = await translateTitles(env, locale, inline);
+  for (const [jobId, title] of fresh) substitutions.set(jobId, title);
+  if (fresh.size > 0) await cacheTitles(env, locale, fresh);
+  if (rest.length > 0) {
+    const background = (async () => {
+      for (let index = 0; index < rest.length; index += 12) {
+        const batch = rest.slice(index, index + 12);
+        const translated = await translateTitles(env, locale, batch);
+        if (translated.size > 0) await cacheTitles(env, locale, translated);
+      }
+    })();
+    if (waitUntil) waitUntil(background.catch(() => undefined));
+    else await background;
   }
   return substitutions;
 }
