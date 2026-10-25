@@ -214,8 +214,10 @@ describe('ORD-1 order state machine routes', () => {
     // the concurrent edit has to address the cart item the checkout consumes.
     const cart = await CartService.getCart(userId);
     const itemId = cart.items[0].id;
+    await CartService.updateCartItem(userId, itemId, 3);
     const read = barrier();
     const release = barrier();
+    let snapshotQuantity: number | undefined;
     const consume = CartService.consumePurchasedItems.bind(CartService);
     const spy = vi.spyOn(CartService, 'consumePurchasedItems').mockImplementation((tx, id, lines) => {
       const controlled = new Proxy(tx, {
@@ -224,6 +226,7 @@ describe('ORD-1 order state machine routes', () => {
             get(delegate, method) {
               if (method === 'findUnique') return async (args: any) => {
                 const result = await delegate.findUnique(args);
+                snapshotQuantity = result?.items.find((item: { id: string; quantity: number }) => item.id === itemId)?.quantity;
                 read.release();
                 await release.promise;
                 return result;
@@ -242,7 +245,11 @@ describe('ORD-1 order state machine routes', () => {
     }).then(response => response);
     try {
       await read.promise;
+      expect(snapshotQuantity).toBe(3);
       await CartService.updateCartItem(userId, itemId, quantity);
+      const editedItem = await prisma.cartItem.findUnique({ where: { id: itemId } });
+      if (quantity === 0) expect(editedItem).toBeNull();
+      else expect(editedItem?.quantity).toBe(quantity);
       release.release();
       const response = await request;
       expect(response.statusCode).toBe(201);

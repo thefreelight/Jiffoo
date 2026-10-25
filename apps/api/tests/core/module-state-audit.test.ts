@@ -8,6 +8,8 @@ type Entry = { category: 1 | 2 | 3; reason: string; rebuild?: { file: string; fu
 
 // Every entry is explicit: new names, including persistent class fields, require review.
 const codeConstants = [
+  'core/admin/extension-installer/schemas.ts:repairBootstrapAjv',
+  'core/admin/extension-installer/schemas.ts:repairBootstrapBodySchema',
   'core/plugin-pages/origin-policy.ts:privateFileRoutes',
   'core/plugin-storage/content.ts:fileTypes',
   'core/plugin-storage/grants.ts:claimsSchema',
@@ -356,6 +358,8 @@ const runtimeHandles = [
   'server.ts:shutdownDeadlineExceeded',
 ] as const;
 const pluginState: Record<string, Entry> = {
+  'core/admin/extension-installer/routes.ts:repairBootstrapErrors': { category: 2, reason: 'Weak request keys retain only the current repair admission error code until response auditing; no cross-request outcome cache or durable authority.' },
+  'core/auth/middleware.ts:verifiedSessions': { category: 2, reason: 'Weak request keys retain the signature-verified subject and session version only for that request; transactional admission rechecks the live user row and this is not a reusable session cache.' },
   'core/plugins/tasks.ts:scopes': { category: 2, reason: 'Invocation-local identity and claim authority; closed on actual handler settlement, never a cached identity.' },
   'core/plugins/task-worker.ts:PluginTaskWorker.pending': { category: 2, reason: 'Actual in-flight task promises retain physical occupancy until settlement; PostgreSQL owns admission and policy.' },
   'core/plugins/task-worker.ts:PluginTaskWorker.settledSlots': { category: 2, reason: 'Bounded slot IDs with confirmed local promise settlement await an idempotent PostgreSQL release acknowledgement.' },

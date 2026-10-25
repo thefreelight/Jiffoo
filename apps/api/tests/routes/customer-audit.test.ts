@@ -54,6 +54,35 @@ describe('Customer administration audit events', () => {
     expect(await prisma.user.findUnique({ where: { id: user.id } })).toBeNull();
   });
 
+  it('revokes old access and refresh tokens on admin deactivation without revoking sessions on rename or reactivation', async () => {
+    const user = await customer();
+    const login = await app.inject({
+      method: 'POST', url: '/api/v1/auth/login',
+      payload: { email: user.email, password: user.password },
+    });
+    expect(login.statusCode).toBe(200);
+    const { access_token, refresh_token } = login.json().data;
+    expect(access_token).toEqual(expect.any(String));
+    expect(refresh_token).toEqual(expect.any(String));
+    const headers = { authorization: `Bearer ${access_token}` };
+    const before = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+    expect((await update(user.id, { username: 'Session Preserving Rename' })).statusCode).toBe(200);
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).sessionVersion).toBe(before.sessionVersion);
+    expect((await app.inject({ method: 'GET', url: '/api/v1/account/profile', headers })).statusCode).toBe(200);
+    expect((await update(user.id, { isActive: false })).statusCode).toBe(200);
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({
+      isActive: false, sessionVersion: before.sessionVersion + 1,
+    });
+    expect((await update(user.id, { isActive: true })).statusCode).toBe(200);
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).toMatchObject({
+      isActive: true, sessionVersion: before.sessionVersion + 1,
+    });
+    expect((await app.inject({ method: 'GET', url: '/api/v1/account/profile', headers })).statusCode).toBe(401);
+    expect((await app.inject({
+      method: 'POST', url: '/api/v1/auth/refresh', payload: { refresh_token },
+    })).statusCode).toBe(401);
+  });
+
   it('does not record no-ops, validation failures, protected accounts or missing customers', async () => {
     const user = await customer();
     expect((await update(user.id, { username: user.username, isActive: true })).statusCode).toBe(200);

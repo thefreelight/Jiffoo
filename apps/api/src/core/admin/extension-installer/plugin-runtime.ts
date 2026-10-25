@@ -22,7 +22,7 @@
 
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { randomUUID } from 'crypto';
-import { assertTaskClaim, recordTaskPrincipal, withTaskScope, type TaskClaim } from '@/core/plugins/tasks';
+import { assertTaskClaim, recordTaskPrincipal, withTaskScope, taskDeclarationIdentity, type TaskClaim } from '@/core/plugins/tasks';
 import type { TaskInput, PluginTasks, TaskHandlerOptions } from '@jiffoo/shared';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { getDefaultInstance } from '@/core/extensions/registry';
@@ -883,6 +883,32 @@ export async function deliverInstallationEvent(installationId: string, event: Pl
     return null;
   } finally {
     await releaseRuntime(runtime);
+  }
+}
+
+export type RepairRuntimeIdentity = Readonly<{ installationId: string; generation: bigint; zipHash: string; name: string; version: number; declaration: string }>;
+
+/** Readiness runs without a task scope and never authorizes plugin writes. */
+export async function prepareRepairBootstrap(slug: string, installationId: string): Promise<RepairRuntimeIdentity> {
+  const instance = await prisma.pluginInstallation.findUnique({ where: { id: installationId }, include: { plugin: true } });
+  if (!instance || instance.pluginSlug !== slug || instance.deletedAt || instance.plugin.deletedAt || !instance.enabled) throw new ApiError('PLUGIN_DISABLED');
+  if (instance.taskDependencyUnavailable) throw new ApiError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE');
+  const manifest = await readPluginManifest(instance.plugin);
+  const selected = manifest.repairBootstrap;
+  const declaration = manifest.tasks?.find(task => task.name === selected?.name && task.version === selected?.version);
+  if (!selected || !declaration) throw new ApiError('PLUGIN_TASK_BOOTSTRAP_NOT_ALLOWED');
+  const pending = ensureInternalRuntime(slug, manifest, { slug, installationId, zipHash: instance.plugin.zipHash || '', protectionGeneration: instance.protectionGeneration, instanceKey: instance.instanceKey, config: decryptPluginConfig(manifest, parseJsonObject(instance.configJson)) }, true);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let expired = false;
+  try {
+    const runtime = await Promise.race([pending, new Promise<never>((_, reject) => { timer = setTimeout(() => { expired = true; reject(new ApiError('PLUGIN_TIMEOUT')); }, 10_000); })]);
+    try {
+      if (!runtime.taskHandlers.has(`${selected.name}:${selected.version}`)) throw new ApiError('PLUGIN_TASK_BOOTSTRAP_NOT_ALLOWED');
+      return Object.freeze({ installationId, generation: instance.protectionGeneration, zipHash: instance.plugin.zipHash || '', name: selected.name, version: selected.version, declaration: taskDeclarationIdentity(declaration) });
+    } finally { await releaseRuntime(runtime); }
+  } finally {
+    if (timer) clearTimeout(timer);
+    if (expired) void pending.then(releaseRuntime).catch(() => undefined);
   }
 }
 

@@ -87,6 +87,11 @@ describe('Plugin SDK create and generated projects', () => {
       expect(manifest.configSchema.properties.apiKey).toEqual({ type: 'string', title: 'API key', sensitive: true });
       expect(await fs.readdir(output)).toEqual(['.gitignore', 'examples', 'manifest.json', 'migrations', 'package.json', 'src', 'tools', 'types']);
       expect(await fs.readFile(path.join(output, 'examples/tasks.ts'), 'utf8')).toContain('registerRepairTask');
+      expect(manifest).not.toHaveProperty('repairBootstrap');
+      const recipe = await fs.readFile(path.join(output, 'examples/tasks.ts'), 'utf8');
+      expect(recipe).toContain('"repairBootstrap": { "name": "repair", "version": 1 }');
+      expect(recipe).toContain('A repair.v1 task alone grants no access.');
+      expect(recipe).not.toContain('ctx.tasks.enqueue(');
       const packageJson = JSON.parse(await fs.readFile(path.join(output, 'package.json'), 'utf8'));
       expect(Object.keys(packageJson.scripts)).toEqual(['build', 'pack', 'sign', 'upload', 'dev']);
       expect(packageJson.devDependencies).toEqual({ esbuild: '0.27.2' });
@@ -244,6 +249,7 @@ describe('Plugin SDK create and generated projects', () => {
       const declarations = await fs.readFile(snapshot, 'utf8');
       for (const name of ['PluginContext', 'PluginEntryModule', 'PluginLifecycleExports', 'LifecycleContext', 'PaymentV2Contract', 'ShippingV1Contract', 'TaxV1Contract', 'FulfillmentV1Contract', 'NotificationV1Contract']) expect(declarations).toContain(`export interface ${name}`);
       for (const name of ['PluginDatabase', 'PluginDatabaseTransaction', 'PluginDatabaseOptions', 'PluginDatabaseResult']) expect(declarations).toContain(`export interface ${name}`);
+      expect(declarations).toContain('export interface PluginRepairBootstrapDeclaration');
       expect(declarations).toContain('Plugin code is trusted in-process code.');
       expect(declarations).toContain('it does not isolate a malicious plugin.');
       expect(declarations).not.toMatch(/from ['"]|import\(/);
@@ -255,6 +261,10 @@ describe('Plugin SDK create and generated projects', () => {
         'type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;',
         'type Assert<T extends true> = T;',
         'type ContextKeysMatch = Assert<Equal<keyof Local.PluginContext, keyof Core.PluginContext>>;',
+        'type RepairBootstrapMatch = Assert<Equal<Local.PluginRepairBootstrapDeclaration, Core.PluginRepairBootstrapDeclaration>>;',
+        'type ManifestRepairBootstrapMatch = Assert<Equal<Local.PluginManifest["repairBootstrap"], Core.PluginManifest["repairBootstrap"]>>;',
+        'type RepairBootstrapFieldsMatch = Assert<Equal<keyof Local.PluginRepairBootstrapDeclaration, "name" | "version">>;',
+        'const bootstrapManifest: Pick<Local.PluginManifest, "repairBootstrap"> = { repairBootstrap: { name: "reconcile-orders", version: 2 } };',
         'declare const coreContext: Core.PluginContext;',
         'declare const localContext: Local.PluginContext;',
         'const localContextAssignment: Local.PluginContext = coreContext;',

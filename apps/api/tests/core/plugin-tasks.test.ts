@@ -60,6 +60,14 @@ it('retains idempotency keys and normalized delay requests through cancellation 
   expect((await f.run(() => f.api.list({ status: 'cancelled' }))).items).toHaveLength(1);
   expect((await prisma.pluginTask.findUniqueOrThrow({ where: { id: first.id } })).payload).toEqual({ a: 1, b: 2 });
 });
+it('reserves bootstrap keys and preserves ordinary replay after handler declaration removal', async () => {
+  const f = await fixture();
+  await expect(f.enqueue('admin-repair-bootstrap:forged')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  const task = await f.enqueue('historical');
+  await f.run(() => f.api.cancel(task.id));
+  await prisma.pluginInstall.update({ where: { slug: f.slug }, data: { manifestJson: { tasks: [] } } });
+  expect((await f.enqueue('historical')).id).toBe(task.id);
+});
 it('binds anonymous requests to null and forbids request identity overrides', async () => {
   const f = await fixture();
   const task = await f.enqueue();

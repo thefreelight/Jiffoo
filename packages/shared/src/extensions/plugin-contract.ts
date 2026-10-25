@@ -226,6 +226,11 @@ export interface PluginTaskDeclaration {
   maxRuntimeSeconds: number;
   onFinalFailure?: { maxRuntimeSeconds: number };
 }
+/** Explicitly authorizes one declared task as the administrator's unbound repair entry. */
+export interface PluginRepairBootstrapDeclaration {
+  name: string;
+  version: number;
+}
 export interface PluginServiceDeclaration {
   name: string;
   version: number;
@@ -299,6 +304,23 @@ function validatePageDeclarations(manifest: Record<string, unknown>, issues: Plu
 }
 
 function validateTaskAndServiceDeclarations(manifest: Record<string, unknown>, issues: PluginManifestIssue[]): void {
+  if (manifest.repairBootstrap !== undefined) {
+    const bootstrap = manifest.repairBootstrap;
+    const invalid = (path: string, message: string) => pushIssue(issues, path, message, 'PLUGIN_TASK_DECLARATION_INVALID');
+    if (!isRecord(bootstrap)) {
+      invalid('repairBootstrap', 'repairBootstrap must be a task identity object');
+    } else {
+      for (const key of Object.keys(bootstrap)) {
+        if (!['name', 'version'].includes(key)) invalid(`repairBootstrap.${key}`, 'Unknown repair bootstrap field');
+      }
+      if (!declarationName(bootstrap.name)) invalid('repairBootstrap.name', 'Invalid declaration name');
+      if (!positiveInteger(bootstrap.version)) invalid('repairBootstrap.version', 'Version must be a positive integer');
+      if (!Array.isArray(manifest.tasks) || !manifest.tasks.some(task => isRecord(task)
+        && task.name === bootstrap.name && task.version === bootstrap.version)) {
+        invalid('repairBootstrap', 'Repair bootstrap must exactly match a declared task name and version');
+      }
+    }
+  }
   for (const field of ['tasks', 'services', 'serviceDependencies'] as const) {
     const declarations = manifest[field];
     if (declarations === undefined) continue;
@@ -413,6 +435,8 @@ export interface PluginManifest {
   database?: PluginDatabaseDeclaration;
   ui?: PluginUiDeclaration;
   tasks?: PluginTaskDeclaration[];
+  /** Omission forbids administrator bootstrap, including for a task named repair.v1. */
+  repairBootstrap?: PluginRepairBootstrapDeclaration;
   services?: PluginServiceDeclaration[];
   serviceDependencies?: PluginServiceDependencyDeclaration[];
 }
@@ -463,7 +487,7 @@ const manifestFields = new Set([
   'minApiVersion', 'sdkVersion', 'requiredApiVersion', 'dependencies', 'tags',
   'configSchema', 'contracts', 'requiredScopes', 'subscriptions', 'lifecycle', 'database',
   'trustLevel', 'capabilities', 'webhooks',
-  'ui', 'tasks', 'services', 'serviceDependencies',
+  'ui', 'tasks', 'repairBootstrap', 'services', 'serviceDependencies',
 ]);
 
 function rejectUnknown(
