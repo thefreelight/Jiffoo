@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { Prisma, type Payment } from '@prisma/client';
 import { PLUGIN_CONTRACT_VERSIONS, type PaymentFact, type PaymentV2Output } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
-import { ApiError } from '@/utils/api-errors';
+import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
-import { createNotification } from '@/core/notifications/service';
+import { createNotification, type NotificationTransaction } from '@/core/notifications/service';
 import { OrderService } from '@/core/order/service';
 import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { paymentNow, PAYMENT_SESSION_LIFETIME_MS } from './clock';
@@ -14,15 +14,49 @@ import { bindPaymentProviderAccount } from './provider-account';
 import { observePaymentFact } from './observations';
 
 type SessionInput = { orderId: string; userId: string; email: string; pluginSlug: string; idempotencyKey?: string; returnUrl: string; cancelUrl: string };
+
+/**
+ * The payment status to API error table.
+ *
+ * The table is built inside a function so the module keeps no container at
+ * module scope. A new payment state is mapped by adding one entry here; a
+ * state that is not in the table falls through to the missing session field
+ * check of `response`.
+ */
+function paymentStatusErrorCodes(): Partial<Record<Payment['status'], ErrorCode>> {
+  return {
+    CANCELLED: 'ORDER_NOT_PAYABLE',
+    UNKNOWN: 'PAYMENT_OUTCOME_UNKNOWN',
+    REQUIRES_REVIEW: 'PAYMENT_REQUIRES_REVIEW',
+    FAILED: 'PAYMENT_IDEMPOTENCY_CONFLICT',
+    EXPIRED: 'PAYMENT_IDEMPOTENCY_CONFLICT',
+  };
+}
+
 function response(payment: Payment) {
-  if (payment.status === 'CANCELLED') throw new ApiError('ORDER_NOT_PAYABLE');
-  if (payment.status === 'UNKNOWN') throw new ApiError('PAYMENT_OUTCOME_UNKNOWN');
-  if (payment.status === 'REQUIRES_REVIEW') throw new ApiError('PAYMENT_REQUIRES_REVIEW');
-  if (payment.status === 'FAILED' || payment.status === 'EXPIRED') throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
+  const statusError = paymentStatusErrorCodes()[payment.status];
+  if (statusError) throw new ApiError(statusError);
   if (!payment.sessionId || !payment.actionJson || !payment.expiresAt) throw new ApiError('PAYMENT_ATTEMPT_OPEN');
   const action = payment.actionJson as NonNullable<PaymentV2Output<'createSession'>['action']>;
   return { paymentId: payment.id, sessionId: payment.sessionId, url: payment.sessionUrl || undefined, action, expiresAt: payment.expiresAt.toISOString() };
 }
+/**
+ * Record the order confirmation notification of a created payment session.
+ *
+ * The notification is written inside the payment transaction today; the event
+ * driven variant (an emitted order event delivered by the core subscribers) is
+ * the follow up. The arguments, the values and the dedup key stay the ones the
+ * inline call used.
+ */
+async function recordOrderConfirmation(
+  tx: NotificationTransaction,
+  confirmation: { userId: string; toAddress: string; orderId: string; orderNumber: string; instructions: string },
+) {
+  await createNotification(tx, 'order_confirmation', confirmation.userId, confirmation.toAddress, {
+    orderId: confirmation.orderNumber, instructions: confirmation.instructions,
+  }, { relatedType: 'order', relatedId: confirmation.orderId, dedupKey: 'notification:order_confirmation:' + confirmation.orderId });
+}
+
 export async function createPaymentSession(input: SessionInput) {
   const orderIdentity = await prisma.order.findFirst({ where: { id: input.orderId, userId: input.userId }, select: { currency: true } });
   if (!orderIdentity) throw new ApiError('NOT_FOUND');
@@ -89,9 +123,11 @@ export async function createPaymentSession(input: SessionInput) {
       await tx.payment.update({ where: { id: current.id }, data: { status: 'REQUIRES_REVIEW', failureReason: 'creation_fact_mismatch' } });
       throw new ApiError('PAYMENT_REQUIRES_REVIEW');
     }
-    if (current.sessionId && current.actionJson) await createNotification(tx, 'order_confirmation', input.userId, reservation.order.customerEmail || input.email, {
-      orderId: reservation.order.orderNumber, instructions: fact.action?.type === 'instructions' ? fact.action.text : '',
-    }, { relatedType: 'order', relatedId: input.orderId, dedupKey: 'notification:order_confirmation:' + input.orderId });
+    if (current.sessionId && current.actionJson) await recordOrderConfirmation(tx, {
+      userId: input.userId, toAddress: reservation.order.customerEmail || input.email,
+      orderId: input.orderId, orderNumber: reservation.order.orderNumber,
+      instructions: fact.action?.type === 'instructions' ? fact.action.text : '',
+    });
     return current;
   });
   return response(payment);

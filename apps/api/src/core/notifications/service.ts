@@ -56,6 +56,17 @@ const translations: Record<NotificationLocale, LocaleCopy> = {
   },
 };
 
+/**
+ * The notification vocabulary.
+ *
+ * The copy table is the source of truth for the types a notification may have:
+ * the keys of the English copy, in the order of the table. The `NotificationType`
+ * union stays the compile time contract for the consumers of the copy.
+ */
+export function notificationTypes(): NotificationType[] {
+  return Object.keys(translations.en) as NotificationType[];
+}
+
 export function normalizeNotificationLocale(value: unknown): NotificationLocale | null {
   if (typeof value !== 'string') return null;
   if (notificationLocales.includes(value as NotificationLocale)) return value as NotificationLocale;

@@ -12,7 +12,10 @@ import type { EventPayload } from '@jiffoo/shared';
  */
 export const CORE_EVENT_TARGET = 'core';
 
-type CoreSubscriber = (data: any) => Promise<void>;
+export type CoreSubscriber = (data: any) => Promise<void>;
+
+/** One registration: the event version a subscriber reacts to and the subscriber itself. */
+type CoreSubscriberRegistration = { version: number; subscriber: CoreSubscriber };
 
 async function notifyOrder(tx: NotificationTransaction, orderId: string, type: 'shipped' | 'cancelled' | 'refunded' | 'payment_received', values: { reason?: string }, dedupKey: string) {
   const order = await tx.order.findUnique({ where: { id: orderId }, select: { id: true } });
@@ -39,14 +42,31 @@ async function notifyPaymentSucceeded(data: EventPayload<'payment.succeeded'>) {
   await prisma.$transaction((tx) => notifyOrder(tx, data.orderId, 'payment_received', {}, `notification:payment_received:${data.orderId}`));
 }
 
+/**
+ * The core subscriber registry.
+ *
+ * The table is built inside a function so the module keeps no registry
+ * container at module scope: every lookup rebuilds it from the subscriber
+ * functions. A new domain event is registered by adding one entry here, and
+ * an event type may carry more than one subscriber.
+ */
+function coreSubscriberRegistry(): Record<string, CoreSubscriberRegistration[]> {
+  return {
+    'order.cancelled': [{ version: 1, subscriber: notifyOrderCancelled }],
+    'order.fulfilled': [{ version: 1, subscriber: notifyOrderShipped }],
+    'order.refunded': [{ version: 1, subscriber: notifyOrderRefunded }],
+    'payment.succeeded': [{ version: 1, subscriber: notifyPaymentSucceeded }],
+  };
+}
+
+/** The core subscribers of an event type, in registration order. */
+export function coreSubscribersFor(type: string, version: number): CoreSubscriber[] {
+  return (coreSubscriberRegistry()[type] || [])
+    .filter(registration => registration.version === version)
+    .map(registration => registration.subscriber);
+}
+
 /** Resolve the core subscriber for an event, or null when the core ignores it. */
 export function coreSubscriberFor(type: string, version: number): CoreSubscriber | null {
-  if (version !== 1) return null;
-  switch (type) {
-    case 'order.cancelled': return notifyOrderCancelled;
-    case 'order.fulfilled': return notifyOrderShipped;
-    case 'order.refunded': return notifyOrderRefunded;
-    case 'payment.succeeded': return notifyPaymentSucceeded;
-    default: return null;
-  }
+  return coreSubscribersFor(type, version)[0] || null;
 }
