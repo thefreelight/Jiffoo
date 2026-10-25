@@ -37,7 +37,7 @@ import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odo
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
 import { applyProductCopyOverrides, loadProductCopyOverrides, productCopyPathKind } from './product-copy';
 import { authenticateNativeAdmin } from './auth';
-import { processNativeJobsSync, tryNativeJobsAdminProxy, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
+import { authenticateJobsUser, processNativeJobsSync, tryNativeJobsAdminProxy, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativeRemoteRadarApplications } from './remoteradar-applications';
 import { tryNativeRemoteRadarAudit } from './remoteradar-audit';
 import { expireNativeWalletReservations, tryNativeWallet } from './native-wallet';
@@ -317,7 +317,7 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (snapshotImport) return snapshotImport;
     const nativeInstall = await tryNativeInstall(nativeRequest, env);
     if (nativeInstall) return nativeInstall;
-    const nativeJobsProxy = await tryNativeJobsProxy(nativeRequest, env);
+    const nativeJobsProxy = await tryNativeJobsProxy(nativeRequest, env, async (request) => authenticateJobsUser(request, env), (promise) => ctx.waitUntil(promise));
     if (nativeJobsProxy) return nativeJobsProxy;
     const nativeJobsAdminProxy = await tryNativeJobsAdminProxy(nativeRequest, env, async (request) => authenticateNativeAdmin(request, env as never) ?? null);
     if (nativeJobsAdminProxy) return nativeJobsAdminProxy;

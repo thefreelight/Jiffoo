@@ -80,7 +80,7 @@ export async function tryNativeJobsAdminProxy(
   return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: responseHeaders });
 }
 
-const authenticateJobsUser: NativeJobsAuthenticator = async (request, env) => {
+export const authenticateJobsUser: NativeJobsAuthenticator = async (request, env) => {
   const { authenticateNativeUser } = await import('./auth');
   return authenticateNativeUser(request, env as NativeJobsProxyEnv & import('./auth').NativeAuthEnv);
 };
@@ -108,6 +108,7 @@ export async function tryNativeJobsProxy(
   request: Request,
   env: NativeJobsProxyEnv,
   authenticate: NativeJobsAuthenticator = authenticateJobsUser,
+  waitUntil?: (promise: Promise<unknown>) => void,
 ): Promise<Response | null> {
   const incoming = new URL(request.url);
   const upstreamPath = incoming.pathname === '/api/v1/jobs'
@@ -189,7 +190,7 @@ export async function tryNativeJobsProxy(
         try {
           const substitutions = await applyJobTitleTranslations(env as never, jobs
             .filter((job) => typeof job?.jobId === 'string' && typeof job?.title === 'string')
-            .map((job) => ({ jobId: job.jobId, title: job.title })), locale);
+            .map((job) => ({ jobId: job.jobId, title: job.title })), locale, waitUntil);
           for (const job of jobs) {
             const translated = substitutions.get(job.jobId);
             if (translated && job.title !== translated) {
