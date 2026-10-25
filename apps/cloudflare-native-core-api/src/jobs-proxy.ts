@@ -1,3 +1,5 @@
+import { applyJobTitleTranslations, detectJobLocale } from './jobs-translate';
+
 export interface NativeJobsProxyEnv {
   JOBS_SERVICE_URL?: string;
   JOBS_SERVICE?: { fetch(request: Request): Promise<Response> };
@@ -170,5 +172,40 @@ export async function tryNativeJobsProxy(
   const responseHeaders = new Headers(upstream.headers);
   responseHeaders.set('x-jiffoo-runtime', 'cloudflare-native-jobs-proxy');
   responseHeaders.set('cache-control', profileRequest || !upstream.ok ? 'no-store' : 'public, max-age=30, stale-while-revalidate=120');
+  if (upstreamPath === '/api/jobs' && upstream.ok && request.method === 'GET') {
+    // Per-locale job title substitution: the storefront feed renders whatever
+    // titles this response carries, so translations happen here once and are
+    // cached in D1 (no theme changes, no per-visit AI spend after warm-up).
+    let payload: { jobs?: Array<{ jobId: string; title: string; titleOriginal?: string }> } | null = null;
+    try {
+      payload = await upstream.json() as { jobs?: Array<{ jobId: string; title: string; titleOriginal?: string }> };
+    } catch {
+      payload = null;
+    }
+    if (payload) {
+      const locale = detectJobLocale(request);
+      const jobs = payload.jobs;
+      if (locale && Array.isArray(jobs) && jobs.length > 0) {
+        try {
+          const substitutions = await applyJobTitleTranslations(env as never, jobs
+            .filter((job) => typeof job?.jobId === 'string' && typeof job?.title === 'string')
+            .map((job) => ({ jobId: job.jobId, title: job.title })), locale);
+          for (const job of jobs) {
+            const translated = substitutions.get(job.jobId);
+            if (translated && job.title !== translated) {
+              job.titleOriginal = job.title;
+              job.title = translated;
+            }
+          }
+          if (substitutions.size > 0) responseHeaders.set('x-jiffoo-jobs-translated', locale);
+        } catch {
+          // Translation is best-effort: the original titles ship untranslated.
+        }
+      }
+      return new Response(JSON.stringify(payload), {
+        status: upstream.status, statusText: upstream.statusText, headers: responseHeaders,
+      });
+    }
+  }
   return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: responseHeaders });
 }
