@@ -13,17 +13,11 @@ import {
   createSuccessResponseSchema,
   errorResponseSchema,
 } from '@/types/common-dto';
+import { orderStatusValues, paymentStatusValues } from './policy';
 
-const orderStatusEnum = [
-  'PENDING',
-  'PROCESSING',
-  'SHIPPED',
-  'DELIVERED',
-  'CANCELLED',
-  'REFUNDED',
-] as const;
+const orderStatusEnum = [...orderStatusValues()];
 
-const paymentStatusEnum = ['PENDING', 'PAID', 'FAILED', 'REFUNDED'] as const;
+const paymentStatusEnum = [...paymentStatusValues()];
 
 const fulfillmentStatusEnum = [
   'pending',

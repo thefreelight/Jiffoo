@@ -3,10 +3,12 @@
  * Handles aggregated data for admin dashboard
  */
 
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { systemSettingsService } from '@/core/settings/service';
 import { getTodayAndYesterdayRangeUtc, getStoreCalendarDays, normalizeTimezone } from '@/utils/timezone';
+import { closedOrderStatuses, OrderStatus } from '@/core/order/policy';
 import { paymentReviewWhere } from '../order-management/service';
 
 function calculateTrendPercent(current: number, previous: number): number {
@@ -28,6 +30,7 @@ export class AdminDashboardService {
             systemSettingsService.getShopCurrency(),
             systemSettingsService.getTimezone(),
         ]);
+        const closedStatusList = closedOrderStatuses().map(status => `'${status}'`).join(', ');
         const referenceDate = new Date();
         const { startOfTodayUtc, startOfYesterdayUtc } = getTodayAndYesterdayRangeUtc(timezone, referenceDate);
         const { days, endUtc } = getStoreCalendarDays(timezone, 14, referenceDate);
@@ -55,7 +58,7 @@ export class AdminDashboardService {
                 _sum: { totalAmount: true },
                 where: {
                     paymentStatus: 'PAID',
-                    status: { notIn: ['CANCELLED', 'REFUNDED'] }
+                    status: { notIn: closedOrderStatuses() }
                 }
             }),
             prisma.order.count(),
@@ -65,7 +68,7 @@ export class AdminDashboardService {
                 _sum: { totalAmount: true },
                 where: {
                     paymentStatus: 'PAID',
-                    status: { notIn: ['CANCELLED', 'REFUNDED'] },
+                    status: { notIn: closedOrderStatuses() },
                     createdAt: { gte: startOfTodayUtc, lt: endUtc }
                 }
             }),
@@ -73,7 +76,7 @@ export class AdminDashboardService {
                 _sum: { totalAmount: true },
                 where: {
                     paymentStatus: 'PAID',
-                    status: { notIn: ['CANCELLED', 'REFUNDED'] },
+                    status: { notIn: closedOrderStatuses() },
                     createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc }
                 }
             }),
@@ -98,11 +101,11 @@ export class AdminDashboardService {
             prisma.user.count({ where: { role: 'USER', createdAt: { gte: startOfTodayUtc, lt: endUtc } } }),
             prisma.user.count({ where: { role: 'USER', createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
             prisma.order.count({ where: { payments: { some: paymentReviewWhere() } } }),
-            prisma.order.count({ where: { status: 'PROCESSING', paymentStatus: 'PAID' } }),
+            prisma.order.count({ where: { status: OrderStatus.PROCESSING, paymentStatus: 'PAID' } }),
             // Prisma stores createdAt as a UTC timestamp without time zone.
             prisma.$queryRaw<Array<{ date: string; paidSales: unknown; orders: number }>>`
                 SELECT to_char((("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE ${normalizeTimezone(timezone)})::date, 'YYYY-MM-DD') AS date,
-                    COALESCE(SUM(CASE WHEN "paymentStatus" = 'PAID' AND status NOT IN ('CANCELLED', 'REFUNDED')
+                    COALESCE(SUM(CASE WHEN "paymentStatus" = 'PAID' AND status NOT IN (${Prisma.raw(closedStatusList)})
                         THEN "totalAmount" ELSE 0 END), 0) AS "paidSales", COUNT(*)::integer AS orders
                 FROM public.orders
                 WHERE "createdAt" >= (${days[0].startUtc}::timestamptz AT TIME ZONE 'UTC')

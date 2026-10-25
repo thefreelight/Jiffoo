@@ -1,5 +1,6 @@
 import { OrderPaymentStatus, OrderStatus } from '@prisma/client';
 import { ApiError } from '@/utils/api-errors';
+import { assertOrderTransition as assertPolicyTransition } from './policy';
 
 const allowed: Record<OrderStatus, readonly OrderStatus[]> = {
   PENDING: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
@@ -18,13 +19,16 @@ export class InvalidOrderTransitionError extends ApiError {
   }
 }
 
+export { allowed };
+
+/**
+ * Guard of the order state machine. The rule lives in the public order policy
+ * of this module; this export keeps the historical import path working.
+ */
 export function assertOrderTransition(
   from: OrderStatus,
   to: OrderStatus,
   paymentStatus: OrderPaymentStatus,
 ): void {
-  if (!allowed[from].includes(to) ||
-    (from === OrderStatus.CANCELLED && to === OrderStatus.REFUNDED && paymentStatus !== OrderPaymentStatus.PAID)) {
-    throw new InvalidOrderTransitionError(from, to);
-  }
+  assertPolicyTransition(from, to, paymentStatus);
 }

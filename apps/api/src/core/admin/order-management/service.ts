@@ -9,7 +9,7 @@ import { OrderStatus as PrismaOrderStatus, type Prisma } from '@prisma/client';
 import { systemSettingsService } from '@/core/settings/service';
 import { CacheService } from '@/core/cache/service';
 import { getTodayAndYesterdayRangeUtc } from '@/utils/timezone';
-import { OrderStatus, PaymentStatus } from '@/core/order/types';
+import { OrderStatus, canRefundOrder, closedOrderStatuses, restocksInventoryOnRefund } from '@/core/order/policy';
 import { AuditService } from '@/core/audit/service';
 import { OrderService } from '@/core/order/service';
 import { InventoryService } from '@/core/inventory/service';
@@ -108,25 +108,25 @@ export class AdminOrderService {
         _sum: { totalAmount: true },
         where: {
           paymentStatus: 'PAID',
-          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+          status: { notIn: closedOrderStatuses() },
         },
       }),
       prisma.order.count({ where: { paymentStatus: 'PAID' } }),
-      prisma.order.count({ where: { status: 'SHIPPED' } }),
-      prisma.order.count({ where: { status: 'REFUNDED' } }),
+      prisma.order.count({ where: { status: OrderStatus.SHIPPED } }),
+      prisma.order.count({ where: { status: OrderStatus.REFUNDED } }),
       prisma.order.count({ where: { createdAt: { gte: startOfTodayUtc } } }),
       prisma.order.count({ where: { createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
       prisma.order.count({ where: { paymentStatus: 'PAID', createdAt: { gte: startOfTodayUtc } } }),
       prisma.order.count({ where: { paymentStatus: 'PAID', createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
-      prisma.order.count({ where: { status: 'SHIPPED', createdAt: { gte: startOfTodayUtc } } }),
-      prisma.order.count({ where: { status: 'SHIPPED', createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
-      prisma.order.count({ where: { status: 'REFUNDED', createdAt: { gte: startOfTodayUtc } } }),
-      prisma.order.count({ where: { status: 'REFUNDED', createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
+      prisma.order.count({ where: { status: OrderStatus.SHIPPED, createdAt: { gte: startOfTodayUtc } } }),
+      prisma.order.count({ where: { status: OrderStatus.SHIPPED, createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
+      prisma.order.count({ where: { status: OrderStatus.REFUNDED, createdAt: { gte: startOfTodayUtc } } }),
+      prisma.order.count({ where: { status: OrderStatus.REFUNDED, createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
       prisma.order.aggregate({
         _sum: { totalAmount: true },
         where: {
           paymentStatus: 'PAID',
-          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+          status: { notIn: closedOrderStatuses() },
           createdAt: { gte: startOfTodayUtc },
         },
       }),
@@ -134,7 +134,7 @@ export class AdminOrderService {
         _sum: { totalAmount: true },
         where: {
           paymentStatus: 'PAID',
-          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+          status: { notIn: closedOrderStatuses() },
           createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc },
         },
       }),
@@ -546,7 +546,7 @@ export class AdminOrderService {
       await lockOrder(tx, orderId);
       const order = await OrderService.getOrderProjection(tx, orderId);
       if (!order) throw new ApiError('NOT_FOUND');
-      if (order.paymentStatus !== PaymentStatus.PAID && order.paymentStatus !== PaymentStatus.REFUNDED) throw new ApiError('INVALID_ORDER_TRANSITION');
+      if (!canRefundOrder(order.status, order.paymentStatus, { allowAlreadyRefunded: true })) throw new ApiError('INVALID_ORDER_TRANSITION');
       const payment = await tx.payment.findFirst({
         where: { orderId, ledger: { some: { eventType: 'SUCCEEDED', refundRequired: false } } },
         orderBy: { createdAt: 'asc' },
@@ -586,7 +586,7 @@ export class AdminOrderService {
         metadata: { refundId: refund.refundId },
       });
 
-      if (order.status === OrderStatus.PROCESSING) {
+      if (restocksInventoryOnRefund(order.status)) {
         for (const item of order.items) {
           await knownPrismaOperation(() => InventoryService.incrementStock(tx, item.variantId, item.quantity, {
             type: 'return',

@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { prisma } from '@/config/database';
+import { isOrderClosed } from './policy';
 
 export class TrackingClaimError extends ApiError {
   constructor(_statusCode: 404 | 409, code: ErrorCode, _message: string) {
@@ -15,7 +16,7 @@ export async function claimOrderPurchase(id: string, userId: string): Promise<{ 
       await tx.$queryRaw`SELECT "id" FROM "orders" WHERE "id" = ${id} AND "userId" = ${userId} FOR UPDATE`;
       const order = await tx.order.findFirst({ where: { id, userId }, select: { status: true } });
       if (!order) throw new TrackingClaimError(404, 'NOT_FOUND', 'Order not found');
-      if (order.status === 'CANCELLED' || order.status === 'REFUNDED') {
+      if (isOrderClosed(order.status)) {
         throw new TrackingClaimError(409, 'PURCHASE_TRACKING_UNAVAILABLE', 'Cancelled or refunded orders cannot claim purchase tracking');
       }
       await tx.orderPurchaseClaim.create({ data: { orderId: id } });

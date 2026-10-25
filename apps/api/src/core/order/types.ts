@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import {
+  OrderItemFulfillmentStatus as PrismaOrderItemFulfillmentStatus,
+  OrderPaymentStatus as PrismaOrderPaymentStatus,
+  OrderStatus as PrismaOrderStatus,
+  ShipmentStatus as PrismaShipmentStatus,
+} from '@prisma/client';
 
 // Order Item
 export const OrderItemSchema = z.object({
@@ -52,46 +58,24 @@ export const CreateOrderSchema = z.object({
   pluginPurchaseOriginId: z.string().uuid().optional(),
 });
 
-// Order Status Enum
-export const OrderStatus = {
-  PENDING: 'PENDING',
-  PROCESSING: 'PROCESSING',
-  SHIPPED: 'SHIPPED',
-  DELIVERED: 'DELIVERED',
-  CANCELLED: 'CANCELLED',
-  REFUNDED: 'REFUNDED'     // Refunded
-} as const;
+// Order Status Enum, derived from the Prisma `OrderStatus` enum.
+export const OrderStatus = PrismaOrderStatus;
 
 export type OrderStatusType = typeof OrderStatus[keyof typeof OrderStatus];
 
-// Payment Status Enum
-export const PaymentStatus = {
-  PENDING: 'PENDING',
-  PAID: 'PAID',
-  FAILED: 'FAILED',
-  REFUNDED: 'REFUNDED'
-} as const;
+// Payment Status Enum, derived from the Prisma `OrderPaymentStatus` enum.
+export const PaymentStatus = PrismaOrderPaymentStatus;
 
 export type PaymentStatusType = typeof PaymentStatus[keyof typeof PaymentStatus];
 
-export const OrderItemFulfillmentStatus = {
-  pending: 'pending',
-  processing: 'processing',
-  shipped: 'shipped',
-  delivered: 'delivered',
-  failed: 'failed',
-} as const;
+// Item fulfillment status, derived from the Prisma `OrderItemFulfillmentStatus` enum.
+export const OrderItemFulfillmentStatus = PrismaOrderItemFulfillmentStatus;
 
 export type OrderItemFulfillmentStatusType =
   typeof OrderItemFulfillmentStatus[keyof typeof OrderItemFulfillmentStatus];
 
-export const ShipmentStatus = {
-  PENDING: 'PENDING',
-  SHIPPED: 'SHIPPED',
-  DELIVERED: 'DELIVERED',
-  FAILED: 'FAILED',
-  CANCELLED: 'CANCELLED',
-} as const;
+// Shipment status, derived from the Prisma `ShipmentStatus` enum.
+export const ShipmentStatus = PrismaShipmentStatus;
 
 export type ShipmentStatusType = typeof ShipmentStatus[keyof typeof ShipmentStatus];
 

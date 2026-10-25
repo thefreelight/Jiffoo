@@ -3,17 +3,11 @@
  */
 
 import { errorResponseSchema, createSuccessResponseSchema } from '@/types/common-dto';
+import { orderStatusValues, paymentStatusValues } from '@/core/order/policy';
 
-const orderStatusEnum = [
-  'PENDING',
-  'PROCESSING',
-  'SHIPPED',
-  'DELIVERED',
-  'CANCELLED',
-  'REFUNDED',
-] as const;
+const orderStatusEnum = [...orderStatusValues()];
 
-const paymentStatusEnum = ['PENDING', 'PAID', 'FAILED', 'REFUNDED'] as const;
+const paymentStatusEnum = [...paymentStatusValues()];
 
 // ============================================================================
 // Dashboard Metrics Schema

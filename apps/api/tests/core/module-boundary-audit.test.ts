@@ -109,6 +109,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'admin/audit-events -> audit': 'the admin audit-events routes read the audit module\'s public record projection.',
   'admin/dashboard -> admin/order-management': 'the dashboard reuses the order-management module\'s public `paymentReviewWhere` filter builder.',
   'admin/dashboard -> cache': 'the dashboard reads cached metrics through the public cache service.',
+  'admin/dashboard -> order': 'the dashboard derives its order status vocabulary and its policy predicates from the public order policy of the order module.',
   'admin/dashboard -> settings': 'the dashboard reads system settings through the public settings service.',
   'admin/extension-installer -> admin/plugin-management': 'the installer calls the plugin-management module\'s public service, config crypto and lifecycle hooks.',
   'admin/extension-installer -> audit': 'the installer records audit events through the single audit write outlet.',
