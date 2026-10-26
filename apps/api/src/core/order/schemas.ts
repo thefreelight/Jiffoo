@@ -13,21 +13,20 @@ import {
   createSuccessResponseSchema,
   errorResponseSchema,
 } from '@/types/common-dto';
-import { orderStatusValues, paymentStatusValues } from './policy';
+import {
+  orderItemFulfillmentStatusValues,
+  orderStatusValues,
+  paymentStatusValues,
+  shipmentStatusValues,
+} from './policy';
 
 const orderStatusEnum = [...orderStatusValues()];
 
 const paymentStatusEnum = [...paymentStatusValues()];
 
-const fulfillmentStatusEnum = [
-  'pending',
-  'processing',
-  'shipped',
-  'delivered',
-  'failed',
-] as const;
+const fulfillmentStatusEnum = [...orderItemFulfillmentStatusValues()];
 
-const shipmentStatusEnum = ['PENDING', 'SHIPPED', 'DELIVERED', 'FAILED', 'CANCELLED'] as const;
+const shipmentStatusEnum = [...shipmentStatusValues()];
 
 // ============================================================================
 // Order Item Response Schema

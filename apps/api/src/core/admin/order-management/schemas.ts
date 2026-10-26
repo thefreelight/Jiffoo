@@ -8,13 +8,13 @@ import {
   createPageResultSchema,
   errorResponseSchema,
 } from '@/types/common-dto';
-import { orderStatusValues, paymentStatusValues } from '@/core/order/policy';
+import { orderStatusValues, paymentStatusValues, shipmentStatusValues } from '@/core/order/policy';
 
 const orderStatusEnum = [...orderStatusValues()];
 
 const paymentStatusEnum = [...paymentStatusValues()];
 
-const shipmentStatusEnum = ['PENDING', 'SHIPPED', 'DELIVERED', 'FAILED', 'CANCELLED'] as const;
+const shipmentStatusEnum = [...shipmentStatusValues()];
 
 // ============================================================================
 // Admin Order Schemas

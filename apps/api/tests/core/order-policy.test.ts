@@ -1,22 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { OrderPaymentStatus, OrderStatus } from '@prisma/client';
+import { OrderItemFulfillmentStatus, OrderPaymentStatus, OrderStatus, ShipmentStatus } from '@prisma/client';
 import {
   allowedOrderTransitions,
   assertOrderTransition,
   canRefundOrder,
   closedOrderStatuses,
   isOrderClosed,
+  orderItemFulfillmentStatusValues,
   orderStatusValues,
   paymentStatusValues,
   restocksInventoryOnRefund,
+  shipmentStatusValues,
 } from '@/core/order/policy';
-import { InvalidOrderTransitionError } from '@/core/order/transition';
+import { allowed, InvalidOrderTransitionError } from '@/core/order/transition';
 import { orderSchemas } from '@/core/order/schemas';
 import { adminOrderSchemas } from '@/core/admin/order-management/schemas';
 import { adminDashboardSchemas } from '@/core/admin/dashboard/schemas';
 
 const orderStatuses = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'];
 const paymentStatuses = ['PENDING', 'PAID', 'FAILED', 'REFUNDED'];
+const shipmentStatuses = ['PENDING', 'SHIPPED', 'DELIVERED', 'FAILED', 'CANCELLED'];
+const fulfillmentStatuses = ['pending', 'processing', 'shipped', 'delivered', 'failed'];
 
 describe('the public order policy', () => {
   it('publishes the Prisma order and payment vocabularies', () => {
@@ -24,6 +28,13 @@ describe('the public order policy', () => {
     expect(orderStatusValues()).toEqual(Object.values(OrderStatus));
     expect(paymentStatusValues()).toEqual(paymentStatuses);
     expect(paymentStatusValues()).toEqual(Object.values(OrderPaymentStatus));
+  });
+
+  it('publishes the shipment and the item fulfilment vocabularies', () => {
+    expect(shipmentStatusValues()).toEqual(shipmentStatuses);
+    expect(shipmentStatusValues()).toEqual(Object.values(ShipmentStatus));
+    expect(orderItemFulfillmentStatusValues()).toEqual(fulfillmentStatuses);
+    expect(orderItemFulfillmentStatusValues()).toEqual(Object.values(OrderItemFulfillmentStatus));
   });
 
   it('publishes the transition table of every order status', () => {
@@ -35,6 +46,12 @@ describe('the public order policy', () => {
     expect(allowedOrderTransitions('REFUNDED')).toEqual([]);
     for (const status of orderStatusValues()) {
       expect(allowedOrderTransitions(status)).toEqual(expect.any(Array));
+    }
+  });
+
+  it('keeps the transition table importable from its historical path', () => {
+    for (const status of orderStatusValues()) {
+      expect(allowed[status]).toEqual(allowedOrderTransitions(status));
     }
   });
 
@@ -125,5 +142,20 @@ describe('the published OpenAPI vocabularies', () => {
       .properties.data.properties.recentOrders.items.properties;
     expect(recentOrder.status.enum).toEqual(orderStatuses);
     expect(recentOrder.paymentStatus.enum).toEqual(paymentStatuses);
+  });
+
+  it('publishes the shipment vocabulary in the OpenAPI schemas', () => {
+    const orderShipment = (orderSchemas.getOrder.response[200] as any)
+      .properties.data.properties.shipments.items.properties;
+    expect(orderShipment.status.enum).toEqual(shipmentStatuses);
+    const adminShipment = (adminOrderSchemas.getOrder.response[200] as any)
+      .properties.data.properties.shipments.items.properties;
+    expect(adminShipment.status.enum).toEqual(shipmentStatuses);
+  });
+
+  it('publishes the item fulfilment vocabulary in the OpenAPI schemas', () => {
+    const orderItem = (orderSchemas.getOrder.response[200] as any)
+      .properties.data.properties.items.items.properties;
+    expect(orderItem.fulfillmentStatus.enum).toEqual(fulfillmentStatuses);
   });
 });

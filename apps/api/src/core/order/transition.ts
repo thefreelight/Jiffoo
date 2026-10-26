@@ -1,34 +1,10 @@
-import { OrderPaymentStatus, OrderStatus } from '@prisma/client';
-import { ApiError } from '@/utils/api-errors';
-import { assertOrderTransition as assertPolicyTransition } from './policy';
-
-const allowed: Record<OrderStatus, readonly OrderStatus[]> = {
-  PENDING: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
-  PROCESSING: [OrderStatus.SHIPPED, OrderStatus.REFUNDED],
-  SHIPPED: [OrderStatus.DELIVERED, OrderStatus.REFUNDED],
-  DELIVERED: [OrderStatus.REFUNDED],
-  CANCELLED: [OrderStatus.REFUNDED],
-  REFUNDED: [],
-};
-
-export class InvalidOrderTransitionError extends ApiError {
-
-  constructor(from: OrderStatus, to: OrderStatus) {
-    super('INVALID_ORDER_TRANSITION');
-    this.message = `Invalid order transition from ${from} to ${to}`;
-  }
-}
-
-export { allowed };
-
 /**
- * Guard of the order state machine. The rule lives in the public order policy
- * of this module; this export keeps the historical import path working.
+ * Historical import path of the order transition rule.
+ *
+ * The transition table, the guard and the error of the order state machine
+ * live in the public order policy of this module, so that the data of the
+ * rule does not live in the file that depends on it. This module re-exports
+ * them, so the historical import path keeps working.
  */
-export function assertOrderTransition(
-  from: OrderStatus,
-  to: OrderStatus,
-  paymentStatus: OrderPaymentStatus,
-): void {
-  assertPolicyTransition(from, to, paymentStatus);
-}
+
+export { allowed, assertOrderTransition, InvalidOrderTransitionError } from './policy';

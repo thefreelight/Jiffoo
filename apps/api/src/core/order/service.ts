@@ -25,7 +25,7 @@ import {
   OrderProjection,
   OrderPaidPayload,
 } from './types';
-import { OrderStatus, PaymentStatus } from './policy';
+import { OrderStatus, PaymentStatus, ShipmentStatus } from './policy';
 import { recordOrderStatusHistory, type OrderStatusHistoryWriter } from './status-history';
 import { assertOrderTransition } from './transition';
 import { lockOrder } from '@/core/shared/locks';
@@ -557,7 +557,7 @@ export class OrderService {
         orderId: input.orderId,
         carrier: input.carrier,
         trackingNumber: input.trackingNumber,
-        status: 'SHIPPED',
+        status: ShipmentStatus.SHIPPED,
         shippedAt: new Date(),
         items: input.items ? {
           create: input.items.map(item => ({
@@ -574,7 +574,7 @@ export class OrderService {
       data: { status: OrderStatus.SHIPPED },
     });
     await emitEvent(tx as unknown as EventTransaction, 'order.fulfilled', 1, input.orderId, {
-      id: updated.id, orderNumber: updated.orderNumber, userId: updated.userId, status: 'SHIPPED',
+      id: updated.id, orderNumber: updated.orderNumber, userId: updated.userId, status: OrderStatus.SHIPPED,
       subtotalAmount: Number(updated.subtotalAmount), shippingAmount: Number(updated.shippingAmount),
       taxAmount: Number(updated.taxAmount), totalAmount: Number(updated.totalAmount), currency: updated.currency,
       items: order.items.map((item: any) => ({

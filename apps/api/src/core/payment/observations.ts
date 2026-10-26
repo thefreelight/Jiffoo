@@ -7,6 +7,7 @@ import { samePaymentAccount, bindObservedPaymentAccount } from './provider-accou
 import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { recordPaymentSucceeded, recordPaymentFailed, PAYMENT_RECONCILIATION_MAX_ATTEMPTS } from './reconciliation';
 import { paymentNow } from './clock';
+import { paymentAttemptStatusSets } from './service';
 import { AuditService } from '@/core/audit/service';
 
 const clearLease = { claimToken: null, claimedBy: null, leaseUntil: null };
@@ -76,7 +77,7 @@ export async function observePaymentFact(slug: string, fact: PaymentFact, source
     if (!fact.canStillBeCharged && fact.requestClosed && source === 'query' && !current.reviewResolution) {
       await tx.payment.update({ where: { id: current.id }, data: { closureObservationId: observation.id, closedAt: new Date(fact.observedAt) } });
     }
-    if (!fact.captures.length && ['CREATING', 'PENDING', 'UNKNOWN', 'REQUIRES_REVIEW'].includes(current.status)) {
+    if (!fact.captures.length && paymentAttemptStatusSets().observableStatuses.includes(current.status)) {
       const closed = !fact.canStillBeCharged && fact.requestClosed && source === 'query';
       const terminal = closed;
       if (terminal && fact.status === 'failed') updated = await recordPaymentFailed({ paymentId: payment.id,

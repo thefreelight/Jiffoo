@@ -1,6 +1,7 @@
 import { prisma } from '@/config/database';
-import { ApiError } from '@/utils/api-errors';
+import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { AuditService, type AuditTx } from '@/core/audit/service';
+import { PaymentAttemptStatus } from '@prisma/client';
 
 /**
  * Payment Service
@@ -47,6 +48,81 @@ export type OrderPaymentSummary = {
   refundRequired: boolean;
 };
 
+/**
+ * The payment attempt status vocabulary of the payment module.
+ *
+ * The payment attempt status is stored in the payments table, so a new attempt
+ * status needs a Prisma enum change and the matching migration. The tables
+ * below collect the statuses that already exist, so that the decision of
+ * every call site is written in one place: a new status has to be added to
+ * each table, and the tables are exhaustive, so the compiler asks for the
+ * missing decision instead of letting a status fall through silently.
+ */
+export function paymentAttemptStatusSets() {
+  return {
+    /** The payment attempt status vocabulary, in the stable order of the Prisma enum. */
+    values: Object.values(PaymentAttemptStatus),
+
+    /**
+     * The error code of a replayed attempt, that is the attempt of an already
+     * known idempotency key. Only a pending attempt replays; every other
+     * status raises its own error code.
+     */
+    replayErrorCodes: {
+      UNKNOWN: 'PAYMENT_OUTCOME_UNKNOWN',
+      REQUIRES_REVIEW: 'PAYMENT_REQUIRES_REVIEW',
+      CREATING: 'PAYMENT_ATTEMPT_OPEN',
+      PENDING: null,
+      SUCCEEDED: 'PAYMENT_IDEMPOTENCY_CONFLICT',
+      FAILED: 'PAYMENT_IDEMPOTENCY_CONFLICT',
+      CANCELLED: 'PAYMENT_IDEMPOTENCY_CONFLICT',
+      EXPIRED: 'PAYMENT_IDEMPOTENCY_CONFLICT',
+    } as Record<PaymentAttemptStatus, ErrorCode | null>,
+
+    /**
+     * The error code of the previous attempt of an order, raised before the
+     * closure of that attempt is checked.
+     */
+    previousAttemptErrorCodes: {
+      UNKNOWN: 'PAYMENT_OUTCOME_UNKNOWN',
+      REQUIRES_REVIEW: 'PAYMENT_REQUIRES_REVIEW',
+      CREATING: 'PAYMENT_ATTEMPT_OPEN',
+      PENDING: null,
+      SUCCEEDED: null,
+      FAILED: null,
+      CANCELLED: null,
+      EXPIRED: null,
+    } as Record<PaymentAttemptStatus, ErrorCode | null>,
+
+    /**
+     * The error code of the previous attempt of an order, raised once the
+     * closure of that attempt is confirmed.
+     */
+    closedPreviousAttemptErrorCodes: {
+      UNKNOWN: null,
+      REQUIRES_REVIEW: null,
+      CREATING: null,
+      PENDING: 'PAYMENT_ATTEMPT_OPEN',
+      SUCCEEDED: null,
+      FAILED: null,
+      CANCELLED: null,
+      EXPIRED: null,
+    } as Record<PaymentAttemptStatus, ErrorCode | null>,
+
+    /** The statuses of an attempt that an admin may close as not charged. */
+    adminClosedStatuses: ['FAILED'] as PaymentAttemptStatus[],
+
+    /** The statuses of an attempt that the observation path may still resolve. */
+    observableStatuses: ['CREATING', 'PENDING', 'UNKNOWN', 'REQUIRES_REVIEW'] as PaymentAttemptStatus[],
+
+    /** The statuses of an attempt that the reconciliation lease may claim. */
+    leasableStatuses: ['CREATING', 'PENDING', 'UNKNOWN', 'SUCCEEDED', 'CANCELLED'] as PaymentAttemptStatus[],
+
+    /** The statuses of an attempt that may be cancelled with its order. */
+    cancellableStatuses: ['CREATING', 'PENDING'] as PaymentAttemptStatus[],
+  };
+}
+
 export class PaymentService {
   /**
    * Cancel the order's CREATING/PENDING payments.
@@ -57,7 +133,7 @@ export class PaymentService {
    */
   static async cancelPendingForOrder(tx: PaymentWriteTx, orderId: string): Promise<number> {
     const cancelled = await tx.payment.updateMany({
-      where: { orderId, status: { in: ['CREATING', 'PENDING'] } },
+      where: { orderId, status: { in: paymentAttemptStatusSets().cancellableStatuses } },
       data: { status: 'CANCELLED', claimToken: null, claimedBy: null, leaseUntil: null },
     });
     return cancelled.count;

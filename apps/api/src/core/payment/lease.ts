@@ -1,5 +1,6 @@
 import type { Payment } from '@prisma/client';
 import { paymentClockOffsetMs } from './clock';
+import { paymentAttemptStatusSets } from './service';
 import { getPluginTimeoutMs } from '@/core/extensions/runtime/gateway-protection';
 import { pluginDatabaseLimit } from '@/core/admin/extension-installer/plugin-database-test-control';
 
@@ -7,11 +8,21 @@ export const PAYMENT_RECONCILIATION_LEASE_MS = 60_000;
 export const PAYMENT_RECONCILIATION_MARGIN_MS = 1_000;
 export interface PaymentLeaseClient { query(sql: string, values?: unknown[]): Promise<{ rows: any[] }>; }
 export function paymentQueryTimeoutMs(): number { return pluginDatabaseLimit('invocationMs', getPluginTimeoutMs()); }
+/**
+ * The status list of the lease queries.
+ *
+ * The list is built from the published payment attempt statuses, so that a new
+ * attempt status is added in one place. The values are compile time constants,
+ * never user input, so the produced SQL text stays the same.
+ */
+function leaseStatusList(): string {
+  return paymentAttemptStatusSets().leasableStatuses.map(status => `'${status}'`).join(',');
+}
 export async function claimPaymentReconciliations(client: PaymentLeaseClient, claimedBy: string, options: { limit?: number; minAgeMinutes?: number } = {}): Promise<Payment[]> {
   const budget = Math.max(1, Math.floor(PAYMENT_RECONCILIATION_LEASE_MS / (paymentQueryTimeoutMs() + PAYMENT_RECONCILIATION_MARGIN_MS)));
   const result = await client.query(`WITH clock AS (SELECT clock_timestamp() + $1 * interval '1 millisecond' AS now), picked AS (
     SELECT p.id FROM public.payments p, clock c
-    WHERE p.status IN ('CREATING','PENDING','UNKNOWN','SUCCEEDED','CANCELLED') AND p."closureObservationId" IS NULL AND p."nextReconcileAt" <= c.now
+    WHERE p.status IN (${leaseStatusList()}) AND p."closureObservationId" IS NULL AND p."nextReconcileAt" <= c.now
       AND (p."leaseUntil" IS NULL OR p."leaseUntil" <= c.now)
       AND ($2 <= 0 OR p."createdAt" <= (c.now AT TIME ZONE 'UTC') - $2 * interval '1 minute')
     ORDER BY p."nextReconcileAt", p.id LIMIT $3 FOR UPDATE OF p SKIP LOCKED
@@ -22,7 +33,7 @@ export async function claimPaymentReconciliations(client: PaymentLeaseClient, cl
   return result.rows as Payment[];
 }
 export async function paymentLeaseAllowsQuery(client: PaymentLeaseClient, payment: Pick<Payment, 'id' | 'claimToken'>): Promise<boolean> {
-  const result = await client.query(`SELECT id FROM public.payments WHERE id = $1 AND status IN ('CREATING','PENDING','UNKNOWN','SUCCEEDED','CANCELLED') AND "claimToken" = $2::uuid
+  const result = await client.query(`SELECT id FROM public.payments WHERE id = $1 AND status IN (${leaseStatusList()}) AND "claimToken" = $2::uuid
     AND "leaseUntil" - (clock_timestamp() + $3 * interval '1 millisecond') >= $4 * interval '1 millisecond'`,
   [payment.id, payment.claimToken, paymentClockOffsetMs(), paymentQueryTimeoutMs() + PAYMENT_RECONCILIATION_MARGIN_MS]);
   return result.rows.length === 1;
@@ -30,6 +41,6 @@ export async function paymentLeaseAllowsQuery(client: PaymentLeaseClient, paymen
 export async function releasePaymentReconciliation(client: PaymentLeaseClient, payment: Pick<Payment, 'id' | 'claimToken'>, delayMs = 60_000): Promise<void> {
   await client.query(`UPDATE public.payments SET "claimToken" = NULL, "claimedBy" = NULL, "leaseUntil" = NULL,
     "nextReconcileAt" = clock_timestamp() + ($3 + $4) * interval '1 millisecond'
-    WHERE id = $1 AND status IN ('CREATING','PENDING','UNKNOWN','SUCCEEDED','CANCELLED') AND "claimToken" = $2::uuid`,
+    WHERE id = $1 AND status IN (${leaseStatusList()}) AND "claimToken" = $2::uuid`,
   [payment.id, payment.claimToken, paymentClockOffsetMs(), delayMs]);
 }

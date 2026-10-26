@@ -13,6 +13,7 @@ import { decimalToMinor } from '@/core/shared/money';
 import { observePaymentReservationForTest } from './session-test-control';
 import { bindPaymentProviderAccount } from './provider-account';
 import { observePaymentFact } from './observations';
+import { paymentAttemptStatusSets } from './service';
 
 type SessionInput = { orderId: string; userId: string; email: string; pluginSlug: string; idempotencyKey?: string; returnUrl: string; cancelUrl: string };
 
@@ -20,16 +21,21 @@ type SessionInput = { orderId: string; userId: string; email: string; pluginSlug
  * The payment status to API error table.
  *
  * The table is built inside a function so the module keeps no container at
- * module scope. A new payment state is mapped by adding one entry here; a
- * state that is not in the table falls through to the missing session field
- * check of `response`.
+ * module scope. It is exhaustive over the payment attempt statuses: a new
+ * payment state has to be mapped here, so that a new error bearing status
+ * cannot silently fall through to the missing session field check of
+ * `response`. A status that is mapped to no error code falls through to that
+ * check, as it does today.
  */
-function paymentStatusErrorCodes(): Partial<Record<Payment['status'], ErrorCode>> {
+function paymentStatusErrorCodes(): Record<Payment['status'], ErrorCode | null> {
   return {
-    CANCELLED: 'ORDER_NOT_PAYABLE',
     UNKNOWN: 'PAYMENT_OUTCOME_UNKNOWN',
     REQUIRES_REVIEW: 'PAYMENT_REQUIRES_REVIEW',
+    CREATING: null,
+    PENDING: null,
+    SUCCEEDED: null,
     FAILED: 'PAYMENT_IDEMPOTENCY_CONFLICT',
+    CANCELLED: 'ORDER_NOT_PAYABLE',
     EXPIRED: 'PAYMENT_IDEMPOTENCY_CONFLICT',
   };
 }
@@ -74,20 +80,19 @@ export async function createPaymentSession(input: SessionInput) {
     const existing = await tx.payment.findUnique({ where: { idempotencyKey: requestKey } });
     if (existing) {
       if (existing.orderId !== order.id || existing.paymentMethod !== input.pluginSlug || existing.providerKey !== account.providerKey) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
-      if (existing.status === 'UNKNOWN') throw new ApiError('PAYMENT_OUTCOME_UNKNOWN');
-      if (existing.status === 'REQUIRES_REVIEW') throw new ApiError('PAYMENT_REQUIRES_REVIEW');
-      if (existing.status === 'CREATING') throw new ApiError('PAYMENT_ATTEMPT_OPEN');
-      if (existing.status !== 'PENDING') throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
+      const replayError = paymentAttemptStatusSets().replayErrorCodes[existing.status];
+      if (replayError) throw new ApiError(replayError);
       return { payment: existing, order, owner: false };
     }
     const previous = await tx.payment.findFirst({ where: { orderId: order.id }, orderBy: { attemptNumber: 'desc' } });
     if (previous) {
-      if (previous.status === 'UNKNOWN') throw new ApiError('PAYMENT_OUTCOME_UNKNOWN');
-      if (previous.status === 'REQUIRES_REVIEW') throw new ApiError('PAYMENT_REQUIRES_REVIEW');
-      if (previous.status === 'CREATING') throw new ApiError('PAYMENT_ATTEMPT_OPEN');
-      const adminClosed = previous.status === 'FAILED' && previous.reviewResolution === 'NOT_CHARGED';
+      const sets = paymentAttemptStatusSets();
+      const previousError = sets.previousAttemptErrorCodes[previous.status];
+      if (previousError) throw new ApiError(previousError);
+      const adminClosed = sets.adminClosedStatuses.includes(previous.status) && previous.reviewResolution === 'NOT_CHARGED';
       if ((!previous.closureObservationId || !previous.closedAt) && !adminClosed) throw new ApiError('PAYMENT_SESSION_STILL_CHARGEABLE');
-      if (previous.status === 'PENDING') throw new ApiError('PAYMENT_ATTEMPT_OPEN');
+      const closedError = sets.closedPreviousAttemptErrorCodes[previous.status];
+      if (closedError) throw new ApiError(closedError);
     }
     const now = await paymentNow(tx), attemptNumber = order.paymentAttempts + 1;
     const payment = await tx.payment.create({ data: {
