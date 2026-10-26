@@ -7,7 +7,13 @@ import { cn } from "@/lib/utils"
 const SkipToMain = React.forwardRef<
   HTMLAnchorElement,
   React.AnchorHTMLAttributes<HTMLAnchorElement>
->(({ className, ...props }, ref) => {
+>(({ className, ...props }, forwardedRef) => {
+  const anchorRef = React.useRef<HTMLAnchorElement | null>(null)
+  const setRef = (node: HTMLAnchorElement | null) => {
+    anchorRef.current = node
+    if (typeof forwardedRef === 'function') forwardedRef(node)
+    else if (forwardedRef) forwardedRef.current = node
+  }
   const pathname = usePathname()
   // After keyboard-initiated navigations (e.g. submitting the login form with
   // Enter), the browser relocates focus to the first focusable element — this
@@ -15,10 +21,10 @@ const SkipToMain = React.forwardRef<
   // pill stuck around over the branding. Navigation landing here is never a
   // deliberate skip: drop the focus; a genuine Tab press still reveals it.
   React.useEffect(() => {
-    if (ref.current && document.activeElement === ref.current) {
-      ref.current.blur()
+    if (anchorRef.current && document.activeElement === anchorRef.current) {
+      anchorRef.current.blur()
     }
-  }, [pathname, ref])
+  }, [pathname])
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
@@ -31,7 +37,7 @@ const SkipToMain = React.forwardRef<
 
   return (
     <a
-      ref={ref}
+      ref={setRef}
       href="#main"
       onClick={handleClick}
       className={cn(
