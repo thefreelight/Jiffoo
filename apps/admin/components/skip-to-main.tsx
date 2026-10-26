@@ -1,12 +1,25 @@
 "use client"
 
 import * as React from "react"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 const SkipToMain = React.forwardRef<
   HTMLAnchorElement,
   React.AnchorHTMLAttributes<HTMLAnchorElement>
 >(({ className, ...props }, ref) => {
+  const pathname = usePathname()
+  // After keyboard-initiated navigations (e.g. submitting the login form with
+  // Enter), the browser relocates focus to the first focusable element — this
+  // anchor — and the keyboard modality keeps :focus-visible matched, so the
+  // pill stuck around over the branding. Navigation landing here is never a
+  // deliberate skip: drop the focus; a genuine Tab press still reveals it.
+  React.useEffect(() => {
+    if (ref.current && document.activeElement === ref.current) {
+      ref.current.blur()
+    }
+  }, [pathname, ref])
+
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     const mainElement = document.getElementById("main")
