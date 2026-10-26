@@ -35,6 +35,14 @@ export const MIN_COMPATIBLE_VERSION = '0.9.0';
 
 const UPDATE_MANIFEST_TIMEOUT_MS = 5000;
 
+// Manifest cache TTLs: the admin notification bell polls version info on
+// page loads, so remote manifest fetches must be rate-limited.
+const MANIFEST_CACHE_TTL_MS = 5 * 60 * 1000;
+const MANIFEST_FAILURE_CACHE_TTL_MS = 60 * 1000;
+
+type ManifestCacheEntry = { at: number; resolution: ManifestResolution };
+let manifestCache: ManifestCacheEntry | null = null;
+
 type DeploymentModeDetection = {
   mode: DeploymentMode;
   source: DeploymentModeSource;
@@ -441,6 +449,18 @@ export class UpgradeService {
   }
 
   private static async fetchUpdateManifest(preferredChannel: ReleaseChannel): Promise<ManifestResolution> {
+    if (manifestCache) {
+      const ttl = manifestCache.resolution.status === 'available' ? MANIFEST_CACHE_TTL_MS : MANIFEST_FAILURE_CACHE_TTL_MS;
+      if (Date.now() - manifestCache.at < ttl) {
+        return manifestCache.resolution;
+      }
+    }
+    const resolution = await this.fetchUpdateManifestUncached(preferredChannel);
+    manifestCache = { at: Date.now(), resolution };
+    return resolution;
+  }
+
+  private static async fetchUpdateManifestUncached(preferredChannel: ReleaseChannel): Promise<ManifestResolution> {
     const explicitManifestUrl = process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || process.env.JIFFOO_UPDATE_MANIFEST_URL;
     const normalizedExplicitManifestUrl =
       explicitManifestUrl === LEGACY_PUBLIC_CORE_UPDATE_MANIFEST_URL

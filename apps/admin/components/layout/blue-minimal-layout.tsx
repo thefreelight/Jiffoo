@@ -11,9 +11,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Menu, Search, Bell, Bot, Globe, ChevronDown } from 'lucide-react'
+import { Menu, Search, Bot, Globe, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
+import { UpdateNotificationBell } from './update-notification-bell'
 import ProtectedRoute from '../auth/ProtectedRoute'
 import { ManagedModeProvider, useManagedMode } from '@/lib/managed-mode'
 import { getLanguageSwitcherItems } from 'shared/src/i18n/react'
@@ -145,14 +146,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
 
               <div className="flex shrink-0 items-center gap-2">
                 <TopBarLanguageSwitcher />
-                <button
-                  type="button"
-                  aria-label="Notifications"
-                  className="relative rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                >
-                  <Bell className="h-[18px] w-[18px]" />
-                  <span aria-hidden className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-[#f5f7fb]" />
-                </button>
+                <UpdateNotificationBell />
                 <button
                   type="button"
                   aria-label="AI assistant"
