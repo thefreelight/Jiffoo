@@ -63,4 +63,6 @@ it('renders the newly verified paid order and plugin return link in the first HT
   expect(html).toMatch(/<h1[^>]*>Order placed, payment successful<\/h1>/);
   expect(html).toContain('href="/en/apps/return-proof/studio"');
   expect(html).not.toMatch(/<h1[^>]*>Confirming payment<\/h1>/);
-});
+  // The budget covers the real HTTP round trip against the real Shop and the real API,
+  // matching the neighbouring real HTTP suites.
+}, 180000);

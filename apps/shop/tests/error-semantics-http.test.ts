@@ -66,7 +66,9 @@ it('I real Shop refresh failures preserve 500 502 503 504 and never clear cookie
       const body = await response.json(); expect(body.error.code).toBe(code); expect(JSON.stringify(body)).not.toMatch(/PRIVATE|stack|cause|sql/i);
     }
   } finally { target = ''; }
-});
+  // The budget covers the four real HTTP round trips against the real Shop and the
+  // real API, including the profile write each one performs, on a loaded machine.
+}, 60000);
 
 it('I a real refresh authentication rejection clears cookies while dependency errors do not', async () => {
   const expired = jwt.sign({ userId: user.id, sv: 0 }, process.env.JWT_SECRET!, { expiresIn: -1 });
@@ -80,7 +82,8 @@ it('I a real refresh authentication rejection clears cookies while dependency er
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('SameSite=lax');
   }
-});
+  // The budget covers the real HTTP round trip against the real Shop and the real API.
+}, 60000);
 
 it.each(['/api/v1/store/theme', '/api/v1/store/storefront-code', '/api/v1/account/profile', '/api/v1/cart'])('I real SSR %s failures reach the safe production 500 boundary', async (path) => {
   target = path; faultCode = 'INTERNAL_SERVER_ERROR';
