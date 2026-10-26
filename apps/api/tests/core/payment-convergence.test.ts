@@ -20,7 +20,7 @@ import { withOrderLockTestControl } from '@/core/shared/locks';
 import type { PaymentFact } from '@jiffoo/shared';
 import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
-import { drainContractInvocations } from '@/core/admin/extension-installer/plugin-runtime';
+import { drainContractInvocations } from '@/core/extensions/runtime/plugin-runtime';
 import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
 import { finishCoreProcess } from '@/infra/core-process';
 import { sharedProtection } from '@/infra/shared-protection';

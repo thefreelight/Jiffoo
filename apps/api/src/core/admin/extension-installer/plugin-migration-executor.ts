@@ -6,7 +6,7 @@ import { env } from '@/config/env';
 import { ApiError } from '@/utils/api-errors';
 import { pluginSchemaName, validatePluginMigrations, type MigrationPackageFile } from 'shared/plugin-signing';
 import type { PluginMigrationDeclaration } from '@jiffoo/shared';
-import { PLUGIN_MIGRATION_LOCK_CLASS, RUNNING_PLUGIN_OPERATION_PHASES, fenceOwnedPluginMigrationOperation, updateOwnedPluginMigrationOperation, createOwnedPluginMigrationAttempt, updateOwnedPluginMigrationAttempt } from './plugin-migration-gate';
+import { PLUGIN_MIGRATION_LOCK_CLASS, RUNNING_PLUGIN_OPERATION_PHASES, fenceOwnedPluginMigrationOperation, updateOwnedPluginMigrationOperation, createOwnedPluginMigrationAttempt, updateOwnedPluginMigrationAttempt } from '@/core/extensions/runtime/plugin-migration-gate';
 import { pluginMigrationTestControl, observePluginMigrationDrain } from './plugin-migration-test-control';
 import { processDatabaseUrl } from '@/infra/core-process-identity';
 import { recoveryLimit } from './plugin-recovery-test-control';

@@ -42,7 +42,7 @@ export const checkoutPaymentFixtureSource = `module.exports = { register(ctx) {
 } };`;
 
 export async function verifiedPaymentFixtureFact(slug: string, sessionId: string, providerEventId: string): Promise<PaymentFact> {
-  const { callContract } = await import('@/core/admin/extension-installer/plugin-runtime');
+  const { callContract } = await import('@/core/extensions/runtime/plugin-runtime');
   const result = await callContract(slug, 'payment', 2, 'handleWebhook', {
     rawBody: Buffer.from(JSON.stringify({ sessionId, providerEventId, status: 'succeeded' })),
     contentType: 'application/json', headers: {}, query: {},

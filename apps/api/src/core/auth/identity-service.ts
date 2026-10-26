@@ -81,6 +81,34 @@ export type AuthIdentityRequireTx = {
   };
 };
 
+/**
+ * The client surface a projection of many accounts reads through.
+ */
+export type AuthIdentityListTx = {
+  user: {
+    findMany(args: any): Promise<any[]>;
+  };
+};
+
+/**
+ * The client surface a projection of the first matching account reads
+ * through.
+ */
+export type AuthIdentityFirstTx = {
+  user: {
+    findFirst(args: any): Promise<any>;
+  };
+};
+
+/**
+ * The client surface a count of accounts reads through.
+ */
+export type AuthIdentityCountTx = {
+  user: {
+    count(args?: any): Promise<any>;
+  };
+};
+
 export class AuthIdentityService {
   /**
    * Update the profile of an account.
@@ -302,5 +330,135 @@ export class AuthIdentityService {
   static async requireProfile(client: AuthIdentityRequireTx, userId: string): Promise<AuthIdentityProfile> {
     const user = await client.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, locale: true } });
     return { email: user.email, locale: user.locale ?? null };
+  }
+
+  /**
+   * The account of an account, read with the fields the caller needs.
+   *
+   * The auth module owns the `users` table, so a module that needs the
+   * fields of an account reads them here instead of reading the table
+   * itself. The caller names the fields it needs, so the projection returns
+   * the account and nothing else.
+   *
+   * @param client the reader of the `users` table (a Prisma client or a
+   *   transaction client of the caller)
+   * @param userId the account to read
+   * @param select the fields the caller needs
+   * @returns the account, or null when the account does not exist
+   */
+  static async readAccount<const S extends Prisma.UserSelect>(
+    client: AuthIdentityReadTx,
+    userId: string,
+    select: S,
+  ): Promise<Prisma.UserGetPayload<{ select: S }> | null> {
+    const account = await client.user.findUnique({ where: { id: userId }, select });
+    return account ?? null;
+  }
+
+  /**
+   * The whole account of an account, for a caller that needs the stored
+   * credential of the account.
+   *
+   * The projection carries the credential of the account, so only a caller
+   * that verifies the credential of an account may use it.
+   *
+   * @param client the reader of the `users` table
+   * @param userId the account to read
+   * @returns the account, or null when the account does not exist
+   */
+  static async readAccountWithCredentials(
+    client: AuthIdentityReadTx,
+    userId: string,
+  ): Promise<Prisma.UserGetPayload<{}> | null> {
+    const account = await client.user.findUnique({ where: { id: userId } });
+    return account ?? null;
+  }
+
+  /**
+   * The whole account of an account that has to exist, for a caller that
+   * needs the stored credential of the account.
+   *
+   * The read fails exactly like a direct `findUniqueOrThrow` read fails, so
+   * a caller that requires the account keeps its current behaviour.
+   */
+  static async requireAccountWithCredentials(
+    client: AuthIdentityRequireTx,
+    userId: string,
+  ): Promise<Prisma.UserGetPayload<{}>> {
+    return await client.user.findUniqueOrThrow({ where: { id: userId } });
+  }
+
+  /**
+   * The account of an account that owns an address, or null when no other
+   * account owns it.
+   *
+   * The projection answers the question "does another account already own
+   * this address?", so the caller does not read the `users` table itself.
+   */
+  static async findAccountByEmail(
+    client: AuthIdentityFirstTx,
+    email: string,
+    excludeUserId: string,
+  ): Promise<{ id: string } | null> {
+    const account = await client.user.findFirst({
+      where: { email, id: { not: excludeUserId } },
+      select: { id: true },
+    });
+    return account ?? null;
+  }
+
+  /**
+   * The accounts of a list of accounts, read with the fields the caller
+   * needs.
+   *
+   * The projection answers the question "which of these accounts exist and
+   * what do they look like?", so a caller that shows accounts next to a
+   * record never reads the `users` table itself.
+   */
+  static async listAccounts<const S extends Prisma.UserSelect>(
+    client: AuthIdentityListTx,
+    userIds: string[],
+    select: S,
+  ): Promise<Prisma.UserGetPayload<{ select: S }>[]> {
+    return await client.user.findMany({ where: { id: { in: userIds } }, select });
+  }
+
+  /**
+   * The number of the accounts of the installation.
+   */
+  static async countAccounts(client: AuthIdentityCountTx): Promise<number> {
+    return Number(await client.user.count());
+  }
+
+  /**
+   * The number of the accounts that were created at or after a moment.
+   */
+  static async countAccountsCreatedSince(client: AuthIdentityCountTx, since: Date): Promise<number> {
+    return Number(await client.user.count({ where: { createdAt: { gte: since } } }));
+  }
+
+  /**
+   * The number of the accounts that were created in a period.
+   */
+  static async countAccountsCreatedBetween(
+    client: AuthIdentityCountTx,
+    from: Date,
+    to: Date,
+  ): Promise<number> {
+    return Number(await client.user.count({ where: { createdAt: { gte: from, lt: to } } }));
+  }
+
+  /**
+   * The number of the customer accounts that were created in a period.
+   *
+   * A customer account is an account of the `USER` role; an administrator
+   * account is not a customer.
+   */
+  static async countCustomerAccountsCreatedBetween(
+    client: AuthIdentityCountTx,
+    from: Date,
+    to: Date,
+  ): Promise<number> {
+    return Number(await client.user.count({ where: { role: 'USER', createdAt: { gte: from, lt: to } } }));
   }
 }

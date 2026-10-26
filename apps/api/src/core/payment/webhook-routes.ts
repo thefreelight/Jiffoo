@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { PLUGIN_CONTRACT_VERSIONS, type PaymentWebhookInput, type WebhookOutcome } from '@jiffoo/shared';
-import { prisma } from '@/config/database';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
+import { getDefaultInstallationRowWithPackage } from '@/core/extensions/registry';
 import { ApiError, sendMappedError } from '@/utils/api-errors';
 import { sendSuccess } from '@/utils/response';
 import { paymentSchemas } from './schemas';
@@ -50,10 +50,7 @@ export async function paymentWebhookRoutes(app: FastifyInstance): Promise<void> 
   }, async (request, reply) => {
     const { provider } = request.params as { provider: string };
     try {
-      const installation = await prisma.pluginInstallation.findUnique({
-        where: { pluginSlug_instanceKey: { pluginSlug: provider, instanceKey: 'default' } },
-        include: { plugin: { select: { deletedAt: true } } },
-      });
+      const installation = await getDefaultInstallationRowWithPackage(provider);
       if (!installation) throw new ApiError('PLUGIN_NOT_FOUND');
       if (!installation.enabled || installation.deletedAt || installation.plugin.deletedAt) throw new ApiError('PLUGIN_DISABLED');
       LoggerService.logPayment('webhook-received', undefined, undefined, { provider });

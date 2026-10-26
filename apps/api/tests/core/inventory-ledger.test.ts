@@ -27,7 +27,7 @@ vi.mock('@/core/extensions/registry', () => ({
   resolveSingleProvider: vi.fn(),
 }));
 
-vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
+vi.mock('@/core/extensions/runtime/plugin-runtime', () => ({
   callContract: vi.fn(),
 }));
 
@@ -38,7 +38,7 @@ import { InventoryService } from '@/core/inventory/service';
 import { CacheService } from '@/core/cache/service';
 import { CheckoutService } from '@/core/checkout/service';
 import { resolveSingleProvider } from '@/core/extensions/registry';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { createTestProduct } from '../helpers/fixtures';
 
 const SHIPPING_OPTION_ID = 'free-shipping:free';

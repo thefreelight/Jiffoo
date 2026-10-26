@@ -14,10 +14,10 @@ import { systemSettingsService } from '@/core/settings/service';
 import { AuthIdentityService } from '@/core/auth/identity-service';
 import { emitEvent } from '@/infra/events/emit';
 import { resolveSingleProvider } from '@/core/extensions/registry';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { ContractCallError } from '@/core/extensions/runtime/contract-errors';
 import { bindPurchaseOrigin } from '@/core/plugin-pages/service';
-import { decimalToMinor, minorToDecimal } from '@/core/shared/money';
+import { decimalToMinor, minorToDecimal, MoneyError } from '@/core/shared/money';
 import { currentLinePrice } from '@/core/shared/pricing';
 import { fulfillmentPlanFor, fulfillmentPolicyFor, orderRequiresShippingAddress, type FulfillmentPolicy } from '@/core/shared/fulfillment-policy';
 import { allocateOrderNumber } from '@/core/order/number';
@@ -750,9 +750,18 @@ function createOrderPlacementContext(userId: string, data: CreateOrderRequest): 
 export async function runOrderPlacement(userId: string, data: CreateOrderRequest): Promise<OrderPlacementOutcome> {
   const context = createOrderPlacementContext(userId, data);
   const stages = createOrderPlacementStages();
-  for (const stage of stages) {
-    await stage.run(context);
-    if (context.stopped) break;
+  try {
+    for (const stage of stages) {
+      await stage.run(context);
+      if (context.stopped) break;
+    }
+  } catch (error) {
+    // A bad amount is a validation failure of the request, not an internal
+    // error: the placement answers it with the validation error of the
+    // repository. The money module keeps its own diagnostic, the reason and
+    // the detail of the amount it could not convert.
+    if (error instanceof MoneyError) throw new ApiError('VALIDATION_ERROR');
+    throw error;
   }
   const result = context.result!;
   return {

@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
-import { validateThemeZip } from '@/core/admin/extension-installer/theme-validator';
+import { validateThemeZip } from '@/core/storage/theme-validator';
 import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { themePackageBlobStore } from './theme-package-blob-store';
 import { themePackageStore, type PluginPackage } from './plugin-package-store';

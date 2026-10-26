@@ -40,7 +40,8 @@ export function StatusTabs({ label, tabs, value, onChange }: { label: string; ta
 
 export function ListSearch({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   const [draft, setDraft] = useState(value);
-  const callback = useRef(onChange); callback.current = onChange;
+  const callback = useRef(onChange);
+  useEffect(() => { callback.current = onChange; }, [onChange]);
   useEffect(() => { setDraft(value); }, [value]);
   useEffect(() => { if (draft === value) return; const timer = setTimeout(() => callback.current(draft), 300); return () => clearTimeout(timer); }, [draft, value]);
   return <div className="relative min-w-0 flex-1 basis-[260px]"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-2.5 size-3.5 text-faint" /><Input aria-label={label} placeholder={label} value={draft} onChange={event => setDraft(event.target.value)} className="h-[34px] bg-raised pl-8 text-[13px]" /></div>;

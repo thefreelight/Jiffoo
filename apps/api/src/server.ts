@@ -43,7 +43,7 @@ import { prisma } from '@/config/database';
 import { closePluginDatabase, abandonPluginDatabase } from '@/core/admin/extension-installer/plugin-database';
 import { startCoreProcess, drainCoreProcess, finishCoreProcess, stopCoreProcessHeartbeat, drainCoreProcessHeartbeat } from '@/infra/core-process';
 import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
-import { drainContractInvocations, unsettledContractInvocations } from '@/core/admin/extension-installer/plugin-runtime';
+import { drainContractInvocations, unsettledContractInvocations } from '@/core/extensions/runtime/plugin-runtime';
 import { workerShutdownDeadlineMs } from '@/infra/worker-shutdown';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { redisCache } from '@/core/cache/redis';

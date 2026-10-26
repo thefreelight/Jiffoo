@@ -4,7 +4,7 @@ import { startCoreProcess, drainCoreProcess, finishCoreProcess, stopCoreProcessH
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { startPluginRecoverySweeper } from '@/core/admin/extension-installer/plugin-recovery';
 import { drainPluginInstallOperations, unsettledPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
-import { drainContractInvocations, unsettledContractInvocations } from '@/core/admin/extension-installer/plugin-runtime';
+import { drainContractInvocations, unsettledContractInvocations } from '@/core/extensions/runtime/plugin-runtime';
 import { workerShutdownDeadlineMs, observeWorkerShutdownForTest } from '@/infra/worker-shutdown';
 import { sharedProtection } from './infra/shared-protection';
 import { redisCache } from './core/cache/redis';

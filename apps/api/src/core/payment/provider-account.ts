@@ -1,6 +1,7 @@
 import { PLUGIN_CONTRACT_VERSIONS, type PaymentAccountIdentity, type PaymentV2Output } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
+import { getDefaultInstallationRow } from '@/core/extensions/registry';
 import { ApiError } from '@/utils/api-errors';
 
 export function samePaymentAccount(first: PaymentAccountIdentity, second: PaymentAccountIdentity): boolean {
@@ -8,7 +9,7 @@ export function samePaymentAccount(first: PaymentAccountIdentity, second: Paymen
 }
 export async function bindPaymentProviderAccount(slug: string, currency: string) {
   const description = await callContract(slug, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', { storeCurrency: currency }) as PaymentV2Output<'describe'>;
-  const installation = await prisma.pluginInstallation.findUnique({ where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } } });
+  const installation = await getDefaultInstallationRow(slug);
   if (!installation || !installation.enabled || installation.deletedAt) throw new ApiError('PLUGIN_DISABLED');
   const account = await prisma.paymentProviderAccount.upsert({
     where: { namespace_merchantAccount_environment: description.account }, update: {}, create: description.account,
@@ -18,7 +19,7 @@ export async function bindPaymentProviderAccount(slug: string, currency: string)
   return { account, description };
 }
 export async function bindObservedPaymentAccount(slug: string, providerKey: string): Promise<boolean> {
-  const installation = await prisma.pluginInstallation.findUnique({ where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } } });
+  const installation = await getDefaultInstallationRow(slug);
   if (!installation || !installation.enabled || installation.deletedAt) return false;
   await prisma.paymentProviderBinding.upsert({ where: { installationId_providerKey: { installationId: installation.id, providerKey } },
     update: {}, create: { installationId: installation.id, providerKey } });

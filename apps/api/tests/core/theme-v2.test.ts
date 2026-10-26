@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { validateThemeFiles } from '@/core/admin/extension-installer/theme-validator';
+import { validateThemeFiles } from '@/core/storage/theme-validator';
 import { themeTokenStyle, themeDefaultTokens, CORE_COLOR_ROLES, CORE_LENGTH_ROLES, CORE_FONT_ROLES } from '@jiffoo/shared';
 const base = (target: 'admin' | 'shop') => JSON.parse(readFileSync(`builtin-themes/default-${target}/theme.json`, 'utf8'));
 const validate = (manifest: unknown) => validateThemeFiles(new Map([['theme.json', Buffer.from(JSON.stringify(manifest))]]));

@@ -29,15 +29,15 @@ import { getDefaultInstance } from '@/core/extensions/registry';
 import type { PluginManifest } from '@/core/extensions/shared/types';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { resolveCurrentPluginPackage, PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
-import { loadPluginEntryModule } from './plugin-module-loader';
-import { validatePluginCompatibility, PluginLoaderError } from './plugin-compatibility';
+import { loadPluginEntryModule } from '@/core/admin/extension-installer/plugin-module-loader';
+import { validatePluginCompatibility, PluginLoaderError } from '@/core/admin/extension-installer/plugin-compatibility';
 import {
   clearContractV1EventHandlers,
   isContractV1Runtime,
   registerContractV1Runtime,
-} from './contract-v1-runtime';
+} from '@/core/admin/extension-installer/contract-v1-runtime';
 import { withPluginMigrationGate, assertPluginNotPaused } from './plugin-migration-gate';
-import { withPluginDatabaseInvocation, withPluginDatabaseHandler, isPluginDatabaseError } from './plugin-database';
+import { withPluginDatabaseInvocation, withPluginDatabaseHandler, isPluginDatabaseError } from '@/core/admin/extension-installer/plugin-database';
 import { pluginDatabaseLimit } from './plugin-database-test-control';
 import { registerPluginStateReset } from '@/core/extensions/runtime/plugin-state';
 import { recordPluginFailure, redactPluginFailure } from '@/core/extensions/runtime/failure';
@@ -45,7 +45,7 @@ import { readStoredPluginManifest } from '@/core/extensions/runtime/stored-manif
 import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, type PluginContractName, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
-import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
+import { ensurePluginRegistryFresh } from '@/core/admin/extension-installer/plugin-registry-freshness';
 import { getPluginTimeoutMs, MAX_RESPONSE_SIZE_BYTES } from '@/core/extensions/runtime/gateway-protection';
 import { ContractCallError, PluginGatewayError, contractGatewayError, type PluginGatewayErrorCode } from '@/core/extensions/runtime/contract-errors';
 import { type ContractName, type PluginContractVersion } from '@/core/extensions/runtime/contract-versions';
@@ -54,7 +54,7 @@ import { observeWorkerShutdownForTest } from '@/infra/worker-shutdown';
 import { sharedProtection, pluginProtectionScope, SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
 import { decryptPluginConfig, redactPluginText } from '@/core/extensions/shared/config-crypto';
 import { pluginSigningError } from './plugin-signing-policy';
-import { encodePaymentWebhook } from './payment-webhook-wire';
+import { encodePaymentWebhook } from '@/core/admin/extension-installer/payment-webhook-wire';
 import { pluginPageAdmission } from '@/core/plugin-pages/origin-policy';
 
 // ============================================================================

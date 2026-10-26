@@ -18,11 +18,11 @@ import { installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-pl
 import { recordB10ProcessTree, forceB10ProcessTree, confirmB10ProcessTreeExited } from '../helpers/b10-process-tree';
 import { snapshotPluginRows, restoreBuiltinRows } from '../helpers/plugin-db-snapshot';
 import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
-import { drainContractInvocations } from '@/core/admin/extension-installer/plugin-runtime';
+import { drainContractInvocations } from '@/core/extensions/runtime/plugin-runtime';
 import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
 import { finishCoreProcess } from '@/infra/core-process';
 import { sharedProtection } from '@/infra/shared-protection';
-import * as pluginRuntime from '@/core/admin/extension-installer/plugin-runtime';
+import * as pluginRuntime from '@/core/extensions/runtime/plugin-runtime';
 import { setWorkerShutdownObserverForTest } from '@/infra/worker-shutdown';
 
 class Mailbox<T> {

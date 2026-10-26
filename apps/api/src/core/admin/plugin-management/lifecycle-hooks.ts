@@ -5,7 +5,7 @@ import { resolveCurrentPluginPackage, PluginPackageResolutionError } from '@/cor
 import { loadPluginEntryModule } from '@/core/admin/extension-installer/plugin-module-loader';
 import type { LifecycleHookName, PluginManifest } from '@jiffoo/shared';
 import { recordPluginFailure, redactPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
-import { assertPluginSigningAllowed } from '@/core/admin/extension-installer/plugin-signing-policy';
+import { assertPluginSigningAllowed } from '@/core/extensions/runtime/plugin-signing-policy';
 import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 
 export interface LifecycleContext {

@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { recordPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
 import { handlePluginProcessFailure } from '@/core/admin/extension-installer/plugin-process-failure';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { EventDeliveryEngine } from '@/infra/events/delivery';
 import { emitEvent } from '@/infra/events/emit';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';

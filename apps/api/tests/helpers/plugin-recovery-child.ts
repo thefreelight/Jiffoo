@@ -4,9 +4,9 @@ import { startCoreProcess, drainCoreProcess, finishCoreProcess } from '@/infra/c
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { withRecoveryTestControl, assertRecoveryTestControl } from '@/core/admin/extension-installer/plugin-recovery-test-control';
 import { startPluginRecoverySweeper } from '@/core/admin/extension-installer/plugin-recovery';
-import { withPluginMigrationGate } from '@/core/admin/extension-installer/plugin-migration-gate';
+import { withPluginMigrationGate } from '@/core/extensions/runtime/plugin-migration-gate';
 import { createPluginDatabase, withPluginDatabaseInvocation, withPluginDatabaseHandler, closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
-import { withPluginDatabaseTestControl } from '@/core/admin/extension-installer/plugin-database-test-control';
+import { withPluginDatabaseTestControl } from '@/core/extensions/runtime/plugin-database-test-control';
 import { startPluginInstallOperation, drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
 import { localUploadOptions } from './plugin-upload';
 

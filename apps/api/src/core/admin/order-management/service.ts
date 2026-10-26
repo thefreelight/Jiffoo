@@ -17,7 +17,7 @@ import { emitEvent } from '@/infra/events/emit';
 import { recordPaymentNotCharged, recordPaymentSucceeded } from '@/core/payment/reconciliation';
 import { PaymentService } from '@/core/payment/service';
 import { lockOrder, lockPayment } from '@/core/shared/locks';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
 import { orderWhere, orderSort, type OrderFilter, type OrderSort } from './list-query';
 

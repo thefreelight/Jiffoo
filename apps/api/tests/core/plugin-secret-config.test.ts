@@ -8,7 +8,7 @@ import { fork, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
-import { callContract, dropInternalRuntime } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract, dropInternalRuntime } from '@/core/extensions/runtime/plugin-runtime';
 import { evaluatePluginConfigReadiness } from '@/core/admin/extension-installer/config-readiness';
 import { EventDeliveryEngine } from '@/infra/events/delivery';
 import { emitEvent } from '@/infra/events/emit';

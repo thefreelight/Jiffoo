@@ -5,7 +5,7 @@ import { prisma } from '@/config/database';
 import { env } from '@/config/env';
 import { ApiError } from '@/utils/api-errors';
 import { AdminAuditService } from '@/core/admin/audit-events/service';
-import { PluginStorageAdmissionService } from '@/core/admin/extension-installer/storage-admission-service';
+import { PluginStorageAdmissionService } from '@/core/extensions/runtime/storage-admission-service';
 import { assertTaskOperation, lockTaskScheduler, validateTaskPrincipal, taskDatabaseTime, type TaskTransaction } from '@/core/plugins/tasks';
 import { uploadedObjectStore, type UploadedObjectStore } from '@/core/storage/uploaded-object-store';
 import { sharedProtection } from '@/infra/shared-protection';

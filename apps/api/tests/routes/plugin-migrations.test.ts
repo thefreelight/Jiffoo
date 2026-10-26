@@ -16,7 +16,7 @@ import { once } from 'node:events';
 import path from 'node:path';
 import { commitAcknowledgementProxy } from '../helpers/plugin-migration-commit-proxy';
 import { createServer, type ServerResponse } from 'node:http';
-import { callContract, deliverInstallationEvent, validateCandidateRuntime, dropInternalRuntime } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract, deliverInstallationEvent, validateCandidateRuntime, dropInternalRuntime } from '@/core/extensions/runtime/plugin-runtime';
 import type { MigrationTestLimits } from '@/core/admin/extension-installer/plugin-migration-test-control';
 import { processApplicationName } from '@/infra/core-process-identity';
 import { startPluginInstallOperation, drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';

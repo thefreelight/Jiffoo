@@ -2,7 +2,7 @@ import type { Payment } from '@prisma/client';
 import { paymentClockOffsetMs } from './clock';
 import { paymentAttemptStatusSets } from './service';
 import { getPluginTimeoutMs } from '@/core/extensions/runtime/gateway-protection';
-import { pluginDatabaseLimit } from '@/core/admin/extension-installer/plugin-database-test-control';
+import { pluginDatabaseLimit } from '@/core/extensions/runtime/plugin-database-test-control';
 
 export const PAYMENT_RECONCILIATION_LEASE_MS = 60_000;
 export const PAYMENT_RECONCILIATION_MARGIN_MS = 1_000;

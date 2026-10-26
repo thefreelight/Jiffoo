@@ -1,6 +1,6 @@
 import { coreProcessState } from '../../src/infra/core-process';
 import { createPluginDatabase, pluginDatabaseResources, withPluginDatabaseInvocation, withPluginDatabaseHandler } from '../../src/core/admin/extension-installer/plugin-database';
-import { withPluginMigrationGate } from '../../src/core/admin/extension-installer/plugin-migration-gate';
+import { withPluginMigrationGate } from '../../src/core/extensions/runtime/plugin-migration-gate';
 import { redisCache } from '../../src/core/cache/redis';
 
 async function main() {

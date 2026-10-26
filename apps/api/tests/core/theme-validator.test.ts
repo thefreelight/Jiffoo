@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import archiver from 'archiver';
 import { validateBuiltinTheme } from '@/core/admin/extension-installer/theme-service';
-import { validateThemeFiles, validateThemeZip } from '@/core/admin/extension-installer/theme-validator';
+import { validateThemeFiles, validateThemeZip } from '@/core/storage/theme-validator';
 
 const themeRoot = path.resolve(process.cwd(), 'builtin-themes');
 const base = async () => JSON.parse(await fs.readFile(path.join(themeRoot, 'default-shop/theme.json'), 'utf8'));

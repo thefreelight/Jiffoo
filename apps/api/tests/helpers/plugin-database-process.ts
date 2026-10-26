@@ -5,9 +5,9 @@ import { prisma } from '@/config/database';
 import { redisCache } from '@/core/cache/redis';
 import { sharedProtection } from '@/infra/shared-protection';
 import { closePluginDatabase } from '@/core/admin/extension-installer/plugin-database';
-import { deliverInstallationEvent } from '@/core/admin/extension-installer/plugin-runtime';
+import { deliverInstallationEvent } from '@/core/extensions/runtime/plugin-runtime';
 import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
-import { assertPluginDatabaseTestControl, withPluginDatabaseTestControl } from '@/core/admin/extension-installer/plugin-database-test-control';
+import { assertPluginDatabaseTestControl, withPluginDatabaseTestControl } from '@/core/extensions/runtime/plugin-database-test-control';
 import type { PluginEvent } from '@jiffoo/shared';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 

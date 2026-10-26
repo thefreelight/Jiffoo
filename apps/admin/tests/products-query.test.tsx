@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+import { act, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { expect, it, vi } from 'vitest';
@@ -30,7 +30,7 @@ it.each(['create', 'update', 'delete'])('invalidates product lists and counts af
   client.setQueryData(['products', { status: 'active' }], {}); client.setQueryData(['product-stats'], {});
   const spies = [vi.spyOn(productsApi, 'create'), vi.spyOn(productsApi, 'update'), vi.spyOn(productsApi, 'delete')]; spies.forEach(spy => spy.mockResolvedValue({ success: true, data: {} } as any));
   const root = createRoot(document.createElement('div')); let mutate: () => Promise<unknown>;
-  function Probe() { const create = useCreateProduct(), update = useUpdateProduct(), remove = useDeleteProduct(); mutate = () => operation === 'create' ? create.mutateAsync({ name: 'Book' }) : operation === 'update' ? update.mutateAsync({ id: 'one', data: { isActive: false } }) : remove.mutateAsync('one'); return null; }
+  function Probe() { const create = useCreateProduct(), update = useUpdateProduct(), remove = useDeleteProduct(); const trigger = () => operation === 'create' ? create.mutateAsync({ name: 'Book' }) : operation === 'update' ? update.mutateAsync({ id: 'one', data: { isActive: false } }) : remove.mutateAsync('one'); useEffect(() => { mutate = trigger; }); return null; }
   try { await act(async () => root.render(<QueryClientProvider client={client}><Probe /></QueryClientProvider>)); await act(async () => { await mutate(); }); expect(client.getQueryState(['products', { status: 'active' }])?.isInvalidated).toBe(true); expect(client.getQueryState(['product-stats'])?.isInvalidated).toBe(true); }
   finally { await act(async () => root.unmount()); client.clear(); spies.forEach(spy => spy.mockRestore()); vi.unstubAllGlobals(); }
 });

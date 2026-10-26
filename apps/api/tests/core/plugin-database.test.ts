@@ -10,10 +10,10 @@ import { prisma } from '@/config/database';
 import type { PluginDatabaseTransaction } from '@jiffoo/shared';
 import { pluginSchemaName } from 'shared/plugin-signing';
 import { createPluginDatabaseTestRuntime, withPluginDatabaseInvocation, withPluginDatabaseHandler } from '@/core/admin/extension-installer/plugin-database';
-import { withPluginDatabaseTestControl } from '@/core/admin/extension-installer/plugin-database-test-control';
+import { withPluginDatabaseTestControl } from '@/core/extensions/runtime/plugin-database-test-control';
 import { migrationConnectionUrl } from '@/core/admin/extension-installer/plugin-migration-executor';
 import { commitAcknowledgementProxy } from '../helpers/plugin-migration-commit-proxy';
-import { withPluginMigrationGate } from '@/core/admin/extension-installer/plugin-migration-gate';
+import { withPluginMigrationGate } from '@/core/extensions/runtime/plugin-migration-gate';
 import { tcpRelay } from '../helpers/error-http-fixture';
 import { processApplicationName, coreProcessIdentity } from '@/infra/core-process-identity';
 

@@ -7,7 +7,7 @@ import { prisma } from '@/config/database';
 import { redisCache } from '@/core/cache/redis';
 import { sharedProtection } from '@/infra/shared-protection';
 import { installBuiltinTheme } from '@/core/admin/extension-installer/theme-service';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 
 async function main() {
   if (process.env.NODE_ENV !== 'test' && process.env.JIFFOO_TEST_THEME_BARRIER === undefined) throw new Error('Theme fixture requires the test environment');

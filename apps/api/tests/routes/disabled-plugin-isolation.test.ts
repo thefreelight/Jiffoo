@@ -11,7 +11,7 @@ import { createTestProduct, deleteAllTestOrders, deleteAllTestProducts } from '.
 import { checkoutTotal } from '../helpers/checkout-total';
 import { installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-plugin';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
-import { warmPluginInstanceRuntime } from '@/core/admin/extension-installer/plugin-runtime';
+import { warmPluginInstanceRuntime } from '@/core/extensions/runtime/plugin-runtime';
 import { reconcilePendingPayments } from '@/core/payment/reconciliation';
 import { withPaymentTestClock } from '@/core/payment/clock';
 import { OrderService } from '@/core/order/service';

@@ -12,6 +12,7 @@ import { AuditService } from '@/core/audit/service';
 import {
   applyFulfillmentPolicySelection,
   assertFulfillmentPolicySelection,
+  builtinFulfillmentPolicies,
   clearFulfillmentPolicies,
 } from '@/core/shared/fulfillment-policy';
 
@@ -54,6 +55,15 @@ const DEFAULT_COUNTRIES_REQUIRE_STATE_POSTAL = ['US', 'CA', 'AU', 'CN', 'GB'] as
  * store that selects nothing keeps the default policy of every product type.
  */
 const FULFILLMENT_POLICIES_KEY = 'fulfillment.policies';
+/**
+ * The key of the store setting that publishes the catalogue of the
+ * fulfilment policies the Core knows. The catalogue is not a setting of the
+ * store: it is the list of the policies and of the product types they
+ * describe, so an administration surface can offer the selection without
+ * knowing the policies itself. The catalogue is added to the map the service
+ * returns and never to the map it stores.
+ */
+const FULFILLMENT_POLICY_CATALOG_KEY = 'fulfillment.policy_catalog';
 
 /**
  * Localization context - cached configuration for currency/locale
@@ -326,7 +336,27 @@ export class SystemSettingsService {
      * Get all settings
      */
     async getAllSettings(): Promise<Record<string, any>> {
-        return this.getSettingsObject();
+        return this.withFulfillmentPolicyCatalog(await this.getSettingsObject());
+    }
+
+    /**
+     * The catalogue of the fulfilment policies the Core knows, published
+     * through the settings the administration surface reads.
+     *
+     * The catalogue is the list of the policies and of the product types
+     * they describe. It is added to the map that leaves the service and
+     * never to the map that is stored, so the stored settings keep holding
+     * the settings of the store only.
+     */
+    private withFulfillmentPolicyCatalog(settings: Record<string, any>): Record<string, any> {
+        return {
+            ...settings,
+            [FULFILLMENT_POLICY_CATALOG_KEY]: builtinFulfillmentPolicies().map(entry => ({
+                name: entry.name,
+                productType: entry.productType,
+                policy: { ...entry.policy },
+            })),
+        };
     }
 
     /**

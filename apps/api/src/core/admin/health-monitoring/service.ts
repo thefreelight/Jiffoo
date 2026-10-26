@@ -2,7 +2,7 @@
  * Admin health summary service.
  */
 
-import { getPluginRuntimeState } from '@/core/admin/extension-installer/plugin-runtime';
+import { getPluginRuntimeState } from '@/core/extensions/runtime/plugin-runtime';
 import { performHealthCheck } from '@/utils/health-check';
 import type { HealthSummaryResponse } from './types';
 import { getWorkerHealthSummary } from '@/infra/worker-health';

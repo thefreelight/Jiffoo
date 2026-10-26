@@ -72,7 +72,7 @@ vi.mock('@/core/logger/unified-logger', () => ({
   },
 }));
 
-vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
+vi.mock('@/core/extensions/runtime/plugin-runtime', () => ({
   callContract: vi.fn(),
 }));
 
@@ -95,7 +95,7 @@ import { getAllPluginPackages, getDefaultInstance } from '@/core/extensions/regi
 import { systemSettingsService } from '@/core/settings/service';
 import { CacheService } from '@/core/cache/service';
 import { authMiddleware } from '@/core/auth/middleware';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { observePaymentFact } from '@/core/payment/observations';
 
 // ---------------------------------------------------------------------------

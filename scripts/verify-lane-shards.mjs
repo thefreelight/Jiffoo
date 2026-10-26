@@ -19,6 +19,12 @@
 //   mode, so scripts/lane-config.mjs validation passes unchanged;
 // - DATABASE_URL, DATABASE_URL_TEST and REDIS_URL are always overwritten with the shard
 //   container URLs; the ambient DATABASE_URL_TEST / REDIS_URL of the shell are ignored;
+// - every shard also gets its own runtime package cache: EXTENSIONS_PATH points at a directory of
+//   its own below the artefact directory of the run, so the cleanup of one shard can never remove
+//   the published packages another shard is reading. The cache of a shard is removed with the
+//   other artefacts of the run, exactly like its containers, and the report of the run names the
+//   directory of every shard. A shard without a cache directory of its own keeps the ambient
+//   EXTENSIONS_PATH, so a run that does not use the per-shard cache behaves as before;
 // - a shard may never use a host service port (5432, 5498, 6379, 6398). The primary isolation
 //   evidence is the container ID this run created plus the port mapping read back from it;
 // - cleanup removes exactly the container IDs this run created - never a name-based scan; the
@@ -89,6 +95,9 @@ export const shardBalanceTolerance = 1.15;
 export const fallbackDurationWeight = 'median';
 // Host ports of the integration PostgreSQL and Redis services. A shard must never use them.
 export const hostServicePorts = Object.freeze([5432, 5498, 6379, 6398]);
+// The runtime package cache of a shard lives in its own directory below this directory of the
+// artefact area of the run, next to the shard logs and the shard results.
+export const extensionsCacheDirectoryName = 'extensions';
 // The complete gate is `pnpm verify`; these are the steps this script does NOT run.
 export const stepsNotCovered = Object.freeze([
   'TypeScript type check (pnpm type-check)',
@@ -156,6 +165,16 @@ export function shardContainerNames(containerPrefix, index, runId = '') {
   return { database: `jiffoo-${containerPrefix}-shard${index}${suffix}-db`, redis: `jiffoo-${containerPrefix}-shard${index}${suffix}-redis` };
 }
 
+// The runtime package cache directory of a shard. Every shard of a run gets a directory of its own,
+// so the cleanup of one shard can never remove the published packages another shard is reading.
+// The directory lives inside the artefact directory of the run and carries the run id, so a later
+// run never reuses the cache of an earlier one.
+export function shardExtensionsPath(artefactsDirectory, index, runId = '') {
+  const base = resolve(artefactsDirectory);
+  const suffix = runId ? `-${runId}` : '';
+  return join(base, extensionsCacheDirectoryName, `shard${index}${suffix}`);
+}
+
 export function shardDatabaseUrl(databasePort, databaseName) {
   return `postgresql://postgres:postgres@127.0.0.1:${databasePort}/${databaseName}`;
 }
@@ -164,7 +183,7 @@ export function shardRedisUrl(redisPort, redisDb) {
   return `redis://127.0.0.1:${redisPort}/${redisDb}`;
 }
 
-export function buildShardPlan(target, shards, only, runId = '') {
+export function buildShardPlan(target, shards, only, runId = '', artefactsDirectory = '') {
   const indexes = only ? [only] : Array.from({ length: shards }, (_, offset) => offset + 1);
   return indexes.map(index => {
     const names = shardContainerNames(target.containerPrefix, index, runId);
@@ -176,6 +195,9 @@ export function buildShardPlan(target, shards, only, runId = '') {
       redisContainer: names.redis,
       databaseName: target.databaseName,
       redisDb: target.redisDb,
+      // The runtime package cache of this shard. It is empty when the run has no artefact
+      // directory; the shard then keeps the ambient EXTENSIONS_PATH and behaves as before.
+      extensionsPath: artefactsDirectory ? shardExtensionsPath(artefactsDirectory, index, runId) : '',
       files: [],
     };
   });
@@ -231,7 +253,10 @@ export function catalogueSnapshotEnvironment(baseEnvironment, shard) {
 }
 
 // The shard environment always points at the shard's own containers; the ambient DATABASE_URL,
-// DATABASE_URL_TEST and REDIS_URL of the shell are never used.
+// DATABASE_URL_TEST and REDIS_URL of the shell are never used. The runtime package cache of the
+// shard is addressed the same way: EXTENSIONS_PATH points at the cache directory of the shard, and
+// the ambient EXTENSIONS_PATH of the shell is ignored. A shard without a cache directory of its
+// own keeps the ambient EXTENSIONS_PATH, so the fallback stays exactly what it was.
 export function shardEnvironment(baseEnvironment, shard) {
   const environment = {
     ...baseEnvironment,
@@ -241,6 +266,7 @@ export function shardEnvironment(baseEnvironment, shard) {
   };
   if (shard.laneId) environment.LANE_ID = shard.laneId;
   else delete environment.LANE_ID;
+  if (shard.extensionsPath) environment.EXTENSIONS_PATH = shard.extensionsPath;
   return environment;
 }
 
@@ -1197,6 +1223,54 @@ export function uploadStorageCleanupRows(outcome, presence = {}) {
   return rows;
 }
 
+// The runtime package cache of a shard is an artefact of the run: it is removed with the other
+// artefacts of the shard. Only a cache that is gone afterwards counts as removed.
+export function removeExtensionsCache(path) {
+  if (!path) return { status: 'skipped', detail: 'the shard had no runtime package cache of its own' };
+  try {
+    rmSync(path, { recursive: true, force: true });
+  } catch (error) {
+    return { status: 'failed', detail: `the runtime package cache could not be removed: ${error.message}` };
+  }
+  if (existsSync(path)) return { status: 'failed', detail: 'the runtime package cache still exists after the removal' };
+  return { status: 'removed', detail: 'removed with the other artefacts of the shard' };
+}
+
+// The cleanup rows of the runtime package cache of a shard. The presence of the directory is
+// measured by the caller and handed in, so this function stays pure. A cache that is still there
+// after the removal is a cleanup failure, not a PASS.
+export function extensionsCacheCleanupRows(outcome, presence = {}) {
+  const cache = outcome?.extensionsCache;
+  if (!cache?.path) return [];
+  const cleanup = cache.cleanup ?? {};
+  const present = presence.present ?? false;
+  let status = 'removed';
+  let detail = cleanup.detail ?? 'removed with the other artefacts of the shard';
+  if (cleanup.status === 'skipped') {
+    status = 'skipped';
+    detail = cleanup.detail ?? 'kept on request (--keep)';
+  } else if (cleanup.status === 'retained') {
+    status = 'retained';
+    detail = cleanup.detail ?? 'the shard process is still alive';
+  } else if (cleanup.status === 'failed') {
+    status = 'failed';
+    detail = cleanup.detail ?? 'the runtime package cache cleanup failed';
+  } else if (present) {
+    status = 'failed';
+    detail = 'the runtime package cache still exists after the removal';
+  }
+  return [{ id: cache.path, name: cache.path, role: 'extensions-cache', shard: outcome.shard, status, detail }];
+}
+
+// The evidence of the run names the runtime package cache of every shard, so a failure can be
+// traced to the cache of the shard that produced it.
+export function buildExtensionsCacheReport(rows = []) {
+  const cell = value => String(value ?? 'n/a').replaceAll('|', '\\|');
+  const header = ['| Shard | Runtime package cache | Status | Detail |', '| --- | --- | --- | --- |'];
+  const body = rows.map(row => `| ${cell(row.shard)} | ${cell(row.id)} | ${cell(row.status)} | ${cell(row.detail)} |`);
+  return { rows, table: [...header, ...body].join('\n') };
+}
+
 async function runShard(shard, baseEnvironment, resultsDirectory, keep = false) {
   const logPath = join(resultsDirectory, `shard-${shard.index}.log`);
   const resultsPath = join(resultsDirectory, `shard-${shard.index}.results.json`);
@@ -1219,6 +1293,7 @@ async function runShard(shard, baseEnvironment, resultsDirectory, keep = false) 
     log.write(`# redis ${shard.redisUrl}\n`);
     log.write(`# database container ${shard.databaseContainerId}\n`);
     log.write(`# redis container ${shard.redisContainerId}\n`);
+    log.write(`# runtime package cache ${shard.extensionsPath || 'shared (no cache of its own)'}\n`);
     log.write(`# assigned test files ${shard.files.length}\n`);
     uploadStorage = await (await import('./upload-test-storage.mjs')).startUploadTestStorage();
     uploadContainer = identifyUploadStorageContainer(uploadStorage);
@@ -1316,6 +1391,7 @@ async function runShard(shard, baseEnvironment, resultsDirectory, keep = false) 
       : uploadCleanup
         ? { id: 'not-identified', name: 'not identified', volumes: [], cleanup: uploadCleanup }
         : null,
+    extensionsCache: shard.extensionsPath ? { path: shard.extensionsPath } : null,
     logPath,
   };
 }
@@ -1377,9 +1453,17 @@ async function main() {
   const config = laneConfig();
   const target = resolveShardTarget(config);
   const runId = createRunId();
-  const plan = buildShardPlan(target, shards, shard, runId);
+  const plan = buildShardPlan(target, shards, shard, runId, resultsDirectory);
   const plannedNames = plan.flatMap(entry => [entry.databaseContainer, entry.redisContainer]);
   assertContainersAvailable(plan, existingContainers(plannedNames));
+
+  // Every shard gets its own runtime package cache, so the cleanup of one shard can never remove
+  // the published packages another shard is reading. The cache lives in the artefact area of the
+  // run and is removed with the other artefacts of the shard.
+  for (const entry of plan) {
+    if (!entry.extensionsPath) continue;
+    mkdirSync(entry.extensionsPath, { recursive: true });
+  }
 
   console.log(`Mode ${target.mode}${target.laneId ? ` (lane ${target.laneId})` : ''}: database ${target.databaseName}, Redis DB ${target.redisDb}`);
   console.log(`Run ${runId}`);
@@ -1468,6 +1552,7 @@ async function main() {
             assignedFiles: entry.files,
             executedFiles: null,
             logPath: join(resultsDirectory, `shard-${entry.index}.log`),
+            extensionsCache: entry.extensionsPath ? { path: entry.extensionsPath } : null,
             skipped: true,
           });
           continue;
@@ -1492,6 +1577,7 @@ async function main() {
             assignedFiles: plan[offset]?.files ?? [],
             executedFiles: null,
             logPath: join(resultsDirectory, `shard-${index}.log`),
+            extensionsCache: plan[offset]?.extensionsPath ? { path: plan[offset].extensionsPath } : null,
             error: entry.reason?.message ?? String(entry.reason),
           });
         }
@@ -1541,11 +1627,35 @@ async function main() {
         volumes: Object.fromEntries((storage.volumes ?? []).map(volume => [volume, volumeExists(volume)])),
       });
     });
-    cleanupDone = true;
-    const cleanup = buildCleanupReport([...cleanupContainers, ...uploadRows], {
+    // The runtime package cache of every shard belongs to the cleanup inventory as well: it is
+    // removed with the other artefacts of the run, and a cache that survives is a cleanup failure.
+    const extensionsRows = outcomes.flatMap(outcome => {
+      const path = outcome?.extensionsCache?.path;
+      if (!path) return [];
+      let cacheCleanup;
+      if (keep) {
+        cacheCleanup = { status: 'skipped', detail: 'kept on request (--keep)' };
+      } else if (retainShards.has(outcome.shard)) {
+        const lingering = outcomes.find(entry => entry.shard === outcome.shard)?.lingering ?? [];
+        const alive = lingering.map(entry => `${entry.pid}:${entry.name}`).join(', ') || 'unknown';
+        cacheCleanup = { status: 'retained', detail: `shard process still alive (${alive}); the runtime package cache of this shard is retained` };
+      } else {
+        cacheCleanup = removeExtensionsCache(path);
+      }
+      return extensionsCacheCleanupRows({ ...outcome, extensionsCache: { path, cleanup: cacheCleanup } }, { present: existsSync(path) });
+    });
+    const extensionsReport = buildExtensionsCacheReport(extensionsRows);
+    const cleanup = buildCleanupReport([...cleanupContainers, ...uploadRows, ...extensionsRows], {
       ownership: target.laneId ? `the operator of lane ${target.laneId}` : 'the operator of this integration run',
       handling: 'remove the residual container by its ID with `docker rm -f <id>` once no shard process is running',
     });
+    // The container inventory names the containers of the run; the runtime package cache has its
+    // own table, because it is a directory and not a container.
+    const containerInventory = buildCleanupReport([...cleanupContainers, ...uploadRows], {
+      ownership: target.laneId ? `the operator of lane ${target.laneId}` : 'the operator of this integration run',
+      handling: 'remove the residual container by its ID with `docker rm -f <id>` once no shard process is running',
+    });
+    cleanupDone = true;
 
     const testConclusion = aggregate.passed && coverage.passed ? 'PASS' : 'FAIL';
     const cleanupConclusion = keep ? 'SKIPPED' : cleanup.passed ? 'PASS' : 'FAIL';
@@ -1615,7 +1725,14 @@ async function main() {
       ...outcomes.map(outcome => `Shard ${outcome.shard}: ${outcome.startedAtIso ?? 'not started'} -> ${outcome.finishedAtIso ?? 'not finished'} (${outcome.duration})`),
       '',
       '--- Container inventory (created by this run) ---',
-      cleanup.table,
+      containerInventory.table,
+      '',
+      '--- Runtime package cache (one directory per shard) ---',
+      'Every shard runs against its own runtime package cache, so the cleanup of one shard can never',
+      'remove the published packages another shard is reading.',
+      extensionsReport.table,
+      `Runtime package cache directories created by this run: ${extensionsRows.map(row => `${row.id} (shard ${row.shard})`).join(', ') || 'none'}`,
+      `Runtime package cache directories removed by this run: ${extensionsRows.filter(row => row.status === 'removed').map(row => row.id).join(', ') || 'none'}`,
       '',
       '--- Resource cleanup ---',
       `Cleanup conclusion: ${cleanupConclusion}`,
@@ -1624,7 +1741,7 @@ async function main() {
       `Created upload storage container IDs: ${uploadRows.filter(row => row.role === 'upload-storage').map(row => row.id).join(', ') || 'none'}`,
       `Created upload storage volume IDs: ${uploadRows.filter(row => row.role === 'upload-storage-volume').map(row => row.id).join(', ') || 'none'}`,
       `Removed resources (id, role, shard): ${cleanup.removed.map(row => `${row.id} (${row.role}, shard ${row.shard})`).join(', ') || 'none'}`,
-      `Removed container IDs: ${cleanup.removed.filter(row => row.role !== 'upload-storage-volume').map(container => container.id).join(', ') || 'none'}`,
+      `Removed container IDs: ${cleanup.removed.filter(row => row.role !== 'upload-storage-volume' && row.role !== 'extensions-cache').map(container => container.id).join(', ') || 'none'}`,
       `Removed upload storage volumes: ${cleanup.removed.filter(row => row.role === 'upload-storage-volume').map(container => container.id).join(', ') || 'none'}`,
       `Retained resources (id, role, shard): ${cleanup.retained.map(container => `${container.id} (${container.role}, shard ${container.shard})`).join(', ') || 'none'}`,
       `Failed resources (id, role, shard): ${cleanup.failures.map(container => `${container.id} (${container.role}, shard ${container.shard})`).join(', ') || 'none'}`,
@@ -1662,7 +1779,14 @@ async function main() {
         }
       }
     }
-    if (keep) console.log('Keeping shard containers (--keep).');
+    if (!cleanupDone) {
+      for (const entry of plan) {
+        if (!entry.extensionsPath) continue;
+        const removal = removeExtensionsCache(entry.extensionsPath);
+        console.error(`Emergency cleanup of the runtime package cache ${entry.extensionsPath} (${removal.status}): ${removal.detail}`);
+      }
+    }
+    if (keep) console.log('Keeping shard containers and the runtime package caches of the shards (--keep).');
   }
 }
 

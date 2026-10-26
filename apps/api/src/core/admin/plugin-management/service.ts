@@ -15,10 +15,10 @@ import type { PluginMeta, PluginState, PluginConfig, InstalledPluginsResponse } 
 import { validateInstanceConfig, validateInstanceKeyFormat } from '@/core/extensions/shared/utils';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { resolveCurrentPluginPackage, PluginPackageResolutionError } from '@/core/storage/current-plugin-package';
-import { assertPluginSigningAllowed } from '@/core/admin/extension-installer/plugin-signing-policy';
+import { assertPluginSigningAllowed } from '@/core/extensions/runtime/plugin-signing-policy';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { acquirePluginOperationLease, fencePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
-import { assertPluginOperationAvailable } from '@/core/admin/extension-installer/plugin-migration-gate';
+import { assertPluginOperationAvailable } from '@/core/extensions/runtime/plugin-migration-gate';
 import { systemSettingsService } from '@/core/settings/service';
 import { assertPluginConfigReadyForEnable } from '@/core/admin/extension-installer/config-readiness';
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
@@ -65,7 +65,7 @@ async function warmPluginInstanceRuntime(
   installationId: string,
   config?: Record<string, unknown>,
 ): Promise<void> {
-  const { warmPluginInstanceRuntime: warm } = await import('@/core/admin/extension-installer/plugin-runtime');
+  const { warmPluginInstanceRuntime: warm } = await import('@/core/extensions/runtime/plugin-runtime');
   await warm(slug, installationId, config);
 }
 
@@ -370,7 +370,7 @@ async function updateInstance(
   if (isEnabling || (updates.config !== undefined && existing.enabled)) {
     try {
       if (isEnabling) {
-        const { validateCandidateRuntime } = await import('@/core/admin/extension-installer/plugin-runtime');
+        const { validateCandidateRuntime } = await import('@/core/extensions/runtime/plugin-runtime');
         await validateCandidateRuntime(existing.pluginSlug, pluginPackage.zipHash || '', manifest, existing.id, runtimeConfig);
       } else {
         await warmPluginInstanceRuntime(existing.pluginSlug, existing.id, runtimeConfig);

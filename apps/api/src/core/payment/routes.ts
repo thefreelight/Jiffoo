@@ -21,7 +21,7 @@ import { CacheService } from '@/core/cache/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { PaymentStatus } from '@/core/order/types';
 import { queryPaymentByRequestKey } from '@/core/payment/reconciliation';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
 import { ApiError, sendKnownError, sendMappedError } from '@/utils/api-errors';
 import { createPaymentSession } from './session';

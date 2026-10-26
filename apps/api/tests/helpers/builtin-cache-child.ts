@@ -1,5 +1,5 @@
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { prisma } from '@/config/database';
 import path from 'node:path';
 

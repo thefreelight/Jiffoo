@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react';
+import { act, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { expect, it, vi } from 'vitest';
@@ -30,7 +30,8 @@ it.each(['review', 'manual', 'deliver'])('invalidates order counts after %s chan
   let mutate: () => Promise<unknown>;
   function Probe() {
     const review = useResolvePaymentReview(), manual = useRecordManualPayment(), deliver = useDeliverOrder();
-    mutate = () => operation === 'review' ? review.mutateAsync({ id: 'one', paymentId: 'payment', outcome: 'NOT_CHARGED', reference: 'proof' }) : operation === 'manual' ? manual.mutateAsync({ id: 'one', reference: 'proof' }) : deliver.mutateAsync('one');
+    const trigger = () => operation === 'review' ? review.mutateAsync({ id: 'one', paymentId: 'payment', outcome: 'NOT_CHARGED', reference: 'proof' }) : operation === 'manual' ? manual.mutateAsync({ id: 'one', reference: 'proof' }) : deliver.mutateAsync('one');
+    useEffect(() => { mutate = trigger; });
     return null;
   }
   try {

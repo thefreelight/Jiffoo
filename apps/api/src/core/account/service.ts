@@ -17,7 +17,7 @@ export class AccountService {
   }
   static async deleteAccount(userId: string, currentPassword: string): Promise<void> {
     await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
+      const user = await AuthIdentityService.requireAccountWithCredentials(tx, userId);
       if (!await PasswordUtils.verify(currentPassword, user.password)) throw new ApiError('INVALID_PASSWORD');
       if (user.role === 'ADMIN') {
         const settings = await tx.systemSettings.findUnique({ where: { id: 'system' }, select: { installedBy: true } });
@@ -62,10 +62,7 @@ export class AccountService {
    * Get user profile
    */
   static async getProfile(userId: string) {
-    const profile = await prisma.user.findUnique({
-      where: { id: userId },
-      select: this.profileSelect
-    });
+    const profile = await AuthIdentityService.readAccount(prisma, userId, this.profileSelect);
 
     if (!profile) {
       throw new ApiError('NOT_FOUND');
@@ -96,9 +93,7 @@ export class AccountService {
 
   static async updateEmail(userId: string, data: UpdateEmailRequest) {
     const normalizedEmail = data.newEmail.trim().toLowerCase();
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const user = await AuthIdentityService.readAccountWithCredentials(prisma, userId);
 
     if (!user) {
       throw new ApiError('NOT_FOUND');
@@ -109,13 +104,7 @@ export class AccountService {
       throw new ApiError('INVALID_PASSWORD');
     }
 
-    const existing = await prisma.user.findFirst({
-      where: {
-        email: normalizedEmail,
-        id: { not: userId },
-      },
-      select: { id: true },
-    });
+    const existing = await AuthIdentityService.findAccountByEmail(prisma, normalizedEmail, userId);
 
     if (existing) {
       throw new ApiError('EMAIL_TAKEN');

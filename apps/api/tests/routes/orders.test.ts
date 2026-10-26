@@ -29,7 +29,7 @@ import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 import { checkoutTotal } from '../helpers/checkout-total';
 import { deliverCoreEvents } from '../helpers/core-events';
 import { getPluginManifestIssues } from '@jiffoo/shared';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { emitOrderPaidEvent } from '@/core/payment/order-paid-event';
 import { isOrderItemCatalogRestriction } from '@/core/order/catalog-snapshot';
 

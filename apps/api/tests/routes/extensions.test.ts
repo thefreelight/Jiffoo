@@ -23,7 +23,7 @@ import { createUserWithToken, createAdminWithToken, deleteAllTestUsers, type Tes
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 
 interface PluginArchiveOptions {
   entryModule?: string;

@@ -3,7 +3,7 @@ import type { Theme } from '@prisma/client';
 import { themePackageStore } from '@/core/storage/plugin-package-store';
 import { themePackageBlobStore, type ThemePackageBlobMetadata } from '@/core/storage/theme-package-blob-store';
 import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
-import { validateThemeManifest, validateThemeZip } from './theme-validator';
+import { validateThemeManifest, validateThemeZip } from '@/core/storage/theme-validator';
 
 export type ThemePackageState = {
   status: 'available' | 'unavailable' | 'corrupt';

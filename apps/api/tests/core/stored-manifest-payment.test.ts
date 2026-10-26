@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { getTestPrisma } from '../helpers/db';
 import { CacheService } from '@/core/cache/service';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 
 describe('stored payment manifests', () => {
   const prisma = getTestPrisma();

@@ -138,7 +138,7 @@ export class PluginTaskWorker {
       await prisma.$transaction(tx => assertTaskClaim(tx, claim));
       console.info(JSON.stringify({ event: 'plugin_task_started', taskId: claim.task.id, installationId: claim.task.installationId, claimId: claim.claimId, fence: claim.fence.toString(), kind: claim.hook ? 'FINAL_FAILURE' : 'TASK' }));
       const input: TaskInput = { taskId: claim.task.id, payload: claim.task.payload as TaskInput['payload'], idempotencyKey: claim.task.idempotencyKey, attempt: claim.task.attemptsCharged + (claim.hook ? 0 : 1), isFinalAttempt: claim.task.attemptsCharged + 1 === claim.task.maxAttempts, claimId: claim.claimId, fence: claim.fence.toString(), principal: scope.principal, signal: controller.signal, heartbeat: progress => invocationOpen && !controller.signal.aborted ? this.heartbeat(claim, progress) : Promise.reject(new ApiError('PLUGIN_TASK_CLAIM_LOST')) };
-      return this.options.execute ? this.options.execute(claim, input) : (await import('@/core/admin/extension-installer/plugin-runtime')).invokePluginTask(claim, input);
+      return this.options.execute ? this.options.execute(claim, input) : (await import('@/core/extensions/runtime/plugin-runtime')).invokePluginTask(claim, input);
     }).finally(()=>{invocationOpen=false;});
     void invocation.catch(()=>undefined);
     let timeout: NodeJS.Timeout | undefined;

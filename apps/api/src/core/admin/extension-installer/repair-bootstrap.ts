@@ -23,7 +23,7 @@ import {
   taskStatus,
 } from '@/core/plugins/tasks';
 import { readStoredPluginManifest } from './stored-manifest';
-import { prepareRepairBootstrap } from './plugin-runtime';
+import { prepareRepairBootstrap } from '@/core/extensions/runtime/plugin-runtime';
 
 /**
  * Record the audit row of a rejected repair-bootstrap request.

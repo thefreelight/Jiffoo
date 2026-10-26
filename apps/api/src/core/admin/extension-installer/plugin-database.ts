@@ -10,7 +10,7 @@ import { pluginSchemaName } from 'shared/plugin-signing';
 import { processDatabaseUrl } from '@/infra/core-process-identity';
 import { PluginDatabaseQueue } from './plugin-database-queue';
 import { assertPluginDatabaseSql } from './plugin-database-sql';
-import { assertPluginDatabaseTestControl, observePluginDatabase, pluginDatabaseBeforeCommit, pluginDatabaseLimit, pluginDatabaseCallbackDeadline } from './plugin-database-test-control';
+import { assertPluginDatabaseTestControl, observePluginDatabase, pluginDatabaseBeforeCommit, pluginDatabaseLimit, pluginDatabaseCallbackDeadline } from '@/core/extensions/runtime/plugin-database-test-control';
 
 type Scope = { slug: string; installationId: string; handler: boolean; open: boolean; root: Scope; controller: AbortController; pending: Set<Promise<unknown>>; settled: Promise<void>; failure?: PluginDatabaseError };
 const scopes = new AsyncLocalStorage<Scope>();

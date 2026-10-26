@@ -3,7 +3,7 @@
 // scripts/verify-lane-shards.mjs run.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { laneConfig } from './lane-config.mjs';
@@ -15,6 +15,7 @@ import {
   assertShardPortOwnership,
   assertShardUrlsPassLaneGuards,
   buildCleanupReport,
+  buildExtensionsCacheReport,
   buildReplaySummary,
   buildShardPlan,
   catalogueSnapshotEnvironment,
@@ -25,6 +26,7 @@ import {
   descendantProcessIds,
   describeRunScope,
   durationWeights,
+  extensionsCacheCleanupRows,
   formatCountSummary,
   formatMeasuredWallClock,
   formatStartTime,
@@ -46,11 +48,13 @@ import {
   partitionFilesByDuration,
   replaySummaryTitle,
   resolveShardTarget,
+  removeExtensionsCache,
   shardBalance,
   shardBalanceTolerance,
   shardContainerNames,
   shardDatabaseUrl,
   shardEnvironment,
+  shardExtensionsPath,
   shardRedisUrl,
   shellCommandLine,
   sumShardReports,
@@ -862,4 +866,81 @@ test('the duration table is written and read back in a stable order', () => {
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test('every shard of a run gets its own runtime package cache', () => {
+  const artefacts = join(tmpdir(), 'lane-shards');
+  const plan = buildShardPlan(resolveShardTarget(laneConfig('')), 4, undefined, 'run123', artefacts);
+  const paths = plan.map(shard => shard.extensionsPath);
+  // Two shards of the same run must never share the cache directory.
+  assert.equal(new Set(paths).size, paths.length);
+  assert.equal(paths.length, 4);
+  // The cache lives inside the artefact directory of the run and carries the run id.
+  for (const path of paths) {
+    assert.ok(path.startsWith(resolve(artefacts)), `${path} is outside the artefact directory of the run`);
+    assert.ok(path.includes('run123'));
+    assert.ok(path.includes('shard'));
+  }
+  assert.deepEqual(paths, plan.map(shard => shard.extensionsPath));
+  assert.equal(shardExtensionsPath(artefacts, 2, 'run123'), plan[1].extensionsPath);
+  // A later run never reuses the cache of an earlier one.
+  const later = buildShardPlan(resolveShardTarget(laneConfig('')), 4, undefined, 'run456', artefacts);
+  assert.ok(later.every((shard, index) => shard.extensionsPath !== paths[index]));
+  // A plan without an artefact directory has no cache of its own.
+  assert.deepEqual(buildShardPlan(resolveShardTarget(laneConfig('')), 2).map(shard => shard.extensionsPath), ['', '']);
+});
+
+test('the shard environment points at the cache of its own shard and keeps the ambient value as the fallback', () => {
+  const plan = buildShardPlan(resolveShardTarget(laneConfig('')), 2, undefined, 'run123', join(tmpdir(), 'lane-shards'));
+  const environment = shardEnvironment({ EXTENSIONS_PATH: 'extensions' }, plan[0]);
+  assert.equal(environment.EXTENSIONS_PATH, plan[0].extensionsPath);
+  assert.notEqual(environment.EXTENSIONS_PATH, plan[1].extensionsPath);
+  // A shard without a cache of its own keeps the ambient EXTENSIONS_PATH, exactly as before.
+  const withoutCache = { ...plan[0], extensionsPath: '' };
+  assert.equal(shardEnvironment({ EXTENSIONS_PATH: 'extensions' }, withoutCache).EXTENSIONS_PATH, 'extensions');
+  assert.equal(shardEnvironment({}, withoutCache).EXTENSIONS_PATH, undefined);
+});
+
+test('the runtime package cache of a shard is removed with the other artefacts of the run', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'lane-shards-cache-'));
+  try {
+    const first = join(directory, 'extensions', 'shard1-run123');
+    const second = join(directory, 'extensions', 'shard2-run123');
+    mkdirSync(join(first, 'plugins', 'manual-payment'), { recursive: true });
+    writeFileSync(join(first, 'plugins', 'manual-payment', 'package.json'), '{}');
+    mkdirSync(second, { recursive: true });
+    const removal = removeExtensionsCache(first);
+    assert.equal(removal.status, 'removed');
+    assert.equal(existsSync(first), false);
+    // The cache of the other shard is untouched by the cleanup of this shard.
+    assert.equal(existsSync(second), true);
+    assert.equal(removeExtensionsCache(second).status, 'removed');
+    assert.equal(existsSync(second), false);
+    // A cache that is already gone is not a failure.
+    assert.equal(removeExtensionsCache(second).status, 'removed');
+    assert.equal(removeExtensionsCache('').status, 'skipped');
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('a runtime package cache that survives the cleanup fails the cleanup verdict and is named in the evidence', () => {
+  const outcome = { shard: 2, extensionsCache: { path: join('C:', 'tmp', 'shard2-run123'), cleanup: { status: 'removed', detail: 'removed' } } };
+  const removed = extensionsCacheCleanupRows(outcome, { present: false });
+  assert.deepEqual(removed.map(row => row.status), ['removed']);
+  assert.deepEqual(removed.map(row => row.role), ['extensions-cache']);
+  const surviving = extensionsCacheCleanupRows(outcome, { present: true });
+  assert.deepEqual(surviving.map(row => row.status), ['failed']);
+  const report = buildCleanupReport(surviving);
+  assert.equal(report.passed, false);
+  assert.deepEqual(report.failures.map(row => row.shard), [2]);
+  // The evidence of the run names the cache directory of the shard.
+  const evidence = buildExtensionsCacheReport(removed);
+  assert.match(evidence.table, /shard2-run123/);
+  assert.match(evidence.table, /\| 2 \|/);
+  assert.match(evidence.table, /removed/);
+  // A kept cache is skipped, a retained cache belongs to a shard whose process is still alive.
+  assert.deepEqual(extensionsCacheCleanupRows({ shard: 1, extensionsCache: { path: 'C:/tmp/shard1', cleanup: { status: 'skipped' } } }).map(row => row.status), ['skipped']);
+  assert.deepEqual(extensionsCacheCleanupRows({ shard: 1, extensionsCache: { path: 'C:/tmp/shard1', cleanup: { status: 'retained' } } }).map(row => row.status), ['retained']);
+  assert.deepEqual(extensionsCacheCleanupRows({ shard: 1, extensionsCache: null }), []);
 });

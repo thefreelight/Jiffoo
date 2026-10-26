@@ -3,7 +3,7 @@ import { prisma } from '../../src/config/database';
 import { redisCache } from '../../src/core/cache/redis';
 import { sharedProtection } from '../../src/infra/shared-protection';
 import { PluginManagementService } from '../../src/core/admin/plugin-management/service';
-import { callContract, warmPluginInstanceRuntime } from '../../src/core/admin/extension-installer/plugin-runtime';
+import { callContract, warmPluginInstanceRuntime } from '../../src/core/extensions/runtime/plugin-runtime';
 import { resetPluginState } from '../../src/core/admin/extension-installer/plugin-state';
 import { CheckoutService } from '../../src/core/checkout/service';
 import { assertTestRootEnvironment } from 'shared/plugin-signing';

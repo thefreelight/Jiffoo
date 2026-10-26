@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Prisma, type EventDelivery } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { parseEventPayload, type EventKey, type PluginEvent } from '@jiffoo/shared';
-import { deliverInstallationEvent } from '@/core/admin/extension-installer/plugin-runtime';
+import { deliverInstallationEvent } from '@/core/extensions/runtime/plugin-runtime';
 import type { EventTransaction } from './emit';
 import { redactPluginFailure } from '@/core/extensions/runtime/failure';
 import { observeWorkerShutdownForTest } from '../worker-shutdown';

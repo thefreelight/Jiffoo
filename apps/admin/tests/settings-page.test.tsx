@@ -9,7 +9,12 @@ vi.mock('shared/src/i18n/react', async () => { const { translate } = await impor
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mock.push }) }));
 vi.mock('@/lib/api', () => ({ settingsApi: mock, apiClient: mock, unwrapApiResponse: <T,>(response: { data: T }) => response.data, uploadApi: { uploadProductImage: vi.fn() } }));
 const key = 'checkout.address.countries_require_state_postal';
-const initial = { 'branding.platform_name': 'Test shop', 'localization.currency': 'USD', 'localization.locale': 'en', 'localization.timezone': 'UTC', [key]: ['US'] };
+const catalogKey = 'fulfillment.policy_catalog';
+const catalog = [
+  { name: 'physical', productType: 'physical', policy: { requiresShippingAddress: true, requiresShippingQuote: true, tracksInventory: true } },
+  { name: 'digital', productType: 'digital', policy: { requiresShippingAddress: false, requiresShippingQuote: false, tracksInventory: false } },
+];
+const initial = { 'branding.platform_name': 'Test shop', 'localization.currency': 'USD', 'localization.locale': 'en', 'localization.timezone': 'UTC', [key]: ['US'], [catalogKey]: catalog };
 let container: HTMLDivElement, root: Root;
 beforeEach(() => { vi.clearAllMocks(); (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; Element.prototype.scrollIntoView = vi.fn(); mock.getAll.mockResolvedValue({ data: initial }); mock.batchUpdate.mockImplementation(async updates => ({ data: { ...initial, ...updates } })); mock.get.mockResolvedValue({ data: [] }); mock.post.mockResolvedValue({ data: { token: 'jft_real' } }); mock.delete.mockResolvedValue({ data: {} }); container = document.createElement('div'); document.body.append(container); root = createRoot(container); });
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
@@ -40,7 +45,34 @@ it('validates the order prefix, tracks dirty state and saves it only on success'
   expect(mock.batchUpdate).toHaveBeenLastCalledWith({ 'orders.number_prefix': 'SHOP' });
   expect(button('Save').disabled).toBe(true);
 }, 30_000);
-it('shows every section, a disabled clean save and no fabricated saved timestamp', async () => { await render(); expect(button('Save').disabled).toBe(true); for (const title of ['Shop information', 'Contact details', 'Language, currency and timezone', 'Checkout', 'API tokens']) expect(container.textContent).toContain(title); expect(container.textContent).not.toContain('2026-10-12 18:00'); });
+it('shows every section, a disabled clean save and no fabricated saved timestamp', async () => { await render(); expect(button('Save').disabled).toBe(true); for (const title of ['Shop information', 'Contact details', 'Language, currency and timezone', 'Checkout', 'Fulfillment policies', 'API tokens']) expect(container.textContent).toContain(title); expect(container.textContent).not.toContain('2026-10-12 18:00'); });
+it('renders the fulfillment policies the API publishes and saves the selection of a product type', async () => {
+  await render();
+  const digital = container.querySelector<HTMLButtonElement>('#fulfillment-digital')!;
+  expect(digital.getAttribute('aria-checked')).toBe('false');
+  expect(container.textContent).toContain('digital');
+  await act(async () => digital.click());
+  expect(container.textContent).toContain('Unsaved changes');
+  await save();
+  expect(mock.batchUpdate).toHaveBeenCalledWith({ 'fulfillment.policies': { digital: 'digital' } });
+  expect(container.querySelector<HTMLButtonElement>('#fulfillment-digital')!.getAttribute('aria-checked')).toBe('true');
+  expect(button('Save').disabled).toBe(true);
+}, 30_000);
+it('takes the product types of the fulfillment section from the API', async () => {
+  mock.getAll.mockResolvedValue({ data: { ...initial, [catalogKey]: [{ name: 'virtual', productType: 'virtual', policy: { requiresShippingAddress: false, requiresShippingQuote: false, tracksInventory: false } }] } });
+  await render();
+  expect(container.textContent).toContain('virtual');
+  expect(container.querySelector('#fulfillment-physical')).toBeNull();
+  expect(container.querySelector('#fulfillment-virtual')).not.toBeNull();
+}, 30_000);
+it('keeps the fulfillment selection when the server refuses the save', async () => {
+  mock.batchUpdate.mockRejectedValue(new Error());
+  await render();
+  await act(async () => container.querySelector<HTMLButtonElement>('#fulfillment-digital')!.click());
+  await save();
+  expect(container.textContent).toContain('Your changes are still here.');
+  expect(container.querySelector<HTMLButtonElement>('#fulfillment-digital')!.getAttribute('aria-checked')).toBe('true');
+}, 30_000);
 it('removes the last country and saves an explicit empty list', async () => { await render(); await click('Remove United States'); expect(container.textContent).toContain('No country requires state/province and postal code.'); await save(); expect(mock.batchUpdate).toHaveBeenCalledWith({ [key]: [] }); expect(button('Save').disabled).toBe(true); });
 it('uses defaults only when the countries setting is absent', async () => { const { [key]: _, ...unset } = initial; mock.getAll.mockResolvedValue({ data: unset }); await render(); expect(container.textContent).toContain('United Kingdom'); expect(container.textContent).toContain('Canada'); });
 it('tracks edits, discards all changes and guards unload only while dirty', async () => { await render(); await fill('branding.platform_name', 'Changed'); expect(container.textContent).toContain('Unsaved changes'); const event = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(event); expect(event.defaultPrevented).toBe(true); await click('Discard changes'); expect((document.getElementById('branding.platform_name') as HTMLInputElement).value).toBe('Test shop'); const clean = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(clean); expect(clean.defaultPrevented).toBe(false); });

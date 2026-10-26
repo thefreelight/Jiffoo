@@ -1,7 +1,7 @@
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
-import { readStoredPluginManifest } from './stored-manifest';
-import { pluginSigningError } from './plugin-signing-policy';
+import { readStoredPluginManifest } from '@/core/extensions/runtime/stored-manifest';
+import { pluginSigningError } from '@/core/extensions/runtime/plugin-signing-policy';
 type PageSurface = 'shop' | 'admin';
 type PageTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 

@@ -290,7 +290,7 @@ export class PluginFsInstaller implements IPluginInstaller {
       // Phase 3: For UPGRADE scenario, warm all enabled instances BEFORE DB commit
       if (existingBySlug) {
         try {
-          const { validateCandidateRuntime } = await import('./plugin-runtime');
+          const { validateCandidateRuntime } = await import('@/core/extensions/runtime/plugin-runtime');
 
           // Get all enabled, non-deleted instances
           const enabledInstances = options?.operationId ? [] : await prisma.pluginInstallation.findMany({

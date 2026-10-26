@@ -1,4 +1,3 @@
-import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, it, vi } from 'vitest';
 import { StoreTimeProvider } from '../lib/store-time';
@@ -8,8 +7,7 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (ke
 it('plugin error dates use the configured store zone under a different host timezone', () => {
   try {
     vi.stubEnv('TZ', 'UTC');
-    const html = renderToStaticMarkup(createElement(StoreTimeProvider, { timezone: 'Asia/Shanghai', now: '2026-10-12T00:00:00Z',
-      children: createElement(LastRecordedError, { lastFailureAt: '2026-10-12T00:15:00Z', lastFailureMessage: 'Recorded failure' }) }));
+    const html = renderToStaticMarkup(<StoreTimeProvider timezone="Asia/Shanghai" now="2026-10-12T00:00:00Z"><LastRecordedError lastFailureAt="2026-10-12T00:15:00Z" lastFailureMessage="Recorded failure" /></StoreTimeProvider>);
     expect(html).toContain('2026-10-12 08:15');
   } finally { vi.unstubAllEnvs(); }
 });
@@ -17,8 +15,7 @@ it('an unset store timezone uses UTC independently of the client timezone', () =
   try {
     vi.stubEnv('TZ', 'America/Los_Angeles');
     for (const timezone of [undefined, null, '', '   ']) {
-      const html = renderToStaticMarkup(createElement(StoreTimeProvider, { timezone, now: '2026-10-12T00:00:00Z',
-        children: createElement(LastRecordedError, { lastFailureAt: '2026-10-12T00:15:00Z', lastFailureMessage: 'Recorded failure' }) }));
+      const html = renderToStaticMarkup(<StoreTimeProvider timezone={timezone} now="2026-10-12T00:00:00Z"><LastRecordedError lastFailureAt="2026-10-12T00:15:00Z" lastFailureMessage="Recorded failure" /></StoreTimeProvider>);
       expect(html).toContain('2026-10-12 00:15');
       expect(formatStoreDate('2026-10-12T00:15:00Z', 'en', timezone)).toContain('(UTC)');
     }

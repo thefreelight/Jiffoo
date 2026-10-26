@@ -17,10 +17,10 @@ import { extractZipToTemp, cleanupTemp, resolveExtractedPackageRoot } from '@/co
 import { loadPluginEntryModule } from './plugin-module-loader';
 import { isContractV1Runtime } from './contract-v1-runtime';
 import { claimPluginNamespace, executePluginMigrationFiles, migrationPlan, renewPluginMigrationLease, namespaceProvisioningConfirmed, PLUGIN_MIGRATION_DEADLINE_MS, type PluginMigrationObserver } from './plugin-migration-executor';
-import { INCOMPLETE_PLUGIN_OPERATION_PHASES, updateOwnedPluginMigrationOperation, updateOwnedPluginMigrationAttempt } from './plugin-migration-gate';
+import { INCOMPLETE_PLUGIN_OPERATION_PHASES, updateOwnedPluginMigrationOperation, updateOwnedPluginMigrationAttempt } from '@/core/extensions/runtime/plugin-migration-gate';
 import type { InstalledPlugin, PluginInstallOptions } from '@/core/extensions/shared/types';
 import { PluginDatabaseQueue } from './plugin-database-queue';
-import { pluginDatabaseBeforeMigrationRun, pluginDatabaseLimit } from './plugin-database-test-control';
+import { pluginDatabaseBeforeMigrationRun, pluginDatabaseLimit } from '@/core/extensions/runtime/plugin-database-test-control';
 import { ensureCoreProcess } from '@/infra/core-process';
 import { databaseNowMs } from '@/infra/database-clock';
 import { recoverPluginOperation, TERMINAL_PLUGIN_OPERATION_PHASES } from './plugin-recovery';
@@ -131,7 +131,7 @@ async function runPluginInstallOperation(id: string, observe?: PluginMigrationOb
     const loaded = await loadPluginEntryModule(path.join(rootDir, inspection.manifest.entryModule!));
     if (!isContractV1Runtime(loaded?.default || loaded)) throw new ApiError('PLUGIN_LOAD_FAILED');
     candidate = await pluginPackageStore.put(operation.slug, operation.packageHash, rootDir);
-    const { validateCandidateRuntime } = await import('./plugin-runtime');
+    const { validateCandidateRuntime } = await import('@/core/extensions/runtime/plugin-runtime');
     for (const instance of await prisma.pluginInstallation.findMany({ where: { pluginSlug: operation.slug, enabled: true, deletedAt: null } })) {
       const config = instance.configJson && typeof instance.configJson === 'object' && !Array.isArray(instance.configJson) ? instance.configJson as Record<string, unknown> : {};
       await validateCandidateRuntime(operation.slug, operation.packageHash, inspection.manifest, instance.id, decryptPluginConfig(inspection.manifest, config));

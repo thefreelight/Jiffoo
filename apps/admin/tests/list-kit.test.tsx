@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, useState } from 'react';
+import { act, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
 import { listChoice, listDateRange, readListState, writeListState, useListSelection } from '../lib/hooks/use-list-state';
@@ -25,7 +25,7 @@ it('selects a page, stores a filter with exclusions, and clears on every list-st
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   const root = createRoot(document.createElement('div')); let model: ReturnType<typeof useListSelection<{ search: string }>>;
   const filter = { search: 'buyer' };
-  function Probe({ stateKey }: { stateKey: string }) { model = useListSelection(stateKey, filter, ['a', 'b'], 503); return null; }
+  function Probe({ stateKey }: { stateKey: string }) { const selection = useListSelection(stateKey, filter, ['a', 'b'], 503); useEffect(() => { model = selection; }); return null; }
   try {
     await act(async () => root.render(<Probe stateKey="initial" />));
     await act(async () => model.togglePage()); expect(model!.selection).toEqual({ mode: 'ids', ids: ['a', 'b'] });

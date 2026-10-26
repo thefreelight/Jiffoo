@@ -12,7 +12,7 @@ import { CERT_PATH, SIGNATURE_PATH, issuePublisherCertificate, signPackage, trus
 import { prisma } from '@/config/database';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { getDefaultInstance } from '@/core/extensions/registry';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { resetPluginState } from '@/core/admin/extension-installer/plugin-state';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { createTestApp } from '../helpers/create-test-app';
@@ -50,6 +50,36 @@ const slugs = new Set<string>();
 const builtinSlugs = ['free-shipping', 'manual-payment'];
 let builtinRows: Awaited<ReturnType<typeof snapshotPluginRows>>;
 const own = () => { const slug = `signing-${randomUUID().slice(0, 12)}`; slugs.add(slug); return slug; };
+
+// Make a builtin plugin usable again for the forked child.
+//
+// The startup sync keeps an already installed builtin as it is: it neither
+// revives a soft deleted installation nor recreates a missing default
+// instance. An earlier file of the shard can leave a builtin in that state,
+// so the test establishes the state its checkout quote needs instead of
+// relying on the files that ran before it.
+async function ensureBuiltinUsable(slug: string): Promise<void> {
+  const install = await prisma.pluginInstall.findUnique({ where: { slug } });
+  if (!install) throw new Error(`Builtin plugin "${slug}" was not installed by the sync`);
+  if (install.deletedAt) {
+    // The repository helper that revives an uninstalled plugin together with
+    // its default instance. The manifest and the package stay untouched.
+    await PluginManagementService.restorePlugin(slug);
+  }
+  const instance = await getDefaultInstance(slug);
+  if (!instance) {
+    // The default instance of the builtin is missing: the repository helper
+    // that creates it during an installation.
+    await PluginManagementService.createDefaultInstance(slug, { enabled: true });
+    return;
+  }
+  if (instance.deletedAt) {
+    await prisma.pluginInstallation.update({ where: { id: instance.id }, data: { deletedAt: null } });
+  }
+  if (!instance.enabled) {
+    await PluginManagementService.updateInstance(instance.id, { enabled: true });
+  }
+}
 
 async function bytes(slug: string, root: 'official' | 'test' | 'unsigned') {
   const entries = [
@@ -147,14 +177,11 @@ beforeAll(async () => {
   builtinRows = await snapshotPluginRows(builtinSlugs);
   await syncBuiltinPlugins(path.resolve('builtin-plugins'));
   // The sync only installs a builtin plugin that is missing or changed, so an
-  // already installed plugin keeps the enabled state of its default instance.
-  // The forked child needs an enabled shipping and payment provider, so the
-  // default instances are enabled here.
+  // already installed plugin keeps its deleted state and its default instance
+  // untouched. The forked child needs a live shipping and payment provider,
+  // so both builtins are established here.
   for (const slug of builtinSlugs) {
-    const instance = await getDefaultInstance(slug);
-    if (instance && !instance.enabled) {
-      await PluginManagementService.updateInstance(instance.id, { enabled: true });
-    }
+    await ensureBuiltinUsable(slug);
   }
   app = await createTestApp();
   token = (await createAdminWithToken()).token;

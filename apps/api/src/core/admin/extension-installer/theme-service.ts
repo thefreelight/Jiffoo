@@ -9,7 +9,7 @@ import { resolveThemePackage, ThemePackageResolutionError } from '@/core/storage
 import { withThemeLeases, fenceThemeLeases } from '@/core/storage/theme-operation-lease';
 import { packBuiltinPlugin } from './builtin-package';
 import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
-import { validateThemeFiles, validateThemeZip, validateThemeManifest } from './theme-validator';
+import { validateThemeFiles, validateThemeZip, validateThemeManifest } from '@/core/storage/theme-validator';
 import { audit } from './theme-runtime';
 import { AuditService } from '@/core/audit/service';
 

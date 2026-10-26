@@ -7,7 +7,7 @@ import { redisCache } from '@/core/cache/redis';
 import { sharedProtection } from '@/infra/shared-protection';
 import { EmailVerificationService } from '@/core/auth/email-verification.service';
 import { InstallService } from '@/core/install/service';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { AuthService } from '@/core/auth/service';
 import { Prisma } from '@prisma/client';
 import { AccountService } from '@/core/account/service';

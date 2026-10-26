@@ -1,6 +1,6 @@
 import { setWorkerShutdownDeadlineForTest, setWorkerShutdownObserverForTest } from '../../src/infra/worker-shutdown';
 import { setEventDeliveryTimeoutForTest } from '../../src/infra/events/delivery';
-import { withPluginDatabaseTestControl } from '../../src/core/admin/extension-installer/plugin-database-test-control';
+import { withPluginDatabaseTestControl } from '../../src/core/extensions/runtime/plugin-database-test-control';
 import { deliverPendingNotifications } from '../../src/core/notifications/delivery';
 
 if (process.env.NODE_ENV !== 'test' || !process.send) throw new Error('B10 worker child requires the test IPC transport');

@@ -1,11 +1,11 @@
 import { prisma } from '@/config/database';
 import { resolveSingleProvider } from '@/core/extensions/registry';
 import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { observeWorkerShutdownForTest } from '@/infra/worker-shutdown';
 import { getPluginTimeoutMs } from '@/core/extensions/runtime/gateway-protection';
-import { pluginDatabaseLimit } from '@/core/admin/extension-installer/plugin-database-test-control';
+import { pluginDatabaseLimit } from '@/core/extensions/runtime/plugin-database-test-control';
 import { claimNotifications, reclaimNotificationLeases, completeNotification, failNotification, releaseUnstartedNotification, notificationClaimLimit, notificationLeaseAllowsSend, type NotificationLeaseClient } from './lease';
 
 const secretPattern = /\{\{secret\.(link|code)\}\}/g;

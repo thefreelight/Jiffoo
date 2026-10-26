@@ -183,6 +183,36 @@ export async function listInstalledPluginPackages(options?: { includeDeleted?: b
 }
 
 /**
+ * The stored row of the default installation of a plugin.
+ *
+ * The payment module reads the installation of the provider it binds or calls.
+ * That read belongs to this module, the module that owns the
+ * `plugin_installations` table, so the payment module no longer queries the
+ * table of another domain. The row is returned unchanged: the query and the
+ * result stay the ones the reader had before the read moved here.
+ *
+ * @param slug Slug of the plugin
+ */
+export async function getDefaultInstallationRow(slug: string) {
+  return prisma.pluginInstallation.findUnique({
+    where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } },
+  });
+}
+
+/**
+ * The stored row of the default installation of a plugin with the deletion
+ * state of the package it points at.
+ *
+ * @param slug Slug of the plugin
+ */
+export async function getDefaultInstallationRowWithPackage(slug: string) {
+  return prisma.pluginInstallation.findUnique({
+    where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } },
+    include: { plugin: { select: { deletedAt: true } } },
+  });
+}
+
+/**
  * Get default instance for a plugin
  */
 export async function getDefaultInstance(slug: string): Promise<PluginInstanceProjection | null> {

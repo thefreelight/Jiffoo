@@ -1,7 +1,8 @@
 import { prisma } from '@/config/database';
 import { SharedProtectionUnavailable } from '@/infra/shared-protection';
 import { OrderService } from '@/core/order/service';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
+import { getDefaultInstallationRowWithPackage } from '@/core/extensions/registry';
 import { emitOrderPaidEvent } from './order-paid-event';
 import { emitEvent } from '@/infra/events/emit';
 import { type NotificationTransaction } from '@/core/notifications/service';
@@ -176,7 +177,7 @@ export async function reconcilePendingPayments(options: PaymentReconciliationOpt
   for (const payment of payments) {
     try {
       if (stopBatch || !await paymentLeaseAllowsQuery(client, payment)) { stopBatch = true; result.skipped++; continue; }
-      const instance = await prisma.pluginInstallation.findUnique({ where: { pluginSlug_instanceKey: { pluginSlug: payment.paymentMethod, instanceKey: 'default' } }, include: { plugin: { select: { deletedAt: true } } } });
+      const instance = await getDefaultInstallationRowWithPackage(payment.paymentMethod);
       if (instance && (!instance.enabled || instance.deletedAt || instance.plugin.deletedAt)) { result.skipped++; continue; }
       if (await queryPaymentByRequestKey(payment.id, payment.claimToken!)) result.updated++;
     } catch (error) {

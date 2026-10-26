@@ -7,6 +7,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { systemSettingsService } from '@/core/settings/service';
+import { AuthIdentityService } from '@/core/auth/identity-service';
 import { getTodayAndYesterdayRangeUtc, getStoreCalendarDays, normalizeTimezone } from '@/utils/timezone';
 import { closedOrderStatuses, OrderStatus, PaymentStatus } from '@/core/order/policy';
 import { paymentReviewWhere } from '../order-management/service';
@@ -63,7 +64,7 @@ export class AdminDashboardService {
             }),
             prisma.order.count(),
             prisma.product.count(),
-            prisma.user.count(),
+            AuthIdentityService.countAccounts(prisma),
             prisma.order.aggregate({
                 _sum: { totalAmount: true },
                 where: {
@@ -92,14 +93,10 @@ export class AdminDashboardService {
             prisma.product.count({
                 where: { createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } }
             }),
-            prisma.user.count({
-                where: { createdAt: { gte: startOfTodayUtc } }
-            }),
-            prisma.user.count({
-                where: { createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } }
-            }),
-            prisma.user.count({ where: { role: 'USER', createdAt: { gte: startOfTodayUtc, lt: endUtc } } }),
-            prisma.user.count({ where: { role: 'USER', createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
+            AuthIdentityService.countAccountsCreatedSince(prisma, startOfTodayUtc),
+            AuthIdentityService.countAccountsCreatedBetween(prisma, startOfYesterdayUtc, startOfTodayUtc),
+            AuthIdentityService.countCustomerAccountsCreatedBetween(prisma, startOfTodayUtc, endUtc),
+            AuthIdentityService.countCustomerAccountsCreatedBetween(prisma, startOfYesterdayUtc, startOfTodayUtc),
             prisma.order.count({ where: { payments: { some: paymentReviewWhere() } } }),
             prisma.order.count({ where: { status: OrderStatus.PROCESSING, paymentStatus: PaymentStatus.PAID } }),
             // Prisma stores createdAt as a UTC timestamp without time zone.

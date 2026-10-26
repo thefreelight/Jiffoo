@@ -8,7 +8,7 @@ import { createTestProduct, deleteAllTestProducts, deleteAllTestOrders, deleteAl
 import { installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-plugin';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { prisma } from '@/config/database';
 
 const paymentSource = (fail: boolean) => `module.exports = { register(ctx) {

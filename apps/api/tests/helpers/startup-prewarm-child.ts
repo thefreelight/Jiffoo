@@ -15,11 +15,11 @@ async function main(): Promise<void> {
       void (async () => {
         try {
           const result = request.kind === 'call-contract'
-            ? await (await import('../../src/core/admin/extension-installer/plugin-runtime')).callContract(
+            ? await (await import('../../src/core/extensions/runtime/plugin-runtime')).callContract(
               request.slug!, 'shipping', 1, 'quote',
               { currency: 'USD', items: [], subtotalMinor: 0, address: { country: 'US' } },
             )
-            : await (await import('../../src/core/admin/extension-installer/plugin-runtime')).deliverInstallationEvent(
+            : await (await import('../../src/core/extensions/runtime/plugin-runtime')).deliverInstallationEvent(
               request.installationId!, request.event,
             );
           process.send?.({ kind: 'operation-result', requestId: request.requestId, result });

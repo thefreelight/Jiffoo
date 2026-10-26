@@ -1,7 +1,7 @@
 import { prisma } from '@/config/database';
 import { getDefaultInstance } from '@/core/extensions/registry';
 import { resetPluginState } from './plugin-state';
-import { warmPluginInstanceRuntime } from './plugin-runtime';
+import { warmPluginInstanceRuntime } from '@/core/extensions/runtime/plugin-runtime';
 import { recordPluginFailure } from './plugin-failure';
 import { PluginConfigDecryptionError } from '@/core/admin/plugin-management/config-crypto';
 import { PluginPackageResolutionError } from '@/core/storage/current-plugin-package';

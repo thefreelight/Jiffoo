@@ -5,7 +5,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { prisma } from '@/config/database';
 import { installBuiltinTheme } from './theme-service';
 import { activateTheme } from './theme-runtime';
-import { validateThemeManifest, validateThemeZip } from './theme-validator';
+import { validateThemeManifest, validateThemeZip } from '@/core/storage/theme-validator';
 import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { ThemePackageResolutionError } from '@/core/storage/current-theme-package';
 

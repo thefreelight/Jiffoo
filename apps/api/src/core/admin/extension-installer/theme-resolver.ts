@@ -1,5 +1,5 @@
 import { themeDefaultTokens, mergeThemeTokens, type ThemeTarget } from '@jiffoo/shared';
-import { validateThemeManifest } from './theme-validator';
+import { validateThemeManifest } from '@/core/storage/theme-validator';
 import { validStoredThemeValues } from './theme-runtime';
 import { prisma } from '@/config/database';
 import { Prisma } from '@prisma/client';

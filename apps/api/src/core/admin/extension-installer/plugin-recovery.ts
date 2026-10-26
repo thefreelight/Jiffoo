@@ -1,7 +1,7 @@
 import { prisma } from '@/config/database';
 import { Prisma, type PluginMigrationOperation } from '@prisma/client';
 import { isDeepStrictEqual } from 'node:util';
-import { INCOMPLETE_PLUGIN_OPERATION_PHASES } from './plugin-migration-gate';
+import { INCOMPLETE_PLUGIN_OPERATION_PHASES } from '@/core/extensions/runtime/plugin-migration-gate';
 import { pruneCoreProcesses } from '@/infra/core-process';
 import { recoveryLimit, observeRecovery } from '@/infra/recovery-test-control';
 import { createHash } from 'node:crypto';

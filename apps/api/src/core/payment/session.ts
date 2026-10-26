@@ -3,7 +3,7 @@ import { Prisma, type Payment } from '@prisma/client';
 import { PLUGIN_CONTRACT_VERSIONS, type PaymentFact, type PaymentV2Output } from '@jiffoo/shared';
 import { prisma } from '@/config/database';
 import { ApiError, type ErrorCode } from '@/utils/api-errors';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { createNotification, type NotificationTransaction } from '@/core/notifications/service';
 import { OrderService } from '@/core/order/service';
 import { OrderStatus, PaymentStatus } from '@/core/order/policy';

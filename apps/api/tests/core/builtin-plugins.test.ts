@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { getDefaultInstance } from '@/core/extensions/registry';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { getTestPrisma } from '../helpers/db';
 import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
@@ -14,11 +14,18 @@ const prisma = getTestPrisma();
 const builtinRoot = path.resolve(process.cwd(), 'builtin-plugins');
 const slugs = ['manual-payment', 'free-shipping', 'zero-tax', 'manual-fulfillment', 'console-email'];
 
+  /**
+   * The published package cache lives in the runtime extensions directory,
+   * which the parallel shards of the gate share (only the database is per
+   * shard). Deleting the builtin packages here would take them away from a
+   * process of another shard that is loading them, so the cleanup covers the
+   * database rows and the audit log only. The startup sync publishes the
+   * packages it needs.
+   */
 async function removeBuiltins(): Promise<void> {
   await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: { in: slugs } } });
   await prisma.pluginInstall.deleteMany({ where: { slug: { in: slugs } } });
   await prisma.adminStaffAuditLog.deleteMany({ where: { action: 'BUILTIN_PLUGIN_INSTALLED' } });
-  await Promise.all(slugs.map(clearTestPluginCache));
 }
 
 describe('Builtin plugins', () => {

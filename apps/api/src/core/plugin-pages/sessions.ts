@@ -1,4 +1,4 @@
-import { PluginPageDeclarationService } from "@/core/admin/extension-installer/page-declarations-service";
+import { PluginPageDeclarationService } from "@/core/plugin-pages/page-declarations-service";
 import { recordTaskPrincipalInTransaction } from '@/core/plugins/tasks';
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import jwt from 'jsonwebtoken';

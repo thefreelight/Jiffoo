@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { listAuditRecords, auditRecordFilters } from '@/core/audit/records';
 import { prisma } from '@/config/database';
+import { AuthIdentityService } from '@/core/auth/identity-service';
 import { sendError, sendSuccess } from '@/utils/response';
 import { filtersSchema, pageSchema, querySchema, responses, strictQueryValidator } from './schemas';
 
@@ -22,16 +23,14 @@ export async function adminAuditEventRoutes(fastify: FastifyInstance) {
       return sendError(reply, 400, 'INVALID_TIME_RANGE', 'From must not be later than to');
     }
     const { records, total } = await listAuditRecords({ actorId, action, targetType, from, to, category, sort, page, limit });
-    const users = await prisma.user.findMany({
-      where: { id: { in: [...new Set(records.map((item) => item.actorId))] } }, select: actorFields,
-    });
+    const users = await AuthIdentityService.listAccounts(prisma, [...new Set(records.map((item) => item.actorId))], actorFields);
     const actors = new Map(users.map((user) => [user.id, user]));
     const ids = (type: string) => records.filter(record => record.targetType === type).map(record => record.targetId);
     const [payments, plugins, themes, accounts] = await Promise.all([
       prisma.payment.findMany({ where: { id: { in: ids('payment') } }, select: { id: true, orderId: true, amount: true, currency: true, attemptNumber: true } }),
       prisma.pluginInstall.findMany({ where: { slug: { in: ids('plugin') }, deletedAt: null }, select: { slug: true, name: true } }),
       prisma.theme.findMany({ where: { slug: { in: ids('theme') } }, select: { slug: true, name: true, target: true } }),
-      prisma.user.findMany({ where: { id: { in: [...ids('customer'), ...ids('staff'), ...ids('user')] } }, select: { id: true, username: true, email: true, role: true } }),
+      AuthIdentityService.listAccounts(prisma, [...ids('customer'), ...ids('staff'), ...ids('user')], { id: true, username: true, email: true, role: true }),
     ]);
     const orders = await prisma.order.findMany({ where: { id: { in: [...ids('order'), ...payments.map(payment => payment.orderId)] } }, select: { id: true, orderNumber: true } });
     const existingOrders = new Map(orders.map(order => [order.id, order.orderNumber]));

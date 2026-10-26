@@ -1,4 +1,4 @@
-import { PluginPageDeclarationService } from "@/core/admin/extension-installer/page-declarations-service";
+import { PluginPageDeclarationService } from "@/core/plugin-pages/page-declarations-service";
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { ApiError, sendMappedError } from '@/utils/api-errors';

@@ -11,7 +11,7 @@ vi.mock('@/core/extensions/registry', () => ({
   resolveSingleProvider: vi.fn(),
 }));
 
-vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
+vi.mock('@/core/extensions/runtime/plugin-runtime', () => ({
   callContract: vi.fn(),
 }));
 
@@ -31,7 +31,7 @@ import {
 } from '@/core/shared/fulfillment-policy';
 import { CheckoutService } from '@/core/checkout/service';
 import { getAllPluginPackages, listProviders, resolveSingleProvider } from '@/core/extensions/registry';
-import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 
 /**
  * The fulfilment policy registry.

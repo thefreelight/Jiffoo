@@ -7,7 +7,7 @@ import { withThemeLeases, fenceThemeLeases, type ThemeLease } from '@/core/stora
 import { readMediaFile } from '@/core/storage/uploaded-media-set';
 import { AuditService, type AuditTx } from '@/core/audit/service';
 import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
-import { validateThemeManifest } from './theme-validator';
+import { validateThemeManifest } from '@/core/storage/theme-validator';
 import { defaultHomeSections, validateHomeSections } from './theme-home-sections';
 import { themePackageState } from './theme-package-state';
 

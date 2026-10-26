@@ -10,7 +10,7 @@ import type { FastifyInstance } from 'fastify';
 import { getPluginManifestIssues } from 'shared';
 import { issuePublisherCertificate, readPluginZipEntries, verifyPluginZip } from 'shared/plugin-signing';
 import { prisma } from '@/config/database';
-import { callContract, dropInternalRuntime } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract, dropInternalRuntime } from '@/core/extensions/runtime/plugin-runtime';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteTestUser } from '../helpers/auth';
 import { snapshotPluginRows, assertPluginRowsUnchanged } from '../helpers/plugin-db-snapshot';

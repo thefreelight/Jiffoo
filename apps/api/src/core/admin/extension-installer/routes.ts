@@ -15,7 +15,7 @@ import { errorResponseSchema } from '@/utils/schema-helpers';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { recordRepairBootstrapRejection, repairBootstrap } from './repair-bootstrap';
 import { getDefaultInstance } from '@/core/extensions/registry';
-import { handlePluginGateway, PluginGatewayError } from './plugin-runtime';
+import { handlePluginGateway, PluginGatewayError } from '@/core/extensions/runtime/plugin-runtime';
 import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
 import { InvalidStoredManifestError, readStoredPluginManifest } from './stored-manifest';
 import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
