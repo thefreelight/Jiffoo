@@ -80,6 +80,12 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
   const goodsSetupValue = isBluetoothCard
     ? pickCopy(locale, { en: 'Connects to the BOKMOO app over Bluetooth', hans: '蓝牙连接 BOKMOO App 管理', hant: '藍牙連線 BOKMOO App 管理' })
     : pickCopy(locale, { en: 'Works with the BOKMOO app', hans: '搭配 BOKMOO App 使用', hant: '搭配 BOKMOO App 使用' });
+  // Localized, card-appropriate compatibility — the eSIM-plan fallback
+  // ("Unlocked … with eSIM support") reads as jargon and contradicts the
+  // basic card's "eSIM services coming soon" copy.
+  const goodsCompatValue = isBluetoothCard
+    ? pickCopy(locale, { en: 'iPhone and Android devices with eSIM support', hans: '支持 eSIM 的 iPhone 与 Android 设备', hant: '支援 eSIM 的 iPhone 與 Android 裝置' })
+    : pickCopy(locale, { en: 'iPhone and Android devices', hans: 'iPhone 与 Android 设备', hant: 'iPhone 與 Android 裝置' });
 
   // SSR metadata still carries the raw catalog name until the next worker
   // deploy; keep the visible tab title on the cleaned storefront name.
@@ -301,7 +307,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                         ? goodsSetupValue
                         : pickCopy(locale, { en: 'Instant via QR', hans: '扫码即时激活', hant: '掃碼即時啟用' }),
                     },
-                    { icon: Smartphone, label: pickCopy(locale, { en: 'Compatibility', hans: '设备兼容', hant: '裝置相容' }), value: profile.compatibilityLabel },
+                    { icon: Smartphone, label: pickCopy(locale, { en: 'Compatibility', hans: '设备兼容', hant: '裝置相容' }), value: isGoodsProduct ? goodsCompatValue : profile.compatibilityLabel },
                     { icon: ShieldCheck, label: pickCopy(locale, { en: 'Support', hans: '支持', hant: '支援' }), value: pickCopy(locale, { en: '24/7 Global Team', hans: '24/7 全球团队', hant: '24/7 全球團隊' }) },
                   ].map(({ icon: Icon, label, value }) => (
                     <div key={label} className="flex items-start gap-3">
