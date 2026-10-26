@@ -15,6 +15,10 @@ import { ApiError } from '@/utils/api-errors';
 import { prisma } from '@/config/database';
 import { purchaseReturnTarget } from '@/core/plugin-pages/service';
 import { Prisma, OrderStatus as PrismaOrderStatus, OrderPaymentStatus as PrismaOrderPaymentStatus } from '@prisma/client';
+import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
+import { resolveSingleProvider } from '@/core/extensions/registry';
+import { callContract } from '@/core/extensions/runtime/plugin-runtime';
+import { recordPluginFailure } from '@/core/extensions/runtime/failure';
 import {
   CreateOrderRequest,
   OrderResponse,
@@ -111,6 +115,22 @@ const shipmentSelect = {
     select: shipmentItemSelect,
   },
 } as const;
+
+/**
+ * The fulfilment a provider answered for an order.
+ *
+ * The identifier and the status are the recorded fulfilment of the order;
+ * the carrier, the tracking number and the tracking url are the extra
+ * values the provider knows and that the shipment of the administrator does
+ * not carry.
+ */
+export type OrderFulfilment = {
+  fulfillmentId: string;
+  fulfillmentStatus: string;
+  carrier?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+};
 
 export class OrderService {
   /** Public predicate for the order-item catalog restriction (foreign key guard). */
@@ -538,20 +558,101 @@ export class OrderService {
   }
 
   /**
+   * Ask the fulfilment provider of the store to fulfil an order.
+   *
+   * The provider is resolved through the read-only registry and the contract
+   * is called outside every database transaction, so a provider never holds a
+   * transaction open. The method never throws: a missing, disabled, timing out
+   * or failing provider is recorded with the failure recorder and answered
+   * with `null`, so the shipment of the order is never blocked.
+   *
+   * @param orderId Order to fulfil
+   * @returns Promise resolving to the fulfilment of the provider, or null
+   */
+  static async requestFulfilment(orderId: string): Promise<OrderFulfilment | null> {
+    const provider = await resolveSingleProvider('fulfillment');
+    if (!provider) return null;
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true, shippingAddress: true },
+    });
+    if (!order) return null;
+    const address = order.shippingAddress;
+    try {
+      const answer = await callContract(
+        provider.pluginSlug,
+        'fulfillment',
+        PLUGIN_CONTRACT_VERSIONS.fulfillment,
+        'createFulfillment',
+        {
+          orderId,
+          items: order.items.map(item => ({
+            orderItemId: item.id,
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
+          address: {
+            country: address?.country ?? '',
+            ...(address?.state ? { region: address.state } : {}),
+            ...(address?.city ? { city: address.city } : {}),
+            ...(address?.postalCode ? { postalCode: address.postalCode } : {}),
+            ...(address?.addressLine1 ? { line1: address.addressLine1 } : {}),
+            ...(address?.addressLine2 ? { line2: address.addressLine2 } : {}),
+          },
+          idempotencyKey: `fulfillment:${orderId}`,
+        },
+      ) as {
+        fulfillmentId?: unknown;
+        status?: unknown;
+        carrier?: unknown;
+        trackingNumber?: unknown;
+        trackingUrl?: unknown;
+      } | null;
+      const fulfillmentId = typeof answer?.fulfillmentId === 'string' ? answer.fulfillmentId : null;
+      const fulfillmentStatus = typeof answer?.status === 'string' ? answer.status : null;
+      if (!fulfillmentId || !fulfillmentStatus) {
+        await recordPluginFailure(provider.pluginSlug, new Error('The fulfilment provider answered without a fulfilment identifier and status'), 'fulfillment');
+        return null;
+      }
+      return {
+        fulfillmentId,
+        fulfillmentStatus,
+        ...(typeof answer?.carrier === 'string' ? { carrier: answer.carrier } : {}),
+        ...(typeof answer?.trackingNumber === 'string' ? { trackingNumber: answer.trackingNumber } : {}),
+        ...(typeof answer?.trackingUrl === 'string' ? { trackingUrl: answer.trackingUrl } : {}),
+      };
+    } catch (error) {
+      await recordPluginFailure(provider.pluginSlug, error, 'fulfillment');
+      return null;
+    }
+  }
+
+  /**
    * Ship the order: create the shipment with its items, move the order to
    * SHIPPED, write the status history and emit order.fulfilled.
+   *
+   * The carrier and the tracking number of the shipment are the ones the
+   * administrator supplied. The fulfilment of the provider is recorded on the
+   * shipment; the extra values of the provider that the shipment does not
+   * carry go into the metadata of the shipment.
    */
   static async shipOrder(tx: OrderTransitionTx, input: {
     orderId: string;
     carrier: string;
     trackingNumber: string;
     items?: Array<{ orderItemId: string; quantity: number }>;
+    fulfillment?: OrderFulfilment | null;
   }): Promise<void> {
     await lockOrder(tx, input.orderId);
     const order = await tx.order.findUnique({ where: { id: input.orderId }, include: { items: true } });
     if (!order) throw new ApiError('NOT_FOUND');
     assertOrderTransition(order.status, OrderStatus.SHIPPED, order.paymentStatus);
 
+    const fulfillment = input.fulfillment ?? null;
+    const fulfillmentMetadata: Record<string, string> = {};
+    if (fulfillment?.carrier) fulfillmentMetadata.fulfillmentCarrier = fulfillment.carrier;
+    if (fulfillment?.trackingNumber) fulfillmentMetadata.fulfillmentTrackingNumber = fulfillment.trackingNumber;
+    if (fulfillment?.trackingUrl) fulfillmentMetadata.fulfillmentTrackingUrl = fulfillment.trackingUrl;
     const shipment = await tx.shipment.create({
       data: {
         orderId: input.orderId,
@@ -559,6 +660,8 @@ export class OrderService {
         trackingNumber: input.trackingNumber,
         status: ShipmentStatus.SHIPPED,
         shippedAt: new Date(),
+        ...(fulfillment ? { fulfillmentId: fulfillment.fulfillmentId, fulfillmentStatus: fulfillment.fulfillmentStatus } : {}),
+        ...(Object.keys(fulfillmentMetadata).length > 0 ? { metadata: fulfillmentMetadata } : {}),
         items: input.items ? {
           create: input.items.map(item => ({
             orderItemId: item.orderItemId,

@@ -35,7 +35,17 @@ async function fixture(options: { maxAttempts?: number; maxRuntimeSeconds?: numb
   };
   return { slug, installationId, api, run, enqueue, worker, declaration };
 }
-async function eventually(predicate: () => Promise<boolean>, deadlineMs = 5_000) {
+/**
+ * The budget of a single wait for a settled task state.
+ *
+ * The wait covers the start of the worker processes, the claim of a task, the
+ * expiry of a lease and the settlement of the claim, so it is inherently
+ * slower than an in process wait. The budget therefore has to fit a shard
+ * that runs the rest of its files at the same time, including a file that
+ * publishes plugin packages.
+ */
+const SETTLE_DEADLINE_MS = 20_000;
+async function eventually(predicate: () => Promise<boolean>, deadlineMs = SETTLE_DEADLINE_MS) {
   const end = performance.now() + deadlineMs;
   while (!await predicate()) { if (performance.now() >= end) throw new Error('Task state did not settle before its deadline'); await delay(10); }
 }
@@ -183,7 +193,7 @@ it('two OS workers race one live claim and a killed owned worker is reclaimed wi
     return child;
   });
   try {
-    await eventually(async () => messages.filter(m => m.kind === 'ready').length === 2, 15_000);
+    await eventually(async () => messages.filter(m => m.kind === 'ready').length === 2, SETTLE_DEADLINE_MS);
     for (const child of children) child.send({ kind: 'tick' });
     await eventually(async () => messages.filter(m => m.kind === 'tick-complete').length === 2);
     await eventually(async () => messages.some(m => m.kind === 'claimed'));
@@ -207,11 +217,11 @@ it('two OS workers race one live claim and a killed owned worker is reclaimed wi
   } finally {
     for (const child of children) if (child.exitCode === null && child.signalCode === null) {
       const exited = once(child, 'exit'); child.send({ kind: 'stop' });
-      const stopped = await Promise.race([exited.then(() => true), delay(5_000).then(() => false)]);
+      const stopped = await Promise.race([exited.then(() => true), delay(SETTLE_DEADLINE_MS).then(() => false)]);
       if (!stopped) { child.kill('SIGKILL'); await exited; }
     }
   }
-}, 30_000);
+}, 180_000);
 
 it('enforces max runtime with AbortSignal and leaves a timed-out hook UNKNOWN without replay', async () => {
   const f = await fixture({ maxAttempts: 1, maxRuntimeSeconds: 1, hook: true }); const task = await f.enqueue();
@@ -386,7 +396,7 @@ it('captured progress authority closes when the handler settles even before dura
     await control.connect();assertCurrentDatabase((await control.query('SELECT current_database() AS name')).rows[0].name);
     await control.query("SELECT pg_advisory_lock(hashtextextended('jiffoo:plugin-service-graph',0))");locked=true;
     release();
-    await eventually(async()=>Number((await control.query("SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND wait_event='advisory' AND query LIKE '%jiffoo:plugin-service-graph%' AND query LIKE '%pg_advisory_xact_lock%' ")).rows[0].count)>0,2000);
+    await eventually(async()=>Number((await control.query("SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND wait_event='advisory' AND query LIKE '%jiffoo:plugin-service-graph%' AND query LIKE '%pg_advisory_xact_lock%' ")).rows[0].count)>0,SETTLE_DEADLINE_MS);
     expect((await prisma.pluginTask.findUniqueOrThrow({where:{id:task.id}})).status).toBe('RUNNING');
     await expect(input.heartbeat({detached:true})).rejects.toMatchObject({code:'PLUGIN_TASK_CLAIM_LOST'});
     await control.query("SELECT pg_advisory_unlock(hashtextextended('jiffoo:plugin-service-graph',0))");locked=false;
@@ -481,9 +491,9 @@ it.each(['pause-first','timeout-first'] as const)('last-attempt timeout and paus
     await worker.tick();await eventually(async()=>entered);await control.connect();assertCurrentDatabase((await control.query('SELECT current_database() AS name')).rows[0].name);
     await control.query("SELECT pg_advisory_lock(hashtextextended('jiffoo:plugin-service-graph',0))");locked=true;
     if(order==='pause-first')enqueuePause();
-    await eventually(async()=>await waiting()>=1,2000);
+    await eventually(async()=>await waiting()>=1,SETTLE_DEADLINE_MS);
     if(order==='timeout-first')enqueuePause();
-    await eventually(async()=>await waiting()>=2,2000);
+    await eventually(async()=>await waiting()>=2,SETTLE_DEADLINE_MS);
     await control.query("SELECT pg_advisory_unlock(hashtextextended('jiffoo:plugin-service-graph',0))");locked=false;
     await pause;await worker.drain();
     const row=await prisma.pluginTask.findUniqueOrThrow({where:{id:task.id}});

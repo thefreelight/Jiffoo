@@ -69,6 +69,7 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | **B-ARCH-1** — step 2 remediation: order policy, order placement pipeline, fulfilment policy, event and notification registries | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `69e8056cb` | new `apps/api/src/core/order/{policy,pipeline}.ts`; new `apps/api/src/core/shared/fulfillment-policy.ts`; `apps/api/src/core/order/**`; `apps/api/src/core/shared/**`; `apps/api/src/core/cart/service.ts`; `apps/api/src/core/checkout/service.ts`; `apps/api/src/core/payment/{session,service}.ts`; `apps/api/src/core/notifications/service.ts`; `apps/api/src/infra/events/{core-subscribers,emit,delivery}.ts`; `apps/api/src/core/admin/{order-management,dashboard,user-management}/**`; `apps/api/src/core/admin/extension-installer/{routes,repair-bootstrap}.ts`; `apps/api/src/core/admin/plugin-management/service.ts`; `apps/api/tests/core/{order-policy,order-pipeline,core-subscriber-registry,module-boundary-audit,module-state-audit,fulfillment-policy,fulfillment-policy-settings}.test.ts`; `apps/api/tests/routes/test-signing-policy.test.ts`; `apps/api/src/core/{shared/fulfillment-policy,settings/service,notifications/service}.ts`; `apps/api/src/infra/events/core-subscribers.ts`; `apps/api/src/{server,worker-runtime}.ts`; `apps/admin/tests/settings-page.test.tsx`; `apps/shop/tests/{error-semantics-http,payment-return-http,s4-checkout}.test.ts`; `apps/shop/components/{checkout-summary,checkout-view}.tsx`; `docs/coordination-ledger.md` | `jiffoo_core_test` (integration) | `wp-pre`, `wp-0`, `wp-1`, `wp-2`, `wp-r1`, `wp-r2`, `wp-r3`, `wp-r4` (eight pi worker runs, five pi reviewer runs, model `minimax/MiniMax-M3.1-Flash:medium`) | **committed** (checkpoint `fa355244f`, fix `3f94cda2e`, policy `ed11de9da`, pipeline `52fc77c8c`, registries `e1102ce1a`, findings `f146a7530`, admin `ce98e3da3`, vocabularies `77dccf70f`, extension point and registry hygiene as the next commit) | §5t, §5u |
 
 | **WP-SA** — the plugin gateway moves to the neutral layer, the money error contract, the plugin installation projection (WP-SA) | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `091fcc83a` | `apps/api/src/core/extensions/runtime/{plugin-runtime,plugin-database-test-control,plugin-signing-policy,plugin-migration-gate,storage-admission-service}.ts` (moved); `apps/api/src/core/plugin-pages/page-declarations-service.ts` (moved); `apps/api/src/core/storage/theme-validator.ts` (moved); the consumers of the moved modules (`core/{checkout,order,payment,notifications,plugins,plugin-pages,plugin-storage,storage}/**`, `core/admin/{health-monitoring,order-management,plugin-management}/**`, `core/admin/extension-installer/**`, `infra/events/delivery.ts`, `server.ts`, `worker-runtime.ts`); `apps/api/src/core/extensions/registry/service.ts`; `apps/api/src/core/{checkout/service,order/pipeline}.ts`; `apps/api/tests/**` (import paths, the two registers, the money error test); `docs/coordination-ledger.md` | `jiffoo_core_test` (integration) | `wp-sa` (pi session `a8afed88-1630-4700-a2e4-de6770047d11`) | **uncommitted, in the tree** | §5v |
+| **WP-F1B** — the core calls the fulfilment contract and records the fulfilment on the shipment | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `e7f73487cf` | `apps/api/src/core/order/service.ts`, `apps/api/src/core/admin/order-management/{service,schemas}.ts`, `apps/api/tests/core/order-fulfillment-contract.test.ts`, `apps/api/prisma/schema/commerce.prisma` (the two columns of the shipment, formatted), `apps/api/prisma/migrations/20261026135338_order_fulfillment/**`, `docs/coordination-ledger.md` | `jiffoo_core_test` (integration) | `wp-f1b` (pi worker run, model `minimax/MiniMax-M3.1-Flash:medium`) | **uncommitted, in the tree** | §5y |
 
 ## 4. Serial overlap set — never edited by both sides at once
 
@@ -1348,6 +1349,90 @@ no source file was touched.
   the anchored known violations and the scanned file set.
 - The sharded gate over the combined tree is **the coordinator's**: this batch does not run
   `pnpm verify:quick` and does not run vitest, because two gates must never share the database.
+
+## 5y. Handover evidence — WP-F1B (the core calls the fulfilment contract and records the fulfilment on the shipment)
+
+**Baseline:** `e7f73487cf`. **Branch:** `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary`.
+**Test DB:** `jiffoo_core_test` (the integration worktree, no lane). **Executor:** `wp-f1b`.
+**Files:** `apps/api/src/core/order/service.ts`, `apps/api/src/core/admin/order-management/{service,schemas}.ts`,
+`apps/api/tests/core/order-fulfillment-contract.test.ts`, `apps/api/prisma/schema/commerce.prisma`,
+`apps/api/prisma/migrations/20261026135338_order_fulfillment/migration.sql`, `docs/coordination-ledger.md`.
+
+### The schema change and the migration
+
+The `shipments` table carries two new **nullable** columns and one new index:
+
+| Column | Type | Meaning |
+|---|---|---|
+| `fulfillmentId` | `TEXT` (nullable) | the identifier of the fulfilment the provider created for the order |
+| `fulfillmentStatus` | `TEXT` (nullable) | the status the provider reported for that fulfilment |
+
+plus `CREATE INDEX "shipments_fulfillmentId_idx" ON "shipments"("fulfillmentId")`.
+
+The migration is `apps/api/prisma/migrations/20261026135338_order_fulfillment/migration.sql`: two
+`ALTER TABLE "shipments" ADD COLUMN` statements and the index. Both columns are nullable, so the
+migration is additive and a store that never installs a fulfilment provider keeps its rows unchanged.
+The gate applies it when it resets the test database.
+
+### The public method of the order module
+
+`OrderService.requestFulfilment(orderId)` in `apps/api/src/core/order/service.ts`:
+
+- it resolves the provider with `resolveSingleProvider('fulfillment')` from the read-only registry and
+  answers `null` when the store has no fulfilment provider;
+- it calls the contract with `callContract(provider.pluginSlug, 'fulfillment',
+  PLUGIN_CONTRACT_VERSIONS.fulfillment, 'createFulfillment', { orderId, items, address, idempotencyKey })`,
+  where the items carry the `orderItemId`, the `variantId` and the `quantity` of the order items, the
+  address is the shipping address of the order and the idempotency key is `fulfillment:<orderId>`;
+- it answers the fulfilment identifier and status of the provider, plus its carrier, tracking number and
+  tracking url when the provider answers them;
+- it runs **outside** every database transaction.
+
+The admin order module calls it **before** it opens its own transaction and passes the result into
+`OrderService.shipOrder`, which writes `fulfillmentId` and `fulfillmentStatus` on the shipment row. The
+carrier and the tracking number of the shipment stay the ones the administrator supplied; the extra
+values of the provider that the shipment does not carry go into the existing `metadata` column of the
+shipment (`fulfillmentCarrier`, `fulfillmentTrackingNumber`, `fulfillmentTrackingUrl`).
+
+### The two new optional fields of the admin order detail
+
+The admin order detail response gains two optional, nullable fields on every shipment:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `fulfillmentId` | `string \| null` | the identifier of the fulfilment the provider created |
+| `fulfillmentStatus` | `string \| null` | the status the provider reported for the fulfilment |
+
+They are additive: no HTTP status, no error code and no message of an existing path changes, and the
+fields are not in the `required` list of the shipment schema. `apps/api/openapi.json` was regenerated
+with `pnpm --filter api export:openapi` and carries exactly these two fields.
+
+### The degradation rule
+
+A fulfilment provider is an extension, and an extension never blocks the core flow:
+
+- a store without a fulfilment provider ships exactly as before, and the two columns stay `NULL`;
+- a provider that is disabled, that times out, that answers an invalid response or that fails is
+  recorded with `recordPluginFailure` and the method answers `null`; the shipment is still created with
+  the carrier and the tracking number of the administrator, and the order still moves to `SHIPPED`;
+- the provider call runs outside the transaction of the shipment, so a slow provider never holds a
+  database transaction open.
+
+The builtin manual fulfilment answers a pending fulfilment and nothing else, so a store that has it
+installed sees the same order flow, the same shipment, the same carrier, the same tracking number and
+the same statuses; the two new columns are the new information that is recorded.
+
+### The verification of this batch
+
+- `pnpm --filter api type-check` — **exit 0**.
+- `pnpm --filter api lint` — **exit 0** (487 warnings, 0 errors; the warnings are pre-existing).
+- `pnpm --filter api export:openapi` — **exit 0**, `apps/api/openapi.json` regenerated.
+- `pnpx prisma format --schema apps/api/prisma/schema` — run; the formatting of the schema directory is
+  **not** clean at the baseline either, so only the `Shipment` model was realigned and the other models
+  and the other schema files were left byte-identical to the baseline.
+- The gate is **the coordinator's**: this batch does not run `pnpm verify:quick` and does not run
+  vitest, because two gates must never share the database. The new test file
+  `apps/api/tests/core/order-fulfillment-contract.test.ts` is part of the gate.
 
 ## 6. Handover evidence — B-ORCH
 

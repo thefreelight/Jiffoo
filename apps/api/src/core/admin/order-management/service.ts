@@ -332,7 +332,9 @@ export class AdminOrderService {
             trackingNumber: true,
             status: true,
             shippedAt: true,
-            deliveredAt: true
+            deliveredAt: true,
+            fulfillmentId: true,
+            fulfillmentStatus: true
           }
         }
       }
@@ -437,7 +439,9 @@ export class AdminOrderService {
         trackingNumber: s.trackingNumber || '',
         status: s.status,
         shippedAt: s.shippedAt ? s.shippedAt.toISOString() : null,
-        deliveredAt: s.deliveredAt ? s.deliveredAt.toISOString() : null
+        deliveredAt: s.deliveredAt ? s.deliveredAt.toISOString() : null,
+        fulfillmentId: s.fulfillmentId ?? null,
+        fulfillmentStatus: s.fulfillmentStatus ?? null
       }))
     };
   }
@@ -502,18 +506,24 @@ export class AdminOrderService {
 
   /**
    * Ship order - create shipment record with tracking info
+   *
+   * The fulfilment of the order is asked from the order module before the
+   * transaction opens, so the provider never holds a transaction open and a
+   * failing provider never blocks the shipment.
    */
   static async shipOrder(orderId: string, data: {
     carrier: string;
     trackingNumber: string;
     items?: Array<{ orderItemId: string; quantity: number }>;
   }) {
+    const fulfillment = await OrderService.requestFulfilment(orderId);
     await prisma.$transaction(async (tx) => {
       await OrderService.shipOrder(tx, {
         orderId,
         carrier: data.carrier,
         trackingNumber: data.trackingNumber,
         items: data.items,
+        fulfillment,
       });
     });
 

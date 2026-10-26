@@ -365,20 +365,23 @@ model OrderStatusHistory {
 // SHIPMENT
 // ============================================================
 model Shipment {
-  id             String         @id @default(cuid())
-  orderId        String
-  carrier        String?
-  trackingNumber String?
-  status         ShipmentStatus @default(PENDING)
-  shippedAt      DateTime?
-  deliveredAt    DateTime?
-  metadata       Json?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                String         @id @default(cuid())
+  orderId           String
+  carrier           String?
+  trackingNumber    String?
+  status            ShipmentStatus @default(PENDING)
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+  metadata          Json?
+  fulfillmentId     String?
+  fulfillmentStatus String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   order Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   items ShipmentItem[]
 
+  @@index([fulfillmentId])
   @@index([orderId])
   @@index([trackingNumber])
   @@index([status])

@@ -158,6 +158,8 @@ const adminOrderDetailSchema = {
           status: { type: 'string', enum: shipmentStatusEnum },
           shippedAt: { type: 'string', format: 'date-time', nullable: true },
           deliveredAt: { type: 'string', format: 'date-time', nullable: true },
+          fulfillmentId: { type: 'string', nullable: true, description: 'Identifier of the fulfilment the provider created for the order' },
+          fulfillmentStatus: { type: 'string', nullable: true, description: 'Status the provider reported for the fulfilment' },
         },
         required: ['id', 'carrier', 'trackingNumber', 'status', 'shippedAt', 'deliveredAt'],
       },
