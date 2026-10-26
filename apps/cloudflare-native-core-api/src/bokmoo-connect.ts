@@ -129,6 +129,34 @@ async function cardDetail(request: Request, env: Env, identifier: string): Promi
   return card ? response(publicCard(card, true)) : error('CARD_NOT_FOUND', 'Card not found', 404);
 }
 
+/** PRD 0002 plug-and-play: silent EID sighting. No claim, no gate —
+ * support-trace only. Upserts a 'seen' card row keyed by EID for the caller. */
+async function recordCardSighting(request: Request, env: Env): Promise<Response> {
+  const user = await requireUser(request, env);
+  if (!user) return error('UNAUTHORIZED', 'Login required', 401);
+  const body = await request.json<{ eid?: unknown; iccid?: unknown; readerCount?: unknown }>().catch(() => null);
+  const eid = typeof body?.eid === 'string' ? body.eid.trim().toUpperCase() : '';
+  if (!/^[0-9]{32}$/.test(eid)) return error('VALIDATION_ERROR', 'A 32-digit EID is required', 400);
+  const iccid = typeof body?.iccid === 'string' && body.iccid.trim() ? body.iccid.trim() : null;
+  const readerCount = typeof body?.readerCount === 'number' && Number.isFinite(body.readerCount) ? body.readerCount : null;
+  const existing = await env.DB.prepare(
+    'SELECT id, status FROM native_bokmoo_cards WHERE user_id = ?1 AND eid = ?2 LIMIT 1',
+  ).bind(user.id, eid).first<CardRow>();
+  const now = new Date().toISOString();
+  if (existing) {
+    await env.DB.prepare(
+      'UPDATE native_bokmoo_cards SET last_seen_at = ?2, iccid = COALESCE(?3, iccid) WHERE id = ?1',
+    ).bind(existing.id, now, iccid).run();
+    return response({ result: 'recorded', eid });
+  }
+  const id = `card-seen-${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`;
+  await env.DB.prepare(
+    `INSERT INTO native_bokmoo_cards (id, mid, eid, iccid, status, verification_status, user_id, last_seen_at, created_at, updated_at)
+     VALUES (?1, ?2, ?3, ?4, 'seen', 'seen', ?5, ?6, ?6, ?6)`,
+  ).bind(id, eid, eid, iccid, user.id, now).run();
+  return response({ result: 'recorded', eid, id }, 201);
+}
+
 async function createClaim(request: Request, env: Env): Promise<Response> {
   const user = await requireUser(request, env);
   if (!user) return error('UNAUTHORIZED', 'Login required', 401);
@@ -392,6 +420,7 @@ export async function tryNativeBokmooConnect(request: Request, env: Env): Promis
     return error('PLUGIN_NOT_ENABLED', 'BOKMOO Connect plugin is not installed and enabled', 404);
   }
   if (request.method === 'GET' && path === '/cards') return listCards(request, env);
+  if (request.method === 'POST' && path === '/cards/sightings') return recordCardSighting(request, env);
   if (request.method === 'POST' && path === '/cards/claim-sessions') return createClaim(request, env);
   const sessionVerify = path.match(/^\/cards\/claim-sessions\/([^/]+)\/verify$/);
   if (request.method === 'POST' && sessionVerify) return verifyClaim(request, env, decodeURIComponent(sessionVerify[1]));

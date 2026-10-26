@@ -60,6 +60,23 @@ describe('native Bokmoo Connect adapter', () => {
     expect(query).toHaveBeenCalledTimes(3);
   });
 
+  it('records a silent EID sighting and upserts by eid', async () => {
+    isNativePluginEnabled.mockResolvedValue(true);
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com' });
+    const eid = '89086030201234567890123456789012';
+    const card = { id: 'card-seen-1', mid: eid, eid, iccid: null, status: 'seen', verification_status: 'seen', user_id: 'user-1', bound_at: null, verified_at: null, last_seen_at: '2026-10-25T00:00:00.000Z', created_at: '2026-10-25T00:00:00.000Z', updated_at: '2026-10-25T00:00:00.000Z' };
+    const queries: string[] = [];
+    const db = { prepare: vi.fn((sql: string) => { queries.push(sql); return statement(card); }) };
+    const first = await tryNativeBokmooConnect(
+      new Request('https://api.example/api/v1/cards/sightings', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ eid }) }),
+      { DB: db } as never,
+    );
+    const firstPayload = await first?.json() as any;
+    expect(firstPayload.data).toMatchObject({ result: 'recorded', eid });
+    expect(queries.some((q) => q.includes('SELECT') && q.includes('eid = ?2'))).toBe(true);
+    expect(queries.some((q) => q.startsWith('UPDATE native_bokmoo_cards'))).toBe(true);
+  });
+
   it('exposes hardware identifiers to the owner in both the card list and detail', async () => {
     isNativePluginEnabled.mockResolvedValue(true);
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com' });
