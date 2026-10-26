@@ -1,7 +1,7 @@
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { ProductService } from '@/core/product/service';
-import { fulfillmentPolicyFor } from '@/core/shared/fulfillment-policy';
+import { lineRequiresShippingAddress, stockCeilingFor } from '@/core/shared/fulfillment-policy';
 
 /**
  * Transaction surface required to consume purchased cart lines. A Prisma
@@ -45,6 +45,24 @@ export interface CartItem {
   requiresShipping: boolean;
   maxQuantity: number;
   subtotal: number;
+}
+
+/**
+ * The fulfilment projection of a cart line.
+ *
+ * The projection carries the product type of the line, because the product
+ * type is the key of the fulfilment policy, and the shipping requirement of
+ * the line. It is a projection of its own: the public cart response keeps
+ * its shape.
+ */
+export interface CartLineFulfillment {
+  productId: string;
+  variantId: string;
+  quantity: number;
+  /** The product type of the line, the key of the fulfilment policy. */
+  productType: string;
+  /** The line needs a shipping address. */
+  requiresShipping: boolean;
 }
 
 export interface Cart {
@@ -160,7 +178,10 @@ export class CartService {
           item.productId === productId &&
           item.variantId === variant.id
       );
-      const availableQuantity = variant.stock;
+      // The stock ceiling of a line of a product type that does not track
+      // its inventory is not the stock of the variant, so such a line can be
+      // added even when the variant has no stock.
+      const availableQuantity = stockCeilingFor(product.productType, variant.stock);
       if ((existingItem?.quantity ?? 0) + quantity > availableQuantity) {
         throw new InsufficientCartStockError(availableQuantity);
       }
@@ -319,9 +340,12 @@ export class CartService {
         await prisma.cartItem.delete({ where: { id: itemId } });
       } else {
         const catalog = await ProductService.getSellableCatalog(prisma, [item.productId]);
-        const variant = catalog.get(item.productId)?.variants.find((entry) => entry.id === item.variantId);
+        const product = catalog.get(item.productId);
+        const variant = product?.variants.find((entry) => entry.id === item.variantId);
         if (!variant) throw new ApiError('NOT_FOUND');
-        const availableQuantity = variant.stock;
+        // The stock ceiling of a line of a product type that does not track
+        // its inventory is not the stock of the variant.
+        const availableQuantity = stockCeilingFor(product?.productType ?? '', variant.stock);
         if (quantity > availableQuantity) throw new InsufficientCartStockError(availableQuantity);
         await prisma.cartItem.update({
           where: { id: itemId },
@@ -448,6 +472,46 @@ export class CartService {
     }
   }
 
+  /**
+   * The fulfilment projection of the cart of a customer
+   *
+   * The cart owns the cart and reads the catalog, so it knows the product
+   * type of every line. The checkout reads that projection to resolve the
+   * fulfilment plan of a cart, and the projection is separate from the
+   * public cart response, which keeps its shape.
+   *
+   * @param userId - The unique identifier of the user whose cart is projected
+   * @returns Promise resolving to the fulfilment projection of every cart line
+   */
+  static async getLineFulfillments(userId: string): Promise<CartLineFulfillment[]> {
+    const cart = await prisma.cart.findUnique({
+      where: { userId },
+      include: { items: true }
+    });
+    if (!cart) return [];
+
+    const catalog = await ProductService.getSellableCatalog(
+      prisma,
+      cart.items.map((item) => item.productId)
+    );
+
+    return cart.items.map((item) => {
+      const product = catalog.get(item.productId);
+      // A line the catalog does not know carries no product type, so the
+      // default policy of a product type applies to it.
+      const productType = product?.productType ?? '';
+      // The shipping requirement of a line is the shared address rule of a
+      // line, exactly as the public cart response reports it.
+      return {
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        productType,
+        requiresShipping: lineRequiresShippingAddress(productType, product?.requiresShipping ?? true),
+      };
+    });
+  }
+
   // ============================================
   // Private Methods
   // ============================================
@@ -487,11 +551,10 @@ export class CartService {
         : [];
       const availableStock = variant.stock;
       const unitPrice = variant.salePrice;
-      // The shipping requirement of a cart line is the shipping flag of the
-      // product and the fulfilment policy of its product type, exactly as the
-      // order placement resolves it, so the cart and the order can never
-      // disagree about the address an order needs.
-      const fulfillmentPolicy = fulfillmentPolicyFor(product?.productType ?? '');
+      // The shipping requirement of a cart line is the shared address rule of
+      // a line, the same rule the order placement resolves, so the cart and
+      // the order answer the address of a line the same way.
+      const productType = product?.productType ?? '';
       return {
         id: item.id,
         productId: item.productId,
@@ -502,8 +565,8 @@ export class CartService {
         variantId: item.variantId,
         variantName: variant?.name || undefined,
         variantAttributes: parseJsonRecord(variant?.attributes),
-        requiresShipping: (product?.requiresShipping ?? true) && fulfillmentPolicy.requiresShippingAddress,
-        maxQuantity: availableStock,
+        requiresShipping: lineRequiresShippingAddress(productType, product?.requiresShipping ?? true),
+        maxQuantity: stockCeilingFor(productType, availableStock),
         subtotal: unitPrice * item.quantity,
       };
     });

@@ -1,5 +1,5 @@
 import { prisma } from '@/config/database';
-import { createOrderNotification, type NotificationTransaction } from '@/core/notifications/service';
+import { notifyOrderEvent } from '@/core/notifications/service';
 import type { EventPayload } from '@jiffoo/shared';
 
 /**
@@ -15,13 +15,11 @@ export const CORE_EVENT_TARGET = 'core';
 export type CoreSubscriber = (data: any) => Promise<void>;
 
 /** One registration: the event version a subscriber reacts to and the subscriber itself. */
-type CoreSubscriberRegistration = { version: 1; subscriber: CoreSubscriber };
+type CoreSubscriberRegistration = { readonly version: 1; readonly subscriber: CoreSubscriber };
 
-async function notifyOrder(tx: NotificationTransaction, orderId: string, type: 'shipped' | 'cancelled' | 'refunded' | 'payment_received', values: { reason?: string }, dedupKey: string) {
-  const order = await tx.order.findUnique({ where: { id: orderId }, select: { id: true } });
-  // The order is gone, so there is nobody left to notify.
-  if (!order) return;
-  await createOrderNotification(tx, type, orderId, values, { dedupKey });
+/** The frozen registrations of one event type. */
+function registrations(subscriber: CoreSubscriber): readonly CoreSubscriberRegistration[] {
+  return Object.freeze([Object.freeze({ version: 1 as const, subscriber })]);
 }
 
 /**
@@ -33,41 +31,44 @@ async function notifyOrder(tx: NotificationTransaction, orderId: string, type: '
 export async function notifyOrderCancelled(data: EventPayload<'order.cancelled'>) {
   // The event carries the domain reason; the customer facing copy stays unchanged.
   const reason = data.reason === 'unpaid timeout' ? 'Cancelled for non-payment' : data.reason;
-  await prisma.$transaction((tx) => notifyOrder(tx, data.orderId, 'cancelled', { reason }, `notification:cancelled:${data.orderId}`));
+  // The order may be gone: the notification module resolves the recipient
+  // through the order projection and reports that there is nobody to notify.
+  await prisma.$transaction((tx) => notifyOrderEvent(tx, 'cancelled', data.orderId, { reason }, { dedupKey: `notification:cancelled:${data.orderId}` }));
 }
 
 export async function notifyOrderShipped(data: EventPayload<'order.fulfilled'>) {
-  await prisma.$transaction((tx) => notifyOrder(tx, data.id, 'shipped', {}, `notification:shipped:${data.id}`));
+  await prisma.$transaction((tx) => notifyOrderEvent(tx, 'shipped', data.id, {}, { dedupKey: `notification:shipped:${data.id}` }));
 }
 
 export async function notifyOrderRefunded(data: EventPayload<'order.refunded'>) {
-  await prisma.$transaction((tx) => notifyOrder(tx, data.orderId, 'refunded', {}, `notification:refunded:${data.refundId}`));
+  await prisma.$transaction((tx) => notifyOrderEvent(tx, 'refunded', data.orderId, {}, { dedupKey: `notification:refunded:${data.refundId}` }));
 }
 
 export async function notifyPaymentSucceeded(data: EventPayload<'payment.succeeded'>) {
-  await prisma.$transaction((tx) => notifyOrder(tx, data.orderId, 'payment_received', {}, `notification:payment_received:${data.orderId}`));
+  await prisma.$transaction((tx) => notifyOrderEvent(tx, 'payment_received', data.orderId, {}, { dedupKey: `notification:payment_received:${data.orderId}` }));
 }
 
 /**
  * The core subscriber registry.
  *
- * The table is built inside a function so the module keeps no registry
- * container at module scope: every lookup rebuilds it from the subscriber
- * functions. A new domain event is registered by adding one entry here, and
- * an event type may carry more than one subscriber.
+ * The table is a module scope constant, built once when the module loads and
+ * frozen: the subscribers are functions, the version is the literal 1, and
+ * nothing may mutate the table at runtime. The module state audit requires
+ * every module scope container to be reviewed, so the registry is registered
+ * in the module state allowlist of that audit. A new domain event is
+ * registered by adding one entry here, and an event type may carry more than
+ * one subscriber.
  */
-function coreSubscriberRegistry(): Record<string, CoreSubscriberRegistration[]> {
-  return {
-    'order.cancelled': [{ version: 1, subscriber: notifyOrderCancelled }],
-    'order.fulfilled': [{ version: 1, subscriber: notifyOrderShipped }],
-    'order.refunded': [{ version: 1, subscriber: notifyOrderRefunded }],
-    'payment.succeeded': [{ version: 1, subscriber: notifyPaymentSucceeded }],
-  };
-}
+export const CORE_SUBSCRIBERS: Readonly<Record<string, readonly CoreSubscriberRegistration[]>> = Object.freeze({
+  'order.cancelled': registrations(notifyOrderCancelled),
+  'order.fulfilled': registrations(notifyOrderShipped),
+  'order.refunded': registrations(notifyOrderRefunded),
+  'payment.succeeded': registrations(notifyPaymentSucceeded),
+});
 
 /** The core subscribers of an event type, in registration order. */
 export function coreSubscribersFor(type: string, version: number): CoreSubscriber[] {
-  return (coreSubscriberRegistry()[type] || [])
+  return (CORE_SUBSCRIBERS[type] || [])
     .filter(registration => registration.version === version)
     .map(registration => registration.subscriber);
 }
@@ -79,7 +80,7 @@ export function coreSubscribersFor(type: string, version: number): CoreSubscribe
  * adding one entry to the registry, and the list follows.
  */
 export function coreSubscribedEventTypes(): string[] {
-  return Object.keys(coreSubscriberRegistry());
+  return Object.keys(CORE_SUBSCRIBERS);
 }
 
 /** Resolve the first core subscriber of an event, or null when the core ignores it. */

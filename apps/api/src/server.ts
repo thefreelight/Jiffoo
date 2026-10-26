@@ -65,6 +65,7 @@ import { syncBuiltinThemes } from '@/core/admin/extension-installer/builtin-them
 import { registerPluginProcessFailureHandlers } from '@/core/admin/extension-installer/plugin-process-failure';
 import { pluginSecretsKey } from '@/core/extensions/shared/config-crypto';
 import { assertTestRootEnvironment } from 'shared/plugin-signing';
+import { systemSettingsService } from '@/core/settings/service';
 
 const trustedProxies = parseTrustedProxies(process.env.TRUSTED_PROXIES);
 console.info(`TRUSTED_PROXIES: ${trustedProxies.join(', ') || '(none)'}`);
@@ -414,6 +415,9 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
     await syncBuiltinThemes(path.join(process.cwd(), 'builtin-themes'));
     await prewarmThemePackages();
     await loadEnabledPluginRuntimes();
+    // The fulfilment policies of the store are selected in the store settings,
+    // so the API serves the selection of the store from its first request.
+    await systemSettingsService.syncFulfillmentPolicies();
 
     await app.listen({
       port: options.port ?? env.API_PORT,

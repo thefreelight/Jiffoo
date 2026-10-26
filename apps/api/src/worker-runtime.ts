@@ -31,6 +31,7 @@ import { PluginTaskWorker } from '@/core/plugins/task-worker';
 import { fileUrlSecret } from '@/core/plugin-storage/service';
 import { cleanPluginFiles } from '@/jobs/plugin-file-cleanup';
 import { validateDatabaseUrl, validateRedisUrl } from '@/config/test-lane';
+import { systemSettingsService } from '@/core/settings/service';
 
 export async function startWorkerRuntime(options: { redisUrl?: string; healthPort?: number } = {}) {
   if (env.NODE_ENV === 'test') { validateDatabaseUrl(env.DATABASE_URL); validateRedisUrl(options.redisUrl ?? env.REDIS_URL); }
@@ -179,6 +180,9 @@ export async function startWorkerRuntime(options: { redisUrl?: string; healthPor
     await syncBuiltinPlugins(path.join(process.cwd(), 'builtin-plugins'));
     await prewarmPluginPackages();
     await prewarmThemePackages();
+    // The worker runs the reconciliation and the outbox delivery, so it needs
+    // the fulfilment policies of the store before it starts its work.
+    await systemSettingsService.syncFulfillmentPolicies();
     await recovery.run();
     await eventDelivery.start();
     pluginTasks.start();

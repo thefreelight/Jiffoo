@@ -81,3 +81,19 @@ it('maps a server field rejection to the field and focuses it', async () => {
   expect(state.setError).toHaveBeenCalledWith('postalCode', { type: 'server', message: 'Please check this field.' });
   expect(state.focus).toHaveBeenCalledWith('postalCode');
 });
+it('pays a quote that offers no shipping option with the total of the quote', async () => {
+  // A quote of a cart that needs no shipment carries the tax and the total
+  // it can rely on, and no shipping option at all.
+  const digital: Quote = { currency: 'USD', subtotal: '10.00', tax: '1.00', taxInclusive: false, total: '11.00', shippingOptions: [], paymentMethods: [{ providerSlug: 'manual', displayName: 'Provider supplied name' }] };
+  state.values = [digital, '', 'manual', '', false, false, null];
+  state.fetch.mockResolvedValueOnce(json({ data: { id: 'order' } }, 201)).mockResolvedValueOnce(json({ data: { action: { type: 'instructions' } } }));
+  await (pay(render()).props.onClick as () => Promise<void>)();
+  const create = state.fetch.mock.calls.filter(([url]) => url === '/bff/orders');
+  expect(create).toHaveLength(1);
+  const body = JSON.parse(create[0][1].body);
+  // The expected total of the order is the total of the quote, so the order
+  // computes the same amount.
+  expect(body.expectedTotal).toBe('11.00');
+  expect(body.shippingOptionId).toBe('none:none');
+  expect(state.assign).toHaveBeenCalledWith('/en/checkout/complete?order=order');
+});

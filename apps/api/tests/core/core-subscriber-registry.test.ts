@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { eventRegistry } from '@jiffoo/shared';
 import {
+  CORE_SUBSCRIBERS,
   coreSubscriberFor,
   coreSubscribedEventTypes,
   coreSubscribersFor,
@@ -10,7 +11,8 @@ import {
   notifyPaymentSucceeded,
   type CoreSubscriber,
 } from '@/infra/events/core-subscribers';
-import { notificationTypes } from '@/core/notifications/service';
+import { notificationTypes, notifyOrderEvent } from '@/core/notifications/service';
+import { OrderService } from '@/core/order/service';
 
 // The subscriber that each core event type is bound to. The identity of the
 // function is the expectation: a subscriber bound to the wrong event fails.
@@ -48,6 +50,38 @@ describe('the core subscriber registry', () => {
     expect(coreSubscriberFor('order.cancelled', 2)).toBeNull();
     expect(coreSubscribersFor('does.not.exist', 1)).toEqual([]);
     expect(coreSubscribersFor('order.cancelled', 2)).toEqual([]);
+  });
+
+  it('publishes the registry as a frozen table that the lookups read', () => {
+    // The table is built once: the lookups resolve the very registrations of
+    // the published constant instead of a table of their own.
+    expect(Object.isFrozen(CORE_SUBSCRIBERS)).toBe(true);
+    expect(Object.keys(CORE_SUBSCRIBERS).sort()).toEqual([...published].sort());
+    for (const [type, subscriber] of Object.entries(bindings)) {
+      const registrations = CORE_SUBSCRIBERS[type];
+      expect(Object.isFrozen(registrations)).toBe(true);
+      expect(registrations).toHaveLength(1);
+      expect(registrations[0].version).toBe(1);
+      expect(registrations[0].subscriber).toBe(subscriber);
+      // The lookup reads the published table: the same registration object.
+      expect(coreSubscribersFor(type, 1)[0]).toBe(registrations[0].subscriber);
+    }
+  });
+});
+
+describe('the order event notification of the notification module', () => {
+  it('reports that there is nobody to notify when the order is gone, and writes nothing', async () => {
+    const recipient = vi.spyOn(OrderService, 'getOrderRecipient').mockResolvedValue(null);
+    try {
+      // The transaction is empty on purpose: the notification module resolves
+      // the recipient first and must not write a row for an order that is gone.
+      const tx = {} as never;
+      await expect(notifyOrderEvent(tx, 'cancelled', 'order-1', { reason: 'Cancelled for non-payment' }, { dedupKey: 'notification:cancelled:order-1' }))
+        .resolves.toBe(false);
+      expect(recipient).toHaveBeenCalledWith(tx, 'order-1');
+    } finally {
+      recipient.mockRestore();
+    }
   });
 });
 

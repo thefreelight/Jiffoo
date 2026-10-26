@@ -279,6 +279,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'product -> settings': 'the product module reads system settings through the public settings service.',
   'settings -> audit': 'the settings module records audit events through the audit outlet.',
   'settings -> cache': 'the settings module invalidates cached settings entries.',
+  'settings -> shared': 'the settings module applies the fulfilment policy selection of the store settings to the neutral fulfilment policy registry.',
   'storage -> admin/extension-installer': 'the storage module validates theme packages and exposes the installer\'s public recovery test control.',
   'storage -> extensions/shared': 'the storage module uses the neutral extension types and helpers.',
   'storage -> infra/core-process': 'the plugin package store registers its core process through the public process registry.',

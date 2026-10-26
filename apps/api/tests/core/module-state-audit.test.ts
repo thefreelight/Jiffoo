@@ -255,6 +255,7 @@ const codeConstants = [
   'core/store/routes.ts:storeContextSchema',
   'core/upload/service.ts:UploadService.ALLOWED_TYPES',
   'core/upload/service.ts:UploadService.sharpModule',
+  'infra/events/core-subscribers.ts:CORE_SUBSCRIBERS',
   'infra/events/delivery.ts:EVENT_RETRY_SECONDS',
   'infra/worker-health.ts:WORKER_TASKS',
   'infra/worker-health.ts:workerHeartbeatSchema',
@@ -380,6 +381,7 @@ const allowlist: Record<string, Entry> = {
   ...Object.fromEntries(codeConstants.map(name => [name, { category: 3, reason: 'Code-defined schema, policy, validator, stateless service or immutable configuration; no retained request data.' }])),
   ...Object.fromEntries(runtimeHandles.map(name => [name, { category: 2, reason: 'Process runtime handle, async-local scope, bounded code-model diagnostic timing, or in-flight work bookkeeping; no cached user, IP, session or order payload.' }])),
   ...pluginState,
+  'infra/events/core-subscribers.ts:CORE_SUBSCRIBERS': { category: 3, reason: 'Static table of the core event subscribers: the frozen registry binds every core event type to its subscriber function and its event version, and holds no request, user, IP, session or order payload.' },
 };
 
 it('Scenarios 12 and 15 enumerate every module container and reject new unreviewed state', () => {

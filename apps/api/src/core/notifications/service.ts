@@ -217,6 +217,25 @@ export async function resendNotification(
   return created.id;
 }
 
+/**
+ * Write the notification row of an order, with the recipient of that order.
+ *
+ * The recipient comes from the order module's public projection, so this
+ * module never reads the orders table itself.
+ */
+async function writeOrderNotification(
+  tx: NotificationTransaction,
+  type: Extract<NotificationType, 'order_confirmation' | 'payment_received' | 'shipped' | 'cancelled' | 'refunded'>,
+  order: { userId: string; orderNumber: string; customerEmail: string | null; accountEmail: string | null },
+  orderId: string,
+  values: { instructions?: string; reason?: string },
+  options: { dedupKey?: string },
+): Promise<void> {
+  await createNotification(tx, type, order.userId, order.customerEmail || order.accountEmail || '', {
+    orderId: order.orderNumber, ...values,
+  }, { relatedType: 'order', relatedId: orderId, dedupKey: options.dedupKey });
+}
+
 export async function createOrderNotification(
   tx: NotificationTransaction,
   type: Extract<NotificationType, 'order_confirmation' | 'payment_received' | 'shipped' | 'cancelled' | 'refunded'>,
@@ -226,9 +245,28 @@ export async function createOrderNotification(
 ): Promise<void> {
   const order = await OrderService.getOrderRecipient(tx, orderId);
   if (!order) throw new ApiError('NOT_FOUND');
-  await createNotification(tx, type, order.userId, order.customerEmail || order.accountEmail || '', {
-    orderId: order.orderNumber, ...values,
-  }, { relatedType: 'order', relatedId: orderId, dedupKey: options.dedupKey });
+  await writeOrderNotification(tx, type, order, orderId, values, options);
+}
+
+/**
+ * Notify about an order event, when the order still exists.
+ *
+ * The recipient is resolved through the order module's public projection, the
+ * way this module already resolves it for an order notification. When the
+ * order is gone there is nobody left to notify: the function reports that and
+ * writes nothing.
+ */
+export async function notifyOrderEvent(
+  tx: NotificationTransaction,
+  type: Extract<NotificationType, 'payment_received' | 'shipped' | 'cancelled' | 'refunded'>,
+  orderId: string,
+  values: { reason?: string } = {},
+  options: { dedupKey: string },
+): Promise<boolean> {
+  const order = await OrderService.getOrderRecipient(tx, orderId);
+  if (!order) return false;
+  await writeOrderNotification(tx, type, order, orderId, values, options);
+  return true;
 }
 
 export function verificationLink(token: string, locale?: string | null): string {

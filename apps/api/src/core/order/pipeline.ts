@@ -19,7 +19,7 @@ import { ContractCallError } from '@/core/extensions/runtime/contract-errors';
 import { bindPurchaseOrigin } from '@/core/plugin-pages/service';
 import { decimalToMinor, minorToDecimal } from '@/core/shared/money';
 import { currentLinePrice } from '@/core/shared/pricing';
-import { fulfillmentPolicyFor, type FulfillmentPolicy } from '@/core/shared/fulfillment-policy';
+import { fulfillmentPlanFor, fulfillmentPolicyFor, orderRequiresShippingAddress, type FulfillmentPolicy } from '@/core/shared/fulfillment-policy';
 import { allocateOrderNumber } from '@/core/order/number';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { createCatalogSnapshot } from '@/core/order/catalog-snapshot';
@@ -79,9 +79,29 @@ type TaxResult = {
  * the items and the fulfilment policy of their product types.
  */
 export type OrderPlacementFulfillmentPlan = {
+  /**
+   * The address rule of the order: the order needs a shipping address.
+   *
+   * The rule is explicit and it is the only authority of the address
+   * requirement of an order: it is the shared rule of the shared layer, the
+   * combination of the fulfilment policies of the product types of the order
+   * and the address rules of its lines. The default policy asks for an
+   * address, so an order of a store that enables no fulfilment policy needs
+   * an address, exactly as before.
+   */
   requiresShippingAddress: boolean;
+  /** The order needs a shipping quote and a shipping option. */
   requiresShippingQuote: boolean;
+  /** The stock of the order is tracked and decremented when it is sold. */
   tracksInventory: boolean;
+};
+
+/** The fulfilment of an order item: the product type and the policy of that type. */
+type OrderItemFulfillment = {
+  productType: string;
+  policy: FulfillmentPolicy;
+  /** The product of the item asks for shipping. */
+  requiresShipping: boolean;
 };
 
 /** The shared context of one order placement. */
@@ -96,8 +116,7 @@ export type OrderPlacementContext = {
   productIds: string[];
   catalog: Map<string, CatalogProductProjection>;
   orderItems: OrderItemDraft[];
-  itemPolicies: FulfillmentPolicy[];
-  requiresShipping: boolean;
+  itemFulfillments: OrderItemFulfillment[];
   stockItems: StockItem[];
   fulfillmentPlan: OrderPlacementFulfillmentPlan;
   selectedShipping: ShippingOption | null;
@@ -321,9 +340,8 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
         const data = context.data;
         let totalAmount = 0;
         const orderItems: OrderItemDraft[] = [];
-        const itemPolicies: FulfillmentPolicy[] = [];
+        const itemFulfillments: OrderItemFulfillment[] = [];
         const stockItems: StockItem[] = [];
-        let requiresOrderShipping = false;
 
         if (!data.items || data.items.length === 0) {
           throw Object.assign(new ApiError('BAD_REQUEST'), { message: 'Order must contain at least one item' });
@@ -373,15 +391,15 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
           }
 
           const policy = fulfillmentPolicyFor(product.productType);
-          if (product.requiresShipping) {
-            requiresOrderShipping = true;
-          }
 
           const unitPrice = currentLinePrice(variant, context.currency).unitPrice;
           const requestedQuantity = requestedQuantityByVariant.get(variantId) ?? item.quantity;
           const stock = variant.stock;
 
-          if (stock < requestedQuantity) {
+          // The stock requirement is part of the fulfilment policy: a line of
+          // a product type whose policy does not track the inventory is not
+          // rejected for stock, because its stock is not tracked.
+          if (policy.tracksInventory && stock < requestedQuantity) {
             throw Object.assign(new ApiError('BAD_REQUEST'), { message: `Insufficient stock for variant ${variant.name} of product: ${product.name}` });
           }
 
@@ -392,29 +410,34 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
             quantity: item.quantity,
             unitPrice,
           });
-          itemPolicies.push(policy);
+          itemFulfillments.push({ productType: product.productType, policy, requiresShipping: product.requiresShipping });
           if (policy.tracksInventory) {
             stockItems.push({ variantId, quantity: item.quantity });
           }
         }
 
         context.orderItems = orderItems;
-        context.itemPolicies = itemPolicies;
+        context.itemFulfillments = itemFulfillments;
         context.stockItems = stockItems;
-        context.requiresShipping = requiresOrderShipping;
         context.totalAmount = totalAmount;
       },
     },
     {
       name: 'resolve-shipping-requirement',
       run: async context => {
-        // The plan of the order combines the shipping flag of its items with
-        // the fulfilment policy of their product types.
-        const policies = context.itemPolicies;
+        // The plan of the order combines the fulfilment policies of the
+        // product types of its items, and the address rule of the order is
+        // the shared rule of the shared layer: an order needs an address when
+        // a policy of the order asks for one or when a line of the order
+        // needs one. The default policy asks for an address, so an order of
+        // a store that enables no fulfilment policy needs an address, exactly
+        // as before.
+        const policies = fulfillmentPlanFor(
+          context.itemFulfillments.map((item) => item.productType),
+        );
         const plan: OrderPlacementFulfillmentPlan = {
-          requiresShippingAddress: context.requiresShipping && policies.some(policy => policy.requiresShippingAddress),
-          requiresShippingQuote: policies.some(policy => policy.requiresShippingQuote),
-          tracksInventory: policies.some(policy => policy.tracksInventory),
+          ...policies,
+          requiresShippingAddress: orderRequiresShippingAddress(policies, context.itemFulfillments),
         };
         context.fulfillmentPlan = plan;
 
@@ -434,8 +457,6 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
         const plan = context.fulfillmentPlan;
         const address = context.normalizedShippingAddress;
 
-        if (plan.requiresShippingQuote && !address) throw new ApiError('BAD_REQUEST');
-
         const quote = await CheckoutService.quoteItems(context.currency, context.orderItems.map((item) => ({
           productId: item.productId,
           variantId: item.variantId,
@@ -451,7 +472,7 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
             addressLine2: address?.addressLine2,
           },
           shippingOptionId: data.shippingOptionId,
-        }, true);
+        }, true, { requiresShippingQuote: plan.requiresShippingQuote });
         const selectedShipping = quote.shippingOptions.find((option) => option.id === data.shippingOptionId);
         if (plan.requiresShippingQuote && !selectedShipping) {
           throw new ApiError('SHIPPING_METHOD_UNAVAILABLE');
@@ -696,8 +717,7 @@ function createOrderPlacementContext(userId: string, data: CreateOrderRequest): 
     productIds: [],
     catalog: new Map<string, CatalogProductProjection>(),
     orderItems: [],
-    itemPolicies: [],
-    requiresShipping: false,
+    itemFulfillments: [],
     stockItems: [],
     fulfillmentPlan: {
       requiresShippingAddress: false,

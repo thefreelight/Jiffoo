@@ -9,6 +9,11 @@ import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { isStoreTimezone } from 'shared';
 import { AuditService } from '@/core/audit/service';
+import {
+  applyFulfillmentPolicySelection,
+  assertFulfillmentPolicySelection,
+  clearFulfillmentPolicies,
+} from '@/core/shared/fulfillment-policy';
 
 /**
  * The minimal client surface the settings module needs for a column bump.
@@ -42,6 +47,13 @@ const LOCALIZATION_CACHE_KEY = 'settings:localization';
 const CACHE_TTL = 60; // 60 seconds TTL for settings cache
 const CHECKOUT_COUNTRIES_REQUIRE_STATE_POSTAL_KEY = 'checkout.address.countries_require_state_postal';
 const DEFAULT_COUNTRIES_REQUIRE_STATE_POSTAL = ['US', 'CA', 'AU', 'CN', 'GB'] as const;
+/**
+ * The key of the store setting that selects the fulfilment policies of the
+ * product types. The value is an object that names a policy of the Core
+ * catalogue for a product type, for example `{ "digital": "digital" }`. A
+ * store that selects nothing keeps the default policy of every product type.
+ */
+const FULFILLMENT_POLICIES_KEY = 'fulfillment.policies';
 
 /**
  * Localization context - cached configuration for currency/locale
@@ -83,6 +95,7 @@ export class SystemSettingsService {
         // Try cache first
         const cached = await CacheService.get<Record<string, any>>(SETTINGS_CACHE_KEY);
         if (cached) {
+            this.applyReadFulfillmentPolicies(cached);
             return cached;
         }
 
@@ -101,6 +114,7 @@ export class SystemSettingsService {
             const settings = this.sanitizeSettings(parsed as Record<string, any>);
             // Cache for TTL seconds
             await CacheService.set(SETTINGS_CACHE_KEY, settings, { ttl: CACHE_TTL });
+            this.applyReadFulfillmentPolicies(settings);
             return settings;
         } catch {
             return this.sanitizeSettings({});
@@ -112,6 +126,9 @@ export class SystemSettingsService {
      */
     private async saveSettingsObject(settings: Record<string, any>) {
         const sanitized = this.sanitizeSettings(settings);
+        // The fulfilment policy selection is validated before the write, so an
+        // invalid selection never reaches the registry.
+        this.assertValidFulfillmentSelection(sanitized[FULFILLMENT_POLICIES_KEY]);
         await prisma.systemSettings.upsert({
             where: { id: SYSTEM_ID },
             update: { settings: sanitized },
@@ -123,6 +140,71 @@ export class SystemSettingsService {
         // Invalidate cache after update
         await CacheService.delete(SETTINGS_CACHE_KEY);
         await CacheService.delete(LOCALIZATION_CACHE_KEY);
+        // The selection of the store takes effect without a restart.
+        this.applyFulfillmentPolicies(sanitized);
+    }
+
+    /**
+     * Reject a fulfilment policy selection that the Core catalogue does not
+     * know. It is a validation error of the request, never a crash.
+     */
+    private assertValidFulfillmentSelection(selection: unknown): void {
+        if (selection === undefined || selection === null) return;
+        try {
+            assertFulfillmentPolicySelection(selection);
+        } catch {
+            throw new ApiError('VALIDATION_ERROR');
+        }
+    }
+
+    /**
+     * Apply the fulfilment policy selection of a settings blob to the
+     * fulfilment policy registry.
+     *
+     * A blob without a selection holds no policy of a product type, so the
+     * default policy of every product type applies again.
+     */
+    private applyFulfillmentPolicies(settings: Record<string, any>): void {
+        const selection = settings[FULFILLMENT_POLICIES_KEY];
+        if (selection === undefined || selection === null) {
+            clearFulfillmentPolicies();
+            return;
+        }
+        applyFulfillmentPolicySelection(selection);
+    }
+
+    /**
+     * Apply the fulfilment policy selection of a settings blob that is read.
+     *
+     * Every process that reads the store settings picks the current
+     * selection up here, so a process that did not write the setting applies
+     * it as well and does not keep an older selection until it restarts.
+     *
+     * A blob without a selection is not applied here: the write path owns
+     * the removal of a selection, so a read never drops the policies of the
+     * store. A selection the catalogue does not know is ignored, so a read
+     * never fails and never leaves the registry half applied.
+     */
+    private applyReadFulfillmentPolicies(settings: Record<string, any>): void {
+        const selection = settings[FULFILLMENT_POLICIES_KEY];
+        if (selection === undefined || selection === null) return;
+        try {
+            applyFulfillmentPolicySelection(selection);
+        } catch {
+            // The registry keeps the policies it holds.
+        }
+    }
+
+    /**
+     * Apply the fulfilment policy selection of the store settings to the
+     * fulfilment policy registry.
+     *
+     * The processes call this at boot, so the registry of a running process
+     * holds the selection of the store before anything is served.
+     */
+    async syncFulfillmentPolicies(): Promise<void> {
+        const settings = await this.getSettingsObject();
+        this.applyFulfillmentPolicies(settings);
     }
 
     /**
@@ -134,10 +216,12 @@ export class SystemSettingsService {
      * single writer: the settings module.
      */
     async saveSettingsBlob(settings: Record<string, any>): Promise<void> {
+        this.assertValidFulfillmentSelection(settings[FULFILLMENT_POLICIES_KEY]);
         await prisma.systemSettings.update({
             where: { id: SYSTEM_ID },
             data: { settings: JSON.stringify(settings) },
         });
+        this.applyFulfillmentPolicies(settings);
     }
 
     /**
@@ -149,6 +233,7 @@ export class SystemSettingsService {
         settings: Record<string, any>;
         version: string;
     }): Promise<void> {
+        this.assertValidFulfillmentSelection(installation.settings[FULFILLMENT_POLICIES_KEY]);
         const data = {
             isInstalled: true, installedAt: new Date(),
             installedBy: installation.installedBy, siteDescription: installation.siteDescription,
@@ -159,6 +244,7 @@ export class SystemSettingsService {
             create: { id: SYSTEM_ID, ...data },
             update: data,
         });
+        this.applyFulfillmentPolicies(installation.settings);
     }
 
     /**
@@ -268,6 +354,7 @@ export class SystemSettingsService {
         if (key === 'localization.locale' && !['en', 'zh-Hans', 'zh-Hant'].includes(String(value))) {
             throw new ApiError('BAD_REQUEST');
         }
+        this.assertValidFulfillmentSelection(key === FULFILLMENT_POLICIES_KEY ? value : undefined);
         const settings = await this.getSettingsObject();
         settings[key] = value;
         await this.saveSettingsObject(settings);
@@ -296,6 +383,7 @@ export class SystemSettingsService {
         if ('localization.locale' in updates && !['en', 'zh-Hans', 'zh-Hant'].includes(String(updates['localization.locale']))) {
             throw new ApiError('BAD_REQUEST');
         }
+        if (FULFILLMENT_POLICIES_KEY in updates) this.assertValidFulfillmentSelection(updates[FULFILLMENT_POLICIES_KEY]);
         const settings = await prisma.$transaction(async tx => {
             await tx.$queryRaw`SELECT id FROM public.system_settings WHERE id = 'system' FOR UPDATE`;
             const system = await tx.systemSettings.findUnique({ where: { id: SYSTEM_ID } });
@@ -310,6 +398,8 @@ export class SystemSettingsService {
             return next;
         });
         await CacheService.delete(SETTINGS_CACHE_KEY); await CacheService.delete(LOCALIZATION_CACHE_KEY);
+        // The selection of the store takes effect without a restart.
+        this.applyFulfillmentPolicies(settings);
         return settings;
     }
 

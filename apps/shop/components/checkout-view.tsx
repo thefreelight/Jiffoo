@@ -14,6 +14,15 @@ import { addressFields, addressSchema, serverFieldIssues, type AddressField } fr
 import { CheckoutSummary } from './checkout-summary';
 import { CircleAlert } from 'lucide-react';
 
+/**
+ * The shipping option of an order that needs no shipment.
+ *
+ * A quote that offers no shipping option has none to send, and the order
+ * contract names a shipping option: the storefront sends this placeholder,
+ * which the order of a plan that needs no shipping quote ignores.
+ */
+const NO_SHIPPING_OPTION = 'none:none';
+
 export function CheckoutView({ cart, locale, address: initialAddress, countries, requiredCountries, email, currency, pluginPurchaseOriginId }: {
   cart: Cart;
   locale: ShopLocale;
@@ -93,7 +102,7 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
   async function placeOrder() {
     if (availability.blocked) return;
     availability.clear();
-    if (!quote?.total || !shippingOptionId || !paymentMethod) return;
+    if (!quote?.total || !paymentMethod) return;
     setBusy(true); setError('');
     let orderId = paymentOrderId;
     try {
@@ -104,7 +113,7 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: cart.items.map(({ productId, variantId, quantity }) => ({ productId, variantId, quantity })),
-          shippingAddress: addressRequest(form.getValues()), shippingOptionId, paymentMethod, expectedTotal: quote.total,
+          shippingAddress: addressRequest(form.getValues()), shippingOptionId: shippingOptionId || NO_SHIPPING_OPTION, paymentMethod, expectedTotal: quote.total,
           idempotencyKey: orderRequestKey.current,
           ...(purchaseOrigin.current ? { pluginPurchaseOriginId: purchaseOrigin.current } : {}),
         }),
@@ -169,7 +178,9 @@ export function CheckoutView({ cart, locale, address: initialAddress, countries,
     finally { setBusy(false); }
   }
 
-  const total = quote?.total && shippingOptionId ? formatPrice(quote.total, locale, quote.currency) : '';
+  // The total of the quote is the amount the order computes, so the
+  // storefront sends it as the expected total of the order.
+  const total = quote?.total ? formatPrice(quote.total, locale, quote.currency) : '';
   const invalidate = () => { setQuote(null); setShippingOptionId(''); setPaymentMethod(''); setPriceChanged(false); orderRequestKey.current = ''; };
   const summary = <CheckoutSummary cart={cartSnapshot} quote={quote} shippingOptionId={shippingOptionId} locale={locale} currency={currency} />;
   const inputClass = 'h-10 w-full rounded-md border border-[var(--shop-border-strong)] bg-canvas px-3 aria-invalid:border-destructive';
