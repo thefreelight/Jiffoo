@@ -154,14 +154,19 @@ export async function createTestCartItem(options: CreateCartItemOptions) {
     variantId = variantId || variant.id;
   }
 
-  return prisma.cartItem.create({
-    data: {
+  // A cart holds one line per variant, so the line of a cart and a variant is
+  // written through the unique key of that pair: the helper stays usable when
+  // a test creates the same line twice.
+  return prisma.cartItem.upsert({
+    where: { cartId_variantId: { cartId: options.cartId, variantId: variantId! } },
+    create: {
       id,
       cartId: options.cartId,
       productId: options.productId,
       variantId: variantId!,
       quantity: options.quantity ?? 1,
     },
+    update: { quantity: options.quantity ?? 1 },
   });
 }
 

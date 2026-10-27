@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto';
 import { prisma } from '@/config/database';
 import { Locale, DEFAULT_LOCALE } from '@/utils/i18n';
 import { CacheService } from '@/core/cache/service';
-import { InventoryService } from '@/core/inventory/service';
+import { InventoryService, type InventoryStockReadTx } from '@/core/inventory/service';
 import { systemSettingsService } from '@/core/settings/service';
 
 /**
@@ -47,12 +47,16 @@ export interface CatalogProductProjection {
 /**
  * Transaction surface required by the catalog projection. Both the plain Prisma
  * client and a transaction client satisfy it.
+ *
+ * The projection also reports the stock of the variants, and the inventory
+ * module owns that column, so the read surface covers the variant read as well:
+ * a caller that hands in a transaction reads the stock inside that transaction.
  */
 export type CatalogReadTx = {
   product: {
     findMany(args: any): Promise<any>;
   };
-};
+} & InventoryStockReadTx;
 
 interface ProductSearchFilters {
   search?: string;
@@ -154,8 +158,21 @@ export class ProductService {
     return new Set(variantIds);
   }
 
-  private static async getVariantStockMap(variantIds: string[]): Promise<Map<string, number>> {
-    return InventoryService.getAvailableStockByVariantIds(variantIds);
+  /**
+   * Read the stock levels of a set of variants.
+   *
+   * The stock belongs to the inventory module, so it is read through the public
+   * stock reader of that module. The client is passed on, so a caller that holds
+   * a transaction observes the stock of its own snapshot.
+   *
+   * @param variantIds Identifiers of the variants
+   * @param client Client the stock is read through (the global client by default)
+   */
+  private static async getVariantStockMap(
+    variantIds: string[],
+    client: InventoryStockReadTx = prisma
+  ): Promise<Map<string, number>> {
+    return InventoryService.getAvailableStockByVariantIds(variantIds, client);
   }
 
   /**
@@ -168,7 +185,9 @@ export class ProductService {
    * that may be sold and the current stock level, which the inventory module owns
    * and therefore exposes through its own public service.
    *
-   * @param tx Transaction client (or the plain client) the caller reads through
+   * @param tx Transaction client (or the plain client) the caller reads through.
+   * The stock of the variants is read through the same client, so a catalogue
+   * read inside a transaction observes the stock of that transaction.
    * @param productIds Identifiers of the requested products
    * @returns Map of product identifier to its catalog projection
    */
@@ -210,7 +229,8 @@ export class ProductService {
     const translationsByProduct = new Map(translated.map(product => [product.id, product.translations ?? []]));
 
     const stockMap = await this.getVariantStockMap(
-      products.flatMap((product) => product.variants.map((variant) => variant.id))
+      products.flatMap((product) => product.variants.map((variant) => variant.id)),
+      tx
     );
 
     for (const product of products) {

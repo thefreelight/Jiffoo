@@ -22,7 +22,7 @@ import { LoggerService } from '@/core/logger/unified-logger';
 import { PaymentStatus } from '@/core/order/types';
 import { queryPaymentByRequestKey } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/extensions/runtime/plugin-runtime';
-import { SharedProtectionUnavailable, sendProtectionUnavailable } from '@/infra/shared-protection';
+import { SharedProtectionUnavailable, sendProtectionUnavailable, sharedProtection } from '@/infra/shared-protection';
 import { ApiError, sendKnownError, sendMappedError } from '@/utils/api-errors';
 import { createPaymentSession } from './session';
 import { paymentWebhookRoutes } from './webhook-routes';
@@ -143,6 +143,16 @@ function getPluginErrorMessage(pluginPayload: Record<string, unknown>, fallbackS
   }
   return `Plugin gateway failed with status ${fallbackStatus}`;
 }
+
+/**
+ * The verification endpoint asks the payment provider for the current state of
+ * a payment, so every call is billed against the merchant's provider account.
+ * The endpoint therefore carries its own bounded budget: one per customer and
+ * one per payment. The storefront polls every five seconds, which stays well
+ * inside both budgets.
+ */
+const PAYMENT_VERIFY_USER_LIMIT = { windowMs: 60_000, maxRequests: 60 };
+const PAYMENT_VERIFY_PAYMENT_LIMIT = { windowMs: 60_000, maxRequests: 30 };
 
 function getShopOrigin(): string {
   return env.STOREFRONT_URL;
@@ -265,16 +275,35 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   });
 
   // Core identity remains unambiguous when PSP session identifiers overlap across accounts.
+  // The endpoint reconciles with the provider and reads the payment row, so it
+  // is reachable only for the customer who owns the order behind the payment.
   fastify.get('/verify/:paymentId', {
+    onRequest: [authMiddleware],
     schema: {
       tags: ['payments'],
       summary: 'Verify a payment by its Core identity',
       description: 'Query the provider by request key and return the current payment state',
+      security: [{ bearerAuth: [] }],
       ...paymentSchemas.verifyPayment,
     }
   }, async (request, reply) => {
     try {
       const { paymentId } = request.params as { paymentId: string };
+      const callerId = request.user!.id;
+      // The payment belongs to an order, so one read carries the owning order
+      // and the ownership check needs no second round trip. A payment that is
+      // not the caller's is reported as missing, so the endpoint never reveals
+      // that the payment exists.
+      const owned = await prisma.payment.findUnique({ where: { id: paymentId }, select: { id: true, order: { select: { userId: true } } } });
+      if (!owned || owned.order.userId !== callerId) throw new ApiError('NOT_FOUND');
+      const userPermit = await sharedProtection.rate(`jiffoo:payment-verify:user:${callerId}`, PAYMENT_VERIFY_USER_LIMIT.windowMs, PAYMENT_VERIFY_USER_LIMIT.maxRequests);
+      if (!userPermit.allowed) throw new ApiError('RATE_LIMITED');
+      const paymentPermit = await sharedProtection.rate(`jiffoo:payment-verify:payment:${paymentId}`, PAYMENT_VERIFY_PAYMENT_LIMIT.windowMs, PAYMENT_VERIFY_PAYMENT_LIMIT.maxRequests);
+      if (!paymentPermit.allowed) throw new ApiError('RATE_LIMITED');
+      // The query holds no reconciliation claim, so it neither spends, resets
+      // nor escalates the background reconciler's attempt budget, and it
+      // cannot push a payment into a human review. It still resolves the
+      // payment from the provider evidence it carries.
       await queryPaymentByRequestKey(paymentId);
       const payment = await prisma.payment.findUnique({ where: { id: paymentId }, include: { order: { select: { orderNumber: true } } } });
       if (!payment) throw new ApiError('NOT_FOUND');

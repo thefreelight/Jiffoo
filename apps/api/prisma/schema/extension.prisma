@@ -342,6 +342,7 @@ model AdminAuditEvent {
   createdAt DateTime @default(now())
 
   @@index([targetType, targetId, createdAt])
+  @@index([createdAt])
   @@map("admin_audit_events")
   @@schema("public")
 }

@@ -342,6 +342,46 @@ describe('Cart Endpoints', () => {
 
       expect(response.statusCode).toBe(200);
     });
+
+    it('should not delete a cart line that belongs to another customer', async () => {
+      const other = await createUserWithToken();
+
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/cart/items',
+        headers: { authorization: `Bearer ${other.token}` },
+        payload: {
+          productId: testProduct.id,
+          variantId: testVariantId,
+          quantity: 1,
+        },
+      });
+
+      const otherCart = await app.inject({
+        method: 'GET',
+        url: '/api/v1/cart/',
+        headers: { authorization: `Bearer ${other.token}` },
+      });
+      const otherItemId = otherCart.json().data?.items?.[0]?.id;
+      expect(otherItemId).toBeDefined();
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: `/api/v1/cart/items/${otherItemId}`,
+        headers: { authorization: `Bearer ${userToken}` },
+      });
+
+      // The line is not a line of the caller, so the caller does not have it.
+      expect(response.statusCode).toBe(404);
+
+      const afterDelete = await app.inject({
+        method: 'GET',
+        url: '/api/v1/cart/',
+        headers: { authorization: `Bearer ${other.token}` },
+      });
+
+      expect(afterDelete.json().data?.items).toHaveLength(1);
+    });
   });
 
   describe('DELETE /api/v1/cart/', () => {

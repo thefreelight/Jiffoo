@@ -67,6 +67,19 @@ export type InventoryLedgerTx = {
   $queryRaw: (...args: any[]) => Promise<any>;
 };
 
+/**
+ * Read surface required to read the stock level of a set of variants.
+ *
+ * The plain Prisma client and a transaction client both satisfy it, so a caller
+ * that holds a transaction reads the stock inside that transaction and observes
+ * its own snapshot, while a caller without one keeps using the global client.
+ */
+export type InventoryStockReadTx = {
+  productVariant: {
+    findMany(args: any): Promise<any>;
+  };
+};
+
 /** Details recorded next to every inventory ledger row. */
 export type InventoryAdjustmentDetails = {
   type: string;
@@ -85,10 +98,25 @@ export class InventoryService {
       await emitEvent(tx, 'product.updated', 1, variant.productId, await productSnapshot(tx, variant.productId));
     }), { notFound: 'NOT_FOUND' });
   }
-  static async getAvailableStockByVariantIds(variantIds: string[]): Promise<Map<string, number>> {
+  /**
+   * Read the stock level of a set of variants.
+   *
+   * The reader takes the client it reads through. A caller that holds a
+   * transaction hands that transaction in and therefore observes the stock of
+   * its own snapshot instead of the level the global client happens to see. A
+   * caller without a transaction keeps the global client, so the plain call
+   * sites read exactly what they read before.
+   *
+   * @param variantIds Identifiers of the variants
+   * @param client Client the stock is read through (the global client by default)
+   */
+  static async getAvailableStockByVariantIds(
+    variantIds: string[],
+    client: InventoryStockReadTx = prisma
+  ): Promise<Map<string, number>> {
     if (variantIds.length === 0) return new Map();
 
-    const variants = await prisma.productVariant.findMany({
+    const variants = await client.productVariant.findMany({
       where: { id: { in: variantIds } },
       select: { id: true, stock: true },
     });

@@ -1,4 +1,4 @@
-// system.prisma — User, SystemSettings
+// system.prisma — User, AuthToken, ApiToken, SystemSettings, Notification, AdminStaffAuditLog
 
 // ============================================================
 // USER
@@ -28,6 +28,8 @@ model User {
 
   @@index([email])
   @@index([role])
+  @@index([username])
+  @@index([role, createdAt])
   @@map("users")
   @@schema("public")
 }
@@ -54,6 +56,25 @@ model AuthToken {
 
   @@index([userId, purpose])
   @@map("auth_tokens")
+  @@schema("public")
+}
+
+// ============================================================
+// API TOKEN
+// ============================================================
+model ApiToken {
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  label      String
+  scopes     Json
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  revokedBy  String?
+
+  @@index([revokedAt])
+  @@index([createdAt])
+  @@map("api_tokens")
   @@schema("public")
 }
 
@@ -129,6 +150,8 @@ model Notification {
   @@index([status, leaseUntil])
   @@index([createdAt])
   @@index([recipientUserId, createdAt])
+  @@index([relatedType, relatedId])
+  @@index([resentFromId])
   @@map("notifications")
   @@schema("public")
 }
@@ -147,6 +170,7 @@ model AdminStaffAuditLog {
 
   @@index([staffUserId, createdAt])
   @@index([action, createdAt])
+  @@index([createdAt])
   @@map("admin_staff_audit_logs")
   @@schema("public")
 }

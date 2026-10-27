@@ -87,7 +87,14 @@ export async function observePaymentFact(slug: string, fact: PaymentFact, source
       if (current.status !== status) { await tx.payment.update({ where: { id: current.id }, data: { status, failureReason: null, ...clearLease,
         nextReconcileAt: new Date((await paymentNow(tx)).getTime() + 60_000) } }); updated = true; }
     }
-    if (source === 'query') {
+    // The reconciliation attempt budget belongs to the background reconciler,
+    // which is the only caller that holds a reconciliation claim. A query
+    // without that claim - the customer facing verification endpoint - must
+    // neither spend, reset nor escalate that budget, so a polling storefront
+    // cannot extend the reconciler's budget and cannot push a payment into a
+    // human review. Such a query may still resolve the payment from the
+    // provider evidence it carries.
+    if (source === 'query' && claimToken) {
       const settled = await tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
       if (settled.status === 'UNKNOWN') {
         if (settled.attempts >= PAYMENT_RECONCILIATION_MAX_ATTEMPTS) {

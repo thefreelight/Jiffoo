@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, afterAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
@@ -15,6 +15,9 @@ import {
 } from '@/core/shared/fulfillment-policy';
 import { CartService } from '@/core/cart/service';
 import { CheckoutService } from '@/core/checkout/service';
+import { CacheService } from '@/core/cache/service';
+import { redisCache } from '@/core/cache/redis';
+import { AdminOrderService } from '@/core/admin/order-management/service';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { getDefaultInstance } from '@/core/extensions/registry';
@@ -210,6 +213,32 @@ describe('the placement of a replayed request', () => {
     expect(stockAfter).toBe(stockBefore - 1);
     expect(await prisma.eventRecord.count({ where: { type: 'order.created', aggregateId: orderId } })).toBe(1);
   });
+
+  it('bumps the order cache version after the transaction resolved', async () => {
+    const key = randomUUID();
+    const data = await orderData(key);
+    let visibleAtBump: unknown = null;
+    const bump = vi.spyOn(CacheService, 'incrementOrderVersion').mockImplementation(async () => {
+      // The order is committed when the cache is bumped: the write is
+      // visible outside the transaction that wrote it, so the bump happens
+      // after the transaction resolved.
+      visibleAtBump = await prisma.order.findUnique({ where: { idempotencyKey: key } });
+      return 1;
+    });
+    try {
+      const placed = await runOrderPlacement(userId, data);
+      expect(placed.replayed).toBe(false);
+      expect(bump).toHaveBeenCalledTimes(1);
+      expect(visibleAtBump).not.toBeNull();
+
+      // A replayed request writes nothing, so it leaves the cache alone.
+      const replayed = await runOrderPlacement(userId, data);
+      expect(replayed.replayed).toBe(true);
+      expect(bump).toHaveBeenCalledTimes(1);
+    } finally {
+      bump.mockRestore();
+    }
+  });
 });
 
 describe('the fulfilment plan of an order', () => {
@@ -402,5 +431,48 @@ describe('the fulfilment plan of an order', () => {
     });
 
     await expect(runOrderPlacement(userId, data)).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
+});
+
+describe('the admin order list cache', () => {
+  it('stores the list under the version it read before the query', async () => {
+    // A write that commits while the reader queries bumps the version. The
+    // entry the reader stores must land under the version it read, so no
+    // reader asks for the pre-write list any more.
+    const filters = { status: undefined, search: `cache-version-${randomUUID()}`, paymentStatus: null, paymentReview: null };
+    const captured = await CacheService.getOrderVersion();
+    await CacheService.incrementOrderVersion();
+    const set = vi.spyOn(redisCache, 'set');
+    const get = vi.spyOn(redisCache, 'get');
+    try {
+      await CacheService.setOrderList(1, 20, { items: [], page: 1, limit: 20, total: 0, totalPages: 0 }, filters, 30, captured);
+      // The entry is stored under the captured version.
+      expect(set.mock.calls[0][0]).toContain(`:v${captured}:`);
+
+      await CacheService.getOrderList(1, 20, filters);
+      await CacheService.getOrderList(1, 20, filters, captured);
+      // The version every reader asks for now is a different key, so the
+      // stored entry is unreachable; only the captured version reaches it.
+      expect(get.mock.calls[0][0]).not.toBe(get.mock.calls[1][0]);
+      expect(get.mock.calls[1][0]).toBe(set.mock.calls[0][0]);
+    } finally {
+      set.mockRestore();
+      get.mockRestore();
+    }
+  });
+
+  it('reads and writes the list under one captured cache version', async () => {
+    const read = vi.spyOn(CacheService, 'getOrderList');
+    const write = vi.spyOn(CacheService, 'setOrderList');
+    try {
+      await AdminOrderService.getOrders(1, 20, undefined, `cache-version-${randomUUID()}`);
+      expect(read).toHaveBeenCalled();
+      expect(write).toHaveBeenCalled();
+      expect(typeof read.mock.calls[0][3]).toBe('number');
+      expect(write.mock.calls[0][5]).toBe(read.mock.calls[0][3]);
+    } finally {
+      read.mockRestore();
+      write.mockRestore();
+    }
   });
 });

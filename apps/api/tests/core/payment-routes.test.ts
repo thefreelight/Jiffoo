@@ -60,10 +60,19 @@ vi.mock('@/core/cache/service', () => ({
   },
 }));
 
+const authState = vi.hoisted(() => ({ userId: 'user-1' }));
 vi.mock('@/core/auth/middleware', () => ({
   authMiddleware: vi.fn(async (request: any) => {
-    request.user = { id: 'user-1', email: 'test@example.com', role: 'USER' };
+    request.user = { id: authState.userId, email: 'test@example.com', role: 'USER' };
   }),
+}));
+
+// The verification endpoint spends a shared protection permit on every call.
+// The unit test does not run Redis, so the permit is granted here.
+vi.mock('@/infra/shared-protection', () => ({
+  sharedProtection: { rate: vi.fn().mockResolvedValue({ allowed: true, remaining: 59, retryAfter: 1 }) },
+  SharedProtectionUnavailable: class SharedProtectionUnavailable extends Error {},
+  sendProtectionUnavailable: vi.fn(),
 }));
 
 vi.mock('@/core/logger/unified-logger', () => ({
@@ -95,6 +104,7 @@ import { getAllPluginPackages, getDefaultInstance } from '@/core/extensions/regi
 import { systemSettingsService } from '@/core/settings/service';
 import { CacheService } from '@/core/cache/service';
 import { authMiddleware } from '@/core/auth/middleware';
+import { queryPaymentByRequestKey } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { observePaymentFact } from '@/core/payment/observations';
 
@@ -352,10 +362,12 @@ describe('Payment Routes', () => {
   // -----------------------------------------------------------------------
 
   describe('GET /api/v1/payments/verify/:paymentId', () => {
+    beforeEach(() => { authState.userId = 'user-1'; });
+
     it('returns payment status for the Core payment id', async () => {
       const mockPayment = {
         id: 'pay-1',
-        order: { orderNumber: 'JF-20261012-0001' },
+        order: { orderNumber: 'JF-20261012-0001', userId: 'user-1' },
         orderId: 'order-1',
         sessionId: 'sess-abc',
         status: 'SUCCEEDED',
@@ -396,6 +408,30 @@ describe('Payment Routes', () => {
 
       const body = response.json();
       expect(body.error.code).toBe('NOT_FOUND');
+    });
+
+    it('hides a payment owned by another customer and never reaches the provider', async () => {
+      authState.userId = 'user-2';
+      (prisma.payment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'pay-1',
+        order: { orderNumber: 'JF-20261012-0001', userId: 'user-1' },
+        orderId: 'order-1',
+        sessionId: 'sess-abc',
+        status: 'SUCCEEDED',
+        paymentMethod: 'test-gateway-payment',
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/v1/payments/verify/pay-1',
+      });
+
+      expect(response.statusCode).toBe(404);
+      const body = response.json();
+      expect(body.error.code).toBe('NOT_FOUND');
+      expect(JSON.stringify(body)).not.toContain('pay-1');
+      expect(JSON.stringify(body)).not.toContain('order-1');
+      expect(queryPaymentByRequestKey).not.toHaveBeenCalled();
     });
   });
 });

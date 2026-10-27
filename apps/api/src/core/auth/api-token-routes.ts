@@ -96,7 +96,9 @@ export async function apiTokenRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { tokenId } = request.params as { tokenId: string };
-      await ApiTokenService.revokeToken(tokenId);
+      // The route lives under the admin scope, so the acting administrator is
+      // known. It is recorded with the revocation, in the same write.
+      await ApiTokenService.revokeToken(tokenId, request.user?.id);
       return sendSuccess(reply, { tokenId, revoked: true }, 'Token revoked successfully');
     } catch (error) { return sendMappedError(reply, error); }
   });

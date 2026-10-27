@@ -53,47 +53,52 @@ export class CacheService {
   }
 
   // Product list cache
-  static async getProductList(page: number, limit: number, filters?: any): Promise<any | null> {
-    const version = await this.getProductVersion();
+  static async getProductList(page: number, limit: number, filters?: any, version?: number): Promise<any | null> {
+    const listVersion = version ?? await this.getProductVersion();
     const filterKey = filters ? JSON.stringify(filters) : 'all';
-    const listKey = `${this.PREFIXES.PRODUCT}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    const listKey = `${this.PREFIXES.PRODUCT}list:v${listVersion}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
     return await redisCache.get(listKey);
   }
 
-  static async setProductList(page: number, limit: number, data: any, filters?: any, ttl: number = 600): Promise<boolean> {
-    const version = await this.getProductVersion();
+  static async setProductList(page: number, limit: number, data: any, filters?: any, ttl: number = 600, version?: number): Promise<boolean> {
+    const listVersion = version ?? await this.getProductVersion();
     const filterKey = filters ? JSON.stringify(filters) : 'all';
-    const listKey = `${this.PREFIXES.PRODUCT}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    const listKey = `${this.PREFIXES.PRODUCT}list:v${listVersion}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
     return await redisCache.set(listKey, data, ttl);
   }
 
   // Order list cache
-  static async getOrderList(page: number, limit: number, filters?: any): Promise<any | null> {
-    const version = await this.getOrderVersion();
+  //
+  // The version is captured once by the reader and handed to both the read and
+  // the write. A write that commits while the reader queries bumps the version,
+  // so the entry the reader stores lands under the old key, which no reader
+  // asks for any more, instead of under the new key of the fresh data.
+  static async getOrderList(page: number, limit: number, filters?: any, version?: number): Promise<any | null> {
+    const listVersion = version ?? await this.getOrderVersion();
     const filterKey = filters ? JSON.stringify(filters) : 'all';
-    const listKey = `${this.PREFIXES.ORDER}list:order-number-v1:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    const listKey = `${this.PREFIXES.ORDER}list:order-number-v1:v${listVersion}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
     return await redisCache.get(listKey);
   }
 
-  static async setOrderList(page: number, limit: number, data: any, filters?: any, ttl: number = 600): Promise<boolean> {
-    const version = await this.getOrderVersion();
+  static async setOrderList(page: number, limit: number, data: any, filters?: any, ttl: number = 600, version?: number): Promise<boolean> {
+    const listVersion = version ?? await this.getOrderVersion();
     const filterKey = filters ? JSON.stringify(filters) : 'all';
-    const listKey = `${this.PREFIXES.ORDER}list:order-number-v1:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    const listKey = `${this.PREFIXES.ORDER}list:order-number-v1:v${listVersion}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
     return await redisCache.set(listKey, data, ttl);
   }
 
   // Search results cache
-  static async getSearchResults(query: string, filters: any, page: number, limit: number): Promise<any | null> {
-    const version = await this.getProductVersion();
+  static async getSearchResults(query: string, filters: any, page: number, limit: number, version?: number): Promise<any | null> {
+    const listVersion = version ?? await this.getProductVersion();
     const searchKey = JSON.stringify({ query, filters, page, limit });
-    const key = `${this.PREFIXES.SEARCH}v${version}:${Buffer.from(searchKey).toString('base64')}`;
+    const key = `${this.PREFIXES.SEARCH}v${listVersion}:${Buffer.from(searchKey).toString('base64')}`;
     return await redisCache.get(key);
   }
 
-  static async setSearchResults(query: string, filters: any, page: number, limit: number, results: any, ttl: number = 300): Promise<boolean> {
-    const version = await this.getProductVersion();
+  static async setSearchResults(query: string, filters: any, page: number, limit: number, results: any, ttl: number = 300, version?: number): Promise<boolean> {
+    const listVersion = version ?? await this.getProductVersion();
     const searchKey = JSON.stringify({ query, filters, page, limit });
-    const key = `${this.PREFIXES.SEARCH}v${version}:${Buffer.from(searchKey).toString('base64')}`;
+    const key = `${this.PREFIXES.SEARCH}v${listVersion}:${Buffer.from(searchKey).toString('base64')}`;
     return await redisCache.set(key, results, ttl);
   }
 
@@ -246,17 +251,17 @@ export class CacheService {
   }
 
   // User list cache (similar to order list)
-  static async getUserList(page: number, limit: number, filters?: any): Promise<any | null> {
-    const version = await this.getUserVersion();
+  static async getUserList(page: number, limit: number, filters?: any, version?: number): Promise<any | null> {
+    const listVersion = version ?? await this.getUserVersion();
     const filterKey = filters ? JSON.stringify(filters) : 'all';
-    const listKey = `${this.PREFIXES.USER}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    const listKey = `${this.PREFIXES.USER}list:v${listVersion}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
     return await redisCache.get(listKey);
   }
 
-  static async setUserList(page: number, limit: number, data: any, filters?: any, ttl: number = 30): Promise<boolean> {
-    const version = await this.getUserVersion();
+  static async setUserList(page: number, limit: number, data: any, filters?: any, ttl: number = 30, version?: number): Promise<boolean> {
+    const listVersion = version ?? await this.getUserVersion();
     const filterKey = filters ? JSON.stringify(filters) : 'all';
-    const listKey = `${this.PREFIXES.USER}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    const listKey = `${this.PREFIXES.USER}list:v${listVersion}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
     return await redisCache.set(listKey, data, ttl);
   }
 

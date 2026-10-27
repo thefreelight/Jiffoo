@@ -88,15 +88,30 @@ async function listedPackageState(pkg: InstalledPluginPackageProjection, metadat
   return { status: 'available', code: null };
 }
 
-async function lastRecordedError(slug: string) {
-  const instance = await prisma.pluginInstallation.findUnique({
-    where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } },
-    select: { id: true, lastFailureAt: true, lastFailureMessage: true },
+/**
+ * The last recorded failure of every default installation of the given slugs.
+ *
+ * One read covers every slug of the listing, instead of one read per package.
+ */
+async function lastRecordedErrors(slugs: string[]) {
+  const recorded = new Map<string, { id: string; lastFailureAt: Date | null; lastFailureMessage: string | null }>();
+  if (!slugs.length) return recorded;
+  const rows = await prisma.pluginInstallation.findMany({
+    where: { pluginSlug: { in: slugs }, instanceKey: 'default' },
+    select: { id: true, pluginSlug: true, lastFailureAt: true, lastFailureMessage: true },
   });
+  for (const row of rows) recorded.set(row.pluginSlug, {
+    id: row.id, lastFailureAt: row.lastFailureAt, lastFailureMessage: row.lastFailureMessage,
+  });
+  return recorded;
+}
+
+async function lastRecordedError(slug: string) {
+  const recorded = (await lastRecordedErrors([slug])).get(slug);
   return {
-    lastFailureAt: instance?.lastFailureAt ?? null,
-    lastFailureMessage: instance?.lastFailureMessage === null || !instance
-      ? null : await redactPluginFailure(slug, instance.lastFailureMessage, instance.id),
+    lastFailureAt: recorded?.lastFailureAt ?? null,
+    lastFailureMessage: !recorded || recorded.lastFailureMessage === null
+      ? null : await redactPluginFailure(slug, recorded.lastFailureMessage, recorded.id),
   };
 }
 
@@ -166,7 +181,9 @@ export class ExtensionInstaller implements IExtensionInstaller {
         const metadata = new Map((await pluginPackageBlobStore.headMany(packages
           .filter(pkg => pkg.source !== 'builtin' && /^[a-f0-9]{64}$/.test(pkg.zipHash ?? ''))
           .map(pkg => ({ slug: pkg.slug, zipHash: pkg.zipHash! })))).map(blob => [blob.pluginSlug, blob]));
+        const recordedFailures = await lastRecordedErrors(packages.map(pkg => pkg.slug));
         return Promise.all(packages.map(async (pkg) => {
+          const recorded = recordedFailures.get(pkg.slug);
           return {
           id: pkg.id,
           slug: pkg.slug,
@@ -178,7 +195,9 @@ export class ExtensionInstaller implements IExtensionInstaller {
           entryModule: pkg.entryModule || undefined,
           source: pkg.source as ExtensionSource,
           packageState: await listedPackageState(pkg, metadata),
-          ...await lastRecordedError(pkg.slug),
+          lastFailureAt: recorded?.lastFailureAt ?? null,
+          lastFailureMessage: !recorded || recorded.lastFailureMessage === null
+            ? null : await redactPluginFailure(pkg.slug, recorded.lastFailureMessage, recorded.id),
           deletedAt: pkg.deletedAt,
           permissions: parseJsonArray(pkg.permissions),
           author: pkg.author || undefined,

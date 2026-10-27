@@ -34,6 +34,7 @@ import { recordOrderStatusHistory, type OrderStatusHistoryWriter } from './statu
 import { assertOrderTransition } from './transition';
 import { lockOrder } from '@/core/shared/locks';
 import { PaymentService } from '@/core/payment/service';
+import { CacheService } from '@/core/cache/service';
 
 import { systemSettingsService } from '@/core/settings/service';
 import { LoggerService } from '@/core/logger/unified-logger';
@@ -343,13 +344,19 @@ export class OrderService {
       return updated;
     });
 
+    // The cached admin order list is stale after the write, so its version is
+    // bumped here: after the transaction resolved, so a rollback keeps the
+    // cache correct, and before a reader can repopulate it with the state
+    // that the write replaced.
+    await CacheService.incrementOrderVersion();
+
     const currency = await systemSettingsService.getShopCurrency();
     const locale = await this.readAccountLocale(updatedOrder.userId);
     return this.formatOrderResponse(updatedOrder, currency, locale);
   }
 
   static async cancelExpiredUnpaidOrders(limit = 100): Promise<number> {
-    return prisma.$transaction(async (tx) => {
+    const cancelled = await prisma.$transaction(async (tx) => {
       const locked = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT id FROM public.orders WHERE status = ${Prisma.raw(`'${OrderStatus.PENDING}'`)} AND "paymentStatus" = ${Prisma.raw(`'${PaymentStatus.PENDING}'`)}
           AND "unpaidExpiresAt" < clock_timestamp() AT TIME ZONE 'UTC'
@@ -391,6 +398,12 @@ export class OrderService {
       }
       return cancelled;
     }, { timeout: 60_000 });
+    // The cached admin order list is stale after the writes, so its version is
+    // bumped after the transaction resolved: a rollback keeps the cache
+    // correct, and a reader never repopulates it with the state that the
+    // writes replaced.
+    if (cancelled > 0) await CacheService.incrementOrderVersion();
+    return cancelled;
   }
 
   /**
@@ -400,6 +413,11 @@ export class OrderService {
    * against the (locked) order row, applies the transition, writes the status
    * history and returns the decision so the payment module can record the
    * matching payment ledger entry.
+   *
+   * The write carries the state that was read as its own predicate, so a
+   * transition that lost the race never overwrites a newer state. A write
+   * that lost the race re-reads the order and recomputes the decision, so the
+   * returned decision stays truthful and the refund decision is never lost.
    */
   static async applyPaymentSucceeded(tx: OrderTransitionTx, input: {
     orderId: string;
@@ -414,94 +432,131 @@ export class OrderService {
     refundRequired: boolean;
     refundReason: string | null;
   }> {
-    const order = await tx.order.findUnique({ where: { id: input.orderId } });
+    const maxAttempts = 3;
+    let order = await tx.order.findUnique({ where: { id: input.orderId } });
     if (!order) throw new ApiError('NOT_FOUND');
-    const firstPaid = order.status === OrderStatus.PENDING
-      && order.paymentStatus !== PaymentStatus.PAID
-      && order.paymentStatus !== PaymentStatus.REFUNDED;
-    if (firstPaid) assertOrderTransition(order.status, OrderStatus.PROCESSING, order.paymentStatus);
-    const refundRequired = !firstPaid;
-    const refundReason = refundRequired
-      ? order.status === OrderStatus.CANCELLED ? 'cancelled_order_payment' : 'additional_successful_payment'
-      : null;
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const firstPaid = order.status === OrderStatus.PENDING
+        && order.paymentStatus !== PaymentStatus.PAID
+        && order.paymentStatus !== PaymentStatus.REFUNDED;
+      if (firstPaid) assertOrderTransition(order.status, OrderStatus.PROCESSING, order.paymentStatus);
+      const refundRequired = !firstPaid;
+      const refundReason = refundRequired
+        ? order.status === OrderStatus.CANCELLED ? 'cancelled_order_payment' : 'additional_successful_payment'
+        : null;
 
-    let status = order.status as OrderStatusType;
-    let paymentStatus = order.paymentStatus as PaymentStatusType;
-    let changed = false;
-    if (firstPaid) {
-      const updated = await tx.order.update({
-        where: { id: order.id },
-        data: { status: OrderStatus.PROCESSING, paymentStatus: PaymentStatus.PAID },
+      let status = order.status as OrderStatusType;
+      let paymentStatus = order.paymentStatus as PaymentStatusType;
+      let changed = false;
+      if (firstPaid) {
+        const written = await this.writeOrderState(tx, order, {
+          status: OrderStatus.PROCESSING,
+          paymentStatus: PaymentStatus.PAID,
+        });
+        if (written === 0) {
+          order = await this.rereadOrder(tx, input.orderId);
+          continue;
+        }
+        status = OrderStatus.PROCESSING as OrderStatusType;
+        paymentStatus = PaymentStatus.PAID as PaymentStatusType;
+        changed = true;
+      } else if (order.status === OrderStatus.CANCELLED && order.paymentStatus !== PaymentStatus.REFUNDED) {
+        const written = await this.writeOrderState(tx, order, { paymentStatus: PaymentStatus.PAID });
+        if (written === 0) {
+          order = await this.rereadOrder(tx, input.orderId);
+          continue;
+        }
+        status = order.status as OrderStatusType;
+        paymentStatus = PaymentStatus.PAID as PaymentStatusType;
+        changed = true;
+      }
+
+      await recordOrderStatusHistory(tx, {
+        orderId: order.id,
+        fromStatus: order.status as PrismaOrderStatus,
+        toStatus: status as PrismaOrderStatus,
+        fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+        toPaymentStatus: paymentStatus as PrismaOrderPaymentStatus,
+        reason: refundRequired
+          ? order.status === OrderStatus.CANCELLED
+            ? 'refund_required_after_cancelled_order_payment'
+            : 'refund_required_after_additional_payment'
+          : input.reason || 'payment_succeeded',
+        actorType: input.actorType,
+        actorId: input.actorId,
+        metadata: { ...input.metadata, refundRequired },
       });
-      status = updated.status as OrderStatusType;
-      paymentStatus = updated.paymentStatus as PaymentStatusType;
-      changed = true;
-    } else if (order.status === OrderStatus.CANCELLED && order.paymentStatus !== PaymentStatus.REFUNDED) {
-      const updated = await tx.order.update({
-        where: { id: order.id },
-        data: { paymentStatus: PaymentStatus.PAID },
-      });
-      status = updated.status as OrderStatusType;
-      paymentStatus = updated.paymentStatus as PaymentStatusType;
-      changed = true;
+
+      return { status, paymentStatus, changed, refundRequired, refundReason };
     }
-
-    await recordOrderStatusHistory(tx, {
-      orderId: order.id,
-      fromStatus: order.status as PrismaOrderStatus,
-      toStatus: status as PrismaOrderStatus,
-      fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-      toPaymentStatus: paymentStatus as PrismaOrderPaymentStatus,
-      reason: refundRequired
-        ? order.status === OrderStatus.CANCELLED
-          ? 'refund_required_after_cancelled_order_payment'
-          : 'refund_required_after_additional_payment'
-        : input.reason || 'payment_succeeded',
-      actorType: input.actorType,
-      actorId: input.actorId,
-      metadata: { ...input.metadata, refundRequired },
-    });
-
-    return { status, paymentStatus, changed, refundRequired, refundReason };
+    // The state of the order kept changing under the writer: the capture is
+    // not applied to the order, so the payment needs a refund. The decision
+    // says so instead of reporting a transition that did not happen.
+    const fresh = await this.rereadOrder(tx, input.orderId);
+    return {
+      status: fresh.status as OrderStatusType,
+      paymentStatus: fresh.paymentStatus as PaymentStatusType,
+      changed: false,
+      refundRequired: true,
+      refundReason: fresh.status === OrderStatus.CANCELLED ? 'cancelled_order_payment' : 'additional_successful_payment',
+    };
   }
 
   /**
    * Apply a failed capture to the order. The order status itself is unchanged,
    * only the payment status moves to FAILED when the order is not paid or
    * refunded yet.
+   *
+   * The write carries the state that was read as its own predicate, so a
+   * failure that lost the race never downgrades an order that was paid in the
+   * meantime. A write that lost the race re-reads the order and recomputes
+   * the decision, so the returned decision stays truthful.
    */
   static async applyPaymentFailed(tx: OrderTransitionTx, input: {
     orderId: string;
     actorType: string;
     actorId?: string;
   }): Promise<{ status: OrderStatusType; paymentStatus: PaymentStatusType; changed: boolean }> {
-    const order = await tx.order.findUnique({ where: { id: input.orderId } });
+    const maxAttempts = 3;
+    let order = await tx.order.findUnique({ where: { id: input.orderId } });
     if (!order) throw new ApiError('NOT_FOUND');
-    if (order.paymentStatus === PaymentStatus.PAID || order.paymentStatus === PaymentStatus.REFUNDED) {
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      if (order.paymentStatus === PaymentStatus.PAID || order.paymentStatus === PaymentStatus.REFUNDED) {
+        return {
+          status: order.status as OrderStatusType,
+          paymentStatus: order.paymentStatus as PaymentStatusType,
+          changed: false,
+        };
+      }
+      const written = await this.writeOrderState(tx, order, { paymentStatus: PaymentStatus.FAILED });
+      if (written === 0) {
+        order = await this.rereadOrder(tx, input.orderId);
+        continue;
+      }
+      await recordOrderStatusHistory(tx, {
+        orderId: order.id,
+        fromStatus: order.status as PrismaOrderStatus,
+        toStatus: order.status as PrismaOrderStatus,
+        fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+        toPaymentStatus: PaymentStatus.FAILED as PrismaOrderPaymentStatus,
+        reason: 'payment_failed',
+        actorType: input.actorType,
+        actorId: input.actorId,
+      });
       return {
         status: order.status as OrderStatusType,
-        paymentStatus: order.paymentStatus as PaymentStatusType,
-        changed: false,
+        paymentStatus: PaymentStatus.FAILED as PaymentStatusType,
+        changed: true,
       };
     }
-    const updated = await tx.order.update({
-      where: { id: order.id },
-      data: { paymentStatus: PaymentStatus.FAILED },
-    });
-    await recordOrderStatusHistory(tx, {
-      orderId: order.id,
-      fromStatus: order.status as PrismaOrderStatus,
-      toStatus: updated.status as PrismaOrderStatus,
-      fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-      toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
-      reason: 'payment_failed',
-      actorType: input.actorType,
-      actorId: input.actorId,
-    });
+    // The state of the order kept changing under the writer: the failure is
+    // not applied to the order and the decision reports the state that the
+    // order carries.
+    const fresh = await this.rereadOrder(tx, input.orderId);
     return {
-      status: updated.status as OrderStatusType,
-      paymentStatus: updated.paymentStatus as PaymentStatusType,
-      changed: true,
+      status: fresh.status as OrderStatusType,
+      paymentStatus: fresh.paymentStatus as PaymentStatusType,
+      changed: false,
     };
   }
 
@@ -525,6 +580,10 @@ export class OrderService {
   /**
    * Order side of a refund: the order becomes refunded and the status history
    * records the refund.
+   *
+   * The write carries the state that was read as its own predicate, so a
+   * refund that lost the race never overwrites a newer state. A write that
+   * lost the race re-reads the order and recomputes the decision.
    */
   static async markRefunded(tx: OrderTransitionTx, input: {
     orderId: string;
@@ -532,29 +591,45 @@ export class OrderService {
     actorId: string;
     metadata?: Record<string, unknown>;
   }): Promise<{ status: OrderStatusType; paymentStatus: PaymentStatusType }> {
-    const order = await tx.order.findUnique({ where: { id: input.orderId } });
+    const maxAttempts = 3;
+    let order = await tx.order.findUnique({ where: { id: input.orderId } });
     if (!order) throw new ApiError('NOT_FOUND');
     if (order.paymentStatus !== PaymentStatus.PAID) throw new ApiError('INVALID_ORDER_TRANSITION');
-    assertOrderTransition(order.status, OrderStatus.REFUNDED, order.paymentStatus);
-    const updated = await tx.order.update({
-      where: { id: order.id },
-      data: { paymentStatus: PaymentStatus.REFUNDED, status: OrderStatus.REFUNDED },
-    });
-    await recordOrderStatusHistory(tx, {
-      orderId: updated.id,
-      fromStatus: order.status as PrismaOrderStatus,
-      toStatus: updated.status as PrismaOrderStatus,
-      fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-      toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
-      reason: input.reason ?? 'admin_refund',
-      actorType: 'admin',
-      actorId: input.actorId,
-      metadata: input.metadata,
-    });
-    return {
-      status: updated.status as OrderStatusType,
-      paymentStatus: updated.paymentStatus as PaymentStatusType,
-    };
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      assertOrderTransition(order.status, OrderStatus.REFUNDED, order.paymentStatus);
+      const written = await this.writeOrderState(tx, order, {
+        paymentStatus: PaymentStatus.REFUNDED,
+        status: OrderStatus.REFUNDED,
+      });
+      if (written === 0) {
+        const fresh = await this.rereadOrder(tx, input.orderId);
+        // The payment of the order is not paid anymore, so the refund of
+        // this order does not apply and the caller learns that the order
+        // does not carry a refundable payment.
+        if (fresh.paymentStatus !== PaymentStatus.PAID) throw new ApiError('INVALID_ORDER_TRANSITION');
+        order = fresh;
+        continue;
+      }
+      await recordOrderStatusHistory(tx, {
+        orderId: order.id,
+        fromStatus: order.status as PrismaOrderStatus,
+        toStatus: OrderStatus.REFUNDED as PrismaOrderStatus,
+        fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+        toPaymentStatus: PaymentStatus.REFUNDED as PrismaOrderPaymentStatus,
+        reason: input.reason ?? 'admin_refund',
+        actorType: 'admin',
+        actorId: input.actorId,
+        metadata: input.metadata,
+      });
+      return {
+        status: OrderStatus.REFUNDED as OrderStatusType,
+        paymentStatus: PaymentStatus.REFUNDED as PaymentStatusType,
+      };
+    }
+    // The state of the order kept changing under the writer: the refund is
+    // not applied to the order.
+    await this.rereadOrder(tx, input.orderId);
+    throw new ApiError('INVALID_ORDER_TRANSITION');
   }
 
   /**
@@ -730,38 +805,88 @@ export class OrderService {
   /**
    * Cancel the order on behalf of an administrator: move it to CANCELLED,
    * write the status history and emit order.cancelled.
+   *
+   * The state machine takes the order row lock itself, so every caller is
+   * safe: the lock is re-entrant inside the same transaction, and the caller
+   * that already locked the order keeps working. The write carries the state
+   * that was read as its own predicate, so a cancellation that lost the race
+   * never overwrites a newer state.
    */
   static async cancelOrderByAdmin(tx: OrderTransitionTx, input: {
     orderId: string;
     cancelReason: string;
   }): Promise<void> {
-    const order = await tx.order.findUnique({ where: { id: input.orderId }, include: { items: true } });
+    await lockOrder(tx, input.orderId);
+    const maxAttempts = 3;
+    let order = await tx.order.findUnique({ where: { id: input.orderId }, include: { items: true } });
     if (!order) throw new ApiError('NOT_FOUND');
-    assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
-    const updated = await tx.order.update({
-      where: { id: input.orderId },
-      data: {
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
+      const written = await this.writeOrderState(tx, order, {
         status: OrderStatus.CANCELLED,
         cancelReason: input.cancelReason,
         cancelledAt: new Date(),
-      },
+      });
+      if (written === 0) {
+        const fresh = await tx.order.findUnique({ where: { id: input.orderId }, include: { items: true } });
+        if (!fresh) throw new ApiError('NOT_FOUND');
+        order = fresh;
+        continue;
+      }
+      await emitEvent(tx as unknown as EventTransaction, 'order.cancelled', 1, order.id, {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        orderId: order.id,
+        userId: order.userId,
+        reason: input.cancelReason,
+      });
+      await recordOrderStatusHistory(tx, {
+        orderId: order.id,
+        fromStatus: order.status as PrismaOrderStatus,
+        toStatus: OrderStatus.CANCELLED as PrismaOrderStatus,
+        fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+        toPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+        reason: input.cancelReason,
+        actorType: 'admin',
+      });
+      return;
+    }
+    // The state of the order kept changing under the writer: the cancellation
+    // is not applied and the caller learns that the order does not carry a
+    // cancellable state anymore.
+    const fresh = await tx.order.findUnique({ where: { id: input.orderId } });
+    if (!fresh) throw new ApiError('NOT_FOUND');
+    assertOrderTransition(fresh.status as OrderStatusType, OrderStatus.CANCELLED, fresh.paymentStatus as PaymentStatusType);
+    throw new ApiError('INVALID_ORDER_TRANSITION');
+  }
+
+  /**
+   * A state transition write of the order state machine.
+   *
+   * The write only happens when the row still carries the state that was
+   * read, so a transition that lost the race never overwrites a newer state.
+   * The count tells the caller whether the write happened.
+   */
+  private static async writeOrderState(
+    tx: OrderWriteTx,
+    order: { id: string; status: unknown; paymentStatus: unknown },
+    data: Record<string, unknown>,
+  ): Promise<number> {
+    const written = await tx.order.updateMany({
+      where: { id: order.id, status: order.status, paymentStatus: order.paymentStatus },
+      data,
     });
-    await emitEvent(tx as unknown as EventTransaction, 'order.cancelled', 1, updated.id, {
-      id: updated.id,
-      orderNumber: updated.orderNumber,
-      orderId: updated.id,
-      userId: updated.userId,
-      reason: input.cancelReason,
-    });
-    await recordOrderStatusHistory(tx, {
-      orderId: updated.id,
-      fromStatus: order.status as PrismaOrderStatus,
-      toStatus: updated.status as PrismaOrderStatus,
-      fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-      toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
-      reason: input.cancelReason,
-      actorType: 'admin',
-    });
+    return written.count;
+  }
+
+  /**
+   * The order row after a state transition write that lost the race: the
+   * decision is recomputed from the state that the row carries now.
+   */
+  private static async rereadOrder(tx: OrderWriteTx, orderId: string) {
+    const fresh = await tx.order.findUnique({ where: { id: orderId } });
+    if (!fresh) throw new ApiError('NOT_FOUND');
+    return fresh;
   }
 
   /**

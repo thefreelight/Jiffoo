@@ -9,6 +9,11 @@ type Attempt = { field: CodeField; value: string; generated: boolean; name: stri
 export type CodeContext = { current?: Attempt };
 type CodeDatabase = Pick<Prisma.TransactionClient, '$queryRaw'>;
 
+/** How many generated positions one ownership probe covers. */
+const GENERATED_PROBE_WINDOW = 100;
+/** The highest generated position a code may use. */
+const GENERATED_MAX_POSITIONS = 10000;
+
 export function randomSpuCode(): string {
   const { alphabet, length } = PRODUCT_CODE_GENERATION;
   return Array.from({ length }, () => alphabet[randomInt(alphabet.length)]).join('');
@@ -25,10 +30,59 @@ async function owner(tx: CodeDatabase, field: CodeField, value: string, excludeI
   return rows[0];
 }
 
+/**
+ * The owners of many candidate SKU codes in one round trip.
+ *
+ * The candidates are inlined as constant SQL literals, so the statement is
+ * planned with known values and the unique `lower(skuCode)` index stays
+ * usable. A prefix scan would not use that index.
+ */
+async function skuOwners(tx: CodeDatabase, values: string[], excludeId?: string) {
+  const taken = new Map<string, string>();
+  if (!values.length) return taken;
+  const list = values.map(value => `'${value.toLowerCase().replace(/'/g, "''")}'`).join(', ');
+  const rows = await tx.$queryRaw<Array<{ code: string; name: string }>>`SELECT lower(v."skuCode") AS code, p.name FROM public.product_variants v
+        JOIN public.products p ON p.id = v."productId"
+        WHERE lower(v."skuCode") IN (${Prisma.raw(list)}) AND (${excludeId ?? null}::text IS NULL OR v.id <> ${excludeId ?? null})`;
+  for (const row of rows) taken.set(row.code, row.name);
+  return taken;
+}
+
 function conflict(attempt: Attempt, name: string) {
   return new ApiError(attempt.field === 'spuCode' ? 'SPU_CODE_TAKEN' : 'SKU_CODE_TAKEN', {
     field: attempt.field, name, variantIndex: attempt.variantIndex, variantId: attempt.variantId,
   });
+}
+
+/**
+ * The generated SKU code of a variant.
+ *
+ * The candidate positions are probed a window at a time and the first free
+ * position is picked in memory, so one query covers a whole window instead of
+ * one query per position an earlier variant already took.
+ */
+async function resolveGeneratedSkuCode(tx: CodeDatabase, context: CodeContext, options: {
+  spuCode: string; excludeId?: string; name: string; variantIndex?: number; variantId?: string;
+}): Promise<string> {
+  const prefix = options.spuCode.toUpperCase();
+  for (let start = 1; start <= GENERATED_MAX_POSITIONS; start += GENERATED_PROBE_WINDOW) {
+    const candidates: string[] = [];
+    for (let position = start; position < start + GENERATED_PROBE_WINDOW && position <= GENERATED_MAX_POSITIONS; position++) {
+      candidates.push(prefix + '-' + String(position).padStart(2, '0'));
+    }
+    const invalid = { field: 'skuCode' as const, variantIndex: options.variantIndex, variantId: options.variantId };
+    if (!/^[A-Za-z0-9_.-]{1,64}$/.test(candidates[0])) throw new ApiError('INVALID_PRODUCT_CODE', invalid);
+    const takenBy = await skuOwners(tx, candidates, options.excludeId);
+    for (const [index, candidate] of candidates.entries()) {
+      const current: Attempt = { field: 'skuCode', value: candidate, generated: true, name: options.name, variantIndex: options.variantIndex, variantId: options.variantId };
+      if (!/^[A-Za-z0-9_.-]{1,64}$/.test(candidate)) throw new ApiError('INVALID_PRODUCT_CODE', invalid);
+      context.current = current;
+      const taken = takenBy.get(candidate.toLowerCase());
+      if (!taken) return candidate;
+      if (start + index === GENERATED_MAX_POSITIONS) throw conflict(current, taken);
+    }
+  }
+  throw new ApiError('SKU_CODE_TAKEN', { field: 'skuCode', name: options.name, variantIndex: options.variantIndex, variantId: options.variantId });
 }
 
 export async function resolveProductCode(tx: CodeDatabase, context: CodeContext, options: {
@@ -43,10 +97,16 @@ export async function resolveProductCode(tx: CodeDatabase, context: CodeContext,
     throw new ApiError('INVALID_PRODUCT_CODE', { field, variantIndex, variantId });
   }
   const generated = value === '';
-  let position = 1;
+  // A generated SKU is the SPU code plus a position. The positions are probed
+  // a window at a time, so a product with n variants no longer re-probes every
+  // code its earlier variants already took.
+  if (generated && field === 'skuCode') {
+    return resolveGeneratedSkuCode(tx, context, {
+      spuCode: options.spuCode!, excludeId, name, variantIndex, variantId,
+    });
+  }
   for (let attempt = 0; attempt < (field === 'spuCode' ? 10 : 10000); attempt++) {
-    const candidate = value || (field === 'spuCode' ? randomSpuCode()
-      : options.spuCode!.toUpperCase() + '-' + String(position++).padStart(2, '0'));
+    const candidate = value || randomSpuCode();
     const current = { field, value: candidate, generated, name, variantIndex, variantId };
     if (!/^[A-Za-z0-9_.-]{1,64}$/.test(candidate)) throw new ApiError('INVALID_PRODUCT_CODE', { field, variantIndex, variantId });
     context.current = current;

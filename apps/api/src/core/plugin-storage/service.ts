@@ -29,6 +29,23 @@ async function admit(tx: TaskTransaction, authorize: StorageAuthorization) {
   return authority;
 }
 
+/**
+ * The cheap part of the admission, re-checked inside the reservation.
+ *
+ * The admission runs in its own transaction, so the installation may have
+ * been disabled and the principal revoked before the reservation takes the
+ * quota locks. The generation and the principal are checked again under the
+ * same transaction as the reservation, so a revoked authority never reserves
+ * quota and never reserves a file row. The order of the checks is the order
+ * of the admission: the installation first, the principal second.
+ */
+async function revalidateAuthority(tx: TaskTransaction, authority: Authority) {
+  const live = await PluginStorageAdmissionService.current(tx, authority.installationId);
+  if (live.generation !== authority.generation) throw new ApiError('PLUGIN_FILE_NOT_FOUND');
+  await tx.$queryRaw`SELECT id FROM public.users WHERE id = ${authority.principal.id} FOR SHARE`;
+  await validateTaskPrincipal(tx, authority.installationId, authority.principal);
+}
+
 async function lockQuotas(tx: TaskTransaction, installationId: string, ownerType: string, ownerId: string, create: boolean) {
   for (const key of [{ installationId, ownerType: 'INSTALLATION', ownerId: '' }, { installationId, ownerType, ownerId }]) {
     if (create) await tx.pluginStorageQuota.upsert({ where: { installationId_ownerType_ownerId: key }, create: key, update: {} });
@@ -54,12 +71,22 @@ export class PluginStorageService {
 
   async put(authorize: StorageAuthorization, content: Uint8Array | AsyncIterable<Uint8Array>, contentType: FileType): Promise<PluginFileReference> {
     if (!Object.hasOwn(fileTypes, contentType)) throw new ApiError('FORBIDDEN_FILE_TYPE');
+    // The authority is admitted in its own short transaction. The rate
+    // limiting below then runs without an open database transaction, so a
+    // slow Redis call never holds the installation or owner quota locks.
+    // The order of the checks stays the same: the admission decides the
+    // plugin and the principal first, the rate limits come next and the
+    // quota reservation last.
+    const authority = await prisma.$transaction(async tx => admit(tx, authorize));
+    const installationPermit = await sharedProtection.rate(`jiffoo:private-upload:${authority.installationId}`, 60_000, 100);
+    if (!installationPermit.allowed) throw new ApiError('RATE_LIMITED');
+    const permit = await sharedProtection.rate(`jiffoo:private-upload:${authority.installationId}:${authority.principal.type}:${authority.principal.id}`, 60_000, 20);
+    if (!permit.allowed) throw new ApiError('RATE_LIMITED');
     const reservation = await prisma.$transaction(async tx => {
-      const authority = await admit(tx, authorize);
-      const installationPermit = await sharedProtection.rate(`jiffoo:private-upload:${authority.installationId}`, 60_000, 100);
-      if (!installationPermit.allowed) throw new ApiError('RATE_LIMITED');
-      const permit = await sharedProtection.rate(`jiffoo:private-upload:${authority.installationId}:${authority.principal.type}:${authority.principal.id}`, 60_000, 20);
-      if (!permit.allowed) throw new ApiError('RATE_LIMITED');
+      // The authority is re-checked here, before the quota locks are taken:
+      // the installation may have been disabled and the principal revoked
+      // between the admission above and this reservation.
+      await revalidateAuthority(tx, authority);
       const identity = owner(authority), reserve = BigInt(env.PLUGIN_UPLOAD_MAX_BYTES);
       await lockQuotas(tx, authority.installationId, identity.ownerType, identity.ownerId, true);
       for (const [type, id, cap] of [['INSTALLATION', '', 1073741824n], [identity.ownerType, identity.ownerId, 104857600n]] as const) {

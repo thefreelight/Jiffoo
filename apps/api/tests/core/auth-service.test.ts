@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 // ---------------------------------------------------------------------------
 // Mocks - declared before the service import so vi.mock hoisting works
@@ -75,6 +76,18 @@ const mockPrismaUser = prisma.user as {
   update: ReturnType<typeof vi.fn>;
 };
 
+const mockPrismaTransaction = prisma.$transaction as unknown as ReturnType<typeof vi.fn>;
+const mockPrismaQueryRaw = prisma.$queryRaw as unknown as ReturnType<typeof vi.fn>;
+
+/**
+ * The transaction-scoped advisory lock of the registration is a database
+ * lock: the second registration of one username waits for the first one to
+ * commit. The double below reproduces that behaviour - a per-key FIFO lock
+ * that the transaction releases when its callback settles.
+ */
+const transactionLocks = new AsyncLocalStorage<{ releases: Array<() => void> }>();
+const lockTails = new Map<string, Promise<void>>();
+
 const mockPasswordUtils = PasswordUtils as {
   hash: ReturnType<typeof vi.fn>;
   verify: ReturnType<typeof vi.fn>;
@@ -118,6 +131,11 @@ const REFRESH_TOKEN = 'mock-refresh-token';
 describe('AuthService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Every test starts from the default transaction and lock behaviour.
+    mockPrismaUser.findFirst.mockReset();
+    mockPrismaUser.create.mockReset();
+    mockPrismaTransaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => callback(prisma));
+    mockPrismaQueryRaw.mockImplementation(async () => []);
   });
 
   // -----------------------------------------------------------------------
@@ -294,6 +312,64 @@ describe('AuthService', () => {
       });
       expect(mockEmailVerification.createVerification).toHaveBeenCalled();
       expect(result.user.emailVerified).toBe(false);
+    });
+
+    it('lets only one of two concurrent registrations of the same username create the account', async () => {
+      // The advisory lock of the registration serializes the two registrations
+      // of one username, and the username is re-checked inside the lock.
+      const createdUsernames = new Set<string>();
+      mockPrismaUser.findUnique.mockResolvedValue(null);
+      mockPrismaUser.findFirst.mockImplementation(async ({ where }: { where: { username: string } }) =>
+        createdUsernames.has(where.username) ? { id: 'existing-user-id' } : null);
+      mockPrismaUser.create.mockImplementation(async ({ data }: { data: { username: string; email: string; password: string } }) => {
+        createdUsernames.add(data.username);
+        return {
+          id: 'created-user-id', email: data.email, username: data.username, password: data.password,
+          role: 'USER', avatar: null, emailVerified: false, locale: 'en', createdAt: new Date('2025-01-01T00:00:00Z'),
+        };
+      });
+      mockPasswordUtils.hash.mockResolvedValue('hashed-pw');
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
+
+      mockPrismaQueryRaw.mockImplementation(async (_strings: TemplateStringsArray, ...values: unknown[]) => {
+        const key = String(values[0]);
+        const previous = lockTails.get(key) ?? Promise.resolve();
+        let release!: () => void;
+        const current = new Promise<void>((resolve) => { release = resolve; });
+        lockTails.set(key, previous.then(() => current));
+        transactionLocks.getStore()?.releases.push(release);
+        await previous;
+        return [];
+      });
+      mockPrismaTransaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
+        const context = { releases: [] as Array<() => void> };
+        return transactionLocks.run(context, async () => {
+          try {
+            return await callback(prisma);
+          } finally {
+            context.releases.forEach((release) => release());
+          }
+        });
+      });
+
+      const results = await Promise.allSettled([
+        AuthService.register(registerData),
+        AuthService.register(registerData),
+      ]);
+
+      const fulfilled = results.filter((result) => result.status === 'fulfilled');
+      const rejected = results.filter((result) => result.status === 'rejected');
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect((rejected[0] as PromiseRejectedResult).reason).toMatchObject({ code: 'REGISTRATION_FAILED' });
+      // Exactly one account was created, so the login lookup stays unambiguous.
+      expect(mockPrismaUser.create).toHaveBeenCalledTimes(1);
+      // The username was re-checked inside the locked transaction.
+      expect(mockPrismaUser.findFirst).toHaveBeenCalledWith({
+        where: { username: registerData.username },
+        select: { id: true },
+      });
     });
   });
 

@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { ProductService } from '@/core/product/service';
@@ -145,64 +146,56 @@ export class CartService {
     fulfillmentData?: Record<string, unknown>
   ): Promise<Cart> {
     try {
-      // Get or create cart
-      let cart = await prisma.cart.findUnique({
-        where: { userId },
-        include: { items: true }
-      });
+      // The cart of a customer is written in one transaction: the cart, the
+      // cart of a customer that does not have one yet and the line of the
+      // product belong to the same write, so a crash cannot leave an empty
+      // cart or an orphan line behind.
+      await this.runCartWrite(async (tx) => {
+        // Every writer of the cart of a customer serializes on that cart, so
+        // the quantity of a line is never read and written at the same time.
+        await this.lockCartWrites(tx, userId);
+        const cart = await this.ensureCart(tx, userId);
 
-      if (!cart) {
-        cart = await prisma.cart.create({
-          data: { userId, status: 'ACTIVE' },
-          include: { items: true }
-        });
-      }
+        const product = (await ProductService.getSellableCatalog(tx, [productId])).get(productId);
 
-      const product = (await ProductService.getSellableCatalog(prisma, [productId])).get(productId);
+        if (!product || !product.isActive) {
+          throw new ApiError('BAD_REQUEST');
+        }
 
-      if (!product || !product.isActive) {
-        throw new ApiError('BAD_REQUEST');
-      }
+        const variant = variantId
+          ? product.sellableVariants.find((item) => item.id === variantId)
+          : product.sellableVariants[0];
 
-      const variant = variantId
-        ? product.sellableVariants.find((item) => item.id === variantId)
-        : product.sellableVariants[0];
+        if (!variant) {
+          throw new ApiError('NOT_FOUND');
+        }
 
-      if (!variant) {
-        throw new ApiError('NOT_FOUND');
-      }
+        // The stock ceiling of a line of a product type that does not track
+        // its inventory is not the stock of the variant, so such a line can be
+        // added even when the variant has no stock.
+        const availableQuantity = stockCeilingFor(product.productType, variant.stock);
+        // The quantity of the line is read under the row lock of the line, so
+        // the ceiling is checked against the quantity the cart really holds.
+        const currentQuantity = await this.lockedLineQuantity(tx, cart.id, variant.id);
+        if (currentQuantity + quantity > availableQuantity) {
+          throw new InsufficientCartStockError(availableQuantity);
+        }
 
-      // Check if item already exists
-      const existingItem = cart.items.find(
-        (item) =>
-          item.productId === productId &&
-          item.variantId === variant.id
-      );
-      // The stock ceiling of a line of a product type that does not track
-      // its inventory is not the stock of the variant, so such a line can be
-      // added even when the variant has no stock.
-      const availableQuantity = stockCeilingFor(product.productType, variant.stock);
-      if ((existingItem?.quantity ?? 0) + quantity > availableQuantity) {
-        throw new InsufficientCartStockError(availableQuantity);
-      }
-
-      if (existingItem) {
-        // Update quantity
-        await prisma.cartItem.update({
-          where: { id: existingItem.id },
-          data: { quantity: existingItem.quantity + quantity }
-        });
-      } else {
-        // Add new item
-        await prisma.cartItem.create({
-          data: {
+        // The database owns the line: the unique key of a line is its cart and
+        // its variant, so an add that arrives while another add of the same
+        // variant is running increments the same row instead of writing a
+        // second row for the same variant.
+        await tx.cartItem.upsert({
+          where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } },
+          create: {
             cartId: cart.id,
             productId,
             variantId: variant.id,
             quantity,
-          }
+          },
+          update: { quantity: { increment: quantity } },
         });
-      }
+      });
 
       // Invalidate cache and return updated cart
       return this.getCart(userId);
@@ -228,18 +221,12 @@ export class CartService {
       throw new ApiError('INTERNAL_SERVER_ERROR');
     }
 
-    await prisma.$transaction(async (tx) => {
-      let cart = await tx.cart.findUnique({
-        where: { userId },
-        include: { items: true },
-      });
-
-      if (!cart) {
-        cart = await tx.cart.create({
-          data: { userId, status: 'ACTIVE' },
-          include: { items: true },
-        });
-      }
+    await this.runCartWrite(async (tx) => {
+      // The batch is one write of one cart: the writers of the cart of a
+      // customer serialize on that cart, so the quantity of a line is never
+      // read and written at the same time.
+      await this.lockCartWrites(tx, userId);
+      const cart = await this.ensureCart(tx, userId);
 
       const productIds = Array.from(new Set(items.map((item) => item.productId)));
       const catalog = await ProductService.getSellableCatalog(tx, productIds);
@@ -264,29 +251,19 @@ export class CartService {
           throw new ApiError('NOT_FOUND');
         }
 
-        const existingItem = await tx.cartItem.findFirst({
-          where: {
+        // The database owns the line: the unique key of a line is its cart and
+        // its variant, so the batch increments the line of the variant instead
+        // of reading the quantity and writing it back.
+        await tx.cartItem.upsert({
+          where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } },
+          create: {
             cartId: cart.id,
             productId: item.productId,
             variantId: variant.id,
+            quantity: normalizedQuantity,
           },
+          update: { quantity: { increment: normalizedQuantity } },
         });
-
-        if (existingItem) {
-          await tx.cartItem.update({
-            where: { id: existingItem.id },
-            data: { quantity: existingItem.quantity + normalizedQuantity },
-          });
-        } else {
-          await tx.cartItem.create({
-            data: {
-              cartId: cart.id,
-              productId: item.productId,
-              variantId: variant.id,
-              quantity: normalizedQuantity,
-            },
-          });
-        }
       }
     });
 
@@ -322,36 +299,42 @@ export class CartService {
     quantity: number
   ): Promise<Cart> {
     try {
-      const cart = await prisma.cart.findUnique({
-        where: { userId },
-        include: { items: true }
-      });
-
-      if (!cart) {
-        throw new ApiError('NOT_FOUND');
-      }
-
-      const item = cart.items.find(i => i.id === itemId);
-      if (!item) {
-        throw new ApiError('NOT_FOUND');
-      }
-
-      if (quantity <= 0) {
-        await prisma.cartItem.delete({ where: { id: itemId } });
-      } else {
-        const catalog = await ProductService.getSellableCatalog(prisma, [item.productId]);
-        const product = catalog.get(item.productId);
-        const variant = product?.variants.find((entry) => entry.id === item.variantId);
-        if (!variant) throw new ApiError('NOT_FOUND');
-        // The stock ceiling of a line of a product type that does not track
-        // its inventory is not the stock of the variant.
-        const availableQuantity = stockCeilingFor(product?.productType ?? '', variant.stock);
-        if (quantity > availableQuantity) throw new InsufficientCartStockError(availableQuantity);
-        await prisma.cartItem.update({
-          where: { id: itemId },
-          data: { quantity }
+      await this.runCartWrite(async (tx) => {
+        await this.lockCartWrites(tx, userId);
+        const cart = await tx.cart.findUnique({
+          where: { userId },
+          include: { items: true }
         });
-      }
+
+        if (!cart) {
+          throw new ApiError('NOT_FOUND');
+        }
+
+        // The line must belong to the cart of the caller, and the write is
+        // scoped to that cart as well, so a customer cannot change a line of
+        // another customer.
+        const item = cart.items.find(i => i.id === itemId);
+        if (!item) {
+          throw new ApiError('NOT_FOUND');
+        }
+
+        if (quantity <= 0) {
+          await tx.cartItem.deleteMany({ where: { id: itemId, cartId: cart.id } });
+        } else {
+          const catalog = await ProductService.getSellableCatalog(tx, [item.productId]);
+          const product = catalog.get(item.productId);
+          const variant = product?.variants.find((entry) => entry.id === item.variantId);
+          if (!variant) throw new ApiError('NOT_FOUND');
+          // The stock ceiling of a line of a product type that does not track
+          // its inventory is not the stock of the variant.
+          const availableQuantity = stockCeilingFor(product?.productType ?? '', variant.stock);
+          if (quantity > availableQuantity) throw new InsufficientCartStockError(availableQuantity);
+          await tx.cartItem.update({
+            where: { id: itemId },
+            data: { quantity }
+          });
+        }
+      });
 
       return this.getCart(userId);
     } catch (error) {
@@ -380,7 +363,24 @@ export class CartService {
    */
   static async removeFromCart(userId: string, itemId: string): Promise<Cart> {
     try {
-      await prisma.cartItem.deleteMany({ where: { id: itemId } });
+      await this.runCartWrite(async (tx) => {
+        await this.lockCartWrites(tx, userId);
+        // The line is scoped to the cart of the caller, so a customer cannot
+        // delete a line of another customer.
+        const deleted = await tx.cartItem.deleteMany({
+          where: { id: itemId, cart: { userId } },
+        });
+        if (deleted.count === 0) {
+          // Nothing was deleted. A line that does not exist at all keeps the
+          // idempotent answer of the endpoint, and a line of another customer
+          // is a line the caller does not have.
+          const other = await tx.cartItem.findFirst({ where: { id: itemId }, select: { id: true } });
+          if (other) {
+            throw new ApiError('NOT_FOUND');
+          }
+        }
+      });
+
       return this.getCart(userId);
     } catch (error) {
       console.error('Error removing from cart:', error);
@@ -407,10 +407,16 @@ export class CartService {
    */
   static async clearCart(userId: string): Promise<Cart> {
     try {
-      const cart = await prisma.cart.findUnique({ where: { userId } });
-      if (cart) {
-        await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
-      }
+      await this.runCartWrite(async (tx) => {
+        // The clear of a cart is a write of that cart, so it joins the
+        // protocol of the writers of the cart: the clear and an add of a line
+        // cannot interleave.
+        await this.lockCartWrites(tx, userId);
+        const cart = await tx.cart.findUnique({ where: { userId } });
+        if (cart) {
+          await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+        }
+      });
       return this.createEmptyCart(userId);
     } catch (error) {
       console.error('Error clearing cart:', error);
@@ -428,6 +434,11 @@ export class CartService {
    * Removes a cart line when it is fully purchased and decrements its quantity when only
    * part of it was purchased. The cart belongs to this module, so the order module asks
    * this method to give the purchased lines back instead of writing the cart tables.
+   *
+   * The consumption does not take the cart-wide lock of the cart writers: it runs inside
+   * the transaction of the order, which already holds the order row and the stock row of
+   * the purchased variants, and the order must never wait for the cart. The row lock of
+   * the consumed lines is the granularity of this path.
    *
    * @param tx Transaction client owned by the caller
    * @param userId The unique identifier of the user whose cart is consumed
@@ -451,6 +462,13 @@ export class CartService {
     }
     if (purchased.size === 0) return;
 
+    // The consumption does NOT take the cart-wide lock of `lockCartWrites`.
+    // The order module calls this method from inside the transaction of the
+    // order, which already holds the order row and the stock row of the
+    // purchased variants, and the order must never wait for the cart: a cart
+    // edit that runs while the order is inside this consumption has to be
+    // applied while the order still commits completely. The row lock of the
+    // consumed lines below is the granularity of this path.
     const cart = await tx.cart.findUnique({ where: { userId }, include: { items: true } });
     if (!cart) return;
 
@@ -515,6 +533,112 @@ export class CartService {
   // ============================================
   // Private Methods
   // ============================================
+
+  /**
+   * Run a write of the cart of a customer in one transaction
+   *
+   * The write of a cart is a read-modify-write of a quantity, so the whole
+   * write belongs to one transaction. The transaction is retried when the
+   * unique index of `carts.userId` decides the race between two writers that
+   * create the cart of the same customer: the writer that lost the race reads
+   * the cart the winner created and writes its line into that cart.
+   *
+   * @param write The write of the cart, run with the transaction client
+   * @returns Promise resolving with the result of the write
+   * @private
+   */
+  private static async runCartWrite(write: (tx: Prisma.TransactionClient) => Promise<void>): Promise<void> {
+    let attempt = 0;
+    for (;;) {
+      attempt += 1;
+      try {
+        await prisma.$transaction(async (transaction) => {
+          // The transaction client of the extended client of the repository
+          // is the plain transaction client with the same operations.
+          const tx = transaction as unknown as Prisma.TransactionClient;
+          await write(tx);
+        }, {
+          // The writers of one cart wait for each other on the cart lock, so
+          // the transaction of a writer waits for the writers before it.
+          maxWait: 10_000,
+          timeout: 15_000,
+        });
+        return;
+      } catch (error) {
+        const code = (error as { code?: string } | null | undefined)?.code;
+        if (code !== 'P2002' || attempt >= 3) throw error;
+      }
+    }
+  }
+
+  /**
+   * Serialize the writers of the cart of a customer
+   *
+   * The cart of a customer is the unit of the write, so the writers of that
+   * cart wait for each other. The lock is a transaction-scoped advisory lock
+   * keyed by the customer, so it is released when the transaction ends and two
+   * customers never wait for each other.
+   *
+   * The lock is taken on the transaction client of the caller, so a writer that
+   * runs inside the transaction of another module joins that transaction and
+   * holds the lock until that transaction ends.
+   *
+   * The lock covers the writers of a cart that own no other lock: an add, a
+   * batch add, an update, a remove and a clear. The consumption of the
+   * purchased lines is the exception and does NOT take it: the order module
+   * calls the consumption from inside the transaction of the order, which
+   * already holds the order row and the stock row of the purchased variants,
+   * and the order must never wait for the cart. A cart edit that runs while
+   * the order is inside the consumption has to be applied while the order
+   * still commits completely, so the consumption locks the rows of the lines
+   * it consumes instead of the cart. Do not "fix" that exception: the order
+   * would wait for the cart, and the order of a customer whose cart is being
+   * written would fail.
+   *
+   * @param tx The transaction client of the write
+   * @param userId The unique identifier of the owner of the cart
+   * @private
+   */
+  private static async lockCartWrites(tx: Prisma.TransactionClient, userId: string): Promise<void> {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`jiffoo:cart:${userId}`}, 0))::text`;
+  }
+
+  /**
+   * The cart of a customer, created when the customer does not have one yet
+   *
+   * @param tx The transaction client of the write
+   * @param userId The unique identifier of the owner of the cart
+   * @returns Promise resolving to the cart of the customer
+   * @private
+   */
+  private static async ensureCart(tx: Prisma.TransactionClient, userId: string) {
+    const cart = await tx.cart.findUnique({ where: { userId } });
+    if (cart) return cart;
+    return tx.cart.create({ data: { userId, status: 'ACTIVE' } });
+  }
+
+  /**
+   * The quantity of a line of a cart, read under the row lock of the line
+   *
+   * The row lock of the line keeps a concurrent writer of the same line from
+   * changing the quantity while the ceiling of the line is checked.
+   *
+   * @param tx The transaction client of the write
+   * @param cartId The identifier of the cart that owns the line
+   * @param variantId The identifier of the variant of the line
+   * @returns Promise resolving to the quantity of the line, zero when the cart
+   *          does not hold the line
+   * @private
+   */
+  private static async lockedLineQuantity(tx: Prisma.TransactionClient, cartId: string, variantId: string): Promise<number> {
+    // The columns of a line are camelCase, so the identifiers of the query are
+    // quoted: an unquoted identifier folds to lower case and the query would
+    // not find the column.
+    const rows: Array<{ quantity: number }> = await tx.$queryRaw`
+      SELECT quantity FROM public.cart_items WHERE "cartId" = ${cartId} AND "variantId" = ${variantId} FOR UPDATE
+    `;
+    return rows.length ? Number(rows[0].quantity) : 0;
+  }
 
   /**
    * Retrieve cart from database with full item details

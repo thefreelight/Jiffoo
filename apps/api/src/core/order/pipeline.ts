@@ -8,6 +8,7 @@ import {
 import { PLUGIN_CONTRACT_VERSIONS } from '@jiffoo/shared';
 import { CartService } from '@/core/cart/service';
 import { CheckoutService } from '@/core/checkout/service';
+import { CacheService } from '@/core/cache/service';
 import { ProductService, type CatalogProductProjection } from '@/core/product/service';
 import { InventoryService } from '@/core/inventory/service';
 import { systemSettingsService } from '@/core/settings/service';
@@ -540,9 +541,10 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
       name: 'write-order',
       run: async context => {
         const { userId, data, currency } = context;
+        let placement: { order: any; replayed: boolean };
         try {
           // Create order + deduct stock atomically
-          context.result = await prisma.$transaction(async (tx) => {
+          placement = await prisma.$transaction(async (tx) => {
             const existing = await tx.order.findUnique({ where: { idempotencyKey: context.idempotencyKey }, include: orderResponseInclude() });
             if (existing) {
               assertIdempotentReplay(existing, userId, context.requestFingerprint);
@@ -668,7 +670,15 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
         } catch (error) {
           context.transactionFailed = true;
           context.transactionError = error;
+          return;
         }
+        context.result = placement;
+        // The cached admin order list is stale after the write, so its version
+        // is bumped here: after the transaction resolved, so a rollback keeps
+        // the cache correct, and before a reader can repopulate it with the
+        // state that the write replaced. A replayed request writes nothing,
+        // so it leaves the cache alone.
+        if (!placement.replayed) await CacheService.incrementOrderVersion();
       },
     },
     {

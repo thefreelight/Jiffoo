@@ -726,7 +726,7 @@ it('v2 E capture identity is account-scoped and a same-account cross-order bindi
   expect(await prisma.paymentLedger.count({ where: { providerPaymentId: 'shared-capture', eventType: 'SUCCEEDED' } })).toBe(2);
   expect((await prisma.order.findUniqueOrThrow({ where: { id: secondOrder.id } })).paymentStatus).toBe('PAID');
   for (const payment of [first, second]) {
-    const verified = await app.inject({ method: 'GET', url: '/api/v1/payments/verify/' + payment.id });
+    const verified = await app.inject({ method: 'GET', url: '/api/v1/payments/verify/' + payment.id, headers: admin.authHeader });
     expect(verified.statusCode).toBe(200);
     expect(verified.json().data).toMatchObject({ paymentId: payment.id, orderId: payment.orderId, status: 'paid', sessionId: first.sessionId });
   }

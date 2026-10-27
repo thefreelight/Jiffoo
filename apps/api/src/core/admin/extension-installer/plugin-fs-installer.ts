@@ -584,16 +584,33 @@ export class PluginFsInstaller implements IPluginInstaller {
    * List installed plugins
    */
   async list(): Promise<InstalledPlugin[]> {
+    // The installed rows are read once; the published package of every row is
+    // resolved from the package store instead of one row read per plugin.
+    const rows = await prisma.pluginInstall.findMany({ where: { deletedAt: null } });
     const plugins: InstalledPlugin[] = [];
-    const rows = await prisma.pluginInstall.findMany({ where: { deletedAt: null }, select: { slug: true } });
-    for (const { slug } of rows) {
-        const plugin = await this.get(slug);
+    for (const installed of rows) {
+        if (!installed.zipHash) continue;
+        const pluginPackage = await this.resolvePublishedPackage(installed.slug, installed.zipHash);
+        const plugin = await this.rebuildMetaFromManifest(installed.slug, pluginPackage, installed);
         if (plugin) {
           plugins.push(plugin);
         }
     }
 
     return plugins;
+  }
+
+  /**
+   * The published package of an installed plugin.
+   *
+   * The package store holds the published copy of the hash the install row
+   * names. A package that is not published yet is materialized by the shared
+   * package resolution, which owns that path.
+   */
+  private async resolvePublishedPackage(slug: string, zipHash: string) {
+    const published = await pluginPackageStore.get(slug, zipHash);
+    if (published) return published;
+    return resolveCurrentPluginPackage(slug, zipHash);
   }
 
   /**

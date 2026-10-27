@@ -4,28 +4,32 @@
  * Lightweight scoped API token authentication for MCP server and
  * other machine-to-machine integrations.
  *
- * Tokens are stored in SystemSettings.settings.apiTokens as a JSON array.
- * Each token record contains:
- *   - id: unique identifier (cuid)
+ * Tokens live in their own `api_tokens` table. Every row contains:
+ *   - id: unique identifier (`tok_` + 12 hex characters)
  *   - tokenHash: SHA-256 hash of the raw token (never store plaintext)
  *   - label: human-readable label (e.g. "MCP Server - Claude Desktop")
- *   - scopes: array of scope strings (e.g. ["catalog:read", "cart:write", "checkout:create"])
- *   - createdAt: ISO timestamp
- *   - lastUsedAt: ISO timestamp (updated on each request)
- *   - revokedAt: ISO timestamp (null if active)
+ *   - scopes: array of scope strings (e.g. ["catalog:read", "cart:write"])
+ *   - createdAt: creation timestamp
+ *   - lastUsedAt: timestamp of the last successful validation
+ *   - revokedAt: revocation timestamp (null while the token is active)
+ *   - revokedBy: the id of the administrator who revoked the token, written
+ *     together with `revokedAt` by the same conditional update (null when the
+ *     revocation was not attributed to an administrator)
  *
- * This approach avoids a new database migration by reusing the
- * SystemSettings JSON field.
+ * Every write is a conditional single-row update, so a concurrent create
+ * cannot lose a token, a concurrent revocation cannot be lost, and the
+ * `lastUsedAt` write can never carry a stale `revokedAt` back over a
+ * revocation. The table is the only storage of the tokens: the settings
+ * blob no longer holds a token list.
  */
 
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
-import { CacheService } from '@/core/cache/service';
 import { logger } from '@/core/logger/logger';
-import { systemSettingsService } from '@/core/settings/service';
 import { sendError } from '@/utils/response';
+import type { Prisma } from '@prisma/client';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -58,8 +62,14 @@ export interface ApiTokenIdentity {
 // Constants
 // ---------------------------------------------------------------------------
 
-const CACHE_KEY = 'api-tokens:active';
-const CACHE_TTL = 30; // 30 seconds
+/** The prefix the auth middleware uses to route a request to the token path. */
+const TOKEN_PREFIX = 'jiffoo_';
+
+/** 32 random bytes = 256 bits of entropy for every issued token. */
+const TOKEN_ENTROPY_BYTES = 32;
+
+/** How often a token is re-generated when its hash collides with a stored one. */
+const TOKEN_HASH_ATTEMPTS = 3;
 
 // ---------------------------------------------------------------------------
 // Token Utilities
@@ -69,58 +79,48 @@ function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
+/**
+ * Generate a raw token from a cryptographic random source. The `jiffoo_`
+ * prefix is part of the token: `core/auth/middleware.ts` uses it to route a
+ * request to the API-token path instead of the JWT path.
+ */
 function generateRawToken(): string {
-  // Generate a URL-safe random token: jiffoo_<32 hex chars>
-  const bytes = createHash('sha256')
-    .update(`${Date.now()}-${Math.random()}`)
-    .digest('hex')
-    .slice(0, 32);
-  return `jiffoo_${bytes}`;
+  return `${TOKEN_PREFIX}${randomBytes(TOKEN_ENTROPY_BYTES).toString('hex')}`;
 }
 
-// ---------------------------------------------------------------------------
-// Storage (SystemSettings JSON field)
-// ---------------------------------------------------------------------------
-
-async function getTokenRecords(): Promise<ApiTokenRecord[]> {
-  const cached = await CacheService.get<ApiTokenRecord[]>(CACHE_KEY);
-  if (cached) return cached;
-
-  const settings = await prisma.systemSettings.findUnique({
-    where: { id: 'system' },
-  });
-
-  if (!settings?.settings) return [];
-
-  try {
-    const raw = typeof settings.settings === 'string'
-      ? JSON.parse(settings.settings)
-      : settings.settings;
-    const tokens = raw?.apiTokens;
-    if (!Array.isArray(tokens)) return [];
-    return tokens as ApiTokenRecord[];
-  } catch {
-    return [];
-  }
+/** A unique-violation on `api_tokens.tokenHash` is a hash collision. */
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002';
 }
 
-async function saveTokenRecords(records: ApiTokenRecord[]): Promise<void> {
-  const settings = await prisma.systemSettings.findUnique({
-    where: { id: 'system' },
-  });
+function toIso(value: Date | string | null | undefined): string | null {
+  if (value === null || value === undefined) return null;
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
 
-  const current = settings?.settings
-    ? (typeof settings.settings === 'string'
-        ? JSON.parse(settings.settings)
-        : settings.settings)
-    : {};
+function toScopes(value: Prisma.JsonValue | null | undefined): ApiTokenScope[] {
+  return Array.isArray(value) ? (value as ApiTokenScope[]) : [];
+}
 
-  current.apiTokens = records;
-
-  await systemSettingsService.saveSettingsBlob(current);
-
-  // Invalidate cache
-  await CacheService.delete(CACHE_KEY);
+/** Map a stored row onto the public record shape of the admin API. */
+function toRecord(row: {
+  id: string;
+  tokenHash: string;
+  label: string;
+  scopes: Prisma.JsonValue;
+  createdAt: Date | string;
+  lastUsedAt?: Date | string | null;
+  revokedAt?: Date | string | null;
+}): ApiTokenRecord {
+  return {
+    id: row.id,
+    tokenHash: row.tokenHash,
+    label: row.label,
+    scopes: toScopes(row.scopes),
+    createdAt: toIso(row.createdAt)!,
+    lastUsedAt: toIso(row.lastUsedAt ?? null),
+    revokedAt: toIso(row.revokedAt ?? null),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -133,55 +133,80 @@ export const ApiTokenService = {
    * Returns the raw token (only time it is available in plaintext).
    */
   async createToken(label: string, scopes: ApiTokenScope[]): Promise<{ token: string; record: ApiTokenRecord }> {
-    const records = await getTokenRecords();
-    const rawToken = generateRawToken();
-    const record: ApiTokenRecord = {
-      id: `tok_${createHash('sha256').update(rawToken).digest('hex').slice(0, 12)}`,
-      tokenHash: hashToken(rawToken),
-      label,
-      scopes,
-      createdAt: new Date().toISOString(),
-      lastUsedAt: null,
-      revokedAt: null,
-    };
-
-    records.push(record);
-    await saveTokenRecords(records);
-
-    logger.info({
-      event: 'api_token_created',
-      tokenId: record.id,
-      label,
-      scopes,
-    });
-
-    return { token: rawToken, record };
+    for (let attempt = 1; attempt <= TOKEN_HASH_ATTEMPTS; attempt += 1) {
+      const rawToken = generateRawToken();
+      const tokenHash = hashToken(rawToken);
+      try {
+        const row = await prisma.apiToken.create({
+          data: {
+            id: `tok_${tokenHash.slice(0, 12)}`,
+            tokenHash,
+            label,
+            scopes: scopes as unknown as Prisma.InputJsonValue,
+          },
+        });
+        const record = toRecord(row);
+        logger.info({
+          event: 'api_token_created',
+          tokenId: record.id,
+          label,
+          scopes,
+        });
+        return { token: rawToken, record };
+      } catch (error) {
+        // A hash collision is practically impossible, but a unique violation
+        // must not surface as a raw Prisma error: issue a fresh token instead.
+        if (isUniqueConstraintViolation(error) && attempt < TOKEN_HASH_ATTEMPTS) continue;
+        throw error;
+      }
+    }
+    throw new Error('api_token_creation_failed: the token hash collided on every attempt');
   },
 
   /**
    * List all tokens (without the raw token value).
    */
   async listTokens(): Promise<ApiTokenRecord[]> {
-    const records = await getTokenRecords();
-    return records.filter((r) => r.revokedAt === null);
+    const rows = await prisma.apiToken.findMany({
+      where: { revokedAt: null },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map(toRecord);
   },
 
   /**
-   * Revoke a token by ID.
+   * Revoke a token by ID. The write is conditional, so a second revocation
+   * of the same token is idempotent and a concurrent `lastUsedAt` write can
+   * never undo it.
+   *
+   * @param tokenId The id of the token to revoke
+   * @param actorId The id of the administrator who revokes the token. It is
+   *   optional so that a caller without an attributed actor keeps working;
+   *   when it is given, the actor and the revocation timestamp are written by
+   *   the same conditional update and therefore always agree.
    */
-  async revokeToken(tokenId: string): Promise<void> {
-    const records = await getTokenRecords();
-    const record = records.find((r) => r.id === tokenId);
-    if (!record) {
-      throw new ApiError('NOT_FOUND');
+  async revokeToken(tokenId: string, actorId?: string): Promise<void> {
+    const revoked = await prisma.apiToken.updateMany({
+      where: { id: tokenId, revokedAt: null },
+      data: {
+        revokedAt: new Date(),
+        ...(actorId ? { revokedBy: actorId } : {}),
+      },
+    });
+    if (revoked.count === 0) {
+      // Either the token does not exist or it was revoked before. A repeated
+      // revocation stays successful; an unknown token is a NOT_FOUND.
+      const existing = await prisma.apiToken.findUnique({
+        where: { id: tokenId },
+        select: { id: true },
+      });
+      if (!existing) throw new ApiError('NOT_FOUND');
+      return;
     }
-    record.revokedAt = new Date().toISOString();
-    await saveTokenRecords(records);
-
     logger.info({
       event: 'api_token_revoked',
       tokenId,
-      label: record.label,
+      actorId: actorId ?? null,
     });
   },
 
@@ -190,28 +215,41 @@ export const ApiTokenService = {
    * Returns the token identity on success, or null on failure.
    */
   async validateToken(rawToken: string): Promise<ApiTokenIdentity | null> {
-    if (!rawToken || !rawToken.startsWith('jiffoo_')) {
+    if (!rawToken || !rawToken.startsWith(TOKEN_PREFIX)) {
       return null;
     }
 
     const tokenHash = hashToken(rawToken);
-    const records = await getTokenRecords();
-    const record = records.find((r) => r.tokenHash === tokenHash);
+    const row = await prisma.apiToken.findUnique({ where: { tokenHash } });
 
-    if (!record || record.revokedAt !== null) {
+    if (!row || row.revokedAt !== null) {
       return null;
     }
 
-    // Update lastUsedAt (fire-and-forget)
-    record.lastUsedAt = new Date().toISOString();
-    saveTokenRecords(records).catch((err) => {
-      logger.warn({ event: 'api_token_lastUsedAt_update_failed', error: err.message });
-    });
+    // The `lastUsedAt` write touches one column of one row and carries the
+    // `revokedAt: null` predicate, so it can never write a stale revocation
+    // state back over a revocation that happened in the meantime. A token
+    // revoked between the read and the write is therefore rejected.
+    let touched = 1;
+    try {
+      const updated = await prisma.apiToken.updateMany({
+        where: { tokenHash, revokedAt: null },
+        data: { lastUsedAt: new Date() },
+      });
+      touched = updated.count;
+    } catch (error) {
+      // The usage stamp is not worth failing an authentication over.
+      logger.warn({
+        event: 'api_token_lastUsedAt_update_failed',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    if (touched === 0) return null;
 
     return {
-      tokenId: record.id,
-      label: record.label,
-      scopes: record.scopes,
+      tokenId: row.id,
+      label: row.label,
+      scopes: toScopes(row.scopes),
     };
   },
 };

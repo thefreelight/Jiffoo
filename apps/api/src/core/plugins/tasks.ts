@@ -154,6 +154,65 @@ export async function taskStatus(tx: TaskTransaction, task: PluginTask): Promise
   return { id: task.id, status: statuses[task.status as keyof typeof statuses], paused: task.status === 'PENDING' && !!reason, ...(task.status === 'PENDING' && reason ? { pauseReason: reason } : {}), attempt: task.attemptsCharged + (task.status === 'RUNNING' ? 1 : 0), lastError, ...(task.result !== null ? { result: task.result as TaskStatus['result'] } : {}), ...(hook ? { finalFailure: { status: hook.status.toLowerCase() as NonNullable<TaskStatus['finalFailure']>['status'], ...(hook.safeError ? { lastError: hook.safeError as { code: string; message: string } } : {}), ...(hook.suppressionReason ? { suppressionReason: hook.suppressionReason } : {}) } } : {}) };
 }
 
+/**
+ * The number of tasks one transition transaction covers.
+ *
+ * The transition of an installation is one atomic state machine, so the
+ * number of tasks it covers has to be bounded. The bound is loud: an
+ * installation with more active tasks than this fails the transition with a
+ * limit conflict instead of opening a transaction across an unbounded amount
+ * of work.
+ */
+const TASK_TRANSITION_LIMIT = 1000;
+
+/**
+ * The set-based projection of a task list.
+ *
+ * The per-row projection runs three statements per task, so a list of a
+ * hundred tasks opened three hundred statements in one transaction. This
+ * projection answers the same questions with a fixed number of statements:
+ * one for the installation, one for the final-failure hooks and one per
+ * principal table.
+ */
+async function taskStatuses(tx: TaskTransaction, installationId: string, tasks: PluginTask[]): Promise<TaskStatus[]> {
+  const installation = await tx.pluginInstallation.findUnique({ where: { id: installationId }, include: { plugin: true } });
+  const reason = !installation?.enabled || installation.deletedAt || installation.plugin.deletedAt ? 'plugin-disabled' : installation.taskDependencyUnavailable ? 'dependency-unavailable' : undefined;
+  const hooks = tasks.length ? await tx.pluginTaskFinalFailure.findMany({ where: { taskId: { in: tasks.map(task => task.id) } } }) : [];
+  const hookByTask = new Map(hooks.map(hook => [hook.taskId, hook]));
+  // The principal of a pending task is validated once per distinct principal
+  // instead of once per task.
+  const principals = new Map<string, TaskPrincipal>();
+  for (const task of tasks) {
+    if (task.status !== 'PENDING' || !task.principalId) continue;
+    const principal = principalForTask(task);
+    if (principal) principals.set(`${principal.type}:${principal.id}`, principal);
+  }
+  const rejections = new Map<string, ApiError | null>();
+  if (principals.size) {
+    const ids = [...new Set([...principals.values()].map(principal => principal.id))];
+    const users = await tx.user.findMany({ where: { id: { in: ids } }, select: { id: true, role: true, isActive: true, removedAt: true } });
+    const recorded = await tx.pluginPrincipal.findMany({ where: { installationId, principalId: { in: ids } } });
+    const userById = new Map(users.map(user => [user.id, user]));
+    const recordedKeys = new Set(recorded.map(principal => `${principal.principalType}:${principal.principalId}`));
+    for (const [key, principal] of principals) {
+      const user = userById.get(principal.id);
+      const allowed = !!user?.isActive && !user.removedAt && (principal.type === 'admin' ? user.role === 'ADMIN' : user.role === 'USER') && recordedKeys.has(`${principal.type.toUpperCase()}:${principal.id}`);
+      rejections.set(key, allowed ? null : new ApiError('PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED'));
+    }
+  }
+  const statuses = { PENDING: 'queued', RUNNING: 'running', SUCCEEDED: 'succeeded', FAILED: 'failed', CANCELLED: 'cancelled' } as const;
+  return tasks.map(task => {
+    const hook = hookByTask.get(task.id);
+    let lastError = task.lastError as TaskStatus['lastError'];
+    if (task.status === 'PENDING' && task.principalId) {
+      const principal = principalForTask(task);
+      const rejection = principal ? rejections.get(`${principal.type}:${principal.id}`) : null;
+      if (rejection) lastError = { code: rejection.code, message: rejection.message };
+    }
+    return { id: task.id, status: statuses[task.status as keyof typeof statuses], paused: task.status === 'PENDING' && !!reason, ...(task.status === 'PENDING' && reason ? { pauseReason: reason } : {}), attempt: task.attemptsCharged + (task.status === 'RUNNING' ? 1 : 0), lastError, ...(task.result !== null ? { result: task.result as TaskStatus['result'] } : {}), ...(hook ? { finalFailure: { status: hook.status.toLowerCase() as NonNullable<TaskStatus['finalFailure']>['status'], ...(hook.safeError ? { lastError: hook.safeError as { code: string; message: string } } : {}), ...(hook.suppressionReason ? { suppressionReason: hook.suppressionReason } : {}) } } : {}) };
+  });
+}
+
 export const REPAIR_BOOTSTRAP_KEY_PREFIX = 'admin-repair-bootstrap:';
 
 /** Caller owns admission; all task writes use this transactional enqueue path. */
@@ -237,7 +296,7 @@ export function createTaskApi(installationId: string, handle: PluginTasks['handl
       if (!options || options.status !== undefined && !Object.hasOwn(statuses, options.status) || options.limit !== undefined && (!Number.isInteger(options.limit) || options.limit < 1 || options.limit > 100) || options.cursor !== undefined && (typeof options.cursor !== 'string' || options.cursor.length > 128)) throw new ApiError('VALIDATION_ERROR');
       const limit = options.limit ?? 25;
       const rows = await tx.pluginTask.findMany({ where: { installationId, ...(options.status ? { status: statuses[options.status] } : {}), ...(options.cursor ? { id: { gt: options.cursor } } : {}) }, orderBy: { id: 'asc' }, take: limit + 1 });
-      return { items: await Promise.all(rows.slice(0, limit).map(row => taskStatus(tx, row))), nextCursor: rows.length > limit ? rows[limit - 1].id : null };
+      return { items: await taskStatuses(tx, installationId, rows.slice(0, limit)), nextCursor: rows.length > limit ? rows[limit - 1].id : null };
     }),
     cancel: id => prisma.$transaction(async tx => {
       await lockTaskScheduler(tx);
@@ -252,30 +311,73 @@ export function createTaskApi(installationId: string, handle: PluginTasks['handl
   };
 }
 
-export async function transitionTask(tx: TaskTransaction, task: PluginTask, mode: 'PAUSE' | 'UPDATE' | 'CANCEL', reason: string): Promise<void> {
+/**
+ * The state machine of a task transition, applied to a set of tasks.
+ *
+ * The writes are set-based: the tasks that end in the same state are written
+ * with one statement per table, so a transition of an installation with many
+ * tasks costs a fixed number of statements instead of a statement per task.
+ * The audit stays one event per cancelled task, because the audit outlet
+ * writes one event per call.
+ */
+async function transitionTaskRows(tx: TaskTransaction, rows: PluginTask[], mode: 'PAUSE' | 'UPDATE' | 'CANCEL', reason: string): Promise<void> {
   const now = await taskDatabaseTime(tx);
-  if (task.status === 'RUNNING') {
-    await tx.pluginTaskAttempt.updateMany({ where: { taskId: task.id, executionSequence: task.executionSequence, finishedAt: null }, data: { finishedAt: now, outcome: mode === 'PAUSE' ? 'PAUSE_ABORT' : mode === 'UPDATE' ? 'UPDATE_ABORT' : 'CANCELLED' } });
-    await tx.pluginTaskExecutionSlot.updateMany({ where: { taskId: task.id, kind: 'TASK', fence: task.fence, state: 'ACTIVE' }, data: { state: 'LINGERING' } });
+  const running = rows.filter(row => row.status === 'RUNNING');
+  if (running.length) {
+    const ids = running.map(row => row.id);
+    await tx.pluginTaskAttempt.updateMany({ where: { taskId: { in: ids }, finishedAt: null }, data: { finishedAt: now, outcome: mode === 'PAUSE' ? 'PAUSE_ABORT' : mode === 'UPDATE' ? 'UPDATE_ABORT' : 'CANCELLED' } });
+    await tx.pluginTaskExecutionSlot.updateMany({ where: { taskId: { in: ids }, kind: 'TASK', state: 'ACTIVE' }, data: { state: 'LINGERING' } });
   }
-  if (['PENDING', 'RUNNING'].includes(task.status)) await tx.pluginTask.update({ where: { id: task.id }, data: { status: mode === 'CANCEL' ? 'CANCELLED' : 'PENDING', claimToken: null, claimedByBootNonce: null, leaseUntil: null, deadlineAt: null, ...(mode === 'CANCEL' ? { previousState: task.status, cancellationReason: reason, cancelRequestedAt: now, finishedAt: now } : { pauseReason: mode === 'PAUSE' ? reason : null, pausedAt: mode === 'PAUSE' ? now : null }) } });
-  if (mode === 'CANCEL' && ['PENDING', 'RUNNING'].includes(task.status)) await AuditService.write(tx, { actorId: scopes.getStore()?.actorId ?? 'system', action: 'PLUGIN_TASK_CANCELLED', targetType: 'plugin-task', targetId: task.id, summary: { installationId: task.installationId, previousState: task.status, reason } });
+  for (const status of ['PENDING', 'RUNNING'] as const) {
+    const group = rows.filter(row => row.status === status);
+    if (!group.length) continue;
+    await tx.pluginTask.updateMany({ where: { id: { in: group.map(row => row.id) } }, data: mode === 'CANCEL'
+      ? { status: 'CANCELLED', claimToken: null, claimedByBootNonce: null, leaseUntil: null, deadlineAt: null, previousState: status, cancellationReason: reason, cancelRequestedAt: now, finishedAt: now }
+      : { status: 'PENDING', claimToken: null, claimedByBootNonce: null, leaseUntil: null, deadlineAt: null, pauseReason: mode === 'PAUSE' ? reason : null, pausedAt: mode === 'PAUSE' ? now : null } });
+    if (mode !== 'CANCEL') continue;
+    for (const row of group) await AuditService.write(tx, { actorId: scopes.getStore()?.actorId ?? 'system', action: 'PLUGIN_TASK_CANCELLED', targetType: 'plugin-task', targetId: row.id, summary: { installationId: row.installationId, previousState: row.status, reason } });
+  }
+}
+export async function transitionTask(tx: TaskTransaction, task: PluginTask, mode: 'PAUSE' | 'UPDATE' | 'CANCEL', reason: string): Promise<void> {
+  await transitionTaskRows(tx, [task], mode, reason);
 }
 export async function transitionInstallationTasks(tx: TaskTransaction, installationId: string, mode: 'PAUSE' | 'UPDATE' | 'CANCEL', reason: string, declarations?: readonly PluginTaskDeclaration[]): Promise<void> {
-  const rows = await tx.pluginTask.findMany({ where: { installationId, status: { in: ['PENDING', 'RUNNING'] } }, orderBy: { id: 'asc' } });
+  // The transition stays atomic in the transaction of the caller. It reads the
+  // tasks of the installation once and writes them with set-based statements,
+  // so the transaction covers a bounded number of tasks with a fixed number
+  // of statements. The bound is loud: an installation with more active tasks
+  // than the limit fails the transition with a limit conflict instead of
+  // opening a transaction across an unbounded amount of work.
+  const rows = await tx.pluginTask.findMany({ where: { installationId, status: { in: ['PENDING', 'RUNNING'] } }, orderBy: { id: 'asc' }, take: TASK_TRANSITION_LIMIT + 1 });
+  if (rows.length > TASK_TRANSITION_LIMIT) throw new ApiError('PLUGIN_TASK_LIMIT_CONFLICT', { installationId, limit: TASK_TRANSITION_LIMIT, tasks: rows.length });
+  // An update cancels the tasks whose handler is gone, so the tasks are
+  // grouped by the state they end in.
+  const groups = new Map<string, { mode: 'PAUSE' | 'UPDATE' | 'CANCEL'; reason: string; rows: PluginTask[] }>();
   for (const row of rows) {
     const next = declarations?.find(d => d.name === row.name && d.version === row.version);
     if (mode === 'UPDATE' && next && (row.maxAttempts > next.maxAttempts || row.maxRuntimeSeconds > next.maxRuntimeSeconds || row.declaredConcurrency > next.concurrency)) throw new ApiError('PLUGIN_TASK_LIMIT_CONFLICT', { taskId: row.id });
-    await transitionTask(tx, row, mode === 'UPDATE' && !next ? 'CANCEL' : mode, mode === 'UPDATE' && !next ? 'HANDLER_REMOVED' : reason);
+    const effective = mode === 'UPDATE' && !next ? 'CANCEL' : mode;
+    const effectiveReason = mode === 'UPDATE' && !next ? 'HANDLER_REMOVED' : reason;
+    const key = `${effective}|${effectiveReason}`;
+    const group = groups.get(key) ?? { mode: effective, reason: effectiveReason, rows: [] };
+    group.rows.push(row);
+    groups.set(key, group);
   }
+  for (const group of groups.values()) await transitionTaskRows(tx, group.rows, group.mode, group.reason);
+  // The final-failure hooks of the installation end in the same two states,
+  // so they are written with the same set-based statements.
   const hooks = await tx.pluginTaskFinalFailure.findMany({ where: { task: { installationId }, status: { in: ['PENDING', 'RUNNING'] } } });
+  const runningHooks: string[] = [], suppressedHooks: string[] = [];
   for (const hook of hooks) {
     const nextHook = declarations?.find(d => d.name === hook.name && d.version === hook.version)?.onFinalFailure;
     if (mode === 'UPDATE' && nextHook && hook.maxRuntimeSeconds > nextHook.maxRuntimeSeconds) throw new ApiError('PLUGIN_TASK_LIMIT_CONFLICT', { taskId: hook.taskId });
     const keep = mode === 'PAUSE' || mode === 'UPDATE' && declarations?.some(d => d.name === hook.name && d.version === hook.version && d.onFinalFailure);
-    if (hook.status === 'RUNNING' || !keep) {
-      await tx.pluginTaskFinalFailure.update({ where: { taskId: hook.taskId }, data: { status: hook.status === 'RUNNING' ? 'UNKNOWN' : 'SUPPRESSED', suppressionReason: hook.status === 'RUNNING' ? null : reason, ...(hook.status === 'RUNNING' ? {safeError:{code:'PLUGIN_TASK_CLAIM_LOST',message:'Final-failure hook was revoked by a lifecycle change.'}} : {}), claimToken: null, leaseUntil: null, deadlineAt: null, finishedAt: await taskDatabaseTime(tx) } });
-      await tx.pluginTaskExecutionSlot.updateMany({ where: { taskId: hook.taskId, kind: 'FINAL_FAILURE', state: 'ACTIVE' }, data: { state: 'LINGERING' } });
-    }
+    if (hook.status === 'RUNNING') runningHooks.push(hook.taskId);
+    else if (!keep) suppressedHooks.push(hook.taskId);
   }
+  const now = await taskDatabaseTime(tx);
+  if (runningHooks.length) await tx.pluginTaskFinalFailure.updateMany({ where: { taskId: { in: runningHooks } }, data: { status: 'UNKNOWN', suppressionReason: null, safeError: { code: 'PLUGIN_TASK_CLAIM_LOST', message: 'Final-failure hook was revoked by a lifecycle change.' }, claimToken: null, leaseUntil: null, deadlineAt: null, finishedAt: now } });
+  if (suppressedHooks.length) await tx.pluginTaskFinalFailure.updateMany({ where: { taskId: { in: suppressedHooks } }, data: { status: 'SUPPRESSED', suppressionReason: reason, claimToken: null, leaseUntil: null, deadlineAt: null, finishedAt: now } });
+  const lingering = [...runningHooks, ...suppressedHooks];
+  if (lingering.length) await tx.pluginTaskExecutionSlot.updateMany({ where: { taskId: { in: lingering }, kind: 'FINAL_FAILURE', state: 'ACTIVE' }, data: { state: 'LINGERING' } });
 }

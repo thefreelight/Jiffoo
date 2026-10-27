@@ -1,13 +1,41 @@
 import { randomUUID } from 'node:crypto';
 import type { PluginTaskDeclaration, TaskInput } from '@jiffoo/shared';
-import { Prisma, type PluginTask as StoredTask } from '@prisma/client';
+import { Prisma, type PluginTask as StoredTask, type PluginTaskFinalFailure } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { ensureCoreProcess } from '@/infra/core-process';
 import { ApiError } from '@/utils/api-errors';
 import { recordPluginFailure, redactPluginFailure } from '@/core/extensions/runtime/failure';
-import { assertTaskClaim, assertTaskPolicy, lockTaskScheduler, occupiedTaskSlots, principalForTask, taskDatabaseTime, taskJson, transitionInstallationTasks, validateTaskPrincipal, withTaskScope, type TaskClaim, type TaskTransaction } from './tasks';
+import { assertTaskClaim, assertTaskPolicy, DEFAULT_TASK_POLICY, lockTaskScheduler, occupiedTaskSlots, principalForTask, taskDatabaseTime, taskJson, transitionInstallationTasks, validateTaskPrincipal, withTaskScope, type TaskClaim, type TaskPolicy, type TaskTransaction } from './tasks';
 
 const RETRIES = [60_000, 300_000, 900_000, 3_600_000];
+
+/** The number of candidates one claim round keeps in flight. */
+const MAX_CLAIM_CANDIDATES = 32;
+/** The number of installations one recovery transaction covers. */
+const RECOVERY_INSTALLATION_BATCH = 10;
+/** The number of running tasks one recovery statement covers. */
+const RECOVERY_TASK_BATCH = 50;
+/**
+ * The number of tasks one recovery transaction covers.
+ *
+ * The recovery of the expired claims transitions the tasks of an
+ * installation, and a transition is one atomic state machine. The budget
+ * bounds the number of tasks one recovery transaction touches, so the
+ * recovery never opens a transaction across an unbounded amount of work. An
+ * installation that does not fit in the budget is left to the next
+ * transaction.
+ */
+const RECOVERY_TASK_BUDGET = 1000;
+
+/** A task that only an active and matching principal may run. */
+function principalEligible(): Prisma.Sql {
+  return Prisma.sql`(t."principalId" IS NULL OR EXISTS(SELECT 1 FROM public.users u JOIN public.plugin_principals r ON r."principalId"=u.id AND r."installationId"=t."installationId" AND r."principalType"=t."principalType" WHERE u.id=t."principalId" AND u."isActive" AND u."removedAt" IS NULL AND ((t."principalType"='CUSTOMER' AND u.role='USER') OR (t."principalType"='ADMIN' AND u.role='ADMIN'))))`;
+}
+
+/** One candidate of the claim scan: the task that a claim transaction locks. */
+type ClaimCandidate = { installationId: string; taskId: string; hook: boolean };
+/** One installation of the recovery, with the plugin it belongs to. */
+type RecoveryInstallation = Prisma.PluginInstallationGetPayload<{ include: { plugin: true } }>;
 function permanentTaskError(error: unknown): error is Error & { code: string } {
   return error instanceof Error && error.name === 'TaskPermanentError' && 'code' in error && typeof error.code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(error.code) && error.message.length > 0 && error.message.length <= 512 && !/[<>\u0000-\u001f]/.test(error.message);
 }
@@ -61,53 +89,107 @@ export class PluginTaskWorker {
     await prisma.$executeRaw`UPDATE public.plugin_task_execution_slots SET state = 'RELEASED', "releasedAt" = clock_timestamp(), "updatedAt" = clock_timestamp() WHERE id IN (${Prisma.join(ids)}) AND state IN ('ACTIVE','LINGERING')`;
     for (const id of ids) this.settledSlots.delete(id);
   }
+  /**
+   * The candidate scan runs outside of every locking transaction.
+   *
+   * The scan only reads, so it never holds a row lock and never keeps the
+   * scheduler lock while it walks the installations. The claim transaction
+   * locks the candidate again and re-checks every condition, so a stale
+   * candidate is skipped instead of claimed.
+   */
+  private async scanCandidates(): Promise<ClaimCandidate[]> {
+    const scheduler = await prisma.pluginTaskScheduler.findUnique({ where: { id: 'singleton' } });
+    const policy = (scheduler?.policy as TaskPolicy | undefined) ?? DEFAULT_TASK_POLICY;
+    const slots = await prisma.pluginTaskExecutionSlot.findMany({ where: { state: { in: occupiedTaskSlots } } });
+    if (slots.length >= policy.globalSlots) return [];
+    const installations = await prisma.$queryRaw<Array<{ id: string }>>`SELECT i.id FROM public.plugin_installations i JOIN public.plugin_installs p ON p.slug = i."pluginSlug" LEFT JOIN public.plugin_task_fairness f ON f."installationId" = i.id WHERE i.enabled AND i."deletedAt" IS NULL AND p."deletedAt" IS NULL AND NOT i."taskDependencyUnavailable" ORDER BY coalesce(f."lastServedSequence",0), i.id`;
+    const candidates: ClaimCandidate[] = [];
+    for (const candidate of installations) {
+      if (this.options.installationIds && !this.options.installationIds.includes(candidate.id) || slots.filter(s => s.installationId === candidate.id).length >= policy.installationSlots) continue;
+      const installation = await prisma.pluginInstallation.findUnique({ where: { id: candidate.id }, include: { plugin: true } });
+      if (!installation) continue;
+      if (await prisma.pluginMigrationOperation.findFirst({ where: { slug: installation.pluginSlug, phase: { in: ['PAUSING', 'MIGRATING', 'PUBLISHING', 'NEEDS_RECOVERY'] } }, select: { id: true } })) continue;
+      const declarations = (installation.plugin.manifestJson as unknown as { tasks?: PluginTaskDeclaration[] }).tasks ?? [];
+      const tasks = await prisma.$queryRaw<StoredTask[]>`SELECT * FROM public.plugin_tasks WHERE id IN (SELECT DISTINCT ON (t.name,t.version) t.id FROM public.plugin_tasks t WHERE t."installationId" = ${candidate.id} AND t.status = 'PENDING' AND t."nextAttemptAt" <= clock_timestamp() AND ${principalEligible()} ORDER BY t.name,t.version,t."nextAttemptAt",t.id) ORDER BY "nextAttemptAt", id`;
+      const hookIds = await prisma.$queryRaw<Array<{ taskId: string }>>`SELECT h."taskId" FROM public.plugin_task_final_failures h WHERE h."taskId" IN (SELECT DISTINCT ON (c.name,c.version) c."taskId" FROM public.plugin_task_final_failures c JOIN public.plugin_tasks t ON t.id=c."taskId" WHERE t."installationId"=${candidate.id} AND c.status='PENDING' AND ${principalEligible()} AND NOT EXISTS(SELECT 1 FROM public.plugin_task_execution_slots s WHERE s."taskId"=t.id AND s.kind='TASK' AND s.state IN ('ACTIVE','LINGERING')) ORDER BY c.name,c.version,c."createdAt",c."taskId") ORDER BY h."createdAt",h."taskId"`;
+      const hooks = hookIds.length ? await prisma.pluginTaskFinalFailure.findMany({ where: { taskId: { in: hookIds.map(h => h.taskId) } }, orderBy: { createdAt: 'asc' }, include: { task: true } }) : [];
+      const due = [...tasks.map(task => ({ task, hook: null as typeof hooks[number] | null, at: task.nextAttemptAt })), ...hooks.filter(h => !slots.some(s => s.taskId === h.taskId && s.kind === 'TASK')).map(hook => ({ task: hook.task, hook, at: hook.createdAt }))].sort((a, b) => a.at.getTime() - b.at.getTime() || a.task.id.localeCompare(b.task.id));
+      for (const item of due) {
+        const declaration = declarations.find(d => d.name === item.task.name && d.version === item.task.version);
+        if (!declaration || item.hook && !declaration.onFinalFailure) continue;
+        try { assertTaskPolicy([declaration], policy); } catch { continue; }
+        if (item.task.maxAttempts > declaration.maxAttempts || item.task.maxRuntimeSeconds > declaration.maxRuntimeSeconds || item.task.declaredConcurrency > declaration.concurrency) continue;
+        if (slots.filter(s => s.installationId === candidate.id && s.name === declaration.name && s.version === declaration.version).length >= Math.min(item.task.declaredConcurrency, declaration.concurrency)) continue;
+        candidates.push({ installationId: candidate.id, taskId: item.task.id, hook: Boolean(item.hook) });
+        if (candidates.length >= MAX_CLAIM_CANDIDATES) return candidates;
+      }
+    }
+    return candidates;
+  }
+  /**
+   * The atomic claim of one candidate.
+   *
+   * Only the claim itself runs in the locking transaction: the row lock, the
+   * fence, the claim token and the slot are written by the same transaction,
+   * and the settle time re-check of the status, the claim token and the fence
+   * stays unchanged.
+   */
+  private async claimCandidate(tx: TaskTransaction, candidate: ClaimCandidate, bootNonce: string): Promise<TaskClaim | null> {
+    const scheduler = await lockTaskScheduler(tx);
+    const slots = await tx.pluginTaskExecutionSlot.findMany({ where: { state: { in: occupiedTaskSlots } } });
+    if (slots.length >= scheduler.policy.globalSlots) return null;
+    if (this.options.installationIds && !this.options.installationIds.includes(candidate.installationId)) return null;
+    if (slots.filter(s => s.installationId === candidate.installationId).length >= scheduler.policy.installationSlots) return null;
+    await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${candidate.installationId} FOR UPDATE`;
+    const installation = await tx.pluginInstallation.findUniqueOrThrow({ where: { id: candidate.installationId }, include: { plugin: true } });
+    if (!installation.enabled || installation.deletedAt || installation.plugin.deletedAt || installation.taskDependencyUnavailable) return null;
+    if (await tx.pluginMigrationOperation.findFirst({ where: { slug: installation.pluginSlug, phase: { in: ['PAUSING', 'MIGRATING', 'PUBLISHING', 'NEEDS_RECOVERY'] } }, select: { id: true } })) return null;
+    const declarations = (installation.plugin.manifestJson as unknown as { tasks?: PluginTaskDeclaration[] }).tasks ?? [];
+    let task: StoredTask;
+    let hook: (PluginTaskFinalFailure & { task: StoredTask }) | null = null;
+    if (candidate.hook) {
+      const locked = await tx.$queryRaw<Array<{ taskId: string }>>`SELECT h."taskId" FROM public.plugin_task_final_failures h JOIN public.plugin_tasks t ON t.id=h."taskId" WHERE h."taskId"=${candidate.taskId} AND h.status='PENDING' AND ${principalEligible()} AND NOT EXISTS(SELECT 1 FROM public.plugin_task_execution_slots s WHERE s."taskId"=t.id AND s.kind='TASK' AND s.state IN ('ACTIVE','LINGERING')) FOR UPDATE OF h SKIP LOCKED`;
+      if (!locked.length) return null;
+      hook = await tx.pluginTaskFinalFailure.findFirstOrThrow({ where: { taskId: candidate.taskId }, include: { task: true } });
+      task = hook.task;
+    } else {
+      const locked = await tx.$queryRaw<StoredTask[]>`SELECT t.* FROM public.plugin_tasks t WHERE t.id=${candidate.taskId} AND t.status='PENDING' AND t."nextAttemptAt" <= clock_timestamp() AND ${principalEligible()} FOR UPDATE SKIP LOCKED`;
+      if (!locked.length) return null;
+      task = locked[0];
+    }
+    const declaration = declarations.find(d => d.name === task.name && d.version === task.version);
+    if (!declaration || hook && !declaration.onFinalFailure) return null;
+    try { assertTaskPolicy([declaration], scheduler.policy); } catch { return null; }
+    if (task.maxAttempts > declaration.maxAttempts || task.maxRuntimeSeconds > declaration.maxRuntimeSeconds || task.declaredConcurrency > declaration.concurrency) return null;
+    if (slots.filter(s => s.installationId === candidate.installationId && s.name === declaration.name && s.version === declaration.version).length >= Math.min(task.declaredConcurrency, declaration.concurrency)) return null;
+    try { await validateTaskPrincipal(tx, candidate.installationId, principalForTask(task)); }
+    catch { await tx.pluginTask.update({ where: { id: task.id }, data: { lastError: { code: 'PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED', message: 'The bound principal is no longer active for this installation.' } } }); return null; }
+    const now = await taskDatabaseTime(tx);
+    const claimId = randomUUID();
+    const fence = hook ? hook.fence + 1n : task.fence + 1n;
+    const runtime = hook?.maxRuntimeSeconds ?? task.maxRuntimeSeconds;
+    if (hook && runtime > scheduler.policy.hookSeconds) return null;
+    const deadlineAt = new Date(now.getTime() + runtime * 1000);
+    const leaseUntil = new Date(Math.min(deadlineAt.getTime(), now.getTime() + (this.options.leaseMs ?? 60_000)));
+    if (hook) await tx.pluginTaskFinalFailure.update({ where: { taskId: task.id }, data: { status: 'RUNNING', claimToken: claimId, fence, bootNonce, zipHash: installation.plugin.zipHash, generation: installation.protectionGeneration, leaseUntil, deadlineAt, startedAt: now } });
+    else {
+      await tx.pluginTask.update({ where: { id: task.id }, data: { status: 'RUNNING', claimToken: claimId, fence, claimedByBootNonce: bootNonce, zipHash: installation.plugin.zipHash, generation: installation.protectionGeneration, leaseUntil, deadlineAt, executionSequence: { increment: 1 }, startedAt: now, pauseReason: null, pausedAt: null } });
+      await tx.pluginTaskAttempt.create({ data: { taskId: task.id, executionSequence: task.executionSequence + 1, chargedAttempt: task.attemptsCharged + 1, claimToken: claimId, fence, bootNonce, startedAt: now } });
+    }
+    const slot = await tx.pluginTaskExecutionSlot.create({ data: { installationId: candidate.installationId, taskId: task.id, kind: hook ? 'FINAL_FAILURE' : 'TASK', name: task.name, version: task.version, claimToken: claimId, fence, bootNonce, lastObservedAt: now } });
+    const sequence = scheduler.roundSequence + 1n;
+    await tx.pluginTaskScheduler.update({ where: { id: 'singleton' }, data: { roundSequence: sequence } });
+    await tx.pluginTaskFairness.upsert({ where: { installationId: candidate.installationId }, create: { installationId: candidate.installationId, lastServedSequence: sequence }, update: { lastServedSequence: sequence } });
+    return { task: await tx.pluginTask.findUniqueOrThrow({ where: { id: task.id } }), hook: hook ? await tx.pluginTaskFinalFailure.findUniqueOrThrow({ where: { taskId: task.id } }) : null, claimId, fence, generation: installation.protectionGeneration, zipHash: installation.plugin.zipHash!, bootNonce, deadlineAt, slotId: slot.id };
+  }
   private async claim(): Promise<TaskClaim | null> {
     const bootNonce = await ensureCoreProcess('worker');
-    return prisma.$transaction(async tx => {
-      const scheduler = await lockTaskScheduler(tx);
-      const slots = await tx.pluginTaskExecutionSlot.findMany({ where: { state: { in: occupiedTaskSlots } } });
-      if (slots.length >= scheduler.policy.globalSlots) return null;
-      const installations = await tx.$queryRaw<Array<{ id: string }>>`SELECT i.id FROM public.plugin_installations i JOIN public.plugin_installs p ON p.slug = i."pluginSlug" LEFT JOIN public.plugin_task_fairness f ON f."installationId" = i.id WHERE i.enabled AND i."deletedAt" IS NULL AND p."deletedAt" IS NULL AND NOT i."taskDependencyUnavailable" ORDER BY coalesce(f."lastServedSequence",0), i.id`;
-      for (const candidate of installations) {
-        if (this.options.installationIds && !this.options.installationIds.includes(candidate.id) || slots.filter(s => s.installationId === candidate.id).length >= scheduler.policy.installationSlots) continue;
-        await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${candidate.id} FOR UPDATE`;
-        const installation = await tx.pluginInstallation.findUniqueOrThrow({ where: { id: candidate.id }, include: { plugin: true } });
-        if (await tx.pluginMigrationOperation.findFirst({ where: { slug: installation.pluginSlug, phase: { in: ['PAUSING', 'MIGRATING', 'PUBLISHING', 'NEEDS_RECOVERY'] } }, select: { id: true } })) continue;
-        const declarations = (installation.plugin.manifestJson as unknown as { tasks?: PluginTaskDeclaration[] }).tasks ?? [];
-        const principalEligible = Prisma.sql`(t."principalId" IS NULL OR EXISTS(SELECT 1 FROM public.users u JOIN public.plugin_principals r ON r."principalId"=u.id AND r."installationId"=t."installationId" AND r."principalType"=t."principalType" WHERE u.id=t."principalId" AND u."isActive" AND u."removedAt" IS NULL AND ((t."principalType"='CUSTOMER' AND u.role='USER') OR (t."principalType"='ADMIN' AND u.role='ADMIN'))))`;
-        const tasks = await tx.$queryRaw<StoredTask[]>`SELECT * FROM public.plugin_tasks WHERE id IN (SELECT DISTINCT ON (t.name,t.version) t.id FROM public.plugin_tasks t WHERE t."installationId" = ${candidate.id} AND t.status = 'PENDING' AND t."nextAttemptAt" <= clock_timestamp() AND ${principalEligible} ORDER BY t.name,t.version,t."nextAttemptAt",t.id) ORDER BY "nextAttemptAt", id FOR UPDATE SKIP LOCKED`;
-        const hookIds = await tx.$queryRaw<Array<{ taskId: string }>>`SELECT h."taskId" FROM public.plugin_task_final_failures h WHERE h."taskId" IN (SELECT DISTINCT ON (c.name,c.version) c."taskId" FROM public.plugin_task_final_failures c JOIN public.plugin_tasks t ON t.id=c."taskId" WHERE t."installationId"=${candidate.id} AND c.status='PENDING' AND ${principalEligible} AND NOT EXISTS(SELECT 1 FROM public.plugin_task_execution_slots s WHERE s."taskId"=t.id AND s.kind='TASK' AND s.state IN ('ACTIVE','LINGERING')) ORDER BY c.name,c.version,c."createdAt",c."taskId") ORDER BY h."createdAt",h."taskId" FOR UPDATE SKIP LOCKED`;
-        const hooks = await tx.pluginTaskFinalFailure.findMany({ where: { taskId: { in: hookIds.map(h => h.taskId) } }, orderBy: { createdAt: 'asc' }, include: { task: true } });
-        const due = [...tasks.map(task => ({ task, hook: null as typeof hooks[number] | null, at: task.nextAttemptAt })), ...hooks.filter(h => !slots.some(s => s.taskId === h.taskId && s.kind === 'TASK')).map(hook => ({ task: hook.task, hook, at: hook.createdAt }))].sort((a, b) => a.at.getTime() - b.at.getTime() || a.task.id.localeCompare(b.task.id));
-        for (const item of due) {
-          const declaration = declarations.find(d => d.name === item.task.name && d.version === item.task.version);
-          if (!declaration || item.hook && !declaration.onFinalFailure) continue;
-          try { assertTaskPolicy([declaration], scheduler.policy); } catch { continue; }
-          if (item.task.maxAttempts > declaration.maxAttempts || item.task.maxRuntimeSeconds > declaration.maxRuntimeSeconds || item.task.declaredConcurrency > declaration.concurrency) continue;
-          if (slots.filter(s => s.installationId === candidate.id && s.name === declaration.name && s.version === declaration.version).length >= Math.min(item.task.declaredConcurrency, declaration.concurrency)) continue;
-          try { await validateTaskPrincipal(tx, candidate.id, principalForTask(item.task)); }
-          catch { await tx.pluginTask.update({ where: { id: item.task.id }, data: { lastError: { code: 'PLUGIN_TASK_PRINCIPAL_NOT_ALLOWED', message: 'The bound principal is no longer active for this installation.' } } }); continue; }
-          const now = await taskDatabaseTime(tx);
-          const claimId = randomUUID();
-          const fence = item.hook ? item.hook.fence + 1n : item.task.fence + 1n;
-          const runtime = item.hook?.maxRuntimeSeconds ?? item.task.maxRuntimeSeconds;
-          if (item.hook && runtime > scheduler.policy.hookSeconds) continue;
-          const deadlineAt = new Date(now.getTime() + runtime * 1000);
-          const leaseUntil = new Date(Math.min(deadlineAt.getTime(), now.getTime() + (this.options.leaseMs ?? 60_000)));
-          if (item.hook) await tx.pluginTaskFinalFailure.update({ where: { taskId: item.task.id }, data: { status: 'RUNNING', claimToken: claimId, fence, bootNonce, zipHash: installation.plugin.zipHash, generation: installation.protectionGeneration, leaseUntil, deadlineAt, startedAt: now } });
-          else {
-            await tx.pluginTask.update({ where: { id: item.task.id }, data: { status: 'RUNNING', claimToken: claimId, fence, claimedByBootNonce: bootNonce, zipHash: installation.plugin.zipHash, generation: installation.protectionGeneration, leaseUntil, deadlineAt, executionSequence: { increment: 1 }, startedAt: now, pauseReason: null, pausedAt: null } });
-            await tx.pluginTaskAttempt.create({ data: { taskId: item.task.id, executionSequence: item.task.executionSequence + 1, chargedAttempt: item.task.attemptsCharged + 1, claimToken: claimId, fence, bootNonce, startedAt: now } });
-          }
-          const slot = await tx.pluginTaskExecutionSlot.create({ data: { installationId: candidate.id, taskId: item.task.id, kind: item.hook ? 'FINAL_FAILURE' : 'TASK', name: item.task.name, version: item.task.version, claimToken: claimId, fence, bootNonce, lastObservedAt: now } });
-          const sequence = scheduler.roundSequence + 1n;
-          await tx.pluginTaskScheduler.update({ where: { id: 'singleton' }, data: { roundSequence: sequence } });
-          await tx.pluginTaskFairness.upsert({ where: { installationId: candidate.id }, create: { installationId: candidate.id, lastServedSequence: sequence }, update: { lastServedSequence: sequence } });
-          return { task: await tx.pluginTask.findUniqueOrThrow({ where: { id: item.task.id } }), hook: item.hook ? await tx.pluginTaskFinalFailure.findUniqueOrThrow({ where: { taskId: item.task.id } }) : null, claimId, fence, generation: installation.protectionGeneration, zipHash: installation.plugin.zipHash!, bootNonce, deadlineAt, slotId: slot.id };
-        }
-      }
-      return null;
-    });
+    const candidates = await this.scanCandidates();
+    for (const candidate of candidates) {
+      const claim = await prisma.$transaction(async tx => this.claimCandidate(tx, candidate, bootNonce));
+      if (claim) return claim;
+    }
+    return null;
   }
   private async heartbeat(claim: TaskClaim, progress?: unknown): Promise<void> {
     await prisma.$transaction(async tx => {
@@ -215,38 +297,102 @@ export class PluginTaskWorker {
       if (installation) await recordPluginFailure(installation.pluginSlug, new Error(`Task execution failed: ${safe!.code}`), claim.hook ? 'task-final-failure' : 'task', installation.id);
     }
   }
-  private async recover(): Promise<void> {
-    const failures: Array<{ slug: string; installationId: string }> = [];
-    await prisma.$transaction(async tx => {
-      await lockTaskScheduler(tx);
-      const now = await taskDatabaseTime(tx);
-      await tx.pluginTaskExecutionSlot.updateMany({ where: { state: { in: occupiedTaskSlots }, owner: { state: { in: ['DEAD_CONFIRMED', 'QUIESCENT'] } } }, data: { state: 'RELEASED', releasedAt: now } });
-      const installations = await tx.pluginInstallation.findMany({ where: this.options.installationIds ? { id: { in: this.options.installationIds } } : {}, include: { plugin: true }, orderBy: { id: 'asc' } });
-      for (const installation of installations) {
-        if (!installation.enabled || installation.deletedAt || installation.plugin.deletedAt || installation.taskDependencyUnavailable) {
-          await transitionInstallationTasks(tx, installation.id, installation.deletedAt || installation.plugin.deletedAt ? 'CANCEL' : 'PAUSE', installation.taskDependencyUnavailable ? 'dependency-unavailable' : 'plugin-disabled'); continue;
+  /**
+   * The recovery of one installation.
+   *
+   * The expired claims of the installation are settled and its tasks are
+   * transitioned when the plugin is disabled or being replaced. The work
+   * stays inside the transaction of the caller, so the recovery of an
+   * installation is atomic.
+   */
+  private async recoverInstallation(tx: TaskTransaction, installation: RecoveryInstallation, now: Date, recovered: Array<{ slug: string; installationId: string }>): Promise<void> {
+    if (!installation.enabled || installation.deletedAt || installation.plugin.deletedAt || installation.taskDependencyUnavailable) {
+      await transitionInstallationTasks(tx, installation.id, installation.deletedAt || installation.plugin.deletedAt ? 'CANCEL' : 'PAUSE', installation.taskDependencyUnavailable ? 'dependency-unavailable' : 'plugin-disabled');
+      return;
+    }
+    if (await tx.pluginMigrationOperation.findFirst({ where: { slug: installation.pluginSlug, phase: { in: ['PAUSING', 'MIGRATING', 'PUBLISHING', 'NEEDS_RECOVERY'] } }, select: { id: true } })) {
+      await transitionInstallationTasks(tx, installation.id, 'UPDATE', 'PACKAGE_UPDATING', (installation.plugin.manifestJson as unknown as { tasks?: PluginTaskDeclaration[] }).tasks ?? []);
+      return;
+    }
+    let taskCursor: string | undefined;
+    for (;;) {
+      const running = await tx.pluginTask.findMany({ where: { installationId: installation.id, status: 'RUNNING', ...(taskCursor ? { id: { gt: taskCursor } } : {}) }, orderBy: { id: 'asc' }, take: RECOVERY_TASK_BATCH });
+      if (!running.length) break;
+      let replaced = false;
+      for (const task of running) {
+        if (task.generation !== installation.protectionGeneration || task.zipHash !== installation.plugin.zipHash) {
+          await transitionInstallationTasks(tx, installation.id, 'UPDATE', 'PACKAGE_UPDATED', (installation.plugin.manifestJson as unknown as { tasks?: PluginTaskDeclaration[] }).tasks ?? []);
+          replaced = true; break;
         }
-        if (await tx.pluginMigrationOperation.findFirst({ where: { slug: installation.pluginSlug, phase: { in: ['PAUSING', 'MIGRATING', 'PUBLISHING', 'NEEDS_RECOVERY'] } }, select: { id: true } })) {
-          await transitionInstallationTasks(tx, installation.id, 'UPDATE', 'PACKAGE_UPDATING', (installation.plugin.manifestJson as unknown as { tasks?: PluginTaskDeclaration[] }).tasks ?? []); continue;
-        }
-        const tasks = await tx.pluginTask.findMany({ where: { installationId: installation.id, status: 'RUNNING' } });
-        for (const task of tasks) {
-          if (task.generation !== installation.protectionGeneration || task.zipHash !== installation.plugin.zipHash) {
-            await transitionInstallationTasks(tx, installation.id, 'UPDATE', 'PACKAGE_UPDATED', (installation.plugin.manifestJson as unknown as { tasks?: PluginTaskDeclaration[] }).tasks ?? []); break;
-          }
-          if (task.leaseUntil && task.leaseUntil <= now) {
-            const lastError = { code: 'PLUGIN_TIMEOUT', message: 'Plugin task lease expired.' };
-            await tx.pluginTaskAttempt.updateMany({ where: { taskId: task.id, executionSequence: task.executionSequence, finishedAt: null }, data: { outcome: 'TIMED_OUT', finishedAt: now, safeError: lastError } });
-            const charged = task.attemptsCharged + 1;
-            await tx.pluginTask.update({ where: { id: task.id }, data: { status: charged >= task.maxAttempts ? 'FAILED' : 'PENDING', attemptsCharged: charged, lastError, claimToken: null, claimedByBootNonce: null, leaseUntil: null, deadlineAt: null, finishedAt: charged >= task.maxAttempts ? now : null, nextAttemptAt: new Date(now.getTime() + (this.options.retryMs ?? RETRIES)[Math.min(charged - 1, (this.options.retryMs ?? RETRIES).length - 1)]) } });
-            failures.push({ slug: installation.pluginSlug, installationId: installation.id });
-            await tx.pluginTaskExecutionSlot.updateMany({ where: { taskId: task.id, kind: 'TASK', fence: task.fence, state: 'ACTIVE' }, data: { state: 'LINGERING' } });
-            if (charged >= task.maxAttempts) await createFinalFailure(tx, task);
-          }
+        if (task.leaseUntil && task.leaseUntil <= now) {
+          const lastError = { code: 'PLUGIN_TIMEOUT', message: 'Plugin task lease expired.' };
+          await tx.pluginTaskAttempt.updateMany({ where: { taskId: task.id, executionSequence: task.executionSequence, finishedAt: null }, data: { outcome: 'TIMED_OUT', finishedAt: now, safeError: lastError } });
+          const charged = task.attemptsCharged + 1;
+          await tx.pluginTask.update({ where: { id: task.id }, data: { status: charged >= task.maxAttempts ? 'FAILED' : 'PENDING', attemptsCharged: charged, lastError, claimToken: null, claimedByBootNonce: null, leaseUntil: null, deadlineAt: null, finishedAt: charged >= task.maxAttempts ? now : null, nextAttemptAt: new Date(now.getTime() + (this.options.retryMs ?? RETRIES)[Math.min(charged - 1, (this.options.retryMs ?? RETRIES).length - 1)]) } });
+          recovered.push({ slug: installation.pluginSlug, installationId: installation.id });
+          await tx.pluginTaskExecutionSlot.updateMany({ where: { taskId: task.id, kind: 'TASK', fence: task.fence, state: 'ACTIVE' }, data: { state: 'LINGERING' } });
+          if (charged >= task.maxAttempts) await createFinalFailure(tx, task);
         }
       }
-      await tx.pluginTaskFinalFailure.updateMany({ where: { status: 'RUNNING', leaseUntil: { lte: now }, ...(this.options.installationIds ? { task:{installationId:{in:this.options.installationIds}} } : {}) }, data: { status: 'UNKNOWN', safeError: { code:'PLUGIN_TIMEOUT',message:'Final-failure hook outcome is unknown after lease expiry.' }, claimToken: null, leaseUntil: null, deadlineAt: null, finishedAt: now } });
-    });
+      if (replaced) break;
+      taskCursor = running[running.length - 1].id;
+      if (running.length < RECOVERY_TASK_BATCH) break;
+    }
+  }
+  /**
+   * The recovery of the expired claims.
+   *
+   * The recovery covers the installations in bounded batches, one
+   * transaction per batch, and the tasks of a batch in a bounded budget. A
+   * recovery of many installations therefore never holds one transaction
+   * open for the whole sweep.
+   */
+  private async recover(): Promise<void> {
+    const failures: Array<{ slug: string; installationId: string }> = [];
+    let cursor: string | undefined;
+    let firstBatch = true;
+    for (;;) {
+      const batch = await prisma.$transaction(async tx => {
+        await lockTaskScheduler(tx);
+        const now = await taskDatabaseTime(tx);
+        await tx.pluginTaskExecutionSlot.updateMany({ where: { state: { in: occupiedTaskSlots }, owner: { state: { in: ['DEAD_CONFIRMED', 'QUIESCENT'] } } }, data: { state: 'RELEASED', releasedAt: now } });
+        if (firstBatch) {
+          firstBatch = false;
+          await tx.pluginTaskFinalFailure.updateMany({ where: { status: 'RUNNING', leaseUntil: { lte: now }, ...(this.options.installationIds ? { task:{installationId:{in:this.options.installationIds}} } : {}) }, data: { status: 'UNKNOWN', safeError: { code:'PLUGIN_TIMEOUT',message:'Final-failure hook outcome is unknown after lease expiry.' }, claimToken: null, leaseUntil: null, deadlineAt: null, finishedAt: now } });
+        }
+        const installations = await tx.pluginInstallation.findMany({ where: this.options.installationIds ? { id: { in: this.options.installationIds } } : {}, include: { plugin: true }, orderBy: { id: 'asc' }, take: RECOVERY_INSTALLATION_BATCH + 1, ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}) });
+        const page = installations.slice(0, RECOVERY_INSTALLATION_BATCH);
+        const recovered: Array<{ slug: string; installationId: string }> = [];
+        // The budget of this transaction: the number of tasks the recovery may
+        // touch. An installation that does not fit is left to the next
+        // transaction, so a recovery transaction never covers an unbounded
+        // amount of work.
+        let budget = RECOVERY_TASK_BUDGET;
+        let consumed = 0;
+        for (const installation of page) {
+          const tasks = await tx.pluginTask.count({ where: { installationId: installation.id, status: { in: ['PENDING', 'RUNNING'] } } });
+          if (consumed > 0 && tasks > budget) break;
+          try {
+            await this.recoverInstallation(tx, installation, now, recovered);
+          } catch (error) {
+            // An installation with more active tasks than one transition may
+            // cover fails the transition loudly. Its tasks stay as they are and
+            // the recovery moves on to the next installation instead of
+            // rolling the whole sweep back.
+            if (!(error instanceof ApiError) || error.code !== 'PLUGIN_TASK_LIMIT_CONFLICT') throw error;
+            console.error(JSON.stringify({ event: 'plugin_task_recovery_limit', slug: installation.pluginSlug, installationId: installation.id, tasks }));
+            consumed += 1;
+            continue;
+          }
+          budget -= tasks;
+          consumed += 1;
+        }
+        return { recovered, more: installations.length > RECOVERY_INSTALLATION_BATCH || consumed < page.length, nextCursor: consumed ? page[consumed - 1].id : undefined };
+      });
+      failures.push(...batch.recovered);
+      if (!batch.more || !batch.nextCursor) break;
+      cursor = batch.nextCursor;
+    }
     for (const failure of failures) await recordPluginFailure(failure.slug, new Error('Plugin task lease expired.'), 'task-recovery', failure.installationId);
   }
 }

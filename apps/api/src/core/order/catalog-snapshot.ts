@@ -40,7 +40,16 @@ export function snapshotProductName(snapshot: CatalogSnapshot, locale?: string |
 
 export function isOrderItemCatalogRestriction(error: unknown): boolean {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
-    return /order_items_(productId|variantId)_fkey/.test(String(error.meta?.field_name));
+    // Prisma 6.19 names the violated foreign key in `meta.constraint`, older
+    // versions report the referenced column in `meta.field_name`. The
+    // constraint of the order items is the one that protects the ordered
+    // catalogue, so both places and the message of the error are read.
+    const meta = (error.meta ?? {}) as Record<string, unknown>;
+    const names = [meta.constraint, meta.field_name]
+      .filter((value): value is string => typeof value === 'string')
+      .join(' ');
+    return /order_items_(productId|variantId)_fkey/.test(names)
+      || /order_items_(productId|variantId)_fkey/.test(error.message);
   }
   // PostgreSQL 18 reports RESTRICT violations as 23001, which Prisma 6 exposes as an unknown request error.
   return error instanceof Prisma.PrismaClientUnknownRequestError && /code: "23001"/.test(error.message) &&

@@ -34,13 +34,27 @@ export class PluginPageDeclarationService {
   static async declarations(surface: 'shop' | 'admin', slug?: string) {
     const installations = await prisma.pluginInstallation.findMany({ where: { instanceKey: 'default', enabled: true,
       deletedAt: null, ...(slug ? { pluginSlug: slug } : {}), plugin: { deletedAt: null } }, include: { plugin: true }, orderBy: { pluginSlug: 'asc' } });
-    const result = [];
+    const eligible: { installation: typeof installations[number]; manifest: ReturnType<typeof readStoredPluginManifest> }[] = [];
     for (const installation of installations) {
       if (!installation.plugin.zipHash || pluginSigningError(installation.plugin) || installation.taskDependencyUnavailable) continue;
       const manifest = readStoredPluginManifest(installation.plugin);
       if (manifest.serviceDependencies?.length) continue;
-      if (await prisma.pluginMigrationOperation.findFirst({ where: { slug: installation.pluginSlug,
-        phase: { in: ['PAUSING', 'MIGRATING', 'PUBLISHING', 'NEEDS_RECOVERY'] } }, select: { id: true } })) continue;
+      eligible.push({ installation, manifest });
+    }
+    // One maintenance probe covers every declared plugin. A plugin without a
+    // maintenance operation stays unknown, exactly as it is today.
+    const maintenance = new Set<string>();
+    if (eligible.length) {
+      const operations = await prisma.pluginMigrationOperation.findMany({
+        where: { slug: { in: eligible.map(entry => entry.installation.pluginSlug) },
+          phase: { in: ['PAUSING', 'MIGRATING', 'PUBLISHING', 'NEEDS_RECOVERY'] } },
+        select: { slug: true },
+      });
+      for (const operation of operations) maintenance.add(operation.slug);
+    }
+    const result = [];
+    for (const { installation, manifest } of eligible) {
+      if (maintenance.has(installation.pluginSlug)) continue;
       const pages = surface === 'shop' ? manifest.ui?.storefrontPages : manifest.ui?.adminPages;
       if (pages?.length) result.push({ slug: installation.pluginSlug, pages: pages.map(projectPage) });
     }

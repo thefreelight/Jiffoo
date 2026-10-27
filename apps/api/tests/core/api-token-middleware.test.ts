@@ -1,21 +1,26 @@
 /**
  * API Token Middleware Integration Tests
  *
- * Tests the dualAuthMiddleware and ApiTokenService lifecycle:
+ * Tests the dualAuthMiddleware and ApiTokenService lifecycle against the
+ * `api_tokens` table:
  * - Token creation, validation, revocation
+ * - The conditional writes that make a revocation final
  * - dualAuthMiddleware with API token (jiffoo_ prefix)
  * - dualAuthMiddleware with JWT (falls back to standard auth)
  * - Scope enforcement
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { createHash } from 'crypto';
 
 // Mock dependencies before importing
 vi.mock('@/config/database', () => ({
   prisma: {
-    systemSettings: {
+    apiToken: {
+      create: vi.fn(),
       findUnique: vi.fn(),
-      update: vi.fn(),
+      findMany: vi.fn(),
+      updateMany: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
@@ -46,21 +51,41 @@ vi.mock('@/utils/jwt', () => ({
 }));
 
 import { prisma } from '@/config/database';
-import { CacheService } from '@/core/cache/service';
 import { ApiTokenService } from '@/core/auth/api-token';
 import { dualAuthMiddleware } from '@/core/auth/middleware';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-const mockPrismaSettings = prisma.systemSettings as {
-  findUnique: ReturnType<typeof vi.fn>;
-  update: ReturnType<typeof vi.fn>;
+/**
+ * The rows of the `api_tokens` table of the test double. The double answers
+ * the same queries the real client answers, including the conditional
+ * `updateMany` predicate, so the test observes the write shapes of the module.
+ */
+type TokenRow = {
+  id: string;
+  tokenHash: string;
+  label: string;
+  scopes: string[];
+  createdAt: Date;
+  lastUsedAt: Date | null;
+  revokedAt: Date | null;
 };
 
-const mockCache = CacheService as {
-  get: ReturnType<typeof vi.fn>;
-  set: ReturnType<typeof vi.fn>;
-  delete: ReturnType<typeof vi.fn>;
+const rows: TokenRow[] = [];
+
+function matches(row: TokenRow, where: Record<string, unknown>): boolean {
+  return Object.entries(where).every(([key, value]) => (row as unknown as Record<string, unknown>)[key] === value);
+}
+
+const mockApiToken = prisma.apiToken as unknown as {
+  create: ReturnType<typeof vi.fn>;
+  findUnique: ReturnType<typeof vi.fn>;
+  findMany: ReturnType<typeof vi.fn>;
+  updateMany: ReturnType<typeof vi.fn>;
 };
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 function makeMockReply() {
   const reply: any = {
@@ -83,16 +108,35 @@ function makeMockRequest(authHeader?: string) {
 describe('ApiTokenService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCache.get.mockResolvedValue(null);
+    rows.length = 0;
+
+    mockApiToken.create.mockImplementation(async ({ data }: any) => {
+      const row: TokenRow = {
+        id: data.id,
+        tokenHash: data.tokenHash,
+        label: data.label,
+        scopes: data.scopes,
+        createdAt: new Date(),
+        lastUsedAt: null,
+        revokedAt: null,
+      };
+      rows.push(row);
+      return { ...row };
+    });
+    mockApiToken.findUnique.mockImplementation(async ({ where }: any) => {
+      const row = rows.find((candidate) => matches(candidate, where));
+      return row ? { ...row } : null;
+    });
+    mockApiToken.findMany.mockImplementation(async ({ where }: any) =>
+      rows.filter((candidate) => matches(candidate, where)).map((row) => ({ ...row })));
+    mockApiToken.updateMany.mockImplementation(async ({ where, data }: any) => {
+      const matched = rows.filter((candidate) => matches(candidate, where));
+      matched.forEach((row) => Object.assign(row, data));
+      return { count: matched.length };
+    });
   });
 
   it('creates a token and returns the raw value', async () => {
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify({}),
-    });
-    mockPrismaSettings.update.mockResolvedValue({});
-
     const result = await ApiTokenService.createToken('Test Token', ['catalog:read', 'cart:write']);
 
     expect(result.token).toMatch(/^jiffoo_/);
@@ -101,116 +145,116 @@ describe('ApiTokenService', () => {
     expect(result.record.scopes).toEqual(['catalog:read', 'cart:write']);
     expect(result.record.revokedAt).toBeNull();
     expect(result.record.tokenHash).toBeTruthy();
+
+    // The row is stored in the table and the plaintext token is not.
+    expect(rows).toHaveLength(1);
+    expect(rows[0].tokenHash).toBe(hashToken(result.token));
+    expect(rows[0].tokenHash).not.toBe(result.token);
   });
 
-  it('validates a created token', async () => {
-    // First create
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify({}),
-    });
-    mockPrismaSettings.update.mockResolvedValue({});
+  it('issues a token with more entropy than the previous timestamp seed', async () => {
+    const first = await ApiTokenService.createToken('Entropy', ['catalog:read']);
+    const second = await ApiTokenService.createToken('Entropy', ['catalog:read']);
 
-    const { token } = await ApiTokenService.createToken('Valid Token', ['catalog:read']);
+    expect(first.token).not.toBe(second.token);
+    // 32 random bytes rendered as hex.
+    expect(first.token).toMatch(/^jiffoo_[0-9a-f]{64}$/);
+    expect(first.record.id).not.toBe(second.record.id);
+  });
 
-    // Invalidate cache so it reads from "db"
-    mockCache.get.mockResolvedValue(null);
-
-    // The update mock was called with the token record, simulate it being stored
-    const updateCall = mockPrismaSettings.update.mock.calls[0][0];
-    const storedSettings = JSON.parse(updateCall.data.settings);
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify(storedSettings),
-    });
+  it('validates a created token and stamps its usage with a conditional single-column update', async () => {
+    const { token, record } = await ApiTokenService.createToken('Valid Token', ['catalog:read']);
 
     const identity = await ApiTokenService.validateToken(token);
 
     expect(identity).not.toBeNull();
     expect(identity!.label).toBe('Valid Token');
     expect(identity!.scopes).toEqual(['catalog:read']);
+    expect(identity!.tokenId).toBe(record.id);
+
+    // The usage stamp is a conditional update of one column, never a write of
+    // a whole token row.
+    expect(mockApiToken.updateMany).toHaveBeenCalledWith({
+      where: { tokenHash: hashToken(token), revokedAt: null },
+      data: { lastUsedAt: expect.any(Date) },
+    });
+    expect(rows[0].lastUsedAt).toBeInstanceOf(Date);
   });
 
   it('rejects a revoked token', async () => {
-    // Create a token
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify({}),
-    });
-    mockPrismaSettings.update.mockResolvedValue({});
-
     const { token, record } = await ApiTokenService.createToken('Revoke Test', ['catalog:read']);
-
-    // Simulate stored state after creation
-    const updateCall = mockPrismaSettings.update.mock.calls[0][0];
-    const storedSettings = JSON.parse(updateCall.data.settings);
-
-    // Revoke
-    mockCache.get.mockResolvedValue(null);
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify(storedSettings),
-    });
 
     await ApiTokenService.revokeToken(record.id);
 
-    // Get updated state after revoke
-    const revokeCall = mockPrismaSettings.update.mock.calls[1][0];
-    const revokedSettings = JSON.parse(revokeCall.data.settings);
-
-    // Try to validate
-    mockCache.get.mockResolvedValue(null);
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify(revokedSettings),
+    // The revocation is a conditional update, so it cannot be lost and a
+    // concurrent usage stamp cannot undo it.
+    expect(mockApiToken.updateMany).toHaveBeenCalledWith({
+      where: { id: record.id, revokedAt: null },
+      data: { revokedAt: expect.any(Date) },
     });
+    expect(rows[0].revokedAt).toBeInstanceOf(Date);
 
     const identity = await ApiTokenService.validateToken(token);
     expect(identity).toBeNull();
   });
 
-  it('lists only non-revoked tokens', async () => {
-    const tokens = [
-      { id: 'tok_1', label: 'Active', scopes: ['catalog:read'], tokenHash: 'h1', createdAt: new Date().toISOString(), lastUsedAt: null, revokedAt: null },
-      { id: 'tok_2', label: 'Revoked', scopes: ['*'], tokenHash: 'h2', createdAt: new Date().toISOString(), lastUsedAt: null, revokedAt: new Date().toISOString() },
-    ];
+  it('answers NOT_FOUND for an unknown token and stays idempotent for a revoked one', async () => {
+    const { record } = await ApiTokenService.createToken('Idempotent', ['catalog:read']);
 
-    mockCache.get.mockResolvedValue(null);
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify({ apiTokens: tokens }),
-    });
+    await expect(ApiTokenService.revokeToken('tok_unknown')).rejects.toMatchObject({ code: 'NOT_FOUND' });
+
+    await ApiTokenService.revokeToken(record.id);
+    const revokedAt = rows[0].revokedAt;
+    await expect(ApiTokenService.revokeToken(record.id)).resolves.toBeUndefined();
+    expect(rows[0].revokedAt).toEqual(revokedAt);
+  });
+
+  it('lists only non-revoked tokens', async () => {
+    rows.push(
+      { id: 'tok_1', label: 'Active', scopes: ['catalog:read'], tokenHash: 'h1', createdAt: new Date(), lastUsedAt: null, revokedAt: null },
+      { id: 'tok_2', label: 'Revoked', scopes: ['*'], tokenHash: 'h2', createdAt: new Date(), lastUsedAt: null, revokedAt: new Date() },
+    );
 
     const active = await ApiTokenService.listTokens();
     expect(active).toHaveLength(1);
     expect(active[0].label).toBe('Active');
+    expect(active[0].revokedAt).toBeNull();
   });
 });
 
 describe('dualAuthMiddleware', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCache.get.mockResolvedValue(null);
+    rows.length = 0;
+
+    mockApiToken.create.mockImplementation(async ({ data }: any) => {
+      const row: TokenRow = {
+        id: data.id,
+        tokenHash: data.tokenHash,
+        label: data.label,
+        scopes: data.scopes,
+        createdAt: new Date(),
+        lastUsedAt: null,
+        revokedAt: null,
+      };
+      rows.push(row);
+      return { ...row };
+    });
+    mockApiToken.findUnique.mockImplementation(async ({ where }: any) => {
+      const row = rows.find((candidate) => matches(candidate, where));
+      return row ? { ...row } : null;
+    });
+    mockApiToken.findMany.mockImplementation(async ({ where }: any) =>
+      rows.filter((candidate) => matches(candidate, where)).map((row) => ({ ...row })));
+    mockApiToken.updateMany.mockImplementation(async ({ where, data }: any) => {
+      const matched = rows.filter((candidate) => matches(candidate, where));
+      matched.forEach((row) => Object.assign(row, data));
+      return { count: matched.length };
+    });
   });
 
   it('authenticates with API token (jiffoo_ prefix)', async () => {
-    // Create a token first
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify({}),
-    });
-    mockPrismaSettings.update.mockResolvedValue({});
-
     const { token } = await ApiTokenService.createToken('MCP Server', ['catalog:read', 'cart:write']);
-
-    // Simulate stored state
-    const updateCall = mockPrismaSettings.update.mock.calls[0][0];
-    const storedSettings = JSON.parse(updateCall.data.settings);
-    mockCache.get.mockResolvedValue(null);
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify(storedSettings),
-    });
 
     const request = makeMockRequest(`Bearer ${token}`);
     const reply = makeMockReply();
@@ -226,21 +270,7 @@ describe('dualAuthMiddleware', () => {
   });
 
   it('rejects API token with insufficient scope', async () => {
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify({}),
-    });
-    mockPrismaSettings.update.mockResolvedValue({});
-
     const { token } = await ApiTokenService.createToken('Limited', ['catalog:read']);
-
-    const updateCall = mockPrismaSettings.update.mock.calls[0][0];
-    const storedSettings = JSON.parse(updateCall.data.settings);
-    mockCache.get.mockResolvedValue(null);
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify(storedSettings),
-    });
 
     const request = makeMockRequest(`Bearer ${token}`);
     const reply = makeMockReply();
@@ -255,12 +285,6 @@ describe('dualAuthMiddleware', () => {
   });
 
   it('rejects invalid API token', async () => {
-    mockCache.get.mockResolvedValue(null);
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify({ apiTokens: [] }),
-    });
-
     const request = makeMockRequest('Bearer jiffoo_invalid_token');
     const reply = makeMockReply();
 
@@ -284,21 +308,7 @@ describe('dualAuthMiddleware', () => {
   });
 
   it('allows wildcard scope to pass any check', async () => {
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify({}),
-    });
-    mockPrismaSettings.update.mockResolvedValue({});
-
     const { token } = await ApiTokenService.createToken('Admin Token', ['*']);
-
-    const updateCall = mockPrismaSettings.update.mock.calls[0][0];
-    const storedSettings = JSON.parse(updateCall.data.settings);
-    mockCache.get.mockResolvedValue(null);
-    mockPrismaSettings.findUnique.mockResolvedValue({
-      id: 'system',
-      settings: JSON.stringify(storedSettings),
-    });
 
     const request = makeMockRequest(`Bearer ${token}`);
     const reply = makeMockReply();

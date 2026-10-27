@@ -84,14 +84,20 @@ export class AuthService {
       throw new ApiError('REGISTRATION_FAILED');
     }
 
-    const existingUsername = await prisma.user.findFirst({
-      where: { username: data.username },
-      select: { id: true },
-    });
-    if (existingUsername) throw new ApiError('REGISTRATION_FAILED');
-
     const hashedPassword = await PasswordUtils.hash(data.password);
     const user = await prisma.$transaction(async (tx) => {
+      // `users.username` carries no unique constraint, so two registrations of
+      // the same username could otherwise both insert and leave the account
+      // unloginable. The transaction-scoped advisory lock serializes the
+      // registrations of one username; the re-check inside the lock sees the
+      // row of the registration that won the race and answers
+      // REGISTRATION_FAILED instead of inserting a duplicate.
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`jiffoo:auth:username:${data.username}`}, 0))::text`;
+      const existingUsername = await tx.user.findFirst({
+        where: { username: data.username },
+        select: { id: true },
+      });
+      if (existingUsername) throw new ApiError('REGISTRATION_FAILED');
       const system = await tx.systemSettings.findUnique({ where: { id: 'system' }, select: { settings: true } });
       const settings = system?.settings && typeof system.settings === 'object' && !Array.isArray(system.settings)
         ? system.settings as Record<string, unknown> : {};

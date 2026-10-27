@@ -26,6 +26,7 @@ vi.mock('@/config/database', () => ({
       findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
       count: vi.fn(),
     },
     refund: { create: vi.fn(), findUnique: vi.fn() },
@@ -111,11 +112,13 @@ const mockPrisma = prisma as unknown as {
     findUnique: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
     count: ReturnType<typeof vi.fn>;
   };
   refund: { create: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn> };
   refundLedger: { create: ReturnType<typeof vi.fn> };
   paymentLedger: { create: ReturnType<typeof vi.fn> };
+  $queryRaw: ReturnType<typeof vi.fn>;
   $transaction: ReturnType<typeof vi.fn>;
 };
 
@@ -409,6 +412,147 @@ describe('OrderService', () => {
       expect(result.items).toHaveLength(1);
       expect(result.items[0].id).toBe('order-1');
       expect(result.items[0].currency).toBe('USD');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // the state transitions of the order state machine
+  // -----------------------------------------------------------------------
+
+  describe('applyPaymentSucceeded', () => {
+    it('writes the paid state with the state it read as its own predicate', async () => {
+      mockPrisma.order.findUnique.mockResolvedValue(makeCreatedOrder({ status: 'PENDING', paymentStatus: 'PENDING' }));
+      mockPrisma.order.updateMany.mockResolvedValue({ count: 1 });
+
+      const decision = await OrderService.applyPaymentSucceeded(mockPrisma as any, {
+        orderId: 'order-1', actorType: 'system',
+      });
+
+      expect(mockPrisma.order.updateMany).toHaveBeenCalledWith({
+        where: { id: 'order-1', status: 'PENDING', paymentStatus: 'PENDING' },
+        data: { status: 'PROCESSING', paymentStatus: 'PAID' },
+      });
+      expect(decision).toMatchObject({
+        status: 'PROCESSING', paymentStatus: 'PAID', changed: true,
+        refundRequired: false, refundReason: null,
+      });
+    });
+
+    it('does not overwrite a newer state and keeps the decision truthful when the expected state no longer holds', async () => {
+      mockPrisma.order.findUnique
+        .mockResolvedValueOnce(makeCreatedOrder({ status: 'PENDING', paymentStatus: 'PENDING' }))
+        .mockResolvedValueOnce(makeCreatedOrder({ status: 'PROCESSING', paymentStatus: 'PAID' }));
+      mockPrisma.order.updateMany.mockResolvedValue({ count: 0 });
+
+      const decision = await OrderService.applyPaymentSucceeded(mockPrisma as any, {
+        orderId: 'order-1', actorType: 'system',
+      });
+
+      // The write that lost the race carries the state it read, so it never
+      // overwrites the newer state of the order.
+      expect(mockPrisma.order.updateMany).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.order.updateMany).toHaveBeenCalledWith({
+        where: { id: 'order-1', status: 'PENDING', paymentStatus: 'PENDING' },
+        data: { status: 'PROCESSING', paymentStatus: 'PAID' },
+      });
+      expect(decision).toMatchObject({
+        status: 'PROCESSING', paymentStatus: 'PAID', changed: false,
+        refundRequired: true, refundReason: 'additional_successful_payment',
+      });
+    });
+  });
+
+  describe('applyPaymentFailed', () => {
+    it('writes the failed state with the state it read as its own predicate', async () => {
+      mockPrisma.order.findUnique.mockResolvedValue(makeCreatedOrder({ status: 'PENDING', paymentStatus: 'PENDING' }));
+      mockPrisma.order.updateMany.mockResolvedValue({ count: 1 });
+
+      const decision = await OrderService.applyPaymentFailed(mockPrisma as any, {
+        orderId: 'order-1', actorType: 'system',
+      });
+
+      expect(mockPrisma.order.updateMany).toHaveBeenCalledWith({
+        where: { id: 'order-1', status: 'PENDING', paymentStatus: 'PENDING' },
+        data: { paymentStatus: 'FAILED' },
+      });
+      expect(decision).toMatchObject({ status: 'PENDING', paymentStatus: 'FAILED', changed: true });
+    });
+
+    it('does not downgrade a paid order when the expected state no longer holds', async () => {
+      mockPrisma.order.findUnique
+        .mockResolvedValueOnce(makeCreatedOrder({ status: 'PENDING', paymentStatus: 'PENDING' }))
+        .mockResolvedValueOnce(makeCreatedOrder({ status: 'PROCESSING', paymentStatus: 'PAID' }));
+      mockPrisma.order.updateMany.mockResolvedValue({ count: 0 });
+
+      const decision = await OrderService.applyPaymentFailed(mockPrisma as any, {
+        orderId: 'order-1', actorType: 'system',
+      });
+
+      expect(mockPrisma.order.updateMany).toHaveBeenCalledTimes(1);
+      expect(decision).toMatchObject({ status: 'PROCESSING', paymentStatus: 'PAID', changed: false });
+    });
+  });
+
+  describe('markRefunded', () => {
+    it('writes the refunded state with the state it read as its own predicate', async () => {
+      mockPrisma.order.findUnique.mockResolvedValue(makeCreatedOrder({ status: 'PROCESSING', paymentStatus: 'PAID' }));
+      mockPrisma.order.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await OrderService.markRefunded(mockPrisma as any, {
+        orderId: 'order-1', actorId: 'admin-1',
+      });
+
+      expect(mockPrisma.order.updateMany).toHaveBeenCalledWith({
+        where: { id: 'order-1', status: 'PROCESSING', paymentStatus: 'PAID' },
+        data: { status: 'REFUNDED', paymentStatus: 'REFUNDED' },
+      });
+      expect(result).toMatchObject({ status: 'REFUNDED', paymentStatus: 'REFUNDED' });
+    });
+
+    it('does not refund an order whose state changed under the writer', async () => {
+      mockPrisma.order.findUnique
+        .mockResolvedValueOnce(makeCreatedOrder({ status: 'PROCESSING', paymentStatus: 'PAID' }))
+        .mockResolvedValueOnce(makeCreatedOrder({ status: 'REFUNDED', paymentStatus: 'REFUNDED' }));
+      mockPrisma.order.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        OrderService.markRefunded(mockPrisma as any, { orderId: 'order-1', actorId: 'admin-1' })
+      ).rejects.toMatchObject({ code: 'INVALID_ORDER_TRANSITION' });
+
+      expect(mockPrisma.order.updateMany).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('cancelOrderByAdmin', () => {
+    it('locks the order and writes the cancellation with the state it read as its own predicate', async () => {
+      mockPrisma.order.findUnique.mockResolvedValue(makeCreatedOrder({ status: 'PENDING', paymentStatus: 'PENDING' }));
+      mockPrisma.order.updateMany.mockResolvedValue({ count: 1 });
+
+      await OrderService.cancelOrderByAdmin(mockPrisma as any, {
+        orderId: 'order-1', cancelReason: 'Admin request',
+      });
+
+      // The state machine takes the order row lock itself, so every caller
+      // is safe.
+      expect(mockPrisma.$queryRaw).toHaveBeenCalled();
+      expect(mockPrisma.order.updateMany).toHaveBeenCalledWith({
+        where: { id: 'order-1', status: 'PENDING', paymentStatus: 'PENDING' },
+        data: { status: 'CANCELLED', cancelReason: 'Admin request', cancelledAt: expect.any(Date) },
+      });
+    });
+
+    it('does not cancel an order whose state changed under the writer', async () => {
+      mockPrisma.order.findUnique
+        .mockResolvedValueOnce(makeCreatedOrder({ status: 'PENDING', paymentStatus: 'PENDING' }))
+        .mockResolvedValueOnce(makeCreatedOrder({ status: 'SHIPPED', paymentStatus: 'PENDING' }));
+      mockPrisma.order.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        OrderService.cancelOrderByAdmin(mockPrisma as any, { orderId: 'order-1', cancelReason: 'Admin request' })
+      ).rejects.toMatchObject({ code: 'INVALID_ORDER_TRANSITION' });
+
+      expect(mockPrisma.order.updateMany).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.order.update).not.toHaveBeenCalled();
     });
   });
 });

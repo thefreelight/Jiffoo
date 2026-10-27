@@ -365,6 +365,7 @@ describe('Payments Endpoints', () => {
       const response = await app.inject({
         method: 'GET',
         url: `/api/v1/payments/verify/${fakeSessionId}`,
+        headers: { authorization: `Bearer ${userToken}` },
       });
 
       expect(response.statusCode).toBe(404);
@@ -372,14 +373,14 @@ describe('Payments Endpoints', () => {
       expect(body.error.code).toBe('NOT_FOUND');
     });
 
-    it('should be accessible without authentication', async () => {
+    it('should require authentication', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/api/v1/payments/verify/test-session-id',
       });
 
-      // Should not return 401 (payment verification is public)
-      expect(response.statusCode).not.toBe(401);
+      expect(response.statusCode).toBe(401);
+      expect(response.json().error.code).toBe('UNAUTHORIZED');
     });
 
   });

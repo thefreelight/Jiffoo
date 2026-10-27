@@ -174,7 +174,13 @@ export class AdminOrderService {
 
     // Try cache
     const filters = { status, search: searchText || undefined, paymentStatus: paymentStatus ?? null, paymentReview: paymentReview ?? null, ...options };
-    const cached = await CacheService.getOrderList(page, limit, filters);
+    // The cache version is captured once, before the query, and the entry is
+    // stored under that same version. A write that commits while the query
+    // runs bumps the version, so the stored entry lands under the old key,
+    // which no reader asks for any more, instead of poisoning the new key
+    // with the pre-write list.
+    const cacheVersion = await CacheService.getOrderVersion();
+    const cached = await CacheService.getOrderList(page, limit, filters, cacheVersion);
     if (cached) return cached;
 
     // Fetch currency once for all items (same store = same currency, cached)
@@ -236,7 +242,7 @@ export class AdminOrderService {
     };
 
     // Save to cache (30s TTL for admin orders)
-    await CacheService.setOrderList(page, limit, result, filters, 30);
+    await CacheService.setOrderList(page, limit, result, filters, 30, cacheVersion);
 
     return result;
   }
@@ -344,11 +350,30 @@ export class AdminOrderService {
       return null;
     }
 
-    const [customerOrderCount, customerOrderNumber] = await Promise.all([
+    // The detail reads are independent of each other, so they run concurrently
+    // instead of one after the other.
+    const [
+      customerOrderCount,
+      customerOrderNumber,
+      latestPayment,
+      refundRequiredPayments,
+      refundablePaymentCount,
+      paymentReviews,
+      currency,
+    ] = await Promise.all([
       prisma.order.count({ where: { userId: order.user!.id } }),
       prisma.order.count({ where: { userId: order.user!.id, OR: [
         { createdAt: { lt: order.createdAt } }, { createdAt: order.createdAt, id: { lte: order.id } },
       ] } }),
+      prisma.payment.findFirst({ where: { orderId }, orderBy: { attemptNumber: 'desc' }, select: { status: true } }),
+      prisma.paymentLedger.findMany({
+        where: { orderId, eventType: 'SUCCEEDED', refundRequired: true },
+        include: { refunds: { where: { status: 'COMPLETED' }, select: { reference: true } } },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.paymentLedger.count({ where: { orderId, eventType: 'SUCCEEDED', refundRequired: false, refunds: { none: { status: 'COMPLETED' } } } }),
+      prisma.payment.findMany({ where: { orderId }, orderBy: { attemptNumber: 'asc' } }),
+      systemSettingsService.getShopCurrency(),
     ]);
     const shippingAddr = order.shippingAddress ? {
       recipientName: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`.trim(),
@@ -361,18 +386,13 @@ export class AdminOrderService {
       country: order.shippingAddress.country
     } : null;
 
-    const latestPayment = await prisma.payment.findFirst({ where: { orderId }, orderBy: { attemptNumber: 'desc' }, select: { status: true } });
+    // The plugin contract call stays outside any transaction.
     const canRecordManualPayment = !['UNKNOWN', 'REQUIRES_REVIEW'].includes(latestPayment?.status || '') && (order.status === OrderStatus.PENDING || order.status === OrderStatus.CANCELLED) && order.paymentStatus !== PaymentStatus.PAID && order.paymentMethod
       ? await callContract(order.paymentMethod, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', {
-        storeCurrency: await systemSettingsService.getShopCurrency(),
+        storeCurrency: currency,
       }).then((description: { requiresManualConfirmation: boolean }) => description.requiresManualConfirmation).catch(() => false)
       : false;
 
-    const refundRequiredPayments = await prisma.paymentLedger.findMany({
-      where: { orderId, eventType: 'SUCCEEDED', refundRequired: true },
-      include: { refunds: { where: { status: 'COMPLETED' }, select: { reference: true } } },
-      orderBy: { createdAt: 'asc' },
-    });
     const refundResolutions = refundRequiredPayments.map(row => ({
       paymentId: row.paymentId, providerPaymentId: row.providerPaymentId!, amount: Number(row.amount), currency: row.currency,
       status: row.refunds.length ? 'resolved' as const : 'pending' as const,
@@ -388,9 +408,9 @@ export class AdminOrderService {
       paymentStatus: order.paymentStatus,
       refundRequired,
       refundResolutions,
-      canRefundOrder: await prisma.paymentLedger.count({ where: { orderId, eventType: 'SUCCEEDED', refundRequired: false, refunds: { none: { status: 'COMPLETED' } } } }) > 0,
+      canRefundOrder: refundablePaymentCount > 0,
       paymentAttemptState: latestPayment?.status ?? null,
-      paymentReviews: (await prisma.payment.findMany({ where: { orderId }, orderBy: { attemptNumber: 'asc' } })).map(payment => ({
+      paymentReviews: paymentReviews.map(payment => ({
         paymentId: payment.id, attemptNumber: payment.attemptNumber, status: payment.status, amount: Number(payment.amount), currency: payment.currency,
         failureReason: payment.failureReason, reviewResolution: payment.reviewResolution,
         reviewResolvedAt: payment.reviewResolvedAt?.toISOString() ?? null,
@@ -400,7 +420,7 @@ export class AdminOrderService {
       amounts: { subtotal: Number(order.subtotalAmount), shipping: Number(order.shippingAmount), tax: Number(order.taxAmount), taxInclusive: order.taxInclusive, total: Number(order.totalAmount) },
       timeline: order.statusHistory.map(row => ({ at: row.createdAt.toISOString(), fromStatus: row.fromStatus, toStatus: row.toStatus,
         fromPaymentStatus: row.fromPaymentStatus, toPaymentStatus: row.toPaymentStatus, actorType: row.actorType })),
-      currency: await systemSettingsService.getShopCurrency(),
+      currency,
       notes: null,
       paymentMethod: order.paymentMethod,
       canRecordManualPayment,

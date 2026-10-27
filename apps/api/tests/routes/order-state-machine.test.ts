@@ -207,6 +207,70 @@ describe('ORD-1 order state machine routes', () => {
     }
   });
 
+  it('does not overwrite a newer order state when the expected prior state no longer holds', async () => {
+    const id = await createOrder();
+    let moved = false;
+    const decision = await prisma.$transaction(async tx => {
+      const controlled = new Proxy(tx, {
+        get(target, key) {
+          if (key === 'order') return new Proxy(target.order, {
+            get(delegate, method) {
+              if (method === 'findUnique') return async (args: any) => {
+                const result = await delegate.findUnique(args);
+                if (!moved) {
+                  moved = true;
+                  // A concurrent writer pays the order before the state
+                  // machine writes its own transition.
+                  await prisma.order.update({ where: { id: args.where.id }, data: { status: 'PROCESSING', paymentStatus: 'PAID' } });
+                }
+                return result;
+              };
+              return Reflect.get(delegate, method);
+            },
+          });
+          return Reflect.get(target, key);
+        },
+      });
+      return OrderService.applyPaymentSucceeded(controlled as any, { orderId: id, actorType: 'system' });
+    });
+
+    // The capture did not overwrite the newer state of the order, and the
+    // decision says that the payment needs a refund.
+    expect(decision).toMatchObject({ status: 'PROCESSING', paymentStatus: 'PAID', changed: false, refundRequired: true });
+    expect(await prisma.order.findUniqueOrThrow({ where: { id } })).toMatchObject({ status: 'PROCESSING', paymentStatus: 'PAID' });
+  });
+
+  it('does not downgrade a paid order when a late failure finds a newer state', async () => {
+    const id = await createOrder();
+    let moved = false;
+    const decision = await prisma.$transaction(async tx => {
+      const controlled = new Proxy(tx, {
+        get(target, key) {
+          if (key === 'order') return new Proxy(target.order, {
+            get(delegate, method) {
+              if (method === 'findUnique') return async (args: any) => {
+                const result = await delegate.findUnique(args);
+                if (!moved) {
+                  moved = true;
+                  // A concurrent writer pays the order before the failure
+                  // writes its own transition.
+                  await prisma.order.update({ where: { id: args.where.id }, data: { paymentStatus: 'PAID' } });
+                }
+                return result;
+              };
+              return Reflect.get(delegate, method);
+            },
+          });
+          return Reflect.get(target, key);
+        },
+      });
+      return OrderService.applyPaymentFailed(controlled as any, { orderId: id, actorType: 'system' });
+    });
+
+    expect(decision).toMatchObject({ status: 'PENDING', paymentStatus: 'PAID', changed: false });
+    expect((await prisma.order.findUniqueOrThrow({ where: { id } })).paymentStatus).toBe('PAID');
+  });
+
   it.each([1, 0])('commits a complete order when a concurrent cart edit sets quantity to %s', async quantity => {
     const items = [{ productId: product.id, variantId: product.variants[0].id, quantity: 2 }];
     const expectedTotal = await checkoutTotal(app, customer, items, address, 'free-shipping:free');
