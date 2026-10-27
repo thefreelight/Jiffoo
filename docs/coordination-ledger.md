@@ -70,6 +70,7 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 
 | **WP-SA** — the plugin gateway moves to the neutral layer, the money error contract, the plugin installation projection (WP-SA) | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `091fcc83a` | `apps/api/src/core/extensions/runtime/{plugin-runtime,plugin-database-test-control,plugin-signing-policy,plugin-migration-gate,storage-admission-service}.ts` (moved); `apps/api/src/core/plugin-pages/page-declarations-service.ts` (moved); `apps/api/src/core/storage/theme-validator.ts` (moved); the consumers of the moved modules (`core/{checkout,order,payment,notifications,plugins,plugin-pages,plugin-storage,storage}/**`, `core/admin/{health-monitoring,order-management,plugin-management}/**`, `core/admin/extension-installer/**`, `infra/events/delivery.ts`, `server.ts`, `worker-runtime.ts`); `apps/api/src/core/extensions/registry/service.ts`; `apps/api/src/core/{checkout/service,order/pipeline}.ts`; `apps/api/tests/**` (import paths, the two registers, the money error test); `docs/coordination-ledger.md` | `jiffoo_core_test` (integration) | `wp-sa` (pi session `a8afed88-1630-4700-a2e4-de6770047d11`) | **uncommitted, in the tree** | §5v |
 | **WP-F1B** — the core calls the fulfilment contract and records the fulfilment on the shipment | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `e7f73487cf` | `apps/api/src/core/order/service.ts`, `apps/api/src/core/admin/order-management/{service,schemas}.ts`, `apps/api/tests/core/order-fulfillment-contract.test.ts`, `apps/api/prisma/schema/commerce.prisma` (the two columns of the shipment, formatted), `apps/api/prisma/migrations/20261026135338_order_fulfillment/**`, `docs/coordination-ledger.md` | `jiffoo_core_test` (integration) | `wp-f1b` (pi worker run, model `minimax/MiniMax-M3.1-Flash:medium`) | **uncommitted, in the tree** | §5y |
+| **S3-DATA** — the step 3 data-reliability remediation: the API tokens leave the settings blob, the cart writes are atomic, the payment verification is authenticated, the order state machine carries its own predicate, and the hot-path indexes land | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `448cb6c16` | `apps/api/prisma/schema/**`, `apps/api/prisma/migrations/2026102700*`, `apps/api/prisma/RAW_INDEXES.md`, `apps/api/src/core/{auth,cart,order,payment,inventory,product,plugins,plugin-pages,plugin-storage,cache,admin}/**`, `apps/api/src/infra/events/cleanup.ts`, `apps/api/tests/**` | `jiffoo_core_test` (integration) | `wp-s3-w1`, `wp-s3-w2a`..`wp-s3-w2g` (eight pi worker runs, two pi reviewer runs, five delta rounds; models `minimax/MiniMax-M3.1-Flash:medium` and `minimax/MiniMax-M3:medium`) | **committed `cccbae535`, gate green** | §5z |
 
 ## 4. Serial overlap set — never edited by both sides at once
 
@@ -1503,3 +1504,97 @@ content** (the guardrails are meant to be active for every worker on both sides)
 carries them as a commit; the integration worktree keeps them as an uncommitted working copy. If
 the integration side commits them, the merge sees the same blob and is conflict-free; if it
 prefers a clean tree, discard the working copy and take them from the lane branch.
+
+## 5z. Handover evidence — S3-DATA (the step 3 data-reliability remediation)
+
+**Commit:** `cccbae535`.
+
+### What the batch changed
+
+| Area | Before | After |
+|---|---|---|
+| API token storage | the token records were a JSON array inside `system_settings.settings`, and every operation on them was a read-modify-write of that whole blob | the records live in the new `api_tokens` table, owned by `core/auth`; a create, a revoke and the usage stamp are single-row conditional writes |
+| API token revocation | a concurrent usage write could carry the pre-revocation `revokedAt` back and resurrect the token | the usage stamp carries the `revokedAt: null` predicate, so it can never undo a revocation |
+| API token entropy | `sha256(Date.now() + Math.random())` | `crypto.randomBytes(32)` |
+| `users.username` | no unique constraint, so the registration check was a check-then-act | the registration serialises on a transaction-scoped advisory lock and re-checks inside the lock |
+| cart quantity | `existing + n` read-modify-write, outside a transaction | an atomic `{ increment: n }` on the line the compound unique key identifies |
+| cart line identity | nothing stopped two rows for one `(cartId, variantId)` | `@@unique([cartId, variantId])`, and the write goes through it |
+| cart write boundary | three independent statements | one transaction for the cart, its line and the quota rows |
+| `removeFromCart` | the `userId` argument was ignored, so any customer could delete any cart line | the delete is scoped to the cart of the caller and answers `NOT_FOUND` |
+| payment verification | reachable without credentials; it called the provider and wrote the payments table | it requires a JWT, is scoped to the owner of the order, and is rate-limited per customer and per payment |
+| reconciliation attempt budget | the verification endpoint ran the reconciler's budget branch | that branch is gated on the reconciliation claim, so only the background reconciler spends it |
+| order state machine | read-then-write; the safety came only from the caller's row lock | every transition carries the state it read as its own predicate and re-reads on a lost race |
+| admin cancellation | relied on its caller to hold the order lock | it takes the order lock itself |
+| order list cache | the customer-facing order writes never invalidated the cached admin list | the version is bumped after the transaction, and it is captured once so a bump during a query cannot poison the new key |
+| catalogue stock read | the stock was read through the global client, even inside a transaction | the catalogue reads it through the caller's transaction |
+| transaction boundaries | the outbox sweep, the plugin task claim and recovery, the plugin storage admission and the builtin sync held a transaction open across unbounded work | each is bounded, the filesystem and packaging work is outside the transaction, and no Redis call is left inside a transaction |
+| N+1 paths | the plugin list, the extension installer list, the plugin page declarations, the admin order detail and the generated SKU resolution queried per row | they are batched |
+
+### The contract changes this batch registers
+
+1. `GET /api/v1/payments/verify/:paymentId` — the success body is unchanged, and the route now also answers `401` without credentials, `404` for a payment that is not the caller's, `429` when a request budget is exhausted and `503` when shared protection is unavailable. The storefront reaches it through the shop BFF, which forwards the access token.
+2. `DELETE /api/v1/cart/items/:itemId` — a line that belongs to another customer now answers `404` instead of deleting it silently.
+3. `DELETE /api/v1/admin/api-tokens/:tokenId` — the shape is unchanged; the revocation now also records the administrator that made it, in `revokedBy`.
+4. The plugin task transition has a loud bound: an installation with more than 1000 active tasks answers `409 PLUGIN_TASK_LIMIT_CONFLICT` instead of running an unbounded transaction.
+
+### The table ownership this batch registers
+
+- `api_tokens` — owner `core/auth`. The api-token module no longer reaches the `system_settings` row of `core/settings` for the token list, so the `auth -> settings` edge of the boundary register is gone with it.
+
+### The gate evidence
+
+`pnpm verify:quick` on the integration lane (`jiffoo_core_test`), the planner-driven selection, against the tree of `cccbae535`:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Run changed API tests:
+   Start at:  20:05:06
+ Test Files  129 passed (129)
+      Tests  1947 passed (1947)
+Run Shop tests:
+   Start at:  20:26:12
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+Run API tests:
+   Start at:  20:26:32
+ Test Files  18 passed (18)
+      Tests  414 passed | 2 skipped (416)
+Run Admin tests:
+   Start at:  20:28:14
+ Test Files  4 passed (4)
+      Tests  37 passed (37)
+Run Shop tests:
+   Start at:  20:28:17
+ Test Files  2 passed (2)
+      Tests  3 passed (3)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 2.66s |
+| Lint Shop | PASS | 5.95s |
+| Reset test database | PASS | 2.29s |
+| Check Prisma migration drift | PASS | 1.20s |
+| Run changed API tests | PASS | 1270.10s |
+| Run Shop tests | PASS | 20.06s |
+| Run API tests | PASS | 102.26s |
+| Run Admin tests | PASS | 2.37s |
+| Run Shop tests | PASS | 1.71s |
+```
+
+The three new migrations apply cleanly on a fresh database, and the Prisma migration drift gate passes, so the datamodel and the database agree on every index the batch added.
+
+### The two review passes and what they changed
+
+- The P0/P1 review found one P1 and five P2. The P1 was a cache-version TOCTOU in the admin order list: the reader read the version before the query and again at write time, so a bump during the query stored the pre-write snapshot under the post-write key. The version is now captured once and threaded into the write.
+- The performance and transaction-boundary review found one P1 and five P2. The P1 was the builtin sync: the install branch still ran inside the outer transaction while the installer wrote through the global client, so a failure rolled the blob and the audit row back and left the install row and the published directory behind. The sync now holds a session-scoped advisory lock on its own connection and writes the install outside the transaction.
+- The coordinator arbitrated one conflict between two packages of this batch: making `consumePurchasedItems` join the per-cart advisory lock broke a pre-existing product test that requires a concurrent cart edit to be applied while the order still commits completely. The consumption keeps the line row lock - it runs inside the order transaction, which already holds the stock row lock, and the order must never wait for the cart.
+
+### What is still open
+
+- The plugin task transition bound of 1000 active tasks per installation is a behaviour change that the batch accepts deliberately: the alternative is the unbounded transaction the review forbids.
+- `apps/api/tests/core/plugin-tasks.test.ts` failed once in a serial full run with a load-sensitive timing assertion ("the task eventually succeeds") and passed in isolation and in the next full run. It is a flake of the existing test, not a defect of this batch, but it is worth a look.
+- The `api_tokens` table carries a `revokedBy` column that records the administrator that revoked the token; an installation that predates the migration has no value in it, which is the expected state for a null column.
