@@ -17,18 +17,11 @@ const BUILTIN_SYNC_LOCK = 824_301_551;
 const BUILTIN_SYNC_LOCK_WAIT_SECONDS = 120;
 /** The milliseconds between two attempts to take the sync lock. */
 const BUILTIN_SYNC_LOCK_RETRY_MS = 250;
+/** The milliseconds the sync transaction may hold its connection. */
+const BUILTIN_SYNC_TRANSACTION_TIMEOUT_MS = 120_000;
 
-/** One builtin package: its identity, its packed bytes and its source. */
+/** One builtin package: its identity, its packed bytes and its source directory. */
 type BuiltinPackage = { slug: string; version: string; directory: string; hash: string; bytes: Buffer };
-
-/**
- * The state of one builtin package when the sync starts.
- *
- * `audited` says that the staff audit of the installation exists. The audit
- * row is written in the transaction that completes the installation, so it is
- * the marker of an installation the sync finished.
- */
-type BuiltinState = { pkg: BuiltinPackage; installed: boolean; upToDate: boolean; audited: boolean };
 
 /**
  * Publish the package of a builtin plugin.
@@ -51,13 +44,13 @@ export async function publishBuiltinPackage(slug: string, zipHash: string, sourc
 /**
  * Reads and packs the builtin packages.
  *
- * The filesystem work happens before any transaction opens, so a slow disk
- * never holds a transaction or the sync lock.
+ * The filesystem work happens before the lock is taken and before any
+ * transaction opens, so a slow disk never holds the lock or a connection.
  */
 async function loadBuiltinPackages(builtinRoot: string): Promise<BuiltinPackage[]> {
   const entries = await fs.readdir(builtinRoot, { withFileTypes: true });
   const packages: BuiltinPackage[] = [];
-  for (const entry of entries.filter((candidate) => candidate.isDirectory()).sort((left, right) => left.name.localeCompare(right.name))) {
+  for (const entry of entries.filter(candidate => candidate.isDirectory()).sort((left, right) => left.name.localeCompare(right.name))) {
     const directory = path.join(builtinRoot, entry.name);
     const manifest = JSON.parse(await fs.readFile(path.join(directory, 'manifest.json'), 'utf8')) as { slug: string; version: string };
     const { hash, bytes } = await packBuiltinPlugin(directory);
@@ -91,93 +84,58 @@ async function takeSyncLock(): Promise<Client> {
   }
 }
 
-/**
- * Reads the state of every builtin package.
- *
- * The read runs outside a transaction: the install work below writes through
- * the global client, and a transaction that stayed open across it would hold
- * its snapshot while the installer commits.
- */
-async function readBuiltinStates(packages: BuiltinPackage[]): Promise<BuiltinState[]> {
-  const audits = await prisma.adminStaffAuditLog.findMany({ where: { action: 'BUILTIN_PLUGIN_INSTALLED' }, select: { metadata: true } });
-  const audited = new Set<string>();
-  for (const row of audits) {
-    const metadata = row.metadata;
-    if (metadata && typeof metadata === 'object' && !Array.isArray(metadata) && typeof metadata.slug === 'string') audited.add(metadata.slug);
-  }
-  const states: BuiltinState[] = [];
-  for (const pkg of packages) {
-    const installed = await prisma.pluginInstall.findUnique({ where: { slug: pkg.slug } });
-    states.push({ pkg, installed: !!installed,
-      upToDate: !!installed && installed.version === pkg.version && installed.zipHash === pkg.hash,
-      audited: audited.has(pkg.slug) });
-  }
-  return states;
-}
-
 export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
+  // The filesystem work, outside every transaction and outside the lock.
   const packages = await loadBuiltinPackages(builtinRoot);
+
+  // The lock of the sync, held for the whole sync on a connection of its own.
   const lock = await takeSyncLock();
   try {
-    const states = await readBuiltinStates(packages);
+    for (const pkg of packages) {
+      // The state is read outside every transaction: the installer below
+      // commits its own rows on the global client.
+      const installed = await prisma.pluginInstall.findUnique({ where: { slug: pkg.slug } });
 
-    // The install work runs outside every transaction. The installer writes
-    // through the global client, so its rows commit on their own and the
-    // transaction below never rolls them back.
-    for (const state of states) {
-      if (state.upToDate) continue;
-      await pluginFsInstaller.installFromDirectory(state.pkg.directory, { source: 'builtin' });
-    }
-
-    // The instance of a fresh installation is enabled here, outside the
-    // transaction that writes the audit, and the read of the instance is
-    // valid because the installer committed it.
-    for (const state of states) {
-      if (!state.installed) {
-        const instance = await getDefaultInstance(state.pkg.slug);
-        if (!instance) throw new Error(`Builtin plugin "${state.pkg.slug}" has no default installation`);
-        await PluginManagementService.updateInstance(instance.id, { enabled: true });
+      if (installed && installed.version === pkg.version && installed.zipHash === pkg.hash) {
+        // The package is the one the database already names. The sync owns its
+        // blob and its publication. The blob is stored first and the package
+        // is published after the transaction that stored the blob committed.
+        await prisma.$transaction(async tx => {
+          await pluginPackageBlobStore.put(tx, pkg.slug, pkg.hash, pkg.bytes);
+        }, { timeout: BUILTIN_SYNC_TRANSACTION_TIMEOUT_MS });
+        await publishBuiltinPackage(pkg.slug, pkg.hash, pkg.directory);
         continue;
       }
-      // A sync that installed the package but died before its audit left an
-      // installation the merchant cannot use. The audit is the marker of a
-      // completed installation, so a missing audit means the installation is
-      // incomplete and this sync completes it. A merchant that disabled the
-      // instance keeps its choice, because that installation is audited.
-      if (state.audited) continue;
-      const instance = await getDefaultInstance(state.pkg.slug);
-      if (instance && !instance.enabled) await PluginManagementService.updateInstance(instance.id, { enabled: true });
-    }
 
-    // The publication of a package is filesystem work and happens before the
-    // blob is stored, so a package the runtime cannot load never gets a
-    // blob.
-    for (const pkg of packages) await publishBuiltinPackage(pkg.slug, pkg.hash, pkg.directory);
+      // The package is not the one the database names. The installer owns the
+      // blob and the publication of the hash it installs, so the sync does
+      // neither. The install runs outside every transaction, so its rows
+      // commit with its own commit.
+      const wasInstalled = Boolean(installed);
+      await pluginFsInstaller.installFromDirectory(pkg.directory, { source: 'builtin' });
 
-    // The transaction stores the blobs and writes the audit of every
-    // installation that has none. The advisory lock is held by the session
-    // lock above, so this transaction stays short and holds nothing but the
-    // blob and the audit rows.
-    await prisma.$transaction(async tx => {
-      for (const state of states) {
-        await pluginPackageBlobStore.put(tx, state.pkg.slug, state.pkg.hash, state.pkg.bytes);
-        if (state.audited) continue;
-        await AuditService.writeStaffAudit(tx, {
-          staffUserId: 'system',
-          staffEmail: 'system',
-          actorUserId: 'system',
-          actorEmail: 'system',
-          action: 'BUILTIN_PLUGIN_INSTALLED',
-          metadata: { slug: state.pkg.slug, version: state.pkg.version, source: 'builtin' },
-        });
+      if (!wasInstalled) {
+        // A fresh installation is enabled and audited. The transaction holds
+        // the audit of the installation the installer just committed and
+        // commits before the sync moves on to the next package.
+        await prisma.$transaction(async tx => {
+          const instance = await getDefaultInstance(pkg.slug);
+          if (!instance) throw new Error(`Builtin plugin "${pkg.slug}" has no default installation`);
+          await PluginManagementService.updateInstance(instance.id, { enabled: true });
+          await AuditService.writeStaffAudit(tx, {
+            staffUserId: 'system',
+            staffEmail: 'system',
+            actorUserId: 'system',
+            actorEmail: 'system',
+            action: 'BUILTIN_PLUGIN_INSTALLED',
+            metadata: { slug: pkg.slug, version: pkg.version, source: 'builtin' },
+          });
+        }, { timeout: BUILTIN_SYNC_TRANSACTION_TIMEOUT_MS });
       }
-    }, { timeout: 120_000 });
-
-    // After the commit every package whose store entry is missing is
-    // published again, so a package that lost its published copy in the
-    // meantime is loadable again.
-    for (const pkg of packages) await publishBuiltinPackage(pkg.slug, pkg.hash, pkg.directory);
+    }
   } finally {
+    // Closing the connection releases the session lock, also when the sync
+    // failed.
     await lock.end().catch(() => undefined);
   }
 }

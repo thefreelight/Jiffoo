@@ -225,6 +225,8 @@ const codeConstants = [
   'core/shared/money.ts:CURRENCY_EXPONENTS',
   'core/payment/observations.ts:clearLease',
   'core/payment/reconciliation.ts:clearLease',
+  'core/payment/routes.ts:PAYMENT_VERIFY_PAYMENT_LIMIT',
+  'core/payment/routes.ts:PAYMENT_VERIFY_USER_LIMIT',
   'core/payment/schemas.ts:paymentMethodSchema',
   'core/payment/schemas.ts:paymentSchemas',
   'core/payment/schemas.ts:paymentSessionSchema',
