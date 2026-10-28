@@ -31,6 +31,7 @@ import { installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-pl
 import { snapshotPluginRows, assertPluginRowsUnchanged, restoreBuiltinRows } from '../helpers/plugin-db-snapshot';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { recordB10ProcessTree, confirmB10ProcessTreeExited } from '../helpers/b10-process-tree';
+import { listenOnUsablePort } from '../helpers/mock-server-port';
 
 class Mailbox<T> {
   private values: T[] = [];
@@ -103,8 +104,8 @@ beforeAll(async () => {
   hadManualNamespace = !!await prisma.pluginNamespace.findUnique({ where: { slug: 'manual-payment' } });
   builtinAuditIds = (await prisma.adminStaffAuditLog.findMany({ where: { action: 'BUILTIN_PLUGIN_INSTALLED' }, select: { id: true } })).map(row => row.id);
   await syncBuiltinPlugins(path.resolve('builtin-plugins'));
-  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-  providerUrl = 'http://127.0.0.1:' + (server.address() as { port: number }).port;
+  const providerPort = await listenOnUsablePort(server);
+  providerUrl = 'http://127.0.0.1:' + providerPort;
   app = await createTestApp(); admin = await createAdminWithToken();
   const source = `module.exports={register(ctx){
     const request=async(kind,input)=>{const response=await fetch(${JSON.stringify(providerUrl)}+'/'+kind,{method:'POST',body:JSON.stringify({...input,pid:process.pid})});return response.json();};

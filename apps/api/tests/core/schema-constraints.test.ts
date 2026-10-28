@@ -157,6 +157,18 @@ it('creates every index of the data reliability migration', async () => {
   }
 });
 
+it('installs the trigram extension the search indexes need', async () => {
+  const client = await connect();
+  try {
+    const rows = (await client.query(
+      `SELECT extname FROM pg_extension WHERE extname = 'pg_trgm'`,
+    )).rows.map(row => row.extname);
+    expect(rows).toEqual(['pg_trgm']);
+  } finally {
+    await client.end();
+  }
+});
+
 it('drops the single column indexes that a composite index replaces', async () => {
   const client = await connect();
   try {

@@ -11,6 +11,7 @@ import { uploadPluginZip } from '../helpers/plugin-upload';
 import { signJwt } from '../helpers/auth';
 import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { recordB10ProcessTree, forceB10ProcessTree, confirmB10ProcessTreeExited } from '../helpers/b10-process-tree';
+import { listenOnUsablePort } from '../helpers/mock-server-port';
 
 afterAll(async () => {
   try { await redisCache.disconnect(); }
@@ -30,8 +31,8 @@ it.each([false, true])('real API SIGTERM drains an in-flight plugin request or k
   let response: ReturnType<typeof themeHttp> | undefined;
   let bootNonce: string | undefined;
   try {
-    await new Promise<void>(resolve => provider.listen(0, '127.0.0.1', resolve));
-    const providerUrl = `http://127.0.0.1:${(provider.address() as { port: number }).port}`;
+    const providerPort = await listenOnUsablePort(provider);
+    const providerUrl = `http://127.0.0.1:${providerPort}`;
     fixture = await themeFixture();
     const manifest = { schemaVersion: 1, slug, name: slug, version: '1.0.0', description: 'API drain fixture',
       category: 'integration', runtimeType: 'internal-fastify', hostProtocol: 'internal-fastify-v1',

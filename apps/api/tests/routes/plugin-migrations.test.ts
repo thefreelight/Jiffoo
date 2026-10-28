@@ -8,6 +8,7 @@ import { registerContractV1Runtime } from '@/core/admin/extension-installer/cont
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteTestUser } from '../helpers/auth';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
+import { listenOnUsablePort } from '../helpers/mock-server-port';
 import { pluginSchemaName, readPluginZipEntries, CERT_PATH, SIGNATURE_PATH, issuePublisherCertificate, signPackage } from 'shared/plugin-signing';
 import { testRoot, testPublisher } from '../fixtures/plugin-signing-keys';
 import Fastify from 'fastify';
@@ -354,10 +355,9 @@ describe('Declared plugin migrations over real TCP', () => {
     let entered!: () => void; const ready = new Promise<void>(resolve => { entered = resolve; });
     let heldResponse: ServerResponse | undefined;
     const latch = createServer((_request, response) => { heldResponse = response; entered(); });
-    latch.listen(0, '127.0.0.1'); await once(latch, 'listening');
-    const address = latch.address(); if (!address || typeof address === 'string') throw new Error('Latch has no port');
+    const latchPort = await listenOnUsablePort(latch);
     const slug = own(), first = sqlFile('CREATE TABLE records (id INTEGER PRIMARY KEY); INSERT INTO records VALUES (1);');
-    const source = `module.exports={register(ctx){ctx.http.route({method:'GET',path:'/hold',handler:async()=>{await fetch('http://127.0.0.1:${address.port}');return{ok:true};}});}};`;
+    const source = `module.exports={register(ctx){ctx.http.route({method:'GET',path:'/hold',handler:async()=>{await fetch('http://127.0.0.1:${latchPort}');return{ok:true};}});}};`;
     await install(await archive(slug, [first], {}, source));
     const instance = await prisma.pluginInstallation.findFirstOrThrow({ where: { pluginSlug: slug } });
     expect((await fetch(`${base}/api/v1/extensions/plugin/${slug}/instances/${instance.id}`, { method: 'PATCH', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ enabled: true }) })).status).toBe(200);
@@ -402,9 +402,8 @@ describe('Declared plugin migrations over real TCP', () => {
     const responses: ServerResponse[] = []; let entered!: () => void;
     const ready = new Promise<void>(resolve => { entered = resolve; });
     const latch = createServer((_request, response) => { responses.push(response); if (responses.length === 3) entered(); });
-    latch.listen(0, '127.0.0.1'); await once(latch, 'listening');
-    const address = latch.address(); if (!address || typeof address === 'string') throw new Error('Latch has no port');
-    const url = `http://127.0.0.1:${address.port}`;
+    const latchPort = await listenOnUsablePort(latch);
+    const url = `http://127.0.0.1:${latchPort}`;
     const slug = own(), other = own(), first = sqlFile('CREATE TABLE records (id INTEGER PRIMARY KEY); INSERT INTO records VALUES (1);');
     const source = `module.exports={register(ctx){ctx.http.route({method:'GET',path:'/status',handler:async()=>({version:ctx.plugin.version})});ctx.http.route({method:'GET',path:'/hold',handler:async()=>{await fetch(${JSON.stringify(url)});return{ok:true};}});ctx.contracts.implement('shipping',1,{quote:async()=>{await fetch(${JSON.stringify(url)});return{options:[{id:'one',label:'One',amountMinor:0}]};}});ctx.events.subscribe('order.created',1,async()=>{await fetch(${JSON.stringify(url)});});}};`;
     const declarations = { contracts: [{ name: 'shipping', version: 1 }], subscriptions: [{ type: 'order.created', version: 1 }] };

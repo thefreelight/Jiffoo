@@ -11,6 +11,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
+import { listenOnUsablePort } from '../helpers/mock-server-port';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { env } from '@/config/env';
 import { CERT_PATH, SIGNATURE_PATH, issuePublisherCertificate, signPackage } from 'shared/plugin-signing';
@@ -149,8 +150,8 @@ beforeAll(async () => {
     outgoing.setHeader('content-type', 'application/json');
     outgoing.end(JSON.stringify(catalogBody));
   });
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  origin = `http://127.0.0.1:${(server.address() as import('node:net').AddressInfo).port}`;
+  const port = await listenOnUsablePort(server);
+  origin = `http://127.0.0.1:${port}`;
   process.env.JIFFOO_TEST_MARKETPLACE_URL = `${origin}/catalog`;
 });
 
@@ -216,9 +217,9 @@ describe('Marketplace installation', () => {
       outgoing.end(JSON.stringify(catalogBody));
       catalogOnly.close(markClosed);
     });
-    await new Promise<void>((resolve) => catalogOnly.listen(0, '127.0.0.1', resolve));
+    const catalogOnlyPort = await listenOnUsablePort(catalogOnly);
     const previousUrl = process.env.JIFFOO_TEST_MARKETPLACE_URL;
-    process.env.JIFFOO_TEST_MARKETPLACE_URL = `http://127.0.0.1:${(catalogOnly.address() as import('node:net').AddressInfo).port}/catalog`;
+    process.env.JIFFOO_TEST_MARKETPLACE_URL = `http://127.0.0.1:${catalogOnlyPort}/catalog`;
     try {
       await rejectInstall(slug, 'MARKETPLACE_DOWNLOAD_UNAVAILABLE', 502);
     } finally {

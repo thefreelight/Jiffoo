@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { adminThemeStyle } from '../lib/theme-font';
 import { getAdminTheme } from '../lib/server-theme';
 import { themeTokensToCss, themeDefaultTokens } from 'shared';
+import { listenOnUsablePort } from './mock-server-port';
 
 const response = {
   schemaVersion: 2, darkAvailable: false, target: 'admin', slug: 'e2e-admin-theme', version: '1.0.0',
@@ -32,10 +33,8 @@ async function serve(status: number, body: unknown) {
     reply.writeHead(status, { 'Content-Type': 'application/json' });
     reply.end(JSON.stringify(body));
   });
-  await new Promise<void>((resolve) => server!.listen(0, '127.0.0.1', resolve));
-  const address = server.address();
-  if (!address || typeof address === 'string') throw new Error('No local test port');
-  process.env.API_SERVICE_URL = `http://127.0.0.1:${address.port}`;
+  const port = await listenOnUsablePort(server);
+  process.env.API_SERVICE_URL = `http://127.0.0.1:${port}`;
 }
 
 describe('Admin active theme', () => {

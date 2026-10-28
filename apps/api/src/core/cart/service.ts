@@ -871,6 +871,11 @@ export class CartService {
       cart.items.map((item) => item.productId)
     );
 
+    // The amounts of the cart are money, so they are computed with exact
+    // decimal arithmetic: a float sum of the prices of the lines carries a
+    // rounding error, and the storefront would report it.
+    let cartTotal = new Prisma.Decimal(0);
+
     const items: CartItem[] = cart.items.map(item => {
       const product = catalog.get(item.productId);
       const variant = product?.variants.find((entry) => entry.id === item.variantId);
@@ -881,6 +886,10 @@ export class CartService {
         : [];
       const availableStock = variant.stock;
       const unitPrice = variant.salePrice;
+      // The amount of a line is the exact product of its price and its
+      // quantity, so the total of the cart is the exact sum of the lines.
+      const lineTotal = new Prisma.Decimal(variant.salePrice).mul(item.quantity);
+      cartTotal = cartTotal.add(lineTotal);
       // The shipping requirement of a cart line is the shared address rule of
       // a line, the same rule the order placement resolves, so the cart and
       // the order answer the address of a line the same way.
@@ -897,11 +906,11 @@ export class CartService {
         variantAttributes: parseJsonRecord(variant?.attributes),
         requiresShipping: lineRequiresShippingAddress(productType, product?.requiresShipping ?? true),
         maxQuantity: stockCeilingFor(productType, availableStock),
-        subtotal: unitPrice * item.quantity,
+        subtotal: lineTotal.toNumber(),
       };
     });
 
-    const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+    const subtotal = cartTotal.toNumber();
 
     return {
       id: cart.id,

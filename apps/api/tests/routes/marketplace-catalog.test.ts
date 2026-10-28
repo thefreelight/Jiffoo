@@ -9,6 +9,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
+import { listenOnUsablePort } from '../helpers/mock-server-port';
 
 const prisma = getTestPrisma();
 const previous = {
@@ -71,8 +72,8 @@ beforeAll(async () => {
   token = (await createAdminWithToken()).token;
   userToken = (await createUserWithToken()).token;
   server = createServer((request, response) => { requests++; responder(request, response); });
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  origin = `http://127.0.0.1:${(server.address() as import('node:net').AddressInfo).port}`;
+  const port = await listenOnUsablePort(server);
+  origin = `http://127.0.0.1:${port}`;
   serve(catalog());
 });
 afterAll(async () => {

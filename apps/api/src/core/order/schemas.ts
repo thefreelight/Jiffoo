@@ -198,6 +198,7 @@ export const orderSchemas = {
         shippingOptionId: { type: 'string', minLength: 1, description: 'Selected shipping option ID' },
         paymentMethod: { type: 'string', minLength: 1, description: 'Selected payment provider slug' },
         expectedTotal: { type: 'string', pattern: '^\\d+(?:\\.\\d+)?$', description: 'Confirmed quote total' },
+        currency: { type: 'string', description: 'Optional assertion of the currency of the store; a currency that differs from the store is refused' },
         idempotencyKey: {
           type: 'string',
           minLength: 1,

@@ -24,6 +24,7 @@ import { finishCoreProcess } from '@/infra/core-process';
 import { sharedProtection } from '@/infra/shared-protection';
 import * as pluginRuntime from '@/core/extensions/runtime/plugin-runtime';
 import { setWorkerShutdownObserverForTest } from '@/infra/worker-shutdown';
+import { listenOnUsablePort } from '../helpers/mock-server-port';
 
 class Mailbox<T> {
   private values: T[] = [];
@@ -68,8 +69,8 @@ const server = createServer(async (request, response) => {
 });
 beforeAll(async () => {
   expect(validateDatabaseUrl(process.env.DATABASE_URL_TEST!).pathname).toBe('/' + laneConfig().databaseName);
-  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-  providerUrl = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+  const providerPort = await listenOnUsablePort(server);
+  providerUrl = `http://127.0.0.1:${providerPort}`;
   builtinSnapshot = await snapshotPluginRows(builtinSlugs);
   await syncBuiltinPlugins(path.resolve('builtin-plugins'));
   app = await createTestApp(); admin = await createAdminWithToken();

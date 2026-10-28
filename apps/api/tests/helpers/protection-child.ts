@@ -2,11 +2,16 @@ import { SharedProtection, pluginProtectionScope } from '@/infra/shared-protecti
 import { protectionApp } from './protection-app';
 import { prisma } from '@/config/database';
 import { redisCache } from '@/core/cache/redis';
+import { reserveUsablePort } from './mock-server-port';
 
 async function main() {
   const protection = new SharedProtection(process.argv[2]);
   const app = await protectionApp(protection, process.argv[3]);
-  await app.listen({ port: 0, host: '127.0.0.1' });
+  // The port of the child is fetched by the parent, and the request of Node
+  // refuses the ports that the specification blocks, so the child takes a port
+  // it can carry.
+  const port = await reserveUsablePort();
+  await app.listen({ port, host: '127.0.0.1' });
   const address = app.server.address();
   if (!address || typeof address === 'string') throw new Error('Missing child listener');
   process.on('message', async (message: any) => {
@@ -32,6 +37,6 @@ async function main() {
     await app.close(); protection.close(); await prisma.$disconnect(); await redisCache.disconnect();
     process.disconnect();
   });
-  process.send?.({ kind: 'ready', port: address.port, pid: process.pid });
+  process.send?.({ kind: 'ready', port, pid: process.pid });
 }
 main().catch((error) => { process.send?.({ kind: 'error', message: String(error) }); process.exitCode = 1; process.disconnect(); });

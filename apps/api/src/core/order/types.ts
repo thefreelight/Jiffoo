@@ -49,7 +49,7 @@ export const CreateOrderSchema = z.object({
   items: z.array(OrderItemSchema).min(1, 'Order must have at least one item'),
   shippingAddress: ShippingAddressSchema.optional(),
   customerEmail: z.string().email('Valid email is required').optional(),
-  currency: z.string().optional().default('USD'),
+  currency: z.string().optional(),
   paymentTermId: z.string().optional(), // B2B payment terms
   shippingOptionId: z.string().min(1),
   paymentMethod: z.string().min(1),

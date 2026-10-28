@@ -7,6 +7,7 @@ import { afterAll, beforeAll, expect, it } from 'vitest';
 import { errorHttpFixture } from '../../api/tests/helpers/error-http-fixture';
 import { createTestUser } from '../../api/tests/helpers/auth';
 import { getTestPrisma } from '../../api/tests/helpers/db';
+import { listenOnUsablePort } from './helpers/mock-server-port';
 
 let fixture: Awaited<ReturnType<typeof errorHttpFixture>>;
 let child: ChildProcess;
@@ -36,11 +37,10 @@ beforeAll(async () => {
     response.writeHead(upstream.status, Object.fromEntries([...upstream.headers].filter(([name]) => !['transfer-encoding', 'connection', 'content-length'].includes(name))));
     response.end(Buffer.from(await upstream.arrayBuffer()));
   });
-  await new Promise<void>((resolve) => relay.listen(0, '127.0.0.1', resolve));
-  const address = relay.address(); if (!address || typeof address === 'string') throw new Error('Missing HTTP relay');
+  const relayPort = await listenOnUsablePort(relay);
   child = fork(fileURLToPath(new URL('./helpers/availability-shop-child.mjs', import.meta.url)), [], {
     cwd: fileURLToPath(new URL('..', import.meta.url)), stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-    env: { ...process.env, NODE_ENV: 'production', API_SERVICE_URL: `http://127.0.0.1:${address.port}`, STOREFRONT_URL: 'http://127.0.0.1:3003' },
+    env: { ...process.env, NODE_ENV: 'production', API_SERVICE_URL: `http://127.0.0.1:${relayPort}`, STOREFRONT_URL: 'http://127.0.0.1:3003' },
   });
   child.stdout!.on('data', (data) => process.stdout.write(data)); child.stderr!.on('data', (data) => process.stderr.write(data));
   const ready = await Promise.race([once(child, 'message'), once(child, 'exit').then(([code]) => { throw new Error(`Shop exited ${code}`); })]);

@@ -2,6 +2,7 @@ import { expect, it } from 'vitest';
 import { createServer } from 'node:http';
 import { env } from '@/config/env';
 import { SecretManagerService } from '@/core/secrets/secret-manager';
+import { listenOnUsablePort } from '../helpers/mock-server-port';
 
 it('Vault references are resolved afresh and secret values never enter a process-wide cache', async () => {
   let value = 'first-value', requests = 0;
@@ -11,8 +12,8 @@ it('Vault references are resolved afresh and secret values never enter a process
   });
   const previous = { address: env.VAULT_ADDR, token: env.VAULT_TOKEN };
   try {
-    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-    env.VAULT_ADDR = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+    const vaultPort = await listenOnUsablePort(server);
+    env.VAULT_ADDR = `http://127.0.0.1:${vaultPort}`;
     env.VAULT_TOKEN = 'test-vault-token';
     expect(await SecretManagerService.resolve('vault://kv/audit#token')).toBe('first-value');
     value = 'rotated-value';

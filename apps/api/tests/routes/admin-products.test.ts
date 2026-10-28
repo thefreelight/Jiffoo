@@ -327,6 +327,35 @@ describe('Admin Products Endpoints', () => {
         expect(body.data).toHaveProperty('id');
       }
     });
+
+    it('should return 400 for a negative cost price', async () => {
+      const name = `Admin Negative Cost Price Product ${uuidv4().substring(0, 8)}`;
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/admin/products/',
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: {
+          name,
+          variants: [
+            {
+              name: 'Base Variant',
+              salePrice: 149.99,
+              costPrice: -1,
+              stock: 75,
+              isActive: true,
+            },
+          ],
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.code).toBe('VALIDATION_ERROR');
+
+      // The refused product is not written.
+      const db = getTestPrisma();
+      expect(await db.product.count({ where: { name } })).toBe(0);
+    });
   });
 
   describe('GET /api/v1/admin/products/:id', () => {

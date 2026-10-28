@@ -11,6 +11,7 @@ import { createAdminWithToken, deleteTestUser } from '../helpers/auth';
 import { installFixturePlugin } from '../helpers/fixture-plugin';
 import { cleanupPluginMigrationFixture } from '../helpers/plugin-migration-cleanup';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
+import { listenOnUsablePort } from '../helpers/mock-server-port';
 import { callContract, deliverInstallationEvent } from '@/core/extensions/runtime/plugin-runtime';
 import { withPluginDatabaseTestControl } from '@/core/extensions/runtime/plugin-database-test-control';
 import { pluginSchemaName } from 'shared/plugin-signing';
@@ -133,8 +134,8 @@ it('C E two API and two real worker processes enforce per-process limits and dra
   const responses: ServerResponse[] = []; let entered!: () => void, released = false;
   const ready = new Promise<void>(resolve => { entered = resolve; });
   const latch = createServer((_request, response) => { responses.push(response); if (released) response.end('{}'); if (responses.length === 4) entered(); });
-  latch.listen(0, '127.0.0.1'); await once(latch, 'listening'); const address = latch.address(); if (!address || typeof address === 'string') throw new Error('Missing latch');
-  const slug = own(), code = source(`http://127.0.0.1:${address.port}`), instance = await install(slug, code);
+  const latchPort = await listenOnUsablePort(latch);
+  const slug = own(), code = source(`http://127.0.0.1:${latchPort}`), instance = await install(slug, code);
   const children: Awaited<ReturnType<typeof processFixture>>[] = []; const work: Promise<unknown>[] = [];
   let operationId: string | undefined;
   try {

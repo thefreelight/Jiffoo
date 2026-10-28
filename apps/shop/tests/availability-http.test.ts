@@ -4,6 +4,7 @@ import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { chromium, expect as browserExpect, type Browser, type Page } from '@playwright/test';
+import { listenOnUsablePort } from './helpers/mock-server-port';
 
 let core: Server;
 let child: ChildProcess;
@@ -78,12 +79,10 @@ beforeAll(async () => {
     res.writeHead(status, { 'Content-Type': 'application/json', 'Retry-After': String(retry) });
     res.end(JSON.stringify({ success: false, error: { code: status === 503 ? 'SHARED_PROTECTION_UNAVAILABLE' : 'RATE_LIMITED', message: 'PRIVATE_CORE_DETAIL' } }));
   });
-  await new Promise<void>((resolve) => core.listen(0, '127.0.0.1', resolve));
-  const address = core.address();
-  if (!address || typeof address === 'string') throw new Error('Missing Core fixture listener');
+  const corePort = await listenOnUsablePort(core);
   child = fork(fileURLToPath(new URL('./helpers/availability-shop-child.mjs', import.meta.url)), [], {
     cwd: fileURLToPath(new URL('..', import.meta.url)),
-    env: { ...process.env, NODE_ENV: 'production', API_SERVICE_URL: `http://127.0.0.1:${address.port}`, STOREFRONT_URL: 'http://127.0.0.1:3003' },
+    env: { ...process.env, NODE_ENV: 'production', API_SERVICE_URL: `http://127.0.0.1:${corePort}`, STOREFRONT_URL: 'http://127.0.0.1:3003' },
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
   });
   child.stdout!.on('data', (data) => process.stdout.write(data));

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createServer, type Server } from 'node:http';
 import { getStorefrontCode } from '../lib/storefront-code';
+import { listenOnUsablePort } from './helpers/mock-server-port';
 
 vi.mock('server-only', () => ({}));
 vi.mock('next/headers', () => ({
@@ -18,10 +19,8 @@ async function withApi(status: number, body: unknown, check: () => Promise<void>
     response.writeHead(status, { 'Content-Type': 'application/json' });
     response.end(raw ? body as string : JSON.stringify(body));
   });
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const address = server.address();
-  if (!address || typeof address === 'string') throw new Error('Missing test API address');
-  vi.stubEnv('API_SERVICE_URL', `http://127.0.0.1:${address.port}`);
+  const port = await listenOnUsablePort(server);
+  vi.stubEnv('API_SERVICE_URL', `http://127.0.0.1:${port}`);
   try { await check(); }
   finally { await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())); }
 }

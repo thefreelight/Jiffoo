@@ -3,6 +3,7 @@ import { createServer, type Server } from 'node:http';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, expect, it } from 'vitest';
+import { listenOnUsablePort } from './helpers/mock-server-port';
 
 let core: Server;
 let child: ChildProcess;
@@ -38,12 +39,10 @@ beforeAll(async () => {
     }
     send(null, 404);
   });
-  await new Promise<void>(resolve => core.listen(0, '127.0.0.1', resolve));
-  const address = core.address();
-  if (!address || typeof address === 'string') throw new Error('Missing Core listener');
+  const corePort = await listenOnUsablePort(core);
   child = fork(fileURLToPath(new URL('./helpers/availability-shop-child.mjs', import.meta.url)), [], {
     cwd: fileURLToPath(new URL('..', import.meta.url)), stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
-    env: { ...process.env, NODE_ENV: 'production', API_SERVICE_URL: `http://127.0.0.1:${address.port}`, STOREFRONT_URL: 'http://127.0.0.1:3003' },
+    env: { ...process.env, NODE_ENV: 'production', API_SERVICE_URL: `http://127.0.0.1:${corePort}`, STOREFRONT_URL: 'http://127.0.0.1:3003' },
   });
   child.stdout!.on('data', data => process.stdout.write(data)); child.stderr!.on('data', data => process.stderr.write(data));
   const ready = await Promise.race([once(child, 'message'), once(child, 'exit').then(([code]) => { throw new Error(`Shop exited ${code}`); })]);

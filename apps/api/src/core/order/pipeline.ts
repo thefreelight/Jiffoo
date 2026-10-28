@@ -343,6 +343,13 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
       name: 'read-shop-currency',
       run: async context => {
         context.currency = await systemSettingsService.getShopCurrency();
+        // The currency of the request is an assertion, not a choice: the store
+        // decides the currency of the amounts, and a request that names
+        // another one is refused instead of being answered with an order in a
+        // currency the customer did not ask for.
+        if (context.data.currency && context.data.currency !== context.currency) {
+          throw new ApiError('VALIDATION_ERROR');
+        }
       },
     },
     {

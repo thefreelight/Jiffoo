@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { afterEach, expect, it } from 'vitest';
 import { withClientIp } from '../server.mjs';
+import { listenOnUsablePort } from './helpers/mock-server-port';
 
 const servers: Array<ReturnType<typeof createServer>> = [];
 afterEach(async () => {
@@ -19,10 +20,8 @@ it('G strips spoofed forwarding headers before the Next handler sees a request',
     }));
   }, []));
   servers.push(server);
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const address = server.address();
-  if (!address || typeof address === 'string') throw new Error('Missing test listener');
-  const response = await fetch(`http://127.0.0.1:${address.port}`, {
+  const port = await listenOnUsablePort(server);
+  const response = await fetch(`http://127.0.0.1:${port}`, {
     headers: {
       'x-forwarded-for': '198.51.100.8',
       forwarded: 'for=198.51.100.8',

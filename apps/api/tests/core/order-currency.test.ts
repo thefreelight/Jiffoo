@@ -112,4 +112,28 @@ describe('the currency of an order', () => {
     expect(lines).toHaveLength(2);
     expect(lines.map((line) => line.currency)).toEqual(['EUR', 'EUR']);
   });
+
+  it('refuses a request that names a currency the store does not use', async () => {
+    await systemSettingsService.setSetting('localization.currency', 'EUR');
+    const buyer = await createUserWithToken();
+    const items = [
+      { productId: firstProduct.id, variantId: firstProduct.variants[0].id, quantity: 1 },
+    ];
+    const expectedTotal = await checkoutTotal(app, buyer.token, items, shippingAddress, 'free-shipping:free');
+    const data = CreateOrderSchema.parse({
+      items,
+      shippingAddress,
+      shippingOptionId: 'free-shipping:free',
+      paymentMethod: 'manual-payment',
+      expectedTotal,
+      idempotencyKey: randomUUID(),
+      currency: 'USD',
+    });
+
+    // The currency of the request is an assertion: the store is in EUR, so a
+    // request that asks for USD is refused instead of being answered with an
+    // order in a currency the customer did not ask for.
+    await expect(runOrderPlacement(buyer.user.id, data)).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(await prisma.order.count({ where: { userId: buyer.user.id } })).toBe(0);
+  });
 });

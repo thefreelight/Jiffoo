@@ -18,6 +18,7 @@ import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-syn
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { clearTestPluginCache } from '../helpers/plugin-cache';
+import { listenOnUsablePort } from '../helpers/mock-server-port';
 import { testRoot, testPublisher, untrustedRoot } from '../fixtures/plugin-signing-keys';
 import { extensionInstallerSchemas } from '@/core/admin/extension-installer/schemas';
 
@@ -187,8 +188,8 @@ beforeAll(async () => {
   token = (await createAdminWithToken()).token;
   base = await app.listen({ host: '127.0.0.1', port: 0 });
   server = createServer((request, response) => response.end(request.url === '/package.zip' ? packageBody : JSON.stringify(catalogBody)));
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  origin = `http://127.0.0.1:${(server.address() as import('node:net').AddressInfo).port}`;
+  const port = await listenOnUsablePort(server);
+  origin = `http://127.0.0.1:${port}`;
 });
 
 afterAll(async () => {

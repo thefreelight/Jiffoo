@@ -101,6 +101,47 @@ describe('Cart Endpoints', () => {
       const body = response.json();
       expect(body.data).toHaveProperty('items');
     });
+
+    it('should report the exact decimal total of a basket whose prices do not sum exactly in a float', async () => {
+      // The two prices do not sum exactly in a binary float: 79.99 + 19.99 is
+      // 99.97999999999999 when it is added as a float.
+      const first = await createTestProduct({ name: 'Cart Exact Total Product', price: 79.99, stock: 10 });
+      const second = await createTestProduct({ name: 'Cart Exact Total Second Product', price: 19.99, stock: 10 });
+
+      try {
+        for (const product of [first, second]) {
+          const added = await app.inject({
+            method: 'POST',
+            url: '/api/v1/cart/items',
+            headers: { authorization: `Bearer ${userToken}` },
+            payload: {
+              productId: product.id,
+              variantId: product.variants[0].id,
+              quantity: 1,
+            },
+          });
+
+          expect(added.statusCode).toBe(200);
+        }
+
+        const response = await app.inject({
+          method: 'GET',
+          url: '/api/v1/cart/',
+          headers: { authorization: `Bearer ${userToken}` },
+        });
+
+        expect(response.statusCode).toBe(200);
+
+        const cart = response.json().data;
+        expect(cart.items).toHaveLength(2);
+        expect(cart.subtotal).toBe(99.98);
+        expect(cart.subtotal).not.toBe(99.97999999999999);
+        expect(cart.total).toBe(99.98);
+      } finally {
+        await deleteTestProduct(first.id);
+        await deleteTestProduct(second.id);
+      }
+    });
   });
 
   describe('POST /api/v1/cart/items', () => {
