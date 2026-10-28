@@ -72,6 +72,7 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | **WP-F1B** — the core calls the fulfilment contract and records the fulfilment on the shipment | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `e7f73487cf` | `apps/api/src/core/order/service.ts`, `apps/api/src/core/admin/order-management/{service,schemas}.ts`, `apps/api/tests/core/order-fulfillment-contract.test.ts`, `apps/api/prisma/schema/commerce.prisma` (the two columns of the shipment, formatted), `apps/api/prisma/migrations/20261026135338_order_fulfillment/**`, `docs/coordination-ledger.md` | `jiffoo_core_test` (integration) | `wp-f1b` (pi worker run, model `minimax/MiniMax-M3.1-Flash:medium`) | **uncommitted, in the tree** | §5y |
 | **S3-DATA** — the step 3 data-reliability remediation: the API tokens leave the settings blob, the cart writes are atomic, the payment verification is authenticated, the order state machine carries its own predicate, and the hot-path indexes land | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `448cb6c16` | `apps/api/prisma/schema/**`, `apps/api/prisma/migrations/2026102700*`, `apps/api/prisma/RAW_INDEXES.md`, `apps/api/src/core/{auth,cart,order,payment,inventory,product,plugins,plugin-pages,plugin-storage,cache,admin}/**`, `apps/api/src/infra/events/cleanup.ts`, `apps/api/tests/**` | `jiffoo_core_test` (integration) | `wp-s3-w1`, `wp-s3-w2a`..`wp-s3-w2g` (eight pi worker runs, two pi reviewer runs, five delta rounds; models `minimax/MiniMax-M3.1-Flash:medium` and `minimax/MiniMax-M3:medium`) | **committed `cccbae535`, gate green** | §5z |
 | **S3-DATA-2** — the step 3 data-reliability remediation, part two: the currency of the order, the exact amounts of the placement, the customer scoped idempotency key, the conditional stock write, the transaction boundaries of the plugin paths, the package store as a cache of the database and the hot-path indexes | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `7174b2458` | `apps/api/prisma/schema/**`, `apps/api/prisma/migrations/20261028031500_data_reliability_indexes/**`, `apps/api/src/core/**`, `apps/api/src/infra/events/delivery.ts`, `apps/api/tests/**`, `.claude/agents/*.md` | `jiffoo_core_test` (integration) | coordinator session (five worker runs, one arch-reviewer pass, one reviewer follow-up; models `minimax/MiniMax-M3.1-Flash`) | **committed `38cce1eac`, gate green** | §5za |
+| **S3-DATA-3** — the remaining items of the step 3 batch: the exact amounts of the cart, the negative cost price of a variant, the currency of the request as an assertion, the checked prerequisite of the trigram extension and the ports of the mock servers of the three suites | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `38cce1eac` | `apps/api/src/core/{cart,order,admin/product-management}/**`, `apps/api/tests/**`, `apps/shop/tests/**`, `apps/admin/tests/**` | `jiffoo_core_test` (integration) | coordinator session (three worker runs; model `minimax/MiniMax-M3.1-Flash`) | **committed `2a432138a`, gate green** | §5zb |
 
 ## 4. Serial overlap set — never edited by both sides at once
 
@@ -1708,3 +1709,77 @@ The shard mode is not the complete gate on its own: the browser E2E and the seri
 - `apps/shop/tests/storefront-code.test.ts` failed once in the sharded gate ("expected TypeError: fetch failed to match object { status: 500 }", the mock server of the test got a port that the fetch of Node refused) and passed in isolation and in every other run. It is a flake of the existing test, not a defect of this batch.
 - The `pg_trgm` extension of the migration needs the `CREATE` right on the database for the role that applies it; the deployment note above records it.
 
+
+## 5zb. Handover evidence — S3-DATA-3 (the remaining items of the step 3 batch)
+
+**Baseline SHA:** `38cce1eac`. **Commit:** `2a432138a`.
+
+### What the batch changed
+
+| Area | Before | After |
+|---|---|---|
+| The amounts of the cart | the subtotal of a line was a float product and the total of the cart the float sum of those subtotals, so a basket of 79.99 and 19.99 reported `99.97999999999999` | the amounts of the cart are exact decimal arithmetic, so the same basket reports `99.98` |
+| The cost price of a variant | the admin product API accepted a negative cost price | a negative cost price is refused with `400 VALIDATION_ERROR` |
+| The currency of the request | a dead field: a client could name a currency and the order was placed in the currency of the store, silently | the field is an assertion: a request that names another currency than the store is refused with `400 VALIDATION_ERROR` |
+| The trigram extension of the migration | a deployment prerequisite that nothing checked | the verification asserts that the extension is installed, so a deployment without it fails loudly and early |
+| The ports of the mock servers of the suite | the operating system hands out the ports of its dynamic range, and that range reaches the blocked port `10080`, which the request of Node refuses | every mock that a request reaches binds a port the request can carry |
+
+### The contract changes this batch registers
+
+1. `POST /api/v1/orders` — a request that names a currency different from the currency of the store is refused with `400 VALIDATION_ERROR`. Before, the field was ignored and the order was placed in the currency of the store without a word.
+2. `POST /api/v1/admin/products` and `PUT /api/v1/admin/products/:id` — a variant with a negative `costPrice` is refused with `400 VALIDATION_ERROR`.
+
+### The flake this batch closes
+
+`apps/shop/tests/storefront-code.test.ts` failed once in a sharded gate run with `TypeError: fetch failed` and the cause `Error { message: 'bad port' }`, and passed in isolation and in every other run.
+
+The cause is the environment, not the test: the request of Node refuses the ports that the specification blocks for a browser request, and that list ends with `10080`. The TCP dynamic port range of this host is `10000-65535` (`netsh int ipv4 show dynamicport tcp`), so the operating system hands out `10080` once in a while — roughly one bind in fifty-five thousand — and the request of the mock then fails before it reaches the mock.
+
+Every test of the three suites that binds an ephemeral port and then sends a request to it carried the same exposure, and one of them (the child process of `apps/api/tests/helpers/protection-child.ts`) owned its own listener. The batch gives the suites a helper (`apps/api/tests/helpers/mock-server-port.ts`, `apps/shop/tests/helpers/mock-server-port.ts`, `apps/admin/tests/mock-server-port.ts`) that listens again when the operating system handed out a blocked port, and that reserves a port of its own for a server that cannot listen twice.
+
+### What is still open
+
+- Nothing of the five items the previous section listed is open any more. The deployment note of the `pg_trgm` extension stays: the role that applies the migration needs the `CREATE` right on the database, and the verification now says so by asserting that the extension is installed.
+
+### The gate evidence
+
+`pnpm verify:quick --shards=4` on the integration lane (`jiffoo_core_test`), the whole API catalogue in four parallel shards with their own PostgreSQL and Redis containers, plus the admin and the shop suite:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 3 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 185/185 files covered
+Totals: Test Files 185 files, 185 passed | Tests 2607 tests, 2605 passed, 2 pending | Suites 496 suites, 496 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Run Admin tests:
+   Start at:  21:29:17
+ Test Files  59 passed (59)
+      Tests  592 passed (592)
+Run Shop tests:
+   Start at:  21:29:35
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 3.44s |
+| Lint Shop | PASS | 9.68s |
+| Reset test database | PASS | 3.06s |
+| Run API tests in 4 shards | PASS | 702.95s |
+| Run Admin tests | PASS | 18.33s |
+| Run Shop tests | PASS | 21.42s |
+```
+
+The shards: 46/46, 45/45, 47/47, 47/47 files, no failed file in any of them; 185/185 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The step table has no drift step because this batch changed no file under `apps/api/prisma` — the datamodel and the database still agree, and the drift step of the previous batch proved it.
+
+The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own.
