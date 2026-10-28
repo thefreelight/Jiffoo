@@ -33,14 +33,27 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
     return claimNotifications(leaseClient, coreProcessIdentity.instanceId, notificationClaimLimit(sendTimeoutMs));
   });
   for (const notification of notifications) claimed.add(notification.id);
+  // The provider is resolved once for the whole batch, not once per
+  // notification: every notification of the batch is sent by the same enabled
+  // provider, and the registry answer does not change while the batch is
+  // delivered. A missing or failing provider is not a batch failure: it is
+  // recorded on every claimed row through the ordinary failure path below.
+  let providerSlug: string | undefined;
+  let providerError: string | undefined;
+  if (notifications.length) {
+    try {
+      const provider = await resolveSingleProvider('notification');
+      if (!provider) providerError = 'No enabled notification provider';
+      else providerSlug = provider.pluginSlug;
+    } catch (error) {
+      providerError = error instanceof Error ? error.message : String(error);
+    }
+  }
   let releaseRemainder = false;
   for (const notification of notifications) {
-    let providerSlug: string | undefined;
     try {
       if (releaseRemainder || options.isStopping?.()) { await releaseUnstartedNotification(client, notification); continue; }
-      const provider = await resolveSingleProvider('notification');
-      if (!provider) throw new Error('No enabled notification provider');
-      providerSlug = provider.pluginSlug;
+      if (!providerSlug) throw new Error(providerError ?? 'No enabled notification provider');
       const secrets = notification.secretJson && typeof notification.secretJson === 'object' && !Array.isArray(notification.secretJson)
         ? notification.secretJson as Record<string, unknown> : {};
       if (!await notificationLeaseAllowsSend(client, notification, sendTimeoutMs)) {
@@ -48,6 +61,16 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
         await releaseUnstartedNotification(client, notification);
         continue;
       }
+      // The provider call happens before the row is marked as sent, so a crash
+      // between the two sends the notification again once the lease is
+      // reclaimed. That at-least-once window is safe because the provider
+      // receives a stable idempotency key: the notification row id. The key
+      // is the primary key of the row, so it holds the same value in every
+      // path that retries one delivery. The failure path re-claims the same
+      // row, and the lease reclaim path re-claims the same row after it was
+      // reset to PENDING, so both reuse this id. Only a deliberate resend
+      // writes a new row, and therefore a new key, because that is a new
+      // notification rather than a retry of this one.
       const result = await callContract(providerSlug, 'notification', PLUGIN_CONTRACT_VERSIONS.notification, 'send', {
         channel: 'email', to: notification.toAddress, subject: notification.subject,
         html: substitute(notification.html, secrets), text: substitute(notification.text, secrets),

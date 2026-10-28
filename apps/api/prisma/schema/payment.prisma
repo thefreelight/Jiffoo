@@ -4,50 +4,52 @@
 // PAYMENT
 // ============================================================
 model Payment {
-  id              String               @id @default(cuid())
-  orderId         String
-  attemptNumber   Int                  @default(1)
-  expiresAt       DateTime?
-  failureReason   String?
-  paymentMethod   String
-  providerKey     String               @db.Uuid
-  closureObservationId String?         @unique @db.Uuid
-  closedAt        DateTime?            @db.Timestamptz(3)
-  reviewResolution String?
-  reviewResolvedAt DateTime?           @db.Timestamptz(3)
-  reviewResolvedBy String?
-  reviewReference String?
-  paymentIntentId String?
-  sessionId       String?
-  sessionUrl      String?
-  actionJson      Json?
-  amount          Decimal              @db.Decimal(18, 2)
-  currency        String               @default("USD")
-  status          PaymentAttemptStatus @default(PENDING)
-  idempotencyKey  String?
-  providerEventId String?
-  metadata        Json?
-  claimToken      String?              @db.Uuid
-  claimedBy       String?
-  leaseUntil      DateTime?            @db.Timestamptz(3)
-  nextReconcileAt DateTime             @default(now()) @db.Timestamptz(3)
-  attempts        Int                  @default(0)
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  id                   String               @id @default(cuid())
+  orderId              String
+  attemptNumber        Int                  @default(1)
+  expiresAt            DateTime?
+  failureReason        String?
+  paymentMethod        String
+  providerKey          String               @db.Uuid
+  closureObservationId String?              @unique @db.Uuid
+  closedAt             DateTime?            @db.Timestamptz(3)
+  reviewResolution     String?
+  reviewResolvedAt     DateTime?            @db.Timestamptz(3)
+  reviewResolvedBy     String?
+  reviewReference      String?
+  paymentIntentId      String?
+  sessionId            String?
+  sessionUrl           String?
+  actionJson           Json?
+  amount               Decimal              @db.Decimal(18, 2)
+  currency             String               @default("USD")
+  status               PaymentAttemptStatus @default(PENDING)
+  idempotencyKey       String?
+  providerEventId      String?
+  metadata             Json?
+  claimToken           String?              @db.Uuid
+  claimedBy            String?
+  leaseUntil           DateTime?            @db.Timestamptz(3)
+  nextReconcileAt      DateTime             @default(now()) @db.Timestamptz(3)
+  attempts             Int                  @default(0)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
-  order         Order           @relation(fields: [orderId], references: [id])
-  refunds       Refund[]
-  ledger        PaymentLedger[]
-  refundLedgers RefundLedger[]
-  providerAccount PaymentProviderAccount @relation(fields: [providerKey], references: [providerKey], onDelete: Restrict)
-  observations PaymentObservation[] @relation("PaymentObservations")
-  closureObservation PaymentObservation? @relation("PaymentClosure", fields: [closureObservationId], references: [id], onDelete: Restrict)
+  order              Order                  @relation(fields: [orderId], references: [id])
+  refunds            Refund[]
+  ledger             PaymentLedger[]
+  refundLedgers      RefundLedger[]
+  providerAccount    PaymentProviderAccount @relation(fields: [providerKey], references: [providerKey], onDelete: Restrict)
+  observations       PaymentObservation[]   @relation("PaymentObservations")
+  closureObservation PaymentObservation?    @relation("PaymentClosure", fields: [closureObservationId], references: [id], onDelete: Restrict)
 
   @@unique([idempotencyKey])
   @@unique([providerKey, sessionId])
   @@unique([orderId, attemptNumber])
   @@index([status, nextReconcileAt])
   @@index([status, leaseUntil])
+  @@index([orderId, createdAt])
+  @@index([status, reviewResolution])
   @@map("payments")
   @@schema("public")
 }
@@ -75,7 +77,7 @@ model Refund {
   payment Payment        @relation(fields: [paymentId], references: [id])
   order   Order          @relation(fields: [orderId], references: [id])
   ledger  RefundLedger[]
-  capture PaymentLedger @relation(fields: [paymentLedgerId], references: [id], onDelete: Restrict)
+  capture PaymentLedger  @relation(fields: [paymentLedgerId], references: [id], onDelete: Restrict)
 
   @@index([paymentId])
   @@index([orderId])
@@ -87,27 +89,27 @@ model Refund {
 // PAYMENT LEDGER (audit + reconciliation)
 // ============================================================
 model PaymentLedger {
-  id              String                 @id @default(cuid())
-  paymentId       String
-  orderId         String
-  eventType       PaymentLedgerEventType
-  amount          Decimal                @db.Decimal(18, 2)
-  currency        String
-  provider        String?
-  providerEventId String?
-  providerKey     String?                @db.Uuid
+  id                String                 @id @default(cuid())
+  paymentId         String
+  orderId           String
+  eventType         PaymentLedgerEventType
+  amount            Decimal                @db.Decimal(18, 2)
+  currency          String
+  provider          String?
+  providerEventId   String?
+  providerKey       String?                @db.Uuid
   providerPaymentId String?
-  idempotencyKey  String?
-  metadata        Json?
-  refundRequired  Boolean                @default(false)
-  refundReason    String?
-  manualReference String?
-  actorType       String?
-  createdAt       DateTime               @default(now())
+  idempotencyKey    String?
+  metadata          Json?
+  refundRequired    Boolean                @default(false)
+  refundReason      String?
+  manualReference   String?
+  actorType         String?
+  createdAt         DateTime               @default(now())
 
-  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  refunds Refund[]
+  payment         Payment                 @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  order           Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refunds         Refund[]
   providerAccount PaymentProviderAccount? @relation(fields: [providerKey], references: [providerKey], onDelete: Restrict)
 
   @@unique([providerKey, providerPaymentId])
@@ -119,15 +121,16 @@ model PaymentLedger {
 }
 
 model PaymentProviderAccount {
-  providerKey String @id @default(uuid()) @db.Uuid
-  namespace String
+  providerKey     String                   @id @default(uuid()) @db.Uuid
+  namespace       String
   merchantAccount String
-  environment String
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  bindings PaymentProviderBinding[]
-  payments Payment[]
-  ledger PaymentLedger[]
-  observations PaymentObservation[]
+  environment     String
+  createdAt       DateTime                 @default(now()) @db.Timestamptz(3)
+  bindings        PaymentProviderBinding[]
+  payments        Payment[]
+  ledger          PaymentLedger[]
+  observations    PaymentObservation[]
+
   @@unique([namespace, merchantAccount, environment])
   @@map("payment_provider_accounts")
   @@schema("public")
@@ -135,30 +138,32 @@ model PaymentProviderAccount {
 
 model PaymentProviderBinding {
   installationId String
-  providerKey String @db.Uuid
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
-  account PaymentProviderAccount @relation(fields: [providerKey], references: [providerKey], onDelete: Restrict)
+  providerKey    String                 @db.Uuid
+  createdAt      DateTime               @default(now()) @db.Timestamptz(3)
+  account        PaymentProviderAccount @relation(fields: [providerKey], references: [providerKey], onDelete: Restrict)
+
   @@id([installationId, providerKey])
   @@map("payment_provider_bindings")
   @@schema("public")
 }
 
 model PaymentObservation {
-  id String @id @default(uuid()) @db.Uuid
-  paymentId String?
-  providerKey String? @db.Uuid
-  source String
-  requestKey String
-  sessionId String?
+  id              String                  @id @default(uuid()) @db.Uuid
+  paymentId       String?
+  providerKey     String?                 @db.Uuid
+  source          String
+  requestKey      String
+  sessionId       String?
   providerEventId String?
-  evidenceHash String
-  evidence Json
-  verification String
-  mismatchReason String?
-  receivedAt DateTime @default(now()) @db.Timestamptz(3)
-  payment Payment? @relation("PaymentObservations", fields: [paymentId], references: [id], onDelete: Restrict)
+  evidenceHash    String
+  evidence        Json
+  verification    String
+  mismatchReason  String?
+  receivedAt      DateTime                @default(now()) @db.Timestamptz(3)
+  payment         Payment?                @relation("PaymentObservations", fields: [paymentId], references: [id], onDelete: Restrict)
   providerAccount PaymentProviderAccount? @relation(fields: [providerKey], references: [providerKey], onDelete: Restrict)
-  closesPayment Payment? @relation("PaymentClosure")
+  closesPayment   Payment?                @relation("PaymentClosure")
+
   @@unique([source, evidenceHash])
   @@index([providerKey, providerEventId])
   @@index([paymentId, receivedAt])

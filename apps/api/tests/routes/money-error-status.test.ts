@@ -7,8 +7,9 @@
  * reason and the detail of the amount it could not convert, and stays free of
  * HTTP semantics.
  *
- * These tests pin that contract change (500 -> 400) on the two main flows
- * that convert amounts.
+ * The trigger these tests pin is an amount the currency cannot express: the
+ * price of the line has decimals the currency has no minor units for. Both
+ * flows answer it with the validation error, never with an internal error.
  */
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
@@ -97,6 +98,11 @@ describe('the money error contract of the order and the checkout quote', () => {
   });
 
   it('answers a bad amount of the order placement with the validation error', async () => {
+    // A currency without decimals cannot carry the price of the line, so the
+    // amount of the placement is a bad amount. The amount of the placement is
+    // computed in the minor units of the currency, so a price the currency
+    // cannot express is rejected.
+    await systemSettingsService.setSetting('localization.currency', 'JPY');
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/orders',
@@ -114,5 +120,6 @@ describe('the money error contract of the order and the checkout quote', () => {
     expect(response.statusCode).toBeLessThan(500);
     expect(response.json().error.code).toBe('VALIDATION_ERROR');
     expect(response.json().error.code).not.toBe('INTERNAL_SERVER_ERROR');
+    await systemSettingsService.setSetting('localization.currency', currencyBefore);
   });
 });

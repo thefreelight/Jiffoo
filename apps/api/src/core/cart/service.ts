@@ -1,16 +1,34 @@
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { ProductService } from '@/core/product/service';
 import { lineRequiresShippingAddress, stockCeilingFor } from '@/core/shared/fulfillment-policy';
 
 /**
+ * A cart line, read under the row lock of the line.
+ */
+type LockedCartLine = {
+  id: string;
+  productId: string;
+  variantId: string;
+  quantity: number;
+};
+
+/**
+ * The transaction surface required to lock the lines of a cart. A Prisma
+ * transaction client satisfies it, so the caller passes its own transaction
+ * client straight through.
+ */
+type CartLineLockTx = {
+  $queryRaw: (...args: any[]) => Promise<any>;
+};
+
+/**
  * Transaction surface required to consume purchased cart lines. A Prisma
  * transaction client satisfies it, so the caller passes its own transaction
  * client straight through.
  */
-export type CartPurchaseTx = {
-  $queryRaw: (...args: any[]) => Promise<any>;
+export type CartPurchaseTx = CartLineLockTx & {
   cart: {
     findUnique(args: any): Promise<any>;
   };
@@ -151,7 +169,8 @@ export class CartService {
       // product belong to the same write, so a crash cannot leave an empty
       // cart or an orphan line behind.
       await this.runCartWrite(async (tx) => {
-        // Every writer of the cart of a customer serializes on that cart, so
+        // Every writer of the cart of a customer serializes on that cart, and
+        // every writer of a line serializes on the row lock of that line, so
         // the quantity of a line is never read and written at the same time.
         await this.lockCartWrites(tx, userId);
         const cart = await this.ensureCart(tx, userId);
@@ -170,13 +189,22 @@ export class CartService {
           throw new ApiError('NOT_FOUND');
         }
 
-        // The stock ceiling of a line of a product type that does not track
-        // its inventory is not the stock of the variant, so such a line can be
-        // added even when the variant has no stock.
-        const availableQuantity = stockCeilingFor(product.productType, variant.stock);
-        // The quantity of the line is read under the row lock of the line, so
-        // the ceiling is checked against the quantity the cart really holds.
-        const currentQuantity = await this.lockedLineQuantity(tx, cart.id, variant.id);
+        // The line of the variant is locked before the ceiling is checked, so
+        // the ceiling is checked against the quantity the cart holds under the
+        // lock and not against a quantity that a concurrent consumption of the
+        // purchased lines has already taken out of the line.
+        const locked = await this.lockCartLines(tx, cart.id, [variant.id]);
+        const currentQuantity = locked.length ? locked[0].quantity : 0;
+        // The stock ceiling of the line is read under the lock of the line,
+        // but never under the lock of the stock row. The order path takes the
+        // stock row first and the line row second, so a cart writer that took
+        // the stock row after the line row would invert that order and
+        // deadlock with the order path. The ceiling is therefore advisory,
+        // and the authoritative guard is the conditional decrement of the
+        // sale, which refuses the sale when the stock is not there: the cart
+        // can offer a line the stock no longer covers, and the order
+        // placement rejects it.
+        const availableQuantity = await this.lockedStockCeiling(tx, product, variant.id);
         if (currentQuantity + quantity > availableQuantity) {
           throw new InsufficientCartStockError(availableQuantity);
         }
@@ -223,13 +251,19 @@ export class CartService {
 
     await this.runCartWrite(async (tx) => {
       // The batch is one write of one cart: the writers of the cart of a
-      // customer serialize on that cart, so the quantity of a line is never
-      // read and written at the same time.
+      // customer serialize on that cart, and every writer of a line
+      // serializes on the row lock of that line, so the quantity of a line is
+      // never read and written at the same time.
       await this.lockCartWrites(tx, userId);
       const cart = await this.ensureCart(tx, userId);
 
       const productIds = Array.from(new Set(items.map((item) => item.productId)));
       const catalog = await ProductService.getSellableCatalog(tx, productIds);
+
+      // The lines of the batch are written under the row lock of the line, so
+      // every writer of a cart locks the lines of that cart in one order and
+      // cannot deadlock with a writer that locks more than one line.
+      const lines: Array<{ productId: string; variantId: string; quantity: number }> = [];
 
       for (const item of items) {
         const quantity = Number(item.quantity ?? 1);
@@ -251,18 +285,30 @@ export class CartService {
           throw new ApiError('NOT_FOUND');
         }
 
+        lines.push({ productId: item.productId, variantId: variant.id, quantity: normalizedQuantity });
+      }
+
+      // The lines of the batch are locked before they are written, so the
+      // increment of a line cannot interleave with the consumption of the
+      // purchased lines of the order module, which takes the same row lock of
+      // the line. The locks are taken in the order of the database, the global
+      // order of the line locks of a cart.
+      await this.lockCartLines(tx, cart.id, lines.map((line) => line.variantId));
+
+      for (const line of lines) {
         // The database owns the line: the unique key of a line is its cart and
         // its variant, so the batch increments the line of the variant instead
-        // of reading the quantity and writing it back.
+        // of reading the quantity and writing it back. The increment is atomic
+        // in the database, and the line is already locked.
         await tx.cartItem.upsert({
-          where: { cartId_variantId: { cartId: cart.id, variantId: variant.id } },
+          where: { cartId_variantId: { cartId: cart.id, variantId: line.variantId } },
           create: {
             cartId: cart.id,
-            productId: item.productId,
-            variantId: variant.id,
-            quantity: normalizedQuantity,
+            productId: line.productId,
+            variantId: line.variantId,
+            quantity: line.quantity,
           },
-          update: { quantity: { increment: normalizedQuantity } },
+          update: { quantity: { increment: line.quantity } },
         });
       }
     });
@@ -302,35 +348,53 @@ export class CartService {
       await this.runCartWrite(async (tx) => {
         await this.lockCartWrites(tx, userId);
         const cart = await tx.cart.findUnique({
-          where: { userId },
-          include: { items: true }
+          where: { userId }
         });
 
         if (!cart) {
           throw new ApiError('NOT_FOUND');
         }
 
-        // The line must belong to the cart of the caller, and the write is
-        // scoped to that cart as well, so a customer cannot change a line of
-        // another customer.
-        const item = cart.items.find(i => i.id === itemId);
-        if (!item) {
+        // The line must belong to the cart of the caller, and the row lock of
+        // the line is taken before the quantity of the line is read or
+        // written. The lock is scoped to the cart of the caller, so a
+        // customer cannot change a line of another customer.
+        //
+        // The write is applied to the locked row, so it cannot overwrite the
+        // quantity that the consumption of the purchased lines of the order
+        // module took out of the line while this edit was running. An edit
+        // that writes an absolute quantity and does not take the row lock of
+        // the line would give the purchased units back to the cart.
+        const line = await this.lockCartLineById(tx, cart.id, itemId);
+        if (!line) {
           throw new ApiError('NOT_FOUND');
         }
 
         if (quantity <= 0) {
-          await tx.cartItem.deleteMany({ where: { id: itemId, cartId: cart.id } });
+          // The delete of the locked line takes the row lock of the line as
+          // well, so the removal and the consumption of the purchased lines
+          // are one protocol.
+          await tx.cartItem.deleteMany({ where: { id: line.id, cartId: cart.id } });
         } else {
-          const catalog = await ProductService.getSellableCatalog(tx, [item.productId]);
-          const product = catalog.get(item.productId);
-          const variant = product?.variants.find((entry) => entry.id === item.variantId);
+          // The catalog is read under the row lock of the line, so the
+          // quantity of the line and the ceiling of the line belong to the
+          // same locked state of the line. The stock of the ceiling is read
+          // as an unlocked snapshot and never under the lock of the stock
+          // row: the order path takes the stock row first and the line row
+          // second, so taking the stock row here would invert that order and
+          // deadlock with the order path. The ceiling is therefore advisory,
+          // and the authoritative guard is the conditional decrement of the
+          // sale, which refuses the sale when the stock is not there.
+          const catalog = await ProductService.getSellableCatalog(tx, [line.productId]);
+          const product = catalog.get(line.productId);
+          const variant = product?.variants.find((entry) => entry.id === line.variantId);
           if (!variant) throw new ApiError('NOT_FOUND');
           // The stock ceiling of a line of a product type that does not track
           // its inventory is not the stock of the variant.
           const availableQuantity = stockCeilingFor(product?.productType ?? '', variant.stock);
           if (quantity > availableQuantity) throw new InsufficientCartStockError(availableQuantity);
           await tx.cartItem.update({
-            where: { id: itemId },
+            where: { id: line.id },
             data: { quantity }
           });
         }
@@ -366,7 +430,11 @@ export class CartService {
       await this.runCartWrite(async (tx) => {
         await this.lockCartWrites(tx, userId);
         // The line is scoped to the cart of the caller, so a customer cannot
-        // delete a line of another customer.
+        // delete a line of another customer. The delete of the line takes the
+        // row lock of the line, so the removal and the consumption of the
+        // purchased lines of the order module are one protocol. A writer that
+        // locks a single line has no order of its own, so it is consistent
+        // with the global order of the line locks of a cart.
         const deleted = await tx.cartItem.deleteMany({
           where: { id: itemId, cart: { userId } },
         });
@@ -414,6 +482,13 @@ export class CartService {
         await this.lockCartWrites(tx, userId);
         const cart = await tx.cart.findUnique({ where: { userId } });
         if (cart) {
+          // The clear writes every line of the cart, so it takes the row lock
+          // of every line of the cart before it deletes them. The delete
+          // takes the row lock of the line as well, but the lock is taken
+          // here in the order of the database, the global order of the line
+          // locks of a cart, so the clear cannot deadlock with the
+          // consumption of the purchased lines.
+          await this.lockCartLines(tx, cart.id);
           await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
         }
       });
@@ -472,17 +547,29 @@ export class CartService {
     const cart = await tx.cart.findUnique({ where: { userId }, include: { items: true } });
     if (!cart) return;
 
-    // Match the row-lock order across concurrent purchases of multiple lines.
-    for (const line of [...cart.items].sort((a, b) => a.id.localeCompare(b.id))) {
+    // The purchased lines of the cart, with the quantity that is purchased
+    // from every line.
+    const purchasedByLineId = new Map<string, number>();
+    const purchasedVariants: string[] = [];
+    for (const line of cart.items) {
       const quantity = purchased.get(`${line.productId}:${line.variantId}`) ?? 0;
+      if (quantity <= 0) continue;
+      purchasedByLineId.set(line.id, quantity);
+      purchasedVariants.push(line.variantId);
+    }
+    if (!purchasedByLineId.size) return;
+
+    // The lines are locked in the order of the database, which is the global
+    // order of the line locks of a cart, so the consumption and the writers
+    // of the cart cannot deadlock with each other. The quantity of a line is
+    // read with the lock, so a concurrent cart edit cannot make it negative.
+    const locked = await this.lockCartLines(tx, cart.id, purchasedVariants);
+
+    for (const line of locked) {
+      const quantity = purchasedByLineId.get(line.id) ?? 0;
       if (!quantity) continue;
-      // UPDATE and DELETE already take this row lock. Read the current quantity
-      // after acquiring it so a concurrent cart edit cannot make it negative.
-      const rows: Array<{ quantity: number }> = await tx.$queryRaw`
-        SELECT quantity FROM public.cart_items WHERE id = ${line.id} FOR UPDATE
-      `;
-      if (!rows.length) continue;
-      if (rows[0].quantity <= quantity) {
+      // UPDATE and DELETE already take this row lock.
+      if (line.quantity <= quantity) {
         await tx.cartItem.delete({ where: { id: line.id } });
       } else {
         await tx.cartItem.update({ where: { id: line.id }, data: { quantity: { decrement: quantity } } });
@@ -595,6 +682,33 @@ export class CartService {
    * would wait for the cart, and the order of a customer whose cart is being
    * written would fail.
    *
+   * The advisory lock is the lock of the cart and the row lock of a line is
+   * the lock of that line, and the two are one protocol:
+   *
+   * - Every writer of a line takes the row lock of that line, the writers of
+   *   the cart take the advisory lock of the cart first and the row lock of
+   *   the line second, and the consumption of the purchased lines takes the
+   *   row lock of the line only. The consumption therefore never waits for the
+   *   advisory lock, and the order never waits for the cart.
+   * - The lines of a cart are locked in the order of the database, the order
+   *   of the variants under the collation of the database, by every writer
+   *   that locks more than one line. That order is global and must not
+   *   change, so no writer of a cart and no consumption of a cart can
+   *   deadlock with each other.
+   * - The quantity of a line is read and written under the row lock of that
+   *   line, so an absolute write of a quantity cannot overwrite the quantity
+   *   that the consumption of the purchased lines took out of the line.
+   * - The stock ceiling of a line is read under the lock of the line and never
+   *   under the lock of the stock row. The order path takes the stock row
+   *   first and the line row second, so a cart writer that took the stock row
+   *   after the line row would invert that order and deadlock with the order
+   *   path. The ceiling is therefore advisory, and the authoritative guard is
+   *   the conditional decrement of the sale, which carries the predicate that
+   *   the stock has to cover the sale and refuses the sale when it does not.
+   *   The cart can offer a line the stock no longer covers, and the order
+   *   placement rejects it. Do not "fix" that: the cart path must never take
+   *   the stock row lock.
+   *
    * @param tx The transaction client of the write
    * @param userId The unique identifier of the owner of the cart
    * @private
@@ -618,26 +732,118 @@ export class CartService {
   }
 
   /**
-   * The quantity of a line of a cart, read under the row lock of the line
+   * A line of a cart, locked by its identifier
    *
-   * The row lock of the line keeps a concurrent writer of the same line from
-   * changing the quantity while the ceiling of the line is checked.
+   * The lock is the row lock of the line, the same lock the consumption of
+   * the purchased lines takes, and the lock is scoped to the cart of the
+   * caller: a line of another cart is neither locked nor found.
+   *
+   * A writer that locks a single line has no order of its own, so it is
+   * consistent with the global order of the line locks of a cart.
    *
    * @param tx The transaction client of the write
    * @param cartId The identifier of the cart that owns the line
-   * @param variantId The identifier of the variant of the line
-   * @returns Promise resolving to the quantity of the line, zero when the cart
-   *          does not hold the line
+   * @param itemId The identifier of the line
+   * @returns Promise resolving to the locked line, null when the cart does not
+   *          hold the line
    * @private
    */
-  private static async lockedLineQuantity(tx: Prisma.TransactionClient, cartId: string, variantId: string): Promise<number> {
-    // The columns of a line are camelCase, so the identifiers of the query are
-    // quoted: an unquoted identifier folds to lower case and the query would
-    // not find the column.
-    const rows: Array<{ quantity: number }> = await tx.$queryRaw`
-      SELECT quantity FROM public.cart_items WHERE "cartId" = ${cartId} AND "variantId" = ${variantId} FOR UPDATE
+  private static async lockCartLineById(
+    tx: Prisma.TransactionClient,
+    cartId: string,
+    itemId: string
+  ): Promise<LockedCartLine | null> {
+    const rows: Array<{ id: string; productId: string; variantId: string; quantity: number }> = await tx.$queryRaw`
+      SELECT id, "productId", "variantId", quantity FROM public.cart_items
+      WHERE id = ${itemId} AND "cartId" = ${cartId} FOR UPDATE
     `;
-    return rows.length ? Number(rows[0].quantity) : 0;
+    if (!rows.length) return null;
+    const row = rows[0];
+    return {
+      id: row.id,
+      productId: row.productId,
+      variantId: row.variantId,
+      quantity: Number(row.quantity)
+    };
+  }
+
+  /**
+   * The lines of a cart, locked in the order of the database
+   *
+   * The lock of every line of the cart is the row lock of that line, the
+   * same lock the consumption of the purchased lines takes. The lines are
+   * locked in the order of their variant, and that order comes from the
+   * database, so every writer of a cart that locks more than one line locks
+   * the lines of that cart in the same order and cannot deadlock with another
+   * writer of that cart.
+   *
+   * The order of the line locks of a cart is global: the order of the
+   * variants under the collation of the database. It must not change, because
+   * a writer that locks the lines of a cart in another order can deadlock
+   * with a writer that locks them in this order. A writer that locks a single
+   * line has no order at all and is consistent with it.
+   *
+   * @param tx The transaction client of the write
+   * @param cartId The identifier of the cart that owns the lines
+   * @param variantIds The variants of the lines to lock, every line of the
+   *                   cart when the list is omitted
+   * @returns Promise resolving to the locked lines, in the order of the locks
+   * @private
+   */
+  private static async lockCartLines(
+    tx: CartLineLockTx,
+    cartId: string,
+    variantIds?: string[]
+  ): Promise<LockedCartLine[]> {
+    if (variantIds && variantIds.length === 0) return [];
+
+    // The rows are sorted by the database before they are locked, so the locks
+    // are taken in the order of the variants under the collation of the
+    // database. That order is the one and only order of the line locks.
+    const rows: Array<{ id: string; productId: string; variantId: string; quantity: number }> = variantIds
+      ? await tx.$queryRaw`
+          SELECT id, "productId", "variantId", quantity FROM public.cart_items
+          WHERE "cartId" = ${cartId} AND "variantId" IN (${Prisma.join(variantIds)})
+          ORDER BY "variantId" FOR UPDATE
+        `
+      : await tx.$queryRaw`
+          SELECT id, "productId", "variantId", quantity FROM public.cart_items
+          WHERE "cartId" = ${cartId}
+          ORDER BY "variantId" FOR UPDATE
+        `;
+
+    return rows.map((row) => ({
+      id: row.id,
+      productId: row.productId,
+      variantId: row.variantId,
+      quantity: Number(row.quantity)
+    }));
+  }
+
+  /**
+   * The stock ceiling of a line, read under the lock of the line.
+   *
+   * Only the stock is read here: the catalogue of the product was already
+   * read by the caller, and reading the whole catalogue again would make
+   * every add to a cart run the catalogue queries twice. The stock is read
+   * under the lock of the line and never under the lock of the stock row: the
+   * order path takes the stock row first and the line row second, so taking
+   * the stock row here would invert that order and deadlock with the order
+   * path. The ceiling is therefore advisory, and the authoritative guard is
+   * the conditional decrement of the sale, which refuses the sale when the
+   * stock is not there.
+   */
+  private static async lockedStockCeiling(
+    tx: Prisma.TransactionClient,
+    product: { productType: string },
+    variantId: string
+  ): Promise<number> {
+    const stock = await ProductService.getVariantStockLevels([variantId], tx);
+    const level = stock.get(variantId);
+    if (level === undefined) {
+      throw new ApiError('NOT_FOUND');
+    }
+    return stockCeilingFor(product.productType, level);
   }
 
   /**

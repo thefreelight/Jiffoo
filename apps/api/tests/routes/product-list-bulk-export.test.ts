@@ -184,6 +184,26 @@ it.each(['activate', 'deactivate', 'setCategory', 'delete'])('dry-runs and execu
     expect(await prisma.eventRecord.count({ where: { aggregateId: product.id, type: 'product.updated' } })).toBe(1);
   }
 });
+it('advances the product cache version once for a bulk of many products', async () => {
+  const ids: string[] = [];
+  for (let index = 0; index < 3; index++) {
+    const product = await createTestProduct({ name: prefix + '-version-' + index }); owned.push(product.id); ids.push(product.id);
+  }
+  assertRedisReady();
+  const spy = vi.spyOn(CacheService, 'deleteProduct');
+  try {
+    const version = await CacheService.getProductVersion();
+    const result = await post('bulk', { action: 'deactivate', selection: selection(ids) });
+    expect(result.statusCode).toBe(200);
+    expect(result.json().data).toMatchObject({ matched: 3, processed: 3, skippedCount: 0 });
+    // The batch is one logical write, so the cached product list is invalidated once
+    // and not once per product.
+    expect(await CacheService.getProductVersion(), JSON.stringify(redisEvidence)).toBe(version + 1);
+    // Every written product still drops its own cached entry.
+    expect(spy.mock.calls.filter(([id]) => ids.includes(id))).toHaveLength(3);
+    expect(await prisma.eventRecord.count({ where: { aggregateId: { in: ids }, type: 'product.updated' } })).toBe(3);
+  } finally { spy.mockRestore(); }
+});
 it('emits identical snapshots and invalidates the same cache entries as a single update', async () => {
   const product = await createTestProduct({ name: prefix + '-events' }); owned.push(product.id);
   const spy = vi.spyOn(CacheService, 'deleteProduct');

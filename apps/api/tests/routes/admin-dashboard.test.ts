@@ -105,9 +105,11 @@ describe('Admin Dashboard Endpoints', () => {
     const owned: string[] = [], customers: string[] = [];
     let providerKey: string | undefined;
     const headers = { authorization: 'Bearer ' + adminToken };
+    // The dashboard cache keys carry the order and the product cache version
+    // and the store timezone, so the cleanup removes every dashboard entry by
+    // prefix instead of one literal key that a key change would leave behind.
     const clearDashboard = async () => {
-      await CacheService.delete('stats:admin-dashboard:v2:metrics');
-      await CacheService.delete('stats:admin-dashboard:v3:');
+      await CacheService.clearByPrefix('stats:admin-dashboard:');
     };
     const dashboard = async () => {
       await clearDashboard();
@@ -182,7 +184,7 @@ describe('Admin Dashboard Endpoints', () => {
       if (providerKey) await prisma.paymentProviderAccount.delete({ where: { providerKey } });
       await systemSettingsService.batchUpdate({ 'localization.timezone': originalTimezone }, adminId);
       await prisma.adminAuditEvent.deleteMany({ where: { actorId: adminId, action: 'STORE_TIMEZONE_CHANGED' } });
-      await clearDashboard(); await CacheService.delete('stats:admin-dashboard:'); await CacheService.delete('stats:admin-dashboard:metrics');
+      await clearDashboard();
       await CacheService.incrementOrderVersion();
     }
   });

@@ -19,13 +19,13 @@ model PluginInstall {
   entryModule     String?
   externalBaseUrl String?
 
-  source      String  @default("local-zip")
-  trustLevel  PluginTrustLevel @default(unsigned)
-  publisherId String?
-  publisherName String?
+  source                          String           @default("local-zip")
+  trustLevel                      PluginTrustLevel @default(unsigned)
+  publisherId                     String?
+  publisherName                   String?
   publisherCertificateFingerprint String?
-  signingRoot String?
-  installPath String?
+  signingRoot                     String?
+  installPath                     String?
 
   zipHash      String?
   manifestJson Json?
@@ -37,14 +37,15 @@ model PluginInstall {
   installedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  installations PluginInstallation[]
+  installations      PluginInstallation[]
   eventSubscriptions PluginEventSubscription[]
-  packageBlobs PluginPackageBlob[]
+  packageBlobs       PluginPackageBlob[]
 
   @@index([category])
   @@index([runtimeType])
   @@index([zipHash])
   @@index([deletedAt])
+  @@index([installedAt])
   @@map("plugin_installs")
   @@schema("public")
 }
@@ -65,13 +66,13 @@ model PluginPackageBlob {
 }
 
 model PluginOperationLease {
-  slug       String   @id
-  token      String
-  operation  String
-  acquiredAt DateTime
-  expiresAt  DateTime
-  ownerBootNonce String? @db.Uuid
-  owner CoreProcess? @relation(fields: [ownerBootNonce], references: [bootNonce], onDelete: Restrict)
+  slug           String       @id
+  token          String
+  operation      String
+  acquiredAt     DateTime
+  expiresAt      DateTime
+  ownerBootNonce String?      @db.Uuid
+  owner          CoreProcess? @relation(fields: [ownerBootNonce], references: [bootNonce], onDelete: Restrict)
 
   @@index([operation, ownerBootNonce])
   @@map("plugin_operation_leases")
@@ -79,13 +80,13 @@ model PluginOperationLease {
 }
 
 model PluginNamespace {
-  id            Int      @id @default(autoincrement())
-  slug          String   @unique
-  schemaName    String   @unique
+  id            Int                      @id @default(autoincrement())
+  slug          String                   @unique
+  schemaName    String                   @unique
   publisherKind String
   publisherId   String?
   provisionedAt DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime                 @default(now())
   ledger        PluginMigrationSuccess[]
   attempts      PluginMigrationAttempt[]
 
@@ -94,7 +95,7 @@ model PluginNamespace {
 }
 
 model PluginMigrationSuccess {
-  id             String   @id @default(cuid())
+  id             String                   @id @default(cuid())
   namespaceId    Int
   order          Int
   migrationId    String
@@ -105,9 +106,9 @@ model PluginMigrationSuccess {
   manifestDigest String
   operationId    String
   actorId        String
-  appliedAt      DateTime @default(now())
+  appliedAt      DateTime                 @default(now())
   durationMs     Int
-  namespace      PluginNamespace @relation(fields: [namespaceId], references: [id], onDelete: Restrict)
+  namespace      PluginNamespace          @relation(fields: [namespaceId], references: [id], onDelete: Restrict)
   operation      PluginMigrationOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
 
   @@unique([namespaceId, order])
@@ -126,21 +127,21 @@ enum PluginMigrationAttemptStatus {
 }
 
 model PluginMigrationAttempt {
-  id             String   @id @default(cuid())
-  namespaceId    Int
-  operationId    String
-  order          Int
-  migrationId    String
-  path           String
-  sha256         String
-  startedAt      DateTime @default(now())
-  endedAt        DateTime?
-  status         PluginMigrationAttemptStatus @default(UNKNOWN)
-  sqlstate       String?
-  errorCode      String?
-  resolution     String?
-  namespace      PluginNamespace @relation(fields: [namespaceId], references: [id], onDelete: Restrict)
-  operation      PluginMigrationOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  id          String                       @id @default(cuid())
+  namespaceId Int
+  operationId String
+  order       Int
+  migrationId String
+  path        String
+  sha256      String
+  startedAt   DateTime                     @default(now())
+  endedAt     DateTime?
+  status      PluginMigrationAttemptStatus @default(UNKNOWN)
+  sqlstate    String?
+  errorCode   String?
+  resolution  String?
+  namespace   PluginNamespace              @relation(fields: [namespaceId], references: [id], onDelete: Restrict)
+  operation   PluginMigrationOperation     @relation(fields: [operationId], references: [id], onDelete: Restrict)
 
   @@index([operationId, order])
   @@map("plugin_migration_attempts")
@@ -148,7 +149,7 @@ model PluginMigrationAttempt {
 }
 
 model PluginMigrationOperation {
-  id              String   @id @default(cuid())
+  id              String                   @id @default(cuid())
   slug            String
   actorId         String
   packageHash     String
@@ -160,15 +161,15 @@ model PluginMigrationOperation {
   installOptions  Json
   artifactBytes   Bytes?
   leaseToken      String
-  ownerBootNonce  String? @db.Uuid
-  owner           CoreProcess? @relation(fields: [ownerBootNonce], references: [bootNonce], onDelete: Restrict)
-  phase           String   @default("QUEUED")
-  committedPrefix Int      @default(0)
-  recoveryState   String   @default("NONE")
+  ownerBootNonce  String?                  @db.Uuid
+  owner           CoreProcess?             @relation(fields: [ownerBootNonce], references: [bootNonce], onDelete: Restrict)
+  phase           String                   @default("QUEUED")
+  committedPrefix Int                      @default(0)
+  recoveryState   String                   @default("NONE")
   confirmed       Boolean
   result          Json?
   errorCode       String?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime                 @default(now())
   startedAt       DateTime?
   finishedAt      DateTime?
   successes       PluginMigrationSuccess[]
@@ -177,20 +178,21 @@ model PluginMigrationOperation {
   @@index([slug, createdAt])
   @@index([phase])
   @@index([phase, createdAt, id])
+  @@index([slug, phase])
   @@map("plugin_migration_operations")
   @@schema("public")
 }
 
 model CoreProcess {
-  bootNonce        String @id @db.Uuid
-  instanceId       String @db.Uuid
+  bootNonce        String                     @id @db.Uuid
+  instanceId       String                     @db.Uuid
   kind             String
   hostname         String
   pid              Int
   databaseRole     String
-  startedAt        DateTime @default(now())
-  heartbeatAt      DateTime @default(now())
-  state            String @default("LIVE")
+  startedAt        DateTime                   @default(now())
+  heartbeatAt      DateTime                   @default(now())
+  state            String                     @default("LIVE")
   drainedAt        DateTime?
   deathConfirmedAt DateTime?
   deathProof       Json?
@@ -213,17 +215,17 @@ enum PluginTrustLevel {
 }
 
 model Theme {
-  id           String           @id @default(cuid())
-  slug         String           @unique
-  version      String
-  target       String
-  name         String
-  manifestJson Json
-  packageHash  String
-  source       String
-  trustLevel   PluginTrustLevel
-  installedAt  DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id            String                @id @default(cuid())
+  slug          String                @unique
+  version       String
+  target        String
+  name          String
+  manifestJson  Json
+  packageHash   String
+  source        String
+  trustLevel    PluginTrustLevel
+  installedAt   DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
   configuration ThemeConfiguration?
   revisions     ThemeConfigRevision[]
   packageBlobs  ThemePackageBlob[]
@@ -233,22 +235,22 @@ model Theme {
 }
 
 model ThemeActive {
-  target String @id
-  slug   String
+  target      String   @id
+  slug        String
   packageHash String
-  updatedAt DateTime @updatedAt
+  updatedAt   DateTime @updatedAt
 
   @@map("theme_active")
   @@schema("public")
 }
 
 model ThemeActivation {
-  id String @id @default(cuid())
-  target String
-  slug String
+  id          String   @id @default(cuid())
+  target      String
+  slug        String
   packageHash String
-  actorId String
-  createdAt DateTime @default(now())
+  actorId     String
+  createdAt   DateTime @default(now())
 
   @@index([target, createdAt])
   @@map("theme_activations")
@@ -271,23 +273,23 @@ model ThemePackageBlob {
 }
 
 model ThemeConfiguration {
-  slug String @id
-  revision Int @default(0)
-  values Json
+  slug      String   @id
+  revision  Int      @default(0)
+  values    Json
   updatedAt DateTime @updatedAt
-  theme Theme @relation(fields: [slug], references: [slug], onDelete: Cascade)
+  theme     Theme    @relation(fields: [slug], references: [slug], onDelete: Cascade)
 
   @@map("theme_configurations")
   @@schema("public")
 }
 
 model ThemeConfigRevision {
-  id String @id @default(cuid())
-  slug String
-  revision Int
-  values Json
+  id        String   @id @default(cuid())
+  slug      String
+  revision  Int
+  values    Json
   createdAt DateTime @default(now())
-  theme Theme @relation(fields: [slug], references: [slug], onDelete: Cascade)
+  theme     Theme    @relation(fields: [slug], references: [slug], onDelete: Cascade)
 
   @@unique([slug, revision])
   @@map("theme_config_revisions")
@@ -295,17 +297,17 @@ model ThemeConfigRevision {
 }
 
 model StorefrontCodeConfiguration {
-  id                String   @id @default("system")
-  revision          Int      @default(0)
-  enabled           Boolean  @default(true)
-  ga4MeasurementId  String?
-  metaPixelId       String?
-  baiduSiteKey      String?
-  headCode          String   @default("")
-  bodyStartCode     String   @default("")
-  bodyEndCode       String   @default("")
-  updatedById       String
-  updatedAt         DateTime @updatedAt
+  id               String   @id @default("system")
+  revision         Int      @default(0)
+  enabled          Boolean  @default(true)
+  ga4MeasurementId String?
+  metaPixelId      String?
+  baiduSiteKey     String?
+  headCode         String   @default("")
+  bodyStartCode    String   @default("")
+  bodyEndCode      String   @default("")
+  updatedById      String
+  updatedAt        DateTime @updatedAt
 
   @@map("storefront_code_configurations")
   @@schema("public")
@@ -333,16 +335,18 @@ model StorefrontCodeRevision {
 }
 
 model AdminAuditEvent {
-  id String @id @default(cuid())
-  actorId String
-  action String
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
   targetType String
-  targetId String
-  summary Json
-  createdAt DateTime @default(now())
+  targetId   String
+  summary    Json
+  createdAt  DateTime @default(now())
 
   @@index([targetType, targetId, createdAt])
   @@index([createdAt])
+  @@index([actorId])
+  @@index([action, createdAt])
   @@map("admin_audit_events")
   @@schema("public")
 }
@@ -355,8 +359,8 @@ model PluginInstallation {
   pluginSlug  String
   instanceKey String
 
-  enabled Boolean @default(true)
-  protectionGeneration BigInt @default(0)
+  enabled                   Boolean @default(true)
+  protectionGeneration      BigInt  @default(0)
   taskDependencyUnavailable Boolean @default(false)
 
   configJson Json?
@@ -373,18 +377,18 @@ model PluginInstallation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  plugin               PluginInstall          @relation(fields: [pluginSlug], references: [slug], onDelete: Cascade)
-  taskPrincipals       PluginPrincipal[]
-  tasks                PluginTask[]
-  pageSessions         PluginPageSession[]
-  purchaseOrigins      PluginPurchaseOrigin[]
-  storageQuotas        PluginStorageQuota[]
+  plugin          PluginInstall          @relation(fields: [pluginSlug], references: [slug], onDelete: Cascade)
+  taskPrincipals  PluginPrincipal[]
+  tasks           PluginTask[]
+  pageSessions    PluginPageSession[]
+  purchaseOrigins PluginPurchaseOrigin[]
+  storageQuotas   PluginStorageQuota[]
 
   @@unique([pluginSlug, instanceKey])
   @@index([pluginSlug])
   @@index([enabled])
   @@index([deletedAt])
+  @@index([instanceKey, enabled, deletedAt])
   @@map("plugin_installations")
   @@schema("public")
 }
-

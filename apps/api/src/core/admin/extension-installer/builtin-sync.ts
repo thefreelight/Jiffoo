@@ -18,7 +18,9 @@ const BUILTIN_SYNC_LOCK_WAIT_SECONDS = 120;
 /** The milliseconds between two attempts to take the sync lock. */
 const BUILTIN_SYNC_LOCK_RETRY_MS = 250;
 /** The milliseconds the sync transaction may hold its connection. */
-const BUILTIN_SYNC_TRANSACTION_TIMEOUT_MS = 120_000;
+const BUILTIN_SYNC_TRANSACTION_TIMEOUT_MS = 30_000;
+/** The milliseconds the sync transaction waits for a free connection of the pool. */
+const BUILTIN_SYNC_TRANSACTION_MAX_WAIT_MS = 10_000;
 
 /** One builtin package: its identity, its packed bytes and its source directory. */
 type BuiltinPackage = { slug: string; version: string; directory: string; hash: string; bytes: Buffer };
@@ -102,7 +104,7 @@ export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
         // is published after the transaction that stored the blob committed.
         await prisma.$transaction(async tx => {
           await pluginPackageBlobStore.put(tx, pkg.slug, pkg.hash, pkg.bytes);
-        }, { timeout: BUILTIN_SYNC_TRANSACTION_TIMEOUT_MS });
+        }, { timeout: BUILTIN_SYNC_TRANSACTION_TIMEOUT_MS, maxWait: BUILTIN_SYNC_TRANSACTION_MAX_WAIT_MS });
         await publishBuiltinPackage(pkg.slug, pkg.hash, pkg.directory);
         continue;
       }
@@ -115,13 +117,17 @@ export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
       await pluginFsInstaller.installFromDirectory(pkg.directory, { source: 'builtin' });
 
       if (!wasInstalled) {
-        // A fresh installation is enabled and audited. The transaction holds
-        // the audit of the installation the installer just committed and
-        // commits before the sync moves on to the next package.
+        // A fresh installation is enabled and audited. The plugin-facing work
+        // runs outside every transaction: the lifecycle hook and the runtime
+        // validation of the plugin must not hold a connection while they run.
+        const instance = await getDefaultInstance(pkg.slug);
+        if (!instance) throw new Error(`Builtin plugin "${pkg.slug}" has no default installation`);
+        const plan = await PluginManagementService.planInstanceUpdate(instance.id, { enabled: true });
+        await plan.prepare();
+        // One short transaction: the enable and the audit of the installation
+        // commit together, so an enabled plugin never misses its audit.
         await prisma.$transaction(async tx => {
-          const instance = await getDefaultInstance(pkg.slug);
-          if (!instance) throw new Error(`Builtin plugin "${pkg.slug}" has no default installation`);
-          await PluginManagementService.updateInstance(instance.id, { enabled: true });
+          await plan.commit(tx);
           await AuditService.writeStaffAudit(tx, {
             staffUserId: 'system',
             staffEmail: 'system',
@@ -130,7 +136,9 @@ export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
             action: 'BUILTIN_PLUGIN_INSTALLED',
             metadata: { slug: pkg.slug, version: pkg.version, source: 'builtin' },
           });
-        }, { timeout: BUILTIN_SYNC_TRANSACTION_TIMEOUT_MS });
+        }, { timeout: BUILTIN_SYNC_TRANSACTION_TIMEOUT_MS, maxWait: BUILTIN_SYNC_TRANSACTION_MAX_WAIT_MS });
+        // The post-commit work runs after the transaction resolved.
+        await plan.finalize();
       }
     }
   } finally {

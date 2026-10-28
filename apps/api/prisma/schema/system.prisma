@@ -4,32 +4,33 @@
 // USER
 // ============================================================
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  phone     String?  @unique
-  username  String
-  password  String
-  sessionVersion Int @default(0)
-  avatar    String?
-  locale    String?
-  role      String   @default("USER")
-  isActive  Boolean  @default(true)
-  removedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String    @id @default(cuid())
+  email          String    @unique
+  phone          String?   @unique
+  username       String
+  password       String
+  sessionVersion Int       @default(0)
+  avatar         String?
+  locale         String?
+  role           String    @default("USER")
+  isActive       Boolean   @default(true)
+  removedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   emailVerified Boolean @default(false)
 
   // E-commerce relations
-  orders          Order[]
-  carts           Cart[]
-  notifications   Notification[]
-  authTokens      AuthToken[]
+  orders        Order[]
+  carts         Cart[]
+  notifications Notification[]
+  authTokens    AuthToken[]
 
   @@index([email])
   @@index([role])
   @@index([username])
   @@index([role, createdAt])
+  @@index([isActive])
   @@map("users")
   @@schema("public")
 }
@@ -151,7 +152,7 @@ model Notification {
   @@index([createdAt])
   @@index([recipientUserId, createdAt])
   @@index([relatedType, relatedId])
-  @@index([resentFromId])
+  @@index([resentFromId, createdAt])
   @@map("notifications")
   @@schema("public")
 }
@@ -171,6 +172,7 @@ model AdminStaffAuditLog {
   @@index([staffUserId, createdAt])
   @@index([action, createdAt])
   @@index([createdAt])
+  @@index([actorUserId, createdAt])
   @@map("admin_staff_audit_logs")
   @@schema("public")
 }

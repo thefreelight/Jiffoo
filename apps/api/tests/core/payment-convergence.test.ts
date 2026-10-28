@@ -437,7 +437,7 @@ it('A4 cancellation is terminal for both failure entry points', async () => {
   expect(await prisma.paymentLedger.count({ where: { paymentId: row.id, eventType: 'FAILED' } })).toBe(0);
   expect((await observer.query('SELECT stock FROM product_variants WHERE id=$1', [item.variantId])).rows[0].stock).toBe(5);
 });
-it('I2 concurrent extra-payment refunds leave the paid order intact and do not block its accepted-payment refund', async () => {
+it('I2 concurrent extra-payment refunds leave the paid order intact, conflict on the second key and do not block its accepted-payment refund', async () => {
   const [lock, observer] = await connections(), item = await order(), accepted = await payment(item.id);
   sessions.get(accepted.sessionId!)!.state = 'failed'; await queryPaymentByRequestKey(accepted.id);
   const extra = await payment(item.id);
@@ -453,7 +453,14 @@ it('I2 concurrent extra-payment refunds leave the paid order intact and do not b
   const second = AdminOrderService.resolveRefundRequiredPayment(item.id, { ...request, idempotencyKey: randomUUID() });
   try {
     await waitOrderLock(observer, (await lock.query('SELECT pg_backend_pid() AS pid')).rows[0].pid);
-    await lock.query('COMMIT'); await Promise.all([first, second]);
+    await lock.query('COMMIT');
+    // The capture is refunded once. The second resolution carries another
+    // idempotency key, so it is a conflict and not a second refund: the
+    // reference of the second attempt is not lost in the audit trail.
+    const settled = await Promise.allSettled([first, second]);
+    expect(settled.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    const rejected = settled.find(result => result.status === 'rejected') as PromiseRejectedResult;
+    expect(rejected.reason).toMatchObject({ code: 'PAYMENT_IDEMPOTENCY_CONFLICT' });
     expect(await prisma.refund.count({ where: { paymentId: extra.id, status: 'COMPLETED' } })).toBe(1);
     expect(await prisma.refundLedger.count({ where: { paymentId: extra.id } })).toBe(1);
     expect(await prisma.paymentLedger.count({ where: { paymentId: extra.id, eventType: 'REFUNDED' } })).toBe(1);
@@ -597,13 +604,19 @@ it('H2 two real workers fence a stale reconciliation query without losing the su
     expect(await counts(observer,item.id)).toEqual({paid:1,success:1,notifications:1});
   } finally { blockedPids.clear();for(const request of received)respond(request);await stopChild(first);await stopChild(second); }
 });
-it('I two offline full refunds with different keys record one refund and restore inventory once', async () => {
+it('I two offline full refunds with different keys record one refund, conflict on the second key and restore inventory once', async () => {
   const [lock,observer]=await connections(),item=await order(),row=await payment(item.id);sessions.get(row.sessionId!)!.state='succeeded';await queryPaymentByRequestKey(row.id);
   const calls=received.length;await lock.query('BEGIN');await lock.query('SELECT id FROM orders WHERE id=$1 FOR UPDATE',[item.id]);
   const first=AdminOrderService.refundOrder(item.id,{idempotencyKey:randomUUID(),reference:'  offline-one  ',actorId:admin.user.id});
   const second=AdminOrderService.refundOrder(item.id,{idempotencyKey:randomUUID(),reference:'offline-two',actorId:admin.user.id});
   try {
-    await waitOrderLock(observer,(await lock.query('SELECT pg_backend_pid() AS pid')).rows[0].pid);await lock.query('COMMIT');await Promise.all([first,second]);
+    await waitOrderLock(observer,(await lock.query('SELECT pg_backend_pid() AS pid')).rows[0].pid);await lock.query('COMMIT');
+    // The capture is refunded once. The second refund carries another
+    // idempotency key, so it is a conflict and not a second refund.
+    const settled=await Promise.allSettled([first,second]);
+    expect(settled.filter(result=>result.status==='fulfilled')).toHaveLength(1);
+    const rejected=settled.find(result=>result.status==='rejected') as PromiseRejectedResult;
+    expect(rejected.reason).toMatchObject({code:'PAYMENT_IDEMPOTENCY_CONFLICT'});
     expect(await prisma.refund.count({where:{paymentId:row.id,status:'COMPLETED'}})).toBe(1);
     expect(await prisma.refundLedger.count({where:{paymentId:row.id,eventType:'SUCCEEDED'}})).toBe(1);
     expect((await observer.query('SELECT stock FROM product_variants WHERE id=$1',[item.variantId])).rows[0].stock).toBe(5);

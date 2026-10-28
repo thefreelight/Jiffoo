@@ -5,8 +5,10 @@ import { getDefaultInstallationRowWithPackage } from '@/core/extensions/registry
 import { ApiError, sendMappedError } from '@/utils/api-errors';
 import { sendSuccess } from '@/utils/response';
 import { paymentSchemas } from './schemas';
-import { applyNormalizedPluginWebhook } from './plugin-webhook';
+import { preparePaymentFact, applyPreparedPaymentFact } from './observations';
 import { LoggerService } from '@/core/logger/unified-logger';
+import { prisma } from '@/config/database';
+import { CacheService } from '@/core/cache/service';
 
 const BODY_LIMIT = 1024 * 1024;
 const mediaTypes = new Set(['application/json', 'application/x-www-form-urlencoded', 'application/xml', 'text/xml', 'text/plain']);
@@ -68,7 +70,33 @@ export async function paymentWebhookRoutes(app: FastifyInstance): Promise<void> 
         }
         return sendMappedError(reply, new ApiError('PAYMENT_WEBHOOK_AUTHENTICATION_FAILED'));
       }
-      for (const event of result.events) await applyNormalizedPluginWebhook(provider, event);
+      // The whole payload of one webhook is applied in one transaction, so a
+      // failure in a later event rolls back the events that came before it
+      // instead of leaving half of the payload applied. The events are
+      // applied in the order of their request key, so the row locks and the
+      // advisory locks of two concurrent webhooks are always taken in the
+      // same global order and the two cannot deadlock.
+      const events = [...(result.events || [])].sort((first, second) => first.requestKey.localeCompare(second.requestKey));
+      let changed = false;
+      if (events.length) {
+        // The payment of every event and the binding of its provider account
+        // are resolved before the transaction opens: the transaction applies
+        // the whole payload, and it must not need a second connection for
+        // them while it holds the first.
+        const prepared = [];
+        for (const event of events) prepared.push(await preparePaymentFact(provider, event, 'webhook'));
+        await prisma.$transaction(async tx => {
+          for (const [index, event] of events.entries()) {
+            const applied = await applyPreparedPaymentFact(provider, event, 'webhook', undefined, prepared[index], tx);
+            changed = changed || applied;
+          }
+        }, { timeout: 30_000, maxWait: 10_000 });
+      }
+      // The cached admin order list is stale after the payment outcome changed
+      // the order, so its version is bumped after the transaction committed:
+      // a rollback keeps the cache correct, and a reader never repopulates
+      // the new version with the state the write replaced.
+      if (changed) await CacheService.incrementOrderVersion();
       if (result.response) return reply.code(200).type(result.response.contentType).send(Buffer.from(result.response.body, 'utf8'));
       return sendSuccess(reply, { received: true });
     } catch (error) { return sendMappedError(reply, error); }

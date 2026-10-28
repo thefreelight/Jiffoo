@@ -7,6 +7,7 @@
  * - a concurrent delete of a cart line of another customer
  * - a concurrent clear of the cart and an add of a line
  * - a concurrent clear of the cart and the consumption of a purchased line
+ * - a concurrent consumption of a purchased line and an update of that line
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -256,5 +257,56 @@ describe('Cart Concurrency', () => {
     expect(outcome).toBe('consumed');
     const remaining = await prisma.cartItem.findFirst({ where: { id: line.id } });
     expect(remaining?.quantity).toBe(1);
+  }, 30_000);
+
+  it('answers NOT_FOUND when a concurrent order consumed the line the update targets', async () => {
+    const { user, token } = await createUserWithToken();
+    const headers = { authorization: `Bearer ${token}` };
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/cart/items',
+      headers,
+      payload: { productId, variantId, quantity: 2 },
+    });
+
+    const prisma = getTestPrisma();
+    const cart = await prisma.cart.findUnique({ where: { userId: user.id }, include: { items: true } });
+    const line = cart!.items[0];
+
+    // The order module consumes the purchased line inside the transaction of
+    // the order, and it holds the row lock of the line until that transaction
+    // commits.
+    let acquired: () => void = () => {};
+    const acquiredLock = new Promise<void>(resolve => { acquired = resolve; });
+    let release: () => void = () => {};
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const order = prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT quantity FROM public.cart_items WHERE id = ${line.id} FOR UPDATE`;
+      acquired();
+      await held;
+      await CartService.consumePurchasedItems(tx, user.id, [
+        { productId: line.productId, variantId: line.variantId, quantity: 2 },
+      ]);
+    });
+    await acquiredLock;
+
+    // The update of the line waits for the row lock of the line, so it runs
+    // after the consumption committed and finds no line to write.
+    const update = app.inject({
+      method: 'PUT',
+      url: `/api/v1/cart/items/${line.id}`,
+      headers,
+      payload: { quantity: 5 },
+    });
+
+    release();
+    const [response] = await Promise.all([update, order]);
+
+    // The line is gone, so the update answers NOT_FOUND. It never answers a
+    // server error and never answers a silent success.
+    expect(response.statusCode).toBe(404);
+    expect(response.json().error.code).toBe('NOT_FOUND');
+    expect(await prisma.cartItem.findFirst({ where: { id: line.id } })).toBeNull();
   }, 30_000);
 });

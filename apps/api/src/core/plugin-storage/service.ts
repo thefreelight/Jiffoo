@@ -178,12 +178,18 @@ export class PluginStorageService {
   }
 
   async cleanup(isStopping: () => boolean = () => false) {
+    // The reservation sweep queues at most twenty-five expired reservations,
+    // two writes each. The timeout is sized for that work, so a slow database
+    // rolls the sweep back instead of holding it open; the next sweep picks
+    // the reservations up again. The remote object store delete stays outside
+    // the transaction, and the quota accounting stays under the quota row lock
+    // in the completion transaction below.
     await prisma.$transaction(async tx => {
       await lockTaskScheduler(tx);
       const now = await taskDatabaseTime(tx);
       const expired = await tx.pluginFile.findMany({ where: { state: 'RESERVED', reservationExpiresAt: { lte: now } }, orderBy: { reservationExpiresAt: 'asc' }, take: 25 });
       for (const file of expired) await queueCleanup(tx, file);
-    });
+    }, { maxWait: 10_000, timeout: 30_000 });
     for (let count = 0; count < 25 && !isStopping(); count++) {
       const claim = await prisma.$transaction(async tx => {
         const rows = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM public.plugin_file_cleanup WHERE "nextAttemptAt" <= clock_timestamp() AND ("leaseUntil" IS NULL OR "leaseUntil" <= clock_timestamp()) ORDER BY "nextAttemptAt", id FOR UPDATE SKIP LOCKED LIMIT 1`;

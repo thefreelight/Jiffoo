@@ -1,5 +1,6 @@
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
+import { CacheService } from '@/core/cache/service';
 import { AdminProductService } from './service';
 import { productCount, productIds, type ProductSelection, type ProductSort } from './list-query';
 import { systemSettingsService } from '@/core/settings/service';
@@ -28,27 +29,34 @@ export async function bulkProducts(body: ProductBulkRequest) {
   const skip = (id: string, name: string, reason: 'HAS_ORDERS' | 'NOT_FOUND') => {
     skippedCount++; if (skipped.length < 20) skipped.push({ id, name, reason });
   };
-  // Each single-product operation owns its small transaction, events and cache invalidation.
-  for (let offset = 0; offset < ids.length; offset += 100) {
-    const page = ids.slice(offset, offset + 100);
-    const products = await prisma.product.findMany({ where: { id: { in: page } }, select: { id: true, name: true, _count: { select: { orderItems: true } } } });
-    const byId = new Map(products.map(product => [product.id, product]));
-    for (const id of page) {
-      const product = byId.get(id);
-      if (!product) { skip(id, '', 'NOT_FOUND'); continue; }
-      if (body.action === 'delete' && product._count.orderItems > 0) { skip(id, product.name, 'HAS_ORDERS'); continue; }
-      try {
-        if (!body.dryRun) {
-          if (body.action === 'delete') await AdminProductService.deleteProduct(id);
-          else await AdminProductService.updateProduct(id, body.action === 'setCategory' ? { categoryId: body.categoryId } : { isActive: body.action === 'activate' });
+  // Each single-product operation owns its small transaction and its events.
+  // The cache version is bumped once for the whole batch at the end, and the
+  // product read that a single-product call returns is not needed here.
+  try {
+    for (let offset = 0; offset < ids.length; offset += 100) {
+      const page = ids.slice(offset, offset + 100);
+      const products = await prisma.product.findMany({ where: { id: { in: page } }, select: { id: true, name: true, _count: { select: { orderItems: true } } } });
+      const byId = new Map(products.map(product => [product.id, product]));
+      for (const id of page) {
+        const product = byId.get(id);
+        if (!product) { skip(id, '', 'NOT_FOUND'); continue; }
+        if (body.action === 'delete' && product._count.orderItems > 0) { skip(id, product.name, 'HAS_ORDERS'); continue; }
+        try {
+          if (!body.dryRun) {
+            if (body.action === 'delete') await AdminProductService.deleteProduct(id, { skipCacheVersionBump: true });
+            else await AdminProductService.updateProduct(id, body.action === 'setCategory' ? { categoryId: body.categoryId } : { isActive: body.action === 'activate' }, { skipCacheVersionBump: true, skipReload: true });
+          }
+          processed++; if (processedPreview.length < 20) processedPreview.push({ id, name: product.name });
+        } catch (error) {
+          if (error instanceof ApiError && error.code === 'PRODUCT_HAS_ORDERS' && body.action === 'delete') skip(id, product.name, 'HAS_ORDERS');
+          else if (error instanceof ApiError && error.code === 'NOT_FOUND') skip(id, product.name, 'NOT_FOUND');
+          else throw error;
         }
-        processed++; if (processedPreview.length < 20) processedPreview.push({ id, name: product.name });
-      } catch (error) {
-        if (error instanceof ApiError && error.code === 'PRODUCT_HAS_ORDERS' && body.action === 'delete') skip(id, product.name, 'HAS_ORDERS');
-        else if (error instanceof ApiError && error.code === 'NOT_FOUND') skip(id, product.name, 'NOT_FOUND');
-        else throw error;
       }
     }
+  } finally {
+    // The written products are published with one version bump for the batch.
+    if (!body.dryRun && processed > 0) await CacheService.incrementProductVersion();
   }
   return { matched, processed, skipped, skippedCount, processedPreview };
 }

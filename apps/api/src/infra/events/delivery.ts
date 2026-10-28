@@ -83,6 +83,11 @@ async function finishFailure(transaction: EventTransaction, delivery: EventDeliv
 }
 
 export async function recoverEventLeases(): Promise<number> {
+  // The recovery transaction reclaims up to one hundred expired deliveries and
+  // writes the failure of each of them, reading the plugin installation for
+  // the deliveries that reached their last attempt. The timeout is sized for
+  // that work: a slow database rolls the transaction back instead of holding
+  // it open, and the next poll reclaims the leases that were not recovered.
   return prisma.$transaction(async (tx) => {
     const expired = await tx.$queryRaw<EventDelivery[]>`
       SELECT * FROM event_deliveries WHERE status = 'RUNNING' AND "leaseUntil" <= statement_timestamp()
@@ -90,7 +95,7 @@ export async function recoverEventLeases(): Promise<number> {
     `;
     for (const delivery of expired) await finishFailure(tx, delivery, 'Event delivery lease expired');
     return expired.length;
-  });
+  }, { maxWait: 10_000, timeout: 30_000 });
 }
 
 /** Run the core subscribers of an event. Returns a skip reason when the core ignores it. */

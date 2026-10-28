@@ -57,6 +57,7 @@ vi.mock('@/core/cache/service', () => ({
     getPluginVersion: vi.fn(),
     get: vi.fn(),
     set: vi.fn(),
+    incrementOrderVersion: vi.fn(),
   },
 }));
 
@@ -92,7 +93,13 @@ vi.mock('@/core/payment/provider-account', () => ({
   bindPaymentProviderAccount: vi.fn().mockResolvedValue({ account: { providerKey: 'account-1', namespace: 'fixture', merchantAccount: 'fixture', environment: 'test' } }),
 }));
 vi.mock('@/core/payment/reconciliation', () => ({ queryPaymentByRequestKey: vi.fn() }));
-vi.mock('@/core/payment/observations', () => ({ observePaymentFact: vi.fn() }));
+// The webhook applies the payload of one request in one transaction: the
+// facts are prepared before the transaction opens and applied inside it.
+vi.mock('@/core/payment/observations', () => ({
+  observePaymentFact: vi.fn(),
+  preparePaymentFact: vi.fn().mockResolvedValue({ identity: null, evidence: {}, hash: 'evidence-hash', reason: null }),
+  applyPreparedPaymentFact: vi.fn().mockResolvedValue(true),
+}));
 
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
@@ -106,7 +113,7 @@ import { CacheService } from '@/core/cache/service';
 import { authMiddleware } from '@/core/auth/middleware';
 import { queryPaymentByRequestKey } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/extensions/runtime/plugin-runtime';
-import { observePaymentFact } from '@/core/payment/observations';
+import { observePaymentFact, preparePaymentFact, applyPreparedPaymentFact } from '@/core/payment/observations';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -353,7 +360,11 @@ describe('Payment Routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().success).toBe(true);
-      expect(observePaymentFact).toHaveBeenCalledWith('test-gateway-payment', expect.objectContaining({ requestKey: 'request-1', amountMinor: 1999 }), 'webhook');
+      // The fact of the payload is prepared before the transaction opens and
+      // applied inside it, so the whole payload of one request is one
+      // transaction.
+      expect(preparePaymentFact).toHaveBeenCalledWith('test-gateway-payment', expect.objectContaining({ requestKey: 'request-1', amountMinor: 1999 }), 'webhook');
+      expect(applyPreparedPaymentFact).toHaveBeenCalledWith('test-gateway-payment', expect.objectContaining({ requestKey: 'request-1', amountMinor: 1999 }), 'webhook', undefined, expect.anything(), expect.anything());
     });
   });
 

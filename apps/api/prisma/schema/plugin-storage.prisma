@@ -1,17 +1,18 @@
 model PluginFile {
-  id String @id @default(uuid())
-  installationId String
-  ownerType String
-  ownerId String
-  objectKey String @unique
-  sha256 String?
-  contentType String
-  sizeBytes BigInt @default(0)
-  reservedBytes BigInt
-  state String @default("RESERVED")
-  reservationExpiresAt DateTime @db.Timestamptz(3)
-  deletedAt DateTime? @db.Timestamptz(3)
-  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  id                   String    @id @default(uuid())
+  installationId       String
+  ownerType            String
+  ownerId              String
+  objectKey            String    @unique
+  sha256               String?
+  contentType          String
+  sizeBytes            BigInt    @default(0)
+  reservedBytes        BigInt
+  state                String    @default("RESERVED")
+  reservationExpiresAt DateTime  @db.Timestamptz(3)
+  deletedAt            DateTime? @db.Timestamptz(3)
+  createdAt            DateTime  @default(now()) @db.Timestamptz(3)
+
   @@index([installationId, ownerType, ownerId, state])
   @@index([state, reservationExpiresAt])
   @@map("plugin_files")
@@ -20,26 +21,28 @@ model PluginFile {
 
 model PluginStorageQuota {
   installationId String
-  ownerType String
-  ownerId String
-  reservedBytes BigInt @default(0)
-  usedBytes BigInt @default(0)
-  installation PluginInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  ownerType      String
+  ownerId        String
+  reservedBytes  BigInt             @default(0)
+  usedBytes      BigInt             @default(0)
+  installation   PluginInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
   @@id([installationId, ownerType, ownerId])
   @@map("plugin_storage_quotas")
   @@schema("public")
 }
 
 model PluginFileCleanup {
-  id String @id @default(uuid())
-  fileId String?
+  id             String    @id @default(uuid())
+  fileId         String?
   installationId String
-  objectKey String @unique
-  attempts Int @default(0)
-  nextAttemptAt DateTime @default(now()) @db.Timestamptz(3)
-  claimToken String? @db.Uuid
-  leaseUntil DateTime? @db.Timestamptz(3)
-  lastError String?
+  objectKey      String    @unique
+  attempts       Int       @default(0)
+  nextAttemptAt  DateTime  @default(now()) @db.Timestamptz(3)
+  claimToken     String?   @db.Uuid
+  leaseUntil     DateTime? @db.Timestamptz(3)
+  lastError      String?
+
   @@index([nextAttemptAt, leaseUntil])
   @@map("plugin_file_cleanup")
   @@schema("public")

@@ -23,14 +23,21 @@ function calculateTrendPercent(current: number, previous: number): number {
 
 export class AdminDashboardService {
     private static async getDashboardMetricSummary() {
-        const cacheKey = 'stats:admin-dashboard:v2:metrics';
+        const [currency, timezone, orderVersion, productVersion] = await Promise.all([
+            systemSettingsService.getShopCurrency(),
+            systemSettingsService.getTimezone(),
+            CacheService.getOrderVersion(),
+            CacheService.getProductVersion(),
+        ]);
+        // The cache key carries the order and the product cache version, so a
+        // write to an order or to a product changes the key and the dashboard
+        // is recomputed instead of being served from an entry that nothing
+        // invalidates. The store timezone is part of the key because the
+        // daily boundaries follow it. The TTL stays as the backstop.
+        const cacheKey = `stats:admin-dashboard:v2:metrics:order-v${orderVersion}:product-v${productVersion}:tz-${timezone}`;
         const cached = await CacheService.get<any>(cacheKey);
         if (cached) return cached;
 
-        const [currency, timezone] = await Promise.all([
-            systemSettingsService.getShopCurrency(),
-            systemSettingsService.getTimezone(),
-        ]);
         const closedStatusList = closedOrderStatuses().map(status => `'${status}'`).join(', ');
         const referenceDate = new Date();
         const { startOfTodayUtc, startOfYesterdayUtc } = getTodayAndYesterdayRangeUtc(timezone, referenceDate);
@@ -141,8 +148,15 @@ export class AdminDashboardService {
     }
 
     static async getDashboardMetrics(include: string[] = []) {
-        // 0. Check Cache (15s TTL)
-        const cacheKey = `stats:admin-dashboard:v3:${include.slice().sort().join(',')}`;
+        // 0. Check Cache (15s TTL). The key carries the order and the product
+        // cache version, so a write to an order or to a product changes the
+        // key and the dashboard is recomputed.
+        const [orderVersion, productVersion, timezone] = await Promise.all([
+            CacheService.getOrderVersion(),
+            CacheService.getProductVersion(),
+            systemSettingsService.getTimezone(),
+        ]);
+        const cacheKey = `stats:admin-dashboard:v3:order-v${orderVersion}:product-v${productVersion}:tz-${timezone}:${include.slice().sort().join(',')}`;
         const cached = await CacheService.get<any>(cacheKey);
         if (cached) return cached;
 

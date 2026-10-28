@@ -20,6 +20,7 @@ export class CacheService {
     STATS: 'stats:',
     SESSION: 'session:',
     RATE_LIMIT: 'rate_limit:',
+    PLUGIN: 'plugin:',
   };
 
   // General cache methods
@@ -287,6 +288,22 @@ export class CacheService {
   static async incrementPluginVersion(): Promise<number> {
     const key = 'plugin:version';
     return await redisCache.incr(key);
+  }
+
+  // Plugin registry cache
+  //
+  // The generation identifies the state of the registry an entry was read at.
+  // The caller builds it from the plugin cache version and from the freshness
+  // marker of the plugin tables, so an entry is read again as soon as the
+  // registry changed, no matter whether the change came through the
+  // application or straight through the database. The time to live is the
+  // backstop for an entry whose generation never changed.
+  static async getPluginRegistry<T>(generation: string, key: string): Promise<T | null> {
+    return await redisCache.get(`${this.PREFIXES.PLUGIN}registry:${generation}:${key}`);
+  }
+
+  static async setPluginRegistry(generation: string, key: string, value: unknown, ttl: number = 30): Promise<boolean> {
+    return await redisCache.set(`${this.PREFIXES.PLUGIN}registry:${generation}:${key}`, value, ttl);
   }
 
   /**

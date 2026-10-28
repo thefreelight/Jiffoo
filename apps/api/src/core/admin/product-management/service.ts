@@ -123,6 +123,19 @@ export interface AdminProductStatsResult {
   metrics: AdminProductStatsMetrics;
 }
 
+/** One aggregate row of the product statistics query. */
+type ProductStatsRow = {
+  totalProducts: bigint;
+  activeProducts: bigint;
+  outOfStockProducts: bigint;
+  todayTotal: bigint;
+  todayActive: bigint;
+  todayOutOfStock: bigint;
+  yesterdayTotal: bigint;
+  yesterdayActive: bigint;
+  yesterdayOutOfStock: bigint;
+};
+
 export interface ProductVariantData {
   id?: string;
   name: string;
@@ -130,10 +143,38 @@ export interface ProductVariantData {
   basePrice?: number;
   costPrice?: number | null;
   stock: number;
+  /**
+   * Stock level the editor saw. When it is given, the stock write only lands
+   * when the stored level is still that level, so an editor that saves a stale
+   * level gets a conflict instead of overwriting a concurrent sale.
+   */
+  expectedStock?: number;
   skuCode?: string;
   isActive?: boolean;
   attributes?: any;
 }
+
+/**
+ * Options of the single-product write operations.
+ *
+ * The default keeps the behaviour of the single-product endpoints: the product
+ * cache version is bumped, the cached product is dropped and the written
+ * product is read back. A bulk caller that discards the read skips that work
+ * and bumps the cache version once for the whole batch.
+ */
+export interface AdminProductWriteOptions {
+  /** Skip the cache version bump; the cached product is still dropped. */
+  skipCacheVersionBump?: boolean;
+  /** Skip the read that returns the product after the write. */
+  skipReload?: boolean;
+}
+
+/**
+ * The product write transactions loop over every variant, so they need more
+ * room than the default transaction timeout.
+ */
+const PRODUCT_WRITE_TRANSACTION_TIMEOUT_MS = 30_000;
+const PRODUCT_WRITE_TRANSACTION_MAX_WAIT_MS = 10_000;
 
 export interface ContentTranslation {
   locale: string;
@@ -354,56 +395,42 @@ export class AdminProductService {
       return cached;
     }
 
-    const products = await prisma.product.findMany({
-      select: {
-        id: true,
-        createdAt: true,
-        isActive: true,
-        variants: {
-          select: {
-            id: true,
-            isActive: true,
-          },
-        },
-      },
-    });
+    // The whole statistics is one aggregate query. The products and their
+    // active variants are counted and summed in the database, so no product
+    // row set is materialised in the application. The availability rules are
+    // the ones of the product list: a product is active when it is enabled and
+    // has at least one active variant, and it is out of stock when the active
+    // variants hold no stock at all.
+    const activeCondition = Prisma.sql`(p."isActive" AND a.active_count > 0)`;
+    const todayCondition = Prisma.sql`p."createdAt" >= (${startOfTodayUtc}::timestamptz AT TIME ZONE 'UTC')`;
+    const yesterdayCondition = Prisma.sql`p."createdAt" >= (${startOfYesterdayUtc}::timestamptz AT TIME ZONE 'UTC') AND p."createdAt" < (${startOfTodayUtc}::timestamptz AT TIME ZONE 'UTC')`;
+    const [stats] = await prisma.$queryRaw<ProductStatsRow[]>(Prisma.sql`
+      SELECT
+        COUNT(*) AS "totalProducts",
+        COUNT(*) FILTER (WHERE ${activeCondition}) AS "activeProducts",
+        COUNT(*) FILTER (WHERE ${activeCondition} AND a.active_stock = 0) AS "outOfStockProducts",
+        COUNT(*) FILTER (WHERE ${todayCondition}) AS "todayTotal",
+        COUNT(*) FILTER (WHERE ${todayCondition} AND ${activeCondition}) AS "todayActive",
+        COUNT(*) FILTER (WHERE ${todayCondition} AND ${activeCondition} AND a.active_stock = 0) AS "todayOutOfStock",
+        COUNT(*) FILTER (WHERE ${yesterdayCondition}) AS "yesterdayTotal",
+        COUNT(*) FILTER (WHERE ${yesterdayCondition} AND ${activeCondition}) AS "yesterdayActive",
+        COUNT(*) FILTER (WHERE ${yesterdayCondition} AND ${activeCondition} AND a.active_stock = 0) AS "yesterdayOutOfStock"
+      FROM public.products p
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*) FILTER (WHERE v."isActive") AS active_count,
+          COALESCE(SUM(v.stock) FILTER (WHERE v."isActive"), 0) AS active_stock
+        FROM public.product_variants v WHERE v."productId" = p.id
+      ) a ON TRUE`);
 
-    const stockMap = await InventoryService.getAvailableStockByVariantIds(
-      products.flatMap((product) => product.variants.map((variant) => variant.id))
-    );
-
-    let totalProducts = 0;
-    let activeProducts = 0;
-    let outOfStockProducts = 0;
-    let todayTotalProducts = 0;
-    let yesterdayTotalProducts = 0;
-    let todayActiveProducts = 0;
-    let yesterdayActiveProducts = 0;
-    let todayOutOfStockProducts = 0;
-    let yesterdayOutOfStockProducts = 0;
-
-    for (const product of products) {
-      totalProducts += 1;
-
-      const activeVariants = product.variants.filter((variant) => variant.isActive);
-      const activeVariantStocks = activeVariants.map((variant) => stockMap.get(variant.id) ?? 0);
-      const availability = productAvailability(product.isActive, activeVariants.length, activeVariantStocks.reduce((sum, stock) => sum + stock, 0));
-      const isActive = availability.active;
-      const isOutOfStock = availability.outOfStock;
-
-      if (isActive) activeProducts += 1;
-      if (isOutOfStock) outOfStockProducts += 1;
-
-      if (product.createdAt >= startOfTodayUtc) {
-        todayTotalProducts += 1;
-        if (isActive) todayActiveProducts += 1;
-        if (isOutOfStock) todayOutOfStockProducts += 1;
-      } else if (product.createdAt >= startOfYesterdayUtc && product.createdAt < startOfTodayUtc) {
-        yesterdayTotalProducts += 1;
-        if (isActive) yesterdayActiveProducts += 1;
-        if (isOutOfStock) yesterdayOutOfStockProducts += 1;
-      }
-    }
+    const totalProducts = Number(stats?.totalProducts ?? 0);
+    const activeProducts = Number(stats?.activeProducts ?? 0);
+    const outOfStockProducts = Number(stats?.outOfStockProducts ?? 0);
+    const todayTotalProducts = Number(stats?.todayTotal ?? 0);
+    const todayActiveProducts = Number(stats?.todayActive ?? 0);
+    const todayOutOfStockProducts = Number(stats?.todayOutOfStock ?? 0);
+    const yesterdayTotalProducts = Number(stats?.yesterdayTotal ?? 0);
+    const yesterdayActiveProducts = Number(stats?.yesterdayActive ?? 0);
+    const yesterdayOutOfStockProducts = Number(stats?.yesterdayOutOfStock ?? 0);
 
     const result: AdminProductStatsResult = {
       statusCounts: { all: totalProducts, active: activeProducts, inactive: totalProducts - activeProducts, outOfStock: outOfStockProducts },
@@ -548,7 +575,7 @@ export class AdminProductService {
 
       await emitEvent(tx, 'product.created', 1, created.id, await productSnapshot(tx, created.id));
       return created;
-    }));
+    }, { timeout: PRODUCT_WRITE_TRANSACTION_TIMEOUT_MS, maxWait: PRODUCT_WRITE_TRANSACTION_MAX_WAIT_MS }));
 
     await CacheService.incrementProductVersion();
 
@@ -558,7 +585,7 @@ export class AdminProductService {
   /**
    * Update product
    */
-  static async updateProduct(productId: string, data: UpdateProductData) {
+  static async updateProduct(productId: string, data: UpdateProductData, options: AdminProductWriteOptions = {}) {
     await rejectDefaultLocaleTranslation(data.translations);
     const updateData: any = {};
     let removedVariantIds: string[] = [];
@@ -658,7 +685,7 @@ export class AdminProductService {
               type: 'correction',
               reason: 'product_updated',
               referenceId: productId,
-            }, { publishProductChange: false });
+            }, { publishProductChange: false, expectedStock: variant.expectedStock });
 
           } else {
             // Create
@@ -674,6 +701,8 @@ export class AdminProductService {
               }
             });
 
+            // A new variant has no prior level, so there is nothing to compare
+            // the requested stock against.
             await InventoryService.applyDesiredStock(tx, createdVariant.id, normalizedStock, {
               type: 'initial',
               reason: 'product_updated',
@@ -683,10 +712,11 @@ export class AdminProductService {
         }
       }
       await emitEvent(tx, 'product.updated', 1, productId, await productSnapshot(tx, productId));
-    })), () => ({ variantId: { in: removedVariantIds } })), { notFound: 'NOT_FOUND' });
+    }, { timeout: PRODUCT_WRITE_TRANSACTION_TIMEOUT_MS, maxWait: PRODUCT_WRITE_TRANSACTION_MAX_WAIT_MS })), () => ({ variantId: { in: removedVariantIds } })), { notFound: 'NOT_FOUND' });
 
-    await CacheService.incrementProductVersion();
+    if (!options.skipCacheVersionBump) await CacheService.incrementProductVersion();
     await CacheService.deleteProduct(productId);
+    if (options.skipReload) return null;
 
     const updatedProduct = await this.getProductById(productId);
     return updatedProduct;
@@ -695,7 +725,7 @@ export class AdminProductService {
   /**
    * Delete product
    */
-  static async deleteProduct(productId: string) {
+  static async deleteProduct(productId: string, options: AdminProductWriteOptions = {}) {
     await knownPrismaOperation(() => protectOrderedCatalog(async () => {
       try {
         await prisma.$transaction(async tx => {
@@ -713,7 +743,7 @@ export class AdminProductService {
       }
     }, () => ({ productId })), { notFound: 'NOT_FOUND' });
 
-    await CacheService.incrementProductVersion();
+    if (!options.skipCacheVersionBump) await CacheService.incrementProductVersion();
     await CacheService.deleteProduct(productId);
   }
 

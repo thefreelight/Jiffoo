@@ -16,13 +16,14 @@ model Category {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryHierarchy")
-  products Product[]
+  parent       Category?             @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children     Category[]            @relation("CategoryHierarchy")
+  products     Product[]
   translations CategoryTranslation[]
 
   @@index([parentId])
   @@index([parentId, sortOrder])
+  @@index([sortOrder, id])
   @@map("categories")
   @@schema("public")
 }
@@ -81,6 +82,9 @@ model Product {
   @@index([categoryId])
   @@index([productType])
   @@index([isActive, createdAt])
+  @@index([name, id])
+  @@index([updatedAt, id])
+  @@index([createdAt, id])
   @@map("products")
   @@schema("public")
 }
@@ -110,6 +114,9 @@ model ProductVariant {
 
   @@index([productId])
   @@index([skuCode])
+  @@index([salePrice])
+  @@index([stock])
+  @@index([sortOrder, id])
   @@map("product_variants")
   @@schema("public")
 }
@@ -139,13 +146,13 @@ model ProductTranslation {
 // ORDER
 // ============================================================
 model Order {
-  id     String      @id @default(cuid())
-  orderNumber String @unique @map("order_number")
-  userId String
-  status OrderStatus @default(PENDING)
+  id          String      @id @default(cuid())
+  orderNumber String      @unique @map("order_number")
+  userId      String
+  status      OrderStatus @default(PENDING)
 
   // Idempotency
-  idempotencyKey        String? @unique
+  idempotencyKey         String?
   idempotencyFingerprint String?
 
   // Payment status fields
@@ -158,14 +165,14 @@ model Order {
   cancelledAt          DateTime?
 
   // Pricing fields
-  subtotalAmount Decimal @db.Decimal(18, 2)
-  shippingAmount Decimal @default(0) @db.Decimal(18, 2)
-  shippingMethod Json?
-  taxAmount      Decimal @default(0) @db.Decimal(18, 2)
-  taxInclusive   Boolean @default(false)
-  totalAmount    Decimal @db.Decimal(18, 2)
-  currency       String  @default("USD")
-  paymentMethod  String?
+  subtotalAmount  Decimal   @db.Decimal(18, 2)
+  shippingAmount  Decimal   @default(0) @db.Decimal(18, 2)
+  shippingMethod  Json?
+  taxAmount       Decimal   @default(0) @db.Decimal(18, 2)
+  taxInclusive    Boolean   @default(false)
+  totalAmount     Decimal   @db.Decimal(18, 2)
+  currency        String    @default("USD")
+  paymentMethod   String?
   unpaidExpiresAt DateTime?
 
   customerEmail String?
@@ -173,32 +180,35 @@ model Order {
   updatedAt     DateTime @updatedAt
 
   // Relations
-  user            User                  @relation(fields: [userId], references: [id])
-  shippingAddress OrderShippingAddress?
-  items           OrderItem[]
-  payments        Payment[]
-  refunds         Refund[]
-  paymentLedgers  PaymentLedger[]
-  refundLedgers   RefundLedger[]
-  shipments       Shipment[]
-  statusHistory   OrderStatusHistory[]
-  purchaseClaim   OrderPurchaseClaim?
+  user                 User                  @relation(fields: [userId], references: [id])
+  shippingAddress      OrderShippingAddress?
+  items                OrderItem[]
+  payments             Payment[]
+  refunds              Refund[]
+  paymentLedgers       PaymentLedger[]
+  refundLedgers        RefundLedger[]
+  shipments            Shipment[]
+  statusHistory        OrderStatusHistory[]
+  purchaseClaim        OrderPurchaseClaim?
   pluginPurchaseOrigin PluginPurchaseOrigin?
 
-  @@index([status])
-  @@index([paymentStatus])
+  // The idempotency key is unique per customer, so two customers may reuse the same key.
+  @@unique([userId, idempotencyKey])
   @@index([paymentStatus, unpaidExpiresAt])
   @@index([expiresAt])
   @@index([userId])
   @@index([createdAt])
   @@index([userId, createdAt])
+  @@index([paymentStatus, status, createdAt])
+  @@index([status, createdAt])
+  @@index([totalAmount, id])
   @@map("orders")
   @@schema("public")
 }
 
 model OrderNumberCounter {
-  day String @id
-  lastValue Int @map("last_value")
+  day       String @id
+  lastValue Int    @map("last_value")
 
   @@map("order_number_counters")
   @@schema("public")
@@ -218,16 +228,16 @@ model OrderPurchaseClaim {
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  productId String
-  variantId String
-  quantity  Int
-  unitPrice Decimal @db.Decimal(18, 2)
-  taxAmount Decimal @default(0) @db.Decimal(18, 2)
-  currency  String  @default("USD")
+  id              String  @id @default(cuid())
+  orderId         String
+  productId       String
+  variantId       String
+  quantity        Int
+  unitPrice       Decimal @db.Decimal(18, 2)
+  taxAmount       Decimal @default(0) @db.Decimal(18, 2)
+  currency        String  @default("USD")
   catalogSnapshot Json
-  lineTotal Decimal @db.Decimal(18, 2)
+  lineTotal       Decimal @db.Decimal(18, 2)
 
   // Shipping address (per item)
   shippingFirstName    String?
@@ -255,6 +265,7 @@ model OrderItem {
   @@index([variantId])
   @@index([fulfillmentStatus])
   @@index([shippingCountry])
+  @@index([productId])
   @@map("order_items")
   @@schema("public")
 }
@@ -282,7 +293,7 @@ model Cart {
 // CART ITEM
 // ============================================================
 model CartItem {
-  id        String  @id @default(cuid())
+  id        String @id @default(cuid())
   cartId    String
   productId String
   quantity  Int
@@ -391,6 +402,7 @@ model Shipment {
   @@index([orderId])
   @@index([trackingNumber])
   @@index([status])
+  @@index([orderId, shippedAt])
   @@map("shipments")
   @@schema("public")
 }

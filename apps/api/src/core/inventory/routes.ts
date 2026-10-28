@@ -21,6 +21,7 @@ export async function adminInventoryRoutes(fastify: FastifyInstance) {
         properties: {
           variantId: { type: 'string', minLength: 1 },
           quantity: { type: 'integer', minimum: 0 },
+          expectedStock: { type: 'integer', minimum: 0, description: 'Stock level the caller saw; the write is rejected when the stored level differs' },
         },
       },
       response: {
@@ -33,17 +34,26 @@ export async function adminInventoryRoutes(fastify: FastifyInstance) {
         401: errorResponseSchema,
         403: errorResponseSchema,
         404: errorResponseSchema,
+        409: errorResponseSchema,
         500: errorResponseSchema,
       },
     },
   }, async (request, reply) => {
-    const { variantId, quantity } = request.body as { variantId?: string; quantity?: number };
+    const { variantId, quantity, expectedStock } = request.body as { variantId?: string; quantity?: number; expectedStock?: number };
     if (!variantId || !Number.isInteger(quantity) || quantity < 0) {
       return sendError(reply, 400, 'VALIDATION_ERROR', 'variantId and a non-negative integer quantity are required');
     }
+    if (expectedStock !== undefined && (!Number.isInteger(expectedStock) || expectedStock < 0)) {
+      return sendError(reply, 400, 'VALIDATION_ERROR', 'expectedStock must be a non-negative integer');
+    }
     try {
-      await InventoryService.setStockById(variantId, quantity);
-      return sendSuccess(reply, { variantId, stock: quantity });
+      // The answer is the level that is stored, not the level that was asked
+      // for: a guarded write that finds another level keeps the stored one.
+      const stock = await InventoryService.setStockById(variantId, quantity, {
+        expectedStock,
+        userId: request.user?.id,
+      });
+      return sendSuccess(reply, { variantId, stock });
     } catch (error) { return sendMappedError(reply, error); }
   });
 
@@ -73,6 +83,7 @@ export async function adminInventoryRoutes(fastify: FastifyInstance) {
         401: errorResponseSchema,
         403: errorResponseSchema,
         404: errorResponseSchema,
+        409: errorResponseSchema,
         500: errorResponseSchema,
       },
     },

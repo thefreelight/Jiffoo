@@ -4,14 +4,28 @@ import { themeManifestSchema, builtinFontStacks, type ThemeManifest, type ThemeT
 import { prisma } from '@/config/database';
 import { resolveThemePackage, type ThemeFiles } from '@/core/storage/current-theme-package';
 import { withThemeLeases, fenceThemeLeases, type ThemeLease } from '@/core/storage/theme-operation-lease';
+import { acquirePluginOperationLease, releasePluginOperationLease } from '@/core/storage/plugin-operation-lease';
 import { readMediaFile } from '@/core/storage/uploaded-media-set';
 import { AuditService, type AuditTx } from '@/core/audit/service';
+import { ApiError } from '@/utils/api-errors';
 import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { validateThemeManifest } from '@/core/storage/theme-validator';
 import { defaultHomeSections, validateHomeSections } from './theme-home-sections';
 import { themePackageState } from './theme-package-state';
 
 type Setting = ThemeManifest['settings'][number];
+type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/**
+ * A transaction the caller owns.
+ *
+ * A caller that hands its own transaction to a theme operation owns the theme
+ * operation leases as well: it acquires them before the transaction opens,
+ * fences them inside the transaction and releases them after the transaction
+ * resolved. A lease row that the transaction holds with `FOR UPDATE` cannot
+ * be deleted by another connection, so the release has to wait for the commit.
+ */
+export type ThemeTransaction = { tx: Transaction; leases: ThemeLease[] };
 const ajv = new Ajv({ strict: false, allErrors: true });
 const settingSchemas = ((themeManifestSchema.oneOf[0].properties.settings as unknown as {
   items: { oneOf: object[] };
@@ -195,10 +209,44 @@ export async function restoreThemeConfig(slug: string, actorId: string) {
   });
 }
 
-async function activateWithLeases(target: ThemeTarget, slug: string, actorId: string, action: string, leases: ThemeLease[], onlyIfEmpty = false) {
+/**
+ * A prepared theme activation.
+ *
+ * Preparing an activation reads the theme row and resolves its package. That
+ * is filesystem work, so it happens outside every transaction. Writing the
+ * activation switches the active pointer and writes its audit, and that is
+ * the only part that belongs inside a transaction.
+ */
+export type ThemeActivationPlan = {
+  target: ThemeTarget;
+  slug: string;
+  /** The outcome of an activation that writes nothing, or null when it writes. */
+  unchanged: { target: ThemeTarget; slug: string; packageHash: string } | null;
+  /** Switch the active pointer and write the audit inside the given transaction. */
+  write(tx: Transaction, leases: ThemeLease[]): Promise<{ target: ThemeTarget; slug: string; packageHash: string }>;
+};
+
+/**
+ * Prepare a theme activation outside every transaction.
+ *
+ * The preparation resolves the theme row and its package, so it never holds a
+ * connection while it reads the package store. The write of the plan is the
+ * only part that touches the database.
+ */
+export async function prepareThemeActivation(
+  target: ThemeTarget,
+  slug: string,
+  actorId: string,
+  action: string,
+  onlyIfEmpty = false,
+): Promise<ThemeActivationPlan> {
   if (onlyIfEmpty) {
     const current = await prisma.themeActive.findUnique({ where: { target } });
-    if (current) return { target, slug: current.slug, packageHash: current.packageHash };
+    if (current) {
+      // The target already has an active theme: the activation writes nothing.
+      const unchanged = { target, slug: current.slug, packageHash: current.packageHash };
+      return { target, slug: current.slug, unchanged, write: async () => unchanged };
+    }
   }
   const candidate = await prisma.theme.findUnique({ where: { slug } });
   if (!candidate) fail('THEME_NOT_FOUND', 404, slug);
@@ -207,22 +255,110 @@ async function activateWithLeases(target: ThemeTarget, slug: string, actorId: st
   if (state.code) fail(state.code, 409, slug);
   validateThemeManifest(candidate.manifestJson);
   await resolveThemePackage(slug, candidate.packageHash);
-  return prisma.$transaction(async (tx) => {
-    await fenceThemeLeases(tx, leases);
-    const theme = await tx.theme.findUnique({ where: { slug } });
-    if (!theme) fail('THEME_NOT_FOUND', 404, slug);
-    if (theme.target !== target) fail('THEME_TARGET_MISMATCH', 409, slug);
-    await tx.themeActive.upsert({
-      where: { target }, create: { target, slug, packageHash: theme.packageHash }, update: { slug, packageHash: theme.packageHash },
-    });
-    await tx.themeActivation.create({ data: { target, slug, packageHash: theme.packageHash, actorId } });
-    await audit(tx, actorId, action, slug, { target, packageHash: theme.packageHash });
-    return { target, slug, packageHash: theme.packageHash };
-  });
+  return {
+    target,
+    slug,
+    unchanged: null,
+    write: async (tx, leases) => {
+      await fenceThemeLeases(tx, leases);
+      if (onlyIfEmpty) {
+        // An earlier activation of the same transaction may have activated a
+        // theme for the target already.
+        const current = await tx.themeActive.findUnique({ where: { target } });
+        if (current) return { target, slug: current.slug, packageHash: current.packageHash };
+      }
+      const theme = await tx.theme.findUnique({ where: { slug } });
+      if (!theme) fail('THEME_NOT_FOUND', 404, slug);
+      if (theme.target !== target) fail('THEME_TARGET_MISMATCH', 409, slug);
+      await tx.themeActive.upsert({
+        where: { target }, create: { target, slug, packageHash: theme.packageHash }, update: { slug, packageHash: theme.packageHash },
+      });
+      await tx.themeActivation.create({ data: { target, slug, packageHash: theme.packageHash, actorId } });
+      await audit(tx, actorId, action, slug, { target, packageHash: theme.packageHash });
+      return { target, slug, packageHash: theme.packageHash };
+    },
+  };
 }
 
-export async function activateTheme(target: ThemeTarget, slug: string, actorId: string, action = 'theme.activate', onlyIfEmpty = false) {
-  return withThemeLeases(target, slug, 'activate', leases => activateWithLeases(target, slug, actorId, action, leases, onlyIfEmpty));
+/**
+ * Activate a theme with the leases the caller owns.
+ *
+ * The preparation runs outside the transaction, so the transaction holds the
+ * pointer switch and its audit only.
+ */
+async function activateWithLeases(target: ThemeTarget, slug: string, actorId: string, action: string, leases: ThemeLease[], onlyIfEmpty = false) {
+  const plan = await prepareThemeActivation(target, slug, actorId, action, onlyIfEmpty);
+  if (plan.unchanged) return plan.unchanged;
+  return prisma.$transaction(tx => plan.write(tx, leases));
+}
+
+/**
+ * The theme operation leases of a set of themes.
+ *
+ * The resources are the ones the theme operations fence: the target of the
+ * theme and the package of the theme. Every caller acquires the target before
+ * the package.
+ */
+export async function acquireThemeLeases(themes: Array<{ target: string; slug: string }>, operation = 'activate'): Promise<ThemeLease[]> {
+  const resources: string[] = [];
+  for (const theme of themes) {
+    for (const resource of [`theme:target:${theme.target}`, `theme:package:${theme.slug}`]) {
+      if (!resources.includes(resource)) resources.push(resource);
+    }
+  }
+  const leases: ThemeLease[] = [];
+  try {
+    for (const resource of resources) {
+      try { leases.push({ resource, token: await acquirePluginOperationLease(resource, operation) }); }
+      catch (error) { mappedLeaseError(error); }
+    }
+    return leases;
+  } catch (error) {
+    await releaseThemeLeases(leases);
+    throw error;
+  }
+}
+
+/** Release the theme operation leases of a set of themes. */
+export async function releaseThemeLeases(leases: ThemeLease[]): Promise<void> {
+  for (const lease of [...leases].reverse()) await releasePluginOperationLease(lease.resource, lease.token);
+}
+
+function mappedLeaseError(error: unknown): never {
+  if (error instanceof ApiError && error.code === 'PLUGIN_OPERATION_IN_PROGRESS') throw new ApiError('THEME_OPERATION_IN_PROGRESS');
+  if (error instanceof ApiError && error.code === 'PLUGIN_OPERATION_LEASE_LOST') throw new ApiError('THEME_OPERATION_LEASE_LOST');
+  throw error;
+}
+
+/**
+ * Activate a theme.
+ *
+ * Without a transaction of its own the activation runs in a short transaction
+ * of its own. A caller that owns a transaction prepares the activation outside
+ * it and hands the plan over with its theme operation leases, so the pointer
+ * switch and its audit join that transaction.
+ */
+export async function activateTheme(
+  target: ThemeTarget,
+  slug: string,
+  actorId: string,
+  action = 'theme.activate',
+  onlyIfEmpty = false,
+  options?: {
+    /** A transaction the caller owns. The pointer switch and its audit join it. */
+    transaction?: ThemeTransaction;
+    /** The activation the caller prepared outside the transaction. */
+    plan?: ThemeActivationPlan;
+  },
+) {
+  const run = async (leases: ThemeLease[]) => {
+    const plan = options?.plan ?? await prepareThemeActivation(target, slug, actorId, action, onlyIfEmpty);
+    if (plan.unchanged) return plan.unchanged;
+    if (options?.transaction) return plan.write(options.transaction.tx, options.transaction.leases);
+    return prisma.$transaction(tx => plan.write(tx, leases));
+  };
+  if (options?.transaction) return run(options.transaction.leases);
+  return withThemeLeases(target, slug, 'activate', run);
 }
 
 export async function restorePreviousTheme(target: ThemeTarget, actorId: string) {

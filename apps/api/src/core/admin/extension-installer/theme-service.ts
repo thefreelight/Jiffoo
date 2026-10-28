@@ -6,12 +6,14 @@ import { prisma } from '@/config/database';
 import { themePackageStore } from '@/core/storage/plugin-package-store';
 import { themePackageBlobStore } from '@/core/storage/theme-package-blob-store';
 import { resolveThemePackage, ThemePackageResolutionError } from '@/core/storage/current-theme-package';
-import { withThemeLeases, fenceThemeLeases } from '@/core/storage/theme-operation-lease';
+import { withThemeLeases, fenceThemeLeases, type ThemeLease } from '@/core/storage/theme-operation-lease';
 import { packBuiltinPlugin } from './builtin-package';
 import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { validateThemeFiles, validateThemeZip, validateThemeManifest } from '@/core/storage/theme-validator';
-import { audit } from './theme-runtime';
+import { audit, type ThemeTransaction } from './theme-runtime';
 import { AuditService } from '@/core/audit/service';
+
+type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 function error(code: import('@/utils/api-errors').ErrorCode, message: string): never {
   throw new ExtensionInstallerError(message, { code });
@@ -22,10 +24,21 @@ function compareVersions(left: string, right: string): number {
   return 0;
 }
 
-export async function installTheme(archive: Buffer, options: { source: 'builtin' | 'uploaded'; confirmUnsigned?: boolean; actorUserId?: string }) {
+/**
+ * Install a theme package.
+ *
+ * The package store is written before the rows of the install, so the store
+ * write never runs inside the transaction of the install. Without a
+ * transaction of its own the install writes its rows in a short transaction of
+ * its own. A caller that owns a transaction hands it over with its theme
+ * operation leases, so the rows of the install join that transaction; the
+ * store write then happens while the caller's transaction is open, because
+ * the caller opened it before it called the install.
+ */
+export async function installTheme(archive: Buffer, options: { source: 'builtin' | 'uploaded'; confirmUnsigned?: boolean; actorUserId?: string }, transaction?: ThemeTransaction) {
   const { manifest, files } = validateThemeZip(archive);
   const packageHash = createHash('sha256').update(archive).digest('hex');
-  return withThemeLeases(manifest.target, manifest.slug, 'install', async leases => {
+  const run = async (leases: ThemeLease[]) => {
     const actor = options.source === 'uploaded' && options.actorUserId
       ? await prisma.user.findUnique({ where: { id: options.actorUserId } }) : null;
     if (options.source === 'uploaded' && (!options.confirmUnsigned || !actor))
@@ -51,7 +64,7 @@ export async function installTheme(archive: Buffer, options: { source: 'builtin'
         await fs.mkdir(path.dirname(destination), { recursive: true }); await fs.writeFile(destination, data);
       }
       await themePackageStore.put(manifest.slug, packageHash, directory);
-      return await prisma.$transaction(async tx => {
+      const write = async (tx: Transaction) => {
         await fenceThemeLeases(tx, leases);
         const saved = await tx.theme.upsert({
           where: { slug: manifest.slug },
@@ -72,14 +85,18 @@ export async function installTheme(archive: Buffer, options: { source: 'builtin'
         }
         await audit(tx, options.actorUserId ?? 'system', 'theme.install', manifest.slug, { version: manifest.version, source: options.source, packageHash });
         return saved;
-      });
+      };
+      if (transaction) return await write(transaction.tx);
+      return await prisma.$transaction(write);
     } finally { await fs.rm(directory, { recursive: true, force: true }); }
-  });
+  };
+  if (transaction) return run(transaction.leases);
+  return withThemeLeases(manifest.target, manifest.slug, 'install', run);
 }
 
-export async function installBuiltinTheme(directory: string) {
+export async function installBuiltinTheme(directory: string, transaction?: ThemeTransaction) {
   await validateBuiltinTheme(directory);
-  return installTheme((await packBuiltinPlugin(directory)).bytes, { source: 'builtin' });
+  return installTheme((await packBuiltinPlugin(directory)).bytes, { source: 'builtin' }, transaction);
 }
 export async function validateBuiltinTheme(directory: string) {
   const files = new Map<string, Buffer>();

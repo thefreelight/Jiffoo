@@ -37,6 +37,24 @@ export function paymentReviewWhere(): Prisma.PaymentWhereInput {
   return { status: 'REQUIRES_REVIEW', reviewResolution: null };
 }
 
+type OrderStatsResult = {
+  statusCounts: Record<string, number>;
+  paymentReviewCount: number;
+  metrics: {
+    totalOrders: number;
+    paidOrders: number;
+    shippedOrders: number;
+    refundedOrders: number;
+    totalRevenue: number;
+    currency: string;
+    totalOrdersTrend: number;
+    paidOrdersTrend: number;
+    shippedOrdersTrend: number;
+    refundedOrdersTrend: number;
+    totalRevenueTrend: number;
+  };
+};
+
 export class AdminOrderService {
   static async resolvePaymentReview(orderId: string, paymentId: string, actorId: string, outcome: 'PAID' | 'NOT_CHARGED', reference: string) {
     reference = reference?.trim();
@@ -73,17 +91,28 @@ export class AdminOrderService {
     return this.getOrderById(orderId);
   }
 
-  static async getOrderStats() {
+  static async getOrderStats(): Promise<OrderStatsResult> {
+    // The statistics aggregate the whole orders table, so the result is
+    // cached. The key carries the order cache version, so a write that bumps
+    // the version changes the key and the statistics are recomputed. The
+    // store currency and timezone are part of the key because the reported
+    // totals and the day boundaries follow them. The TTL is the backstop for
+    // a write that does not bump the version.
+    const [currency, timezone, cacheVersion] = await Promise.all([
+      systemSettingsService.getShopCurrency(),
+      systemSettingsService.getTimezone(),
+      CacheService.getOrderVersion(),
+    ]);
+    const cacheKey = `stats:admin-order-stats:v1:order-v${cacheVersion}:${currency}:${timezone}`;
+    const cached = await CacheService.get<OrderStatsResult>(cacheKey);
+    if (cached) return cached;
+
     const [statusGroups, paymentReviewCount] = await Promise.all([
       prisma.order.groupBy({ by: ['status'], _count: { _all: true } }),
       prisma.order.count({ where: { payments: { some: paymentReviewWhere() } } }),
     ]);
     const statusCounts = Object.fromEntries(Object.values(PrismaOrderStatus).map(status => [status, 0]));
     for (const group of statusGroups) statusCounts[group.status] = group._count._all;
-    const [currency, timezone] = await Promise.all([
-      systemSettingsService.getShopCurrency(),
-      systemSettingsService.getTimezone(),
-    ]);
     const { startOfTodayUtc, startOfYesterdayUtc } = getTodayAndYesterdayRangeUtc(timezone);
 
     const [
@@ -140,7 +169,7 @@ export class AdminOrderService {
       }),
     ]);
 
-    return {
+    const result: OrderStatsResult = {
       statusCounts,
       paymentReviewCount,
       metrics: {
@@ -160,6 +189,8 @@ export class AdminOrderService {
         ),
       }
     };
+    await CacheService.set(cacheKey, result, { ttl: 30 });
+    return result;
   }
 
   /**
@@ -183,9 +214,6 @@ export class AdminOrderService {
     const cached = await CacheService.getOrderList(page, limit, filters, cacheVersion);
     if (cached) return cached;
 
-    // Fetch currency once for all items (same store = same currency, cached)
-    const currency = await systemSettingsService.getShopCurrency();
-
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
@@ -198,6 +226,7 @@ export class AdminOrderService {
           status: true,
           paymentStatus: true,
           totalAmount: true,
+          currency: true,
           createdAt: true,
           userId: true,
           user: {
@@ -224,7 +253,10 @@ export class AdminOrderService {
         status: order.status,
         paymentStatus: order.paymentStatus,
         totalAmount: Number(order.totalAmount),
-        currency,
+        // Every order keeps the currency it was placed in, so a store that
+        // serves more than one currency reports the amount of each order in
+        // the currency of that order.
+        currency: order.currency,
         createdAt: order.createdAt.toISOString(),
         itemsCount: order._count.items,
         itemQuantitySum: order.items.reduce((sum, item) => sum + item.quantity, 0),
@@ -355,26 +387,29 @@ export class AdminOrderService {
     const [
       customerOrderCount,
       customerOrderNumber,
-      latestPayment,
+      payments,
       refundRequiredPayments,
       refundablePaymentCount,
-      paymentReviews,
       currency,
     ] = await Promise.all([
       prisma.order.count({ where: { userId: order.user!.id } }),
       prisma.order.count({ where: { userId: order.user!.id, OR: [
         { createdAt: { lt: order.createdAt } }, { createdAt: order.createdAt, id: { lte: order.id } },
       ] } }),
-      prisma.payment.findFirst({ where: { orderId }, orderBy: { attemptNumber: 'desc' }, select: { status: true } }),
+      // The payments of the order are read once. The latest attempt is the
+      // first row of the descending result and the review list is the same
+      // result in ascending order.
+      prisma.payment.findMany({ where: { orderId }, orderBy: { attemptNumber: 'desc' } }),
       prisma.paymentLedger.findMany({
         where: { orderId, eventType: 'SUCCEEDED', refundRequired: true },
         include: { refunds: { where: { status: 'COMPLETED' }, select: { reference: true } } },
         orderBy: { createdAt: 'asc' },
       }),
       prisma.paymentLedger.count({ where: { orderId, eventType: 'SUCCEEDED', refundRequired: false, refunds: { none: { status: 'COMPLETED' } } } }),
-      prisma.payment.findMany({ where: { orderId }, orderBy: { attemptNumber: 'asc' } }),
       systemSettingsService.getShopCurrency(),
     ]);
+    const latestPayment = payments.length > 0 ? payments[0] : null;
+    const paymentReviews = [...payments].reverse();
     const shippingAddr = order.shippingAddress ? {
       recipientName: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`.trim(),
       phone: order.shippingAddress.phone,
@@ -510,7 +545,7 @@ export class AdminOrderService {
       throw new ApiError('VALIDATION_ERROR');
     }
 
-    await knownPrismaOperation(() => recordPaymentSucceeded({
+    const paymentRecorded = await knownPrismaOperation(() => recordPaymentSucceeded({
       paymentId: payment.id,
       providerEventId: `manual:${payment.id}`,
       providerPaymentId: `manual:${reference}`,
@@ -519,6 +554,14 @@ export class AdminOrderService {
       actorId,
       manualReference: reference,
     }), { notFound: 'NOT_FOUND' });
+    if (!paymentRecorded) {
+      // The capture was already bound to another payment, so the manual
+      // payment was not recorded and the attempt needs review. The
+      // administrator must see that conflict instead of a success that did
+      // not happen.
+      await CacheService.incrementOrderVersion();
+      throw new ApiError('PAYMENT_REVIEW_ALREADY_RESOLVED');
+    }
 
     await CacheService.incrementOrderVersion();
     return this.getOrderById(orderId);

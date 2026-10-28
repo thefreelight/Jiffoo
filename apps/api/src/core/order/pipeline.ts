@@ -46,6 +46,14 @@ type OrderItemDraft = {
   variantId: string;
   quantity: number;
   unitPrice: number;
+  /**
+   * The exact price of the line in the minor units of the currency.
+   *
+   * The amount of a line is money, and money is not a binary float: the
+   * minor amount is the exact one, so every amount the placement derives
+   * from it stays exact.
+   */
+  unitPriceMinor: number;
 };
 
 /** A line whose stock is decremented when the order is placed. */
@@ -124,6 +132,13 @@ export type OrderPlacementContext = {
   paymentMethodDescription: PaymentMethodDescription;
   shippingMinor: number;
   tax: TaxResult;
+  /**
+   * The exact subtotal of the order in the minor units of the currency.
+   *
+   * The subtotal is the sum of the exact minor amounts of the lines, so it
+   * never carries the rounding error of a binary float.
+   */
+  totalMinor: number;
   totalAmount: number;
   subtotalAmount: number;
   shippingAmount: number;
@@ -242,13 +257,16 @@ async function validateShippingAddress(address: NonNullable<CreateOrderRequest['
 /**
  * Resolve an order that already owns the supplied idempotency key.
  * Returns null when the key is unused and rejects a key that is reused with a different request.
+ *
+ * The key is scoped to the customer: two customers may use the same key, so the
+ * lookup matches the key inside the customer scope.
  */
 async function findOrderByIdempotencyKey(
   idempotencyKey: string,
   userId: string,
   requestFingerprint: string,
 ): Promise<{ order: any; replayed: true } | null> {
-  const existing = await prisma.order.findUnique({ where: { idempotencyKey }, include: orderResponseInclude() });
+  const existing = await prisma.order.findFirst({ where: { userId, idempotencyKey }, include: orderResponseInclude() });
   if (!existing) return null;
   assertIdempotentReplay(existing, userId, requestFingerprint);
   return { order: existing, replayed: true };
@@ -279,6 +297,21 @@ function countCatalogVariants(
   }
   const requested = [...new Set(orderItems.map(item => `${item.productId}:${item.variantId}`))];
   return requested.filter(pair => known.has(pair)).length;
+}
+
+/**
+ * A plugin amount that is not a real amount is rejected, never clamped.
+ *
+ * The shipping and the tax amounts come from the plugin contracts, and a
+ * negative amount would be written into the order as a negative amount: the
+ * check constraint of the schema would turn a successful placement into a
+ * database error. The rejection keeps the plugin bug visible instead of
+ * hiding it behind a clamped amount.
+ */
+function assertNonNegativePluginAmount(amountMinor: number, source: string): void {
+  if (!Number.isFinite(amountMinor) || amountMinor < 0) {
+    throw Object.assign(new ApiError('VALIDATION_ERROR'), { message: `The ${source} provider returned an invalid amount` });
+  }
 }
 
 /**
@@ -339,7 +372,7 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
       name: 'validate-items-prices-and-stock',
       run: async context => {
         const data = context.data;
-        let totalAmount = 0;
+        let totalMinor = 0;
         const orderItems: OrderItemDraft[] = [];
         const itemFulfillments: OrderItemFulfillment[] = [];
         const stockItems: StockItem[] = [];
@@ -393,7 +426,17 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
 
           const policy = fulfillmentPolicyFor(product.productType);
 
-          const unitPrice = currentLinePrice(variant, context.currency).unitPrice;
+          const { unitPrice, unitPriceMinor } = currentLinePrice(variant, context.currency);
+          // A price that is not a price is refused here, never clamped: a
+          // negative price makes the total of the order disagree with the
+          // total of the quote, so the request would be answered with a
+          // quote that changed, or the order event would carry a price that
+          // its own schema refuses, and neither answer names the price. The
+          // refusal is a validation failure of the request, and no order is
+          // written.
+          if (unitPriceMinor < 0) {
+            throw Object.assign(new ApiError('VALIDATION_ERROR'), { message: `The price of variant ${variant.name} of product ${product.name} is negative` });
+          }
           const requestedQuantity = requestedQuantityByVariant.get(variantId) ?? item.quantity;
           const stock = variant.stock;
 
@@ -404,12 +447,16 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
             throw Object.assign(new ApiError('BAD_REQUEST'), { message: `Insufficient stock for variant ${variant.name} of product: ${product.name}` });
           }
 
-          totalAmount += unitPrice * item.quantity;
+          // The subtotal is summed in the minor units of the currency, so the
+          // sum of the lines is the exact sum of their prices: a float sum
+          // would carry a rounding error the money module cannot convert.
+          totalMinor += unitPriceMinor * item.quantity;
           orderItems.push({
             productId: item.productId,
             variantId,
             quantity: item.quantity,
             unitPrice,
+            unitPriceMinor,
           });
           itemFulfillments.push({ productType: product.productType, policy, requiresShipping: product.requiresShipping });
           if (policy.tracksInventory) {
@@ -420,7 +467,8 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
         context.orderItems = orderItems;
         context.itemFulfillments = itemFulfillments;
         context.stockItems = stockItems;
-        context.totalAmount = totalAmount;
+        context.totalMinor = totalMinor;
+        context.totalAmount = Number(minorToDecimal(totalMinor, context.currency));
       },
     },
     {
@@ -462,7 +510,7 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
           productId: item.productId,
           variantId: item.variantId,
           quantity: item.quantity,
-          unitPriceMinor: decimalToMinor(item.unitPrice, context.currency),
+          unitPriceMinor: item.unitPriceMinor,
         })), {
           shippingAddress: {
             country: address?.country ?? '',
@@ -478,6 +526,9 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
         if (plan.requiresShippingQuote && !selectedShipping) {
           throw new ApiError('SHIPPING_METHOD_UNAVAILABLE');
         }
+        // The shipping amount is the answer of the shipping provider, so a
+        // negative amount is a provider defect and never a price of the order.
+        if (selectedShipping) assertNonNegativePluginAmount(selectedShipping.amountMinor, 'shipping');
         context.selectedShipping = selectedShipping ?? null;
         const payment = quote.paymentMethods.find((method) => method.providerSlug === data.paymentMethod);
         if (!payment) {
@@ -506,29 +557,35 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
       run: async context => {
         const address = context.normalizedShippingAddress;
         const taxProvider = await resolveSingleProvider('tax');
-        const taxLines = context.orderItems.map((item, index) => ({ lineId: String(index), productId: item.productId, variantId: item.variantId, quantity: item.quantity, amountMinor: decimalToMinor(item.unitPrice * item.quantity, context.currency) }));
+        const taxLines = context.orderItems.map((item, index) => ({ lineId: String(index), productId: item.productId, variantId: item.variantId, quantity: item.quantity, amountMinor: item.unitPriceMinor * item.quantity }));
         const shippingMinor = context.selectedShipping?.amountMinor ?? 0;
         context.shippingMinor = shippingMinor;
         const tax = taxProvider
           ? await callContract(taxProvider.pluginSlug, 'tax', PLUGIN_CONTRACT_VERSIONS.tax, 'calculate', { currency: context.currency, lines: taxLines, shippingAmountMinor: shippingMinor, address: { country: address?.country ?? '', region: address?.state, city: address?.city ?? '', postalCode: address?.postalCode, line1: address?.addressLine1 ?? '', line2: address?.addressLine2 } }) as TaxResult
           : { pricesIncludeTax: false, lines: taxLines.map((line) => ({ lineId: line.lineId, taxMinor: 0 })), totalTaxMinor: 0 };
+        // The tax amounts are the answer of the tax provider, so a negative
+        // amount is a provider defect and never a tax of the order.
+        assertNonNegativePluginAmount(tax.totalTaxMinor, 'tax');
+        for (const line of tax.lines) assertNonNegativePluginAmount(line.taxMinor, 'tax');
         context.tax = tax;
       },
     },
     {
       name: 'compute-totals',
       run: async context => {
-        const subtotalAmount = context.totalAmount;
-        const shippingAmount = Number(minorToDecimal(context.shippingMinor, context.currency));
-        const taxAmount = Number(minorToDecimal(context.tax.totalTaxMinor, context.currency));
-        context.totalAmount = subtotalAmount + shippingAmount + (context.tax.pricesIncludeTax ? 0 : taxAmount);
-        if (decimalToMinor(context.data.expectedTotal, context.currency) !==
-          decimalToMinor(subtotalAmount, context.currency) + context.shippingMinor + (context.tax.pricesIncludeTax ? 0 : context.tax.totalTaxMinor)) {
+        // Every amount of the order is computed in the minor units of the
+        // currency, so the total of the order is the exact total and the
+        // expected total of the request is compared with it exactly.
+        const subtotalMinor = context.totalMinor;
+        const taxMinor = context.tax.pricesIncludeTax ? 0 : context.tax.totalTaxMinor;
+        const totalMinor = subtotalMinor + context.shippingMinor + taxMinor;
+        if (decimalToMinor(context.data.expectedTotal, context.currency) !== totalMinor) {
           throw new ApiError('QUOTE_CHANGED');
         }
-        context.subtotalAmount = subtotalAmount;
-        context.shippingAmount = shippingAmount;
-        context.taxAmount = taxAmount;
+        context.subtotalAmount = Number(minorToDecimal(subtotalMinor, context.currency));
+        context.shippingAmount = Number(minorToDecimal(context.shippingMinor, context.currency));
+        context.taxAmount = Number(minorToDecimal(context.tax.totalTaxMinor, context.currency));
+        context.totalAmount = Number(minorToDecimal(totalMinor, context.currency));
       },
     },
     {
@@ -545,7 +602,7 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
         try {
           // Create order + deduct stock atomically
           placement = await prisma.$transaction(async (tx) => {
-            const existing = await tx.order.findUnique({ where: { idempotencyKey: context.idempotencyKey }, include: orderResponseInclude() });
+            const existing = await tx.order.findFirst({ where: { userId, idempotencyKey: context.idempotencyKey }, include: orderResponseInclude() });
             if (existing) {
               assertIdempotentReplay(existing, userId, context.requestFingerprint);
               return { order: existing, replayed: true };
@@ -573,6 +630,10 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
                 taxAmount: context.taxAmount,
                 taxInclusive: context.tax.pricesIncludeTax,
                 totalAmount: context.totalAmount,
+                // The order stores the currency its amounts are in. The payment
+                // of the order is charged in that currency, so the stored
+                // currency is the one the customer is charged in.
+                currency: context.currency,
                 paymentMethod: data.paymentMethod,
                 unpaidExpiresAt: context.unpaidExpiresAt,
                 // Create order address relation
@@ -601,7 +662,12 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
                       productId: item.productId,
                       variantId: item.variantId,
                       quantity: item.quantity,
-                      unitPrice: item.unitPrice,
+                      // The line carries the exact amount of its price, so the
+                      // line and the total of the order agree exactly.
+                      unitPrice: Number(minorToDecimal(item.unitPriceMinor, currency)),
+                      // The line stores the currency of its price, the same
+                      // currency the order and its total are in.
+                      currency: context.currency,
                       catalogSnapshot: createCatalogSnapshot({
                         id: product.id,
                         name: product.name,
@@ -614,7 +680,7 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
                         skuCode: variant.skuCode,
                         attributes: variant.attributes as Prisma.JsonValue,
                       }),
-                      lineTotal: new Prisma.Decimal(item.unitPrice).mul(item.quantity),
+                      lineTotal: new Prisma.Decimal(minorToDecimal(item.unitPriceMinor, currency)).mul(item.quantity),
                       taxAmount: Number(minorToDecimal(context.tax.lines.find((line) => line.lineId === String(index))?.taxMinor ?? 0, currency)),
                     };
                   })
@@ -738,6 +804,7 @@ function createOrderPlacementContext(userId: string, data: CreateOrderRequest): 
     paymentMethodDescription: { unpaidTimeoutMinutes: 0, supportedCurrencies: [] },
     shippingMinor: 0,
     tax: { pricesIncludeTax: false, lines: [], totalTaxMinor: 0 },
+    totalMinor: 0,
     totalAmount: 0,
     subtotalAmount: 0,
     shippingAmount: 0,

@@ -166,8 +166,11 @@ export class PaymentService {
    *
    * The idempotency key wins: a key that points at another capture is a
    * PAYMENT_IDEMPOTENCY_CONFLICT, a key that points at this capture returns
-   * its refund. Without a keyed refund the completed refund of the capture is
-   * the existing one.
+   * its refund. A capture that already carries a completed refund accepts
+   * only the key of that refund: every other key is a
+   * PAYMENT_IDEMPOTENCY_CONFLICT, because a second refund of the same
+   * capture would leave the reference of the second attempt out of the audit
+   * trail.
    */
   private static async findExistingRefund(tx: PaymentWriteTx, idempotencyKey: string, captureId: string): Promise<string | null> {
     const keyed = await tx.refund.findUnique({ where: { idempotencyKey } });
@@ -175,7 +178,9 @@ export class PaymentService {
     if (keyed) return keyed.id;
 
     const completed = await tx.refund.findFirst({ where: { paymentLedgerId: captureId, status: 'COMPLETED' } });
-    return completed ? completed.id : null;
+    if (!completed) return null;
+    if (completed.idempotencyKey !== idempotencyKey) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
+    return completed.id;
   }
 
   /**
@@ -184,8 +189,8 @@ export class PaymentService {
    *
    * The operation is idempotent on the idempotency key: an existing key for the
    * same capture returns the existing refund, a key that points at another
-   * capture is a PAYMENT_IDEMPOTENCY_CONFLICT and an already completed refund
-   * for the capture returns without a second effect.
+   * capture is a PAYMENT_IDEMPOTENCY_CONFLICT and a capture that already
+   * carries a completed refund raises the same conflict for every other key.
    */
   static async refundOrder(tx: PaymentWriteTx, input: {
     orderId: string;
@@ -260,9 +265,9 @@ export class PaymentService {
   /**
    * Resolve a capture that requires a refund into a completed refund.
    *
-   * The operation is idempotent on the idempotency key and on the capture: a
-   * second resolution of the same capture returns the existing refund without a
-   * second effect.
+   * The operation is idempotent on the idempotency key: a second resolution of
+   * the same capture with the same key returns the existing refund without a
+   * second effect, and every other key is a PAYMENT_IDEMPOTENCY_CONFLICT.
    */
   static async resolveRefundRequiredPayment(tx: PaymentAuditTx, input: {
     orderId: string;

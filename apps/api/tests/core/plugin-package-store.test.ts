@@ -6,6 +6,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { fork, type ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { getTestPrisma } from '../helpers/db';
 
 /**
  * The package store is a file system component: the suite runs against a
@@ -166,6 +167,53 @@ describe('Plugin package store publish', () => {
     } finally {
       await syncPrisma.$disconnect();
       await fs.rm(source, { recursive: true, force: true });
+    }
+  });
+
+  it('resolves a builtin package from the database when the store holds no published copy', async () => {
+    const { publishBuiltinPackage } = await import('@/core/admin/extension-installer/builtin-sync');
+    const { packBuiltinPlugin } = await import('@/core/admin/extension-installer/builtin-package');
+    const { pluginPackageBlobStore } = await import('@/core/storage/plugin-package-blob-store');
+    const slug = `builtin-cold-${randomUUID().slice(0, 12)}`;
+    const source = await fs.mkdtemp(path.join(os.tmpdir(), 'builtin-cold-source-'));
+    // The store of the resolver below is bound to this root, and it is empty.
+    const privateRoot = mkdtempSync(path.join(os.tmpdir(), 'plugin-package-cold-'));
+    try {
+      await fs.mkdir(path.join(source, 'server'), { recursive: true });
+      await fs.writeFile(path.join(source, 'manifest.json'), JSON.stringify({
+        schemaVersion: 1, slug, name: slug, version: '1.0.0', description: 'Cold store builtin',
+        author: 'Test', category: 'integration', runtimeType: 'internal-fastify',
+        hostProtocol: 'internal-fastify-v1', entryModule: 'server/index.js', permissions: [], contracts: [],
+      }));
+      await fs.writeFile(path.join(source, 'server', 'index.js'), 'module.exports = {};');
+      const { bytes, hash } = await packBuiltinPlugin(source);
+      const prisma = getTestPrisma();
+      await prisma.pluginInstall.create({
+        data: { slug, name: slug, version: '1.0.0', source: 'builtin', zipHash: hash },
+      });
+      await prisma.$transaction(async tx => { await pluginPackageBlobStore.put(tx, slug, hash, bytes); });
+      // The builtin is installed: the database holds its row and its bytes.
+      expect(await publishBuiltinPackage(slug, hash, source)).toBe(true);
+
+      const previousExtensionsPath = process.env.EXTENSIONS_PATH;
+      process.env.EXTENSIONS_PATH = privateRoot;
+      vi.resetModules();
+      try {
+        const { resolveCurrentPluginPackage } = await import('@/core/storage/current-plugin-package');
+        const { pluginPackageStore: coldStore } = await import('@/core/storage/plugin-package-store');
+        expect(await coldStore.get(slug, hash)).toBeNull();
+        const resolved = await resolveCurrentPluginPackage(slug);
+        expect(resolved).not.toBeNull();
+        expect(await coldStore.get(slug, hash)).not.toBeNull();
+        expect(await fs.readdir(path.join(privateRoot, 'plugins', slug))).toEqual([hash]);
+      } finally {
+        if (previousExtensionsPath === undefined) delete process.env.EXTENSIONS_PATH;
+        else process.env.EXTENSIONS_PATH = previousExtensionsPath;
+      }
+    } finally {
+      await getTestPrisma().pluginInstall.deleteMany({ where: { slug } });
+      await fs.rm(source, { recursive: true, force: true });
+      rmSync(privateRoot, { recursive: true, force: true });
     }
   });
 });

@@ -208,7 +208,7 @@ describe('the placement of a replayed request', () => {
     expect(replayed.order.id).toBe(orderId);
     expect(replayed.order.orderNumber).toBe(created.order.orderNumber);
 
-    expect(await prisma.order.count({ where: { idempotencyKey: key } })).toBe(1);
+    expect(await prisma.order.count({ where: { userId, idempotencyKey: key } })).toBe(1);
     const stockAfter = (await prisma.productVariant.findUniqueOrThrow({ where: { id: testVariantId } })).stock;
     expect(stockAfter).toBe(stockBefore - 1);
     expect(await prisma.eventRecord.count({ where: { type: 'order.created', aggregateId: orderId } })).toBe(1);
@@ -222,7 +222,7 @@ describe('the placement of a replayed request', () => {
       // The order is committed when the cache is bumped: the write is
       // visible outside the transaction that wrote it, so the bump happens
       // after the transaction resolved.
-      visibleAtBump = await prisma.order.findUnique({ where: { idempotencyKey: key } });
+      visibleAtBump = await prisma.order.findFirst({ where: { userId, idempotencyKey: key } });
       return 1;
     });
     try {

@@ -35,12 +35,94 @@ import { isDeepStrictEqual } from 'node:util';
 import { declaresContract, getDefaultInstance, type PluginInstanceProjection } from '@/core/extensions/registry';
 
 type UpdatedInstance = PluginInstallation & { replacedPlugins: string[] };
+type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/**
+ * The options of an instance update.
+ */
+export interface InstanceUpdateOptions {
+  /**
+   * A transaction the caller owns. The database write joins it instead of
+   * opening a transaction of its own.
+   *
+   * A caller that owns the transaction may not use it for an update that
+   * replaces the providers of a contract: the replacement runs in
+   * transactions of its own, because the lifecycle hook of the replaced
+   * provider has to run outside every transaction. Such an update is
+   * refused; the caller plans the update with `planInstanceUpdate` and runs
+   * its prepare phase before it opens its transaction.
+   */
+  tx?: Transaction;
+  /**
+   * Defer the post-commit work, so the caller runs it after its own
+   * transaction resolved. A caller that owns the transaction has to defer it:
+   * the post-commit work reaches into Redis and into the plugin runtime.
+   */
+  deferPostCommit?: boolean;
+}
+
+/**
+ * The phases of an instance update.
+ *
+ * The plugin-facing work (the lifecycle hook, the runtime validation) runs
+ * outside every transaction, and the post-commit work (the Redis version bump,
+ * the runtime reconciliation) runs after the transaction that wrote the row
+ * has resolved. The database write in between joins the transaction the caller
+ * supplies, so a caller can compose the update with its own rows in one
+ * transaction.
+ */
+export interface InstanceUpdatePlan {
+  installationId: string;
+  /**
+   * True when the prepare phase replaces the providers of a contract. The
+   * replacement runs in transactions of its own, so the plan cannot be
+   * committed inside a transaction the caller already owns.
+   */
+  replacesProviders: boolean;
+  /** The plugin-facing work. Runs outside every transaction. */
+  prepare(): Promise<void>;
+  /** The database write. Joins the transaction the caller supplies. */
+  commit(tx: Transaction): Promise<UpdatedInstance>;
+  /** The post-commit work. Runs after the transaction resolved. */
+  finalize(): Promise<void>;
+}
 
 // slug validation regex: ^[a-z][a-z0-9-]{0,30}[a-z0-9]$
 const SLUG_REGEX = /^[a-z][a-z0-9-]{0,30}[a-z0-9]$/;
 
 // Reserved instance keys
 const RESERVED_INSTANCE_KEYS = ['default'];
+
+/**
+ * The milliseconds a transaction waits for a free connection of the pool.
+ */
+const TRANSACTION_MAX_WAIT_MS = 10_000;
+
+/**
+ * The milliseconds the instance update transaction may hold its connection.
+ *
+ * The update transitions the tasks of one installation and writes one audit
+ * row per transitioned task, so the timeout is sized for a thousand tasks of
+ * an installation.
+ */
+const INSTANCE_UPDATE_TRANSACTION_TIMEOUT_MS = 60_000;
+
+/**
+ * The milliseconds the uninstall transaction may hold its connection.
+ *
+ * The uninstall transitions the tasks of every installation of the slug and
+ * writes one audit row per cancelled task, so the timeout is sized for a
+ * thousand tasks of an installation.
+ */
+const UNINSTALL_TRANSACTION_TIMEOUT_MS = 60_000;
+
+/**
+ * The milliseconds the purge transaction may hold its connection.
+ *
+ * The purge does the work of the uninstall and queues the cleanup of every
+ * stored file of every installation of the slug.
+ */
+const PURGE_TRANSACTION_TIMEOUT_MS = 120_000;
 
 async function waitForLifecycleLease(slug: string, operation: string): Promise<void> {
   if (process.env.NODE_ENV !== 'test' || process.env.JIFFOO_TEST_PLUGIN_LEASE_BARRIER !== 'acquired' || !process.send) return;
@@ -262,9 +344,16 @@ async function createDefaultInstance(
 }
 
 /**
- * Update plugin instance
+ * Plan an instance update.
+ *
+ * The plan separates the update into three phases: the plugin-facing work
+ * (the lifecycle hook, the runtime validation), the database write and the
+ * post-commit work (the Redis version bump, the runtime reconciliation). A
+ * caller can therefore run the plugin code outside every transaction, compose
+ * the write with its own rows in one transaction and run the post-commit work
+ * after that transaction resolved.
  */
-async function updateInstance(
+async function planInstanceUpdate(
   installationId: string,
   updates: {
     enabled?: boolean;
@@ -272,7 +361,7 @@ async function updateInstance(
     grantedPermissions?: string[];
     replacingProvider?: boolean;
   }
-): Promise<UpdatedInstance> {
+): Promise<InstanceUpdatePlan> {
 
   // Validate config size and depth if being updated (Blueprint 5.4: 64KB max, 10 layers max)
   if (updates.config !== undefined) {
@@ -354,45 +443,6 @@ async function updateInstance(
     await assertNotLastEnabledProvider(existing.pluginSlug, existing.enabled, pluginPackage.manifestJson);
   }
 
-  // Parse manifest for lifecycle hook checks
-  // If enabling: execute onEnable lifecycle hook BEFORE the DB update.
-  // If onEnable fails, the enable is rejected (hook throws).
-  if (isEnabling && hasLifecycleHook(manifest, 'onEnable')) {
-    await executeLifecycleHook('onEnable', {
-      installationId,
-      pluginSlug: existing.pluginSlug,
-      instanceKey: existing.instanceKey,
-      config: runtimeConfig,
-    }, manifest);
-    // If executeLifecycleHook threw, we never reach here — enable is rejected
-  }
-
-  if (isEnabling || (updates.config !== undefined && existing.enabled)) {
-    try {
-      if (isEnabling) {
-        const { validateCandidateRuntime } = await import('@/core/extensions/runtime/plugin-runtime');
-        await validateCandidateRuntime(existing.pluginSlug, pluginPackage.zipHash || '', manifest, existing.id, runtimeConfig);
-      } else {
-        await warmPluginInstanceRuntime(existing.pluginSlug, existing.id, runtimeConfig);
-      }
-    } catch (error: any) {
-      if (error instanceof ApiError && ['PLUGIN_TASK_DECLARATION_INVALID','PLUGIN_TASK_LIMIT_CONFLICT'].includes(error.code)) throw error;
-      throw new ExtensionInstallerError(redactPluginText(`Plugin runtime failed to load: ${error.message}`, runtimeConfig, manifest), { statusCode: 500, code: 'INTERNAL_SERVER_ERROR' });
-    }
-  }
-
-  const replacedPlugins: string[] = [];
-  if (isEnabling) {
-    for (const contract of ['tax', 'fulfillment', 'notification'] as const) {
-      if (!declaresContract(manifest, contract)) continue;
-      const providers = await prisma.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, pluginSlug: { not: existing.pluginSlug }, plugin: { deletedAt: null } }, include: { plugin: true } });
-      for (const provider of providers.filter((candidate) => declaresContract(candidate.plugin.manifestJson, contract))) {
-        await updateInstance(provider.id, { enabled: false, replacingProvider: true });
-        replacedPlugins.push(provider.pluginSlug);
-      }
-    }
-  }
-
   const updateData: any = {};
 
   if (updates.enabled !== undefined) {
@@ -407,38 +457,138 @@ async function updateInstance(
     updateData.grantedPermissions = updates.grantedPermissions ?? null;
   }
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const scheduler = await lockTaskScheduler(tx);
-    await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${installationId} FOR UPDATE`;
-    if (isEnabling) assertTaskPolicy(manifest.tasks ?? [], scheduler.policy);
-    if (isDisabling || updates.config !== undefined && existing.enabled) await transitionInstallationTasks(tx, installationId, isDisabling ? 'PAUSE' : 'UPDATE', isDisabling ? 'plugin-disabled' : 'CONFIG_UPDATED', manifest.tasks ?? []);
-    if (isDisabling && !updates.replacingProvider && declaresContract(pluginPackage.manifestJson, 'payment')) {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('jiffoo:payment-provider-decision', 0))`;
-      await assertNotLastEnabledProvider(existing.pluginSlug, existing.enabled, pluginPackage.manifestJson, tx);
-    }
-    if (updates.enabled !== undefined || updates.config !== undefined) updateData.protectionGeneration = { increment: 1 };
-    const next = await tx.pluginInstallation.update({ where: { id: installationId }, data: updateData });
-    await systemSettingsService.incrementPluginRegistryVersion(tx);
-    if (updates.enabled !== undefined || updates.config !== undefined) {
-      await PluginPageService.revokeInstallationSessions(tx, installationId);
-    }
-    return next;
-  });
-
-  // If disabling: execute onDisable lifecycle hook AFTER the DB update.
-  // Failure is non-blocking — just logs a warning.
-  if (isDisabling && hasLifecycleHook(manifest, 'onDisable')) {
-    await executeLifecycleHook('onDisable', {
-      installationId,
-      pluginSlug: existing.pluginSlug,
-      instanceKey: existing.instanceKey,
-      config: decryptPluginConfig(manifest, existingConfig),
-    }, manifest);
+  if (updates.enabled !== undefined || updates.config !== undefined) {
+    updateData.protectionGeneration = { increment: 1 };
   }
 
-  await CacheService.incrementPluginVersion();
-  await reconcilePluginState(existing.pluginSlug);
-  return Object.assign(updated, { replacedPlugins });
+  const replacedPlugins: string[] = [];
+
+  return {
+    installationId,
+    // The replacement of the providers of a contract runs in transactions of
+    // its own, so the plan cannot be committed inside a transaction the
+    // caller already owns.
+    replacesProviders: isEnabling,
+    // The plugin-facing work. It runs outside every transaction, so the plugin
+    // code never holds a pooled connection while it runs.
+    prepare: async () => {
+      // Parse manifest for lifecycle hook checks
+      // If enabling: execute onEnable lifecycle hook BEFORE the DB update.
+      // If onEnable fails, the enable is rejected (hook throws).
+      if (isEnabling && hasLifecycleHook(manifest, 'onEnable')) {
+        await executeLifecycleHook('onEnable', {
+          installationId,
+          pluginSlug: existing.pluginSlug,
+          instanceKey: existing.instanceKey,
+          config: runtimeConfig,
+        }, manifest);
+        // If executeLifecycleHook threw, we never reach here — enable is rejected
+      }
+
+      if (isEnabling || (updates.config !== undefined && existing.enabled)) {
+        try {
+          if (isEnabling) {
+            const { validateCandidateRuntime } = await import('@/core/extensions/runtime/plugin-runtime');
+            await validateCandidateRuntime(existing.pluginSlug, pluginPackage.zipHash || '', manifest, existing.id, runtimeConfig);
+          } else {
+            await warmPluginInstanceRuntime(existing.pluginSlug, existing.id, runtimeConfig);
+          }
+        } catch (error: any) {
+          if (error instanceof ApiError && ['PLUGIN_TASK_DECLARATION_INVALID','PLUGIN_TASK_LIMIT_CONFLICT'].includes(error.code)) throw error;
+          throw new ExtensionInstallerError(redactPluginText(`Plugin runtime failed to load: ${error.message}`, runtimeConfig, manifest), { statusCode: 500, code: 'INTERNAL_SERVER_ERROR' });
+        }
+      }
+
+      if (isEnabling) {
+        // The providers of a contract are replaced in transactions of their
+        // own. They run outside every transaction of the caller, so they never
+        // wait for the lock of the caller's transaction.
+        for (const contract of ['tax', 'fulfillment', 'notification'] as const) {
+          if (!declaresContract(manifest, contract)) continue;
+          const providers = await prisma.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, pluginSlug: { not: existing.pluginSlug }, plugin: { deletedAt: null } }, include: { plugin: true } });
+          for (const provider of providers.filter((candidate) => declaresContract(candidate.plugin.manifestJson, contract))) {
+            await updateInstance(provider.id, { enabled: false, replacingProvider: true });
+            replacedPlugins.push(provider.pluginSlug);
+          }
+        }
+      }
+    },
+    // The database write. It joins the transaction the caller supplies.
+    commit: async (tx: Transaction) => {
+      const scheduler = await lockTaskScheduler(tx);
+      await tx.$queryRaw`SELECT id FROM public.plugin_installations WHERE id = ${installationId} FOR UPDATE`;
+      if (isEnabling) assertTaskPolicy(manifest.tasks ?? [], scheduler.policy);
+      if (isDisabling || updates.config !== undefined && existing.enabled) await transitionInstallationTasks(tx, installationId, isDisabling ? 'PAUSE' : 'UPDATE', isDisabling ? 'plugin-disabled' : 'CONFIG_UPDATED', manifest.tasks ?? []);
+      if (isDisabling && !updates.replacingProvider && declaresContract(pluginPackage.manifestJson, 'payment')) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended('jiffoo:payment-provider-decision', 0))`;
+        await assertNotLastEnabledProvider(existing.pluginSlug, existing.enabled, pluginPackage.manifestJson, tx);
+      }
+      const next = await tx.pluginInstallation.update({ where: { id: installationId }, data: updateData });
+      await systemSettingsService.incrementPluginRegistryVersion(tx);
+      if (updates.enabled !== undefined || updates.config !== undefined) {
+        await PluginPageService.revokeInstallationSessions(tx, installationId);
+      }
+      return Object.assign(next, { replacedPlugins });
+    },
+    // The post-commit work. It runs after the transaction that wrote the row
+    // has resolved, so the Redis bump and the runtime reconciliation never
+    // hold a connection.
+    finalize: async () => {
+      // If disabling: execute onDisable lifecycle hook AFTER the DB update.
+      // Failure is non-blocking — just logs a warning.
+      if (isDisabling && hasLifecycleHook(manifest, 'onDisable')) {
+        await executeLifecycleHook('onDisable', {
+          installationId,
+          pluginSlug: existing.pluginSlug,
+          instanceKey: existing.instanceKey,
+          config: decryptPluginConfig(manifest, existingConfig),
+        }, manifest);
+      }
+
+      await CacheService.incrementPluginVersion();
+      await reconcilePluginState(existing.pluginSlug);
+    },
+  };
+}
+
+/**
+ * Update plugin instance
+ *
+ * The update runs in three phases: the plugin-facing work outside every
+ * transaction, the database write in a transaction and the post-commit work
+ * after that transaction resolved. A caller that owns a transaction hands it
+ * over and defers the post-commit work, so the write joins its transaction
+ * and the plugin code never runs while a transaction is open.
+ */
+async function updateInstance(
+  installationId: string,
+  updates: {
+    enabled?: boolean;
+    config?: Record<string, unknown>;
+    grantedPermissions?: string[];
+    replacingProvider?: boolean;
+  },
+  options?: InstanceUpdateOptions,
+): Promise<UpdatedInstance> {
+  const plan = await planInstanceUpdate(installationId, updates);
+  if (options?.tx && plan.replacesProviders) {
+    // The prepare phase replaces the providers of a contract, and each
+    // replacement runs in a transaction of its own on a connection of its own.
+    // Joining the caller's transaction would open a second connection inside
+    // the caller's transaction, so the combination is refused: the caller
+    // plans the update, runs its prepare phase before it opens its
+    // transaction and commits the plan inside it.
+    throw new Error('An instance update that replaces contract providers cannot join a caller transaction; use planInstanceUpdate and run its prepare phase before the transaction opens');
+  }
+  // The plugin-facing work runs outside every transaction.
+  await plan.prepare();
+  // The database write joins the caller's transaction, or runs in one of its own.
+  const updated = options?.tx
+    ? await plan.commit(options.tx)
+    : await prisma.$transaction(tx => plan.commit(tx), { maxWait: TRANSACTION_MAX_WAIT_MS, timeout: INSTANCE_UPDATE_TRANSACTION_TIMEOUT_MS });
+  // The post-commit work runs after the transaction resolved.
+  if (!options?.deferPostCommit) await plan.finalize();
+  return updated;
 }
 
 // ============================================================================
@@ -580,7 +730,7 @@ export async function uninstallPlugin(slug: string, actorId = 'system'): Promise
     await systemSettingsService.incrementPluginRegistryVersion(tx);
     await PluginPageService.revokePluginSessions(tx, slug);
     await writePluginAudit(tx, actorId, 'PLUGIN_UNINSTALLED', slug, { slug, version: pluginPackage.version });
-  });
+  }, { maxWait: TRANSACTION_MAX_WAIT_MS, timeout: UNINSTALL_TRANSACTION_TIMEOUT_MS });
 
   // Files are preserved by the package store for safety and re-installation.
 
@@ -717,7 +867,7 @@ export async function purgePlugin(slug: string, confirmationSlug?: string, actor
     await tx.pluginInstall.delete({ where: { slug } });
     await systemSettingsService.incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_PURGED', slug, { slug, version: pluginPackage.version });
-  });
+  }, { maxWait: TRANSACTION_MAX_WAIT_MS, timeout: PURGE_TRANSACTION_TIMEOUT_MS });
 
   await CacheService.delete('plugins:installed');
   await CacheService.delete(`plugins:config:${slug}`);
@@ -748,6 +898,7 @@ export const PluginManagementService = {
   getPluginInstances,
   createDefaultInstance,
   updateInstance,
+  planInstanceUpdate,
   getInstanceConfig,
   isPluginEnabled,
   uninstallPlugin,

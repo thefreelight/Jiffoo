@@ -357,6 +357,12 @@ export class OrderService {
 
   static async cancelExpiredUnpaidOrders(limit = 100): Promise<number> {
     const cancelled = await prisma.$transaction(async (tx) => {
+      // The sweep reads the clock of the database once, so the selection of
+      // the expired orders and the predicate of the write agree on the moment
+      // the order expired. The application clock is never compared with the
+      // clock of the selection.
+      const [clock] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AT TIME ZONE 'UTC' AS now`;
+      const now = clock?.now ?? new Date();
       const locked = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT id FROM public.orders WHERE status = ${Prisma.raw(`'${OrderStatus.PENDING}'`)} AND "paymentStatus" = ${Prisma.raw(`'${PaymentStatus.PENDING}'`)}
           AND "unpaidExpiresAt" < clock_timestamp() AT TIME ZONE 'UTC'
@@ -367,8 +373,8 @@ export class OrderService {
       for (const order of expiredOrders) {
         assertOrderTransition(order.status, OrderStatus.CANCELLED, order.paymentStatus);
         const result = await tx.order.updateMany({
-          where: { id: order.id, status: OrderStatus.PENDING, paymentStatus: PaymentStatus.PENDING, unpaidExpiresAt: { lt: new Date() } },
-          data: { status: OrderStatus.CANCELLED, cancelReason: 'unpaid timeout', cancelledAt: new Date() },
+          where: { id: order.id, status: OrderStatus.PENDING, paymentStatus: PaymentStatus.PENDING, unpaidExpiresAt: { lt: now } },
+          data: { status: OrderStatus.CANCELLED, cancelReason: 'unpaid timeout', cancelledAt: now },
         });
         if (result.count === 0) continue;
         for (const item of order.items) await InventoryService.incrementStock(tx, item.variantId, item.quantity, {
@@ -1016,12 +1022,19 @@ export class OrderService {
    * response format with calculated fields and proper type conversions.
    *
    * @param order Raw order object from Prisma with includes
-   * @param currency Currency code for the order
+   * @param currency Currency code of the shop, used only when the order row
+   *   carries no currency of its own
    * @param locale Locale of the account behind the order, read through the
    *   auth identity projection
    * @returns Formatted order response object
    */
   private static formatOrderResponse(order: any, currency: string, locale: string | null): OrderResponse {
+    // The order row carries the currency the order was charged in. The shop
+    // currency may have changed since the order was placed, so the stored
+    // currency is the one the response reports: the export of the orders and
+    // the order events report it too, and one order is never rendered in two
+    // currencies.
+    const orderCurrency = order.currency || currency;
     return {
       orderNumber: order.orderNumber,
       id: order.id,
@@ -1036,7 +1049,7 @@ export class OrderService {
       totalAmount: Number(order.totalAmount),
       paymentMethod: order.paymentMethod,
       unpaidExpiresAt: order.unpaidExpiresAt ? order.unpaidExpiresAt.toISOString() : null,
-      currency: currency,
+      currency: orderCurrency,
       shippingAddress: order.shippingAddress || null,
       shipments: (order.shipments || []).map((shipment) => {
         const metadata = shipment.metadata && typeof shipment.metadata === 'object' && !Array.isArray(shipment.metadata)
@@ -1056,21 +1069,26 @@ export class OrderService {
           items: shipment.items,
         };
       }) as OrderResponse['shipments'],
-      items: order.items.map((item) => ({
-        id: item.id,
-        productId: item.productId,
-        productName: snapshotProductName(readCatalogSnapshot(item.catalogSnapshot), locale),
-        productImages: readCatalogSnapshot(item.catalogSnapshot).productImages,
-        variantId: item.variantId,
-        variantName: readCatalogSnapshot(item.catalogSnapshot).variantName,
-        variantAttributes: parseJsonRecord(readCatalogSnapshot(item.catalogSnapshot).variantAttributes),
-        quantity: item.quantity,
-        unitPrice: Number(item.unitPrice),
-        taxAmount: Number(item.taxAmount || 0),
-        totalPrice: Number(item.lineTotal),
-        fulfillmentData: parseJsonRecord(item.fulfillmentData),
-        currency
-      })),
+      items: order.items.map((item) => {
+        // The snapshot of the line is read once and the parsed result is
+        // reused by every field of the line.
+        const snapshot = readCatalogSnapshot(item.catalogSnapshot);
+        return {
+          id: item.id,
+          productId: item.productId,
+          productName: snapshotProductName(snapshot, locale),
+          productImages: snapshot.productImages,
+          variantId: item.variantId,
+          variantName: snapshot.variantName,
+          variantAttributes: parseJsonRecord(snapshot.variantAttributes),
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          taxAmount: Number(item.taxAmount || 0),
+          totalPrice: Number(item.lineTotal),
+          fulfillmentData: parseJsonRecord(item.fulfillmentData),
+          currency: orderCurrency
+        };
+      }),
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
       cancelReason: order.cancelReason || null,

@@ -9,9 +9,18 @@
  * The registry publishes explicit projections instead of the stored rows: a
  * consumer only ever receives the fields it actually reads, and every query
  * names those fields in a `select` instead of pulling the whole row.
+ *
+ * The hot reads of the registry are served from the shared Redis cache. They
+ * are keyed by the generation of the registry, which names the plugin cache
+ * version and the freshness marker of the two plugin tables, so a cached entry
+ * is invalidated by every change of the registry, whether the change came
+ * through the application or straight through the database. The cache is never
+ * a source of truth: an unreachable or unwritable cache degrades to the
+ * database read.
  */
 
 import { prisma } from '@/config/database';
+import { CacheService } from '@/core/cache/service';
 import { PLUGIN_CONTRACT_VERSIONS, type PluginContractName, type PluginTrustLevel } from '@jiffoo/shared';
 
 /**
@@ -108,38 +117,168 @@ export function declaresContract(manifestJson: unknown, contract: PluginContract
     && (manifestJson as { contracts: Array<{ name?: unknown; version?: unknown }> }).contracts.some((declaration) => declaration.name === contract && declaration.version === PLUGIN_CONTRACT_VERSIONS[contract]);
 }
 
-export async function listProviders(contract: 'payment' | 'shipping'): Promise<ProviderProjection[]> {
+/**
+ * The seconds a cached registry entry stays valid.
+ *
+ * The generation of the registry invalidates an entry exactly when the
+ * registry changes, so the time to live is only the backstop for an entry
+ * whose generation never changed.
+ */
+const REGISTRY_CACHE_TTL_SECONDS = 30;
+
+/**
+ * An enabled installation of a live package, reduced to the fields the
+ * registry readers use: the slug of the package and its stored manifest.
+ */
+interface RegistryInstallationRow {
+  pluginSlug: string;
+  manifestJson: unknown;
+}
+
+/**
+ * The plugin cache version the registry entries are keyed by.
+ *
+ * A cache failure must never fail a read, so an unreachable cache degrades to
+ * the version zero, which misses every cached entry.
+ */
+async function registryCacheVersion(): Promise<number> {
+  try {
+    return await CacheService.getPluginVersion();
+  } catch {
+    // An unreachable cache degrades to the database read.
+    return 0;
+  }
+}
+
+/**
+ * The freshness marker of the two plugin tables the registry reads.
+ *
+ * The marker names the row counts, the counts of the rows the registry reads,
+ * and the newest update of both tables, so a write to either table changes it,
+ * no matter whether the write came through the application or straight through
+ * the database. The read is one aggregate over two tiny tables: it never reads
+ * a manifest and never reads a row body.
+ */
+async function registryFreshness(): Promise<string> {
+  const rows = await prisma.$queryRaw<Array<{ installationCount: number; enabledInstallationCount: number; installationUpdatedAt: string; packageCount: number; livePackageCount: number; packageUpdatedAt: string }>>`
+    SELECT
+      (SELECT count(*)::integer FROM public.plugin_installations) AS "installationCount",
+      (SELECT count(*)::integer FROM public.plugin_installations WHERE enabled AND "deletedAt" IS NULL) AS "enabledInstallationCount",
+      (SELECT COALESCE(to_char(max("updatedAt"), 'YYYYMMDDHH24MISSMS'), '0') FROM public.plugin_installations) AS "installationUpdatedAt",
+      (SELECT count(*)::integer FROM public.plugin_installs) AS "packageCount",
+      (SELECT count(*)::integer FROM public.plugin_installs WHERE "deletedAt" IS NULL) AS "livePackageCount",
+      (SELECT COALESCE(to_char(max("updatedAt"), 'YYYYMMDDHH24MISSMS'), '0') FROM public.plugin_installs) AS "packageUpdatedAt"
+  `;
+  const row = rows[0];
+  if (!row) return '0-0-0-0-0-0';
+  return `${row.installationCount}-${row.enabledInstallationCount}-${row.installationUpdatedAt}-${row.packageCount}-${row.livePackageCount}-${row.packageUpdatedAt}`;
+}
+
+/**
+ * The generation the registry entries are keyed by.
+ *
+ * The generation names the plugin cache version and the freshness marker of the
+ * two plugin tables. An entry is therefore read again as soon as the version
+ * or the tables changed, whether the change came through the application or
+ * straight through the database.
+ */
+async function registryGeneration(): Promise<string> {
+  const version = await registryCacheVersion();
+  const freshness = await registryFreshness();
+  return `v${version}:${freshness}`;
+}
+
+/**
+ * Read a cached registry entry.
+ *
+ * A cache failure degrades to the database read, never to an error.
+ */
+async function readRegistryEntry<T>(generation: string, key: string): Promise<T | null> {
+  try {
+    return await CacheService.getPluginRegistry<T>(generation, key);
+  } catch {
+    // An unreachable cache degrades to the database read.
+    return null;
+  }
+}
+
+/**
+ * Write a cached registry entry.
+ *
+ * A cache failure degrades to the database read, never to an error.
+ */
+async function writeRegistryEntry(generation: string, key: string, value: unknown): Promise<void> {
+  try {
+    await CacheService.setPluginRegistry(generation, key, value, REGISTRY_CACHE_TTL_SECONDS);
+  } catch {
+    // An unwritable cache degrades to the database read.
+  }
+}
+
+/**
+ * The enabled installations of the live packages.
+ *
+ * This is the hot path of the registry: the payment, tax, fulfilment,
+ * notification and quote paths ask for it on every request, so the rows are
+ * kept in the shared Redis cache. The entry is keyed by the generation of the
+ * registry, which names the plugin cache version and the freshness marker of
+ * the two plugin tables. The generation is captured before the database read
+ * and reused for the write, so a registry change that commits while the read
+ * runs stores the entry under the old generation, which no reader asks for any
+ * more, instead of under the new generation of the stale data.
+ */
+async function readEnabledInstallations(): Promise<RegistryInstallationRow[]> {
+  const generation = await registryGeneration();
+  const cached = await readRegistryEntry<RegistryInstallationRow[]>(generation, 'enabled-installations');
+  if (cached) return cached;
+
   const installations = await prisma.pluginInstallation.findMany({
     where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } },
     select: { pluginSlug: true, plugin: { select: { manifestJson: true } } },
   });
+  const rows = installations.map((installation) => ({
+    pluginSlug: installation.pluginSlug,
+    manifestJson: installation.plugin.manifestJson,
+  }));
+  await writeRegistryEntry(generation, 'enabled-installations', rows);
+  return rows;
+}
+
+export async function listProviders(contract: 'payment' | 'shipping'): Promise<ProviderProjection[]> {
+  const installations = await readEnabledInstallations();
   return installations
-    .filter((installation) => declaresContract(installation.plugin.manifestJson, contract))
+    .filter((installation) => declaresContract(installation.manifestJson, contract))
     .map((installation) => ({ pluginSlug: installation.pluginSlug }));
 }
 
 export async function resolveSingleProvider(contract: 'tax' | 'fulfillment' | 'notification'): Promise<ProviderProjection | null> {
-  const installations = await prisma.pluginInstallation.findMany({
-    where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } },
-    select: { pluginSlug: true, plugin: { select: { manifestJson: true } } },
-  });
-  const provider = installations.find((installation) => declaresContract(installation.plugin.manifestJson, contract));
+  const installations = await readEnabledInstallations();
+  const provider = installations.find((installation) => declaresContract(installation.manifestJson, contract));
   return provider ? { pluginSlug: provider.pluginSlug } : null;
 }
 
 /**
  * Get all plugin packages.
  * By default excludes soft-deleted packages unless includeDeleted=true.
+ *
+ * The packages are kept in the shared Redis cache under the generation of the
+ * registry, exactly like the enabled installations above.
  */
 export async function getAllPluginPackages(options?: { includeDeleted?: boolean }): Promise<PluginPackageProjection[]> {
   const includeDeleted = options?.includeDeleted ?? false;
+  const generation = await registryGeneration();
+  const key = includeDeleted ? 'packages-all' : 'packages-live';
+  const cached = await readRegistryEntry<PluginPackageProjection[]>(generation, key);
+  if (cached) return cached;
+
   const rows = await prisma.pluginInstall.findMany({
     where: includeDeleted ? undefined : { deletedAt: null },
     orderBy: { installedAt: 'desc' },
     select: { slug: true, category: true, manifestJson: true },
   });
-
-  return rows.map((row) => ({ slug: row.slug, category: row.category, manifestJson: row.manifestJson }));
+  const packages = rows.map((row) => ({ slug: row.slug, category: row.category, manifestJson: row.manifestJson }));
+  await writeRegistryEntry(generation, key, packages);
+  return packages;
 }
 
 /**
@@ -183,20 +322,62 @@ export async function listInstalledPluginPackages(options?: { includeDeleted?: b
 }
 
 /**
- * The stored row of the default installation of a plugin.
+ * The default installation of a plugin, reduced to the fields its readers use:
+ * the identity of the installation, its lifecycle state and the moment it was
+ * deleted.
+ */
+export interface DefaultInstallationProjection {
+  id: string;
+  enabled: boolean;
+  deletedAt: Date | null;
+}
+
+/**
+ * The cached form of a live default installation.
+ *
+ * Only a live installation is cached, so its deletion marker is always null
+ * and the entry stays plain JSON.
+ */
+interface CachedDefaultInstallation {
+  id: string;
+  enabled: boolean;
+  deletedAt: null;
+}
+
+/**
+ * The default installation of a plugin.
  *
  * The payment module reads the installation of the provider it binds or calls.
  * That read belongs to this module, the module that owns the
  * `plugin_installations` table, so the payment module no longer queries the
- * table of another domain. The row is returned unchanged: the query and the
- * result stay the ones the reader had before the read moved here.
+ * table of another domain. The projection names the fields the readers use,
+ * like every other projection of this module.
+ *
+ * The projection is served from the shared cache under the plugin cache
+ * version, so a reader that owns a transaction reads the installation without
+ * opening a second connection. The version is bumped whenever a plugin is
+ * installed, enabled, disabled, reconfigured or removed, so the entry is
+ * invalidated by every change of the registry. The cache is never a source of
+ * truth: an unreachable cache degrades to the database read.
+ *
+ * A missing, disabled or deleted installation is reported as `null`, so the
+ * reader treats it as an unavailable installation.
  *
  * @param slug Slug of the plugin
  */
-export async function getDefaultInstallationRow(slug: string) {
-  return prisma.pluginInstallation.findUnique({
+export async function getDefaultInstallationRow(slug: string): Promise<DefaultInstallationProjection | null> {
+  const version = `v${await registryCacheVersion()}`;
+  const key = `default-installation:${slug}`;
+  const cached = await readRegistryEntry<CachedDefaultInstallation>(version, key);
+  if (cached) return cached;
+
+  const installation = await prisma.pluginInstallation.findUnique({
     where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } },
+    select: { id: true, enabled: true, deletedAt: true },
   });
+  if (!installation || !installation.enabled || installation.deletedAt) return null;
+  await writeRegistryEntry(version, key, installation);
+  return installation;
 }
 
 /**

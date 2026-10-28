@@ -176,6 +176,24 @@ export class ProductService {
   }
 
   /**
+   * The stock level of a set of variants.
+   *
+   * The catalogue is owned by the product domain, so a module that needs the
+   * stock of a variant reads it through this projection, the same way it
+   * reads the price of a variant. The stock itself is owned by the inventory
+   * module, which exposes it through its own public service.
+   *
+   * @param variantIds Identifiers of the variants
+   * @param client Client the stock is read through (the global client by default)
+   */
+  static async getVariantStockLevels(
+    variantIds: string[],
+    client: InventoryStockReadTx = prisma
+  ): Promise<Map<string, number>> {
+    return this.getVariantStockMap(variantIds, client);
+  }
+
+  /**
    * Read projection for the sellable catalog.
    *
    * The product domain owns the catalog tables, so every module that has to decide

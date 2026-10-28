@@ -6,13 +6,6 @@ import type { InventoryListItem } from './types';
 import { emitEvent, type EventTransaction } from '@/infra/events/emit';
 import { productSnapshot } from '@/infra/events/snapshots';
 
-export type InventoryStockTx = {
-  productVariant: {
-    update(args: any): Promise<any>;
-    updateMany(args: any): Promise<{ count: number }>;
-  };
-};
-
 /**
  * Transaction shape required by a stock move that is recorded in the ledger.
  *
@@ -50,11 +43,11 @@ export type InventoryLedgerStockTx = {
 /**
  * Transaction shape required by the ledger aware stock write.
  *
- * `InventoryStockTx` only covers the `product_variants` write itself. Applying a
+ * The stock write itself only covers the `product_variants` update. Applying a
  * desired stock level additionally needs the `inventory_adjustments` insert, the
  * product snapshot read and the outbox writes of the `product.updated` event, so the
  * transaction surface is widened explicitly here. The narrow shape is kept for the
- * existing callers that only move stock around.
+ * callers that only move stock around.
  */
 export type InventoryLedgerTx = {
   productVariant: {
@@ -91,11 +84,36 @@ export type InventoryAdjustmentDetails = {
 };
 
 export class InventoryService {
-  static async setStockById(variantId: string, quantity: number): Promise<void> {
-    await knownPrismaOperation(() => prisma.$transaction(async tx => {
+  /**
+   * Apply an absolute stock level to a variant and return the stored level.
+   *
+   * The write goes through the ledgered path, so it is conditional and it
+   * leaves a row in the `inventory_adjustments` ledger. A caller that knows the
+   * level it edited passes it as `expectedStock`: the write then only lands
+   * when the stored level is still the level the caller saw, and a mismatch is
+   * reported as a conflict instead of overwriting a concurrent sale.
+   *
+   * @param variantId Variant whose stock level is set
+   * @param quantity Desired absolute stock level
+   * @param options `expectedStock` guards the write, `userId` records the actor
+   */
+  static async setStockById(
+    variantId: string,
+    quantity: number,
+    options: { expectedStock?: number; userId?: string } = {}
+  ): Promise<number> {
+    return knownPrismaOperation(() => prisma.$transaction(async tx => {
       const variant = await tx.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { productId: true } });
-      await this.setStock(tx, variantId, quantity);
-      await emitEvent(tx, 'product.updated', 1, variant.productId, await productSnapshot(tx, variant.productId));
+      await this.setStock(tx, variantId, quantity, {
+        type: 'correction',
+        reason: 'admin_stock_set',
+        referenceId: variant.productId,
+        ...(options.userId ? { userId: options.userId } : {}),
+      }, { expectedStock: options.expectedStock });
+      // The level that is stored is read inside the transaction, so the answer
+      // is the level this write left behind and not the level that was asked for.
+      const stored = await tx.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { stock: true } });
+      return stored.stock;
     }), { notFound: 'NOT_FOUND' });
   }
   /**
@@ -188,11 +206,27 @@ export class InventoryService {
     await tx.inventoryAdjustment.create({ data: { variantId, quantity, ...details } });
   }
 
-  static async setStock(tx: InventoryStockTx, variantId: string, quantity: number): Promise<void> {
-    await tx.productVariant.update({
-      where: { id: variantId },
-      data: { stock: Math.max(0, Math.trunc(quantity)) },
-    });
+  /**
+   * Apply an absolute stock level to a variant.
+   *
+   * The write is the ledgered one, so it is conditional and it leaves a row in
+   * the `inventory_adjustments` ledger. The name is kept for the callers that
+   * ask for an absolute level.
+   *
+   * @param tx Transaction client owned by the caller
+   * @param variantId Variant whose stock level is applied
+   * @param quantity Desired absolute stock level
+   * @param details Ledger details of the applied change
+   * @param options `expectedStock` guards the write against a concurrent change
+   */
+  static async setStock(
+    tx: InventoryLedgerTx,
+    variantId: string,
+    quantity: number,
+    details: InventoryAdjustmentDetails = { type: 'correction', reason: 'stock_set' },
+    options: { publishProductChange?: boolean; expectedStock?: number } = {}
+  ): Promise<void> {
+    await this.applyDesiredStock(tx, variantId, quantity, details, options);
   }
 
   /**
@@ -210,21 +244,30 @@ export class InventoryService {
    * conditional update carries the expected prior level, so a concurrent stock
    * change is detected instead of being overwritten.
    *
+   * A caller that passes `expectedStock` asks for a compare-and-set: the write
+   * only lands when the stored level is still the level the caller saw, and a
+   * mismatch is reported as a conflict instead of being retried over the
+   * concurrent change.
+   *
    * @param tx Transaction client owned by the caller
    * @param variantId Variant whose stock level is applied
    * @param desiredQuantity Desired absolute stock level
    * @param details Ledger details of the applied change
    * @param options `publishProductChange: false` suppresses the outbox event for
-   * callers that already publish the wider product change
+   * callers that already publish the wider product change; `expectedStock` is
+   * the level the caller saw and guards the write
    */
   static async applyDesiredStock(
     tx: InventoryLedgerTx,
     variantId: string,
     desiredQuantity: number,
     details: InventoryAdjustmentDetails,
-    options: { publishProductChange?: boolean } = {}
+    options: { publishProductChange?: boolean; expectedStock?: number } = {}
   ): Promise<void> {
     const normalized = Math.max(0, Math.trunc(Number(desiredQuantity)));
+    const expectedStock = options.expectedStock === undefined
+      ? undefined
+      : Math.max(0, Math.trunc(Number(options.expectedStock)));
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const variant = await tx.productVariant.findUnique({
@@ -233,14 +276,23 @@ export class InventoryService {
       }) as { id: string; stock: number; productId: string } | null;
       if (!variant) throw new ApiError('NOT_FOUND');
 
+      if (expectedStock !== undefined && variant.stock !== expectedStock) {
+        throw new ApiError('CONFLICT');
+      }
+
       const delta = normalized - variant.stock;
       if (delta === 0) return;
 
       const updated = await tx.productVariant.updateMany({
-        where: { id: variantId, stock: variant.stock },
+        where: { id: variantId, stock: expectedStock !== undefined ? expectedStock : variant.stock },
         data: { stock: normalized },
       });
-      if (updated.count === 0) continue;
+      if (updated.count === 0) {
+        // The level changed under the write. A guarded write reports the
+        // mismatch, an unguarded one is retried against the new level.
+        if (expectedStock !== undefined) throw new ApiError('CONFLICT');
+        continue;
+      }
 
       await tx.inventoryAdjustment.create({ data: { variantId, quantity: delta, ...details } });
       if (options.publishProductChange !== false) {
@@ -252,6 +304,16 @@ export class InventoryService {
     throw new ApiError('CONFLICT');
   }
 
+  /**
+   * Apply a signed adjustment to the stock level of a variant.
+   *
+   * A positive adjustment grows the level and is unaffected by the lower bound.
+   * A negative adjustment is bounded in the application: the write carries the
+   * lower bound in its predicate, so the level never goes below zero and an
+   * adjustment that exceeds the available stock is refused with a clean error
+   * instead of being rejected by the database. The ledger row is written once,
+   * inside the same transaction as the level it belongs to.
+   */
   static async adjustStock(
     variantId: string,
     quantity: number,
@@ -260,11 +322,30 @@ export class InventoryService {
     if (!Number.isInteger(quantity) || quantity === 0) throw new ApiError('VALIDATION_ERROR');
 
     const result = await knownPrismaOperation(() => prisma.$transaction(async (tx) => {
-      const variant = await tx.productVariant.update({
-        where: { id: variantId },
-        data: { stock: { increment: quantity } },
-        select: { id: true, stock: true, productId: true },
-      });
+      let variant: { id: string; stock: number; productId: string };
+      if (quantity < 0) {
+        // The variant is read first, so a missing variant keeps its not-found
+        // answer in both directions of the adjustment.
+        const known = await tx.productVariant.findUniqueOrThrow({
+          where: { id: variantId },
+          select: { id: true, stock: true, productId: true },
+        });
+        const updated = await tx.productVariant.updateMany({
+          where: { id: variantId, stock: { gte: -quantity } },
+          data: { stock: { decrement: -quantity } },
+        });
+        if (updated.count === 0) throw new ApiError('INSUFFICIENT_STOCK', { availableQuantity: known.stock });
+        variant = await tx.productVariant.findUniqueOrThrow({
+          where: { id: variantId },
+          select: { id: true, stock: true, productId: true },
+        });
+      } else {
+        variant = await tx.productVariant.update({
+          where: { id: variantId },
+          data: { stock: { increment: quantity } },
+          select: { id: true, stock: true, productId: true },
+        });
+      }
       await tx.inventoryAdjustment.create({ data: { variantId, quantity, ...details } });
       await emitEvent(tx, 'product.updated', 1, variant.productId, await productSnapshot(tx, variant.productId));
       return variant;

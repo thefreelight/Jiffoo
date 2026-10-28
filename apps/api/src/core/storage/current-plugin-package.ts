@@ -115,7 +115,12 @@ export async function resolveCurrentPluginPackage(slug: string, expectedHash?: s
     if (!current || (!allowDeleted && current.deletedAt) || !current.zipHash || (expectedHash && current.zipHash !== expectedHash))
       throw new PluginPackageResolutionError('PLUGIN_PACKAGE_UNAVAILABLE', 503, slug);
     let pkg = await pluginPackageStore.get(slug, current.zipHash);
-    if (!pkg && current.source !== 'builtin') {
+    if (!pkg) {
+      // The package store is a cache of the bytes the database holds, so a
+      // process that finds no published copy rebuilds the package from the
+      // database blob. A builtin package is no exception: the builtin sync and
+      // the builtin installer both store its bytes, so a process with a cold or
+      // private store resolves the builtin instead of failing.
       await materialize(slug, current.zipHash);
       pkg = await pluginPackageStore.get(slug, current.zipHash);
     }

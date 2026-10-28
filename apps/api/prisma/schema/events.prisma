@@ -9,16 +9,16 @@ enum EventDeliveryStatus {
 }
 
 model EventRecord {
-  id          String   @id @default(uuid())
+  id          String          @id @default(uuid())
   type        String
   version     Int
   aggregateId String
   data        Json
-  occurredAt  DateTime @default(now()) @db.Timestamptz(3)
+  occurredAt  DateTime        @default(now()) @db.Timestamptz(3)
   traceId     String?
   actorId     String?
-  dedupKey    String? @unique
-  deliveries EventDelivery[]
+  dedupKey    String?         @unique
+  deliveries  EventDelivery[]
 
   @@index([occurredAt, id])
   @@index([aggregateId])
@@ -27,20 +27,20 @@ model EventRecord {
 }
 
 model EventDelivery {
-  id             String @id @default(uuid())
+  id             String              @id @default(uuid())
   eventId        String
   installationId String
   status         EventDeliveryStatus @default(PENDING)
-  attempts       Int @default(0)
-  nextAttemptAt  DateTime @default(now()) @db.Timestamptz(3)
-  leaseUntil     DateTime? @db.Timestamptz(3)
+  attempts       Int                 @default(0)
+  nextAttemptAt  DateTime            @default(now()) @db.Timestamptz(3)
+  leaseUntil     DateTime?           @db.Timestamptz(3)
   claimToken     String?
   claimedBy      String?
   lastError      String?
   skipReason     String?
-  finishedAt     DateTime? @db.Timestamptz(3)
-  createdAt      DateTime @default(now()) @db.Timestamptz(3)
-  event          EventRecord @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  finishedAt     DateTime?           @db.Timestamptz(3)
+  createdAt      DateTime            @default(now()) @db.Timestamptz(3)
+  event          EventRecord         @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
   @@unique([eventId, installationId])
   @@index([status, installationId, nextAttemptAt, id])

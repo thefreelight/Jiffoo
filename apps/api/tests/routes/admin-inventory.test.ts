@@ -76,6 +76,38 @@ describe('Admin Inventory Endpoints', () => {
     expect(response.statusCode).toBe(200);
   });
 
+  it('POST /api/v1/admin/inventory/set guards the write with expectedStock and records the ledger row', async () => {
+    const prisma = getTestPrisma();
+    const stockBefore = (await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { stock: true } })).stock;
+    const rowsBefore = await prisma.inventoryAdjustment.count({ where: { variantId } });
+
+    // The caller observed another level, so the write is refused and nothing changes.
+    const conflict = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/inventory/set',
+      payload: { variantId, quantity: stockBefore + 4, expectedStock: stockBefore + 1 },
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
+    expect(conflict.statusCode).toBe(409);
+    expect(conflict.json().error.code).toBe('CONFLICT');
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { stock: true } })).stock).toBe(stockBefore);
+    expect(await prisma.inventoryAdjustment.count({ where: { variantId } })).toBe(rowsBefore);
+
+    // The caller observed the stored level, so the write lands and is ledgered.
+    const applied = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/inventory/set',
+      payload: { variantId, quantity: stockBefore + 4, expectedStock: stockBefore },
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
+    expect(applied.statusCode).toBe(200);
+    expect(applied.json().data).toEqual({ variantId, stock: stockBefore + 4 });
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { stock: true } })).stock).toBe(stockBefore + 4);
+    const rows = await prisma.inventoryAdjustment.findMany({ where: { variantId } });
+    expect(rows).toHaveLength(rowsBefore + 1);
+    expect(rows.filter(row => row.quantity === 4 && row.type === 'correction' && row.reason === 'admin_stock_set')).toHaveLength(1);
+  });
+
   it('POST /api/v1/admin/inventory/adjustments succeeds for an admin', async () => {
     const response = await app.inject({
       method: 'POST',

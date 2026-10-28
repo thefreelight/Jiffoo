@@ -13,7 +13,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
-import { createTestProduct, deleteAllTestProducts, deleteAllTestCarts } from '../helpers/fixtures';
+import { createTestProduct, deleteAllTestProducts, deleteAllTestCarts, deleteTestProduct } from '../helpers/fixtures';
+import { getTestPrisma } from '../helpers/db';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Cart Endpoints', () => {
@@ -203,6 +204,50 @@ describe('Cart Endpoints', () => {
 
       // Should either update quantity or return error - both are valid
       expect([200, 400]).toContain(response.statusCode);
+    });
+
+    it('should return 400 for a product that is not sellable', async () => {
+      const inactiveProduct = await createTestProduct({
+        name: 'Cart Test Inactive Product',
+        price: 19.99,
+        stock: 10,
+      });
+      const inactiveVariantId = inactiveProduct.variants[0].id;
+
+      // The product is created and then deactivated, so the add finds a
+      // product that exists but is not sellable.
+      const prisma = getTestPrisma();
+      await prisma.product.update({
+        where: { id: inactiveProduct.id },
+        data: { isActive: false },
+      });
+
+      try {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/v1/cart/items',
+          headers: { authorization: `Bearer ${userToken}` },
+          payload: {
+            productId: inactiveProduct.id,
+            variantId: inactiveVariantId,
+            quantity: 1,
+          },
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.json().error?.code).toBe('BAD_REQUEST');
+
+        // The refused add writes no line.
+        const cartResponse = await app.inject({
+          method: 'GET',
+          url: '/api/v1/cart/',
+          headers: { authorization: `Bearer ${userToken}` },
+        });
+
+        expect(cartResponse.json().data?.items ?? []).toHaveLength(0);
+      } finally {
+        await deleteTestProduct(inactiveProduct.id);
+      }
     });
 
   });

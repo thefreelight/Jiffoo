@@ -55,9 +55,23 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
         }
         return false;
       }
+      // The payment row keeps the forensic evidence of the capture that was
+      // accepted. A payment that is already SUCCEEDED is never given the
+      // event id of another capture, and a payment that already carries a
+      // payment intent keeps it: a second, genuinely different capture is
+      // recorded in the ledger and flagged for a refund, but it never
+      // overwrites the evidence of the first capture. A payment that is not
+      // SUCCEEDED yet takes the event id of the capture, so a late capture
+      // still moves a CANCELLED or EXPIRED payment to SUCCEEDED.
+      const alreadyCaptured = payment.status === 'SUCCEEDED';
       const changed = await tx.payment.updateMany({
         where: { id: payment.id, ...(input.claimToken ? { claimToken: input.claimToken } : {}) },
-        data: { status: 'SUCCEEDED', paymentIntentId: input.paymentIntentId || payment.paymentIntentId, providerEventId: input.providerEventId, ...clearLease },
+        data: {
+          status: 'SUCCEEDED',
+          paymentIntentId: alreadyCaptured && payment.paymentIntentId ? payment.paymentIntentId : input.paymentIntentId || payment.paymentIntentId,
+          providerEventId: alreadyCaptured ? payment.providerEventId : input.providerEventId,
+          ...clearLease,
+        },
       });
       if (!changed.count) return false;
       // The order module owns the order state machine and records the outcome.

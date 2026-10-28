@@ -193,6 +193,7 @@ const LEGAL_EDGES: Record<string, string> = {
   'checkout -> infra/shared-protection': 'the checkout routes apply the shared protection through the public protection helpers.',
   'checkout -> settings': 'the checkout service reads system settings through the public settings service.',
   'checkout -> shared': 'the checkout service uses the neutral money helper.',
+  'extensions/registry -> cache': 'the registry caches its provider and package reads through the public cache service, keyed by the plugin cache version.',
   'extensions/runtime -> admin/extension-installer': 'the neutral plugin runtime loads the plugin entry module, checks the plugin compatibility, registers the contract runtime, opens the plugin database, refreshes the plugin registry and encodes the payment webhook through the helpers of the installer, which still owns them.',
   'extensions/runtime -> admin/plugin-management': 'the neutral plugin runtime resolves the plugin package and the plugin instance through the public plugin-management service.',
   'extensions/runtime -> extensions/registry': 'the neutral plugin runtime resolves the default plugin instance through the read-only registry.',
