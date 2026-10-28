@@ -71,6 +71,7 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | **WP-SA** — the plugin gateway moves to the neutral layer, the money error contract, the plugin installation projection (WP-SA) | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `091fcc83a` | `apps/api/src/core/extensions/runtime/{plugin-runtime,plugin-database-test-control,plugin-signing-policy,plugin-migration-gate,storage-admission-service}.ts` (moved); `apps/api/src/core/plugin-pages/page-declarations-service.ts` (moved); `apps/api/src/core/storage/theme-validator.ts` (moved); the consumers of the moved modules (`core/{checkout,order,payment,notifications,plugins,plugin-pages,plugin-storage,storage}/**`, `core/admin/{health-monitoring,order-management,plugin-management}/**`, `core/admin/extension-installer/**`, `infra/events/delivery.ts`, `server.ts`, `worker-runtime.ts`); `apps/api/src/core/extensions/registry/service.ts`; `apps/api/src/core/{checkout/service,order/pipeline}.ts`; `apps/api/tests/**` (import paths, the two registers, the money error test); `docs/coordination-ledger.md` | `jiffoo_core_test` (integration) | `wp-sa` (pi session `a8afed88-1630-4700-a2e4-de6770047d11`) | **uncommitted, in the tree** | §5v |
 | **WP-F1B** — the core calls the fulfilment contract and records the fulfilment on the shipment | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `e7f73487cf` | `apps/api/src/core/order/service.ts`, `apps/api/src/core/admin/order-management/{service,schemas}.ts`, `apps/api/tests/core/order-fulfillment-contract.test.ts`, `apps/api/prisma/schema/commerce.prisma` (the two columns of the shipment, formatted), `apps/api/prisma/migrations/20261026135338_order_fulfillment/**`, `docs/coordination-ledger.md` | `jiffoo_core_test` (integration) | `wp-f1b` (pi worker run, model `minimax/MiniMax-M3.1-Flash:medium`) | **uncommitted, in the tree** | §5y |
 | **S3-DATA** — the step 3 data-reliability remediation: the API tokens leave the settings blob, the cart writes are atomic, the payment verification is authenticated, the order state machine carries its own predicate, and the hot-path indexes land | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `448cb6c16` | `apps/api/prisma/schema/**`, `apps/api/prisma/migrations/2026102700*`, `apps/api/prisma/RAW_INDEXES.md`, `apps/api/src/core/{auth,cart,order,payment,inventory,product,plugins,plugin-pages,plugin-storage,cache,admin}/**`, `apps/api/src/infra/events/cleanup.ts`, `apps/api/tests/**` | `jiffoo_core_test` (integration) | `wp-s3-w1`, `wp-s3-w2a`..`wp-s3-w2g` (eight pi worker runs, two pi reviewer runs, five delta rounds; models `minimax/MiniMax-M3.1-Flash:medium` and `minimax/MiniMax-M3:medium`) | **committed `cccbae535`, gate green** | §5z |
+| **S3-DATA-2** — the step 3 data-reliability remediation, part two: the currency of the order, the exact amounts of the placement, the customer scoped idempotency key, the conditional stock write, the transaction boundaries of the plugin paths, the package store as a cache of the database and the hot-path indexes | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `7174b2458` | `apps/api/prisma/schema/**`, `apps/api/prisma/migrations/20261028031500_data_reliability_indexes/**`, `apps/api/src/core/**`, `apps/api/src/infra/events/delivery.ts`, `apps/api/tests/**`, `.claude/agents/*.md` | `jiffoo_core_test` (integration) | coordinator session (five worker runs, one arch-reviewer pass, one reviewer follow-up; models `minimax/MiniMax-M3.1-Flash`) | **committed `38cce1eac`, gate green** | §5za |
 
 ## 4. Serial overlap set — never edited by both sides at once
 
@@ -1598,3 +1599,112 @@ The three new migrations apply cleanly on a fresh database, and the Prisma migra
 - The plugin task transition bound of 1000 active tasks per installation is a behaviour change that the batch accepts deliberately: the alternative is the unbounded transaction the review forbids.
 - `apps/api/tests/core/plugin-tasks.test.ts` failed once in a serial full run with a load-sensitive timing assertion ("the task eventually succeeds") and passed in isolation and in the next full run. It is a flake of the existing test, not a defect of this batch, but it is worth a look.
 - The `api_tokens` table carries a `revokedBy` column that records the administrator that revoked the token; an installation that predates the migration has no value in it, which is the expected state for a null column.
+
+## 5za. Handover evidence — S3-DATA-2 (the step 3 data-reliability remediation, part two)
+
+**Baseline SHA:** `7174b2458`. **Commit:** `38cce1eac`.
+
+### What the batch changed
+
+| Area | Before | After |
+|---|---|---|
+| The currency of an order | the order create never wrote a currency, so every order and every order line fell back to the schema default `USD` while the payment charged `order.currency` | the order and every line store the currency of the store, and the order response reports the currency stored on the order |
+| The amount of an order | the subtotal, the tax lines and the total were IEEE-754 doubles, so a basket whose prices do not sum exactly (`79.99 + 19.99 = 99.97999999999999`) was refused with `400 VALIDATION_ERROR` | every amount of the placement is computed in the minor units of the currency and derived from them, so the basket is placed and the total agrees with the quote exactly |
+| A price that is not a price | a negative price reached the write of the order and was answered with `409 QUOTE_CHANGED`, or with an unhandled validation error of the event payload | the price is refused in the price stage with `400 VALIDATION_ERROR`, and the admin product API refuses a negative price as well |
+| The idempotency key of an order | a global unique key: two customers could not use the same key | the key is unique per customer (`@@unique([userId, idempotencyKey])`) |
+| A plugin amount of a shipping or tax quote | a negative amount was written into the order | a negative or non-finite amount is a `VALIDATION_ERROR` |
+| The stock of a variant | an absolute write that overwrote a concurrent sale | the ledgered conditional write with an optional `expectedStock` |
+| A negative stock adjustment | the level could go below zero | the write is refused with `409 INSUFFICIENT_STOCK` |
+| The cart line | read-modify-write without the lock of the line | every writer of a line holds the row lock of the line, in the order of the database |
+| The catalogue read of a cart add | the catalogue was read twice per add, and the two reads could disagree about the answer | the catalogue is read once and the stock of the variant is read through a narrow projection of the product module |
+| The payment webhook | one transaction per fact | the facts of one request are prepared outside the transaction and applied in one transaction, sorted by the request key |
+| The refund of a capture | a second refund of the same capture with another key was silently ignored | it is a `PAYMENT_IDEMPOTENCY_CONFLICT` |
+| The provider account of a payment | the binding opened a second connection inside the caller's transaction | the binding joins the caller's transaction |
+| The builtin sync | the install ran inside the outer transaction while the installer wrote through the global client | the sync prepares, commits the install and the audit in one short transaction, and warms the runtime outside every transaction |
+| The builtin theme sync | a 120 second transaction around the filesystem work | only the pointer switch and the audit are inside a transaction |
+| The registry reads | every request read the plugin tables | the reads are served from the shared cache under a key that names the plugin cache version and the freshness of the two plugin tables |
+| A plugin package in a cold package store | a builtin package could only be resolved by the process that had published it, so a process with a private or empty package store answered `503 PLUGIN_PACKAGE_UNAVAILABLE` for a builtin the database names | the package store is a cache of the bytes the database holds: every package, the builtins included, is materialized from the database blob when the store holds no published copy |
+| The hot paths of the admin | a count query per table and a cache key without the version | one aggregate, and the version in the key |
+
+### The contract changes this batch registers
+
+1. `POST /api/v1/orders` — the idempotency key is scoped to the customer: two customers may use the same key, and each of them gets their own order. Before, the second customer answered `409 ORDER_IDEMPOTENCY_CONFLICT`.
+2. `POST /api/v1/orders` — a basket whose prices do not sum exactly as binary floats is now placed (`201`). Before, it was answered with `400 VALIDATION_ERROR`, because the amount of the placement was a binary float.
+3. `POST /api/v1/orders` — a line whose price is negative is answered with `400 VALIDATION_ERROR`. Before, it was answered with `409 QUOTE_CHANGED`, or with an unhandled validation error of the event payload.
+4. `PATCH /api/v1/cart/items/:itemId` — a line that a concurrent order already consumed answers `404 NOT_FOUND` instead of a `500` from a Prisma `P2025`.
+5. `POST /api/v1/admin/inventory/adjust` — an adjustment that would drive the stock below zero answers `409 INSUFFICIENT_STOCK` instead of storing a negative level.
+6. `POST /api/v1/admin/inventory/:variantId/stock` — the optional `expectedStock` makes the write a compare-and-set: a mismatch answers `409 CONFLICT`. The answer carries the stored level, not the level that was asked for.
+7. `PUT /api/v1/admin/products/:id` and `POST /api/v1/admin/products` — a variant with a negative price (`salePrice` or the legacy `basePrice`) answers `400 VALIDATION_ERROR` instead of being stored.
+8. `POST /api/v1/admin/orders/:orderId/refund` — a second refund of a capture that already carries a completed refund answers `409 PAYMENT_IDEMPOTENCY_CONFLICT` unless it carries the key of that refund.
+9. The admin manual payment of a payment that is already resolved answers `409 PAYMENT_REVIEW_ALREADY_RESOLVED`.
+10. A plugin package that the database names is now materialized from the database blob when the local package store holds no published copy, the builtins included. The answer is the same package; a missing blob still answers `503 PLUGIN_PACKAGE_UNAVAILABLE`.
+11. The order response reports the currency stored on the order instead of the live currency of the store.
+
+### The migration
+
+`apps/api/prisma/migrations/20261028031500_data_reliability_indexes/` adds the scoped unique key of the idempotency key, 23 btree indexes on the hot filter, join and sort columns, seven trigram indexes for the `ILIKE '%term%'` searches, one partial index for the refunds that still owe a refund, and three check constraints (`product_variants_stock_nonnegative`, `orders_amounts_nonnegative`, `auth_tokens_attempts_nonnegative`). It also drops the four single column indexes that a composite index replaces. The scoped unique key is created before the global one is dropped, so the table never loses its uniqueness.
+
+**Deployment note:** the migration takes an `ACCESS EXCLUSIVE` lock on the hot tables while it runs. `CONCURRENTLY` is forbidden by `validateCoreMigrationSql`, so the lock window is the run time of the migration. The migration also creates the `pg_trgm` extension, so the role that applies the migration needs the `CREATE` right on the database; `pg_trgm` is a trusted extension, so the owner of the database is enough.
+
+### The gate evidence
+
+`pnpm verify:quick --shards=4` on the integration lane (`jiffoo_core_test`), the whole API catalogue in four parallel shards with their own PostgreSQL and Redis containers, plus the admin and the shop suite:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 9 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 185/185 files covered
+Totals: Test Files 185 files, 185 passed | Tests 2603 tests, 2601 passed, 2 pending | Suites 496 suites, 496 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Run Admin tests:
+   Start at:  19:56:03
+ Test Files  59 passed (59)
+      Tests  592 passed (592)
+Run Shop tests:
+   Start at:  19:56:34
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 12.92s |
+| Lint Shop | PASS | 8.47s |
+| Reset test database | PASS | 2.51s |
+| Check Prisma migration drift | PASS | 1.24s |
+| Run API tests in 4 shards | PASS | 618.16s |
+| Run Admin tests | PASS | 31.27s |
+| Run Shop tests | PASS | 33.25s |
+```
+
+The shard mode is not the complete gate on its own: the browser E2E and the serial full-suite run are not part of it, and CI runs the same API catalogue as four parallel shards of its own.
+
+### The review passes and what they changed
+
+- The independent architecture review of the whole batch found one real defect and three warnings. The defect: a variant with a negative `salePrice` was not refused by the placement, so the order was answered with a misleading `409 QUOTE_CHANGED` or with an unhandled validation error of the event payload, while the new check constraint of the schema would have answered it with a database error. The price is now refused in the price stage with `400 VALIDATION_ERROR`, and the admin product API refuses a negative price as well.
+- The warning about the order lines was that they still carried the float price while everything else carried the exact minor amount; the lines are now written from the minor amount.
+- The warning about the cart was that the catalogue was read twice per add and that the two reads could disagree about the answer; the catalogue is read once now and the stock of the variant is read through a narrow projection of the product module.
+- The warning about the new tests was that the case "three lines of 79.99 in USD" was no longer pinned anywhere after the money error test moved to a currency that cannot express the price; it is pinned again by `order-amount-precision.test.ts`.
+- The second review, which covered the new test files and the two static audits, confirmed that every new test fails without the change it covers, and that no test file leaks a row that would break the next file of the shard.
+
+### The two defects the remediation found beyond the audit
+
+- **The currency of the order was never written.** The audit of the step 3 did not find it: the order create wrote no currency, so every order and every line fell back to the schema default `USD`, while the payment session charges `order.currency`. A store that is not in USD therefore charged its customers in EUR and labelled the amount USD, and the payment webhook rejected the capture with `currency_mismatch`.
+- **The amount of the order was a binary float.** The checkout quote computes its amounts in the minor units of the currency, but the placement summed the prices as doubles, so the two paths disagreed and a valid basket of `79.99 + 19.99` could never be ordered.
+
+### What is still open
+
+- The cart response still carries a float `subtotal` (`apps/api/src/core/cart/service.ts`), because the cart does not know the currency of the store. The storefront formats it, and the money decisions of the quote and of the placement read the exact amounts, so this is a display imprecision and not a money defect.
+- The admin product API accepted a negative price before this batch and still accepts a negative `costPrice`; only the price a customer is charged is bounded now.
+- `apps/shop/tests/storefront-code.test.ts` failed once in the sharded gate ("expected TypeError: fetch failed to match object { status: 500 }", the mock server of the test got a port that the fetch of Node refused) and passed in isolation and in every other run. It is a flake of the existing test, not a defect of this batch.
+- The `pg_trgm` extension of the migration needs the `CREATE` right on the database for the role that applies it; the deployment note above records it.
+
