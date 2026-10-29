@@ -1823,7 +1823,7 @@ The batch of `2a432138a` was reviewed by three independent read-only reviewers, 
 
 ### The deployment note
 
-The migration `20261028031500_data_reliability_indexes` of the batch before runs in ONE transaction, with `lock_timeout='5s'` and `statement_timeout='600s'` (`deploy/release/core-migrations.mjs`). It creates its indexes without `CONCURRENTLY` and adds the check constraints, so it holds a share lock on the hot tables and an access exclusive lock on the altered ones for the whole migration. It must run in a maintenance window. The lock timeout makes it fail fast instead of queueing behind a long transaction, and because it is one transaction a failure rolls the whole migration back, so it can be retried. Splitting it is not an option: the validator forbids `CONCURRENTLY`, and an existing migration must never be edited.
+The migration `20261028031500_data_reliability_indexes` of the batch before runs in ONE transaction, with `lock_timeout='5s'` and `statement_timeout='600s'` (`deploy/release/core-migrations.mjs`). It creates its indexes without `CONCURRENTLY` and adds the check constraints, so it holds a share lock on the hot tables and an access exclusive lock on the altered ones for the whole migration. Those locks block no writer: the release applies the migrations against a stack it has already quiesced — `deploy/release/update.mjs:397-402` proves the maintenance before the migrations run and again when the migration announces its intent, and the proof requires that every container of the project except PostgreSQL is stopped (`deploy/release/backup.mjs:36-44`) and that no other database session holds work. The cost is therefore the duration of the deployment, not a window in which the store cannot sell. An operator who applies a migration by hand has to quiesce the store the same way. The lock timeout makes the migration fail fast instead of queueing behind a long transaction, and because it is one transaction a failure rolls the whole migration back, so it can be retried. Splitting it is not an option: the validator forbids `CONCURRENTLY`, and an existing migration must never be edited.
 
 ### The selection basis of the local gate
 
@@ -1952,7 +1952,7 @@ The OS worker fixture leased its task for 250 ms and renewed the lease every 50 
 
 ### The deployment note
 
-The new migration creates one index without `CONCURRENTLY` and runs in one transaction, so it holds a share lock on the orders table while it builds: the same maintenance window as the migration of the batch before. The role that applies it needs the `CREATE` right on the database for `pg_trgm`, which the migration of the batch before already needed.
+The new migration creates one index without `CONCURRENTLY` and runs in one transaction, so it holds a share lock on the orders table while it builds. That lock blocks no writer either, for the same reason as the migration of the batch before: the release path quiesces the stack before it applies the migrations (`deploy/release/update.mjs:397-402` and `deploy/release/backup.mjs:36-44`). The role that applies it needs the `CREATE` right on the database for `pg_trgm`, which the migration of the batch before already needed.
 
 ### What is still open
 
@@ -2054,3 +2054,124 @@ Run Shop tests:
 The shards: 47/47, 46/46, 47/47, 47/47 files, no failed file in any of them; 187/187 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The drift step ran, because the batch added a migration under `apps/api/prisma`, and the datamodel and the database still agree.
 
 The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own.
+
+## 5ze. Handover evidence — the money model of the step 3 batch (the registered items)
+
+**Baseline SHA:** `efe0087d7`. **Commit:** `d86d84769`.
+
+### The registered items this batch closes
+
+The ledger of the batch before (§5zd) left two money items open: the scale of the prices against the exponent of the currency, and the scale of the answer of the cart. Both are closed here. The batch closes the door the first of them left open as well: the currency of the store itself.
+
+| The registered item | Before | After |
+|---|---|---|
+| A store in a zero decimal currency that prices an item at `100.50` stores the price, and the quote refuses it: `decimalToMinor` raises `TOO_MANY_DECIMAL_PLACES` | the money module refused every amount of a zero decimal currency that carried a fraction, including the trailing zeros of a stored `100.00` | the money module reads the trailing zeros as the whole amount (`100.00` JPY is 100 minor units), and the admin write refuses a price the currency of the store cannot represent before the write, so the price that breaks the quote never reaches the database |
+| The cart answers its amounts with the scale of the arithmetic (the sum of "20" and "11" is "31"), while the quote answers with the scale of the currency ("31.00") | the cart did not know the currency of the store, so it could not pad | the cart reads the currency of the store and answers every amount with its scale, so the cart and the quote answer one amount with the same string |
+| (the door the first item left open) the currency of the store was any string the merchant wrote | a three decimal currency was rounded by the `Decimal(18, 2)` price columns, so the customer was charged a different amount than the merchant entered | the settings write refuses a currency the Core does not support as the currency of the store (`UNSUPPORTED_CURRENCY`), and a currency that is stored today stays writable |
+
+### The contract changes this batch registers
+
+1. `POST /api/v1/admin/products` and `PUT /api/v1/admin/products/:id` — a price the currency of the store cannot represent is refused with `400 VALIDATION_ERROR`. `details.issues[0].path` names the field (`price`, `variants.<n>.salePrice`, `variants.<n>.basePrice`, `variants.<n>.costPrice`) and `details.issues[0].code` is `PRICE_NOT_REPRESENTABLE_IN_<CUR>`. The refusal happens before the transaction, so no row is left behind. The admin product form shows the refusal under the price input of the variant, with the currency named.
+2. `PUT /api/v1/admin/settings/batch` — a currency the price columns cannot hold exactly is refused with `400 VALIDATION_ERROR`: `details.issues[0].path` is `localization.currency` and `details.issues[0].code` is `UNSUPPORTED_CURRENCY`. The stored currency never changes when the write is refused, and a currency that is stored today stays writable.
+3. `GET /api/v1/cart` — the four money amounts carry the scale of the currency of the store: `data.items[].price`, `data.items[].subtotal`, `data.subtotal` and `data.total`. Before, they carried the scale of the arithmetic ("31"). The rendered amount of the storefront does not change: the currency format of the browser already pads it.
+4. The quote of the checkout answers a price of a zero decimal currency that carries only trailing zeros: `100.00` JPY is 100 minor units and no longer raises `TOO_MANY_DECIMAL_PLACES`.
+
+### The maintenance window of the new migrations
+
+The two batches before add migrations (`20261028031500_data_reliability_indexes` and `20261029061832_orders_id_trgm_index`). They need no window of their own, because the release path quiesces the stack before it applies them: `deploy/release/update.mjs:392-406` runs `maintenance(...)` before `executeCoreMigrations(...)` and again on the intent of every migration, and `maintenance` (`:207-238`) requires that every project container except PostgreSQL and Redis is stopped, that every Core boot is `QUIESCENT` or `DEAD_CONFIRMED`, that the database has no other session, and that no prepared transaction and no in-flight plugin operation is open. The guard of the backup path (`deploy/release/backup.mjs:36-44`) requires the same of every project container except PostgreSQL. The share lock an index build holds therefore blocks no writer on the release path; a manual application of the migrations must quiesce the store the same way, and an application that does not is the only way that lock can block a writer.
+
+### What is still open
+
+- The currency the merchant selects in the settings page and the catalogue of the shared package do not agree: the settings page offers USD, EUR, GBP, CNY, HKD and TWD (`apps/admin/app/[locale]/(themed)/settings/page.tsx:23`), the shared catalogue offers USD, EUR, GBP, JPY, CNY and KRW (`packages/shared/src/utils/constants.ts:98`). The API accepts the union of the two, which is the list of the currencies the Core supports as the currency of the store; the formatter of the shared package falls back to a bare amount for a currency it does not know (HKD and TWD). Unifying the two lists is a product decision that belongs to its own batch.
+- A store that changes its currency to a zero decimal one while its prices carry fractions: the settings page warns that the prices are not converted, and the quote of the checkout then refuses the price. The merchant has to re-price the products; from then on the admin write refuses a fraction, and the refusal names the field and the currency.
+- The browser E2E is not part of the local gate; CI runs it.
+
+### The gate evidence
+
+Two gates ran against this batch, both on the integration lane `jiffoo_core_test` with the `postgres`/`postgres` account.
+
+The first one is the scoped gate (`pnpm verify:quick --test-files=…`). The planner widened its scope to the whole catalogue, because a shared package changed and the API contract surface changed (284 planner-mandated suites: the whole API catalogue and the whole Admin and Shop suites). It ran the catalogue serially and it failed on exactly one file, the module boundary audit: the two new cross-module edges (`admin/product-management -> shared` and `cart -> settings`) were not registered yet. Every other file of the catalogue passed. The two edges are registered now, with their reasons, and the gate was run again.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: the whole API catalogue and the whole Admin and Shop suites (284 planner-mandated suites: the shared package changed, and the API contract surface changed)
+Run API tests:
+   Start at:  21:50:08
+ Test Files  1 failed | 186 passed (187)
+      Tests  2 failed | 2640 passed | 2 skipped (2644)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 19.96s |
+| Lint Shop | PASS | 9.22s |
+| Reset test database | PASS | 3.95s |
+| Run API tests | FAIL | 1717.29s |
+```
+
+The second gate is the shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`), on the tree that carries the registration of the two edges:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 284 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 187/187 files covered
+Totals: Test Files 187 files, 187 passed | Tests 2644 tests, 2642 passed, 2 pending | Suites 500 suites, 500 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (vitest list --filesOnly, same exclusions, same environment as the shards): 187
+Expected set (the full catalogue, not the assigned subset): 187
+Assigned to this run: 187
+Executed (union over all shards): 187
+Shard 1: 47 files
+Shard 2: 46 files
+Shard 3: 47 files
+Shard 4: 47 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 667.5s | 22:32:17 | 47 files, 47 passed | 731 tests, 731 passed | none |
+| 2 | 0 | 517.6s | 22:32:18 | 46 files, 46 passed | 453 tests, 453 passed | none |
+| 3 | 0 | 547.9s | 22:32:20 | 47 files, 47 passed | 745 tests, 743 passed, 2 pending | none |
+| 4 | 0 | 581.2s | 22:32:21 | 47 files, 47 passed | 715 tests, 715 passed | none |
+Run Admin tests:
+   Start at:  22:43:20
+ Test Files  59 passed (59)
+      Tests  593 passed (593)
+Run Shop tests:
+   Start at:  22:43:36
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 16.14s |
+| Lint Shop | PASS | 10.57s |
+| Reset test database | PASS | 4.55s |
+| Run API tests in 4 shards | PASS | 682.17s |
+| Run Admin tests | PASS | 16.07s |
+| Run Shop tests | PASS | 21.50s |
+```
+
+The shards: 47/47, 46/46, 47/47, 47/47 files, no failed file in any of them; 187/187 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The Admin suite carries the new case of the admin form (593 tests, one more than the 592 of the batch before) and the Shop suite is unchanged at 266 tests.
+
+The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own. The serial run of the whole catalogue is the first gate of this section: it passed every file but the module boundary audit, and the shard gate above covers the same 187 files on the tree that carries the registration of the two edges.
