@@ -2175,3 +2175,90 @@ Run Shop tests:
 The shards: 47/47, 46/46, 47/47, 47/47 files, no failed file in any of them; 187/187 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The Admin suite carries the new case of the admin form (593 tests, one more than the 592 of the batch before) and the Shop suite is unchanged at 266 tests.
 
 The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own. The serial run of the whole catalogue is the first gate of this section: it passed every file but the module boundary audit, and the shard gate above covers the same 187 files on the tree that carries the registration of the two edges.
+
+## 5zf. Handover evidence — the CI repair of the money model batch (the admin shell E2E)
+
+**Baseline SHA:** `89ae18741`. **Commit:** `903ab9bca`.
+
+### What the CI found
+
+The push of the money model batch (`d86d84769`, `89ae18741`) ran the complete gate in GitHub Actions (run 40899108753). Every job was green except the browser E2E: two tests of the project `38-admin-shell` failed, and both failures reproduce in the local E2E run, so neither of them is a flake of the runner.
+
+| The failing test | The cause |
+|---|---|
+| `U2 Overview shows real attention counts and opens the Orders review deep link` | the badge of the sidebar ("N payments awaiting review") was missing while the dashboard counted the payment. The admin order statistics are cached under the order cache version (the cache is new in this batch), and the test writes its orders directly into the database, so the version was never bumped and the admin served the statistics of the state before the write |
+| `U1c Orders filters, compact cards and review banner use real data in both modes` | the selection of the rows was gone before the test could clear it. The search input of the admin list applies its value after 300 ms (`apps/admin/components/list/index.tsx`, `ListSearch`), and the test selected the rows before the filter landed; when the filter landed, the list state changed and the selection was dropped with it |
+
+### The repairs
+
+- The E2E invalidates the cached admin order data the way an API write does: it increments the order cache version in Redis (`order:version`) after its direct writes. Every write that goes through the API bumps that version, so the admin recomputes its order list and its order statistics; the test writes around the API, so it has to bump the version itself.
+- The U1c test waits for the search filter to be applied before it selects the rows: it asserts that the URL carries the search term, the same pattern `e2e/08-orders.spec.ts` uses for the page size.
+
+No assertion was weakened and no step was dropped.
+
+### The gate evidence
+
+The local browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account): the six tests of the admin shell project pass, the two that failed in CI among them.
+
+```
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.56s |
+| Check observed browser contexts | PASS | 0.79s |
+| Clear dedicated E2E Redis database | PASS | 0.22s |
+| Reset test database | PASS | 3.22s |
+| Build shared package | PASS | 1.47s |
+| Build plugin SDK | PASS | 3.47s |
+| Build API | PASS | 10.59s |
+| Build Admin | PASS | 17.19s |
+| Build Shop | PASS | 13.40s |
+| Start local marketplace | PASS | 3.63s |
+| Start API, worker, Admin and Shop | PASS | 0.10s |
+| Wait for health | PASS | 2.87s |
+| Run Playwright | PASS | 709.64s |
+| Stop E2E child processes | PASS | 0.12s |
+Total duration: 769.03s
+```
+
+The shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`), on the tree that carries the repair:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 0 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 187/187 files covered
+Totals: Test Files 187 files, 187 passed | Tests 2644 tests, 2642 passed, 2 pending | Suites 500 suites, 500 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+Run Admin tests: 59 passed (59), 593 tests passed
+Run Shop tests: 38 passed (38), 266 tests passed
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 11.98s |
+| Lint Shop | PASS | 8.25s |
+| Reset test database | PASS | 4.20s |
+| Run API tests in 4 shards | PASS | 668.84s |
+| Run Admin tests | PASS | 38.35s |
+| Run Shop tests | PASS | 29.11s |
+```
+
+### What is still open
+
+- Two observations of this repair, neither of them a defect of the product: a write that bypasses the API (a migration, a backfill) leaves the cached admin order data stale for at most the 30 s of its time to live, and a selection that a merchant makes within the 300 ms of the search input is dropped when the filter lands, because the selection is scoped to the filter and the list changes in that moment.
+- The items the money model batch carries over are unchanged: the currency the merchant selects in the settings page and the catalogue of the shared package do not agree, and a store that changes its currency to a zero decimal one while its prices carry fractions has to re-price them.
