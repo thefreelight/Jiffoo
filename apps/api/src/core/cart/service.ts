@@ -2,6 +2,8 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { ApiError } from '@/utils/api-errors';
 import { ProductService } from '@/core/product/service';
+import { systemSettingsService } from '@/core/settings/service';
+import { currencyExponent } from '@/core/shared/money';
 import { lineRequiresShippingAddress, stockCeilingFor } from '@/core/shared/fulfillment-policy';
 
 /**
@@ -49,6 +51,35 @@ function parseJsonRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : null;
+}
+
+/**
+ * An amount of the cart, written with the scale of the currency of the store.
+ *
+ * The amount of the cart is money, so it is an exact decimal, and the wire
+ * carries it with the number of decimal places of the currency of the store:
+ * a store whose currency has two decimal places answers "10.00", and a store
+ * whose currency has none answers "10". The quote of the checkout answers its
+ * amounts the same way, so the two answers of a cart agree as strings.
+ *
+ * The padding never rounds and never truncates. An amount that carries more
+ * decimal places than the currency has keeps its exact digits, because such
+ * an amount cannot be represented in the currency and the quote of the
+ * checkout refuses it: the cart must not pretend it is representable.
+ *
+ * @param value The exact amount of the cart
+ * @param exponent The number of decimal places of the currency of the store
+ */
+function scaleAmount(value: Prisma.Decimal, exponent: number): string {
+  // The exact decimal of the amount, in normal notation: the value is never
+  // rounded, and the exponent notation of a very large or a very small
+  // amount is not a decimal string the wire can carry.
+  const text = value.toFixed();
+  const separator = text.indexOf('.');
+  if (separator === -1) return exponent > 0 ? `${text}.${'0'.repeat(exponent)}` : text;
+  const fraction = text.length - separator - 1;
+  if (fraction >= exponent) return text;
+  return `${text}${'0'.repeat(exponent - fraction)}`;
 }
 
 export interface CartItem {
@@ -147,12 +178,15 @@ export class CartService {
    * Error handling: Returns empty cart on any errors to ensure a valid response
    */
   static async getCart(userId: string): Promise<Cart> {
+    // The currency of the store is the scale of the amounts of the cart, so
+    // it is read once per read of the cart, before the cart is read.
+    const currency = await this.storeCurrency();
     try {
-      const dbCart = await this.getCartFromDatabase(userId);
-      return dbCart ?? this.createEmptyCart(userId);
+      const dbCart = await this.getCartFromDatabase(userId, currency);
+      return dbCart ?? await this.createEmptyCart(userId, currency);
     } catch (error) {
       console.error('Error getting cart:', error);
-      return this.createEmptyCart(userId);
+      return this.createEmptyCart(userId, currency);
     }
   }
 
@@ -557,7 +591,7 @@ export class CartService {
           await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
         }
       });
-      return this.createEmptyCart(userId);
+      return this.createEmptyCart(userId, await this.storeCurrency());
     } catch (error) {
       console.error('Error clearing cart:', error);
       throw error;
@@ -930,7 +964,7 @@ export class CartService {
    *
    * Note: Parses product images from typeData JSON field
    */
-  private static async getCartFromDatabase(userId: string): Promise<Cart | null> {
+  private static async getCartFromDatabase(userId: string, currency: string): Promise<Cart | null> {
     // The lines of the cart are read in the order of their identifiers, the
     // same order every read of the lines of a cart uses: the answer of the
     // cart and the consumption of the lines agree on it.
@@ -949,6 +983,11 @@ export class CartService {
     // The amounts of the cart are money, so they are computed with exact
     // decimal arithmetic: a float sum of the prices of the lines carries a
     // rounding error, and the storefront would report it.
+    //
+    // The amounts leave the module with the scale of the currency of the
+    // store, so the cart and the quote of the checkout answer the same amount
+    // with the same string.
+    const exponent = currencyExponent(currency);
     let cartTotal = new Prisma.Decimal(0);
 
     const items: CartItem[] = cart.items.map(item => {
@@ -976,23 +1015,24 @@ export class CartService {
         productId: item.productId,
         productName: product?.name || 'Unknown Product',
         productImage: images[0] || '',
-        price: unitPrice.toString(),
+        price: scaleAmount(unitPrice, exponent),
         quantity: item.quantity,
         variantId: item.variantId,
         variantName: variant?.name || undefined,
         variantAttributes: parseJsonRecord(variant?.attributes),
         requiresShipping: lineRequiresShippingAddress(productType, product?.requiresShipping ?? true),
         maxQuantity: stockCeilingFor(productType, availableStock),
-        subtotal: lineTotal.toString(),
+        subtotal: scaleAmount(lineTotal, exponent),
       };
     });
 
     // The amount of the cart leaves the module as an exact decimal string,
-    // the way the quote of the checkout leaves its amounts.
-    const subtotal = cartTotal.toString();
+    // the way the quote of the checkout leaves its amounts, and it carries
+    // the scale of the currency of the store.
+    const subtotal = scaleAmount(cartTotal, exponent);
     // The cart knows no tax and no shipping yet: the quote of the checkout
     // resolves them, and the total of the cart is the sum of its lines.
-    const total = cartTotal.toString();
+    const total = scaleAmount(cartTotal, exponent);
 
     return {
       id: cart.id,
@@ -1016,14 +1056,16 @@ export class CartService {
    * when no cart exists or on errors.
    *
    * @param userId - The unique identifier of the user
+   * @param currency - The currency of the store, the scale of the amounts
    * @returns Empty Cart object with current timestamp
    * @private
    */
-  private static createEmptyCart(userId: string): Cart {
+  private static async createEmptyCart(userId: string, currency: string): Promise<Cart> {
     const now = new Date().toISOString();
     // The empty cart carries the same exact amounts as a cart with lines:
-    // the amount of the cart is an exact decimal string, never a float.
-    const zero = new Prisma.Decimal(0).toString();
+    // the amount of the cart is an exact decimal string, never a float, and
+    // it carries the scale of the currency of the store.
+    const zero = scaleAmount(new Prisma.Decimal(0), currencyExponent(currency));
     return {
       id: '',
       userId,
@@ -1037,6 +1079,28 @@ export class CartService {
       createdAt: now,
       updatedAt: now
     };
+  }
+
+  /**
+   * The currency of the store, the scale of the amounts of the cart
+   *
+   * The currency of the store is read through the public service of the
+   * settings module, the same way the quote of the checkout reads it, so the
+   * cart and the quote answer the amounts of a cart with the same scale.
+   *
+   * The read never fails the cart: a settings module that cannot be read
+   * answers the default currency of the store, so the cart stays available.
+   *
+   * @returns Promise resolving to the currency of the store
+   * @private
+   */
+  private static async storeCurrency(): Promise<string> {
+    try {
+      return await systemSettingsService.getShopCurrency();
+    } catch (error) {
+      console.error('Error reading the currency of the store:', error);
+      return 'USD';
+    }
   }
 
 }

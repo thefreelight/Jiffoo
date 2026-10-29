@@ -130,6 +130,17 @@ it.each([
   expect(described.map(node => node?.textContent)).toEqual([(merchant.catalog as any)[key].replace('{name}', 'Other product')]);
 });
 
+it('renders a price the currency cannot represent inline beneath the variant price input', async () => {
+  state.create.mockRejectedValue({ code: 'VALIDATION_ERROR', details: { issues: [{ path: 'variants.0.salePrice', message: 'Invalid field', code: 'PRICE_NOT_REPRESENTABLE_IN_JPY' }] } });
+  await mount(<ProductForm />);
+  await input('product-name', 'New product'); await input('variant-0-price', '100.5');
+  await act(async () => document.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  const fieldInput = document.getElementById('variant-0-price')!;
+  expect(fieldInput.getAttribute('aria-invalid')).toBe('true');
+  const described = (fieldInput.getAttribute('aria-describedby') ?? '').split(' ').map(id => document.getElementById(id)).filter(node => node?.getAttribute('role') === 'alert');
+  expect(described.map(node => node?.textContent)).toEqual([merchant.catalog.priceNotRepresentable.replace('{currency}', 'JPY')]);
+});
+
 it('disables ordered variant removal with its reason before saving', async () => {
   const product = { id: 'p', name: 'Original', spuCode: 'CUSTOM', variants: [{ id: 'v1', name: 'First', salePrice: 12, stock: 1, skuCode: 'SKU1', hasOrders: true }, { id: 'v2', name: 'Second', salePrice: 12, stock: 1, skuCode: 'SKU2' }] } as any;
   await mount(<ProductForm product={product} />);

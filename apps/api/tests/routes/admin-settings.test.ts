@@ -10,6 +10,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { systemSettingsService } from '@/core/settings/service';
+import { isStoreCurrency } from '@/core/shared/money';
 import {
   createUserWithToken,
   createAdminWithToken,
@@ -20,6 +21,14 @@ describe('Admin Settings Endpoints', () => {
   let app: FastifyInstance;
   let userToken: string;
   let adminToken: string;
+
+  /**
+   * Put the store currency back. A currency that the price columns cannot
+   * hold was never written by these cases, so it is left as it is.
+   */
+  const restoreStoreCurrency = async (currency: string): Promise<void> => {
+    if (isStoreCurrency(currency)) await systemSettingsService.setSetting('localization.currency', currency);
+  };
 
   it.each(['J', 'jf', 'JF1', 'TOOLONG', 'JF\n'])('rejects invalid order number prefix %s', async prefix => {
     const response = await app.inject({ method: 'PUT', url: '/api/v1/admin/settings/batch',
@@ -35,6 +44,43 @@ describe('Admin Settings Endpoints', () => {
       expect(response.statusCode).toBe(200);
       expect(response.json().data['orders.number_prefix']).toBe('SHOP');
     } finally { await systemSettingsService.setSetting('orders.number_prefix', previous ?? 'JF'); }
+  });
+
+  it('rejects a store currency that the price columns cannot hold', async () => {
+    const previous = await systemSettingsService.getShopCurrency();
+    try {
+      await expect(systemSettingsService.setSetting('localization.currency', 'BHD')).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+      expect(await systemSettingsService.getShopCurrency()).toBe(previous);
+    } finally { await restoreStoreCurrency(previous); }
+  });
+
+  it('rejects a batch that carries a store currency the price columns cannot hold', async () => {
+    const previous = await systemSettingsService.getShopCurrency();
+    try {
+      await expect(systemSettingsService.batchUpdate({ 'localization.currency': 'BHD' })).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+      expect(await systemSettingsService.getShopCurrency()).toBe(previous);
+    } finally { await restoreStoreCurrency(previous); }
+  });
+
+  it('saves a store currency that the price columns can hold', async () => {
+    const previous = await systemSettingsService.getShopCurrency();
+    try {
+      await systemSettingsService.setSetting('localization.currency', 'JPY');
+      expect(await systemSettingsService.getShopCurrency()).toBe('JPY');
+    } finally { await restoreStoreCurrency(previous); }
+  });
+
+  it('PUT /api/v1/admin/settings/batch rejects a store currency the price columns cannot hold', async () => {
+    const previous = await systemSettingsService.getShopCurrency();
+    try {
+      const response = await app.inject({ method: 'PUT', url: '/api/v1/admin/settings/batch',
+        headers: { authorization: `Bearer ${adminToken}` }, payload: { settings: { 'localization.currency': 'BHD' } } });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.code).toBe('VALIDATION_ERROR');
+      expect(response.json().error.details.issues[0].path).toBe('localization.currency');
+      expect(response.json().error.details.issues[0].code).toBe('UNSUPPORTED_CURRENCY');
+      expect(await systemSettingsService.getShopCurrency()).toBe(previous);
+    } finally { await restoreStoreCurrency(previous); }
   });
 
   beforeAll(async () => {

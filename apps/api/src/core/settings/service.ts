@@ -15,6 +15,7 @@ import {
   builtinFulfillmentPolicies,
   clearFulfillmentPolicies,
 } from '@/core/shared/fulfillment-policy';
+import { isStoreCurrency } from '@/core/shared/money';
 
 /**
  * The minimal client surface the settings module needs for a column bump.
@@ -136,6 +137,12 @@ export class SystemSettingsService {
      */
     private async saveSettingsObject(settings: Record<string, any>) {
         const sanitized = this.sanitizeSettings(settings);
+        // The store currency is validated before the write, so a currency the
+        // price columns cannot hold never reaches the database. The currency
+        // that is stored today is read to tell a change of the currency from a
+        // write that keeps it.
+        const stored = await this.getSettingsObject();
+        this.assertStoreCurrency(sanitized['localization.currency'], stored['localization.currency']);
         // The fulfilment policy selection is validated before the write, so an
         // invalid selection never reaches the registry.
         this.assertValidFulfillmentSelection(sanitized[FULFILLMENT_POLICIES_KEY]);
@@ -152,6 +159,22 @@ export class SystemSettingsService {
         await CacheService.delete(LOCALIZATION_CACHE_KEY);
         // The selection of the store takes effect without a restart.
         this.applyFulfillmentPolicies(sanitized);
+    }
+
+    /**
+     * Reject a store currency that the price columns cannot hold exactly.
+     *
+     * The price columns hold two decimal places, so only a currency of the
+     * store catalogue can be stored without rounding. The refusal happens
+     * before the write, so the stored currency never changes when the write
+     * is refused. A currency that is stored today stays readable: a write
+     * that keeps it is not a change of the currency and is not refused.
+     */
+    private assertStoreCurrency(currency: unknown, storedCurrency?: unknown): void {
+        if (typeof currency === 'string' && isStoreCurrency(currency)) return;
+        if (typeof currency === 'string' && typeof storedCurrency === 'string'
+            && storedCurrency.trim().toUpperCase() === currency.trim().toUpperCase()) return;
+        throw new ApiError('VALIDATION_ERROR', { issues: [{ path: 'localization.currency', message: 'This currency cannot be stored exactly by the store.', code: 'UNSUPPORTED_CURRENCY' }] });
     }
 
     /**
@@ -386,6 +409,11 @@ export class SystemSettingsService {
         }
         this.assertValidFulfillmentSelection(key === FULFILLMENT_POLICIES_KEY ? value : undefined);
         const settings = await this.getSettingsObject();
+        // A write that selects a currency the price columns cannot hold is
+        // refused before the write, so the stored currency never changes when
+        // the write is refused. A write that keeps the stored currency is not
+        // a change of the currency and is not refused.
+        if (key === 'localization.currency') this.assertStoreCurrency(value, settings['localization.currency']);
         settings[key] = value;
         await this.saveSettingsObject(settings);
     }
@@ -412,6 +440,13 @@ export class SystemSettingsService {
         if ('branding.store_url' in updates) throw new ApiError('BAD_REQUEST');
         if ('localization.locale' in updates && !['en', 'zh-Hans', 'zh-Hant'].includes(String(updates['localization.locale']))) {
             throw new ApiError('BAD_REQUEST');
+        }
+        if ('localization.currency' in updates) {
+            // The stored currency is read before the transaction, so a write
+            // that keeps it is not refused and only a write that selects
+            // another unsupported currency is.
+            const stored = await this.getSettingsObject();
+            this.assertStoreCurrency(updates['localization.currency'], stored['localization.currency']);
         }
         if (FULFILLMENT_POLICIES_KEY in updates) this.assertValidFulfillmentSelection(updates[FULFILLMENT_POLICIES_KEY]);
         const settings = await prisma.$transaction(async tx => {

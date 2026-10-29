@@ -13,6 +13,7 @@ import { emitEvent } from '@/infra/events/emit';
 import { productSnapshot } from '@/infra/events/snapshots';
 import { Prisma } from '@prisma/client';
 import { OrderService } from '@/core/order/service';
+import { currencyExponent } from '@/core/shared/money';
 import { resolveProductCode, withProductCodeRetry } from './codes';
 import { productIds, productCount } from './list-query';
 
@@ -125,6 +126,51 @@ function resolveVariantSalePrice(variant: ProductVariantData): number {
     throw new ApiError('INTERNAL_SERVER_ERROR');
   }
   return normalized;
+}
+
+/**
+ * Whether a price is representable in a currency.
+ *
+ * The money module reads a price as the text of its number and refuses the
+ * amount whose decimal places beyond the exponent of the currency are not all
+ * zeros, so the same text decides here whether the price is representable.
+ * A text the money module cannot read at all is not representable either.
+ *
+ * @param value Price the admin writes
+ * @param exponent Exponent of the currency of the store
+ */
+function isPriceRepresentable(value: number, exponent: number): boolean {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(String(value).trim());
+  if (!match) return false;
+  return (match[3] ?? '').slice(exponent).replace(/0/g, '') === '';
+}
+
+/**
+ * Refuse a price the currency of the store cannot represent.
+ *
+ * The money module refuses an amount the currency cannot represent, so a
+ * price with a fraction in a store whose currency has no fraction breaks the
+ * quote of the checkout long after the merchant entered it. The write is
+ * refused here, where the currency of the store is known.
+ *
+ * The refusal never rounds the price: a representable price is written as it
+ * is, a price that is not representable is refused.
+ *
+ * The reason travels in the structured details of the error, because the
+ * error mapper of the Core replaces the message of a validation error with a
+ * fixed one.
+ *
+ * @param value Price the admin writes
+ * @param currency Currency of the store
+ * @param field Path of the field the price belongs to
+ */
+function assertPriceRepresentable(value: number, currency: string, field: string): void {
+  if (isPriceRepresentable(value, currencyExponent(currency))) return;
+  const reason = `Price ${value} cannot be represented in ${currency}`;
+  const code = /^[A-Za-z]{2,8}$/.test(currency) ? `PRICE_NOT_REPRESENTABLE_IN_${currency.toUpperCase()}` : 'PRICE_NOT_REPRESENTABLE';
+  const error = new ApiError('VALIDATION_ERROR', { issues: [{ path: field, message: reason, code }] });
+  error.message = reason;
+  throw error;
 }
 
 export interface AdminProductSearchFilters {
@@ -548,10 +594,35 @@ export class AdminProductService {
   }
 
   /**
+   * Refuse the prices of a write the currency of the store cannot represent.
+   *
+   * The currency of the store decides how many decimal places a price may
+   * have, and the request schema is static, so the check belongs here.
+   *
+   * @param productPrice Price of the product itself, when the write carries one
+   * @param variants Variants of the write, when the write carries any
+   */
+  private static async assertPricesRepresentable(productPrice?: number, variants?: ProductVariantData[]): Promise<void> {
+    const currency = await systemSettingsService.getShopCurrency();
+    if (typeof productPrice === 'number') assertPriceRepresentable(productPrice, currency, 'price');
+    for (const [index, variant] of (variants ?? []).entries()) {
+      const salePrice = variant.salePrice ?? variant.basePrice;
+      if (typeof salePrice === 'number') {
+        const field = typeof variant.salePrice === 'number' ? 'salePrice' : 'basePrice';
+        assertPriceRepresentable(salePrice, currency, `variants.${index}.${field}`);
+      }
+      if (typeof variant.costPrice === 'number') {
+        assertPriceRepresentable(variant.costPrice, currency, `variants.${index}.costPrice`);
+      }
+    }
+  }
+
+  /**
    * Create product
    */
   static async createProduct(data: CreateProductData) {
     await rejectDefaultLocaleTranslation(data.translations);
+    await this.assertPricesRepresentable(data.price, data.variants);
     let variantsToCreate = data.variants;
 
     if (!variantsToCreate || variantsToCreate.length === 0) {
@@ -617,6 +688,7 @@ export class AdminProductService {
    */
   static async updateProduct(productId: string, data: UpdateProductData, options: AdminProductWriteOptions = {}) {
     await rejectDefaultLocaleTranslation(data.translations);
+    await this.assertPricesRepresentable(data.price, data.variants);
     const updateData: any = {};
     let removedVariantIds: string[] = [];
     if (data.isActive !== undefined) updateData.isActive = data.isActive;

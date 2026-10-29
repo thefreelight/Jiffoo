@@ -1,5 +1,25 @@
 export const CURRENCY_EXPONENTS: Record<string, number> = { JPY: 0, KRW: 0, VND: 0, BHD: 3, JOD: 3, KWD: 3, OMR: 3, TND: 3 };
 
+/**
+ * The currencies a store may select as its store currency.
+ *
+ * Every currency of the list is exactly representable in the `Decimal(18, 2)`
+ * price columns: the two decimal ones keep their two decimal places and the
+ * zero decimal ones (JPY, KRW) are whole units that `decimalToMinor` reads
+ * exactly. A currency outside the list cannot be stored exactly: the three
+ * decimal ones (BHD, JOD, KWD, OMR, TND) would be rounded by the database and
+ * an unknown code has no minor unit at all.
+ */
+export const STORE_CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'HKD', 'TWD', 'JPY', 'KRW'] as const;
+
+/**
+ * Whether a currency code names a currency a store may select. The comparison
+ * trims the input and ignores its case.
+ */
+export function isStoreCurrency(currency: string): boolean {
+  return (STORE_CURRENCIES as readonly string[]).includes(currency.trim().toUpperCase());
+}
+
 /** Why an amount could not be represented. Neutral diagnostic detail; no HTTP meaning. */
 export type MoneyErrorReason = 'INVALID_DECIMAL' | 'TOO_MANY_DECIMAL_PLACES' | 'OUT_OF_SAFE_RANGE' | 'UNSAFE_MINOR_AMOUNT';
 
@@ -16,7 +36,8 @@ export function decimalToMinor(value: string | number, currency: string): number
   const exponent = currencyExponent(currency); const raw = String(value).trim();
   if (!/^-?\d+(?:\.\d+)?$/.test(raw)) throw new MoneyError('INVALID_DECIMAL', `Invalid decimal amount: ${raw}`);
   const negative = raw.startsWith('-'); const [wholeRaw, fractionRaw = ''] = (negative ? raw.slice(1) : raw).split('.');
-  if (fractionRaw.length > exponent || (exponent === 0 && fractionRaw.length)) throw new MoneyError('TOO_MANY_DECIMAL_PLACES', `Amount has too many decimal places for ${currency}`);
+  const excessFraction = fractionRaw.slice(exponent);
+  if (excessFraction.replace(/0/g, '') !== '') throw new MoneyError('TOO_MANY_DECIMAL_PLACES', `Amount has too many decimal places for ${currency}`);
   const minor = BigInt(wholeRaw) * (10n ** BigInt(exponent)) + BigInt((fractionRaw + '0'.repeat(exponent)).slice(0, exponent) || '0');
   const signed = negative ? -minor : minor;
   if (signed > BigInt(Number.MAX_SAFE_INTEGER) || signed < BigInt(Number.MIN_SAFE_INTEGER)) throw new MoneyError('OUT_OF_SAFE_RANGE', 'Amount exceeds safe integer range');

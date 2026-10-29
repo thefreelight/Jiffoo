@@ -266,6 +266,7 @@ export const merchant = {
     spu: 'SPU', spuPlaceholder: '留空，保存时自动生成', skuPlaceholder: '留空自动生成',
     codeHint: '全店唯一，不区分大小写。只能用 1–64 个字母、数字、-、_ 或 .。',
     spuCodeTaken: '这个 SPU 已被商品「{name}」使用。', skuCodeTaken: '这个 SKU 已被商品「{name}」使用。',
+    priceNotRepresentable: '这个价格无法用 {currency} 表示。',
     invalidProductCode: '只能用 1–64 个字母、数字、-、_ 或 .。',
     searchCodes: '搜索商品名称、SPU 或 SKU', restoreVariant: '恢复规格',
     loadingCategories: '正在加载分类…', categoryError: '无法加载分类。', statsError: '无法加载商品数量。',

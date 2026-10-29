@@ -152,9 +152,9 @@ describe('Shop checkout contract', () => {
     expect((await add()).statusCode).toBe(200);
     await prisma.productVariant.update({ where: { id: variantId }, data: { salePrice: 31 } });
     const cart = (await app.inject({ method: 'GET', url: '/api/v1/cart/', headers: headers() })).json().data;
-    expect(cart.items[0]).toMatchObject({ price: '31', subtotal: '31' });
-    expect(cart.subtotal).toBe('31');
-    expect(cart.total).toBe('31');
+    expect(cart.items[0]).toMatchObject({ price: '31.00', subtotal: '31.00' });
+    expect(cart.subtotal).toBe('31.00');
+    expect(cart.total).toBe('31.00');
   });
 
   it('P places an order at a fresh quote after a price change', async () => {
@@ -169,10 +169,10 @@ describe('Shop checkout contract', () => {
   it('Q never serves an old cart price within the former cache lifetime', async () => {
     expect((await add()).statusCode).toBe(200);
     const first = await app.inject({ method: 'GET', url: '/api/v1/cart/', headers: headers() });
-    expect(first.json().data.items[0].price).toBe('20');
+    expect(first.json().data.items[0].price).toBe('20.00');
     await prisma.productVariant.update({ where: { id: variantId }, data: { salePrice: 31 } });
     const second = await app.inject({ method: 'GET', url: '/api/v1/cart/', headers: headers() });
-    expect(second.json().data.items[0].price).toBe('31');
+    expect(second.json().data.items[0].price).toBe('31.00');
   });
 
   it('SHOP-3b A rejects a payment session for a cancelled order without creating a payment', async () => {

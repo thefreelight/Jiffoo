@@ -28,8 +28,18 @@ describe('money error contract', () => {
 
   it('B: an amount with more decimal places than the currency allows throws MoneyError with reason TOO_MANY_DECIMAL_PLACES', () => {
     expectMoneyError(() => decimalToMinor('1.234', 'USD'), 'TOO_MANY_DECIMAL_PLACES', 'Amount has too many decimal places for USD');
-    expectMoneyError(() => decimalToMinor('1.0', 'JPY'), 'TOO_MANY_DECIMAL_PLACES', 'Amount has too many decimal places for JPY');
+    expectMoneyError(() => decimalToMinor('1.2345', 'USD'), 'TOO_MANY_DECIMAL_PLACES', 'Amount has too many decimal places for USD');
+    expectMoneyError(() => decimalToMinor('100.50', 'JPY'), 'TOO_MANY_DECIMAL_PLACES', 'Amount has too many decimal places for JPY');
+    expectMoneyError(() => decimalToMinor('10.505', 'USD'), 'TOO_MANY_DECIMAL_PLACES', 'Amount has too many decimal places for USD');
     expect(() => decimalToMinor('1.234', 'KWD')).not.toThrow();
+  });
+
+  it('B2: an amount whose extra decimal places are all zero is representable and is not rounded', () => {
+    expect(decimalToMinor('100.00', 'JPY')).toBe(100);
+    expect(decimalToMinor('1.0', 'JPY')).toBe(1);
+    expect(decimalToMinor('10.500', 'USD')).toBe(1050);
+    expect(decimalToMinor('10.50', 'USD')).toBe(1050);
+    expect(decimalToMinor(100, 'JPY')).toBe(100);
   });
 
   it('C: an amount outside the safe integer range throws MoneyError with reason OUT_OF_SAFE_RANGE', () => {

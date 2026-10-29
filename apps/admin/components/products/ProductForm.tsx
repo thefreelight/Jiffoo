@@ -87,9 +87,17 @@ export function ProductForm({ product, source, categoryId, storefrontUrl = '' }:
       }
       return true;
     } catch (error) {
-      const typed = error as { code?: string; details?: { field?: string; variantIndex?: number } }, details = typed.details;
+      const typed = error as { code?: string; details?: { field?: string; variantIndex?: number; issues?: { path?: string; message?: string; code?: string }[] } }, details = typed.details;
       const message = resolveApiErrorMessage(error, t);
-      if (['SPU_CODE_TAKEN', 'SKU_CODE_TAKEN', 'INVALID_PRODUCT_CODE'].includes(typed.code ?? '') && details?.field) {
+      const priceIssue = details?.issues?.find(issue => typeof issue?.code === 'string' && issue.code.startsWith('PRICE_NOT_REPRESENTABLE_IN_'));
+      if (priceIssue) {
+        const currency = priceIssue.code!.slice('PRICE_NOT_REPRESENTABLE_IN_'.length);
+        const priceMessage = c('priceNotRepresentable', { currency });
+        const match = /^variants\.(\d+)\.salePrice$/.exec(priceIssue.path ?? '');
+        const index = match ? Number(match[1]) : -1;
+        if (match && data.variants[index]) setErrors({ [variantFieldId(data.variants[index], index, 'price')]: priceMessage });
+        else setFailure(priceMessage);
+      } else if (['SPU_CODE_TAKEN', 'SKU_CODE_TAKEN', 'INVALID_PRODUCT_CODE'].includes(typed.code ?? '') && details?.field) {
         const index = details.variantIndex;
         if (details.field === 'spuCode') setErrors({ 'product-spu': message });
         else if (index !== undefined && data.variants[index]) setErrors({ [variantFieldId(data.variants[index], index, 'sku')]: message });

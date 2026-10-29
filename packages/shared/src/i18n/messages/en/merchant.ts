@@ -266,6 +266,7 @@ export const merchant = {
     spu: 'SPU', spuPlaceholder: 'Leave blank to generate automatically', skuPlaceholder: 'Leave blank to generate',
     codeHint: 'Unique across the store, ignoring case. Use 1–64 letters, digits, hyphens, underscores or dots.',
     spuCodeTaken: 'This SPU is already used by product {name}.', skuCodeTaken: 'This SKU is already used by product {name}.',
+    priceNotRepresentable: 'This price cannot be represented in {currency}.',
     invalidProductCode: 'Use 1–64 letters, digits, hyphens, underscores or dots.',
     searchCodes: 'Search name, SPU or SKU', restoreVariant: 'Restore variant',
     loadingCategories: 'Loading categories…', categoryError: 'Could not load categories.', statsError: 'Could not load product counts.',

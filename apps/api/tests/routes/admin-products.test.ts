@@ -21,6 +21,7 @@ import {
 import { createTestProduct, deleteAllTestProducts } from '../helpers/fixtures';
 import { getTestPrisma } from '../helpers/db';
 import { CacheService } from '@/core/cache/service';
+import { systemSettingsService } from '@/core/settings/service';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Admin Products Endpoints', () => {
@@ -577,6 +578,150 @@ describe('Admin Products Endpoints', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(Array.isArray(body.data.items)).toBe(true);
+    });
+  });
+
+  describe('The prices of a product and the currency of the store', () => {
+    let currencyBefore: string;
+
+    beforeAll(async () => {
+      currencyBefore = await systemSettingsService.getShopCurrency();
+    });
+
+    afterAll(async () => {
+      // The currency of the store is restored, so the next file of the shard
+      // reads the currency it expects.
+      await systemSettingsService.setSetting('localization.currency', currencyBefore);
+      await CacheService.incrementProductVersion();
+    });
+
+    it('refuses a price with a fraction in a store whose currency has none', async () => {
+      const db = getTestPrisma();
+      await systemSettingsService.setSetting('localization.currency', 'JPY');
+      const name = `JPY Fractional Price Test Product ${uuidv4().substring(0, 8)}`;
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/admin/products/',
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: {
+          name,
+          variants: [{ name: 'Base Variant', salePrice: 100.5, stock: 10 }],
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.code).toBe('VALIDATION_ERROR');
+      // The refusal names the currency and the field of the refused price.
+      const issue = response.json().error.details.issues[0];
+      expect(issue.path).toBe('variants.0.salePrice');
+      expect(issue.code).toBe('PRICE_NOT_REPRESENTABLE_IN_JPY');
+      // The refused write leaves nothing behind.
+      expect(await db.product.count({ where: { name } })).toBe(0);
+      expect(await db.productVariant.count({ where: { product: { name } } })).toBe(0);
+    });
+
+    it('refuses a cost price with a fraction in a store whose currency has none', async () => {
+      const db = getTestPrisma();
+      await systemSettingsService.setSetting('localization.currency', 'JPY');
+      const name = `JPY Fractional Cost Price Test Product ${uuidv4().substring(0, 8)}`;
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/admin/products/',
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: {
+          name,
+          variants: [{ name: 'Base Variant', salePrice: 100, costPrice: 12.5, stock: 10 }],
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.code).toBe('VALIDATION_ERROR');
+      expect(response.json().error.details.issues[0].path).toBe('variants.0.costPrice');
+      expect(await db.product.count({ where: { name } })).toBe(0);
+      expect(await db.productVariant.count({ where: { product: { name } } })).toBe(0);
+    });
+
+    it('accepts a whole price in a store whose currency has none', async () => {
+      const db = getTestPrisma();
+      await systemSettingsService.setSetting('localization.currency', 'JPY');
+      const name = `JPY Whole Price Test Product ${uuidv4().substring(0, 8)}`;
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/admin/products/',
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: {
+          name,
+          variants: [{ name: 'Base Variant', salePrice: 100, stock: 10 }],
+        },
+      });
+
+      expect([200, 201]).toContain(response.statusCode);
+      const product = await db.product.findFirst({ where: { name }, include: { variants: true } });
+      expect(product?.variants[0]?.salePrice.toNumber()).toBe(100);
+    });
+
+    it('accepts a price with two decimals and refuses a price with three in a store whose currency has two', async () => {
+      const db = getTestPrisma();
+      await systemSettingsService.setSetting('localization.currency', 'USD');
+      const accepted = `USD Two Decimals Test Product ${uuidv4().substring(0, 8)}`;
+
+      const written = await app.inject({
+        method: 'POST',
+        url: '/api/v1/admin/products/',
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: {
+          name: accepted,
+          variants: [{ name: 'Base Variant', salePrice: 10.5, stock: 10 }],
+        },
+      });
+
+      expect([200, 201]).toContain(written.statusCode);
+      const product = await db.product.findFirst({ where: { name: accepted }, include: { variants: true } });
+      expect(product?.variants[0]?.salePrice.toNumber()).toBe(10.5);
+
+      const refused = `USD Three Decimals Test Product ${uuidv4().substring(0, 8)}`;
+      const rejected = await app.inject({
+        method: 'POST',
+        url: '/api/v1/admin/products/',
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: {
+          name: refused,
+          variants: [{ name: 'Base Variant', salePrice: 10.505, stock: 10 }],
+        },
+      });
+
+      expect(rejected.statusCode).toBe(400);
+      expect(rejected.json().error.code).toBe('VALIDATION_ERROR');
+      expect(await db.product.count({ where: { name: refused } })).toBe(0);
+      expect(await db.productVariant.count({ where: { product: { name: refused } } })).toBe(0);
+    });
+
+    it('refuses an update with a price the currency cannot represent and keeps the stored price', async () => {
+      const db = getTestPrisma();
+      await systemSettingsService.setSetting('localization.currency', 'JPY');
+      const item = await createTestProduct({ name: 'JPY Update Price Test Product', price: 100, stock: 5 });
+      try {
+        const variant = item.variants[0];
+        const response = await app.inject({
+          method: 'PUT',
+          url: `/api/v1/admin/products/${item.id}`,
+          headers: { authorization: `Bearer ${adminToken}` },
+          payload: {
+            variants: [{ id: variant.id, name: variant.name, salePrice: 100.5, stock: variant.stock }],
+          },
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.json().error.code).toBe('VALIDATION_ERROR');
+        const stored = await db.productVariant.findUnique({ where: { id: variant.id } });
+        expect(stored?.salePrice.toNumber()).toBe(100);
+      } finally {
+        await db.product.delete({ where: { id: item.id } });
+        await CacheService.incrementProductVersion();
+      }
     });
   });
 });

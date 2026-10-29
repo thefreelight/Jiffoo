@@ -15,6 +15,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { createTestProduct, deleteAllTestProducts, deleteAllTestCarts, deleteTestProduct } from '../helpers/fixtures';
 import { getTestPrisma } from '../helpers/db';
+import { systemSettingsService } from '@/core/settings/service';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Cart Endpoints', () => {
@@ -22,6 +23,7 @@ describe('Cart Endpoints', () => {
   let userToken: string;
   let testProduct: Awaited<ReturnType<typeof createTestProduct>>;
   let testVariantId: string;
+  let originalCurrency: string;
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -35,9 +37,16 @@ describe('Cart Endpoints', () => {
     });
     testVariantId = testProduct.variants[0].id;
 
+    // The scale of the amounts of the cart is the scale of the currency of
+    // the store, so the store currency is pinned for the file and restored
+    // afterwards, the way the other files that change it do.
+    originalCurrency = await systemSettingsService.getShopCurrency();
+    await systemSettingsService.setSetting('localization.currency', 'USD');
+
   });
 
   afterAll(async () => {
+    await systemSettingsService.setSetting('localization.currency', originalCurrency);
     await deleteAllTestCarts();
     await deleteAllTestProducts();
     await deleteAllTestUsers();
@@ -74,9 +83,10 @@ describe('Cart Endpoints', () => {
 
       const body = response.json();
       expect(body).toBeDefined();
-      // The empty cart carries the same exact amounts as a cart with lines.
-      expect(body.data.subtotal).toBe('0');
-      expect(body.data.total).toBe('0');
+      // The empty cart carries the same exact amounts as a cart with lines,
+      // and the amounts carry the scale of the currency of the store.
+      expect(body.data.subtotal).toBe('0.00');
+      expect(body.data.total).toBe('0.00');
     });
 
     it('should return cart with items after adding', async () => {
@@ -154,6 +164,100 @@ describe('Cart Endpoints', () => {
       } finally {
         await deleteTestProduct(first.id);
         await deleteTestProduct(second.id);
+      }
+    });
+
+    it('should answer the amounts of the cart with the scale of the currency of the store', async () => {
+      // The price of the product is a whole amount, so the exact decimal of
+      // the price carries no decimal place on its own.
+      const whole = await createTestProduct({ name: 'Cart Whole Price Product', price: 10, stock: 10 });
+
+      try {
+        const added = await app.inject({
+          method: 'POST',
+          url: '/api/v1/cart/items',
+          headers: { authorization: `Bearer ${userToken}` },
+          payload: {
+            productId: whole.id,
+            variantId: whole.variants[0].id,
+            quantity: 1,
+          },
+        });
+
+        expect(added.statusCode).toBe(200);
+
+        const response = await app.inject({
+          method: 'GET',
+          url: '/api/v1/cart/',
+          headers: { authorization: `Bearer ${userToken}` },
+        });
+
+        expect(response.statusCode).toBe(200);
+
+        const cart = response.json().data;
+        const line = cart.items.find((item: { productId: string }) => item.productId === whole.id)!;
+        // The currency of the store has two decimal places, so every amount of
+        // the cart carries them: the price of a line is "10.00" and not "10".
+        expect(line.price).toBe('10.00');
+        expect(line.subtotal).toBe('10.00');
+        expect(cart.subtotal).toBe('10.00');
+        expect(cart.total).toBe('10.00');
+      } finally {
+        await deleteTestProduct(whole.id);
+      }
+    });
+
+    it('should answer the amounts of the cart without decimals when the currency of the store has none', async () => {
+      // The currency of the store has no decimal place, so the amounts of the
+      // cart carry none either.
+      const whole = await createTestProduct({ name: 'Cart Yen Price Product', price: 10, stock: 10 });
+
+      try {
+        await systemSettingsService.setSetting('localization.currency', 'JPY');
+
+        // The empty cart answers the zero without decimals as well.
+        const empty = await app.inject({
+          method: 'GET',
+          url: '/api/v1/cart/',
+          headers: { authorization: `Bearer ${userToken}` },
+        });
+
+        expect(empty.statusCode).toBe(200);
+        expect(empty.json().data.subtotal).toBe('0');
+        expect(empty.json().data.total).toBe('0');
+
+        const added = await app.inject({
+          method: 'POST',
+          url: '/api/v1/cart/items',
+          headers: { authorization: `Bearer ${userToken}` },
+          payload: {
+            productId: whole.id,
+            variantId: whole.variants[0].id,
+            quantity: 1,
+          },
+        });
+
+        expect(added.statusCode).toBe(200);
+
+        const response = await app.inject({
+          method: 'GET',
+          url: '/api/v1/cart/',
+          headers: { authorization: `Bearer ${userToken}` },
+        });
+
+        expect(response.statusCode).toBe(200);
+
+        const cart = response.json().data;
+        const line = cart.items.find((item: { productId: string }) => item.productId === whole.id)!;
+        expect(line.price).toBe('10');
+        expect(line.subtotal).toBe('10');
+        expect(cart.subtotal).toBe('10');
+        expect(cart.total).toBe('10');
+      } finally {
+        // The currency of the store is restored, so the next test file of the
+        // shard reads the currency it expects.
+        await systemSettingsService.setSetting('localization.currency', 'USD');
+        await deleteTestProduct(whole.id);
       }
     });
   });
