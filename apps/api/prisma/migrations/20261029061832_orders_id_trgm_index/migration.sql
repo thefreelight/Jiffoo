@@ -1,0 +1,13 @@
+-- The admin order search matches the id of the order with a substring
+-- predicate, and no btree index can serve it: a btree index answers a prefix
+-- match, not a match in the middle of the value. The trigram operator class
+-- serves the substring lookup of the order id the same way it already serves
+-- the order number, the email and the user name, so the disjunction over the
+-- id no longer forces a sequential scan of the orders table.
+--
+-- The index is partial on `IS NOT NULL` so that it stays invisible to the
+-- Prisma schema engine: a partial index is skipped by its introspection, so the
+-- datamodel and the database keep agreeing, and a generated migration neither
+-- drops nor re-creates it. The predicate is implied by every search of the
+-- admin order list, so the planner still uses the index for the lookup.
+CREATE INDEX IF NOT EXISTS "orders_id_trgm_idx" ON "orders" USING gin ("id" gin_trgm_ops) WHERE "id" IS NOT NULL;

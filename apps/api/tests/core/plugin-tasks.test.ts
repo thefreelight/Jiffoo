@@ -36,15 +36,39 @@ async function fixture(options: { maxAttempts?: number; maxRuntimeSeconds?: numb
   return { slug, installationId, api, run, enqueue, worker, declaration };
 }
 /**
- * The budget of a single wait for a settled task state.
+ * The ceiling of a single wait for a settled task state.
  *
  * The wait covers the start of the worker processes, the claim of a task, the
  * expiry of a lease and the settlement of the claim, so it is inherently
- * slower than an in process wait. The budget therefore has to fit a shard
+ * slower than an in process wait. The ceiling therefore has to fit a shard
  * that runs the rest of its files at the same time, including a file that
  * publishes plugin packages.
+ *
+ * It is a ceiling and not a delay: the helper returns as soon as the
+ * predicate holds, so a healthy run never reaches it, while a loaded shard
+ * gets the whole budget before the wait is reported as unsettled.
+ *
+ * It is the ceiling of the waits that do not wait for a lease of their own.
+ * The wait for the settlement of a released claim uses
+ * LEASE_EXPIRY_DEADLINE_MS instead.
  */
-const SETTLE_DEADLINE_MS = 20_000;
+const SETTLE_DEADLINE_MS = 60_000;
+/**
+ * The ceiling of the wait for the settlement of a released claim.
+ *
+ * That wait covers the lease of the released claim, so it can outlive the
+ * shared settle ceiling above. This ceiling stays above it, so the wait
+ * reports the file's own diagnostic instead of an unrelated timeout.
+ */
+const LEASE_EXPIRY_DEADLINE_MS = 120_000;
+/**
+ * The grace a forked worker gets to exit after it was asked to stop.
+ *
+ * It stays independent of the settle ceiling on purpose: a worker that
+ * refuses to exit must still be killed, and the test must still fail, within
+ * a bounded time.
+ */
+const STOP_GRACE_MS = 20_000;
 async function eventually(predicate: () => Promise<boolean>, deadlineMs = SETTLE_DEADLINE_MS) {
   const end = performance.now() + deadlineMs;
   while (!await predicate()) { if (performance.now() >= end) throw new Error('Task state did not settle before its deadline'); await delay(10); }
@@ -114,7 +138,7 @@ it('honors runAt, retries ordinary failures, and preserves succeeded terminal st
   expect((await f.run(() => f.api.cancel(task.id))).status).toBe('succeeded');
   expect((await f.run(() => f.api.get(future.id))).status).toBe('queued');
   }finally{releaseFailure();await worker.drain();}
-});
+}, 90_000);
 it('permanent errors fail immediately and admit one final hook after handler settlement', async () => {
   const f = await fixture({ hook: true, maxAttempts: 5 }); let calls = 0; let hooks = 0;
   const task = await f.enqueue();
@@ -128,7 +152,7 @@ it('permanent errors fail immediately and admit one final hook after handler set
   expect(calls).toBe(1); expect(hooks).toBe(1);
   expect((await f.run(() => f.api.get(task.id))).finalFailure?.status).toBe('succeeded');
   expect((await prisma.pluginTaskAttempt.findFirstOrThrow({ where: { taskId: task.id } })).outcome).toBe('PERMANENT_ERROR');
-});
+}, 90_000);
 it('cancelling a failed task suppresses only its pending hook and keeps FAILED truthful', async () => {
   const f = await fixture({ hook: true, maxAttempts: 1 }); const task = await f.enqueue();
   const worker = f.worker(async () => { throw new Error('Final attempt'); });
@@ -136,7 +160,7 @@ it('cancelling a failed task suppresses only its pending hook and keeps FAILED t
   const cancelled = await f.run(() => f.api.cancel(task.id));
   expect(cancelled.status).toBe('failed'); expect(cancelled.finalFailure).toEqual({ status: 'suppressed', suppressionReason: 'EXPLICIT_CANCEL' });
   expect((await f.run(() => f.api.cancel(task.id))).status).toBe('failed');
-});
+}, 90_000);
 it('pause fences an ignored abort without consuming a retry or releasing physical occupancy', async () => {
   const f = await fixture({ hook: true, maxAttempts: 1 }); const task = await f.enqueue();
   let release!: () => void; let claimed!: TaskClaim;
@@ -155,7 +179,7 @@ it('pause fences an ignored abort without consuming a retry or releasing physica
   release(); await worker.drain();
   expect((await f.run(() => f.api.get(task.id))).result).toEqual({ resumed: true });
   } finally { release(); await worker.drain(); }
-});
+}, 90_000);
 it('dependency loss pauses and recovery resumes the same task; uninstall cancels without a hook', async () => {
   const f = await fixture({ hook: true }); const task = await f.enqueue();
   await prisma.$transaction(tx => setTaskDependencyAvailability(tx, f.installationId, false));
@@ -166,7 +190,7 @@ it('dependency loss pauses and recovery resumes the same task; uninstall cancels
   await prisma.$transaction(async tx => { await lockTaskScheduler(tx); await transitionInstallationTasks(tx, f.installationId, 'CANCEL', 'UNINSTALLED'); });
   expect((await f.run(() => f.api.get(task.id))).status).toBe('cancelled');
   expect(await prisma.pluginTaskFinalFailure.count({ where: { taskId: task.id } })).toBe(0);
-});
+}, 90_000);
 it('renews a real 45-second invocation and reports progress beyond the gateway timeout', async () => {
   const f = await fixture({ maxRuntimeSeconds: 300 }); const task = await f.enqueue();
   let renewals = 0;
@@ -182,8 +206,14 @@ it('renews a real 45-second invocation and reports progress beyond the gateway t
   expect(renewals).toBeGreaterThanOrEqual(9);
   const row = await prisma.pluginTask.findUniqueOrThrow({ where: { id: task.id } });
   expect(row.status).toBe('SUCCEEDED'); expect(row.finishedAt!.getTime() - row.startedAt!.getTime()).toBeGreaterThan(30_000);
-}, 60_000);
+}, 120_000);
 
+// The waits of this case cover the readiness of the two forked workers, the
+// completion of their ticks, two claims, the expiry of the lease of the
+// killed worker and the settlement of the released claim, so its timeout
+// covers the sum of their ceilings (60 + 60 + 60 + 60 + 60 + 120 seconds)
+// plus the stop grace of the cleanup, and a genuine failure still reports
+// the file's own diagnostic.
 it('two OS workers race one live claim and a killed owned worker is reclaimed with a higher fence', async () => {
   const f = await fixture(); const task = await f.enqueue();
   const messages: any[] = [];
@@ -213,15 +243,15 @@ it('two OS workers race one live claim and a killed owned worker is reclaimed wi
     await expect(prisma.$transaction(tx => assertTaskClaim(tx, stale))).rejects.toMatchObject({ code: 'PLUGIN_TASK_CLAIM_LOST' });
     await expect(withTaskScope({ installationId: f.installationId, generation:stale.generation, zipHash:stale.zipHash, request: false, principal: null, actorId: 'stale-test', claim: stale }, () => f.api.enqueue('render', 1, {}, { idempotencyKey: 'stale-enqueue' }))).rejects.toMatchObject({ code: 'PLUGIN_TASK_CLAIM_LOST' });
     survivor.send({ kind: 'release' });
-    await eventually(async () => (await f.run(() => f.api.get(task.id))).status === 'succeeded');
+    await eventually(async () => (await f.run(() => f.api.get(task.id))).status === 'succeeded', LEASE_EXPIRY_DEADLINE_MS);
   } finally {
     for (const child of children) if (child.exitCode === null && child.signalCode === null) {
       const exited = once(child, 'exit'); child.send({ kind: 'stop' });
-      const stopped = await Promise.race([exited.then(() => true), delay(SETTLE_DEADLINE_MS).then(() => false)]);
+      const stopped = await Promise.race([exited.then(() => true), delay(STOP_GRACE_MS).then(() => false)]);
       if (!stopped) { child.kill('SIGKILL'); await exited; }
     }
   }
-}, 180_000);
+}, 540_000);
 
 it('enforces max runtime with AbortSignal and leaves a timed-out hook UNKNOWN without replay', async () => {
   const f = await fixture({ maxAttempts: 1, maxRuntimeSeconds: 1, hook: true }); const task = await f.enqueue();
@@ -239,7 +269,7 @@ it('enforces max runtime with AbortSignal and leaves a timed-out hook UNKNOWN wi
   expect((await f.run(() => f.api.get(task.id))).finalFailure?.status).toBe('unknown');
   const retry = f.worker(async () => { throw new Error('UNKNOWN hooks must not replay'); });
   await retry.tick(); await retry.drain(); expect(hooks).toBe(1);
-});
+}, 90_000);
 it('compatible updates retain policy and keys while removed versions are terminally cancelled', async () => {
   const f = await fixture(); const task = await f.enqueue('update');
   await prisma.$transaction(async tx => { await lockTaskScheduler(tx); await transitionInstallationTasks(tx, f.installationId, 'UPDATE', 'PACKAGE_UPDATED', [f.declaration]); await tx.pluginInstallation.update({ where: { id: f.installationId }, data: { protectionGeneration: { increment: 1 } } }); });
@@ -259,7 +289,7 @@ it('shared operator caps block admission without changing admitted budgets', asy
     const row = await prisma.pluginTask.findUniqueOrThrow({ where: { id: task.id } });
     expect(row.status).toBe('PENDING'); expect(row.maxRuntimeSeconds).toBe(300); expect(row.attemptsCharged).toBe(0);
   } finally { await prisma.$transaction(tx => setTaskOperatorPolicy(tx, DEFAULT_TASK_POLICY)); }
-});
+}, 90_000);
 it('a hot installation cannot consume the second installation first-round fair slot', async () => {
   const hot = await fixture(); const quiet = await fixture();
   for (let i = 0; i < 6; i++) await hot.enqueue(`hot-${i}`);
@@ -272,7 +302,7 @@ it('a hot installation cannot consume the second installation first-round fair s
     expect(new Set(claimed.slice(0, 2).map(c => c.task.installationId)).size).toBe(2);
     expect(claimed.some(c => c.task.id === quietTask.id)).toBe(true);
   } finally { release(); await worker.drain(); }
-});
+}, 90_000);
 it('installation-level execution cannot acquire customer authority from payload IDs', async () => {
   const f = await fixture();
   await expect(f.run(() => prisma.$transaction(tx => requireTaskPrincipal(tx, f.installationId)), false)).rejects.toMatchObject({ code: 'PLUGIN_TASK_PRINCIPAL_REQUIRED' });
@@ -320,7 +350,7 @@ it('a delayed old invocation cannot write through the SDK or overwrite a newer p
     await prisma.pluginNamespace.deleteMany({where:{slug:f.slug}});
     if(previousSwitch===undefined) delete process.env.JIFFOO_TEST_PLUGIN_DATABASE_CONTROL; else process.env.JIFFOO_TEST_PLUGIN_DATABASE_CONTROL=previousSwitch;
   }
-});
+}, 90_000);
 
 it('shutdown stops admission and abandons an uncooperative invocation without releasing its slot', async () => {
   const f = await fixture(); const task = await f.enqueue();
@@ -340,7 +370,7 @@ it('shutdown stops admission and abandons an uncooperative invocation without re
     release(); await drain;
     expect((await prisma.pluginTask.findUniqueOrThrow({where:{id:task.id}})).status).toBe('RUNNING');
   } finally { release(); await worker.drain(); }
-});
+}, 90_000);
 
 it('a simulated 180-second AI call fits a declared 300-second budget and the hard 600-second cap is enforced', async () => {
   const f = await fixture({maxRuntimeSeconds:300}); const task = await f.enqueue();
@@ -360,7 +390,7 @@ it('a simulated 180-second AI call fits a declared 300-second budget and the har
   } finally { await vi.advanceTimersByTimeAsync(180_000); vi.useRealTimers(); await worker.drain(); }
   const invalid = await fixture({maxRuntimeSeconds:601});
   await expect(invalid.enqueue()).rejects.toMatchObject({code:'PLUGIN_TASK_DECLARATION_INVALID'});
-});
+}, 90_000);
 
 it('a failed lingering-state write cannot forget an abort-ignoring invocation before actual settlement', async () => {
   const f = await fixture(); const task = await f.enqueue();
@@ -377,7 +407,7 @@ it('a failed lingering-state write cannot forget an abort-ignoring invocation be
     release(); await worker.drain();
     expect(await prisma.pluginTaskExecutionSlot.count({where:{taskId:task.id,state:{not:'RELEASED'}}})).toBe(0);
   } finally {release();await worker.drain();}
-});
+}, 90_000);
 
 it('task policy conflicts identify blocked work and dependency errors preserve retryable backoff', () => {
   expect(mapApiError(new ApiError('PLUGIN_TASK_LIMIT_CONFLICT',{taskId:'task-123',payload:'private'})).body.error).toMatchObject({code:'PLUGIN_TASK_LIMIT_CONFLICT',details:{taskId:'task-123'}});
@@ -402,7 +432,7 @@ it('captured progress authority closes when the handler settles even before dura
     await control.query("SELECT pg_advisory_unlock(hashtextextended('jiffoo:plugin-service-graph',0))");locked=false;
     await worker.drain();expect((await f.run(()=>f.api.get(task.id))).status).toBe('succeeded');
   }finally{release();if(locked)await control.query("SELECT pg_advisory_unlock(hashtextextended('jiffoo:plugin-service-graph',0))");await control.end();await worker.drain();}
-});
+}, 90_000);
 
 it('an inactive oldest principal blocks only its own task and resumes the same task after reactivation', async()=>{
   const f=await fixture();
@@ -419,7 +449,7 @@ it('an inactive oldest principal blocks only its own task and resumes the same t
   const resumed=f.worker(async(_claim,input)=>{expect(input.taskId).toBe(blocked.id);expect(input.attempt).toBe(1);expect(input.principal?.id).toBe(user.id);return {resumed:true};});
   await resumed.tick();await resumed.drain();
   expect((await f.run(()=>f.api.get(blocked.id))).result).toEqual({resumed:true});
-});
+}, 90_000);
 
 it('default retry delays preserve the admitted budget and mark only the last budgeted attempt final', async()=>{
   const f=await fixture({maxAttempts:5,hook:true});const task=await f.enqueue();
@@ -435,7 +465,7 @@ it('default retry delays preserve the admitted budget and mark only the last bud
   await final.tick();await final.drain();
   expect((await f.run(()=>f.api.get(task.id))).status).toBe('succeeded');
   expect(await prisma.pluginTaskFinalFailure.count({where:{taskId:task.id}})).toBe(0);
-});
+}, 90_000);
 
 it('history cleanup retains permanent keys and distinct UTC buckets enqueue distinct tasks', async()=>{
   const f=await fixture();const key='cleanup:2026-10-20T10:10';const task=await f.enqueue(key);
@@ -445,7 +475,7 @@ it('history cleanup retains permanent keys and distinct UTC buckets enqueue dist
   expect(await prisma.pluginTaskExecutionSlot.count({where:{taskId:task.id}})).toBe(0);
   expect((await f.enqueue(key)).id).toBe(task.id);
   expect((await f.enqueue('cleanup:2026-10-20T10:11')).id).not.toBe(task.id);
-});
+}, 90_000);
 
 it('missing task identifiers cannot read or cancel the first task of an installation',async()=>{
   const f=await fixture();const task=await f.enqueue();
@@ -476,7 +506,7 @@ it('an expired admitted hook from a confirmed-dead worker becomes UNKNOWN and ne
     await prisma.pluginTaskExecutionSlot.deleteMany({where:{taskId:task.id}});
     await prisma.coreProcess.deleteMany({where:{bootNonce}});
   }
-});
+}, 90_000);
 
 it.each(['pause-first','timeout-first'] as const)('last-attempt timeout and pause have one authoritative outcome: %s',async order=>{
   const f=await fixture({maxAttempts:1,maxRuntimeSeconds:1,hook:true});const task=await f.enqueue();let entered=false;
@@ -504,4 +534,4 @@ it.each(['pause-first','timeout-first'] as const)('last-attempt timeout and paus
     expect(attempts[0].outcome).toBe(order==='pause-first'?'PAUSE_ABORT':'TIMED_OUT');
     expect(await prisma.pluginTaskFinalFailure.count({where:{taskId:task.id}})).toBe(order==='pause-first'?0:1);
   }finally{if(locked)await control.query("SELECT pg_advisory_unlock(hashtextextended('jiffoo:plugin-service-graph',0))");await Promise.allSettled([pause]);await control.end();await worker.drain();}
-});
+}, 90_000);

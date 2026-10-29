@@ -9,7 +9,13 @@ if (process.env.NODE_ENV !== 'test' || !process.env.G1_TASK_INSTALLATION_ID) thr
 let release: (() => void) | undefined;
 let heartbeat: (() => Promise<void>) | undefined;
 let stopping = false;
-const worker = new PluginTaskWorker({ installationIds: [process.env.G1_TASK_INSTALLATION_ID], leaseMs: 250, renewalMs: 50, retryMs: [0], execute: async (claim, input) => {
+// The lease must outlive a renewal, because the renewal is a database
+// transaction: under a loaded shard that transaction can take longer than a
+// short lease, the lease expires while the handler still runs, the next
+// renewal loses its claim and aborts the execution. A 5 second lease with a
+// 250 millisecond renewal leaves the renewal room to finish, while the lease
+// stays short enough for the case to observe its expiry.
+const worker = new PluginTaskWorker({ installationIds: [process.env.G1_TASK_INSTALLATION_ID], leaseMs: 5_000, renewalMs: 250, retryMs: [0], execute: async (claim, input) => {
   heartbeat = () => input.heartbeat({ child: true });
   process.send?.({ kind: 'claimed', taskId: input.taskId, claimId: input.claimId, fence: input.fence, bootNonce: claim.bootNonce });
   if (!stopping) await new Promise<void>(resolve => { release = resolve; });

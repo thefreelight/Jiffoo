@@ -107,6 +107,11 @@ function uniqueTargetNames(target: unknown): string[] {
  * is left on that path, and only the two models that record a payment fact
  * are accepted there.
  *
+ * A violation of the payment ledger without a target is ambiguous: the
+ * constraint that fired cannot be told apart from the capture keys of the
+ * ledger. The caller decides that case explicitly with the semantic
+ * re-check, which asks the ledger itself.
+ *
  * The check stays outside the transaction callback: a failed statement aborts
  * the PostgreSQL transaction, so the violation can only be classified after
  * the transaction rolled back.
@@ -128,6 +133,63 @@ export function isAppliedPaymentFactConflict(error: unknown): boolean {
   if (model !== null) return false;
   // Without a model only the name of a constraint identifies the conflict.
   return names.every(name => APPLIED_PAYMENT_FACT_UNIQUE_INDEXES.has(name));
+}
+
+/**
+ * True when the unique violation of the payment ledger is ambiguous.
+ *
+ * The engine of this deployment reports no target for a unique violation, so
+ * the constraint that fired cannot be told apart from the capture keys of the
+ * ledger: it may be the capture key of this capture, the partial index that
+ * keeps one accepted capture per order, or any other constraint of the
+ * ledger. The ledger itself decides that case, with the semantic re-check.
+ *
+ * A violation with a target is not ambiguous: the target names the
+ * constraint, and the classification of the violation is the existing one.
+ */
+export function isAmbiguousLedgerConflict(error: unknown): boolean {
+  if (!isUniqueConstraintError(error)) return false;
+  const meta = (error.meta ?? {}) as { modelName?: unknown; target?: unknown };
+  if (meta.modelName !== 'PaymentLedger') return false;
+  return uniqueTargetNames(meta.target).length === 0;
+}
+
+/**
+ * The semantic re-check of an ambiguous unique violation of the payment
+ * ledger.
+ *
+ * The ledger decides the case outside the transaction, because the
+ * transaction rolled back before the violation was classified:
+ * - a row for this capture - the provider key of the payment and the
+ *   provider payment id of the capture - means that the capture was already
+ *   recorded, so the fact was already applied;
+ * - an accepted capture of the same order - event type SUCCEEDED and no
+ *   refund required - means that the order is already paid and the fact is
+ *   not applicable to it any more.
+ *
+ * A violation of any other constraint says nothing about the payment fact,
+ * so the caller rethrows it and the provider retries. A failed lookup is no
+ * decision either: the caller rethrows the original violation.
+ *
+ * The provider key of the payment and its order id are read from the payment
+ * row here, after the rollback: the values of the aborted transaction are
+ * not the state of the database.
+ */
+async function isPaymentFactAlreadyApplied(paymentId: string, providerPaymentId?: string | null): Promise<boolean> {
+  try {
+    const payment = await prisma.payment.findUnique({ where: { id: paymentId }, select: { providerKey: true, orderId: true } });
+    if (!payment) return false;
+    if (providerPaymentId) {
+      const capture = await prisma.paymentLedger.findFirst({ where: { providerKey: payment.providerKey, providerPaymentId, eventType: 'SUCCEEDED' } });
+      if (capture) return true;
+    }
+    const accepted = await prisma.paymentLedger.findFirst({ where: { orderId: payment.orderId, eventType: 'SUCCEEDED', refundRequired: false } });
+    return !!accepted;
+  } catch {
+    // The lookup failed, so the violation cannot be classified: the caller
+    // rethrows the original violation.
+    return false;
+  }
 }
 const clearLease = { claimToken: null, claimedBy: null, leaseUntil: null };
 /**
@@ -245,7 +307,19 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
   } catch (error) {
     // A caller that owns a transaction is not classified here: the violation
     // propagates and rolls the transaction of the caller back cleanly.
-    if (!transaction && isAppliedPaymentFactConflict(error)) return false;
+    if (transaction) throw error;
+    // The engine reports no target for a unique violation of the ledger, so
+    // the constraint that fired is unknown. The ledger decides the case
+    // explicitly, outside the transaction: a row for this capture means that
+    // the capture was already recorded, an accepted capture of the order
+    // means that the fact is not applicable to that order, and every other
+    // constraint says nothing about the payment fact, so the violation is
+    // rethrown and the provider retries.
+    if (isAmbiguousLedgerConflict(error)) {
+      if (await isPaymentFactAlreadyApplied(input.paymentId, input.providerPaymentId)) return false;
+      throw error;
+    }
+    if (isAppliedPaymentFactConflict(error)) return false;
     throw error;
   }
 }
@@ -292,7 +366,18 @@ export async function recordPaymentFailed(input: { paymentId: string; providerEv
   } catch (error) {
     // A caller that owns a transaction is not classified here: the violation
     // propagates and rolls the transaction of the caller back cleanly.
-    if (!transaction && isAppliedPaymentFactConflict(error)) return false;
+    if (transaction) throw error;
+    // The engine reports no target for a unique violation of the ledger, so
+    // the constraint that fired is unknown. The ledger decides the case
+    // explicitly, outside the transaction: an accepted capture of the order
+    // means that the fact is not applicable to that order, and every other
+    // constraint says nothing about the payment fact, so the violation is
+    // rethrown and the provider retries.
+    if (isAmbiguousLedgerConflict(error)) {
+      if (await isPaymentFactAlreadyApplied(input.paymentId)) return false;
+      throw error;
+    }
+    if (isAppliedPaymentFactConflict(error)) return false;
     throw error;
   }
 }

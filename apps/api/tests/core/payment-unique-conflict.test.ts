@@ -42,7 +42,7 @@ const paymentRow = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  prismaMock.payment.findUnique.mockResolvedValue({ orderId: 'order-1' });
+  prismaMock.payment.findUnique.mockResolvedValue({ orderId: 'order-1', providerKey: 'provider-key-1' });
   prismaMock.payment.findUniqueOrThrow.mockResolvedValue(paymentRow);
   prismaMock.payment.updateMany.mockResolvedValue({ count: 1 });
   prismaMock.paymentLedger.findUnique.mockResolvedValue(null);
@@ -120,10 +120,41 @@ it('rethrows a unique violation of another model instead of reporting it as an a
   await expect(recordPaymentSucceeded({ paymentId: 'payment-1', providerEventId: 'event-1', providerPaymentId: 'capture-1' })).rejects.toBe(conflict);
 });
 
-it('reports a unique violation of the payment ledger as an applied payment fact', async () => {
+it('reports a unique violation of the ledger with a capture key target as an applied payment fact', async () => {
+  // The target names the constraint, so the classification of the violation
+  // is the existing one and the semantic re-check is not consulted.
+  const conflict = uniqueConflict({ modelName: 'PaymentLedger', target: ['providerKey', 'providerPaymentId'] });
+  prismaMock.paymentLedger.create.mockRejectedValue(conflict);
+  prismaMock.paymentLedger.findFirst.mockResolvedValue(null);
+  await expect(recordPaymentSucceeded({ paymentId: 'payment-1', providerEventId: 'event-1', providerPaymentId: 'capture-1' })).resolves.toBe(false);
+  expect(prismaMock.paymentLedger.findFirst).not.toHaveBeenCalled();
+});
+
+it('reports an ambiguous unique violation of the ledger as an applied payment fact when the capture is recorded', async () => {
+  // The engine reported no target, so the ledger decides: a row for this
+  // capture means that the capture was already recorded.
   const conflict = uniqueConflict({ modelName: 'PaymentLedger', target: null });
   prismaMock.paymentLedger.create.mockRejectedValue(conflict);
+  prismaMock.paymentLedger.findFirst.mockResolvedValue({ id: 'ledger-1', eventType: 'SUCCEEDED' });
   await expect(recordPaymentSucceeded({ paymentId: 'payment-1', providerEventId: 'event-1', providerPaymentId: 'capture-1' })).resolves.toBe(false);
+});
+
+it('reports an ambiguous unique violation of the ledger as not applicable when the order already carries an accepted capture', async () => {
+  const conflict = uniqueConflict({ modelName: 'PaymentLedger', target: null });
+  prismaMock.paymentLedger.create.mockRejectedValue(conflict);
+  prismaMock.paymentLedger.findFirst
+    .mockResolvedValueOnce(null)
+    .mockResolvedValueOnce({ id: 'ledger-2', eventType: 'SUCCEEDED', refundRequired: false });
+  await expect(recordPaymentSucceeded({ paymentId: 'payment-1', providerEventId: 'event-1', providerPaymentId: 'capture-1' })).resolves.toBe(false);
+});
+
+it('rethrows an ambiguous unique violation of the ledger that no ledger row explains', async () => {
+  // The violation belongs to a constraint that has nothing to do with the
+  // payment fact, so it is rethrown and the provider retries.
+  const conflict = uniqueConflict({ modelName: 'PaymentLedger', target: null });
+  prismaMock.paymentLedger.create.mockRejectedValue(conflict);
+  prismaMock.paymentLedger.findFirst.mockResolvedValue(null);
+  await expect(recordPaymentSucceeded({ paymentId: 'payment-1', providerEventId: 'event-1', providerPaymentId: 'capture-1' })).rejects.toBe(conflict);
 });
 
 it('propagates a unique violation inside a transaction of the caller', async () => {

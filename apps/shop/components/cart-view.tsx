@@ -14,7 +14,7 @@ import { ShopImage } from './shop-image';
 export function CartView({ initial, locale, currency, productLinks }: { initial: Cart; locale: ShopLocale; currency: string; productLinks: Record<string, string> }) {
   const { cart, busy, error, quantities, availability, change, blocked } = useCart(initial, locale);
   const t = storefrontMessages(locale);
-  const money = (amount: number) => formatPrice(amount, locale, currency);
+  const money = (amount: string | number) => formatPrice(amount, locale, currency);
   if (!cart?.items.length) return <main className="mx-auto flex min-h-[560px] max-w-7xl items-center justify-center px-4 md:px-8">
     <div className="flex flex-col items-center gap-3 py-20 text-center"><ShoppingBag size={24} aria-hidden="true" />
       <h1 className="text-[22px] font-semibold tracking-tight">{t.s4.emptyTitle}</h1>

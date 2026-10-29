@@ -8,6 +8,14 @@ import { validateCoreMigrationSql } from '../../../../packages/shared/src/core-m
 import { executeCoreMigrations, historyTableSql } from '../../../../deploy/release/core-migrations.mjs';
 
 const MIGRATION_NAME = '20261028031500_data_reliability_indexes';
+const ORDERS_ID_TRGM_MIGRATION_NAME = '20261029061832_orders_id_trgm_index';
+
+/**
+ * The migrations of the batch, in the order the executor applies them. The
+ * trigram index of the order id only adds an index, so both run in the same
+ * scratch schema, one after the other.
+ */
+const MIGRATION_NAMES = [MIGRATION_NAME, ORDERS_ID_TRGM_MIGRATION_NAME];
 
 /**
  * The mirror of the real tables: every table the migration touches, with the
@@ -219,8 +227,9 @@ const DROPPED_INDEXES = [
   'orders_status_idx',
 ];
 
-/** The trigram indexes the migration creates. */
+/** The trigram indexes the migrations create. */
 const TRIGRAM_INDEXES = [
+  'orders_id_trgm_idx',
   'orders_orderNumber_trgm_idx',
   'product_variants_skuCode_trgm_idx',
   'products_description_trgm_idx',
@@ -306,11 +315,13 @@ it('applies the data reliability migration to a scratch schema', async () => {
     await query(MIRROR_TABLES.map(createTableSql).join('\n'));
     await query(LEGACY_INDEXES_SQL);
 
-    const name = MIGRATION_NAME;
-    const sql = readFileSync(`prisma/migrations/${name}/migration.sql`, 'utf8');
+    const sources = MIGRATION_NAMES.map(migrationName => {
+      const sql = readFileSync(`prisma/migrations/${migrationName}/migration.sql`, 'utf8');
+      return { name: migrationName, sql, checksum: createHash('sha256').update(sql).digest('hex') };
+    });
     await executeCoreMigrations(
       { query },
-      [{ name, sql, checksum: createHash('sha256').update(sql).digest('hex') }],
+      sources,
       [],
       validateCoreMigrationSql,
       async () => undefined,
@@ -364,14 +375,16 @@ it('applies the data reliability migration to a scratch schema', async () => {
     )).rows.map(row => row.indexname);
     expect(dropped).toEqual([]);
 
-    // The migration history records the migration.
+    // The migration history records every migration of the batch.
     const history = (await query(
-      `SELECT migration_name, checksum, finished_at FROM public._prisma_migrations WHERE migration_name = $1`,
-      [name],
+      `SELECT migration_name, checksum, finished_at FROM public._prisma_migrations
+        WHERE migration_name = ANY($1::text[]) ORDER BY migration_name`,
+      [MIGRATION_NAMES],
     )).rows;
-    expect(history).toHaveLength(1);
-    expect(history[0].migration_name).toBe(name);
-    expect(history[0].finished_at).toBeTruthy();
+    expect(history.map(row => row.migration_name)).toEqual([...MIGRATION_NAMES].sort());
+    for (const row of history) {
+      expect(row.finished_at).toBeTruthy();
+    }
   } finally {
     try {
       if (extensionBefore === null) {
@@ -385,8 +398,8 @@ it('applies the data reliability migration to a scratch schema', async () => {
   }
 });
 
-it('keeps the data reliability migration transaction safe', () => {
-  const sql = readFileSync(`prisma/migrations/${MIGRATION_NAME}/migration.sql`, 'utf8');
+it.each(MIGRATION_NAMES)('keeps the %s migration transaction safe', name => {
+  const sql = readFileSync(`prisma/migrations/${name}/migration.sql`, 'utf8');
   // The executor owns the transaction: the migration must not open one itself.
   expect(() => validateCoreMigrationSql(sql)).not.toThrow();
   expect(validateCoreMigrationSql(sql).wrapperStripped).toBe(false);

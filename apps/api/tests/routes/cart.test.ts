@@ -74,6 +74,9 @@ describe('Cart Endpoints', () => {
 
       const body = response.json();
       expect(body).toBeDefined();
+      // The empty cart carries the same exact amounts as a cart with lines.
+      expect(body.data.subtotal).toBe('0');
+      expect(body.data.total).toBe('0');
     });
 
     it('should return cart with items after adding', async () => {
@@ -102,7 +105,7 @@ describe('Cart Endpoints', () => {
       expect(body.data).toHaveProperty('items');
     });
 
-    it('should report the exact decimal total of a basket whose prices do not sum exactly in a float', async () => {
+    it('should answer the exact decimal amount of a basket whose prices do not sum exactly in a float', async () => {
       // The two prices do not sum exactly in a binary float: 79.99 + 19.99 is
       // 99.97999999999999 when it is added as a float.
       const first = await createTestProduct({ name: 'Cart Exact Total Product', price: 79.99, stock: 10 });
@@ -134,9 +137,20 @@ describe('Cart Endpoints', () => {
 
         const cart = response.json().data;
         expect(cart.items).toHaveLength(2);
-        expect(cart.subtotal).toBe(99.98);
+        // The amount of the cart leaves the module as an exact decimal, and
+        // the wire carries it as the exact decimal string.
+        expect(cart.subtotal).toBe('99.98');
+        expect(typeof cart.subtotal).toBe('string');
+        expect(cart.subtotal).not.toBe(99.98);
         expect(cart.subtotal).not.toBe(99.97999999999999);
-        expect(cart.total).toBe(99.98);
+        expect(cart.total).toBe('99.98');
+        expect(typeof cart.total).toBe('string');
+        // The amount of every line is exact as well. The lines are found by
+        // their product, so the assertion does not depend on the order of the
+        // lines of the cart.
+        const lineOf = (productId: string) => cart.items.find((item: { productId: string }) => item.productId === productId)!;
+        expect(lineOf(first.id)).toMatchObject({ price: '79.99', subtotal: '79.99' });
+        expect(lineOf(second.id)).toMatchObject({ price: '19.99', subtotal: '19.99' });
       } finally {
         await deleteTestProduct(first.id);
         await deleteTestProduct(second.id);

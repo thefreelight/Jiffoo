@@ -24,6 +24,7 @@ const RAW_ONLY_BUSINESS_INDEXES = [
   'products_spuCode_trgm_idx',
   'products_spucode_lower_key',
   'orders_orderNumber_trgm_idx',
+  'orders_id_trgm_idx',
   'refunds_one_completed_per_capture',
   'users_email_trgm_idx',
   'users_username_trgm_idx',
@@ -313,6 +314,30 @@ it('rejects a negative auth token attempt count at the database', async () => {
   } finally {
     await client.query(`DELETE FROM auth_tokens WHERE id = $1`, [`schema_attempt_token_${suffix}`]).catch(() => undefined);
     await client.query(`DELETE FROM users WHERE id = $1`, [userId]).catch(() => undefined);
+    await client.end();
+  }
+});
+
+it('serves the admin order search with a trigram index on the order id', async () => {
+  // The admin order search matches the id of the order with a substring
+  // predicate, which no btree index can serve.
+  const client = await connect();
+  try {
+    const rows = (await client.query(
+      `SELECT indexname, tablename, indexdef FROM pg_indexes
+        WHERE schemaname = 'public' AND indexname = 'orders_id_trgm_idx'`,
+    )).rows;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].tablename).toBe('orders');
+    // PostgreSQL renders the definition with the unquoted lower case column,
+    // because `id` needs no quoting: the creating statement quotes it, the
+    // stored definition does not. The shape of the definition is what proves
+    // the index: a GIN index on the column `id` with the trigram operator
+    // class, partial on `id IS NOT NULL`.
+    expect(rows[0].indexdef).toMatch(
+      /^CREATE INDEX orders_id_trgm_idx ON (public\.)?orders USING gin \(id gin_trgm_ops\) WHERE \(id IS NOT NULL\)$/,
+    );
+  } finally {
     await client.end();
   }
 });

@@ -56,14 +56,29 @@ export interface CartItem {
   productId: string;
   productName: string;
   productImage: string;
-  price: number;
+  /**
+   * The exact price of the line.
+   *
+   * The price of a line is money, so it is an exact decimal and never a
+   * float: the wire carries the exact decimal string, the way the quote of
+   * the checkout carries its amounts.
+   */
+  price: string;
   quantity: number;
   variantId: string;
   variantName?: string;
   variantAttributes?: Record<string, unknown> | null;
   requiresShipping: boolean;
   maxQuantity: number;
-  subtotal: number;
+  /**
+   * The exact amount of the line.
+   *
+   * The amount of a line is money, so it is an exact decimal and never a
+   * float: the arithmetic of the cart is exact and the wire carries the
+   * exact decimal string, the way the quote of the checkout carries its
+   * amounts.
+   */
+  subtotal: string;
 }
 
 /**
@@ -88,9 +103,17 @@ export interface Cart {
   id: string;
   userId: string;
   items: CartItem[];
-  total: number;
+  /**
+   * The exact amount of the cart.
+   *
+   * The amount of a cart is money, so it is an exact decimal and never a
+   * float: the wire carries the exact decimal string, the way the quote of
+   * the checkout carries its amounts.
+   */
+  total: string;
   itemCount: number;
-  subtotal: number;
+  /** The exact amount of the lines of the cart. */
+  subtotal: string;
   tax: number;
   shipping: number;
   status: string;
@@ -586,7 +609,11 @@ export class CartService {
     // edit that runs while the order is inside this consumption has to be
     // applied while the order still commits completely. The row lock of the
     // consumed lines below is the granularity of this path.
-    const cart = await tx.cart.findUnique({ where: { userId }, include: { items: true } });
+    // The lines of the cart are read in the order of their identifiers, the
+    // same order every read of the lines of a cart uses: the identifier of a
+    // line is a cuid, so the order of the identifiers is the order of the
+    // insertion of the lines in practice.
+    const cart = await tx.cart.findUnique({ where: { userId }, include: { items: { orderBy: { id: 'asc' } } } });
     if (!cart) return;
 
     // The purchased lines of the cart, with the quantity that is purchased
@@ -631,9 +658,12 @@ export class CartService {
    * @returns Promise resolving to the fulfilment projection of every cart line
    */
   static async getLineFulfillments(userId: string): Promise<CartLineFulfillment[]> {
+    // The lines of the cart are read in the order of their identifiers, the
+    // same order every read of the lines of a cart uses: the answer of the
+    // cart and the consumption of the lines agree on it.
     const cart = await prisma.cart.findUnique({
       where: { userId },
-      include: { items: true }
+      include: { items: { orderBy: { id: 'asc' } } }
     });
     if (!cart) return [];
 
@@ -901,9 +931,12 @@ export class CartService {
    * Note: Parses product images from typeData JSON field
    */
   private static async getCartFromDatabase(userId: string): Promise<Cart | null> {
+    // The lines of the cart are read in the order of their identifiers, the
+    // same order every read of the lines of a cart uses: the answer of the
+    // cart and the consumption of the lines agree on it.
     const cart = await prisma.cart.findUnique({
       where: { userId },
-      include: { items: true }
+      include: { items: { orderBy: { id: 'asc' } } }
     });
 
     if (!cart) return null;
@@ -927,10 +960,12 @@ export class CartService {
         ? typeData?.images.filter((image): image is string => typeof image === 'string')
         : [];
       const availableStock = variant.stock;
-      const unitPrice = variant.salePrice;
+      // The price of a line is money, so it is an exact decimal and never a
+      // float: the wire carries the exact decimal string.
+      const unitPrice = new Prisma.Decimal(variant.salePrice);
       // The amount of a line is the exact product of its price and its
       // quantity, so the total of the cart is the exact sum of the lines.
-      const lineTotal = new Prisma.Decimal(variant.salePrice).mul(item.quantity);
+      const lineTotal = unitPrice.mul(item.quantity);
       cartTotal = cartTotal.add(lineTotal);
       // The shipping requirement of a cart line is the shared address rule of
       // a line, the same rule the order placement resolves, so the cart and
@@ -941,18 +976,23 @@ export class CartService {
         productId: item.productId,
         productName: product?.name || 'Unknown Product',
         productImage: images[0] || '',
-        price: unitPrice,
+        price: unitPrice.toString(),
         quantity: item.quantity,
         variantId: item.variantId,
         variantName: variant?.name || undefined,
         variantAttributes: parseJsonRecord(variant?.attributes),
         requiresShipping: lineRequiresShippingAddress(productType, product?.requiresShipping ?? true),
         maxQuantity: stockCeilingFor(productType, availableStock),
-        subtotal: lineTotal.toNumber(),
+        subtotal: lineTotal.toString(),
       };
     });
 
-    const subtotal = cartTotal.toNumber();
+    // The amount of the cart leaves the module as an exact decimal string,
+    // the way the quote of the checkout leaves its amounts.
+    const subtotal = cartTotal.toString();
+    // The cart knows no tax and no shipping yet: the quote of the checkout
+    // resolves them, and the total of the cart is the sum of its lines.
+    const total = cartTotal.toString();
 
     return {
       id: cart.id,
@@ -961,7 +1001,7 @@ export class CartService {
       subtotal,
       tax: 0,
       shipping: 0,
-      total: subtotal,
+      total,
       itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
       status: cart.status,
       createdAt: cart.createdAt.toISOString(),
@@ -981,13 +1021,16 @@ export class CartService {
    */
   private static createEmptyCart(userId: string): Cart {
     const now = new Date().toISOString();
+    // The empty cart carries the same exact amounts as a cart with lines:
+    // the amount of the cart is an exact decimal string, never a float.
+    const zero = new Prisma.Decimal(0).toString();
     return {
       id: '',
       userId,
       items: [],
-      total: 0,
+      total: zero,
       itemCount: 0,
-      subtotal: 0,
+      subtotal: zero,
       tax: 0,
       shipping: 0,
       status: 'ACTIVE',

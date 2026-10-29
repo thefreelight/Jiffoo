@@ -8,16 +8,19 @@ export type CartLine = {
   productImage: string;
   variantName?: string;
   variantAttributes?: Record<string, unknown> | null;
-  price: number;
+  /** The exact price of the line, as the exact decimal string of the API. */
+  price: string | number;
   quantity: number;
   maxQuantity: number;
-  subtotal: number;
+  /** The exact amount of the line, as the exact decimal string of the API. */
+  subtotal: string | number;
 };
 
 export type Cart = {
   items: CartLine[];
   itemCount: number;
-  subtotal: number;
+  /** The exact amount of the cart, as the exact decimal string of the API. */
+  subtotal: string | number;
 };
 
 export function variantText(line: CartLine) {
