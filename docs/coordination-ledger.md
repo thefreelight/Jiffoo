@@ -1923,3 +1923,134 @@ Run Shop tests:
 The shards: 47/47, 46/46, 47/47, 47/47 files, no failed file in any of them; 187/187 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The drift step ran this time, because the batch changed a file under `apps/api/prisma` (the register of the raw indexes), and the datamodel and the database still agree.
 
 The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own.
+
+## 5zd. Handover evidence — S3-DATA-5 (the registered items of the step 3 batch)
+
+**Baseline SHA:** `99eac5dc`. **Commit:** `f39f79e0`.
+
+### The registered items this batch closes
+
+The ledger of the batch before registered four open items. All four are closed here, and the four shard run of the acceptance gate found two more (the order of the lines of the cart, and the timing of the plugin task waits), both of which are closed here as well.
+
+| The registered item | Before | After |
+|---|---|---|
+| The admin order search matches the id of the order with `contains` and no index serves it | the disjunction over the id forced a sequential scan of the orders table | the migration `20261029061832_orders_id_trgm_index` adds the partial trigram index `orders_id_trgm_idx` on the id, the way the order number, the email and the user name are already served |
+| The violation of the partial index `payment_ledger_one_accepted_capture_per_order` could not be told apart from the violation of the capture keys | every violation of the payment ledger was reported as "already applied" when the engine reported no target | the catch site asks the ledger: a row of this capture means the capture was recorded, an accepted capture of the order means the fact is not applicable, and every other constraint is rethrown |
+| The cart response carried a float `subtotal` | the cart answered "99.97999999999999" for a basket of 79.99 and 19.99 | the cart answers the exact decimal strings, the way the quote of the checkout answers its amounts |
+| `plugin-tasks.test.ts` failed once in a serial full run with a load-sensitive timing assertion | the wait ceiling of 20 s sat below the runner timeout of 30 s, and the fixture of the OS worker leased its task for 250 ms | the shared ceiling is 60 s, the waits that need more carry their own ceiling, the test timeouts cover the ceilings of their waits, and the fixture leases its task for 5 s with a renewal every 250 ms |
+| The order of the lines of the cart was decided by the database | the answer of the cart and the order of the lines of the order changed between environments | all three reads of the lines order them by their identifier |
+
+### The cause of the plugin task flake
+
+The OS worker fixture leased its task for 250 ms and renewed the lease every 50 ms. The renewal is a database transaction, so in a loaded shard it can take longer than the lease itself: the lease expires while the worker is still executing, the next renewal fails its claim assertion, and the renewal aborts the execution — so the task never reaches "succeeded" and the wait for it runs out its ceiling. The production defaults are unaffected: the lease is 60 s and the renewal 15 s (apps/api/src/core/plugins/task-worker.ts:173 and :215). The fixture now leases for 5 s and renews every 250 ms, which keeps nineteen renewal opportunities per lease.
+
+### The contract changes this batch registers
+
+1. `GET /api/v1/cart` — the amounts of the cart are exact decimal strings: `data.items[].price`, `data.items[].subtotal`, `data.subtotal` and `data.total`. Before, they were numbers, and the sum of the lines of a basket could carry a float error. The tax and the shipping of the cart stay numbers, because the cart computes neither.
+2. `GET /api/v1/cart` — the order of the lines is the ascending order of their identifiers. Before, the database decided it.
+3. The storefront reads the new shape. `formatPrice` already accepted a string, so the rendered amount does not change.
+
+### The deployment note
+
+The new migration creates one index without `CONCURRENTLY` and runs in one transaction, so it holds a share lock on the orders table while it builds: the same maintenance window as the migration of the batch before. The role that applies it needs the `CREATE` right on the database for `pg_trgm`, which the migration of the batch before already needed.
+
+### What is still open
+
+- The scale of the prices and the exponent of the currency: `currencyExponent` supports the three decimal currencies (BHD, JOD, KWD, OMR, TND) and the zero decimal ones (JPY, KRW, VND), but the price columns are `Decimal(18, 2)`. A store in a zero decimal currency that prices an item at `100.50` stores the price and then the quote refuses it: `decimalToMinor` raises `TOO_MANY_DECIMAL_PLACES` (`apps/api/src/core/checkout/service.ts:59`). The defect is older than this batch — the cart carried the same price as a float — and it is a money model question with a schema and a validation surface, so it is registered here and not fixed here.
+- The cart answers its amounts with the scale of the arithmetic (the sum of "20" and "11" is "31"), while the quote answers with the scale of the currency ("31.00"). The values are equal; the scale is not. The cart does not know the currency of the store, so it cannot pad.
+- The browser E2E is not part of the local gate; CI runs it.
+
+### The gate evidence
+
+The scoped gate over the sixty selected files (`pnpm verify:quick --test-files=…`, the integration lane `jiffoo_core_test`):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: apps/api/tests/core/admin-removal-migration.test.ts (Prisma schema or migration changed); apps/api/tests/core/order-item-snapshot-migration.test.ts (Prisma schema or migration changed); apps/api/tests/core/order-number-migration.test.ts (Prisma schema or migration changed); apps/api/tests/core/product-code-migration.test.ts (Prisma schema or migration changed); apps/api/tests/routes/plugin-migrations.test.ts (Prisma schema or migration changed)
+Run API tests:
+   Start at:  20:39:35
+ Test Files  57 passed (57)
+      Tests  955 passed | 2 skipped (957)
+Run Shop tests:
+   Start at:  20:51:18
+ Test Files  3 passed (3)
+      Tests  20 passed (20)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 3.11s |
+| Lint Shop | PASS | 7.15s |
+| Reset test database | PASS | 3.14s |
+| Check Prisma migration drift | PASS | 1.32s |
+| Run API tests | PASS | 703.73s |
+| Run Shop tests | PASS | 1.76s |
+```
+
+The full shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 10 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 187/187 files covered
+Totals: Test Files 187 files, 187 passed | Tests 2632 tests, 2630 passed, 2 pending | Suites 499 suites, 499 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (vitest list --filesOnly, same exclusions, same environment as the shards): 187
+Expected set (the full catalogue, not the assigned subset): 187
+Assigned to this run: 187
+Executed (union over all shards): 187
+Shard 1: 47 files
+Shard 2: 46 files
+Shard 3: 47 files
+Shard 4: 47 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 663.0s | 20:26:42 | 47 files, 47 passed | 726 tests, 726 passed | none |
+| 2 | 0 | 509.8s | 20:26:43 | 46 files, 46 passed | 452 tests, 452 passed | none |
+| 3 | 0 | 556.8s | 20:26:44 | 47 files, 47 passed | 745 tests, 743 passed, 2 pending | none |
+| 4 | 0 | 569.6s | 20:26:45 | 47 files, 47 passed | 709 tests, 709 passed | none |
+Run Admin tests:
+   Start at:  20:37:41
+ Test Files  59 passed (59)
+      Tests  592 passed (592)
+Run Shop tests:
+   Start at:  20:38:16
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.02s |
+| Type-check API, Admin, Shop and shared | PASS | 14.49s |
+| Lint Shop | PASS | 31.21s |
+| Reset test database | PASS | 18.44s |
+| Check Prisma migration drift | PASS | 1.30s |
+| Run API tests in 4 shards | PASS | 678.96s |
+| Run Admin tests | PASS | 35.55s |
+| Run Shop tests | PASS | 32.24s |
+```
+
+The shards: 47/47, 46/46, 47/47, 47/47 files, no failed file in any of them; 187/187 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The drift step ran, because the batch added a migration under `apps/api/prisma`, and the datamodel and the database still agree.
+
+The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own.
