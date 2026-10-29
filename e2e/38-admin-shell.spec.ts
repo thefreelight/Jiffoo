@@ -7,6 +7,18 @@ import { mkdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { captureOverview, chooseOverviewMode } from './overview-captures';
 import { captureOrderDetail } from './order-detail-captures';
+import Redis from 'ioredis';
+// The direct database write bypasses the API, so the order cache version is never bumped and the
+// admin would serve the cached order list and statistics of the state before the write; bumping the
+// version invalidates the cached admin order data exactly like an API write does.
+async function invalidateAdminOrderCache() {
+  const redis = new Redis(process.env.REDIS_URL!);
+  try {
+    await redis.incr('order:version');
+  } finally {
+    redis.disconnect();
+  }
+}
 async function chooseMode(page: import('@playwright/test').Page, mode: string) {
   await page.getByRole('button', { name: 'Account menu', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Appearance', exact: true }).focus();
@@ -115,6 +127,7 @@ test('U2 Overview shows real attention counts and opens the Orders review deep l
       items: { create: { productId: item.productId, variantId: item.variantId, quantity: 3, unitPrice: item.unitPrice, lineTotal: amount, catalogSnapshot: item.catalogSnapshot! } },
       ...(index === 0 ? { payments: { create: { paymentMethod: 'manual-payment', providerKey: provider.providerKey, amount, currency: 'USD', status: 'REQUIRES_REVIEW', idempotencyKey: randomUUID() } } } : {}),
     } });
+    await invalidateAdminOrderCache();
     const count = await db.order.count({ where: { payments: { some: { status: 'REQUIRES_REVIEW', reviewResolution: null } } } });
     const toShip = await db.order.count({ where: { status: 'PROCESSING', paymentStatus: 'PAID' } });
     await login(page, ownerEmail, 'FinalOwnerPassword123!');
@@ -226,11 +239,15 @@ test('U1c Orders filters, compact cards and review banner use real data in both 
       items: { create: { productId: item.productId, variantId: item.variantId, quantity: 3, unitPrice: item.unitPrice, lineTotal: amount, catalogSnapshot: item.catalogSnapshot! } },
       payments: { create: { paymentMethod: 'manual-payment', providerKey: provider.providerKey, amount, currency: 'USD', status: 'REQUIRES_REVIEW', idempotencyKey: randomUUID() } },
     } });
+    await invalidateAdminOrderCache();
     await page.reload();
     await expect(page.getByRole('button', { name: 'Review payments', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Review payments', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Payment', exact: true })).toContainText('Requires review');
     await page.getByRole('textbox', { name: 'Search order number or customer email' }).fill(id);
+    // The search input applies its value after a delay, and a selection made before the filter lands
+    // is dropped together with the filter, so wait for the filtered URL before selecting the rows.
+    await expect(page).toHaveURL(new RegExp('search=' + id));
     await expect(page.getByRole('link', { name: 'View order ' + (await db.order.findUniqueOrThrow({ where: { id: id } })).orderNumber, exact: true })).toBeVisible();
     await expect(page.getByText('3 items', { exact: true }).first()).toBeVisible();
     await page.getByRole('checkbox', { name: 'Select all orders on this page', exact: true }).check();
