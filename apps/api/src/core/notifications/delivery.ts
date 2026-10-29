@@ -9,6 +9,20 @@ import { pluginDatabaseLimit } from '@/core/extensions/runtime/plugin-database-t
 import { claimNotifications, reclaimNotificationLeases, completeNotification, failNotification, releaseUnstartedNotification, notificationClaimLimit, notificationLeaseAllowsSend, type NotificationLeaseClient } from './lease';
 
 const secretPattern = /\{\{secret\.(link|code)\}\}/g;
+
+/**
+ * The milliseconds the notification claim transaction may hold its connection.
+ *
+ * The claim transaction reclaims the expired leases and claims the batch, so
+ * the timeout is sized for a batch of notifications.
+ */
+const NOTIFICATION_TRANSACTION_TIMEOUT_MS = 30_000;
+
+/**
+ * The milliseconds the notification claim transaction waits for a free
+ * connection of the pool.
+ */
+const NOTIFICATION_TRANSACTION_MAX_WAIT_MS = 10_000;
 const claimed = new Set<string>();
 let running = false;
 export function unsettledNotifications() { return [...claimed].map(id => ({ kind: 'notification', id })); }
@@ -31,7 +45,7 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
     const leaseClient: NotificationLeaseClient = { query: async (text, values = []) => ({ rows: await tx.$queryRawUnsafe<any[]>(text, ...values) }) };
     await reclaimNotificationLeases(leaseClient);
     return claimNotifications(leaseClient, coreProcessIdentity.instanceId, notificationClaimLimit(sendTimeoutMs));
-  });
+  }, { maxWait: NOTIFICATION_TRANSACTION_MAX_WAIT_MS, timeout: NOTIFICATION_TRANSACTION_TIMEOUT_MS });
   for (const notification of notifications) claimed.add(notification.id);
   // The provider is resolved once for the whole batch, not once per
   // notification: every notification of the batch is sent by the same enabled

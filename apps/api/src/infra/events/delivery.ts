@@ -14,6 +14,18 @@ export const EVENT_POLL_INTERVAL_MS = 1_000;
 export const EVENT_BATCH_SIZE = 16;
 export const EVENT_RETRY_SECONDS = [60, 300, 900, 3600, 10800, 21600, 43200] as const;
 export const EVENT_MAX_ATTEMPTS = 8;
+/**
+ * The milliseconds an event transaction may hold its connection.
+ *
+ * The claim transaction claims a batch of deliveries and the failure
+ * transaction writes the failure of one delivery, so the timeout is sized for
+ * a batch of deliveries.
+ */
+const EVENT_TRANSACTION_TIMEOUT_MS = 30_000;
+/**
+ * The milliseconds an event transaction waits for a free connection of the pool.
+ */
+const EVENT_TRANSACTION_MAX_WAIT_MS = 10_000;
 let testHandlerTimeoutMs: number | undefined;
 export function setEventDeliveryTimeoutForTest(enabled: boolean, value?: number): void {
   if (process.env.NODE_ENV !== 'test' || !enabled) throw new Error('Event timeout controls require an explicit test switch');
@@ -59,7 +71,7 @@ export async function claimEventDeliveries(
     return tx.$queryRawUnsafe<EventDelivery[]>(
       CLAIM_EVENT_DELIVERIES_SQL, excluded, Math.min(EVENT_BATCH_SIZE, Math.max(0, limit)), workerId, randomUUID(),
     );
-  });
+  }, { maxWait: EVENT_TRANSACTION_MAX_WAIT_MS, timeout: EVENT_TRANSACTION_TIMEOUT_MS });
 }
 
 async function finishFailure(transaction: EventTransaction, delivery: EventDelivery, error: string): Promise<void> {
@@ -95,7 +107,7 @@ export async function recoverEventLeases(): Promise<number> {
     `;
     for (const delivery of expired) await finishFailure(tx, delivery, 'Event delivery lease expired');
     return expired.length;
-  }, { maxWait: 10_000, timeout: 30_000 });
+  }, { maxWait: EVENT_TRANSACTION_MAX_WAIT_MS, timeout: EVENT_TRANSACTION_TIMEOUT_MS });
 }
 
 /** Run the core subscribers of an event. Returns a skip reason when the core ignores it. */
@@ -198,7 +210,8 @@ export class EventDeliveryEngine {
         WHERE id = ${delivery.id} AND status = 'RUNNING' AND "claimToken" = ${delivery.claimToken}
       `;
     } catch (error) {
-      await prisma.$transaction((tx) => finishFailure(tx, delivery, error instanceof Error ? error.message : String(error)));
+      await prisma.$transaction((tx) => finishFailure(tx, delivery, error instanceof Error ? error.message : String(error)),
+        { maxWait: EVENT_TRANSACTION_MAX_WAIT_MS, timeout: EVENT_TRANSACTION_TIMEOUT_MS });
     } finally {
       if (timeout) clearTimeout(timeout);
       observeWorkerShutdownForTest('event-wrapper-settled', { id: delivery.id, installationId: delivery.installationId });

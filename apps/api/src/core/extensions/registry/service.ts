@@ -19,6 +19,7 @@
  * database read.
  */
 
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { PLUGIN_CONTRACT_VERSIONS, type PluginContractName, type PluginTrustLevel } from '@jiffoo/shared';
@@ -345,6 +346,17 @@ interface CachedDefaultInstallation {
 }
 
 /**
+ * A client that can read the registry inside a transaction of the caller.
+ *
+ * The type accepts the transaction client of the base Prisma client and the
+ * transaction client of the extended client of this repository, so a caller
+ * that owns a transaction of either can hand it over.
+ */
+export type RegistryTransactionClient =
+  | Prisma.TransactionClient
+  | Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'>;
+
+/**
  * The default installation of a plugin.
  *
  * The payment module reads the installation of the provider it binds or calls.
@@ -360,12 +372,30 @@ interface CachedDefaultInstallation {
  * invalidated by every change of the registry. The cache is never a source of
  * truth: an unreachable cache degrades to the database read.
  *
+ * A reader that owns a transaction hands that transaction over: the read
+ * joins the snapshot of the caller and no second connection is opened inside
+ * it. The cache is not used on that path, because it is external I/O inside a
+ * transaction and because it answers with a row of another snapshot.
+ *
  * A missing, disabled or deleted installation is reported as `null`, so the
  * reader treats it as an unavailable installation.
  *
  * @param slug Slug of the plugin
+ * @param transaction The transaction of the caller, when the caller owns one
  */
-export async function getDefaultInstallationRow(slug: string): Promise<DefaultInstallationProjection | null> {
+export async function getDefaultInstallationRow(
+  slug: string,
+  transaction?: RegistryTransactionClient,
+): Promise<DefaultInstallationProjection | null> {
+  if (transaction) {
+    const installation = await transaction.pluginInstallation.findUnique({
+      where: { pluginSlug_instanceKey: { pluginSlug: slug, instanceKey: 'default' } },
+      select: { id: true, enabled: true, deletedAt: true },
+    });
+    if (!installation || !installation.enabled || installation.deletedAt) return null;
+    return installation;
+  }
+
   const version = `v${await registryCacheVersion()}`;
   const key = `default-installation:${slug}`;
   const cached = await readRegistryEntry<CachedDefaultInstallation>(version, key);

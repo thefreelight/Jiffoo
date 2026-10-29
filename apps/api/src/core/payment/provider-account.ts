@@ -5,6 +5,16 @@ import { getDefaultInstallationRow } from '@/core/extensions/registry';
 import { ApiError } from '@/utils/api-errors';
 import type { NotificationTransaction } from '@/core/notifications/service';
 
+/**
+ * The bounds of the transaction that binds the provider account.
+ *
+ * The default bounds of Prisma are too small for the transaction: it writes
+ * the account of the provider and its binding to the installation, and it
+ * waits for the connection of the pool.
+ */
+const PAYMENT_PROVIDER_ACCOUNT_TRANSACTION_MAX_WAIT_MS = 10_000;
+const PAYMENT_PROVIDER_ACCOUNT_TRANSACTION_TIMEOUT_MS = 30_000;
+
 export function samePaymentAccount(first: PaymentAccountIdentity, second: PaymentAccountIdentity): boolean {
   return first.namespace === second.namespace && first.merchantAccount === second.merchantAccount && first.environment === second.environment;
 }
@@ -22,7 +32,7 @@ export async function bindPaymentProviderAccount(slug: string, currency: string)
     await tx.paymentProviderBinding.upsert({ where: { installationId_providerKey: { installationId: installation.id, providerKey: account.providerKey } },
       update: {}, create: { installationId: installation.id, providerKey: account.providerKey } });
     return account;
-  });
+  }, { maxWait: PAYMENT_PROVIDER_ACCOUNT_TRANSACTION_MAX_WAIT_MS, timeout: PAYMENT_PROVIDER_ACCOUNT_TRANSACTION_TIMEOUT_MS });
   return { account, description };
 }
 /**
@@ -33,10 +43,12 @@ export async function bindPaymentProviderAccount(slug: string, currency: string)
  * gone or disabled: the caller then knows that the observation needs a
  * review. A caller that owns a transaction passes it, so the binding joins
  * that transaction instead of opening a second connection while the
- * transaction holds the first.
+ * transaction holds the first. The installation row is read with that
+ * transaction as well, so the read joins the snapshot of the caller and no
+ * external I/O - the shared cache - happens inside the transaction.
  */
 export async function bindObservedPaymentAccount(slug: string, providerKey: string, transaction?: NotificationTransaction): Promise<boolean> {
-  const installation = await getDefaultInstallationRow(slug);
+  const installation = await getDefaultInstallationRow(slug, transaction);
   if (!installation || !installation.enabled || installation.deletedAt) return false;
   const binding = {
     where: { installationId_providerKey: { installationId: installation.id, providerKey } },

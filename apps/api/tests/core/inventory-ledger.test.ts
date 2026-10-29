@@ -72,6 +72,34 @@ describe('inventory ledger', () => {
   const ledgerRows = async (id: string) =>
     prisma.inventoryAdjustment.findMany({ where: { variantId: id }, orderBy: { createdAt: 'asc' } });
 
+  /**
+   * A transaction client whose stock write commits a concurrent sale first.
+   *
+   * The sale is committed by another transaction while the guarded write is
+   * prepared, so the level moves between the read of the base level and the
+   * write of the change. That is the race the write has to survive.
+   */
+  const racingTransaction = (tx: any, variantId: string, amount: number) => {
+    let committed = false;
+    return {
+      productVariant: {
+        findUnique: (args: any) => tx.productVariant.findUnique(args),
+        updateMany: async (args: any) => {
+          if (!committed) {
+            committed = true;
+            await prisma.productVariant.updateMany({
+              where: { id: variantId },
+              data: { stock: { decrement: amount } },
+            });
+          }
+          return tx.productVariant.updateMany(args);
+        },
+      },
+      inventoryAdjustment: tx.inventoryAdjustment,
+      $queryRaw: (...args: any[]) => tx.$queryRaw(...args),
+    };
+  };
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -318,6 +346,85 @@ describe('inventory ledger', () => {
       expect(cache).not.toHaveBeenCalled();
     } finally {
       restoreTransaction();
+    }
+  });
+
+  // The discriminating case of this file: it fails against the code that wrote
+  // the absolute level, because that code absorbed the concurrent sale.
+  it('reports a conflict instead of absorbing a concurrent change of the level', async () => {
+    const product = await createTestProduct({ price: UNIT_PRICE, stock: 10 });
+    const variant = product.variants[0];
+    const base = variant.stock;
+    // The desired level is computed from the level before the concurrent sale.
+    const desired = base + 5;
+
+    try {
+      await expect(prisma.$transaction(async (tx) => {
+        await InventoryService.applyDesiredStock(
+          racingTransaction(tx, variant.id, 3) as any,
+          variant.id,
+          desired,
+          { type: 'correction', reason: 'concurrent_change_test' },
+        );
+      })).rejects.toMatchObject({ code: 'CONFLICT' });
+
+      // The concurrent sale is still in the stock: the requested level did not
+      // overwrite it and the write landed on no row.
+      expect(await stockOf(variant.id)).toBe(base - 3);
+      expect(await ledgerRows(variant.id)).toHaveLength(0);
+    } finally {
+      await prisma.product.deleteMany({ where: { id: product.id } });
+    }
+  });
+
+  // The two cases below pin the guarded path (`expectedStock`), which the code
+  // already reported as a conflict before the fix. They guard that behaviour
+  // against a future regression; the discriminating case is the unguarded one
+  // above, which fails against the old code.
+
+  it('pins the guarded path: a level that moved under the write still reports a conflict', async () => {
+    const product = await createTestProduct({ price: UNIT_PRICE, stock: 10 });
+    const variant = product.variants[0];
+    const base = variant.stock;
+
+    try {
+      await expect(prisma.$transaction(async (tx) => {
+        await InventoryService.applyDesiredStock(
+          racingTransaction(tx, variant.id, 3) as any,
+          variant.id,
+          base + 5,
+          { type: 'correction', reason: 'guarded_path_test' },
+          { expectedStock: base },
+        );
+      })).rejects.toMatchObject({ code: 'CONFLICT' });
+
+      expect(await stockOf(variant.id)).toBe(base - 3);
+      expect(await ledgerRows(variant.id)).toHaveLength(0);
+    } finally {
+      await prisma.product.deleteMany({ where: { id: product.id } });
+    }
+  });
+
+  it('pins the guarded path: an expected level that does not match still reports a conflict', async () => {
+    const product = await createTestProduct({ price: UNIT_PRICE, stock: 10 });
+    const variant = product.variants[0];
+    const base = variant.stock;
+
+    try {
+      await expect(prisma.$transaction(async (tx) => {
+        await InventoryService.applyDesiredStock(
+          tx as any,
+          variant.id,
+          base + 5,
+          { type: 'correction', reason: 'guarded_path_test' },
+          { expectedStock: base - 1 },
+        );
+      })).rejects.toMatchObject({ code: 'CONFLICT' });
+
+      expect(await stockOf(variant.id)).toBe(base);
+      expect(await ledgerRows(variant.id)).toHaveLength(0);
+    } finally {
+      await prisma.product.deleteMany({ where: { id: product.id } });
     }
   });
 });

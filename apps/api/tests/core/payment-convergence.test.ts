@@ -310,6 +310,14 @@ it('B13 an already bound provider capture leaves the reviewed payment unchanged'
   expect(await prisma.adminAuditEvent.count({ where: { targetId: row.id, action: 'PAYMENT_REVIEW_CONFIRMED_PAID' } })).toBe(0);
 });
 
+it('B13 a replayed capture is reported as already applied and writes no second ledger row', async () => {
+  const item = await order(), row = await payment(item.id);
+  expect(await recordPaymentSucceeded({ paymentId: row.id, providerEventId: randomUUID(), providerPaymentId: 'replayed-capture' })).toBe(true);
+  expect(await recordPaymentSucceeded({ paymentId: row.id, providerEventId: randomUUID(), providerPaymentId: 'replayed-capture' })).toBe(false);
+  expect(await prisma.paymentLedger.count({ where: { paymentId: row.id, eventType: 'SUCCEEDED' } })).toBe(1);
+  expect(await prisma.payment.findUniqueOrThrow({ where: { id: row.id } })).toMatchObject({ status: 'SUCCEEDED' });
+});
+
 it('B13 database guards reject invented, incomplete or mutated resolutions and reversed status', async () => {
   const [writer, observer] = await connections(), item = await order(), row = await payment(item.id);
   try {

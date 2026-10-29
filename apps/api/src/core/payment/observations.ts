@@ -13,6 +13,16 @@ import { CacheService } from '@/core/cache/service';
 import type { NotificationTransaction } from '@/core/notifications/service';
 
 const clearLease = { claimToken: null, claimedBy: null, leaseUntil: null };
+/**
+ * The bounds of the transaction that applies an observed payment fact.
+ *
+ * The default bounds of Prisma are too small for a payment fact: the fact
+ * resolves the installation of the provider, locks the order and the payment
+ * and writes the ledger and the outbox of the event. The explicit bounds are
+ * the ones the payment webhook uses for the same reason.
+ */
+const PAYMENT_OBSERVATION_TRANSACTION_MAX_WAIT_MS = 10_000;
+const PAYMENT_OBSERVATION_TRANSACTION_TIMEOUT_MS = 30_000;
 function canonical(value: unknown): string {
   if (Array.isArray(value)) return '[' + value.map(canonical).join(',') + ']';
   if (value && typeof value === 'object') return '{' + Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => JSON.stringify(key) + ':' + canonical(item)).join(',') + '}';
@@ -197,7 +207,8 @@ export async function observePaymentFact(
   const prepared = await preparePaymentFact(slug, fact, source, expectedPaymentId, transaction);
   const applied = transaction
     ? await applyPreparedPaymentFact(slug, fact, source, claimToken, prepared, transaction)
-    : await prisma.$transaction(tx => applyPreparedPaymentFact(slug, fact, source, claimToken, prepared, tx));
+    : await prisma.$transaction(tx => applyPreparedPaymentFact(slug, fact, source, claimToken, prepared, tx),
+      { maxWait: PAYMENT_OBSERVATION_TRANSACTION_MAX_WAIT_MS, timeout: PAYMENT_OBSERVATION_TRANSACTION_TIMEOUT_MS });
   // The cached admin order list is stale after the write, so its version is
   // bumped here: after the transaction that wrote the order resolved, so a
   // rollback keeps the cache correct, and before a reader can repopulate it

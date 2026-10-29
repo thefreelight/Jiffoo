@@ -155,7 +155,7 @@ export const cartSchemas = {
         },
       },
     },
-    response: createTypedCrudResponses(cartSchema),
+    response: { ...createTypedCrudResponses(cartSchema), 409: stockErrorSchema },
   },
 
   // PUT /api/cart/items/:itemId

@@ -122,7 +122,7 @@ export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
         // validation of the plugin must not hold a connection while they run.
         const instance = await getDefaultInstance(pkg.slug);
         if (!instance) throw new Error(`Builtin plugin "${pkg.slug}" has no default installation`);
-        const plan = await PluginManagementService.planInstanceUpdate(instance.id, { enabled: true });
+        const plan = await PluginManagementService.planInstanceUpdate(instance.id, { enabled: true }, { callerOwnsTransaction: false });
         await plan.prepare();
         // One short transaction: the enable and the audit of the installation
         // commit together, so an enabled plugin never misses its audit.

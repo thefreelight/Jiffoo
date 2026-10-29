@@ -40,6 +40,11 @@ import { countryRequiresStatePostal, normalizeCountryCode, type CreateOrderReque
  * a function body, so the pipeline adds nothing to the module state audit.
  */
 
+/** The milliseconds the order placement transaction may hold its connection. */
+const ORDER_PLACEMENT_TRANSACTION_TIMEOUT_MS = 30_000;
+/** The milliseconds the order placement transaction waits for a free connection of the pool. */
+const ORDER_PLACEMENT_TRANSACTION_MAX_WAIT_MS = 10_000;
+
 /** A line of the order, as it is placed. */
 type OrderItemDraft = {
   productId: string;
@@ -700,7 +705,19 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
             });
 
             if (data.pluginPurchaseOriginId) await bindPurchaseOrigin(tx, data.pluginPurchaseOriginId, userId, created.id);
-            for (const item of context.stockItems) {
+            // The stock rows are deducted in the ascending order of their
+            // variant id, the order every other writer of those rows takes:
+            // the admin product path locks the variants of a product by
+            // ascending id, so a deduction in the order of the cart could
+            // hold a later variant and wait for an earlier one while the
+            // admin path held the earlier one and waited for the later one.
+            // Only the order of the deductions changes: the lines of the
+            // order, their positions and the order items that are written
+            // keep the order of the request.
+            const stockDeductions = [...context.stockItems].sort((left, right) =>
+              left.variantId < right.variantId ? -1 : left.variantId > right.variantId ? 1 : 0
+            );
+            for (const item of stockDeductions) {
               await InventoryService.decrementStock(tx, item.variantId, item.quantity, {
                 type: 'sale',
                 reason: 'order_placed',
@@ -739,6 +756,12 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
             });
 
             return { order: created, replayed: false };
+          }, {
+            // The placement writes the order, its lines, the stock and the
+            // outbox events in one transaction, so it gets the explicit
+            // bounds of the house style instead of the Prisma defaults.
+            timeout: ORDER_PLACEMENT_TRANSACTION_TIMEOUT_MS,
+            maxWait: ORDER_PLACEMENT_TRANSACTION_MAX_WAIT_MS,
           });
         } catch (error) {
           context.transactionFailed = true;

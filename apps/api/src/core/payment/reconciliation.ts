@@ -20,7 +20,127 @@ import { observePaymentFact } from './observations';
 
 const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+
+/**
+ * The unique constraints of the payment ledger.
+ *
+ * The fields are the columns of a schema level unique, the index names are
+ * the names of the constraints of the database. The names of the indexes that
+ * the migrations of the payment convergence dropped
+ * (`payment_ledger_providerEventId_key`,
+ * `payment_ledger_one_success_per_payment`) stay in the list: a deployment
+ * that still carries them reports a replayed capture with them.
+ */
+const PAYMENT_LEDGER_UNIQUE_FIELDS = new Set(['providerKey', 'providerPaymentId', 'idempotencyKey', 'providerEventId']);
+const PAYMENT_LEDGER_UNIQUE_INDEXES = new Set([
+  'payment_ledger_providerKey_providerPaymentId_key',
+  'payment_ledger_idempotencyKey_key',
+  'payment_ledger_providerEventId_key',
+  'payment_ledger_one_success_per_payment',
+  'payment_ledger_one_accepted_capture_per_order',
+]);
+
+/**
+ * The unique constraints of the outbox event that the same transaction writes.
+ */
+const EVENT_RECORD_UNIQUE_FIELDS = new Set(['dedupKey']);
+const EVENT_RECORD_UNIQUE_INDEXES = new Set(['event_records_dedupKey_key']);
+
+/**
+ * The models that record a payment fact. A unique violation of any other
+ * model is a defect of another domain and is never an applied fact.
+ */
+const APPLIED_PAYMENT_FACT_MODELS = new Set(['PaymentLedger', 'EventRecord']);
+
+/**
+ * The union of the index names, for a violation that does not name its model.
+ */
+const APPLIED_PAYMENT_FACT_UNIQUE_INDEXES = new Set([...PAYMENT_LEDGER_UNIQUE_INDEXES, ...EVENT_RECORD_UNIQUE_INDEXES]);
+
+/**
+ * The placeholder that the engine reports instead of the target of a
+ * violation. It is not a name of a constraint, so it is read as an absent
+ * target.
+ */
+const UNAVAILABLE_UNIQUE_TARGET = '(not available)';
+
+/**
+ * The names of the target of a unique violation.
+ *
+ * The target is the list of the columns of a schema level unique, or the name
+ * of the constraint of the database. An absent target - a missing value, an
+ * empty name or the placeholder of an engine that does not report the target
+ * - yields no names at all, so the caller falls back to the model of the
+ * violation.
+ */
+function uniqueTargetNames(target: unknown): string[] {
+  const raw = Array.isArray(target) ? target : [target];
+  const names = raw
+    .filter((name): name is string => typeof name === 'string')
+    .map(name => name.trim())
+    .filter(name => name.length > 0);
+  if (names.some(name => name.toLowerCase() === UNAVAILABLE_UNIQUE_TARGET)) return [];
+  return names;
+}
+
+/**
+ * True when the unique violation of the transaction means that the payment
+ * fact was already applied by an earlier transaction.
+ *
+ * Only the unique conflicts that really mean "this payment fact was already
+ * applied" are converted into a false result: the capture keys of the payment
+ * ledger and the dedup key of the outbox event. Every other unique violation
+ * is a defect - a new constraint, another outbox row, a future index - and it
+ * is rethrown unchanged, so the webhook fails loudly and the provider retries
+ * instead of the payment being reported as applied while nothing was
+ * recorded.
+ *
+ * The model of the violation scopes the target: a violation of the payment
+ * ledger is accepted only when it names a column or an index of the ledger, a
+ * violation of the outbox only when it names the dedup key, and a violation
+ * of every other model is rejected, not even when it names a column that the
+ * ledger uses for its own key. Without a model only the name of a constraint
+ * identifies the conflict.
+ *
+ * The engine of this deployment reports no target at all for a violation of a
+ * schema level unique, so the model of the violation is the only signal that
+ * is left on that path, and only the two models that record a payment fact
+ * are accepted there.
+ *
+ * The check stays outside the transaction callback: a failed statement aborts
+ * the PostgreSQL transaction, so the violation can only be classified after
+ * the transaction rolled back.
+ */
+export function isAppliedPaymentFactConflict(error: unknown): boolean {
+  if (!isUniqueConstraintError(error)) return false;
+  const meta = (error.meta ?? {}) as { modelName?: unknown; target?: unknown };
+  const model = typeof meta.modelName === 'string' ? meta.modelName : null;
+  const names = uniqueTargetNames(meta.target);
+  if (!names.length) {
+    // Without a target the model of the violation is the only signal that is
+    // left, and only the two models that record a payment fact are accepted.
+    return model !== null && APPLIED_PAYMENT_FACT_MODELS.has(model);
+  }
+  if (model === 'PaymentLedger') return names.every(name => PAYMENT_LEDGER_UNIQUE_FIELDS.has(name) || PAYMENT_LEDGER_UNIQUE_INDEXES.has(name));
+  if (model === 'EventRecord') return names.every(name => EVENT_RECORD_UNIQUE_FIELDS.has(name) || EVENT_RECORD_UNIQUE_INDEXES.has(name));
+  // A violation of another model is never an applied payment fact, not even
+  // when it names a column that the ledger uses for its own key.
+  if (model !== null) return false;
+  // Without a model only the name of a constraint identifies the conflict.
+  return names.every(name => APPLIED_PAYMENT_FACT_UNIQUE_INDEXES.has(name));
+}
 const clearLease = { claimToken: null, claimedBy: null, leaseUntil: null };
+/**
+ * The bounds of the transactions of the payment path.
+ *
+ * The default bounds of Prisma are too small for a payment fact: the
+ * transaction takes the advisory locks of the order and of the payment,
+ * reads the capture of the provider and writes the ledger, the outbox and
+ * the order state machine. The explicit bounds are the ones the payment
+ * webhook uses for the same reason.
+ */
+const PAYMENT_TRANSACTION_MAX_WAIT_MS = 10_000;
+const PAYMENT_TRANSACTION_TIMEOUT_MS = 30_000;
 export type RecordPaymentSucceededInput = {
   paymentId: string; providerEventId: string; paymentIntentId?: string | null;
   providerPaymentId: string;
@@ -110,8 +230,24 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
       }
       return true;
     };
-    return transaction ? await run(transaction) : await prisma.$transaction(run);
-  } catch (error) { if (isUniqueConstraintError(error)) return false; throw error; }
+    // The caller keeps the ownership of its transaction: a unique violation
+    // is not classified inside it, because catching it there would leave
+    // that transaction aborted and its next statement would fail with
+    // "current transaction is aborted". The violation propagates, the
+    // transaction of the caller rolls back cleanly and the provider retries.
+    if (transaction) return await run(transaction);
+    // The transaction of this call owns its failure: it rolled back cleanly,
+    // so the violation is classified here. Only the unique conflicts that
+    // mean "this payment fact was already applied" become a false result,
+    // every other unique violation is rethrown, so the webhook fails loudly
+    // and the provider retries.
+    return await prisma.$transaction(run, { maxWait: PAYMENT_TRANSACTION_MAX_WAIT_MS, timeout: PAYMENT_TRANSACTION_TIMEOUT_MS });
+  } catch (error) {
+    // A caller that owns a transaction is not classified here: the violation
+    // propagates and rolls the transaction of the caller back cleanly.
+    if (!transaction && isAppliedPaymentFactConflict(error)) return false;
+    throw error;
+  }
 }
 
 export async function recordPaymentFailed(input: { paymentId: string; providerEventId: string; actorType?: string; actorId?: string; claimToken?: string }, transaction?: NotificationTransaction): Promise<boolean> {
@@ -141,8 +277,24 @@ export async function recordPaymentFailed(input: { paymentId: string; providerEv
       await emitEvent(tx, 'payment.failed', 1, payment.id, { paymentId: payment.id, orderId: identity.orderId, userId: projection.userId, amount: Number(payment.amount), currency: payment.currency, metadata: payment.metadata || {} }, { actorId: input.actorId });
       return true;
     };
-    return transaction ? await run(transaction) : await prisma.$transaction(run);
-  } catch (error) { if (isUniqueConstraintError(error)) return false; throw error; }
+    // The caller keeps the ownership of its transaction: a unique violation
+    // is not classified inside it, because catching it there would leave
+    // that transaction aborted and its next statement would fail with
+    // "current transaction is aborted". The violation propagates, the
+    // transaction of the caller rolls back cleanly and the provider retries.
+    if (transaction) return await run(transaction);
+    // The transaction of this call owns its failure: it rolled back cleanly,
+    // so the violation is classified here. Only the unique conflicts that
+    // mean "this payment fact was already applied" become a false result,
+    // every other unique violation is rethrown, so the webhook fails loudly
+    // and the provider retries.
+    return await prisma.$transaction(run, { maxWait: PAYMENT_TRANSACTION_MAX_WAIT_MS, timeout: PAYMENT_TRANSACTION_TIMEOUT_MS });
+  } catch (error) {
+    // A caller that owns a transaction is not classified here: the violation
+    // propagates and rolls the transaction of the caller back cleanly.
+    if (!transaction && isAppliedPaymentFactConflict(error)) return false;
+    throw error;
+  }
 }
 
 
@@ -185,7 +337,7 @@ export const PAYMENT_RECONCILIATION_MAX_ATTEMPTS = 10;
 export async function reconcilePendingPayments(options: PaymentReconciliationOptions = {}): Promise<PaymentReconciliationResult> {
   const payments = await prisma.$transaction(async tx => claimPaymentReconciliations({
     query: async (sql, values = []) => ({ rows: await tx.$queryRawUnsafe<any[]>(sql, ...values) }),
-  }, coreProcessIdentity.instanceId, options));
+  }, coreProcessIdentity.instanceId, options), { maxWait: PAYMENT_TRANSACTION_MAX_WAIT_MS, timeout: PAYMENT_TRANSACTION_TIMEOUT_MS });
   const result = { scanned: payments.length, updated: 0, failed: 0, skipped: 0 };
   let stopBatch = false;
   for (const payment of payments) {
@@ -207,7 +359,7 @@ export async function reconcilePendingPayments(options: PaymentReconciliationOpt
         if (changed.count && payment.attempts >= PAYMENT_RECONCILIATION_MAX_ATTEMPTS) await AuditService.write(tx, {
           actorId: 'system', action: 'PAYMENT_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { reason: 'query_budget_exhausted' },
         });
-      });
+      }, { maxWait: PAYMENT_TRANSACTION_MAX_WAIT_MS, timeout: PAYMENT_TRANSACTION_TIMEOUT_MS });
     }
     finally { await releasePaymentReconciliation(client, payment, stopBatch ? 0 : 60_000); }
   }

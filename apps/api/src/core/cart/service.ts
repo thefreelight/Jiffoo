@@ -235,6 +235,12 @@ export class CartService {
 
   /**
    * Batch add items to cart atomically.
+   *
+   * The batch is one write of one cart: every line of the batch is written
+   * in one transaction, so a batch that is refused writes nothing. The stock
+   * ceiling of every line of the batch is checked before the first line is
+   * written, and a line that the ceiling does not cover refuses the whole
+   * batch.
    */
   static async batchAddToCart(
     userId: string,
@@ -263,7 +269,7 @@ export class CartService {
       // The lines of the batch are written under the row lock of the line, so
       // every writer of a cart locks the lines of that cart in one order and
       // cannot deadlock with a writer that locks more than one line.
-      const lines: Array<{ productId: string; variantId: string; quantity: number }> = [];
+      const lines: Array<{ productId: string; variantId: string; quantity: number; productType: string }> = [];
 
       for (const item of items) {
         const quantity = Number(item.quantity ?? 1);
@@ -273,8 +279,10 @@ export class CartService {
         if (!product) {
           throw new ApiError('NOT_FOUND');
         }
+        // A product that is not sellable is refused the same way the single
+        // add refuses it, with the same error code and the same status.
         if (!product.isActive) {
-          throw new ApiError('INTERNAL_SERVER_ERROR');
+          throw new ApiError('BAD_REQUEST');
         }
 
         const variant = item.variantId
@@ -285,7 +293,12 @@ export class CartService {
           throw new ApiError('NOT_FOUND');
         }
 
-        lines.push({ productId: item.productId, variantId: variant.id, quantity: normalizedQuantity });
+        lines.push({
+          productId: item.productId,
+          variantId: variant.id,
+          quantity: normalizedQuantity,
+          productType: product.productType,
+        });
       }
 
       // The lines of the batch are locked before they are written, so the
@@ -293,7 +306,36 @@ export class CartService {
       // purchased lines of the order module, which takes the same row lock of
       // the line. The locks are taken in the order of the database, the global
       // order of the line locks of a cart.
-      await this.lockCartLines(tx, cart.id, lines.map((line) => line.variantId));
+      const locked = await this.lockCartLines(tx, cart.id, lines.map((line) => line.variantId));
+      const lockedQuantityByVariant = new Map(locked.map((row) => [row.variantId, row.quantity]));
+
+      // The quantities of the batch that share a variant are added up, because
+      // the batch writes them one after the other on the same line.
+      const batchByVariant = new Map<string, { productType: string; quantity: number }>();
+      for (const line of lines) {
+        const existing = batchByVariant.get(line.variantId);
+        if (existing) {
+          existing.quantity += line.quantity;
+        } else {
+          batchByVariant.set(line.variantId, { productType: line.productType, quantity: line.quantity });
+        }
+      }
+
+      // The stock ceiling of every line of the batch is checked before any
+      // line of the batch is written, so a rejected batch leaves no partial
+      // write. The ceiling is read under the lock of the line and never under
+      // the lock of the stock row: the order path takes the stock row first
+      // and the line row second, so taking the stock row here would invert
+      // that order and deadlock with the order path. The ceiling is therefore
+      // advisory, and the authoritative guard is the conditional decrement of
+      // the sale, which refuses the sale when the stock is not there.
+      for (const [variantId, batch] of batchByVariant) {
+        const currentQuantity = lockedQuantityByVariant.get(variantId) ?? 0;
+        const availableQuantity = await this.lockedStockCeiling(tx, { productType: batch.productType }, variantId);
+        if (currentQuantity + batch.quantity > availableQuantity) {
+          throw new InsufficientCartStockError(availableQuantity);
+        }
+      }
 
       for (const line of lines) {
         // The database owns the line: the unique key of a line is its cart and

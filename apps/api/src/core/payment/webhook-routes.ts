@@ -12,6 +12,15 @@ import { CacheService } from '@/core/cache/service';
 
 const BODY_LIMIT = 1024 * 1024;
 const mediaTypes = new Set(['application/json', 'application/x-www-form-urlencoded', 'application/xml', 'text/xml', 'text/plain']);
+/**
+ * The bounds of the transaction that applies the payload of a webhook.
+ *
+ * The default bounds of Prisma are too small for the payload: the
+ * transaction takes the locks of the order and of the payment and writes the
+ * ledger, the outbox and the order state machine.
+ */
+const PAYMENT_WEBHOOK_TRANSACTION_MAX_WAIT_MS = 10_000;
+const PAYMENT_WEBHOOK_TRANSACTION_TIMEOUT_MS = 30_000;
 
 function originalHeaders(rawHeaders: string[]): Record<string, string[]> {
   const headers: Record<string, string[]> = Object.create(null);
@@ -90,7 +99,7 @@ export async function paymentWebhookRoutes(app: FastifyInstance): Promise<void> 
             const applied = await applyPreparedPaymentFact(provider, event, 'webhook', undefined, prepared[index], tx);
             changed = changed || applied;
           }
-        }, { timeout: 30_000, maxWait: 10_000 });
+        }, { maxWait: PAYMENT_WEBHOOK_TRANSACTION_MAX_WAIT_MS, timeout: PAYMENT_WEBHOOK_TRANSACTION_TIMEOUT_MS });
       }
       // The cached admin order list is stale after the payment outcome changed
       // the order, so its version is bumped after the transaction committed:

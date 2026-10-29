@@ -291,6 +291,83 @@ describe('Cart Endpoints', () => {
       }
     });
 
+    it('should return 409 for an add that exceeds the stock ceiling', async () => {
+      const scarceProduct = await createTestProduct({
+        name: 'Cart Test Scarce Product',
+        price: 29.99,
+        stock: 2,
+      });
+
+      try {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/v1/cart/items',
+          headers: { authorization: `Bearer ${userToken}` },
+          payload: {
+            productId: scarceProduct.id,
+            variantId: scarceProduct.variants[0].id,
+            quantity: 3,
+          },
+        });
+
+        expect(response.statusCode).toBe(409);
+        expect(response.json().error?.code).toBe('INSUFFICIENT_STOCK');
+
+        // The refused add writes no line.
+        const cartResponse = await app.inject({
+          method: 'GET',
+          url: '/api/v1/cart/',
+          headers: { authorization: `Bearer ${userToken}` },
+        });
+
+        expect(cartResponse.json().data?.items ?? []).toHaveLength(0);
+      } finally {
+        await deleteTestProduct(scarceProduct.id);
+      }
+    });
+
+  });
+
+  describe('POST /api/v1/cart/items/batch', () => {
+    it('should return 409 for a batch add that exceeds the stock ceiling', async () => {
+      const scarceProduct = await createTestProduct({
+        name: 'Cart Test Scarce Batch Product',
+        price: 29.99,
+        stock: 2,
+      });
+
+      try {
+        const response = await app.inject({
+          method: 'POST',
+          url: '/api/v1/cart/items/batch',
+          headers: { authorization: `Bearer ${userToken}` },
+          payload: {
+            items: [
+              {
+                productId: scarceProduct.id,
+                variantId: scarceProduct.variants[0].id,
+                quantity: 3,
+              },
+            ],
+          },
+        });
+
+        // The batch refuses the line the same way the single add refuses it.
+        expect(response.statusCode).toBe(409);
+        expect(response.json().error?.code).toBe('INSUFFICIENT_STOCK');
+
+        // The rejected batch writes no line.
+        const cartResponse = await app.inject({
+          method: 'GET',
+          url: '/api/v1/cart/',
+          headers: { authorization: `Bearer ${userToken}` },
+        });
+
+        expect(cartResponse.json().data?.items ?? []).toHaveLength(0);
+      } finally {
+        await deleteTestProduct(scarceProduct.id);
+      }
+    });
   });
 
   describe('PUT /api/v1/cart/items/:itemId', () => {

@@ -14,11 +14,19 @@ const MIGRATION_NAME = '20261028031500_data_reliability_indexes';
  */
 const RAW_ONLY_BUSINESS_INDEXES = [
   'payment_ledger_one_accepted_capture_per_order',
+  'payment_ledger_succeeded_refund_required_idx',
   'plugin_tasks_due_partial_idx',
   'plugin_tasks_lease_partial_idx',
   'product_variants_skucode_lower_key',
+  'product_variants_skuCode_trgm_idx',
+  'products_description_trgm_idx',
+  'products_name_trgm_idx',
+  'products_spuCode_trgm_idx',
   'products_spucode_lower_key',
+  'orders_orderNumber_trgm_idx',
   'refunds_one_completed_per_capture',
+  'users_email_trgm_idx',
+  'users_username_trgm_idx',
 ];
 
 /**
@@ -86,12 +94,37 @@ const DROPPED_INDEXES = [
  * amounts it takes from the plugin contracts. The constraints are the backstop
  * for a write that bypasses those packages, so the test asserts that they
  * exist and not that the database rejects a reachable write.
+ *
+ * The `columns` of a constraint are every column its rule covers, and
+ * `definition` is the whole rule as the migration states it. A constraint that
+ * covers fewer columns than it should is a weaker backstop, so the definition
+ * is compared as a whole and not only by name.
  */
 const NEW_CHECK_CONSTRAINTS = [
-  { table: 'auth_tokens', name: 'auth_tokens_attempts_nonnegative', rule: 'attempts' },
-  { table: 'orders', name: 'orders_amounts_nonnegative', rule: 'totalAmount' },
-  { table: 'plugin_storage_quotas', name: 'plugin_storage_quotas_nonnegative', rule: 'usedBytes' },
-  { table: 'product_variants', name: 'product_variants_stock_nonnegative', rule: 'stock' },
+  {
+    table: 'auth_tokens',
+    name: 'auth_tokens_attempts_nonnegative',
+    columns: ['attempts'],
+    definition: 'attempts >= 0',
+  },
+  {
+    table: 'orders',
+    name: 'orders_amounts_nonnegative',
+    columns: ['totalAmount', 'subtotalAmount', 'shippingAmount', 'taxAmount'],
+    definition: 'totalAmount >= 0 AND subtotalAmount >= 0 AND shippingAmount >= 0 AND taxAmount >= 0',
+  },
+  {
+    table: 'plugin_storage_quotas',
+    name: 'plugin_storage_quotas_nonnegative',
+    columns: ['reservedBytes', 'usedBytes'],
+    definition: 'reservedBytes >= 0 AND usedBytes >= 0',
+  },
+  {
+    table: 'product_variants',
+    name: 'product_variants_stock_nonnegative',
+    columns: ['stock'],
+    definition: 'stock >= 0',
+  },
 ];
 
 async function connect(): Promise<Client> {
@@ -99,6 +132,23 @@ async function connect(): Promise<Client> {
   const client = new Client({ connectionString: process.env.DATABASE_URL_TEST });
   await client.connect();
   return client;
+}
+
+/**
+ * The rule of a check constraint as PostgreSQL prints it, reduced to its
+ * content: the identifiers, the operators and the literals. The parentheses and
+ * the literal casts are a rendering detail of the deparser, so they are dropped
+ * from both sides of the comparison.
+ */
+function canonicalCheckDefinition(definition: string): string {
+  return definition
+    .replace(
+      /::(?:smallint|integer|int|bigint|numeric|decimal|real|double\s+precision)(?:\s*\(\s*\d+(?:\s*,\s*\d+)?\s*\))?/gi,
+      '',
+    )
+    .replace(/\b0\.0+\b/g, '0')
+    .replace(/["'`\s()]/g, '')
+    .toLowerCase();
 }
 
 /** The indexed columns of one index, in index order. */
@@ -197,7 +247,12 @@ it('creates every check constraint of the data reliability migration', async () 
     for (const constraint of NEW_CHECK_CONSTRAINTS) {
       const row = rows.find(candidate => candidate.name === constraint.name)!;
       expect(row.table).toBe(constraint.table);
-      expect(row.definition).toContain(constraint.rule);
+      for (const column of constraint.columns) {
+        expect(row.definition).toContain(column);
+      }
+      expect(canonicalCheckDefinition(row.definition)).toBe(
+        'check' + canonicalCheckDefinition(constraint.definition),
+      );
     }
   } finally {
     await client.end();
@@ -266,4 +321,8 @@ it('keeps the data reliability migration transaction safe', () => {
   const sql = readFileSync(`prisma/migrations/${MIGRATION_NAME}/migration.sql`, 'utf8');
   expect(() => validateCoreMigrationSql(sql)).not.toThrow();
   expect(validateCoreMigrationSql(sql).wrapperStripped).toBe(false);
+  // The executor owns the transaction, so the migration must not open one itself.
+  expect(sql).not.toMatch(/^\s*(BEGIN|START\s+TRANSACTION|COMMIT|END|ROLLBACK|ABORT)\b/im);
+  // `CREATE INDEX CONCURRENTLY` cannot run inside the transaction of the executor.
+  expect(sql).not.toMatch(/CONCURRENTLY/i);
 });

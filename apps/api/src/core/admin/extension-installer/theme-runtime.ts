@@ -33,6 +33,19 @@ const settingSchemas = ((themeManifestSchema.oneOf[0].properties.settings as unk
   .map((schema) => ajv.compile(schema));
 const locales = ['en', 'zh-Hans', 'zh-Hant'];
 
+/**
+ * The milliseconds a theme transaction may hold its connection.
+ *
+ * A theme transaction writes the configuration, its revisions and its audit,
+ * so the timeout is sized for the revisions of one theme.
+ */
+const THEME_TRANSACTION_TIMEOUT_MS = 30_000;
+
+/**
+ * The milliseconds a theme transaction waits for a free connection of the pool.
+ */
+const THEME_TRANSACTION_MAX_WAIT_MS = 10_000;
+
 function fail(code: import('@/utils/api-errors').ErrorCode, _statusCode: number, path: string): never {
   throw new ExtensionInstallerError(`${code}: ${path}`, { code, details: { path } });
 }
@@ -166,7 +179,7 @@ export async function saveThemeConfig(
     const saved = await tx.themeConfiguration.findUniqueOrThrow({ where: { slug } });
     return { settings: manifest.settings, values: next, revision, configurationSavedAt: saved.updatedAt.toISOString(),
       homeSections: defaultHomeSections(manifest, next) };
-  });
+  }, { maxWait: THEME_TRANSACTION_MAX_WAIT_MS, timeout: THEME_TRANSACTION_TIMEOUT_MS });
   });
 }
 
@@ -205,7 +218,7 @@ export async function restoreThemeConfig(slug: string, actorId: string) {
     await tx.themeConfigRevision.create({ data: { slug, revision, values: prior.values as Prisma.InputJsonValue } });
     await audit(tx, actorId, 'theme.config.restore', slug, { revision, fromRevision: prior.revision });
     return { values: prior.values, revision, configurationSavedAt: saved.updatedAt.toISOString() };
-  });
+  }, { maxWait: THEME_TRANSACTION_MAX_WAIT_MS, timeout: THEME_TRANSACTION_TIMEOUT_MS });
   });
 }
 
@@ -289,7 +302,8 @@ export async function prepareThemeActivation(
 async function activateWithLeases(target: ThemeTarget, slug: string, actorId: string, action: string, leases: ThemeLease[], onlyIfEmpty = false) {
   const plan = await prepareThemeActivation(target, slug, actorId, action, onlyIfEmpty);
   if (plan.unchanged) return plan.unchanged;
-  return prisma.$transaction(tx => plan.write(tx, leases));
+  return prisma.$transaction(tx => plan.write(tx, leases),
+    { maxWait: THEME_TRANSACTION_MAX_WAIT_MS, timeout: THEME_TRANSACTION_TIMEOUT_MS });
 }
 
 /**
@@ -355,7 +369,8 @@ export async function activateTheme(
     const plan = options?.plan ?? await prepareThemeActivation(target, slug, actorId, action, onlyIfEmpty);
     if (plan.unchanged) return plan.unchanged;
     if (options?.transaction) return plan.write(options.transaction.tx, options.transaction.leases);
-    return prisma.$transaction(tx => plan.write(tx, leases));
+    return prisma.$transaction(tx => plan.write(tx, leases),
+      { maxWait: THEME_TRANSACTION_MAX_WAIT_MS, timeout: THEME_TRANSACTION_TIMEOUT_MS });
   };
   if (options?.transaction) return run(options.transaction.leases);
   return withThemeLeases(target, slug, 'activate', run);

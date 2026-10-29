@@ -28,6 +28,36 @@ async function protectOrderedCatalog<T>(operation: () => Promise<T>, references:
   }
 }
 
+/**
+ * Transaction surface required to lock the variant rows of a product.
+ *
+ * A Prisma transaction client satisfies it, so the caller passes its own
+ * transaction client straight through.
+ */
+type VariantRowLockTx = {
+  $queryRaw: (...args: any[]) => Promise<any>;
+};
+
+/**
+ * Take the row lock of every variant of a product.
+ *
+ * The rows are locked in the order of their identifiers, so every writer of
+ * these rows takes the locks in the same order and two concurrent admin edits
+ * of the same product cannot deadlock. The lock is taken before the variants
+ * are read, so the read and the write of a variant belong to the same locked
+ * state and a concurrent edit of a variant cannot be overwritten silently.
+ *
+ * @param tx Transaction client owned by the caller
+ * @param productId Product whose variant rows are locked
+ */
+async function lockProductVariantRows(tx: VariantRowLockTx, productId: string): Promise<void> {
+  await tx.$queryRaw`
+    SELECT id FROM public.product_variants
+    WHERE "productId" = ${productId}
+    ORDER BY id FOR UPDATE
+  `;
+}
+
 export class CatalogConflictError extends ApiError {
   constructor(public readonly code: 'DEFAULT_LOCALE_TRANSLATION' | 'CATEGORY_NOT_EMPTY') {
     super(code);
@@ -637,6 +667,11 @@ export class AdminProductService {
       // Handle Variants Upsert
       if (data.variants && data.variants.length > 0) {
         let variantsToProcess = data.variants;
+
+        // The variant rows are locked before they are read, so the read and the
+        // write of a variant belong to the same locked state and a concurrent
+        // admin edit of a variant is serialised instead of overwriting it.
+        await lockProductVariantRows(tx, productId);
 
         // 1. Get existing variants
         const existingVariants = await tx.productVariant.findMany({

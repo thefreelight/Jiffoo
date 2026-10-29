@@ -49,8 +49,9 @@ export interface InstanceUpdateOptions {
    * replaces the providers of a contract: the replacement runs in
    * transactions of its own, because the lifecycle hook of the replaced
    * provider has to run outside every transaction. Such an update is
-   * refused; the caller plans the update with `planInstanceUpdate` and runs
-   * its prepare phase before it opens its transaction.
+   * refused; the caller plans the update with `planInstanceUpdate`, declares
+   * `callerOwnsTransaction: false` and runs its prepare phase before it
+   * opens its transaction.
    */
   tx?: Transaction;
   /**
@@ -60,6 +61,31 @@ export interface InstanceUpdateOptions {
    */
   deferPostCommit?: boolean;
 }
+
+/**
+ * The options of a planned instance update.
+ */
+export interface InstanceUpdatePlanOptions {
+  /**
+   * Declares whether the caller owns a transaction.
+   *
+   * The prepare phase of a plan that replaces the providers of a contract
+   * replaces them in transactions of its own, which would open a second
+   * connection inside a transaction the caller already owns. A plan that
+   * replaces providers is therefore refused unless the caller declares
+   * `callerOwnsTransaction: false`, which states that the prepare phase runs
+   * outside every transaction. The default is the safe state: a caller that
+   * owns no transaction has to say so explicitly.
+   */
+  callerOwnsTransaction?: boolean;
+}
+
+/**
+ * The message of the refusal of a plan that replaces contract providers
+ * inside a transaction the caller owns.
+ */
+const CALLER_TRANSACTION_PROVIDER_REPLACEMENT_ERROR =
+  'An instance update that replaces contract providers cannot join a caller transaction; use planInstanceUpdate and run its prepare phase before the transaction opens';
 
 /**
  * The phases of an instance update.
@@ -76,7 +102,8 @@ export interface InstanceUpdatePlan {
   /**
    * True when the prepare phase replaces the providers of a contract. The
    * replacement runs in transactions of its own, so the plan cannot be
-   * committed inside a transaction the caller already owns.
+   * prepared inside a transaction the caller already owns, and it cannot be
+   * committed inside one either.
    */
   replacesProviders: boolean;
   /** The plugin-facing work. Runs outside every transaction. */
@@ -106,6 +133,15 @@ const TRANSACTION_MAX_WAIT_MS = 10_000;
  * an installation.
  */
 const INSTANCE_UPDATE_TRANSACTION_TIMEOUT_MS = 60_000;
+
+/**
+ * The milliseconds the restore transaction may hold its connection.
+ *
+ * The restore fences the plugin operation lease and restores the install row,
+ * its default instance and the registry version, so the timeout is sized for
+ * the default instance of one slug.
+ */
+const RESTORE_TRANSACTION_TIMEOUT_MS = 60_000;
 
 /**
  * The milliseconds the uninstall transaction may hold its connection.
@@ -352,6 +388,13 @@ async function createDefaultInstance(
  * caller can therefore run the plugin code outside every transaction, compose
  * the write with its own rows in one transaction and run the post-commit work
  * after that transaction resolved.
+ *
+ * A caller that owns a transaction declares it with the
+ * `callerOwnsTransaction` option. A plan that replaces the providers of a
+ * contract may only be prepared outside every transaction, because the
+ * replacement runs in transactions of its own and would open a second
+ * connection inside a transaction the caller already owns. Such a plan is
+ * therefore refused unless the caller declares `callerOwnsTransaction: false`.
  */
 async function planInstanceUpdate(
   installationId: string,
@@ -360,7 +403,8 @@ async function planInstanceUpdate(
     config?: Record<string, unknown>;
     grantedPermissions?: string[];
     replacingProvider?: boolean;
-  }
+  },
+  options?: InstanceUpdatePlanOptions,
 ): Promise<InstanceUpdatePlan> {
 
   // Validate config size and depth if being updated (Blueprint 5.4: 64KB max, 10 layers max)
@@ -438,6 +482,17 @@ async function planInstanceUpdate(
   // Detect enable/disable transitions for lifecycle hooks
   const isEnabling = updates.enabled === true && !existing.enabled;
   const isDisabling = updates.enabled === false && existing.enabled;
+
+  if (isEnabling && options?.callerOwnsTransaction !== false) {
+    // The prepare phase replaces the providers of a contract, and each
+    // replacement runs in a transaction of its own on a connection of its own.
+    // Inside a transaction the caller already owns, that would open a second
+    // connection, so a provider-replacing plan may only be prepared outside
+    // every transaction. The caller declares that with
+    // `callerOwnsTransaction: false`; without that declaration the plan is
+    // refused.
+    throw new Error(CALLER_TRANSACTION_PROVIDER_REPLACEMENT_ERROR);
+  }
 
   if (isDisabling && !updates.replacingProvider) {
     await assertNotLastEnabledProvider(existing.pluginSlug, existing.enabled, pluginPackage.manifestJson);
@@ -570,16 +625,12 @@ async function updateInstance(
   },
   options?: InstanceUpdateOptions,
 ): Promise<UpdatedInstance> {
-  const plan = await planInstanceUpdate(installationId, updates);
-  if (options?.tx && plan.replacesProviders) {
-    // The prepare phase replaces the providers of a contract, and each
-    // replacement runs in a transaction of its own on a connection of its own.
-    // Joining the caller's transaction would open a second connection inside
-    // the caller's transaction, so the combination is refused: the caller
-    // plans the update, runs its prepare phase before it opens its
-    // transaction and commits the plan inside it.
-    throw new Error('An instance update that replaces contract providers cannot join a caller transaction; use planInstanceUpdate and run its prepare phase before the transaction opens');
-  }
+  // The wrapper owns no transaction of its own in the common case: the
+  // prepare phase runs outside every transaction and the write opens one.
+  // When the caller hands a transaction over, the plan refuses a
+  // provider-replacing update, because the replacement would open a second
+  // connection inside the caller's transaction.
+  const plan = await planInstanceUpdate(installationId, updates, { callerOwnsTransaction: Boolean(options?.tx) });
   // The plugin-facing work runs outside every transaction.
   await plan.prepare();
   // The database write joins the caller's transaction, or runs in one of its own.
@@ -811,7 +862,7 @@ export async function restorePlugin(slug: string, actorId = 'system'): Promise<v
     }
     await systemSettingsService.incrementPluginRegistryVersion(tx);
     await writePluginAudit(tx, actorId, 'PLUGIN_RESTORED', slug, { slug, version: pluginPackage.version, enabled: false });
-  });
+  }, { maxWait: TRANSACTION_MAX_WAIT_MS, timeout: RESTORE_TRANSACTION_TIMEOUT_MS });
 
   await CacheService.delete('plugins:installed');
   await CacheService.delete(`plugins:config:${slug}`);

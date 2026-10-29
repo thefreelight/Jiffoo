@@ -83,6 +83,20 @@ export type InventoryAdjustmentDetails = {
   metadata?: Prisma.InputJsonValue;
 };
 
+/**
+ * The milliseconds an inventory transaction may hold its connection.
+ *
+ * An inventory transaction takes the lock of the stock row, writes the level,
+ * writes its ledger row and writes the outbox event, so the timeout is sized
+ * for one stock move.
+ */
+const INVENTORY_WRITE_TRANSACTION_TIMEOUT_MS = 30_000;
+
+/**
+ * The milliseconds an inventory transaction waits for a free connection of the pool.
+ */
+const INVENTORY_WRITE_TRANSACTION_MAX_WAIT_MS = 10_000;
+
 export class InventoryService {
   /**
    * Apply an absolute stock level to a variant and return the stored level.
@@ -93,6 +107,9 @@ export class InventoryService {
    * when the stored level is still the level the caller saw, and a mismatch is
    * reported as a conflict instead of overwriting a concurrent sale.
    *
+   * The product cache is invalidated after the transaction resolved, so the
+   * admin product list never serves the level the write replaced.
+   *
    * @param variantId Variant whose stock level is set
    * @param quantity Desired absolute stock level
    * @param options `expectedStock` guards the write, `userId` records the actor
@@ -102,7 +119,7 @@ export class InventoryService {
     quantity: number,
     options: { expectedStock?: number; userId?: string } = {}
   ): Promise<number> {
-    return knownPrismaOperation(() => prisma.$transaction(async tx => {
+    const stored = await knownPrismaOperation(() => prisma.$transaction(async tx => {
       const variant = await tx.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { productId: true } });
       await this.setStock(tx, variantId, quantity, {
         type: 'correction',
@@ -112,9 +129,15 @@ export class InventoryService {
       }, { expectedStock: options.expectedStock });
       // The level that is stored is read inside the transaction, so the answer
       // is the level this write left behind and not the level that was asked for.
-      const stored = await tx.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { stock: true } });
-      return stored.stock;
-    }), { notFound: 'NOT_FOUND' });
+      const level = await tx.productVariant.findUniqueOrThrow({ where: { id: variantId }, select: { stock: true } });
+      return level.stock;
+    }, { maxWait: INVENTORY_WRITE_TRANSACTION_MAX_WAIT_MS, timeout: INVENTORY_WRITE_TRANSACTION_TIMEOUT_MS }), { notFound: 'NOT_FOUND' });
+
+    // The cache is invalidated after the transaction resolved: a rollback keeps
+    // the cache correct, and a reader never repopulates the new version with
+    // the state the write replaced.
+    await CacheService.incrementProductVersion();
+    return stored;
   }
   /**
    * Read the stock level of a set of variants.
@@ -240,9 +263,13 @@ export class InventoryService {
    * must invalidate the product cache only after its transaction commits.
    *
    * The write is idempotent: when the desired level already matches the stored one
-   * nothing is written, no ledger row is created and no event is published. The
-   * conditional update carries the expected prior level, so a concurrent stock
-   * change is detected instead of being overwritten.
+   * nothing is written, no ledger row is created and no event is published.
+   *
+   * The change is applied as a conditional increment on the level the change is
+   * based on, so the write never absorbs a concurrent change of the level: when
+   * the level moved under the write the update lands on no row and the change
+   * is reported as a conflict instead of being applied over the concurrent
+   * movement.
    *
    * A caller that passes `expectedStock` asks for a compare-and-set: the write
    * only lands when the stored level is still the level the caller saw, and a
@@ -269,39 +296,40 @@ export class InventoryService {
       ? undefined
       : Math.max(0, Math.trunc(Number(options.expectedStock)));
 
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const variant = await tx.productVariant.findUnique({
-        where: { id: variantId },
-        select: { id: true, stock: true, productId: true },
-      }) as { id: string; stock: number; productId: string } | null;
-      if (!variant) throw new ApiError('NOT_FOUND');
+    // The base level is read once: it is the level the requested change is
+    // based on, and the whole change is derived from it.
+    const variant = await tx.productVariant.findUnique({
+      where: { id: variantId },
+      select: { id: true, stock: true, productId: true },
+    }) as { id: string; stock: number; productId: string } | null;
+    if (!variant) throw new ApiError('NOT_FOUND');
 
-      if (expectedStock !== undefined && variant.stock !== expectedStock) {
-        throw new ApiError('CONFLICT');
-      }
-
-      const delta = normalized - variant.stock;
-      if (delta === 0) return;
-
-      const updated = await tx.productVariant.updateMany({
-        where: { id: variantId, stock: expectedStock !== undefined ? expectedStock : variant.stock },
-        data: { stock: normalized },
-      });
-      if (updated.count === 0) {
-        // The level changed under the write. A guarded write reports the
-        // mismatch, an unguarded one is retried against the new level.
-        if (expectedStock !== undefined) throw new ApiError('CONFLICT');
-        continue;
-      }
-
-      await tx.inventoryAdjustment.create({ data: { variantId, quantity: delta, ...details } });
-      if (options.publishProductChange !== false) {
-        await emitEvent(tx as unknown as EventTransaction, 'product.updated', 1, variant.productId, await productSnapshot(tx as unknown as EventTransaction, variant.productId));
-      }
-      return;
+    if (expectedStock !== undefined && variant.stock !== expectedStock) {
+      throw new ApiError('CONFLICT');
     }
 
-    throw new ApiError('CONFLICT');
+    const base = variant.stock;
+    const delta = normalized - base;
+    if (delta === 0) return;
+
+    // The change is applied as a conditional increment on the base level. An
+    // absolute write would absorb a concurrent movement of the level, so the
+    // level is moved by the delta instead and the base level is part of the
+    // predicate: when the level changed under the write the update lands on no
+    // row and the conflict is reported instead of the concurrent change being
+    // overwritten.
+    const updated = await tx.productVariant.updateMany({
+      where: { id: variantId, stock: base },
+      data: { stock: { increment: delta } },
+    });
+    if (updated.count === 0) {
+      throw new ApiError('CONFLICT');
+    }
+
+    await tx.inventoryAdjustment.create({ data: { variantId, quantity: delta, ...details } });
+    if (options.publishProductChange !== false) {
+      await emitEvent(tx as unknown as EventTransaction, 'product.updated', 1, variant.productId, await productSnapshot(tx as unknown as EventTransaction, variant.productId));
+    }
   }
 
   /**
@@ -313,6 +341,9 @@ export class InventoryService {
    * adjustment that exceeds the available stock is refused with a clean error
    * instead of being rejected by the database. The ledger row is written once,
    * inside the same transaction as the level it belongs to.
+   *
+   * The product cache is invalidated after the transaction resolved, so a
+   * rollback keeps the cache correct.
    */
   static async adjustStock(
     variantId: string,
@@ -349,7 +380,7 @@ export class InventoryService {
       await tx.inventoryAdjustment.create({ data: { variantId, quantity, ...details } });
       await emitEvent(tx, 'product.updated', 1, variant.productId, await productSnapshot(tx, variant.productId));
       return variant;
-    }), { notFound: 'NOT_FOUND' });
+    }, { maxWait: INVENTORY_WRITE_TRANSACTION_MAX_WAIT_MS, timeout: INVENTORY_WRITE_TRANSACTION_TIMEOUT_MS }), { notFound: 'NOT_FOUND' });
     await CacheService.incrementProductVersion();
     return result;
   }
