@@ -1783,3 +1783,143 @@ Run Shop tests:
 The shards: 46/46, 45/45, 47/47, 47/47 files, no failed file in any of them; 185/185 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The step table has no drift step because this batch changed no file under `apps/api/prisma` — the datamodel and the database still agree, and the drift step of the previous batch proved it.
 
 The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own.
+
+## 5zc. Handover evidence — S3-DATA-4 (the step 3 review remediation)
+
+**Baseline SHA:** `6efe2ae67`. **Commit:** `99eac5dc`.
+
+### What the review was
+
+The batch of `2a432138a` was reviewed by three independent read-only reviewers, one for each axis of the step 3: the validity of the anti-duplicate and anti-oversell protections, the purity of the transaction boundaries and the order of the commit, and the safety of the schema migration with the zero-regression gate. The first pass raised thirteen warnings and no failure. Every finding went back to the worker that owned the module; the second pass over the repaired diff raised eight more findings, one of them a defect the repair itself had introduced; a third pass confirmed all eight closed.
+
+### The thirteen findings of the first pass
+
+| # | Finding | Before | After |
+|---|---|---|---|
+| 1 | the batch add of the cart had no stock ceiling | the batch wrote a line that no stock covered | the ceiling of every line is checked before any line is written, and the quantities of the lines that share a variant are summed first |
+| 2 | the unguarded stock write absorbed a concurrent sale | the write set the absolute level again after its retry, so the sold units vanished from the stock | the change is a conditional increment on the level the change is based on; a level that moved under the write is a conflict |
+| 3 | the admin variant write was last-writer-wins | two concurrent admin edits of one variant overwrote each other | the variants of a product are locked before they are read |
+| 4 | the order path and the admin path locked the variants in different orders | two writers of the same rows could deadlock | both take the rows in the ascending order of the variant id |
+| 5 | a unique violation of any constraint was reported as "already applied" | the webhook answered 200 for a payment that was never recorded | only the payment ledger and the outbox of the event mean "already applied"; every other violation is rethrown |
+| 6 | a unique violation was swallowed inside the transaction of the caller | the caller's transaction stayed aborted and its next statement failed with 25P02 | the caller-owned path rethrows and the transaction rolls back cleanly |
+| 7 | the registry read opened a second connection inside the transaction of the caller | the read was outside the snapshot of the caller | the read joins the transaction of the caller, and the cache is not used on that path |
+| 8 | the write transactions ran on the Prisma defaults | a write of a payment or of a stock level could be cut off after five seconds | the payment, inventory, theme, plugin and notification transactions carry explicit bounds |
+| 9 | the guard against a provider replacement inside the transaction of the caller lived only in a private wrapper | an external caller could still trip the hole | the plan refuses unless the caller declares that it owns no transaction |
+| 10 | the migration was never executed | the migration was only read as text | the verification executes it through the real migration executor |
+| 11 | the check constraints were asserted by one column | a rule that covered fewer columns passed | all four rules are compared exactly |
+| 12 | the raw indexes of the migration were not registered | the register did not know them | eight rows, and the prose of the register is true |
+| 13 | the cart batch did not declare its conflict response | the OpenAPI surface did not match the route | the route declares the 409 |
+
+### The two false alarms
+
+- The allocation of the order number is atomic: the statement is `INSERT ... ON CONFLICT (day) DO UPDATE SET last_value = last_value + 1 RETURNING last_value`, so two concurrent placements cannot take the same number.
+- The unique index `refunds_one_completed_per_capture` exists: `apps/api/prisma/migrations/20261010120922_payment_contract_v2/migration.sql` creates it.
+
+### The contract changes this batch registers
+
+1. `POST /api/v1/cart/items/batch` — a batch that exceeds the stock ceiling of a variant is refused with `409 INSUFFICIENT_STOCK`. Before, the batch wrote the line and the order placement refused the sale.
+2. `POST /api/v1/cart/items/batch` — a product that is not sellable is refused with `400 BAD_REQUEST`. Before, it was `500 INTERNAL_SERVER_ERROR`.
+3. `PUT /api/v1/admin/products/:id` — an admin product edit whose stock moved under the write is refused with `409 CONFLICT`. Before, the edit silently absorbed the concurrent sale and answered 200. The route already declared the 409.
+
+### The deployment note
+
+The migration `20261028031500_data_reliability_indexes` of the batch before runs in ONE transaction, with `lock_timeout='5s'` and `statement_timeout='600s'` (`deploy/release/core-migrations.mjs`). It creates its indexes without `CONCURRENTLY` and adds the check constraints, so it holds a share lock on the hot tables and an access exclusive lock on the altered ones for the whole migration. It must run in a maintenance window. The lock timeout makes it fail fast instead of queueing behind a long transaction, and because it is one transaction a failure rolls the whole migration back, so it can be retried. Splitting it is not an option: the validator forbids `CONCURRENTLY`, and an existing migration must never be edited.
+
+### The selection basis of the local gate
+
+The baseline is `6efe2ae67` and the changed input is the tree of `99eac5dc`: sixteen source files and six test files. The scoped gate selected the fifty files of the touched modules — the order, cart, inventory, product, payment, theme, plugin, notification and event suites, the two module audits, the migration executor suite and the three contract suites. The planner added nothing, because the selection already held the contract suites that the change of the cart schema makes mandatory. The full shard gate then ran the whole catalogue.
+
+### What is still open
+
+- The admin order search still matches the id of the order with `contains`, and no trigram index serves it, so the disjunction over the id forces a sequential scan of the orders table even though the order number, the email and the user name are indexed. Closing it needs a second migration, so it is not part of this batch.
+- When the engine reports no target for a unique violation, a violation of the partial index `payment_ledger_one_accepted_capture_per_order` cannot be told apart from a violation of the capture keys. It is reported as "already applied", which is the right answer for the capture keys and for the partial index as well (the order already carries an accepted capture), but a semantic re-check would make the distinction explicit.
+- The browser E2E is not part of the local gate; CI runs it.
+
+### The gate evidence
+
+The scoped gate over the fifty selected files (`pnpm verify:quick --test-files=…`, the integration lane `jiffoo_core_test`):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run API tests:
+   Start at:  12:15:05
+ Test Files  50 passed (50)
+      Tests  809 passed | 2 skipped (811)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 13.41s |
+| Lint Shop | PASS | 7.89s |
+| Reset test database | PASS | 3.22s |
+| Run API tests | PASS | 548.47s |
+```
+
+The full shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 3 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 187/187 files covered
+Totals: Test Files 187 files, 187 passed | Tests 2627 tests, 2625 passed, 2 pending | Suites 499 suites, 499 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (vitest list --filesOnly, same exclusions, same environment as the shards): 187
+Expected set (the full catalogue, not the assigned subset): 187
+Assigned to this run: 187
+Executed (union over all shards): 187
+Shard 1: 47 files
+Shard 2: 46 files
+Shard 3: 47 files
+Shard 4: 47 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 685.8s | 12:26:14 | 47 files, 47 passed | 724 tests, 724 passed | none |
+| 2 | 0 | 525.8s | 12:26:15 | 46 files, 46 passed | 452 tests, 452 passed | none |
+| 3 | 0 | 561.5s | 12:26:16 | 47 files, 47 passed | 742 tests, 740 passed, 2 pending | none |
+| 4 | 0 | 589.9s | 12:26:17 | 47 files, 47 passed | 709 tests, 709 passed | none |
+Run Admin tests:
+   Start at:  12:37:35
+ Test Files  59 passed (59)
+      Tests  592 passed (592)
+Run Shop tests:
+   Start at:  12:37:56
+ Test Files  38 passed (38)
+      Tests  266 passed (266)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 3.34s |
+| Lint Shop | PASS | 9.08s |
+| Reset test database | PASS | 3.54s |
+| Check Prisma migration drift | PASS | 1.43s |
+| Run API tests in 4 shards | PASS | 700.76s |
+| Run Admin tests | PASS | 21.39s |
+| Run Shop tests | PASS | 23.70s |
+```
+
+The shards: 47/47, 46/46, 47/47, 47/47 files, no failed file in any of them; 187/187 files covered, none missing, none extra, no cross-shard duplicate, no empty shard; the cleanup verdict is PASS. The drift step ran this time, because the batch changed a file under `apps/api/prisma` (the register of the raw indexes), and the datamodel and the database still agree.
+
+The browser E2E and the serial full-suite run are not part of the shard mode; CI runs the same API catalogue as four parallel shards of its own.
