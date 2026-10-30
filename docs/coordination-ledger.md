@@ -2262,3 +2262,100 @@ Run Shop tests: 38 passed (38), 266 tests passed
 
 - Two observations of this repair, neither of them a defect of the product: a write that bypasses the API (a migration, a backfill) leaves the cached admin order data stale for at most the 30 s of its time to live, and a selection that a merchant makes within the 300 ms of the search input is dropped when the filter lands, because the selection is scoped to the filter and the list changes in that moment.
 - The items the money model batch carries over are unchanged: the currency the merchant selects in the settings page and the catalogue of the shared package do not agree, and a store that changes its currency to a zero decimal one while its prices carry fractions has to re-price them.
+
+## 5zg. Handover evidence — the step 4 batch (disconnect tolerance, timeouts, circuit breaking, dead letter fallback)
+
+**Baseline SHA:** `398dc79a8`. **Commit:** `4495bfac8`.
+
+### What the audit found and what this batch closes
+
+The read-only audit of step 4 (2026-10-30) found 24 findings, six of them P0, and scored the platform 6 of 10 for the question "what happens when the external network drops at any moment, a third-party API hangs for 30 seconds and a peripheral plugin throws an unhandled exception". The batch closes the findings in ten packages, each with its own tests:
+
+| The finding | The fix |
+|---|---|
+| P0: a plugin whose `register()` never resolves holds the caller forever | the registration is raced against a deadline (`PLUGIN_REGISTER_TIMEOUT_MS`, five seconds, shortened by the plugin's own `timeoutMs`); the failure is a `PLUGIN_TIMEOUT` with a redacted message |
+| P0: a plugin runtime that fails to load is not counted by the circuit breaker | the setup failure is recorded as a plugin failure and reported to the breaker (`sharedProtection.result(permit, false)`), in the contract path and in the gateway path |
+| P0: a contract route that answers with a body that is not JSON throws an unmapped error | the body is parsed defensively; a non-JSON body answers `CONTRACT_RESPONSE_INVALID` (502) and is counted by the breaker |
+| P0: a failing tax provider breaks the whole quote and lets the placement charge an unknown tax | the tax provider is isolated like the shipping and the payment providers: the quote answers with an unknown tax and a marker, the placement refuses the order with 502 or 504 and writes nothing |
+| P0: the order confirmation notification is written inside the payment transaction | the event is written inside the transaction, the notification row by a core subscriber after the commit; a failing notification can no longer roll back a payment session |
+| P0: a killed worker keeps its plugin task slots occupied forever | the death of a core process is confirmed (a stale heartbeat and no database session), the slots of a dead owner are released, and a slot that stopped being observed is released as well |
+| P0: the Core database client has no deadline | the Core URL carries the connect timeout, the socket timeout, the bounds of the pool and the server-side statement deadlines; the cache client carries its own connect and command timeouts and never queues a command while it is offline |
+| P0: an upload route accepts an unbounded body | every upload route declares its own limit, the global multipart ceiling is 32 MiB, and the part is consumed through its own stream with a byte budget |
+| P1: the entry points are not bounded | the rate limiter bounds the login per account, the exports and the uploads per signed-in identity, and the health probes; the health budget is sized for a node that runs many replicas |
+| P1: an edge call to the Core has no deadline | every call from the Admin and the Shop toward the Core carries a deadline that covers the body of the answer, and the token refresh of the shared client can no longer hang |
+| P1: a retry has no backoff and no dead letter | the notification reclaim waits on the delivery ladder, the payment reconciliation and the event delivery back off with a bounded jitter, and the plugin file cleanup reaches a terminal `DEAD` state that the operator sees |
+| P1: the shutdown has no hard deadline and an audit write can roll back a money transaction | the shutdown ends the process when the drain never settles, and the audit writes of the money paths run inside a savepoint, so a failing audit insert cannot undo a payment or a refund |
+
+### The contract changes this batch registers
+
+1. A new event key `order.confirmed` v1 with the payload `{ id, orderId, instructions }`, aggregated by the order id (`packages/shared/src/events/registry.ts`). The payload carries only the fields an order always has, so an order that was written directly into the database cannot break the payment session.
+2. A new core subscriber `order.confirmed -> notifyOrderConfirmed` (`apps/api/src/infra/events/core-subscribers.ts`). The recipient and the order number are resolved through the order projection, the way every other order notification resolves them.
+3. The `order_confirmation` notification is written after the payment transaction commits. A failing notification no longer rolls back the payment session and no longer fails the customer request; the failure is recorded in `event_deliveries.lastError` and retried with the backoff. The HTTP contract of the payment session does not change.
+4. The quote response gains the optional boolean `taxUnavailable` (`apps/api/src/core/checkout/schemas.ts`). A degraded quote carries the marker and no `tax`, no `taxInclusive` and no `total`; the quote of the builtin zero tax provider keeps `tax: '0'` and carries no marker, so the two answers stay distinguishable on the wire.
+5. A plugin whose registration times out answers `PLUGIN_TIMEOUT` (504) instead of `CONTRACT_CALL_FAILED` (502); the message of the load failure is redacted with the plugin configuration, the way every other load failure was.
+6. A contract route that answers with a body that is not JSON answers `CONTRACT_RESPONSE_INVALID` (502) instead of an unmapped 500.
+7. The plugin recovery listing gains `items[].deadCleanupCount`, `items[].deadCleanups[]` and the top level `orphanedDeadCleanups[]` (`apps/api/src/core/admin/extension-installer/routes.ts`).
+8. A new migration `20261030045337_plugin_file_cleanup_status` adds the column `plugin_file_cleanup.status` (the values `PENDING` and `DEAD`).
+
+### The decisions this batch makes on purpose
+
+1. A plugin task that exceeded its declared runtime loses its execution slot even when its owner is alive. The plugin task contract fences the writes, so a re-run cannot corrupt the first one, and the alternative is that one blocked worker stops the whole platform.
+2. A core process is presumed dead when its heartbeat is stale for the suspect window (30 seconds, three missed beats) and it holds no database session any more. A frozen but living process keeps its sessions, so it is never condemned on a heartbeat alone.
+3. The budget of a plugin entry module load cannot preempt a blocking `require`: it turns an abnormally slow load into a recorded failure of that plugin. A worker-thread sandbox is out of scope for this batch.
+4. The edge answers 503 when the Core does not answer in time. A request that never ends is worse than a failed one, and the idempotency keys of the Core make a retry of a mutating request safe.
+5. The payment reconciliation keeps the 60 second cadence for a provider that answered "still pending" - that is a business decision. Only a provider that failed backs off, and the backoff survives the release of the lease.
+6. An audit row may be lost when the database refuses to write it. The money state is the truth that must not be undone; the loss is logged and the savepoint keeps the enclosing transaction usable.
+
+### What the gate found
+
+Two failures of the first gate runs were not defects of the product but of the test environment, and both are fixed in the repository:
+
+- The regenerated Prisma client (Prisma 6.19.1, the version the lockfile pins) resolves its entry point through the `#main-entry-point` subpath import of its own package. When the test runner transforms those CommonJS packages instead of loading them natively, the named exports of `@prisma/client` are not always available, and two test files failed while they were being loaded. The runner now loads the Prisma packages natively (`apps/api/vitest.config.ts`).
+- The platform refuses to disable or to remove the last enabled provider of a contract (`assertNotLastEnabledProvider`). A store therefore always keeps one enabled tax provider, so the "a store without a tax provider" state is not reachable by disabling one. The degradation test asserts the state the platform allows instead: the builtin zero tax provider answers the zero tax and no marker.
+
+### What is still open
+
+- The storefront does not read `taxUnavailable` yet: a degraded quote shows an empty total and the checkout needs a total, so the customer cannot place the order. The store should say that the tax is being calculated instead.
+- A dead plugin file cleanup row still holds the storage quota of its plugin. The operator sees the object key, the file id and the size that is stuck; releasing the quota stays a manual action.
+- A statement-level audit failure inside a money transaction is protected by the savepoint. A failure that happens outside the savepoint (the connection dies) still ends the transaction.
+- The audit found the plugin task slot of a live owner whose task passed its runtime as a finding. The batch resolves it the way the plugin task contract requires (see the decisions), not by changing the rule.
+
+### The gate evidence
+
+The shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the batch (`4495bfac8`):
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 301 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 201/201 files covered
+Totals: Test Files 201 files, 201 passed | Tests 2708 tests, 2706 passed, 2 pending | Suites 527 suites, 527 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+Run Admin tests: 61 passed (61), 601 tests passed
+Run Shop tests: 39 passed (39), 274 tests passed
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 12.66s |
+| Lint Shop | PASS | 7.84s |
+| Reset test database | PASS | 2.77s |
+| Check Prisma migration drift | PASS | 1.16s |
+| Run API tests in 4 shards | PASS | 651.16s |
+| Run Admin tests | PASS | 37.19s |
+| Run Shop tests | PASS | 31.02s |
+```
