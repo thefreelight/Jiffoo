@@ -17,6 +17,34 @@ can use the single sanitized `X-Forwarded-For` value sent by the Shop. For
 same-machine development this may be `127.0.0.1,::1`, but a production
 deployment should list only its actual connecting proxies and Shop addresses.
 
+## Edge deadlines and limits towards Core
+
+The Admin and Shop edges call Core over HTTP, and every call carries a
+deadline. A Core that stops answering therefore fails the edge request
+instead of holding it. The same four variables configure both edges; the
+deployment sample `deploy/compose/.env.example` lists them, and the Compose
+file passes each variable to the service that reads it.
+
+| Variable | Read by | Default | Meaning |
+| --- | --- | --- | --- |
+| `CORE_EDGE_TIMEOUT_MS` | Admin, Shop | `30000` | Deadline for the headers of a Core answer. A Core that misses it makes the Admin answer `503` with `API_SERVICE_UNAVAILABLE` and the Shop answer `503` with `SHOP_TEMPORARILY_UNAVAILABLE`. |
+| `CORE_EDGE_BODY_TIMEOUT_MS` | Admin, Shop | `300000` | Deadline for the body of a Core answer, counted from the arrival of its headers. It is longer than the header deadline so that a legitimate large transfer is not cut. |
+| `CORE_EDGE_MAX_REQUEST_BYTES` | Admin | `33554432` | The largest request body the Admin proxy buffers. A larger body is refused with `413` and `PAYLOAD_TOO_LARGE` before it reaches Core. |
+| `CORE_EDGE_MAX_RESPONSE_BYTES` | Shop | `16777216` | The largest Core answer the Shop transport buffers. A larger answer fails with the explicit code `CORE_RESPONSE_TOO_LARGE` instead of a silent truncation. |
+
+A value that is not a positive integer falls back to the default, so a
+mistyped variable cannot remove a deadline or a limit.
+
+Raise `CORE_EDGE_TIMEOUT_MS` when the Core is slow to produce its headers.
+Raise `CORE_EDGE_BODY_TIMEOUT_MS` when a legitimate export, a large plugin
+asset or a large download takes longer than five minutes to transfer. Raise
+`CORE_EDGE_MAX_REQUEST_BYTES` when the deployment uploads files larger than
+32 MiB to the Admin, and `CORE_EDGE_MAX_RESPONSE_BYTES` when the Shop must
+accept a Core answer larger than 16 MiB. Every deadline that passes writes a
+structured record with the event `edge_core_degraded` to the log of the edge
+process, so the degradations can be counted by their surface and their
+reason.
+
 ## Processes
 
 Both the API process and the worker process must run. Start them with

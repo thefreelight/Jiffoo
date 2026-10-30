@@ -81,7 +81,15 @@ export class CacheService {
     return await redisCache.get(listKey);
   }
 
-  static async setOrderList(page: number, limit: number, data: any, filters?: any, ttl: number = 600, version?: number): Promise<boolean> {
+  /**
+   * Stores the cached order list.
+   *
+   * The time to live of a list is the upper bound of the staleness a reader
+   * can see: the version of the list is bumped by every write, and a write
+   * that lost its bump - because the cache was unreachable - leaves the list
+   * alive until this bound. Two minutes is the window of that degradation.
+   */
+  static async setOrderList(page: number, limit: number, data: any, filters?: any, ttl: number = 120, version?: number): Promise<boolean> {
     const listVersion = version ?? await this.getOrderVersion();
     const filterKey = filters ? JSON.stringify(filters) : 'all';
     const listKey = `${this.PREFIXES.ORDER}list:order-number-v1:v${listVersion}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
@@ -146,13 +154,26 @@ export class CacheService {
     return await redisCache.set(key, count, ttl);
   }
 
-  static async incrementRateLimit(identifier: string, ttl: number = 60): Promise<number> {
+  /**
+   * Counts a request against a budget.
+   *
+   * A counter that cannot be read is not a counter of zero: the caller gets
+   * a null and has to treat the budget as unknown, so a cache that is not
+   * there can never be read as a budget that was never spent.
+   *
+   * @returns the new count, or null when the counter could not be read.
+   */
+  static async incrementRateLimit(identifier: string, ttl: number = 60): Promise<number | null> {
     const key = `${this.PREFIXES.RATE_LIMIT}${identifier}`;
     const result = await redisCache.incr(key);
+    if (result === null) {
+      console.warn(JSON.stringify({ event: 'rate_limit_counter_unavailable', scope: 'cache', key }));
+      return null;
+    }
     if (result === 1) {
       await redisCache.expire(key, ttl);
     }
-    return result || 0;
+    return result;
   }
 
   // Clear all cache
@@ -160,8 +181,13 @@ export class CacheService {
     return await redisCache.flushAll();
   }
 
-  // Clear cache by prefix
-  static async clearByPrefix(prefix: string): Promise<number> {
+  /**
+   * Clears the cache entries of a prefix.
+   *
+   * @returns the number of cleared entries, or null when the cache was
+   * unreachable and the prefix was not cleared at all.
+   */
+  static async clearByPrefix(prefix: string): Promise<number | null> {
     return await redisCache.deleteByPattern(`${prefix}*`);
   }
 
@@ -253,18 +279,26 @@ export class CacheService {
    * reader asks for the list of the current version, so a bump makes every
    * reader read the database again. The bump fails when the cache is not
    * available, and a silently lost bump keeps the stale lists alive for
-   * their whole time to live, so the failure is reported to the caller as a
-   * null and the stale lists are dropped instead.
+   * their time to live, so the failure is reported to the caller as a null,
+   * recorded with the context of the caller, and the stale lists are dropped
+   * as soon as the cache is reachable again.
+   *
+   * @param context the write that asked for the bump, recorded with the
+   * failure.
+   * @returns the new version, or null when the bump did not happen.
    */
-  static async incrementOrderVersion(): Promise<number | null> {
+  static async incrementOrderVersion(context?: { scope?: string; reference?: string }): Promise<number | null> {
     const key = `${this.PREFIXES.ORDER}version`;
     const version = await redisCache.incr(key);
     if (version !== null) return version;
-    // The bump did not happen, so the cached lists would survive their whole
-    // time to live. They are dropped instead, so the next reader repopulates
-    // them from the database.
-    await this.clearByPrefix(this.PREFIXES.ORDER);
-    console.warn(JSON.stringify({ event: 'order_cache_version_increment_failed', scope: 'cache', key }));
+    // The bump did not happen, so the cached lists would survive their time
+    // to live. They are dropped now, and the drop is completed as soon as
+    // the cache is reachable again.
+    const dropped = await redisCache.invalidateOrDefer(async () => (await this.clearByPrefix(this.PREFIXES.ORDER)) !== null);
+    console.warn(JSON.stringify({
+      event: 'order_cache_version_increment_failed', scope: 'cache', key,
+      deferred: !dropped, context: context ?? null,
+    }));
     return null;
   }
 

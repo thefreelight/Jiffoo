@@ -56,10 +56,24 @@ export async function redactPluginFailure(
 }
 
 /**
+ * Build the stack of a failure for the operator log.
+ *
+ * The header of the stack carries the message, so the redacted message
+ * replaces it: the frames stay, the configuration of the plugin does not.
+ */
+function failureStack(error: unknown, message: string): string | undefined {
+  if (!(error instanceof Error) || typeof error.stack !== 'string') return undefined;
+  const headerEnd = error.stack.indexOf('\n');
+  return headerEnd === -1 ? error.stack : `${message}${error.stack.slice(headerEnd)}`;
+}
+
+/**
  * Record a plugin failure for operator diagnostics.
  *
  * Recording is best effort. A failing diagnostic write must never interrupt the
  * caller, because the callers sit inside core request and transaction paths.
+ * The database write is throttled per plugin, but a throttled failure is still
+ * written to the operator log, so a failure never disappears silently.
  */
 export async function recordPluginFailure(
   slug: string, error: unknown, context: string, installationId?: string,
@@ -67,11 +81,26 @@ export async function recordPluginFailure(
   client: Pick<typeof prisma, 'pluginInstallation'> = prisma,
 ): Promise<void> {
   const now = Date.now();
-  if (now - (lastRecordedAt.get(slug) ?? 0) < THROTTLE_MS) return;
+  if (now - (lastRecordedAt.get(slug) ?? 0) < THROTTLE_MS) {
+    console.error(JSON.stringify({
+      event: 'plugin_failure_throttled',
+      slug,
+      context,
+      installationId: installationId ?? null,
+    }));
+    return;
+  }
   lastRecordedAt.set(slug, now);
   try {
     const message = await redactPluginFailure(slug, error, installationId, runtime, client);
-    console.error(JSON.stringify({ event: 'plugin_failure', slug, context, message }));
+    console.error(JSON.stringify({
+      event: 'plugin_failure',
+      slug,
+      context,
+      installationId: installationId ?? null,
+      message,
+      stack: failureStack(error, message),
+    }));
     await client.pluginInstallation.updateMany({
       where: installationId ? { id: installationId } : { pluginSlug: slug, instanceKey: 'default' },
       data: { lastFailureAt: new Date(now), lastFailureMessage: message },

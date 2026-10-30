@@ -76,6 +76,21 @@ export function assertTaskPolicy(declarations: readonly PluginTaskDeclaration[],
   for (const d of declarations) if (d.concurrency > policy.handlerConcurrency || d.concurrency > policy.installationSlots || d.concurrency > policy.globalSlots || d.maxAttempts > policy.attempts || d.maxRuntimeSeconds > policy.runtimeSeconds || d.onFinalFailure && d.onFinalFailure.maxRuntimeSeconds > policy.hookSeconds) throw new ApiError('PLUGIN_TASK_DECLARATION_INVALID');
 }
 
+/**
+ * The failure codes that no retry can fix.
+ *
+ * A task whose declaration is invalid, or whose plugin is blocked by an open
+ * circuit, fails the same way on every attempt. Such a failure is terminal:
+ * it must not walk the retry ladder, and it must not count against the
+ * circuit breaker of the plugin again and again.
+ */
+export const DETERMINISTIC_TASK_FAILURES = ['PLUGIN_TASK_DECLARATION_INVALID', 'PLUGIN_CIRCUIT_OPEN'] as const;
+
+/** Whether a failure code names a failure that no retry can fix. */
+export function isDeterministicTaskFailure(code: string | null | undefined): boolean {
+  return !!code && (DETERMINISTIC_TASK_FAILURES as readonly string[]).includes(code);
+}
+
 /** G4 publishes derived availability here under the same graph transaction. */
 export async function setTaskDependencyAvailability(tx: TaskTransaction, installationId: string, available: boolean): Promise<void> {
   await lockTaskScheduler(tx);

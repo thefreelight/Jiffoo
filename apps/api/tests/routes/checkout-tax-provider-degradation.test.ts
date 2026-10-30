@@ -187,7 +187,7 @@ describe('the degradation of a failed tax provider', () => {
     // The failure of the provider is recorded for the operator, and the
     // provider is excluded instead of being charged an unknown tax.
     expect(await failureRecorded('tax-degrade-fail')).not.toBeNull();
-    expect(captured.lines.some((line) => line.includes('checkout_provider_excluded') && line.includes('tax-degrade-fail'))).toBe(true);
+    expect(captured.lines.some((line) => line.includes('"event":"provider_excluded"') && line.includes('"slug":"tax-degrade-fail"') && line.includes('"contract":"tax"'))).toBe(true);
   });
 
   it('B refuses the placement with an unknown tax and writes nothing', async () => {
@@ -207,7 +207,7 @@ describe('the degradation of a failed tax provider', () => {
     // The failure of the provider is recorded for the operator, and the
     // provider is excluded.
     expect(await failureRecorded('tax-degrade-order-fail')).not.toBeNull();
-    expect(captured.lines.some((line) => line.includes('order_provider_excluded') && line.includes('tax-degrade-order-fail'))).toBe(true);
+    expect(captured.lines.some((line) => line.includes('"event":"provider_excluded"') && line.includes('"slug":"tax-degrade-order-fail"') && line.includes('"contract":"tax"'))).toBe(true);
   });
 
   it('C answers the quote with an unknown tax when the tax provider times out', async () => {

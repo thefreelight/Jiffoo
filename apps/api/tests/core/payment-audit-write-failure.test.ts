@@ -232,4 +232,52 @@ describe('the audit write of the payment observation path', () => {
     });
     expect(String(degradation.reason)).toContain('not a transaction client');
   });
+
+  it('fails the money transaction when the rollback to the savepoint does not reach the database', async () => {
+    // A transaction client whose savepoint can be opened but never rolled
+    // back: the transaction stays aborted in the database, so the money state
+    // cannot be kept. The failure is recorded and raised, so the transaction
+    // fails explicitly instead of pretending it degraded.
+    const client = {
+      adminAuditEvent: {
+        create: async () => { throw new Error('the audit table is locked'); },
+        upsert: async () => { throw new Error('the audit table is locked'); },
+      },
+      $executeRawUnsafe: async (query: string) => {
+        if (query.startsWith('SAVEPOINT')) return 0;
+        throw new Error('the savepoint cannot be reached');
+      },
+    };
+    const messages: string[] = [];
+    const logged = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      messages.push(args.map(value => String(value)).join(' '));
+    });
+    try {
+      await expect(writePaymentAudit(client as never, {
+        actorId: 'system', action: 'PAYMENT_AUDIT_PROBE', targetType: 'payment', targetId: 'probe-payment',
+      })).rejects.toThrow('the audit table is locked');
+    } finally {
+      logged.mockRestore();
+    }
+
+    const records = messages
+      .map(message => { try { return JSON.parse(message); } catch { return null; } })
+      .filter(value => value && String(value.event).startsWith('payment-audit-'));
+    const writeFailure = records.find(value => value.event === 'payment-audit-write-failed');
+    expect(writeFailure).toMatchObject({
+      event: 'payment-audit-write-failed',
+      action: 'PAYMENT_AUDIT_PROBE',
+      targetType: 'payment',
+      targetId: 'probe-payment',
+    });
+    const rollbackFailure = records.find(value => value.event === 'payment-audit-savepoint-rollback-failed');
+    expect(rollbackFailure).toMatchObject({
+      event: 'payment-audit-savepoint-rollback-failed',
+      action: 'PAYMENT_AUDIT_PROBE',
+      targetType: 'payment',
+      targetId: 'probe-payment',
+    });
+    expect(String(rollbackFailure.savepoint)).toContain('jiffoo_pay_audit_');
+    expect(String(rollbackFailure.reason)).toContain('the savepoint cannot be reached');
+  });
 });

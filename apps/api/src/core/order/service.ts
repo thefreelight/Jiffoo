@@ -348,7 +348,7 @@ export class OrderService {
     // bumped here: after the transaction resolved, so a rollback keeps the
     // cache correct, and before a reader can repopulate it with the state
     // that the write replaced.
-    await CacheService.incrementOrderVersion();
+    await CacheService.incrementOrderVersion({ scope: 'order.service', reference: updatedOrder.id });
 
     const currency = await systemSettingsService.getShopCurrency();
     const locale = await this.readAccountLocale(updatedOrder.userId);
@@ -408,7 +408,10 @@ export class OrderService {
     // bumped after the transaction resolved: a rollback keeps the cache
     // correct, and a reader never repopulates it with the state that the
     // writes replaced.
-    if (cancelled > 0) await CacheService.incrementOrderVersion();
+    // The sweep cancels many orders at once, so there is no single order to
+    // name: the reference is the operation and the number of orders it
+    // cancelled, which is what the operator needs to find the lost bump.
+    if (cancelled > 0) await CacheService.incrementOrderVersion({ scope: 'order.service', reference: `cancel-expired-unpaid:${cancelled}` });
     return cancelled;
   }
 

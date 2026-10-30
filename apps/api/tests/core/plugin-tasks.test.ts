@@ -9,7 +9,7 @@ import { sweepPluginRecovery } from '@/core/admin/extension-installer/plugin-rec
 import { prisma } from '@/config/database';
 import { ensureCoreProcess } from '@/infra/core-process';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
-import { PluginTaskWorker, retryDelayMs } from '@/core/plugins/task-worker';
+import { PluginTaskWorker, retryDelayMs, deathScanDue } from '@/core/plugins/task-worker';
 import { assertTaskClaim, createTaskApi, DEFAULT_TASK_POLICY, lockTaskScheduler, recordTaskPrincipal, requireTaskPrincipal, setTaskDependencyAvailability, setTaskOperatorPolicy, transitionInstallationTasks, withTaskScope, type TaskClaim } from '@/core/plugins/tasks';
 import { assertCurrentDatabase } from '@/config/test-lane';
 import { createPluginDatabaseTestRuntime, withPluginDatabaseHandler, withPluginDatabaseInvocation } from '@/core/admin/extension-installer/plugin-database';
@@ -604,8 +604,17 @@ it('the sweep confirms the death of a core process that stopped heartbeating and
     // The cap is consumed: the scan finds no candidate at all.
     expect(await prisma.pluginTaskExecutionSlot.count({where:{state:{in:['ACTIVE','LINGERING']}}})).toBe(2);
     const worker=f.worker(async()=>({done:true}));
+    // The first observation only marks the process as suspect: PostgreSQL
+    // loses every session when it restarts, so a missing session alone
+    // proves nothing about the process that owned it.
+    await worker.tick();
+    expect((await prisma.coreProcess.findUniqueOrThrow({where:{bootNonce:crashed}})).state).toBe('SUSPECT');
+    // A suspect process may still be alive, so its slots keep their occupancy.
+    expect(await prisma.pluginTaskExecutionSlot.count({where:{state:{in:['ACTIVE','LINGERING']}}})).toBe(2);
+    expect(await prisma.adminAuditEvent.count({where:{action:'CORE_PROCESS_DEATH_CONFIRMED',targetId:crashed}})).toBe(0);
+    // The second observation, from a later round, confirms the death.
+    await delay(21_500);
     await worker.tick();await worker.drain();
-    // The crashed worker is confirmed dead, and the decision is recorded.
     const dead=await prisma.coreProcess.findUniqueOrThrow({where:{bootNonce:crashed}});
     expect(dead.state).toBe('DEAD_CONFIRMED');expect(dead.deathConfirmedAt).not.toBeNull();
     expect(await prisma.adminAuditEvent.count({where:{action:'CORE_PROCESS_DEATH_CONFIRMED',targetId:crashed}})).toBe(1);
@@ -618,6 +627,123 @@ it('the sweep confirms the death of a core process that stopped heartbeating and
     await prisma.$transaction(tx=>setTaskOperatorPolicy(tx,DEFAULT_TASK_POLICY));
     await releaseProcessFixtures([crashed]);
     await prisma.coreProcess.update({where:{bootNonce:coreProcessIdentity.bootNonce},data:{heartbeatAt:new Date()}});
+  }
+}, 120_000);
+
+it('a suspect process that refreshed its heartbeat returns to the live state',async()=>{
+  const f=await fixture();const boot=randomUUID();
+  try{
+    await prisma.coreProcess.create({data:{bootNonce:boot,instanceId:randomUUID(),kind:'worker',hostname:'g1-suspect',pid:4247,databaseRole:'postgres',state:'SUSPECT',startedAt:new Date(Date.now()-600_000),heartbeatAt:new Date(),deathProof:{source:'heartbeat-timeout-suspect',suspectMs:30_000,observedAt:new Date(Date.now()-60_000).toISOString(),heartbeatAt:new Date(Date.now()-600_000).toISOString(),previousState:'LIVE'}}});
+    const worker=f.worker(async()=>({done:true}));
+    await worker.tick();await worker.drain();
+    const row=await prisma.coreProcess.findUniqueOrThrow({where:{bootNonce:boot}});
+    expect(row.state).toBe('LIVE');
+    expect(row.deathProof).toBeNull();
+  }finally{
+    await releaseProcessFixtures([boot]);
+  }
+}, 90_000);
+
+it('the death confirmation scan runs on its own cadence',()=>{
+  expect(deathScanDue(0,1_000)).toBe(true);
+  expect(deathScanDue(1_000,1_000)).toBe(false);
+  expect(deathScanDue(1_000,5_999)).toBe(false);
+  expect(deathScanDue(1_000,6_000)).toBe(true);
+});
+
+it('a deterministic failure ends the task instead of walking the retry ladder',async()=>{
+  const f=await fixture();const task=await f.enqueue();
+  let calls=0;
+  const worker=f.worker(async()=>{calls++;throw new ApiError('PLUGIN_CIRCUIT_OPEN');});
+  await worker.tick();await worker.drain();
+  expect(calls).toBe(1);
+  const row=await prisma.pluginTask.findUniqueOrThrow({where:{id:task.id}});
+  expect(row.status).toBe('FAILED');
+  expect(row.attemptsCharged).toBe(1);
+  expect((row.lastError as {code:string}).code).toBe('PLUGIN_CIRCUIT_OPEN');
+  // The task is not retried: a second round finds no work and charges no attempt.
+  const again=f.worker(async()=>{calls++;throw new ApiError('PLUGIN_CIRCUIT_OPEN');});
+  await again.tick();await again.drain();
+  expect(calls).toBe(1);
+  expect((await prisma.pluginTask.findUniqueOrThrow({where:{id:task.id}})).attemptsCharged).toBe(1);
+}, 90_000);
+
+it('the lease-expiry recovery ends a task whose last failure was deterministic and names the claim',async()=>{
+  const f=await fixture();const task=await f.enqueue();
+  const owner=randomUUID();const claimToken=randomUUID();
+  const warnings:string[]=[];
+  const spy=vi.spyOn(console,'warn').mockImplementation((...args:unknown[])=>{warnings.push(args.map(String).join(' '));});
+  try{
+    await prisma.coreProcess.create({data:{bootNonce:owner,instanceId:randomUUID(),kind:'worker',hostname:'g1-expiry',pid:4248,databaseRole:'postgres',state:'LIVE',startedAt:new Date(),heartbeatAt:new Date()}});
+    await prisma.pluginTask.update({where:{id:task.id},data:{status:'RUNNING',claimToken,fence:7n,claimedByBootNonce:owner,generation:0n,zipHash:'a'.repeat(64),leaseUntil:new Date(Date.now()-1000),deadlineAt:new Date(Date.now()-1000),startedAt:new Date(Date.now()-3_600_000),lastError:{code:'PLUGIN_CIRCUIT_OPEN',message:'Plugin circuit open.'}}});
+    const worker=f.worker(async()=>({done:true}));
+    await worker.tick();await worker.drain();
+    const row=await prisma.pluginTask.findUniqueOrThrow({where:{id:task.id}});
+    // The recovery reuses the decision of the settlement path: a failure that
+    // a retry cannot fix does not walk the ladder again.
+    expect(row.status).toBe('FAILED');
+    expect(row.attemptsCharged).toBe(1);
+    // The structured record names the claim that expired.
+    const record=warnings.map(line=>{try{return JSON.parse(line) as {event?:string;taskId?:string;claimId?:string;fence?:string};}catch{return {};}}).find(entry=>entry.event==='plugin_task_lease_expired');
+    expect(record).toBeDefined();
+    expect(record!.taskId).toBe(task.id);
+    expect(record!.claimId).toBe(claimToken);
+    expect(record!.fence).toBe('7');
+  }finally{
+    spy.mockRestore();
+    await releaseProcessFixtures([owner]);
+  }
+}, 90_000);
+
+it('a failing slot observation records one throttled structured record',async()=>{
+  const f=await fixture();const task=await f.enqueue();
+  const warnings:string[]=[];
+  const spy=vi.spyOn(console,'warn').mockImplementation((...args:unknown[])=>{warnings.push(args.map(String).join(' '));});
+  const observations=()=>warnings.filter(line=>line.includes('plugin_task_slot_observation_failed')).length;
+  let release!:()=>void;
+  const blocked=new Promise<void>(resolve=>{release=resolve;});
+  try{
+    // The observation of the slot fails while the invocation runs.
+    const worker=f.worker(async()=>{await blocked;return {done:true};},{occupancyMs:20,recordWindowMs:300,beforeOccupancyWrite:async()=>{throw new Error('Simulated observation outage');}});
+    await worker.tick();
+    await eventually(async()=>observations()===1,30_000);
+    const record=warnings.map(line=>{try{return JSON.parse(line) as {event?:string;taskId?:string;slotId?:string;installationId?:string;error?:string;errorMessage?:string};}catch{return {};}}).find(entry=>entry.event==='plugin_task_slot_observation_failed');
+    expect(record).toBeDefined();
+    expect(record!.taskId).toBe(task.id);
+    expect(record!.slotId).toBeTruthy();
+    expect(record!.installationId).toBe(f.installationId);
+    expect(record!.error).toBe('Error');
+    expect(record!.errorMessage).toBe('Simulated observation outage');
+    // The window throttles the record: the repeated failures inside the
+    // window write one line.
+    await delay(150);
+    expect(observations()).toBe(1);
+    // A failure that persists is recorded again after the window.
+    await eventually(async()=>observations()>1,30_000);
+  }finally{
+    spy.mockRestore();
+    release();
+    for(const worker of workers.splice(0))await worker.drain();
+  }
+}, 90_000);
+
+it('a failing settled-slot release records the slot and the installation',async()=>{
+  const f=await fixture();const task=await f.enqueue();
+  const warnings:string[]=[];
+  const spy=vi.spyOn(console,'warn').mockImplementation((...args:unknown[])=>{warnings.push(args.map(String).join(' '));});
+  try{
+    // The release of the settled slot fails, so the slot stays occupied.
+    const worker=f.worker(async()=>({done:true}),{beforeSlotRelease:async()=>{throw new Error('Simulated release outage');}});
+    await worker.tick();await worker.drain();
+    const record=warnings.map(line=>{try{return JSON.parse(line) as {event?:string;taskId?:string;slotId?:string;installationId?:string;errorMessage?:string};}catch{return {};}}).find(entry=>entry.event==='plugin_task_slot_release_failed');
+    expect(record).toBeDefined();
+    expect(record!.taskId).toBe(task.id);
+    expect(record!.slotId).toBeTruthy();
+    // The record names the installation whose queue is blocked by the slot.
+    expect(record!.installationId).toBe(f.installationId);
+    expect(record!.errorMessage).toBe('Simulated release outage');
+  }finally{
+    spy.mockRestore();
   }
 }, 90_000);
 

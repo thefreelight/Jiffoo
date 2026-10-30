@@ -321,23 +321,37 @@ function assertNonNegativePluginAmount(amountMinor: number, source: string): voi
 }
 
 /**
- * Record the failure of a provider the placement could not use.
+ * The reason of a failed provider.
  *
- * The failure is recorded for the operator and the provider is logged as
- * excluded, exactly like the checkout module excludes a provider whose
- * contract call failed.
+ * The reason is the code of the contract error, so the monitoring reads one
+ * vocabulary. A failure that is not a contract error is a failure of the
+ * provider as well, and its internal message never reaches the client.
  */
-async function excludeFailedProvider(slug: string, error: unknown, context: string): Promise<void> {
-  if (!(error instanceof ContractCallError)) throw error;
-  if (error.code !== 'PLUGIN_DISABLED') await recordPluginFailure(slug, error, context);
-  console.error(JSON.stringify({ event: `${context}_provider_excluded`, slug, reason: error.code }));
+function providerFailureReason(error: unknown): string {
+  return error instanceof ContractCallError ? error.code : 'CONTRACT_CALL_FAILED';
+}
+
+/**
+ * The exclusion of a provider the placement could not use.
+ *
+ * The failure of the provider is recorded for the operator and the exclusion
+ * is logged with the same event and the same context fields as every other
+ * module of the Core, so one monitoring rule covers every failed provider.
+ * The helper stays inside the module: the modules do not expose their
+ * internals to each other.
+ */
+async function excludeFailedProvider(slug: string, contract: 'tax', error: unknown): Promise<void> {
+  const reason = providerFailureReason(error);
+  if (reason !== 'PLUGIN_DISABLED') await recordPluginFailure(slug, error, 'order');
+  console.error(JSON.stringify({ event: 'provider_excluded', slug, reason, contract }));
 }
 
 /**
  * The error code of a failed tax provider.
  *
  * A timeout keeps its own code, so the caller can tell a hanging provider
- * from a failing one. Every other failure is a provider failure.
+ * from a failing one. Every other failure, including a failure that is not a
+ * contract error at all, is a provider failure.
  */
 function taxProviderFailureCode(error: unknown): ErrorCode {
   return error instanceof ContractCallError && error.code === 'PLUGIN_TIMEOUT' ? 'PLUGIN_TIMEOUT' : 'CONTRACT_CALL_FAILED';
@@ -605,7 +619,7 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
             // provider: the tax of the order is unknown. The placement is
             // refused instead of charging an unknown tax, and the failure of
             // the provider is recorded for the operator.
-            await excludeFailedProvider(taxProvider.pluginSlug, error, 'order');
+            await excludeFailedProvider(taxProvider.pluginSlug, 'tax', error);
             throw new ApiError(taxProviderFailureCode(error));
           }
         } else {
@@ -809,8 +823,10 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
         // is bumped here: after the transaction resolved, so a rollback keeps
         // the cache correct, and before a reader can repopulate it with the
         // state that the write replaced. A replayed request writes nothing,
-        // so it leaves the cache alone.
-        if (!placement.replayed) await CacheService.incrementOrderVersion();
+        // so it leaves the cache alone. The bump names the placement it
+        // belongs to, so an operator can find the order whose cached list
+        // went stale.
+        if (!placement.replayed) await CacheService.incrementOrderVersion({ scope: 'order.placement', reference: placement.order.id });
       },
     },
     {

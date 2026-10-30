@@ -2390,3 +2390,166 @@ Playwright results: 112 passed, 0 failed, 0 skipped
 | Stop E2E child processes | PASS | 0.12s |
 | Total duration: 912.87s |
 ```
+
+## 5zh. Handover evidence — the step 4 acceptance review remediation (the disaster-tolerance line)
+
+**Baseline SHA:** `ac9fea59e` (the repair of the login budget of the batch) and `97448b322` (the ledger commit of the step 4 batch). **Commit:** (the commit of this batch).
+
+### Why this section exists
+
+The step 4 batch (section 5zg) went through an owner-driven acceptance review before the wrap-up. Four independent read-only reviewers read the diff of the batch against four bottom lines: a timeout that really releases the resource, a retry that is safe, a degradation that is observable, and a dead letter that closes with a green gate. Every module produced findings. This batch closes them, in ten packages, each with its own tests.
+
+Two findings the reviewers reported were false positives, and they were checked against the source before they were closed:
+
+- The payment reconciliation was reported to never increment its attempt counter, so its backoff would stay at sixty seconds. The increment lives in the claim statement of `core/payment/lease.ts:30` (`attempts = p.attempts + 1`), so the counter does grow. Not a defect.
+- The unique index of the notification dedup key was reported to be unverified. It exists (`system.prisma:124`, `dedupKey String? @unique`). Not a defect.
+
+The review also produced three findings that no reviewer had reported, found while the coordinator verified the batch against the source: the composition root wrote the tables of two other modules (the guardrail of the module ownership), the failure of the compensating write of a lifecycle hook was swallowed by an empty catch, and the peer liveness criterion of the forced shutdown contradicted the two-observation death confirmation of the process registry.
+
+### The findings of the review and what this batch closes
+
+| The finding | The fix |
+|---|---|
+| P0: the setup of a plugin runtime and its first invocation shared one deadline, so a slow cold start took the budget of the call away from a healthy plugin | the setup has its own budget (`PLUGIN_SETUP_TIMEOUT_MS`, the sum of the module load budget and the registration budget plus a second) and the invocation budget starts once the setup succeeded |
+| P0: a candidate runtime instance that never became the active runtime was never closed, so every failed setup leaked a Fastify instance | the candidate is closed on every path that does not hand it over, the close is idempotent, it is bounded by `PLUGIN_CANDIDATE_CLOSE_TIMEOUT_MS`, and a failing close is recorded as `plugin_candidate_close_failed` |
+| P0: a contract route that answers with a body that is not JSON lost the reason of the failure, and the body itself was dropped without a record | the failure is recorded as `plugin_contract_error_body_invalid` with the name of the error and no part of the body |
+| P0: a plugin failure that the throttle dropped was invisible, and the record had neither the installation nor the stack | the throttled drop is recorded as `plugin_failure_throttled`, and the failure record carries the installation id and the stack |
+| P0: a payment session committed its fact in one transaction and its order confirmation event in a second one, so a committed session could have no event, and the replay of the session returned early without writing the missing event | the fact and the event are applied in one transaction, and the replay of a committed session writes the missing event through `repairOrderConfirmationEvent` |
+| P0: the failure of the session creation was swallowed, so an unknown outcome and a request that never left the Core were indistinguishable | the failure is classified (`creation_not_sent` for the codes that are raised before the dispatch, `creation_outcome_unknown` for the rest), written to the audit trail and to the structured log with a redacted message |
+| P0: an audit write that failed could roll back the money transaction it belonged to, and the rollback of the savepoint was reported as a graceful degradation | the savepoint operations return their outcome, a failing rollback is recorded and the money transaction fails explicitly, and the write of the audit is separated from the write of the money |
+| P0: the shutdown had no hard deadline, and the forced path cut the database sessions off without releasing the rows that were in flight | the forced shutdown closes the connections with a bounded wait (`API_FORCED_SHUTDOWN_CLOSE_TIMEOUT_MS`) and expires the lease of the rows it owns |
+| P0: the forced shutdown took the rows of a peer that was still alive, because its liveness criterion was a heartbeat that had expired | the criterion is the state model of the process registry (`CORE_PROCESS_ALIVE_STATES`, in which a suspect process counts as alive), and the release lives in the modules that own the rows |
+| P0: a crashed core process was condemned on its heartbeat alone, so a single pause of the event loop freed the slots of a process that was still running | the death needs two observations: the first marks the row `SUSPECT`, the second confirms it. A process that holds a session or that refreshes its heartbeat is alive, and its row returns to the live state |
+| P0: a plugin task whose declaration is invalid, or whose circuit breaker is open, walked the whole retry ladder | the deterministic failures (`PLUGIN_TASK_DECLARATION_INVALID`, `PLUGIN_CIRCUIT_OPEN`) end the task at once |
+| P0: the lease of an event delivery expired while the plugin handler was still running, so the recovery took the row and the event was handed to the plugin a second time | the lease is renewed every third of its length, and the renewal is fenced by the claim token of the delivery |
+| P0: a failure of the renewal of the lease was swallowed, so the fence degraded into a double delivery without a trace | the failure is recorded as `event_delivery_lease_renewal_failed`, once per delivery per minute |
+| P0: the notification retry ladder had no jitter, so a fleet of instances that failed together retried together | the ladder carries a jitter of twenty percent, which only delays a retry and never shortens it |
+| P1: the cache client queued its commands while it was offline and answered zero when it was not connected | the client carries a connect budget, it never queues a command while it is offline, and the invalidation that could not be applied is deferred and completed when the client is ready again |
+| P1: the list of the orders was cached for ten minutes, so a customer could read a stale list after a payment | the list is cached for two minutes, and the version bump of the order cache is applied inside the transaction of the caller, with a context that names the scope and the reference of the bump |
+| P1: the built-in package sync waited for the advisory lock before the server listened, so an instance that lost the race was killed and started again | the wait for the lock is bounded by fifteen seconds, the timeout is recorded, and the install stays before the listen so the built-in packages are in place when the API serves its first request |
+| P1: the edge read the body of the request without a limit and answered 503 without a record | the body is read within a limit, an oversized body answers 413, and every degradation of the edge is recorded as `edge_core_degraded` with the surface, the reason, the path and the elapsed time |
+| P1: the shutdown of the built-in packages was not bounded, so a connection that did not close held the process | the close of the connections is awaited with a bounded wait, and the release of the in-flight leases is bounded as well |
+| P1: the login account budget counted every attempt, so a legitimate sign-in of a busy account was refused | the account dimension counts the failed attempts only; a credential answer that is neither a success nor a rejection counts as nothing |
+| P1: a plugin file cleanup that reached its terminal state was never shown to the operator beyond the first fifty rows | the listing is paged, it reports the total, the orphans and whether the list was truncated |
+| P1: a tax provider that failed without a contract error broke the whole quote | the failure is mapped to `CONTRACT_CALL_FAILED` (502), a timeout keeps `PLUGIN_TIMEOUT` (504), and the provider is excluded with one log event |
+| P1: the log of the cache client used emoji and no fields | the records are structured JSON with the fields of the failure |
+| P1: the records of the limit hits of the rate limiter had no subject and no policy | every hit is recorded as `RATE_LIMITED` with the policy, the hashed subject, the wait and the route |
+| P1: the failure of the compensating write of a lifecycle hook was swallowed by an empty catch, so the operator saw neither the failure ledger nor the warning on the installation | the failure is recorded with the slug, the installation, the hook and the stage that failed, and the outcome of the hook does not change |
+| P1: the observation of a plugin task slot, the move to the lingering state, the release of the settled slots and the settlement of a task were all swallowed | the four failures are recorded, once per task or slot per minute, with the task, the slot, the installation and the reason |
+| P2: the composition root wrote the `event_deliveries` and the `notifications` rows directly, so the tables of two modules had a second writer | the release lives in the modules that own the rows (`releaseEventDeliveryLeases`, `releaseNotificationLeases`), and the composition root calls them |
+
+### The contract changes this batch registers
+
+1. The account dimension of the login is a circuit breaker over the failed attempts, not a fixed window over every attempt. The key family is new: `jiffoo:protection:rl:login-account:account:<sha256 of the identifier>`. The window is sixty seconds, ten samples are needed before the breaker can open, the rate that opens it is one half, and it stays open for thirty seconds. The per-address budget of the login (twenty attempts per five minutes, `RateLimitPresets.login`) is unchanged.
+2. A refused login answers `429` with the code `RATE_LIMITED` and a `Retry-After` of thirty seconds. The code and the shape of the answer are the ones the fixed window already used, so only the wait changes.
+3. The exemption of the shared protection is narrowed to the liveness probe (`/health/live`). The other health routes are bounded by their own budget and are answered from their own dependency probes, so an unavailable protection no longer masks the real state of the service.
+4. An upload that exceeds its limit answers `413` with the code `PAYLOAD_TOO_LARGE`. The details of the answer carry `maxBytes`, and the whitelist of the details of the error answers (`utils/api-errors.ts`) was extended with that code.
+5. The edge of the Shop answers the code `CORE_RESPONSE_TOO_LARGE` (503) when the answer of the Core exceeds sixteen mebibytes.
+6. The plugin recovery listing gains `deadCleanupTotal`, `orphanedDeadCleanupTotal`, `deadCleanupPage` (with `limit`, `offset`, `returned` and `hasMore`) and, on every item, `deadCleanupsTruncated`. The count on an item is the total of the dead cleanups of the slug, not the number of the rows of the page. The route accepts `deadCleanupLimit` (one to five hundred) and `deadCleanupOffset`.
+7. The log event names of the batch: `provider_excluded` (one event for the tax, the shipping and the payment provider), `edge_core_degraded` (every degradation of the Admin and the Shop), `RATE_LIMITED` (every limit hit), `shared_protection_redis_error` (the failure of the shared protection), `plugin_failure_throttled`, `plugin_candidate_close_failed`, `plugin_contract_error_body_invalid`, `event_delivery_lease_renewal_failed`, `plugin_task_slot_observation_failed`, `plugin_task_slot_lingering_failed`, `plugin_task_slot_release_failed`, `plugin_task_settle_failed`, `plugin_task_degraded_record_failed`, `payment-audit-savepoint-rollback-failed`, `payment-audit-write-failed`, `api-shutdown-deadline`, `api-shutdown-lease-release-failed`, `builtin_plugin_sync_lock_timeout` and `builtin_plugin_sync_connection_error`.
+8. The environment variables of the edge deadlines are new: the header deadline, the body deadline and the maximum request size of the Admin and of the Shop, in `apps/api/.env.example`, `apps/shop/.env.example`, `deploy/compose/.env.example`, `deploy/compose/compose.yml` and `docs/deployment-env.md`.
+9. The bump of the cached order version takes a context (`scope` and `reference`) and can answer `null` when the cache is unreachable. The callers that discard the answer are the payment session, the payment observation, the placement of an order, the order service and the order management of the admin. The repository compiles with `strict: false`, so the null is a runtime contract and not a compile-time one; the context is what makes a lost bump traceable.
+10. Six module-level states and one cross-module edge were added to the two audit registries of the repository: `core/payment/session.ts:failureCodesBeforeDispatch`, `core/plugins/tasks.ts:DETERMINISTIC_TASK_FAILURES`, `infra/core-process.ts:CORE_PROCESS_ALIVE_STATES`, `CORE_PROCESS_DEAD_STATES`, `CORE_PROCESS_RUNNING_STATES`, `plugins/rate-limiter.ts:loginPermits`, and the edge `infra/shared-protection -> logger`.
+
+### The decisions this batch makes on purpose
+
+1. The JavaScript of an in-process plugin cannot be cancelled by a timeout. The deadline of the call answers the caller, the lease of the row is renewed while the handler runs, and the row is fenced by its claim token, so a handler that outlives its lease cannot corrupt the state of the first one. A worker-thread sandbox is out of scope for this batch.
+2. The budget of the load of the entry module of a plugin cannot preempt a blocking `require`. It turns an abnormally slow load into a recorded failure of that plugin.
+3. A plugin task that exceeded its declared runtime loses its execution slot even when its owner is alive. The plugin task contract fences the writes, so a re-run cannot corrupt the first one, and the alternative is that one blocked worker stops the whole platform.
+4. A peer whose heartbeat is stale is not condemned on the heartbeat alone. The death of a core process needs two observations, and the forced shutdown of an instance does not take the rows of a peer that may still be alive: it expires the lease of the rows it owns and leaves the rows of the peers to the sweep that confirms their death.
+5. The built-in packages are installed and prewarmed before the API listens. The contract of the platform is that an API that is up serves the built-in plugins and themes; a background install would leave a window in which the API answers without them, and it would hold the theme operation lease against the traffic of the first requests. The wait for the advisory lock is bounded by fifteen seconds per sync, so the worst case of the start is about thirty seconds instead of the four minutes of the unbounded wait it replaced, and the compose healthcheck (`interval 5s`, `retries 60`, `start_period 30s`) tolerates a slow start. The two syncs stay serial: the theme sync installs through the installer path, which writes the shared plugin installation rows and advances the plugin registry version, the same rows the plugin sync touches.
+6. An audit row may be lost when the database refuses to write it, but the money state is the truth that must not be undone. The write of the audit runs inside a savepoint, a failing rollback ends the money transaction explicitly, and both facts are recorded.
+7. The plugin failure log is throttled. A plugin that fails in a loop must not fill the log, so the dropped records are counted and reported as `plugin_failure_throttled`. The same rule applies to the renewal of an event lease and to the four failure points of the plugin task worker: one record per delivery, task or slot per minute.
+8. A part that is above its limit is read to its end and answered with `413`. The bytes over the limit are never buffered, and the rest of the body is consumed before the answer leaves the process, so the client receives the answer instead of a reset and the connection can be reused.
+
+### What the gate found
+
+The first run of the gate over the whole catalogue (`pnpm verify:quick --shards=4`) failed with fourteen failing files, and the failures were of the batch itself, not of the environment:
+
+- Nine files failed because the built-in package sync had been moved behind the listen of the API. The contract of the platform is that an API that is up serves the built-in plugins and themes, and the child-process tests of the themes assert exactly that: the built-in themes were not installed yet, the background sync held the theme operation lease against the requests of the tests (`THEME_OPERATION_IN_PROGRESS`), and the background sync advanced the plugin registry version a second time, which invalidated the memo of a corrupt package and read its blob twice. The sync is back before the listen.
+- One file failed because a test disconnected the Prisma client of the shard in its cleanup and the next file started against an engine that was still coming back (`Engine is not yet connected`). The client is connected before every case now. The weakness was in the test, not in the product, but the new test files of the batch changed the composition of the shards and exposed it.
+- One file failed because the stub of the login in the test helper read the request body in the `onRequest` hook, where Fastify has not parsed the body yet, so a wrong credential was answered with 200 and the failure counting of the new account breaker was never exercised.
+- One file failed because the unit test of the upload limit pinned the old contract of the reader (it stops at the cap) while the reader now consumes the part to its end so the body can be drained. The test pins the new contract: the part is read to its end, nothing over the limit is ever buffered, and the answer is `TOO_LARGE`.
+- Two files failed because the new module states and the new cross-module edge were not yet registered in the two audit registries of the repository.
+- Two files failed because the test of the notification retry policy passed its parameter as an array to a raw query (so PostgreSQL received a `text[]` against a `text` column), and because a test pinned the SQL of the retry ladder from before the jitter was added. Both tests now pin the contract instead of a literal.
+
+### The gate evidence
+
+The shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the batch:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 20 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 208/208 files covered
+Totals: Test Files 208 files, 208 passed | Tests 2763 tests, 2761 passed, 2 pending | Suites 546 suites, 546 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| 1 | 0 | 689.2s | 19:36:42 | 51 files, 51 passed | 662 tests, 662 passed | none |
+| 2 | 0 | 563.1s | 19:36:43 | 52 files, 52 passed | 791 tests, 791 passed | none |
+| 3 | 0 | 573.6s | 19:36:44 | 53 files, 53 passed | 663 tests, 663 passed | none |
+| 4 | 0 | 675.9s | 19:36:45 | 52 files, 52 passed | 647 tests, 645 passed, 2 pending | none |
+Run Admin tests: 61 passed (61), 605 tests passed
+Run Shop tests: 39 passed (39), 277 tests passed
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 16.64s |
+| Lint Shop | PASS | 9.96s |
+| Reset test database | PASS | 3.56s |
+| Run API tests in 4 shards | PASS | 703.23s |
+| Run Admin tests | PASS | 24.66s |
+| Run Shop tests | PASS | 25.92s |
+```
+
+The step for the drift of the Prisma schema is not in the table because the runner only runs it when the Prisma directory changed, and this batch changed no schema and no migration. The last migration of the repository is still `20261030045337_plugin_file_cleanup_status` of the batch of section 5zg.
+
+The browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the same tree:
+
+```
+Playwright start time: 2026-10-30T11:55:21.266Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.49s |
+| Check observed browser contexts | PASS | 0.70s |
+| Clear dedicated E2E Redis database | PASS | 0.21s |
+| Reset test database | PASS | 2.83s |
+| Build shared package | PASS | 2.11s |
+| Build plugin SDK | PASS | 3.40s |
+| Build API | PASS | 12.11s |
+| Build Admin | PASS | 16.94s |
+| Build Shop | PASS | 14.71s |
+| Start local marketplace | PASS | 3.11s |
+| Start API, worker, Admin and Shop | PASS | 0.05s |
+| Wait for health | PASS | 2.84s |
+| Run Playwright | PASS | 734.74s |
+| Stop E2E child processes | PASS | 0.11s |
+| Total duration: 795.98s |
+```
+
+The commits of the batch of section 5zg that this section closes were `4495bfac8` (the batch), `ac9fea59e` (the repair of the login budget that the first browser E2E of GitHub Actions demanded, run `41023125361`) and `97448b322` (the ledger commit of the batch). The evidence of the local browser E2E of that batch is in section 5zg; the evidence of this batch is above.
+
+### What is still open
+
+- The storefront does not read the marker of a degraded tax quote yet. It was already open in section 5zg and this batch does not change it: a degraded quote shows an empty total, so the customer cannot place the order.
+- A dead plugin file cleanup row still holds the storage quota of its plugin. The operator now sees the total, the orphans and the truncation of the list, but releasing the quota stays a manual action.
+- An audit row may be lost when the database refuses to write it. The savepoint protects the money transaction, and a failing rollback now ends that transaction explicitly, but the row itself is still lost.
+- The JavaScript of an in-process plugin cannot be cancelled. The deadline answers the caller and the lease of the row is renewed, but the plugin keeps running until it returns.

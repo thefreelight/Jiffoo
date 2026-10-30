@@ -15,7 +15,15 @@ export async function protectionApp(
   app.get('/read', async (request) => ({ user: request.user?.id ?? null }));
   app.get('/protected', { onRequest: authMiddleware }, async (request) => ({ user: request.user!.id }));
   app.get('/token', { onRequest: dualAuthMiddleware('catalog:read') }, async (request) => ({ user: request.user!.id }));
-  for (const name of ['login', 'register', 'forgot-password']) app.post(`/api/v1/auth/${name}`, async () => ({ ok: true }));
+  for (const name of ['register', 'forgot-password']) app.post(`/api/v1/auth/${name}`, async () => ({ ok: true }));
+  // The login rejects a wrong credential with the status of a failed attempt.
+  // The body is parsed before the handler runs, so the credential is known
+  // here; the payload of the answer is unchanged.
+  app.post('/api/v1/auth/login', async (request, reply) => {
+    const body = request.body as { password?: unknown } | undefined;
+    if (body?.password === 'wrong-password') reply.code(401);
+    return { ok: true };
+  });
   app.post('/api/v1/auth/resend-verification', async () => ({ ok: true }));
   for (const route of [
     '/api/v1/admin/orders/export',

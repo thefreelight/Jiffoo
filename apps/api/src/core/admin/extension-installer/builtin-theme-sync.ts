@@ -12,9 +12,17 @@ import { validateThemeManifest, validateThemeZip } from '@/core/storage/theme-va
 import { ExtensionInstallerError } from '@/core/extensions/shared/errors';
 import { ThemePackageResolutionError } from '@/core/storage/current-theme-package';
 
-const LOCK = 824_301_552;
-/** The seconds a sync waits for the lock of a sync that is still running. */
-const LOCK_WAIT_SECONDS = 120;
+/** The advisory lock of the builtin theme sync. */
+export const BUILTIN_THEME_SYNC_LOCK = 824_301_552;
+/**
+ * The seconds a sync waits for the lock of a sync that is still running.
+ *
+ * The wait is shorter than the period of the orchestrator, so a sync that
+ * does not get the lock skips its round instead of blocking the start of the
+ * process. The installation is idempotent and the instance that holds the
+ * lock completes it.
+ */
+export const BUILTIN_THEME_SYNC_LOCK_WAIT_SECONDS = 15;
 /** The milliseconds between two attempts to take the sync lock. */
 const LOCK_RETRY_MS = 250;
 /** The milliseconds the activation transaction may hold its connection. */
@@ -33,10 +41,18 @@ type Activation = { target: 'shop' | 'admin'; slug: string; action: string; only
  * lock would be released before the installer commits its own rows. The
  * connection is closed when the sync ends, which releases the lock even when
  * the sync failed.
+ *
+ * @returns the connection that holds the lock, or undefined when another
+ * instance holds it and this round of the sync is skipped.
  */
-async function takeSyncLock(): Promise<Client> {
+async function takeSyncLock(): Promise<Client | undefined> {
   const client = new Client({ connectionString: processDatabaseUrl(env.DATABASE_URL, 'core', undefined, true), connectionTimeoutMillis: 5_000 });
-  client.on('error', () => undefined);
+  client.on('error', (error: Error) => {
+    // The failure of the connection is recorded, never thrown: the handler
+    // must not break the sync. The record carries the reason only, never the
+    // connection string or its secret.
+    console.error(JSON.stringify({ event: 'builtin_theme_sync_connection_error', scope: 'extension-installer', reason: error?.message ?? 'unknown' }));
+  });
   try {
     await client.connect();
     // The session carries a server-side deadline: a PostgreSQL that stopped
@@ -49,13 +65,16 @@ async function takeSyncLock(): Promise<Client> {
     await client.end().catch(() => undefined);
     throw error;
   }
-  const deadline = Date.now() + LOCK_WAIT_SECONDS * 1000;
+  const deadline = Date.now() + BUILTIN_THEME_SYNC_LOCK_WAIT_SECONDS * 1000;
   for (;;) {
-    const result = await client.query<{ locked: boolean }>('SELECT pg_try_advisory_lock($1::bigint) AS locked', [LOCK]);
+    const result = await client.query<{ locked: boolean }>('SELECT pg_try_advisory_lock($1::bigint) AS locked', [BUILTIN_THEME_SYNC_LOCK]);
     if (result.rows[0]?.locked) return client;
     if (Date.now() >= deadline) {
       await client.end().catch(() => undefined);
-      throw new Error('Builtin theme sync is held by another process');
+      // The instance that holds the lock completes the installation, which is
+      // idempotent, so this round is skipped instead of blocking the start.
+      console.warn(JSON.stringify({ event: 'builtin_theme_sync_lock_timeout', scope: 'extension-installer', waitSeconds: BUILTIN_THEME_SYNC_LOCK_WAIT_SECONDS }));
+      return undefined;
     }
     await new Promise(resolve => setTimeout(resolve, LOCK_RETRY_MS));
   }
@@ -94,6 +113,11 @@ async function activePackageIsInvalid(target: 'shop' | 'admin', active: { slug: 
 export async function syncBuiltinThemes(root: string): Promise<void> {
   // The lock of the sync, held for the whole sync on a connection of its own.
   const lock = await takeSyncLock();
+  if (!lock) {
+    // Another instance holds the lock and completes the installation. This
+    // round is skipped, so a held lock never blocks the start of the process.
+    return;
+  }
   try {
     // The filesystem work and the installs, outside every transaction. Every
     // install commits its own rows, so a slow disk never holds a connection.

@@ -159,11 +159,13 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       }
 
       UploadService.assertAllowedType(data.mimetype);
-      const content = await readUploadContent(data, UploadService.MAX_FILE_SIZE);
+      const content = await readUploadContent(request, data, UploadService.MAX_FILE_SIZE);
       const result = await UploadService.uploadProductImage({ filename: data.filename, mimetype: data.mimetype, content });
       return sendSuccess(reply, result);
     } catch (error) {
       if (error instanceof UploadValidationError) {
+        // Every upload route answers an oversized part with the same contract.
+        if (error.reason === 'TOO_LARGE') return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', error.message, error.details);
         return sendError(reply, 400, 'UPLOAD_FAILED', error.message, error.details);
       }
       return sendMappedError(reply, error);

@@ -7,7 +7,7 @@
  * instead of hanging.
  */
 
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import path from 'path';
 import os from 'os';
 import { promises as fs } from 'fs';
@@ -23,8 +23,36 @@ import { callContract, handlePluginGateway } from '@/core/extensions/runtime/plu
 import { ensurePluginRegistryFresh } from '@/core/admin/extension-installer/plugin-registry-freshness';
 import { ContractCallError } from '@/core/extensions/runtime/contract-errors';
 import { encryptPluginConfig } from '@/core/extensions/shared/config-crypto';
+import { recordPluginFailure } from '@/core/extensions/runtime/failure';
 import { sharedProtection, pluginProtectionScope } from '@/infra/shared-protection';
 import { env } from '@/config/env';
+
+/**
+ * Every Fastify instance of the process is tracked, so a test can tell whether
+ * the candidate instance of a failed plugin load was closed.
+ */
+const { createdInstances } = vi.hoisted(() => ({ createdInstances: [] as Array<{ closeCalls: number; closed: boolean }> }));
+
+vi.mock('fastify', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('fastify')>();
+  const factory = (options?: unknown) => {
+    const app = (actual.default as unknown as (options?: unknown) => any)(options);
+    const entry = { closeCalls: 0, closed: false };
+    createdInstances.push(entry);
+    try {
+      const close = app.close.bind(app);
+      app.close = (...args: unknown[]) => {
+        entry.closeCalls += 1;
+        if ((globalThis as unknown as Record<string, unknown>).__jiffooFailCandidateClose) throw new Error('candidate close failed');
+        return close(...args);
+      };
+    } catch { /* the instance does not allow the wrap */ }
+    app.addHook('onClose', async () => { entry.closed = true; });
+    return app;
+  };
+  Object.assign(factory, actual.default);
+  return { ...actual, default: factory };
+});
 
 const protectionRedis = new Redis(env.REDIS_URL);
 const prisma = getTestPrisma();
@@ -52,7 +80,7 @@ describe('Plugin runtime deadlines', () => {
   async function createPlugin(
     slug: string,
     source: string,
-    options: { contracts?: Array<{ name: string; version: number }>; config?: Record<string, unknown>; configSchema?: unknown } = {},
+    options: { contracts?: Array<{ name: string; version: number }>; config?: Record<string, unknown>; configSchema?: unknown; prime?: boolean } = {},
   ): Promise<string> {
     slugs.push(slug);
     const sourceDirectory = await fs.mkdtemp(path.join(os.tmpdir(), '.plugin-runtime-deadline-'));
@@ -91,7 +119,7 @@ describe('Plugin runtime deadlines', () => {
     });
     // The registry reconciliation loads every installed plugin once, so the
     // call under test never fails in the registry path instead of its own.
-    await ensurePluginRegistryFresh();
+    if (options.prime !== false) await ensurePluginRegistryFresh();
     return installation.id;
   }
 
@@ -209,5 +237,98 @@ module.exports = { register(ctx) {
     const installation = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: installationId } });
     expect(installation.lastFailureMessage).not.toContain(secret);
     expect(installation.lastFailureMessage).toContain('***');
+  }, 60000);
+
+  it('closes the candidate runtime instance of a plugin that fails to load', async () => {
+    const slug = `candidate-close-${Date.now().toString(36)}`.slice(0, 30);
+    await createPlugin(slug, `
+module.exports = { register(ctx) {
+  throw new Error('registration failed');
+} };`, { contracts: [{ name: 'shipping', version: 1 }] });
+
+    const before = createdInstances.length;
+    await expect(callContract(slug, 'shipping', 1, 'quote', {})).rejects.toMatchObject({ code: 'CONTRACT_CALL_FAILED' });
+
+    const candidates = createdInstances.slice(before);
+    expect(candidates.length).toBeGreaterThan(0);
+    for (const candidate of candidates) expect(candidate.closeCalls >= 1 || candidate.closed).toBe(true);
+  }, 60000);
+
+  it('closes the candidate runtime instance of a plugin that fails to load', async () => {
+    const slug = `candidate-close-${Date.now().toString(36)}`.slice(0, 30);
+    await createPlugin(slug, `
+module.exports = { register(ctx) {
+  throw new Error('registration failed');
+} };`, { contracts: [{ name: 'shipping', version: 1 }] });
+
+    const before = createdInstances.length;
+    await expect(callContract(slug, 'shipping', 1, 'quote', {})).rejects.toMatchObject({ code: 'CONTRACT_CALL_FAILED' });
+
+    const candidates = createdInstances.slice(before);
+    expect(candidates.length).toBeGreaterThan(0);
+    for (const candidate of candidates) expect(candidate.closeCalls >= 1 || candidate.closed).toBe(true);
+  }, 60000);
+
+  it('keeps the original failure when the close of the candidate instance fails', async () => {
+    const records: string[] = [];
+    const spy = vi.spyOn(console, 'error').mockImplementation((line: unknown) => { records.push(String(line)); });
+    (globalThis as unknown as Record<string, unknown>).__jiffooFailCandidateClose = true;
+    const slug = `candidate-close-fails-${Date.now().toString(36)}`.slice(0, 30);
+    try {
+      await createPlugin(slug, `
+module.exports = { register(ctx) {
+  throw new Error('registration failed');
+} };`, { contracts: [{ name: 'shipping', version: 1 }] });
+      await expect(callContract(slug, 'shipping', 1, 'quote', {})).rejects.toMatchObject({ code: 'CONTRACT_CALL_FAILED' });
+    } finally {
+      (globalThis as unknown as Record<string, unknown>).__jiffooFailCandidateClose = false;
+      spy.mockRestore();
+    }
+    const events = records.map((line) => { try { return JSON.parse(line) as Record<string, unknown>; } catch { return {}; } });
+    expect(events.some((entry) => entry.event === 'plugin_candidate_close_failed' && entry.slug === slug)).toBe(true);
+  }, 60000);
+
+  it('gives the call its own budget after a slow runtime setup', async () => {
+    // The registry is reconciled before the plugin exists, so the call under
+    // test pays the setup itself and the setup eats into the budget of the
+    // call only when both share one deadline.
+    await ensurePluginRegistryFresh();
+    const slug = `setup-budget-${Date.now().toString(36)}`.slice(0, 30);
+    const installationId = await createPlugin(slug, `
+const wait = new Int32Array(new SharedArrayBuffer(4));
+Atomics.wait(wait, 0, 0, 4500);
+module.exports = { register(ctx) {
+  ctx.contracts.implement('shipping', 1, { quote: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 6000));
+    return { options: [{ id: 'standard', label: 'Standard', amountMinor: 499, estimatedDays: { min: 2, max: 4 } }] };
+  } });
+} };`, { contracts: [{ name: 'shipping', version: 1 }], prime: false });
+
+    await expect(callContract(slug, 'shipping', 1, 'quote', {})).resolves.toMatchObject({ options: [{ id: 'standard' }] });
+
+    // A slow setup is not a failure of the plugin, so the breaker does not
+    // count it.
+    const installation = await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: installationId } });
+    const scope = pluginProtectionScope(installationId, installation.protectionGeneration);
+    expect(await protectionRedis.zcard(`${scope}:failures`)).toBe(0);
+  }, 60000);
+
+  it('records the context of a failure and of a throttled failure', async () => {
+    const records: string[] = [];
+    const spy = vi.spyOn(console, 'error').mockImplementation((line: unknown) => { records.push(String(line)); });
+    const client = { pluginInstallation: { updateMany: async () => ({ count: 1 }) } } as never;
+    const slug = `failure-record-${Date.now().toString(36)}`.slice(0, 30);
+    try {
+      await recordPluginFailure(slug, new Error('plugin failed'), 'contract', 'installation-1', { config: {}, manifest: {} }, client);
+      await recordPluginFailure(slug, new Error('plugin failed'), 'contract', 'installation-1', { config: {}, manifest: {} }, client);
+    } finally {
+      spy.mockRestore();
+    }
+    const events = records.map((line) => { try { return JSON.parse(line) as Record<string, unknown>; } catch { return {}; } });
+    const failure = events.find((entry) => entry.event === 'plugin_failure');
+    const throttled = events.find((entry) => entry.event === 'plugin_failure_throttled');
+    expect(failure).toMatchObject({ event: 'plugin_failure', slug, context: 'contract', installationId: 'installation-1', message: 'plugin failed' });
+    expect(String(failure?.stack)).toContain('plugin-runtime-deadline');
+    expect(throttled).toMatchObject({ event: 'plugin_failure_throttled', slug, context: 'contract', installationId: 'installation-1' });
   }, 60000);
 });

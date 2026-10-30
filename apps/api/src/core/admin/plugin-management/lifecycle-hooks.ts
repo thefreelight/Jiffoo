@@ -47,7 +47,24 @@ export async function executeLifecycleHook(hookName: LifecycleHookName, context:
         await recordPluginFailure(context.pluginSlug, error, hookName, context.installationId, { config: context.config, manifest }, tx);
         await tx.pluginInstallation.update({ where: { id: context.installationId }, data: { lifecycleWarning: `${hookName} failed: ${errorMessage}` } });
       });
-    } catch {}
+    } catch (compensationError: any) {
+      // The compensating write failed: the failure is in no ledger and the
+      // warning is on no installation row. The hook failure itself is already
+      // reported above, so this only records that the record is missing. The
+      // result of the hook does not change and nothing is retried.
+      LoggerService.logError(
+        compensationError instanceof Error ? compensationError : new Error(String(compensationError)),
+        {
+          context: 'Lifecycle hook failure record',
+          pluginSlug: context.pluginSlug,
+          installationId: context.installationId,
+          hookName,
+          failureStage: 'compensating-write',
+          reason: compensationError instanceof Error ? compensationError.name : 'unknown',
+          reasonMessage: compensationError instanceof Error ? compensationError.message : String(compensationError),
+        },
+      );
+    }
     return { success: false, error: errorMessage, durationMs };
   }
 }

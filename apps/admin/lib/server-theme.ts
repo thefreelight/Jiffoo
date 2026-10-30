@@ -1,96 +1,199 @@
 import { cache } from 'react';
 import { isStoreTimezone, type ThemeFontFace, type ThemeTokens, type ThemeDarkTokens } from 'shared';
 
-/** The default deadline of a call from the Admin edge to the Core. */
+/** The default deadline of the headers of the Core. */
 const DEFAULT_EDGE_TIMEOUT_MS = 30000;
+/** The default deadline of the body of the Core, which is longer than the deadline of the headers. */
+const DEFAULT_EDGE_BODY_TIMEOUT_MS = 300000;
+
+/** The event of every degradation of the edge, so the records can be aggregated. */
+const EDGE_DEGRADED_EVENT = 'edge_core_degraded';
 
 /**
- * The deadline of a call from the Admin edge to the Core.
+ * A positive integer of the environment, or the fallback.
  *
- * The deadline comes from the environment, and a value that is not a positive
- * integer falls back to the default, so a mistyped variable cannot remove the
- * deadline of the edge.
+ * A value that is not a positive integer falls back, so a mistyped variable
+ * cannot remove the deadline of the edge.
  */
+function positiveInteger(value: string | undefined, fallback: number): number {
+  const raw = (value ?? '').trim();
+  if (!/^\d+$/.test(raw)) return fallback;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/** The deadline of the headers of the Core. */
 function edgeTimeoutMs(): number {
-  const raw = (process.env.CORE_EDGE_TIMEOUT_MS ?? '').trim();
-  if (!/^\d+$/.test(raw)) return DEFAULT_EDGE_TIMEOUT_MS;
-  const value = Number(raw);
-  return Number.isSafeInteger(value) && value > 0 ? value : DEFAULT_EDGE_TIMEOUT_MS;
+  return positiveInteger(process.env.CORE_EDGE_TIMEOUT_MS, DEFAULT_EDGE_TIMEOUT_MS);
+}
+
+/** The deadline of the body of the Core. */
+function edgeBodyTimeoutMs(): number {
+  return positiveInteger(process.env.CORE_EDGE_BODY_TIMEOUT_MS, DEFAULT_EDGE_BODY_TIMEOUT_MS);
+}
+
+/**
+ * The record of a degradation of the edge.
+ *
+ * Every degradation of the edge writes one structured record with the same
+ * event, so the operator can aggregate the degradations of the Admin and the
+ * Shop by their event, their surface and their reason.
+ */
+function logEdgeDegraded(record: {
+  surface: string;
+  reason: string;
+  path: string;
+  headerDeadlineMs: number;
+  bodyDeadlineMs: number;
+  upstreamStatus: number | null;
+  elapsedMs: number;
+}): void {
+  console.error(JSON.stringify({ event: EDGE_DEGRADED_EVENT, ...record }));
 }
 
 /** The Core did not answer within the deadline of the edge. */
-class EdgeTimeoutError extends Error {}
+class EdgeTimeoutError extends Error {
+  constructor(readonly reason: 'header_timeout' | 'body_timeout' | 'core_error', message: string) { super(message); }
+}
 
 /**
- * Arm the deadline of an exchange with the Core.
+ * Arm the deadlines of an exchange with the Core.
  *
- * The deadline covers the whole exchange: the request of the Core, the headers
- * of its answer and the body of that answer. A Core that answers the headers
- * and then stalls the body therefore cannot hold the render of the page, and
- * the caller disarms the deadline when the answer is complete.
+ * The exchange has two phases with two deadlines: the headers of the answer
+ * must arrive within the deadline of the headers, and the body of the answer
+ * must arrive within the longer deadline of the body. A Core that answers the
+ * headers and then stalls the body therefore fails the call at the deadline
+ * of the body, and the caller falls back to its default.
  */
 type EdgeDeadline = {
   /** The signal that reaches the request of the Core and the body of its answer. */
   signal: AbortSignal;
-  /** The failure of the deadline, for the caller that waits for the Core. */
-  failure: Promise<never>;
-  /** Whether the deadline passed. */
-  expired: () => boolean;
-  /** The end of the exchange, which disarms the deadline. */
+  /** The failure of the deadline of the headers. */
+  headerFailure: Promise<never>;
+  /** Whether the deadline of the headers passed. */
+  headerExpired: () => boolean;
+  /** The failure of the deadline of the body. */
+  bodyFailure: Promise<never>;
+  /** Whether the deadline of the body passed. */
+  bodyExpired: () => boolean;
+  /** The end of the phase of the headers, which hands the exchange to the body. */
+  endHeader: () => void;
+  /** The end of the exchange, which disarms both deadlines. */
   release: () => void;
 };
 
-function armEdgeDeadline(timeoutMs: number): EdgeDeadline {
+function createEdgeDeadline(headerMs: number, bodyMs: number): EdgeDeadline {
   const controller = new AbortController();
-  let expired = false;
-  let fail: (error: Error) => void = () => {};
-  const failure = new Promise<never>((_, reject) => { fail = reject; });
-  failure.catch(() => { /* The caller of the deadline observes the failure. */ });
-  const timer = setTimeout(() => {
-    expired = true;
-    const error = new EdgeTimeoutError('The Core API did not answer within the edge deadline');
+  let headerExpired = false;
+  let bodyExpired = false;
+  let failHeader: (error: Error) => void = () => {};
+  let failBody: (error: Error) => void = () => {};
+  const headerFailure = new Promise<never>((_, reject) => { failHeader = reject; });
+  const bodyFailure = new Promise<never>((_, reject) => { failBody = reject; });
+  headerFailure.catch(() => { /* The caller of the deadline observes the failure. */ });
+  bodyFailure.catch(() => { /* The caller of the deadline observes the failure. */ });
+  const headerTimer = setTimeout(() => {
+    headerExpired = true;
+    const error = new EdgeTimeoutError('header_timeout', 'The Core API did not answer the headers within the edge deadline');
     controller.abort(error);
-    fail(error);
-  }, timeoutMs);
+    failHeader(error);
+  }, headerMs);
+  let bodyTimer: ReturnType<typeof setTimeout> | undefined;
   return {
     signal: controller.signal,
-    failure,
-    expired: () => expired,
-    release: () => clearTimeout(timer),
+    headerFailure,
+    headerExpired: () => headerExpired,
+    bodyFailure,
+    bodyExpired: () => bodyExpired,
+    endHeader: () => {
+      clearTimeout(headerTimer);
+      bodyTimer = setTimeout(() => {
+        bodyExpired = true;
+        const error = new EdgeTimeoutError('body_timeout', 'The Core API did not send the body within the edge deadline');
+        controller.abort(error);
+        failBody(error);
+      }, bodyMs);
+    },
+    release: () => {
+      clearTimeout(headerTimer);
+      if (bodyTimer) clearTimeout(bodyTimer);
+    },
   };
 }
 
 /**
- * Read the answer of the Core under the deadline of the edge.
+ * Read the answer of the Core under the deadlines of the edge.
  *
- * The body of the answer belongs to the exchange: it is read under the same
- * deadline as the headers, so a Core that answers the headers and then stalls
- * the body rejects the call, and the caller falls back to its default instead
+ * The body of the answer belongs to the exchange: it is read under the
+ * deadline of the body, which is longer than the deadline of the headers, so
+ * a Core that answers the headers and then stalls the body fails the call at
+ * the deadline of the body, and the caller falls back to its default instead
  * of waiting for a body that never arrives.
  */
-async function fetchCoreJson(url: URL): Promise<{ ok: boolean; data: unknown }> {
-  const deadline = armEdgeDeadline(edgeTimeoutMs());
+async function fetchCoreJson(url: URL): Promise<{ ok: boolean; status: number; data: unknown }> {
+  const headerDeadlineMs = edgeTimeoutMs();
+  const bodyDeadlineMs = edgeBodyTimeoutMs();
+  const deadline = createEdgeDeadline(headerDeadlineMs, bodyDeadlineMs);
+  const started = Date.now();
   try {
     const response = await Promise.race([
       fetch(url, { cache: 'no-store', signal: deadline.signal }),
-      deadline.failure,
+      deadline.headerFailure,
     ]);
-    const data = await Promise.race([response.json(), deadline.failure]);
-    return { ok: response.ok, data };
+    deadline.endHeader();
+    const data = await Promise.race([response.json(), deadline.bodyFailure]);
+    return { ok: response.ok, status: response.status, data };
+  } catch {
+    const reason = deadline.headerExpired() ? 'header_timeout' : deadline.bodyExpired() ? 'body_timeout' : 'core_error';
+    throw new EdgeTimeoutError(reason, 'The Core API did not answer in time');
   } finally {
     deadline.release();
   }
 }
 
 export async function getStoreTimezone(): Promise<string> {
-  if (!process.env.API_SERVICE_URL) return 'UTC';
+  const started = Date.now();
+  if (!process.env.API_SERVICE_URL) {
+    logEdgeDegraded({
+      surface: 'admin_theme',
+      reason: 'core_not_configured',
+      path: '/api/v1/store/context',
+      headerDeadlineMs: edgeTimeoutMs(),
+      bodyDeadlineMs: edgeBodyTimeoutMs(),
+      upstreamStatus: null,
+      elapsedMs: Date.now() - started,
+    });
+    return 'UTC';
+  }
   try {
     const answer = await fetchCoreJson(new URL('/api/v1/store/context', process.env.API_SERVICE_URL));
-    if (!answer.ok) return 'UTC';
+    if (!answer.ok) {
+      logEdgeDegraded({
+        surface: 'admin_theme',
+        reason: 'upstream_status',
+        path: '/api/v1/store/context',
+        headerDeadlineMs: edgeTimeoutMs(),
+        bodyDeadlineMs: edgeBodyTimeoutMs(),
+        upstreamStatus: answer.status,
+        elapsedMs: Date.now() - started,
+      });
+      return 'UTC';
+    }
     const body = answer.data as { data?: { timezone?: unknown } };
     const timezone = body?.data?.timezone;
     return isStoreTimezone(timezone) ? timezone : 'UTC';
-  } catch { return 'UTC'; }
+  } catch (error) {
+    logEdgeDegraded({
+      surface: 'admin_theme',
+      reason: error instanceof EdgeTimeoutError ? error.reason : 'core_error',
+      path: '/api/v1/store/context',
+      headerDeadlineMs: edgeTimeoutMs(),
+      bodyDeadlineMs: edgeBodyTimeoutMs(),
+      upstreamStatus: null,
+      elapsedMs: Date.now() - started,
+    });
+    return 'UTC';
+  }
 }
 
 export type AdminTheme = {
@@ -128,16 +231,48 @@ function parseAdminTheme(value: unknown): AdminTheme | null {
 
 export const getAdminTheme = cache(async (locale: string): Promise<AdminTheme | null> => {
   const base = process.env.API_SERVICE_URL;
-  if (!base) return null;
+  const started = Date.now();
+  if (!base) {
+    logEdgeDegraded({
+      surface: 'admin_theme',
+      reason: 'core_not_configured',
+      path: '/api/v1/store/theme',
+      headerDeadlineMs: edgeTimeoutMs(),
+      bodyDeadlineMs: edgeBodyTimeoutMs(),
+      upstreamStatus: null,
+      elapsedMs: Date.now() - started,
+    });
+    return null;
+  }
   try {
     const url = new URL('/api/v1/store/theme', base);
     url.searchParams.set('target', 'admin');
     url.searchParams.set('locale', locale);
     const answer = await fetchCoreJson(url);
-    if (!answer.ok) return null;
+    if (!answer.ok) {
+      logEdgeDegraded({
+        surface: 'admin_theme',
+        reason: 'upstream_status',
+        path: '/api/v1/store/theme',
+        headerDeadlineMs: edgeTimeoutMs(),
+        bodyDeadlineMs: edgeBodyTimeoutMs(),
+        upstreamStatus: answer.status,
+        elapsedMs: Date.now() - started,
+      });
+      return null;
+    }
     const body = answer.data as { data?: unknown };
     return parseAdminTheme(body?.data);
-  } catch {
+  } catch (error) {
+    logEdgeDegraded({
+      surface: 'admin_theme',
+      reason: error instanceof EdgeTimeoutError ? error.reason : 'core_error',
+      path: '/api/v1/store/theme',
+      headerDeadlineMs: edgeTimeoutMs(),
+      bodyDeadlineMs: edgeBodyTimeoutMs(),
+      upstreamStatus: null,
+      elapsedMs: Date.now() - started,
+    });
     return null;
   }
 });
@@ -147,12 +282,46 @@ export function getAdminStoreUrl(locale: string): string {
 }
 
 export async function getAdminStoreName(): Promise<string> {
-  if (!process.env.API_SERVICE_URL) return '';
+  const started = Date.now();
+  if (!process.env.API_SERVICE_URL) {
+    logEdgeDegraded({
+      surface: 'admin_theme',
+      reason: 'core_not_configured',
+      path: '/api/v1/store/context',
+      headerDeadlineMs: edgeTimeoutMs(),
+      bodyDeadlineMs: edgeBodyTimeoutMs(),
+      upstreamStatus: null,
+      elapsedMs: Date.now() - started,
+    });
+    return '';
+  }
   try {
     const answer = await fetchCoreJson(new URL('/api/v1/store/context', process.env.API_SERVICE_URL));
-    if (!answer.ok) return '';
+    if (!answer.ok) {
+      logEdgeDegraded({
+        surface: 'admin_theme',
+        reason: 'upstream_status',
+        path: '/api/v1/store/context',
+        headerDeadlineMs: edgeTimeoutMs(),
+        bodyDeadlineMs: edgeBodyTimeoutMs(),
+        upstreamStatus: answer.status,
+        elapsedMs: Date.now() - started,
+      });
+      return '';
+    }
     const body = answer.data as { data?: { storeName?: unknown } };
     const storeName = body?.data?.storeName;
     return typeof storeName === 'string' ? storeName : '';
-  } catch { return ''; }
+  } catch (error) {
+    logEdgeDegraded({
+      surface: 'admin_theme',
+      reason: error instanceof EdgeTimeoutError ? error.reason : 'core_error',
+      path: '/api/v1/store/context',
+      headerDeadlineMs: edgeTimeoutMs(),
+      bodyDeadlineMs: edgeBodyTimeoutMs(),
+      upstreamStatus: null,
+      elapsedMs: Date.now() - started,
+    });
+    return '';
+  }
 }

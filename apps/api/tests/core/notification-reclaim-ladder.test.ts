@@ -3,18 +3,21 @@ import {
   failNotification,
   notificationRetryDelayMinutes,
   NOTIFICATION_MAX_ATTEMPTS,
+  NOTIFICATION_RETRY_JITTER_RATIO,
   NOTIFICATION_RETRY_MINUTES,
   reclaimNotificationLeases,
   type NotificationLeaseClient,
 } from '@/core/notifications/lease';
 
 /** A client that records the statements instead of running them. */
-function recordingClient(): { client: NotificationLeaseClient; statements: string[] } {
+function recordingClient(): { client: NotificationLeaseClient; statements: string[]; values: unknown[][] } {
   const statements: string[] = [];
+  const values: unknown[][] = [];
   return {
     statements,
+    values,
     client: {
-      query: async (text: string) => { statements.push(text); return { rows: [] }; },
+      query: async (text: string, parameters: unknown[] = []) => { statements.push(text); values.push(parameters); return { rows: [] }; },
     },
   };
 }
@@ -34,8 +37,14 @@ describe('the reclaim of a notification lease', () => {
     expect(statement).toContain('attempts = n.attempts + 1');
     expect(statement).not.toContain('CASE n.attempts + 1');
     // The retry time is the current time plus the ladder, never the current time.
-    expect(statement).toContain(`"nextAttemptAt" = date_trunc('milliseconds', (clock_timestamp() AT TIME ZONE 'UTC') + (CASE n.attempts`);
+    expect(statement).toContain(`"nextAttemptAt" = date_trunc('milliseconds', (clock_timestamp() AT TIME ZONE 'UTC') + (`);
     expect(statement).not.toContain(`"nextAttemptAt" = date_trunc('milliseconds', clock_timestamp() AT TIME ZONE 'UTC')`);
+    // The ladder carries a bounded jitter that only delays the retry: the
+    // multiplier of the rung is one plus a share that lies between zero and one.
+    expect(statement).toContain(`* (1 + random() * ${NOTIFICATION_RETRY_JITTER_RATIO})`);
+    expect(NOTIFICATION_RETRY_JITTER_RATIO).toBeGreaterThan(0);
+    expect(NOTIFICATION_RETRY_JITTER_RATIO).toBeLessThan(1);
+    expect(statement).not.toContain('(1 - random()');
     // The budget of the row is still spent one attempt at a time.
     expect(statement).toContain(`status = CASE WHEN n.attempts + 1 >= $1 THEN 'FAILED' ELSE 'PENDING' END`);
   });
@@ -68,5 +77,39 @@ describe('the reclaim of a notification lease', () => {
     expect(notificationRetryDelayMinutes(50)).toBe(360);
     // No rung is zero: a reclaimed notification is never retried immediately.
     expect(Math.min(...delays)).toBeGreaterThan(0);
+  });
+
+  it('D spreads the retries of a fleet over the window of the rung', async () => {
+    expect(NOTIFICATION_RETRY_JITTER_RATIO).toBe(0.2);
+    const reclaim = recordingClient();
+    await reclaimNotificationLeases(reclaim.client);
+    const failure = recordingClient();
+    await failNotification(failure.client, { id: 'notification-id', claimToken: 'token' }, 'provider refused');
+    for (const statement of [reclaim.statements[0], failure.statements[0]]) {
+      // The jitter is bounded by a fifth of the rung.
+      expect(statement).toContain(`* interval '1 minute' * (1 + random() * ${NOTIFICATION_RETRY_JITTER_RATIO})`);
+      // The multiplier is at least one, so the jitter only delays the retry
+      // and never brings it forward.
+      expect(statement).not.toContain('(1 - random()');
+    }
+  });
+
+  it('E lands a deterministic failure in the terminal state at once', async () => {
+    const deterministic = recordingClient();
+    await failNotification(deterministic.client, { id: 'notification-id', claimToken: 'token' }, 'No enabled notification provider', undefined, { deterministic: true });
+    const transient = recordingClient();
+    await failNotification(transient.client, { id: 'notification-id', claimToken: 'token' }, 'transport unavailable', 'fixture');
+    for (const recorded of [deterministic, transient]) {
+      const statement = recorded.statements[0];
+      // A deterministic failure is terminal without spending the ladder.
+      expect(statement).toContain(`status = CASE WHEN $5 OR attempts + 1 >= $6 THEN 'FAILED' ELSE 'PENDING' END`);
+      expect(statement).toContain(`"secretJson" = CASE WHEN $5 OR attempts + 1 >= $6 THEN NULL ELSE "secretJson" END`);
+      // The reason of the failure is always recorded.
+      expect(statement).toContain('"lastError" = $3');
+      expect(statement).toContain('attempts = attempts + 1');
+    }
+    // The flag of the round decides, not the statement.
+    expect(deterministic.values[0][4]).toBe(true);
+    expect(transient.values[0][4]).toBe(false);
   });
 });

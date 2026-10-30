@@ -333,6 +333,10 @@ function detailsFor(error: ApiError): unknown {
     if (Array.isArray(input.allowedTypes) && input.allowedTypes.every(value => typeof value === 'string' && ['image/jpeg', 'image/png', 'image/webp'].includes(value))) {
       return { allowedTypes: [...input.allowedTypes] };
     }
+  }
+  // The size of an oversized upload is part of the answer: the client has to
+  // be able to tell the user which limit was reached.
+  if (error.code === 'VALIDATION_ERROR' || error.code === 'UPLOAD_FAILED' || error.code === 'PAYLOAD_TOO_LARGE') {
     if (typeof input.maxBytes === 'number' && Number.isSafeInteger(input.maxBytes) && input.maxBytes > 0) return { maxBytes: input.maxBytes };
   }
   if (error.code === 'VALIDATION_ERROR') {

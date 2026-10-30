@@ -10,6 +10,10 @@ import { releasePluginOperationLeaseWith } from '@/core/storage/plugin-operation
 
 export const RECOVERY_SWEEP_MS = 60_000;
 export const RECOVERY_SWEEP_BATCH = 50;
+/** The page of the dead cleanup rows the operator listing returns by default. */
+export const PLUGIN_RECOVERY_DEAD_CLEANUP_PAGE = 50;
+/** The largest dead cleanup page an operator may request. */
+export const PLUGIN_RECOVERY_DEAD_CLEANUP_MAX_PAGE = 500;
 export const TERMINAL_PLUGIN_OPERATION_PHASES = ['SUCCESS', 'FAILED', 'NEEDS_RECOVERY', 'RECOVERED'];
 type Transaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -87,7 +91,11 @@ export function startPluginRecoverySweeper() {
   const timer = setInterval(() => { void run(); }, recoveryLimit('sweepMs', RECOVERY_SWEEP_MS));
   return { run, isRunning: () => !stopped, stop: async () => { stopped = true; clearInterval(timer); await pending; } };
 }
-export async function listPluginRecovery() {
+export async function listPluginRecovery(options: { deadCleanupLimit?: number; deadCleanupOffset?: number } = {}) {
+  const requestedLimit = Number.isFinite(options.deadCleanupLimit) ? Math.trunc(options.deadCleanupLimit as number) : PLUGIN_RECOVERY_DEAD_CLEANUP_PAGE;
+  const limit = Math.min(PLUGIN_RECOVERY_DEAD_CLEANUP_MAX_PAGE, Math.max(1, requestedLimit));
+  const requestedOffset = Number.isFinite(options.deadCleanupOffset) ? Math.trunc(options.deadCleanupOffset as number) : 0;
+  const offset = Math.max(0, requestedOffset);
   const candidates = await prisma.pluginMigrationOperation.findMany({ where: { OR: [{ phase: { in: [...INCOMPLETE_PLUGIN_OPERATION_PHASES, 'FAILED'] } }, { phase: 'SUCCESS', recoveryState: 'PUBLICATION_CONFIRMED' }] }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: RECOVERY_SWEEP_BATCH, select: { id: true } });
   for (const row of candidates) await recoverPluginOperation(row.id);
   const operations = candidates.length ? await prisma.$queryRaw<Array<{ operationId: string; slug: string; version: string; phase: string; committedPrefix: number; retryAvailable: boolean; publicationWarning: boolean }>>`SELECT id AS "operationId", slug, "packageVersion" AS version, phase, "committedPrefix", ("artifactBytes" IS NOT NULL AND phase IN ('FAILED','NEEDS_RECOVERY')) AS "retryAvailable", ("recoveryState" = 'PUBLICATION_CONFIRMED') AS "publicationWarning" FROM public.plugin_migration_operations WHERE id IN (${Prisma.join(candidates.map(row => row.id))}) ORDER BY "createdAt" DESC, id DESC` : [];
@@ -103,21 +111,37 @@ export async function listPluginRecovery() {
   // is orphaned, and an orphaned dead row is never claimed again and must
   // still reach the operator. The file join reports how much quota the row
   // still holds.
-  const deadCleanups = await prisma.$queryRaw<Array<{ slug: string | null; objectKey: string; fileId: string | null; attempts: number; lastError: string | null; sizeBytes: bigint | null }>>`SELECT i."pluginSlug" AS slug, c."objectKey" AS "objectKey", c."fileId" AS "fileId", c.attempts AS attempts, c."lastError" AS "lastError", f."sizeBytes" AS "sizeBytes" FROM public.plugin_file_cleanup c LEFT JOIN public.plugin_installations i ON i.id = c."installationId" LEFT JOIN public.plugin_files f ON f.id = c."fileId" WHERE c.status = 'DEAD' ORDER BY c."objectKey" LIMIT ${RECOVERY_SWEEP_BATCH}`;
+  //
+  // A dead row is never claimed again, so a batch limit here would hide it
+  // from the operator for good: a row beyond the limit would be neither
+  // retried nor seen. The rows are therefore paged, the total is reported and
+  // every slug with a dead row is an item of the listing, whatever page its
+  // rows fall into.
+  const deadTotalRows = await prisma.$queryRaw<Array<{ total: bigint }>>`SELECT count(*) AS total FROM public.plugin_file_cleanup WHERE status = 'DEAD'`;
+  const deadTotal = Number(deadTotalRows[0]?.total ?? 0);
+  const deadBySlug = await prisma.$queryRaw<Array<{ slug: string; count: bigint }>>`SELECT i."pluginSlug" AS slug, count(*) AS count FROM public.plugin_file_cleanup c JOIN public.plugin_installations i ON i.id = c."installationId" WHERE c.status = 'DEAD' GROUP BY i."pluginSlug" ORDER BY i."pluginSlug"`;
+  const deadCleanups = await prisma.$queryRaw<Array<{ slug: string | null; objectKey: string; fileId: string | null; attempts: number; lastError: string | null; sizeBytes: bigint | null }>>`SELECT i."pluginSlug" AS slug, c."objectKey" AS "objectKey", c."fileId" AS "fileId", c.attempts AS attempts, c."lastError" AS "lastError", f."sizeBytes" AS "sizeBytes" FROM public.plugin_file_cleanup c LEFT JOIN public.plugin_installations i ON i.id = c."installationId" LEFT JOIN public.plugin_files f ON f.id = c."fileId" WHERE c.status = 'DEAD' ORDER BY c."objectKey" LIMIT ${limit} OFFSET ${offset}`;
   const orphaned = deadCleanups.filter(row => row.slug === null);
   const owned = deadCleanups.filter(row => row.slug !== null);
-  const slugs = [...new Set([...operations.map(row => row.slug), ...markers.filter(row => row.maintenanceRequired).map(row => row.slug), ...owned.map(row => row.slug as string)])];
+  const slugs = [...new Set([...operations.map(row => row.slug), ...markers.filter(row => row.maintenanceRequired).map(row => row.slug), ...deadBySlug.map(row => row.slug)])];
   return { items: slugs.map(slug => {
     const marker = markers.find(row => row.slug === slug);
     // A dead cleanup row is a remote object the sweep could never delete.
     // It is never claimed again, so it needs an operator and it makes the
-    // plugin an item of this listing.
+    // plugin an item of this listing. The count is the total of the plugin,
+    // the rows are the ones of the current page.
     const dead = owned.filter(row => row.slug === slug);
-    return { slug, markerCount: Number(marker?.markerCount ?? 0), maintenanceRequired: (marker?.maintenanceRequired ?? false) || dead.length > 0,
-      deadCleanupCount: dead.length,
+    const deadCount = Number(deadBySlug.find(row => row.slug === slug)?.count ?? 0);
+    return { slug, markerCount: Number(marker?.markerCount ?? 0), maintenanceRequired: (marker?.maintenanceRequired ?? false) || deadCount > 0,
+      deadCleanupCount: deadCount, deadCleanupsTruncated: deadCount > dead.length,
       deadCleanups: dead.map(row => ({ objectKey: row.objectKey, fileId: row.fileId, attempts: row.attempts, lastError: row.lastError, sizeBytes: row.sizeBytes === null ? null : Number(row.sizeBytes) })),
       operations: operations.filter(row => row.slug === slug).map(row => ({ ...row, retryAvailable: row.retryAvailable && !marker?.maintenanceRequired })) };
   }),
+  // The totals of the dead rows. They are the count of every dead row, not
+  // of the current page, so the operator knows how much is left to page.
+  deadCleanupTotal: deadTotal,
+  orphanedDeadCleanupTotal: deadTotal - deadBySlug.reduce((sum, row) => sum + Number(row.count), 0),
+  deadCleanupPage: { limit, offset, returned: deadCleanups.length, hasMore: offset + deadCleanups.length < deadTotal },
   // An orphaned dead row has no plugin any more, so it cannot be an item of
   // the listing. It is reported on its own, with the quota it still holds.
   orphanedDeadCleanups: orphaned.map(row => ({ objectKey: row.objectKey, fileId: row.fileId, attempts: row.attempts, lastError: row.lastError, sizeBytes: row.sizeBytes === null ? null : Number(row.sizeBytes) })) };

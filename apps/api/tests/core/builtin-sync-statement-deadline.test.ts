@@ -3,8 +3,16 @@ import os from 'node:os';
 import path from 'node:path';
 import { Client } from 'pg';
 import { describe, expect, it, vi } from 'vitest';
-import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
-import { syncBuiltinThemes } from '@/core/admin/extension-installer/builtin-theme-sync';
+import {
+  BUILTIN_SYNC_LOCK,
+  BUILTIN_SYNC_LOCK_WAIT_SECONDS,
+  syncBuiltinPlugins,
+} from '@/core/admin/extension-installer/builtin-sync';
+import {
+  BUILTIN_THEME_SYNC_LOCK,
+  BUILTIN_THEME_SYNC_LOCK_WAIT_SECONDS,
+  syncBuiltinThemes,
+} from '@/core/admin/extension-installer/builtin-theme-sync';
 
 type Query = (...args: unknown[]) => unknown;
 
@@ -33,6 +41,14 @@ async function emptyRoot(): Promise<string> {
   return await fs.mkdtemp(path.join(os.tmpdir(), 'jiffoo-builtin-deadline-'));
 }
 
+/** Holds an advisory lock on a connection of its own. */
+async function holdLock(lockId: number): Promise<Client> {
+  const holder = new Client({ connectionString: process.env.DATABASE_URL_TEST! });
+  await holder.connect();
+  await holder.query('SELECT pg_advisory_lock($1::bigint)', [lockId]);
+  return holder;
+}
+
 describe('The advisory lock of the builtin syncs', () => {
   it('gives the connection of the plugin sync a server-side statement deadline', async () => {
     const root = await emptyRoot();
@@ -56,4 +72,52 @@ describe('The advisory lock of the builtin syncs', () => {
       await fs.rm(root, { recursive: true, force: true });
     }
   });
+
+  it('skips the round of the plugin sync when another instance holds the lock', async () => {
+    const root = await emptyRoot();
+    const holder = await holdLock(BUILTIN_SYNC_LOCK);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const started = Date.now();
+      // The sync must not fail the process and must not wait for a lock that
+      // is held by another instance.
+      await syncBuiltinPlugins(root);
+      const waited = Date.now() - started;
+
+      expect(waited).toBeGreaterThanOrEqual(BUILTIN_SYNC_LOCK_WAIT_SECONDS * 1000 - 2_000);
+      expect(waited).toBeLessThan(BUILTIN_SYNC_LOCK_WAIT_SECONDS * 1000 + 10_000);
+
+      const record = warn.mock.calls.map(call => String(call[0])).find(line => line.includes('builtin_plugin_sync_lock_timeout'));
+      expect(record).toBeDefined();
+      expect((JSON.parse(String(record)) as Record<string, unknown>).event).toBe('builtin_plugin_sync_lock_timeout');
+    } finally {
+      warn.mockRestore();
+      await holder.query('SELECT pg_advisory_unlock($1::bigint)', [BUILTIN_SYNC_LOCK]).catch(() => undefined);
+      await holder.end().catch(() => undefined);
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it('skips the round of the theme sync when another instance holds the lock', async () => {
+    const root = await emptyRoot();
+    const holder = await holdLock(BUILTIN_THEME_SYNC_LOCK);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      const started = Date.now();
+      await syncBuiltinThemes(root);
+      const waited = Date.now() - started;
+
+      expect(waited).toBeGreaterThanOrEqual(BUILTIN_THEME_SYNC_LOCK_WAIT_SECONDS * 1000 - 2_000);
+      expect(waited).toBeLessThan(BUILTIN_THEME_SYNC_LOCK_WAIT_SECONDS * 1000 + 10_000);
+
+      const record = warn.mock.calls.map(call => String(call[0])).find(line => line.includes('builtin_theme_sync_lock_timeout'));
+      expect(record).toBeDefined();
+      expect((JSON.parse(String(record)) as Record<string, unknown>).event).toBe('builtin_theme_sync_lock_timeout');
+    } finally {
+      warn.mockRestore();
+      await holder.query('SELECT pg_advisory_unlock($1::bigint)', [BUILTIN_THEME_SYNC_LOCK]).catch(() => undefined);
+      await holder.end().catch(() => undefined);
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  }, 60_000);
 });

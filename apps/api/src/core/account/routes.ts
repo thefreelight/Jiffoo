@@ -218,12 +218,14 @@ export async function accountRoutes(fastify: FastifyInstance) {
       }
 
       UploadService.assertAllowedType(data.mimetype);
-      const content = await readUploadContent(data, UploadService.MAX_FILE_SIZE);
+      const content = await readUploadContent(request, data, UploadService.MAX_FILE_SIZE);
       const result = await UploadService.uploadAvatar({ filename: data.filename, mimetype: data.mimetype, content });
       await AccountService.updateProfile(request.user!.id, { avatar: result.url });
       return sendSuccess(reply, result);
     } catch (error) {
       if (error instanceof UploadValidationError) {
+        // Every upload route answers an oversized part with the same contract.
+        if (error.reason === 'TOO_LARGE') return sendError(reply, 413, 'PAYLOAD_TOO_LARGE', error.message, error.details);
         return sendError(reply, 400, 'VALIDATION_ERROR', error.message, error.details);
       }
       return sendMappedError(reply, error);

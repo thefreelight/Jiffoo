@@ -1,4 +1,6 @@
-import type { Notification } from '@prisma/client';
+import { Prisma, type Notification } from '@prisma/client';
+import { prisma } from '@/config/database';
+import { CORE_PROCESS_ALIVE_STATES } from '@/infra/core-process';
 import { getPluginTimeoutMs } from '@/core/extensions/runtime/gateway-protection';
 
 export const NOTIFICATION_LEASE_MS = 60_000;
@@ -13,6 +15,13 @@ export const NOTIFICATION_SEND_MARGIN_MS = 1_000;
  * the last one six hours.
  */
 export const NOTIFICATION_RETRY_MINUTES = [1, 5, 15, 60, 360] as const;
+/**
+ * The share of the ladder value that the jitter of one retry may add.
+ *
+ * The jitter is the same shape as the jitter of the event delivery: it is
+ * bounded by a fifth of the rung and it only ever delays the retry.
+ */
+export const NOTIFICATION_RETRY_JITTER_RATIO = 0.2;
 /**
  * The delay of the next delivery attempt, in minutes.
  *
@@ -29,16 +38,48 @@ export function notificationRetryDelayMinutes(attempts: number): number {
  * The failure path and the reclaim path share this form, so a notification
  * that lost its sender waits exactly as long as a notification whose
  * provider refused the delivery.
+ *
+ * The rung carries a bounded jitter: the multiplier is at least one, so the
+ * jitter only delays the retry and never brings it forward. A provider that
+ * failed for everyone therefore does not receive the whole backlog in the
+ * same minute when it recovers.
  */
 function notificationRetryDelaySql(attemptsColumn: string): string {
   const branches = NOTIFICATION_RETRY_MINUTES.map((minutes, rung) => `WHEN ${rung} THEN ${minutes}`).join(' ');
-  return `(CASE ${attemptsColumn} ${branches} ELSE ${NOTIFICATION_RETRY_MINUTES[NOTIFICATION_RETRY_MINUTES.length - 1]} END)`;
+  const ladder = `(CASE ${attemptsColumn} ${branches} ELSE ${NOTIFICATION_RETRY_MINUTES[NOTIFICATION_RETRY_MINUTES.length - 1]} END)`;
+  return `(${ladder} * interval '1 minute' * (1 + random() * ${NOTIFICATION_RETRY_JITTER_RATIO}))`;
 }
 export function notificationClaimLimit(sendTimeoutMs: number): number {
   return Math.max(1, Math.floor(NOTIFICATION_LEASE_MS / (sendTimeoutMs + NOTIFICATION_SEND_MARGIN_MS)));
 }
 export interface NotificationLeaseClient { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>; }
 const stale = (id: string, write: string) => console.warn(JSON.stringify({ event: 'notification-stale-claim', kind: 'notification', id, write }));
+
+/**
+ * Release the leases of the notifications that are in flight.
+ *
+ * A forced shutdown leaves the notifications that were in flight with a lease
+ * that expires in a minute, so the next instance waits for that lease before
+ * it can reclaim the rows. The forced path expires the lease at once: the
+ * rows are reclaimable in the next sweep.
+ *
+ * Only the rows whose owner is gone are released: the rows of this instance,
+ * which is leaving, and the rows of an owner that no longer holds a
+ * registration that may still be alive. An owner that is registered as alive
+ * or as suspect keeps its rows: a suspect process may still be running, so
+ * its rows are never taken from it, and a notification is never delivered
+ * twice.
+ */
+export async function releaseNotificationLeases(instanceId: string): Promise<number> {
+  return prisma.$executeRaw`
+    UPDATE public.notifications n SET "leaseUntil" = clock_timestamp() - interval '1 millisecond'
+    WHERE n.status = 'SENDING' AND n."claimedBy" IS NOT NULL AND (
+      n."claimedBy" = ${instanceId}
+      OR NOT EXISTS (
+        SELECT 1 FROM public.core_processes p
+        WHERE p."instanceId"::text = n."claimedBy"
+          AND p.state IN (${Prisma.join(CORE_PROCESS_ALIVE_STATES)})))`;
+}
 
 export async function reclaimNotificationLeases(client: NotificationLeaseClient): Promise<number> {
   // TIMESTAMP(3) can round upward; floor retry time so a recovered row is
@@ -51,7 +92,7 @@ export async function reclaimNotificationLeases(client: NotificationLeaseClient)
     ORDER BY "leaseUntil", id LIMIT 100 FOR UPDATE SKIP LOCKED
   ) UPDATE public.notifications n SET
     status = CASE WHEN n.attempts + 1 >= $1 THEN 'FAILED' ELSE 'PENDING' END::public."NotificationStatus",
-    attempts = n.attempts + 1, "nextAttemptAt" = date_trunc('milliseconds', (clock_timestamp() AT TIME ZONE 'UTC') + ${notificationRetryDelaySql('n.attempts')} * interval '1 minute'),
+    attempts = n.attempts + 1, "nextAttemptAt" = date_trunc('milliseconds', (clock_timestamp() AT TIME ZONE 'UTC') + ${notificationRetryDelaySql('n.attempts')}),
     "lastError" = 'Notification delivery lease expired', "updatedAt" = clock_timestamp() AT TIME ZONE 'UTC',
     "secretJson" = CASE WHEN n.attempts + 1 >= $1 THEN NULL ELSE n."secretJson" END,
     "claimToken" = NULL, "claimedBy" = NULL, "leaseUntil" = NULL
@@ -82,17 +123,27 @@ export async function completeNotification(client: NotificationLeaseClient, noti
   if (!result.rows.length) stale(notification.id, 'completion');
   return result.rows.length;
 }
-export async function failNotification(client: NotificationLeaseClient, notification: Pick<Notification, 'id' | 'claimToken'>, error: string, providerSlug?: string): Promise<number> {
+/**
+ * Record the failure of a delivery.
+ *
+ * A transient failure keeps the ladder: the row waits for the rung of its
+ * attempts and the secret of the row survives, so the next attempt can
+ * still use it. A deterministic failure is one that a retry cannot fix -
+ * the Core has no provider that can take the notification - and it lands in
+ * the terminal state at once, with the reason and without the secret.
+ */
+export async function failNotification(client: NotificationLeaseClient, notification: Pick<Notification, 'id' | 'claimToken'>, error: string, providerSlug?: string, options: { deterministic?: boolean } = {}): Promise<number> {
+  const deterministic = options.deterministic === true;
   const result = await client.query(`UPDATE public.notifications SET
-    status = CASE WHEN attempts + 1 >= $5 THEN 'FAILED' ELSE 'PENDING' END::public."NotificationStatus",
+    status = CASE WHEN $5 OR attempts + 1 >= $6 THEN 'FAILED' ELSE 'PENDING' END::public."NotificationStatus",
     "nextAttemptAt" = (clock_timestamp() AT TIME ZONE 'UTC') +
-      ${notificationRetryDelaySql('attempts')} * interval '1 minute',
-    "secretJson" = CASE WHEN attempts + 1 >= $5 THEN NULL ELSE "secretJson" END,
+      ${notificationRetryDelaySql('attempts')},
+    "secretJson" = CASE WHEN $5 OR attempts + 1 >= $6 THEN NULL ELSE "secretJson" END,
     attempts = attempts + 1, "lastError" = $3, "providerSlug" = $4,
     "claimToken" = NULL, "claimedBy" = NULL, "leaseUntil" = NULL,
     "updatedAt" = clock_timestamp() AT TIME ZONE 'UTC'
     WHERE id = $1 AND status = 'SENDING' AND "claimToken" = $2::uuid RETURNING id`,
-  [notification.id, notification.claimToken, error, providerSlug ?? null, NOTIFICATION_MAX_ATTEMPTS]);
+  [notification.id, notification.claimToken, error, providerSlug ?? null, deterministic, NOTIFICATION_MAX_ATTEMPTS]);
   if (!result.rows.length) stale(notification.id, 'failure');
   return result.rows.length;
 }

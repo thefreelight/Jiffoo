@@ -5,11 +5,46 @@ import { env } from '@/config/env';
 const CACHE_CONNECT_TIMEOUT_MS = 5_000;
 /** The milliseconds a command may wait for the answer of Redis before it is given up. */
 const CACHE_COMMAND_TIMEOUT_MS = 5_000;
+/** The milliseconds the startup connection may take before it gives up. */
+const CACHE_CONNECT_BUDGET_MS = 10_000;
+/** The milliseconds between two attempts of the startup connection. */
+const CACHE_CONNECT_RETRY_MS = 500;
+
+/**
+ * Writes a structured record of the cache client.
+ *
+ * The degradation paths of the cache are recorded with the event, the scope
+ * and the reason, so a record can be read by a machine and never carries a
+ * free text that hides the cause.
+ */
+function record(level: 'info' | 'warn' | 'error', event: string, fields: Record<string, unknown> = {}): void {
+  const line = JSON.stringify({ event, scope: 'cache', ...fields });
+  if (level === 'error') console.error(line);
+  else if (level === 'warn') console.warn(line);
+  else console.info(line);
+}
+
+/**
+ * The budget of the startup connection.
+ *
+ * The cache is not on the critical path of a request, so the start of the
+ * process does not wait for a cache that is not there. A deployment that
+ * knows its own cache adjusts the budget with the environment.
+ */
+export function cacheConnectBudgetMs(): number {
+  const configured = Number(process.env.REDIS_CONNECT_BUDGET_MS);
+  return Number.isFinite(configured) && configured > 0 ? configured : CACHE_CONNECT_BUDGET_MS;
+}
 
 export class RedisCache {
   private static instance: RedisCache;
   private redis: Redis;
   private isConnected: boolean = false;
+  /**
+   * The invalidation that could not be performed while the cache was
+   * unreachable. It is completed as soon as the client is reachable again.
+   */
+  private pendingInvalidation: (() => Promise<boolean>) | undefined;
   private static readonly SCAN_COUNT = 200;
 
   private constructor() {
@@ -27,17 +62,15 @@ export class RedisCache {
       retryStrategy: (times) => {
         // Retry with exponential backoff, max 10 seconds
         const delay = Math.min(times * 1000, 10000);
-        console.log(`Redis retry attempt ${times}, waiting ${delay}ms...`);
+        record('warn', 'cache_redis_retry', { attempt: times, delayMs: delay });
         return delay;
       },
       reconnectOnError: (err) => {
         // Reconnect on DNS errors (EAI_AGAIN)
         const targetError = 'EAI_AGAIN';
-        if (err.message.includes(targetError)) {
-          console.log('Redis DNS error detected, will reconnect...');
-          return true;
-        }
-        return false;
+        if (!err.message.includes(targetError)) return false;
+        record('warn', 'cache_redis_reconnect_requested', { reason: 'dns_error' });
+        return true;
       },
       lazyConnect: true,
     });
@@ -54,51 +87,95 @@ export class RedisCache {
 
   private setupEventHandlers(): void {
     this.redis.on('connect', () => {
-      console.log('Redis connected successfully');
+      record('info', 'cache_redis_connected');
       this.isConnected = true;
     });
 
+    this.redis.on('ready', () => {
+      this.isConnected = true;
+      // The client is reachable again, so an invalidation that was lost
+      // during an outage is completed now.
+      void this.completePendingInvalidation();
+    });
+
     this.redis.on('error', (error) => {
-      console.error('Redis connection error:', error);
+      record('error', 'cache_redis_error', { reason: error instanceof Error ? error.message : String(error) });
       this.isConnected = false;
     });
 
     this.redis.on('close', () => {
-      console.log('Redis connection closed');
+      record('warn', 'cache_redis_closed');
       this.isConnected = false;
     });
   }
 
+  /**
+   * Connects the client within the budget of the start.
+   *
+   * The budget is the total time the start may spend on the cache. When it is
+   * spent, the connection is given up: a cache that is not there must not
+   * hold the start of the process for a minute.
+   */
   public async connect(): Promise<void> {
-    const maxRetries = 10;
-    let retryCount = 0;
+    const budgetMs = cacheConnectBudgetMs();
+    const deadline = Date.now() + budgetMs;
+    let attempt = 0;
 
-    while (retryCount < maxRetries) {
+    for (;;) {
+      attempt += 1;
       try {
-        console.log(`Attempting to connect to Redis (attempt ${retryCount + 1}/${maxRetries})...`);
         await this.redis.connect();
-        console.log('✅ Redis connected successfully');
+        record('info', 'cache_redis_connected', { attempt, budgetMs });
         return;
-      } catch (error: any) {
-        retryCount++;
-        console.error(`❌ Failed to connect to Redis (attempt ${retryCount}/${maxRetries}):`, error.message);
-
-        if (retryCount >= maxRetries) {
-          console.error('❌ Max Redis connection retries reached');
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        const remainingMs = deadline - Date.now();
+        if (remainingMs <= 0) {
+          record('error', 'cache_redis_connect_budget_exhausted', { attempt, budgetMs, reason });
           // In development environment, if Redis is unavailable, run without cache
           if (env.NODE_ENV === 'development') {
-            console.warn('⚠️ Running without Redis cache in development mode');
+            record('warn', 'cache_redis_disabled', { attempt, budgetMs, reason: 'development_mode' });
             return;
-          } else {
-            throw error;
           }
+          throw error;
         }
-
-        // Wait before retrying (exponential backoff)
-        const delay = Math.min(retryCount * 2000, 10000);
-        console.log(`⏳ Waiting ${delay}ms before retry...`);
+        record('warn', 'cache_redis_connect_failed', { attempt, budgetMs, remainingMs, reason });
+        const delay = Math.min(CACHE_CONNECT_RETRY_MS * attempt, remainingMs);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
+    }
+  }
+
+  /**
+   * Runs an invalidation and defers it while the cache is unreachable.
+   *
+   * An invalidation that is lost leaves a stale entry behind, so the
+   * invalidation is remembered and completed as soon as the client is
+   * reachable again.
+   *
+   * @returns true when the invalidation ran.
+   */
+  public async invalidateOrDefer(invalidate: () => Promise<boolean>): Promise<boolean> {
+    if (await invalidate()) return true;
+    this.pendingInvalidation = invalidate;
+    return false;
+  }
+
+  /**
+   * Completes the invalidation that was deferred.
+   *
+   * The invalidation is kept when the cache is still unreachable, so the next
+   * attempt runs it again.
+   */
+  private async completePendingInvalidation(): Promise<void> {
+    const invalidate = this.pendingInvalidation;
+    if (!invalidate) return;
+    this.pendingInvalidation = undefined;
+    try {
+      if (!(await invalidate())) this.pendingInvalidation = invalidate;
+    } catch (error) {
+      this.pendingInvalidation = invalidate;
+      record('warn', 'cache_invalidation_deferred_failed', { reason: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -121,7 +198,7 @@ export class RedisCache {
       }
       return true;
     } catch (error) {
-      console.error('Redis set error:', error);
+      record('error', 'cache_redis_set_failed', { reason: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -138,7 +215,7 @@ export class RedisCache {
       }
       return JSON.parse(value) as T;
     } catch (error) {
-      console.error('Redis get error:', error);
+      record('error', 'cache_redis_get_failed', { reason: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -152,7 +229,7 @@ export class RedisCache {
       const result = await this.redis.del(key);
       return result > 0;
     } catch (error) {
-      console.error('Redis del error:', error);
+      record('error', 'cache_redis_del_failed', { reason: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -166,7 +243,7 @@ export class RedisCache {
       const result = await this.redis.exists(key);
       return result === 1;
     } catch (error) {
-      console.error('Redis exists error:', error);
+      record('error', 'cache_redis_exists_failed', { reason: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -180,7 +257,7 @@ export class RedisCache {
       const result = await this.redis.expire(key, ttl);
       return result === 1;
     } catch (error) {
-      console.error('Redis expire error:', error);
+      record('error', 'cache_redis_expire_failed', { reason: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -193,7 +270,7 @@ export class RedisCache {
     try {
       return await this.redis.incr(key);
     } catch (error) {
-      console.error('Redis incr error:', error);
+      record('error', 'cache_redis_incr_failed', { reason: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -206,7 +283,7 @@ export class RedisCache {
     try {
       return await this.redis.decr(key);
     } catch (error) {
-      console.error('Redis decr error:', error);
+      record('error', 'cache_redis_decr_failed', { reason: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
@@ -219,7 +296,7 @@ export class RedisCache {
     try {
       return await this.scanKeys(pattern);
     } catch (error) {
-      console.error('Redis keys error:', error);
+      record('error', 'cache_redis_keys_failed', { reason: error instanceof Error ? error.message : String(error) });
       return [];
     }
   }
@@ -233,7 +310,7 @@ export class RedisCache {
       await this.redis.flushdb();
       return true;
     } catch (error) {
-      console.error('Redis flushdb error:', error);
+      record('error', 'cache_redis_flushdb_failed', { reason: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
@@ -242,9 +319,17 @@ export class RedisCache {
     return this.flushdb();
   }
 
-  public async deleteByPattern(pattern: string): Promise<number> {
+  /**
+   * Deletes the keys of a pattern.
+   *
+   * @returns the number of deleted keys, or null when the cache was
+   * unreachable and the pattern was not scanned at all. A pattern that
+   * matched no key is not the same as a pattern that was never scanned.
+   */
+  public async deleteByPattern(pattern: string): Promise<number | null> {
     if (!this.isConnected) {
-      return 0;
+      record('warn', 'cache_redis_delete_pattern_unavailable', { pattern });
+      return null;
     }
 
     try {
@@ -252,7 +337,6 @@ export class RedisCache {
       if (keys.length === 0) {
         return 0;
       }
-
       let deletedCount = 0;
       const chunkSize = 200;
       for (let i = 0; i < keys.length; i += chunkSize) {
@@ -261,8 +345,8 @@ export class RedisCache {
       }
       return deletedCount;
     } catch (error) {
-      console.error('Redis deleteByPattern error:', error);
-      return 0;
+      record('error', 'cache_redis_delete_pattern_failed', { pattern, reason: error instanceof Error ? error.message : String(error) });
+      return null;
     }
   }
 
@@ -288,7 +372,7 @@ export class RedisCache {
 
       return count;
     } catch (error) {
-      console.error('Redis countByPattern error:', error);
+      record('error', 'cache_redis_count_pattern_failed', { pattern, reason: error instanceof Error ? error.message : String(error) });
       return 0;
     }
   }
@@ -310,12 +394,12 @@ export class RedisCache {
       const result = await this.redis.ping();
       return result === 'PONG';
     } catch (error) {
-      console.error('Redis ping error:', error);
+      record('error', 'cache_redis_ping_failed', { reason: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
 
-  // 🆕 Add setex method (for verification code storage)
+  // Set a value with an expiry, used for the verification code storage.
   public async setex(key: string, seconds: number, value: string): Promise<boolean> {
     if (!this.isConnected) {
       return false;
@@ -325,12 +409,12 @@ export class RedisCache {
       await this.redis.setex(key, seconds, value);
       return true;
     } catch (error) {
-      console.error('Redis setex error:', error);
+      record('error', 'cache_redis_setex_failed', { reason: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }
 
-  // 🆕 Add get method (string version, for verification code retrieval)
+  // Read a string value, used for the verification code retrieval.
   public async getString(key: string): Promise<string | null> {
     if (!this.isConnected) {
       return null;
@@ -339,12 +423,12 @@ export class RedisCache {
     try {
       return await this.redis.get(key);
     } catch (error) {
-      console.error('Redis get error:', error);
+      record('error', 'cache_redis_get_string_failed', { reason: error instanceof Error ? error.message : String(error) });
       return null;
     }
   }
 
-  // 🆕 Add ttl method (get remaining expiration time)
+  // The remaining expiration of a key.
   public async ttl(key: string): Promise<number> {
     if (!this.isConnected) {
       return -2; // -2 means key does not exist
@@ -353,7 +437,7 @@ export class RedisCache {
     try {
       return await this.redis.ttl(key);
     } catch (error) {
-      console.error('Redis ttl error:', error);
+      record('error', 'cache_redis_ttl_failed', { reason: error instanceof Error ? error.message : String(error) });
       return -2;
     }
   }

@@ -167,6 +167,9 @@ services:
       NEXT_PUBLIC_API_URL: /api/v1
       STOREFRONT_URL: ${STOREFRONT_URL}
       ADMIN_URL: ${ADMIN_URL}
+      CORE_EDGE_TIMEOUT_MS: ${CORE_EDGE_TIMEOUT_MS:-30000}
+      CORE_EDGE_BODY_TIMEOUT_MS: ${CORE_EDGE_BODY_TIMEOUT_MS:-300000}
+      CORE_EDGE_MAX_REQUEST_BYTES: ${CORE_EDGE_MAX_REQUEST_BYTES:-33554432}
     networks: [core]
     depends_on:
       api-lb: { condition: service_healthy }
@@ -195,6 +198,9 @@ services:
       STOREFRONT_URL: ${STOREFRONT_URL}
       ADMIN_URL: ${ADMIN_URL}
       TRUSTED_PROXIES: 172.30.65.10
+      CORE_EDGE_TIMEOUT_MS: ${CORE_EDGE_TIMEOUT_MS:-30000}
+      CORE_EDGE_BODY_TIMEOUT_MS: ${CORE_EDGE_BODY_TIMEOUT_MS:-300000}
+      CORE_EDGE_MAX_RESPONSE_BYTES: ${CORE_EDGE_MAX_RESPONSE_BYTES:-16777216}
     # Shop sanitizes client headers before its BFF calls Core. Sharing the proxy
     # namespace preserves that IP without trusting any additional network address.
     network_mode: service:api-lb

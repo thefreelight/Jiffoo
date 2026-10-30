@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { PaymentFact, PaymentAccountIdentity } from '@jiffoo/shared';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
+import { emitEvent } from '@/infra/events/emit';
 import { decimalToMinor } from '@/core/shared/money';
 import { samePaymentAccount, bindObservedPaymentAccount } from './provider-account';
 import { lockOrder, lockPayment } from '@/core/shared/locks';
@@ -141,6 +142,16 @@ export async function applyPreparedPaymentFact(
     await transaction.payment.update({ where: { id: payment.id }, data: { sessionId: fact.sessionId, status: payment.status === 'CREATING' ? 'PENDING' : payment.status,
       ...(fact.action ? { actionJson: fact.action as Prisma.InputJsonValue, sessionUrl: fact.action.type === 'redirect' ? fact.action.url : null } : {}) } });
     updated = true;
+    // A session that reaches the payment outside the session creation - the
+    // reconciliation of an unknown outcome, or the verification of the
+    // customer - carries the confirmation of the order with it: the event and
+    // the session are written in the same transaction, so a committed session
+    // always has its event. The session creation writes the event itself, in
+    // the transaction that creates the session.
+    if (source !== 'creation' && fact.action) await emitEvent(transaction, 'order.confirmed', 1, payment.orderId, {
+      id: payment.orderId, orderId: payment.orderId,
+      instructions: fact.action.type === 'instructions' ? fact.action.text : '',
+    }, { actorId: slug });
   }
   for (const capture of [...fact.captures].sort((a, b) => a.providerPaymentId.localeCompare(b.providerPaymentId))) {
     const recorded = await recordPaymentSucceeded({ paymentId: payment.id, providerPaymentId: capture.providerPaymentId,
@@ -214,6 +225,10 @@ export async function observePaymentFact(
   // with the state that the write replaced. A caller that owns the
   // transaction owns the bump, because only the outermost transaction knows
   // when the order became visible.
-  if (!transaction && applied) await CacheService.incrementOrderVersion();
+  if (!transaction && applied) await CacheService.incrementOrderVersion({
+    // The context names the payment and the order of the bump, so a lost
+    // bump can be traced back to the write that needed it.
+    scope: 'payment.observation', reference: prepared.identity?.orderId ?? prepared.identity?.id ?? expectedPaymentId ?? 'unknown',
+  });
   return applied;
 }

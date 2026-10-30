@@ -44,6 +44,8 @@ import { closePluginDatabase, abandonPluginDatabase } from '@/core/admin/extensi
 import { startCoreProcess, drainCoreProcess, finishCoreProcess, stopCoreProcessHeartbeat, drainCoreProcessHeartbeat } from '@/infra/core-process';
 import { drainPluginInstallOperations } from '@/core/admin/extension-installer/plugin-migration-operation';
 import { drainContractInvocations, unsettledContractInvocations } from '@/core/extensions/runtime/plugin-runtime';
+import { releaseEventDeliveryLeases } from '@/infra/events/delivery';
+import { releaseNotificationLeases } from '@/core/notifications/lease';
 import { workerShutdownDeadlineMs } from '@/infra/worker-shutdown';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import { redisCache } from '@/core/cache/redis';
@@ -401,6 +403,113 @@ async function buildApp() {
   }
 }
 
+/**
+ * The milliseconds the forced shutdown waits for the connections to close.
+ *
+ * The wait is bounded: a connection that does not close in time is cut by the
+ * exit, and the exit is never delayed by more than this bound.
+ */
+export const API_FORCED_SHUTDOWN_CLOSE_TIMEOUT_MS = 2_000;
+
+/**
+ * The dependencies of the forced shutdown of the API.
+ *
+ * They are injected so the forced path can be tested without a process, a
+ * database or a Redis.
+ */
+export type ApiForceShutdown = {
+  /** Stop the heartbeat of the core process. */
+  stopHeartbeat(): void;
+  /** Abandon the plugin database: the plugin work did not finish. */
+  abandonPluginDatabase(): void;
+  /** Close the connections the server holds. */
+  closeConnections(): void;
+  /** Close the shared protection client. */
+  closeProtection(): void;
+  /** Disconnect the Redis client of the API. */
+  disconnectRedis(): Promise<void>;
+  /** Disconnect the database client of the API. */
+  disconnectDatabase(): Promise<void>;
+  /** Release the leases of the rows that are in flight. */
+  releaseInFlightLeases(): Promise<void>;
+  /** Record a structured fact. */
+  log(record: Record<string, unknown>): void;
+};
+
+/**
+ * Release the leases of the rows that are in flight.
+ *
+ * A forced shutdown leaves the deliveries and the notifications that were in
+ * flight with a lease that expires in a minute, so the next instance waits
+ * for that lease before it can reclaim the rows. The forced path expires the
+ * lease at once: the rows are reclaimable in the next sweep.
+ *
+ * Only the rows whose owner is gone are released - the rows of this process,
+ * which is leaving, and the rows of a process that no longer holds a
+ * registration that may still be alive. An owner that is registered as alive
+ * or as suspect keeps its rows: a suspect process may still be running, so
+ * its rows are never taken from it, and a delivery is never duplicated.
+ *
+ * The rows belong to the modules that own them, so the release is expressed
+ * as a call to their public service and not as a write of their tables.
+ */
+export async function releaseInFlightLeases(): Promise<void> {
+  await releaseEventDeliveryLeases(coreProcessIdentity.instanceId);
+  await releaseNotificationLeases(coreProcessIdentity.instanceId);
+}
+
+/**
+ * The milliseconds the forced shutdown waits for the leases to be released.
+ *
+ * The release is a pair of writes, so it is given a short bound of its own:
+ * a database that does not answer must not hold the exit.
+ */
+export const API_FORCED_SHUTDOWN_LEASE_TIMEOUT_MS = 500;
+
+/**
+ * Await a piece of the forced shutdown with a bound.
+ *
+ * The bound is the whole point: the forced shutdown may run after the hard
+ * deadline, so every step of it has to be able to give up.
+ */
+async function bounded(work: Promise<unknown>, timeoutMs: number): Promise<void> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    await Promise.race([
+      work,
+      new Promise<void>(resolve => { timer = setTimeout(resolve, timeoutMs); }),
+    ]);
+  } finally { clearTimeout(timer); }
+}
+
+/**
+ * The forced shutdown of the API.
+ *
+ * The plugin work is abandoned, the rows that are in flight are released and
+ * the connections are closed. The close of the connections is awaited with a
+ * bounded wait, so the sessions of the server end with the process instead
+ * of waiting for the idle timeout of the database.
+ */
+export async function forceApiShutdown(
+  deps: ApiForceShutdown,
+  deadlineMs: number,
+  options: { closeTimeoutMs?: number; leaseTimeoutMs?: number } = {},
+): Promise<void> {
+  const closeTimeoutMs = options.closeTimeoutMs ?? API_FORCED_SHUTDOWN_CLOSE_TIMEOUT_MS;
+  const leaseTimeoutMs = options.leaseTimeoutMs ?? API_FORCED_SHUTDOWN_LEASE_TIMEOUT_MS;
+  deps.log({ event: 'api-shutdown-deadline', deadlineMs, bootNonce: coreProcessIdentity.bootNonce });
+  deps.stopHeartbeat();
+  deps.abandonPluginDatabase();
+  deps.closeConnections();
+  deps.closeProtection();
+  try {
+    await bounded(deps.releaseInFlightLeases(), leaseTimeoutMs);
+  } catch (error) {
+    deps.log({ event: 'api-shutdown-lease-release-failed', reason: error instanceof Error ? error.message : String(error) });
+  }
+  await bounded(Promise.allSettled([deps.disconnectRedis(), deps.disconnectDatabase()]), closeTimeoutMs);
+}
+
 export async function startApiRuntime(options: { port?: number; host?: string } = {}) {
   workerShutdownDeadlineMs();
   try {
@@ -450,16 +559,19 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
      * missed its own deadline and by the hard deadline of the shutdown
      * handler, so both end the process the same way.
      */
-    const forceStop = (deadlineMs: number) => {
+    const forceStop = async (deadlineMs: number) => {
       shutdownDeadlineExceeded = true;
       for (const item of unsettledContractInvocations()) console.error(JSON.stringify({ event: 'api-shutdown-unsettled', ...item }));
-      console.error(JSON.stringify({ event: 'api-shutdown-deadline', deadlineMs, bootNonce: coreProcessIdentity.bootNonce }));
-      stopCoreProcessHeartbeat();
-      abandonPluginDatabase();
-      app.server.closeAllConnections();
-      sharedProtection.close();
-      void redisCache.disconnect().catch(() => undefined);
-      void prisma.$disconnect().catch(() => undefined);
+      await forceApiShutdown({
+        stopHeartbeat: () => stopCoreProcessHeartbeat(),
+        abandonPluginDatabase: () => abandonPluginDatabase(),
+        closeConnections: () => app.server.closeAllConnections(),
+        closeProtection: () => sharedProtection.close(),
+        disconnectRedis: async () => { await redisCache.disconnect(); },
+        disconnectDatabase: async () => { await prisma.$disconnect(); },
+        releaseInFlightLeases: () => releaseInFlightLeases(),
+        log: record => console.error(JSON.stringify(record)),
+      }, deadlineMs);
     };
     return {
       app,
@@ -481,7 +593,7 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
             new Promise<false>(resolve => { deadlineTimer = setTimeout(() => resolve(false), deadlineMs); }),
           ]).finally(() => clearTimeout(deadlineTimer));
           if (drained) return;
-          forceStop(deadlineMs);
+          await forceStop(deadlineMs);
           throw new Error('API shutdown did not settle before its deadline');
         })();
       },
@@ -555,14 +667,31 @@ export function decideApiShutdown(input: {
   return { hardDeadlinePassed, exitCode: 1, forced: hardDeadlinePassed };
 }
 
-export function registerApiShutdownHandlers(runtime: { stop(): Promise<void>; force?(): void }): void {
+/**
+ * The options of the shutdown handlers.
+ *
+ * They are injected so the wiring of the signal handlers can be tested
+ * without a process that really exits.
+ */
+export type ApiShutdownOptions = {
+  /** The outer bound of the shutdown; the drain deadline plus the margin by default. */
+  hardDeadlineMs?: number;
+  /** The code the process exits with; `process.exit` by default. */
+  exit?: (code: number) => void;
+};
+
+export function registerApiShutdownHandlers(
+  runtime: { stop(): Promise<void>; force?(): void | Promise<void> },
+  options: ApiShutdownOptions = {},
+): void {
+  const exit = options.exit ?? ((code: number) => process.exit(code));
   let stopping = false;
   const shutdown = async (signal: string) => {
     if (stopping) return;
     stopping = true;
     LoggerService.logSystem(`Received ${signal}, shutting down gracefully`);
     const startedAt = Date.now();
-    const hardDeadlineMs = apiShutdownHardDeadlineMs();
+    const hardDeadlineMs = options.hardDeadlineMs ?? apiShutdownHardDeadlineMs();
     let hardTimer: NodeJS.Timeout | undefined;
     // The drain settles on its own inner deadline. The hard deadline is the
     // outer bound of the shutdown: a drain that never settles ends the
@@ -586,18 +715,20 @@ export function registerApiShutdownHandlers(runtime: { stop(): Promise<void>; fo
     });
     if (decision.hardDeadlinePassed) {
       console.error(JSON.stringify({ event: 'api-shutdown-hard-deadline', hardDeadlineMs, elapsedMs, bootNonce: coreProcessIdentity.bootNonce }));
-      try { runtime.force?.(); }
+      // The forced path closes the connections with a bounded wait, so the
+      // exit follows it instead of cutting the sessions off.
+      try { await runtime.force?.(); }
       catch (error) { LoggerService.logError(error as Error, { context: 'Forced shutdown' }); }
-      process.exit(decision.exitCode);
+      exit(decision.exitCode);
       return;
     }
     if (decision.exitCode === 0) {
       LoggerService.logSystem('Server shutdown completed');
-      process.exit(0);
+      exit(0);
       return;
     }
     LoggerService.logError((outcome.error as Error) ?? new Error('API shutdown did not settle before its deadline'), { context: 'Graceful shutdown' });
-    process.exit(decision.exitCode);
+    exit(decision.exitCode);
   };
   process.once('SIGTERM', () => void shutdown('SIGTERM'));
   process.once('SIGINT', () => void shutdown('SIGINT'));

@@ -29,10 +29,9 @@ for (const [route, code, userIndex] of [
     expect(response.status).toBe(400);
     expect((await response.json()).error.code).toBe(code);
   });
-  it.each(['invalid type', 'too large'])('B real TCP ' + route + ' preserves HEAD 400 ' + code + ' for %s', async reason => {
+  it('B real TCP ' + route + ' preserves the 400 validation code for an invalid type', async () => {
     const body = new FormData();
-    const bytes = reason === 'too large' ? new Uint8Array(5 * 1024 * 1024 + 1) : new Uint8Array([1]);
-    body.append('file', new Blob([bytes], { type: reason === 'too large' ? 'image/png' : 'text/plain' }), 'upload.png');
+    body.append('file', new Blob([new Uint8Array([1])], { type: 'text/plain' }), 'upload.png');
     const response = await fixture.request(route, {
       method: 'POST', headers: { Authorization: `Bearer ${signJwt(users[userIndex])}` }, body,
     });
@@ -40,9 +39,20 @@ for (const [route, code, userIndex] of [
     const result = await response.json();
     expect(result.success).toBe(false);
     expect(result.error.code).toBe(code);
-    expect(result.error.details).toEqual(reason === 'too large'
-      ? { maxBytes: 5 * 1024 * 1024 }
-      : { allowedTypes: ['image/jpeg', 'image/png', 'image/webp'] });
+    expect(result.error.details).toEqual({ allowedTypes: ['image/jpeg', 'image/png', 'image/webp'] });
+    expect(JSON.stringify(result)).not.toMatch(/stack|cause|Prisma|SQL/);
+  });
+  it('C real TCP ' + route + ' answers an oversized part with 413 PAYLOAD_TOO_LARGE', async () => {
+    const body = new FormData();
+    body.append('file', new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'image/png' }), 'upload.png');
+    const response = await fixture.request(route, {
+      method: 'POST', headers: { Authorization: `Bearer ${signJwt(users[userIndex])}` }, body,
+    });
+    expect(response.status).toBe(413);
+    const result = await response.json();
+    expect(result.success).toBe(false);
+    expect(result.error.code).toBe('PAYLOAD_TOO_LARGE');
+    expect(result.error.details).toEqual({ maxBytes: 5 * 1024 * 1024 });
     expect(JSON.stringify(result)).not.toMatch(/stack|cause|Prisma|SQL/);
   });
   it('K real TCP ' + route + ' sanitizes a real transactional foreign-key failure to 500', async () => {

@@ -11,6 +11,29 @@ import { claimNotifications, reclaimNotificationLeases, completeNotification, fa
 const secretPattern = /\{\{secret\.(link|code)\}\}/g;
 
 /**
+ * The reason of a notification that no provider can take.
+ *
+ * The Core has no enabled provider for the notification contract, so the
+ * delivery cannot even be attempted.
+ */
+export const NO_NOTIFICATION_PROVIDER_ERROR = 'No enabled notification provider';
+
+/**
+ * A failure that a retry cannot fix.
+ *
+ * The delivery of such a notification fails the same way on every attempt,
+ * so the row lands in its terminal state at once instead of walking the
+ * whole ladder over hours.
+ */
+export class DeterministicNotificationError extends Error {}
+/**
+ * True when the failure of a delivery is one that a retry cannot fix.
+ */
+export function isDeterministicNotificationFailure(error: unknown): boolean {
+  return error instanceof DeterministicNotificationError;
+}
+
+/**
  * The milliseconds the notification claim transaction may hold its connection.
  *
  * The claim transaction reclaims the expired leases and claims the batch, so
@@ -57,7 +80,7 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
   if (notifications.length) {
     try {
       const provider = await resolveSingleProvider('notification');
-      if (!provider) providerError = 'No enabled notification provider';
+      if (!provider) providerError = NO_NOTIFICATION_PROVIDER_ERROR;
       else providerSlug = provider.pluginSlug;
     } catch (error) {
       providerError = error instanceof Error ? error.message : String(error);
@@ -67,7 +90,13 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
   for (const notification of notifications) {
     try {
       if (releaseRemainder || options.isStopping?.()) { await releaseUnstartedNotification(client, notification); continue; }
-      if (!providerSlug) throw new Error(providerError ?? 'No enabled notification provider');
+      // A notification that no provider can take is a configuration failure:
+      // it fails the same way on every attempt, so it does not walk the
+      // ladder. A provider that could not be resolved at all is a transient
+      // failure and keeps the ladder.
+      if (!providerSlug) throw providerError === NO_NOTIFICATION_PROVIDER_ERROR
+        ? new DeterministicNotificationError(NO_NOTIFICATION_PROVIDER_ERROR)
+        : new Error(providerError ?? NO_NOTIFICATION_PROVIDER_ERROR);
       const secrets = notification.secretJson && typeof notification.secretJson === 'object' && !Array.isArray(notification.secretJson)
         ? notification.secretJson as Record<string, unknown> : {};
       if (!await notificationLeaseAllowsSend(client, notification, sendTimeoutMs)) {
@@ -93,7 +122,8 @@ async function deliverBatch(options: { isStopping?: () => boolean }): Promise<nu
       if (!result.accepted) throw new Error(result.error || 'Notification provider rejected delivery');
       await completeNotification(client, notification, providerSlug, result.providerMessageId);
     } catch (error) {
-      await failNotification(client, notification, error instanceof Error ? error.message : String(error), providerSlug);
+      const reason = error instanceof Error ? error.message : String(error);
+      await failNotification(client, notification, reason, providerSlug, { deterministic: error instanceof DeterministicNotificationError });
     } finally { claimed.delete(notification.id); observeWorkerShutdownForTest('notification-wrapper-settled', { id: notification.id }); }
   }
   return notifications.length;

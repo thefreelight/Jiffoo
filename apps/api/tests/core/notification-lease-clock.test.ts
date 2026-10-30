@@ -25,8 +25,9 @@ it.each(['000100', '000500', '000900'])('reclaims and claims an expired notifica
     status: 'SENDING', claimToken: oldToken, claimedBy: 'expired-worker', leaseUntil: new Date(0),
   } });
   const instant = `2030-01-01T00:00:00.${fraction}Z`;
-  // The rung of the delivery ladder of a row that carries no attempt yet.
-  const rung = '2030-01-01T00:01:00.000Z';
+  // The rung of the delivery ladder of a row that carries no attempt yet, plus
+  // the jitter of at most a fifth of it.
+  const afterRung = '2030-01-01T00:02:00.000Z';
   const clock = (at: string) => (sql: string) => sql.replaceAll('clock_timestamp()', `TIMESTAMPTZ '${at}'`);
   await prisma.$transaction(async isolation => {
     // A separate connection holds other rows so SKIP LOCKED isolates the fixture without changing them.
@@ -44,17 +45,18 @@ it.each(['000100', '000500', '000900'])('reclaims and claims an expired notifica
       );
       // The reclaim schedules the row with the ladder, so it is not due at the moment of the reclaim.
       expect(recovered.due, `Recovered retry time ${recovered.nextAttemptAt.toISOString()} must not be due at ${instant}`).toBe(false);
-      const [scheduled] = await tx.$queryRawUnsafe<Array<{ rung: boolean; due: boolean }>>(
-        'SELECT "nextAttemptAt" = $2::timestamptz AT TIME ZONE \'UTC\' AS rung, "nextAttemptAt" <= $2::timestamptz AT TIME ZONE \'UTC\' AS due FROM public.notifications WHERE id = $1', id, rung,
+      // The wait is the first rung of the delivery ladder plus a bounded
+      // jitter of at most a fifth of it.
+      const [scheduled] = await tx.$queryRawUnsafe<Array<{ seconds: number }>>(
+        'SELECT EXTRACT(EPOCH FROM ("nextAttemptAt" - $2::timestamptz AT TIME ZONE \'UTC\'))::int AS seconds FROM public.notifications WHERE id = $1', id, instant,
       );
-      // The rung of the ladder is the first one of the delivery ladder.
-      expect(scheduled.rung, 'the reclaim schedules the row with the first rung of the delivery ladder').toBe(true);
-      expect(scheduled.due, 'the row is due when its rung passes').toBe(true);
+      expect(scheduled.seconds, 'the reclaim schedules the row with the first rung of the delivery ladder').toBeGreaterThanOrEqual(60);
+      expect(scheduled.seconds, 'the jitter of the rung is bounded by a fifth of it').toBeLessThanOrEqual(72);
       // The row is not claimable before its rung passes.
       expect(await claimNotifications(client, 'too-early-worker', 1)).toHaveLength(0);
-      // One rung later the row is due and the replacement worker claims it.
+      // One rung and its jitter later the row is due and the replacement worker claims it.
       const later: NotificationLeaseClient = {
-        query: async (sql, values = []) => ({ rows: await tx.$queryRawUnsafe<any[]>(clock(rung)(sql), ...values) }),
+        query: async (sql, values = []) => ({ rows: await tx.$queryRawUnsafe<any[]>(clock(afterRung)(sql), ...values) }),
       };
       const claimed = await claimNotifications(later, 'replacement-worker', 1);
       expect(claimed).toHaveLength(1);

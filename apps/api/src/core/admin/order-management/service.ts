@@ -87,7 +87,7 @@ export class AdminOrderService {
         targetType: 'payment', targetId: paymentId, summary: { paymentId, orderId, reference, outcome },
       });
     });
-    await CacheService.incrementOrderVersion();
+    await CacheService.incrementOrderVersion({ scope: 'admin.order-management', reference: orderId });
     return this.getOrderById(orderId);
   }
 
@@ -559,11 +559,11 @@ export class AdminOrderService {
       // payment was not recorded and the attempt needs review. The
       // administrator must see that conflict instead of a success that did
       // not happen.
-      await CacheService.incrementOrderVersion();
+      await CacheService.incrementOrderVersion({ scope: 'admin.order-management', reference: orderId });
       throw new ApiError('PAYMENT_REVIEW_ALREADY_RESOLVED');
     }
 
-    await CacheService.incrementOrderVersion();
+    await CacheService.incrementOrderVersion({ scope: 'admin.order-management', reference: orderId });
     return this.getOrderById(orderId);
   }
 
@@ -591,7 +591,7 @@ export class AdminOrderService {
     });
 
     // Invalidate list cache
-    await CacheService.incrementOrderVersion();
+    await CacheService.incrementOrderVersion({ scope: 'admin.order-management', reference: orderId });
 
     return this.getOrderById(orderId);
   }
@@ -600,7 +600,7 @@ export class AdminOrderService {
     await prisma.$transaction(async (tx) => {
       await OrderService.deliverOrder(tx, { orderId });
     });
-    await CacheService.incrementOrderVersion();
+    await CacheService.incrementOrderVersion({ scope: 'admin.order-management', reference: orderId });
     return this.getOrderById(orderId);
   }
 
@@ -673,7 +673,7 @@ export class AdminOrderService {
     });
 
     // Invalidate list cache
-    await CacheService.incrementOrderVersion();
+    await CacheService.incrementOrderVersion({ scope: 'admin.order-management', reference: orderId });
 
     return this.getOrderById(orderId);
   }
@@ -700,7 +700,7 @@ export class AdminOrderService {
         actorId: data.actorId,
       });
     });
-    await CacheService.incrementOrderVersion();
+    await CacheService.incrementOrderVersion({ scope: 'admin.order-management', reference: orderId });
     return this.getOrderById(orderId);
   }
 
@@ -725,7 +725,7 @@ export class AdminOrderService {
     });
 
     // Invalidate list cache
-    await CacheService.incrementOrderVersion();
+    await CacheService.incrementOrderVersion({ scope: 'admin.order-management', reference: orderId });
 
     return this.getOrderById(orderId);
   }

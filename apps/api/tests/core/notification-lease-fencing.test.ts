@@ -158,7 +158,8 @@ async function assertLadderRung(client: Client, id: string, rungSeconds: number)
      FROM public.notifications WHERE id = $1`, [id])).rows;
   expect(row, 'the reclaimed row must exist').toBeDefined();
   expect(row.delta, `the reclaimed row waits ${rungSeconds} seconds on the ladder`).toBeGreaterThanOrEqual(rungSeconds - 10);
-  expect(row.delta).toBeLessThanOrEqual(rungSeconds + 10);
+  // The rung carries a bounded jitter of at most a fifth of it.
+  expect(row.delta).toBeLessThanOrEqual(rungSeconds * 1.2 + 10);
   expect(row.due, 'a reclaimed row is not due before its rung passes').toBe(false);
 }
 /**

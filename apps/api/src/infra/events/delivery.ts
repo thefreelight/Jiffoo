@@ -6,10 +6,18 @@ import { deliverInstallationEvent } from '@/core/extensions/runtime/plugin-runti
 import type { EventTransaction } from './emit';
 import { redactPluginFailure } from '@/core/extensions/runtime/failure';
 import { observeWorkerShutdownForTest } from '../worker-shutdown';
+import { CORE_PROCESS_ALIVE_STATES } from '@/infra/core-process';
 import { CORE_EVENT_TARGET, coreSubscribersFor } from './core-subscribers';
 
 export const EVENT_HANDLER_TIMEOUT_MS = 30_000;
 export const EVENT_LEASE_SECONDS = 60;
+/**
+ * The milliseconds between two renewals of the lease of a running delivery.
+ *
+ * A third of the lease leaves two renewals of margin before the lease of a
+ * delivery that is still running would expire.
+ */
+export const EVENT_LEASE_RENEWAL_INTERVAL_MS = Math.floor((EVENT_LEASE_SECONDS * 1000) / 3);
 export const EVENT_POLL_INTERVAL_MS = 1_000;
 export const EVENT_BATCH_SIZE = 16;
 export const EVENT_RETRY_SECONDS = [60, 300, 900, 3600, 10800, 21600, 43200] as const;
@@ -99,6 +107,38 @@ export async function claimEventDeliveries(
   }, { maxWait: EVENT_TRANSACTION_MAX_WAIT_MS, timeout: EVENT_TRANSACTION_TIMEOUT_MS });
 }
 
+/**
+ * The milliseconds of the window in which a renewal failure is recorded once.
+ *
+ * A database outage fails the renewal of every running delivery on every
+ * interval, so one record per window per delivery keeps the failure visible
+ * without flooding the log.
+ */
+export const EVENT_RENEWAL_FAILURE_LOG_WINDOW_MS = 60_000;
+/**
+ * The renewal of the lease of a running delivery.
+ */
+export type EventDeliveryLeaseRenewal = (delivery: Pick<EventDelivery, 'id' | 'claimToken'>) => Promise<number>;
+/**
+ * Extend the lease of a delivery whose handler is still running.
+ *
+ * The handler of a plugin cannot be cancelled, so it can outlive the lease
+ * that was taken for it. Without the renewal the lease would expire while
+ * the handler runs, the recovery would take the row and the event would be
+ * handed to the plugin a second time.
+ *
+ * The renewal is fenced by the claim token of the delivery: it only ever
+ * extends the row that this worker owns. A row that another worker has
+ * taken in the meantime is left alone, and the lease of a worker that died
+ * still expires, so the recovery of an abandoned delivery keeps working.
+ */
+export async function renewEventDeliveryLease(delivery: Pick<EventDelivery, 'id' | 'claimToken'>): Promise<number> {
+  return prisma.$executeRaw`
+    UPDATE event_deliveries SET "leaseUntil" = statement_timestamp() + ${EVENT_LEASE_SECONDS} * interval '1 second'
+    WHERE id = ${delivery.id} AND status = 'RUNNING' AND "claimToken" = ${delivery.claimToken}
+  `;
+}
+
 async function finishFailure(transaction: EventTransaction, delivery: EventDelivery, error: string): Promise<void> {
   error = await redactPluginFailure('', error, delivery.installationId);
   const tx = transaction as Prisma.TransactionClient;
@@ -117,6 +157,31 @@ async function finishFailure(transaction: EventTransaction, delivery: EventDeliv
     ), "lastFailureMessage" = ${error}
     WHERE id = ${delivery.installationId}
   `;
+}
+
+/**
+ * Release the leases of the deliveries that are in flight.
+ *
+ * A forced shutdown leaves the deliveries that were in flight with a lease
+ * that expires in a minute, so the next instance waits for that lease before
+ * it can reclaim the rows. The forced path expires the lease at once: the
+ * rows are reclaimable in the next sweep.
+ *
+ * Only the rows whose owner is gone are released: the rows of this instance,
+ * which is leaving, and the rows of an owner that no longer holds a
+ * registration that may still be alive. An owner that is registered as alive
+ * or as suspect keeps its rows: a suspect process may still be running, so
+ * its rows are never taken from it, and a delivery is never duplicated.
+ */
+export async function releaseEventDeliveryLeases(instanceId: string): Promise<number> {
+  return prisma.$executeRaw`
+    UPDATE public.event_deliveries d SET "leaseUntil" = clock_timestamp() - interval '1 millisecond'
+    WHERE d.status = 'RUNNING' AND d."claimedBy" IS NOT NULL AND (
+      d."claimedBy" = ${instanceId}
+      OR NOT EXISTS (
+        SELECT 1 FROM public.core_processes p
+        WHERE p."instanceId"::text = d."claimedBy"
+          AND p.state IN (${Prisma.join(CORE_PROCESS_ALIVE_STATES)})))`;
 }
 
 export async function recoverEventLeases(): Promise<number> {
@@ -146,6 +211,9 @@ export async function deliverCoreEvent(event: PluginEvent): Promise<string | nul
 
 export class EventDeliveryEngine {
   readonly timeoutMs: number;
+  readonly renewalIntervalMs: number;
+  private readonly renewLease: EventDeliveryLeaseRenewal;
+  private readonly renewalFailureLogWindowMs: number;
   private readonly installations = new Set<string>();
   private readonly pending = new Set<Promise<void>>();
   private readonly invocations = new Map<string, { installationId: string; promise: Promise<unknown> }>();
@@ -153,14 +221,37 @@ export class EventDeliveryEngine {
   private claiming = false;
   private claimOperation: Promise<number> | null = null;
   private stopped = false;
+  private renewals = 0;
 
-  constructor(readonly workerId: string, options: { timeoutMs?: number } = {}) {
+  constructor(readonly workerId: string, options: { timeoutMs?: number; renewalIntervalMs?: number; renewLease?: EventDeliveryLeaseRenewal; renewalFailureLogWindowMs?: number } = {}) {
     if (testHandlerTimeoutMs !== undefined && process.env.NODE_ENV !== 'test') throw new Error('Event timeout controls are not permitted outside tests');
     this.timeoutMs = options.timeoutMs ?? testHandlerTimeoutMs ?? EVENT_HANDLER_TIMEOUT_MS;
     if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0 || this.timeoutMs >= EVENT_LEASE_SECONDS * 1000) {
       throw new Error('Event handler timeout must be positive and shorter than the lease');
     }
+    this.renewalIntervalMs = options.renewalIntervalMs ?? EVENT_LEASE_RENEWAL_INTERVAL_MS;
+    if (!Number.isFinite(this.renewalIntervalMs) || this.renewalIntervalMs <= 0 || this.renewalIntervalMs >= EVENT_LEASE_SECONDS * 1000) {
+      throw new Error('Event lease renewal interval must be positive and shorter than the lease');
+    }
+    // The renewal implementation and the log window are test controls: the
+    // renewal of a delivery is fenced by its claim token in every
+    // environment, and the window of the operator log is a minute.
+    if (options.renewLease !== undefined && process.env.NODE_ENV !== 'test') throw new Error('Event renewal overrides are not permitted outside tests');
+    if (options.renewalFailureLogWindowMs !== undefined && process.env.NODE_ENV !== 'test') throw new Error('Event renewal log window controls are not permitted outside tests');
+    this.renewLease = options.renewLease ?? renewEventDeliveryLease;
+    this.renewalFailureLogWindowMs = options.renewalFailureLogWindowMs ?? EVENT_RENEWAL_FAILURE_LOG_WINDOW_MS;
+    if (!Number.isFinite(this.renewalFailureLogWindowMs) || this.renewalFailureLogWindowMs <= 0) {
+      throw new Error('Event renewal log window must be positive');
+    }
   }
+
+  /**
+   * The leases that are renewed because their handler is still running.
+   *
+   * A renewal belongs to an invocation that has not settled yet, so the count
+   * falls back to zero once every handler has settled.
+   */
+  activeRenewals(): number { return this.renewals; }
 
   isRunning(): boolean { return this.timer !== null; }
   inFlightInstallations(): number { return this.installations.size; }
@@ -217,6 +308,33 @@ export class EventDeliveryEngine {
     void invocation.finally(() => this.invocations.delete(delivery.id)).catch(() => undefined);
     // A timeout cannot cancel plugin code. Retain its local slot until it actually settles.
     void invocation.finally(() => this.installations.delete(delivery.installationId)).catch(() => undefined);
+    // The plugin code can outlive the lease that was taken for it, so the
+    // lease is renewed for as long as the invocation is in flight. The
+    // recovery therefore never takes a row that this worker is still working
+    // on, and the event is not handed to the plugin twice.
+    //
+    // A failed renewal is only a renewal that did not happen: the delivery
+    // keeps its semantics and no extra request is sent. The failure is
+    // recorded, because a lease that stops being extended is what makes the
+    // recovery hand the event to a second worker.
+    let lastRenewalFailureAt = 0;
+    const renewal = setInterval(() => {
+      void this.renewLease(delivery).catch((error: unknown) => {
+        const now = Date.now();
+        if (now - lastRenewalFailureAt < this.renewalFailureLogWindowMs) return;
+        lastRenewalFailureAt = now;
+        console.error(JSON.stringify({
+          event: 'event_delivery_lease_renewal_failed',
+          deliveryId: delivery.id,
+          installationId: delivery.installationId,
+          intervalMs: this.renewalIntervalMs,
+          reason: error instanceof Error ? error.name : 'unknown',
+          message: error instanceof Error ? error.message : String(error),
+        }));
+      });
+    }, this.renewalIntervalMs);
+    this.renewals += 1;
+    void invocation.finally(() => { clearInterval(renewal); this.renewals -= 1; }).catch(() => undefined);
     try {
       const skipped = await Promise.race([
         invocation,

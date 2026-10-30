@@ -1,5 +1,5 @@
 import { laneConfig, validateDatabaseUrl, validateRedisUrl } from '../../src/config/test-lane';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fork } from 'node:child_process';
 import { once } from 'node:events';
 import path from 'node:path';
@@ -24,6 +24,14 @@ const stoppedTasks = {
 describe('backend process isolation', () => {
   let stop: (() => Promise<void>) | undefined;
   let eventId: string | undefined;
+
+  beforeEach(async () => {
+    // The client of the shard is shared by the files of the shard, and the
+    // cleanup of a case disconnects it. The client is therefore connected
+    // before every case, so a case never starts against an engine that is
+    // still coming back from the disconnect of the case before it.
+    await prisma.$connect();
+  });
 
   afterEach(async () => {
     await stop?.();

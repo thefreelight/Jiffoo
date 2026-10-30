@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import Redis from 'ioredis';
 import { SharedProtection } from '@/infra/shared-protection';
@@ -8,6 +8,7 @@ import { JwtUtils } from '@/utils/jwt';
 import { env } from '@/config/env';
 import { ApiTokenService } from '@/core/auth/api-token';
 import { redisCache } from '@/core/cache/redis';
+import { LoggerService } from '@/core/logger/unified-logger';
 import Fastify from 'fastify';
 import rateLimiter from '@/plugins/rate-limiter';
 
@@ -165,26 +166,63 @@ describe('shared request protection', () => {
     const rejectedInstall = await value.inject({ method: 'POST', url: '/api/v1/extensions/marketplace/install', remoteAddress: '203.0.113.21', headers: { authorization: `Bearer ${token}` } });
     expect(rejectedInstall.statusCode).toBe(429);
   });
-  it('I: the login is limited per account identifier as well as per address', async () => {
+  it('I: a successful login never consumes the account budget', async () => {
     const value = await app();
-    // A legitimate account is never locked out by its own sign-ins: the
-    // eleventh attempt of the previous budget is allowed.
-    for (let i = 0; i < 120; i++) {
+    // A legitimate account is never locked out by its own sign-ins: far more
+    // sign-ins than the previous attempt budget are all answered.
+    for (let i = 0; i < 130; i++) {
       const response = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: `198.51.100.${i + 1}`, payload: { identifier: 'target@example.test', password: 'secret' } });
       expect(response.statusCode).toBe(200);
     }
-    // The aggregate of one account is still bounded: a new address does not
-    // buy the account a new budget.
-    const rejected = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: '198.51.100.200', payload: { identifier: 'target@example.test', password: 'secret' } });
-    expect(rejected.statusCode).toBe(429);
-    expect(rejected.json().error.code).toBe('RATE_LIMITED');
-    // Another account keeps its own budget.
-    const allowed = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: '198.51.100.201', payload: { identifier: 'other@example.test', password: 'secret' } });
+    // The account is still not locked after its own successful sign-ins.
+    const allowed = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: '198.51.100.200', payload: { identifier: 'target@example.test', password: 'secret' } });
     expect(allowed.statusCode).toBe(200);
     // The bucket only ever holds the hash of the identifier.
     const keys = await redis.keys(`${namespace}:*`);
     expect(keys.some((key) => key.includes('target@example.test'))).toBe(false);
-    expect(keys.some((key) => key.includes(':login-account:account:'))).toBe(true);
+    expect(keys.some((key) => key.includes(':login-account:'))).toBe(true);
+  });
+  it('J: repeated failed logins lock the account and only that account', async () => {
+    const value = await app();
+    const spy = vi.spyOn(LoggerService, 'logSecurity');
+    try {
+      for (let i = 0; i < 10; i++) {
+        const response = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: `203.0.113.${i + 1}`, payload: { identifier: 'target@example.test', password: 'wrong-password' } });
+        expect(response.statusCode).toBe(401);
+      }
+      // The account is locked after its failed attempts, whatever the address.
+      const locked = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: '203.0.113.50', payload: { identifier: 'target@example.test', password: 'secret' } });
+      expect(locked.statusCode).toBe(429);
+      expect(locked.json().error.code).toBe('RATE_LIMITED');
+      // Another account keeps its own budget.
+      const other = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: '203.0.113.51', payload: { identifier: 'other@example.test', password: 'secret' } });
+      expect(other.statusCode).toBe(200);
+      // The record of the lock names the policy and the subject, and never the
+      // identifier itself.
+      const call = spy.mock.calls.find(([event, details]) => event === 'RATE_LIMITED' && (details as { subjectType?: string })?.subjectType === 'account');
+      expect(call).toBeDefined();
+      const details = call![1] as Record<string, unknown>;
+      expect(details.policy).toBe('login-account');
+      expect(String(details.subject)).toMatch(/^account:[0-9a-f]{12}$/);
+      expect(JSON.stringify(details)).not.toContain('target@example.test');
+    } finally { spy.mockRestore(); }
+  });
+  it('K: a limit hit is recorded with a structured record', async () => {
+    const value = await app();
+    const token = await admin();
+    const spy = vi.spyOn(LoggerService, 'logSecurity');
+    try {
+      for (let i = 0; i < 21; i++) {
+        await value.inject({ method: 'POST', url: '/api/v1/admin/orders/export', remoteAddress: '192.0.2.50', headers: { authorization: `Bearer ${token}` } });
+      }
+      const call = spy.mock.calls.find(([event]) => event === 'RATE_LIMITED');
+      expect(call).toBeDefined();
+      const details = call![1] as Record<string, unknown>;
+      expect(details.policy).toBe('/api/v1/admin/orders/export');
+      expect(details.subjectType).toBe('user');
+      expect(details.path).toBe('/api/v1/admin/orders/export');
+      expect(Number(details.retryAfter)).toBeGreaterThan(0);
+    } finally { spy.mockRestore(); }
   });
   it('J: the health budget survives the probe rate of a node with several replicas', async () => {
     const value = await protectionApp(protection, `${namespace}:health-node`);
@@ -210,5 +248,20 @@ describe('shared request protection', () => {
     // The liveness probe never consumes the health budget.
     expect((await value.inject('/health/live')).statusCode).toBe(200);
     expect((await value.inject('/health/ready')).statusCode).toBe(429);
+  });
+  it('L: the health probes answer from their own probes when the shared protection is unavailable', async () => {
+    const failed = new SharedProtection('redis://127.0.0.1:1');
+    const value = await protectionApp(failed, `${namespace}:health-down`);
+    apps.push(value);
+    try {
+      expect((await value.inject('/health/live')).statusCode).toBe(200);
+      // The probe answers with its own result instead of the protection error.
+      const ready = await value.inject('/health/ready');
+      expect(ready.statusCode).toBe(200);
+      // The general routes stay fail-closed.
+      const denied = await value.inject('/health-not-exempt');
+      expect(denied.statusCode).toBe(503);
+      expect(denied.json().error.code).toBe('SHARED_PROTECTION_UNAVAILABLE');
+    } finally { failed.close(); }
   });
 });

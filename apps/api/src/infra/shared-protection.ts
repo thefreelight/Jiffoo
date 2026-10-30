@@ -2,9 +2,12 @@ import Redis from 'ioredis';
 import { randomUUID } from 'node:crypto';
 import { env } from '@/config/env';
 import { CIRCUIT_BREAKER_CONFIG } from '@/core/shared/config';
+import { LoggerService } from '@/core/logger/unified-logger';
 
 export const PROTECTION_DEADLINE_MS = 1000;
 export const PROTECTION_RETRY_SECONDS = 5;
+/** The interval between two records of the same Redis failure. */
+const REDIS_ERROR_RECORD_INTERVAL_MS = 60000;
 
 export class SharedProtectionUnavailable extends Error {
   readonly code = 'SHARED_PROTECTION_UNAVAILABLE';
@@ -78,7 +81,26 @@ export class SharedProtection {
   private client: Redis;
   private connecting: Promise<unknown> | undefined;
   private closed = false;
+  private lastRedisErrorAt = 0;
   constructor(private readonly url: string) { this.client = this.createClient(); }
+  /**
+   * Records the failure of the connection. The record is throttled, so a
+   * flapping connection cannot flood the log, and it never changes what the
+   * protection answers.
+   */
+  private recordRedisError(error: Error): void {
+    const now = Date.now();
+    if (now - this.lastRedisErrorAt < REDIS_ERROR_RECORD_INTERVAL_MS) return;
+    this.lastRedisErrorAt = now;
+    let host = 'unknown';
+    try { host = new URL(this.url).host; } catch { host = 'unknown'; }
+    LoggerService.logSystem('shared_protection_redis_error', {
+      scope: 'shared-protection',
+      host,
+      message: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString(),
+    });
+  }
   private createClient(): Redis {
     const client = new Redis(this.url, {
       lazyConnect: true, enableOfflineQueue: false, maxRetriesPerRequest: 0,
@@ -86,7 +108,7 @@ export class SharedProtection {
       retryStrategy: (attempt) => Math.min(100 * attempt, 1000),
       autoResendUnfulfilledCommands: false,
     });
-    client.on('error', () => undefined);
+    client.on('error', (error: Error) => { this.recordRedisError(error); });
     return client;
   }
 

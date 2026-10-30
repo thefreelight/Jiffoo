@@ -76,7 +76,9 @@ test('shared login protection shows the too-many-attempts screen', async ({ page
     // The per-account bucket of the same sign-ins is cleaned up as well, so
     // the case leaves no state behind for the later specs.
     const accountHash = createHash('sha256').update('missing-rate-limit@e2e.example').digest('hex');
-    await redis.del(`jiffoo:protection:rl:login-account:account:${accountHash}`);
+    const accountPrefix = `jiffoo:protection:rl:login-account:account:${accountHash}`;
+    const accountKeys = await redis.keys(`${accountPrefix}:*`);
+    if (accountKeys.length) await redis.del(...accountKeys);
     redis.disconnect();
   }
 });

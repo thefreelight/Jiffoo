@@ -35,10 +35,30 @@ function unavailableProvider(): never {
   throw new ContractCallError('CONTRACT_CALL_FAILED', 'Checkout provider is temporarily unavailable');
 }
 
-async function excludeFailedProvider(slug: string, error: unknown): Promise<void> {
-  if (!(error instanceof ContractCallError)) throw error;
-  if (error.code !== 'PLUGIN_DISABLED') await recordPluginFailure(slug, error, 'checkout');
-  console.error(JSON.stringify({ event: 'checkout_provider_excluded', slug, reason: error.code }));
+/**
+ * The reason of a failed provider.
+ *
+ * The reason is the code of the contract error, so the monitoring reads one
+ * vocabulary. A failure that is not a contract error is a failure of the
+ * provider as well, and its internal message never reaches the client.
+ */
+function providerFailureReason(error: unknown): string {
+  return error instanceof ContractCallError ? error.code : 'CONTRACT_CALL_FAILED';
+}
+
+/**
+ * The exclusion of a provider the module could not use.
+ *
+ * The failure of the provider is recorded for the operator and the exclusion
+ * is logged with the same event and the same context fields as every other
+ * module of the Core, so one monitoring rule covers every failed provider.
+ * The helper stays inside the module: the modules do not expose their
+ * internals to each other.
+ */
+async function excludeFailedProvider(slug: string, contract: 'shipping' | 'payment' | 'tax', error: unknown): Promise<void> {
+  const reason = providerFailureReason(error);
+  if (reason !== 'PLUGIN_DISABLED') await recordPluginFailure(slug, error, 'checkout');
+  console.error(JSON.stringify({ event: 'provider_excluded', slug, reason, contract }));
 }
 
 export class CheckoutService {
@@ -82,7 +102,7 @@ export class CheckoutService {
       try {
         result = await callContract(provider.pluginSlug, 'shipping', PLUGIN_CONTRACT_VERSIONS.shipping, 'quote', { currency, items, subtotalMinor, address: contractAddress(input.shippingAddress) }) as typeof result;
       } catch (error) {
-        await excludeFailedProvider(provider.pluginSlug, error);
+        await excludeFailedProvider(provider.pluginSlug, 'shipping', error);
         failedShippingSlugs.add(provider.pluginSlug);
         return [];
       }
@@ -96,7 +116,7 @@ export class CheckoutService {
       try {
         description = await callContract(pkg.slug, 'payment', PLUGIN_CONTRACT_VERSIONS.payment, 'describe', { storeCurrency: currency }) as typeof description;
       } catch (error) {
-        await excludeFailedProvider(pkg.slug, error);
+        await excludeFailedProvider(pkg.slug, 'payment', error);
         return null;
       }
       return description.supportedCurrencies.includes(currency) ? { providerSlug: pkg.slug, displayName: description.displayName, requiresManualConfirmation: description.requiresManualConfirmation } : null;
@@ -160,7 +180,7 @@ export class CheckoutService {
       // so it never charges an unknown tax, and it says that the tax
       // provider was unavailable. The order path refuses a placement with an
       // unknown tax.
-      await excludeFailedProvider(taxProvider.pluginSlug, error);
+      await excludeFailedProvider(taxProvider.pluginSlug, 'tax', error);
       return { currency, subtotal: this.amount(() => minorToDecimal(subtotalMinor, currency)), shippingOptions, paymentMethods, taxUnavailable: true as const };
     }
     return { currency, subtotal: this.amount(() => minorToDecimal(subtotalMinor, currency)), shippingOptions, paymentMethods, tax: this.amount(() => minorToDecimal(tax.totalTaxMinor, currency)), taxInclusive: tax.pricesIncludeTax, total: this.amount(() => minorToDecimal(subtotalMinor + shippingMinor + (tax.pricesIncludeTax ? 0 : tax.totalTaxMinor), currency)) };

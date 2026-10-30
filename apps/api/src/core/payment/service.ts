@@ -139,25 +139,62 @@ async function openAuditSavepoint(tx: AuditTx, entry: AuditEntry): Promise<Audit
 }
 
 /**
+ * The outcome of a savepoint statement.
+ *
+ * The statement is carried by one of the raw outlets of the client. When
+ * none of them carries it, the reason is kept, so the caller can tell a
+ * released savepoint from a savepoint that was never reached.
+ */
+type AuditSavepointOutcome = {
+  /** Whether one of the outlets carried the statement. */
+  ok: boolean;
+  /** Why the statement did not reach the database. */
+  reason: string | null;
+};
+
+/**
  * Roll the transaction back to the savepoint of an audit write.
  *
  * A statement that failed inside the database aborts the whole transaction
  * there, so the rollback to the savepoint is what makes the transaction
- * usable again - and what keeps the money state of the transaction.
+ * usable again - and what keeps the money state of the transaction. When the
+ * rollback does not reach the database, the transaction stays aborted, and the
+ * caller has to fail the money transaction instead of pretending it degraded.
  */
-async function rollbackAuditSavepoint(tx: AuditTx, name: string): Promise<void> {
+async function rollbackAuditSavepoint(tx: AuditTx, name: string): Promise<AuditSavepointOutcome> {
+  let reason: string | null = null;
   for (const statement of rawStatements(tx)) {
-    try { await statement(`ROLLBACK TO SAVEPOINT ${name}`); return; }
-    catch { /* the next outlet is tried */ }
+    try { await statement(`ROLLBACK TO SAVEPOINT ${name}`); return { ok: true, reason: null }; }
+    catch (error) { reason = error instanceof Error ? error.message : String(error); }
   }
+  return { ok: false, reason: reason ?? 'the client has no raw statement outlet' };
 }
 
 /** Release the savepoint of an audit write. */
-async function releaseAuditSavepoint(tx: AuditTx, name: string): Promise<void> {
+async function releaseAuditSavepoint(tx: AuditTx, name: string): Promise<AuditSavepointOutcome> {
+  let reason: string | null = null;
   for (const statement of rawStatements(tx)) {
-    try { await statement(`RELEASE SAVEPOINT ${name}`); return; }
-    catch { /* the next outlet is tried */ }
+    try { await statement(`RELEASE SAVEPOINT ${name}`); return { ok: true, reason: null }; }
+    catch (error) { reason = error instanceof Error ? error.message : String(error); }
   }
+  return { ok: false, reason: reason ?? 'the client has no raw statement outlet' };
+}
+
+/**
+ * Record a fact about the audit write of a money transaction.
+ *
+ * The record carries the action and the target of the audit row, so an
+ * operator can find the row that was lost, and the reason of the failure.
+ */
+function auditWriteRecord(event: string, entry: AuditEntry, reason: string | null, savepoint?: string): void {
+  console.error(JSON.stringify({
+    event,
+    action: entry.action,
+    targetType: entry.targetType,
+    targetId: entry.targetId,
+    ...(savepoint ? { savepoint } : {}),
+    reason,
+  }));
 }
 
 /**
@@ -186,31 +223,30 @@ async function releaseAuditSavepoint(tx: AuditTx, name: string): Promise<void> {
 export async function writePaymentAudit(tx: AuditTx, entry: AuditEntry): Promise<void> {
   const savepoint = await openAuditSavepoint(tx, entry);
   if (!savepoint.opened) {
-    console.error(JSON.stringify({
-      event: 'payment-audit-savepoint-unavailable',
-      action: entry.action,
-      targetType: entry.targetType,
-      targetId: entry.targetId,
-      reason: savepoint.reason,
-    }));
+    auditWriteRecord('payment-audit-savepoint-unavailable', entry, savepoint.reason);
   }
   try {
     await AuditService.write(tx, entry);
   } catch (error) {
+    auditWriteRecord('payment-audit-write-failed', entry, error instanceof Error ? error.message : String(error));
     if (savepoint.opened) {
-      await rollbackAuditSavepoint(tx, savepoint.name);
-      await releaseAuditSavepoint(tx, savepoint.name);
+      const rollback = await rollbackAuditSavepoint(tx, savepoint.name);
+      if (!rollback.ok) {
+        // The transaction stays aborted in the database, so the money state
+        // cannot be kept. The failure is recorded and raised, so the money
+        // transaction fails explicitly instead of pretending it degraded.
+        auditWriteRecord('payment-audit-savepoint-rollback-failed', entry, rollback.reason, savepoint.name);
+        throw error;
+      }
+      const release = await releaseAuditSavepoint(tx, savepoint.name);
+      if (!release.ok) auditWriteRecord('payment-audit-savepoint-release-failed', entry, release.reason, savepoint.name);
     }
-    console.error(JSON.stringify({
-      event: 'payment-audit-write-failed',
-      action: entry.action,
-      targetType: entry.targetType,
-      targetId: entry.targetId,
-      reason: error instanceof Error ? error.message : String(error),
-    }));
     return;
   }
-  if (savepoint.opened) await releaseAuditSavepoint(tx, savepoint.name);
+  if (savepoint.opened) {
+    const release = await releaseAuditSavepoint(tx, savepoint.name);
+    if (!release.ok) auditWriteRecord('payment-audit-savepoint-release-failed', entry, release.reason, savepoint.name);
+  }
 }
 
 /** Latest payment of an order plus whether a refund is still required. */

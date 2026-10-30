@@ -12,9 +12,17 @@ import { packBuiltinPlugin } from './builtin-package';
 import { pluginPackageBlobStore } from '@/core/storage/plugin-package-blob-store';
 import { AuditService } from '@/core/audit/service';
 
-const BUILTIN_SYNC_LOCK = 824_301_551;
-/** The seconds a sync waits for the lock of a sync that is still running. */
-const BUILTIN_SYNC_LOCK_WAIT_SECONDS = 120;
+/** The advisory lock of the builtin plugin sync. */
+export const BUILTIN_SYNC_LOCK = 824_301_551;
+/**
+ * The seconds a sync waits for the lock of a sync that is still running.
+ *
+ * The wait is shorter than the period of the orchestrator, so a sync that
+ * does not get the lock skips its round instead of blocking the start of the
+ * process. The installation is idempotent and the instance that holds the
+ * lock completes it.
+ */
+export const BUILTIN_SYNC_LOCK_WAIT_SECONDS = 15;
 /** The milliseconds between two attempts to take the sync lock. */
 const BUILTIN_SYNC_LOCK_RETRY_MS = 250;
 /** The milliseconds the sync transaction may hold its connection. */
@@ -69,10 +77,18 @@ async function loadBuiltinPackages(builtinRoot: string): Promise<BuiltinPackage[
  * lock would be released before the installer commits its own rows. The
  * connection is closed when the sync ends, which releases the lock even when
  * the sync failed.
+ *
+ * @returns the connection that holds the lock, or undefined when another
+ * instance holds it and this round of the sync is skipped.
  */
-async function takeSyncLock(): Promise<Client> {
+async function takeSyncLock(): Promise<Client | undefined> {
   const client = new Client({ connectionString: processDatabaseUrl(env.DATABASE_URL, 'core', undefined, true), connectionTimeoutMillis: 5_000 });
-  client.on('error', () => undefined);
+  client.on('error', (error: Error) => {
+    // The failure of the connection is recorded, never thrown: the handler
+    // must not break the sync. The record carries the reason only, never the
+    // connection string or its secret.
+    console.error(JSON.stringify({ event: 'builtin_plugin_sync_connection_error', scope: 'extension-installer', reason: error?.message ?? 'unknown' }));
+  });
   try {
     await client.connect();
     // The session carries a server-side deadline: a PostgreSQL that stopped
@@ -91,7 +107,10 @@ async function takeSyncLock(): Promise<Client> {
     if (result.rows[0]?.locked) return client;
     if (Date.now() >= deadline) {
       await client.end().catch(() => undefined);
-      throw new Error('Builtin plugin sync is held by another process');
+      // The instance that holds the lock completes the installation, which is
+      // idempotent, so this round is skipped instead of blocking the start.
+      console.warn(JSON.stringify({ event: 'builtin_plugin_sync_lock_timeout', scope: 'extension-installer', waitSeconds: BUILTIN_SYNC_LOCK_WAIT_SECONDS }));
+      return undefined;
     }
     await new Promise(resolve => setTimeout(resolve, BUILTIN_SYNC_LOCK_RETRY_MS));
   }
@@ -103,6 +122,11 @@ export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
 
   // The lock of the sync, held for the whole sync on a connection of its own.
   const lock = await takeSyncLock();
+  if (!lock) {
+    // Another instance holds the lock and completes the installation. This
+    // round is skipped, so a held lock never blocks the start of the process.
+    return;
+  }
   try {
     for (const pkg of packages) {
       // The state is read outside every transaction: the installer below
