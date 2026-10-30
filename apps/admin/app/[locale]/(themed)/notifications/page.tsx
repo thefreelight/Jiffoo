@@ -34,6 +34,9 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true), [detailLoading, setDetailLoading] = useState(false), [open, setOpen] = useState(false);
   const [error, setError] = useState(''), [detailError, setDetailError] = useState(''), [notice, setNotice] = useState(''), [resending, setResending] = useState(false), [revision, setRevision] = useState(0);
   const requestId = useRef(0), detailId = useRef(0), resendKeys = useRef(new Map<string, string>()), inFlight = useRef(0);
+  // The notification the sheet shows, and the guard that keeps a background
+  // refresh from writing over a sheet that moved on.
+  const detailTarget = useRef<string | null>(null), detailInFlight = useRef(false);
   const refresh = useCallback(async (background = false) => {
     // A background poll never overlaps a request that is still running.
     if (background && inFlight.current > 0) return;
@@ -52,11 +55,36 @@ export default function NotificationsPage() {
   }, [refresh]);
   const filter = (patch: Record<string, string>) => update({ ...patch, page: '1' });
   async function openDetail(id: string) {
-    const request = ++detailId.current; setOpen(true); setSelected(null); setDetailLoading(true); setDetailError(''); setNotice('');
+    const request = ++detailId.current; detailTarget.current = id; setOpen(true); setSelected(null); setDetailLoading(true); setDetailError(''); setNotice('');
     try { const item = unwrapApiResponse(await notificationsApi.getById(id)); if (request === detailId.current) setSelected(item); }
     catch { if (request === detailId.current) setDetailError('detailFailed'); }
     finally { if (request === detailId.current) setDetailLoading(false); }
   }
+  // A notification that is still being sent changes its status, so the open
+  // detail is read again until the status is final. A failed refresh keeps the
+  // sheet and its content, it only reports that the status may be out of date.
+  const refreshDetail = useCallback(async (id: string) => {
+    if (detailTarget.current !== id || detailInFlight.current) return;
+    detailInFlight.current = true;
+    const request = detailId.current;
+    try {
+      const item = unwrapApiResponse(await notificationsApi.getById(id));
+      if (request !== detailId.current || detailTarget.current !== id) return;
+      setSelected(current => (current && current.id === id ? item : current));
+      setDetailError(current => (current === 'detailFailed' ? '' : current));
+    } catch {
+      if (request !== detailId.current || detailTarget.current !== id) return;
+      setDetailError('detailFailed');
+    } finally { detailInFlight.current = false; }
+  }, []);
+  const selectedId = selected?.id ?? null, selectedStatus = selected?.status ?? null;
+  useEffect(() => {
+    // The refresh only runs while the status can still change, and it stops
+    // with the sheet.
+    if (!open || !selectedId || !selectedStatus || !['PENDING', 'SENDING'].includes(selectedStatus)) return;
+    const timer = setInterval(() => { void refreshDetail(selectedId); }, POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [open, selectedId, selectedStatus, refreshDetail]);
   async function resend() {
     if (!selected || resending) return;
     setResending(true); setDetailError(''); setNotice('');
@@ -80,7 +108,7 @@ export default function NotificationsPage() {
       <div className="space-y-2 md:hidden"><button className="min-h-[34px] text-xs text-faint" aria-label={c('sort')} onClick={() => filter({ sort: state.sort === 'newest' ? 'oldest' : 'newest' })}>{c('created', { timezone })} {state.sort === 'newest' ? '↓' : '↑'}</button>{items.map(item => <button key={item.id} onClick={() => void openDetail(item.id)} className="block w-full space-y-2 rounded-[10px] border border-border p-4 text-left hover:bg-raised"><span className="flex flex-wrap justify-between gap-2"><span className="font-medium">{typeLabel(item.type)}</span>{status(item)}</span><span className="block break-words text-xs text-faint">{item.subject}</span><span className="block break-all text-muted-foreground">{item.toAddress}</span><span className="flex flex-wrap justify-between gap-2 text-xs text-faint"><span>{date(item.createdAt)}</span><span>{c('attempts')} {completedAttempts(item)}</span></span></button>)}</div>
     </>}
     <Pagination page={page} size={size} total={loading || error ? null : total} busy={loading} onChange={(next, pageSize) => update({ page: String(next), pageSize: String(pageSize) })} />
-    <Sheet open={open} onOpenChange={value => { if (!resending) { setOpen(value); if (!value) detailId.current++; } }}><SheetContent closeLabel={c('close')} aria-describedby={undefined} className="left-auto right-0 flex w-full max-w-[520px] flex-col gap-[18px] overflow-y-auto border-l border-border bg-ground p-6 text-[13px] text-foreground">
+    <Sheet open={open} onOpenChange={value => { if (!resending) { setOpen(value); if (!value) { detailId.current++; detailTarget.current = null; } } }}><SheetContent closeLabel={c('close')} aria-describedby={undefined} className="left-auto right-0 flex w-full max-w-[520px] flex-col gap-[18px] overflow-y-auto border-l border-border bg-ground p-6 text-[13px] text-foreground">
       <SheetTitle className="pr-8 text-base font-semibold">{selected ? typeLabel(selected.type) : c(detailLoading ? 'loading' : 'detailFailed')}</SheetTitle>
       {detailError && <p role="alert" className="text-destructive">{c(detailError)}</p>}{notice && <p role="status">{c(notice)}</p>}
       {selected && <><p className="break-all text-muted-foreground">{selected.toAddress}</p>{selected.status === 'FAILED' && <div role="alert" className="space-y-1.5 rounded-[10px] border border-attention-line bg-attention-soft px-3.5 py-3 text-attention"><p className="font-medium">{c('failure', { count: selected.attempts })}</p><p className="break-all font-mono text-xs">{selected.lastError}</p><p className="text-xs text-faint">{c('lastAttemptUnknown')}</p></div>}

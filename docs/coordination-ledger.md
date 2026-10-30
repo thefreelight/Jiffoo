@@ -2767,6 +2767,126 @@ API shard file coverage (213/213) PASS
 
 The two Cloudflare Pages checks fail on this run, and they fail on `main` as well (see section 5zi), so they are a condition of the repository and not of this line.
 
+## 5zl. The frozen notification detail of the Admin (a real defect the browser E2E found)
+
+**Baseline SHA:** `8fe872a0d`. **Commit:** (the commit of this batch).
+
+### What happened
+
+The GitHub Actions run `41110230704` failed its browser E2E on one case: `e2e/08-orders.spec.ts`, "record payment, ship a Shop checkout order, and resend its notification", which timed out after the 120 seconds of its own budget. Every other job of the run passed.
+
+The trace of the failed case carries the reason. The action log of the click on the **Resend** button of the notification sheet of the Admin reads:
+
+```
+2026-10-30T18:54:13.443Z waiting for getByRole('button', { name: 'Resend' })
+2026-10-30T18:54:13.447Z   locator resolved to <button disabled ...>Resend</button>
+2026-10-30T18:54:13.448Z attempting click action
+2026-10-30T18:54:13.453Z   element is not enabled
+2026-10-30T18:54:13.453Z retrying click action
+```
+
+and the same three lines repeat for the whole two minutes (886 records). The button was disabled from the very first attempt. Nothing on the API side was wrong: the log of the run holds no error and no slow request, and the dump of the notifications that the runner takes at the end shows all four notifications of the case as `SENT`. The notification was delivered; the sheet never learned it.
+
+### The cause
+
+The notification sheet of the Admin (`apps/admin/app/[locale]/(themed)/notifications/page.tsx`) polls the **list** every two seconds, but it reads the **detail** exactly once, when a row is opened:
+
+```ts
+async function openDetail(id: string) {
+  const request = ++detailId.current; setOpen(true); setSelected(null); ...
+  try { const item = unwrapApiResponse(await notificationsApi.getById(id)); if (request === detailId.current) setSelected(item); }
+  ...
+}
+```
+
+The background poll only writes `items`. So the sheet holds a **snapshot** of the notification taken when the row was clicked, and the button of the sheet is derived from that snapshot:
+
+```tsx
+<Button className="w-full" disabled={resending || !!blocked} onClick={() => void resend()}>{c('resend')}</Button>
+```
+
+with
+
+```ts
+const blocked = selected?.type === 'password_reset' ? 'passwordHint'
+  : selected && ['PENDING', 'SENDING'].includes(selected.status) ? 'pendingHint'
+  : selected && ['staff_invite', 'email_verification'].includes(selected.type) && !selected.recipientUserId ? 'recipientMissing'
+  : null;
+```
+
+For an order confirmation the button is disabled exactly while the notification is `PENDING` or `SENDING`. An operator who opens the sheet of a notification that is still being sent therefore sees a button that stays disabled for good, even after the delivery has finished: the state that decides it is frozen at the moment the row was clicked, and the only way to see the new state is to close the sheet and open it again. The rows of the list are not frozen, because the list is what the poll refreshes, so the sheet and the list can disagree.
+
+### The fix
+
+The sheet now follows the same rhythm as the list: while it is open and the notification it shows is still `PENDING` or `SENDING`, so while its status can still change, the sheet reads that notification again every two seconds and updates it. The read reuses the existing endpoint and the existing request sequence, and it writes only when the sheet still shows the same notification, so a sheet that moved on is never written over. A failed read keeps the sheet and its content and only reports that the status may be out of date. The timer stops when the sheet closes, when another notification is opened, when the status becomes final, and when the page is unloaded.
+
+**The rule did not change.** A notification that is still being sent cannot be resent; what changed is that the sheet no longer holds a stale snapshot of that rule. The rows of the list and the sheet now differ by at most one poll cycle and come from the same endpoint.
+
+Two unit tests of the Admin hold the state machine down: one opens a notification that is still being sent and asserts that the button stays disabled while the status is `SENDING`, that it becomes usable once the read returns `SENT`, and that the reads stop at the final status; the other asserts that the reads stop when the sheet is closed.
+
+The browser E2E case needed no change: it opens the sheet, clicks Resend and waits for the answer, and Playwright waits for the button to become usable.
+
+### The gate evidence
+
+The shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the fix:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Mode: shard mode (--shards=4)
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Scope coverage: 208/208 files covered
+Totals: Test Files 208 files, 208 passed | Tests 2777 tests, 2775 passed, 2 pending | Suites 547 suites, 547 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+Run Admin tests: 62 passed (62), 666 tests passed
+Run Shop tests: 40 passed (40), 285 tests passed
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 13.38s |
+| Lint Shop | PASS | 6.22s |
+| Reset test database | PASS | 3.09s |
+| Run API tests in 4 shards | PASS | 597.41s |
+| Run Admin tests | PASS | 14.82s |
+| Run Shop tests | PASS | 21.38s |
+```
+
+The browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the same tree:
+
+```
+Playwright start time: 2026-10-30T19:30:56.519Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.26s |
+| Check observed browser contexts | PASS | 0.74s |
+| Clear dedicated E2E Redis database | PASS | 0.21s |
+| Reset test database | PASS | 2.65s |
+| Build shared package | PASS | 1.23s |
+| Build plugin SDK | PASS | 2.86s |
+| Build API | PASS | 12.35s |
+| Build Admin | PASS | 16.51s |
+| Build Shop | PASS | 13.55s |
+| Start local marketplace | PASS | 3.14s |
+| Start API, worker, Admin and Shop | PASS | 0.05s |
+| Wait for health | PASS | 2.82s |
+| Run Playwright | PASS | 691.21s |
+| Stop E2E child processes | PASS | 0.11s |
+| Total duration: 749.36s |
+```
+
 ## 5zk. The intermittent failure of the browser E2E of the theme media upload
 
 **Baseline SHA:** `12aee01d7`. **Commit:** (the commit of this batch).

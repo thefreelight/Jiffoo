@@ -67,3 +67,35 @@ it('keeps a newer result when a poll response arrives late', async () => {
     expect(container.textContent).not.toContain('stale-buyer@example.com');
   } finally { vi.useRealTimers(); }
 });
+it('follows the status of an open notification that is still being sent', async () => {
+  vi.useFakeTimers();
+  try {
+    mock.getById.mockResolvedValueOnce({ data: { ...item, status: 'SENDING' } });
+    await render();
+    await open();
+    const resend = () => [...document.querySelectorAll('button')].find(value => value.textContent === 'Resend')!;
+    // While the notification is still being sent the resend stays disabled.
+    expect(resend().disabled).toBe(true);
+    mock.getById.mockResolvedValue({ data: { ...item, status: 'SENT' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+    await act(async () => {});
+    // The open detail follows the status, so the resend becomes available.
+    expect(resend().disabled).toBe(false);
+    // A final status is not read again.
+    const calls = mock.getById.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(6_000); });
+    expect(mock.getById).toHaveBeenCalledTimes(calls);
+  } finally { vi.useRealTimers(); }
+});
+it('stops reading the open detail once the sheet is closed', async () => {
+  vi.useFakeTimers();
+  try {
+    mock.getById.mockResolvedValueOnce({ data: { ...item, status: 'SENDING' } });
+    await render();
+    await open();
+    await click('Close');
+    const calls = mock.getById.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(6_000); });
+    expect(mock.getById).toHaveBeenCalledTimes(calls);
+  } finally { vi.useRealTimers(); }
+});
