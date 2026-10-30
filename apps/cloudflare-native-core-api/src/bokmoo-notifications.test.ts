@@ -139,6 +139,20 @@ describe('tryNativeBokmooNotifications', () => {
     expect(response.status).toBe(401);
   });
 
+
+  it('serves the short /api/notifications alias the apps call', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1' });
+    const db = dbWith([stored]);
+    const response = await tryNativeBokmooNotifications(request('GET', '/api/notifications?page=1&limit=20'), env(db));
+    const payload = await response.json();
+    expect(response.status).toBe(200);
+    expect(payload.data.items).toHaveLength(1);
+    expect(payload.data.items[0].readAt).toBeNull();
+
+    const read = await tryNativeBokmooNotifications(request('POST', '/api/notifications/notif-1/read'), env(db));
+    expect((await read.json()).data.read).toBe('notif-1');
+  });
+
   it('ignores unrelated routes', async () => {
     const response = await tryNativeBokmooNotifications(request('GET', '/api/v1/me/addresses'), env(dbWith([])));
     expect(response).toBeNull();
