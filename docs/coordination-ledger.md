@@ -2593,3 +2593,30 @@ The catalogue of GitHub Actions holds five more files than the local catalogue (
 - A dead plugin file cleanup row still holds the storage quota of its plugin. The operator now sees the total, the orphans and the truncation of the list, but releasing the quota stays a manual action.
 - An audit row may be lost when the database refuses to write it. The savepoint protects the money transaction, and a failing rollback now ends that transaction explicitly, but the row itself is still lost.
 - The JavaScript of an in-process plugin cannot be cancelled. The deadline answers the caller and the lease of the row is renewed, but the plugin keeps running until it returns.
+
+## 5zi. The conflict surface of this line against `main` (measured, not merged)
+
+**Measured on:** 2026-10-30, from the commit `5819ffda3`. **Merge base with `main`:** `7522a4f6d` (PR #319). The line stands on `codex/core-extension-boundary` and is not merged into `main`; the owner decided on 2026-10-30 that the line continues to grow on the branch. This section records the measurement so it survives the closing of the pull request that was opened to take it.
+
+A pull request from the branch into `main` was opened and closed again without a merge, only to let GitHub compute the conflict surface. It reported `CONFLICTING`, and the local merge of the two trees (read only, `git merge-tree`) reports 629 files that differ in the merged result, of which 293 are real conflicts.
+
+**260 modify/delete conflicts.** The line deleted these files and `main` changed them afterwards.
+
+- Eight of them carry the release pipeline of `main`: `.env.production.example`, `.release/self-hosted/.env.production.example`, `.release/self-hosted/install.sh`, `.github/workflows/pr-quality-gates.yml`, `.github/workflows/publish-oss-release-images.yml`, `.github/workflows/publish-self-hosted-update-feed.yml`, `LICENSE-EXCEPTIONS.md` and `README.md`. The line removed the OSS publication machinery on purpose in September 2026 (`dd32cb6c5`, `f79fdff99`). Keeping the version of `main` here restores that machinery, so this is a release strategy decision and not a conflict to resolve mechanically.
+- The other 252 are the pages of the Admin and the components of the Admin. The line moved them into the route group `(themed)` of Next.js, which does not change the URL, and `main` has no such group. Keeping the files of `main` at the old paths would put two parallel pages on the same URL, and the Admin build would fail on it. `main` changed 21 of those pages after the move (the theme market page, the product, inventory, order and customer lists, the localized forgot password page and its retry, the storefront description, the login audit baseline and the user provenance, the native orders and the Odoo catalogue, the shared page shell, the dashboard redesign). That work has to be carried into the new paths rather than dropped.
+
+**33 content conflicts.** Both sides changed them.
+
+- The ones that need a decision: `apps/api/prisma/schema/system.prisma` (the merged schema matches neither side, so a new migration is required), `pnpm-lock.yaml`, `package.json`, `apps/api/.env.example`, `apps/admin/package.json`, `apps/shop/package.json`, `apps/shop/next.config.js`, `apps/shop/tsconfig.json` and `apps/shop/vitest.config.mts`.
+- The product code: `apps/api/src/core/auth/routes.ts`, `apps/api/src/core/auth/service.ts`, `apps/api/src/core/admin/user-management/service.ts`, `apps/api/src/core/admin/plugin-management/config-secrets.ts`, `apps/api/src/routes/index.ts`, `packages/shared/api/client.ts`, `packages/shared/src/proxy/index.ts`, six files of the Admin and five files of the internationalization.
+- The tests: `apps/api/tests/core/auth-service.test.ts`, `apps/api/tests/core/plugin-config-secrets.test.ts`, `apps/api/tests/core/plugin-gateway-baseline.test.ts`, `apps/api/tests/routes/auth.test.ts` and `apps/api/tests/setup.ts`.
+
+**The 336 files that merge cleanly** are the body of the line: the plugin SDK, the plugin runtime, the plugin task queue, the money model and the disaster tolerance. `main` holds none of it: the plugin runtime, the plugin task worker, the schema of the plugin tasks and the charter of the plugin pages do not exist there.
+
+**The two lines run different workflows.** The line runs `ci.yml`, `release.yml` and `update-full.yml`. `main` runs eight others, among them the release images, the self-hosted update feed, the release draft and the pull request quality gates. A merge needs one decision first: which pipeline `main` keeps. The resolution of the 33 content conflicts follows from it, because the product code of the line is the newer one.
+
+**The Cloudflare Pages checks fail on `main` as well** (commit `286df71a5`), so they are a condition of the repository and not of this line.
+
+### What the line still owes its own branch
+
+Two commits of `codex/lane-core-uiux` were never merged into the branch and are not part of it: `0a701e94e` (the priority Admin and Shop UX defects) and `659fccbf7` (the admin-authorized plugin repair bootstrap). The merge of that lane into the branch has five conflicts, and every one of them is in a file that this batch changed: `apps/api/src/core/admin/extension-installer/routes.ts` (the paged recovery listing), `apps/api/src/core/plugins/tasks.ts` (the deterministic task failures), `apps/api/tests/core/module-boundary-audit.test.ts` (the registered edges), `apps/api/tests/routes/admin-products.test.ts` and `apps/api/tests/routes/plugin-repair-bootstrap.test.ts` (added on both sides). The lane needs its own gate before it joins.
