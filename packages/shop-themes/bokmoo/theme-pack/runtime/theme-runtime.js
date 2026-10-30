@@ -17058,6 +17058,7 @@
     ];
     const goodsSetupLabel = pickCopy(locale, { en: "Setup", hans: "\u4F7F\u7528\u65B9\u5F0F", hant: "\u4F7F\u7528\u65B9\u5F0F" });
     const goodsSetupValue = isBluetoothCard ? pickCopy(locale, { en: "Connects to the BOKMOO app over Bluetooth", hans: "\u84DD\u7259\u8FDE\u63A5 BOKMOO App \u7BA1\u7406", hant: "\u85CD\u7259\u9023\u7DDA BOKMOO App \u7BA1\u7406" }) : pickCopy(locale, { en: "Works with the BOKMOO app", hans: "\u642D\u914D BOKMOO App \u4F7F\u7528", hant: "\u642D\u914D BOKMOO App \u4F7F\u7528" });
+    const goodsCompatValue = isBluetoothCard ? pickCopy(locale, { en: "iPhone and Android devices with eSIM support", hans: "\u652F\u6301 eSIM \u7684 iPhone \u4E0E Android \u8BBE\u5907", hant: "\u652F\u63F4 eSIM \u7684 iPhone \u8207 Android \u88DD\u7F6E" }) : pickCopy(locale, { en: "iPhone and Android devices", hans: "iPhone \u4E0E Android \u8BBE\u5907", hant: "iPhone \u8207 Android \u88DD\u7F6E" });
     react_default.useEffect(() => {
       if (!normalizedProduct?.name) return;
       document.title = `${normalizedProduct.name} | ${site.brandName}`;
@@ -17224,7 +17225,7 @@
                 label: isGoodsProduct ? goodsSetupLabel : pickCopy(locale, { en: "Activation", hans: "\u6FC0\u6D3B\u65B9\u5F0F", hant: "\u555F\u7528\u65B9\u5F0F" }),
                 value: isGoodsProduct ? goodsSetupValue : pickCopy(locale, { en: "Instant via QR", hans: "\u626B\u7801\u5373\u65F6\u6FC0\u6D3B", hant: "\u6383\u78BC\u5373\u6642\u555F\u7528" })
               },
-              { icon: Smartphone, label: pickCopy(locale, { en: "Compatibility", hans: "\u8BBE\u5907\u517C\u5BB9", hant: "\u88DD\u7F6E\u76F8\u5BB9" }), value: profile.compatibilityLabel },
+              { icon: Smartphone, label: pickCopy(locale, { en: "Compatibility", hans: "\u8BBE\u5907\u517C\u5BB9", hant: "\u88DD\u7F6E\u76F8\u5BB9" }), value: isGoodsProduct ? goodsCompatValue : profile.compatibilityLabel },
               { icon: ShieldCheck, label: pickCopy(locale, { en: "Support", hans: "\u652F\u6301", hant: "\u652F\u63F4" }), value: pickCopy(locale, { en: "24/7 Global Team", hans: "24/7 \u5168\u7403\u56E2\u961F", hant: "24/7 \u5168\u7403\u5718\u968A" }) }
             ].map(({ icon: Icon2, label, value }) => /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
               /* @__PURE__ */ jsx("div", { className: "mt-0.5 flex h-9 w-9 items-center justify-center rounded-[0.85rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Icon2, { className: "h-4 w-4" }) }),
@@ -17565,7 +17566,7 @@ body[data-theme='bokmoo'] ::selection {
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.40",
+      version: "1.1.41",
       target: "shop"
     }
   };

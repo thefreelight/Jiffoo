@@ -23,7 +23,11 @@ const stored = {
 };
 
 function dbWith(rows: Record<string, unknown>[]) {
+<<<<<<< HEAD
   const table = rows.map((row) => ({ ...row }));
+=======
+  const table = [...rows];
+>>>>>>> github/main
   return {
     table,
     prepare: (sql: string) => ({
@@ -139,6 +143,7 @@ describe('tryNativeBokmooNotifications', () => {
     expect(response.status).toBe(401);
   });
 
+<<<<<<< HEAD
 
   it('serves the short /api/notifications alias the apps call', async () => {
     authenticateNativeUser.mockResolvedValue({ id: 'user-1' });
@@ -153,6 +158,8 @@ describe('tryNativeBokmooNotifications', () => {
     expect((await read.json()).data.read).toBe('notif-1');
   });
 
+=======
+>>>>>>> github/main
   it('ignores unrelated routes', async () => {
     const response = await tryNativeBokmooNotifications(request('GET', '/api/v1/me/addresses'), env(dbWith([])));
     expect(response).toBeNull();
