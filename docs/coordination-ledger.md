@@ -2887,6 +2887,37 @@ Playwright results: 112 passed, 0 failed, 0 skipped
 | Total duration: 749.36s |
 ```
 
+The GitHub Actions run of the commit `1f33924a84d11bdc621549adfe0e20468cf3cc5a` (run `41118054386`, https://github.com/thefreelight/Jiffoo/actions/runs/41118054386) concluded with `success`. All twelve jobs passed, among them the four API shards (213 of 213 files, 2781 tests), the browser E2E (112 tests), the backup and restore acceptance (32 tests), the two update acceptances, the compose acceptance and the drift check of the Prisma schema. The merged summary artifact is `verify-merged-summary`, and its verdict is:
+
+```
+| Step | Result | Duration |
+| --- | --- | --- |
+| Install dependencies | PASS | 8.91s |
+| Validate and generate Prisma client | PASS | 18.83s |
+| Build shared package | PASS | 20.57s |
+| Build admin application | PASS | 15.74s |
+| Build Shop application | PASS | 13.51s |
+| Build plugin SDK | PASS | 24.11s |
+| Type-check workspace | PASS | 18.37s |
+| Lint Shop | PASS | 5.33s |
+| Export OpenAPI | PASS | 18.52s |
+| Reset test database | PASS | 12.49s |
+| Check Prisma migration drift | PASS | 7.15s |
+| Run API tests | PASS | 1341.67s |
+| Run Admin tests | PASS | 29.47s |
+| Run Shop tests | PASS | 49.26s |
+| Run browser E2E | PASS | 832.25s |
+| Build API | PASS | 9.60s |
+| Run Docker Compose acceptance | PASS | 173.36s |
+| Run release verification acceptance | PASS | 148.23s |
+| Run backup and restore acceptance | PASS | 299.90s |
+| Run no-migration update acceptance | PASS | 486.80s |
+| Run migration update acceptance | PASS | 447.52s |
+| API shard file coverage (213/213) | PASS | 0.00s |
+```
+
+The two Cloudflare Pages checks fail on this run as well, and they fail on `main` as well (see section 5zi), so they are a condition of the repository and not of this line.
+
 ## 5zk. The intermittent failure of the browser E2E of the theme media upload
 
 **Baseline SHA:** `12aee01d7`. **Commit:** (the commit of this batch).
