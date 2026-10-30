@@ -28,10 +28,6 @@ function publicNotification(row: StoredNotification) {
     body: row.body,
     metadata,
     read: row.read_at !== null,
-<<<<<<< HEAD
-    readAt: row.read_at,
-=======
->>>>>>> github/main
     createdAt: row.created_at,
   };
 }
@@ -47,24 +43,10 @@ export async function tryNativeBokmooNotifications(request: Request, env: Bokmoo
   const url = new URL(request.url);
   const path = url.pathname;
   const matches = path === '/api/v1/me/notifications' || path.startsWith('/api/v1/me/notifications/')
-<<<<<<< HEAD
-    || path === '/api/v1/admin/notifications'
-    || path === '/api/notifications' || path.startsWith('/api/notifications/');
-  if (!matches) return null;
-  // The apps call the short alias; normalize before dispatch.
-  const normalized = path
-    .replace(/^\/api\/notifications/, '/api/v1/me/notifications')
-    .replace(/^\/api\/v1\/admin\/notifications/, '/api/v1/admin/notifications');
-  const adminPath = normalized === '/api/v1/admin/notifications';
-  const appPath = normalized.startsWith('/api/v1/me/notifications');
-
-  if (adminPath) {
-=======
     || path === '/api/v1/admin/notifications';
   if (!matches) return null;
 
   if (path === '/api/v1/admin/notifications') {
->>>>>>> github/main
     const admin = await authenticateNativeAdmin(request, env);
     if (!admin) return failure(401, 'UNAUTHORIZED', 'Admin login required');
     if (request.method === 'POST') {
@@ -110,11 +92,7 @@ export async function tryNativeBokmooNotifications(request: Request, env: Bokmoo
   const user = await authenticateNativeUser(request, env);
   if (!user) return failure(401, 'UNAUTHORIZED', 'Login required');
 
-<<<<<<< HEAD
-  if (normalized === '/api/v1/me/notifications' && request.method === 'GET') {
-=======
   if (path === '/api/v1/me/notifications' && request.method === 'GET') {
->>>>>>> github/main
     const { limit, offset } = page(request);
     const result = await env.DB.prepare(
       `SELECT * FROM native_bokmoo_notifications WHERE user_id = ?1
@@ -133,22 +111,14 @@ export async function tryNativeBokmooNotifications(request: Request, env: Bokmoo
     });
   }
 
-<<<<<<< HEAD
-  if (normalized === '/api/v1/me/notifications/read-all' && request.method === 'POST') {
-=======
   if (path === '/api/v1/me/notifications/read-all' && request.method === 'POST') {
->>>>>>> github/main
     await env.DB.prepare(
       'UPDATE native_bokmoo_notifications SET read_at = ?1 WHERE user_id = ?2 AND read_at IS NULL',
     ).bind(new Date().toISOString(), user.id).run();
     return success({ read: 'all' });
   }
 
-<<<<<<< HEAD
-  const readMatch = normalized.match(/^\/api\/v1\/me\/notifications\/([^/]+)\/read$/);
-=======
   const readMatch = path.match(/^\/api\/v1\/me\/notifications\/([^/]+)\/read$/);
->>>>>>> github/main
   if (readMatch && request.method === 'POST') {
     const result = await env.DB.prepare(
       'UPDATE native_bokmoo_notifications SET read_at = ?1 WHERE id = ?2 AND user_id = ?3 AND read_at IS NULL',
