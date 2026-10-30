@@ -23,7 +23,7 @@ const stored = {
 };
 
 function dbWith(rows: Record<string, unknown>[]) {
-  const table = [...rows];
+  const table = rows.map((row) => ({ ...row }));
   return {
     table,
     prepare: (sql: string) => ({
