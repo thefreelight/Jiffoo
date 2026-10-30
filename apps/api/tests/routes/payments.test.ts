@@ -19,6 +19,8 @@ import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-syn
 import { prisma } from '@/config/database';
 import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin, verifiedPaymentFixtureFact } from '../helpers/fixture-plugin';
 import { deliverCoreEvents } from '../helpers/core-events';
+import { EventDeliveryEngine } from '@/infra/events/delivery';
+import { CORE_EVENT_TARGET } from '@/infra/events/core-subscribers';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 import { env } from '@/config/env';
 import { checkoutTotal } from '../helpers/checkout-total';
@@ -26,6 +28,7 @@ import { checkoutTotal } from '../helpers/checkout-total';
 describe('Payments Endpoints', () => {
   let app: FastifyInstance;
   let userToken: string;
+  let userEmail: string;
   let adminToken: string;
   let adminUserId: string;
   let testProduct: Awaited<ReturnType<typeof createTestProduct>>;
@@ -77,11 +80,30 @@ describe('Payments Endpoints', () => {
     paymentFixtureInstalled = true;
   }
 
+  /**
+   * Deliver the pending outbox deliveries once.
+   *
+   * The helper of the core events delivers until nothing is pending, which a
+   * failing delivery never reaches: the failed delivery stays pending for its
+   * next attempt. This helper runs a single round of the worker, so the
+   * recorded failure of a delivery is observable.
+   */
+  async function deliverOutboxOnce(): Promise<void> {
+    const engine = new EventDeliveryEngine(`test-payment-session-${uuidv4()}`);
+    try {
+      await engine.runOnce();
+      await engine.drain();
+    } finally {
+      await engine.stop();
+    }
+  }
+
   beforeAll(async () => {
     await syncBuiltinPlugins(path.resolve(process.cwd(), 'builtin-plugins'));
     app = await createTestApp();
-    const { token } = await createUserWithToken();
+    const { token, user } = await createUserWithToken();
     userToken = token;
+    userEmail = user.email;
     const admin = await createAdminWithToken();
     adminToken = admin.token;
     adminUserId = admin.user.id;
@@ -275,15 +297,93 @@ describe('Payments Endpoints', () => {
       expect(response.json().data.action).toEqual({ type: 'instructions', text: 'Pay manually.' });
       const stored = await prisma.payment.findUniqueOrThrow({ where: { idempotencyKey: payload.idempotencyKey } });
       expect(stored.actionJson).toEqual(response.json().data.action);
+      // The order confirmation is written by the core subscriber after the
+      // payment transaction committed, so the notification row does not exist
+      // while the request is answered.
+      expect(await prisma.notification.count({ where: { type: 'order_confirmation', relatedId: testOrderId } })).toBe(0);
+      await deliverCoreEvents();
       const confirmations = await prisma.notification.findMany({ where: { type: 'order_confirmation', relatedId: testOrderId } });
       expect(confirmations).toHaveLength(1);
       expect(confirmations[0].text).toContain('Pay manually.');
+      // The arguments and the dedup key of the notification are the ones the
+      // inline write used.
+      expect(confirmations[0]).toMatchObject({
+        type: 'order_confirmation', relatedType: 'order', relatedId: testOrderId,
+        dedupKey: `notification:order_confirmation:${testOrderId}`, toAddress: userEmail,
+      });
+      const order = await prisma.order.findUniqueOrThrow({ where: { id: testOrderId } });
+      expect(confirmations[0].text).toContain(order.orderNumber);
 
       const replay = await app.inject({ method: 'POST', url: '/api/v1/payments/create-session', headers: { authorization: `Bearer ${userToken}` }, payload });
       expect(replay.statusCode).toBe(200);
       expect(replay.json().data).toMatchObject({ sessionId: stored.sessionId, action: stored.actionJson });
       expect(await prisma.payment.count({ where: { idempotencyKey: payload.idempotencyKey } })).toBe(1);
+      await deliverCoreEvents();
       expect(await prisma.notification.count({ where: { type: 'order_confirmation', relatedId: testOrderId } })).toBe(1);
+    });
+
+    it('keeps the payment session committed and answers the customer when the order confirmation cannot be written', async () => {
+      const orderId = await createOrder('manual-payment');
+      // The constraint rejects the confirmation of this order only, so the
+      // notification insert of the core subscriber fails.
+      const constraint = `notification_confirmation_rejection_${uuidv4().replace(/-/g, '').slice(0, 12)}`;
+      await prisma.$executeRawUnsafe(`ALTER TABLE notifications ADD CONSTRAINT ${constraint} CHECK (type <> 'order_confirmation' OR "relatedId" <> '${orderId}')`);
+      try {
+        const response = await app.inject({
+          method: 'POST', url: '/api/v1/payments/create-session',
+          headers: { authorization: `Bearer ${userToken}` },
+          payload: { orderId, paymentMethod: 'manual-payment', idempotencyKey: `failing-confirmation-${orderId}` },
+        });
+        // The failing notification does not roll back the payment session and
+        // does not fail the request of the customer.
+        expect(response.statusCode).toBe(200);
+        expect(response.json().data.sessionId).toBeTruthy();
+        const payment = await prisma.payment.findFirstOrThrow({ where: { orderId } });
+        expect(payment.sessionId).toBeTruthy();
+        expect(payment.status).not.toBe('CREATING');
+        expect(await prisma.notification.count({ where: { type: 'order_confirmation', relatedId: orderId } })).toBe(0);
+        // The failure is observable: the outbox records it on the delivery.
+        const deliveryWhere = { installationId: CORE_EVENT_TARGET, event: { aggregateId: orderId, type: 'order.confirmed' } };
+        let delivery = await prisma.eventDelivery.findFirst({ where: deliveryWhere });
+        for (let round = 0; round < 5 && !delivery?.lastError; round++) {
+          await deliverOutboxOnce();
+          delivery = await prisma.eventDelivery.findFirst({ where: deliveryWhere });
+        }
+        expect(delivery).not.toBeNull();
+        expect(delivery?.lastError).toBeTruthy();
+        expect(delivery?.status).toBe('PENDING');
+      } finally {
+        await prisma.$executeRawUnsafe(`ALTER TABLE notifications DROP CONSTRAINT ${constraint}`);
+        // The failed delivery stays pending for its next attempt, so it is
+        // removed here: it must not disturb the next test file.
+        await prisma.eventDelivery.deleteMany({ where: { event: { aggregateId: orderId } } });
+        await prisma.eventRecord.deleteMany({ where: { aggregateId: orderId } });
+      }
+    });
+
+    it('consumes the order confirmation of an order that is gone without a failed delivery', async () => {
+      const orderId = `gone-order-${uuidv4()}`;
+      const event = await prisma.eventRecord.create({ data: {
+        id: uuidv4(), type: 'order.confirmed', version: 1, aggregateId: orderId,
+        data: { id: orderId, orderId, instructions: 'Pay manually.' },
+      } });
+      const delivery = await prisma.eventDelivery.create({ data: { eventId: event.id, installationId: CORE_EVENT_TARGET } });
+      try {
+        for (let round = 0; round < 5; round++) {
+          await deliverOutboxOnce();
+          const settled = await prisma.eventDelivery.findUniqueOrThrow({ where: { id: delivery.id } });
+          if (settled.status !== 'PENDING') break;
+        }
+        const settled = await prisma.eventDelivery.findUniqueOrThrow({ where: { id: delivery.id } });
+        // There is nobody to notify: the recipient is resolved through the
+        // order projection, so the delivery is consumed instead of failed.
+        expect(settled.status).toBe('SUCCEEDED');
+        expect(settled.lastError).toBeNull();
+        expect(await prisma.notification.count({ where: { relatedType: 'order', relatedId: orderId } })).toBe(0);
+      } finally {
+        await prisma.eventDelivery.delete({ where: { id: delivery.id } });
+        await prisma.eventRecord.delete({ where: { id: event.id } });
+      }
     });
   });
 

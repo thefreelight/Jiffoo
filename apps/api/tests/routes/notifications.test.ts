@@ -212,6 +212,17 @@ describe('Persisted notifications', () => {
       data: { status: 'SENDING', claimToken: randomUUID(), claimedBy: 'expired-fixture', leaseUntil: new Date(0) },
     });
     await deliverPendingNotifications();
+    // The reclaim of a notification whose sender died waits for the rung of
+    // the delivery ladder, so the recovered row is not due yet.
+    const recovered = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
+    expect(recovered.status).toBe('PENDING');
+    expect(recovered.attempts).toBe(1);
+    expect(recovered.lastError).toBe('Notification delivery lease expired');
+    expect(recovered.nextAttemptAt.getTime()).toBeGreaterThan(Date.now());
+    expect(recovered.nextAttemptAt.getTime()).toBeLessThan(Date.now() + 120_000);
+    // The rung passes and the recovered notification is delivered.
+    await prisma.notification.update({ where: { id: item.id }, data: { nextAttemptAt: new Date(0) } });
+    await deliverPendingNotifications();
     const delivered = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
     expect(delivered.status, delivered.lastError || 'Notification was not sent').toBe('SENT');
   });

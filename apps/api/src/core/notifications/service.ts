@@ -258,9 +258,9 @@ export async function createOrderNotification(
  */
 export async function notifyOrderEvent(
   tx: NotificationTransaction,
-  type: Extract<NotificationType, 'payment_received' | 'shipped' | 'cancelled' | 'refunded'>,
+  type: Extract<NotificationType, 'order_confirmation' | 'payment_received' | 'shipped' | 'cancelled' | 'refunded'>,
   orderId: string,
-  values: { reason?: string } = {},
+  values: { instructions?: string; reason?: string } = {},
   options: { dedupKey: string },
 ): Promise<boolean> {
   const order = await OrderService.getOrderRecipient(tx, orderId);

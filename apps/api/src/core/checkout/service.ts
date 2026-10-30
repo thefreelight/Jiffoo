@@ -102,6 +102,11 @@ export class CheckoutService {
       return description.supportedCurrencies.includes(currency) ? { providerSlug: pkg.slug, displayName: description.displayName, requiresManualConfirmation: description.requiresManualConfirmation } : null;
     }))).filter((method): method is NonNullable<typeof method> => method !== null);
     if (!allowUnavailableForOrder && ((requiresShippingQuote && !shippingOptions.length) || !paymentMethods.length)) unavailableProvider();
+    // The tax provider is isolated for every caller, so the switch that
+    // accepts an unavailable provider needs no tax branch of its own: a
+    // failed tax provider never blocks a quote. The quote answers with an
+    // unknown tax instead of a zero tax, and the order path refuses a
+    // placement with an unknown tax.
     // A quote that needs no shipping quote offers no shipping option, so a
     // shipping option of the request is not resolved either. The quote still
     // carries the tax and the total the client can rely on: the tax does not
@@ -127,6 +132,12 @@ export class CheckoutService {
    * offers no shipping option carries the tax and the total as well. The
    * total is the amount the order of the quote computes, so a client can
    * send it as the expected total of the order.
+   *
+   * The tax provider is isolated like the shipping and the payment
+   * providers: a tax provider whose contract call fails is excluded, its
+   * failure is recorded, and the quote answers with an unknown tax instead
+   * of failing as a whole. The quote never reports an unknown tax as the
+   * zero tax of a store without a tax provider.
    */
   private static async quoteWithTax(
     currency: string,
@@ -140,7 +151,18 @@ export class CheckoutService {
     const taxProvider = await resolveSingleProvider('tax');
     if (!taxProvider) return { currency, subtotal: this.amount(() => minorToDecimal(subtotalMinor, currency)), shippingOptions, paymentMethods, tax: '0', taxInclusive: false, total: this.amount(() => minorToDecimal(subtotalMinor + shippingMinor, currency)) };
     const lines = items.map((item, index) => ({ lineId: String(index), productId: item.productId, variantId: item.variantId, quantity: item.quantity, amountMinor: item.unitPriceMinor * item.quantity }));
-    const tax = await callContract(taxProvider.pluginSlug, 'tax', PLUGIN_CONTRACT_VERSIONS.tax, 'calculate', { currency, lines, shippingAmountMinor: shippingMinor, address: contractAddress(input.shippingAddress) }) as { totalTaxMinor: number; pricesIncludeTax: boolean };
+    let tax: { totalTaxMinor: number; pricesIncludeTax: boolean };
+    try {
+      tax = await callContract(taxProvider.pluginSlug, 'tax', PLUGIN_CONTRACT_VERSIONS.tax, 'calculate', { currency, lines, shippingAmountMinor: shippingMinor, address: contractAddress(input.shippingAddress) }) as { totalTaxMinor: number; pricesIncludeTax: boolean };
+    } catch (error) {
+      // A tax provider that failed is not a store without a tax provider: the
+      // tax of the quote is unknown. The quote carries no tax and no total,
+      // so it never charges an unknown tax, and it says that the tax
+      // provider was unavailable. The order path refuses a placement with an
+      // unknown tax.
+      await excludeFailedProvider(taxProvider.pluginSlug, error);
+      return { currency, subtotal: this.amount(() => minorToDecimal(subtotalMinor, currency)), shippingOptions, paymentMethods, taxUnavailable: true as const };
+    }
     return { currency, subtotal: this.amount(() => minorToDecimal(subtotalMinor, currency)), shippingOptions, paymentMethods, tax: this.amount(() => minorToDecimal(tax.totalTaxMinor, currency)), taxInclusive: tax.pricesIncludeTax, total: this.amount(() => minorToDecimal(subtotalMinor + shippingMinor + (tax.pricesIncludeTax ? 0 : tax.totalTaxMinor), currency)) };
   }
 }

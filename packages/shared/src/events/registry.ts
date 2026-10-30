@@ -45,6 +45,9 @@ export const eventRegistry = {
     }).strict(),
   }).strict(),
   'order.created': z.object({ id, orderNumber, userId: id, totalAmount: amount, currency: id, items: z.array(item) }).strict(),
+  'order.confirmed': z.object({
+    id, orderId: id, instructions: z.string(),
+  }).strict(),
   'order.cancelled': z.object({ id, orderNumber, orderId: id, userId: id, reason: z.string() }).strict(),
   'order.refunded': z.object({
     id, orderNumber, orderId: id, refundId: id, userId: id, paymentId: id.optional(),

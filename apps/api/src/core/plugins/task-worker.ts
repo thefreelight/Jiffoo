@@ -2,12 +2,32 @@ import { randomUUID } from 'node:crypto';
 import type { PluginTaskDeclaration, TaskInput } from '@jiffoo/shared';
 import { Prisma, type PluginTask as StoredTask, type PluginTaskFinalFailure } from '@prisma/client';
 import { prisma } from '@/config/database';
-import { ensureCoreProcess } from '@/infra/core-process';
+import { ensureCoreProcess, confirmDeadCoreProcesses, coreProcessSuspectMs } from '@/infra/core-process';
 import { ApiError } from '@/utils/api-errors';
 import { recordPluginFailure, redactPluginFailure } from '@/core/extensions/runtime/failure';
-import { assertTaskClaim, assertTaskPolicy, DEFAULT_TASK_POLICY, lockTaskScheduler, occupiedTaskSlots, principalForTask, taskDatabaseTime, taskJson, transitionInstallationTasks, validateTaskPrincipal, withTaskScope, type TaskClaim, type TaskPolicy, type TaskTransaction } from './tasks';
+import { AuditService } from '@/core/audit/service';
+import { assertTaskClaim, assertTaskPolicy, DEFAULT_TASK_POLICY, lockTaskScheduler, occupiedTaskSlots, principalForTask, staleTaskSlotMs, taskDatabaseTime, taskJson, transitionInstallationTasks, validateTaskPrincipal, withTaskScope, type TaskClaim, type TaskPolicy, type TaskTransaction } from './tasks';
 
 const RETRIES = [60_000, 300_000, 900_000, 3_600_000];
+/**
+ * The share of the retry ladder that a delay may jitter by.
+ *
+ * A fleet of workers that failed at the same moment retries at the same
+ * moment without a jitter, so every delay spreads over a bounded share of
+ * its ladder value.
+ */
+const RETRY_JITTER_RATIO = 0.2;
+
+/**
+ * The delay before the next attempt of a failed task.
+ *
+ * The ladder itself stays fixed, and the delay is the ladder value plus a
+ * bounded random jitter of up to a fifth of it. The random source is a
+ * parameter, so the spread is testable without a seed.
+ */
+export function retryDelayMs(base: number, random: () => number = Math.random): number {
+  return base + Math.floor(random() * base * RETRY_JITTER_RATIO);
+}
 
 /** The number of candidates one claim round keeps in flight. */
 const MAX_CLAIM_CANDIDATES = 32;
@@ -41,6 +61,25 @@ function permanentTaskError(error: unknown): error is Error & { code: string } {
 }
 type Executor = (claim: TaskClaim, input: TaskInput) => Promise<unknown>;
 type WorkerOptions = { installationIds?: string[]; execute?: Executor; leaseMs?: number; renewalMs?: number; retryMs?: number[]; beforeLingeringWrite?: () => Promise<void> };
+
+/**
+ * The release of the slots that stopped being observed.
+ *
+ * The observation of a slot is written every ten seconds while its
+ * invocation lives, so a slot that was not observed for twice the runtime of
+ * a task cannot belong to a running invocation any more. That is the case of
+ * a handler that never settles: the slot stays occupied and consumes the
+ * global slot cap until the sweep releases it.
+ *
+ * A slot whose owner is alive and whose task is still within its deadline
+ * keeps its occupancy, because that invocation is still running. The write
+ * happens on the transaction of the caller, so it stays atomic with the rest
+ * of the recovery.
+ */
+async function releaseStaleTaskSlots(tx: TaskTransaction, policy: TaskPolicy, now: Date): Promise<void> {
+  const staleMs = staleTaskSlotMs(policy);
+  await tx.$executeRaw`UPDATE public.plugin_task_execution_slots s SET state = 'RELEASED', "releasedAt" = ${now}, "updatedAt" = clock_timestamp() WHERE s.state IN (${Prisma.join(occupiedTaskSlots)}) AND s."lastObservedAt" < ${now} - ${staleMs} * interval '1 millisecond' AND NOT EXISTS (SELECT 1 FROM public.core_processes p WHERE p."bootNonce" = s."bootNonce" AND p.state IN ('LIVE','DRAINING') AND COALESCE(CASE WHEN s.kind = 'FINAL_FAILURE' THEN (SELECT h."deadlineAt" FROM public.plugin_task_final_failures h WHERE h."taskId" = s."taskId") ELSE (SELECT t."deadlineAt" FROM public.plugin_tasks t WHERE t.id = s."taskId") END, 'epoch'::timestamptz) > ${now})`;
+}
 export class PluginTaskWorker {
   private stopping = false;
   private abandoning = false;
@@ -55,6 +94,8 @@ export class PluginTaskWorker {
       || options.retryMs !== undefined && (!options.retryMs.length || options.retryMs.length > 20 || options.retryMs.some(ms=>!Number.isInteger(ms) || ms < 0 || ms > 3_600_000))) throw new Error('Invalid task worker test controls');
   }
   unsettled() { return [...this.pending.values()].map(({ claim }) => ({ kind: claim.hook ? 'plugin-task-final-failure' : 'plugin-task', id: claim.task.id })); }
+  /** The retry ladder of this worker: the shared ladder or the test control. */
+  private retryLadder(): number[] { return this.options.retryMs ?? RETRIES; }
   start(): void {
     if (this.timer) return;
     this.timer = setInterval(() => { void this.tick().catch(error => console.error('Plugin task poll failed', error instanceof Error ? error.name : 'UnknownError')); }, 250);
@@ -244,11 +285,13 @@ export class PluginTaskWorker {
     } catch (error) {
       if (!this.abandoning) await this.settle(claim, error, undefined, true).catch(() => undefined);
     } finally {
-      watchingDeadline = false; clearTimeout(timeout); clearInterval(timer); await renewing;
+      // The occupancy observation stops when the invocation leaves the race.
+      // A handler that never settles must not keep its slot observed, or the
+      // sweep could never reclaim the slot it holds forever.
+      watchingDeadline = false; clearTimeout(timeout); clearInterval(timer); clearInterval(occupancy); await renewing;
       await Promise.resolve().then(()=>this.options.beforeLingeringWrite?.()).then(()=>prisma.pluginTaskExecutionSlot.updateMany({ where: { id: claim.slotId, state: 'ACTIVE' }, data: { state: 'LINGERING' } })).catch(() => undefined);
       // Slot release follows actual settlement, never the outward timeout.
       await invocation.catch(() => undefined);
-      clearInterval(occupancy);
       this.settledSlots.add(claim.slotId);
       await this.releaseSettledSlots().catch(() => undefined);
     }
@@ -288,7 +331,7 @@ export class PluginTaskWorker {
         const charged = task.attemptsCharged + 1;
         const terminal = failed && (permanent || charged >= task.maxAttempts);
         await tx.pluginTaskAttempt.update({ where: { taskId_executionSequence: { taskId: task.id, executionSequence: task.executionSequence } }, data: { finishedAt: now, outcome: permanent ? 'PERMANENT_ERROR' : timeout ? 'TIMED_OUT' : failed ? 'FAILED' : 'SUCCEEDED', safeError: safe ?? undefined } });
-        await tx.pluginTask.update({ where: { id: task.id }, data: { status: failed ? terminal ? 'FAILED' : 'PENDING' : 'SUCCEEDED', attemptsCharged: charged, result: failed || result === undefined ? undefined : taskJson(result), lastError: safe ?? undefined, nextAttemptAt: failed && !terminal ? new Date(now.getTime() + (this.options.retryMs ?? RETRIES)[Math.min(charged - 1, (this.options.retryMs ?? RETRIES).length - 1)]) : task.nextAttemptAt, finishedAt: !failed || terminal ? now : null, claimToken: null, claimedByBootNonce: null, leaseUntil: null, deadlineAt: null } });
+        await tx.pluginTask.update({ where: { id: task.id }, data: { status: failed ? terminal ? 'FAILED' : 'PENDING' : 'SUCCEEDED', attemptsCharged: charged, result: failed || result === undefined ? undefined : taskJson(result), lastError: safe ?? undefined, nextAttemptAt: failed && !terminal ? new Date(now.getTime() + retryDelayMs(this.retryLadder()[Math.min(charged - 1, this.retryLadder().length - 1)])) : task.nextAttemptAt, finishedAt: !failed || terminal ? now : null, claimToken: null, claimedByBootNonce: null, leaseUntil: null, deadlineAt: null } });
         if (terminal) await createFinalFailure(tx, task);
       }
     });
@@ -328,7 +371,7 @@ export class PluginTaskWorker {
           const lastError = { code: 'PLUGIN_TIMEOUT', message: 'Plugin task lease expired.' };
           await tx.pluginTaskAttempt.updateMany({ where: { taskId: task.id, executionSequence: task.executionSequence, finishedAt: null }, data: { outcome: 'TIMED_OUT', finishedAt: now, safeError: lastError } });
           const charged = task.attemptsCharged + 1;
-          await tx.pluginTask.update({ where: { id: task.id }, data: { status: charged >= task.maxAttempts ? 'FAILED' : 'PENDING', attemptsCharged: charged, lastError, claimToken: null, claimedByBootNonce: null, leaseUntil: null, deadlineAt: null, finishedAt: charged >= task.maxAttempts ? now : null, nextAttemptAt: new Date(now.getTime() + (this.options.retryMs ?? RETRIES)[Math.min(charged - 1, (this.options.retryMs ?? RETRIES).length - 1)]) } });
+          await tx.pluginTask.update({ where: { id: task.id }, data: { status: charged >= task.maxAttempts ? 'FAILED' : 'PENDING', attemptsCharged: charged, lastError, claimToken: null, claimedByBootNonce: null, leaseUntil: null, deadlineAt: null, finishedAt: charged >= task.maxAttempts ? now : null, nextAttemptAt: new Date(now.getTime() + retryDelayMs(this.retryLadder()[Math.min(charged - 1, this.retryLadder().length - 1)])) } });
           recovered.push({ slug: installation.pluginSlug, installationId: installation.id });
           await tx.pluginTaskExecutionSlot.updateMany({ where: { taskId: task.id, kind: 'TASK', fence: task.fence, state: 'ACTIVE' }, data: { state: 'LINGERING' } });
           if (charged >= task.maxAttempts) await createFinalFailure(tx, task);
@@ -353,13 +396,27 @@ export class PluginTaskWorker {
     let firstBatch = true;
     for (;;) {
       const batch = await prisma.$transaction(async tx => {
-        await lockTaskScheduler(tx);
+        const scheduler = await lockTaskScheduler(tx);
         const now = await taskDatabaseTime(tx);
-        await tx.pluginTaskExecutionSlot.updateMany({ where: { state: { in: occupiedTaskSlots }, owner: { state: { in: ['DEAD_CONFIRMED', 'QUIESCENT'] } } }, data: { state: 'RELEASED', releasedAt: now } });
         if (firstBatch) {
           firstBatch = false;
+          // A core process that was killed leaves its row in state LIVE, and
+          // the execution slots it owns stay occupied until an operator
+          // reclaims them by hand. The sweep confirms the death of every
+          // process that stopped heartbeating, so the slots of a crashed
+          // worker become reclaimable again.
+          const suspectMs = coreProcessSuspectMs();
+          const dead = await confirmDeadCoreProcesses(tx, suspectMs);
+          for (const process of dead) {
+            console.warn(JSON.stringify({ event: 'core_process_death_confirmed', bootNonce: process.bootNonce, kind: process.kind, suspectMs }));
+            await AuditService.write(tx, { actorId: 'system', action: 'CORE_PROCESS_DEATH_CONFIRMED', targetType: 'core-process', targetId: process.bootNonce, summary: { bootNonce: process.bootNonce, kind: process.kind, suspectMs, heartbeatAt: process.heartbeatAt } });
+          }
           await tx.pluginTaskFinalFailure.updateMany({ where: { status: 'RUNNING', leaseUntil: { lte: now }, ...(this.options.installationIds ? { task:{installationId:{in:this.options.installationIds}} } : {}) }, data: { status: 'UNKNOWN', safeError: { code:'PLUGIN_TIMEOUT',message:'Final-failure hook outcome is unknown after lease expiry.' }, claimToken: null, leaseUntil: null, deadlineAt: null, finishedAt: now } });
         }
+        await tx.pluginTaskExecutionSlot.updateMany({ where: { state: { in: occupiedTaskSlots }, owner: { state: { in: ['DEAD_CONFIRMED', 'QUIESCENT'] } } }, data: { state: 'RELEASED', releasedAt: now } });
+        // A slot that stopped being observed is stale, whatever the state of
+        // its owner: its invocation is gone, or its handler never settles.
+        await releaseStaleTaskSlots(tx, scheduler.policy, now);
         const installations = await tx.pluginInstallation.findMany({ where: this.options.installationIds ? { id: { in: this.options.installationIds } } : {}, include: { plugin: true }, orderBy: { id: 'asc' }, take: RECOVERY_INSTALLATION_BATCH + 1, ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}) });
         const page = installations.slice(0, RECOVERY_INSTALLATION_BATCH);
         const recovered: Array<{ slug: string; installationId: string }> = [];

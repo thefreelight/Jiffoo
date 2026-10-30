@@ -2,7 +2,7 @@ import { prisma } from '@/config/database';
 import { Prisma, type PluginMigrationOperation } from '@prisma/client';
 import { isDeepStrictEqual } from 'node:util';
 import { INCOMPLETE_PLUGIN_OPERATION_PHASES } from '@/core/extensions/runtime/plugin-migration-gate';
-import { pruneCoreProcesses } from '@/infra/core-process';
+import { pruneCoreProcesses, coreProcessSuspectMs } from '@/infra/core-process';
 import { recoveryLimit, observeRecovery } from '@/infra/recovery-test-control';
 import { createHash } from 'node:crypto';
 import { AuditService } from '@/core/audit/service';
@@ -91,12 +91,34 @@ export async function listPluginRecovery() {
   const candidates = await prisma.pluginMigrationOperation.findMany({ where: { OR: [{ phase: { in: [...INCOMPLETE_PLUGIN_OPERATION_PHASES, 'FAILED'] } }, { phase: 'SUCCESS', recoveryState: 'PUBLICATION_CONFIRMED' }] }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: RECOVERY_SWEEP_BATCH, select: { id: true } });
   for (const row of candidates) await recoverPluginOperation(row.id);
   const operations = candidates.length ? await prisma.$queryRaw<Array<{ operationId: string; slug: string; version: string; phase: string; committedPrefix: number; retryAvailable: boolean; publicationWarning: boolean }>>`SELECT id AS "operationId", slug, "packageVersion" AS version, phase, "committedPrefix", ("artifactBytes" IS NOT NULL AND phase IN ('FAILED','NEEDS_RECOVERY')) AS "retryAvailable", ("recoveryState" = 'PUBLICATION_CONFIRMED') AS "publicationWarning" FROM public.plugin_migration_operations WHERE id IN (${Prisma.join(candidates.map(row => row.id))}) ORDER BY "createdAt" DESC, id DESC` : [];
-  const suspectMs = recoveryLimit('suspectMs', 30_000);
+  // The suspect window is the one of the core-process registry: the sweep
+  // that reports a suspect marker and the sweep that reclaims the slots of a
+  // crashed worker share one threshold.
+  const suspectMs = coreProcessSuspectMs();
   const markers = await prisma.$queryRaw<Array<{ slug: string; markerCount: bigint; maintenanceRequired: boolean }>>`SELECT substring(l.operation FROM length('plugin-invocation:') + 1) AS slug, count(*) AS "markerCount", bool_or(p."bootNonce" IS NULL OR p.state = 'DEAD_CONFIRMED' OR p."heartbeatAt" < (clock_timestamp() AT TIME ZONE 'UTC') - ${suspectMs} * interval '1 millisecond') AS "maintenanceRequired" FROM public.plugin_operation_leases l LEFT JOIN public.core_processes p ON p."bootNonce" = l."ownerBootNonce" WHERE l.operation LIKE 'plugin-invocation:%' GROUP BY l.operation ORDER BY l.operation LIMIT ${RECOVERY_SWEEP_BATCH}`;
-  const slugs = [...new Set([...operations.map(row => row.slug), ...markers.filter(row => row.maintenanceRequired).map(row => row.slug)])];
+  // The dead cleanup rows of the plugin storage: a remote object the delete
+  // sweep could never remove. They hold the storage quota of the plugin and
+  // only an operator can resolve them. The installation join is a left join:
+  // the cleanup table has no foreign key, so a row whose installation is gone
+  // is orphaned, and an orphaned dead row is never claimed again and must
+  // still reach the operator. The file join reports how much quota the row
+  // still holds.
+  const deadCleanups = await prisma.$queryRaw<Array<{ slug: string | null; objectKey: string; fileId: string | null; attempts: number; lastError: string | null; sizeBytes: bigint | null }>>`SELECT i."pluginSlug" AS slug, c."objectKey" AS "objectKey", c."fileId" AS "fileId", c.attempts AS attempts, c."lastError" AS "lastError", f."sizeBytes" AS "sizeBytes" FROM public.plugin_file_cleanup c LEFT JOIN public.plugin_installations i ON i.id = c."installationId" LEFT JOIN public.plugin_files f ON f.id = c."fileId" WHERE c.status = 'DEAD' ORDER BY c."objectKey" LIMIT ${RECOVERY_SWEEP_BATCH}`;
+  const orphaned = deadCleanups.filter(row => row.slug === null);
+  const owned = deadCleanups.filter(row => row.slug !== null);
+  const slugs = [...new Set([...operations.map(row => row.slug), ...markers.filter(row => row.maintenanceRequired).map(row => row.slug), ...owned.map(row => row.slug as string)])];
   return { items: slugs.map(slug => {
     const marker = markers.find(row => row.slug === slug);
-    return { slug, markerCount: Number(marker?.markerCount ?? 0), maintenanceRequired: marker?.maintenanceRequired ?? false,
+    // A dead cleanup row is a remote object the sweep could never delete.
+    // It is never claimed again, so it needs an operator and it makes the
+    // plugin an item of this listing.
+    const dead = owned.filter(row => row.slug === slug);
+    return { slug, markerCount: Number(marker?.markerCount ?? 0), maintenanceRequired: (marker?.maintenanceRequired ?? false) || dead.length > 0,
+      deadCleanupCount: dead.length,
+      deadCleanups: dead.map(row => ({ objectKey: row.objectKey, fileId: row.fileId, attempts: row.attempts, lastError: row.lastError, sizeBytes: row.sizeBytes === null ? null : Number(row.sizeBytes) })),
       operations: operations.filter(row => row.slug === slug).map(row => ({ ...row, retryAvailable: row.retryAvailable && !marker?.maintenanceRequired })) };
-  }) };
+  }),
+  // An orphaned dead row has no plugin any more, so it cannot be an item of
+  // the listing. It is reported on its own, with the quota it still holds.
+  orphanedDeadCleanups: orphaned.map(row => ({ objectKey: row.objectKey, fileId: row.fileId, attempts: row.attempts, lastError: row.lastError, sizeBytes: row.sizeBytes === null ? null : Number(row.sizeBytes) })) };
 }

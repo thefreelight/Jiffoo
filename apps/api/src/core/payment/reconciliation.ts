@@ -12,7 +12,7 @@ import { ApiError } from '@/utils/api-errors';
 import { lockOrder, lockPayment } from '@/core/shared/locks';
 import { paymentNow, PAYMENT_SESSION_LIFETIME_MS } from './clock';
 import { decimalToMinor } from '@/core/shared/money';
-import { AuditService } from '@/core/audit/service';
+import { writePaymentAudit } from './service';
 import { claimPaymentReconciliations, paymentLeaseAllowsQuery, releasePaymentReconciliation, type PaymentLeaseClient } from './lease';
 import { coreProcessIdentity } from '@/infra/core-process-identity';
 import type { PaymentFact } from '@jiffoo/shared';
@@ -233,7 +233,7 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
           if (input.reviewConfirmation) throw new ApiError('PAYMENT_IDEMPOTENCY_CONFLICT');
           if (payment.reviewResolution) return false;
           await tx.payment.update({ where: { id: payment.id }, data: { status: 'REQUIRES_REVIEW', failureReason: 'capture_already_bound', ...clearLease } });
-          await AuditService.write(tx, { actorId: input.actorId || 'system', action: 'PAYMENT_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { reason: 'capture_already_bound', providerPaymentId: input.providerPaymentId } });
+          await writePaymentAudit(tx, { actorId: input.actorId || 'system', action: 'PAYMENT_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { reason: 'capture_already_bound', providerPaymentId: input.providerPaymentId } });
         }
         return false;
       }
@@ -265,7 +265,7 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput,
         metadata: { ...input.metadata, ...(reference ? { manualReference: reference } : {}) },
       });
       if (payment.reviewResolution === 'NOT_CHARGED') {
-        await AuditService.write(tx, { actorId: 'system', action: 'PAYMENT_REVIEW_CONTRADICTED',
+        await writePaymentAudit(tx, { actorId: 'system', action: 'PAYMENT_REVIEW_CONTRADICTED',
           targetType: 'payment', targetId: payment.id,
           summary: { paymentId: payment.id, orderId: identity.orderId, providerPaymentId: input.providerPaymentId,
             reviewReference: payment.reviewReference, refundRequired: decision.refundRequired },
@@ -419,6 +419,56 @@ export type PaymentReconciliationOptions = { limit?: number; minAgeMinutes?: num
 export type PaymentReconciliationResult = { scanned: number; updated: number; failed: number; skipped: number };
 const client: PaymentLeaseClient = { query: async (sql, values = []) => ({ rows: await prisma.$queryRawUnsafe<any[]>(sql, ...values) }) };
 export const PAYMENT_RECONCILIATION_MAX_ATTEMPTS = 10;
+/**
+ * The base interval of a reconciliation retry, in milliseconds.
+ */
+export const PAYMENT_RECONCILE_BASE_INTERVAL_MS = 60_000;
+/**
+ * The longest interval of a reconciliation retry, in milliseconds.
+ */
+export const PAYMENT_RECONCILE_MAX_INTERVAL_MS = 3_600_000;
+/**
+ * The share of the interval that the jitter of one retry may add.
+ */
+export const PAYMENT_RECONCILE_JITTER_RATIO = 0.2;
+/**
+ * The interval of the next reconciliation of a payment, in milliseconds.
+ *
+ * The interval doubles with every attempt that the payment already made and
+ * never grows past the longest interval. A provider that is down for
+ * everyone is therefore queried less and less often instead of being queried
+ * on a fixed schedule.
+ */
+export function paymentReconcileIntervalMs(attempts: number): number {
+  const exponent = Math.max(0, Math.trunc(attempts) - 1);
+  return Math.min(PAYMENT_RECONCILE_MAX_INTERVAL_MS, PAYMENT_RECONCILE_BASE_INTERVAL_MS * 2 ** exponent);
+}
+/**
+ * The jitter of one reconciliation retry, in milliseconds.
+ *
+ * The jitter is bounded by the share of the interval and it is only ever
+ * added: a retry is delayed, never scheduled earlier than the interval
+ * allows. A fleet that failed together therefore does not retry together.
+ */
+export function paymentReconcileJitterMs(intervalMs: number): number {
+  return Math.floor(Math.random() * intervalMs * PAYMENT_RECONCILE_JITTER_RATIO);
+}
+/**
+ * The delay of the next reconciliation of a payment, in milliseconds.
+ */
+export function paymentReconcileDelayMs(attempts: number): number {
+  const interval = paymentReconcileIntervalMs(attempts);
+  return interval + paymentReconcileJitterMs(interval);
+}
+/**
+ * The moment of the next reconciliation of a payment.
+ *
+ * The delay is drawn once and can be handed in, so the moment that is stored
+ * and the delay that the release of the lease uses are the same one.
+ */
+export function paymentNextReconcileAt(attempts: number, now: Date, delayMs: number = paymentReconcileDelayMs(attempts)): Date {
+  return new Date(now.getTime() + delayMs);
+}
 export async function reconcilePendingPayments(options: PaymentReconciliationOptions = {}): Promise<PaymentReconciliationResult> {
   const payments = await prisma.$transaction(async tx => claimPaymentReconciliations({
     query: async (sql, values = []) => ({ rows: await tx.$queryRawUnsafe<any[]>(sql, ...values) }),
@@ -426,6 +476,11 @@ export async function reconcilePendingPayments(options: PaymentReconciliationOpt
   const result = { scanned: payments.length, updated: 0, failed: 0, skipped: 0 };
   let stopBatch = false;
   for (const payment of payments) {
+    // The delay of the next reconciliation of a payment whose provider could
+    // not be queried. It grows with the attempts of the payment and it
+    // carries a bounded jitter, so a provider that is down for everyone is
+    // not queried by the whole fleet on the same schedule.
+    let failureDelayMs: number | undefined;
     try {
       if (stopBatch || !await paymentLeaseAllowsQuery(client, payment)) { stopBatch = true; result.skipped++; continue; }
       const instance = await getDefaultInstallationRowWithPackage(payment.paymentMethod);
@@ -433,20 +488,31 @@ export async function reconcilePendingPayments(options: PaymentReconciliationOpt
       if (await queryPaymentByRequestKey(payment.id, payment.claimToken!)) result.updated++;
     } catch (error) {
       if (error instanceof SharedProtectionUnavailable) result.skipped++; else result.failed++;
-      if (!(error instanceof SharedProtectionUnavailable)) await prisma.$transaction(async tx => {
+      if (!(error instanceof SharedProtectionUnavailable)) {
+        const delayMs = paymentReconcileDelayMs(payment.attempts);
+        failureDelayMs = delayMs;
+        await prisma.$transaction(async tx => {
         await lockOrder(tx, payment.orderId); await lockPayment(tx, payment.id);
         const changed = await tx.payment.updateMany({ where: { id: payment.id, claimToken: payment.claimToken,
           status: { in: ['CREATING', 'PENDING', 'UNKNOWN', 'SUCCEEDED', 'CANCELLED'] } }, data: {
           status: payment.attempts >= PAYMENT_RECONCILIATION_MAX_ATTEMPTS ? 'REQUIRES_REVIEW'
             : payment.status === 'SUCCEEDED' || payment.status === 'CANCELLED' ? payment.status : 'UNKNOWN', ...clearLease,
-          nextReconcileAt: new Date((await paymentNow(tx)).getTime() + 60_000), failureReason: 'request_query_unavailable',
+          nextReconcileAt: paymentNextReconcileAt(payment.attempts, await paymentNow(tx), delayMs), failureReason: 'request_query_unavailable',
         } });
-        if (changed.count && payment.attempts >= PAYMENT_RECONCILIATION_MAX_ATTEMPTS) await AuditService.write(tx, {
+        if (changed.count && payment.attempts >= PAYMENT_RECONCILIATION_MAX_ATTEMPTS) await writePaymentAudit(tx, {
           actorId: 'system', action: 'PAYMENT_REVIEW_REQUIRED', targetType: 'payment', targetId: payment.id, summary: { reason: 'query_budget_exhausted' },
         });
       }, { maxWait: PAYMENT_TRANSACTION_MAX_WAIT_MS, timeout: PAYMENT_TRANSACTION_TIMEOUT_MS });
+      }
     }
-    finally { await releasePaymentReconciliation(client, payment, stopBatch ? 0 : 60_000); }
+    finally {
+      // The release of the round writes the moment of the next attempt too,
+      // so it must carry the delay of the round: a failed round releases with
+      // the same backed off interval that the failure path stored, and a
+      // successful round keeps the business cadence of one minute.
+      const releaseDelayMs = stopBatch ? 0 : failureDelayMs ?? PAYMENT_RECONCILE_BASE_INTERVAL_MS;
+      await releasePaymentReconciliation(client, payment, releaseDelayMs);
+    }
   }
   return result;
 }

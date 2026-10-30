@@ -157,9 +157,14 @@ async function buildApp() {
     // Register multipart for file uploads
     await fastify.register(multipart, {
       limits: {
-        // Extension installs can be large. We enforce stricter per-kind limits in the installer routes.
-        fileSize: 500 * 1024 * 1024, // Global upload ceiling; package routes enforce their own limits.
-        files: 1
+        // Global upload ceiling. Every route that accepts a body declares its own
+        // limit: the image routes cap the part at the cap of the upload service,
+        // and the plugin package routes cap it at PLUGIN_MAX_ZIP_SIZE.
+        fileSize: 32 * 1024 * 1024,
+        files: 1,
+        fields: 16,
+        parts: 32,
+        fieldSize: 1024 * 1024
       }
     });
 
@@ -437,8 +442,29 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
 
 
     let stopWork: Promise<void> | undefined;
+    /**
+     * The forced path of the shutdown.
+     *
+     * The plugin work is abandoned, the connections are closed and the state
+     * of the process is left to the caller. It is shared by the drain that
+     * missed its own deadline and by the hard deadline of the shutdown
+     * handler, so both end the process the same way.
+     */
+    const forceStop = (deadlineMs: number) => {
+      shutdownDeadlineExceeded = true;
+      for (const item of unsettledContractInvocations()) console.error(JSON.stringify({ event: 'api-shutdown-unsettled', ...item }));
+      console.error(JSON.stringify({ event: 'api-shutdown-deadline', deadlineMs, bootNonce: coreProcessIdentity.bootNonce }));
+      stopCoreProcessHeartbeat();
+      abandonPluginDatabase();
+      app.server.closeAllConnections();
+      sharedProtection.close();
+      void redisCache.disconnect().catch(() => undefined);
+      void prisma.$disconnect().catch(() => undefined);
+    };
     return {
       app,
+      /** Stop the plugin work of a shutdown that did not settle in time. */
+      force: () => forceStop(workerShutdownDeadlineMs()),
       stop(): Promise<void> {
         return stopWork ??= (async () => {
           const deadlineMs = workerShutdownDeadlineMs();
@@ -455,15 +481,7 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
             new Promise<false>(resolve => { deadlineTimer = setTimeout(() => resolve(false), deadlineMs); }),
           ]).finally(() => clearTimeout(deadlineTimer));
           if (drained) return;
-          shutdownDeadlineExceeded = true;
-          for (const item of unsettledContractInvocations()) console.error(JSON.stringify({ event: 'api-shutdown-unsettled', ...item }));
-          console.error(JSON.stringify({ event: 'api-shutdown-deadline', deadlineMs, bootNonce: coreProcessIdentity.bootNonce }));
-          stopCoreProcessHeartbeat();
-          abandonPluginDatabase();
-          app.server.closeAllConnections();
-          sharedProtection.close();
-          void redisCache.disconnect().catch(() => undefined);
-          void prisma.$disconnect().catch(() => undefined);
+          forceStop(deadlineMs);
           throw new Error('API shutdown did not settle before its deadline');
         })();
       },
@@ -480,20 +498,106 @@ export async function startApiRuntime(options: { port?: number; host?: string } 
   }
 }
 
-export function registerApiShutdownHandlers(runtime: { stop(): Promise<void> }): void {
+/**
+ * The margin between the drain deadline of the runtime and the hard deadline
+ * of the shutdown.
+ *
+ * The drain of `runtime.stop()` has an inner deadline of its own, so the
+ * graceful path is expected to settle well before the hard deadline. The
+ * margin keeps that preference: the hard deadline only ends a drain that
+ * never settles at all, so the orchestrator never has to kill the process
+ * with an unknown state.
+ */
+export const API_SHUTDOWN_HARD_DEADLINE_MARGIN_MS = 15_000;
+
+/**
+ * The hard deadline of the graceful shutdown.
+ *
+ * It is the outer bound of the whole shutdown and is deliberately above the
+ * inner drain deadline of the runtime.
+ */
+export function apiShutdownHardDeadlineMs(drainDeadlineMs: number = workerShutdownDeadlineMs()): number {
+  return drainDeadlineMs + API_SHUTDOWN_HARD_DEADLINE_MARGIN_MS;
+}
+
+/** The decision of the graceful shutdown. */
+export type ApiShutdownDecision = {
+  /** Whether the hard deadline passed while the drain was still running. */
+  hardDeadlinePassed: boolean;
+  /** The code the process exits with. */
+  exitCode: number;
+  /** Whether the plugin work is stopped forcibly. */
+  forced: boolean;
+};
+
+/**
+ * Decide how a graceful shutdown ends.
+ *
+ * A drain that settled is the graceful path and exits with 0. A drain that
+ * failed exits with 1, the way it always did. A drain that is still running
+ * when the hard deadline passes is forced: the plugin work is stopped the
+ * way the forced path of the drain stops it, and the process exits with a
+ * non-zero code.
+ */
+export function decideApiShutdown(input: {
+  /** Whether the drain settled before the hard deadline. */
+  drainSettled: boolean;
+  /** Whether the drain failed. */
+  drainFailed: boolean;
+  /** The milliseconds the shutdown has been running. */
+  elapsedMs: number;
+  /** The outer bound of the shutdown. */
+  hardDeadlineMs: number;
+}): ApiShutdownDecision {
+  if (input.drainSettled) return { hardDeadlinePassed: false, exitCode: 0, forced: false };
+  if (input.drainFailed) return { hardDeadlinePassed: false, exitCode: 1, forced: false };
+  const hardDeadlinePassed = input.elapsedMs >= input.hardDeadlineMs;
+  return { hardDeadlinePassed, exitCode: 1, forced: hardDeadlinePassed };
+}
+
+export function registerApiShutdownHandlers(runtime: { stop(): Promise<void>; force?(): void }): void {
   let stopping = false;
   const shutdown = async (signal: string) => {
     if (stopping) return;
     stopping = true;
     LoggerService.logSystem(`Received ${signal}, shutting down gracefully`);
-    try {
-      await runtime.stop();
+    const startedAt = Date.now();
+    const hardDeadlineMs = apiShutdownHardDeadlineMs();
+    let hardTimer: NodeJS.Timeout | undefined;
+    // The drain settles on its own inner deadline. The hard deadline is the
+    // outer bound of the shutdown: a drain that never settles ends the
+    // process here, instead of waiting for the orchestrator to kill it.
+    const drain = runtime.stop().then(
+      () => ({ settled: true, failed: false, error: undefined as unknown }),
+      (error: unknown) => ({ settled: true, failed: true, error }),
+    );
+    const outcome = await Promise.race([
+      drain,
+      new Promise<{ settled: false; failed: false; error: undefined }>(resolve => {
+        hardTimer = setTimeout(() => resolve({ settled: false, failed: false, error: undefined }), hardDeadlineMs);
+      }),
+    ]).finally(() => clearTimeout(hardTimer));
+    const elapsedMs = Date.now() - startedAt;
+    const decision = decideApiShutdown({
+      drainSettled: outcome.settled && !outcome.failed,
+      drainFailed: outcome.failed,
+      elapsedMs,
+      hardDeadlineMs,
+    });
+    if (decision.hardDeadlinePassed) {
+      console.error(JSON.stringify({ event: 'api-shutdown-hard-deadline', hardDeadlineMs, elapsedMs, bootNonce: coreProcessIdentity.bootNonce }));
+      try { runtime.force?.(); }
+      catch (error) { LoggerService.logError(error as Error, { context: 'Forced shutdown' }); }
+      process.exit(decision.exitCode);
+      return;
+    }
+    if (decision.exitCode === 0) {
       LoggerService.logSystem('Server shutdown completed');
       process.exit(0);
-    } catch (error) {
-      LoggerService.logError(error as Error, { context: 'Graceful shutdown' });
-      process.exit(1);
+      return;
     }
+    LoggerService.logError((outcome.error as Error) ?? new Error('API shutdown did not settle before its deadline'), { context: 'Graceful shutdown' });
+    process.exit(decision.exitCode);
   };
   process.once('SIGTERM', () => void shutdown('SIGTERM'));
   process.once('SIGINT', () => void shutdown('SIGINT'));

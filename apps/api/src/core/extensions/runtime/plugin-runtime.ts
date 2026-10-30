@@ -194,6 +194,29 @@ async function releaseRuntime(runtime: InternalRuntime): Promise<void> {
   if (runtime.retired && runtime.references === 0) await closeRetiredRuntime(runtime);
 }
 
+/**
+ * Await the runtime setup under the deadline of the invocation.
+ *
+ * A setup that loses the race releases the runtime it creates once it arrives,
+ * so an abandoned setup never leaves a runtime behind.
+ */
+async function setupRuntimeWithinDeadline(
+  setup: Promise<InternalRuntime>,
+  deadline: Promise<never>,
+): Promise<InternalRuntime> {
+  let abandoned = false;
+  const guarded = setup.then((created) => {
+    if (abandoned) void releaseRuntime(created).catch(() => undefined);
+    return created;
+  });
+  try {
+    return await Promise.race([guarded, deadline]);
+  } catch (error) {
+    abandoned = true;
+    throw error;
+  }
+}
+
 async function retireRuntime(runtime: InternalRuntime): Promise<void> {
   runtime.retired = true;
   if (runtime.references === 0) await closeRetiredRuntime(runtime);
@@ -692,6 +715,11 @@ async function ensureInternalRuntime(
   } catch (error: any) {
     if (error instanceof ApiError && ['PLUGIN_MIGRATION_LEGACY_FORMAT','PLUGIN_TASK_DECLARATION_INVALID','PLUGIN_TASK_LIMIT_CONFLICT'].includes(error.code)) throw error;
     await recordPluginFailure(slug, error, 'load', ctx.installationId, { config: ctx.config, manifest });
+    // A contract error keeps its own code so that the caller can count it as a plugin failure,
+    // but its message is redacted like the message of every other load failure.
+    if (error instanceof ContractCallError) {
+      throw new ContractCallError(error.code, redactPluginText(error.message, ctx.config, manifest));
+    }
     // Candidate failed: old runtime (if exists) remains in map and continues serving
     throw new PluginGatewayError(
       redactPluginText(`Failed to load plugin "${slug}" for instance "${ctx.instanceKey}": ${error?.message || 'Unknown error'}`, ctx.config, manifest),
@@ -770,46 +798,58 @@ export async function callContract<C extends PluginContractName>(
   const permit = await sharedProtection.breaker(pluginProtectionScope(instance.id, instance.protectionGeneration));
   if (!permit) throw new ContractCallError('PLUGIN_CIRCUIT_OPEN', `Plugin ${slug} circuit breaker is open`);
   const config = decryptPluginConfig(manifest, parseJsonObject(instance.configJson));
-  let runtime: InternalRuntime;
-  try {
-    runtime = await ensureInternalRuntime(slug, manifest, { slug, zipHash: pkg.zipHash || '', installationId: instance.id, protectionGeneration: instance.protectionGeneration, instanceKey: instance.instanceKey, config }, true);
-  } catch (error) {
-    if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
-    if (error instanceof PluginGatewayError) throw contractGatewayError(error);
-    throw error;
-  }
+  let runtime: InternalRuntime | undefined;
   let injected = false;
+  const databaseAbort = new AbortController();
+  let timeout: NodeJS.Timeout | undefined;
+  // The runtime setup and the invocation share one deadline.
+  const deadline = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      databaseAbort.abort();
+      observeWorkerShutdownForTest('contract-timeout', invocationLabel ?? { kind: `contract-${contractKey}`, id: instance.id });
+      reject(new ContractCallError('PLUGIN_TIMEOUT', 'Contract call timed out'));
+    }, pluginDatabaseLimit('invocationMs', getPluginTimeoutMs()));
+  });
   try {
+    try {
+      runtime = await setupRuntimeWithinDeadline(ensureInternalRuntime(slug, manifest, { slug, zipHash: pkg.zipHash || '', installationId: instance.id, protectionGeneration: instance.protectionGeneration, instanceKey: instance.instanceKey, config }, true), deadline);
+    } catch (error) {
+      // The setup failed: the plugin is at fault, so the failure is recorded and counted.
+      await recordPluginFailure(slug, error, 'contract', instance.id);
+      await sharedProtection.result(permit, false);
+      if (error instanceof PluginPackageResolutionError) throw new ContractCallError(error.code, error.message);
+      if (error instanceof PluginGatewayError) throw contractGatewayError(error);
+      throw error;
+    }
+    const activeRuntime = runtime;
     const latest = await prisma.pluginInstallation.findUnique({ where: { id: instance.id } });
     if (!latest?.enabled || latest.deletedAt || latest.protectionGeneration !== instance.protectionGeneration) {
       throw new ContractCallError('PLUGIN_DISABLED', 'Plugin is disabled');
     }
     const webhook = contractKey === 'payment' && method === 'handleWebhook';
-    const databaseAbort = new AbortController();
-    const invocation = withPluginMigrationGate(slug, () => withPluginDatabaseInvocation(slug, instance.id, async () => runtime.app.inject({ method: 'POST', url: `/__contracts/${contractKey}/v${contractVersion}/${method}`, payload: webhook ? encodePaymentWebhook(input) : input as Record<string, unknown> }), databaseAbort.signal));
+    const invocation = withPluginMigrationGate(slug, () => withPluginDatabaseInvocation(slug, instance.id, async () => activeRuntime.app.inject({ method: 'POST', url: `/__contracts/${contractKey}/v${contractVersion}/${method}`, payload: webhook ? encodePaymentWebhook(input) : input as Record<string, unknown> }), databaseAbort.signal));
     const invocationKey = Symbol();
     contractInvocations.set(invocationKey, { ...invocationLabel ?? { kind: `contract-${contractKey}`, id: instance.id }, installationId: instance.id, promise: invocation });
     void invocation.finally(() => contractInvocations.delete(invocationKey)).catch(() => undefined);
     injected = true;
-    void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
-    let timeout: NodeJS.Timeout;
-    const response = await Promise.race([
-      invocation,
-      new Promise<never>((_, reject) => { timeout = setTimeout(() => {
-        databaseAbort.abort();
-        observeWorkerShutdownForTest('contract-timeout', invocationLabel ?? { kind: `contract-${contractKey}`, id: instance.id });
-        reject(new ContractCallError('PLUGIN_TIMEOUT', 'Contract call timed out'));
-      }, pluginDatabaseLimit('invocationMs', getPluginTimeoutMs())); }),
-    ]).finally(() => clearTimeout(timeout));
+    void invocation.finally(() => releaseRuntime(activeRuntime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), config, manifest)));
+    const response = await Promise.race([invocation, deadline]);
     if (response.statusCode >= 400) {
       if (webhook) throw new ContractCallError('PLUGIN_ERROR', `Contract route returned ${response.statusCode}`);
-      const failure = response.json() as { error?: unknown };
-      throw new ContractCallError('CONTRACT_CALL_FAILED', redactPluginText(`Contract route returned ${response.statusCode}: ${typeof failure.error === 'string' ? failure.error : 'Plugin failure'}`, config, manifest));
+      let failureMessage = 'Plugin failure';
+      try {
+        const failure = response.json() as { error?: unknown };
+        if (typeof failure.error === 'string') failureMessage = failure.error;
+      } catch { /* A non-JSON error body still fails the contract call. */ }
+      throw new ContractCallError('CONTRACT_CALL_FAILED', redactPluginText(`Contract route returned ${response.statusCode}: ${failureMessage}`, config, manifest));
     }
     let responseBody: unknown;
     if (webhook) {
       try { responseBody = response.json(); } catch { throw new ContractCallError('PLUGIN_ERROR', 'Contract response is not JSON'); }
-    } else responseBody = response.json();
+    } else {
+      // A body that is not JSON is a failure of the plugin, not a syntax error of the Core.
+      try { responseBody = response.json(); } catch { throw new ContractCallError('CONTRACT_RESPONSE_INVALID', 'Contract response is not JSON'); }
+    }
     const parsed = (contractMethods[contractKey][method as keyof typeof contractMethods[typeof contractKey]] as { output: { safeParse(value: unknown): { success: boolean; data?: unknown; error?: { message: string } } } }).output.safeParse(responseBody);
     if (!parsed.success || (contractKey === 'tax' && !isValidTaxResult(input, parsed.data))) {
       const error = new ContractCallError(webhook ? 'PLUGIN_ERROR' : 'CONTRACT_RESPONSE_INVALID', `Invalid ${contractKey} v${contractVersion} ${method} response: ${parsed.success ? 'tax totals or lines are inconsistent' : parsed.error?.message}`);
@@ -824,7 +864,8 @@ export async function callContract<C extends PluginContractName>(
     }
     throw error;
   } finally {
-    if (!injected) await releaseRuntime(runtime);
+    if (timeout) clearTimeout(timeout);
+    if (runtime && !injected) await releaseRuntime(runtime);
   }
 }
 
@@ -986,9 +1027,31 @@ async function forwardToInternalFastify(
   }
   const bound = await prisma.pluginInstallation.findUnique({ where: { id: installation.id } });
   if (!bound?.enabled || bound.deletedAt || bound.protectionGeneration !== installation.protectionGeneration) throw new ApiError('PLUGIN_DISABLED');
-  const runtime = await ensureInternalRuntime(slug, manifest, ctx, true);
+  let runtime: InternalRuntime | undefined;
   let injected = false;
+  const databaseAbort = new AbortController();
+  let timeout: NodeJS.Timeout | undefined;
+  // The runtime setup and the request share one deadline.
+  const deadline = new Promise<never>((_, reject) => {
+    timeout = setTimeout(() => {
+      databaseAbort.abort();
+      reject(new PluginGatewayError(
+        `Plugin "${slug}" request timeout (${REQUEST_TIMEOUT_MS}ms)`,
+        'PLUGIN_TIMEOUT',
+        504
+      ));
+    }, pluginDatabaseLimit('invocationMs', REQUEST_TIMEOUT_MS));
+  });
   try {
+    try {
+      runtime = await setupRuntimeWithinDeadline(ensureInternalRuntime(slug, manifest, ctx, true), deadline);
+    } catch (error) {
+      // The setup failed: the plugin is at fault, so the failure is recorded and counted.
+      await recordPluginFailure(slug, error, 'gateway', installation.id, { config: ctx.config, manifest });
+      await sharedProtection.result(permit, false);
+      throw error;
+    }
+    const activeRuntime = runtime;
 
   const query = getQueryStringFromRawUrl(request.raw.url);
   const forwardUrl = toForwardUrl(forwardPath, query);
@@ -1013,26 +1076,13 @@ async function forwardToInternalFastify(
   }
 
   // Timeout wrapper for internal inject
-  const databaseAbort = new AbortController();
-  let timeout: NodeJS.Timeout;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeout = setTimeout(() => {
-      databaseAbort.abort();
-      reject(new PluginGatewayError(
-        `Plugin "${slug}" request timeout (${REQUEST_TIMEOUT_MS}ms)`,
-        'PLUGIN_TIMEOUT',
-        504
-      ));
-    }, pluginDatabaseLimit('invocationMs', REQUEST_TIMEOUT_MS));
-  });
-
   const latest = await prisma.pluginInstallation.findUnique({ where: { id: installation.id } });
   if (!latest?.enabled || latest.deletedAt || latest.protectionGeneration !== installation.protectionGeneration) {
     throw new ApiError('PLUGIN_DISABLED');
   }
   const identity = (request as any).apiToken ? null : (request as any).user;
   const principal = await recordTaskPrincipal(installation.id, identity ? { id: identity.id || identity.userId, role: identity.role } : null);
-  const invocation = withTaskScope({ installationId: installation.id, generation:installation.protectionGeneration, zipHash:ctx.zipHash, request: true, principal, actorId: principal?.id ?? 'anonymous', signal: databaseAbort.signal }, () => withPluginMigrationGate(slug, () => withPluginDatabaseInvocation(slug, installation.id, async () => runtime.app.inject({
+  const invocation = withTaskScope({ installationId: installation.id, generation:installation.protectionGeneration, zipHash:ctx.zipHash, request: true, principal, actorId: principal?.id ?? 'anonymous', signal: databaseAbort.signal }, () => withPluginMigrationGate(slug, () => withPluginDatabaseInvocation(slug, installation.id, async () => activeRuntime.app.inject({
       method: request.method as any,
       url: forwardUrl,
       headers,
@@ -1042,11 +1092,11 @@ async function forwardToInternalFastify(
   const invocationKey = Symbol();
   contractInvocations.set(invocationKey, { kind: 'gateway-request', id: request.id, installationId: installation.id, promise: invocation });
   void invocation.finally(() => contractInvocations.delete(invocationKey)).catch(() => undefined);
-  void invocation.finally(() => releaseRuntime(runtime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), ctx.config, manifest)));
+  void invocation.finally(() => releaseRuntime(activeRuntime)).catch((error) => console.error('Failed to close retired plugin runtime', redactPluginText(String(error), ctx.config, manifest)));
   const res = await Promise.race([
     invocation,
-    timeoutPromise,
-  ]).finally(() => clearTimeout(timeout));
+    deadline,
+  ]);
 
   const raw = (res as any).rawPayload;
   const body = raw !== undefined ? raw : res.payload;
@@ -1069,7 +1119,8 @@ async function forwardToInternalFastify(
     if (!(error instanceof SharedProtectionUnavailable) && !isDatabaseUnavailable(error) && !(error instanceof ApiError && ['PLUGIN_DISABLED', 'PLUGIN_MAINTENANCE', 'DATABASE_UNAVAILABLE', 'PLUGIN_DATABASE_BUSY', 'PLUGIN_DATABASE_OUTCOME_UNKNOWN'].includes(error.code)) && injected) await sharedProtection.result(permit, false);
     throw error;
   } finally {
-    if (!injected) await releaseRuntime(runtime);
+    if (timeout) clearTimeout(timeout);
+    if (runtime && !injected) await releaseRuntime(runtime);
   }
 }
 

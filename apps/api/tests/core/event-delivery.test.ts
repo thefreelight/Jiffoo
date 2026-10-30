@@ -431,7 +431,7 @@ module.exports = { register(ctx) {
     ]);
   });
 
-  it('F: applies all seven retry delays and atomically records the eighth failure on the exact installation', async () => {
+  it('F: applies all seven retry delays with their bounded jitter and atomically records the eighth failure on the exact installation', async () => {
     const installation = await plugin({ fail: true });
     const event = await emit();
     for (let attempt = 1; attempt <= 8; attempt++) {
@@ -442,8 +442,10 @@ module.exports = { register(ctx) {
       if (attempt < 8) {
         await expectDelivery(row, { status: 'PENDING', attempts: attempt });
         const delay = EVENT_RETRY_SECONDS[attempt - 1] * 1000;
+        // The jitter only delays the retry: the ladder is the lower bound and
+        // the jitter adds at most a fifth of it.
         expect(row.nextAttemptAt.getTime()).toBeGreaterThanOrEqual(before.getTime() + delay - 1);
-        expect(row.nextAttemptAt.getTime()).toBeLessThanOrEqual(after.getTime() + delay + 1);
+        expect(row.nextAttemptAt.getTime()).toBeLessThanOrEqual(after.getTime() + delay * 1.2 + 1);
         expect((await prisma.pluginInstallation.findUniqueOrThrow({ where: { id: installation.id } })).lastFailureAt).toBeNull();
         await due(row.id);
       } else {

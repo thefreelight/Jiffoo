@@ -209,14 +209,16 @@ export async function accountRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const data = await request.file();
+      // The part carries its own cap: the body is never buffered beyond the
+      // business cap of the upload service.
+      const data = await request.file({ limits: { fileSize: UploadService.MAX_FILE_SIZE, files: 1 }, throwFileSizeLimit: true });
 
       if (!data) {
         return sendError(reply, 400, 'BAD_REQUEST', 'No file uploaded');
       }
 
       UploadService.assertAllowedType(data.mimetype);
-      const content = await readUploadContent(data);
+      const content = await readUploadContent(data, UploadService.MAX_FILE_SIZE);
       const result = await UploadService.uploadAvatar({ filename: data.filename, mimetype: data.mimetype, content });
       await AccountService.updateProfile(request.user!.id, { avatar: result.url });
       return sendSuccess(reply, result);

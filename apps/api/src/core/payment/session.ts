@@ -4,7 +4,7 @@ import { PLUGIN_CONTRACT_VERSIONS, type PaymentFact, type PaymentV2Output } from
 import { prisma } from '@/config/database';
 import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { callContract } from '@/core/extensions/runtime/plugin-runtime';
-import { createNotification, type NotificationTransaction } from '@/core/notifications/service';
+import { emitEvent } from '@/infra/events/emit';
 import { OrderService } from '@/core/order/service';
 import { OrderStatus, PaymentStatus } from '@/core/order/policy';
 import { lockOrder, lockPayment } from '@/core/shared/locks';
@@ -48,22 +48,18 @@ function response(payment: Payment) {
   return { paymentId: payment.id, sessionId: payment.sessionId, url: payment.sessionUrl || undefined, action, expiresAt: payment.expiresAt.toISOString() };
 }
 /**
- * Record the order confirmation notification of a created payment session.
+ * The payload of the order confirmation event of a created payment session.
  *
- * The notification is written inside the payment transaction today; the event
- * driven variant (an emitted order event delivered by the core subscribers) is
- * the follow up. The arguments, the values and the dedup key stay the ones the
- * inline call used.
+ * The event carries the order and the instructions of the confirmation. The
+ * recipient and the order number are resolved by the subscriber through the
+ * order projection, so the event stays free of the fields an order written
+ * directly into the database may not have.
  */
-async function recordOrderConfirmation(
-  tx: NotificationTransaction,
-  confirmation: { userId: string; toAddress: string; orderId: string; orderNumber: string; instructions: string },
-) {
-  await createNotification(tx, 'order_confirmation', confirmation.userId, confirmation.toAddress, {
-    orderId: confirmation.orderNumber, instructions: confirmation.instructions,
-  }, { relatedType: 'order', relatedId: confirmation.orderId, dedupKey: 'notification:order_confirmation:' + confirmation.orderId });
+function orderConfirmationEvent(confirmation: { orderId: string; instructions: string }) {
+  return {
+    id: confirmation.orderId, orderId: confirmation.orderId, instructions: confirmation.instructions,
+  };
 }
-
 export async function createPaymentSession(input: SessionInput) {
   const orderIdentity = await prisma.order.findFirst({ where: { id: input.orderId, userId: input.userId }, select: { currency: true } });
   if (!orderIdentity) throw new ApiError('NOT_FOUND');
@@ -129,11 +125,18 @@ export async function createPaymentSession(input: SessionInput) {
       await tx.payment.update({ where: { id: current.id }, data: { status: 'REQUIRES_REVIEW', failureReason: 'creation_fact_mismatch' } });
       throw new ApiError('PAYMENT_REQUIRES_REVIEW');
     }
-    if (current.sessionId && current.actionJson) await recordOrderConfirmation(tx, {
-      userId: input.userId, toAddress: reservation.order.customerEmail || input.email,
-      orderId: input.orderId, orderNumber: reservation.order.orderNumber,
-      instructions: fact.action?.type === 'instructions' ? fact.action.text : '',
-    });
+    // The order confirmation notification is a side effect of the session: the
+    // event is written inside this transaction, so the event and the payment
+    // state stay atomic, and the core subscriber writes the notification row
+    // after the commit. A failing notification can therefore never roll back
+    // the payment session. The recipient and the order number are resolved by
+    // the subscriber through the order projection, so the event carries the
+    // order and the instructions only.
+    if (current.sessionId && current.actionJson) await emitEvent(tx, 'order.confirmed', 1, input.orderId,
+      orderConfirmationEvent({
+        orderId: input.orderId,
+        instructions: fact.action?.type === 'instructions' ? fact.action.text : '',
+      }), { actorId: input.userId });
     return current;
   });
   return response(payment);

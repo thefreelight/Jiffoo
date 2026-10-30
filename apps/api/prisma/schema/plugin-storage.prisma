@@ -38,6 +38,7 @@ model PluginFileCleanup {
   installationId String
   objectKey      String    @unique
   attempts       Int       @default(0)
+  status         String    @default("PENDING")
   nextAttemptAt  DateTime  @default(now()) @db.Timestamptz(3)
   claimToken     String?   @db.Uuid
   leaseUntil     DateTime? @db.Timestamptz(3)

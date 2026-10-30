@@ -6,6 +6,7 @@ import {
   coreSubscribedEventTypes,
   coreSubscribersFor,
   notifyOrderCancelled,
+  notifyOrderConfirmed,
   notifyOrderRefunded,
   notifyOrderShipped,
   notifyPaymentSucceeded,
@@ -18,6 +19,7 @@ import { OrderService } from '@/core/order/service';
 // function is the expectation: a subscriber bound to the wrong event fails.
 const bindings: Record<string, CoreSubscriber> = {
   'order.cancelled': notifyOrderCancelled,
+  'order.confirmed': notifyOrderConfirmed,
   'order.fulfilled': notifyOrderShipped,
   'order.refunded': notifyOrderRefunded,
   'payment.succeeded': notifyPaymentSucceeded,

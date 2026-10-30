@@ -3,7 +3,7 @@ import path from 'path';
 import { Client } from 'pg';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
-import { processDatabaseUrl } from '@/infra/core-process-identity';
+import { processDatabaseUrl, CORE_DATABASE_STATEMENT_TIMEOUT_MS } from '@/infra/core-process-identity';
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { getDefaultInstance } from '@/core/extensions/registry';
@@ -73,7 +73,18 @@ async function loadBuiltinPackages(builtinRoot: string): Promise<BuiltinPackage[
 async function takeSyncLock(): Promise<Client> {
   const client = new Client({ connectionString: processDatabaseUrl(env.DATABASE_URL, 'core', undefined, true), connectionTimeoutMillis: 5_000 });
   client.on('error', () => undefined);
-  await client.connect();
+  try {
+    await client.connect();
+    // The session carries a server-side deadline: a PostgreSQL that stopped
+    // answering cancels the statement instead of letting the sync hold its
+    // advisory lock, which blocks every other builtin sync.
+    await client.query(`SET statement_timeout = '${CORE_DATABASE_STATEMENT_TIMEOUT_MS}ms'`);
+  } catch (error) {
+    // The connection is closed, so a failed setup never leaves a session
+    // behind.
+    await client.end().catch(() => undefined);
+    throw error;
+  }
   const deadline = Date.now() + BUILTIN_SYNC_LOCK_WAIT_SECONDS * 1000;
   for (;;) {
     const result = await client.query<{ locked: boolean }>('SELECT pg_try_advisory_lock($1::bigint) AS locked', [BUILTIN_SYNC_LOCK]);

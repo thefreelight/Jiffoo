@@ -21,6 +21,23 @@ it('N orphan markers make the persistent feed require maintenance and disable re
   await prisma.pluginOperationLease.create({data:{slug:`invocation:${slug}`,token:randomUUID(),operation:`plugin-invocation:${slug}`,ownerBootNonce:bootNonce,acquiredAt:new Date(),expiresAt:new Date(0)}});
   const response=await app.inject({method:'GET',url:'/api/v1/extensions/plugin/recovery',headers:admin.authHeader});expect(response.statusCode).toBe(200);expect(response.json().data.items.find((item:any)=>item.slug===slug)).toMatchObject({maintenanceRequired:true,markerCount:1,operations:[{retryAvailable:false}]});
 });
+it('N the dead cleanup rows are visible to the operator over HTTP',async()=>{
+  const deadSlug=`recovery-dead-${randomUUID().slice(0,12)}`;
+  const install=await prisma.pluginInstall.create({data:{slug:deadSlug,name:deadSlug,version:'1.0.0'}});
+  const installation=await prisma.pluginInstallation.create({data:{pluginSlug:install.slug,instanceKey:'default',enabled:true}});
+  const objectKey=`private/${installation.id}/CUSTOMER/${randomUUID()}`;
+  await prisma.pluginFileCleanup.create({data:{installationId:installation.id,objectKey,status:'DEAD',attempts:12,lastError:'UPLOAD_STORAGE_UNAVAILABLE'}});
+  try{
+    const response=await app.inject({method:'GET',url:'/api/v1/extensions/plugin/recovery',headers:admin.authHeader});
+    expect(response.statusCode).toBe(200);
+    const item=response.json().data.items.find((entry:any)=>entry.slug===deadSlug);
+    expect(item).toMatchObject({slug:deadSlug,maintenanceRequired:true,deadCleanupCount:1,deadCleanups:[{objectKey,attempts:12,lastError:'UPLOAD_STORAGE_UNAVAILABLE'}]});
+  }finally{
+    await prisma.pluginFileCleanup.deleteMany({where:{installationId:installation.id}});
+    await prisma.pluginInstallation.deleteMany({where:{id:installation.id}});
+    await prisma.pluginInstall.deleteMany({where:{slug:deadSlug}});
+  }
+});
 it('N recovery listing requires Admin authorization',async()=>{
   expect((await app.inject({method:'GET',url:'/api/v1/extensions/plugin/recovery'})).statusCode).toBe(401);
   expect((await app.inject({method:'GET',url:'/api/v1/extensions/plugin/recovery',headers:customer.authHeader})).statusCode).toBe(403);

@@ -86,6 +86,13 @@ vi.mock('@/core/extensions/runtime/plugin-runtime', () => ({
   callContract: vi.fn(),
 }));
 
+// The outbox is mocked: the unit test exercises the payment session, and the
+// event write is asserted through the mock instead of through the database.
+vi.mock('@/infra/events/emit', () => ({
+  emitEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
+  syncEventSubscriptions: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@/core/notifications/service', () => ({
   createNotification: vi.fn().mockResolvedValue(undefined),
 }));
@@ -114,6 +121,7 @@ import { authMiddleware } from '@/core/auth/middleware';
 import { queryPaymentByRequestKey } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { observePaymentFact, preparePaymentFact, applyPreparedPaymentFact } from '@/core/payment/observations';
+import { emitEvent } from '@/infra/events/emit';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -312,6 +320,10 @@ describe('Payment Routes', () => {
       vi.mocked(observePaymentFact).mockImplementation(async (_slug, fact) => {
         await tx.payment.updateMany({ data: { status: 'PENDING', sessionId: fact.sessionId, actionJson: fact.action } } as any); return true;
       });
+      vi.mocked(emitEvent).mockImplementation(async (_transaction, type) => {
+        if (type === 'order.confirmed') sequence.push('event');
+        return { id: 'event-1' } as any;
+      });
 
       const response = await app.inject({
         method: 'POST',
@@ -328,7 +340,18 @@ describe('Payment Routes', () => {
         }),
       }));
       expect(response.json().data.action).toEqual({ type: 'redirect', url: 'https://gateway.example/session' });
-      expect(sequence).toEqual(['reserved','provider','stored']);
+      // The order confirmation is an event of the payment session: it is
+      // written with the transaction of the session, so the event and the
+      // payment state stay atomic.
+      expect(emitEvent).toHaveBeenCalledWith(
+        tx,
+        'order.confirmed',
+        1,
+        'order-1',
+        { id: 'order-1', orderId: 'order-1', instructions: '' },
+        { actorId: 'user-1' },
+      );
+      expect(sequence).toEqual(['reserved','provider','stored','event']);
     });
 
     it('passes a complete verified payment v2 fact to observation storage', async () => {

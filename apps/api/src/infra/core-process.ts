@@ -1,5 +1,5 @@
 import { prisma } from '@/config/database';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { coreProcessIdentity, PROCESS_REGISTRATION_LOCK_CLASS, PROCESS_REGISTRATION_LOCK_KEY } from './core-process-identity';
 import { recoveryLimit, observeRecovery } from './recovery-test-control';
 import { ApiError } from '@/utils/api-errors';
@@ -7,6 +7,14 @@ import { flushCompletedPluginMarkers } from '@/core/storage/completed-plugin-mar
 
 export const CORE_PROCESS_HEARTBEAT_MS = 10_000;
 export const CORE_PROCESS_RETENTION_DAYS = 30;
+/**
+ * The heartbeat age after which a core process is presumed crashed.
+ *
+ * The window is the suspect window of the recovery sweep: a process that
+ * heartbeats every ten seconds has missed three heartbeats when its row is
+ * this old.
+ */
+export const CORE_PROCESS_SUSPECT_MS = 30_000;
 let registration: Promise<string> | undefined;
 let heartbeat: NodeJS.Timeout | undefined;
 let pending: Promise<unknown> | undefined;
@@ -55,6 +63,62 @@ export function stopCoreProcessHeartbeat(): void {
 export async function drainCoreProcessHeartbeat(): Promise<void> {
   stopCoreProcessHeartbeat();
   await pending;
+}
+
+/**
+ * The heartbeat age after which a core process is presumed crashed.
+ *
+ * The window is the suspect window of the recovery sweep, so the sweep that
+ * reports a suspect marker and the sweep that reclaims the slots of a crashed
+ * worker share one threshold.
+ */
+export function coreProcessSuspectMs(): number {
+  return recoveryLimit('suspectMs', CORE_PROCESS_SUSPECT_MS);
+}
+
+/**
+ * The boot nonces that still hold a database session.
+ *
+ * A crashed process loses its sessions, and a process that is alive but
+ * frozen keeps them: every session carries the boot nonce of its process in
+ * the application name, so the registry tells a crashed process from a frozen
+ * one without trusting the heartbeat alone.
+ */
+async function liveBootNonces(client: { $queryRaw: Prisma.TransactionClient['$queryRaw'] }): Promise<Set<string>> {
+  const rows = await client.$queryRaw<Array<{ application_name: string | null }>>`SELECT "application_name" FROM pg_stat_activity WHERE "datname" = current_database() AND "application_name" LIKE 'jf:%'`;
+  const nonces = new Set<string>();
+  for (const row of rows) {
+    const encoded = row.application_name?.split(':')[1];
+    if (!encoded) continue;
+    const hex = Buffer.from(encoded, 'base64url').toString('hex');
+    if (hex.length !== 32) continue;
+    nonces.add(`${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`);
+  }
+  return nonces;
+}
+
+/**
+ * Confirm the death of the core processes that stopped heartbeating.
+ *
+ * A process that was killed leaves its row in state LIVE, and the execution
+ * slots it owns stay occupied until an operator reclaims them by hand, so the
+ * whole platform stops claiming plugin tasks. Every process whose heartbeat
+ * is older than the suspect window and that holds no database session any
+ * more moves into DEAD_CONFIRMED. The row of the process that runs the sweep
+ * is never touched, and a process that is alive but frozen keeps its row: a
+ * stopped heartbeat alone never condemns a live process.
+ *
+ * The write happens on the client the caller passes, so it stays inside the
+ * caller's transaction. The core-process registry owns the `core_processes`
+ * table.
+ */
+export async function confirmDeadCoreProcesses(client: { $queryRaw: Prisma.TransactionClient['$queryRaw'] }, suspectMs: number): Promise<Array<{ bootNonce: string; kind: string; heartbeatAt: string }>> {
+  const stale = await client.$queryRaw<Array<{ bootNonce: string; kind: string; heartbeatAt: string }>>`SELECT p."bootNonce", p.kind, to_char(p."heartbeatAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "heartbeatAt" FROM public.core_processes p WHERE p.state IN ('LIVE','DRAINING') AND p."bootNonce" <> ${coreProcessIdentity.bootNonce}::uuid AND p."heartbeatAt" < (clock_timestamp() AT TIME ZONE 'UTC') - ${suspectMs} * interval '1 millisecond'`;
+  if (!stale.length) return [];
+  const live = await liveBootNonces(client);
+  const dead = stale.filter(row => !live.has(row.bootNonce));
+  if (!dead.length) return [];
+  return client.$queryRaw<Array<{ bootNonce: string; kind: string; heartbeatAt: string }>>`UPDATE public.core_processes p SET state = 'DEAD_CONFIRMED', "deathConfirmedAt" = clock_timestamp() AT TIME ZONE 'UTC', "deathProof" = ${JSON.stringify({ source: 'heartbeat-timeout', suspectMs })}::jsonb WHERE p."bootNonce"::text IN (${Prisma.join(dead.map(row => row.bootNonce))}) AND p.state IN ('LIVE','DRAINING') RETURNING p."bootNonce", p.kind, to_char(p."heartbeatAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "heartbeatAt"`;
 }
 
 /**

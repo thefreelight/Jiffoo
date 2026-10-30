@@ -4,6 +4,36 @@ import { getPluginTimeoutMs } from '@/core/extensions/runtime/gateway-protection
 export const NOTIFICATION_LEASE_MS = 60_000;
 export const NOTIFICATION_MAX_ATTEMPTS = 5;
 export const NOTIFICATION_SEND_MARGIN_MS = 1_000;
+/**
+ * The delivery ladder, in minutes.
+ *
+ * The ladder is the delay that a notification waits before its next
+ * delivery attempt. The rung is chosen by the attempts the row already
+ * carries, so the first retry waits one minute, the second five minutes and
+ * the last one six hours.
+ */
+export const NOTIFICATION_RETRY_MINUTES = [1, 5, 15, 60, 360] as const;
+/**
+ * The delay of the next delivery attempt, in minutes.
+ *
+ * The attempts of a row that already carries more attempts than the ladder
+ * has rungs wait for the last rung.
+ */
+export function notificationRetryDelayMinutes(attempts: number): number {
+  const rung = Math.min(Math.max(0, Math.trunc(attempts)), NOTIFICATION_RETRY_MINUTES.length - 1);
+  return NOTIFICATION_RETRY_MINUTES[rung];
+}
+/**
+ * The SQL form of the ladder, for a column that carries the attempts.
+ *
+ * The failure path and the reclaim path share this form, so a notification
+ * that lost its sender waits exactly as long as a notification whose
+ * provider refused the delivery.
+ */
+function notificationRetryDelaySql(attemptsColumn: string): string {
+  const branches = NOTIFICATION_RETRY_MINUTES.map((minutes, rung) => `WHEN ${rung} THEN ${minutes}`).join(' ');
+  return `(CASE ${attemptsColumn} ${branches} ELSE ${NOTIFICATION_RETRY_MINUTES[NOTIFICATION_RETRY_MINUTES.length - 1]} END)`;
+}
 export function notificationClaimLimit(sendTimeoutMs: number): number {
   return Math.max(1, Math.floor(NOTIFICATION_LEASE_MS / (sendTimeoutMs + NOTIFICATION_SEND_MARGIN_MS)));
 }
@@ -11,13 +41,17 @@ export interface NotificationLeaseClient { query(text: string, values?: unknown[
 const stale = (id: string, write: string) => console.warn(JSON.stringify({ event: 'notification-stale-claim', kind: 'notification', id, write }));
 
 export async function reclaimNotificationLeases(client: NotificationLeaseClient): Promise<number> {
-  // TIMESTAMP(3) can round upward; floor retry time so recovered rows are immediately claimable.
+  // TIMESTAMP(3) can round upward; floor retry time so a recovered row is
+  // claimable exactly when its ladder says it is.
+  // The recovered row waits on the delivery ladder, exactly like a row whose
+  // provider refused the delivery: a notification whose sender died must not
+  // burn its whole attempt budget within seconds.
   const result = await client.query(`WITH expired AS (
     SELECT id FROM public.notifications WHERE status = 'SENDING' AND "leaseUntil" <= clock_timestamp()
     ORDER BY "leaseUntil", id LIMIT 100 FOR UPDATE SKIP LOCKED
   ) UPDATE public.notifications n SET
     status = CASE WHEN n.attempts + 1 >= $1 THEN 'FAILED' ELSE 'PENDING' END::public."NotificationStatus",
-    attempts = n.attempts + 1, "nextAttemptAt" = date_trunc('milliseconds', clock_timestamp() AT TIME ZONE 'UTC'),
+    attempts = n.attempts + 1, "nextAttemptAt" = date_trunc('milliseconds', (clock_timestamp() AT TIME ZONE 'UTC') + ${notificationRetryDelaySql('n.attempts')} * interval '1 minute'),
     "lastError" = 'Notification delivery lease expired', "updatedAt" = clock_timestamp() AT TIME ZONE 'UTC',
     "secretJson" = CASE WHEN n.attempts + 1 >= $1 THEN NULL ELSE n."secretJson" END,
     "claimToken" = NULL, "claimedBy" = NULL, "leaseUntil" = NULL
@@ -52,7 +86,7 @@ export async function failNotification(client: NotificationLeaseClient, notifica
   const result = await client.query(`UPDATE public.notifications SET
     status = CASE WHEN attempts + 1 >= $5 THEN 'FAILED' ELSE 'PENDING' END::public."NotificationStatus",
     "nextAttemptAt" = (clock_timestamp() AT TIME ZONE 'UTC') +
-      (CASE attempts WHEN 0 THEN 1 WHEN 1 THEN 5 WHEN 2 THEN 15 WHEN 3 THEN 60 ELSE 360 END) * interval '1 minute',
+      ${notificationRetryDelaySql('attempts')} * interval '1 minute',
     "secretJson" = CASE WHEN attempts + 1 >= $5 THEN NULL ELSE "secretJson" END,
     attempts = attempts + 1, "lastError" = $3, "providerSlug" = $4,
     "claimToken" = NULL, "claimedBy" = NULL, "leaseUntil" = NULL,

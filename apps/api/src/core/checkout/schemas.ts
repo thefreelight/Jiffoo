@@ -52,6 +52,10 @@ const quoteResponseSchema = {
     tax: { type: 'string' },
     taxInclusive: { type: 'boolean' },
     total: { type: 'string' },
+    // The tax of the quote is unknown: the tax provider failed, so the quote
+    // carries no tax and no total. The marker tells the failure apart from a
+    // store that has no tax provider, which answers with a zero tax.
+    taxUnavailable: { type: 'boolean' },
   },
   required: ['currency', 'subtotal', 'shippingOptions', 'paymentMethods'],
 } as const;

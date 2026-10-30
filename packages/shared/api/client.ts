@@ -290,10 +290,13 @@ export class ApiClient {
         return null; // Not logged in
       }
 
+      // The refresh carries the deadline of the instance: a Core that stops
+      // answering during a refresh must fail the waiting request instead of
+      // holding every request that waits for the refresh.
       const response = await axios.post(
         `${this.axiosInstance.defaults.baseURL}/auth/refresh`,
         { refresh_token: refreshToken },
-        { withCredentials: true }
+        { withCredentials: true, timeout: this.axiosInstance.defaults.timeout ?? 10000 }
       );
 
       if (response.data.success && response.data.data) {

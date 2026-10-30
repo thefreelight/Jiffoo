@@ -10,7 +10,7 @@ afterEach(async () => {
   ids.length = 0;
 });
 
-it.each(['000100', '000500', '000900'])('reclaims and immediately claims an expired notification at microseconds %s', async fraction => {
+it.each(['000100', '000500', '000900'])('reclaims and claims an expired notification after its ladder rung at microseconds %s', async fraction => {
   const id = `lease-clock-${randomUUID()}`, oldToken = randomUUID();
   const earlierId = `lease-clock-earlier-${randomUUID()}`;
   ids.push(id, earlierId);
@@ -25,6 +25,9 @@ it.each(['000100', '000500', '000900'])('reclaims and immediately claims an expi
     status: 'SENDING', claimToken: oldToken, claimedBy: 'expired-worker', leaseUntil: new Date(0),
   } });
   const instant = `2030-01-01T00:00:00.${fraction}Z`;
+  // The rung of the delivery ladder of a row that carries no attempt yet.
+  const rung = '2030-01-01T00:01:00.000Z';
+  const clock = (at: string) => (sql: string) => sql.replaceAll('clock_timestamp()', `TIMESTAMPTZ '${at}'`);
   await prisma.$transaction(async isolation => {
     // A separate connection holds other rows so SKIP LOCKED isolates the fixture without changing them.
     const neighbors = await isolation.$queryRawUnsafe<Array<{ id: string }>>(
@@ -33,16 +36,27 @@ it.each(['000100', '000500', '000900'])('reclaims and immediately claims an expi
     await prisma.$transaction(async tx => {
       // Freeze only the SQL clock; execute the real recovery and claim statements against PostgreSQL.
       const client: NotificationLeaseClient = {
-        query: async (sql, values = []) => ({ rows: await tx.$queryRawUnsafe<any[]>(
-          sql.replaceAll('clock_timestamp()', `TIMESTAMPTZ '${instant}'`), ...values,
-        ) }),
+        query: async (sql, values = []) => ({ rows: await tx.$queryRawUnsafe<any[]>(clock(instant)(sql), ...values) }),
       };
       expect(await reclaimNotificationLeases(client)).toBe(1);
       const [recovered] = await tx.$queryRawUnsafe<Array<{ due: boolean; nextAttemptAt: Date }>>(
         'SELECT "nextAttemptAt", "nextAttemptAt" <= $2::timestamptz AT TIME ZONE \'UTC\' AS due FROM public.notifications WHERE id = $1', id, instant,
       );
-      expect(recovered.due, `Recovered retry time ${recovered.nextAttemptAt.toISOString()} must not exceed ${instant}`).toBe(true);
-      const claimed = await claimNotifications(client, 'replacement-worker', 1);
+      // The reclaim schedules the row with the ladder, so it is not due at the moment of the reclaim.
+      expect(recovered.due, `Recovered retry time ${recovered.nextAttemptAt.toISOString()} must not be due at ${instant}`).toBe(false);
+      const [scheduled] = await tx.$queryRawUnsafe<Array<{ rung: boolean; due: boolean }>>(
+        'SELECT "nextAttemptAt" = $2::timestamptz AT TIME ZONE \'UTC\' AS rung, "nextAttemptAt" <= $2::timestamptz AT TIME ZONE \'UTC\' AS due FROM public.notifications WHERE id = $1', id, rung,
+      );
+      // The rung of the ladder is the first one of the delivery ladder.
+      expect(scheduled.rung, 'the reclaim schedules the row with the first rung of the delivery ladder').toBe(true);
+      expect(scheduled.due, 'the row is due when its rung passes').toBe(true);
+      // The row is not claimable before its rung passes.
+      expect(await claimNotifications(client, 'too-early-worker', 1)).toHaveLength(0);
+      // One rung later the row is due and the replacement worker claims it.
+      const later: NotificationLeaseClient = {
+        query: async (sql, values = []) => ({ rows: await tx.$queryRawUnsafe<any[]>(clock(rung)(sql), ...values) }),
+      };
+      const claimed = await claimNotifications(later, 'replacement-worker', 1);
       expect(claimed).toHaveLength(1);
       const owned = claimed.find(row => row.id === id);
       expect(owned).toMatchObject({ id, status: 'SENDING', attempts: 1, claimedBy: 'replacement-worker' });

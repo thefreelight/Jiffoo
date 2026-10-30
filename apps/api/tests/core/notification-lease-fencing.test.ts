@@ -138,6 +138,46 @@ async function notification() {
   const id = `b10-${randomUUID()}`; notificationIds.add(id);
   return prisma.notification.create({ data: { id, type: 'payment_received', toAddress: 'b10@example.test', locale: 'en', subject: 'B10', html: 'B10', text: 'B10', secretJson: { code: 'fixture-only' } } });
 }
+/**
+ * The rungs of the delivery ladder, in seconds.
+ *
+ * A reclaimed notification waits on the ladder before it is due again, so a
+ * test that continues after a reclaim asserts the rung and then lets it pass.
+ */
+const LADDER_RUNG_SECONDS = [60, 300, 900, 3600, 21600];
+/**
+ * Assert that a reclaimed row waits for the rung of the ladder.
+ *
+ * The rung is measured in the database, because the column carries a moment
+ * without a time zone and the test reads it in the local time of the host.
+ */
+async function assertLadderRung(client: Client, id: string, rungSeconds: number): Promise<void> {
+  const [row] = (await client.query<{ delta: number; due: boolean }>(
+    `SELECT EXTRACT(EPOCH FROM ("nextAttemptAt" - (clock_timestamp() AT TIME ZONE 'UTC')))::int AS delta,
+            "nextAttemptAt" <= clock_timestamp() AT TIME ZONE 'UTC' AS due
+     FROM public.notifications WHERE id = $1`, [id])).rows;
+  expect(row, 'the reclaimed row must exist').toBeDefined();
+  expect(row.delta, `the reclaimed row waits ${rungSeconds} seconds on the ladder`).toBeGreaterThanOrEqual(rungSeconds - 10);
+  expect(row.delta).toBeLessThanOrEqual(rungSeconds + 10);
+  expect(row.due, 'a reclaimed row is not due before its rung passes').toBe(false);
+}
+/**
+ * Let the rung of a reclaimed row pass.
+ *
+ * The moment of the next attempt moves into the past, which is what the wall
+ * clock does when the rung passes.
+ */
+async function passLadderRung(client: Client, id: string): Promise<void> {
+  await client.query(`UPDATE public.notifications SET "nextAttemptAt" = '1970-01-01 00:00:00'::timestamp WHERE id = $1`, [id]);
+}
+async function waitFor(check: () => Promise<boolean>, timeoutMs = 20_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await check()) return;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  throw new Error('The fixture did not reach the expected state in time');
+}
 async function connect() {
   const client = new Client({ connectionString: process.env.DATABASE_URL_TEST });
   try { await client.connect(); clients.add(client); return client; } catch (error) { await client.end(); throw error; }
@@ -198,8 +238,13 @@ it('B expired takeover rejects both stale completion and failure without changin
     await first.query('BEGIN'); const [oldClaim] = await claimNotifications(first, 'old'); await first.query('COMMIT');
     expect(oldClaim.id).toBe(item.id);
     await expireNotificationLeaseForTest(true, first, item.id, oldClaim.claimToken!);
-    await second.query('BEGIN'); expect(await reclaimNotificationLeases(second)).toBe(1); const [current] = await claimNotifications(second, 'new'); await second.query('COMMIT');
+    await second.query('BEGIN'); expect(await reclaimNotificationLeases(second)).toBe(1);
+    // The reclaimed row waits for the rung of the ladder before it is due again.
+    await assertLadderRung(second, item.id, LADDER_RUNG_SECONDS[0]);
+    await passLadderRung(second, item.id);
+    const [current] = await claimNotifications(second, 'new'); await second.query('COMMIT');
     const snapshot = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
+    expect(current).toBeDefined();
     expect(current.claimToken).not.toBe(oldClaim.claimToken); expect(current.attempts).toBe(1);
     expect(await completeNotification(first, oldClaim, 'old', 'old-message')).toBe(0);
     expect(await failNotification(first, oldClaim, 'old-error', 'old')).toBe(0);
@@ -214,11 +259,18 @@ it('C a real worker killed mid-send is reclaimed and resends the identical notif
     const claimed = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } }); expect(claimed.status).toBe('SENDING');
     await stopChild(first, true);
     await expireNotificationLeaseForTest(true, control, item.id, claimed.claimToken!);
-    second = await child(); const resend = await requestFrom(second, value => value.kind === 'notification' && value.id === item.id && value.pid === second!.process.pid);
+    second = await child();
+    await second.messages.take(value => value.stage === 'ready');
+    // The worker reclaimed the expired lease and waits for the rung of the ladder.
+    await waitFor(async () => (await prisma.notification.findUniqueOrThrow({ where: { id: item.id } })).attempts === 1);
+    await assertLadderRung(control, item.id, LADDER_RUNG_SECONDS[0]);
+    await passLadderRung(control, item.id);
+    second.process.send({ command: 'notification-tick' });
+    const resend = await requestFrom(second, value => value.kind === 'notification' && value.id === item.id && value.pid === second!.process.pid);
     expect((await prisma.notification.findUniqueOrThrow({ where: { id: item.id } })).attempts).toBe(1);
     expect(observed.filter(value => value.id === item.id).map(value => value.id)).toEqual([item.id, item.id]);
     resend.response.end(JSON.stringify({ accepted: true, providerMessageId: `receipt-${item.id}` }));
-    await second.messages.take(value => value.stage === 'ready'); await stopChild(second);
+    await stopChild(second);
     expect((await prisma.notification.findUniqueOrThrow({ where: { id: item.id } })).status).toBe('SENT');
   } finally { if (first) await stopChild(first); if (second) await stopChild(second); await control.end(); }
 }, 180_000);
@@ -234,7 +286,10 @@ it('D five real worker crashes exhaust attempts and clear the notification secre
         await control.query('BEGIN'); expect(await reclaimNotificationLeases(control)).toBe(1); await control.query('COMMIT');
         const result = await prisma.notification.findUniqueOrThrow({ where: { id: item.id } });
         expect(result.attempts).toBe(attempt); expect(result.status).toBe(attempt === 5 ? 'FAILED' : 'PENDING');
+        // The reclaim waits for the rung of the ladder that the attempts of the row carry.
+        await assertLadderRung(control, item.id, LADDER_RUNG_SECONDS[attempt - 1]);
         if (attempt === 5) expect(result.secretJson).toBeNull();
+        else await passLadderRung(control, item.id);
       } finally { await stopChild(current); }
     }
     expect(observed.filter(value => value.id === item.id)).toHaveLength(5);

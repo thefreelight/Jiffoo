@@ -13,6 +13,15 @@ import { collectFile, fileTypes, untilAbort, validateFileContent, type FileType 
 import { signFileGrant, verifyFileGrant } from './grants';
 
 type Authority = { installationId: string; principal: TaskPrincipal; generation: bigint; signal?: AbortSignal };
+/**
+ * The attempt budget of one cleanup row.
+ *
+ * A row that keeps failing becomes a dead letter after this many attempts:
+ * it is never claimed again, so a remote object that can never be deleted
+ * stops consuming the sweep and becomes visible to an operator through the
+ * plugin recovery listing instead of being retried for years.
+ */
+export const PLUGIN_FILE_CLEANUP_MAX_ATTEMPTS = 12;
 export type StorageAuthorization = (tx: TaskTransaction) => Promise<Authority>;
 const digest = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
@@ -192,7 +201,7 @@ export class PluginStorageService {
     }, { maxWait: 10_000, timeout: 30_000 });
     for (let count = 0; count < 25 && !isStopping(); count++) {
       const claim = await prisma.$transaction(async tx => {
-        const rows = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM public.plugin_file_cleanup WHERE "nextAttemptAt" <= clock_timestamp() AND ("leaseUntil" IS NULL OR "leaseUntil" <= clock_timestamp()) ORDER BY "nextAttemptAt", id FOR UPDATE SKIP LOCKED LIMIT 1`;
+        const rows = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM public.plugin_file_cleanup WHERE status = 'PENDING' AND "nextAttemptAt" <= clock_timestamp() AND ("leaseUntil" IS NULL OR "leaseUntil" <= clock_timestamp()) ORDER BY "nextAttemptAt", id FOR UPDATE SKIP LOCKED LIMIT 1`;
         if (!rows.length) return null;
         const now = await taskDatabaseTime(tx);
         return tx.pluginFileCleanup.update({ where: { id: rows[0].id }, data: { claimToken: randomUUID(), leaseUntil: new Date(now.getTime() + 30_000) } });
@@ -221,9 +230,14 @@ export class PluginStorageService {
           }
         }
         // Keep an immutable-key tombstone: cancellation cannot prevent a late remote PUT.
+        // A row whose delete never succeeds becomes a dead letter when it exhausts
+        // the attempt budget: it is never claimed again and the operator sees it
+        // in the plugin recovery listing.
+        const attempts = live.attempts + 1;
+        const dead = failure !== null && attempts >= PLUGIN_FILE_CLEANUP_MAX_ATTEMPTS;
         await tx.pluginFileCleanup.updateMany({ where: { id: claim.id, claimToken: claim.claimToken, leaseUntil: { gt: now } }, data: {
           fileId: failure ? live.fileId : null, claimToken: null, leaseUntil: null, lastError: failure,
-          attempts: Math.min(live.attempts + 1, 1_000_000),
+          attempts, status: dead ? 'DEAD' : 'PENDING',
           nextAttemptAt: new Date(now.getTime() + (failure ? Math.min(3_600_000, 1000 * 2 ** Math.min(live.attempts, 12)) : 86_400_000)),
         } });
       });

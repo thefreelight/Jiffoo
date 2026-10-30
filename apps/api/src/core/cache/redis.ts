@@ -1,6 +1,11 @@
 import Redis from 'ioredis';
 import { env } from '@/config/env';
 
+/** The milliseconds a connection attempt to Redis may take before it is given up. */
+const CACHE_CONNECT_TIMEOUT_MS = 5_000;
+/** The milliseconds a command may wait for the answer of Redis before it is given up. */
+const CACHE_COMMAND_TIMEOUT_MS = 5_000;
+
 export class RedisCache {
   private static instance: RedisCache;
   private redis: Redis;
@@ -10,7 +15,15 @@ export class RedisCache {
   private constructor() {
     // Use REDIS_URL environment variable
     this.redis = new Redis(env.REDIS_URL, {
-      maxRetriesPerRequest: 3,
+      // The cache is never on the critical path of a request: a Redis that
+      // stopped answering must turn every read into a miss instead of a
+      // request that hangs. The connect timeout, the command timeout and the
+      // disabled offline queue are the discipline of the protection module.
+      connectTimeout: CACHE_CONNECT_TIMEOUT_MS,
+      commandTimeout: CACHE_COMMAND_TIMEOUT_MS,
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 0,
+      autoResendUnfulfilledCommands: false,
       retryStrategy: (times) => {
         // Retry with exponential backoff, max 10 seconds
         const delay = Math.min(times * 1000, 10000);

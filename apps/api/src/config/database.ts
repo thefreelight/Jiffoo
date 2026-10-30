@@ -6,6 +6,11 @@ import { processDatabaseUrl } from '@/infra/core-process-identity';
 /**
  * Base Prisma Client
  * Configured with environment-specific logging and slow query detection (R5.5)
+ *
+ * The datasource URL carries the deadlines of the Core client: the connect
+ * timeout, the bounds of the pool, the timeout of the socket and the
+ * statement deadlines that the server enforces. A broken connection
+ * therefore never pins a connection of the pool forever.
  */
 const prisma = new PrismaClient({
   datasources: { db: { url: processDatabaseUrl(env.DATABASE_URL, 'core') } },

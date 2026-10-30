@@ -16,6 +16,17 @@ const scopes = new AsyncLocalStorage<TaskScope>();
 const activeStates = ['ACTIVE', 'LINGERING'];
 export const occupiedTaskSlots = activeStates;
 
+/**
+ * The age after which an execution slot that stopped being observed is stale.
+ *
+ * The observation of a slot is written every ten seconds while its invocation
+ * lives, so a slot that was not observed for twice the runtime of a task
+ * cannot belong to a running invocation any more.
+ */
+export function staleTaskSlotMs(policy: TaskPolicy): number {
+  return 2 * policy.runtimeSeconds * 1000;
+}
+
 export async function withTaskScope<T>(scope: Omit<TaskScope, 'open'>, run: () => Promise<T>): Promise<T> {
   const admission = { ...scope, open: true };
   return scopes.run(admission, async () => { try { return await run(); } finally { admission.open = false; } });

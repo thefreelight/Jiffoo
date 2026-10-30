@@ -15,6 +15,31 @@ export const EVENT_BATCH_SIZE = 16;
 export const EVENT_RETRY_SECONDS = [60, 300, 900, 3600, 10800, 21600, 43200] as const;
 export const EVENT_MAX_ATTEMPTS = 8;
 /**
+ * The share of the ladder value that the jitter of one retry may add.
+ */
+export const EVENT_RETRY_JITTER_RATIO = 0.2;
+/**
+ * The jitter of one event delivery retry, in seconds.
+ *
+ * The jitter is bounded by the share of the ladder value and it is only ever
+ * added: a retry is delayed, never scheduled earlier than the ladder allows.
+ * A fleet whose plugin failed together therefore does not retry together.
+ */
+export function eventRetryJitterSeconds(baseSeconds: number): number {
+  return Math.floor(Math.random() * baseSeconds * EVENT_RETRY_JITTER_RATIO);
+}
+/**
+ * The delay of the next delivery attempt of an event, in seconds.
+ *
+ * The ladder value of the attempt carries a bounded jitter, so the deliveries
+ * of a fleet that failed together spread over the window of the ladder.
+ */
+export function eventRetryDelaySeconds(attempts: number): number {
+  const rung = Math.min(Math.max(1, Math.trunc(attempts)), EVENT_RETRY_SECONDS.length) - 1;
+  const base = EVENT_RETRY_SECONDS[rung];
+  return base + eventRetryJitterSeconds(base);
+}
+/**
  * The milliseconds an event transaction may hold its connection.
  *
  * The claim transaction claims a batch of deliveries and the failure
@@ -78,7 +103,7 @@ async function finishFailure(transaction: EventTransaction, delivery: EventDeliv
   error = await redactPluginFailure('', error, delivery.installationId);
   const tx = transaction as Prisma.TransactionClient;
   const final = delivery.attempts >= EVENT_MAX_ATTEMPTS;
-  const delay = final ? 0 : EVENT_RETRY_SECONDS[delivery.attempts - 1];
+  const delay = final ? 0 : eventRetryDelaySeconds(delivery.attempts);
   const changed = await tx.$executeRaw`
     UPDATE event_deliveries SET status = ${final ? 'FAILED' : 'PENDING'}::"EventDeliveryStatus",
       "lastError" = ${error}, "nextAttemptAt" = statement_timestamp() + ${delay} * interval '1 second',

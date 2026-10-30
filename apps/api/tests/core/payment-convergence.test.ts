@@ -807,7 +807,13 @@ it('v2 H lease expiry and an exhausted query budget never declare an unknown out
   await writer.query('UPDATE payments SET status=\'UNKNOWN\',"claimToken"=gen_random_uuid(),"claimedBy"=\'old-worker\',"leaseUntil"=clock_timestamp()-interval \'1 second\',"nextReconcileAt"=clock_timestamp() WHERE id=$1', [row.id]);
   expect((await prisma.payment.findUniqueOrThrow({ where: { id: row.id } })).status).toBe('UNKNOWN');
   failingQueries.add(row.idempotencyKey!);
-  for (let index = 0; index < 10; index++) await withPaymentTestClock(true, index * 61_000, () => reconcilePendingPayments({ minAgeMinutes: 0 }));
+  for (let index = 0; index < 10; index++) {
+    // A failed round schedules the next attempt with the backed off interval,
+    // so the test clock advances to the moment that the round scheduled.
+    const scheduled = await prisma.payment.findUniqueOrThrow({ where: { id: row.id } });
+    const offsetMs = Math.max(0, scheduled.nextReconcileAt.getTime() - Date.now()) + 1_000;
+    await withPaymentTestClock(true, offsetMs, () => reconcilePendingPayments({ minAgeMinutes: 0 }));
+  }
   expect((await prisma.payment.findUniqueOrThrow({ where: { id: row.id } })).status).toBe('REQUIRES_REVIEW');
   expect(await prisma.paymentLedger.count({ where: { paymentId: row.id, eventType: 'FAILED' } })).toBe(0);
   expect(await prisma.adminAuditEvent.count({ where: { targetId: row.id, action: 'PAYMENT_REVIEW_REQUIRED' } })).toBe(1);

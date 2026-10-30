@@ -7,7 +7,9 @@ import path from 'node:path';
 import { Client } from 'pg';
 import { sweepPluginRecovery } from '@/core/admin/extension-installer/plugin-recovery';
 import { prisma } from '@/config/database';
-import { PluginTaskWorker } from '@/core/plugins/task-worker';
+import { ensureCoreProcess } from '@/infra/core-process';
+import { coreProcessIdentity } from '@/infra/core-process-identity';
+import { PluginTaskWorker, retryDelayMs } from '@/core/plugins/task-worker';
 import { assertTaskClaim, createTaskApi, DEFAULT_TASK_POLICY, lockTaskScheduler, recordTaskPrincipal, requireTaskPrincipal, setTaskDependencyAvailability, setTaskOperatorPolicy, transitionInstallationTasks, withTaskScope, type TaskClaim } from '@/core/plugins/tasks';
 import { assertCurrentDatabase } from '@/config/test-lane';
 import { createPluginDatabaseTestRuntime, withPluginDatabaseHandler, withPluginDatabaseInvocation } from '@/core/admin/extension-installer/plugin-database';
@@ -72,6 +74,22 @@ const STOP_GRACE_MS = 20_000;
 async function eventually(predicate: () => Promise<boolean>, deadlineMs = SETTLE_DEADLINE_MS) {
   const end = performance.now() + deadlineMs;
   while (!await predicate()) { if (performance.now() >= end) throw new Error('Task state did not settle before its deadline'); await delay(10); }
+}
+/**
+ * The cleanup of the core-process fixtures of the reclaim cases.
+ *
+ * The rows of a fixture process are referenced by its task slots and by the
+ * tasks it claimed, so the references go first: the registry refuses to
+ * delete a process that still owns a slot or a claimed task. A claimed task
+ * leaves the claim in one statement: a task that is not RUNNING may not keep
+ * a claim token, a lease or a deadline, so clearing the owner of a running
+ * task alone would break the status constraint of the table.
+ */
+async function releaseProcessFixtures(bootNonces: string[]) {
+  await prisma.pluginTaskExecutionSlot.deleteMany({ where: { bootNonce: { in: bootNonces } } });
+  await prisma.pluginTask.updateMany({ where: { claimedByBootNonce: { in: bootNonces } }, data: { status: 'FAILED', claimToken: null, leaseUntil: null, deadlineAt: null, claimedByBootNonce: null, finishedAt: new Date() } });
+  await prisma.pluginTaskFinalFailure.deleteMany({ where: { bootNonce: { in: bootNonces } } });
+  await prisma.coreProcess.deleteMany({ where: { bootNonce: { in: bootNonces } } });
 }
 afterEach(async () => {
   assertCurrentDatabase((await prisma.$queryRaw<Array<{ name: string }>>`SELECT current_database() AS name`)[0].name);
@@ -409,6 +427,36 @@ it('a failed lingering-state write cannot forget an abort-ignoring invocation be
   } finally {release();await worker.drain();}
 }, 90_000);
 
+it('the retry ladder spreads the retries of a fleet that failed at the same moment',async()=>{
+  // The jitter of a delay is bounded by a fifth of the ladder value, and two
+  // draws of the same ladder value do not produce the same delay.
+  expect(retryDelayMs(60_000,()=>0)).toBe(60_000);
+  expect(retryDelayMs(60_000,()=>0.5)).toBe(66_000);
+  expect(retryDelayMs(60_000,()=>0.999)).toBe(71_988);
+  expect(retryDelayMs(1_000,()=>0)).toBe(1_000);
+  expect(retryDelayMs(1_000,()=>0.999)).toBe(1_199);
+  expect(retryDelayMs(60_000,()=>0.5)).not.toBe(retryDelayMs(60_000,()=>0.25));
+  // One installation admits two tasks of a name at a time, so the fleet
+  // spans five installations.
+  const fixtures=await Promise.all([0,1,2,3,4].map(()=>fixture()));
+  const tasks=[];
+  for(const f of fixtures)tasks.push(await f.enqueue());
+  const worker=new PluginTaskWorker({installationIds:fixtures.map(f=>f.installationId),execute:async()=>{throw new Error('Retryable');},retryMs:[1_000]});workers.push(worker);
+  await worker.tick();await worker.drain();
+  const delays:number[]=[];
+  for(const task of tasks){
+    const row=await prisma.pluginTask.findUniqueOrThrow({where:{id:task.id}});
+    const attempt=await prisma.pluginTaskAttempt.findUniqueOrThrow({where:{taskId_executionSequence:{taskId:task.id,executionSequence:row.executionSequence}}});
+    const delay=row.nextAttemptAt.getTime()-attempt.finishedAt!.getTime();
+    expect(delay).toBeGreaterThanOrEqual(1_000);
+    expect(delay).toBeLessThanOrEqual(1_200);
+    delays.push(delay);
+  }
+  expect(delays).toHaveLength(5);
+  // The tasks that failed together do not retry at the same moment.
+  expect(new Set(delays).size).toBeGreaterThan(1);
+}, 90_000);
+
 it('task policy conflicts identify blocked work and dependency errors preserve retryable backoff', () => {
   expect(mapApiError(new ApiError('PLUGIN_TASK_LIMIT_CONFLICT',{taskId:'task-123',payload:'private'})).body.error).toMatchObject({code:'PLUGIN_TASK_LIMIT_CONFLICT',details:{taskId:'task-123'}});
   expect(mapApiError(new ApiError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE',{retryAfterSeconds:12,payload:'private'}))).toMatchObject({status:503,body:{error:{details:{retryable:true,retryAfterSeconds:12}}}});
@@ -458,7 +506,12 @@ it('default retry delays preserve the admitted budget and mark only the last bud
     await worker.tick();await worker.drain();
     const row=await prisma.pluginTask.findUniqueOrThrow({where:{id:task.id}});
     const attempt=await prisma.pluginTaskAttempt.findUniqueOrThrow({where:{taskId_executionSequence:{taskId:task.id,executionSequence:row.executionSequence}}});
-    expect(row.nextAttemptAt.getTime()-attempt.finishedAt!.getTime()).toBe(backoff);
+    // The ladder value is the lower bound of the delay: every delay jitters
+    // over a bounded share of it, so a fleet that failed together does not
+    // retry together.
+    const delay=row.nextAttemptAt.getTime()-attempt.finishedAt!.getTime();
+    expect(delay).toBeGreaterThanOrEqual(backoff);
+    expect(delay).toBeLessThanOrEqual(Math.floor(backoff*1.2));
     await prisma.pluginTask.updateMany({where:{id:task.id,status:'PENDING'},data:{nextAttemptAt:new Date(0)}});
   }
   const final=f.worker(async(_claim,input)=>{expect(input.attempt).toBe(5);expect(input.isFinalAttempt).toBe(true);return {done:true};},{retryMs:undefined});
@@ -534,4 +587,87 @@ it.each(['pause-first','timeout-first'] as const)('last-attempt timeout and paus
     expect(attempts[0].outcome).toBe(order==='pause-first'?'PAUSE_ABORT':'TIMED_OUT');
     expect(await prisma.pluginTaskFinalFailure.count({where:{taskId:task.id}})).toBe(order==='pause-first'?0:1);
   }finally{if(locked)await control.query("SELECT pg_advisory_unlock(hashtextextended('jiffoo:plugin-service-graph',0))");await Promise.allSettled([pause]);await control.end();await worker.drain();}
+}, 90_000);
+
+it('the sweep confirms the death of a core process that stopped heartbeating and frees the global slot cap',async()=>{
+  const f=await fixture();const crashed=randomUUID();const free=await f.enqueue('free');
+  await prisma.$transaction(tx=>setTaskOperatorPolicy(tx,{...DEFAULT_TASK_POLICY,globalSlots:2}));
+  await ensureCoreProcess('worker');
+  try{
+    // The row of the process that runs the sweep: a live process is never condemned.
+    await prisma.coreProcess.update({where:{bootNonce:coreProcessIdentity.bootNonce},data:{heartbeatAt:new Date(Date.now()-600_000)}});
+    // A worker that was killed: its row stays LIVE and it holds the whole cap.
+    await prisma.coreProcess.create({data:{bootNonce:crashed,instanceId:randomUUID(),kind:'worker',hostname:'g1-crashed',pid:4242,databaseRole:'postgres',state:'LIVE',startedAt:new Date(Date.now()-600_000),heartbeatAt:new Date(Date.now()-600_000)}});
+    const stale=await f.enqueue('stale');
+    await prisma.pluginTaskExecutionSlot.create({data:{installationId:f.installationId,taskId:stale.id,kind:'TASK',name:'render',version:1,claimToken:randomUUID(),fence:0n,bootNonce:crashed,state:'ACTIVE',lastObservedAt:new Date()}});
+    await prisma.pluginTaskExecutionSlot.create({data:{installationId:f.installationId,taskId:free.id,kind:'TASK',name:'render',version:1,claimToken:randomUUID(),fence:0n,bootNonce:crashed,state:'ACTIVE',lastObservedAt:new Date()}});
+    // The cap is consumed: the scan finds no candidate at all.
+    expect(await prisma.pluginTaskExecutionSlot.count({where:{state:{in:['ACTIVE','LINGERING']}}})).toBe(2);
+    const worker=f.worker(async()=>({done:true}));
+    await worker.tick();await worker.drain();
+    // The crashed worker is confirmed dead, and the decision is recorded.
+    const dead=await prisma.coreProcess.findUniqueOrThrow({where:{bootNonce:crashed}});
+    expect(dead.state).toBe('DEAD_CONFIRMED');expect(dead.deathConfirmedAt).not.toBeNull();
+    expect(await prisma.adminAuditEvent.count({where:{action:'CORE_PROCESS_DEATH_CONFIRMED',targetId:crashed}})).toBe(1);
+    // The row of the live process that runs the sweep is untouched.
+    expect((await prisma.coreProcess.findUniqueOrThrow({where:{bootNonce:coreProcessIdentity.bootNonce}})).state).toBe('LIVE');
+    // The slots of the crashed worker are released and the cap is free again.
+    expect(await prisma.pluginTaskExecutionSlot.count({where:{state:{in:['ACTIVE','LINGERING']}}})).toBe(0);
+    expect((await f.run(()=>f.api.get(free.id))).status).toBe('succeeded');
+  }finally{
+    await prisma.$transaction(tx=>setTaskOperatorPolicy(tx,DEFAULT_TASK_POLICY));
+    await releaseProcessFixtures([crashed]);
+    await prisma.coreProcess.update({where:{bootNonce:coreProcessIdentity.bootNonce},data:{heartbeatAt:new Date()}});
+  }
+}, 90_000);
+
+it('the sweep releases a slot that stopped being observed and frees the global slot cap',async()=>{
+  const f=await fixture();const other=await fixture();const free=await f.enqueue('free');
+  await prisma.$transaction(tx=>setTaskOperatorPolicy(tx,{...DEFAULT_TASK_POLICY,globalSlots:2}));
+  const owner=randomUUID();
+  try{
+    // The owner of the slots is alive: it heartbeats and holds sessions.
+    await prisma.coreProcess.create({data:{bootNonce:owner,instanceId:randomUUID(),kind:'worker',hostname:'g1-live',pid:4243,databaseRole:'postgres',state:'LIVE',startedAt:new Date(),heartbeatAt:new Date()}});
+    // Both slots stopped being observed and both tasks are beyond their deadline.
+    for(const key of ['beyond-a','beyond-b']){
+      const task=await other.enqueue(key);
+      await prisma.pluginTask.update({where:{id:task.id},data:{status:'RUNNING',claimToken:randomUUID(),fence:1n,claimedByBootNonce:owner,leaseUntil:new Date(Date.now()-1000),deadlineAt:new Date(Date.now()-1000),startedAt:new Date(Date.now()-3_600_000)}});
+      await prisma.pluginTaskExecutionSlot.create({data:{installationId:other.installationId,taskId:task.id,kind:'TASK',name:'render',version:1,claimToken:randomUUID(),fence:0n,bootNonce:owner,state:'ACTIVE',lastObservedAt:new Date(Date.now()-3_600_000)}});
+    }
+    expect(await prisma.pluginTaskExecutionSlot.count({where:{state:{in:['ACTIVE','LINGERING']}}})).toBe(2);
+    const worker=f.worker(async()=>({done:true}));
+    await worker.tick();await worker.drain();
+    // The stale slots are released and the cap is free again.
+    expect(await prisma.pluginTaskExecutionSlot.count({where:{state:{in:['ACTIVE','LINGERING']}}})).toBe(0);
+    expect((await f.run(()=>f.api.get(free.id))).status).toBe('succeeded');
+  }finally{
+    await prisma.$transaction(tx=>setTaskOperatorPolicy(tx,DEFAULT_TASK_POLICY));
+    await releaseProcessFixtures([owner]);
+  }
+}, 90_000);
+
+it('the sweep keeps the slot of a live owner whose task is still within its deadline',async()=>{
+  const f=await fixture();const other=await fixture();const free=await f.enqueue('free');
+  await prisma.$transaction(tx=>setTaskOperatorPolicy(tx,{...DEFAULT_TASK_POLICY,globalSlots:2}));
+  const owner=randomUUID();
+  try{
+    await prisma.coreProcess.create({data:{bootNonce:owner,instanceId:randomUUID(),kind:'worker',hostname:'g1-live',pid:4244,databaseRole:'postgres',state:'LIVE',startedAt:new Date(),heartbeatAt:new Date()}});
+    // The stale slot of a task that is beyond its deadline: it is released.
+    const beyond=await other.enqueue('beyond');
+    await prisma.pluginTask.update({where:{id:beyond.id},data:{status:'RUNNING',claimToken:randomUUID(),fence:1n,claimedByBootNonce:owner,leaseUntil:new Date(Date.now()-1000),deadlineAt:new Date(Date.now()-1000),startedAt:new Date(Date.now()-3_600_000)}});
+    await prisma.pluginTaskExecutionSlot.create({data:{installationId:other.installationId,taskId:beyond.id,kind:'TASK',name:'render',version:1,claimToken:randomUUID(),fence:0n,bootNonce:owner,state:'ACTIVE',lastObservedAt:new Date(Date.now()-3_600_000)}});
+    // The stale slot of a task that is still within its deadline: it is kept.
+    const within=await other.enqueue('within');
+    await prisma.pluginTask.update({where:{id:within.id},data:{status:'RUNNING',claimToken:randomUUID(),fence:1n,claimedByBootNonce:owner,leaseUntil:new Date(Date.now()+600_000),deadlineAt:new Date(Date.now()+600_000),startedAt:new Date(Date.now()-3_600_000)}});
+    await prisma.pluginTaskExecutionSlot.create({data:{installationId:other.installationId,taskId:within.id,kind:'TASK',name:'render',version:1,claimToken:randomUUID(),fence:0n,bootNonce:owner,state:'LINGERING',lastObservedAt:new Date(Date.now()-3_600_000)}});
+    const worker=f.worker(async()=>({done:true}));
+    await worker.tick();await worker.drain();
+    expect((await prisma.pluginTaskExecutionSlot.findFirstOrThrow({where:{taskId:beyond.id}})).state).toBe('RELEASED');
+    expect((await prisma.pluginTaskExecutionSlot.findFirstOrThrow({where:{taskId:within.id}})).state).toBe('LINGERING');
+    expect(await prisma.pluginTaskExecutionSlot.count({where:{state:{in:['ACTIVE','LINGERING']}}})).toBe(1);
+    expect((await f.run(()=>f.api.get(free.id))).status).toBe('succeeded');
+  }finally{
+    await prisma.$transaction(tx=>setTaskOperatorPolicy(tx,DEFAULT_TASK_POLICY));
+    await releaseProcessFixtures([owner]);
+  }
 }, 90_000);

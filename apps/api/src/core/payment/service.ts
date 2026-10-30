@@ -1,7 +1,8 @@
 import { prisma } from '@/config/database';
 import { ApiError, type ErrorCode } from '@/utils/api-errors';
-import { AuditService, type AuditTx } from '@/core/audit/service';
+import { AuditService, type AuditEntry, type AuditTx } from '@/core/audit/service';
 import { PaymentAttemptStatus } from '@prisma/client';
+import { createHash, randomBytes } from 'node:crypto';
 
 /**
  * Payment Service
@@ -41,6 +42,176 @@ export type PaymentWriteTx = {
  * payment tables plus the audit write outlet.
  */
 export type PaymentAuditTx = PaymentWriteTx & AuditTx;
+
+/**
+ * The prefix of the savepoint of an audit write.
+ *
+ * The name is derived from the entry, so two different entries never share a
+ * savepoint, and it stays short: a PostgreSQL identifier is limited to 63
+ * bytes.
+ */
+const PAYMENT_AUDIT_SAVEPOINT_PREFIX = 'jiffoo_pay_audit_';
+
+/**
+ * The raw statement outlet of a transaction client.
+ *
+ * A savepoint is plain SQL, so it is issued through the raw statement outlet
+ * of the client. Both outlets are optional: a client that has neither cannot
+ * carry a savepoint, and the write then runs without one.
+ */
+type AuditSavepointClient = {
+  $executeRawUnsafe?: (query: string) => Promise<unknown>;
+  $queryRawUnsafe?: (query: string) => Promise<unknown>;
+  /** The full client has one; a transaction client has not. */
+  $transaction?: unknown;
+};
+
+/**
+ * The savepoint of one audit write.
+ *
+ * The name carries the entry it belongs to and a suffix that is unique per
+ * call, so two audit rows of the same payment - two observations of one
+ * payment, for example - never share a savepoint, and a nested write cannot
+ * collide with the savepoint of its caller. The name stays inside the 63
+ * bytes a PostgreSQL identifier may take.
+ */
+function auditSavepointName(entry: AuditEntry): string {
+  const entryDigest = createHash('sha256')
+    .update(`${entry.action}:${entry.targetType}:${entry.targetId}`)
+    .digest('hex').slice(0, 8);
+  const callIdentity = randomBytes(6).toString('hex');
+  return PAYMENT_AUDIT_SAVEPOINT_PREFIX + entryDigest + '_' + callIdentity;
+}
+
+/**
+ * Whether the client is a transaction client.
+ *
+ * A Prisma transaction client has no `$transaction` method of its own - the
+ * full client has one - so the difference tells the two apart. Only a
+ * transaction client can carry a savepoint, so the full client keeps the
+ * plain failure handling.
+ */
+function isTransactionClient(tx: AuditTx): boolean {
+  const client = tx as AuditTx & AuditSavepointClient;
+  return client.$transaction === undefined
+    && (typeof client.$executeRawUnsafe === 'function' || typeof client.$queryRawUnsafe === 'function');
+}
+
+/** The raw statement outlets of a client, in the order they are tried. */
+function rawStatements(tx: AuditTx): Array<(query: string) => Promise<unknown>> {
+  const client = tx as AuditTx & AuditSavepointClient;
+  const statements: Array<(query: string) => Promise<unknown>> = [];
+  if (typeof client.$executeRawUnsafe === 'function') statements.push(query => client.$executeRawUnsafe!(query));
+  if (typeof client.$queryRawUnsafe === 'function') statements.push(query => client.$queryRawUnsafe!(query));
+  return statements;
+}
+
+/**
+ * The savepoint of an audit write, and why it could not be opened.
+ */
+type AuditSavepoint = {
+  /** Whether the savepoint was opened. */
+  opened: boolean;
+  /** Why the savepoint was not opened. */
+  reason: string | null;
+  /** The name of the savepoint. */
+  name: string;
+};
+
+/**
+ * Open the savepoint of an audit write.
+ *
+ * It reports why the savepoint was not opened, so the degradation of the
+ * protection is never silent: a client that cannot carry a savepoint leaves
+ * the write without its protection, and the caller records that fact.
+ */
+async function openAuditSavepoint(tx: AuditTx, entry: AuditEntry): Promise<AuditSavepoint> {
+  const name = auditSavepointName(entry);
+  if (!isTransactionClient(tx)) {
+    return { opened: false, reason: 'the client is not a transaction client', name };
+  }
+  let reason: string | null = null;
+  for (const statement of rawStatements(tx)) {
+    try { await statement(`SAVEPOINT ${name}`); return { opened: true, reason: null, name }; }
+    catch (error) { reason = error instanceof Error ? error.message : String(error); }
+  }
+  return { opened: false, reason: reason ?? 'the client has no raw statement outlet', name };
+}
+
+/**
+ * Roll the transaction back to the savepoint of an audit write.
+ *
+ * A statement that failed inside the database aborts the whole transaction
+ * there, so the rollback to the savepoint is what makes the transaction
+ * usable again - and what keeps the money state of the transaction.
+ */
+async function rollbackAuditSavepoint(tx: AuditTx, name: string): Promise<void> {
+  for (const statement of rawStatements(tx)) {
+    try { await statement(`ROLLBACK TO SAVEPOINT ${name}`); return; }
+    catch { /* the next outlet is tried */ }
+  }
+}
+
+/** Release the savepoint of an audit write. */
+async function releaseAuditSavepoint(tx: AuditTx, name: string): Promise<void> {
+  for (const statement of rawStatements(tx)) {
+    try { await statement(`RELEASE SAVEPOINT ${name}`); return; }
+    catch { /* the next outlet is tried */ }
+  }
+}
+
+/**
+ * Write an audit event of a money transaction without letting the audit row
+ * roll back the money state.
+ *
+ * The audit row is a side effect of the transaction that moves the money: the
+ * audit is not the truth, the payment and the refund state are. A failing
+ * audit write - a locked audit table, a full disk, a timeout - must therefore
+ * not undo the money state that the transaction recorded.
+ *
+ * The write runs inside a savepoint of the transaction, so a failure that
+ * happens inside the database - where the failure aborts the whole
+ * transaction - is rolled back to the savepoint and the transaction stays
+ * usable. The failure is caught, recorded in the structured log and the
+ * transaction continues with the money state. The missing row is the accepted
+ * trade-off of that order, and the loss is visible in the log.
+ *
+ * A savepoint that cannot be opened leaves the write without its protection,
+ * so that degradation is recorded in the structured log as well: an operator
+ * has to see that the audit write of a money transaction ran unprotected.
+ *
+ * The row itself is unchanged when the write succeeds, and it stays inside
+ * the transaction of the caller.
+ */
+export async function writePaymentAudit(tx: AuditTx, entry: AuditEntry): Promise<void> {
+  const savepoint = await openAuditSavepoint(tx, entry);
+  if (!savepoint.opened) {
+    console.error(JSON.stringify({
+      event: 'payment-audit-savepoint-unavailable',
+      action: entry.action,
+      targetType: entry.targetType,
+      targetId: entry.targetId,
+      reason: savepoint.reason,
+    }));
+  }
+  try {
+    await AuditService.write(tx, entry);
+  } catch (error) {
+    if (savepoint.opened) {
+      await rollbackAuditSavepoint(tx, savepoint.name);
+      await releaseAuditSavepoint(tx, savepoint.name);
+    }
+    console.error(JSON.stringify({
+      event: 'payment-audit-write-failed',
+      action: entry.action,
+      targetType: entry.targetType,
+      targetId: entry.targetId,
+      reason: error instanceof Error ? error.message : String(error),
+    }));
+    return;
+  }
+  if (savepoint.opened) await releaseAuditSavepoint(tx, savepoint.name);
+}
 
 /** Latest payment of an order plus whether a refund is still required. */
 export type OrderPaymentSummary = {
@@ -339,7 +510,7 @@ export class PaymentService {
       },
     });
 
-    await AuditService.write(tx, {
+    await writePaymentAudit(tx, {
       actorId: input.actorId,
       action: 'PAYMENT_REFUND_REQUIRED_RESOLVED',
       targetType: 'payment',

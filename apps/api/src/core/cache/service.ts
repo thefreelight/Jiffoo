@@ -246,9 +246,26 @@ export class CacheService {
     return version ? Number(version) : 0;
   }
 
-  static async incrementOrderVersion(): Promise<number> {
+  /**
+   * Bumps the version of the cached order lists.
+   *
+   * The version is the invalidation signal of the cached order lists: a
+   * reader asks for the list of the current version, so a bump makes every
+   * reader read the database again. The bump fails when the cache is not
+   * available, and a silently lost bump keeps the stale lists alive for
+   * their whole time to live, so the failure is reported to the caller as a
+   * null and the stale lists are dropped instead.
+   */
+  static async incrementOrderVersion(): Promise<number | null> {
     const key = `${this.PREFIXES.ORDER}version`;
-    return await redisCache.incr(key);
+    const version = await redisCache.incr(key);
+    if (version !== null) return version;
+    // The bump did not happen, so the cached lists would survive their whole
+    // time to live. They are dropped instead, so the next reader repopulates
+    // them from the database.
+    await this.clearByPrefix(this.PREFIXES.ORDER);
+    console.warn(JSON.stringify({ event: 'order_cache_version_increment_failed', scope: 'cache', key }));
+    return null;
   }
 
   // User list cache (similar to order list)

@@ -1,4 +1,4 @@
-import { ApiError } from '@/utils/api-errors';
+import { ApiError, type ErrorCode } from '@/utils/api-errors';
 import { prisma } from '@/config/database';
 import {
   Prisma,
@@ -17,6 +17,7 @@ import { emitEvent } from '@/infra/events/emit';
 import { resolveSingleProvider } from '@/core/extensions/registry';
 import { callContract } from '@/core/extensions/runtime/plugin-runtime';
 import { ContractCallError } from '@/core/extensions/runtime/contract-errors';
+import { recordPluginFailure } from '@/core/extensions/runtime/failure';
 import { bindPurchaseOrigin } from '@/core/plugin-pages/service';
 import { decimalToMinor, minorToDecimal, MoneyError } from '@/core/shared/money';
 import { currentLinePrice } from '@/core/shared/pricing';
@@ -320,6 +321,29 @@ function assertNonNegativePluginAmount(amountMinor: number, source: string): voi
 }
 
 /**
+ * Record the failure of a provider the placement could not use.
+ *
+ * The failure is recorded for the operator and the provider is logged as
+ * excluded, exactly like the checkout module excludes a provider whose
+ * contract call failed.
+ */
+async function excludeFailedProvider(slug: string, error: unknown, context: string): Promise<void> {
+  if (!(error instanceof ContractCallError)) throw error;
+  if (error.code !== 'PLUGIN_DISABLED') await recordPluginFailure(slug, error, context);
+  console.error(JSON.stringify({ event: `${context}_provider_excluded`, slug, reason: error.code }));
+}
+
+/**
+ * The error code of a failed tax provider.
+ *
+ * A timeout keeps its own code, so the caller can tell a hanging provider
+ * from a failing one. Every other failure is a provider failure.
+ */
+function taxProviderFailureCode(error: unknown): ErrorCode {
+  return error instanceof ContractCallError && error.code === 'PLUGIN_TIMEOUT' ? 'PLUGIN_TIMEOUT' : 'CONTRACT_CALL_FAILED';
+}
+
+/**
  * The stages of the order placement, in the order they run.
  *
  * The list is built inside the function, so the module holds no state.
@@ -572,9 +596,21 @@ function createOrderPlacementStages(): OrderPlacementStage[] {
         const taxLines = context.orderItems.map((item, index) => ({ lineId: String(index), productId: item.productId, variantId: item.variantId, quantity: item.quantity, amountMinor: item.unitPriceMinor * item.quantity }));
         const shippingMinor = context.selectedShipping?.amountMinor ?? 0;
         context.shippingMinor = shippingMinor;
-        const tax = taxProvider
-          ? await callContract(taxProvider.pluginSlug, 'tax', PLUGIN_CONTRACT_VERSIONS.tax, 'calculate', { currency: context.currency, lines: taxLines, shippingAmountMinor: shippingMinor, address: { country: address?.country ?? '', region: address?.state, city: address?.city ?? '', postalCode: address?.postalCode, line1: address?.addressLine1 ?? '', line2: address?.addressLine2 } }) as TaxResult
-          : { pricesIncludeTax: false, lines: taxLines.map((line) => ({ lineId: line.lineId, taxMinor: 0 })), totalTaxMinor: 0 };
+        let tax: TaxResult;
+        if (taxProvider) {
+          try {
+            tax = await callContract(taxProvider.pluginSlug, 'tax', PLUGIN_CONTRACT_VERSIONS.tax, 'calculate', { currency: context.currency, lines: taxLines, shippingAmountMinor: shippingMinor, address: { country: address?.country ?? '', region: address?.state, city: address?.city ?? '', postalCode: address?.postalCode, line1: address?.addressLine1 ?? '', line2: address?.addressLine2 } }) as TaxResult;
+          } catch (error) {
+            // A tax provider that failed is not a store without a tax
+            // provider: the tax of the order is unknown. The placement is
+            // refused instead of charging an unknown tax, and the failure of
+            // the provider is recorded for the operator.
+            await excludeFailedProvider(taxProvider.pluginSlug, error, 'order');
+            throw new ApiError(taxProviderFailureCode(error));
+          }
+        } else {
+          tax = { pricesIncludeTax: false, lines: taxLines.map((line) => ({ lineId: line.lineId, taxMinor: 0 })), totalTaxMinor: 0 };
+        }
         // The tax amounts are the answer of the tax provider, so a negative
         // amount is a provider defect and never a tax of the order.
         assertNonNegativePluginAmount(tax.totalTaxMinor, 'tax');

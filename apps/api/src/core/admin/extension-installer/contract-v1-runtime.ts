@@ -4,6 +4,8 @@ import { fulfillmentV1Methods, notificationV1Methods, paymentV2Methods, shipping
 import { redactPluginText } from '@/core/admin/plugin-management/config-crypto';
 import { decodePaymentWebhook, PAYMENT_WEBHOOK_WIRE_LIMIT } from './payment-webhook-wire';
 import { createPluginDatabase, withPluginDatabaseHandler } from './plugin-database';
+import { ContractCallError } from '@/core/extensions/runtime/contract-errors';
+import { getPluginTimeoutMs, PLUGIN_REGISTER_TIMEOUT_MS } from '@/core/extensions/runtime/gateway-protection';
 import { createTaskApi, withInstallationTaskHandler } from '@/core/plugins/tasks';
 import { createStorageApi } from '@/core/plugin-storage/service';
 import type { PluginTaskDeclaration, PluginTasks, TaskHandlerOptions } from '@jiffoo/shared';
@@ -85,7 +87,21 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
       }
     } },
   };
-  try { await runtime.register(context); } finally { registering = false; }
+  // A plugin that never resolves its registration must not hold the caller forever.
+  const registerTimeoutMs = Math.min(PLUGIN_REGISTER_TIMEOUT_MS, getPluginTimeoutMs(options.config));
+  let registerTimer: NodeJS.Timeout | undefined;
+  try {
+    const registration = (async () => runtime.register(context))();
+    await Promise.race([
+      registration,
+      new Promise<never>((_, reject) => {
+        registerTimer = setTimeout(() => reject(new ContractCallError('PLUGIN_TIMEOUT', 'Plugin registration timed out')), registerTimeoutMs);
+      }),
+    ]);
+  } finally {
+    if (registerTimer) clearTimeout(registerTimer);
+    registering = false;
+  }
   for (const contract of options.declaredContracts) if (!implemented.has(`${contract.name}:v${contract.version}`)) throw new Error(`Plugin declared but did not implement contract ${contract.name} v${contract.version}`);
   for (const entry of options.subscriptions) if (!handlers.has(`${entry.type}:${entry.version}`)) throw new Error(`Plugin declared but did not register event ${entry.type}:${entry.version}`);
   for (const entry of options.tasks ?? []) if (!taskHandlers.has(`${entry.name}:${entry.version}`)) throw new ApiError('PLUGIN_TASK_DECLARATION_INVALID');

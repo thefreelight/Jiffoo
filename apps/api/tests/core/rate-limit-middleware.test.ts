@@ -26,6 +26,12 @@ describe('shared request protection', () => {
     userIds.push(id);
     return JwtUtils.sign({ userId: id, sv: row.sessionVersion });
   }
+  async function admin() {
+    const id = randomUUID();
+    const row = await prisma.user.create({ data: { id, email: `${id}@protection.example`, username: id, password: 'unused', role: 'ADMIN' } });
+    userIds.push(id);
+    return JwtUtils.sign({ userId: id, sv: row.sessionVersion });
+  }
   afterEach(async () => {
     await Promise.all(apps.splice(0).map((value) => value.close()));
     await prisma.user.deleteMany({ where: { id: { in: userIds.splice(0) } } });
@@ -126,5 +132,80 @@ describe('shared request protection', () => {
     expect((await protection.rate(key, 60000, 1)).allowed).toBe(true);
     protection.close();
     expect((await protection.rate(key, 60000, 1)).allowed).toBe(false);
+  });
+  it('G: the admin export budget belongs to the administrator, not to the address', async () => {
+    const value = await app();
+    const token = await admin();
+    for (let i = 0; i < 20; i++) {
+      const response = await value.inject({ method: 'POST', url: '/api/v1/admin/orders/export', remoteAddress: '198.51.100.10', headers: { authorization: `Bearer ${token}` } });
+      expect(response.statusCode).toBe(200);
+    }
+    // Another address does not buy the administrator a new budget.
+    const rejected = await value.inject({ method: 'POST', url: '/api/v1/admin/orders/export', remoteAddress: '198.51.100.11', headers: { authorization: `Bearer ${token}` } });
+    expect(rejected.statusCode).toBe(429);
+    expect(rejected.json().error.code).toBe('RATE_LIMITED');
+    // Another administrator keeps its own budget.
+    const other = await admin();
+    const allowed = await value.inject({ method: 'POST', url: '/api/v1/admin/orders/export', remoteAddress: '198.51.100.12', headers: { authorization: `Bearer ${other}` } });
+    expect(allowed.statusCode).toBe(200);
+  });
+  it('H: the media, avatar and marketplace budgets are counted per identity', async () => {
+    const value = await app();
+    const token = await admin();
+    for (let i = 0; i < 30; i++) {
+      const response = await value.inject({ method: 'POST', url: '/api/v1/admin/products/upload-image', remoteAddress: '203.0.113.10', headers: { authorization: `Bearer ${token}` } });
+      expect(response.statusCode).toBe(200);
+    }
+    const rejectedUpload = await value.inject({ method: 'POST', url: '/api/v1/admin/products/upload-image', remoteAddress: '203.0.113.11', headers: { authorization: `Bearer ${token}` } });
+    expect(rejectedUpload.statusCode).toBe(429);
+    for (let i = 0; i < 10; i++) {
+      const response = await value.inject({ method: 'POST', url: '/api/v1/extensions/marketplace/install', remoteAddress: '203.0.113.20', headers: { authorization: `Bearer ${token}` } });
+      expect(response.statusCode).toBe(200);
+    }
+    const rejectedInstall = await value.inject({ method: 'POST', url: '/api/v1/extensions/marketplace/install', remoteAddress: '203.0.113.21', headers: { authorization: `Bearer ${token}` } });
+    expect(rejectedInstall.statusCode).toBe(429);
+  });
+  it('I: the login is limited per account identifier as well as per address', async () => {
+    const value = await app();
+    for (let i = 0; i < 10; i++) {
+      const response = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: `198.51.100.${i + 1}`, payload: { identifier: 'target@example.test', password: 'secret' } });
+      expect(response.statusCode).toBe(200);
+    }
+    // A new address does not buy the account a new budget.
+    const rejected = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: '198.51.100.30', payload: { identifier: 'target@example.test', password: 'secret' } });
+    expect(rejected.statusCode).toBe(429);
+    expect(rejected.json().error.code).toBe('RATE_LIMITED');
+    // Another account keeps its own budget.
+    const allowed = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: '198.51.100.31', payload: { identifier: 'other@example.test', password: 'secret' } });
+    expect(allowed.statusCode).toBe(200);
+    // The bucket only ever holds the hash of the identifier.
+    const keys = await redis.keys(`${namespace}:*`);
+    expect(keys.some((key) => key.includes('target@example.test'))).toBe(false);
+    expect(keys.some((key) => key.includes(':login-account:account:'))).toBe(true);
+  });
+  it('J: the health budget survives the probe rate of a node with several replicas', async () => {
+    const value = await protectionApp(protection, `${namespace}:health-node`);
+    apps.push(value);
+    // Several replicas of one node probe from the same address every ten
+    // seconds: the shared budget must not be exhausted by them.
+    for (let i = 0; i < 60; i++) {
+      const response = await value.inject('/health/ready');
+      expect(response.statusCode).toBe(200);
+    }
+    // The liveness probe always answers and never draws the health budget.
+    expect((await value.inject('/health/live')).statusCode).toBe(200);
+    expect((await value.inject('/health/ready')).statusCode).toBe(200);
+  });
+  it('K: a probe flood beyond the budget is refused while the liveness probe stays exempt', async () => {
+    const value = await protectionApp(protection, `${namespace}:health-flood`, [], { windowMs: 60000, maxRequests: 2 });
+    apps.push(value);
+    expect((await value.inject('/health/ready')).statusCode).toBe(200);
+    expect((await value.inject('/health/ready')).statusCode).toBe(200);
+    const rejected = await value.inject('/health/ready');
+    expect(rejected.statusCode).toBe(429);
+    expect(rejected.json().error.code).toBe('RATE_LIMITED');
+    // The liveness probe never consumes the health budget.
+    expect((await value.inject('/health/live')).statusCode).toBe(200);
+    expect((await value.inject('/health/ready')).statusCode).toBe(429);
   });
 });

@@ -86,6 +86,20 @@ export default defineConfig({
     snapshotFormat: {
       printBasicPrototype: false,
     },
+
+    // The Prisma packages are CommonJS. The generated client (Prisma 6.19.1) is
+    // re-exported through `module.exports = { ...require('#main-entry-point') }`
+    // and resolves `#main-entry-point` through the `imports` map of its own
+    // package. When the runner transforms those packages instead of loading
+    // them natively, the named exports of `@prisma/client` (`Prisma`,
+    // `OrderStatus`, ...) are not always present, and the modules that read
+    // them while they are evaluated break. Externalizing them lets Node load
+    // them with their CommonJS exports intact.
+    server: {
+      deps: {
+        external: ['@prisma/client', 'node_modules/.prisma/'],
+      },
+    },
   },
   
   // Path aliases (matching tsconfig.json)
@@ -98,6 +112,11 @@ export default defineConfig({
       'shared': path.resolve(__dirname, '../../packages/shared/src'),
       '@jiffoo/shared': path.resolve(__dirname, '../../packages/shared/src'),
       '@shared/security': path.resolve(__dirname, '../../packages/shared/src/security'),
+      // The generated Prisma client resolves `#main-entry-point` through the
+      // `imports` map of `node_modules/.prisma/client/package.json`. A module
+      // transformed by the runner does not resolve that specifier the way Node
+      // does, so it is aliased to the generated client entry point directly.
+      '#main-entry-point': path.resolve(__dirname, '../../node_modules/.prisma/client/index.js'),
     },
   },
 });

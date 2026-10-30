@@ -8,6 +8,13 @@
  */
 
 export const DEFAULT_GATEWAY_TIMEOUT_MS = 10000;
+/**
+ * Deadline of a plugin registration.
+ *
+ * A plugin that never resolves its `register()` call must not hold a request
+ * forever, so the registration fails with a timeout instead.
+ */
+export const PLUGIN_REGISTER_TIMEOUT_MS = 5000;
 export const MAX_RESPONSE_SIZE_BYTES = 5 * 1024 * 1024;
 export const RATE_LIMIT_CONFIG = { defaultLimitPerMinute: 60, windowMs: 60000 } as const;
 

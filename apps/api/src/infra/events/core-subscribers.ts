@@ -49,6 +49,20 @@ export async function notifyPaymentSucceeded(data: EventPayload<'payment.succeed
 }
 
 /**
+ * The order confirmation of a created payment session.
+ *
+ * The recipient is resolved through the order projection, the way every other
+ * order notification resolves it: an event of an order that is gone leaves
+ * nobody to notify, and the delivery is finished instead of failed. The
+ * subscriber runs after the payment transaction committed: a failing
+ * notification never rolls back the payment, and the outbox records the
+ * failure of the delivery.
+ */
+export async function notifyOrderConfirmed(data: EventPayload<'order.confirmed'>) {
+  await prisma.$transaction((tx) => notifyOrderEvent(tx, 'order_confirmation', data.orderId, { instructions: data.instructions }, { dedupKey: `notification:order_confirmation:${data.orderId}` }));
+}
+
+/**
  * The core subscriber registry.
  *
  * The table is a module scope constant, built once when the module loads and
@@ -61,6 +75,7 @@ export async function notifyPaymentSucceeded(data: EventPayload<'payment.succeed
  */
 export const CORE_SUBSCRIBERS: Readonly<Record<string, readonly CoreSubscriberRegistration[]>> = Object.freeze({
   'order.cancelled': registrations(notifyOrderCancelled),
+  'order.confirmed': registrations(notifyOrderConfirmed),
   'order.fulfilled': registrations(notifyOrderShipped),
   'order.refunded': registrations(notifyOrderRefunded),
   'payment.succeeded': registrations(notifyPaymentSucceeded),
