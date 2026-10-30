@@ -3,7 +3,8 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import OrdersPage from '../app/[locale]/(themed)/orders/page';
-import { StoreTimeProvider } from '../lib/store-time';
+import { StoreTimeProvider, useStoreDate } from '../lib/store-time';
+import { ordersApi } from '../lib/api';
 import { merchant as en } from '../../../packages/shared/src/i18n/messages/en/merchant';
 import { merchant as hans } from '../../../packages/shared/src/i18n/messages/zh-Hans/merchant';
 import { merchant as hant } from '../../../packages/shared/src/i18n/messages/zh-Hant/merchant';
@@ -16,12 +17,21 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => state.locale, useT: (
 } }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: state.replace }), usePathname: () => '/en/orders', useSearchParams: () => new URLSearchParams(state.url) }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: any) => <a {...props}>{children}</a> }));
-vi.mock('../lib/hooks/use-api', () => ({ useOrders: (params: any) => { state.params = params; return state.data; }, useOrderStats: () => state.stats }));
+vi.mock('../lib/hooks/use-api', () => ({ useOrders: (params: any) => {
+  state.params = params;
+  if (!state.data.data) return state.data;
+  const data = state.data.data;
+  const secondPage = data.data.map((order: any) => ({ ...order, id: order.id + '-page-2', orderNumber: order.orderNumber + '-P2' }));
+  return { ...state.data, data: { ...data, data: params.limit >= 50 ? [...data.data, ...secondPage] : params.page === 2 ? secondPage : data.data, pagination: { ...data.pagination, page: params.page, limit: params.limit } } };
+}, useOrderStats: () => state.stats }));
 let root: Root | undefined;
+let setStoreTimezone: (timezone: string) => void;
+function StoreTimezoneControl() { setStoreTimezone = useStoreDate().setTimezone; return null; }
+function Page() { return <StoreTimeProvider timezone="Asia/Shanghai" now="2026-10-12T00:00:00Z"><StoreTimezoneControl /><OrdersPage /></StoreTimeProvider>; }
 async function mount() {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
   const container = document.createElement('div'); document.body.append(container); root = createRoot(container);
-  await act(async () => root!.render(<StoreTimeProvider timezone="Asia/Shanghai" now="2026-10-12T00:00:00Z"><OrdersPage /></StoreTimeProvider>));
+  await act(async () => root!.render(<Page />));
   return container;
 }
 function button(text: string): HTMLButtonElement {
@@ -41,7 +51,7 @@ beforeEach(() => {
   state.data = { data: { data: [{ id: 'order-1', orderNumber: 'JF-20261012-0001', status: 'PENDING', paymentStatus: 'PENDING', requiresPaymentReview: true, itemQuantitySum: 5, itemsCount: 2, totalAmount: 50, currency: 'USD', createdAt: '2026-10-12T00:15:00Z', customer: { email: 'buyer@example.test' } }], pagination: { page: 1, limit: 20, total: 25, totalPages: 2 } } };
   state.stats = { data: { paymentReviewCount: 1, metrics: { totalOrders: 25 }, statusCounts: { PENDING: 3, PROCESSING: 4, SHIPPED: 5, DELIVERED: 6, CANCELLED: 2, REFUNDED: 5 } } };
 });
-afterEach(async () => { if (root) await act(async () => root!.unmount()); root = undefined; document.body.innerHTML = ''; vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(async () => { if (root) await act(async () => root!.unmount()); root = undefined; document.body.innerHTML = ''; vi.unstubAllGlobals(); vi.useRealTimers(); vi.restoreAllMocks(); });
 it('shows global status counts, the quantity sum, an absolute store-time header and named mobile details', async () => {
   const container = await mount();
   expect(Array.from(container.querySelectorAll('[role="tab"]')).map(tab => tab.textContent)).toEqual(['All25', 'Pending3', 'Processing4', 'Shipped5', 'Delivered6', 'Cancelled2', 'Refunded5']);
@@ -116,6 +126,77 @@ it('shows the exact customer filter as a removable email chip', async () => {
   expect(remove).toBeTruthy(); await act(async () => remove.click());
   expect(state.params.customerId).toBeUndefined();
   expect(state.replace).toHaveBeenLastCalledWith('/en/orders', { scroll: false });
+});
+it('preserves matching-order exclusions through pagination, sorting and page size in the export request', async () => {
+  const exportOrders = vi.spyOn(ordersApi, 'export').mockRejectedValue(new Error('Unavailable'));
+  const node = await mount();
+  await act(async () => node.querySelector<HTMLInputElement>('input[aria-label="Select all orders on this page"]')!.click());
+  await act(async () => button('Select all 25 matching orders').click());
+  await act(async () => node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!.click());
+  await act(async () => button('Next').click());
+  expect(state.params.page).toBe(2); expect(node.textContent).toContain('All 24 orders selected');
+  const secondOrder = node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001-P2"]')!;
+  expect(secondOrder.checked).toBe(true);
+  await act(async () => secondOrder.click());
+  expect(node.textContent).toContain('All 23 orders selected');
+  await act(async () => node.querySelector<HTMLButtonElement>('thead th[aria-sort="none"] button')!.click());
+  expect(state.params).toMatchObject({ sortBy: 'totalAmount', sortOrder: 'asc', page: 1 });
+  expect(node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!.checked).toBe(false);
+  await chooseFilter(en.orders.list.perPage, '50');
+  expect(state.params.limit).toBe(50); expect(node.textContent).toContain('All 23 orders selected');
+  expect(node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001-P2"]')!.checked).toBe(false);
+  await act(async () => button(en.orders.list.exportSelected).click());
+  expect(exportOrders).toHaveBeenLastCalledWith({ mode: 'filter', filter: { status: undefined, search: '', customerId: undefined, paymentStatus: undefined, paymentReview: undefined }, excludeIds: ['order-1', 'order-1-page-2'] }, { sortBy: 'totalAmount', sortOrder: 'asc' }, 'en');
+});
+it('preserves explicit order IDs through pagination, sorting, page size and a display-only customer email change', async () => {
+  const exportOrders = vi.spyOn(ordersApi, 'export').mockRejectedValue(new Error('Unavailable'));
+  state.url = 'customerId=customer-1&customerEmail=first%40example.test';
+  const node = await mount();
+  await act(async () => node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!.click());
+  await act(async () => button('Next').click());
+  expect(state.params).toMatchObject({ page: 2, customerId: 'customer-1' });
+  const secondOrder = node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001-P2"]')!;
+  expect(secondOrder.checked).toBe(false);
+  expect(node.textContent).toContain('1 orders selected');
+  await act(async () => secondOrder.click());
+  expect(node.textContent).toContain('2 orders selected');
+  await act(async () => button(en.orders.list.previous).click());
+  expect(node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!.checked).toBe(true);
+  await act(async () => node.querySelector<HTMLButtonElement>('thead th[aria-sort="none"] button')!.click());
+  expect(state.params).toMatchObject({ sortBy: 'totalAmount', sortOrder: 'asc', page: 1, customerId: 'customer-1' });
+  await chooseFilter(en.orders.list.perPage, '50');
+  expect(state.params).toMatchObject({ page: 1, limit: 50, customerId: 'customer-1' });
+  state.url = 'customerId=customer-1&customerEmail=second%40example.test&sortBy=totalAmount&sortOrder=asc&pageSize=50';
+  await act(async () => root!.render(<Page />));
+  expect(node.textContent).toContain('2 orders selected');
+  expect(node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!.checked).toBe(true);
+  expect(node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001-P2"]')!.checked).toBe(true);
+  await act(async () => button(en.orders.list.exportSelected).click());
+  expect(exportOrders).toHaveBeenLastCalledWith({ mode: 'ids', ids: ['order-1', 'order-1-page-2'] }, { sortBy: 'totalAmount', sortOrder: 'asc' }, 'en');
+});
+it.each(['status=SHIPPED', 'payment=paid', 'search=buyer', 'customerId=customer-1', 'date=custom&start=2026-10-12&end=2026-10-12', 'date=custom'])('clears order selection when effective filters or date validity change: %s', async url => {
+  const node = await mount();
+  await act(async () => node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!.click());
+  state.url = url; await act(async () => root!.render(<Page />));
+  expect(node.querySelector('[role="region"][aria-label="Bulk actions"]')).toBeNull();
+});
+it('clears selected orders when the store timezone changes the effective UTC date range', async () => {
+  state.url = 'date=custom&start=2026-10-12&end=2026-10-12';
+  const node = await mount();
+  expect(state.params.createdFrom).toBe('2026-10-11T16:00:00.000Z');
+  await act(async () => node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!.click());
+  await act(async () => setStoreTimezone('America/New_York'));
+  expect(state.params.createdFrom).toBe('2026-10-12T04:00:00.000Z');
+  expect(node.querySelector('[role="region"][aria-label="Bulk actions"]')).toBeNull();
+});
+it('clears selected orders when a relative date preset crosses the store calendar day', async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-12T00:00:00Z'));
+  state.url = 'date=today'; const node = await mount();
+  await act(async () => node.querySelector<HTMLInputElement>('input[aria-label="Select order JF-20261012-0001"]')!.click());
+  vi.setSystemTime(new Date('2026-10-13T00:00:00Z'));
+  await act(async () => root!.render(<Page />));
+  expect(state.params.createdFrom).toBe('2026-10-12T16:00:00.000Z');
+  expect(node.querySelector('[role="region"][aria-label="Bulk actions"]')).toBeNull();
 });
 it('keeps typing immediate and resets pagination only when the 300ms debounce completes', async () => {
   vi.useFakeTimers(); await mount();

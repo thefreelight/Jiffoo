@@ -14,6 +14,9 @@ import {
   createSuccessResponseSchema,
 } from '@/types/common-dto';
 
+// Require the true end of input: JavaScript's $ also matches before a final newline.
+export const CATEGORY_SLUG_PATTERN = '^[a-z0-9-]+$(?![\\s\\S])';
+
 const translationSchema = {
   type: 'object',
   required: ['locale', 'name'],
@@ -389,7 +392,7 @@ export const adminProductSchemas = {
       required: ['name', 'slug'],
       properties: {
         name: { type: 'string', minLength: 1 },
-        slug: { type: 'string', minLength: 1 },
+        slug: { type: 'string', minLength: 1, pattern: CATEGORY_SLUG_PATTERN },
         description: { type: 'string', nullable: true },
         translations: translationsSchema,
       },
@@ -402,7 +405,7 @@ export const adminProductSchemas = {
       type: 'object',
       properties: {
         name: { type: 'string', minLength: 1 },
-        slug: { type: 'string', minLength: 1 },
+        slug: { type: 'string', minLength: 1, pattern: CATEGORY_SLUG_PATTERN },
         description: { type: 'string', nullable: true },
         translations: translationsSchema,
       },

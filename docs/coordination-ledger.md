@@ -2619,4 +2619,110 @@ A pull request from the branch into `main` was opened and closed again without a
 
 ### What the line still owes its own branch
 
-Two commits of `codex/lane-core-uiux` were never merged into the branch and are not part of it: `0a701e94e` (the priority Admin and Shop UX defects) and `659fccbf7` (the admin-authorized plugin repair bootstrap). The merge of that lane into the branch has five conflicts, and every one of them is in a file that this batch changed: `apps/api/src/core/admin/extension-installer/routes.ts` (the paged recovery listing), `apps/api/src/core/plugins/tasks.ts` (the deterministic task failures), `apps/api/tests/core/module-boundary-audit.test.ts` (the registered edges), `apps/api/tests/routes/admin-products.test.ts` and `apps/api/tests/routes/plugin-repair-bootstrap.test.ts` (added on both sides). The lane needs its own gate before it joins.
+Two commits of `codex/lane-core-uiux` were never merged into the branch and are not part of it: `0a701e94e` (the priority Admin and Shop UX defects) and `659fccbf7` (the admin-authorized plugin repair bootstrap). The merge of that lane into the branch has five conflicts, and every one of them is in a file that this batch changed: `apps/api/src/core/admin/extension-installer/routes.ts` (the paged recovery listing), `apps/api/src/core/plugins/tasks.ts` (the deterministic task failures), `apps/api/tests/core/module-boundary-audit.test.ts` (the registered edges), `apps/api/tests/routes/admin-products.test.ts` and `apps/api/tests/routes/plugin-repair-bootstrap.test.ts` (added on both sides). The lane needs its own gate before it joins. **The lane has joined since; section 5zj registers that merge, its five conflicts and its gate.**
+
+## 5zj. Handover evidence — the merge of the lane `codex/lane-core-uiux` into the line
+
+**Baseline SHA:** `cf87809a3`. **Merged branch:** `origin/codex/lane-core-uiux`, the two commits `0a701e94e` (the priority Admin and Shop UX defects) and `659fccbf7` (the admin-authorized plugin repair bootstrap). **Commit:** (the merge commit of this batch).
+
+### Why this section exists
+
+The lane `codex/lane-core-uiux` was opened on 2026-10-19 for the user interface closeout. It was never merged into this line, so two of its commits stayed outside while the line grew by three hundred commits. Section 5zi records that this line is not merged into `main` and what the conflict surface against `main` is; this section records the merge of the lane into the line, which was the work the line still owed itself.
+
+### What the merge brings
+
+The UX commit closes the priority defects of the Admin and the Shop: the customers, orders, products, product categories, profile, staff and settings pages of the Admin, the panel of the API tokens, the error utilities of the Admin, the cart sheet of the Shop, and the category and product write paths of the API, with the tests that hold them (the focus return of a dialog, the error utilities, the list kit, the order list, the products, the profile page, the admin products, the product cache ordering, the products routes, the focus of the cart sheet).
+
+The repair-bootstrap commit is the interesting one: **the feature it carries already existed on this line.** The line had implemented the admin-authorized repair bootstrap in the module that owns it (`apps/api/src/core/admin/extension-installer/repair-bootstrap.ts`, with the rejection audit written inside the `onSend` hook, so the audit is written before the answer leaves the process), while the lane had implemented the same feature inside `apps/api/src/core/admin/plugin-management/service.ts`, with the rejection audit written inside the `onResponse` hook, after the answer may already be on the wire. The merge therefore had to choose one home for the feature.
+
+### The conflicts of the merge and how they were resolved
+
+The merge of the lane into the line had five conflicts, and every one of them was in a file that the step 4 remediation had changed.
+
+| The conflict | The resolution |
+|---|---|
+| `apps/api/src/core/admin/extension-installer/routes.ts` (three blocks): the audit of the rejection was written in `onSend` on this line and in `onResponse` on the lane, and the lane called the service instead of the module that owns the route | the line keeps its three blocks. The rejection audit is written before the answer leaves the process, because an answer that is already on the wire cannot be audited afterwards, and the route calls the module that owns the admission |
+| `apps/api/src/core/plugins/tasks.ts` (one block): the line has the bound of a transition transaction and the set-based projection of a task list, the lane has nothing there because its branch is older | the line keeps its block, and the bound and the projection stay used |
+| `apps/api/tests/core/module-boundary-audit.test.ts` (one block): the lane had registered about seventy-eight dependency rings for its own implementation of the repair bootstrap | the line keeps its registry, and the two edges that only existed for the removed implementation (`admin/plugin-management -> audit` and `admin/plugin-management -> auth`) are deleted |
+| `apps/api/tests/routes/admin-products.test.ts` (one block): the line imported the settings service, the lane imported the product management service | both imports are kept: the merged file uses both (eight and nine uses) |
+| `apps/api/tests/routes/plugin-repair-bootstrap.test.ts` (added on both sides): the lane's file tested the implementation that was removed | the line's file is kept. Every case drives the HTTP route and the runtime helpers that stayed, so no assertion referred to the removed service |
+
+The duplicate implementation of the lane in `apps/api/src/core/admin/plugin-management/service.ts` was merged cleanly and therefore carried no conflict marker, but it was removed together with the imports that only it used (`AuthService`, `AuditService`, `prepareRepairBootstrap`, the type of the request and the symbols of the task module). The two import paths that the lane had rewritten to the older location were put back to the paths of this line, because the plugin runtime moved from the extension installer to the neutral runtime module.
+
+The audit of the module boundary was checked against the merged tree with the logic of the audit itself: **192 edges in the tree, 192 registered, none missing and none extra.** The module state audit needed no change, because the merge had already replaced the older registry of the lane with the newer one of this line.
+
+### The decision this merge makes on purpose
+
+The repair bootstrap belongs to the extension installer, and it stays there. The lane put it into the plugin management service, which added a cross-domain edge from the extension installer to the plugin management, and that edge in turn dragged the auth module, the audit module, the task module and the runtime into a dependency ring of about seventy-eight entries that the module boundary audit then had to approve one by one. The feature is the same in both, but the home of the feature decides the shape of the module graph of the platform, and the installer owns the plugin runtime, the durable task API and the stored manifest of an installation. The audit of the rejection also stays in the `onSend` hook: an answer that is already on the wire cannot be audited afterwards.
+
+### The gate evidence
+
+The shard gate over the whole catalogue (`pnpm verify:quick --shards=4`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the merge:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 310 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 208/208 files covered
+Totals: Test Files 208 files, 208 passed | Tests 2777 tests, 2775 passed, 2 pending | Suites 547 suites, 547 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| 1 | 0 | 615.7s | 00:44:34 | 51 files, 51 passed | 674 tests, 674 passed | none |
+| 2 | 0 | 458.6s | 00:44:35 | 52 files, 52 passed | 791 tests, 791 passed | none |
+| 3 | 0 | 481.9s | 00:44:36 | 53 files, 53 passed | 665 tests, 665 passed | none |
+| 4 | 0 | 571.3s | 00:44:37 | 52 files, 52 passed | 647 tests, 645 passed, 2 pending | none |
+Run Admin tests: 62 passed (62), 664 tests passed
+Run Shop tests: 40 passed (40), 285 tests passed
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 13.49s |
+| Lint Shop | PASS | 6.50s |
+| Reset test database | PASS | 3.28s |
+| Run API tests in 4 shards | PASS | 628.42s |
+| Run Admin tests | PASS | 15.28s |
+| Run Shop tests | PASS | 19.85s |
+```
+
+The Admin suite holds one file and fifty-nine tests more than before the merge, and the Shop suite one file and eight tests more: they are the tests of the UX commit of the lane.
+
+The browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the same tree:
+
+```
+Playwright start time: 2026-10-30T17:00:11.374Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.42s |
+| Check observed browser contexts | PASS | 0.73s |
+| Clear dedicated E2E Redis database | PASS | 0.22s |
+| Reset test database | PASS | 2.95s |
+| Build shared package | PASS | 1.31s |
+| Build plugin SDK | PASS | 2.92s |
+| Build API | PASS | 9.16s |
+| Build Admin | PASS | 14.04s |
+| Build Shop | PASS | 11.58s |
+| Start local marketplace | PASS | 3.61s |
+| Start API, worker, Admin and Shop | PASS | 0.04s |
+| Wait for health | PASS | 3.38s |
+| Run Playwright | PASS | 627.82s |
+| Stop E2E child processes | PASS | 0.10s |
+| Total duration: 679.90s |
+```

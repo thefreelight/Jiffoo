@@ -143,6 +143,7 @@ export const common = {
     productsUnavailable: 'Unable to load products component',
     checkoutUnavailable: 'Unable to load checkout component',
     validation: 'Validation Error',
+    bulkSelectionLimit: 'You can process at most {limit} products at once; {matched} products match. Narrow the filters or select fewer products.',
     tryAgain: 'Please try again',
     error: 'Error',
   },

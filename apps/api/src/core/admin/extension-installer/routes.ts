@@ -268,14 +268,14 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     admin.addHook('onRequest', requireAdmin);
     admin.post<{ Params: { slug: string; installationId: string } }>('/plugin/:slug/instances/:installationId/repair-bootstrap', {
       validatorCompiler: repairBootstrapValidator,
-      onSend: async (request, reply, payload) => {
+onSend: async (request, reply, payload) => {
         if (typeof payload === 'string') {
           try {
             const code = JSON.parse(payload)?.error?.code;
             if (typeof code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/.test(code)) repairBootstrapErrors.set(request, code);
           } catch { /* Non-JSON replies carry only their HTTP outcome. */ }
         }
-        // The rejection audit is written before the reply leaves the process: a
+// The rejection audit is written before the reply leaves the process: a
         // response that is already on the wire cannot be audited afterwards.
         if (reply.statusCode >= 400) {
           try { await recordRepairBootstrapRejection(request, request.params.installationId, repairBootstrapErrors.get(request) ?? `HTTP_${reply.statusCode}`); }
@@ -288,7 +288,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         querystring: { type: 'object', additionalProperties: false, properties: {} },
         response: { 200: { type: 'object', additionalProperties: false, required: ['success', 'data'], properties: { success: { type: 'boolean', enum: [true] }, data: { type: 'object', additionalProperties: true, required: ['id', 'status', 'paused', 'attempt'], properties: { id: { type: 'string' }, status: { type: 'string', enum: ['queued', 'running', 'succeeded', 'failed', 'cancelled'] }, paused: { type: 'boolean' }, attempt: { type: 'integer' } } } } },
           400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 409: errorResponseSchema, 422: errorResponseSchema, 500: errorResponseSchema, 503: errorResponseSchema, 504: errorResponseSchema } },
-    }, async (request, reply) => {
+}, async (request, reply) => {
       try { return sendSuccess(reply, await repairBootstrap(request.params.slug, request.params.installationId, request.body, request)); }
       catch (error) { repairBootstrapErrors.set(request, mapApiError(error).body.error.code); return sendMappedError(reply, error); }
     });

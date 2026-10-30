@@ -587,7 +587,7 @@ export class ProductService {
           description: true,
           translations: { where: { locale }, select: { name: true, description: true } },
           _count: {
-            select: { products: true }
+            select: { products: { where: { isActive: true } } }
           }
         }
       }),

@@ -51,6 +51,13 @@ export function resolveApiErrorMessage(
 ): string {
   // Only a gateway envelope validated by the shared client may supply business text.
   if (isAdminApiError(error) && error.source === 'plugin-business') return error.message;
+  if (isAdminApiError(error) && error.code === 'VALIDATION_ERROR' && error.details && typeof error.details === 'object' && !Array.isArray(error.details)) {
+    const { limit, matched } = error.details as Record<string, unknown>;
+    if (typeof limit === 'number' && Number.isSafeInteger(limit) && limit > 0 && typeof matched === 'number' && Number.isSafeInteger(matched) && matched > limit) {
+      return translated(t, 'common.errors.bulkSelectionLimit', 'You can process at most {limit} products at once; {matched} products match. Narrow the filters or select fewer products.')
+        .replace('{limit}', String(limit)).replace('{matched}', String(matched));
+    }
+  }
   const value = error as { code?: unknown; status?: number; statusCode?: number; response?: { status?: number } } | null;
   const code = value?.code;
   const mapping = isApiErrorCode(code) ? ERROR_CODE_TO_I18N_KEY[code] : undefined;
