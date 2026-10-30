@@ -45,10 +45,15 @@ export async function tryNativeBokmooNotifications(request: Request, env: Bokmoo
   const path = url.pathname;
   const matches = path === '/api/v1/me/notifications' || path.startsWith('/api/v1/me/notifications/')
     || path === '/api/v1/admin/notifications'
-    || path === '/api/notifications' || path.startsWith('/api/notifications/');
+    || path === '/api/notifications' || path.startsWith('/api/notifications/')
+    || path === '/api/v1/notifications' || path.startsWith('/api/v1/notifications/');
   if (!matches) return null;
-  // The apps call the short alias; normalize before dispatch.
-  const normalized = path.replace(/^\/api\/notifications/, '/api/v1/me/notifications');
+  // The apps call the short alias; a compat layer may also rewrite it to
+  // /api/v1/notifications before dispatch. Normalize every shape onto the
+  // module's /api/v1/me/notifications routes.
+  const normalized = path
+    .replace(/^\/api\/v1\/notifications/, '/api/v1/me/notifications')
+    .replace(/^\/api\/notifications/, '/api/v1/me/notifications');
   const adminPath = path === '/api/v1/admin/notifications';
 
   if (adminPath) {
