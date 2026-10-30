@@ -2393,7 +2393,7 @@ Playwright results: 112 passed, 0 failed, 0 skipped
 
 ## 5zh. Handover evidence — the step 4 acceptance review remediation (the disaster-tolerance line)
 
-**Baseline SHA:** `ac9fea59e` (the repair of the login budget of the batch) and `97448b322` (the ledger commit of the step 4 batch). **Commit:** (the commit of this batch).
+**Baseline SHA:** `ac9fea59e` (the repair of the login budget of the batch) and `97448b322` (the ledger commit of the step 4 batch). **Commit:** `af265acf6`.
 
 ### Why this section exists
 
@@ -2546,6 +2546,46 @@ Playwright results: 112 passed, 0 failed, 0 skipped
 ```
 
 The commits of the batch of section 5zg that this section closes were `4495bfac8` (the batch), `ac9fea59e` (the repair of the login budget that the first browser E2E of GitHub Actions demanded, run `41023125361`) and `97448b322` (the ledger commit of the batch). The evidence of the local browser E2E of that batch is in section 5zg; the evidence of this batch is above.
+
+The GitHub Actions run of the commit `af265acf6802eb74c90725ebb0110401c54e3bfe` (run `41053898258`, https://github.com/thefreelight/Jiffoo/actions/runs/41053898258) concluded with `success`. All twelve jobs passed: `api (1)`, `api (2)`, `api (3)`, `api (4)`, `e2e`, `backup`, `compose`, `quality`, `release-verify`, `update-migration`, `update-no-migration` and `summary`. The merged summary artifact is `verify-merged-summary` (`Jiffoo/Jiffoo/verify-summary.txt`), and its verdict is:
+
+```
+Run API tests: 213 passed (213) test files, 2767 passed | 2 skipped (2769) tests
+Run API tests (shard 1/4): 54 passed (54), 512 passed (512)
+Run API tests (shard 2/4): 53 passed (53), 668 passed (668)
+Run API tests (shard 3/4): 53 passed (53), 759 passed (759)
+Run API tests (shard 4/4): 53 passed (53), 828 passed | 2 skipped (830)
+Playwright start time: 2026-10-30T12:17:19.067Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+Backup results: 32 passed, 0 failed, 0 skipped
+API shard file coverage (213/213) PASS
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Install dependencies | PASS | 10.91s |
+| Validate and generate Prisma client | PASS | 21.72s |
+| Build shared package | PASS | 24.13s |
+| Build admin application | PASS | 21.28s |
+| Build Shop application | PASS | 18.05s |
+| Build plugin SDK | PASS | 28.31s |
+| Type-check workspace | PASS | 25.27s |
+| Lint Shop | PASS | 7.17s |
+| Export OpenAPI | PASS | 25.67s |
+| Reset test database | PASS | 14.38s |
+| Check Prisma migration drift | PASS | 8.48s |
+| Run API tests | PASS | 1555.53s |
+| Run Admin tests | PASS | 39.58s |
+| Run Shop tests | PASS | 42.27s |
+| Run browser E2E | PASS | 643.99s |
+| Build API | PASS | 12.76s |
+| Run Docker Compose acceptance | PASS | 201.72s |
+| Run release verification acceptance | PASS | 158.53s |
+| Run backup and restore acceptance | PASS | 302.78s |
+| Run no-migration update acceptance | PASS | 515.53s |
+| Run migration update acceptance | PASS | 517.28s |
+```
+
+The catalogue of GitHub Actions holds five more files than the local catalogue (213 against 208), because the local catalogue excludes the delivery suites that the local runner cannot run. The drift check of the schema is part of every GitHub Actions run and passed, so the tree of the batch carries no drift.
 
 ### What is still open
 
