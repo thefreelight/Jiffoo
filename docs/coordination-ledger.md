@@ -2623,7 +2623,7 @@ Two commits of `codex/lane-core-uiux` were never merged into the branch and are 
 
 ## 5zj. Handover evidence — the merge of the lane `codex/lane-core-uiux` into the line
 
-**Baseline SHA:** `cf87809a3`. **Merged branch:** `origin/codex/lane-core-uiux`, the two commits `0a701e94e` (the priority Admin and Shop UX defects) and `659fccbf7` (the admin-authorized plugin repair bootstrap). **Commit:** (the merge commit of this batch).
+**Baseline SHA:** `cf87809a3`. **Merged branch:** `origin/codex/lane-core-uiux`, the two commits `0a701e94e` (the priority Admin and Shop UX defects) and `659fccbf7` (the admin-authorized plugin repair bootstrap). **Commit:** `b0119494b`.
 
 ### Why this section exists
 
@@ -2726,3 +2726,43 @@ Playwright results: 112 passed, 0 failed, 0 skipped
 | Stop E2E child processes | PASS | 0.10s |
 | Total duration: 679.90s |
 ```
+
+The GitHub Actions run of the merge commit `b0119494bff03496ec50589fbeb0169e72c951c9` (run `41097500061`, https://github.com/thefreelight/Jiffoo/actions/runs/41097500061) concluded with `success`. All twelve jobs passed: `api (1)`, `api (2)`, `api (3)`, `api (4)`, `e2e`, `backup`, `compose`, `quality`, `release-verify`, `update-migration`, `update-no-migration` and `summary`. The merged summary artifact is `verify-merged-summary`, and its verdict is:
+
+```
+Run API tests: 213 passed (213) test files, 2781 passed | 2 skipped (2783) tests
+Run API tests (shard 1/4): 54 passed (54), 512 passed (512)
+Run API tests (shard 2/4): 53 passed (53), 669 passed (669)
+Run API tests (shard 3/4): 53 passed (53), 760 passed (760)
+Run API tests (shard 4/4): 53 passed (53), 840 passed | 2 skipped (842)
+Run Admin tests: 62 passed (62), 664 tests passed
+Playwright results: 112 passed, 0 failed, 0 skipped
+Backup results: 32 passed, 0 failed, 0 skipped
+API shard file coverage (213/213) PASS
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Install dependencies | PASS | 9.53s |
+| Validate and generate Prisma client | PASS | 19.90s |
+| Build shared package | PASS | 21.67s |
+| Build admin application | PASS | 20.10s |
+| Build Shop application | PASS | 17.51s |
+| Build plugin SDK | PASS | 25.22s |
+| Type-check workspace | PASS | 24.29s |
+| Lint Shop | PASS | 6.85s |
+| Export OpenAPI | PASS | 21.74s |
+| Reset test database | PASS | 13.15s |
+| Check Prisma migration drift | PASS | 7.54s |
+| Run API tests | PASS | 1410.92s |
+| Run Admin tests | PASS | 40.11s |
+| Run Shop tests | PASS | 66.60s |
+| Run browser E2E | PASS | 649.06s |
+| Build API | PASS | 12.28s |
+| Run Docker Compose acceptance | PASS | 194.74s |
+| Run release verification acceptance | PASS | 123.94s |
+| Run backup and restore acceptance | PASS | 313.44s |
+| Run no-migration update acceptance | PASS | 522.78s |
+| Run migration update acceptance | PASS | 464.97s |
+```
+
+The two Cloudflare Pages checks fail on this run, and they fail on `main` as well (see section 5zi), so they are a condition of the repository and not of this line.
