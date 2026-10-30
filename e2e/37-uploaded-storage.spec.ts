@@ -16,7 +16,9 @@ function isOptimizedMedia(response: Response, source: string) {
 
 async function expectOptimizedSource(image: Locator, source: string) {
   await expect(image).toHaveAttribute('src', /^\/_next\/image\?/);
-  expect(new URL((await image.getAttribute('src'))!, 'http://127.0.0.1:3003').searchParams.get('url')).toBe(source);
+  // The rendered image can still be the previous one while the page settles,
+  // so the optimizer target is polled. The comparison stays exact.
+  await expect.poll(async () => new URL((await image.getAttribute('src'))!, 'http://127.0.0.1:3003').searchParams.get('url')).toBe(source);
 }
 
 test('G uploaded product image survives Admin save and renders in Shop through the API', async ({ page, context }) => {
@@ -90,8 +92,16 @@ test('G theme media upload saves a canonical URL and renders in Shop after reloa
   const response = await uploaded; expect(response.status()).toBe(200);
   const url = (await response.json()).data.url; expect(url).toMatch(canonical);
   await expect(editor.getByRole('img', { name: 'Hero image', exact: true })).toHaveAttribute('src', url);
+  // The editor is dirty before the save, and the Save button is disabled both
+  // while the save runs and once it is complete, so the button cannot be the
+  // signal that the save has landed.
+  await expect(page.getByText('Unsaved changes', { exact: true }).first()).toBeVisible();
+  const saved = page.waitForResponse(response => response.url().includes('/extensions/themes/') && response.url().endsWith('/config') && response.request().method() === 'PUT');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+  expect((await saved).status()).toBe(200);
+  // The editor is clean again, which only happens once the saved values are
+  // the ones the editor holds.
+  await expect(page.getByText('Unsaved changes', { exact: true })).toHaveCount(0);
   const shop = await context.newPage();
   const served = shop.waitForResponse(response => isOptimizedMedia(response, url));
   await shop.goto('http://127.0.0.1:3003/en');

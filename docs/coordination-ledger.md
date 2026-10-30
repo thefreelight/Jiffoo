@@ -2766,3 +2766,54 @@ API shard file coverage (213/213) PASS
 ```
 
 The two Cloudflare Pages checks fail on this run, and they fail on `main` as well (see section 5zi), so they are a condition of the repository and not of this line.
+
+## 5zk. The intermittent failure of the browser E2E of the theme media upload
+
+**Baseline SHA:** `12aee01d7`. **Commit:** (the commit of this batch).
+
+### What happened
+
+The GitHub Actions run of the ledger commit of the merge (`41100370689`) failed its browser E2E on one case: `e2e/37-uploaded-storage.spec.ts`, "G theme media upload saves a canonical URL and renders in Shop after reload". The run of the merge commit before it (`41097500061`) had passed the same case, the source of the two commits is identical (the ledger commit changed a markdown file only), and the re-run of the failed job of `41100370689` passed. The failure was therefore intermittent, and the line had two local browser E2E runs of one hundred and twelve green tests behind it.
+
+### The cause
+
+The cause was in the test, not in the product.
+
+The case waited for the save of the theme settings with `await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();`. The save button of the theme editor is `disabled={!dirty || busy || conflict}` (`apps/admin/components/themes/ThemeEditor.tsx:76`), so it is disabled **while the save runs and once the save is complete**. The assertion could not tell the two states apart, so it usually passed while the save was still in flight, and the case opened the page of the Shop before the settings had landed. The Shop then rendered the previous image, and the comparison of the optimizer target failed.
+
+The comparison itself was sampled once: the first assertion of the helper `expectOptimizedSource` only checks the shape of the source (`/_next/image?`), which the previous image satisfies as well, and the second assertion compared the `url` parameter of the optimizer once, without waiting.
+
+There is no defect in the product on this path. The editor resets its `dirty` flag only in `accept()`, which runs after the response of the save, so the editor's own "Unsaved changes" indicator is a sound signal that the save landed. The read path of the theme has no cache that could serve a stale setting: the Shop reads it with `cache: 'no-store'` (`apps/shop/lib/core-transport.ts:223`), the Core answers `GET /store/theme` with `Cache-Control: no-store`, and the resolver reads the active theme, the theme and its configuration inside a transaction on every request.
+
+### The fix
+
+The case now waits for the save itself instead of for the shape of the button: it asserts that the editor is dirty before the save, waits for the request that saves the configuration (`PUT .../extensions/themes/<slug>/config`) and asserts that it answered 200, and then asserts that the editor is clean again. The helper `expectOptimizedSource` polls the optimizer target until it equals the expected source. **The strength of the assertion did not change**: the parameter of the optimizer still has to equal the source exactly, only the sampling became a wait. The other case that uses the helper, the uploaded product image, is covered by the same change; its own signal, the navigation to the edit page of the product, already happens after the response of the save.
+
+### The gate evidence
+
+The browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the fix:
+
+```
+Playwright start time: 2026-10-30T18:34:46.225Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.82s |
+| Check observed browser contexts | PASS | 0.75s |
+| Clear dedicated E2E Redis database | PASS | 0.23s |
+| Reset test database | PASS | 3.33s |
+| Build shared package | PASS | 1.26s |
+| Build plugin SDK | PASS | 2.89s |
+| Build API | PASS | 10.31s |
+| Build Admin | PASS | 15.48s |
+| Build Shop | PASS | 12.50s |
+| Start local marketplace | PASS | 3.10s |
+| Start API, worker, Admin and Shop | PASS | 0.04s |
+| Wait for health | PASS | 2.83s |
+| Run Playwright | PASS | 708.23s |
+| Stop E2E child processes | PASS | 0.11s |
+| Total duration: 763.51s |
+```
+
+The change touches one file of the browser E2E and no file of the product, so the browser E2E is the gate that covers it; the shard gate of the API, the Admin and the Shop suites does not reach a Playwright specification and was not run again for it.
