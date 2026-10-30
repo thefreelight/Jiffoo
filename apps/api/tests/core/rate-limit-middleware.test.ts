@@ -167,16 +167,19 @@ describe('shared request protection', () => {
   });
   it('I: the login is limited per account identifier as well as per address', async () => {
     const value = await app();
-    for (let i = 0; i < 10; i++) {
+    // A legitimate account is never locked out by its own sign-ins: the
+    // eleventh attempt of the previous budget is allowed.
+    for (let i = 0; i < 120; i++) {
       const response = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: `198.51.100.${i + 1}`, payload: { identifier: 'target@example.test', password: 'secret' } });
       expect(response.statusCode).toBe(200);
     }
-    // A new address does not buy the account a new budget.
-    const rejected = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: '198.51.100.30', payload: { identifier: 'target@example.test', password: 'secret' } });
+    // The aggregate of one account is still bounded: a new address does not
+    // buy the account a new budget.
+    const rejected = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: '198.51.100.200', payload: { identifier: 'target@example.test', password: 'secret' } });
     expect(rejected.statusCode).toBe(429);
     expect(rejected.json().error.code).toBe('RATE_LIMITED');
     // Another account keeps its own budget.
-    const allowed = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: '198.51.100.31', payload: { identifier: 'other@example.test', password: 'secret' } });
+    const allowed = await value.inject({ method: 'POST', url: '/api/v1/auth/login', remoteAddress: '198.51.100.201', payload: { identifier: 'other@example.test', password: 'secret' } });
     expect(allowed.statusCode).toBe(200);
     // The bucket only ever holds the hash of the identifier.
     const keys = await redis.keys(`${namespace}:*`);

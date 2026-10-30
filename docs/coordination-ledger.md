@@ -2359,3 +2359,34 @@ Run Shop tests: 39 passed (39), 274 tests passed
 | Run Admin tests | PASS | 37.19s |
 | Run Shop tests | PASS | 31.02s |
 ```
+
+### The browser E2E of the batch
+
+The first push of the batch failed the browser E2E of GitHub Actions (run `41023125361`): three tests of `e2e/07-products.spec.ts` failed with the admin sign-in screen showing "Too many sign-in attempts. Please try again later.". The per-account login budget of the batch (ten attempts per fifteen minutes) was exhausted by the suite itself: the Playwright workers sign in with the same owner account in parallel, so the legitimate sign-ins of one account locked that account out. The repair is in the same package as the budget.
+
+The budget is now 120 attempts per fifteen minutes (eight per minute). The per-address budget of the login (20 per 5 minutes) is unchanged, and the account budget still caps the aggregate of the attempts against one account no matter how many addresses they come from - an attacker that spreads the attempts gets eight a minute for that account instead of four a minute and address. The rate-limit case of the browser E2E now also deletes the account bucket it filled, so it leaves no state behind for the later specs.
+
+The local browser E2E over the whole catalogue (`pnpm verify:e2e`, the integration lane `jiffoo_core_test`, the `postgres`/`postgres` account), on the tree that carries the repair:
+
+```
+Playwright start time: 2026-10-30T09:24:01.349Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 2.22s |
+| Check observed browser contexts | PASS | 0.83s |
+| Clear dedicated E2E Redis database | PASS | 8.41s |
+| Reset test database | PASS | 3.01s |
+| Build shared package | PASS | 1.46s |
+| Build plugin SDK | PASS | 3.16s |
+| Build API | PASS | 16.97s |
+| Build Admin | PASS | 26.64s |
+| Build Shop | PASS | 16.89s |
+| Start local marketplace | PASS | 3.65s |
+| Start API, worker, Admin and Shop | PASS | 0.06s |
+| Wait for health | PASS | 3.60s |
+| Run Playwright | PASS | 825.05s |
+| Stop E2E child processes | PASS | 0.12s |
+| Total duration: 912.87s |
+```

@@ -4,6 +4,7 @@ import { captureAuthState } from './auth-captures';
 import { getTestPrisma, disconnectDatabase } from '../apps/api/tests/helpers/db';
 import Redis from 'ioredis';
 import bcrypt from 'bcryptjs';
+import { createHash } from 'node:crypto';
 
 test('logout and login preserve the session across reload', async ({ page }) => {
   await login(page, ownerEmail, originalPassword);
@@ -72,6 +73,10 @@ test('shared login protection shows the too-many-attempts screen', async ({ page
     await captureAuthState(page, 'login-rate-limited', '登录后台');
   } finally {
     await redis.del('jiffoo:protection:rl:/api/v1/auth/login:ip:127.0.0.1');
+    // The per-account bucket of the same sign-ins is cleaned up as well, so
+    // the case leaves no state behind for the later specs.
+    const accountHash = createHash('sha256').update('missing-rate-limit@e2e.example').digest('hex');
+    await redis.del(`jiffoo:protection:rl:login-account:account:${accountHash}`);
     redis.disconnect();
   }
 });

@@ -53,7 +53,10 @@ const authPolicies: Record<string, ScopedPolicy> = {
 };
 // The second dimension of the login: one account cannot be attacked from many
 // addresses. Only the hash of the identifier is kept, never the identifier.
-const loginAccountPolicy: Policy = { windowMs: 15 * 60000, maxRequests: 10 };
+// The budget is an aggregate over the addresses of one account, so it has to
+// leave a legitimate account (a team signing in from several places, a suite
+// signing in in parallel) room while still bounding a distributed attack.
+const loginAccountPolicy: Policy = { windowMs: 15 * 60000, maxRequests: 120 };
 
 /** The submitted account identifier, reduced to a hash that is never stored. */
 function loginAccountHash(request: FastifyRequest): string | undefined {
