@@ -3184,3 +3184,72 @@ Total duration: 674.65s
 ### The two gate runs before this one
 
 The first run of the gate over this batch failed on six files: the install completion answered 500 (5zm), the two module audits did not know the new module and its 23 new module-level constants, and the print test asserted on an order its selection did not contain. The second run failed on three Admin cases (5zo, 5zp). Both failures were repaired by the packages that own the files, and the run above is the result over the tree that was committed.
+
+## 5zr. The diagnosis loop of the verification: a diagnostic run and a filtered browser E2E
+
+**Baseline SHA:** `2b51c5740`. **Commit:** `f0d07b85f`.
+
+### The problem
+
+The batch that closed the OpenAPI debt and the second wave of the Admin features took about four and a half hours, and the code was the smaller part of it. The verification loop was the reason:
+
+- The planner widens every selection to the whole catalogue when the batch touched `packages/shared/`, the API contract surface, the schema or authentication, and the API catalogue runs serially inside one database (`singleFork`, `fileParallelism: false`). A widened selection therefore costs about thirty minutes.
+- The first gate of that batch failed on six files. Locating the three failing Admin cases of the second run cost another whole gate — fourteen minutes to read three error messages, because the planner dragged the entire API catalogue into a run that needed three files.
+- The browser E2E runs the whole catalogue: about eleven minutes for 112 cases.
+
+The gate did its job: it caught six real defects, three of them product defects that no unit test could see (the accessible name of a table cell, a menu that stole the focus of an input, a fetch effect that looped forever). But its unit price is what made the loop expensive.
+
+### The change
+
+**A diagnostic run.** `pnpm verify:quick --diagnostic` runs exactly the requested selection, prints the suites the planner would add for the certifying gate together with their reasons, and marks its own summary as a diagnostic run. It is a localisation tool and never a gate: the run that certifies a commit is the widened one, and without `--diagnostic` the planner's mandatory suites are still added and still run. It is refused without `--quick`, together with `--shards=`, and without a selection.
+
+**A filtered browser E2E.** `pnpm verify:e2e --area=<substring>` runs the chain of projects the target depends on, then the target area, and skips the areas after it. `--grep=<pattern>` narrows the cases inside the target area and needs the area to name.
+
+### What the E2E filter had to learn about the suite
+
+The first implementation ran the target area alone, and the three cases of `08-orders` failed with `prisma.user.findUniqueOrThrow()` finding no user. The reason is the shape of the suite: `e2e/playwright.config.ts` declares every project as depending on the previous one (`dependencies: index ? [areas[index - 1]] : []`), so the forty projects are one chain, and the earlier projects' **tests** are the step that creates the fixtures — the administrator account, the products, the store settings — that the later cases read. Dropping the chain drops the fixtures with it.
+
+A filtered run therefore replays the chain: the groups before the last target area run their full cases without a title filter, the target area runs with the filter, and the groups after it are skipped. The saving is the tail, and the summary says so: it names the target areas, the chain it replayed and the areas it skipped. An area in the last position has no saving at all, and the summary shows that too.
+
+The filtered run also broke the browser context guard on the way: the guard evaluates a slice of the runner's own source in a sandbox, so a new module-level identifier in that slice has to be mirrored in the sandbox. The guard now carries that contract in a comment.
+
+### The measurements
+
+| | before | after |
+| --- | --- | --- |
+| locate three failing Admin cases | about 14 min (a whole gate) | **21 s** (`pnpm verify:quick --scope=admin --diagnostic`, 65 files, 684 tests) |
+| re-run the browser E2E of one area | about 11 min (674 s, 112 cases) | **210 s** (`pnpm verify:e2e --area=08-orders`, 15 cases: the seven areas of the chain plus the target) |
+
+### The rules that came with it
+
+`AGENTS.md` now states that a diagnostic run localises a failure and only the widened gate certifies; that the certifying gate of a widened batch is the shard mode; that the local gate covers the change while the complete gate belongs to CI; that a filtered browser E2E localises a case; and that a worker is briefed with the decision already made.
+
+### The local evidence
+
+This batch touched only `scripts/` and `AGENTS.md`, so the planner adds no suite and the certifying local run is the script tests:
+
+```
+=== Run script tests ===
+ℹ tests 19
+ℹ pass 19
+ℹ fail 0
+| Run script tests | PASS | 0.37s |
+```
+
+The diagnostic run and the filtered E2E are the evidence of the two new modes:
+
+```
+Scope: admin (diagnostic run; this is not the certifying gate)
+Delivery status: DIAGNOSTIC (this run is not the certifying gate and is never delivery evidence)
+ Test Files  65 passed (65)
+      Tests  684 passed (684)
+```
+
+```
+E2E target areas: 08-orders, 09-customers
+E2E fixture chain: 01-install, 02-login, 03-password, 04-language, 05-settings, 06-health-plugins, 07-products
+Playwright results: 15 passed, 0 failed, 0 skipped (filtered by area 08-orders; this run is NOT the certifying E2E gate)
+Total duration: 210.45s
+```
+
+The complete gate is the CI gate, which runs on every push; its evidence is registered in the section that follows this one.
