@@ -3253,3 +3253,86 @@ Total duration: 210.45s
 ```
 
 The complete gate is the CI gate, which runs on every push; its evidence is registered in the section that follows this one.
+
+## 5zs. The rule file, cut down to the working agreement
+
+**Baseline SHA:** `e7cd2f66b`. **Commit:** (the commit of this batch).
+
+### What the owner asked
+
+The owner read the rule file and found it long and scattered: many rules, in an order that gave no map of them, and details mixed with the rules themselves. The approved cuts were four — **A** move the browser E2E runbook detail into `docs/`, **B** delete the explanatory sentences of the local gate, **C** drop the rationale sentences of the worker section, **D** move the command table out — and the file was also to be measured against the official Codex definition of `AGENTS.md`.
+
+### What the official definition says
+
+The authoritative pages are the Codex documentation on `AGENTS.md` and the `agents.md` convention itself. They define the file's **mechanics**, not a length:
+
+- Codex builds one instruction chain per run: the global file first (`~/.codex/AGENTS.md`, or `AGENTS.override.md`), then the project scope, walking from the project root toward the current working directory and concatenating from the root down, so the nearest file wins. Empty files are skipped, and the combined size defaults to 32 KiB (`project_doc_max_bytes`).
+- The recommended shape is descriptive Markdown headings: working agreements at the global scope, repository-wide expectations at the root, service-specific rules in the file nearest the code they govern.
+- There is **no** length limit in the definition. The "500 to 2,000 characters" figure in circulation comes from a third-party guide, not from OpenAI, and is not a rule to follow.
+- The one explicit exclusion is about code-review rules: formatting and lint checks are best left to CI when CI already runs them.
+
+Two consequences follow for this repository. First, 32 KiB is the ceiling and the file was never near it, so "too long" was never a technical problem — the complaint was about **structure**, and the structure is what the cuts address. Second, the convention's advice to move specialized rules next to the code does not apply here: Codex walks from the project root toward the **current working directory**, and every session in this worktree runs from the worktree root, so a nested `apps/api/AGENTS.md` would be silently skipped. The architecture boundaries therefore stay in the root file, where they are always read.
+
+### The cuts
+
+| | before | after |
+| --- | --- | --- |
+| `AGENTS.md` | 23,201 bytes, 329 lines | **19,552 bytes, 281 lines** |
+| rule markers (bold lead-ins) in the root file | 32 | 32 |
+| rule markers in the root file plus `docs/` | 37 | 37 |
+
+What moved, and where:
+
+| Cut | From | To |
+| --- | --- | --- |
+| A | the leftover-process cleanup procedure, the visual capture procedure, the failure-evidence procedure | `docs/verification-runbook.md` |
+| B | the sentences explaining why a full run takes 38 minutes and why the shard mode takes 13 | deleted |
+| C | the rationale sentences of the worker section | deleted |
+| D | the command table (Appendix A) | `docs/verification-runbook.md` |
+
+The structure followed the convention's headings: a table of contents that says what each section binds, the owner's decisions first, and a closing section that names where the detail lives.
+
+### The check that no rule was lost
+
+The cut is mechanical, so it is verified mechanically: every bold rule marker of the previous file (37 of them) is searched in the new `AGENTS.md` and the three `docs/` files it now points at, first as an exact string and then as a token overlap. The result is `missing (token overlap < 0.75): 0`. Five markers moved into `docs/verification-runbook.md`; the other 32 stayed in the root file.
+
+### The local evidence
+
+The baseline SHA is `e7cd2f66b`. The changed inputs are `AGENTS.md`, the new `docs/verification-runbook.md` and this ledger section: no source, no test, no schema, no dependency. The planner therefore adds no suite, and the certifying local run is the selection of the script test that covers the verification selection logic, `scripts/verify-selection.test.mjs`. It is a database-free and container-free audited script test, which is what `--test-files` accepts locally.
+
+The run was:
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=scripts/verify-selection.test.mjs
+```
+
+The summary of that run, printed from `verify-summary.txt`:
+
+```
+=== Final test summary ===
+Scope: scripts
+Lane: integration
+Database: not used
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-10-31T11:33:18.002Z
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 260.1611
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 0.30s |
+```
+
+Sixteen tests, not the nineteen of the previous section: the selection here is a single file, while the selection of section 5zr also covered `scripts/check-e2e-contexts.test.mjs`, which carries three more. The two numbers are therefore the same sixteen tests plus three, not a smaller suite that lost a case.
+
+The browser E2E did not run locally: it belongs to CI (section 4 of `AGENTS.md`), and this batch changed no product code. The complete gate is the CI gate, which runs on every push to this branch.
+
