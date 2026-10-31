@@ -3342,3 +3342,78 @@ Sixteen tests, not the nineteen of the previous section: the selection here is a
 
 The browser E2E did not run locally: it belongs to CI (section 4 of `AGENTS.md`), and this batch changed no product code. The complete gate is the CI gate, which runs on every push to this branch.
 
+## 5zt. The rule file states rules, not facts
+
+**Baseline SHA:** `e42b3dfee`. **Commits:** (the commits of this batch).
+
+### What the owner asked
+
+The owner read the rule file, saw the architecture section full of project specifics, and asked the question the file should have answered itself: why does a rule file carry the business of the project at all? The review that followed compared the file with the official Codex definition of `AGENTS.md` and then with the code.
+
+### The official definition
+
+The official pages define the mechanics, not a length. Codex reads the global file first, then walks from the project root down to the current working directory, takes at most one file per directory, and concatenates them root-down, so the file nearest the working directory wins. The combined size stops at `project_doc_max_bytes`, 32 KiB by default, and the official remedy for a chain that reaches the cap is to raise the setting or divide the guidance among nested directories. The recommended shape is a `## Working agreements` section in the profile directory, a `## Repository expectations` section in the repository root, and **service-specific checks in a nested file**, placed as close to the specialized work as possible. The two example entries of the root section are "Run `npm run lint` before opening a pull request" and "Document public utilities in `docs/` when you change behavior": both are behaviors, and neither describes what the code currently looks like.
+
+### What was found
+
+The rule file is read once, at the start of a session, and never refreshed. A fact copied into it is a second copy of the codebase, and it decays silently: a reader cannot tell a stale rule from a current one.
+
+Four facts in the file were already stale, a day after it was rewritten:
+
+| The rule said | The code says |
+| --- | --- |
+| the isolated Fastify gateway sits in the extension installer | it sits in the neutral runtime module; the extension installer no longer holds it, and every caller imports it from there |
+| the plugin context surface is `plugin`, `config`, `database`, `logger`, `http`, `events`, `contracts` | the surface also carries the task queue and the private storage |
+| an internal helper of the order module is `core/order/current-pricing.ts` | that file was moved to the neutral shared layer and its shim was deleted |
+| the durable plugin tasks and the core-mediated plugin services are not implemented | the durable tasks are implemented — their tables, the task worker, the SDK queue and the scaffold all exist; only the services are not |
+
+The test of the category is the product charter. The charter names three paths, once, in the section that explains why the trust model is what it is, and all three are still correct. The rule file named paths as illustrations inside four different rules, and four of them had rotted. The difference is not that one document mentions paths and the other does not; it is that a document whose subject is a decision can afford to name what the decision is about, while a document whose subject is the working rules cannot afford to restate the code.
+
+### The decision
+
+**The rule file states rules, not facts.** A decision belongs there, with its reason. A fact the repository can answer by inspection — a path, a table name, a version, a member list — does not: the copy decays silently, and the decay is invisible to every reader, including the one who wrote it. Facts live in the code, in a registry a test checks, or in `docs/`. The principle is now written at the head of the file, so the next edit keeps it.
+
+The architecture section therefore keeps every rule and loses every fact. What replaces the facts:
+
+- The module graph, the approved module edges, the owner of every table and the registered exceptions are already held by the boundary audit, which runs in CI and fails on a new edge, a new dependency ring and a new cross-domain write. Section 7 now says that in one sentence, and section 8 points at the audit by role. The rule file no longer carries a second, unchecked copy of a registry that CI already checks.
+- The capability contracts, the version in force of each and the plugin context surface are held by the shared contract catalogue; section 8 points at it by role.
+- The version of a capability is a release artifact, not a rule: it moves, so it does not belong in the file. The names of the capabilities are a product decision recorded in the charter, so they stay.
+
+The pointer table of section 8 now covers every document of `docs/`, including two that no rule reached before: the execution plan of the acceptance scenarios and the owner's approved design baseline.
+
+### The evidence that no rule was lost
+
+The bold lead-ins of the previous file are searched in the new one and in the `docs/` files it points at, first as an exact string and then as a token overlap: `missing (token overlap < 0.75): 0`, for the 35 lead-ins of the previous file and for the 37 of the file before the cut of section 5zs. The rule file grows from 19,552 bytes and 281 lines to 20,799 bytes and 298 lines: the growth is the principle paragraph at the head and the pointer table at the foot, and the facts they replace are gone.
+
+### The local evidence
+
+The baseline SHA is `e42b3dfee`. The changed inputs are `AGENTS.md` and this ledger section: no source, no test, no schema, no dependency. The planner therefore adds no suite, and the certifying local run is the selection of the audited script test that covers the verification selection logic, `scripts/verify-selection.test.mjs`.
+
+```
+=== Final test summary ===
+Scope: scripts
+Lane: integration
+Database: not used
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-10-31T11:59:58.060Z
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 282.7701
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 0.33s |
+```
+
+The browser E2E did not run locally: it belongs to CI (section 4 of `AGENTS.md`), and this batch changed no product code. The line of this section that quotes the summary was written after the run and changes no executable input.
+
+### Still open
+
+- The mirror rule in the preamble of this ledger predates the merge and contradicts section 5s: it names `codex/lane-orders` as the canonical copy and the integration worktree as a read-only mirror, while section 5s makes `codex/core-extension-boundary` the authoritative copy. The preamble is the item of the documentation cleanup that follows this one.
+

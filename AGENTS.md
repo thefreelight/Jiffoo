@@ -5,6 +5,12 @@ work it describes. A rule that says **never** or **only** is a hard rule; a rule
 **should** is a practice. Where two rules seem to disagree, the hard one wins, and
 `docs/coordination-ledger.md` records the decision.
 
+**This file states rules, not facts.** A decision belongs here, with its reason. A fact the
+repository can answer by inspection — a path, a table name, a version, a member list — does not:
+a copy of it decays silently, and the decay is invisible to every reader, including the one who
+wrote it. Facts live in the code, in a registry a test checks, or in `docs/`. Section 8 points
+at where each kind of detail is.
+
 | Section | Binds |
 | --- | --- |
 | 1. Working agreements | everything |
@@ -166,10 +172,10 @@ work it describes. A rule that says **never** or **only** is a hard rule; a rule
   that mock it: search `vi.mock`, `vi.doMock` and the old path as a string, including barrels and
   aliases. When the affected set is unclear, widen to the full API verification instead of
   guessing.
-- **Keep the output small.** Long reports go to a file (`output: "tmp/reports/<name>.md"`, `options:
-  { outputMode: "file-only" }`); the session receives the path, not the body. Read long files with
-  `cut -c1-N` — the "Planner added suites" line of `verify-summary.txt` is one very long line and
-  freezes a terminal that prints it whole.
+- **Keep the output small.** Long reports go to a file (`output: "tmp/reports/<name>.md"`,
+  `options: { outputMode: "file-only" }`); the session receives the path, not the body. Read long
+  files with `cut -c1-N` — the "Planner added suites" line of `verify-summary.txt` is one very long
+  line and freezes a terminal that prints it whole.
 
 ## 6. The browser E2E
 
@@ -188,7 +194,7 @@ lane never runs it locally either.
   localStorage or cookie writes for login, `getByTestId`, CSS or XPath selectors. Locate UI only with
   `getByRole` (with name), `getByLabel`, `getByText` or `getByPlaceholder`, and give unnamed controls
   an accessible label. Treat blocked clicks and missing elements as product bugs: fix the UI rather
-  than adding waits or changing locator strategy. In `e2e/visual.spec.ts`, read-only
+  than adding waits or changing locator strategy. In the visual capture specification, read-only
   `page.evaluate` may inspect `document.fonts.ready` and computed CSS; UI interaction still uses
   accessible locators and Playwright keyboard actions.
 - **A lane never touches another lane's resources.** The procedure for identifying and ending a
@@ -196,38 +202,38 @@ lane never runs it locally either.
 
 ## 7. The architecture boundaries
 
-Binding on every agent that writes code here. They restate the Core/extension split of
-`docs/agentra-001-core-v1-product-charter.md` and
-`docs/agentra-004-plugin-pages-and-services.md` as checkable constraints.
+Binding on every agent that writes code here. These are the boundaries a check cannot express, so
+they are stated in words; the boundaries a check can express are checked mechanically and live in
+the code. The boundary audit is the source of truth for the module graph, the approved module
+edges, the owner of every table and the registered exceptions; it runs in CI and fails on a new
+edge, a new dependency ring and a new cross-domain write. Do not restate its registers here: they
+are code, and they change with the tree.
 
 ### 7.1 Keep the Core/extension boundary
 
 - Generic commerce semantics (`cart`, `checkout`, `order`, `inventory`, `payment`, `account`,
-  `admin`) live in `apps/api/src/core/`. Extension capabilities and third-party integrations
-  enter only through `packages/plugin-sdk` and the isolated Fastify gateway in
-  `apps/api/src/core/admin/extension-installer/plugin-runtime.ts`.
+  `admin`) belong to Core. Extension capabilities and third-party integrations enter only through
+  the plugin SDK and through the isolated Fastify gateway that dispatches a plugin's own routes
+  with `inject()`.
 - Never hardcode a plugin slug, a plugin's manifest fields or a plugin's business rules inside
-  `apps/api/src/core/` outside the extension-installer and plugin-management domains. Core calls a
-  plugin only through a versioned capability contract (`payment` v2, `shipping` v1, `tax` v1,
-  `fulfillment` v1, `notification` v1) via `callContract(...)`, and only through the public
-  contract declarations in `packages/shared/src/extensions/plugin-contract.ts`.
-- Plugin code never registers routes on the Core Fastify instance. Plugin HTTP routes and contract
-  endpoints are served by a per-installation isolated Fastify instance reached through `inject()`.
-- A plugin's declared `PluginContext` surface (`plugin`, `config`, `database`, `logger`, `http`,
-  `events`, `contracts`) is the whole contract. Core never hands a plugin `prisma`, a Core service
-  instance or a Core secret.
+  Core. Core calls a plugin only through a versioned capability contract — `payment`, `shipping`,
+  `tax`, `fulfillment`, `notification` — and only through the shared contract catalogue and
+  `callContract(...)`. Which version of a capability is in force is the catalogue's business; Core
+  never assumes one.
+- Plugin code never registers routes on the Core Fastify instance. A plugin's HTTP routes and
+  contract endpoints are served by a per-installation isolated Fastify instance reached through
+  `inject()`.
+- A plugin's declared context surface is the whole contract. Core never hands a plugin `prisma`,
+  a Core service instance or a Core secret.
 - Themes are presentation data only. A theme package never carries executable server code, browser
   JavaScript or a Core-page injection point.
 
 ### 7.2 Modules talk only through public contracts
 
-- Under `apps/api/src/core/`, one module may only call another module's **publicly exported service
-  or type**. Internal helper files of a module (for example `core/order/transition.ts`,
-  `core/order/status-history.ts`, `core/order/catalog-snapshot.ts`,
-  `core/order/current-pricing.ts`) are private to that module.
-- Never mutate another domain's database tables directly. `prisma.order`, `prisma.payment`,
-  `prisma.cart`, `prisma.productVariant`, `prisma.user` and their siblings have exactly one owning
-  module, and only that module may write them. Cross-domain effects are expressed as a call to the
+- One module may only call another module's publicly exported service or type. A module's internal
+  helper files are private to that module.
+- Never mutate another domain's database tables directly. Every table has exactly one owning
+  module, and only that module may write it. Cross-domain effects are expressed as a call to the
   owning module's public service inside the caller's existing `prisma.$transaction`.
 - A module that owns a cross-domain side effect (for example cancelling pending payments when an
   order is cancelled) exposes that side effect as a public method on the owning module, which keeps
@@ -235,8 +241,9 @@ Binding on every agent that writes code here. They restate the Core/extension sp
 - A module that needs shared infrastructure that is not its own (row locks, money conversion,
   pricing rules) must not reach into another domain's folder for it; that infrastructure belongs in
   a neutral shared location.
-- Keep public read projections explicit. A module that needs order data for a notification or an
-  event payload consumes a documented projection method instead of reading the order table.
+- Keep public read projections explicit. A module that needs another domain's data for a
+  notification or an event payload consumes a documented projection method instead of reading that
+  domain's table.
 
 ### 7.3 Money and stock writes are idempotent and transactional
 
@@ -248,34 +255,44 @@ Binding on every agent that writes code here. They restate the Core/extension sp
   on crash, and never let two concurrent transactions produce oversell, double capture or a
   paid-but-unrecorded order.
 - Cross-instance correctness comes from the database, not from process memory. Use the existing
-  locks and leases (`core/shared/locks.ts`, `core/payment/lease.ts`, `core/notifications/lease.ts`)
-  and the transactional outbox instead of in-process coordination.
-- Read-modify-write of a shared monetary or stock field must be a conditional update whose predicate
-  includes the expected prior value.
+  locks, leases and the transactional outbox instead of in-process coordination.
+- Read-modify-write of a shared monetary or stock field must be a conditional update whose
+  predicate includes the expected prior value.
 
 ### 7.4 Plugin and external calls degrade, never block the core flow
 
-- Every plugin invocation (`inject()`, a capability contract call, the G4 service call when it
-  lands) and every external HTTP call carries an explicit timeout, and the surrounding code path
-  treats timeout, breaker-open and provider-error as an expected, recorded outcome rather than an
-  unhandled rejection.
+- Every plugin invocation (`inject()`, a capability contract call, a service call) and every
+  external HTTP call carries an explicit timeout, and the surrounding code path treats timeout,
+  breaker-open and provider-error as an expected, recorded outcome rather than an unhandled
+  rejection.
 - Non-core actions (notifications, statistics, audit side effects, reconciliation sweeps) run
-  asynchronously through `apps/api/src/jobs/` and the durable outbox/lease machinery, with retry,
+  asynchronously through the background job machinery and the durable outbox and lease, with retry,
   backoff and failure recording. They never block or roll back the core commerce transaction.
 - A failed or unavailable extension must degrade gracefully: the core transaction still completes
   and the failure is recorded with its originating extension. Never let an extension failure abort
   an order, a payment capture or a stock deduction.
-- Plugin-owned durable tasks (G1) and Core-mediated plugin services (G4) are specified in
-  `docs/agentra-004-plugin-pages-and-services.md` and are not implemented in this worktree yet.
-  Until they land, the equivalent Core-side behaviour uses the existing job, lease and outbox paths;
-  do not introduce a second queueing mechanism.
+- Durable plugin tasks are implemented. Core-mediated plugin services are specified in
+  `docs/agentra-004-plugin-pages-and-services.md` and are not implemented yet; until they land, the
+  equivalent Core-side behaviour uses the existing job, lease and outbox paths, and no second
+  queueing mechanism is introduced.
 
 ## 8. Where the detail lives
 
-| File | Holds |
+| Where | Holds |
 | --- | --- |
+| the boundary audit test | the module graph, the approved module edges, the owner of every table, the registered exceptions; it runs in CI |
+| the shared contract catalogue | the capability contracts, the version in force of each, and the plugin context surface |
+| the plugin SDK | the published surface a plugin author writes against |
+| the plugin runtime | the isolated Fastify instance that dispatches a plugin's own routes |
 | `docs/verification-runbook.md` | the commands, the leftover-process cleanup procedure, the visual capture procedure, the failure evidence |
 | `docs/e2e-verification.md` | the browser E2E runner's behaviour, the evidence artifacts, the open issues |
 | `docs/visual-verification.md` | the visual capture sets, the viewport coverage, the noise floor |
 | `docs/coordination-ledger.md` | the decisions, the registered contract changes, the registered verification runs |
-| `docs/agentra-001-core-v1-product-charter.md`, `docs/agentra-004-plugin-pages-and-services.md` | the product charter behind section 7 |
+| `docs/agentra-001-core-v1-product-charter.md` | the product charter behind section 7 |
+| `docs/agentra-002-v1-execution-plan.md` | the state of every acceptance scenario of the charter, and its evidence |
+| `docs/agentra-003-theme-format.md` | the declarative theme package format |
+| `docs/agentra-004-plugin-pages-and-services.md` | the plugin pages, the private storage, the durable tasks and the core-mediated services |
+| `docs/operator-guide.md` | the production host commands: deployment, backup, update, restore |
+| `docs/deployment-env.md` | the environment variables of the deployment |
+| `docs/local-trial.zh-Hans.md` | the Windows local trial |
+| `docs/design/` | the owner's approved visual baseline for the Admin and the Shop |
