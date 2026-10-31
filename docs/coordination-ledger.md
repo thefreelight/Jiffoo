@@ -3256,7 +3256,7 @@ The complete gate is the CI gate, which runs on every push; its evidence is regi
 
 ## 5zs. The rule file, cut down to the working agreement
 
-**Baseline SHA:** `e7cd2f66b`. **Commit:** (the commit of this batch).
+**Baseline SHA:** `e7cd2f66b`. **Commits:** (the commits of this batch).
 
 ### What the owner asked
 
@@ -3278,8 +3278,8 @@ Two consequences follow for this repository. First, 32 KiB is the ceiling and th
 | | before | after |
 | --- | --- | --- |
 | `AGENTS.md` | 23,201 bytes, 329 lines | **19,552 bytes, 281 lines** |
-| rule markers (bold lead-ins) in the root file | 32 | 32 |
-| rule markers in the root file plus `docs/` | 37 | 37 |
+| bold lead-ins in the root file | 37 | 35 |
+| bold lead-ins in the root file plus `docs/` | 37 | 37 |
 
 What moved, and where:
 
@@ -3294,7 +3294,11 @@ The structure followed the convention's headings: a table of contents that says 
 
 ### The check that no rule was lost
 
-The cut is mechanical, so it is verified mechanically: every bold rule marker of the previous file (37 of them) is searched in the new `AGENTS.md` and the three `docs/` files it now points at, first as an exact string and then as a token overlap. The result is `missing (token overlap < 0.75): 0`. Five markers moved into `docs/verification-runbook.md`; the other 32 stayed in the root file.
+The cut is mechanical, so it is verified mechanically: every bold lead-in of the previous file (37 of them) is searched in the new `AGENTS.md` and the three `docs/` files it now points at, first as an exact string and then as a token overlap. The result is `missing (token overlap < 0.75): 0`.
+
+Where the 37 landed: 28 are verbatim in the new root file, 6 were reworded but stayed there, and 3 became the section headings of `docs/verification-runbook.md` ("What to run." became "The commands", "Investigating a failure." became "Investigating a browser E2E failure", "Visual captures" kept its name). The root file therefore holds 34 of them and the runbook 3.
+
+The check reads the pre-cut revision as its input, not the working copy, so that it cannot compare the new file with itself: the old text comes from `git show HEAD~1:AGENTS.md` after the cut is committed, and from `git show HEAD:AGENTS.md` before it. The script is a throwaway in the session's temporary directory, not a file of the repository, and the method is stated here so that the next cut can be checked the same way.
 
 ### The local evidence
 
@@ -3317,7 +3321,7 @@ Lane: integration
 Database: not used
 Planner added suites: none
 Run script tests:
-Node test start time: 2026-10-31T11:33:18.002Z
+Node test start time: 2026-10-31T11:36:32.649Z
 ℹ tests 16
 ℹ suites 0
 ℹ pass 16
@@ -3325,12 +3329,14 @@ Node test start time: 2026-10-31T11:33:18.002Z
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 260.1611
+ℹ duration_ms 263.7322
 
 | Step | Result | Duration |
 | --- | --- | --- |
-| Run script tests | PASS | 0.30s |
+| Run script tests | PASS | 0.31s |
 ```
+
+The run above is the second one of this batch. The first, at `2026-10-31T11:33:18.002Z`, ran the same selection over the same tree and reported the same 16 passing tests; it was repeated because the counts of this section were corrected after it, and a result covers only the input it ran against. The line that quotes this summary was written after the run and changes no executable input.
 
 Sixteen tests, not the nineteen of the previous section: the selection here is a single file, while the selection of section 5zr also covered `scripts/check-e2e-contexts.test.mjs`, which carries three more. The two numbers are therefore the same sixteen tests plus three, not a smaller suite that lost a case.
 
