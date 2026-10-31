@@ -19,6 +19,9 @@ export * from './extensions/contracts';
 
 export * from './events/registry';
 
+// Admin list preferences (saved views and custom columns)
+export * from './admin-list-preferences';
+
 // Validation Schemas
 export * from './schemas/auth';
 export * from './schemas/product';

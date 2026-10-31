@@ -41,6 +41,7 @@ const productVariantSchema = {
     name: { type: 'string', description: 'Variant name' },
     salePrice: { type: 'number', description: 'Sale price' },
     costPrice: { type: 'number', nullable: true, description: 'Source cost price' },
+    compareAtPrice: { type: 'number', nullable: true, description: 'Compare-at price; it is never below the sale price' },
     stock: { type: 'number', description: 'Stock quantity' },
     skuCode: { type: 'string', description: 'SKU code' },
     isActive: { type: 'boolean', description: 'Is active' },
@@ -219,6 +220,51 @@ export const adminProductSchemas = {
     }, allOf: [{ if: { properties: { action: { const: 'setCategory' } } }, then: { required: ['categoryId'] } }] },
     response: { 200: createSuccessResponseSchema(bulkResultSchema), 400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 500: errorResponseSchema },
   },
+  // POST /api/admin/products/bulk-prices
+  bulkPrices: {
+    body: { type: 'object', additionalProperties: false, required: ['selection'], properties: {
+      selection: productSelectionSchema,
+      salePrice: { type: 'object', additionalProperties: false, required: ['mode', 'value'], properties: {
+        mode: { type: 'string', enum: ['amount', 'percentage'] },
+        value: { type: 'string', pattern: '^-?\\d+(?:\\.\\d+)?$', description: 'The absolute price, or the change of the price, as a decimal string' },
+      } },
+      compareAtPrice: { type: 'object', additionalProperties: false, required: ['mode', 'value'], properties: {
+        mode: { type: 'string', enum: ['amount', 'percentage'] },
+        value: { type: 'string', pattern: '^-?\\d+(?:\\.\\d+)?$', description: 'The absolute price, or the change of the price, as a decimal string' },
+      } },
+      clearCompareAtPrice: { type: 'boolean', description: 'Remove the compare-at price of every selected variant' },
+      dryRun: { type: 'boolean' },
+    }, anyOf: [
+      { required: ['salePrice'] },
+      { required: ['compareAtPrice'] },
+      { required: ['clearCompareAtPrice'] },
+    ], not: { required: ['compareAtPrice', 'clearCompareAtPrice'] } },
+    response: { 200: createSuccessResponseSchema({
+      type: 'object',
+      required: ['matched', 'processed', 'skippedCount', 'skipped', 'variantsProcessed', 'variantsSkippedCount', 'variantsSkipped', 'changes'],
+      properties: {
+        matched: { type: 'integer', description: 'Products the selection matched' },
+        processed: { type: 'integer', description: 'Products whose variants were written' },
+        skippedCount: { type: 'integer', description: 'Products that were not written' },
+        skipped: { type: 'array', maxItems: 20, items: { type: 'object', required: ['id', 'name', 'reason'], properties: {
+          id: { type: 'string' }, name: { type: 'string' }, reason: { type: 'string', enum: ['NOT_FOUND'] },
+        } } },
+        variantsProcessed: { type: 'integer', description: 'Variants whose prices were written' },
+        variantsSkippedCount: { type: 'integer', description: 'Variants that were not written' },
+        variantsSkipped: { type: 'array', maxItems: 20, items: { type: 'object', required: ['variantId', 'productId', 'productName', 'reason'], properties: {
+          variantId: { type: 'string' }, productId: { type: 'string' }, productName: { type: 'string' },
+          reason: { type: 'string', enum: ['PRICE_NOT_REPRESENTABLE', 'NEGATIVE_PRICE', 'COMPARE_AT_BELOW_SALE', 'COMPARE_AT_MISSING', 'CHANGED_CONCURRENTLY'] },
+        } } },
+        changes: { type: 'array', maxItems: 20, description: 'The written prices of the first written variants', items: {
+          type: 'object', required: ['variantId', 'productId', 'productName', 'previousSalePrice', 'salePrice', 'previousCompareAtPrice', 'compareAtPrice'], properties: {
+            variantId: { type: 'string' }, productId: { type: 'string' }, productName: { type: 'string' },
+            previousSalePrice: { type: 'number' }, salePrice: { type: 'number' },
+            previousCompareAtPrice: { type: 'number', nullable: true }, compareAtPrice: { type: 'number', nullable: true },
+          },
+        } },
+      },
+    }), 400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 404: errorResponseSchema, 500: errorResponseSchema },
+  },
   exportProducts: {
     body: { type: 'object', additionalProperties: false, required: ['selection'], properties: { selection: productSelectionSchema, ...productSortProperties } },
     response: { 200: { description: 'UTF-8 CSV with BOM', headers: {
@@ -292,6 +338,7 @@ export const adminProductSchemas = {
               salePrice: { type: 'number', minimum: 0 },
               basePrice: { type: 'number', minimum: 0, description: 'Legacy alias of salePrice' },
               costPrice: { type: 'number', minimum: 0, nullable: true },
+              compareAtPrice: { type: 'number', minimum: 0, nullable: true, description: 'Compare-at price; it is never below the sale price' },
               stock: { type: 'integer' },
               skuCode: { type: 'string' },
               isActive: { type: 'boolean' },
@@ -341,6 +388,7 @@ export const adminProductSchemas = {
               salePrice: { type: 'number', minimum: 0 },
               basePrice: { type: 'number', minimum: 0, description: 'Legacy alias of salePrice' },
               costPrice: { type: 'number', minimum: 0, nullable: true },
+              compareAtPrice: { type: 'number', minimum: 0, nullable: true, description: 'Compare-at price; it is never below the sale price' },
               stock: { type: 'integer' },
               expectedStock: { type: 'integer', minimum: 0, description: 'Stock level the editor saw; the write is rejected when the stored level differs' },
               skuCode: { type: 'string' },

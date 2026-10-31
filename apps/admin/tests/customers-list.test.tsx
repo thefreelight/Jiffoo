@@ -14,7 +14,7 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (ke
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: state.replace, push: vi.fn() }), usePathname: () => '/en/customers', useSearchParams: () => new URLSearchParams(state.url) }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: any) => <a {...props}>{children}</a> }));
 vi.mock('../lib/hooks/use-api', () => ({ useUsers: (params: any) => { state.params = params; return state.data; }, useUpdateUser: () => ({ isPending: false }), useDeleteUser: () => ({ isPending: false }) }));
-vi.mock('../lib/api', () => ({ usersApi: { export: state.exportCsv }, isAdminApiError: () => false }));
+vi.mock('../lib/api', () => ({ usersApi: { export: state.exportCsv }, isAdminApiError: () => false, unwrapApiResponse: (response: any) => response.data, listPreferencesApi: { listViews: vi.fn(async () => ({ success: true, data: { views: [] } })), getPreference: vi.fn(async () => ({ success: true, data: { listKey: 'customers', columns: [] } })), setPreference: vi.fn(async () => ({ success: true, data: { listKey: 'customers', columns: [] } })) } }));
 let root: Root, container: HTMLDivElement;
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true); state.url = ''; state.replace.mockClear(); state.exportCsv.mockReset();
@@ -33,6 +33,18 @@ it('shows real aggregates, filtered tab counts, store time and mobile cards', as
   expect(container.textContent).not.toMatch(/Role|VIP|vs yesterday/);
   await act(async () => button('Orders').click()); expect(state.params).toMatchObject({ sortBy: 'orderCount', sortOrder: 'asc' });
   await act(async () => button('Inactive').click()); expect(state.params).toMatchObject({ status: 'inactive', page: 1 });
+});
+it('gives the last order cell its accessible name on the cell itself', async () => {
+  await mount();
+  const cells = Array.from(container.querySelectorAll<HTMLTableCellElement>('tbody td'));
+  const accessibleName = (cell: HTMLTableCellElement) => cell.getAttribute('aria-label') ?? cell.textContent ?? '';
+  const lastOrder = cells.filter(cell => accessibleName(cell) === 'Last order: 2026-10-12 08:15');
+  expect(lastOrder).toHaveLength(1);
+  expect(lastOrder[0].tagName).toBe('TD');
+  expect(lastOrder[0].textContent).toBe('2026-10-12 08:15');
+  expect(lastOrder[0].querySelector('[aria-label]')).toBeNull();
+  const paidTotal = cells.find(cell => cell.textContent === '$39.98');
+  expect(paidTotal?.getAttribute('title')).toBe('Only paid orders are counted');
 });
 it('shows the loading line on the first load when there are no previous rows', async () => {
   state.data = { isLoading: true };

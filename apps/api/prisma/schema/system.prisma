@@ -26,6 +26,10 @@ model User {
   notifications Notification[]
   authTokens    AuthToken[]
 
+  // Admin list preferences
+  adminListViews           AdminListView[]
+  adminListColumnPreferences AdminListColumnPreference[]
+
   @@index([email])
   @@index([role])
   @@index([username])
@@ -174,5 +178,39 @@ model AdminStaffAuditLog {
   @@index([createdAt])
   @@index([actorUserId, createdAt])
   @@map("admin_staff_audit_logs")
+  @@schema("public")
+}
+
+// ============================================================
+// ADMIN LIST PREFERENCES
+// ============================================================
+model AdminListView {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listKey   String
+  name      String
+  query     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, listKey, name])
+  @@index([userId, listKey])
+  @@map("admin_list_views")
+  @@schema("public")
+}
+
+model AdminListColumnPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listKey   String
+  columns   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, listKey])
+  @@index([userId, listKey])
+  @@map("admin_list_column_preferences")
   @@schema("public")
 }

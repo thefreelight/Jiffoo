@@ -10,13 +10,23 @@ import { useStoreDate } from '@/lib/store-time';
 import { useOrders, useOrderStats, type Order } from '@/lib/hooks/use-api';
 import { ordersApi, type PaginationParams } from '@/lib/api';
 import { useListState, useListSelection, listDateRange } from '@/lib/hooks/use-list-state';
-import { BulkBar, FilterChips, ListEmpty, ListSearch, ListFilter, PaginationBar, SelectionBanner, SortHeader, StatusTabs } from '@/components/list';
+import { BulkBar, ColumnPicker, FilterChips, ListEmpty, ListSearch, ListFilter, PaginationBar, SavedViews, SelectionBanner, SortHeader, StatusTabs, useListColumns } from '@/components/list';
 import { PaymentPill, StatusShape } from '@/components/orders/order-badges';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatCurrency, cn } from '@/lib/utils';
 import { orderListFields as fields, orderStatuses as statuses } from '@/lib/order-list-state';
 
+type OrderColumn = { key: string; labelKey: string; className: string; sortable?: boolean; field?: string; align?: 'left' | 'right' };
+
+const orderColumns: OrderColumn[] = [
+  { key: 'orderNumber', labelKey: 'merchant.orders.list.order', className: 'px-3 py-2.5' },
+  { key: 'customer', labelKey: 'merchant.orders.list.customer', className: 'px-3 py-2.5 text-muted-foreground' },
+  { key: 'status', labelKey: 'merchant.orders.list.status', className: 'px-3 py-2.5' },
+  { key: 'payment', labelKey: 'merchant.orders.list.payment', className: 'px-3 py-2.5' },
+  { key: 'totalAmount', labelKey: 'merchant.orders.list.amount', className: 'whitespace-nowrap px-3 py-2.5 text-right font-mono text-xs', sortable: true, field: 'totalAmount' },
+  { key: 'createdAt', labelKey: 'merchant.orders.list.placedAt', className: 'whitespace-nowrap px-3 py-2.5 pr-4 text-right tabular-nums text-muted-foreground', sortable: true, field: 'createdAt' },
+];
 
 export default function OrdersPage() {
   const t = useT(), locale = useLocale(), { timezone } = useStoreDate(), router = useRouter();
@@ -51,6 +61,14 @@ export default function OrdersPage() {
     } catch { setExportError(true); } finally { setExporting(false); }
   };
   const clear = () => change({ search: '', payment: 'all', date: 'all', start: '', end: '', customerId: '', customerEmail: '' });
+  const printHref = () => {
+    const current = selection.selection;
+    if (current.mode === 'ids') return '/' + locale + '/orders/print?ids=' + encodeURIComponent(current.ids.join(','));
+    const params = new URLSearchParams(url.split('?')[1] ?? '');
+    params.set('match', '1');
+    if (current.excludeIds.length) params.set('exclude', current.excludeIds.join(','));
+    return '/' + locale + '/orders/print?' + params.toString();
+  };
   const filtered = !!search || !!customerId || status !== 'All' || payment !== 'all' || date !== 'all';
   const paymentLabel = payment === 'all' ? copy('all') : payment === 'review' ? copy('requiresReview') : payment === 'unpaid' ? copy('unpaid') : t('merchant.orders.' + payment);
   const dateLabel = date === 'custom' ? [start, end].filter(Boolean).join(' – ') || copy('custom') : copy(date);
@@ -68,6 +86,19 @@ export default function OrdersPage() {
   const checkbox = (order: Order) => <input type="checkbox" aria-label={copy('selectOrder', { id: order.orderNumber })} checked={selection.checked(order.id)} onChange={() => selection.toggle(order.id)} className="size-[15px] shrink-0 cursor-pointer accent-foreground focus-visible:outline-2 focus-visible:outline-ring" />;
   const statusText = (order: Order) => <span className="inline-flex items-center gap-[7px] whitespace-nowrap"><StatusShape status={order.status} />{statusLabel(order.status)}</span>;
   const pageCheckbox = <input type="checkbox" aria-label={copy('selectPage')} checked={selection.pageChecked} onChange={selection.togglePage} disabled={!orders.length} className="size-[15px] cursor-pointer accent-foreground focus-visible:outline-2 focus-visible:outline-ring" />;
+  const { visible, toggle } = useListColumns('orders', orderColumns.map(column => column.key));
+  const visibleColumns = visible.map(key => orderColumns.find(column => column.key === key)).filter((column): column is OrderColumn => column !== undefined);
+  const pickerColumns = orderColumns.map(column => ({ key: column.key, label: t(column.labelKey, { timezone }), alwaysVisible: column.key === 'orderNumber' }));
+  const listCopy = (key: string, values?: Record<string, string | number>) => t('merchant.listViews.' + key, values);
+  const currentQuery = Object.fromEntries(new URLSearchParams(url.split('?')[1] ?? '').entries());
+  const orderCell = (key: string, order: Order) => {
+    if (key === 'orderNumber') return <>{orderLink(order)}<p className="mt-0.5 text-xs text-faint">{copy('items', { count: order.itemQuantitySum })}</p></>;
+    if (key === 'customer') return <p title={order.customer.email || undefined} className="max-w-[260px] truncate">{order.customer.email || t('merchant.orders.noEmail')}</p>;
+    if (key === 'status') return statusText(order);
+    if (key === 'payment') return <PaymentPill {...order} />;
+    if (key === 'totalAmount') return formatCurrency(order.totalAmount, order.currency);
+    return formatStoreTimestamp(order.createdAt, timezone);
+  };
   return <section className="mx-auto flex min-h-[calc(100dvh-72px)] min-w-0 max-w-[1120px] flex-col gap-4 [&:not(:first-child)]:mt-6">
     <header className="flex items-center justify-between gap-3"><h1 className="text-[26px] font-semibold tracking-[-0.025em]">{t('merchant.orders.title')}</h1><Button variant="outline" size="sm" className="bg-ground" disabled={exporting || invalidDates} onClick={() => exportOrders(false)}><Download aria-hidden="true" className="mr-1.5 size-3.5" />{copy('export')}</Button></header>
     <StatusTabs label={copy('status')} value={status} onChange={value => change({ status: value })} tabs={statuses.map(value => ({ value, label: statusLabel(value), count: stats.data ? value === 'All' ? Object.values(stats.data.statusCounts).reduce((sum, count) => sum + count, 0) : stats.data.statusCounts[value] : undefined }))} />
@@ -79,6 +110,8 @@ export default function OrdersPage() {
       <ListFilter label={copy('placed')} value={date} onChange={value => change({ date: value })} options={['all', 'today', 'last7', 'last30', 'custom'].map(value => ({ value, label: copy(value) }))}>
         {date === 'custom' && (['start', 'end'] as const).map(key => <label key={key} className="block space-y-1 text-xs text-muted-foreground">{copy(key === 'start' ? 'startDate' : 'endDate')}<Input type="date" aria-label={copy(key === 'start' ? 'startDate' : 'endDate')} value={state[key]} onChange={event => change({ [key]: event.target.value })} /></label>)}
       </ListFilter>
+      <SavedViews listKey="orders" query={currentQuery} label={t('merchant.listViews.savedViews')} copy={listCopy} />
+      <ColumnPicker label={t('merchant.listViews.columnPicker')} columns={pickerColumns} visible={visible} onToggle={toggle} />
     </div>
     <FilterChips chips={chips} copy={copy} clear={clear} />
     {invalidDates && <p role="alert">{copy('invalidDates')}</p>}
@@ -86,12 +119,12 @@ export default function OrdersPage() {
     {error ? <div role="alert" className="space-y-3 py-8"><p>{copy('error')}</p><Button variant="outline" onClick={() => refetch()}>{copy('retry')}</Button></div> : isLoading ? <p role="status" className="py-8 text-muted-foreground">{copy('loading')}</p> : <>
       <div className="overflow-hidden rounded-lg border border-border">
         {(selection.pageChecked || selection.selection.mode === 'filter') && <SelectionBanner all={selection.selection.mode === 'filter'} count={selection.selection.mode === 'filter' ? selection.count : orders.length} total={total} copy={copy} selectAll={selection.allMatching} onlyPage={selection.onlyPage} />}
-        <div className="hidden overflow-x-auto min-[769px]:block"><table className="w-full text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr><th scope="col" className="w-10 py-2.5 pl-4">{pageCheckbox}</th>{['order', 'customer', 'status', 'payment'].map(key => <th key={key} scope="col" className="whitespace-nowrap px-3 py-2.5 font-medium">{copy(key)}</th>)}{['totalAmount', 'createdAt'].map(field => <SortHeader key={field} label={copy(field === 'totalAmount' ? 'amount' : 'placedAt', { timezone })} field={field} {...sort} onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} />)}</tr></thead><tbody>{orders.map(order => <tr key={order.id} onClick={event => openRow(event, order)} className={cn('cursor-pointer border-t border-border hover:bg-active', selection.checked(order.id) && 'bg-active')}><td className="py-2.5 pl-4">{checkbox(order)}</td><td className="px-3 py-2.5">{orderLink(order)}<p className="mt-0.5 text-xs text-faint">{copy('items', { count: order.itemQuantitySum })}</p></td><td className="px-3 py-2.5 text-muted-foreground"><p title={order.customer.email || undefined} className="max-w-[260px] truncate">{order.customer.email || t('merchant.orders.noEmail')}</p></td><td className="px-3 py-2.5">{statusText(order)}</td><td className="px-3 py-2.5"><PaymentPill {...order} /></td><td className="whitespace-nowrap px-3 py-2.5 text-right font-mono text-xs">{formatCurrency(order.totalAmount, order.currency)}</td><td className="whitespace-nowrap px-3 py-2.5 pr-4 text-right tabular-nums text-muted-foreground">{formatStoreTimestamp(order.createdAt, timezone)}</td></tr>)}</tbody></table></div>
+        <div className="hidden overflow-x-auto min-[769px]:block"><table className="w-full text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr><th scope="col" className="w-10 py-2.5 pl-4">{pageCheckbox}</th>{visibleColumns.map(column => column.sortable ? <SortHeader key={column.key} label={t(column.labelKey, { timezone })} field={column.field ?? column.key} {...sort} onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} align={column.align} /> : <th key={column.key} scope="col" className="whitespace-nowrap px-3 py-2.5 font-medium">{t(column.labelKey, { timezone })}</th>)}</tr></thead><tbody>{orders.map(order => <tr key={order.id} onClick={event => openRow(event, order)} className={cn('cursor-pointer border-t border-border hover:bg-active', selection.checked(order.id) && 'bg-active')}><td className="py-2.5 pl-4">{checkbox(order)}</td>{visibleColumns.map(column => <td key={column.key} className={column.className}>{orderCell(column.key, order)}</td>)}</tr>)}</tbody></table></div>
         <div aria-label={t('merchant.orders.title')} className="divide-y divide-border min-[769px]:hidden"><p className="px-4 py-2 text-xs text-faint">{copy('placedAt', { timezone })}</p>{!!orders.length && <label className="flex items-center gap-2 px-4 py-3 text-xs">{pageCheckbox}{copy('selectPage')}</label>}{orders.map(order => <article key={order.id} aria-label={copy('detail', { id: order.orderNumber })} onClick={event => openRow(event, order)} className={cn('min-w-0 cursor-pointer space-y-3 p-4', selection.checked(order.id) && 'bg-active')}><div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-start gap-2">{checkbox(order)}<div>{orderLink(order)}<p className="mt-1 text-xs text-faint">{copy('items', { count: order.itemQuantitySum })}</p></div></div><span className="shrink-0 font-mono">{formatCurrency(order.totalAmount, order.currency)}</span></div><p className="break-all text-muted-foreground">{order.customer.email || t('merchant.orders.noEmail')}</p><div className="flex flex-wrap items-center justify-between gap-2">{statusText(order)}<PaymentPill {...order} /></div><p className="flex flex-wrap justify-between gap-1 text-xs text-faint"><span>{copy('placed')}</span><time dateTime={order.createdAt}>{formatStoreTimestamp(order.createdAt, timezone)}</time></p></article>)}</div>
         {!orders.length && <ListEmpty filtered={filtered} copy={copy} clear={() => change({ status: 'All', search: '', payment: 'all', date: 'all', start: '', end: '', customerId: '', customerEmail: '' })} />}
       </div>
     </>}
     <PaginationBar page={page} pageSize={pageSize} total={total} copy={copy} onPage={value => update({ page: String(value) })} onPageSize={value => change({ pageSize: String(value) })} />
-    <BulkBar count={selection.count} copy={copy} allMatching={selection.selection.mode === 'filter'} clear={selection.clear}><Button size="sm" disabled={exporting || invalidDates} onClick={() => exportOrders(true)}><Download aria-hidden="true" className="mr-1.5 size-3.5" />{copy('exportSelected')}</Button></BulkBar>
+    <BulkBar count={selection.count} copy={copy} allMatching={selection.selection.mode === 'filter'} clear={selection.clear}><Button size="sm" disabled={exporting || invalidDates} onClick={() => exportOrders(true)}><Download aria-hidden="true" className="mr-1.5 size-3.5" />{copy('exportSelected')}</Button><Button size="sm" variant="outline" disabled={exporting || invalidDates} asChild><Link href={printHref()}>{t('merchant.bulkActions.print.print')}</Link></Button></BulkBar>
   </section>;
 }

@@ -10,8 +10,9 @@ import { useProducts, useProductStats, useCategories } from '@/lib/hooks/use-api
 import { productsApi, type ProductSelection, type ProductBulkAction, type ProductBulkResult } from '@/lib/api';
 import { useListState, useListSelection } from '@/lib/hooks/use-list-state';
 import { productListFields as fields } from '@/lib/product-list-state';
-import { BulkBar, FilterChips, ListEmpty, ListSearch, ListFilter, PaginationBar, SelectionBanner, SortHeader, StatusTabs } from '@/components/list';
+import { BulkBar, ColumnPicker, FilterChips, ListEmpty, ListSearch, ListFilter, PaginationBar, SavedViews, SelectionBanner, SortHeader, StatusTabs, useListColumns } from '@/components/list';
 import { BulkDeleteDialog } from '@/components/products/BulkDeleteDialog';
+import { BulkPriceEditDialog } from '@/components/products/BulkPriceEditDialog';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { resolveApiErrorMessage } from '@/lib/error-utils';
@@ -20,6 +21,16 @@ import { cn, formatCurrency } from '@/lib/utils';
 
 const statuses = ['all', 'active', 'inactive', 'outOfStock'];
 const sharedKeys = ['clearAll', 'clearFilters', 'removeFilter', 'pagination', 'perPage', 'perPageBefore', 'perPageAfter', 'pageLabel'];
+
+type ProductColumn = { key: string; labelKey: string; className: string; sortable?: boolean; field?: string; align?: 'left' | 'right' };
+
+const productColumns: ProductColumn[] = [
+  { key: 'name', labelKey: 'merchant.catalog.products', className: 'px-3 py-2.5', sortable: true, field: 'name', align: 'left' },
+  { key: 'status', labelKey: 'merchant.catalog.status', className: 'px-3 py-2.5' },
+  { key: 'price', labelKey: 'merchant.catalog.price', className: 'whitespace-nowrap px-3 py-2.5 text-right font-mono text-xs', sortable: true, field: 'price' },
+  { key: 'stock', labelKey: 'merchant.catalog.stock', className: 'px-3 py-2.5 text-right font-mono text-xs', sortable: true, field: 'stock' },
+  { key: 'updatedAt', labelKey: 'merchant.catalog.updatedAt', className: 'whitespace-nowrap px-3 py-2.5 text-right text-muted-foreground', sortable: true, field: 'updatedAt' },
+];
 
 export default function ProductsPage() {
   const t = useT(), locale = useLocale(), router = useRouter(), client = useQueryClient(), { timezone } = useStoreDate();
@@ -38,6 +49,7 @@ export default function ProductsPage() {
   const selection = useListSelection(JSON.stringify(filter), filter, products.map(product => product.id), total);
   const [pending, setPending] = useState(false), [failure, setFailure] = useState(''), [message, setMessage] = useState('');
   const [preview, setPreview] = useState<ProductBulkResult | null>(null), [deleteSelection, setDeleteSelection] = useState<ProductSelection | null>(null);
+  const [priceOpen, setPriceOpen] = useState(false);
   useEffect(() => { if (list.data?.pagination?.page === page && page > Math.max(1, Math.ceil(total / pageSize))) update({ page: '1' }); }, [list.data?.pagination?.page, page, pageSize, total]);
   const refresh = async () => { await Promise.all(['products', 'product-stats', 'categories'].map(key => client.invalidateQueries({ queryKey: [key] }))); };
   const apply = async (action: ProductBulkAction, selected: ProductSelection = selection.selection, categoryId?: string | null) => {
@@ -73,6 +85,19 @@ export default function ProductsPage() {
   const price = (product: AdminProductListItemDTO) => product.variantsActiveCount === 0 ? '—' : product.priceMin === product.priceMax ? formatCurrency(product.priceMin, product.currency) : c('fromPrice', { price: formatCurrency(product.priceMin, product.currency) });
   const checkbox = (product: AdminProductListItemDTO) => <input type="checkbox" className="size-[15px] shrink-0 accent-foreground" aria-label={c('selectProduct', { name: product.name })} checked={selection.checked(product.id)} onChange={() => selection.toggle(product.id)} />;
   const pageCheckbox = <input type="checkbox" className="size-[15px] accent-foreground" aria-label={c('selectPage')} checked={selection.pageChecked} disabled={!products.length} onChange={selection.togglePage} />;
+  const { visible, toggle } = useListColumns('products', productColumns.map(column => column.key));
+  const visibleColumns = visible.map(key => productColumns.find(column => column.key === key)).filter((column): column is ProductColumn => column !== undefined);
+  const pickerColumns = productColumns.map(column => ({ key: column.key, label: t(column.labelKey, { timezone }), alwaysVisible: column.key === 'name' }));
+  const listCopy = (key: string, values?: Record<string, string | number>) => t('merchant.listViews.' + key, values);
+  const bulkCopy = (key: string, values?: Record<string, string | number>) => t('merchant.bulkActions.price.' + key, values);
+  const currentQuery = Object.fromEntries(new URLSearchParams(url.split('?')[1] ?? '').entries());
+  const productCell = (key: string, product: AdminProductListItemDTO) => {
+    if (key === 'name') return identity(product);
+    if (key === 'status') return status(product);
+    if (key === 'price') return price(product);
+    if (key === 'stock') return <span className={cn('font-mono text-xs', productState(product) === 'outOfStock' && 'text-attention')}>{product.stock}</span>;
+    return formatStoreTimestamp(product.updatedAt, timezone);
+  };
   const actions = (product: AdminProductListItemDTO) => <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-[30px]" aria-label={c('more', { name: product.name })}><MoreHorizontal aria-hidden="true" className="size-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end">
     <DropdownMenuItem asChild><Link href={href(product)}>{c('edit')}</Link></DropdownMenuItem>
     <DropdownMenuItem disabled={pending} onSelect={() => apply(product.isActive ? 'deactivate' : 'activate', { mode: 'ids', ids: [product.id] })}>{c(product.isActive ? 'deactivate' : 'activate')}</DropdownMenuItem>
@@ -82,16 +107,17 @@ export default function ProductsPage() {
     <header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-[26px] font-semibold">{c('products')}</h1><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" asChild><Link href={'/' + locale + '/products/categories'}>{c('manageCategories')}</Link></Button><Button size="sm" variant="outline" disabled={pending} onClick={() => exportProducts(false)}><Download aria-hidden="true" className="mr-1 size-3.5" />{c('export')}</Button><Button size="sm" asChild><Link href={'/' + locale + '/products/create'}>{c('addProduct')}</Link></Button></div></header>
     <StatusTabs label={c('status')} value={state.status} onChange={status => change({ status })} tabs={statuses.map(value => ({ value, label: c(value), attention: value === 'outOfStock', count: stats.data?.statusCounts[value as keyof typeof stats.data.statusCounts] }))} />
     {stats.error && <p role="status">{c('statsError')}</p>}
-    <div className="flex flex-wrap gap-2"><ListSearch label={c('searchCodes')} value={state.search} onChange={search => change({ search })} /><ListFilter label={c('category')} value={state.category} options={categoryOptions} onChange={category => change({ category })} /></div>
+    <div className="flex flex-wrap gap-2"><ListSearch label={c('searchCodes')} value={state.search} onChange={search => change({ search })} /><ListFilter label={c('category')} value={state.category} options={categoryOptions} onChange={category => change({ category })} /><SavedViews listKey="products" query={currentQuery} label={t('merchant.listViews.savedViews')} copy={listCopy} /><ColumnPicker label={t('merchant.listViews.columnPicker')} columns={pickerColumns} visible={visible} onToggle={toggle} /></div>
     <FilterChips chips={chips} copy={l} clear={clear} />{failure && <p role="alert" className="text-destructive">{failure}</p>}{message && <p role="status">{message}</p>}
     {list.error ? <div role="alert"><p>{c('listError')}</p><Button variant="outline" onClick={() => list.refetch()}>{c('retry')}</Button></div> : list.isLoading ? <p role="status">{c('loading')}</p> : <div className="overflow-hidden rounded-lg border border-border">
       {(selection.pageChecked || selection.selection.mode === 'filter') && <SelectionBanner all={selection.selection.mode === 'filter'} count={selection.selection.mode === 'filter' ? selection.count : products.length} total={total} copy={l} selectAll={selection.allMatching} onlyPage={selection.onlyPage} />}
-      <div className="hidden overflow-x-auto min-[769px]:block"><table className="w-full min-w-[760px] text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr><th scope="col" className="w-10 py-2.5 pl-4">{pageCheckbox}</th><SortHeader label={c('products')} field="name" {...sort} align="left" onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} /><th scope="col" className="px-3 py-2.5 font-medium">{c('status')}</th>{['price', 'stock', 'updatedAt'].map(field => <SortHeader key={field} label={c(field, { timezone })} field={field} {...sort} onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} />)}<th scope="col" className="pr-4"><span className="sr-only">{c('actions')}</span></th></tr></thead><tbody>{products.map(product => <tr key={product.id} onClick={event => open(event, product)} className={cn('cursor-pointer border-t border-border hover:bg-active', selection.checked(product.id) && 'bg-active')}><td className="py-2.5 pl-4">{checkbox(product)}</td><td className="px-3 py-2.5">{identity(product)}</td><td className="px-3 py-2.5">{status(product)}</td><td className="whitespace-nowrap px-3 py-2.5 text-right font-mono text-xs">{price(product)}</td><td className={cn('px-3 py-2.5 text-right font-mono text-xs', productState(product) === 'outOfStock' && 'text-attention')}>{product.stock}</td><td className="whitespace-nowrap px-3 py-2.5 text-right text-muted-foreground">{formatStoreTimestamp(product.updatedAt, timezone)}</td><td className="py-1.5 pl-3 pr-4 text-right">{actions(product)}</td></tr>)}</tbody></table></div>
+      <div className="hidden overflow-x-auto min-[769px]:block"><table className="w-full min-w-[760px] text-left text-[13px]"><thead className="bg-raised text-xs text-faint"><tr><th scope="col" className="w-10 py-2.5 pl-4">{pageCheckbox}</th>{visibleColumns.map(column => column.sortable ? <SortHeader key={column.key} label={t(column.labelKey, { timezone })} field={column.field ?? column.key} {...sort} onSort={(sortBy, sortOrder) => change({ sortBy, sortOrder })} align={column.align} /> : <th key={column.key} scope="col" className="whitespace-nowrap px-3 py-2.5 font-medium">{t(column.labelKey, { timezone })}</th>)}<th scope="col" className="pr-4"><span className="sr-only">{c('actions')}</span></th></tr></thead><tbody>{products.map(product => <tr key={product.id} onClick={event => open(event, product)} className={cn('cursor-pointer border-t border-border hover:bg-active', selection.checked(product.id) && 'bg-active')}><td className="py-2.5 pl-4">{checkbox(product)}</td>{visibleColumns.map(column => <td key={column.key} className={column.className}>{productCell(column.key, product)}</td>)}<td className="py-1.5 pl-3 pr-4 text-right">{actions(product)}</td></tr>)}</tbody></table></div>
       <div className="divide-y divide-border min-[769px]:hidden"><p className="px-4 py-2 text-xs text-faint">{c('updatedAt', { timezone })}</p>{!!products.length && <label className="flex items-center gap-2 p-4">{pageCheckbox}{c('selectPage')}</label>}{products.map(product => <article aria-label={product.name} key={product.id} onClick={event => open(event, product)} className={cn('space-y-3 p-4', selection.checked(product.id) && 'bg-active')}><div className="flex items-start gap-2">{checkbox(product)}{identity(product)}</div><div className="flex items-center justify-between gap-2">{status(product)}<span className="font-mono">{price(product)}</span></div><p className="flex justify-between text-muted-foreground"><span>{c('stock')}</span><span className="font-mono">{product.stock}</span></p><div className="flex items-center justify-between gap-2"><time dateTime={product.updatedAt} className="text-xs text-faint">{formatStoreTimestamp(product.updatedAt, timezone)}</time>{actions(product)}</div></article>)}</div>
       {!products.length && <ListEmpty filtered={!!state.search || !!state.category || state.status !== 'all'} copy={l} clear={() => change({ status: 'all', category: '', search: '' })} />}
     </div>}
     <PaginationBar copy={l} page={page} pageSize={pageSize} total={total} onPage={page => update({ page: String(page) })} onPageSize={pageSize => change({ pageSize: String(pageSize) })} />
-    <BulkBar count={selection.count} copy={l} allMatching={selection.selection.mode === 'filter'} clear={selection.clear}><Button size="sm" variant="outline" disabled={pending} onClick={() => apply('activate')}>{c('activate')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => apply('deactivate')}>{c('deactivate')}</Button><ListFilter label={c('changeCategory')} disabled={pending} showValue={false} value="" options={categoryOptions.filter(option => option.value !== '')} onChange={category => { if (!pending) apply('setCategory', selection.selection, category === 'none' ? null : category); }} /><Button size="sm" variant="outline" disabled={pending} onClick={() => exportProducts(true)}>{c('export')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => confirmDelete(selection.selection)}>{c('delete')}</Button></BulkBar>
+    <BulkBar count={selection.count} copy={l} allMatching={selection.selection.mode === 'filter'} clear={selection.clear}><Button size="sm" variant="outline" disabled={pending} onClick={() => apply('activate')}>{c('activate')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => apply('deactivate')}>{c('deactivate')}</Button><ListFilter label={c('changeCategory')} disabled={pending} showValue={false} value="" options={categoryOptions.filter(option => option.value !== '')} onChange={category => { if (!pending) apply('setCategory', selection.selection, category === 'none' ? null : category); }} /><Button size="sm" variant="outline" disabled={pending} onClick={() => exportProducts(true)}>{c('export')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => setPriceOpen(true)}>{bulkCopy('editPrices')}</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => confirmDelete(selection.selection)}>{c('delete')}</Button></BulkBar>
     <BulkDeleteDialog result={preview} pending={pending} error={failure} onCancel={() => setPreview(null)} onConfirm={() => { if (deleteSelection) apply('delete', deleteSelection); }} />
+    {priceOpen && <BulkPriceEditDialog selection={selection.selection} onClose={() => setPriceOpen(false)} onApplied={async () => { selection.clear(); await refresh(); }} />}
   </section>;
 }

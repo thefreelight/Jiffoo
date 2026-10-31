@@ -58,7 +58,7 @@ type VariantRowLockTx = {
  * @param tx Transaction client owned by the caller
  * @param productId Product whose variant rows are locked
  */
-async function lockProductVariantRows(tx: VariantRowLockTx, productId: string): Promise<void> {
+export async function lockProductVariantRows(tx: VariantRowLockTx, productId: string): Promise<void> {
   await tx.$queryRaw`
     SELECT id FROM public.product_variants
     WHERE "productId" = ${productId}
@@ -146,7 +146,7 @@ function resolveVariantSalePrice(variant: ProductVariantData): number {
  * @param value Price the admin writes
  * @param exponent Exponent of the currency of the store
  */
-function isPriceRepresentable(value: number, exponent: number): boolean {
+export function isPriceRepresentable(value: number, exponent: number): boolean {
   const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(String(value).trim());
   if (!match) return false;
   return (match[3] ?? '').slice(exponent).replace(/0/g, '') === '';
@@ -225,6 +225,8 @@ export interface ProductVariantData {
   salePrice?: number;
   basePrice?: number;
   costPrice?: number | null;
+  /** The strike-through price of the variant; it is never below its sale price. */
+  compareAtPrice?: number | null;
   stock: number;
   /**
    * Stock level the editor saw. When it is given, the stock write only lands
@@ -587,6 +589,7 @@ export class AdminProductService {
         skuCode: v.skuCode,
         salePrice: Number(v.salePrice),
         costPrice: v.costPrice !== null && v.costPrice !== undefined ? Number(v.costPrice) : null,
+        compareAtPrice: v.compareAtPrice !== null && v.compareAtPrice !== undefined ? Number(v.compareAtPrice) : null,
         stock: stockMap.get(v.id) ?? 0,
         isActive: v.isActive,
         attributes: parseAttributes(v.attributes)
@@ -620,6 +623,9 @@ export class AdminProductService {
       }
       if (typeof variant.costPrice === 'number') {
         assertPriceRepresentable(variant.costPrice, currency, `variants.${index}.costPrice`);
+      }
+      if (typeof variant.compareAtPrice === 'number') {
+        assertPriceRepresentable(variant.compareAtPrice, currency, `variants.${index}.compareAtPrice`);
       }
     }
   }
@@ -664,6 +670,7 @@ export class AdminProductService {
             name: variant.name,
             salePrice,
             ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
+            ...(variant.compareAtPrice !== undefined ? { compareAtPrice: variant.compareAtPrice } : {}),
             skuCode,
             attributes: variant.attributes ?? undefined,
             isActive: variant.isActive ?? true,
@@ -789,6 +796,7 @@ export class AdminProductService {
                 name: variant.name,
                 salePrice,
                 ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
+                ...(variant.compareAtPrice !== undefined ? { compareAtPrice: variant.compareAtPrice } : {}),
                 skuCode,
                 attributes: variant.attributes ?? undefined,
                 isActive: variant.isActive
@@ -809,6 +817,7 @@ export class AdminProductService {
                 name: variant.name,
                 salePrice,
                 ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
+                ...(variant.compareAtPrice !== undefined ? { compareAtPrice: variant.compareAtPrice } : {}),
                 skuCode,
                 attributes: variant.attributes ?? undefined,
                 isActive: variant.isActive ?? true

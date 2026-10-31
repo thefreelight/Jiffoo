@@ -99,6 +99,10 @@ model ProductVariant {
   attributes Json?
   salePrice  Decimal  @default(0) @db.Decimal(18, 2)
   costPrice  Decimal? @db.Decimal(18, 2)
+  // The strike-through price of the variant. It is never below the sale
+  // price of the same variant and it is absent when the variant has no
+  // compare-at price.
+  compareAtPrice Decimal? @db.Decimal(18, 2)
   stock      Int      @default(0)
   skuCode    String
   sortOrder  Int      @default(0)

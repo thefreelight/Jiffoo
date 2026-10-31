@@ -17,6 +17,10 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => state.locale, useT: (
 } }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: state.replace }), usePathname: () => '/en/orders', useSearchParams: () => new URLSearchParams(state.url) }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: any) => <a {...props}>{children}</a> }));
+vi.mock('../lib/api', async () => {
+  const actual = await vi.importActual<typeof import('../lib/api')>('../lib/api');
+  return { ...actual, listPreferencesApi: { listViews: vi.fn(async () => ({ success: true, data: { views: [] } })), getPreference: vi.fn(async () => ({ success: true, data: { listKey: 'orders', columns: [] } })), setPreference: vi.fn(async () => ({ success: true, data: { listKey: 'orders', columns: [] } })) }, unwrapApiResponse: (response: any) => response.data };
+});
 vi.mock('../lib/hooks/use-api', () => ({ useOrders: (params: any) => {
   state.params = params;
   if (!state.data.data) return state.data;

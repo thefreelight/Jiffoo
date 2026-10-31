@@ -24,6 +24,7 @@ import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
 import { adminNotificationRoutes } from '@/core/admin/notifications/routes';
 import { adminAuditEventRoutes } from '@/core/admin/audit-events/routes';
+import { adminListPreferenceRoutes } from '@/core/admin/list-preferences/routes';
 import { adminStorefrontCodeRoutes, publicStorefrontCodeRoutes } from '@/core/admin/storefront-code/routes';
 import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
@@ -71,6 +72,7 @@ export async function registerV1Routes(fastify: FastifyInstance) {
     await admin.register(systemSettingsRoutes);
     await admin.register(apiTokenRoutes, { prefix: '/api-tokens' });
     await admin.register(adminDashboardRoutes);
+    await admin.register(adminListPreferenceRoutes);
     await admin.register(healthMonitoringRoutes);
   }, { prefix: '/admin' });
 

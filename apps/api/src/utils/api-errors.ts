@@ -72,6 +72,7 @@ export const errorCatalog = {
   [ApiErrorCodes.PACKAGE_CONTENT_MISMATCH]: { status: 422, message: 'Package content mismatch.' },
   [ApiErrorCodes.PLUGIN_DOWNGRADE_NOT_SUPPORTED]: { status: 409, message: 'Plugin downgrade not supported.' },
   [ApiErrorCodes.LAST_PROVIDER_REQUIRED]: { status: 409, message: 'At least one provider must remain enabled' },
+  [ApiErrorCodes.LIST_VIEW_NAME_TAKEN]: { status: 409, message: 'A saved view with this name already exists for this list.' },
   [ApiErrorCodes.PLUGIN_OPERATION_IN_PROGRESS]: { status: 409, message: 'Plugin operation in progress.' },
   [ApiErrorCodes.PLUGIN_MIGRATION_MANIFEST_INVALID]: { status: 422, message: 'Invalid plugin migration package.' },
   [ApiErrorCodes.PLUGIN_MIGRATION_LEGACY_FORMAT]: { status: 422, message: 'Exported plugin migrations are not supported.' },

@@ -6,6 +6,7 @@ import {
   createTypedReadResponses,
   createTypedUpdateResponses,
   createPageResultSchema,
+  createSuccessResponseSchema,
   errorResponseSchema,
 } from '@/types/common-dto';
 import { orderStatusValues, paymentStatusValues, shipmentStatusValues } from '@/core/order/policy';
@@ -240,6 +241,108 @@ const orderSortProperties = {
   sortOrder: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
 } as const;
 
+// ============================================================================
+// Admin Order Print Schemas
+// ============================================================================
+
+/**
+ * The selection a print job resolves. It mirrors the export selection: an
+ * explicit list of ids, or a filter with optional exclusions.
+ */
+const orderSelectionSchema = {
+  type: 'object', additionalProperties: false, required: ['mode'], properties: {
+    mode: { type: 'string', enum: ['ids', 'filter'] },
+    ids: { type: 'array', minItems: 1, maxItems: 200, items: { type: 'string', minLength: 1 } },
+    filter: { type: 'object', additionalProperties: false, properties: orderFilterProperties },
+    excludeIds: { type: 'array', maxItems: 200, items: { type: 'string', minLength: 1 } },
+  }, oneOf: [
+    { properties: { mode: { const: 'ids' } }, required: ['ids'], not: { anyOf: [{ required: ['filter'] }, { required: ['excludeIds'] }] } },
+    { properties: { mode: { const: 'filter' } }, required: ['filter'], not: { required: ['ids'] } },
+  ],
+} as const;
+
+const adminOrderPrintItemSchema = {
+  type: 'object',
+  properties: {
+    productName: { type: 'string', description: 'Product name captured with the order item' },
+    variantName: { type: 'string', description: 'Variant name captured with the order item' },
+    quantity: { type: 'integer', minimum: 1 },
+    unitPrice: { type: 'number', description: 'Price of one unit' },
+    lineTotal: { type: 'number', description: 'Quantity times the unit price' },
+  },
+  required: ['productName', 'variantName', 'quantity', 'unitPrice', 'lineTotal'],
+} as const;
+
+const adminOrderPrintSchema = {
+  type: 'object',
+  properties: {
+    orderNumber: { type: 'string' },
+    status: { type: 'string', enum: orderStatusEnum },
+    paymentStatus: { type: 'string', enum: paymentStatusEnum, nullable: true },
+    paymentMethod: { type: 'string', nullable: true },
+    createdAt: { type: 'string', format: 'date-time' },
+    currency: { type: 'string' },
+    customer: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', nullable: true },
+        username: { type: 'string', nullable: true },
+        displayName: { type: 'string', nullable: true },
+      },
+      required: ['email', 'username', 'displayName'],
+    },
+    shippingAddress: {
+      type: 'object', nullable: true,
+      properties: {
+        firstName: { type: 'string' },
+        lastName: { type: 'string' },
+        phone: { type: 'string', nullable: true },
+        email: { type: 'string', nullable: true },
+        addressLine1: { type: 'string' },
+        addressLine2: { type: 'string', nullable: true },
+        city: { type: 'string' },
+        state: { type: 'string', nullable: true },
+        postalCode: { type: 'string', nullable: true },
+        country: { type: 'string' },
+      },
+      required: ['firstName', 'lastName', 'phone', 'email', 'addressLine1', 'addressLine2', 'city', 'state', 'postalCode', 'country'],
+    },
+    items: { type: 'array', items: adminOrderPrintItemSchema },
+    amounts: {
+      type: 'object',
+      properties: {
+        subtotalAmount: { type: 'number' },
+        shippingAmount: { type: 'number' },
+        taxAmount: { type: 'number' },
+        taxInclusive: { type: 'boolean' },
+        totalAmount: { type: 'number' },
+      },
+      required: ['subtotalAmount', 'shippingAmount', 'taxAmount', 'taxInclusive', 'totalAmount'],
+    },
+    shipment: {
+      type: 'object', nullable: true,
+      properties: {
+        carrier: { type: 'string', nullable: true },
+        trackingNumber: { type: 'string', nullable: true },
+        shippedAt: { type: 'string', format: 'date-time', nullable: true },
+      },
+      required: ['carrier', 'trackingNumber', 'shippedAt'],
+    },
+    paymentRequiresReview: { type: 'boolean', description: 'The order has a payment awaiting review' },
+  },
+  required: ['orderNumber', 'status', 'paymentStatus', 'paymentMethod', 'createdAt', 'currency', 'customer', 'shippingAddress', 'items', 'amounts', 'shipment', 'paymentRequiresReview'],
+} as const;
+
+const adminOrderPrintPayloadSchema = {
+  type: 'object',
+  properties: {
+    matched: { type: 'integer', minimum: 0, description: 'Number of orders matching the selection' },
+    truncated: { type: 'boolean', description: 'True when the selection matched more orders than the print cap' },
+    orders: { type: 'array', items: adminOrderPrintSchema },
+  },
+  required: ['matched', 'truncated', 'orders'],
+} as const;
+
 export const adminOrderSchemas = {
   neighbors: {
     params: { type: 'object', required: ['id'], properties: { id: { type: 'string', minLength: 1 } } },
@@ -263,6 +366,19 @@ export const adminOrderSchemas = {
       ] },
     } },
     response: { 200: { description: 'UTF-8 CSV with BOM', content: { 'text/csv': { schema: { type: 'string' } } } },
+      400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 500: errorResponseSchema },
+  },
+  printOrders: {
+    body: { type: 'object', additionalProperties: false, required: ['selection'], properties: {
+      selection: orderSelectionSchema,
+      sort: { type: 'object', additionalProperties: false, properties: {
+        sortBy: { type: 'string', enum: ['createdAt', 'totalAmount'] },
+        sortOrder: { type: 'string', enum: ['asc', 'desc'] },
+      } },
+      sortBy: { type: 'string', enum: ['createdAt', 'totalAmount'] },
+      sortOrder: { type: 'string', enum: ['asc', 'desc'] },
+    } },
+    response: { 200: createSuccessResponseSchema(adminOrderPrintPayloadSchema),
       400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema, 500: errorResponseSchema },
   },
   resolvePaymentReview: {

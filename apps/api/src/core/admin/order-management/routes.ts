@@ -8,6 +8,7 @@ import { AdminOrderService } from './service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminOrderSchemas } from './schemas';
 import { createOrderExport } from './export';
+import { createOrderPrintPayload } from './print';
 import type { OrderExportSelection, OrderSort, OrderFilter } from './list-query';
 import { getLocaleFromRequest } from '@/utils/i18n';
 
@@ -17,6 +18,19 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try { return sendSuccess(reply, await AdminOrderService.getOrderNeighbors((request.params as { id: string }).id, request.query as OrderFilter & OrderSort)); }
     catch (error) { return sendMappedError(reply, error); }
+  });
+  fastify.post('/print', {
+    schema: { tags: ['admin-orders'], summary: 'Resolve selected orders into a printable payload', security: [{ bearerAuth: [] }], ...adminOrderSchemas.printOrders },
+  }, async (request, reply) => {
+    try {
+      const body = (request.body || {}) as { selection?: OrderExportSelection; sort?: OrderSort; sortBy?: OrderSort['sortBy']; sortOrder?: OrderSort['sortOrder'] };
+      if (!body.selection || (body.selection.mode !== 'ids' && body.selection.mode !== 'filter')) throw new ApiError('VALIDATION_ERROR');
+      if (body.selection.mode === 'ids' && (!Array.isArray(body.selection.ids) || body.selection.ids.length === 0)) throw new ApiError('VALIDATION_ERROR');
+      if (body.selection.mode === 'filter' && (!body.selection.filter || typeof body.selection.filter !== 'object')) throw new ApiError('VALIDATION_ERROR');
+      const sort: OrderSort = { sortBy: body.sort?.sortBy ?? body.sortBy, sortOrder: body.sort?.sortOrder ?? body.sortOrder };
+      const result = await createOrderPrintPayload(body.selection, sort);
+      return sendSuccess(reply, result);
+    } catch (error) { return sendMappedError(reply, error); }
   });
   fastify.post('/export', {
     schema: { tags: ['admin-orders'], summary: 'Export selected orders as CSV', security: [{ bearerAuth: [] }], ...adminOrderSchemas.exportOrders },

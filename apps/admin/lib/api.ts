@@ -283,6 +283,40 @@ export const accountApi = {
 
 // Products API
 export type ProductSelection = { mode: 'ids'; ids: string[] } | { mode: 'filter'; filter: Pick<PaginationParams, 'search' | 'status' | 'categoryId' | 'productType'>; excludeIds?: string[] };
+export type BulkPriceMode = { mode: 'amount'; value: string } | { mode: 'percentage'; value: string };
+export type BulkPriceRequest = {
+  selection: ProductSelection;
+  salePrice?: BulkPriceMode;
+  compareAtPrice?: BulkPriceMode;
+  clearCompareAtPrice?: boolean;
+  dryRun?: boolean;
+};
+export type BulkPriceSkipReason = 'PRICE_NOT_REPRESENTABLE' | 'NEGATIVE_PRICE' | 'COMPARE_AT_BELOW_SALE' | 'COMPARE_AT_MISSING' | 'CHANGED_CONCURRENTLY';
+export interface BulkPriceChange {
+  variantId: string;
+  productId: string;
+  productName: string;
+  previousSalePrice: number;
+  salePrice: number;
+  previousCompareAtPrice: number | null;
+  compareAtPrice: number | null;
+}
+export interface BulkPriceVariantSkip {
+  variantId: string;
+  productId: string;
+  productName: string;
+  reason: BulkPriceSkipReason;
+}
+export interface BulkPriceResult {
+  matched: number;
+  processed: number;
+  skippedCount: number;
+  skipped: { id: string; name: string; reason: string }[];
+  variantsProcessed: number;
+  variantsSkippedCount: number;
+  variantsSkipped: BulkPriceVariantSkip[];
+  changes: BulkPriceChange[];
+}
 export interface ProductBulkResult { matched: number; processed: number; skippedCount: number; skipped: { id: string; name: string; reason: 'HAS_ORDERS' | 'NOT_FOUND' }[]; processedPreview: { id: string; name: string }[] }
 export type ProductBulkAction = 'activate' | 'deactivate' | 'setCategory' | 'delete';
 async function exportCsv(path: string, data: unknown, locale: string) {
@@ -295,6 +329,7 @@ async function exportCsv(path: string, data: unknown, locale: string) {
 export const productsApi = {
   neighbors: (id: string, params: ReturnType<typeof import('./product-list-state').productListQuery>) => apiClient.get<{ position: number | null; total: number; previousId: string | null; nextId: string | null }>(`/admin/products/${id}/neighbors`, { params }),
   bulk: async (action: ProductBulkAction, selection: ProductSelection, options: { dryRun?: boolean; categoryId?: string | null } = {}) => unwrapApiResponse(await apiClient.post<ProductBulkResult>('/admin/products/bulk', { action, selection, ...options })),
+  bulkPrices: async (body: BulkPriceRequest) => unwrapApiResponse(await apiClient.post<BulkPriceResult>('/admin/products/bulk-prices', body)),
   export: (selection: ProductSelection, sort: Pick<PaginationParams, 'sortBy' | 'sortOrder'>, locale: string) => exportCsv('/admin/products/export', { selection, ...sort }, locale),
   getAll: (
     page = 1,
@@ -326,6 +361,22 @@ export const productsApi = {
 };
 
 // Orders API
+export type OrderPrintSelection = { mode: 'ids'; ids: string[] } | { mode: 'filter'; filter: PaginationParams; excludeIds?: string[] };
+export interface OrderPrintCustomer { email: string | null; username: string | null; displayName: string | null }
+export interface OrderPrintAddress {
+  firstName: string; lastName: string; phone: string | null; email: string | null;
+  addressLine1: string; addressLine2: string | null; city: string; state: string | null; postalCode: string | null; country: string;
+}
+export interface OrderPrintItem { productName: string; variantName: string; quantity: number; unitPrice: number; lineTotal: number }
+export interface OrderPrintAmounts { subtotalAmount: number; shippingAmount: number; taxAmount: number; taxInclusive: boolean; totalAmount: number }
+export interface OrderPrintShipment { carrier: string | null; trackingNumber: string | null; shippedAt: string | null }
+export interface OrderPrintOrder {
+  orderNumber: string; status: string; paymentStatus: string | null; paymentMethod: string | null;
+  createdAt: string; currency: string; customer: OrderPrintCustomer; shippingAddress: OrderPrintAddress | null;
+  items: OrderPrintItem[]; amounts: OrderPrintAmounts; shipment: OrderPrintShipment | null; paymentRequiresReview: boolean;
+}
+export interface OrderPrintResult { matched: number; truncated: boolean; orders: OrderPrintOrder[] }
+export interface OrderPrintRequest { selection: OrderPrintSelection; sort?: { sortBy: 'createdAt' | 'totalAmount'; sortOrder: 'asc' | 'desc' } }
 export const ordersApi = {
   neighbors: (id: string, params: import('./order-list-state').OrderListQuery) => apiClient.get<{ position: number | null; total: number; previousId: string | null; nextId: string | null }>(`/admin/orders/${id}/neighbors`, { params }),
   getAll: (page = 1, limit = 20, status?: string, search?: string, paymentStatus?: PaginationParams['paymentStatus'], paymentReview?: PaginationParams['paymentReview'], options: Pick<PaginationParams, 'sortBy' | 'sortOrder' | 'createdFrom' | 'createdTo' | 'customerId'> = {}): Promise<ApiResponse<PageResult<AdminOrderListItemDTO>>> =>
@@ -334,6 +385,8 @@ export const ordersApi = {
   export: async (selection: { mode: 'ids'; ids: string[] } | { mode: 'filter'; filter: PaginationParams; excludeIds?: string[] }, sort: Pick<PaginationParams, 'sortBy' | 'sortOrder'>, locale: string) => {
     return exportCsv('/admin/orders/export', { selection, ...sort }, locale);
   },
+
+  print: async (body: OrderPrintRequest) => unwrapApiResponse(await apiClient.post<OrderPrintResult>('/admin/orders/print', body)),
 
   getStats: (): Promise<ApiResponse<OrderStatsData>> =>
     apiClient.get('/admin/orders/stats'),
@@ -657,6 +710,36 @@ export const notificationsApi = {
     apiClient.get(`/admin/notifications/${id}`),
   resend: (id: string, idempotencyKey: string): Promise<ApiResponse<AdminNotification>> =>
     apiClient.post(`/admin/notifications/${id}/resend`, { idempotencyKey }),
+};
+
+export interface AdminListView {
+  id: string;
+  listKey: string;
+  name: string;
+  query: Record<string, string>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminListPreference {
+  listKey: string;
+  columns: string[];
+}
+
+/** Per-user saved views and custom columns for the Admin list pages. */
+export const listPreferencesApi = {
+  listViews: (list: string): Promise<ApiResponse<{ views: AdminListView[] }>> =>
+    apiClient.get('/admin/list-views', { params: { list } }),
+  createView: (data: { list: string; name: string; query: Record<string, string> }): Promise<ApiResponse<AdminListView>> =>
+    apiClient.post('/admin/list-views', data),
+  updateView: (id: string, data: { name?: string; query?: Record<string, string> }): Promise<ApiResponse<AdminListView>> =>
+    apiClient.put(`/admin/list-views/${id}`, data),
+  deleteView: (id: string): Promise<ApiResponse<null>> =>
+    apiClient.delete(`/admin/list-views/${id}`),
+  getPreference: (list: string): Promise<ApiResponse<AdminListPreference>> =>
+    apiClient.get('/admin/list-preferences', { params: { list } }),
+  setPreference: (list: string, columns: string[]): Promise<ApiResponse<AdminListPreference>> =>
+    apiClient.put('/admin/list-preferences', { list, columns }),
 };
 
 // Upload API

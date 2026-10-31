@@ -15,12 +15,16 @@ import { adminHealthMessages } from '../admin-health';
 import { adminNotificationMessages } from '../admin-notifications';
 import { adminSettingsMessages } from '../admin-settings';
 import { adminAuditMessages } from '../admin-audit';
+import { adminListViewMessages } from '../admin-list-views';
+import { adminBulkActionMessages } from '../admin-bulk-actions';
 
 export const merchant = {
   healthView: adminHealthMessages.en,
   notificationView: adminNotificationMessages.en,
   settingsView: adminSettingsMessages.en,
   auditView: adminAuditMessages.en,
+  listViews: adminListViewMessages.en,
+  bulkActions: adminBulkActionMessages.en,
   authFlow: adminAuthMessages.en,
   staffView: {
     emailPlaceholder: "name@example.com",

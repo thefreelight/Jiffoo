@@ -10,6 +10,7 @@ import { UploadService, UploadValidationError } from '@/core/upload/service';
 import { adminProductSchemas } from './schemas';
 import { sendKnownError } from '@/utils/api-errors';
 import { bulkProducts, createProductExport, type ProductBulkRequest } from './batch';
+import { bulkPrices, type ProductBulkPricesRequest } from './bulk-prices';
 import { productNeighbors, type ProductSelection, type ProductSort, type ProductListFilter } from './list-query';
 import { getLocaleFromRequest } from '@/utils/i18n';
 import { readUploadContent } from '@/routes/multipart-content';
@@ -21,6 +22,9 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
   });
   fastify.post('/bulk', { schema: { tags: ['admin-products'], summary: 'Apply a bounded product bulk action', security: [{ bearerAuth: [] }], ...adminProductSchemas.bulkProducts } }, async (request, reply) => {
     try { return sendSuccess(reply, await bulkProducts(request.body as ProductBulkRequest)); } catch (error) { return sendMappedError(reply, error); }
+  });
+  fastify.post('/bulk-prices', { schema: { tags: ['admin-products'], summary: 'Apply a bounded bulk price edit to the variants of the selected products', security: [{ bearerAuth: [] }], ...adminProductSchemas.bulkPrices } }, async (request, reply) => {
+    try { return sendSuccess(reply, await bulkPrices(request.body as ProductBulkPricesRequest)); } catch (error) { return sendMappedError(reply, error); }
   });
   fastify.post('/export', { schema: { tags: ['admin-products'], summary: 'Export product variants as CSV', security: [{ bearerAuth: [] }], ...adminProductSchemas.exportProducts } }, async (request, reply) => {
     try {

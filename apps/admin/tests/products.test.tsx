@@ -18,6 +18,10 @@ vi.mock('shared/src/i18n/react', () => ({ useLocale: () => 'en', useT: () => (ke
 } }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: state.replace, push: vi.fn() }), usePathname: () => '/en/products', useSearchParams: () => new URLSearchParams(state.url) }));
 vi.mock('next/link', () => ({ default: ({ children, ...props }: any) => <a {...props}>{children}</a> }));
+vi.mock('../lib/api', async () => {
+  const actual = await vi.importActual<typeof import('../lib/api')>('../lib/api');
+  return { ...actual, listPreferencesApi: { listViews: vi.fn(async () => ({ success: true, data: { views: [] } })), getPreference: vi.fn(async () => ({ success: true, data: { listKey: 'products', columns: [] } })), setPreference: vi.fn(async () => ({ success: true, data: { listKey: 'products', columns: [] } })) }, unwrapApiResponse: (response: any) => response.data };
+});
 vi.mock('../components/products/ContentTranslations', () => ({ ContentTranslations: () => null, useStoreDefaultLocale: () => ({ data: 'en' }) }));
 vi.mock('../components/ui/dialog', () => ({ Dialog: ({ open, children }: any) => open ? children : null, DialogContent: ({ children }: any) => <div role="dialog">{children}</div>, DialogHeader: ({ children }: any) => children, DialogTitle: ({ children }: any) => <h2>{children}</h2>, DialogDescription: ({ children }: any) => <p>{children}</p>, DialogFooter: ({ children }: any) => children }));
 vi.mock('../lib/hooks/use-api', () => ({

@@ -2778,6 +2778,9 @@ const TABLE_OWNERS: Record<string, string> = {
   admin_staff_audit_logs: 'audit',
   storefront_code_configurations: 'admin/storefront-code',
   storefront_code_revisions: 'admin/storefront-code',
+  // admin list preferences
+  admin_list_views: 'admin/list-preferences',
+  admin_list_column_preferences: 'admin/list-preferences',
   // plugins and themes
   plugin_installs: 'extensions',
   plugin_installations: 'extensions',
