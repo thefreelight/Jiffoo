@@ -3383,7 +3383,11 @@ The pointer table of section 8 now covers every document of `docs/`, including t
 
 ### The evidence that no rule was lost
 
-The bold lead-ins of the previous file are searched in the new one and in the `docs/` files it points at, first as an exact string and then as a token overlap: `missing (token overlap < 0.75): 0`, for the 35 lead-ins of the previous file and for the 37 of the file before the cut of section 5zs. The rule file grows from 19,552 bytes and 281 lines to 20,799 bytes and 298 lines: the growth is the principle paragraph at the head and the pointer table at the foot, and the facts they replace are gone.
+The bold lead-ins of the previous file are searched in the new one and in the `docs/` files it points at, first as an exact string and then as a token overlap: `missing (token overlap < 0.75): 0`, for the 35 lead-ins of the previous file and for the 37 of the file before the cut of section 5zs.
+
+Two passes were made. The first removed the facts and completed the pointer table: 19,552 bytes and 281 lines became 20,799 bytes and 298 lines, and the growth was the principle paragraph at the head and the table at the foot. The owner read that result and asked for more: the file was still too long, and prose had survived inside the rules. The second pass rewrote every rule as one imperative, merged the rules that said one thing in two places, flattened the worker section, cut the pointer table to a paragraph, and dropped the illustrative enumeration of the commerce semantics. The result is **14,246 bytes and 214 lines**, thirty-five per cent below the file the owner first read.
+
+The shape of the file is the evidence of that pass: every entry is an imperative with its object, and the entries that carried a reason, an illustration or a second rule inside one bullet are gone. The principles that carried them did not go with them; they moved to the documents that own them.
 
 ### The local evidence
 
@@ -3396,7 +3400,7 @@ Lane: integration
 Database: not used
 Planner added suites: none
 Run script tests:
-Node test start time: 2026-10-31T11:59:58.060Z
+Node test start time: 2026-10-31T14:03:50.958Z
 ℹ tests 16
 ℹ suites 0
 ℹ pass 16
@@ -3404,11 +3408,11 @@ Node test start time: 2026-10-31T11:59:58.060Z
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 282.7701
+ℹ duration_ms 270.4383
 
 | Step | Result | Duration |
 | --- | --- | --- |
-| Run script tests | PASS | 0.33s |
+| Run script tests | PASS | 0.32s |
 ```
 
 The browser E2E did not run locally: it belongs to CI (section 4 of `AGENTS.md`), and this batch changed no product code. The line of this section that quotes the summary was written after the run and changes no executable input.
@@ -3416,4 +3420,5 @@ The browser E2E did not run locally: it belongs to CI (section 4 of `AGENTS.md`)
 ### Still open
 
 - The mirror rule in the preamble of this ledger predates the merge and contradicts section 5s: it names `codex/lane-orders` as the canonical copy and the integration worktree as a read-only mirror, while section 5s makes `codex/core-extension-boundary` the authoritative copy. The preamble is the item of the documentation cleanup that follows this one.
+- The official definition puts the working agreements in the profile directory, so that every repository inherits them. Sections 3, 5 and 6 of the rule file are working agreements with this repository's own commands, lanes and ledger mixed into them. The part that is generic could move to the profile file; the part that names `verify:quick`, the lane databases and the coordination ledger could not. This is a decision of the owner, not a cut that was made here.
 
