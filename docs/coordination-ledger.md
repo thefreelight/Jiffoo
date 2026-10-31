@@ -2968,3 +2968,219 @@ Playwright results: 112 passed, 0 failed, 0 skipped
 ```
 
 The change touches one file of the browser E2E and no file of the product, so the browser E2E is the gate that covers it; the shard gate of the API, the Admin and the Shop suites does not reach a Playwright specification and was not run again for it.
+
+## 5zm. The OpenAPI annotation debt of the business JSON operations
+
+**Baseline SHA:** `bbf7fdfb6`. **Commit:** (the commit of this batch).
+
+### What the debt was
+
+`apps/api/tests/contract/api-standards.test.ts` carried two skipped cases: the business JSON envelope rule and the PageResult rule. Both were skipped because the rule was failing, not because the rule was wrong. The generated document (`apps/api/openapi.json`, produced by `pnpm --filter api export:openapi`) held 174 operations, 157 of them business JSON operations, and the envelope rule reported **29 violations over 18 operations**; 139 business operations were compliant. The PageResult rule reported **0 violations** — that case had never been a real debt.
+
+### The nine declarations
+
+Nine operations already answered the envelope at runtime and only lacked the declaration. Their `data` is now declared as the truth: the account summary and the token record as typed objects, `null` for the two verification answers (both really answer `data: null`), the paged inventory list and the nullable database-audit summary.
+
+`GET /api/v1/account`, `GET /api/v1/admin/api-tokens/`, `POST /api/v1/admin/api-tokens/`, `DELETE /api/v1/admin/api-tokens/{tokenId}`, `GET /api/v1/auth/verify-email`, `POST /api/v1/auth/verify-email/code`, `GET /api/v1/admin/inventory/`, `GET /api/v1/extensions/plugin/database-audit`, `POST /api/v1/extensions/plugin/database-audit`.
+
+### The contract change: the three install operations
+
+`GET /api/v1/install/status`, `GET /api/v1/install/check-database` and `POST /api/v1/install/complete` answered a **bare object** and now answer `{ success: true, data: … }`. This is a contract change, and it is registered here.
+
+The consumers were inside this repository: `apps/admin/components/auth/auth-screen.tsx` and `apps/admin/app/[locale]/install/page.tsx`. Both now read the envelope; the install page unwraps `result.data` in one place, so `status.isInstalled`, `connected` and the completion summary keep their types. The error envelopes, the status codes, and the reachability of the three routes before the platform is installed are unchanged — they must stay reachable, because the Admin decides whether to show the install screen from `GET /install/status`.
+
+The change is covered by `apps/api/tests/routes/install-envelope.test.ts` (one case per endpoint) and by the two existing install test files, whose assertions now read `json().data`.
+
+### The rule itself
+
+The rule excluded nothing before, so every operation without an `application/json` success schema counted as a violation — including the operations whose success body is deliberately not JSON. The exclusion is now driven by the **declared media type** of the success response:
+
+- a success response that declares at least one content type and **none** of them is `application/json` (the three CSV exports declare `text/csv`) is out of the scope of the JSON envelope rule;
+- a success response whose `application/json` payload is a **binary string** (`type: 'string', format: 'binary'`) is out of scope as well, because that is the shape the generator emits for the three file downloads — a file body is not a JSON document;
+- a success response that is **not declared at all**, or that declares `application/json` with a wrong envelope, or whose `data` is an empty `{}`, is still a violation. The rule was not weakened into "skip whatever is undeclared".
+
+The exclusion is a property of the declared media type, not a list of paths, so a new file route or export is excluded by itself.
+
+Both cases are live again. A unit test over the helper (`apps/api/tests/contract/api-standards-helpers.test.ts`) pins the eight shapes with synthetic operations: only `text/csv` excluded, only `application/octet-stream` excluded, a binary string payload excluded, no declared content still a violation, a JSON response without `required: ['success','data']` still a violation, an empty `data` still a violation, a compliant operation clean, and a missing success response still a violation.
+
+### The measurement
+
+Before: 29 violations over 18 operations, 139 compliant business operations.
+After: **12 violations over 6 operations** — exactly the six non-JSON operations (the three file downloads and the three CSV exports) — and **151 compliant business operations**.
+
+## 5zn. The per-user saved views and custom columns of the list pages
+
+**Baseline SHA:** `bbf7fdfb6`. **Commit:** (the commit of this batch).
+
+### What was built
+
+A saved view is a named, per-user snapshot of a list's current query state (filters, sort, page). A custom column set is a per-user, per-list ordered set of visible columns. Both apply to the **orders**, **products** and **customers** lists.
+
+The authoritative catalogue of the list keys and of the column keys lives in the shared package (`packages/shared/src/admin-list-preferences.ts`), so the API validates a stored column key against the same list the Admin renders its picker from: a column that the page cannot render can never be stored.
+
+### The data model
+
+Two new tables, owned by the new module `apps/api/src/core/admin/list-preferences/`:
+
+- `admin_list_views` (`userId`, `listKey`, `name`, `query`, timestamps; unique on `(userId, listKey, name)`),
+- `admin_list_column_preferences` (`userId`, `listKey`, `columns`, timestamps; unique on `(userId, listKey)`).
+
+Both cascade from `users`. The migration is `20261031062716_admin_list_views`; its SQL creates the two tables, their indexes and their foreign keys and touches nothing else.
+
+### The API
+
+| Method | Path | Request | Success data |
+| --- | --- | --- | --- |
+| GET | `/api/v1/admin/list-views` | `?list=orders` | `{ views: [{ id, listKey, name, query, createdAt, updatedAt }] }` |
+| POST | `/api/v1/admin/list-views` | `{ list, name, query }` | the created view |
+| PUT | `/api/v1/admin/list-views/:id` | `{ name?, query? }` | the updated view |
+| DELETE | `/api/v1/admin/list-views/:id` | — | `null` |
+| GET | `/api/v1/admin/list-preferences` | `?list=orders` | `{ listKey, columns }` |
+| PUT | `/api/v1/admin/list-preferences` | `{ list, columns }` | `{ listKey, columns }` |
+
+Every read and write is scoped to the authenticated administrator: the server derives the owner from the session, the client never sends a user id, and a view of another user is answered as **not found** rather than as a permission error, so its existence does not leak. A duplicate name is answered with `LIST_VIEW_NAME_TAKEN` (409) and never as a raw unique-constraint crash.
+
+### The Admin side
+
+Each of the three pages declares its own columns, the picker hides the optional ones and keeps the always-visible one, and the preference is read on mount and persisted on every toggle. Applying a saved view **navigates the URL** with the view's query, so the existing `useListState` machinery picks it up; no second state store was introduced.
+
+The default visible columns and their order are exactly the ones of the day before. The browser E2E locates the column headers by name (`getByRole('columnheader', { name: 'Amount', exact: true })`, `{ name: 'Price' }`, `{ name: 'Products' }`), so the column labels keep pointing at the original message namespace rather than at a new one.
+
+### Two defects the review found, and their repairs
+
+Both were found by reading the diff against the browser E2E, not by the unit tests.
+
+1. **The "last order" cell of the customers table lost its accessible name.** The refactor to a column-definition array moved the `aria-label` from the `<td>` onto an inner `<span>`. An accessible name belongs to the element that owns the role, and the `<td>` is the element with the role `cell`, so the E2E locator `row.getByRole('cell', { name: 'Last order: …' })` no longer matched. The column definition now carries the cell's label and the `<td>` receives it. The same refactor had dropped the `title` of the "paid total" cell; it is back.
+2. **The naming input of the saved views lost the focus while typing.** The input is rendered inside the Radix dropdown, and `@radix-ui/react-menu` runs a typeahead over every printable key on the menu content; when a menu item's text starts with the typed characters, the menu moves the focus to that item. The menu items are the saved view names and "Save current view", so typing a name that starts with the same letter handed the focus away mid-word. The input now stops the keystroke from reaching the menu and takes the focus when it appears.
+
+## 5zo. The bulk print of the selected orders
+
+**Baseline SHA:** `bbf7fdfb6`. **Commit:** (the commit of this batch).
+
+### The API
+
+`POST /api/v1/admin/orders/print` resolves an order selection — explicit ids, or the list's filter with its excluded ids — into a printable payload. The selection is resolved exactly the way the CSV export of the same module resolves it (`orderWhere`, `orderSort`, the same `OrderExportSelection`), so a print job covers the orders the operator saw selected.
+
+The payload of one order carries the order number, the date, the status, the payment status, the payment method, the customer, the shipping address, the items (product name, variant name, quantity, unit price, line total), the amounts (subtotal, shipping, tax, the tax-inclusive flag, the total, in the order's own currency), the latest shipment, and whether a payment awaits review. The product and variant names are read from the item's catalog snapshot through the order module's public projection, so a printed order shows the names the order was placed with.
+
+The result is capped at **200 orders**: a print job renders in the operator's browser, and an unbounded selection would be a denial of service on that browser. The payload reports the real number of matching orders and whether the list was truncated.
+
+### The Admin side
+
+The orders list gained a **Print** button in its bulk bar. It opens `/<locale>/orders/print`, which carries the selection: the ids as a comma separated parameter, or the list's own query string plus `match=1` and the excluded ids. The print page rebuilds the filter from the URL with `orderListQuery`, separates the sort from the filter, posts the selection, and renders one block per order in a print-optimized document with a **Print** button that calls `window.print()`. The print stylesheet is a scoped `<style>` block in the page; the global stylesheet is untouched. The page works when it is opened directly, not only when it is navigated to from the list.
+
+### The defect the first gate found, and its repair
+
+The first run of the gate answered **500** on `POST /api/v1/install/complete` (not this feature, but the contract change of 5zm): the route declared the envelope schema while the handler still sent the raw result, and the response serializer refuses to write a body without a required property. The handler now sends the envelope. The same gate found that the print test asserted a payment awaiting review on an order that its own selection did not contain; the fixture and the implementation were both right and the selection was wrong, so the test now selects the order that really carries the review payment.
+
+## 5zp. The bulk price edit of the selected products
+
+**Baseline SHA:** `bbf7fdfb6`. **Commit:** (the commit of this batch).
+
+### The data model
+
+There was no compare-at price in the repository. `ProductVariant` gained a nullable `compareAtPrice Decimal @db.Decimal(18,2)`; the migration `20261031074641_admin_product_compare_at_price` contains the single `ALTER TABLE` and nothing else. The column is nullable, so the existing rows and the read paths of the Shop are unaffected.
+
+### The API
+
+`POST /api/v1/admin/products/bulk-prices` applies one price edit to the variants of the selected products. The selection is the module's `ProductSelection` (ids, or a filter with excluded ids), the same one the existing product bulk action uses. The edit is either an absolute **amount** or a **percentage** of the current value, for the sale price, for the compare-at price, or both; the compare-at price can also be cleared. A dry run computes and reports everything without writing.
+
+The money rules are exact, and they are the heart of the feature:
+
+- the store currency decides the minor units, and **every** computation happens in those minor units (`decimalToMinor`, `minorToDecimal`);
+- the percentage is parsed from its **decimal text** into a `bigint` scaled by one hundred — never through a double — so `12.5` is exactly twelve and a half percent;
+- the new amount is `roundHalfAwayFromZero(currentMinor × (10000 + pctScaled) / 10000)` computed with `BigInt`. `100.00` plus ten percent is `110.00`; `99.99` minus ten percent is `89.99` and never `89.991`;
+- a price the currency of the store cannot hold is **refused, never rounded** — a store whose currency has no fraction cannot store a fraction of a unit;
+- the strike-through price of a variant is never below its sale price; a variant that would break that rule is skipped as a whole, so a variant is never half applied.
+
+The write is a conditional update that carries the price it was computed from, inside one transaction per product that holds the variant row lock, so a price that was computed from a value that is no longer current matches no row and the variant is skipped as changed concurrently instead of being overwritten. Only the two price columns are written. The product cache version is bumped once for the whole batch.
+
+The result reports the matched and processed products, the written and skipped variants with their reasons, and the changes with the previous and the new prices.
+
+### The Admin side
+
+The products list gained an **Edit prices** button in its bulk bar. The dialog offers the sale price and the compare-at price, each with an amount or a percentage, and a way to clear the compare-at price. It is a two-step action: the first call is a dry run that shows what would change — the products, the variants, the previous and the new price, and the skipped entries with their reasons — and the second call applies it. The apply button stays disabled until a preview succeeded.
+
+### The defect the second gate found, and its repair
+
+The Admin suite failed on two cases of the new print page. The page's fetch effect listed the translation function in its dependency array, and the translation function of the test's mock was a new arrow function on every render, so the effect re-ran after every state update it caused and the page fetched forever. The effect does not depend on the language — the payload is the same in every language and the locale only shapes the rendering — so the dependency was removed and the error message is now resolved while rendering, the way the other pages do it. The mock was made faithful to the real hook, which is a stable `useCallback`.
+
+The third failure was in the test of the saved views: the case opened the menu a second time to find the delete button, but the menu was still open after saving a view (the naming panel keeps it open), and the trigger is a toggle, so the second press closed the menu and unmounted the button. The helper that opens the menu is now idempotent.
+
+## 5zq. The gate evidence of this batch
+
+**Baseline SHA:** `bbf7fdfb6`. **Commits:** (the commits of this batch).
+
+### The selection basis
+
+The batch touches the API contract surface (twelve route modules), the Prisma schema and two migrations, the shared package (the error-code catalogue, the shared column catalogue, two i18n namespaces and three registrations) and the Admin application. The verification planner therefore widened the scope to the whole catalogue, and the run was the local full gate in shard mode (`pnpm verify:quick --shards=4`), which covers the whole API catalogue, the whole Admin suite, the whole Shop suite, the type check of all four packages, the lint of the Shop, the reset of the test database and the migration drift check. The browser E2E ran afterwards on the same tree.
+
+The changed inputs were the 57 files of the batch; the selected test files were the whole API catalogue (213 files), the whole Admin suite (65 files) and the whole Shop suite (40 files).
+
+### The shard gate
+
+```
+Scope coverage: 213/213 files covered
+Totals: Test Files 213 files, 213 passed | Tests 2818 tests, 2818 passed | Suites 556 suites, 556 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+```
+
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 631.0s | 16:55:11 | 53 files, 53 passed | 697 tests, 697 passed | none |
+| 2 | 0 | 482.1s | 16:55:12 | 52 files, 52 passed | 545 tests, 545 passed | none |
+| 3 | 0 | 548.7s | 16:55:13 | 54 files, 54 passed | 772 tests, 772 passed | none |
+| 4 | 0 | 626.8s | 16:55:13 | 54 files, 54 passed | 804 tests, 804 passed | none |
+
+```
+Run Admin tests:
+   Start at  17:05:38
+ Test Files  65 passed (65)
+      Tests  684 passed (684)
+Run Shop tests:
+   Start at  17:05:55
+ Test Files  40 passed (40)
+      Tests  285 passed (285)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 3.89s |
+| Lint Shop | PASS | 7.15s |
+| Reset test database | PASS | 3.04s |
+| Check Prisma migration drift | PASS | 1.63s |
+| Run API tests in 4 shards | PASS | 643.30s |
+| Run Admin tests | PASS | 17.31s |
+| Run Shop tests | PASS | 21.69s |
+```
+
+### The browser E2E
+
+```
+Playwright start time: 2026-10-31T09:10:59.971Z
+Playwright results: 112 passed, 0 failed, 0 skipped
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Preflight upload storage before database reset | PASS | 1.47s |
+| Check observed browser contexts | PASS | 0.71s |
+| Clear dedicated E2E Redis database | PASS | 0.93s |
+| Reset test database | PASS | 3.48s |
+| Build shared package | PASS | 1.56s |
+| Build plugin SDK | PASS | 3.24s |
+| Build API | PASS | 9.67s |
+| Build Admin | PASS | 16.39s |
+| Build Shop | PASS | 12.39s |
+| Start local marketplace | PASS | 4.12s |
+| Start API, worker, Admin and Shop | PASS | 0.04s |
+| Wait for health | PASS | 3.93s |
+| Run Playwright | PASS | 615.96s |
+| Stop E2E child processes | PASS | 0.09s |
+Total duration: 674.65s
+```
+
+### The two gate runs before this one
+
+The first run of the gate over this batch failed on six files: the install completion answered 500 (5zm), the two module audits did not know the new module and its 23 new module-level constants, and the print test asserted on an order its selection did not contain. The second run failed on three Admin cases (5zo, 5zp). Both failures were repaired by the packages that own the files, and the run above is the result over the tree that was committed.
