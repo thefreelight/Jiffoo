@@ -227,7 +227,12 @@ export async function authRoutes(fastify: FastifyInstance) {
         properties: {
           token: { type: 'string' }
         }
-      }
+      },
+      response: {
+        200: createSuccessResponseSchema({ type: 'null' }),
+        400: errorResponseSchema,
+        500: errorResponseSchema,
+      },
     }
   }, async (request, reply) => {
     try {
@@ -275,6 +280,11 @@ export async function authRoutes(fastify: FastifyInstance) {
           email: { type: 'string', format: 'email' },
           code: { type: 'string', pattern: '^\\d{6}$' },
         },
+      },
+      response: {
+        200: createSuccessResponseSchema({ type: 'null' }),
+        400: errorResponseSchema,
+        500: errorResponseSchema,
       },
     },
   }, async (request, reply) => {

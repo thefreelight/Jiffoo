@@ -15,7 +15,9 @@ async function request<T>(path: string, body?: unknown): Promise<T> {
   });
   const result = await response.json();
   if (!response.ok) throw new Error('Installation request failed');
-  return result as T;
+  // The install endpoints answer with the success envelope; the caller reads
+  // the typed data of the envelope.
+  return (result as { data: T }).data;
 }
 
 export default function InstallPage() {

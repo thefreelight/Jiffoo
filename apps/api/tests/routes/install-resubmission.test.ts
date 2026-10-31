@@ -48,7 +48,7 @@ describe('Install re-submission', () => {
     const check = vi.spyOn(InstallService, 'checkDatabaseConnection').mockResolvedValueOnce({ connected: false });
     const response = await app.inject({ method: 'GET', url: '/api/v1/install/check-database' });
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ connected: false });
+    expect(response.json()).toEqual({ success: true, data: { connected: false } });
     expect(response.body).not.toContain('password');
     check.mockRestore();
   });
@@ -70,7 +70,7 @@ describe('Install re-submission', () => {
         siteName: 'Optional Username', adminEmail, adminPassword: 'Password123!',
       } });
       expect(response.statusCode).toBe(200);
-      expect(response.json()).toEqual({ success: true, siteName: 'Optional Username', adminUsername: username, adminEmail, timezone: 'UTC' });
+      expect(response.json()).toEqual({ success: true, data: { success: true, siteName: 'Optional Username', adminUsername: username, adminEmail, timezone: 'UTC' } });
       const owner = await prisma.user.findUniqueOrThrow({ where: { email: adminEmail } });
       expect(owner.username).toBe(username);
       expect(owner.role).toBe('ADMIN');
@@ -96,7 +96,7 @@ describe('Install re-submission', () => {
     });
     expect(first.statusCode).toBe(200);
     expect(first.json().success).toBe(true);
-    expect(first.json()).toMatchObject({ siteName: 'Installation Test', adminUsername: 'install-resubmission', adminEmail: 'install-resubmission@example.com', timezone: 'UTC' });
+    expect(first.json()).toMatchObject({ success: true, data: { siteName: 'Installation Test', adminUsername: 'install-resubmission', adminEmail: 'install-resubmission@example.com', timezone: 'UTC' } });
     const login = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/login',

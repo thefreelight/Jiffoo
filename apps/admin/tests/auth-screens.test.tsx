@@ -29,7 +29,7 @@ describe('Admin public account screens', () => {
     vi.resetAllMocks(); mocks.token = 'token'; mocks.sessionNotice = false; mocks.authenticated = false;
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
     container = document.createElement('div'); document.body.append(container); root = createRoot(container);
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ isInstalled: true }) }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true, data: { isInstalled: true } }) }));
   });
   afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.unstubAllGlobals(); });
   async function render(mode: 'login' | 'forgot' | 'invite' | 'reset') { await act(async () => root.render(<AuthScreen mode={mode} />)); }
@@ -128,7 +128,7 @@ describe('Admin public account screens', () => {
     await act(async () => root.render(<InstallPage />)); expect(container.textContent).toContain(adminAuthMessages.en.checking);
     expect(container.querySelector('input:enabled')).toBeNull();
     await act(async () => reject(new Error('Offline'))); expect(container.textContent).toContain(adminAuthMessages.en.databaseHelp);
-    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ isInstalled: false }) } as Response).mockResolvedValueOnce({ ok: true, json: async () => ({ connected: true }) } as Response);
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { isInstalled: false } }) } as Response).mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { connected: true } }) } as Response);
     await act(async () => Array.from(container.querySelectorAll('button')).find(button => button.textContent === adminAuthMessages.en.retry)!.click());
     expect(container.querySelector('input:enabled')).not.toBeNull();
     expect(fetch).toHaveBeenCalledTimes(3);
@@ -136,29 +136,29 @@ describe('Admin public account screens', () => {
   });
   it.each(['disconnected', 'request-error'] as const)('keeps the form locked during the database check and reruns both checks after %s', async failure => {
     let finish!: (value: Response) => void, reject!: (reason: Error) => void;
-    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ isInstalled: false }) } as Response)
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { isInstalled: false } }) } as Response)
       .mockReturnValueOnce(new Promise((resolve, fail) => { finish = resolve; reject = fail; }));
     await act(async () => root.render(<InstallPage />));
     expect(container.textContent).toContain(adminAuthMessages.en.checking);
     expect(container.querySelector('input:enabled')).toBeNull();
     await act(async () => {
-      if (failure === 'disconnected') finish({ ok: true, json: async () => ({ connected: false }) } as Response);
+      if (failure === 'disconnected') finish({ ok: true, json: async () => ({ success: true, data: { connected: false } }) } as Response);
       else reject(new Error('Database check failed'));
     });
     expect(container.textContent).toContain(adminAuthMessages.en.disconnected);
     expect(container.textContent).toContain(adminAuthMessages.en.databaseHelp);
     expect(container.querySelector('input:enabled')).toBeNull();
-    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ isInstalled: false }) } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ connected: true }) } as Response);
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { isInstalled: false } }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { connected: true } }) } as Response);
     await act(async () => Array.from(container.querySelectorAll('button')).find(button => button.textContent === adminAuthMessages.en.retry)!.click());
     expect(vi.mocked(fetch).mock.calls.map(([url]) => url)).toEqual(['/api/v1/install/status', '/api/v1/install/check-database', '/api/v1/install/status', '/api/v1/install/check-database']);
     expect(container.textContent).toContain(adminAuthMessages.en.connected);
     expect(container.querySelector('input:enabled')).not.toBeNull();
   });
   it('shows the returned installation summary without automatic login or navigation', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ isInstalled: false }) } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ connected: true }) } as Response)
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, siteName: 'Real store', adminUsername: 'owner', adminEmail: 'owner@example.com', timezone: 'UTC' }) } as Response);
+    vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { isInstalled: false } }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { connected: true } }) } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, data: { success: true, siteName: 'Real store', adminUsername: 'owner', adminEmail: 'owner@example.com', timezone: 'UTC' } }) } as Response);
     await act(async () => root.render(<InstallPage />));
     const usernamePattern = new RegExp('^(?:' + container.querySelector<HTMLInputElement>('#adminUsername')!.pattern + ')$', 'v');
     for (const name of ['ab', 'owner.name-1_2', '_owner', 'a'.repeat(64)]) expect(usernamePattern.test(name)).toBe(true);

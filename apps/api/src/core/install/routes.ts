@@ -1,7 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { InstallService } from './service';
 import { ApiError, sendMappedError } from '@/utils/api-errors';
-import { errorResponseSchema } from '@/types/common-dto';
+import { sendSuccess } from '@/utils/response';
+import { createSuccessResponseSchema, errorResponseSchema } from '@/types/common-dto';
 
 export async function installRoutes(fastify: FastifyInstance) {
   /**
@@ -13,19 +14,22 @@ export async function installRoutes(fastify: FastifyInstance) {
       tags: ['Install'],
       summary: 'Check installation status',
       response: {
-        200: {
+        200: createSuccessResponseSchema({
           type: 'object',
           properties: {
             isInstalled: { type: 'boolean' },
             version: { type: 'string' },
-            siteName: { type: 'string' }
-          }
-        }
+            installedAt: { type: 'string', format: 'date-time' },
+            siteName: { type: 'string' },
+          },
+          required: ['isInstalled'],
+        }),
+        500: errorResponseSchema,
       }
     }
   }, async (request, reply) => {
     const status = await InstallService.checkInstallationStatus();
-    return reply.send(status);
+    return sendSuccess(reply, status);
   });
 
   /**
@@ -37,20 +41,22 @@ export async function installRoutes(fastify: FastifyInstance) {
       tags: ['Install'],
       summary: 'Check database connection',
       response: {
-        200: {
+        200: createSuccessResponseSchema({
           type: 'object',
           properties: {
             connected: { type: 'boolean' },
-          }
-        },
-        404: { type: 'object', additionalProperties: true }
+          },
+          required: ['connected'],
+        }),
+        404: errorResponseSchema,
+        500: errorResponseSchema,
       }
     }
   }, async (request, reply) => {
     const status = await InstallService.checkInstallationStatus();
     if (status.isInstalled) return reply.code(404).send();
     const result = await InstallService.checkDatabaseConnection();
-    return reply.send(result);
+    return sendSuccess(reply, result);
   });
 
   /**
@@ -73,19 +79,17 @@ export async function installRoutes(fastify: FastifyInstance) {
         }
       },
       response: {
-        200: {
+        200: createSuccessResponseSchema({
           type: 'object',
           properties: {
-            success: { type: 'boolean', const: true },
+            success: { type: 'boolean', enum: [true] },
             siteName: { type: 'string' },
             adminUsername: { type: 'string' },
             adminEmail: { type: 'string', format: 'email' },
             timezone: { type: 'string' },
-            error: { type: 'string' },
-            code: { type: 'string' }
           },
           required: ['success', 'siteName', 'adminUsername', 'adminEmail', 'timezone']
-        },
+        }),
         400: errorResponseSchema,
         409: errorResponseSchema,
         500: errorResponseSchema,
@@ -109,7 +113,7 @@ export async function installRoutes(fastify: FastifyInstance) {
       adminUsername: body.adminUsername
     });
 
-    return reply.send(result);
+    return sendSuccess(reply, result);
   });
 }
 

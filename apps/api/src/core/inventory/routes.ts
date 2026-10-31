@@ -8,7 +8,45 @@ import { productSnapshot } from '@/infra/events/snapshots';
 import { createSuccessResponseSchema, errorResponseSchema } from '@/types/common-dto';
 
 export async function adminInventoryRoutes(fastify: FastifyInstance) {
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', {
+    schema: {
+      tags: ['admin', 'inventory'],
+      summary: 'List the stock levels of the product variants',
+      response: {
+        200: createSuccessResponseSchema({
+          type: 'object',
+          properties: {
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                  skuCode: { type: 'string' },
+                  stock: { type: 'integer' },
+                  product: {
+                    type: 'object',
+                    properties: { id: { type: 'string' }, name: { type: 'string' } },
+                    required: ['id', 'name'],
+                  },
+                },
+                required: ['id', 'name', 'skuCode', 'stock', 'product'],
+              },
+            },
+            page: { type: 'integer' },
+            limit: { type: 'integer' },
+            total: { type: 'integer' },
+            totalPages: { type: 'integer' },
+          },
+          required: ['items', 'page', 'limit', 'total', 'totalPages'],
+        }),
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        500: errorResponseSchema,
+      },
+    },
+  }, async (request, reply) => {
     const { page = 1, limit = 20 } = request.query as { page?: number; limit?: number };
     return sendSuccess(reply, await InventoryService.listStock(Number(page), Number(limit)));
   });

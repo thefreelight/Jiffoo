@@ -10,6 +10,7 @@ import { PasswordUtils } from '@/utils/password';
 import { StaffManagementError } from '@/core/admin/staff-management/service';
 import {
   uploadResultSchema,
+  createSuccessResponseSchema,
   createTypedCrudResponses,
   createTypedReadResponses,
   createTypedUpdateResponses,
@@ -52,6 +53,26 @@ const userProfileSchema = {
 } as const;
 
 /**
+ * The account summary the account route answers with.
+ *
+ * The route sends the same summary as `account` and as `profile`, so the two
+ * properties share one schema.
+ */
+const accountSummarySchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    name: { type: 'string' },
+    displayName: { type: 'string' },
+    email: { type: 'string', format: 'email' },
+    phone: { type: ['string', 'null'] },
+    membership: { type: 'string', enum: ['Admin', 'Member'] },
+    accountType: { type: 'string', enum: ['customer'] },
+  },
+  required: ['id', 'name', 'displayName', 'email', 'phone', 'membership', 'accountType'],
+} as const;
+
+/**
  * User Account Routes
  * Path prefix: /api/account
  * Permission: Authenticated users
@@ -64,6 +85,13 @@ export async function accountRoutes(fastify: FastifyInstance) {
   fastify.get('', {
     schema: {
       security: [{ bearerAuth: [] }],
+      response: {
+        200: createSuccessResponseSchema({
+          type: 'object',
+          properties: { account: accountSummarySchema, profile: accountSummarySchema },
+          required: ['account', 'profile'],
+        }),
+      },
     },
   }, async (request, reply) => {
     try {

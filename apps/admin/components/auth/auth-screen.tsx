@@ -67,7 +67,7 @@ export function AuthScreen({ mode }: { mode: 'login' | 'forgot' | 'reset' | 'inv
     if (mode !== 'login') return;
     let active = true;
     void fetch((process.env.NEXT_PUBLIC_API_URL || '/api/v1').replace(/\/$/, '') + '/install/status', { credentials: 'include' })
-      .then(async response => { if (response.ok && (await response.json()).isInstalled === false && active) router.replace('/' + locale + '/install'); }).catch(() => {});
+      .then(async response => { const payload = await response.json() as { data?: { isInstalled?: boolean } }; if (response.ok && payload?.data?.isInstalled === false && active) router.replace('/' + locale + '/install'); }).catch(() => {});
     return () => { active = false; };
   }, [mode, locale, router]);
   useEffect(() => {

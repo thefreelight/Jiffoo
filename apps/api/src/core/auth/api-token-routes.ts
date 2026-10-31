@@ -14,6 +14,22 @@ import { FastifyInstance } from 'fastify';
 import { sendSuccess, sendError } from '@/utils/response';
 import { ApiTokenService, type ApiTokenScope } from '@/core/auth/api-token';
 import { sendKnownError } from '@/utils/api-errors';
+import { createSuccessResponseSchema, errorResponseSchema } from '@/types/common-dto';
+
+/** The record of a token as the list route answers with it. */
+const apiTokenRecordSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    tokenHash: { type: 'string' },
+    label: { type: 'string' },
+    scopes: { type: 'array', items: { type: 'string' } },
+    createdAt: { type: 'string', format: 'date-time' },
+    lastUsedAt: { type: ['string', 'null'], format: 'date-time' },
+    revokedAt: { type: ['string', 'null'], format: 'date-time' },
+  },
+  required: ['id', 'tokenHash', 'label', 'scopes', 'createdAt', 'lastUsedAt', 'revokedAt'],
+} as const;
 
 export async function apiTokenRoutes(fastify: FastifyInstance) {
   // All routes require admin authentication
@@ -46,6 +62,24 @@ export async function apiTokenRoutes(fastify: FastifyInstance) {
           },
         },
       },
+      response: {
+        201: createSuccessResponseSchema({
+          type: 'object',
+          properties: {
+            token: { type: 'string', description: 'The raw token; it is shown only once' },
+            id: { type: 'string' },
+            label: { type: 'string' },
+            scopes: { type: 'array', items: { type: 'string' } },
+            createdAt: { type: 'string', format: 'date-time' },
+            message: { type: 'string' },
+          },
+          required: ['token', 'id', 'label', 'scopes', 'createdAt', 'message'],
+        }),
+        400: errorResponseSchema,
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        500: errorResponseSchema,
+      },
     },
   }, async (request, reply) => {
     try {
@@ -70,6 +104,12 @@ export async function apiTokenRoutes(fastify: FastifyInstance) {
       summary: 'List API tokens',
       description: 'List all active (non-revoked) API tokens. Does not return the raw token value.',
       security: [{ bearerAuth: [] }],
+      response: {
+        200: createSuccessResponseSchema({ type: 'array', items: apiTokenRecordSchema }),
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        500: errorResponseSchema,
+      },
     },
   }, async (_request, reply) => {
     try {
@@ -91,6 +131,19 @@ export async function apiTokenRoutes(fastify: FastifyInstance) {
         properties: {
           tokenId: { type: 'string', description: 'Token ID to revoke' },
         },
+      },
+      response: {
+        200: createSuccessResponseSchema({
+          type: 'object',
+          properties: {
+            tokenId: { type: 'string' },
+            revoked: { type: 'boolean' },
+          },
+          required: ['tokenId', 'revoked'],
+        }),
+        401: errorResponseSchema,
+        403: errorResponseSchema,
+        500: errorResponseSchema,
       },
     },
   }, async (request, reply) => {

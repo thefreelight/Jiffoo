@@ -95,10 +95,12 @@ describe('API Standards Contract', () => {
     expect(violations).toEqual([]);
   });
 
-  // KNOWN-FAILURE (repo-hardening-2026h2 §3.1): ~200 routes still lack typed
-  // response schemas in their OpenAPI declarations. Re-enable after the
-  // schema-annotation debt is paid down; see tests/KNOWN-FAILURES.md.
-  it.skip('business JSON operations should use ApiResponse<T> envelope with typed data', () => {
+  // LIVE SUITE: the JSON success envelope rule is enforced again. Operations
+  // whose success response is deliberately not a JSON document (a CSV export,
+  // a file download) are out of scope of this rule; every other business JSON
+  // operation must declare the envelope. The remaining annotation gaps in the
+  // generated document are closed by the schema-annotation batch.
+  it('business JSON operations should use ApiResponse<T> envelope with typed data', () => {
     const violations: string[] = [];
 
     for (const { path, method, operation } of getAllOperations()) {
@@ -110,8 +112,8 @@ describe('API Standards Contract', () => {
     expect(violations).toEqual([]);
   });
 
-  // KNOWN-FAILURE (repo-hardening-2026h2 §3.1): see note above.
-  it.skip('paging endpoints should return PageResult<T>', () => {
+  // LIVE SUITE: the PageResult rule is enforced together with the envelope rule above.
+  it('paging endpoints should return PageResult<T>', () => {
     const violations: string[] = [];
 
     for (const { path, method, operation } of getAllOperations()) {
