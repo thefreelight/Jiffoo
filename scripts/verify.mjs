@@ -8,7 +8,7 @@ import { resetTestPluginSchemas } from './reset-test-plugin-schemas.mjs';
 import { localSteps, ciSteps, localShardSteps, executableStepArgs } from './verify-steps.mjs';
 import { parseShardArgs } from './verify-lane-shards.mjs';
 import { laneConfig, validateDatabaseUrl, validateRedisUrl } from './lane-config.mjs';
-import { parseSelection, mandatorySuites, quickRequirements } from './verify-selection.mjs';
+import { parseSelection, mandatorySuites, mandatoryAdditions, plannedSuiteLines, quickRequirements } from './verify-selection.mjs';
 
 const databaseUrl = process.env.DATABASE_URL_TEST;
 const quick = process.argv.includes('--quick');
@@ -18,6 +18,13 @@ const selectedArgument = process.argv.slice(2).filter(value => value.startsWith(
 // and it is mutually exclusive with the explicit file selection.
 const laneShardArguments = process.argv.slice(2).filter(value => value.startsWith('--shards='));
 const shardMode = laneShardArguments.length > 0;
+// The diagnostic mode runs exactly the requested selection and never the planner's mandatory
+// suites. It exists to make the diagnosis of a failure cheap; it is never the certifying gate.
+const diagnosticRequested = process.argv.includes('--diagnostic');
+if (diagnosticRequested && !quick) {
+  console.error('--diagnostic is supported only with --quick (pnpm verify:quick --diagnostic --scope=admin); the full verification always runs every step.');
+  process.exit(1);
+}
 const ciArguments = process.argv.slice(2).filter(value => value.startsWith('--ci-'));
 const groupArguments = ciArguments.filter(value => value.startsWith('--ci-group='));
 const shardArguments = ciArguments.filter(value => value.startsWith('--ci-shard='));
@@ -52,6 +59,10 @@ if (shardMode && process.argv.slice(2).some(value => value.startsWith('--scope='
   console.error('--shards cannot be combined with --scope: the shard mode runs the full API, Admin and Shop suites.');
   process.exit(1);
 }
+if (diagnosticRequested && shardMode) {
+  console.error('--diagnostic cannot be combined with --shards=N: the shard mode is the certifying full-suite run, the diagnostic mode runs exactly the requested selection.');
+  process.exit(1);
+}
 let shardCount = null;
 if (shardMode) {
   try {
@@ -61,7 +72,20 @@ if (shardMode) {
     process.exit(1);
   }
 }
-const selection = parseSelection(process.argv.slice(2), file => existsSync(resolve(file)));
+let selection;
+try {
+  selection = parseSelection(process.argv.slice(2), file => existsSync(resolve(file)));
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
+}
+if (selection.diagnostic) {
+  console.log('');
+  console.log('=== DIAGNOSTIC RUN (not the certifying gate) ===');
+  console.log('This run executes exactly the requested selection. The planner\'s mandatory suites are printed below, but they are not run.');
+  console.log('A diagnostic run is never delivery evidence: run the certifying gate (pnpm verify:quick) before a commit.');
+  console.log('');
+}
 if (group && selection.scopes.length) throw new Error('CI cannot use local scope selection.');
 const selectedFiles = selection.files;
 const config = laneConfig();
@@ -84,16 +108,18 @@ function sharedConsumers() {
 const plannedSuites = mandatorySuites(changed, selection.scopes, catalogue, sharedConsumers());
 // The shard mode runs the whole API catalogue and the whole Admin and Shop suites, so the
 // planner's mandatory suites are covered by those runs and nothing is added to a selection.
-const added = shardMode ? [] : plannedSuites.filter(({ file }) => {
-  const [, app, ...parts] = file.split('/');
-  return !selectedFiles[app].includes(parts.join('/'));
-});
+// The diagnostic mode runs exactly the requested selection, so it adds nothing either; it prints
+// the planner's suites instead, so the operator still sees what the certifying gate would cover.
+const added = shardMode ? [] : mandatoryAdditions(selection, plannedSuites);
 for (const { file, reason } of added) {
   const [, app, ...parts] = file.split('/');
   selectedFiles[app].push(parts.join('/'));
   console.log(`Mandatory suite added: ${file} (${reason})`);
 }
 if (shardMode) console.log(`Shard mode covers ${plannedSuites.length} planner-mandated suite(s) through the full API, Admin and Shop runs.`);
+if (selection.diagnostic) {
+  for (const line of plannedSuiteLines(plannedSuites)) console.log(line);
+}
 const requirements = quickRequirements(selection);
 const scoped = !shardMode && quick && (selection.scopes.length || selectedFiles.scripts.length || added.length);
 const needsDatabase = !scoped || requirements.database;
@@ -379,10 +405,17 @@ uploadStorage?.stop();
 function printSummary(summary, outputs) {
   const lines = ['=== Final test summary ==='];
   if (!group) {
+    const scopeLabel = selection.scopes.join(',') || (requirements.scriptOnly ? 'scripts' : 'default');
+    const plannedReasons = [...new Set(plannedSuites.map(suite => suite.reason))];
     const plannerLine = shardMode
       ? `not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering ${plannedSuites.length} planner-mandated suite(s))`
-      : added.map(item => `${item.file} (${item.reason})`).join('; ') || 'none';
-    lines.push(`Scope: ${selection.scopes.join(',') || (requirements.scriptOnly ? 'scripts' : 'default')}`, `Lane: ${config.laneId || 'integration'}`, `Database: ${needsDatabase ? databaseName : 'not used'}`, `Planner added suites: ${plannerLine}`);
+      : selection.diagnostic
+        ? `none (diagnostic run; the certifying gate would also run ${plannedSuites.length} planner-mandated suite(s)${plannedReasons.length ? `: ${plannedReasons.join('; ')}` : ''})`
+        : added.map(item => `${item.file} (${item.reason})`).join('; ') || 'none';
+    lines.push(`Scope: ${selection.diagnostic ? `${scopeLabel} (diagnostic run; this is not the certifying gate)` : scopeLabel}`, `Lane: ${config.laneId || 'integration'}`, `Database: ${needsDatabase ? databaseName : 'not used'}`, `Planner added suites: ${plannerLine}`);
+    if (selection.diagnostic) {
+      lines.push('Delivery status: DIAGNOSTIC (this run is not the certifying gate and is never delivery evidence)');
+    }
     if (shardMode) {
       lines.push(`Mode: shard mode (--shards=${shardCount})`,
         'Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.',

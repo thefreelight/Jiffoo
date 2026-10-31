@@ -28,6 +28,11 @@ export function localQuickVitestExclusions(app) {
 export function parseSelection(args, exists) {
   const selections = args.filter(arg => arg.startsWith('--test-files='));
   const scopeArgs = args.filter(arg => arg.startsWith('--scope='));
+  // The diagnostic mode runs exactly the requested selection and never the planner's mandatory
+  // suites. It is a diagnosis tool, not a gate, so it is explicit, local and always marked.
+  const diagnostic = args.includes('--diagnostic');
+  if (diagnostic && !args.includes('--quick')) throw new Error('--diagnostic requires --quick: the diagnostic mode is a local selection mode (pnpm verify:quick --diagnostic ...).');
+  if (diagnostic && args.some(arg => arg.startsWith('--shards='))) throw new Error('--diagnostic cannot be combined with --shards=N: the shard mode is the certifying full-suite run.');
   if (selections.length > 1 || (selections.length || scopeArgs.length) && !args.includes('--quick')) throw new Error('Local selection requires --quick and at most one --test-files.');
   const scopes = [...new Set(scopeArgs.flatMap(arg => arg.slice(8).split(',')))];
   if (scopes.some(scope => !['api', 'admin', 'shop'].includes(scope))) throw new Error('Unknown verification scope.');
@@ -46,7 +51,21 @@ export function parseSelection(args, exists) {
       files[match[1]].push(match[2]);
     }
   }
-  return { scopes, files, explicit: selections.length > 0 };
+  if (diagnostic && !scopes.length && !files.api.length && !files.admin.length && !files.shop.length && !files.scripts.length) {
+    throw new Error('--diagnostic requires --scope= and/or --test-files=: a diagnostic run without a selection has no meaning.');
+  }
+  return { scopes, files, explicit: selections.length > 0, diagnostic };
+}
+
+// The planner's mandatory suites that a run adds to the requested selection. A certifying run
+// adds all of them that the selection does not already name. A diagnostic run adds none of them:
+// it prints them instead, so the operator still sees what the certifying gate would cover.
+export function mandatoryAdditions(selection, planned) {
+  if (selection.diagnostic) return [];
+  return planned.filter(({ file }) => {
+    const [, app, ...parts] = file.split('/');
+    return !selection.files[app].includes(parts.join('/'));
+  });
 }
 
 export function mandatorySuites(changed, scopes, catalogue, sharedConsumerApps = ['api', 'admin', 'shop']) {
@@ -72,6 +91,17 @@ export function mandatorySuites(changed, scopes, catalogue, sharedConsumerApps =
     for (const file of catalogue.filter(file => /migration/i.test(file))) add(file, 'Prisma schema or migration changed');
   }
   return [...additions.values()];
+}
+
+// The lines a diagnostic run prints before it starts: the planner's mandatory suites that the
+// certifying gate would add, each with its reason, because the reason is why the certifying
+// gate is wide.
+export function plannedSuiteLines(suites) {
+  const reasons = [...new Set(suites.map(suite => suite.reason))];
+  return [
+    `Certifying gate would also run ${suites.length} planner-mandated suite(s)${reasons.length ? `: ${reasons.join('; ')}` : ''}`,
+    ...suites.map(({ file, reason }) => `  Certifying gate would also run: ${file} (${reason})`),
+  ];
 }
 
 export function quickRequirements(selection) {

@@ -17,7 +17,10 @@ test('Every numbered acceptance spec runs exactly once in the complete browser g
   assert.deepEqual(registered.sort(), expected, 'Every acceptance spec must have a Playwright project');
   const runner = readFileSync(resolve('scripts/verify-e2e.mjs'), 'utf8');
   const scheduling = runner.slice(runner.indexOf('const playwrightGroups ='), runner.indexOf('\nfunction step('));
-  const groups = vm.runInNewContext(scheduling + '\nJSON.stringify(playwrightGroups.flat())', { visual: false, review: false, process: { env: {} } });
+  // The sandbox evaluates a slice of the runner source, so it has to mirror every
+  // module-level identifier that slice refers to. A new top-level identifier in the
+  // runner needs a default here, otherwise this guard fails before any case runs.
+  const groups = vm.runInNewContext(scheduling + '\nJSON.stringify(playwrightGroups.flat())', { visual: false, review: false, process: { env: {} }, areaNeedle: null });
   assert.deepEqual(JSON.parse(groups).sort(), expected, 'The default complete runner must schedule every acceptance project exactly once');
 });
 

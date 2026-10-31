@@ -9,11 +9,59 @@ import { resetTestPluginSchemas } from './reset-test-plugin-schemas.mjs';
 import { apiBuildStep } from './verify-steps.mjs';
 import { laneConfig, assertIntegrationE2e, validateDatabaseUrl, validateRedisUrl } from './lane-config.mjs';
 
+// Escapes that keep their own meaning: character classes, anchors, quantifiers
+// and the numeric and control escapes are copied verbatim by the case expansion
+// of a filter pattern.
+const verbatimEscapes = new Set(['d', 'D', 'w', 'W', 's', 'S', 'b', 'B', 'n', 'N', 'r', 'R', 't', 'T', 'f', 'F', 'v', 'V', 'c', 'C', 'x', 'X', 'u', '0']);
+
 const started = performance.now();
 const visual = process.argv.includes('--visual');
 const compare = process.argv.includes('--compare');
 const review = visual && process.env.VISUAL_CAPTURE_SET === 'review';
 const databaseUrl = process.env.DATABASE_URL_TEST;
+
+// --- Filtered runs ---------------------------------------------------------
+// A filtered run names one Playwright area. The area selects the target groups,
+// and the groups before the last target are the chain: their cases build the
+// fixtures in the database that the target needs, so the chain runs completely.
+// The title filter narrows the target group only. The pattern keeps Playwright's
+// own --grep semantics: a /pattern/flags literal keeps its flags, a plain pattern
+// is matched case-insensitively.
+// The extension-center project must also keep its login-budget partition, so the
+// partition pattern and the user pattern are combined into a single expression
+// that requires both. The partition has to stay case-sensitive (its letter range
+// is the only thing that separates the two budgets, and folding the case would
+// let one budget select the other budget's cases), so the user pattern is
+// expanded into an explicitly case-agnostic form instead of relying on the
+// case-insensitive flag that the combined expression cannot carry.
+let grepArgument;
+let areaArgument;
+try {
+  grepArgument = readFilterArgument(process.argv, '--grep');
+  areaArgument = readFilterArgument(process.argv, '--area');
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
+}
+if (grepArgument !== undefined && areaArgument === undefined) {
+  console.error('--grep needs --area: a title filter needs the area whose cases it narrows.');
+  process.exit(1);
+}
+const areaNeedle = areaArgument === undefined ? null : areaArgument.toLowerCase();
+const filtered = areaArgument !== undefined;
+if (filtered && (visual || compare)) {
+  console.error('--grep and --area cannot be combined with --visual or --compare: the visual capture modes run the whole catalogue and cannot be filtered.');
+  process.exit(1);
+}
+let filterSource = null;
+if (grepArgument !== undefined) {
+  try {
+    filterSource = buildFilterSource(grepArgument);
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+}
 assertIntegrationE2e();
 const config = laneConfig();
 try {
@@ -73,6 +121,10 @@ const providerLibraryOverrides = JSON.stringify(Object.fromEntries(['ga4', 'meta
   )}`,
 ])));
 const playwrightCounts = { expected: 0, unexpected: 0, skipped: 0 };
+// The extension-center project is split into ordered login budgets. The patterns
+// are the regular expressions of the two partitions, the runner passes them to
+// Playwright as /pattern/ literals.
+const extensionCenterPartitions = ['\\b[A-C] ', '\\b[D-F] '];
 // Login-heavy projects are split so each group stays within the login rate limit.
 const playwrightGroups = [
   ['01-install'],
@@ -116,6 +168,212 @@ playwrightGroups.push(['40-plugin-page-shells']);
 // Quota exhaustion runs alone and last; project boundaries clean only protection keys in test DB 14.
 playwrightGroups.push(['36-shop-availability']);
 if (process.env.E2E_RELOAD_STRESS === '1') playwrightGroups.splice(0, playwrightGroups.length, ['34-shop-reload']);
+// The area names the target groups. Every group before the last target is the
+// chain: its cases build the fixtures in the database that the target needs, so
+// the chain runs completely and without the title filter. The groups after the
+// last target are skipped, that is where the time is saved. A group is kept or
+// skipped as a whole, so the login budget partitions of a kept group stay
+// intact and in their order.
+const areaTargetIndexes = areaNeedle === null
+  ? []
+  : playwrightGroups
+      .map((projects, index) => ({ projects, index }))
+      .filter(({ projects }) => projects.some((project) => project.toLowerCase().includes(areaNeedle)))
+      .map(({ index }) => index);
+const lastTargetIndex = areaTargetIndexes.length ? areaTargetIndexes[areaTargetIndexes.length - 1] : -1;
+const runPlan = areaNeedle === null
+  ? playwrightGroups.map((projects, index) => ({ projects, index, target: false }))
+  : playwrightGroups
+      .map((projects, index) => ({ projects, index, target: areaTargetIndexes.includes(index) }))
+      .filter(({ index, target }) => target || index < lastTargetIndex);
+const targetAreas = [...new Set(runPlan.filter((entry) => entry.target).flatMap((entry) => entry.projects))];
+const chainAreas = [...new Set(runPlan.filter((entry) => !entry.target).flatMap((entry) => entry.projects))];
+const plannedAreas = new Set(runPlan.flatMap((entry) => entry.projects));
+const skippedAreas = [...new Set(playwrightGroups.flat())].filter((area) => !plannedAreas.has(area));
+
+// --- Filtered run helpers --------------------------------------------------
+function readFilterArgument(argv, flag) {
+  let value;
+  for (const argument of argv) {
+    if (argument === flag) throw new Error(`${flag} needs a value, use ${flag}=<value>`);
+    if (argument.startsWith(`${flag}=`)) {
+      if (value !== undefined) throw new Error(`${flag} may only be given once`);
+      value = argument.slice(flag.length + 1);
+    }
+  }
+  if (value !== undefined && value.trim() === '') throw new Error(`${flag} needs a non-empty value`);
+  return value;
+}
+
+// The literal form keeps the flags it carries, a plain pattern is matched
+// case-insensitively. This mirrors the way Playwright parses its own --grep.
+function buildFilterSource(pattern) {
+  const literal = pattern.match(/^\/(.*)\/([gi]*)$/);
+  const source = literal ? literal[1] : pattern;
+  const flags = literal ? literal[2] : 'gi';
+  if (/[\r\n]/.test(source)) throw new Error('--grep pattern must not contain a line break');
+  try {
+    new RegExp(source, flags);
+  } catch (error) {
+    throw new Error(`--grep pattern "${pattern}" is not a valid regular expression: ${error.message}`);
+  }
+  const expanded = flags.includes('i') ? expandCaseInsensitive(source) : source;
+  try {
+    new RegExp(expanded);
+  } catch (error) {
+    throw new Error(`--grep pattern "${pattern}" could not be expanded into a filter: ${error.message}`);
+  }
+  return expanded;
+}
+
+// The partition pattern and the user pattern have to hold at the same time, so
+// both become lookaheads of one expression: the partition has to be found in the
+// title and the user pattern has to be found in the title.
+function combinePartitionAndFilter(partitionSource, filterSource) {
+  return `/(?=.*(?:${partitionSource}))(?=.*(?:${filterSource}))/`;
+}
+
+function isAsciiLetter(character) {
+  return (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z');
+}
+
+function isHexDigit(character) {
+  return (character >= '0' && character <= '9') || (character >= 'a' && character <= 'f') || (character >= 'A' && character <= 'F');
+}
+
+function swapCase(letter) {
+  return letter === letter.toUpperCase() ? letter.toLowerCase() : letter.toUpperCase();
+}
+
+// The description of the filters of this run, empty for an unfiltered run.
+function filterDescription() {
+  const parts = [];
+  if (areaArgument !== undefined) parts.push(`area ${areaArgument}`);
+  if (grepArgument !== undefined) parts.push(`grep ${grepArgument}`);
+  return parts.join(' and ');
+}
+
+// The target areas, the chain that replays their fixtures and the skipped areas.
+function filterSummaryLines() {
+  if (!filtered) return '';
+  const lines = [`E2E area: ${areaArgument}`];
+  if (grepArgument !== undefined) lines.push(`E2E title filter: ${grepArgument}`);
+  lines.push(`E2E target areas: ${targetAreas.join(', ')}`);
+  lines.push(`E2E fixture chain: ${chainAreas.join(', ') || 'none'}`);
+  lines.push(`E2E skipped areas: ${skippedAreas.join(', ') || 'none'}`);
+  return `${lines.join('\n')}\n`;
+}
+
+function playwrightResultsLine() {
+  const base = `Playwright results: ${playwrightCounts.expected} passed, ${playwrightCounts.unexpected} failed, ${playwrightCounts.skipped} skipped`;
+  if (!filtered) return base;
+  return `${base} (filtered by ${filterDescription()}; this run is NOT the certifying E2E gate)`;
+}
+
+// Copies one escape sequence. An escape of a plain letter is an identity escape
+// that matches that letter, so it becomes a class that matches both cases.
+function copyEscape(source, index) {
+  const next = source[index + 1];
+  if (next === undefined) return { text: '\\', length: 1 };
+  if (next === 'u' || next === 'x') {
+    // A unicode or hexadecimal escape of a letter matches both cases as well.
+    const width = next === 'u' ? 4 : 2;
+    let end = index + 2;
+    while (end < source.length && end < index + 2 + width && isHexDigit(source[end])) end += 1;
+    const digits = source.slice(index + 2, end);
+    if (digits.length === width) {
+      const character = String.fromCharCode(parseInt(digits, 16));
+      if (isAsciiLetter(character)) return { text: `[${character}${swapCase(character)}]`, length: end - index };
+    }
+    return { text: source.slice(index, end), length: end - index };
+  }
+  if (next === 'c') {
+    const end = Math.min(source.length, index + 3);
+    return { text: source.slice(index, end), length: end - index };
+  }
+  if (next === 'k' && source[index + 2] === '<') {
+    const close = source.indexOf('>', index + 3);
+    const end = close === -1 ? index + 2 : close + 1;
+    return { text: source.slice(index, end), length: end - index };
+  }
+  if (verbatimEscapes.has(next) || !isAsciiLetter(next)) {
+    return { text: source.slice(index, index + 2), length: 2 };
+  }
+  return { text: `[${next}${swapCase(next)}]`, length: 2 };
+}
+
+// Copies one character class. Every letter of the class also matches the other
+// case, and a negated class keeps excluding both cases.
+function copyCharacterClass(source, index) {
+  let cursor = index + 1;
+  let negated = false;
+  if (source[cursor] === '^') {
+    negated = true;
+    cursor += 1;
+  }
+  let body = '';
+  while (cursor < source.length) {
+    const character = source[cursor];
+    if (character === '\\') {
+      const escape = copyEscape(source, cursor);
+      body += escape.text;
+      cursor += escape.length;
+      continue;
+    }
+    if (character === ']') break;
+    const rangeEnd = source[cursor + 2];
+    if (source[cursor + 1] === '-' && rangeEnd !== undefined && rangeEnd !== ']') {
+      body += `${character}-${rangeEnd}`;
+      if (isAsciiLetter(character) && isAsciiLetter(rangeEnd)) body += `${swapCase(character)}-${swapCase(rangeEnd)}`;
+      cursor += 3;
+      continue;
+    }
+    body += isAsciiLetter(character) ? `${character}${swapCase(character)}` : character;
+    cursor += 1;
+  }
+  const end = cursor < source.length ? cursor + 1 : cursor;
+  return { text: `[${negated ? '^' : ''}${body}]`, length: end - index };
+}
+
+// Rewrites a pattern so that it matches both cases without the case-insensitive
+// flag. The quantifier of a letter keeps binding to it because every letter
+// becomes a single character class.
+function expandCaseInsensitive(source) {
+  let expanded = '';
+  let index = 0;
+  while (index < source.length) {
+    const character = source[index];
+    // The name of a named group is not a pattern and stays as it is.
+    if (character === '(' && source.startsWith('(?<', index) && source[index + 3] !== '=' && source[index + 3] !== '!') {
+      const close = source.indexOf('>', index + 3);
+      if (close !== -1) {
+        expanded += source.slice(index, close + 1);
+        index = close + 1;
+        continue;
+      }
+    }
+    if (character === '\\') {
+      const escape = copyEscape(source, index);
+      expanded += escape.text;
+      index += escape.length;
+      continue;
+    }
+    if (character === '[') {
+      const characterClass = copyCharacterClass(source, index);
+      expanded += characterClass.text;
+      index += characterClass.length;
+      continue;
+    }
+    if (isAsciiLetter(character)) {
+      expanded += `[${character}${swapCase(character)}]`;
+      index += 1;
+      continue;
+    }
+    expanded += character;
+    index += 1;
+  }
+  return expanded;
+}
 
 function step(name, fn) {
   console.log(`\n=== ${name} ===`);
@@ -267,11 +525,20 @@ async function runPlaywrightGroup(args) {
 }
 
 async function runPlaywrightGroups() {
-  for (const [index, projects] of playwrightGroups.entries()) {
+  for (const { projects, index, target } of runPlan) {
     // Partition the six extension-center cases into ordered login budgets.
-    const partitions = projects.includes('35-extension-center') ? ['/\\b[A-C] /', '/\\b[D-F] /'] : [null];
-    for (const grep of partitions) {
+    const partitions = projects.includes('35-extension-center') ? extensionCenterPartitions : [null];
+    for (const partition of partitions) {
       await resetE2eLoginLimit(projects.includes('35-extension-center'));
+      // The title filter narrows the target group only. The chain runs its cases
+      // completely, they build the fixtures of the target. The extension-center
+      // group keeps its partition and adds the user pattern to the same
+      // expression, so both hold at the same time and the budgets stay ordered.
+      const grep = filterSource === null
+        ? (partition === null ? null : `/${partition}/`)
+        : (target
+            ? (partition === null ? `/${filterSource}/` : combinePartitionAndFilter(partition, filterSource))
+            : (partition === null ? null : `/${partition}/`));
       await runPlaywrightGroup([
         'exec', 'playwright', 'test', '--config=e2e/playwright.config.ts',
         ...(index || env.E2E_RELOAD_STRESS === '1' ? ['--no-deps'] : []),
@@ -280,6 +547,16 @@ async function runPlaywrightGroups() {
       ]);
     }
   }
+}
+
+if (filtered) {
+  if (areaTargetIndexes.length === 0) {
+    console.error(`--area "${areaArgument}" matches no Playwright project of the runner.`);
+    process.exit(1);
+  }
+  console.log('\n=== Filtered E2E run ===');
+  console.log(filterSummaryLines().trimEnd());
+  console.log('The chain replays the fixtures of the target areas. This run is NOT the certifying E2E gate.');
 }
 
 try {
@@ -334,8 +611,9 @@ try {
 } finally {
   await step('Stop E2E child processes', stop);
   uploadStorage?.stop();
+  if (filtered) console.log(filterSummaryLines().trimEnd());
   try {
-    console.log(`Playwright results: ${playwrightCounts.expected} passed, ${playwrightCounts.unexpected} failed, ${playwrightCounts.skipped} skipped`);
+    console.log(playwrightResultsLine());
   } catch {
     console.log('Playwright results: unavailable (test runner did not produce a report)');
   }
@@ -343,7 +621,7 @@ try {
   console.log('| --- | --- | --- |');
   for (const [name, result, duration] of results) console.log(`| ${name} | ${result} | ${duration} |`);
   console.log(`Total duration: ${((performance.now() - started) / 1000).toFixed(2)}s`);
-  const summary = `=== Final test summary ===\nPlaywright start time: ${playwrightStarted ?? 'not started'}\nPlaywright results: ${playwrightCounts.expected} passed, ${playwrightCounts.unexpected} failed, ${playwrightCounts.skipped} skipped\n\n| Step | Result | Duration |\n| --- | --- | --- |\n${results.map(([name, result, duration]) => `| ${name} | ${result} | ${duration} |`).join('\n')}\nTotal duration: ${((performance.now() - started) / 1000).toFixed(2)}s\n`;
+  const summary = `=== Final test summary ===\nPlaywright start time: ${playwrightStarted ?? 'not started'}\n${filterSummaryLines()}${playwrightResultsLine()}\n\n| Step | Result | Duration |\n| --- | --- | --- |\n${results.map(([name, result, duration]) => `| ${name} | ${result} | ${duration} |`).join('\n')}\nTotal duration: ${((performance.now() - started) / 1000).toFixed(2)}s\n`;
   writeFileSync(resolve(root, 'verify-summary.txt'), summary);
   writeFileSync(resolve(resultsDir, 'verify-summary.txt'), summary);
 }

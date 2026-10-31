@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { parseSelection, quickRequirements, mandatorySuites, ciOnlyScriptTests, ciOnlyVitestWrappers, localQuickVitestExclusions } from './verify-selection.mjs';
+import { parseSelection, quickRequirements, mandatorySuites, mandatoryAdditions, plannedSuiteLines, ciOnlyScriptTests, ciOnlyVitestWrappers, localQuickVitestExclusions } from './verify-selection.mjs';
 import { localSteps, executableStepArgs } from './verify-steps.mjs';
 
 test('Vitest execution uses the real Node executable and retains long selections verbatim', () => {
@@ -101,6 +101,46 @@ test('mandatory planner expands contract, shared, auth and migration coverage', 
   assert.equal(mandatorySuites(['apps/api/prisma/schema/order.prisma'], ['api'], catalogue)[0].file, catalogue[3]);
   assert.equal(mandatorySuites(['apps/api/prisma/migrations/new/migration.sql'], ['api'], catalogue).length, 1);
   assert.deepEqual(mandatorySuites(['docs/example.md'], [], catalogue), []);
+});
+test('the diagnostic mode is refused without --quick, with --shards and without a selection', () => {
+  assert.throws(() => parseSelection(['--diagnostic', '--scope=admin'], () => true), /--diagnostic requires --quick/);
+  assert.throws(() => parseSelection(['--quick', '--diagnostic', '--shards=2', '--scope=admin'], () => true), /--diagnostic cannot be combined with --shards/);
+  assert.throws(() => parseSelection(['--quick', '--diagnostic'], () => true), /--diagnostic requires --scope= and\/or --test-files=/);
+});
+test('a diagnostic selection keeps exactly the named files and adds no planner suite', () => {
+  const catalogue = ['apps/api/tests/contract/api-standards.test.ts', 'apps/admin/tests/example.test.ts'];
+  const changed = ['packages/shared/src/index.ts'];
+  const certifying = parseSelection(['--quick', '--scope=admin', '--test-files=apps/admin/tests/example.test.ts'], () => true);
+  const diagnostic = parseSelection(['--quick', '--diagnostic', '--scope=admin', '--test-files=apps/admin/tests/example.test.ts'], () => true);
+  assert.equal(certifying.diagnostic, false);
+  assert.equal(diagnostic.diagnostic, true);
+  assert.deepEqual(diagnostic.scopes, ['admin']);
+  assert.deepEqual(diagnostic.files.admin, ['tests/example.test.ts']);
+  assert.deepEqual(diagnostic.files.api, []);
+  assert.deepEqual(diagnostic.files.scripts, []);
+  assert.deepEqual(quickRequirements(diagnostic), { apps: ['admin'], database: false, scriptOnly: false });
+  const planned = mandatorySuites(changed, certifying.scopes, catalogue);
+  assert.deepEqual(planned.map(item => item.file), catalogue);
+  assert.deepEqual(mandatoryAdditions(certifying, planned).map(item => item.file), ['apps/api/tests/contract/api-standards.test.ts']);
+  assert.deepEqual(mandatoryAdditions(diagnostic, planned), []);
+});
+test('the diagnostic mode keeps the scope and the file validation of the certifying selection', () => {
+  assert.throws(() => parseSelection(['--quick', '--diagnostic', '--scope=wrong'], () => true), /Unknown verification scope/);
+  assert.throws(() => parseSelection(['--quick', '--diagnostic', '--test-files=scripts/../outside.test.mjs'], () => true), /Invalid explicit test file/);
+  assert.throws(() => parseSelection(['--quick', '--diagnostic', '--test-files=apps/api/tests/core/local-trial.test.ts'], () => true), /CI-only/);
+  assert.throws(() => parseSelection(['--quick', '--diagnostic', '--scope=admin', '--test-files=apps/api/tests/example.test.ts'], () => true), /outside the requested scope/);
+});
+test('the diagnostic planner listing names every suite with its reason', () => {
+  const lines = plannedSuiteLines([
+    { file: 'apps/api/tests/contract/api-standards.test.ts', reason: 'API contract surface changed' },
+    { file: 'apps/admin/tests/session.test.tsx', reason: 'Authentication or permissions changed' },
+  ]);
+  assert.equal(lines[0], 'Certifying gate would also run 2 planner-mandated suite(s): API contract surface changed; Authentication or permissions changed');
+  assert.deepEqual(lines.slice(1), [
+    '  Certifying gate would also run: apps/api/tests/contract/api-standards.test.ts (API contract surface changed)',
+    '  Certifying gate would also run: apps/admin/tests/session.test.tsx (Authentication or permissions changed)',
+  ]);
+  assert.deepEqual(plannedSuiteLines([]), ['Certifying gate would also run 0 planner-mandated suite(s)']);
 });
 test('existing default quick and explicit application catalogues are unchanged', () => {
   assert.deepEqual(localSteps('url', true).map(([name]) => name), ['Prisma generate', 'Type-check API, Admin, Shop and shared', 'Lint Shop', 'Reset test database', 'Run changed API tests', 'Run Shop tests']);
