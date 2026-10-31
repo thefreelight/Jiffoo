@@ -405,7 +405,11 @@ Pre-launch required (reassessed 2026-10-12):
 - Admin cannot set a customer's password; it can only generate a reset link.
 - ADMIN_URL is a second required production env var, used for administrator invitation links.
 - The Admin system health page is a status summary; there is no metrics dashboard.
-- Verification runs locally with pnpm verify:quick on directly relevant test files; GitHub Actions runs the full verification gate on every push to codex/core-extension-boundary.
+- Verification runs locally with `pnpm verify:quick` on the test files the change touches, plus the
+  suites the planner adds for it. A widened batch is certified in the shard mode, and a single
+  failing case is localised with the diagnostic mode, which is never a gate. GitHub Actions runs
+  the complete verification gate on every push to `codex/core-extension-boundary`, with the browser
+  E2E as its own job.
 
 ## Open decisions
 

@@ -1,7 +1,7 @@
 # AGENTRA-001: Jiffoo Core V1 Product Charter
 
 Status: active
-Updated: 2026-10-12
+Updated: 2026-10-31
 
 ## 1. Product Promise
 
@@ -333,9 +333,9 @@ type and version) in its manifest and registers in-process handlers. Core
 delivers each event to each subscribed installation at least once, with retry
 and a stable event ID; an extension achieves a single effect by deduplicating
 on that ID. Delivery order is not guaranteed. V1 does not deliver events to
-external URLs. V1 events are order.created, order.paid, order.cancelled,
-order.refunded, order.fulfilled, payment.succeeded, payment.failed,
-customer.created, product.created, and product.updated.
+external URLs. V1 events are order.created, order.confirmed, order.paid,
+order.cancelled, order.refunded, order.fulfilled, payment.succeeded,
+payment.failed, customer.created, product.created, and product.updated.
 
 V1 order event payloads include an optional `orderNumber` string matching
 `PREFIX-YYYYMMDD-NNNN` (2–6 uppercase ASCII prefix letters, 8 date digits,
