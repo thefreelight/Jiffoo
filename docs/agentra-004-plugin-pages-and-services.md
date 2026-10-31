@@ -148,6 +148,8 @@ the ZIP hash makes even unhashed HTML filenames immutable by content.
 | POST `/plugin-pages/:slug/session` | Core shell only, exact configured Shop/Admin origin; optional strict Core customer auth for public Shop pages, required for login pages; Admin auth for Admin pages. Body `{surface,pageId}`. No API tokens, plugin tokens or null Origin. Returns context, session ID, frame URL and plugin token; `no-store`. |
 | POST `/plugin-pages/:slug/sessions/:id/refresh` | Same Core identity/origin as issuance; guest session requires its shell-only random secret. Recheck page, package, role and generation; rotate token. |
 | DELETE `/plugin-pages/:slug/sessions/:id` | Same shell authentication/secret; revoke bridge session. |
+| POST `/plugin-pages/:slug/sessions/:id/cart` | Core shell only, a live storefront session of a signed-in customer; body `{variantId,quantity}`. It adds through the current cart API, so the SKU, the stock and the price are the Core's, never the plugin's. |
+| POST `/plugin-pages/:slug/purchase-origins` | Core shell only, strict Core customer auth and the Shop origin; body `{pageId,path}`. It binds the plugin page to the order the customer places next. |
 | GET/HEAD `/plugin-assets/:installationId/:zipHash/*` | No cookies/authentication; only indexed static bytes for current enabled operational installation. HTML only for declared entries. Disabled/removed/old hash returns 404. |
 | OPTIONS `/extensions/plugin/:slug/api[/...]` and `/plugin-storage/:slug/...` | Exact null-origin policy below; no plugin execution or user authentication on preflight. |
 

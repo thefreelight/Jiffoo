@@ -12,7 +12,73 @@ is a Git-conflict-avoidance measure only; it is not a seniority relation.
 > calibrated for the tree of the branch of record. A change to this file is therefore committed on
 > the branch of record, by the coordinator, and the lane branch is not evolved on its own.
 
+> **How to read the numbers.** Every section below is a record of what was true on the day it
+> names: the gate output of that batch, the file counts of that run, the register of that tree. The
+> numbers inside a handover section are that day's numbers and are not to be read as today's.
+> **Section 0 carries what is true today** — the branches, the registers of the boundary audit, what
+> is implemented and what is still open. When a handover section and section 0 disagree, section 0
+> is the current one and the handover section is the record of its day.
+
 ---
+
+## 0. The state of the line
+
+**Measured on:** 2026-10-31, against the tree of the branch of record.
+
+### The branches
+
+| Branch | What it is |
+| --- | --- |
+| `codex/core-extension-boundary` | the branch of record; CI runs it; the registers of the boundary audit are calibrated for it |
+| `codex/lane-orders` | the historical development branch of the boundary line; merged into the branch of record (§5s), not to be evolved on its own |
+| `codex/lane-core-uiux` | the user-interface closeout lane; merged into the branch of record (§5zj) |
+| `codex/lane-plugins` | the plugins lane, on its own branch, with `jiffoo_core_test_plugins` and Redis DB 13 |
+| `main` | the diverged release and publication line; the line is not merged into it |
+
+The merge base with `main` is `7522a4f6d` and has not moved. The conflict surface was re-measured on
+2026-10-31 and is unchanged: 629 files differ in the merged result and 293 are real conflicts, the
+numbers §5zi recorded on 2026-10-30.
+
+### The registers of the boundary audit
+
+| Register | Count |
+| --- | --- |
+| approved module edges (`LEGAL_EDGES`) | 192 |
+| registered dependency rings (`KNOWN_CYCLES`) | 600 |
+| registered violations (`KNOWN_VIOLATIONS`) | 4 |
+
+The four violations are the raw `admin_audit_events` write of the migration executor, the stock
+column split on `product_variants`, the second writer of `admin_audit_events` in the admin audit
+events module, and the `plugin_installations` write of the infra event delivery. §5g lists the two
+that were open when it was written; §5w names all four.
+
+### What is implemented
+
+| Area | State |
+| --- | --- |
+| the boundary remediation of the lane line | merged into the branch of record in three merges, each with a green local gate and a green CI run (§5s) |
+| the plugin pages, the private storage and the durable tasks | implemented (P-1 through P-4 and G1 of the plugin design) |
+| the core-mediated plugin services and the paid-order reconciliation | not implemented (G4 and G4-R) |
+| the diagnostic gate mode and the filtered browser E2E | implemented (§5zr) |
+| the rule file | reduced to the development norms, with no code fact in it (§5zs, §5zt, §5zu) |
+
+### The open items
+
+| Item | Section | State on 2026-10-31 |
+| --- | --- | --- |
+| the registered dependency rings | §5o item 7 | open; 600 rings, unchanged |
+| the currency catalogue of the settings page against the shared catalogue | §5ze | open; the page still offers USD, EUR, GBP, CNY, HKD and TWD, the shared catalogue still offers USD, EUR, GBP, JPY, CNY and KRW |
+| the storefront does not read the marker of a degraded tax quote | §5zg | open; the Shop reads no such marker |
+| a dead plugin file cleanup row holds the storage quota of its plugin | §5zg | open; the quota is released only on the successful cleanup path, so a row that exhausts its attempt budget keeps its reservation |
+| a store that moves to a zero-decimal currency with fractional prices | §5ze | open; the merchant has to re-price |
+| an audit row may be lost when the database refuses the write | §5zg, §5zh | open by decision; the money state is the truth that must not be undone |
+| the conflict surface against `main` | §5zi | measured and unchanged; it is not resolved here |
+
+The items §5o lists as closed are closed: `callContract` moved into the neutral runtime module
+with the rest of the gateway, the cross-domain reads go through the public projections, the guard
+scans the infra and the job layers, the inventory ledger is written on the order path, the money
+module has a neutral error, the upload service has a framework-neutral input, and the shard gate
+was balanced by measured duration.
 
 ## 1. Resource allocation rules
 
@@ -29,7 +95,10 @@ is a Git-conflict-avoidance measure only; it is not a seniority relation.
 6. **Handover is explicit.** Process exit does not release a worktree. A handover states: draft
    ownership, verification result, unfinished items, usable baseline.
 
-## 2. Current occupancy
+## 2. Occupancy of the merge (2026-10-22)
+
+This is the occupancy as it stood when the merge was prepared, and it is kept as the record of
+that day. Section 0 carries the branches as they are now.
 
 | Resource | Holder | Worktree / branch | Test DB | Redis DB | Since |
 |---|---|---|---|---|---|
@@ -42,7 +111,11 @@ is a Git-conflict-avoidance measure only; it is not a seniority relation.
 Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `storefront`→11.
 `jiffoo_core_test_orders` was provisioned on 2026-10-22 with `scripts/lane-provision.mjs --apply`.
 
-## 3. Batch registry
+## 3. Batch registry of the merge (2026-10-22)
+
+Every batch in this table was registered when the merge was prepared, and every one of them has
+since been merged into the branch of record (§5s lists the three merges and their gates). The
+status column is the status of that day, not of today.
 
 | Batch | Owner | Branch / worktree | Baseline SHA | Allowed files | Test DB | Executor ID | Status | Handover evidence |
 |---|---|---|---|---|---|---|---|---|
@@ -74,6 +147,11 @@ Lane registry (`scripts/lane-config.cjs`): `plugins`→13, `orders`→12, `store
 | **S3-DATA-3** — the remaining items of the step 3 batch: the exact amounts of the cart, the negative cost price of a variant, the currency of the request as an assertion, the checked prerequisite of the trigram extension and the ports of the mock servers of the three suites | Architecture review line | `codex/core-extension-boundary` / `worktrees/jiffoo-core-extension-boundary` | `38cce1eac` | `apps/api/src/core/{cart,order,admin/product-management}/**`, `apps/api/tests/**`, `apps/shop/tests/**`, `apps/admin/tests/**` | `jiffoo_core_test` (integration) | coordinator session (three worker runs; model `minimax/MiniMax-M3.1-Flash`) | **committed `2a432138a`, gate green** | §5zb |
 
 ## 4. Serial overlap set — never edited by both sides at once
+
+This set was the agreement between the two lines while they ran in parallel, and every path in it
+still exists. The parallel lines are merged (§5s); the set is kept as the record of which paths
+were contended, and because the rule still holds in a weaker form: a change to the shared package,
+the schema, the route registration or the gate itself is a change every consumer depends on.
 
 | Path | Why | Agreement needed before editing |
 |---|---|---|
@@ -256,6 +334,9 @@ charter §3, stating the accepted in-process model and pointing at the concrete 
 **Gate:** API PASS (13.70s); all steps PASS; exit code 0.
 
 ## 5g. The boundary audit result — what is still open
+
+The list in this section is the list of the Tier 2 cleanup. Section 0 carries the register as it is
+now: four registered violations, of which this section names the two that were open at the time.
 
 **State after batches B-BOUND-A … B-BOUND-E3 and the Tier 2 cleanup (WP-F2): 23 known violations → 2.** The five that were registered after B-BOUND-F were the ones the guard could see. B-BOUND-F (§5k) closed the three stray writers among them and, in the same batch, removed the guard's blind spot — so the list became **5 registered violations again, but a different five**, and every one of them was real, registered, and anchored to a file and a table.
 
@@ -3463,9 +3544,14 @@ The claims that were checked and hold: the theme format matches the validator ex
 - The mirror rule in the preamble of this ledger contradicted section 5s: it named the lane branch as the canonical copy and the integration worktree as a read-only mirror, while section 5s made the branch of record the authoritative one. The preamble was older than the merge that decided it. It now states where the file lives, and the section 5s decision is the one that is followed.
 - The dated measurements inside the visual document — the header diagnosis, the capture-noise log and the reconciliation table of that batch — are records of what was measured then, and they are left as they are. What was corrected is the description of the coverage as it is today.
 
-### The gap that is on the code side, not on the document side
+### The gap that was on the code side, and what closed it
 
-The deployment document tells the operator to set `EXTENSION_MARKETPLACE_URL`, `EXTENSION_TEST_SIGNING_MODE` and `JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY`. The API and the worker read all three, and the document is right about what each of them does. None of the three is in `apps/api/.env.example` or in `deploy/compose/.env.example`, so an operator who follows the document has to know the names without a sample to copy them from. The document cannot carry that, and the samples are under the workers' directories: adding the three lines to the two samples is a worker task, and it is registered here.
+The deployment document tells the operator to set `EXTENSION_MARKETPLACE_URL`, `EXTENSION_TEST_SIGNING_MODE` and `JIFFOO_TEST_PLUGIN_ROOT_PUBLIC_KEY`. The API and the worker read all three, and the document is right about what each of them does. Two things were missing on the code side, and both are closed:
+
+- none of the three was in `apps/api/.env.example` or in `deploy/compose/.env.example`, so an operator who follows the document had to know the names without a sample to copy them from;
+- the Compose deployment never passed any of them to the containers. The backend environment anchor of `deploy/compose/compose.yml` is inherited by `api-1`, `api-2`, `worker-1` and `worker-2`, and it carried none of the three, so an operator who set them in the copied `.env` saw them ignored.
+
+A worker added the three to both samples and to the backend environment anchor, with optional defaults so that an unset value stays optional and the deployment still starts. The samples are the ones the operator copies; the anchor is the one the containers inherit.
 
 ### The local evidence
 
@@ -3498,4 +3584,111 @@ The browser E2E did not run locally: it belongs to CI, and this batch changed no
 ### Still open
 
 - The official definition puts the working agreements in the profile directory, so that every repository inherits them. Sections 3, 5 and 6 of the rule file are working agreements with this repository's own commands, lanes and ledger mixed into them. The part that is generic could move to the profile file; the part that names `verify:quick`, the lane databases and the coordination ledger could not. This is a decision of the owner, not a cut that was made here.
+
+## 5zv. The ledger reconciled with the code
+
+**Baseline SHA:** `ed6ec9c5a`. **Commits:** (the commits of this batch).
+
+### What was wrong with this file
+
+This ledger does three jobs at once: it is the record of the decisions, the board of the current
+state, and the log of the measurements. The first two have to be current; the third has to be
+archived. Mixed in one file, the current part drifts, and it drifts in the direction that misleads:
+a reader of section 3 learns that the merge has not happened yet, and a reader of section 5g
+learns that two violations are open when four are.
+
+The fix is not to rewrite the history. The history is right for the day it names. The fix is to say
+which is which, and to carry the current state in one place.
+
+### What changed
+
+- **Section 0 is new** and carries the state of the line as of 2026-10-31: the branches and what
+  each of them is, the three registers of the boundary audit, what is implemented, and the open
+  items with their state.
+- **The preamble now says how to read the numbers.** Every handover section is the record of its
+  day; section 0 is the current one; when they disagree, section 0 is the current one.
+- **Section 2 and section 3 are marked as what they are**: the occupancy and the batch registry of
+  the merge, as they stood on 2026-10-22. Their tables are untouched, so the record survives.
+- **Section 5g carries a pointer** to section 0 for the register as it is now.
+
+### What was measured, and what the numbers are
+
+| What | The number |
+| --- | --- |
+| approved module edges (`LEGAL_EDGES`) | 192 |
+| registered dependency rings (`KNOWN_CYCLES`) | 600 |
+| registered violations (`KNOWN_VIOLATIONS`) | 4 |
+| the conflict surface against `main` | 629 files differ in the merged result, 293 are real conflicts |
+| the merge base with `main` | `7522a4f6d`, unchanged |
+
+The conflict surface was re-measured on 2026-10-31 with the same read-only `git merge-tree` the
+section 5zi measurement used. It has not moved since 2026-10-30: the same 629 and the same 293.
+
+### The open items, checked one by one
+
+| Item | State on 2026-10-31 |
+| --- | --- |
+| the registered dependency rings | open; 600, unchanged |
+| the currency catalogue of the settings page against the shared catalogue | open; the page offers USD, EUR, GBP, CNY, HKD and TWD, the shared catalogue offers USD, EUR, GBP, JPY, CNY and KRW |
+| the storefront does not read the marker of a degraded tax quote | open; the Shop reads no such marker |
+| `callContract` still lives in the admin layer | closed; it moved into the neutral runtime module with the rest of the gateway |
+| a dead plugin file cleanup row holds the storage quota | open; the quota is released only on the successful cleanup path, so a row that exhausts its attempt budget keeps its reservation |
+| the shard gate is balanced by measured duration | closed (§5s) |
+
+### The claims of the other documents that were checked and hold
+
+The theme format matches the validator exactly: the archive limits, the eighteen core token roles,
+the twenty-six shop extras and the seven admin extras, and the eight section types, which are all
+rendered by the Shop. The task and storage interfaces of the plugin SDK carry exactly the methods
+the plugin design names. The routes the plugin design names all exist, and two that it described in
+prose but left out of its table are now in it. The backup carries exactly the files the operator
+guide lists, and the manifest states that Redis is empty on restore. The acceptance scenarios hold:
+the tax is calculated before the order is persisted, the event delivery claims with `SKIP LOCKED`
+under a sixty second lease, the Compose deployment runs two API and two worker instances, the API is
+served only under `/api/v1`, and scenario 11 is still deferred because the line has not been merged
+into `main`.
+
+### The local evidence
+
+The baseline SHA is `ed6ec9c5a`. The changed inputs are the ledger, five documents of `docs/`, and
+the three deployment files a worker changed: `apps/api/.env.example`,
+`deploy/compose/.env.example` and `deploy/compose/compose.yml`. The planner adds no suite for any of
+them. The certifying local run is the selection that covers the change: the five API tests that
+assert the signing and marketplace environment rules, and the two script tests that validate the
+packaged deployment files.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-10-31T14:44:07.072Z
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 162.2942
+Run API tests:
+   Start at  22:44:20
+ Test Files  5 passed (5)
+      Tests  73 passed (73)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 0.20s |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 2.49s |
+| Lint Shop | PASS | 6.82s |
+| Reset test database | PASS | 2.92s |
+| Run API tests | PASS | 165.73s |
+```
+
+The Docker Compose acceptance needs Docker and is CI-only; it is not part of the local gate. The
+browser E2E did not run locally either: it belongs to CI, and this batch changed no product code.
+
 

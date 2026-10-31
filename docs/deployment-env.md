@@ -59,7 +59,9 @@ Set EXTENSION_MARKETPLACE_URL to the operator's static catalog URL. The
 marketplace requires HTTPS; HTTP is allowed only on 127.0.0.1 when
 EXTENSION_TEST_SIGNING_MODE=true or NODE_ENV=test. Catalog and package
 requests reject redirects, package URLs must remain on the catalog origin,
-and marketplace installation accepts signed plugin packages only.
+and marketplace installation accepts signed plugin packages only. The variable
+may be left empty: browsing is then unavailable and local package upload still
+works.
 
 EXTENSION_TEST_SIGNING_MODE defaults to false and is available in any
 environment. Configure API and worker consistently. Enabling it requires

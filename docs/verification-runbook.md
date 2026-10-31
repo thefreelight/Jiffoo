@@ -11,7 +11,7 @@ the steps.
 | `pnpm verify:quick --scope=admin --diagnostic` | exactly the admin suite, marked as a diagnostic run | localising a failure, in seconds |
 | `pnpm verify:quick --test-files=<files>` | those files, plus the suites the planner adds for the change | a narrow local check |
 | `pnpm verify:quick --shards=4` | the whole API catalogue in four isolated databases, plus the admin and shop suites | the certifying gate of a widened batch |
-| `pnpm verify` | the full local verification, ending with the browser E2E | optional, not before a commit |
+| `pnpm verify` | the complete verification, the same steps CI runs, ending with the browser E2E | what CI runs; locally only when a CI failure needs the whole sequence |
 | `pnpm verify:e2e` | the whole browser E2E | optional, investigating a CI failure |
 | `pnpm verify:e2e --area=<substring>` | the fixture chain of that area plus the area | investigating one E2E case |
 | `pnpm --filter api export:openapi` | regenerate the OpenAPI document | after a route or schema change |
