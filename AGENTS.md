@@ -1,5 +1,6 @@
 # Global Rules
 
+- **The branch of record is `codex/core-extension-boundary`.** This worktree is checked out on it and the owner decided on 2026-10-31 that all further work happens there; the branch is the baseline, not `main`. Never merge this branch into `main`, never open a pull request from it into `main`, and never push to `main` from this worktree. `origin/main` is a different line of work (the OSS release and publication line) that has diverged from this one; the measured conflict surface is registered in the coordination ledger (section 5zi), and it is not to be resolved here. A lane branch (`codex/lane-*`) is merged into this branch, never the other way round.
 - If drift is caused by a schema change the current task requires, generate the migration with the migrate diff command below. Stop immediately on any other drift.
 
 ## Verification
