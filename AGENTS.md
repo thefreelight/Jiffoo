@@ -148,17 +148,17 @@ part of the local gate. The runner refuses to run when `LANE_ID` is set.
 ## 7. The architecture boundaries
 
 Binding on every agent that writes code here. These are the boundaries a check cannot express, so
-they are stated in words. The boundary audit holds the module graph, the approved edges, the owner of
-every table and the registered exceptions; it runs in CI. Do not restate its registers here.
+they are stated in words; they restate the Core/extension split of the product charter in `docs/`.
+The boundary audit is where the module graph, the approved edges, the owner of every table and the
+registered exceptions live. Do not restate them here: they are code, and they change with the tree.
 
 ### 7.1 Keep the Core/extension boundary
 
 - Generic commerce semantics belong to Core. Extensions enter only through the plugin SDK and the
   isolated Fastify gateway that dispatches a plugin's own routes with `inject()`.
 - Never hardcode a plugin slug, a plugin's manifest fields or a plugin's business rules inside Core.
-- Core calls a plugin only through a versioned capability contract (`payment`, `shipping`, `tax`,
-  `fulfillment`, `notification`), through the shared contract catalogue and `callContract(...)`.
-  Core never assumes the version in force.
+- Core calls a plugin only through a versioned capability contract, through the shared contract
+  catalogue and the contract call. Core never assumes the version in force.
 - Plugin code never registers routes on the Core Fastify instance.
 - A plugin's declared context surface is the whole contract. Core never hands a plugin `prisma`, a
   Core service instance or a Core secret.
@@ -203,8 +203,8 @@ every table and the registered exceptions; it runs in CI. Do not restate its reg
   transaction.
 - A failed or unavailable extension degrades gracefully: the core transaction still completes and
   the failure is recorded with its originating extension.
-- Durable plugin tasks are implemented. Core-mediated plugin services are not; until they land, use
-  the existing job, lease and outbox paths, and do not introduce a second queueing mechanism.
+- Use the existing job, lease and outbox paths for everything that is not the core transaction, and
+  do not introduce a second queueing mechanism.
 
 ## 8. Where the detail lives
 

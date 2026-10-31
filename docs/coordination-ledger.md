@@ -3389,6 +3389,20 @@ Two passes were made. The first removed the facts and completed the pointer tabl
 
 The shape of the file is the evidence of that pass: every entry is an imperative with its object, and the entries that carried a reason, an illustration or a second rule inside one bullet are gone. The principles that carried them did not go with them; they moved to the documents that own them.
 
+### The last pass: what is left is not a fact about the code
+
+The owner then put the principle in one sentence: the rule file does not record what the code currently looks like; it is the development norms. The file was audited against that sentence, item by item, and three statements did not survive it:
+
+| The statement | Why it is a fact |
+| --- | --- |
+| Core calls a plugin through the contracts `payment`, `shipping`, `tax`, `fulfillment`, `notification` | a set that grows; the charter holds the decision and the catalogue holds the names |
+| the durable plugin tasks are implemented and the core-mediated plugin services are not | a statement about the state of the code, true today and wrong the day a batch lands |
+| the boundary audit runs in CI | a statement about the pipeline, not about a rule |
+
+The first is a judgment call that was made this way: the names are the product vocabulary, but the vocabulary belongs to the charter and the catalogue, and a rule file that lists a set that can grow is the shape that rots. The second is the strongest case for the principle: a rule file that says nothing about what is implemented cannot be wrong about what is implemented.
+
+What is left in the file is one of four things, and nothing else: a command or a flag of a tool the rules constrain, a pointer to a place the detail lives, an identifier of the environment, or an external API that the rules are written against. The workspace layout, the branch names, the lane database names and the Prisma and Playwright calls are conventions that do not rot. **There is no statement left in the file about what the code currently looks like.**
+
 ### The local evidence
 
 The baseline SHA is `e42b3dfee`. The changed inputs are `AGENTS.md` and this ledger section: no source, no test, no schema, no dependency. The planner therefore adds no suite, and the certifying local run is the selection of the audited script test that covers the verification selection logic, `scripts/verify-selection.test.mjs`.
@@ -3400,7 +3414,7 @@ Lane: integration
 Database: not used
 Planner added suites: none
 Run script tests:
-Node test start time: 2026-10-31T14:03:50.958Z
+Node test start time: 2026-10-31T14:09:15.518Z
 ℹ tests 16
 ℹ suites 0
 ℹ pass 16
@@ -3408,11 +3422,11 @@ Node test start time: 2026-10-31T14:03:50.958Z
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 270.4383
+ℹ duration_ms 261.4738
 
 | Step | Result | Duration |
 | --- | --- | --- |
-| Run script tests | PASS | 0.32s |
+| Run script tests | PASS | 0.31s |
 ```
 
 The browser E2E did not run locally: it belongs to CI (section 4 of `AGENTS.md`), and this batch changed no product code. The line of this section that quotes the summary was written after the run and changes no executable input.
