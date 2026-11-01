@@ -14,7 +14,7 @@ import path from 'path';
 import os from 'os';
 import { promises as fs } from 'fs';
 import { createTestApp } from '../helpers/create-test-app';
-import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
+import { createAdminWithToken, createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { publishTestPlugin, clearTestPluginCache } from '../helpers/plugin-cache';
@@ -158,6 +158,31 @@ module.exports = { register(ctx) {
     expect(body.headers.caller).toBe('admin');
     expect(body.headers.locale).toBe('zh-CN');
     expect(body.headers.requestId).toBeTruthy();
+  });
+
+  it('forwards the database role, never the session principal type', async () => {
+    const customer = await createUserWithToken();
+    const customerResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v1/extensions/plugin/${slug}/api/echo`,
+      headers: customer.authHeader,
+    });
+
+    expect(customerResponse.statusCode).toBe(200);
+    const customerBody = customerResponse.json();
+    expect(customerBody.headers.userId).toBe(customer.user.id);
+    // The page session's principal type is CUSTOMER. It stays inside the token; a header carries the database role.
+    expect(customerBody.headers.userRole).toBe('USER');
+    expect(customerBody.headers.userRole).not.toBe('CUSTOMER');
+
+    const adminResponse = await app.inject({
+      method: 'GET',
+      url: `/api/v1/extensions/plugin/${slug}/api/echo`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
+
+    expect(adminResponse.statusCode).toBe(200);
+    expect(adminResponse.json().headers.userRole).toBe('ADMIN');
   });
 
   it('returns 404 for removed instance create and delete routes', async () => {

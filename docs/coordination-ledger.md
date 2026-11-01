@@ -23,7 +23,8 @@ is a Git-conflict-avoidance measure only; it is not a seniority relation.
 
 ## 0. The state of the line
 
-**Measured on:** 2026-10-31, against the tree of the branch of record.
+**Measured on:** 2026-10-31, against the tree of the branch of record. The open items were extended
+on 2026-11-01 (§5zw); the other rows are the measurement of 2026-10-31 and were not re-measured.
 
 ### The branches
 
@@ -64,7 +65,7 @@ that were open when it was written; §5w names all four.
 
 ### The open items
 
-| Item | Section | State on 2026-10-31 |
+| Item | Section | State |
 | --- | --- | --- |
 | the registered dependency rings | §5o item 7 | open; 600 rings, unchanged |
 | the currency catalogue of the settings page against the shared catalogue | §5ze | open; the page still offers USD, EUR, GBP, CNY, HKD and TWD, the shared catalogue still offers USD, EUR, GBP, JPY, CNY and KRW |
@@ -73,6 +74,10 @@ that were open when it was written; §5w names all four.
 | a store that moves to a zero-decimal currency with fractional prices | §5ze | open; the merchant has to re-price |
 | an audit row may be lost when the database refuses the write | §5zg, §5zh | open by decision; the money state is the truth that must not be undone |
 | the conflict surface against `main` | §5zi | measured and unchanged; it is not resolved here |
+| the bridge version a downstream plugin links | §5zw | open as of 2026-11-01; the tree builds `1.0.0-alpha.1`, the imager package links a tarball labelled `1.0.0-alpha.4` whose four dist files are byte-identical to the tree's build |
+| the bridge is not published, so a downstream plugin carries a tarball | §5zw | open as of 2026-11-01; the repository declares no publish path for `@jiffoo/plugin-bridge` |
+| the product-to-credit mapping the purchase path needs | §5zw | open as of 2026-11-01; no product variant exists, so `cart.add` has no valid `variantId` |
+| the imagic page code in a real browser | §5zw | open as of 2026-11-01; the Core mechanism is proven by the browser E2E, the plugin's own page is not |
 
 The items §5o lists as closed are closed: `callContract` moved into the neutral runtime module
 with the rest of the gateway, the cross-domain reads go through the public projections, the guard
@@ -3690,5 +3695,188 @@ Run API tests:
 
 The Docker Compose acceptance needs Docker and is CI-only; it is not part of the local gate. The
 browser E2E did not run locally either: it belongs to CI, and this batch changed no product code.
+
+## 5zw. The imager line's first P-3 integration batch, reviewed
+
+**Baseline SHA:** `6d3dee635`. **Commits:** (the commits of this batch).
+
+### What was reviewed
+
+The imager line delivered its first P-3 integration batch on 2026-10-23: a read-only `imagic`
+plugin with three pages, a consumption of the alpha.4 bridge, and a package for Core to install.
+The delivery is commit `18d74a98` in `C:/Personal Develop/imager-core`; the package is
+`artifacts/imagic-i7.zip`; it was built against the Core commit `2a507cfe`, whose CI run
+`39765774526` is green in twelve jobs.
+
+The review read the Core tree at that commit and at the branch of record, and read the delivered
+package and its sources. What holds is listed below. Three findings and one external dependency
+are registered.
+
+### The claims that were checked and hold
+
+| The claim | How it was checked |
+| --- | --- |
+| the Core commit and its CI run | `git cat-file` on `2a507cfe`; `gh run view 39765774526` reports `success`, its `headSha` is that commit, and its twelve jobs are all successful |
+| the package | the SHA256 of `artifacts/imagic-i7.zip` is `104ca0ca9ed42faa6af5e1358f838f314e13a7e9799a5a0302356eeeac6043e6`, the value the report states; the archive holds exactly the seven files it lists; `migrations/001_generations.sql` hashes to `888bff09dffa97162982e6f591e2fcd5334dcbfc348c62eb3e0d05a68fd27aa9`, which is the value its own manifest declares |
+| the commit | `18d74a98` holds exactly the twenty-four files the report lists |
+| the role contract | the gateway injects the database role (`apps/api/src/core/extensions/runtime/plugin-runtime.ts:422`), the page session's principal type is `CUSTOMER`/`ADMIN`/`GUEST` (`apps/api/src/core/plugin-pages/sessions.ts:99`), and the task worker's own SQL reads `principalType='CUSTOMER' AND u.role='USER'` |
+| the action contracts | `packages/shared/src/plugin-pages/shell.tsx:118-130` — `cart.add` takes exactly `{variantId,quantity}` with `^c[a-z0-9]{24}$` and 1..999, `auth.signIn` takes no argument, `checkout.open` binds a purchase origin to the page before the navigation |
+| the manifest, the asset index and the migration declaration | `packages/shared/src/extensions/plugin-contract.ts`, `packages/shared/src/plugin-ui-assets.ts`, `apps/api/src/core/plugin-pages/asset-routes.ts` — the delivered manifest and the seven-file archive satisfy every validator |
+| the gateway URL inside the opaque frame | the frame is served from the storefront origin, `apps/shop/next.config.js:19` rewrites `/api/v1/:path*` to Core, `apps/shop/proxy.ts:11` keeps the null-origin exception for the gateway path, and `apps/api/src/core/plugin-pages/origin-policy.ts:8` admits it with the plugin token and no cookie |
+
+### The first finding: the role vocabulary was documented nowhere
+
+The plugin's first version assumed the gateway forwards `x-user-role: CUSTOMER`, the value of the
+page session's principal type. It forwards `USER`, the database role. The plugin found this by
+reading the Core source, not from a failing test, and corrected itself without a compatibility
+branch — which is the right call, because a plugin that accepts both values is a plugin whose
+authorization rests on a guess.
+
+The defect was Core's, not the plugin's. Three vocabularies were in play: the principal type
+(`CUSTOMER`, `ADMIN`, `GUEST`), the header role (`USER`, `ADMIN`, `guest`) and the SDK's task
+principal type (`customer`, `admin`). Only the middle one is in a header, and the mapping between
+them appeared in one SQL predicate in the task worker. Nothing in `docs/` or in `packages/` stated
+it, and no test pinned it.
+
+What this batch changed:
+
+- `docs/agentra-004-plugin-pages-and-services.md` §4 now states the vocabulary, names the value
+  that is not a role value, and says that a plugin treats any other value as no role.
+- `apps/api/tests/core/plugin-runtime.test.ts` pins the three values: a customer session carries
+  `USER` and never `CUSTOMER`, an admin session carries `ADMIN`, an anonymous call carries
+  `guest`.
+
+The contract surface is unchanged, so no plugin contract version moves.
+
+### The second finding: the bridge version the plugin links is not the one the tree builds
+
+The plugin links `@jiffoo/plugin-bridge` `1.0.0-alpha.4`, carried as a vendored tarball. The
+branch of record declares `1.0.0-alpha.1` in `packages/plugin-bridge/package.json`; that file has
+one commit on every branch, so the version has never been anything else, and no commit anywhere
+in the tree carries the string `1.0.0-alpha.4`. The report's stated evidence source
+(`imager-deps/`) does not exist on this machine. A version that no tree builds is not a version a
+consumer can resolve.
+
+The bytes, however, are the tree's. Building `packages/plugin-bridge` from the branch of record
+and comparing it with the vendored archive gives four identical files:
+
+| File | SHA256 of the tree's build and of the vendored archive |
+| --- | --- |
+| `dist/index.js` | `80ad14b195f20d5615b0df495113b000312a16c5cfeed657f341c1d7e51eb442` |
+| `dist/protocol.js` | `48c35ed409f52a5e918b5cbdae7467b4b53841ce4dac04513b0f525972010987` |
+| `dist/index.d.ts` | `6232b116244540d9ae04b88a76177f7fec2e95b8ac84434db10d6b5984bfba4e` |
+| `dist/protocol.d.ts` | `219d710b7b91035bc6d64fc61df916e04d3719519cd70ae77c59f4dcc2c61531` |
+
+So this batch carries no runtime risk, and the finding is one of traceability: the label says
+alpha.4, the tree builds alpha.1, and CI builds alpha.1.
+
+The rule this registers: a downstream plugin may link only a bridge version that a named Core
+commit builds, and the vendored archive's bytes must match that commit's build. The imager line
+re-pins to the version the tree declares and re-vendors from the tree; the Core line publishes
+the bridge, so that a downstream plugin installs it by version instead of carrying a tarball
+across a repository boundary.
+
+What the imager line does, exactly:
+
+1. In the Core tree at a named commit, build the bridge with `pnpm --filter @jiffoo/plugin-bridge
+   build` and pack it from `packages/plugin-bridge`.
+2. Install that tarball with `--save-exact`, and let the lock file name the version.
+3. Record the Core commit and the tarball's SHA256 beside the vendored file, so that the bytes
+   are traceable to a tree.
+
+What the Core line does: publish `@jiffoo/plugin-bridge` so that step 1 becomes a version
+resolution instead of a hand-carried artifact. The repository declares no publish path for that
+package today, and the registry is a mirror, so this is a decision about the release line and not
+a command.
+
+### The third finding: the browser E2E already proves the mechanism, and the plugin's own page is not proven
+
+The first reading of this batch said that no plugin page had run in a real browser. That was wrong
+about the Core, and the correction matters, because it moves the obligation to where the unproven
+part is.
+
+`e2e/40-plugin-page-shells.spec.ts` already proves, in a real browser, the shop surface of the
+mechanism the imagic plugin depends on: the opaque frame (`sandbox="allow-scripts allow-forms"`,
+without `allow-same-origin`), the bridge handshake, the identity inside the frame, a relative
+gateway URL resolved against the frame's document URL with `credentials:'omit'` and the plugin
+token, the admission, `cart.add`, `checkout.open`, the sign-out revocation and the uninstall
+revocation. The fixture that drives it is `e2e/plugin-page-package.ts`, which builds and signs a
+real package whose page imports `@jiffoo/plugin-bridge` from the tree.
+
+What is not proven is the imagic plugin's own page code: its base URL derivation, its
+identity-change handling, its error and retry rendering and its owner-scoped reads. That is the
+imager line's obligation, and Core cannot discharge it for a plugin it does not own — the
+plugin-page design records that no imagic exception exists, and the plugin's package lives in
+another repository, so the CI of this tree cannot install it.
+
+What the imager line proves, exactly:
+
+1. Install the delivered package into a running Core through the admin upload, the way the
+   browser E2E installs its own fixture package.
+2. Sign in as a customer and open `/{locale}/apps/imagic/history`.
+3. Assert that the page renders that customer's own history, and that it renders no history for
+   another customer.
+4. Sign out, and assert that the page shows the sign-in entry and no history.
+5. Locate the UI only with accessible locators, as AGENTS.md §6 requires.
+
+`e2e/40-plugin-page-shells.spec.ts` is the reference for the shape of such a case; the case
+itself belongs to the plugin's own repository.
+
+### The dependency that blocks the next batch
+
+`cart.add` needs a real product variant: the identifier is `^c[a-z0-9]{24}$`, and Core has no
+product or variant the imagic line can name. The plugin therefore does not expose the purchase
+button, which is correct — a button that cannot succeed is a defect. But until the product-to-
+credit mapping is delivered, the purchase path cannot be exercised at all, and credit cannot be
+inferred from a cart or from a checkout navigation.
+
+This is a Core deliverable. It is the next item on the critical path of the plugin line, and it
+is not the plugin line's to build.
+
+### The open items of this section
+
+| Item | Owner | State on 2026-11-01 |
+| --- | --- | --- |
+| the bridge version a downstream plugin links | Core line, then the imager line | open; the tree builds `1.0.0-alpha.1` and the imager package links a tarball labelled `1.0.0-alpha.4` whose four dist files are byte-identical to the tree's build |
+| the bridge is not published, so a downstream plugin carries a tarball | Core line | open; the repository declares no publish path for `@jiffoo/plugin-bridge` |
+| the product-to-credit mapping the purchase path needs | Core line | open; no product variant exists, so `cart.add` has no valid `variantId` |
+| the imagic page code in a real browser | imager line | open; the Core mechanism is proven by the E2E, the plugin's own page is not |
+
+### The local evidence
+
+The changed inputs are this ledger, `docs/agentra-004-plugin-pages-and-services.md` and
+`apps/api/tests/core/plugin-runtime.test.ts`. The planner adds no suite for a document, and the
+test file is the API suite that covers the gateway header injection, so the selection is that one
+file. The block below is the summary of the run that certified the document and the test; it was
+appended after that run, and appending it changed no source, no test and no configuration.
+
+The baseline SHA is `6d3dee635`. The selected test file is
+`apps/api/tests/core/plugin-runtime.test.ts`, because the change it makes is the injection of the
+identity headers into the plugin gateway, and that file is the suite that exercises the
+injection. The diagnostic run before it reported that the planner adds no suite: a document and a
+test file are not a contract, a shared package, an authentication or a schema change.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run API tests:
+   Start at  18:52:53
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 3.48s |
+| Lint Shop | PASS | 7.54s |
+| Reset test database | PASS | 3.17s |
+| Run API tests | PASS | 6.29s |
+```
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
+The Docker Compose acceptance needs Docker and is CI-only.
 
 

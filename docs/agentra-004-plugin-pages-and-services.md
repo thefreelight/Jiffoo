@@ -361,6 +361,17 @@ turn a plugin token into a general Admin token. Third-party server plugin code
 is still trusted in-process code under publisher accountability: browser
 sandboxing does not create a server or database security boundary.
 
+The identity vocabulary of the gateway is the database role, and no other
+vocabulary reaches a plugin in a header. `x-user-role` is `USER` for a customer
+session, `ADMIN` for an admin session and `guest` for an anonymous one, and
+`x-user-id` is the empty string when there is no user. The values are exact:
+`CUSTOMER` is not a role value, and a plugin that accepts it reads a vocabulary
+that does not exist here. The page session's principal type is a different
+vocabulary — `CUSTOMER`, `ADMIN`, `GUEST` — and it stays inside the token; the
+SDK's task principal type is a third one, `customer` and `admin`. A plugin reads
+the role from `x-user-role` and treats any other value as no role at all. A Core
+contract test pins the three values.
+
 ## 5. Private plugin storage (P-4)
 
 | Method and route / SDK method | Auth, input and result |
