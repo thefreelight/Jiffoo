@@ -690,7 +690,10 @@ export function registerApiShutdownHandlers(
     if (stopping) return;
     stopping = true;
     LoggerService.logSystem(`Received ${signal}, shutting down gracefully`);
-    const startedAt = Date.now();
+    // The elapsed time is measured with a monotonic clock: Date.now() truncates
+    // to the millisecond, so a deadline that fires on its boundary would measure
+    // one millisecond short and skip the forced path.
+    const startedAt = performance.now();
     const hardDeadlineMs = options.hardDeadlineMs ?? apiShutdownHardDeadlineMs();
     let hardTimer: NodeJS.Timeout | undefined;
     // The drain settles on its own inner deadline. The hard deadline is the
@@ -706,7 +709,7 @@ export function registerApiShutdownHandlers(
         hardTimer = setTimeout(() => resolve({ settled: false, failed: false, error: undefined }), hardDeadlineMs);
       }),
     ]).finally(() => clearTimeout(hardTimer));
-    const elapsedMs = Date.now() - startedAt;
+    const elapsedMs = performance.now() - startedAt;
     const decision = decideApiShutdown({
       drainSettled: outcome.settled && !outcome.failed,
       drainFailed: outcome.failed,

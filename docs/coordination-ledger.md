@@ -231,6 +231,7 @@ of that day.
 | 5zy | The update acceptance of the deployment update | `a7104938e` |
 | 5zz | The charter and the plugin design, cut down | `e7b05fa6b` |
 | 5zaa | The bridge distribution and the credits dependency, named precisely | `668fbcb7b` |
+| 5zab | The hard deadline of the shutdown is measured with a monotonic clock | `668fbcb7b` |
 
 ## 6. The archive
 

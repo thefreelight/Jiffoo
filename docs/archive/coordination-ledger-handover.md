@@ -4147,3 +4147,93 @@ Run Shop tests:
 This section and the rows of the index were written after that run, and they changed no
 executable input. The browser E2E did not run locally: it belongs to CI, and this batch changed
 no product code.
+
+## 5zab. The hard deadline of the shutdown is measured with a monotonic clock
+
+**Baseline SHA:** `668fbcb7b`. **Commits:** (the commits of this batch).
+
+### The failure
+
+The CI run of the documentation cut failed in the job `api (3)`, with one failed test and every
+other job of the run green:
+
+```
+FAIL tests/core/api-shutdown-hard-deadline.test.ts > the wiring of the shutdown handlers >
+  takes the forced path when a termination signal arrives and the drain does not settle
+AssertionError: expected [] to deeply equal [ 'forced' ]
+```
+
+The change of that commit was a document, so the failure is not its doing: the same test passed in
+the run before it and failed in this one.
+
+### The cause
+
+`registerApiShutdownHandlers` of `apps/api/src/server.ts` arms a timer at the hard deadline and
+races it against the drain. When the timer wins, the handler measures how long the shutdown has
+been running and asks the pure function `decideApiShutdown` whether the hard deadline passed.
+The measurement was `Date.now() - startedAt`.
+
+`Date.now()` truncates to the millisecond, so a deadline that fires exactly on its boundary can
+measure one millisecond short. The decision then says that the hard deadline did not pass, the
+forced path is skipped, and the handler exits with code 1 without the forced close. The test sees
+the exit code set and the forced close missing, which is exactly what the log shows.
+
+The test asks for the forced path with a deadline of five milliseconds, so the window is
+reachable, and on a loaded runner the failing frame is the one that lands on the boundary. The
+product is wrong in that window too: the timer has fired, and the process leaves without the
+close it was promised.
+
+### The decision
+
+The elapsed of the shutdown is measured with a monotonic clock, so it can never report less than
+the deadline the timer already fired.
+
+`apps/api/src/server.ts` reads `performance.now()` when the shutdown starts and again when the
+race resolves. The pure function keeps its input shape and its boundary semantics, so its unit
+tests are untouched, and the default deadline is untouched.
+
+The file is in the serial overlap set of section 4 of the ledger, for the route and the hook
+registration. The other side of that set is not editing it in this batch, and the change touches
+the measurement of the shutdown, not the registration of anything.
+
+### The local evidence
+
+The baseline SHA is `668fbcb7b`. The changed input is `apps/api/src/server.ts` and this ledger
+section: no test, no schema, no dependency. The planner adds no suite for it.
+
+The scope of the change is the wiring of the shutdown, so the certifying local run is the suite
+that covers it, `apps/api/tests/core/api-shutdown-hard-deadline.test.ts`.
+
+The run was:
+
+```
+DATABASE_URL_TEST=postgresql://postgres:postgres@localhost:5432/jiffoo_core_test \
+PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=<the owner's consent to reset jiffoo_core_test> \
+pnpm verify:quick --test-files=apps/api/tests/core/api-shutdown-hard-deadline.test.ts
+```
+
+The summary of that run, printed from `verify-summary.txt`:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run API tests:
+   Start at  21:08:42
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 10.68s |
+| Lint Shop | PASS | 7.14s |
+| Reset test database | PASS | 3.29s |
+| Run API tests | PASS | 5.49s |
+```
+
+This section and the rows of the index were written after that run, and they changed no
+executable input. The browser E2E did not run locally: it belongs to CI, and this batch changed
+no product behaviour that a browser sees.
