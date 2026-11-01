@@ -102,6 +102,15 @@ test('mandatory planner expands contract, shared, auth and migration coverage', 
   assert.equal(mandatorySuites(['apps/api/prisma/migrations/new/migration.sql'], ['api'], catalogue).length, 1);
   assert.deepEqual(mandatorySuites(['docs/example.md'], [], catalogue), []);
 });
+test('the shared rule selects the suites that reach the changed module', () => {
+  const catalogue = ['apps/api/tests/core/api.test.ts', 'apps/shop/tests/example.test.ts'];
+  const reachable = new Map([['apps/api/tests/core/api.test.ts', 'packages/shared/src/index.ts']]);
+  assert.deepEqual(mandatorySuites(['packages/shared/src/index.ts'], ['api'], catalogue, { sharedSuites: reachable }).map(item => item.file),
+    ['apps/api/tests/core/api.test.ts']);
+  assert.deepEqual(mandatorySuites(['packages/shared/src/index.ts'], ['api'], catalogue, { sharedSuites: new Map() }), []);
+  // Without the reachability of the workspace the rule stays conservative.
+  assert.equal(mandatorySuites(['packages/shared/src/index.ts'], ['shop'], catalogue).length, catalogue.length);
+});
 test('the diagnostic mode is refused without --quick, with --shards and without a selection', () => {
   assert.throws(() => parseSelection(['--diagnostic', '--scope=admin'], () => true), /--diagnostic requires --quick/);
   assert.throws(() => parseSelection(['--quick', '--diagnostic', '--shards=2', '--scope=admin'], () => true), /--diagnostic cannot be combined with --shards/);

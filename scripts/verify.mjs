@@ -9,6 +9,7 @@ import { localSteps, ciSteps, localShardSteps, executableStepArgs } from './veri
 import { parseShardArgs } from './verify-lane-shards.mjs';
 import { laneConfig, validateDatabaseUrl, validateRedisUrl } from './lane-config.mjs';
 import { parseSelection, mandatorySuites, mandatoryAdditions, plannedSuiteLines, quickRequirements } from './verify-selection.mjs';
+import { buildImportGraph, affectedSuites } from './module-reachability.mjs';
 
 const databaseUrl = process.env.DATABASE_URL_TEST;
 const quick = process.argv.includes('--quick');
@@ -96,16 +97,22 @@ function gitFiles(args) {
 }
 const changed = quick ? [...new Set([...gitFiles(['diff', '--name-only', '-z', 'HEAD']), ...gitFiles(['ls-files', '--others', '--exclude-standard', '-z'])])] : [];
 const catalogue = quick ? [...new Set(gitFiles(['ls-files', '--cached', '--others', '--exclude-standard', '-z', 'apps/api/tests', 'apps/admin/tests', 'apps/shop/tests']))].filter(file => /\.(test|spec)\.[cm]?[jt]sx?$/.test(file)) : [];
-function sharedConsumers() {
-  if (!changed.some(file => file.startsWith('packages/shared/'))) return [];
-  const consumers = new Set();
-  for (const file of gitFiles(['ls-files', '--cached', '--others', '--exclude-standard', '-z', 'apps/api', 'apps/admin', 'apps/shop'])) {
-    if (!/\.[cm]?[jt]sx?$/.test(file) || !existsSync(resolve(file))) continue;
-    if (/(?:@jiffoo\/shared|@shared\/|['"]shared(?:\/|['"]))/m.test(readFileSync(file, 'utf8'))) consumers.add(file.split('/')[1]);
+function sharedReachability() {
+  // The suites a shared change reaches. The workspace import graph decides it: a suite that
+  // cannot reach the changed module cannot be affected by it. The graph is built only when a
+  // shared file changed, and an unresolved import keeps its application conservative.
+  const changedShared = changed.filter(file => file.startsWith('packages/shared/'));
+  if (!changedShared.length) return null;
+  try {
+    const graph = buildImportGraph(process.cwd());
+    return affectedSuites(graph, changedShared, catalogue);
+  } catch (error) {
+    // The planner never fails a gate: without the reachability the rule stays conservative.
+    console.error(`Shared reachability unavailable (${error.message}); the shared rule stays conservative.`);
+    return null;
   }
-  return [...consumers];
 }
-const plannedSuites = mandatorySuites(changed, selection.scopes, catalogue, sharedConsumers());
+const plannedSuites = mandatorySuites(changed, selection.scopes, catalogue, { sharedSuites: sharedReachability() });
 // The shard mode runs the whole API catalogue and the whole Admin and Shop suites, so the
 // planner's mandatory suites are covered by those runs and nothing is added to a selection.
 // The diagnostic mode runs exactly the requested selection, so it adds nothing either; it prints

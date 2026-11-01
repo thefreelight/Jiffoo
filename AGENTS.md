@@ -53,8 +53,12 @@ inspection lives in the code, in a registry a test checks, or in `docs/`.
 - **Before every commit, run `pnpm verify:quick`** with the scope and the `--test-files` selection
   the lane advisor named. Commit and push only after the run exits 0. Record the baseline SHA, the
   changed inputs, the selected test files and why they were selected.
-- The planner adds its mandatory suites for API contract, shared package, authentication and schema
-  changes. The selection is never narrowed back.
+- The planner adds the suites the change requires for API contract, shared package, authentication
+  and schema changes. The operator's selection is never narrowed back.
+- **Select the suites a shared package change reaches.** The planner computes the reachability of
+  the workspace import graph: a suite that cannot reach the changed module cannot be affected by it
+  and is not run. An unresolved import keeps the coverage of its application conservative, and a
+  change that no suite reaches adds no suite.
 - **Diagnose with the diagnostic mode, certify once.** `--diagnostic` runs exactly the suites asked
   for and prints the suites the planner would add, with their reasons. Without `--diagnostic` those
   suites are added and run. **Certify a widened batch with the shard mode:** `--shards=4` covers the

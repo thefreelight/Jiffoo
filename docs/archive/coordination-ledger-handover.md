@@ -4237,3 +4237,175 @@ Run API tests:
 This section and the rows of the index were written after that run, and they changed no
 executable input. The browser E2E did not run locally: it belongs to CI, and this batch changed
 no product behaviour that a browser sees.
+
+## 5zab. The plugin bridge becomes an installable artifact with a checked provenance
+
+**Baseline SHA:** `668fbcb7b`. **Commits:** (the commits of this batch).
+
+### What the imager line asked for
+
+The imager line links `@jiffoo/plugin-bridge` as a vendored tarball. §5zw proved that the tarball's
+bytes are the tree's build and that the label on it names a version no tree ever carried. The
+question that remained was how a consumer obtains the bridge without carrying an artifact across a
+repository boundary by hand.
+
+The plugin design answers it in §10 (G7): every Core release attaches a self-contained SDK tarball
+as a release asset, the pre-release series is `1.0.0-alpha.N` from alpha.1, and npm publishing
+waits for an npm organisation the owner has not supplied. The bridge therefore belongs to the same
+distribution channel as the SDK.
+
+### What this batch delivers
+
+- `packages/plugin-bridge/scripts/build.mjs` compiles the bridge and publishes it file by file, so a
+  consumer that reads `dist` while the build runs always finds a complete `dist/index.js` and a
+  complete `dist/protocol.js`. The shape is the SDK's.
+- `scripts/plugin-bridge-standalone.mjs` packs the tree, installs the tarball outside the
+  monorepo, asserts that the installed `dist` bytes are the tree's build, asserts that the package
+  carries no dependency and no workspace reference, exercises the installed client, and prints the
+  tarball's SHA256. `scripts/plugin-bridge-standalone.test.mjs` is its audited node:test wrapper,
+  and the script is registered in the local gate's audited list.
+- `packages/plugin-bridge/README.md` states the install command, the surface and the rule for a
+  consumer that vendors the tarball.
+- The plugin design names the bridge as the second release artifact beside the SDK tarball.
+
+### The rule it registers
+
+A downstream plugin links only a bridge version that a named Core commit builds, and the vendored
+archive's bytes are that commit's build. The verification prints the SHA256 that proves it. The
+npm registry stays deferred, because the design defers it.
+
+### The local evidence
+
+The changed inputs are the bridge package, the two new script files, the audited script list, the
+plugin design and the ledger. The covering scope is the script tests that exercise the gate's own
+logic and the bridge's clean install, with the two Shop suites that consume the bridge. The
+planner adds no suite: the change touches no `packages/shared/` file, no API contract surface, no
+authentication or permission path and no schema.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-11-01T13:49:43.859Z
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5404.9439
+Run Shop tests:
+   Start at  21:50:02
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 5.45s |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 2.74s |
+| Lint Shop | PASS | 6.42s |
+| Reset test database | PASS | 3.44s |
+| Run Shop tests | PASS | 2.18s |
+```
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
+
+## 5zac. The shared package rule follows the reachability of the import graph
+
+**Baseline SHA:** `668fbcb7b`. **Commits:** (the commits of this batch).
+
+### The rule that was there
+
+A change under `packages/shared/` added every suite of every application that consumes the package.
+The planner said why: "Conservative matching can over-select; a conservative shared-import grep
+selects every suite in each consumer application because indirect imports and re-exports make
+per-test matching incomplete. This deliberately treats any shared module as potentially affecting
+every shared consumer."
+
+The owner's question was whether that is right, because a package holds files that are not related
+to the applications at all. It is right for the modules the package's barrel re-exports, and
+needlessly wide for the rest.
+
+### The rule that is there now
+
+The planner computes the reachability of the workspace import graph. A suite that cannot reach the
+changed module cannot be affected by it and is not run.
+
+- `scripts/module-reachability.mjs` builds the graph from the sources the applications compile.
+  A resolved module that names a build artifact is mapped back to its source, so a change to a
+  shared source file is the change the consumers actually see. A data file that an import names is
+  a node of the graph, because the default theme tokens are read as one.
+- `scripts/verify.mjs` builds the graph only when a shared file changed and hands the reached
+  suites to the planner. A graph that cannot be built leaves the rule conservative, so the planner
+  never fails a gate.
+- The rule file states it: "Select the suites a shared package change reaches."
+
+### What the numbers are
+
+The catalogue holds 323 suites: 218 API, 65 Admin and 40 Shop. The graph holds 1072 source files
+and builds in about 4.6 seconds.
+
+| Changed shared module | Before | After |
+| --- | --- | --- |
+| `src/error-codes.ts` | 323 | 158 (API only) |
+| `src/extensions/plugin-contract.ts` | 323 | 239 |
+| `src/i18n/messages/admin-plugins.ts` | 323 | 211 |
+| `src/logger/index.ts` | 323 | 172 |
+
+The width that remains is the package's own shape: `packages/shared/index.ts` re-exports
+`./src/index`, so a module the barrel carries is on every consumer's load path. Narrowing that
+further means splitting the package, which is a change of the package's structure and not of the
+rule. The rule is now as precise as the structure allows.
+
+### The safeguards
+
+- An import the resolver cannot place is recorded, and the application that owns it keeps the
+  conservative coverage. The graph of this workspace has no unresolved TypeScript import, and the
+  script test asserts it.
+- A changed module that no suite reaches selects no suite, and the script test asserts it.
+- A file outside the workspace's sources cannot be reached and cannot be affected by a shared
+  change, so it is not selected.
+
+### The local evidence
+
+The changed inputs are the planner, the reachability module and its test, the rule file and the
+ledger. The covering scope is the two script tests that exercise the gate's own logic. The planner
+adds no suite.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run script tests:
+Node test start time: 2026-11-01T13:49:43.859Z
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5404.9439
+Run Shop tests:
+   Start at  21:50:02
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Run script tests | PASS | 5.45s |
+| Prisma generate | PASS | 0.01s |
+| Type-check selected scope and shared | PASS | 2.74s |
+| Lint Shop | PASS | 6.42s |
+| Reset test database | PASS | 3.44s |
+| Run Shop tests | PASS | 2.18s |
+```
+
+The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.

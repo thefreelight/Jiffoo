@@ -8,6 +8,8 @@ export const localScriptTests = new Set([
   'scripts/lane-provision.test.mjs', 'scripts/verify-selection.test.mjs',
   'scripts/storage-secret.test.mjs',
   'scripts/plugin-sdk-standalone.test.mjs',
+  'scripts/plugin-bridge-standalone.test.mjs',
+  'scripts/module-reachability.test.mjs',
   'scripts/maintenance-proof.test.mjs',
   'scripts/verify-lane-shards.test.mjs',
 ]);
@@ -68,21 +70,28 @@ export function mandatoryAdditions(selection, planned) {
   });
 }
 
-export function mandatorySuites(changed, scopes, catalogue, sharedConsumerApps = ['api', 'admin', 'shop']) {
+export function mandatorySuites(changed, scopes, catalogue, options = {}) {
+  const { sharedConsumerApps = ['api', 'admin', 'shop'], sharedSuites = null } = Array.isArray(options)
+    ? { sharedConsumerApps: options }
+    : options;
   const additions = new Map();
   const add = (file, reason) => {
     if (ciOnlyVitestWrappers.has(file)) return;
     if (!additions.has(file)) additions.set(file, { file, reason });
   };
-  // Cross-scope mandatory suites intentionally expand the requested scope. Conservative matching
-  // can over-select; a conservative shared-import grep selects every suite in each consumer
-  // application because indirect imports and re-exports make per-test matching incomplete.
-  // This deliberately treats any shared module as potentially affecting every shared consumer.
+  // Cross-scope mandatory suites intentionally expand the requested scope.
   if (changed.some(file => /^apps\/api\/(?!prisma\/).*(?:routes?\/|schemas?\/|openapi|error.code)/i.test(file))) {
     for (const file of catalogue.filter(file => file.startsWith('apps/api/tests/contract/'))) add(file, 'API contract surface changed');
   }
   if (changed.some(file => file.startsWith('packages/shared/'))) {
-    for (const file of catalogue.filter(file => sharedConsumerApps.includes(file.split('/')[1]))) add(file, 'Shared package changed; conservative transitive-import coverage');
+    // The reachability of the workspace decides the coverage: a suite that cannot reach the
+    // changed module cannot be affected by it. Without that reachability the rule stays
+    // conservative and covers every suite of every consumer of the package.
+    if (sharedSuites) {
+      for (const [file, origin] of sharedSuites) add(file, `Shared package changed; the suite reaches ${origin}`);
+    } else {
+      for (const file of catalogue.filter(file => sharedConsumerApps.includes(file.split('/')[1]))) add(file, 'Shared package changed; conservative transitive-import coverage');
+    }
   }
   if (changed.some(file => /(?:auth|permission|session|account-recovery|admin-removal|user-management|password-reset|rbac)/i.test(file))) {
     for (const file of catalogue.filter(file => /(?:auth|session|account-recovery|admin-removal)/i.test(file))) add(file, 'Authentication or permissions changed');

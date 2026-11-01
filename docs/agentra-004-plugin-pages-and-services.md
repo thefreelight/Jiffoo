@@ -1104,6 +1104,17 @@ publishConfig.access to public at that time. Consumers can install the release
 asset with `npm i ./jiffoo-core-plugin-sdk-1.0.0-alpha.1.tgz` and import
 `PluginContext` from `@jiffoo-core/plugin-sdk`.
 
+The browser-side client is `@jiffoo/plugin-bridge`, the counterpart of the SDK for
+the plugin page shell. Each Core release attaches it as a release asset next to
+the SDK tarball. It has no dependencies, no Core application imports and no
+workspace references, and its published `dist` bytes are the tree's build. A
+consumer installs it with `npm i ./jiffoo-plugin-bridge-1.0.0-alpha.1.tgz` and
+imports `createPluginBridge` from `@jiffoo/plugin-bridge`. A consumer that
+vendors the tarball records the Core commit it came from and the tarball's
+SHA256 beside the file, so that the bytes stay traceable to a tree. The
+clean-install verification of the bridge is the audited script test
+`scripts/plugin-bridge-standalone.test.mjs`, beside the SDK's.
+
 ### Authoring and acceptance
 
 Server SDK publishes ctx.storage/tasks/services additions in shared types and
