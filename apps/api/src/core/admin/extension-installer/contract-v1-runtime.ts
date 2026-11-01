@@ -8,10 +8,18 @@ import { ContractCallError } from '@/core/extensions/runtime/contract-errors';
 import { getPluginTimeoutMs, PLUGIN_REGISTER_TIMEOUT_MS } from '@/core/extensions/runtime/gateway-protection';
 import { createTaskApi, withInstallationTaskHandler } from '@/core/plugins/tasks';
 import { createStorageApi } from '@/core/plugin-storage/service';
-import type { PluginTaskDeclaration, PluginTasks, TaskHandlerOptions } from '@jiffoo/shared';
+import { publishServiceRegistrations, registerServiceMethod, serviceBusinessError, serviceCoreError, type ServiceMethodSchemas, type ServiceRegistrationTable } from '@/core/extensions/runtime/service-runtime';
+import type { PluginTaskDeclaration, PluginTasks, TaskHandlerOptions, PluginServiceCall, PluginServiceDeclaration, ServiceResult, PaidOrder } from '@jiffoo/shared';
 
 type JsonObject = Record<string, unknown>;
-type RuntimeOptions = { slug: string; installationId: string; generation: bigint; zipHash: string; version: string; config: JsonObject; configSchema?: unknown; declaredContracts: Array<{ name: string; version: number }>; subscriptions: EventSubscription[]; tasks?: PluginTaskDeclaration[] };
+type RuntimeOptions = {
+  slug: string; installationId: string; generation: bigint; zipHash: string; version: string; config: JsonObject; configSchema?: unknown;
+  declaredContracts: Array<{ name: string; version: number }>; subscriptions: EventSubscription[]; tasks?: PluginTaskDeclaration[];
+  declaredServices?: PluginServiceDeclaration[];
+  serviceSchemas?: Map<string, ServiceMethodSchemas>;
+  callService?: (request: PluginServiceCall) => Promise<ServiceResult<unknown>>;
+  listPaidOrders?: (request: { from: string; to: string; cursor?: string | null; limit?: number }) => Promise<{ items: PaidOrder[]; nextCursor: string | null; from: string; to: string }>;
+};
 const contractMethods = { payment: paymentV2Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
 const requiredMethods: Record<keyof typeof contractMethods, string[]> = { payment: ['describe', 'createSession', 'queryByRequestKey'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment'], notification: ['send'] };
 const eventHandlers = new Map<string, Map<string, PluginEventHandler>>();
@@ -35,10 +43,12 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
   publish: () => void;
   handlers: ReadonlyMap<string, PluginEventHandler>;
   taskHandlers: ReadonlyMap<string, { handler: Parameters<PluginTasks['handle']>[2]; options: TaskHandlerOptions }>;
+  serviceRegistrations: ServiceRegistrationTable;
 }> {
   assertNoLegacyPluginMigrations(runtime);
   const handlers = new Map<string, PluginEventHandler>();
   const taskHandlers = new Map<string, { handler: Parameters<PluginTasks['handle']>[2]; options: TaskHandlerOptions }>();
+  const serviceRegistrations: ServiceRegistrationTable = new Map();
   let registering = true;
   const implemented = new Set<string>();
   const redact = (value: unknown) => redactPluginText(typeof value === 'string' ? value : JSON.stringify(value) ?? String(value), options.config, options);
@@ -86,6 +96,39 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
         });
       }
     } },
+    // The core-mediated service contract of G4. A provider registers its
+    // methods here; a consumer calls another plugin's method through Core.
+    services: {
+      provide: (service, version, methods) => {
+        const declaration = options.declaredServices?.find(entry => entry.name === service && entry.version === version);
+        if (!registering || !declaration) throw new Error(`Plugin provides undeclared service ${service} v${version}`);
+        const declared = new Set(declaration.methods.map(method => method.name));
+        for (const name of Object.keys(methods)) {
+          if (!declared.has(name)) throw new Error(`Plugin provides undeclared method ${service}.v${version}.${name}`);
+        }
+        for (const name of declared) {
+          if (typeof methods[name] !== 'function') throw new Error(`Plugin declared but did not provide ${service}.v${version}.${name}`);
+          const method = declaration.methods.find(entry => entry.name === name)!;
+          const schemas = options.serviceSchemas?.get(`${service}.v${version}.${name}`);
+          if (!schemas) throw new Error(`Service ${service}.v${version}.${name} has no readable schema`);
+          registerServiceMethod(serviceRegistrations, { service, version, method: name, idempotencyRequired: method.idempotencyRequired, schemas }, methods[name]);
+        }
+      },
+      call: (request: PluginServiceCall) => {
+        if (!options.callService) return Promise.resolve(serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', 'This runtime cannot call a service'));
+        return options.callService(request);
+      },
+      businessError: (error) => serviceBusinessError(error),
+    },
+    // The permissioned commerce read of G4-R.
+    commerce: {
+      orders: {
+        listPaid: async (request) => {
+          if (!options.listPaidOrders) throw new ApiError('PLUGIN_SERVICE_DEPENDENCY_INVALID');
+          return options.listPaidOrders(request);
+        },
+      },
+    },
   };
   // A plugin that never resolves its registration must not hold the caller forever.
   const registerTimeoutMs = Math.min(PLUGIN_REGISTER_TIMEOUT_MS, getPluginTimeoutMs(options.config));
@@ -105,5 +148,11 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
   for (const contract of options.declaredContracts) if (!implemented.has(`${contract.name}:v${contract.version}`)) throw new Error(`Plugin declared but did not implement contract ${contract.name} v${contract.version}`);
   for (const entry of options.subscriptions) if (!handlers.has(`${entry.type}:${entry.version}`)) throw new Error(`Plugin declared but did not register event ${entry.type}:${entry.version}`);
   for (const entry of options.tasks ?? []) if (!taskHandlers.has(`${entry.name}:${entry.version}`)) throw new ApiError('PLUGIN_TASK_DECLARATION_INVALID');
-  return { publish: () => eventHandlers.set(options.installationId, handlers), handlers, taskHandlers };
+  return {
+    publish: () => {
+      eventHandlers.set(options.installationId, handlers);
+      publishServiceRegistrations(options.installationId, serviceRegistrations);
+    },
+    handlers, taskHandlers, serviceRegistrations,
+  };
 }

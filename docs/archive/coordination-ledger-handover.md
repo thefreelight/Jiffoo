@@ -4409,3 +4409,124 @@ Run Shop tests:
 ```
 
 The browser E2E did not run locally: it belongs to CI, and this batch changed no product code.
+
+## 5zad. The G4 service contract: the shared surface and the call path
+
+**Baseline SHA:** `668fbcb7b`. **Commits:** (the commits of this batch).
+
+### What the design asks for, and what this batch delivers
+
+The plugin design's section 7 specifies a core-mediated service contract: a provider plugin
+registers a service, a consumer plugin calls it through Core, and Core decides whether the call
+happens. The manifest-level declarations (`services`, `serviceDependencies`) and their validation
+already existed; the runtime did not.
+
+This batch delivers the contract's spine:
+
+- **The shared surface.** `PluginContext` carries `services` and `commerce`. The service types are
+  the ones the design states: `ServiceResult`, `ProviderOutcome`, `ProviderInvocation`,
+  `BoundPrincipal` and `ProviderHandler`. A new module
+  `packages/shared/src/extensions/service-schema.ts` validates a service schema document: the
+  restricted subset (object, array, string, number, integer, boolean, null, properties, required,
+  additionalProperties, enum, bounded lengths and ranges, local `$defs` only), the 64 KiB payload
+  cap, and a stable digest over the canonical document.
+- **The provider side.** `ctx.services.provide` registers a method only when the manifest declares
+  that service, that version and exactly those methods. The schema files are read from the plugin's
+  own package and validated without executing plugin code.
+- **The call path.** `ctx.services.call` checks the caller's declared dependency, the merchant's
+  grant (`service:<provider>:<service>.v<version>.<method>` in the installation's granted
+  permissions), the provider's declaration and its state, the input schema, the budget (30 seconds
+  by default, 1..30000 ms when the caller shortens it), the depth (8) and the trusted caller
+  identity. The provider is invoked in-process through Core, in the provider's own database scope.
+  A provider's business rejection passes through unchanged with its details; a provider that
+  throws, or that returns an envelope that does not match its declared schema, becomes
+  `PLUGIN_SERVICE_PROVIDER_CRASHED` on the Core arm.
+- **The commerce read of G4-R.** `ctx.commerce.orders.listPaid` returns the paid orders of a
+  window, with the permission `commerce:orders.read`, a window of at most 31 days, a limit of at
+  most 100, keyset pagination over the durable payment ledger, a signed cursor, and the item lines
+  in the published `order.paid` shape.
+- **The tests.** `apps/api/tests/core/plugin-service.test.ts` publishes two real plugins: a provider
+  that offers the `wallet` service and a consumer that calls it. The call succeeds when the
+  merchant granted the method and is refused with `PLUGIN_SERVICE_PERMISSION_DENIED` when the grant
+  is absent. The schema validator has its own cases.
+
+### What this batch does not deliver, and why
+
+- **The durable service call ledger of R1 and R2 is not here.** A method whose declaration says
+  `idempotencyRequired` is REFUSED with `PLUGIN_SERVICE_IDEMPOTENCY_REQUIRED` instead of being
+  invoked without a ledger. A money-like method must not run without its idempotency record.
+- **The lifecycle graph is not here.** Install and enable do not yet refuse a consumer whose
+  provider is missing, disabled or removed; the disable confirmation, the uninstall blocking and
+  the availability gates are not implemented. The grant itself rides the existing
+  `grantedPermissions` mechanism, which the merchant already sets through the instance route.
+- **The admin surface does not list the service permissions yet.** The grant is honoured by the
+  runtime; the preview, install and enable screens do not yet show the declared service methods.
+- **The SDK's `services generate-client` command is not here.**
+- **`PLUGIN_COMMERCE_CURSOR_SECRET` is not in the deployment configuration yet.** The commerce read
+  refuses while the secret is absent, so no cursor is signed with a shared secret.
+- **The caller's remaining deadline does not bound the service call yet.** The call's own budget
+  applies.
+
+### The local evidence
+
+The changed inputs are the shared package, the runtime, the error catalogue and this ledger. The
+planner selects every API suite, because the shared contract surface is on every consumer's load
+path; the certified run is the shard mode.
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: not applicable (the shard mode runs the full API catalogue and the full Admin and Shop suites, covering 240 planner-mandated suite(s))
+Mode: shard mode (--shards=4)
+Gate note: the API suite ran in parallel shards. The Prisma generate, the type check, the Lint Shop step, the test database reset, the Admin suite and the Shop suite ran as well.
+Gate note: this mode is not the complete gate: the browser E2E and the serial full-suite run are not part of it.
+Run API tests in 4 shards:
+Shards: 1, 2, 3, 4 of 4 (4-shard run)
+Run scope: full catalogue (4 shard(s))
+Scope coverage: 214/214 files covered
+Totals: Test Files 214 files, 214 passed | Tests 2822 tests, 2822 passed | Suites 558 suites, 558 passed
+Test conclusion: PASS
+Cleanup conclusion: PASS
+Delivery status: API PASS / cleanup PASS
+--- File coverage ---
+Catalogue files (vitest list --filesOnly, same exclusions, same environment as the shards): 214
+Expected set (the full catalogue, not the assigned subset): 214
+Assigned to this run: 214
+Executed (union over all shards): 214
+Shard 1: 53 files
+Shard 2: 53 files
+Shard 3: 53 files
+Shard 4: 55 files
+Missing files: none
+Extra files: none
+Cross-shard duplicates: none
+Empty shards: none
+Coverage verdict: PASS
+--- Shard results ---
+| Shard | Exit | Duration | Start at | Test Files | Tests | Failed files |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 0 | 647.8s | 22:45:44 | 53 files, 53 passed | 586 tests, 586 passed | none |
+| 2 | 0 | 501.8s | 22:45:45 | 53 files, 53 passed | 659 tests, 659 passed | none |
+| 3 | 0 | 630.7s | 22:45:46 | 53 files, 53 passed | 660 tests, 660 passed | none |
+| 4 | 0 | 622.1s | 22:45:47 | 55 files, 55 passed | 917 tests, 917 passed | none |
+Run Admin tests:
+   Start at  22:56:28
+ Test Files  65 passed (65)
+      Tests  684 passed (684)
+Run Shop tests:
+   Start at  22:56:45
+ Test Files  40 passed (40)
+      Tests  285 passed (285)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 2.87s |
+| Lint Shop | PASS | 7.03s |
+| Reset test database | PASS | 3.20s |
+| Run API tests in 4 shards | PASS | 660.42s |
+| Run Admin tests | PASS | 17.64s |
+| Run Shop tests | PASS | 20.15s |
+```

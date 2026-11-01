@@ -1,4 +1,4 @@
-import { isEventKey, type EventKey, type EventSubscription, type PluginEvent } from '../events/registry';
+import { isEventKey, type EventKey, type EventPayload, type EventSubscription, type PluginEvent } from '../events/registry';
 import { parsePluginConfigSchema } from './plugin-config-schema';
 
 export const PLUGIN_CATEGORIES = [
@@ -184,6 +184,88 @@ export interface PluginContext {
   http: { route(route: { method: string; path: string; handler: (...args: any[]) => unknown }): void };
   events: { subscribe<K extends EventKey>(eventType: K, version: 1, handler: (event: PluginEvent<K>) => Promise<unknown> | unknown): void };
   contracts: { implement(name: string, version: number, implementation: Record<string, (input: unknown) => Promise<unknown> | unknown>): void };
+  /** The core-mediated service contract of G4. */
+  readonly services: PluginServices;
+  /** The permissioned commerce read of G4-R. */
+  readonly commerce: PluginCommerce;
+}
+
+/** The principal a service call carries. Core builds it; a caller never does. */
+export type BoundPrincipal = { type: 'customer' | 'admin'; id: string };
+
+/** The outcome a provider returns. A business rejection is a result, not a throw. */
+export type ProviderOutcome<T> =
+  | { ok: true; data: T }
+  | { ok: false; source: 'provider'; error: { code: string; message: string; details: unknown } };
+
+/** The result of a service call. The source discriminator is mandatory. */
+export type ServiceResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; source: 'provider'; error: { code: string; message: string; details: unknown } }
+  | { ok: false; source: 'core'; error: { code: string; message: string; details?: unknown } };
+
+/** What Core hands a provider with every invocation. */
+export type ProviderInvocation = {
+  callId: string;
+  reconcile: boolean;
+  signal: AbortSignal;
+  caller: Readonly<{
+    installationId: string; slug: string; version: string;
+    principal: BoundPrincipal | null; requestId: string;
+  }>;
+};
+
+/** A provider's handler for one method. */
+export type ProviderHandler<I = unknown, O = unknown> = (
+  input: I,
+  context: ProviderInvocation,
+) => Promise<ProviderOutcome<O> | { outcome: 'NOT_EXECUTED' }>;
+
+/** The request of a service call. */
+export interface PluginServiceCall {
+  plugin: string;
+  service: string;
+  version: number;
+  method: string;
+  input: unknown;
+  idempotencyKey: string;
+  timeoutMs?: number;
+}
+
+/** The service surface of a plugin. */
+export interface PluginServices {
+  /** Registers the provider's methods. The registration must match the manifest exactly. */
+  provide(service: string, version: number, methods: Record<string, ProviderHandler>): void;
+  /** Calls a provider's method through Core. */
+  call(request: PluginServiceCall): Promise<ServiceResult<unknown>>;
+  /** Builds a business rejection that passes through the provider arm unchanged. */
+  businessError(error: { code: string; message: string; details?: unknown }): {
+    ok: false; source: 'provider'; error: { code: string; message: string; details: unknown };
+  };
+}
+
+/** The paid order a commerce read returns. */
+export interface PaidOrder {
+  orderId: string;
+  orderNumber: string;
+  customerId: string;
+  paidAt: string;
+  currency: string;
+  paymentStatus: string;
+  amounts: { subtotal: string; shipping: string; tax: string; total: string };
+  items: EventPayload<'order.paid'>['order']['items'];
+}
+
+/** The commerce read a plugin may ask for, with the permission `commerce:orders.read`. */
+export interface PluginCommerce {
+  orders: {
+    listPaid(request: { from: string; to: string; cursor?: string | null; limit?: number }): Promise<{
+      items: PaidOrder[];
+      nextCursor: string | null;
+      from: string;
+      to: string;
+    }>;
+  };
 }
 
 export interface PluginEntryModule {

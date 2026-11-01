@@ -32,6 +32,8 @@ export async function withTaskScope<T>(scope: Omit<TaskScope, 'open'>, run: () =
   return scopes.run(admission, async () => { try { return await run(); } finally { admission.open = false; } });
 }
 export function currentTaskClaim(): TaskClaim | undefined { return scopes.getStore()?.claim; }
+/** The principal of the caller in the current scope, when there is one. */
+export function currentTaskPrincipal(): TaskPrincipal | null { return scopes.getStore()?.principal ?? null; }
 export function withInstallationTaskHandler<T>(installationId: string, generation: bigint, zipHash: string, run: () => Promise<T>): Promise<T> {
   const inherited = scopes.getStore();
   if (inherited?.installationId === installationId) return run();

@@ -22,7 +22,7 @@
 
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { randomUUID } from 'crypto';
-import { assertTaskClaim, recordTaskPrincipal, withTaskScope, taskDeclarationIdentity, type TaskClaim } from '@/core/plugins/tasks';
+import { assertTaskClaim, recordTaskPrincipal, withTaskScope, taskDeclarationIdentity, currentTaskPrincipal, type TaskClaim } from '@/core/plugins/tasks';
 import type { TaskInput, PluginTasks, TaskHandlerOptions } from '@jiffoo/shared';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { getDefaultInstance } from '@/core/extensions/registry';
@@ -42,7 +42,9 @@ import { pluginDatabaseLimit } from './plugin-database-test-control';
 import { registerPluginStateReset } from '@/core/extensions/runtime/plugin-state';
 import { recordPluginFailure, redactPluginFailure } from '@/core/extensions/runtime/failure';
 import { readStoredPluginManifest } from '@/core/extensions/runtime/stored-manifest';
-import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, type PluginContractName, type PluginEvent, type PluginEventHandler } from '@jiffoo/shared';
+import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV2Methods, PLUGIN_CONTRACT_VERSIONS, shippingV1Methods, taxV1Methods, validateServicePayload, validateServicePayloadSize, type BoundPrincipal, type PluginContractName, type PluginEvent, type PluginEventHandler, type PluginServiceCall, type PluginServiceDependencyDeclaration, type ServiceResult } from '@jiffoo/shared';
+import { providerInvocation, providerOutcomeToResult, serviceCoreError, serviceKey, servicePermission, serviceRegistrationsOf, SERVICE_CALL_DEFAULT_TIMEOUT_MS, SERVICE_CALL_MAX_DEPTH, SERVICE_CALL_MAX_TIMEOUT_MS, SERVICE_CALL_MIN_TIMEOUT_MS, type ServiceMethodSchemas } from '@/core/extensions/runtime/service-runtime';
+import { listPaidOrders } from '@/core/extensions/runtime/commerce-query';
 import { prisma } from '@/config/database';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from '@/core/admin/extension-installer/plugin-registry-freshness';
@@ -710,6 +712,7 @@ async function ensureInternalRuntime(
     const config = ctx.config || {};
     
     // Phase 2: Register and ready (may fail here)
+    const serviceSchemas = await readServiceSchemas(pluginPackage, manifest);
     const registration = await registerContractV1Runtime(candidateApp, pluginEntry, {
       slug,
       installationId: ctx.installationId,
@@ -721,6 +724,17 @@ async function ensureInternalRuntime(
       declaredContracts: manifest.contracts || [],
       subscriptions: manifest.subscriptions || [],
       tasks: manifest.tasks || [],
+      declaredServices: manifest.services || [],
+      serviceSchemas,
+      callService: (request: PluginServiceCall) => callService({
+        installationId: ctx.installationId,
+        slug,
+        version: manifest.version,
+        principal: currentTaskPrincipal(),
+        requestId: randomUUID(),
+        dependencies: manifest.serviceDependencies || [],
+      }, request),
+      listPaidOrders: (request) => listPaidOrders(ctx.installationId, request),
     });
     await candidateApp.ready();
 
@@ -941,6 +955,167 @@ registerPluginStateReset('internal-runtimes', async (slug, installationId) => {
     .map(([runtimeId]) => runtimeId);
   await Promise.all(runtimeIds.map((runtimeId) => dropInternalRuntime(runtimeId)));
 });
+
+/**
+ * The schema documents of the declared service methods. The files live in the
+ * plugin's own package, so they are read from it and validated without
+ * executing plugin code.
+ */
+async function readServiceSchemas(pluginPackage: { readText(relativePath: string): Promise<string> }, manifest: PluginManifest): Promise<Map<string, ServiceMethodSchemas>> {
+  const schemas = new Map<string, ServiceMethodSchemas>();
+  for (const declaration of manifest.services ?? []) {
+    for (const method of declaration.methods) {
+      const key = `${declaration.name}.v${declaration.version}.${method.name}`;
+      let document: unknown;
+      try {
+        document = JSON.parse(await pluginPackage.readText(method.schema));
+      } catch {
+        throw new Error(`The service ${key} has an unreadable schema ${method.schema}`);
+      }
+      schemas.set(key, document as ServiceMethodSchemas);
+    }
+  }
+  return schemas;
+}
+
+/**
+ * The G4 service call: a consumer calls a provider's method through Core.
+ *
+ * The checks happen in order and every refusal stays on the Core arm of the
+ * result. The provider's business rejection passes through unchanged, and only
+ * the provider's own crash becomes a Core error. The provider is invoked
+ * in-process through Core, never over HTTP and never through a queue.
+ */
+export async function callService(
+  caller: {
+    installationId: string; slug: string; version: string;
+    principal: BoundPrincipal | null; requestId: string;
+    dependencies: PluginServiceDependencyDeclaration[];
+  },
+  request: PluginServiceCall,
+  options?: { depth?: number },
+): Promise<ServiceResult<unknown>> {
+  const depth = options?.depth ?? 0;
+  if (depth >= SERVICE_CALL_MAX_DEPTH) {
+    return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', `A service call may not nest deeper than ${SERVICE_CALL_MAX_DEPTH}`);
+  }
+  const dependency = caller.dependencies.find(entry => entry.plugin === request.plugin
+    && entry.service === request.service && entry.version === request.version
+    && entry.methods.includes(request.method));
+  if (!dependency) {
+    return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', `The plugin does not declare the service dependency ${request.plugin}/${request.service}.v${request.version}.${request.method}`);
+  }
+  if (typeof request.idempotencyKey !== 'string' || !request.idempotencyKey.trim()) {
+    return serviceCoreError('PLUGIN_SERVICE_IDEMPOTENCY_REQUIRED', 'A service call needs an idempotency key');
+  }
+
+  const consumer = await prisma.pluginInstallation.findUnique({ where: { id: caller.installationId } });
+  if (!consumer) return serviceCoreError('PLUGIN_SERVICE_PERMISSION_DENIED', 'The calling installation does not exist');
+  const granted = parseJsonArray(consumer.grantedPermissions);
+  const permission = servicePermission(request.plugin, request.service, request.version, request.method);
+  if (!granted.includes(permission)) {
+    return serviceCoreError('PLUGIN_SERVICE_PERMISSION_DENIED', `The method ${permission} is not granted to this plugin`);
+  }
+
+  const pkg = await PluginManagementService.getPluginPackage(request.plugin);
+  const instance = await getDefaultInstance(request.plugin);
+  if (!pkg || !instance) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE', `The provider ${request.plugin} is not installed`);
+  if (!instance.enabled || instance.deletedAt) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE', `The provider ${request.plugin} is not enabled`);
+  let providerManifest: PluginManifest;
+  try {
+    providerManifest = await readPluginManifest(pkg);
+  } catch (error) {
+    await recordPluginFailure(request.plugin, error, 'service', instance.id);
+    return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE', `The provider ${request.plugin} cannot be loaded`);
+  }
+  const declaration = providerManifest.services?.find(entry => entry.name === request.service && entry.version === request.version);
+  const method = declaration?.methods.find(entry => entry.name === request.method);
+  if (!declaration || !method) {
+    return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', `The provider ${request.plugin} does not declare ${request.service}.v${request.version}.${request.method}`);
+  }
+  // The durable service call ledger is the next batch. Until it exists, a method
+  // that requires an idempotent outcome is refused rather than invoked.
+  if (method.idempotencyRequired) {
+    return serviceCoreError('PLUGIN_SERVICE_IDEMPOTENCY_REQUIRED', `The method ${permission} requires an idempotent outcome that this Core cannot record yet`);
+  }
+
+  const permit = await sharedProtection.breaker(pluginProtectionScope(instance.id, instance.protectionGeneration));
+  if (!permit) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE', `The provider ${request.plugin} is not available`);
+
+  const config = decryptPluginConfig(providerManifest, parseJsonObject(instance.configJson));
+  let runtime: InternalRuntime | undefined;
+  try {
+    runtime = await ensureInternalRuntime(request.plugin, providerManifest, {
+      slug: request.plugin, zipHash: pkg.zipHash || '', installationId: instance.id,
+      protectionGeneration: instance.protectionGeneration, instanceKey: instance.instanceKey, config,
+    }, true);
+  } catch (error) {
+    await recordPluginFailure(request.plugin, error, 'service', instance.id);
+    await sharedProtection.result(permit, false);
+    return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_UNAVAILABLE', `The provider ${request.plugin} cannot be loaded`);
+  }
+  const activeRuntime = runtime;
+  const registration = serviceRegistrationsOf(instance.id)?.get(serviceKey(request.service, request.version, request.method));
+  if (!registration) {
+    void releaseRuntime(activeRuntime);
+    return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', `The provider ${request.plugin} does not provide ${request.service}.v${request.version}.${request.method}`);
+  }
+  const size = validateServicePayloadSize(request.input);
+  if (size.length) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', size[0].message);
+  const inputIssues = validateServicePayload(registration.schemas.input, request.input);
+  if (inputIssues.length) return serviceCoreError('PLUGIN_SERVICE_DEPENDENCY_INVALID', 'The call input does not match the declared schema');
+
+  const timeoutMs = Math.min(
+    Math.max(typeof request.timeoutMs === 'number' ? Math.trunc(request.timeoutMs) : SERVICE_CALL_DEFAULT_TIMEOUT_MS, SERVICE_CALL_MIN_TIMEOUT_MS),
+    SERVICE_CALL_MAX_TIMEOUT_MS,
+  );
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let timedOut = false;
+  const deadline = new Promise<never>((_, reject) => {
+    setTimeout(() => { timedOut = true; controller.abort(); reject(new Error('SERVICE_TIMEOUT')); }, timeoutMs);
+  });
+  const invocation = providerInvocation({
+    callId: randomUUID(),
+    reconcile: false,
+    signal: controller.signal,
+    caller: {
+      installationId: caller.installationId, slug: caller.slug, version: caller.version,
+      principal: caller.principal, requestId: caller.requestId,
+    },
+  });
+  try {
+    const outcome = await Promise.race([
+      // The provider's handler runs in the provider's own database scope: the
+      // invocation admits it and the handler scope lets it use its own tables.
+      withPluginDatabaseInvocation(request.plugin, instance.id, () => withPluginDatabaseHandler(
+        request.plugin, instance.id, () => registration.handler(request.input, invocation),
+      )),
+      deadline,
+    ]);
+    return providerOutcomeToResult(outcome, registration.schemas);
+  } catch (error) {
+    if (timedOut) return serviceCoreError('PLUGIN_SERVICE_TIMEOUT', `The provider ${request.plugin} did not answer within ${timeoutMs}ms`);
+    await recordPluginFailure(request.plugin, error, 'service', instance.id);
+    await sharedProtection.result(permit, false);
+    return serviceCoreError('PLUGIN_SERVICE_PROVIDER_CRASHED', 'The provider failed to answer the service call');
+  } finally {
+    clearTimeout(timer);
+    void releaseRuntime(activeRuntime);
+  }
+}
+
+/** The granted permissions of an installation, as a plain array. */
+function parseJsonArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((entry): entry is string => typeof entry === 'string');
+  if (typeof value !== 'string' || !value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === 'string') : [];
+  } catch {
+    return [];
+  }
+}
 
 export async function deliverInstallationEvent(installationId: string, event: PluginEvent, signal?: AbortSignal): Promise<string | null> {
   try {
