@@ -24,7 +24,7 @@ is a Git-conflict-avoidance measure only; it is not a seniority relation.
 ## 0. The state of the line
 
 **Measured on:** 2026-10-31, against the tree of the branch of record. The open items were extended
-on 2026-11-01 (§5zw, §5zy); the other rows are the measurement of 2026-10-31 and were not
+on 2026-11-01 (§5zw, §5zy, §5zaa); the other rows are the measurement of 2026-10-31 and were not
 re-measured.
 
 ### The branches
@@ -77,8 +77,8 @@ that were open when it was written; §5w names all four.
 | an audit row may be lost when the database refuses the write | §5zg, §5zh | open by decision; the money state is the truth that must not be undone |
 | the conflict surface against `main` | §5zi | measured and unchanged; it is not resolved here |
 | the bridge version a downstream plugin links | §5zw | open as of 2026-11-01; the tree builds `1.0.0-alpha.1`, the imager package links a tarball labelled `1.0.0-alpha.4` whose four dist files are byte-identical to the tree's build |
-| the bridge is not published, so a downstream plugin carries a tarball | §5zw | open as of 2026-11-01; the repository declares no publish path for `@jiffoo/plugin-bridge` |
-| the product-to-credit mapping the purchase path needs | §5zw | open as of 2026-11-01; no product variant exists, so `cart.add` has no valid `variantId` |
+| the bridge does not ride the Core release as an asset | §5zaa | open as of 2026-11-01; the SDK has that shape today, the bridge does not; npm publishing is deferred by the plugin design until the owner supplies an npm organisation |
+| the plugin service contract (G4) and the paid-order reconciliation (G4-R) | §5zaa | open as of 2026-11-01; unimplemented, so no plugin can debit credits or reconcile a paid order; the wallet is a plugin and the credit product is merchant content |
 | the imagic page code in a real browser | §5zw | open as of 2026-11-01; the Core mechanism is proven by the browser E2E, the plugin's own page is not |
 | the update acceptance of the deployment update | §5zy | fixed in the tree on 2026-11-01; the deployment environment now carries the test-signing configuration, and the update jobs of CI are its check |
 
@@ -230,6 +230,7 @@ of that day.
 | 5zx | The documentation set, consolidated | `6da9ab1a4` |
 | 5zy | The update acceptance of the deployment update | `a7104938e` |
 | 5zz | The charter and the plugin design, cut down | `e7b05fa6b` |
+| 5zaa | The bridge distribution and the credits dependency, named precisely | `668fbcb7b` |
 
 ## 6. The archive
 

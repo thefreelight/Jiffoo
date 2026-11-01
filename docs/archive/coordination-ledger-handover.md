@@ -4046,3 +4046,104 @@ The browser E2E did not run locally: it belongs to CI, and this batch changed no
 
 
 
+
+## 5zaa. The bridge distribution and the credits dependency, named precisely
+
+**Baseline SHA:** `668fbcb7b`. **Commits:** (the commits of this batch).
+
+### What §5zw left imprecise
+
+Two rows of the open-items board named a dependency that is not a single deliverable, and one of
+them named a task the plugin design defers on purpose.
+
+§5zw said that the product-to-credit mapping "is a Core deliverable" and that it "is not the
+plugin line's to build". The first half is right. The second half is too coarse: the credits are
+not a Core concept at all, and the thing Core owes is a contract, not a feature.
+
+### The credits dependency, in three parts
+
+The plugin design answers this in §7 (G4) and in its reconciliation section (G4-R), and the live
+ledger already carries the gap: the core-mediated plugin services and the paid-order
+reconciliation are "not implemented (G4 and G4-R)".
+
+- **Core owes the contract, not the balance.** A wallet *provider* plugin exports
+  `ctx.services.provide('wallet',1,{debit})`, and a consumer plugin calls it with
+  `ctx.services.call({plugin:'wallet-provider',service:'wallet',version:1,method:'debit',...})`.
+  The consumer needs G4 for that call to exist, and G4-R's `ctx.commerce.orders.listPaid` for the
+  provider to credit an order it never saw an event for. Both are Core code and both are
+  unimplemented.
+- **The wallet is a plugin, so the balance is the plugin's own table.** No Core table holds a
+  credit balance, and `BUILTIN_PLUGIN_SLUGS` holds no wallet: its five members are the payment and
+  fulfilment providers of the commerce core.
+- **The credit product is content, not code.** `cart.add` needs a variant identifier
+  (`^c[a-z0-9]{24}$`), and a variant is a merchant's row in the Core catalogue. Nothing has to be
+  built for it; a merchant has to create it.
+
+The chain is therefore: Core implements G4 and G4-R → the wallet provider can credit a paid order
+→ imagic can debit credits for a generation through the service contract. Until then the purchase
+button stays hidden, which is what §5zw already said.
+
+### The bridge is distributed as a release asset, and npm waits for the owner
+
+§5zw registered that "the Core line publishes the bridge". The plugin design says otherwise, in
+§10 (G7): every Core release attaches a self-contained SDK tarball as a release asset, the
+pre-release series is `1.0.0-alpha.N` starting at alpha.1, and "npm publishing comes later,
+after the owner supplies an npm organisation".
+
+So the task is not publishing, and it is not the plugin line's problem either:
+
+- **Core owes a release asset.** The bridge takes the shape the SDK already has:
+  `packages/plugin-bridge/scripts/build.mjs`, an `npm pack`, and a standalone verification beside
+  `scripts/plugin-sdk-standalone.mjs`. The release then attaches
+  `jiffoo-core-plugin-bridge-1.0.0-alpha.N.tgz`.
+- **The plugin line installs that asset** with `--save-exact` and records the Core version it
+  came from. The label and the bytes then agree, which is the whole of §5zw's rule.
+- **npm publishing is deferred by the design** until the owner supplies an npm organisation. It is
+  not a defect and it is not an open item of this line.
+
+This also settles the alpha.4 question completely. The series starts at alpha.1, so alpha.4 is a
+member of it only if two releases were skipped. The tree never carried it, the vendored tarball is
+byte-identical to the tree's build, and the label was a local bump of an alpha.1 artifact.
+
+### The open items of this section
+
+| Item | Owner | State on 2026-11-01 |
+| --- | --- | --- |
+| the bridge rides the Core release as an asset | Core line | open; the SDK has that shape today, the bridge does not |
+| the plugin service contract (G4) and the paid-order reconciliation (G4-R) | Core line | open; unimplemented, so no plugin can debit credits or reconcile a paid order |
+| the wallet provider plugin | the plugin line | open; the design names the provider slug and the `wallet` v1 service, and no such plugin exists |
+| the credit product in the catalogue | the merchant | open; `cart.add` has no valid `variantId` until a variant exists |
+
+### The local evidence
+
+The changed inputs are this file and `docs/coordination-ledger.md`; both are documents. The
+planner adds no suite for a document, and the default scope therefore runs the type check, the
+lint, the database reset and the Shop suite. The summary of that run, printed from
+`verify-summary.txt`:
+
+```
+=== Final test summary ===
+Scope: default
+Lane: integration
+Database: jiffoo_core_test
+Planner added suites: none
+Run changed API tests:
+No changed API test files
+Run Shop tests:
+   Start at  20:56:10
+ Test Files  40 passed (40)
+      Tests  285 passed (285)
+
+| Step | Result | Duration |
+| --- | --- | --- |
+| Prisma generate | PASS | 0.01s |
+| Type-check API, Admin, Shop and shared | PASS | 9.90s |
+| Lint Shop | PASS | 7.02s |
+| Reset test database | PASS | 3.05s |
+| Run changed API tests | PASS | 5.05s |
+| Run Shop tests | PASS | 21.58s |
+```
+
+This section and the rows of the index were written after that run, and they changed no
+executable input. The browser E2E did not run locally: it belongs to CI, and this batch changed
+no product code.
